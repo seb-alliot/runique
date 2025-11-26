@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block header %}
+
+    <div class="crab">🦀</div>
+    <div class="content">
+        <p style="text-align: center; font-size: 18px; margin-bottom: 30px;">
+            A modern, Django-inspired web framework built with Rust's power and safety.
+        </p>
+
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 8px; margin-top: 30px;">
+            <h2 style="color: #667eea; margin-bottom: 15px;">✨ Key Features</h2>
+            <ul style="margin-left: 20px; margin-top: 15px;">
+            </ul>
+        </div>
+
+        <div style="background: #fff3cd; padding: 30px; border-radius: 8px; margin-top: 30px; border-left: 4px solid #ffc107;">
+            <h2 style="color: #856404; margin-bottom: 15px;">🚀 Why Rusti?</h2>
+            <p style="color: #856404; line-height: 1.8;">
+                Rusti brings the elegant architecture patterns of Django to the Rust ecosystem.
+                If you love Django's "batteries included" philosophy but want Rust's performance
+                and type safety, Rusti is for you. Built on top of battle-tested libraries like
+                Axum, Tera, and SeaORM, Rusti lets you build fast, reliable web applications
+                with ease.
+            </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <p style="color: #999;">Made with ❤️ and 🦀</p>
+        </div>
+    </div>
+
+{% endblock %}
+        {% block footer %}
+        <a href="/">🏠 Revenir à l'accueil</a>
+        <p>&copy; 2024 My Web Application</p>
+        {% endblock %}

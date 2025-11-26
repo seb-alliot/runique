@@ -1,0 +1,21 @@
+<!-- STACK TRACE -->
+{% if stack_trace %}
+    <div class="section">
+        <h2 class="section-title">
+            <span>📚</span>
+            <span>Stack Trace</span>
+        </h2>
+        <div class="stack-trace">
+            {% for frame in stack_trace %}
+                <div class="stack-item">
+                    <strong>Level {{ frame.level }}:</strong> {{ frame.message }}
+                    {% if frame.location %}
+                        <div style="color: #6272a4; margin-top: 4px; font-size: 12px;">
+                            📍 {{ frame.location }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
