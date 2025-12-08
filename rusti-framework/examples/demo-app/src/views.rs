@@ -8,7 +8,7 @@ use rusti::{
 };
 
 
-use rusti::middleware_folder::error_handler::return_redirect;
+use rusti::middleware::error_handler::render_template;
 use std::sync::Arc;
 use serde_json::json;
 
@@ -23,7 +23,7 @@ pub async fn index(
         "debug": config.debug,
     })).unwrap_or_default();
 
-    return_redirect(&tera, "base1.html", &context, StatusCode::OK, &config)
+    render_template(&tera, "base.html", &context, StatusCode::OK, &config)
 }
 
 /// Page "À propos"
@@ -36,5 +36,5 @@ pub async fn about(
         "debug": config.debug,
     })).unwrap_or_default();
 
-    return_redirect(&tera, "about/about.html", &context, StatusCode::OK, &config)
+    render_template(&tera, "about/about.html", &context, StatusCode::OK, &config)
 }

@@ -1,11 +1,25 @@
+:root {
+    /* Define color variables */
+    --primary-color: #667eea;
+    --background-color: #f5f5f5;
+    --border-left : 4px solid #ffc107;
+    --text-coloration: #856404;
+
+    /* Define responsive logo size */
+    --logo-rusti-size: clamp(3rem, 8vw, 6rem);
+    --space-btwn: clamp(1rem, 4vw, 2rem);
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     background-color: #000000;
-    color: #ffffff;
+    color: var(--background-color);
     height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 html {
@@ -19,13 +33,22 @@ header > img {
     background-size: cover;
     display: block;
     margin: 0 auto;
-    justify-content: center;
+
 }
 
-.content {
+.content, footer {
     display: flex;
+}
+.content, footer, header > image {
+    justify-content: center;
     align-items: center;
+}
+.content {
     flex-direction: column;
+    flex: 1;
+}
+#key-features h2, #key-features p ,#why-rusti h2 {
+    text-align: center;
 }
 img {
     width: 100vw;
@@ -34,10 +57,55 @@ img {
 }
 
 footer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #ffffff;
+    background-color: var(--background-color);
     color: #888888;
     width: 100%;
+}
+
+
+div.content > p {
+    margin: 0.5rem auto;
+}
+
+.crab{
+    align-self: center;
+    font-size: var(--logo-rusti-size);
+}
+
+#key-features, #why-rusti {
+    width: 50%;
+}
+
+#key-features {
+    background: var(--background-color);
+    padding: var(--space-btwn);
+    border-radius: 8px;
+    border-left: var(--border-left);
+    margin-top: var(--space-btwn);
+}
+
+#key-features h2 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+#key-features p {
+    font-size: 18px;
+    margin-bottom: var(--space-btwn);
+}
+
+#why-rusti {
+    background: var(--background-color);
+    padding: var(--space-btwn);
+    border-radius: 8px;
+    margin-top: var(--space-btwn);
+    border-left: var(--border-left);
+}
+
+#why-rusti h2 {
+    color: var(--text-coloration);
+    margin-bottom: 15px;
+}
+#why-rusti p {
+    color: var(--text-coloration);
+    line-height: 1.8;
 }
