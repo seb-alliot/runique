@@ -2,7 +2,7 @@
 
 Complete guide to all documentation in the Rusti framework.
 
-## 🚀 Getting Started (Start Here!)
+## Getting Started (Start Here!)
 
 | Document | Purpose | Time to Read |
 |----------|---------|--------------|
@@ -55,23 +55,23 @@ Complete guide to all documentation in the Rusti framework.
 #### Start Immediately
 → [QUICKSTART.md](QUICKSTART.md)
 
-#### Learn by Example  
-→ [TUTORIAL.md](TUTORIAL.md)  
+#### Learn by Example
+→ [TUTORIAL.md](TUTORIAL.md)
 → [examples/demo-app/](examples/demo-app/)
 
 #### Understand the Framework
-→ [README.md](README.md)  
+→ [README.md](README.md)
 → [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)
 
 #### Migrate My Code
-→ [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)  
+→ [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)
 → [BEFORE_AFTER.md](BEFORE_AFTER.md)
 
 #### Contribute to the Project
 → [CONTRIBUTING.md](CONTRIBUTING.md)
 
 #### Deploy to Production
-→ [README.md](README.md) (Production section)  
+→ [README.md](README.md) (Production section)
 → [examples/demo-app/README.md](examples/demo-app/README.md) (Deployment)
 
 ## 📂 Document Hierarchy

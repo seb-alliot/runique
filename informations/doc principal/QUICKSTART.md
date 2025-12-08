@@ -1,4 +1,4 @@
-# 🚀 Guide de démarrage rapide - Rusti Framework
+# Guide de démarrage rapide - Rusti Framework
 
 ## Installation
 
@@ -53,6 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build();
 
     // Routes
+    // Vous pouvez creez un fichier annex nommé urls par exemple et le placer ici .routes(url::urls()) dans votre main.rs par exemple
     let routes = Router::new()
         .route("/", get(views::index));
 
@@ -68,6 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
 
 ### src/views.rs
 
@@ -153,7 +155,7 @@ let routes = Router::new()
     // Pages
     .route("/", get(views::index))
     .route("/about", get(views::about))
-    
+
     // API
     .route("/api/users", get(api::list_users))
     .route("/api/users", post(api::create_user))
@@ -208,7 +210,7 @@ pub async fn api_status() -> Response {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::default_values();
-    
+
     RustiApp::new(settings).await?
         .with_database().await?  // Ajoute la connexion DB
         .routes(routes)
@@ -217,7 +219,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_default_middleware()
         .run()
         .await?;
-    
+
     Ok(())
 }
 ```

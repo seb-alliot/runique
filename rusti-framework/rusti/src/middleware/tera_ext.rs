@@ -1,7 +1,7 @@
 use axum::{response::Response, http::StatusCode};
 use tera::{Tera, Context};
 use crate::settings::Settings;
-use crate::middleware::error_handler::render_safe;
+use crate::middleware::error_handler::render_template;
 
 /// Extension trait pour Tera qui ajoute des méthodes de rendu sécurisées
 ///
@@ -23,12 +23,12 @@ use crate::middleware::error_handler::render_safe;
 pub trait TeraSafe {
     /// Rend un template avec gestion d'erreur intégrée
     ///
-    /// Cette méthode remplace l'appel manuel à `return_render` et fournit:
+    /// Cette méthode remplace l'appel manuel à `render_template` et fournit:
     /// - Gestion automatique des erreurs de template
     /// - Pages de debug détaillées en mode développement
     /// - Pages d'erreur simples en production
     /// - Prévention des boucles infinies d'erreur
-    fn render_render(
+    fn render_safe(
         &self,
         template: &str,
         context: &Context,
@@ -38,14 +38,14 @@ pub trait TeraSafe {
 }
 
 impl TeraSafe for Tera {
-    fn render_render(
+    fn render_safe(
         &self,
         template: &str,
         context: &Context,
         status: StatusCode,
         config: &Settings
     ) -> Response {
-        render_safe(self, template, context, status, config)
+        render_template(self, template, context, status, config)
     }
 }
 

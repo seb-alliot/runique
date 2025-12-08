@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use std::error::Error;
 
 use axum::{Router, middleware, Extension};
+use axum::http::StatusCode;
 use tower::ServiceBuilder;
 use tower_http::{
     services::ServeDir,
@@ -18,8 +19,8 @@ use tera::Context;
 
 #[cfg(feature = "orm")]
 use crate::settings::Settings;
-use crate::middleware_folder::error_handler::error_handler_middleware;
-use crate::middleware_folder::error_handler::render_index;
+use crate::middleware::error_handler::error_handler_middleware;
+use crate::middleware::error_handler::render_index;
 use crate::response::render_simple_404;
 
 /// Structure principale de l'application Rusti
@@ -56,8 +57,6 @@ impl RustiApp {
         let mut tera = Tera::default();
 
         // 1. CHARGER D'ABORD LES TEMPLATES DU FRAMEWORK (embarqués)
-        println!("Loading built-in framework templates in app.rs...");
-
 
         const INDEX_DEFAULT_TEMPLATE: &str = include_str!("../templates/errors/index.html");
         const ERROR_DEBUG_TEMPLATE: &str = include_str!("../templates/errors/debug_error.html");
@@ -174,7 +173,6 @@ impl RustiApp {
         Ok(self)
     }
 
-
     /// Configure les sessions
     pub fn with_sessions(mut self) -> Self {
         let session_store = MemoryStore::default();
@@ -189,36 +187,30 @@ impl RustiApp {
     /// Configure les middlewares par défaut (erreurs, timeouts, etc.)
     pub fn with_default_middleware(mut self) -> Self {
         let tera_for_fallback = self.tera.clone();
-        let config_for_fallback = self.config.clone();  // ✅ Cloner la config
+        let config_for_fallback = self.config.clone();
 
         self.router = self.router
             // Fallback 404 et index par défaut
             .fallback(move |uri: axum::http::Uri| {
                 let tera = tera_for_fallback.clone();
-                let config = config_for_fallback.clone();  // ✅ Cloner pour cette requête
+                let config = config_for_fallback.clone();
                 async move {
-                    // Si c'est la racine, essaie de rendre index.html
                     if uri.path() == "/" {
                         let context = Context::new();
-                        return render_index(&tera, &context, &config);  // ✅ Utiliser config
+                        return render_index(&tera, &context, &config);
                     }
 
-                    // Sinon, 404
                     render_simple_404(&tera)
                 }
             })
-            // Tower layers (de bas en haut)
             .layer(
                 ServiceBuilder::new()
                     .layer(TraceLayer::new_for_http())
-                    .layer(TimeoutLayer::new(std::time::Duration::from_secs(10)))
-            )
-            // Middleware d'erreur
+                    .layer(TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, std::time::Duration::from_secs(10))))
             .layer(middleware::from_fn(error_handler_middleware));
 
         self
     }
-    /// Construit le router final
     pub fn build(self) -> Router {
         self.router
     }
@@ -239,14 +231,13 @@ impl RustiApp {
     /// ```
     pub async fn run(self) -> Result<(), Box<dyn Error>> {
         println!("🦀 Rusti Framework v{}", crate::VERSION);
-        println!("🚀 Starting server at http://{}", self.addr);
+        println!("   Starting server at http://{}", self.addr);
 
         let router_with_extensions = self.router
             .layer(Extension(self.config.clone()))
             .layer(Extension(self.tera.clone()));
 
     let listener = TcpListener::bind(&self.addr).await?;
-    // Utilisez le routeur finalisé
     let server = axum::serve(listener, router_with_extensions);
         // Arrêt propre avec Ctrl+C
         tokio::select! {

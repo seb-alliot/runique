@@ -37,7 +37,7 @@ pub async fn error_handler_middleware(
     response
 }
 
-pub fn return_redirect(
+pub fn render_template(
     tera: &Tera,
     template: &str,
     context: &Context,

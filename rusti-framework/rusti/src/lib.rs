@@ -18,7 +18,7 @@
 
 pub mod app;
 pub mod settings;
-pub mod middleware_folder;
+pub mod middleware;
 pub mod response;
 pub mod error;
 

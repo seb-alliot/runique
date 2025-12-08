@@ -1,5 +1,4 @@
 use std::vec;
-
 use serde::{Deserialize, Serialize};
 
 /// Configuration principale de l'application Rusti
