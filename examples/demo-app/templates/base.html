@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+
+</head>
+<body>
+    {% if debug %}
+    <div class="debug-banner">
+        <strong>Debug Mode Activé</strong>
+    </div>
+    {% endif %}
+
+    {% block header %}
+    <header>
+        <img src="/media/toshiro.jpg" alt="Logo">
+    </header>
+    {% endblock %}
+
+    {% block message %}
+        {% include "message" %}
+    {% endblock %}
+
+    {% block content %}
+    <div class="content">
+        <h1>{{ title }}</h1>
+        <p>Ceci est une application web développée avec Rust.</p>
+        <p>Framework en cours de développement...</p>
+        <p>J'utilise axum pour le backend</p>
+        <p>Tera pour moteur de templates.</p>
+        <p>Tokio comme runtime asynchrone</p>
+        <p>Tower pour les sessions.</p>
+    </div>
+    {% endblock %}
+
+    <footer>
+        {% block footer %}
+        <a href="/about">À propos</a>
+        <p>&copy; 2025 My Web Application</p>
+        {% endblock %}
+    </footer>
+</body>
+</html>

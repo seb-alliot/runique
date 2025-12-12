@@ -1,0 +1,46 @@
+[package]
+name = "rusti"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "A Django-inspired web framework for Rust"
+keywords = ["web", "framework", "axum", "django"]
+categories = ["web-programming::http-server"]
+
+[dependencies]
+# Framework web
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tower-sessions.workspace = true
+
+# Runtime async
+tokio.workspace = true
+
+# Sérialisation
+serde.workspace = true
+serde_json.workspace = true
+
+# Templates
+tera.workspace = true
+glob = "0.3"
+
+# ORM
+sea-orm = { workspace = true, optional = true }
+
+# Utilitaires
+dotenvy.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Async
+async-trait.workspace = true
+
+[features]
+default = ["orm"]
+orm = ["dep:sea-orm"]
