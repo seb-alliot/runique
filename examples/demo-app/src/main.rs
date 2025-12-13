@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     RustiApp::new(settings).await?
         .routes(url::urls())
         .with_static_files()?
-        .with_sessions()
+        .with_flash_messages()
         .with_default_middleware()
         .run()
         .await?;

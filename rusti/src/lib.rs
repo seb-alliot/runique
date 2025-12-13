@@ -22,9 +22,12 @@ pub mod middleware;
 pub mod response;
 pub mod error;
 pub mod orm;
-pub mod flash_message;
-pub use flash_message::flash_message::Message;
-pub use flash_message::flash_message::FlashMessageSession;
+pub mod processor;
+
+pub use middleware::flash_message::FlashMessageSession;
+pub use middleware::flash_message::flash_middleware;
+pub use middleware::flash_message::{flash_error, flash_info, flash_success};
+pub use processor::message_processor::Template;
 
 #[cfg(feature = "orm")]
 pub mod db;

@@ -2,6 +2,13 @@ use serde::{Serialize, Deserialize};
 use async_trait::async_trait;
 use tower_sessions::{Session};
 use tower_sessions::session::Error as SessionError;
+use axum::{
+    response::IntoResponse,
+    response::Response,
+    http::StatusCode,
+    middleware::Next,
+    body::Body,
+};
 
 /// Représente le type d'un message flash.
 /// Utilisé pour déterminer le style d'affichage.
@@ -115,6 +122,7 @@ impl FlashMessageSession for Session {
         self.insert(FLASH_MESSAGES_KEY, messages).await
     }
 
+    // Lire et supprimer tous les messages flash de la session.
     async fn remove_messages(&mut self) -> Result<Vec<Message>, SessionError> {
         // 1. Lire les messages depuis la session.
         // Le turbofish <Vec<Message>> est nécessaire pour la désérialisation
@@ -131,4 +139,77 @@ impl FlashMessageSession for Session {
         // 3. Retourner les messages lus.
         Ok(messages)
     }
+}
+
+/// Erreur de rejet pour l'Extractor. Nécessite IntoResponse pour qu'Axum la gère.
+pub struct FlashContextError(SessionError);
+
+impl IntoResponse for FlashContextError {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Erreur lors de la lecture des messages flash: {}", self.0),
+        )
+        .into_response()
+    }
+}
+
+/// Ajoute un message de succès à la session flash.
+/// Utilisé dans les handlers Axum.
+pub async fn flash_success<S: Into<String>>(
+    session: &mut Session,
+    content: S,
+) -> Result<(), SessionError> {
+    session.insert_message(Message::success(content.into())).await
+}
+
+pub async fn flash_error<S: Into<String>>(
+    session: &mut Session,
+    content: S,
+) -> Result<(), SessionError> {
+    session.insert_message(Message::error(content.into())).await
+}
+
+pub async fn flash_info<S: Into<String>>(
+    session: &mut Session,
+    content: S,
+) -> Result<(), SessionError> {
+    session.insert_message(Message::info(content.into())).await
+}
+
+
+/// Middleware Axum pour gérer les messages flash.
+/// Lit les messages flash de la session et les insère dans les extensions de la requête
+/// les supprime ensuite de la session pour assurer qu'ils ne sont lus qu'une seule fois.
+pub async fn flash_middleware(
+    mut req: axum::http::Request<Body>,
+    next: Next,
+) -> Response {
+
+    // Étape 1 : extraire les messages sans toucher aux extensions ensuite
+    let messages = {
+        let session = match req.extensions_mut().get_mut::<Session>() {
+            Some(s) => s,
+            None => return next.run(req).await,
+        };
+        
+
+        let messages = session
+        .get::<Vec<Message>>(FLASH_MESSAGES_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_default();
+
+        if !messages.is_empty() {
+            // Supprimer les messages après les avoir lus
+            let _ = session.remove::<Vec<Message>>(FLASH_MESSAGES_KEY).await;
+        }
+        messages
+    };
+    // Étape 2 : insérer les messages dans les extensions pour le traitement ultérieur
+    if !messages.is_empty() {
+        req.extensions_mut().insert(messages);
+    }
+    next.run(req).await
 }

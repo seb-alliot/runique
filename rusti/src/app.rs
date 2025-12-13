@@ -1,8 +1,8 @@
+// rusti/src/app.rs
 use std::any::type_name;
 use std::sync::Arc;
 use std::net::SocketAddr;
 use std::error::Error;
-
 use axum::{Router, middleware, Extension};
 use axum::http::StatusCode;
 use sea_orm::sea_query::value;
@@ -12,18 +12,19 @@ use tower_http::{
     trace::TraceLayer,
     timeout::TimeoutLayer,
 };
-use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
+
+use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
 use tower_sessions::cookie::time::Duration;
 use tokio::signal;
 use tokio::net::TcpListener;
 use tera::Tera;
 use tera::Context;
 
-
 #[cfg(feature = "orm")]
 use crate::settings::Settings;
 use crate::middleware::error_handler::error_handler_middleware;
 use crate::middleware::error_handler::render_index;
+use crate::middleware::flash_message::flash_middleware;
 
 use crate::response::render_simple_404;
 
@@ -99,8 +100,6 @@ impl RustiApp {
         let pattern = format!("{}/**/*.html", config.templates_dir.join(","));
         match Tera::new(&pattern) {
             Ok(t) => {
-                let names: Vec<_> = t.get_template_names().collect();
-                println!("Loaded user templates: {:?}", names);
                 tera.extend(&t).expect("Failed to extend Tera with user templates");
             }
             Err(e) => {
@@ -123,7 +122,7 @@ impl RustiApp {
     ///
     /// # Exemple
     /// ```rust,no_run
-    /// use rusti::{RustiApp, Settings, Router, routing::get};
+    /// use rusti::{RustiApp, Settings, Router, get};
     ///
     /// async fn index() -> &'static str {
     ///     "Hello, World!"
@@ -179,18 +178,6 @@ impl RustiApp {
         Ok(self)
     }
 
-    /// Configure les sessions
-    pub fn with_sessions(mut self) -> Self {
-
-        let session_store: MemoryStore = MemoryStore::default();
-        let session_layer = SessionManagerLayer::new(session_store)
-            .with_secure(!self.config.debug)
-            .with_expiry(Expiry::OnInactivity(Duration::seconds(86400)));
-
-        self.router = self.router.layer(session_layer);
-        self
-    }
-
 
     /// Configure les middlewares par défaut (erreurs, timeouts, etc.)
     pub fn with_default_middleware(mut self) -> Self {
@@ -222,7 +209,10 @@ impl RustiApp {
     pub fn build(self) -> Router {
         self.router
     }
-
+    pub fn with_flash_messages(mut self) -> Self {
+    self.router = self.router.layer(middleware::from_fn(flash_middleware));
+    self
+    }
     /// Lance le serveur
     ///
     /// # Exemple
@@ -241,9 +231,15 @@ impl RustiApp {
         println!("🦀 Rusti Framework v{}", crate::VERSION);
         println!("   Starting server at http://{}", self.addr);
 
+        let session_store = MemoryStore::default();
+        let session_layer = SessionManagerLayer::new(session_store)
+            .with_secure(!self.config.debug)
+            .with_expiry(Expiry::OnInactivity(Duration::seconds(86400)));
+
         let router_with_extensions = self.router
             .layer(Extension(self.config.clone()))
-            .layer(Extension(self.tera.clone()));
+            .layer(Extension(self.tera.clone()))
+            .layer(session_layer);
 
     let listener = TcpListener::bind(&self.addr).await?;
     let server = axum::serve(listener, router_with_extensions);
@@ -267,7 +263,7 @@ impl RustiApp {
 ///
 /// # Exemple
 /// ```rust,no_run
-/// use rusti::{RustiApp, Settings, Router, routing::get};
+/// use rusti::{RustiApp, Settings, Router, get};
 ///
 /// async fn index() -> &'static str { "Hello!" }
 ///
@@ -282,6 +278,7 @@ impl RustiApp {
 ///         .routes(Router::new().route("/", get(index)))
 ///         .with_static_files()?
 ///         .with_sessions()
+///         .with_flash_messages()
 ///         .with_default_middleware()
 ///         .run()
 ///         .await?;

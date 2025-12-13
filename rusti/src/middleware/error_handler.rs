@@ -90,7 +90,6 @@ pub fn render_simple_404(tera: &Tera, config: &Settings) -> Response {
     match tera.render("errors/404.html", &context) {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
-            eprintln!("Failed to render 404 template: {}", e);
             fallback_404_html()
         }
     }
@@ -103,7 +102,6 @@ pub fn render_simple_500(tera: &Tera, config: &Settings) -> Response {
     match tera.render("errors/500.html", &context) {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
         Err(e) => {
-            eprintln!("Failed to render 500 template: {}", e);
             fallback_500_html()
         }
     }
@@ -297,13 +295,11 @@ pub fn render_index(tera: &Tera, context: &Context, config: &Settings) -> Respon
 
     // 1. Essaie le template utilisateur
     if let Ok(html) = tera.render("index.html", &context) {
-        println!("route de index rendue par le template utilisateur");
         return (StatusCode::OK, Html(html)).into_response();
     }
 
     // 2. Essaie le template d'erreur du framework
     if let Ok(html) = tera.render("errors/index.html", &context) {
-        println!("route de index rendue par le template framework");
         return (StatusCode::OK, Html(html)).into_response();
     }
 
@@ -440,8 +436,6 @@ cargo add rusti</code></pre>
             </div>
         </body>
         </html>"#;
-
-    println!("Fallback: rendu du template statique par défaut");
 
     (StatusCode::OK, Html(rusti_index)).into_response()
 }
