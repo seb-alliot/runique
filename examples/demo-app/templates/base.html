@@ -28,12 +28,12 @@
     {% block content %}
     <div class="content">
         <h1>{{ title }}</h1>
-        <p>Ceci est une application web développée avec Rust.</p>
-        <p>Framework en cours de développement...</p>
-        <p>J'utilise axum pour le backend</p>
-        <p>Tera pour moteur de templates.</p>
-        <p>Tokio comme runtime asynchrone</p>
-        <p>Tower pour les sessions.</p>
+        <p>{{ description }}</p>
+        <p>{{ status }}</p>
+        <p>{{ backend }}</p>
+        <p>{{ template }}</p>
+        <p>{{ tokio }}</p>
+        <p>{{ session }}</p>
     </div>
     {% endblock %}
 

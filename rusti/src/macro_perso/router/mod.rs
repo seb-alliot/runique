@@ -3,7 +3,5 @@ pub mod register_name_url;
 
 pub use register_name_url::{
     reverse,
-    reverse_with_parameters,
+    reverse_with_parameters
 };
-
-

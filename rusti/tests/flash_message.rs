@@ -8,7 +8,7 @@ use axum::{
 };
 use tower_sessions::session::Session;
 use axum::middleware;
-use rusti::middleware::flash_message::Message;
+use rusti::middleware::flash_message::FlashMessage;
 use rusti::middleware::flash_message::FlashMessageSession;
 use rusti::middleware::flash_middleware;
 
@@ -29,7 +29,7 @@ pub async fn test(
         };
 
         let messages = session
-        .get::<Vec<Message>>(FLASH_MESSAGES_KEY)
+        .get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
         .await
         .ok()
         .flatten()
@@ -37,7 +37,7 @@ pub async fn test(
 
         if !messages.is_empty() {
             // Supprimer les messages après les avoir lus
-            let _ = session.remove::<Vec<Message>>(FLASH_MESSAGES_KEY).await;
+            let _ = session.remove::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY).await;
         }
         messages
     };
@@ -53,7 +53,7 @@ pub async fn test(
 /// Utilisé pour les tests
 async fn set_flash(mut session: Session) -> impl IntoResponse {
     session
-        .insert_message(Message::success("OK"))
+        .insert_message(FlashMessage::success("OK"))
         .await
         .unwrap();
 
@@ -63,7 +63,7 @@ async fn set_flash(mut session: Session) -> impl IntoResponse {
 async fn read_flash(req: Request) -> impl IntoResponse {
     let messages = req
         .extensions()
-        .get::<Vec<Message>>()
+        .get::<Vec<FlashMessage>>()
         .cloned()
         .unwrap_or_default();
 

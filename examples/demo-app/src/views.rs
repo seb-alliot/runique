@@ -1,7 +1,12 @@
 use rusti::{
-    Context, Response, processor::message_processor::{Message, Template}, reverse
+    Context,
+    Response,
+    Message,
+    Template,
+    url,
+    json,
 };
-use serde_json::json;
+
 
 /// Page d'accueil
 pub async fn index(
@@ -10,6 +15,11 @@ pub async fn index(
     let context = Context::from_serialize(json!({
         "title": "Bienvenue sur Rusti",
         "description": "Un framework web moderne inspiré de Django",
+        "status": "Framework en cours de développement...",
+        "backend": "J'utilise axum pour le backend",
+        "template": "Tera pour moteur de templates.",
+        "tokio": "Le runtime asynchrone tokio",
+        "session": "Tower pour la gestion des sessions.",
     })).unwrap_or_default();
 
     template.render("base.html", &context)
@@ -27,7 +37,7 @@ pub async fn about(
 
     let context = Context::from_serialize(json!({
         "title": "À propos de Rusti",
-        "index": reverse("index").unwrap_or_default(),
+        "index": url!("index"),
     })).unwrap_or_default();
 
     template.render("about/about.html", &context)

@@ -24,10 +24,11 @@ pub mod error;
 pub mod orm;
 pub mod processor;
 pub mod macro_perso;
+pub use serde_json::json;
 
 pub use middleware::flash_message::flash_middleware;
+pub use processor::message_processor::{Message, Template};
 
-pub use processor::message_processor::Template;
 pub use macro_perso::router::{
     reverse,
     reverse_with_parameters,
