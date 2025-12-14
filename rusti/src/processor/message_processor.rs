@@ -8,9 +8,9 @@ use axum::{
 };
 use std::sync::Arc;
 use tera::{Tera, Context};
-use crate::middleware::flash_message::Message;
+use crate::middleware::flash_message::FlashMessage;
+use crate::middleware::flash_message::FlashMessageSession;
 use crate::settings::Settings;
-
 pub struct Template {
     tera: Arc<Tera>,
     config: Arc<Settings>,
@@ -43,7 +43,7 @@ where
         let mut context = Context::new();
 
         // AUTO-INJECT messages
-        if let Some(messages) = parts.extensions.get::<Vec<Message>>() {
+        if let Some(messages) = parts.extensions.get::<Vec<FlashMessage>>() {
 
             context.insert("messages", messages);
         }
@@ -79,5 +79,57 @@ impl Template {
             status,
             &self.config,
         )
+    }
+}
+
+use tower_sessions::Session;
+
+// L'Extractor Flash que vous utiliserez dans vos Handlers Axum.
+// Il encapsule la Session pour y ajouter des méthodes d'insertion simplifiées.
+pub struct Message(Session);
+
+impl<S> FromRequestParts<S> for Message
+where
+    S: Send + Sync,
+{
+    type Rejection = StatusCode;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        // Récupérer la session depuis les extensions
+        let session = parts
+            .extensions
+            .get::<Session>()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
+            .clone();
+
+        Ok(Message(session))
+    }
+}
+impl Message {
+    /// Ajoute un message flash de succès
+    pub async fn success<S: Into<String>>(&mut self, content: S) -> Result<(), StatusCode> {
+        self.0
+            .insert_message(FlashMessage::success(content.into()))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    /// Ajoute un message flash d'erreur
+    pub async fn error<S: Into<String>>(&mut self, content: S) -> Result<(), StatusCode> {
+        self.0
+            .insert_message(FlashMessage::error(content.into()))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    /// Ajoute un message flash d'information
+    pub async fn info<S: Into<String>>(&mut self, content: S) -> Result<(), StatusCode> {
+        self.0
+            .insert_message(FlashMessage::info(content.into()))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 }

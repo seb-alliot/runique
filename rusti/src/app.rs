@@ -25,8 +25,6 @@ use crate::settings::Settings;
 use crate::middleware::error_handler::error_handler_middleware;
 use crate::middleware::error_handler::render_index;
 use crate::middleware::flash_message::flash_middleware;
-use crate::register_name_url;
-
 
 use crate::response::render_simple_404;
 

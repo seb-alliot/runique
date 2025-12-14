@@ -32,35 +32,35 @@ impl MessageLevel {
 
 /// Structure représentant un message flash complet, incluant le contenu et le niveau.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Message {
+pub struct FlashMessage {
     /// Le contenu textuel du message.
     pub content: String,
     /// Le niveau de gravité du message (Success, Error, Info).
     pub level: MessageLevel,
 }
 
-impl Message {
+impl FlashMessage {
     /// Crée un nouveau message flash.
     pub fn new<S: Into<String>>(content: S, level: MessageLevel) -> Self {
-        Message {
+        FlashMessage {
             content: content.into(),
             level,
         }
     }
     pub fn success<S: Into<String>>(content: S) -> Self {
-        Message {
+        FlashMessage {
             content: content.into(),
             level: MessageLevel::Success,
         }
     }
     pub fn error<S: Into<String>>(content: S) -> Self {
-        Message {
+        FlashMessage {
             content: content.into(),
             level: MessageLevel::Error,
         }
     }
     pub fn info<S: Into<String>>(content: S) -> Self {
-        Message {
+        FlashMessage {
             content: content.into(),
             level: MessageLevel::Info,
         }
@@ -76,17 +76,17 @@ const FLASH_MESSAGES_KEY: &str = "flash_messages";
 pub trait FlashMessageSession {
     /// Ajoute un message à la liste des messages flash stockés dans la session.
     /// Exemple d'utilisation :
-    /// // session.insert_flash_message(Message::success("Opération réussie")).await?;
-    async fn insert_message(&mut self, message: Message) -> Result<(), SessionError>;
+    /// // session.insert_flash_message(FlashMessage::success("Opération réussie")).await?;
+    async fn insert_message(&mut self, message: FlashMessage) -> Result<(), SessionError>;
 }
 
 #[async_trait]
 impl FlashMessageSession for Session {
 
-    async fn insert_message(&mut self, message: Message) -> Result<(), SessionError> {
+    async fn insert_message(&mut self, message: FlashMessage) -> Result<(), SessionError> {
         // Tenter de récupérer la liste actuelle des messages (Vec<Message>)
         // Le turbofish <Vec<Message>> est nécessaire pour la désérialisation
-        let mut messages: Vec<Message> = self.get::<Vec<Message>>(FLASH_MESSAGES_KEY)
+        let mut messages: Vec<FlashMessage> = self.get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
             .await?
             .unwrap_or_default();
         messages.push(message);
@@ -108,32 +108,6 @@ impl IntoResponse for FlashContextError {
     }
 }
 
-// Facilité d'utilisation pour insérer des messages flash spécifiques.
-pub async fn flash_success<S: Into<String>>(
-    // Exemple d'utilisation :
-    // flash_success(&mut session, "Opération réussie").await?;
-    // modifier uniquement la suite de flash_ par le bon element pour changer le type de message
-    session: &mut Session,
-    content: S,
-) -> Result<(), SessionError> {
-    session.insert_message(Message::success(content.into())).await
-}
-
-pub async fn flash_error<S: Into<String>>(
-    session: &mut Session,
-    content: S,
-) -> Result<(), SessionError> {
-    session.insert_message(Message::error(content.into())).await
-}
-
-pub async fn flash_info<S: Into<String>>(
-    session: &mut Session,
-    content: S,
-) -> Result<(), SessionError> {
-    session.insert_message(Message::info(content.into())).await
-}
-
-
 /// Middleware Axum pour gérer les messages flash.
 /// Lit les messages flash de la session et les insère dans les extensions de la requête
 /// les supprime ensuite de la session pour assurer qu'ils ne sont lus qu'une seule fois.
@@ -150,7 +124,7 @@ pub async fn flash_middleware(
         };
 
         let messages = session
-        .get::<Vec<Message>>(FLASH_MESSAGES_KEY)
+        .get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
         .await
         .ok()
         .flatten()
@@ -158,7 +132,7 @@ pub async fn flash_middleware(
 
         if !messages.is_empty() {
             // Supprimer les messages après les avoir lus
-            let _ = session.remove::<Vec<Message>>(FLASH_MESSAGES_KEY).await;
+            let _ = session.remove::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY).await;
         }
         messages
     };

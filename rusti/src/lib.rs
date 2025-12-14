@@ -26,10 +26,13 @@ pub mod processor;
 pub mod macro_perso;
 
 pub use middleware::flash_message::flash_middleware;
-pub use middleware::flash_message::{flash_error, flash_info, flash_success};
+
 pub use processor::message_processor::Template;
-pub use macro_perso::router::{reverse, reverse_with_parameters};
-pub use macro_perso::router::register_name_url::register_name_url;
+pub use macro_perso::router::{
+    reverse,
+    reverse_with_parameters,
+    register_name_url::register_name_url
+};
 
 #[cfg(feature = "orm")]
 pub mod db;
