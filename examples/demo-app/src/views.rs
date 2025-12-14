@@ -1,11 +1,5 @@
 use rusti::{
-    Context,
-    {flash_success, flash_error, flash_info},
-    {reverse},
-
-    Response,
-    Session,
-    processor::message_processor::Template,
+    Context, Response, processor::message_processor::{Message, Template}, reverse
 };
 use serde_json::json;
 
@@ -24,17 +18,17 @@ pub async fn index(
 /// Page "À propos"
 pub async fn about(
     template: Template,
-    mut session: Session,
+    mut message: Message,
+
 ) -> Response {
-    let _ = flash_success(&mut session, "Ceci est un message de succès de test.").await;
-    let _ = flash_info(&mut session, "Ceci est un message d'information de test.").await;
-    let _ = flash_error(&mut session, "Ceci est un message d'erreur de test.").await;
+    message.success( "Ceci est un message de succès de test.").await.unwrap();
+    message.info("Ceci est un message d'information de test.").await.unwrap();
+    message.error("Ceci est un message d'erreur de test.").await.unwrap();
 
     let context = Context::from_serialize(json!({
         "title": "À propos de Rusti",
         "index": reverse("index").unwrap_or_default(),
     })).unwrap_or_default();
-    println!("About page context: {:?}", reverse("index").unwrap_or_default());
 
     template.render("about/about.html", &context)
 }
