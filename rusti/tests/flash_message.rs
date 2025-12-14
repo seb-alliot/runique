@@ -100,7 +100,7 @@ mod tests {
             .layer(middleware::from_fn(flash_middleware))
             .layer(session_layer);
 
-        // 1️⃣ écrire le flash
+        // 1 écrire le flash
         let res1 = app
             .clone()
             .oneshot(
@@ -123,7 +123,7 @@ mod tests {
             .unwrap()
             .to_string();
 
-        // 2️⃣ lire le flash AVEC le cookie
+        // 2️ lire le flash AVEC le cookie
         let res2 = app
             .oneshot(
                 Request::builder()

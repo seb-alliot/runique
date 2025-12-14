@@ -19,8 +19,7 @@ pub struct Template {
 
 impl<S> FromRequestParts<S> for Template
 where
-    S: Send + Sync,
-{
+    S: Send + Sync {
     type Rejection = StatusCode;
 
     async fn from_request_parts(
@@ -45,6 +44,7 @@ where
 
         // AUTO-INJECT messages
         if let Some(messages) = parts.extensions.get::<Vec<Message>>() {
+
             context.insert("messages", messages);
         }
 

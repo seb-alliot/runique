@@ -1,32 +1,35 @@
 // rusti/src/app.rs
-use std::any::type_name;
+// use std::any::type_name;
 use std::sync::Arc;
 use std::net::SocketAddr;
 use std::error::Error;
 use axum::{Router, middleware, Extension};
 use axum::http::StatusCode;
-use sea_orm::sea_query::value;
+// use sea_orm::sea_query::value;
 use tower::ServiceBuilder;
 use tower_http::{
     services::ServeDir,
     trace::TraceLayer,
     timeout::TimeoutLayer,
 };
-
-use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
+use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 use tower_sessions::cookie::time::Duration;
 use tokio::signal;
 use tokio::net::TcpListener;
 use tera::Tera;
 use tera::Context;
 
+
 #[cfg(feature = "orm")]
 use crate::settings::Settings;
 use crate::middleware::error_handler::error_handler_middleware;
 use crate::middleware::error_handler::render_index;
 use crate::middleware::flash_message::flash_middleware;
+use crate::register_name_url;
+
 
 use crate::response::render_simple_404;
+
 
 
 
@@ -119,10 +122,9 @@ impl RustiApp {
     }
 
     /// Configure les routes de l'application
-    ///
     /// # Exemple
     /// ```rust,no_run
-    /// use rusti::{RustiApp, Settings, Router, get};
+    /// use rusti::{RustiApp, Settings, Router, get, post, put, delete, patch};
     ///
     /// async fn index() -> &'static str {
     ///     "Hello, World!"
@@ -141,7 +143,7 @@ impl RustiApp {
         self
     }
 
-    /// Configure la base de données (ORM feature)
+    /// Configure la base de données (SeaORM)
     #[cfg(feature = "orm")]
     pub async fn with_database(mut self) -> Result<Self, Box<dyn Error>> {
         use crate::db::connect_db;
@@ -174,7 +176,6 @@ impl RustiApp {
             let media_files = ServeDir::new(&conf.media_rusti_path);
             self.router = self.router.nest_service(&conf.media_rusti_url, media_files);
         }
-
         Ok(self)
     }
 
@@ -194,7 +195,6 @@ impl RustiApp {
                         let context = Context::new();
                         return render_index(&tera, &context, &config);
                     }
-
                     render_simple_404(&tera)
                 }
             })
@@ -241,7 +241,7 @@ impl RustiApp {
             .layer(Extension(self.tera.clone()))
             .layer(session_layer);
 
-    let listener = TcpListener::bind(&self.addr).await?;
+    let listener: TcpListener = TcpListener::bind(&self.addr).await?;
     let server = axum::serve(listener, router_with_extensions);
         // Arrêt propre avec Ctrl+C
         tokio::select! {
@@ -254,21 +254,18 @@ impl RustiApp {
                 println!("\nShutdown signal received. Stopping server...");
             },
         }
-
         Ok(())
     }
 }
 
 /// Builder pattern pour construire facilement une application
-///
 /// # Exemple
+///
 /// ```rust,no_run
-/// use rusti::{RustiApp, Settings, Router, get};
+///
+/// use rusti::{RustiApp, Settings, Router, get, post, put, delete, patch};
 ///
 /// async fn index() -> &'static str { "Hello!" }
-///
-///
-///
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -277,13 +274,11 @@ impl RustiApp {
 ///     RustiApp::new(settings).await?
 ///         .routes(Router::new().route("/", get(index)))
 ///         .with_static_files()?
-///         .with_sessions()
 ///         .with_flash_messages()
 ///         .with_default_middleware()
 ///         .run()
 ///         .await?;
-///
-///     Ok(())
+///         Ok(())
 /// }
 /// ```
 impl RustiApp {
@@ -309,11 +304,9 @@ impl RustiAppBuilder {
 
     pub async fn build(self) -> Result<RustiApp, Box<dyn Error>> {
         let mut app = RustiApp::new(self.settings).await?;
-
         if let Some(routes) = self.routes {
             app = app.routes(routes);
         }
-
         Ok(app)
     }
 }

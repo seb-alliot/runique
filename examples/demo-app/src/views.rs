@@ -1,6 +1,8 @@
 use rusti::{
     Context,
-    middleware::flash_message::{flash_success, flash_error, flash_info},
+    {flash_success, flash_error, flash_info},
+    {reverse},
+
     Response,
     Session,
     processor::message_processor::Template,
@@ -30,7 +32,9 @@ pub async fn about(
 
     let context = Context::from_serialize(json!({
         "title": "À propos de Rusti",
+        "index": reverse("index").unwrap_or_default(),
     })).unwrap_or_default();
+    println!("About page context: {:?}", reverse("index").unwrap_or_default());
 
     template.render("about/about.html", &context)
 }

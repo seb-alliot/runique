@@ -8,18 +8,19 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #0e1111;
             color: #f8f8f2;
-            line-height: 1.6;
         }
 
         .header {
             background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            padding: 40px 20px;
+            padding: clamp(15px, 5vh, 40px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
+            text-align: center;
+            font-size: clamp(12px, 4vw, 20px);
         }
 
         .header h1 {
@@ -233,5 +234,15 @@
             background: #6272a4;
         }
 
+#error-icon, #number-error {
+    font-size: clamp(50px, 10vw, 100px);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-
+.error-message {
+    font-size: clamp(12px, 4vw, 24px);
+    text-align: center;
+}

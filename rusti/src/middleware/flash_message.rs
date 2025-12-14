@@ -11,7 +11,6 @@ use axum::{
 };
 
 /// Représente le type d'un message flash.
-/// Utilisé pour déterminer le style d'affichage.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MessageLevel {
     Success,
@@ -21,22 +20,13 @@ pub enum MessageLevel {
 
 impl MessageLevel {
     /// Retourne la classe CSS statique associée au niveau du message.
+    /// Utilisé dans le rendu html
     pub fn as_css_class(&self) -> &'static str {
         match self {
             MessageLevel::Success => "success-message",
             MessageLevel::Error => "error-message",
             MessageLevel::Info => "info-message",
         }
-    }
-
-    pub fn success() -> Self {
-        MessageLevel::Success
-    }
-    pub fn error() -> Self {
-        MessageLevel::Error
-    }
-    pub fn info() -> Self {
-        MessageLevel::Info
     }
 }
 
@@ -57,21 +47,18 @@ impl Message {
             level,
         }
     }
-
     pub fn success<S: Into<String>>(content: S) -> Self {
         Message {
             content: content.into(),
             level: MessageLevel::Success,
         }
     }
-
     pub fn error<S: Into<String>>(content: S) -> Self {
         Message {
             content: content.into(),
             level: MessageLevel::Error,
         }
     }
-
     pub fn info<S: Into<String>>(content: S) -> Self {
         Message {
             content: content.into(),
@@ -83,27 +70,14 @@ impl Message {
 /// Clé utilisée pour stocker le vecteur de messages dans la session Tower.
 const FLASH_MESSAGES_KEY: &str = "flash_messages";
 
-/// Trait d'extension pour simplifier l'interaction avec les messages flash
 /// sur l'objet `tower_sessions::Session`.
 
 #[async_trait]
 pub trait FlashMessageSession {
     /// Ajoute un message à la liste des messages flash stockés dans la session.
-    ///
+    /// Exemple d'utilisation :
     /// // session.insert_flash_message(Message::success("Opération réussie")).await?;
-    /// ```
     async fn insert_message(&mut self, message: Message) -> Result<(), SessionError>;
-
-    /// Lit (consomme) tous les messages flash stockés et les retire immédiatement de la session.
-    ///
-    /// # Remarques
-    /// C'est cette méthode qui assure que les messages sont affichés une seule fois.
-    ///
-    /// # Exemple
-    /// ```
-    /// // let messages = session.remove_messages().await.unwrap_or_default();
-    /// ```
-    async fn remove_messages(&mut self) -> Result<Vec<Message>, SessionError>;
 }
 
 #[async_trait]
@@ -114,30 +88,10 @@ impl FlashMessageSession for Session {
         // Le turbofish <Vec<Message>> est nécessaire pour la désérialisation
         let mut messages: Vec<Message> = self.get::<Vec<Message>>(FLASH_MESSAGES_KEY)
             .await?
-            .unwrap_or_default(); // Crée une nouvelle liste si la clé n'existe pas
-
+            .unwrap_or_default();
         messages.push(message);
-
         // Enregistrer la liste mise à jour
         self.insert(FLASH_MESSAGES_KEY, messages).await
-    }
-
-    // Lire et supprimer tous les messages flash de la session.
-    async fn remove_messages(&mut self) -> Result<Vec<Message>, SessionError> {
-        // 1. Lire les messages depuis la session.
-        // Le turbofish <Vec<Message>> est nécessaire pour la désérialisation
-        let messages: Vec<Message> = self.get::<Vec<Message>>(FLASH_MESSAGES_KEY)
-            .await?
-            .unwrap_or_default();
-
-        // 2. Supprimer la clé de session si des messages ont été lus.
-        // Permet la lecture une seule fois avant d'être supprimés.
-        if !messages.is_empty() {
-            self.remove::<Vec<Message>>(FLASH_MESSAGES_KEY).await?;
-        }
-
-        // 3. Retourner les messages lus.
-        Ok(messages)
     }
 }
 
@@ -154,9 +108,11 @@ impl IntoResponse for FlashContextError {
     }
 }
 
-/// Ajoute un message de succès à la session flash.
-/// Utilisé dans les handlers Axum.
+// Facilité d'utilisation pour insérer des messages flash spécifiques.
 pub async fn flash_success<S: Into<String>>(
+    // Exemple d'utilisation :
+    // flash_success(&mut session, "Opération réussie").await?;
+    // modifier uniquement la suite de flash_ par le bon element pour changer le type de message
     session: &mut Session,
     content: S,
 ) -> Result<(), SessionError> {
@@ -192,7 +148,6 @@ pub async fn flash_middleware(
             Some(s) => s,
             None => return next.run(req).await,
         };
-        
 
         let messages = session
         .get::<Vec<Message>>(FLASH_MESSAGES_KEY)

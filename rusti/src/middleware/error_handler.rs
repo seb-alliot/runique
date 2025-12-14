@@ -90,6 +90,7 @@ pub fn render_simple_404(tera: &Tera, config: &Settings) -> Response {
     match tera.render("errors/404.html", &context) {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
+            tracing::error!("Failed to serialize error context: {}", e);
             fallback_404_html()
         }
     }
@@ -102,6 +103,7 @@ pub fn render_simple_500(tera: &Tera, config: &Settings) -> Response {
     match tera.render("errors/500.html", &context) {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
         Err(e) => {
+            tracing::error!("Failed to serialize error context: {}", e);
             fallback_500_html()
         }
     }

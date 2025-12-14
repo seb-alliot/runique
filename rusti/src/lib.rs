@@ -23,23 +23,17 @@ pub mod response;
 pub mod error;
 pub mod orm;
 pub mod processor;
+pub mod macro_perso;
 
-pub use middleware::flash_message::FlashMessageSession;
 pub use middleware::flash_message::flash_middleware;
 pub use middleware::flash_message::{flash_error, flash_info, flash_success};
 pub use processor::message_processor::Template;
+pub use macro_perso::router::{reverse, reverse_with_parameters};
+pub use macro_perso::router::register_name_url::register_name_url;
 
 #[cfg(feature = "orm")]
 pub mod db;
-#[macro_export]
-macro_rules! impl_objects {
-    ($entity:ty) => {
-        impl $entity {
-            /// Manager Django-like pour les queries
-            pub const objects: $crate::orm::Objects<Self> = $crate::orm::Objects::new();
-        }
-    };
-}
+
 // Ré-exports publics pour faciliter l'utilisation
 pub use app::RustiApp;
 pub use settings::Settings;
@@ -57,6 +51,7 @@ pub use axum::{
     response::Response,
     debug_handler,
 };
+pub use once_cell::sync::Lazy;
 
 // Ré-export de tower-sessions pour la gestion des sessions
 pub use tower_sessions::Session;
@@ -81,18 +76,7 @@ pub use sea_orm::{self, DatabaseConnection};
 ///     "/user/:id" => get(user_detail),
 /// ];
 /// ```
-#[macro_export]
-macro_rules! routes {
-    ($($path:expr => $handler:expr),* $(,)?) => {
-        {
-            let mut router = $crate::axum::Router::new();
-            $(
-                router = router.route($path, $handler);
-            )*
-            router
-        }
-    };
-}
+
 
 /// Version du framework
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
