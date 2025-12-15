@@ -1,11 +1,9 @@
 // rusti/src/app.rs
-// use std::any::type_name;
 use std::sync::Arc;
 use std::net::SocketAddr;
 use std::error::Error;
 use axum::{Router, middleware, Extension};
 use axum::http::StatusCode;
-// use sea_orm::sea_query::value;
 use tower::ServiceBuilder;
 use tower_http::{
     services::ServeDir,
@@ -19,17 +17,14 @@ use tokio::net::TcpListener;
 use tera::Tera;
 use tera::Context;
 
-
 #[cfg(feature = "orm")]
-use crate::settings::Settings;
+use sea_orm::DatabaseConnection;
+
+use crate::settings::Settings;  // ← Sans #[cfg] !
 use crate::middleware::error_handler::error_handler_middleware;
 use crate::middleware::error_handler::render_index;
 use crate::middleware::flash_message::flash_middleware;
-
 use crate::response::render_simple_404;
-
-
-
 
 /// Structure principale de l'application Rusti
 ///
@@ -64,8 +59,7 @@ impl RustiApp {
 
         let mut tera = Tera::default();
 
-        // 1. CHARGER D'ABORD LES TEMPLATES DU FRAMEWORK (embarqués, inclus ici de manière statique)
-
+        // 1. CHARGER D'ABORD LES TEMPLATES DU FRAMEWORK (embarqués)
         const INDEX_DEFAULT_TEMPLATE: &str = include_str!("../templates/index.html");
         const MESSAGE_FLASH_TEMPLATE: &str = include_str!("../templates/message.html");
         const ERROR_DEBUG_TEMPLATE: &str = include_str!("../templates/errors/debug_error.html");
@@ -96,7 +90,6 @@ impl RustiApp {
         tera.add_raw_template("errors/corps-error/status-code-info.html", STATUS_CODE_INFO)?;
         tera.add_raw_template("errors/corps-error/footer-error.html", FOOTER_ERROR)?;
 
-
         // 2. CHARGER LES TEMPLATES UTILISATEUR
         let pattern = format!("{}/**/*.html", config.templates_dir.join(","));
         match Tera::new(&pattern) {
@@ -120,9 +113,10 @@ impl RustiApp {
     }
 
     /// Configure les routes de l'application
+    ///
     /// # Exemple
     /// ```rust,no_run
-    /// use rusti::{RustiApp, Settings, Router, get, post, put, delete, patch};
+    /// use rusti::{RustiApp, Settings, Router, get};
     ///
     /// async fn index() -> &'static str {
     ///     "Hello, World!"
@@ -141,17 +135,47 @@ impl RustiApp {
         self
     }
 
-    /// Configure la base de données (SeaORM)
+    /// Configure une base de données personnalisée
+    ///
+    /// # Exemple
+    /// ```rust,no_run
+    /// use rusti::{RustiApp, Settings, DatabaseConfig};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     let db_config = DatabaseConfig::from_env()?.build();
+    ///     let db = db_config.connect().await?;
+    ///
+    ///     let settings = Settings::default_values();
+    ///     let app = RustiApp::new(settings).await?
+    ///         .with_database_custom(db);
+    ///     Ok(())
+    /// }
+    /// ```
     #[cfg(feature = "orm")]
-    pub async fn with_database(mut self) -> Result<Self, Box<dyn Error>> {
-        use crate::db::connect_db;
+    pub fn with_database_custom(mut self, db: DatabaseConnection) -> Self {
+        self.router = self.router.layer(Extension(Arc::new(db)));
+        self
+    }
 
-        let db = Arc::new(connect_db(&self.config).await?);
-        self.router = self.router.layer(Extension(db));
-        Ok(self)
-        }
-
-    /// Configure les fichiers statiques et médias
+/// Configure les fichiers statiques et médias
+///
+/// # Exemple
+/// ```rust,no_run
+/// use rusti::{RustiApp, Settings, DatabaseConfig};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     let settings = Settings::default_values();
+///     let db = DatabaseConfig::from_env()?.build().connect().await?;
+///
+///     let app = RustiApp::new(settings).await?
+///         .with_database_custom(db)
+///         .with_static_files()?;  // ← Configure les fichiers statiques
+///
+///     Ok(())
+/// }
+/// ```
     pub fn with_static_files(mut self) -> Result<Self, Box<dyn Error>> {
         let conf = self.config.as_ref();
 
@@ -163,7 +187,7 @@ impl RustiApp {
         let media_files = ServeDir::new(&conf.media_root);
         self.router = self.router.nest_service(&conf.media_url, media_files);
 
-        // 3. Fichiers statiques du framework - AVEC DEBUG
+        // 3. Fichiers statiques du framework
         if !conf.static_rusti_path.is_empty() {
             let static_files = ServeDir::new(&conf.static_rusti_path);
             self.router = self.router.nest_service(&conf.static_rusti_url, static_files);
@@ -177,14 +201,12 @@ impl RustiApp {
         Ok(self)
     }
 
-
     /// Configure les middlewares par défaut (erreurs, timeouts, etc.)
     pub fn with_default_middleware(mut self) -> Self {
         let tera_for_fallback = self.tera.clone();
         let config_for_fallback = self.config.clone();
 
         self.router = self.router
-            // Fallback 404 et index par défaut
             .fallback(move |uri: axum::http::Uri| {
                 let tera = tera_for_fallback.clone();
                 let config = config_for_fallback.clone();
@@ -199,18 +221,27 @@ impl RustiApp {
             .layer(
                 ServiceBuilder::new()
                     .layer(TraceLayer::new_for_http())
-                    .layer(TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, std::time::Duration::from_secs(10))))
+                    .layer(TimeoutLayer::with_status_code(
+                        StatusCode::REQUEST_TIMEOUT,
+                        std::time::Duration::from_secs(10)
+                    ))
+            )
             .layer(middleware::from_fn(error_handler_middleware));
 
         self
     }
+
+    /// Construit le routeur final
     pub fn build(self) -> Router {
         self.router
     }
+
+    /// Active les messages flash
     pub fn with_flash_messages(mut self) -> Self {
-    self.router = self.router.layer(middleware::from_fn(flash_middleware));
-    self
+        self.router = self.router.layer(middleware::from_fn(flash_middleware));
+        self
     }
+
     /// Lance le serveur
     ///
     /// # Exemple
@@ -220,8 +251,9 @@ impl RustiApp {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///     let settings = Settings::default_values();
-    ///     let app = RustiApp::new(settings).await?;
-    ///     app.run().await?;
+    ///     RustiApp::new(settings).await?
+    ///         .run()
+    ///         .await?;
     ///     Ok(())
     /// }
     /// ```
@@ -239,8 +271,9 @@ impl RustiApp {
             .layer(Extension(self.tera.clone()))
             .layer(session_layer);
 
-    let listener: TcpListener = TcpListener::bind(&self.addr).await?;
-    let server = axum::serve(listener, router_with_extensions);
+        let listener = TcpListener::bind(&self.addr).await?;
+        let server = axum::serve(listener, router_with_extensions);
+
         // Arrêt propre avec Ctrl+C
         tokio::select! {
             result = server => {
@@ -254,32 +287,7 @@ impl RustiApp {
         }
         Ok(())
     }
-}
 
-/// Builder pattern pour construire facilement une application
-/// # Exemple
-///
-/// ```rust,no_run
-///
-/// use rusti::{RustiApp, Settings, Router, get, post, put, delete, patch};
-///
-/// async fn index() -> &'static str { "Hello!" }
-///
-/// #[tokio::main]
-/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let settings = Settings::default_values();
-///
-///     RustiApp::new(settings).await?
-///         .routes(Router::new().route("/", get(index)))
-///         .with_static_files()?
-///         .with_flash_messages()
-///         .with_default_middleware()
-///         .run()
-///         .await?;
-///         Ok(())
-/// }
-/// ```
-impl RustiApp {
     /// Builder pattern - crée et configure l'app en une chaîne
     pub async fn builder(settings: Settings) -> RustiAppBuilder {
         RustiAppBuilder {
@@ -289,6 +297,32 @@ impl RustiApp {
     }
 }
 
+/// Builder pour construire facilement une application
+///
+/// # Exemple
+///
+/// ```rust,no_run
+/// use rusti::{RustiApp, Settings, Router, get, DatabaseConfig};
+///
+/// async fn index() -> &'static str { "Hello!" }
+///
+/// #[tokio::main]
+/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     let settings = Settings::default_values();
+///     let db = DatabaseConfig::from_env()?.build().connect().await?;
+///
+///     RustiApp::new(settings).await?
+///         .with_database_custom(db)
+///         .routes(Router::new().route("/", get(index)))
+///         .with_static_files()?
+///         .with_flash_messages()
+///         .with_default_middleware()
+///         .run()
+///         .await?;
+///
+///     Ok(())
+/// }
+/// ```
 pub struct RustiAppBuilder {
     settings: Settings,
     routes: Option<Router>,

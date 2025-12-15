@@ -15,9 +15,6 @@ pub struct Settings {
     pub middleware: Vec<String>,
     pub root_urlconf: String,
 
-    #[cfg(feature = "orm")]
-    pub databases: DatabaseSettings,
-
     // Rusti-specific settings
     pub static_rusti_path: String,
     pub static_rusti_url: String,
@@ -70,53 +67,6 @@ impl ServerSettings {
     }
 }
 
-/// Configuration de la base de données
-#[cfg(feature = "orm")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DatabaseSettings {
-    pub engine: String,
-    pub name: String,
-    pub user: String,
-    pub password: String,
-    pub host: String,
-    pub port: u16,
-    pub url: String,
-}
-
-#[cfg(feature = "orm")]
-impl DatabaseSettings {
-    pub fn from_env() -> Self {
-        use dotenvy::dotenv;
-        use std::env;
-
-        dotenv().ok();
-
-        let engine = env::var("DB_ENGINE").unwrap_or_else(|_| "sqlite".to_string());
-        let user = env::var("DB_USER").unwrap_or_else(|_| "db_user".to_string());
-        let password = env::var("DB_PASSWORD").unwrap_or_else(|_| "db_password".to_string());
-        let host = env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
-        let port = env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string());
-        let name = env::var("DB_NAME").unwrap_or_else(|_| "db_name".to_string());
-        let url = if engine == "postgres" {
-            format!(
-                "postgres://{}:{}@{}:{}/{}",
-                user, password, host, port, name
-            )
-        } else {
-            String::from("sqlite://local_base.sqlite?mode=rwc")
-        };
-
-        DatabaseSettings {
-            engine,
-            name,
-            user,
-            password,
-            host,
-            port: port.parse().unwrap_or(5432),
-            url,
-        }
-    }
-}
 
 impl Settings {
     /// Crée une configuration avec valeurs par défaut
@@ -157,9 +107,6 @@ impl Settings {
             media_root: "src/media".to_string(),
             static_url: "/static".to_string(),
             media_url: "/media".to_string(),
-
-            #[cfg(feature = "orm")]
-            databases: DatabaseSettings::from_env(),
 
             staticfiles_storage: String::from("DefaultStaticFilesStorage"),
             language_code: String::from("en-us"),

@@ -15,7 +15,7 @@
 //!     Ok(())
 //! }
 //! ```
-
+// ! ## Import obligatoire des modules
 pub mod app;
 pub mod settings;
 pub mod middleware;
@@ -25,6 +25,9 @@ pub mod orm;
 pub mod processor;
 pub mod macro_perso;
 pub use serde_json::json;
+#[cfg(feature = "orm")]
+pub mod database;
+
 
 pub use middleware::flash_message::flash_middleware;
 pub use processor::message_processor::{Message, Template};
@@ -35,8 +38,13 @@ pub use macro_perso::router::{
     register_name_url::register_name_url
 };
 
+// Modules et ré-exports liés à la base de données
+
 #[cfg(feature = "orm")]
-pub mod db;
+pub use sea_orm::{DatabaseConnection};
+
+#[cfg(feature = "orm")]
+pub use database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
 
 // Ré-exports publics pour faciliter l'utilisation
 pub use app::RustiApp;
@@ -64,9 +72,6 @@ pub use tera::{Tera, Context};
 pub use serde::{Serialize, Deserialize};
 pub use async_trait::async_trait;
 
-
-#[cfg(feature = "orm")]
-pub use sea_orm::{self, DatabaseConnection};
 
 /// Macro pour faciliter la création de routes
 ///
