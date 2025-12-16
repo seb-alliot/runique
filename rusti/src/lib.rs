@@ -48,7 +48,6 @@ pub use sea_orm::{DatabaseConnection};
 #[cfg(feature = "orm")]
 pub use database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
 
-pub use tera_function::register_static_function;
 
 // Ré-exports publics pour faciliter l'utilisation
 pub use app::RustiApp;
