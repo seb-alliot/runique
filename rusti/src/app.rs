@@ -100,23 +100,12 @@ impl RustiApp {
                 println!("No user templates found in {} ({})", pattern, e);
             }
         }
-        crate::tera_function::static_balise::register_static_function(
-            &mut tera,
-            config.static_url.clone()
-        );
 
-        crate::tera_function::static_balise::register_media_function(
-            &mut tera,
-            config.media_url.clone()
-        );
-        crate::tera_function::static_balise::register_rusti_static(
-            &mut tera,
-            config.static_rusti_url.clone()
-        );
-        crate::tera_function::static_balise::register_rusti_media(
-            &mut tera,
-            config.media_rusti_url.clone()
-        );
+        // balise filtrers
+        crate::tera_function::static_balise::register_static_filter(&mut tera, config.static_url.clone());
+        crate::tera_function::static_balise::register_media_filter(&mut tera, config.media_url.clone());
+        crate::tera_function::static_balise::register_rusti_static_filter(&mut tera, config.static_rusti_url.clone());
+        crate::tera_function::static_balise::register_rusti_media_filter(&mut tera, config.media_rusti_url.clone());
 
         let tera = Arc::new(tera);
         let router = Router::new();
