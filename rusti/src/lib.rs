@@ -24,6 +24,8 @@ pub mod error;
 pub mod orm;
 pub mod processor;
 pub mod macro_perso;
+pub mod tera_function;
+
 pub use serde_json::json;
 #[cfg(feature = "orm")]
 pub mod database;
@@ -45,6 +47,8 @@ pub use sea_orm::{DatabaseConnection};
 
 #[cfg(feature = "orm")]
 pub use database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
+
+pub use tera_function::register_static_function;
 
 // Ré-exports publics pour faciliter l'utilisation
 pub use app::RustiApp;

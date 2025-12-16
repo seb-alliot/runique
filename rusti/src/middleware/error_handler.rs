@@ -296,12 +296,12 @@ pub fn render_index(tera: &Tera, context: &Context, config: &Settings) -> Respon
     context.insert("static_rusti", &config.static_rusti_url);
 
     // 1. Essaie le template utilisateur
-    if let Ok(html) = tera.render("index.html", &context) {
+    if let Ok(html) = tera.render("base_index.html", &context) {
         return (StatusCode::OK, Html(html)).into_response();
     }
 
     // 2. Essaie le template d'erreur du framework
-    if let Ok(html) = tera.render("errors/index.html", &context) {
+    if let Ok(html) = tera.render("errors/base_index.html", &context) {
         return (StatusCode::OK, Html(html)).into_response();
     }
 

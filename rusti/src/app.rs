@@ -20,7 +20,7 @@ use tera::Context;
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
 
-use crate::settings::Settings;  // ← Sans #[cfg] !
+use crate::settings::Settings;
 use crate::middleware::error_handler::error_handler_middleware;
 use crate::middleware::error_handler::render_index;
 use crate::middleware::flash_message::flash_middleware;
@@ -60,13 +60,13 @@ impl RustiApp {
         let mut tera = Tera::default();
 
         // 1. CHARGER D'ABORD LES TEMPLATES DU FRAMEWORK (embarqués)
-        const INDEX_DEFAULT_TEMPLATE: &str = include_str!("../templates/index.html");
+        const INDEX_DEFAULT_TEMPLATE: &str = include_str!("../templates/base_index.html");
         const MESSAGE_FLASH_TEMPLATE: &str = include_str!("../templates/message.html");
         const ERROR_DEBUG_TEMPLATE: &str = include_str!("../templates/errors/debug_error.html");
         const ERROR_500_TEMPLATE: &str = include_str!("../templates/errors/500.html");
         const ERROR_404_TEMPLATE: &str = include_str!("../templates/errors/404.html");
 
-        tera.add_raw_template("index.html", INDEX_DEFAULT_TEMPLATE)?;
+        tera.add_raw_template("base_index.html", INDEX_DEFAULT_TEMPLATE)?;
         tera.add_raw_template("message", MESSAGE_FLASH_TEMPLATE)?;
         tera.add_raw_template("errors/404.html", ERROR_404_TEMPLATE)?;
         tera.add_raw_template("errors/500.html", ERROR_500_TEMPLATE)?;
@@ -100,6 +100,23 @@ impl RustiApp {
                 println!("No user templates found in {} ({})", pattern, e);
             }
         }
+        crate::tera_function::static_balise::register_static_function(
+            &mut tera,
+            config.static_url.clone()
+        );
+
+        crate::tera_function::static_balise::register_media_function(
+            &mut tera,
+            config.media_url.clone()
+        );
+        crate::tera_function::static_balise::register_rusti_static(
+            &mut tera,
+            config.static_rusti_url.clone()
+        );
+        crate::tera_function::static_balise::register_rusti_media(
+            &mut tera,
+            config.media_rusti_url.clone()
+        );
 
         let tera = Arc::new(tera);
         let router = Router::new();

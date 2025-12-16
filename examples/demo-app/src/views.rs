@@ -22,7 +22,7 @@ pub async fn index(
         "session": "Tower pour la gestion des sessions.",
     })).unwrap_or_default();
 
-    template.render("base.html", &context)
+    template.render("index.html", &context)
 }
 
 /// Page "À propos"

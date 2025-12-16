@@ -14,8 +14,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::builder()
         .debug(true)
         .templates_dir(vec!["templates".to_string()])
-        .static_url("/static")
-        .media_url("/media")
         .server("127.0.0.1", 3000)
         .build();
 
