@@ -18,12 +18,12 @@ pub fn reverse(name: &str) -> Option<String> {
     name_url_map.get(name).cloned()
 }
 
+
 pub fn reverse_with_parameters(name: &str, parameters: &[(&str, &str)]) -> Option<String> {
 
-    let mut path = reverse(name);
-    for (key, value) in parameters {
-        let placeholder = format!("{{{}}}", key);
-        path = Some(path?.replace(&placeholder, value));
-    }
-    path
+    let path = reverse(name)?;
+
+    Some(parameters.iter().fold(path, |acc, (key, value)| {
+        acc.replace(&format!("{{{}}}", key), value)
+    }))
 }

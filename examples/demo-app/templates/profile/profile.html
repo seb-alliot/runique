@@ -12,10 +12,10 @@
 
     <h2>Autres profils :</h2>
     <ul>
-        <li><a href="{{ link(link='user_profile', id=1) }}">User #1</a></li>
-        <li><a href="{{ link(link='user_profile', id=42) }}">User #42</a></li>
-        <li><a href="{{ link(link='user_profile', id=123) }}">User #123</a></li>
-        <li><a href="{{ link(link='user_profile', id=999) }}">User #999</a></li>
+        <li><a href="{{ link(link='user_profile', id=1 , name="Alice" ) }}">User #1</a></li>
+        <li><a href="{{ link(link='user_profile', id=255 , name="Bob" ) }}">User #42</a></li>
+        <li><a href="{{ link(link='user_profile', id=123, name="Charlie" ) }}">User #123</a></li>
+        <li><a href="{{ link(link='user_profile', id=999, name="David" ) }}">User #999</a></li>
     </ul>
 
     <p>ID actuel : <strong>{{ user_id }}</strong></p>

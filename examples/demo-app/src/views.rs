@@ -43,7 +43,7 @@ pub async fn about(
     template.render("about/about.html", &context)
 }
 
-
+/// Page de profil utilisateur pour tester les URLs avec paramètres
 pub async fn user_profile(
     Path((id, name)): Path<(u32, String)>,
     template: Template,

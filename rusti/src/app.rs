@@ -102,12 +102,16 @@ impl RustiApp {
         }
 
         // balise filtrers
-        crate::tera_function::static_balise::register_static(&mut tera, config.static_url.clone());
-        crate::tera_function::static_balise::register_media(&mut tera, config.media_url.clone());
-        crate::tera_function::static_balise::rusti_static(&mut tera, config.static_rusti_url.clone());
-        crate::tera_function::static_balise::rusti_media(&mut tera, config.media_rusti_url.clone());
+        crate::tera_function::static_balise::register_all_asset_filters(
+            &mut tera,
+            config.static_url.clone(),
+            config.media_url.clone(),
+            config.static_rusti_url.clone(),
+            config.media_rusti_url.clone(),
+        );
+
         crate::tera_function::url_balise::register_url(&mut tera);
-        
+
         let tera = Arc::new(tera);
         let router = Router::new();
 

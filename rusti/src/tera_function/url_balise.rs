@@ -1,8 +1,34 @@
 use tera::{Tera, Value, Result as TeraResult};
 use std::collections::HashMap;
 
+/// Enregistre la fonction `link()` dans Tera
 pub fn register_url(tera: &mut Tera) {
     tera.register_function("link", link_function);
+}
+
+/// Extrait les placeholders d'une URL
+/// Exemple : "/user/{id}/post/{slug}" → ["id", "slug"]
+fn extract_placeholders(path: &str) -> Vec<String> {
+    let mut placeholders = Vec::new();
+    let mut current = String::new();
+    let mut in_placeholder = false;
+
+    for c in path.chars() {
+        match c {
+            '{' => in_placeholder = true,
+            '}' => {
+                if !current.is_empty() {
+                    placeholders.push(current.clone());
+                    current.clear();
+                }
+                in_placeholder = false;
+            }
+            _ if in_placeholder => current.push(c),
+            _ => {}
+        }
+    }
+
+    placeholders
 }
 
 pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
@@ -12,15 +38,30 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
         .and_then(|v| v.as_str())
         .ok_or_else(|| tera::Error::msg("link() nécessite un argument 'link'"))?;
 
-    // 2. Cas sans paramètres
-    if args.len() == 1 {
-        let path = crate::macro_perso::router::reverse(link_name)
-            .ok_or_else(|| tera::Error::msg(format!("Route '{}' introuvable", link_name)))?;
-        return Ok(Value::String(path));
+    // 2. Résoudre le pattern de la route
+    let pattern = crate::macro_perso::router::reverse(link_name)
+        .ok_or_else(|| tera::Error::msg(format!(
+            "Route '{}' introuvable.\n\nVérifiez que la route existe dans votre urlpatterns!",
+            link_name
+        )))?;
+
+    // 3. Extraire les placeholders attendus
+    let expected_params = extract_placeholders(&pattern);
+
+    // 4. Cas sans paramètres
+    if expected_params.is_empty() {
+        if args.len() > 1 {
+            return Err(tera::Error::msg(format!(
+                "La route '{}' ne prend pas de paramètres, mais vous avez fourni : {:?}",
+                link_name,
+                args.keys().filter(|k| *k != "link").collect::<Vec<_>>()
+            )));
+        }
+        return Ok(Value::String(pattern));
     }
 
-    // 3. Cas avec paramètres
-    let mut params: Vec<(String, String)> = Vec::new();
+    // 5. Collecter les paramètres fournis
+    let mut provided_params: Vec<(String, String)> = Vec::new();
 
     for (key, value) in args.iter() {
         if key == "link" {
@@ -30,20 +71,80 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
         let value_str = match value {
             Value::String(s) => s.clone(),
             Value::Number(n) => n.to_string(),
-            _ => return Err(tera::Error::msg("Paramètres invalides")),
+            Value::Bool(b) => b.to_string(),
+            _ => return Err(tera::Error::msg(format!(
+                "Le paramètre '{}' a un type invalide. Utilisez String, Number ou Bool.",
+                key
+            ))),
         };
 
-        params.push((key.clone(), value_str));
+        provided_params.push((key.clone(), value_str));
     }
 
-    // 4. Créer les références APRÈS avoir stocké les données
-    let params_refs: Vec<(&str, &str)> = params
+    // 6. Vérifier les paramètres manquants
+    let provided_keys: Vec<&str> = provided_params.iter()
+        .map(|(k, _)| k.as_str())
+        .collect();
+
+    let missing_params: Vec<&String> = expected_params
+        .iter()
+        .filter(|p| !provided_keys.contains(&p.as_str()))
+        .collect();
+
+    if !missing_params.is_empty() {
+        let mut message = format!(
+            "Paramètres manquants pour la route '{}':\n\n",
+            link_name
+        );
+        message.push_str(&format!("Pattern: {}\n\n", pattern));
+        message.push_str("Paramètres requis:\n");
+        for p in &expected_params {
+            if missing_params.contains(&p) {
+                message.push_str(&format!("{} (manquant)\n", p));
+            } else {
+                message.push_str(&format!("{} (fourni)\n", p));
+            }
+        }
+        message.push_str(&format!(
+            "\nExemple: {{{{ link(link='{}', {}) }}}}\n",
+            link_name,
+            expected_params.iter()
+                .map(|p| format!("{}=value", p))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        return Err(tera::Error::msg(message));
+    }
+
+    // 7. Vérifier les paramètres en trop
+    let extra_params: Vec<&String> = provided_params
+        .iter()
+        .map(|(k, _)| k)
+        .filter(|k| !expected_params.contains(k))
+        .collect();
+
+    if !extra_params.is_empty() {
+        return Err(tera::Error::msg(format!(
+            "Paramètres non reconnus pour la route '{}':\n\n\
+            Pattern: {}\n\
+            Paramètres attendus: {:?}\n\
+            Paramètres en trop: {:?}",
+            link_name, pattern, expected_params, extra_params
+        )));
+    }
+
+    // 8. Créer les références
+    let params_refs: Vec<(&str, &str)> = provided_params
         .iter()
         .map(|(k, v)| (k.as_str(), v.as_str()))
         .collect();
 
-    // 5. Résoudre la route
-    let path = crate::macro_perso::router::reverse_with_parameters(link_name, &params_refs)
-        .ok_or_else(|| tera::Error::msg(format!("Impossible de résoudre '{}'", link_name)))?;
-    Ok(Value::String(path))
+    // 9. Résoudre l'URL finale
+    let final_url = crate::macro_perso::router::reverse_with_parameters(link_name, &params_refs)
+        .ok_or_else(|| tera::Error::msg(format!(
+            "Impossible de construire l'URL pour '{}'",
+            link_name
+        )))?;
+
+    Ok(Value::String(final_url))
 }
