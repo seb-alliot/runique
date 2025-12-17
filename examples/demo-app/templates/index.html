@@ -39,7 +39,8 @@
 
     <footer>
         {% block footer %}
-        <a href="/about">À propos</a>
+        <a href="{{ link(link='user_profile', id=66, name='sebastien') }}">Profile</a>
+        <a href="{{ link(link='about') }}">À propos</a>
         <p>&copy; 2025 My Web Application</p>
         {% endblock %}
     </footer>

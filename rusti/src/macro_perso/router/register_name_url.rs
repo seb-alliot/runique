@@ -19,9 +19,11 @@ pub fn reverse(name: &str) -> Option<String> {
 }
 
 pub fn reverse_with_parameters(name: &str, parameters: &[(&str, &str)]) -> Option<String> {
-    let mut path = reverse(name)?;
+
+    let mut path = reverse(name);
     for (key, value) in parameters {
-        path = path.replace(&format!(":{}", key), value);
+        let placeholder = format!("{{{}}}", key);
+        path = Some(path?.replace(&placeholder, value));
     }
-    Some(path)
+    path
 }

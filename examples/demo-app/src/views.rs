@@ -5,8 +5,8 @@ use rusti::{
     Template,
     url,
     json,
+    Path,
 };
-
 
 /// Page d'accueil
 pub async fn index(
@@ -41,4 +41,18 @@ pub async fn about(
     })).unwrap_or_default();
 
     template.render("about/about.html", &context)
+}
+
+
+pub async fn user_profile(
+    Path((id, name)): Path<(u32, String)>,
+    template: Template,
+) -> Response {
+    let context = Context::from_serialize(json!({
+        "title": format!("Bienvenue {}, ton Id est  {}", name, id),
+        "user_id": id,
+        "name": name,
+    })).unwrap_or_default();
+
+    template.render("profile/profile.html", &context)
 }
