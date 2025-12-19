@@ -17,7 +17,7 @@ pub struct DatabaseConfig {
     pub sqlx_logging: bool,
 }
 
-/// Base de données supportés par SeaORM
+/// Bases de données supportées par SeaORM
 #[derive(Debug, Clone, PartialEq)]
 pub enum DatabaseEngine {
     PostgreSQL,
@@ -142,6 +142,10 @@ impl DatabaseConfig {
     pub async fn connect(&self) -> Result<DatabaseConnection, DbErr> {
         tracing::info!("🔌 Connecting to {} database...", self.engine.name());
 
+        // Vérification que le driver est activé
+        verify_database_driver(&self.engine)
+            .map_err(|e| DbErr::Custom(e))?;
+
         let mut opt = ConnectOptions::new(&self.url);
 
         match self.engine {
@@ -174,6 +178,58 @@ impl DatabaseConfig {
             }
         }
     }
+}
+
+/// Vérifie que le driver de base de données est disponible
+fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
+    match engine {
+        DatabaseEngine::PostgreSQL => {
+            #[cfg(not(feature = "postgres"))]
+            return Err(
+                "❌ PostgreSQL driver not enabled.\n\n\
+                To fix this, add the 'postgres' feature to rusti in your Cargo.toml:\n\n\
+                [dependencies]\n\
+                rusti = { version = \"0.1\", features = [\"postgres\"] }\n\n\
+                Or enable all databases:\n\
+                rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
+            );
+        }
+        DatabaseEngine::MySQL => {
+            #[cfg(not(feature = "mysql"))]
+            return Err(
+                "❌ MySQL driver not enabled.\n\n\
+                To fix this, add the 'mysql' feature to rusti in your Cargo.toml:\n\n\
+                [dependencies]\n\
+                rusti = { version = \"0.1\", features = [\"mysql\"] }\n\n\
+                Or enable all databases:\n\
+                rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
+            );
+        }
+        DatabaseEngine::MariaDB => {
+            #[cfg(not(feature = "mariadb"))]
+            return Err(
+                "❌ MariaDB driver not enabled.\n\n\
+                To fix this, add the 'mariadb' feature to rusti in your Cargo.toml:\n\n\
+                [dependencies]\n\
+                rusti = { version = \"0.1\", features = [\"mariadb\"] }\n\n\
+                Note: MariaDB uses the MySQL driver.\n\n\
+                Or enable all databases:\n\
+                rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
+            );
+        }
+        DatabaseEngine::SQLite => {
+            #[cfg(not(feature = "sqlite"))]
+            return Err(
+                "❌ SQLite driver not enabled.\n\n\
+                To fix this, add the 'sqlite' feature to rusti in your Cargo.toml:\n\n\
+                [dependencies]\n\
+                rusti = { version = \"0.1\", features = [\"sqlite\"] }\n\n\
+                Or use the default features (SQLite is enabled by default):\n\
+                rusti = \"0.1\"".to_string()
+            );
+        }
+    }
+    Ok(())
 }
 
 /// Builder pour DatabaseConfig
@@ -213,6 +269,7 @@ impl DatabaseConfigBuilder {
     }
 }
 
+/// Masque le mot de passe dans l'URL pour les logs
 fn mask_password(url: &str) -> String {
     if let Some(idx) = url.find("://") {
         if let Some(at_idx) = url[idx+3..].find('@') {
@@ -226,4 +283,39 @@ fn mask_password(url: &str) -> String {
         }
     }
     url.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mask_password() {
+        let url = "postgres://myuser:secret123@localhost:5432/mydb";
+        let masked = mask_password(url);
+        assert_eq!(masked, "postgres://myuser:****@localhost:5432/mydb");
+    }
+
+    #[test]
+    fn test_mask_password_no_password() {
+        let url = "sqlite://local.db";
+        let masked = mask_password(url);
+        assert_eq!(masked, "sqlite://local.db");
+    }
+
+    #[test]
+    fn test_detect_engine() {
+        assert_eq!(
+            DatabaseEngine::detect_from_url("postgres://localhost/db").unwrap(),
+            DatabaseEngine::PostgreSQL
+        );
+        assert_eq!(
+            DatabaseEngine::detect_from_url("mysql://localhost/db").unwrap(),
+            DatabaseEngine::MySQL
+        );
+        assert_eq!(
+            DatabaseEngine::detect_from_url("sqlite://db.sqlite").unwrap(),
+            DatabaseEngine::SQLite
+        );
+    }
 }

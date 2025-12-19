@@ -43,5 +43,16 @@ async-trait.workspace = true
 once_cell.workspace = true
 
 [features]
-default = ["orm"]
+default = ["orm", "sqlite"]
 orm = ["dep:sea-orm"]
+
+# Bases de données
+sqlite = ["sea-orm?/sqlx-sqlite", "sea-orm?/runtime-tokio-rustls"]
+postgres = ["sea-orm?/sqlx-postgres", "sea-orm?/runtime-tokio-rustls"]
+mysql = ["sea-orm?/sqlx-mysql", "sea-orm?/runtime-tokio-rustls"]
+
+# Alias pour MariaDB
+mariadb = ["mysql"]
+
+# Feature pour activer toutes les BDD
+all-databases = ["sqlite", "postgres", "mysql"]
