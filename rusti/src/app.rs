@@ -61,10 +61,54 @@ impl RustiApp {
                     content = content.replace("{% csrf %}", r#"{% include "csrf" %}"#);
                     content = content.replace("{% messages %}", r#"{% include "message" %}"#);
 
+                    // Transformation {% link "name" %}
+                    let re_link_simple = regex::Regex::new(
+                        r#"\{%\s*link\s+['"](?P<name>[^'"]+)['"]\s*%}"#
+                    ).unwrap();
+
+                    let re_link_params = regex::Regex::new(
+                        r#"\{%\s*link\s+['"](?P<name>[^'"]+)['"],\s*(?P<params>[^%]+)%}"#
+                    ).unwrap();
+
+                    // Appliquer les transformations
+                    content = re_link_simple.replace_all(&content, |caps: &regex::Captures| {
+                        let name = &caps["name"];
+                        format!(r#"{{{{ link(link='{}') }}}}"#, name)
+                    }).to_string();
+
+                    content = re_link_params.replace_all(&content, |caps: &regex::Captures| {
+                        let name = &caps["name"];
+                        let params = &caps["params"].trim();
+                        format!(r#"{{{{ link(link='{}', {}) }}}}"#, name, params)
+                    }).to_string();
                     content = re_tag_with_link.replace_all(&content, |caps: &regex::Captures| {
                         let tag = &caps["tag"];
                         let link = &caps["link"];
                         format!(r#"{{{{ "{}" | {} }}}}"#, link, tag)
+                    }).to_string();
+                    // Dans RustiApp::new(), après les transformations existantes
+
+                    // Transformation {% link "name" %}
+                    let re_link_simple = regex::Regex::new(
+                        r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*%}"#
+                    ).unwrap();
+
+                    let re_link_with_params = regex::Regex::new(
+                        r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s+(?P<params>[^%]+)%}"#
+                    ).unwrap();
+
+                    // Transformer {% link "about" %} → {{ link(link='about') }}
+                    content = re_link_simple.replace_all(&content, |caps: &regex::Captures| {
+                        let name = &caps["name"];
+                        format!(r#"{{{{ link(link='{}') }}}}"#, name)
+                    }).to_string();
+
+                    // Transformer {% link "user_profile" id=66 name='sebastien' %}
+                    // → {{ link(link='user_profile', id=66, name='sebastien') }}
+                    content = re_link_with_params.replace_all(&content, |caps: &regex::Captures| {
+                        let name = &caps["name"];
+                        let params = &caps["params"];
+                        format!(r#"{{{{ link(link='{}', {}) }}}}"#, name, params.trim())
                     }).to_string();
 
                     let name = entry.strip_prefix(template_dir)?
