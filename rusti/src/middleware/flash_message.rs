@@ -117,7 +117,7 @@ pub async fn flash_middleware(
 ) -> Response {
 
     // Étape 1 : extraire les messages sans toucher aux extensions ensuite
-    let messages = {
+    let messages: Vec<FlashMessage> = {
         let session = match req.extensions_mut().get_mut::<Session>() {
             Some(s) => s,
             None => return next.run(req).await,

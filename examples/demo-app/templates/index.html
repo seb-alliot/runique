@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <link rel="stylesheet" href='{{ "css/main.css" | static }}'>
+    <link rel="stylesheet" href='{% static "css/main.css" %}'>
 
 </head>
 <body>
@@ -17,12 +17,12 @@
 
     {% block header %}
     <header>
-        <img src='{{ "toshiro.jpg" | media }}' alt="Logo">
+        <img src='{% media "toshiro.jpg" %}' alt="Logo">
     </header>
     {% endblock %}
 
     {% block message %}
-        {% include "message" %}
+        {% messages %}
     {% endblock %}
 
     {% block content %}
@@ -35,6 +35,10 @@
         <p>{{ tokio }}</p>
         <p>{{ session }}</p>
     </div>
+    <!-- Inclusion du token CSRF dans le formulaire -->
+    <!-- test de la valeur du token -->
+    {% csrf %}
+
     {% endblock %}
 
     <footer>

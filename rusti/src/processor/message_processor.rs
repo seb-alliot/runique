@@ -17,6 +17,9 @@ pub struct Template {
     context: Context,
 }
 
+// ... tes imports existants ...
+use crate::middleware::csrf::CsrfToken; // Assure-toi d'importer ta struct CsrfToken
+
 impl<S> FromRequestParts<S> for Template
 where
     S: Send + Sync {
@@ -26,35 +29,32 @@ where
         parts: &mut Parts,
         _state: &S,
     ) -> Result<Self, Self::Rejection> {
-        // Récupérer Tera
-        let tera = parts
-            .extensions
-            .get::<Arc<Tera>>()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
-            .clone();
-
-        // Récupérer Config
-        let config = parts
-            .extensions
-            .get::<Arc<Settings>>()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
-            .clone();
+        // 1. Récupération des extensions indispensables (Tera et Config)
+        let tera = parts.extensions.get::<Arc<Tera>>()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?.clone();
+        let config = parts.extensions.get::<Arc<Settings>>()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?.clone();
 
         let mut context = Context::new();
 
-        // AUTO-INJECT messages
-        if let Some(messages) = parts.extensions.get::<Vec<FlashMessage>>() {
+        // --- AUTO-INJECTION MAGIQUE ---
 
+        // 2. Injection du CSRF Token (pour tes fonctions/filtres de template)
+        if let Some(token) = parts.extensions.get::<CsrfToken>() {
+            context.insert("csrf_token", &token.0);
+        }
+
+        // 3. Injection des Messages Flash
+        if let Some(messages) = parts.extensions.get::<Vec<FlashMessage>>() {
             context.insert("messages", messages);
         }
 
-        // AUTO-INJECT debug mode
+        // 4. Injection du flag Debug
         context.insert("debug", &config.debug);
 
         Ok(Template { tera, config, context })
     }
 }
-
 impl Template {
     /// Render avec StatusCode::OK par défaut
     pub fn render(self, template_name: &str, user_context: &Context) -> Response {

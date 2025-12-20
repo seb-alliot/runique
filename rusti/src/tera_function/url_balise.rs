@@ -27,7 +27,6 @@ fn extract_placeholders(path: &str) -> Vec<String> {
             _ => {}
         }
     }
-
     placeholders
 }
 

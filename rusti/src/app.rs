@@ -14,21 +14,19 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 use tower_sessions::cookie::time::Duration;
 use tokio::signal;
 use tokio::net::TcpListener;
-use tera::Tera;
-use tera::Context;
+use tera::{Tera, Context};
+use anyhow::Result;
+use glob;
 
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
 
 use crate::settings::Settings;
-use crate::middleware::error_handler::error_handler_middleware;
-use crate::middleware::error_handler::render_index;
+use crate::middleware::error_handler::{error_handler_middleware, render_index};
 use crate::middleware::flash_message::flash_middleware;
+use crate::middleware::csrf::csrf_middleware;
 use crate::response::render_simple_404;
 
-/// Structure principale de l'application Rusti
-///
-/// Encapsule toute la configuration et l'état de l'application
 pub struct RustiApp {
     router: Router,
     config: Arc<Settings>,
@@ -37,71 +35,49 @@ pub struct RustiApp {
 }
 
 impl RustiApp {
-    /// Crée une nouvelle instance de RustiApp
-    ///
-    /// # Arguments
-    /// * `settings` - Configuration de l'application
-    ///
-    /// # Exemple
-    /// ```rust,no_run
-    /// use rusti::{RustiApp, Settings};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let settings = Settings::default_values();
-    ///     let app = RustiApp::new(settings).await?;
-    ///     Ok(())
-    /// }
-    /// ```
     pub async fn new(settings: Settings) -> Result<Self, Box<dyn Error>> {
         let config = Arc::new(settings);
         let addr = config.server.domain_server.parse()?;
 
         let mut tera = Tera::default();
 
-        // 1. CHARGER D'ABORD LES TEMPLATES DU FRAMEWORK (embarqués)
-        const INDEX_DEFAULT_TEMPLATE: &str = include_str!("../templates/base_index.html");
-        const MESSAGE_FLASH_TEMPLATE: &str = include_str!("../templates/message.html");
-        const ERROR_DEBUG_TEMPLATE: &str = include_str!("../templates/errors/debug_error.html");
-        const ERROR_500_TEMPLATE: &str = include_str!("../templates/errors/500.html");
-        const ERROR_404_TEMPLATE: &str = include_str!("../templates/errors/404.html");
+        // 1. Templates internes
+        Self::load_internal_templates(&mut tera)?;
 
-        tera.add_raw_template("base_index.html", INDEX_DEFAULT_TEMPLATE)?;
-        tera.add_raw_template("message", MESSAGE_FLASH_TEMPLATE)?;
-        tera.add_raw_template("errors/404.html", ERROR_404_TEMPLATE)?;
-        tera.add_raw_template("errors/500.html", ERROR_500_TEMPLATE)?;
-        tera.add_raw_template("errors/debug_error.html", ERROR_DEBUG_TEMPLATE)?;
+        // 2. Traitement des templates utilisateurs (Regex tags)
+        let mut all_templates = Vec::new();
+        let re_tag_with_link = regex::Regex::new(
+            r#"\{%\s*(?P<tag>static|media)\s*['"](?P<link>[^'"]+)['"]\s*%}"#
+        ).unwrap();
 
-        const HEADER_ERROR: &str = include_str!("../templates/errors/corps-error/header-error.html");
-        const MESSAGE_ERROR: &str = include_str!("../templates/errors/corps-error/message-error.html");
-        const TEMPLATE_INFO: &str = include_str!("../templates/errors/corps-error/template-info.html");
-        const STACK_TRACE: &str = include_str!("../templates/errors/corps-error/stack-trace-error.html");
-        const REQUEST_INFO: &str = include_str!("../templates/errors/corps-error/request-info.html");
-        const ENVIRONMENT_INFO: &str = include_str!("../templates/errors/corps-error/environment-info.html");
-        const STATUS_CODE_INFO: &str = include_str!("../templates/errors/corps-error/status-code-info.html");
-        const FOOTER_ERROR: &str = include_str!("../templates/errors/corps-error/footer-error.html");
+        for dir_string in &config.templates_dir {
+            let template_dir = std::path::Path::new(dir_string);
+            let pattern = format!("{}/**/*.html", template_dir.display());
 
-        tera.add_raw_template("errors/corps-error/header-error.html", HEADER_ERROR)?;
-        tera.add_raw_template("errors/corps-error/message-error.html", MESSAGE_ERROR)?;
-        tera.add_raw_template("errors/corps-error/template-info.html", TEMPLATE_INFO)?;
-        tera.add_raw_template("errors/corps-error/stack-trace-error.html", STACK_TRACE)?;
-        tera.add_raw_template("errors/corps-error/request-info.html", REQUEST_INFO)?;
-        tera.add_raw_template("errors/corps-error/environment-info.html", ENVIRONMENT_INFO)?;
-        tera.add_raw_template("errors/corps-error/status-code-info.html", STATUS_CODE_INFO)?;
-        tera.add_raw_template("errors/corps-error/footer-error.html", FOOTER_ERROR)?;
+            if let Ok(paths) = glob::glob(&pattern) {
+                for entry in paths.flatten() {
+                    let mut content = std::fs::read_to_string(&entry)?;
 
-        // 2. CHARGER LES TEMPLATES UTILISATEUR
-        let pattern = format!("{}/**/*.html", config.templates_dir.join(","));
-        match Tera::new(&pattern) {
-            Ok(t) => {
-                tera.extend(&t).expect("Failed to extend Tera with user templates");
-            }
-            Err(e) => {
-                println!("No user templates found in {} ({})", pattern, e);
+                    content = content.replace("{% csrf %}", r#"{% include "csrf" %}"#);
+                    content = content.replace("{% messages %}", r#"{% include "message" %}"#);
+
+                    content = re_tag_with_link.replace_all(&content, |caps: &regex::Captures| {
+                        let tag = &caps["tag"];
+                        let link = &caps["link"];
+                        format!(r#"{{{{ "{}" | {} }}}}"#, link, tag)
+                    }).to_string();
+
+                    let name = entry.strip_prefix(template_dir)?
+                        .to_string_lossy()
+                        .replace("\\", "/");
+
+                    all_templates.push((name, content));
+                }
             }
         }
 
-        // balise filtrers
+        tera.add_raw_templates(all_templates)?;
+
         crate::tera_function::static_balise::register_all_asset_filters(
             &mut tera,
             config.static_url.clone(),
@@ -115,118 +91,70 @@ impl RustiApp {
         let tera = Arc::new(tera);
         let router = Router::new();
 
-        Ok(Self {
-            router,
-            config,
-            addr,
-            tera,
-        })
+        Ok(Self { router, config, addr, tera })
     }
 
-    /// Configure les routes de l'application
-    ///
-    /// # Exemple
-    /// ```rust,no_run
-    /// use rusti::{RustiApp, Settings, Router, get};
-    ///
-    /// async fn index() -> &'static str {
-    ///     "Hello, World!"
-    /// }
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let settings = Settings::default_values();
-    ///     let app = RustiApp::new(settings).await?
-    ///         .routes(Router::new().route("/", get(index)));
-    ///     Ok(())
-    /// }
-    /// ```
+    fn load_internal_templates(tera: &mut Tera) -> Result<(), Box<dyn Error>> {
+        tera.add_raw_template("base_index.html", include_str!("../templates/base_index.html"))?;
+        tera.add_raw_template("message", include_str!("../templates/message.html"))?;
+        tera.add_raw_template("errors/404.html", include_str!("../templates/errors/404.html"))?;
+        tera.add_raw_template("errors/500.html", include_str!("../templates/errors/500.html"))?;
+        tera.add_raw_template("errors/debug_error.html", include_str!("../templates/errors/debug_error.html"))?;
+        tera.add_raw_template("csrf", include_str!("../templates/csrf/csrf.html"))?;
+
+        const ERROR_CORPS: [(&str, &str); 8] = [
+            ("errors/corps-error/header-error.html", include_str!("../templates/errors/corps-error/header-error.html")),
+            ("errors/corps-error/message-error.html", include_str!("../templates/errors/corps-error/message-error.html")),
+            ("errors/corps-error/template-info.html", include_str!("../templates/errors/corps-error/template-info.html")),
+            ("errors/corps-error/stack-trace-error.html", include_str!("../templates/errors/corps-error/stack-trace-error.html")),
+            ("errors/corps-error/request-info.html", include_str!("../templates/errors/corps-error/request-info.html")),
+            ("errors/corps-error/environment-info.html", include_str!("../templates/errors/corps-error/environment-info.html")),
+            ("errors/corps-error/status-code-info.html", include_str!("../templates/errors/corps-error/status-code-info.html")),
+            ("errors/corps-error/footer-error.html", include_str!("../templates/errors/corps-error/footer-error.html")),
+        ];
+
+        for (name, content) in ERROR_CORPS {
+            tera.add_raw_template(name, content)?;
+        }
+        Ok(())
+    }
+
     pub fn routes(mut self, routes: Router) -> Self {
         self.router = self.router.merge(routes);
         self
     }
 
-    /// Configure une base de données personnalisée
-    ///
-    /// # Exemple
-    /// ```rust,no_run
-    /// use rusti::{RustiApp, Settings, DatabaseConfig};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let db_config = DatabaseConfig::from_env()?.build();
-    ///     let db = db_config.connect().await?;
-    ///
-    ///     let settings = Settings::default_values();
-    ///     let app = RustiApp::new(settings).await?
-    ///         .with_database_custom(db);
-    ///     Ok(())
-    /// }
-    /// ```
     #[cfg(feature = "orm")]
     pub fn with_database_custom(mut self, db: DatabaseConnection) -> Self {
         self.router = self.router.layer(Extension(Arc::new(db)));
         self
     }
 
-/// Configure les fichiers statiques et médias
-///
-/// # Exemple
-/// ```rust,no_run
-/// use rusti::{RustiApp, Settings, DatabaseConfig};
-///
-/// #[tokio::main]
-/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let settings = Settings::default_values();
-///     let db = DatabaseConfig::from_env()?.build().connect().await?;
-///
-///     let app = RustiApp::new(settings).await?
-///         .with_database_custom(db)
-///         .with_static_files()?;  // ← Configure les fichiers statiques
-///
-///     Ok(())
-/// }
-/// ```
     pub fn with_static_files(mut self) -> Result<Self, Box<dyn Error>> {
         let conf = self.config.as_ref();
+        self.router = self.router
+            .nest_service(&conf.static_url, ServeDir::new(&conf.staticfiles_dirs))
+            .nest_service(&conf.media_url, ServeDir::new(&conf.media_root));
 
-        // 1. Fichiers statiques utilisateur
-        let static_files = ServeDir::new(&conf.staticfiles_dirs);
-        self.router = self.router.nest_service(&conf.static_url, static_files);
-
-        // 2. Fichiers media utilisateur
-        let media_files = ServeDir::new(&conf.media_root);
-        self.router = self.router.nest_service(&conf.media_url, media_files);
-
-        // 3. Fichiers statiques du framework
         if !conf.static_rusti_path.is_empty() {
-            let static_files = ServeDir::new(&conf.static_rusti_path);
-            self.router = self.router.nest_service(&conf.static_rusti_url, static_files);
-        }
-
-        // 4. Fichiers media du framework
-        if !conf.media_rusti_path.is_empty() {
-            let media_files = ServeDir::new(&conf.media_rusti_path);
-            self.router = self.router.nest_service(&conf.media_rusti_url, media_files);
+            self.router = self.router.nest_service(&conf.static_rusti_url, ServeDir::new(&conf.static_rusti_path));
         }
         Ok(self)
     }
 
-    /// Configure les middlewares par défaut (erreurs, timeouts, etc.)
     pub fn with_default_middleware(mut self) -> Self {
-        let tera_for_fallback = self.tera.clone();
-        let config_for_fallback = self.config.clone();
+        let tera = self.tera.clone();
+        let config = self.config.clone();
 
         self.router = self.router
             .fallback(move |uri: axum::http::Uri| {
-                let tera = tera_for_fallback.clone();
-                let config = config_for_fallback.clone();
+                let t = tera.clone();
+                let c = config.clone();
                 async move {
                     if uri.path() == "/" {
-                        let context = Context::new();
-                        return render_index(&tera, &context, &config);
+                        return render_index(&t, &Context::new(), &c);
                     }
-                    render_simple_404(&tera)
+                    render_simple_404(&t)
                 }
             })
             .layer(
@@ -238,68 +166,47 @@ impl RustiApp {
                     ))
             )
             .layer(middleware::from_fn(error_handler_middleware));
-
         self
     }
 
-    /// Construit le routeur final
     pub fn build(self) -> Router {
         self.router
     }
 
-    /// Active les messages flash
     pub fn with_flash_messages(mut self) -> Self {
         self.router = self.router.layer(middleware::from_fn(flash_middleware));
         self
     }
 
-    /// Lance le serveur
-    ///
-    /// # Exemple
-    /// ```rust,no_run
-    /// use rusti::{RustiApp, Settings};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let settings = Settings::default_values();
-    ///     RustiApp::new(settings).await?
-    ///         .run()
-    ///         .await?;
-    ///     Ok(())
-    /// }
-    /// ```
+    pub fn with_csrf_tokens(mut self) -> Self {
+        self.router = self.router.layer(middleware::from_fn(csrf_middleware));
+        self
+    }
+
     pub async fn run(self) -> Result<(), Box<dyn Error>> {
         println!("🦀 Rusti Framework v{}", crate::VERSION);
         println!("   Starting server at http://{}", self.addr);
 
-        let session_store = MemoryStore::default();
-        let session_layer = SessionManagerLayer::new(session_store)
+        let session_layer = SessionManagerLayer::new(MemoryStore::default())
             .with_secure(!self.config.debug)
             .with_expiry(Expiry::OnInactivity(Duration::seconds(86400)));
 
-        let router_with_extensions = self.router
+        let router = self.router
             .layer(Extension(self.config.clone()))
             .layer(Extension(self.tera.clone()))
             .layer(session_layer);
 
         let listener = TcpListener::bind(&self.addr).await?;
-        let server = axum::serve(listener, router_with_extensions);
-
-        // Arrêt propre avec Ctrl+C
-        tokio::select! {
-            result = server => {
-                if let Err(e) = result {
-                    eprintln!("Server error: {}", e);
-                }
-            },
-            _ = signal::ctrl_c() => {
+        axum::serve(listener, router)
+            .with_graceful_shutdown(async {
+                signal::ctrl_c().await.expect("Failed to listen for ctrl+c");
                 println!("\nShutdown signal received. Stopping server...");
-            },
-        }
+            })
+            .await?;
+
         Ok(())
     }
 
-    /// Builder pattern - crée et configure l'app en une chaîne
     pub async fn builder(settings: Settings) -> RustiAppBuilder {
         RustiAppBuilder {
             settings,
@@ -308,32 +215,6 @@ impl RustiApp {
     }
 }
 
-/// Builder pour construire facilement une application
-///
-/// # Exemple
-///
-/// ```rust,no_run
-/// use rusti::{RustiApp, Settings, Router, get, DatabaseConfig};
-///
-/// async fn index() -> &'static str { "Hello!" }
-///
-/// #[tokio::main]
-/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let settings = Settings::default_values();
-///     let db = DatabaseConfig::from_env()?.build().connect().await?;
-///
-///     RustiApp::new(settings).await?
-///         .with_database_custom(db)
-///         .routes(Router::new().route("/", get(index)))
-///         .with_static_files()?
-///         .with_flash_messages()
-///         .with_default_middleware()
-///         .run()
-///         .await?;
-///
-///     Ok(())
-/// }
-/// ```
 pub struct RustiAppBuilder {
     settings: Settings,
     routes: Option<Router>,

@@ -1,6 +1,7 @@
 use std::vec;
 use serde::{Deserialize, Serialize};
 
+
 /// Configuration principale de l'application Rusti
 ///
 /// Structure inspirée de settings.py de Django
@@ -8,7 +9,6 @@ use serde::{Deserialize, Serialize};
 pub struct Settings {
     pub server: ServerSettings,
     pub base_dir: String,
-    pub secret_key: String,
     pub debug: bool,
     pub allowed_hosts: Vec<String>,
     pub installed_apps: Vec<String>,
@@ -47,6 +47,7 @@ pub struct ServerSettings {
     pub ip_server: String,
     pub domain_server: String,
     pub port: u16,
+    pub secret_key: String,
 }
 
 impl ServerSettings {
@@ -58,11 +59,13 @@ impl ServerSettings {
         let ip = env::var("IP_SERVER").unwrap_or_else(|_| "127.0.0.1".to_string());
         let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
         let domain_server = format!("{}:{}", ip, port);
+        let secret_key = env::var("SECRET_KEY").unwrap_or_else(|_| "default_secret_key".to_string());
 
         ServerSettings {
             ip_server: ip,
             domain_server,
             port: port.parse().unwrap_or(3000),
+            secret_key: secret_key.to_string(),
         }
     }
 }
@@ -83,7 +86,6 @@ impl Settings {
         Settings {
             server: ServerSettings::from_env(),
             base_dir,
-            secret_key: String::from("your-secret-key-change-in-production"),
             debug: cfg!(debug_assertions),
             allowed_hosts: vec![
                 String::from("localhost"),
@@ -93,9 +95,8 @@ impl Settings {
             middleware: vec![],
             root_urlconf: String::from("urls"),
 
-            // Rusti-specific settings (pour servir des assets du framework)
-            // Rusti-specific settings (pour servir des assets du framework)
-            templates_rusti: String::new(),  // Pas utilisé, templates embarqués
+            // Rusti-specific settings
+            templates_rusti: String::new(),
             static_rusti_path: "../../rusti/static".to_string(),     // Chemin physique
             static_rusti_url: "/rusti/static".to_string(),     // URL
             media_rusti_path: "../../rusti/media".to_string(),       // Chemin physique
@@ -198,12 +199,13 @@ impl SettingsBuilder {
         self
     }
 
-    pub fn server(mut self, ip: impl Into<String>, port: u16) -> Self {
+    pub fn server(mut self, ip: impl Into<String>, port: u16, secret_key: impl Into<String>) -> Self {
         let ip = ip.into();
         self.settings.server = ServerSettings {
             ip_server: ip.clone(),
             domain_server: format!("{}:{}", ip, port),
             port,
+            secret_key: secret_key.into(),
         };
         self
     }

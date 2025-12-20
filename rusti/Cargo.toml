@@ -33,6 +33,7 @@ sea-orm = { workspace = true, optional = true }
 dotenvy.workspace = true
 chrono.workspace = true
 anyhow.workspace = true
+regex.workspace = true
 
 # Logging
 tracing.workspace = true
@@ -41,6 +42,14 @@ tracing-subscriber.workspace = true
 # Async
 async-trait.workspace = true
 once_cell.workspace = true
+
+
+# CSRF
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+rand = "0.8"
+
 
 [features]
 default = ["orm", "sqlite"]

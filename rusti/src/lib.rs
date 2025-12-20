@@ -30,8 +30,9 @@ pub use serde_json::json;
 #[cfg(feature = "orm")]
 pub mod database;
 
-
+// Middleware
 pub use middleware::flash_message::flash_middleware;
+pub use middleware::csrf::csrf_middleware;
 pub use processor::message_processor::{Message, Template};
 
 pub use macro_perso::router::{
@@ -47,6 +48,10 @@ pub use sea_orm::{DatabaseConnection};
 
 #[cfg(feature = "orm")]
 pub use database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
+
+// Token csrf
+pub use sha2::Sha256;
+pub use hmac::{Hmac, Mac};
 
 
 // Ré-exports publics pour faciliter l'utilisation
@@ -65,7 +70,7 @@ pub use axum::{
     Extension,
     response::Response,
     debug_handler,
-    
+
 };
 pub use once_cell::sync::Lazy;
 
