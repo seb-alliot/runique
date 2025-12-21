@@ -5,14 +5,10 @@ use rusti::{
     Response,
     Template,
     json,
-    middleware::csrf::{CsrfToken},
-    url,
-    Extension,
 };
 /// Page d'accueil
 pub async fn index(
     template: Template,
-    Extension(csrf_token): Extension<CsrfToken>,
 ) -> Response {
     let context = Context::from_serialize(json!({
         "title": "Bienvenue sur Rusti",
@@ -22,7 +18,6 @@ pub async fn index(
         "template": "Tera pour moteur de templates.",
         "tokio": "Le runtime asynchrone tokio",
         "session": "Tower pour la gestion des sessions.",
-        "csrf_token": csrf_token,
     })).unwrap_or_default();
 
     template.render("index.html", &context)
@@ -40,7 +35,6 @@ pub async fn about(
 
     let context = Context::from_serialize(json!({
         "title": "À propos de Rusti",
-        "index": url!("index"),
     })).unwrap_or_default();
 
     template.render("about/about.html", &context)

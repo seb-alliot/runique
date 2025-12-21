@@ -32,8 +32,10 @@ my-app/
 ├── src/
 │   ├── main.rs
 │   ├── views.rs        # Your view handlers
+|   ├── url.rs          # Your route
 │   ├── templates/      # Your templates
 │   └── static/         # Your static files
+|   └── media/          # Your media files
 └── Cargo.toml          # Just depends on rusti
 ```
 
@@ -101,7 +103,7 @@ impl Settings {
 // Use .env file or custom Settings struct
 
 // .env
-HOST=127.0.0.1
+IP_SERVER=127.0.0.1
 PORT=3000
 DEBUG=true
 SECRET_KEY=your-secret-key
@@ -133,23 +135,31 @@ pub async fn index(
         "debug": config.debug,
     })).unwrap_or_default();
 
-    return_render(&tera, "index1.html", &context, StatusCode::OK, &config)
+    return_render(&tera, "index.html", &context, StatusCode::OK, &config)
 }
 ```
 
 **After:**
 ```rust
 // src/views.rs
-use rusti::prelude::*;
-
+use rusti::{
+    Context,
+    Message,
+    Path,
+    Response,
+    Template,
+    json,
+};
 pub async fn index(
-    Extension(tera): Extension<Arc<Tera>>,
+    template: Template,
 ) -> Response {
     let context = Context::from_serialize(json!({
-        "title": "Welcome",
-    })).unwrap();
+        "title": "Bienvenue sur Rusti",
+        "description": "Un framework web moderne inspiré de Django",
 
-    render(&tera, "index.html", &context)
+    })).unwrap_or_default();
+
+    template.render("index.html", &context)
 }
 ```
 
@@ -176,17 +186,17 @@ pub fn path_url(
 
 **After:**
 ```rust
-// src/main.rs
-let router = Router::new()
-    .route("/", get(views::index))
-    .route("/about", get(views::about));
+// src/url.rs
+use rusti::{Router, urlpatterns};
+use crate::views;
 
-// Static files, extensions, middleware are handled by framework
-let app = RustiApp::new()
-    .with_default_config()
-    .with_router(router)
-    .build()
-    .await?;
+pub fn urls() -> Router {
+    urlpatterns! {
+        "/" => get(views::index), name ="index",
+        "/about" => get(views::about), name ="about",
+        "/user/{id}/{name}" => get(views::user_profile), name ="user_profile",
+    }
+}
 ```
 
 ### 6. Database
@@ -204,7 +214,7 @@ pub async fn connect_db(config: &settings::Settings) -> Result<DatabaseConnectio
 // Database connection is handled by the framework
 let app = RustiApp::new()
     .with_default_config()
-    .with_database()  // Automatically connects using config
+    .with_database_custom()  // Automatically connects using config
     .await?
     .build()
     .await?;

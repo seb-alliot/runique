@@ -2,11 +2,11 @@
 
 Bienvenue dans la documentation du framework Rusti !
 
-## 🗂️ Structure du projet
+##  Structure du projet
 
 ```
 rusti-framework/
-├── rusti/                    # 📦 Le framework (bibliothèque)
+├── rusti/                    #  Le framework (bibliothèque)
 │   ├── src/
 │   │   ├── lib.rs           # Point d'entrée, exports publics
 │   │   ├── app.rs           # RustiApp - structure principale

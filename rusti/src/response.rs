@@ -14,14 +14,14 @@ use tera::Tera;
 /// use rusti::Tera;
 ///
 /// async fn fallback_handler(tera: std::sync::Arc<Tera>) -> axum::response::Response {
-///     render_simple_404(&tera)
+///     render_404(&tera)
 /// }
 /// ```
-pub fn render_simple_404(tera: &Tera) -> Response {
+pub fn render_404(tera: &Tera) -> Response {
     let context = tera::Context::new();
 
     // Essayer de rendre le template 404 personnalisé
-    if let Ok(html) = tera.render("errors/404.html", &context) {
+    if let Ok(html) = tera.render("404", &context) {
         return (StatusCode::NOT_FOUND, Html(html)).into_response();
     }
 

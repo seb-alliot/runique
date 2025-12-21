@@ -25,38 +25,89 @@ tokio = { version = "1", features = ["full"] }
 ## 📖 Exemple rapide
 
 ```rust
-use rusti::{RustiApp, Settings, Router, routing::get};
 
-async fn index() -> &'static str {
-    "Hello, Rusti!"
-}
+
+// src/main.rs
+use rusti::{RustiApp, Settings};
+
+mod url;
+mod views;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::default_values();
-    
-    let routes = Router::new()
-        .route("/", get(index));
-    
+
+
+    // Configuration de l'application !!
+    // Vous pouvez personnaliser les paramètres du settings ici
+    // La clef secrète doit être changée pour la production( secret_key dans le server)
+    // elle peux être importé du .env comme toute variable d'environnement
+    let settings = Settings::builder()
+        .debug(true)
+        .templates_dir(vec!["templates".to_string()])
+        .server("127.0.0.1", 3000, "change_your_secrete_key")
+        .build();
+
+    // Créer et lancer l'application
     RustiApp::new(settings).await?
-        .routes(routes)
+        .routes(url::urls())
         .with_static_files()?
-        .with_sessions()
+        .with_flash_messages()
+        .with_csrf_tokens()
         .with_default_middleware()
         .run()
         .await?;
-    
+
     Ok(())
+}
+
+//src/url.rs
+use rusti::{Router, urlpatterns};
+use crate::views;
+
+pub fn urls() -> Router {
+    urlpatterns! {
+        "/" => get(views::index), name ="index",
+        "/about" => get(views::about), name ="about",
+        "/user/{id}/{name}" => get(views::user_profile), name ="user_profile",
+    }
+}
+
+
+//src/view.rs
+use rusti::{
+    Context,
+    Message,
+    Path,
+    Response,
+    Template,
+    json,
+};
+/// Page d'accueil
+pub async fn index(
+    template: Template,
+    mut message: Message,
+
+) -> Response {
+    message.success( "Ceci est un message de succès de test.").await.unwrap();
+    message.info("Ceci est un message d'information de test.").await.unwrap();
+    message.error("Ceci est un message d'erreur de test.").await.unwrap();
+
+    let context = Context::from_serialize(json!({
+        "title": "À propos de Rusti",
+    })).unwrap_or_default();
+
+    template.render("index.html", &context)
 }
 ```
 
-## 🏗️ Structure du projet
+## Structure du projet
 
 ```
 my-app/
 ├── Cargo.toml
 ├── src/
 │   ├── main.rs
+│   └── url.rs
 │   └── views.rs
 ├── templates/
 │   ├── index.html
@@ -66,10 +117,12 @@ my-app/
 ├── static/
 │   └── css/
 │       └── main.css
+│   └── js/
+│       └── main.js
 └── media/
 ```
 
-## 📚 Configuration
+##  Configuration
 
 ### Configuration par défaut
 
@@ -82,6 +135,7 @@ let settings = Settings::default_values();
 ### Configuration avec builder
 
 ```rust
+/* Les variables d'environnement sont acceptées */
 let settings = Settings::builder()
     .debug(true)
     .templates_dir("templates")
@@ -106,7 +160,7 @@ POSTGRES_PORT=5432
 POSTGRES_DB=mydb
 ```
 
-## 🎨 Templating
+##  Templating
 
 Rusti utilise Tera pour le templating. Créez vos templates dans le répertoire `templates/` :
 
@@ -128,25 +182,32 @@ Rusti utilise Tera pour le templating. Créez vos templates dans le répertoire 
 Dans votre handler :
 
 ```rust
-use rusti::{Extension, Response, StatusCode, Context, Tera, Settings};
-use rusti::middleware::TeraSafe;
-use std::sync::Arc;
-use serde_json::json;
-
+use rusti::{
+    Context,
+    Message,
+    Path,
+    Response,
+    Template,
+    json,
+};
+/// Page d'accueil
 pub async fn index(
-    Extension(tera): Extension<Arc<Tera>>,
-    Extension(config): Extension<Arc<Settings>>,
+    template: Template,
+        mut message: Message,
 ) -> Response {
+
+    message.success( "Ceci est un exemple d'utilisation.").await.unwrap();
+    /*error et info sont disponible aussi afin de varier les utilisations */
     let context = Context::from_serialize(json!({
-        "title": "Mon titre",
-        "items": vec!["Item 1", "Item 2", "Item 3"],
+        "title": "Bienvenue sur Rusti",
+
     })).unwrap_or_default();
 
-    tera.render_safe("index.html", &context, StatusCode::OK, &config)
+    template.render("index.html", &context)
 }
 ```
 
-## 🗄️ Base de données (feature `orm`)
+##  Base de données (feature `orm`)
 
 ```rust
 use rusti::{RustiApp, Settings};
@@ -154,13 +215,13 @@ use rusti::{RustiApp, Settings};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::default_values();
-    
+
     RustiApp::new(settings).await?
-        .with_database().await?  // Active la connexion DB
+        .with_database_custom().await?  // Active la connexion DB
         .routes(routes)
         .run()
         .await?;
-    
+
     Ok(())
 }
 ```

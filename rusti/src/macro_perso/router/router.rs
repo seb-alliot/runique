@@ -34,29 +34,29 @@ macro_rules! urlpatterns {
 }
 
 
-/// Macro pour le reverse routing (url!)
-#[macro_export]
-macro_rules! url {
-    // 1. Cas Sans paramètres
-    ($name:expr) => {{
-            $crate::macro_perso::router::reverse($name)
-                .unwrap_or_default()
-    }};
+// /// Macro pour le reverse routing (url!)
+// #[macro_export]
+// macro_rules! url {
+//     // 1. Cas Sans paramètres
+//     ($name:expr) => {{
+//             $crate::macro_perso::router::reverse($name)
+//                 .unwrap_or_default()
+//     }};
 
-    // 2. Cas Avec paramètres
-    ($name:expr, $($key:ident = $value:expr),+ $(,)?) => {{
-        // Créer un vecteur temporaire
-        let params_vec: Vec<(&str, &str)> = vec![
-            $((stringify!($key).to_string(), $value.to_string())),+
-        ];
+//     // 2. Cas Avec paramètres
+//     ($name:expr, $($key:ident = $value:expr),+ $(,)?) => {{
+//         // Créer un vecteur temporaire
+//         let params_vec: Vec<(&str, &str)> = vec![
+//             $((stringify!($key).to_string(), $value.to_string())),+
+//         ];
 
-        // Convertir en références
-        let params_refs: Vec<(&str, &str)> = params_vec
-            .iter()
-            .map(|(k, v)| (k.as_str(), v.as_str()))
-            .collect();
+//         // Convertir en références
+//         let params_refs: Vec<(&str, &str)> = params_vec
+//             .iter()
+//             .map(|(k, v)| (k.as_str(), v.as_str()))
+//             .collect();
 
-        $crate::routing::reverse_with_parameters($name, &params_refs)
-            .unwrap_or_default()
-    }};
-}
+//         $crate::routing::reverse_with_parameters($name, &params_refs)
+//             .unwrap_or_default()
+//     }};
+// }

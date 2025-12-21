@@ -24,14 +24,14 @@ pub async fn error_handler_middleware(
         tracing::error!("Middleware intercepted 500 error");
 
         if !config.debug {
-            return render_simple_500(&tera, &config);
+            return render_500(&tera, &config);
         }
     }
     if response.status() == StatusCode::NOT_FOUND {
         tracing::warn!("Middleware intercepted 404 error");
 
         if !config.debug {
-            return render_simple_404(&tera, &config);
+            return render_404(&tera, &config);
         }
     }
     response
@@ -75,19 +75,19 @@ fn render_production_error(
 
     if is_not_found {
         tracing::warn!("Template not found in production mode");
-        render_simple_404(tera, config)
+        render_404(tera, config)
     } else {
         tracing::error!("Template rendering error in production mode");
-        render_simple_500(tera, config)
+        render_500(tera, config)
     }
 }
 
 // Les fonctions render deviennent simples
-pub fn render_simple_404(tera: &Tera, config: &Settings) -> Response {
+pub fn render_404(tera: &Tera, config: &Settings) -> Response {
     let mut context = Context::new();
     context.insert("static_rusti", &config.static_rusti_url);
 
-    match tera.render("errors/404.html", &context) {
+    match tera.render("404", &context) {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
             tracing::error!("Failed to serialize error context: {}", e);
@@ -96,11 +96,11 @@ pub fn render_simple_404(tera: &Tera, config: &Settings) -> Response {
     }
 }
 
-pub fn render_simple_500(tera: &Tera, config: &Settings) -> Response {
+pub fn render_500(tera: &Tera, config: &Settings) -> Response {
     let mut context = Context::new();
     context.insert("static_rusti", &config.static_rusti_url);
 
-    match tera.render("errors/500.html", &context) {
+    match tera.render("500", &context) {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
         Err(e) => {
             tracing::error!("Failed to serialize error context: {}", e);
@@ -243,7 +243,7 @@ fn critical_error_html(
     let mut context = context.clone();
     context.insert("static_rusti", &config.static_rusti_url);
 
-    if let Ok(html) = tera.render("errors/debug_error.html", &context) {
+    if let Ok(html) = tera.render("debug", &context) {
         return (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response();
     }
 
@@ -296,12 +296,12 @@ pub fn render_index(tera: &Tera, context: &Context, config: &Settings) -> Respon
     context.insert("static_rusti", &config.static_rusti_url);
 
     // 1. Essaie le template utilisateur
-    if let Ok(html) = tera.render("base_index.html", &context) {
+    if let Ok(html) = tera.render("index.html", &context) {
         return (StatusCode::OK, Html(html)).into_response();
     }
 
     // 2. Essaie le template d'erreur du framework
-    if let Ok(html) = tera.render("errors/base_index.html", &context) {
+    if let Ok(html) = tera.render("base_index", &context) {
         return (StatusCode::OK, Html(html)).into_response();
     }
 

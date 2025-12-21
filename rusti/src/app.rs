@@ -25,7 +25,7 @@ use crate::settings::Settings;
 use crate::middleware::error_handler::{error_handler_middleware, render_index};
 use crate::middleware::flash_message::flash_middleware;
 use crate::middleware::csrf::csrf_middleware;
-use crate::response::render_simple_404;
+use crate::response::render_404;
 
 pub struct RustiApp {
     router: Router,
@@ -46,7 +46,7 @@ impl RustiApp {
 
         // 2. Traitement des templates utilisateurs (Regex tags)
         let mut all_templates = Vec::new();
-        let re_tag_with_link = regex::Regex::new(
+        let balise_link = regex::Regex::new(
             r#"\{%\s*(?P<tag>static|media)\s*['"](?P<link>[^'"]+)['"]\s*%}"#
         ).unwrap();
 
@@ -62,26 +62,27 @@ impl RustiApp {
                     content = content.replace("{% messages %}", r#"{% include "message" %}"#);
 
                     // Transformation {% link "name" %}
-                    let re_link_simple = regex::Regex::new(
+                    let link_simple = regex::Regex::new(
                         r#"\{%\s*link\s+['"](?P<name>[^'"]+)['"]\s*%}"#
                     ).unwrap();
 
-                    let re_link_params = regex::Regex::new(
+                    let link_params = regex::Regex::new(
                         r#"\{%\s*link\s+['"](?P<name>[^'"]+)['"],\s*(?P<params>[^%]+)%}"#
                     ).unwrap();
 
                     // Appliquer les transformations
-                    content = re_link_simple.replace_all(&content, |caps: &regex::Captures| {
+                    content = link_simple.replace_all(&content, |caps: &regex::Captures| {
                         let name = &caps["name"];
                         format!(r#"{{{{ link(link='{}') }}}}"#, name)
                     }).to_string();
 
-                    content = re_link_params.replace_all(&content, |caps: &regex::Captures| {
+                    content = link_params.replace_all(&content, |caps: &regex::Captures| {
                         let name = &caps["name"];
                         let params = &caps["params"].trim();
                         format!(r#"{{{{ link(link='{}', {}) }}}}"#, name, params)
                     }).to_string();
-                    content = re_tag_with_link.replace_all(&content, |caps: &regex::Captures| {
+
+                    content = balise_link.replace_all(&content, |caps: &regex::Captures| {
                         let tag = &caps["tag"];
                         let link = &caps["link"];
                         format!(r#"{{{{ "{}" | {} }}}}"#, link, tag)
@@ -89,23 +90,23 @@ impl RustiApp {
                     // Dans RustiApp::new(), après les transformations existantes
 
                     // Transformation {% link "name" %}
-                    let re_link_simple = regex::Regex::new(
+                    let link_simple = regex::Regex::new(
                         r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*%}"#
                     ).unwrap();
 
-                    let re_link_with_params = regex::Regex::new(
+                    let link_with_params = regex::Regex::new(
                         r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s+(?P<params>[^%]+)%}"#
                     ).unwrap();
 
                     // Transformer {% link "about" %} → {{ link(link='about') }}
-                    content = re_link_simple.replace_all(&content, |caps: &regex::Captures| {
+                    content = link_simple.replace_all(&content, |caps: &regex::Captures| {
                         let name = &caps["name"];
                         format!(r#"{{{{ link(link='{}') }}}}"#, name)
                     }).to_string();
 
                     // Transformer {% link "user_profile" id=66 name='sebastien' %}
                     // → {{ link(link='user_profile', id=66, name='sebastien') }}
-                    content = re_link_with_params.replace_all(&content, |caps: &regex::Captures| {
+                    content = link_with_params.replace_all(&content, |caps: &regex::Captures| {
                         let name = &caps["name"];
                         let params = &caps["params"];
                         format!(r#"{{{{ link(link='{}', {}) }}}}"#, name, params.trim())
@@ -139,11 +140,11 @@ impl RustiApp {
     }
 
     fn load_internal_templates(tera: &mut Tera) -> Result<(), Box<dyn Error>> {
-        tera.add_raw_template("base_index.html", include_str!("../templates/base_index.html"))?;
+        tera.add_raw_template("base_index", include_str!("../templates/base_index.html"))?;
         tera.add_raw_template("message", include_str!("../templates/message.html"))?;
-        tera.add_raw_template("errors/404.html", include_str!("../templates/errors/404.html"))?;
-        tera.add_raw_template("errors/500.html", include_str!("../templates/errors/500.html"))?;
-        tera.add_raw_template("errors/debug_error.html", include_str!("../templates/errors/debug_error.html"))?;
+        tera.add_raw_template("404", include_str!("../templates/errors/404.html"))?;
+        tera.add_raw_template("500", include_str!("../templates/errors/500.html"))?;
+        tera.add_raw_template("debug", include_str!("../templates/errors/debug_error.html"))?;
         tera.add_raw_template("csrf", include_str!("../templates/csrf/csrf.html"))?;
 
         const ERROR_CORPS: [(&str, &str); 8] = [
@@ -169,7 +170,7 @@ impl RustiApp {
     }
 
     #[cfg(feature = "orm")]
-    pub fn with_database_custom(mut self, db: DatabaseConnection) -> Self {
+    pub fn with_database(mut self, db: DatabaseConnection) -> Self {
         self.router = self.router.layer(Extension(Arc::new(db)));
         self
     }
@@ -198,7 +199,7 @@ impl RustiApp {
                     if uri.path() == "/" {
                         return render_index(&t, &Context::new(), &c);
                     }
-                    render_simple_404(&t)
+                    render_404(&t)
                 }
             })
             .layer(

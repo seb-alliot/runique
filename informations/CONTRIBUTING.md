@@ -5,7 +5,7 @@ Thank you for your interest in contributing to Rusti! This document provides gui
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/seb-alliot/fw_rust/tree/main`
+2. Clone your fork: `git clone https://github.com/seb-alliot/rusti/tree/main`
 3. Make your changes
 4. Run tests: `cargo test --workspace`
 5. Commit your changes: `git commit -am 'Add some feature'`
