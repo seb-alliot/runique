@@ -1,4 +1,8 @@
-use rusti::{RustiApp, Settings};
+use rusti::{
+    RustiApp,
+    Settings,
+    DatabaseConfig,
+};
 
 mod url;
 mod views;
@@ -6,6 +10,11 @@ mod views;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
+
+    // Connexion à la base de données
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db = db_config.connect().await?;
+    println!("Connected to the database successfully.");
 
     // Configuration de l'application !!
     // Vous pouvez personnaliser les paramètres du settings ici
@@ -20,6 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Créer et lancer l'application
     RustiApp::new(settings).await?
         .routes(url::urls())
+        .with_database(db)
         .with_static_files()?
         .with_flash_messages()
         .with_csrf_tokens()

@@ -82,47 +82,30 @@ impl DatabaseConfig {
             .unwrap_or_else(|_| "sqlite".to_string());
 
         let url = match engine.as_str() {
-            "postgres" | "postgresql" => {
+            "postgres" | "postgresql" | "mysql" | "mariadb" => {
+                let db_type = match engine.as_str() {
+                    "postgres" | "postgresql" => ("postgres", "5432", "PostgreSQL"),
+                    "mysql" => ("mysql", "3306", "MySQL"),
+                    "mariadb" => ("mariadb", "3306", "MariaDB"),
+                    _ => unreachable!(),
+                };
+
                 let user = env::var("DB_USER")
-                    .map_err(|_| "DB_USER not set for PostgreSQL")?;
+                    .map_err(|_| format!(" DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME", db_type.2, db_type.1))?;
+
                 let password = env::var("DB_PASSWORD")
-                    .map_err(|_| "DB_PASSWORD not set for PostgreSQL")?;
+                    .map_err(|_| format!(" DB_PASSWORD not set for {}", db_type.2))?;
+
                 let host = env::var("DB_HOST")
                     .unwrap_or_else(|_| "localhost".to_string());
-                let port = env::var("DB_PORT")
-                    .unwrap_or_else(|_| "5432".to_string());
-                let name = env::var("DB_NAME")
-                    .map_err(|_| "DB_NAME not set for PostgreSQL")?;
 
-                format!("postgres://{}:{}@{}:{}/{}", user, password, host, port, name)
-            }
-            "mysql" => {
-                let user = env::var("DB_USER")
-                    .map_err(|_| "DB_USER not set for MySQL")?;
-                let password = env::var("DB_PASSWORD")
-                    .map_err(|_| "DB_PASSWORD not set for MySQL")?;
-                let host = env::var("DB_HOST")
-                    .unwrap_or_else(|_| "localhost".to_string());
                 let port = env::var("DB_PORT")
-                    .unwrap_or_else(|_| "3306".to_string());
-                let name = env::var("DB_NAME")
-                    .map_err(|_| "DB_NAME not set for MySQL")?;
+                    .unwrap_or_else(|_| db_type.1.to_string());
 
-                format!("mysql://{}:{}@{}:{}/{}", user, password, host, port, name)
-            }
-            "mariadb" => {
-                let user = env::var("DB_USER")
-                    .map_err(|_| "DB_USER not set for MariaDB")?;
-                let password = env::var("DB_PASSWORD")
-                    .map_err(|_| "DB_PASSWORD not set for MariaDB")?;
-                let host = env::var("DB_HOST")
-                    .unwrap_or_else(|_| "localhost".to_string());
-                let port = env::var("DB_PORT")
-                    .unwrap_or_else(|_| "3306".to_string());
                 let name = env::var("DB_NAME")
-                    .map_err(|_| "DB_NAME not set for MariaDB")?;
+                    .map_err(|_| format!(" DB_NAME not set for {}", db_type.2))?;
 
-                format!("mariadb://{}:{}@{}:{}/{}", user, password, host, port, name)
+                format!("{}://{}:{}@{}:{}/{}", db_type.0, user, password, host, port, name)
             }
             "sqlite" => {
                 let name = env::var("DB_NAME")
@@ -131,7 +114,7 @@ impl DatabaseConfig {
             }
             other => {
                 env::var("DB_URL")
-                    .map_err(|_| format!("Unsupported DB_ENGINE: {}", other))?
+                    .map_err(|_| format!(" Unsupported DB_ENGINE: {}\n\nSupported engines: postgres, mysql, mariadb, sqlite", other))?
             }
         };
 
@@ -167,7 +150,7 @@ impl DatabaseConfig {
 
         match Database::connect(opt).await {
             Ok(conn) => {
-                tracing::info!("✅ Database connected successfully ({})", self.engine.name());
+                tracing::info!("Database connected successfully ({})", self.engine.name());
                 Ok(conn)
             }
             Err(e) => {
