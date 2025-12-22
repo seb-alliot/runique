@@ -4,34 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# ========================================
-# Configuration de Rusti avec base de données
-# ========================================
-
-# Option 1 : SQLite uniquement (par défaut, pas besoin de spécifier)
-# rusti = { path = "../../rusti" }
-
-# Option 2 : PostgreSQL
+# Base de données : sqlite (défaut) | postgres | mysql | mariadb | all-databases
 rusti = { path = "../../rusti", features = ["postgres"] }
 
-# Option 3 : MySQL
-# rusti = { path = "../../rusti", features = ["mysql"] }
-
-# Option 4 : MariaDB
-# rusti = { path = "../../rusti", features = ["mariadb"] }
-
-# Option 5 : Toutes les bases de données
-# rusti = { path = "../../rusti", features = ["all-databases"] }
-
-# Option 6 : Plusieurs bases spécifiques
-# rusti = { path = "../../rusti", features = ["postgres", "mysql"] }
-
-# Option 7 : Sans ORM (pas de base de données du tout)
-# rusti = { path = "../../rusti", default-features = false }
-
-# ========================================
-
-# Les dépendances principales sont déjà incluses via rusti
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
