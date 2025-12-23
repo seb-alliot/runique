@@ -7,6 +7,7 @@ use axum::{
     http::Method,
     response::IntoResponse,
     http::HeaderValue,
+    response::Redirect,
 };
 use sha2::Sha256;
 use hmac::{Hmac, Mac};
@@ -14,6 +15,7 @@ use std::sync::Arc;
 use crate::settings::Settings;
 use serde::{Serialize, Deserialize};
 use http_body_util::BodyExt;
+use crate::middleware::flash_message::{FlashMessage, FlashMessageSession};
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -22,12 +24,21 @@ const CSRF_TOKEN_KEY: &str = "csrf_token";
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CsrfToken(pub String);
 
+/// Génère un token CSRF unique en utilisant session_id + timestamp
 pub fn generate_csrf_token(secret_key: &str, session_id: &str) -> String {
     let mut mac = HmacSha256::new_from_slice(secret_key.as_bytes())
         .expect("HMAC can take key of any size");
 
     mac.update(b"rusti.middleware.csrf");
     mac.update(session_id.as_bytes());
+
+    // 🔥 Ajout d'un timestamp pour rendre chaque token unique
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos()
+        .to_string();
+    mac.update(timestamp.as_bytes());
 
     let result = mac.finalize();
     hex::encode(result.into_bytes())
@@ -44,14 +55,14 @@ pub async fn csrf_middleware(
 
     let method = req.method().clone();
     let headers = req.headers().clone();
+    let uri_path = req.uri().path().to_string();
 
     let requires_csrf = matches!(
         method,
         Method::POST | Method::PUT | Method::DELETE | Method::PATCH
     );
 
-    // 🔥 Traiter le CSRF selon la méthode
-    let token_result: Result<String, Response> = if requires_csrf {
+    let token_to_inject: String = if requires_csrf {
         // === POST/PUT/DELETE/PATCH : Vérifier et renouveler ===
 
         // 1. Récupérer le token de session
@@ -93,31 +104,67 @@ pub async fn csrf_middleware(
         // 4. Vérifier le token
         match (session_token, request_token) {
             (Some(st), Some(rt)) if constant_time_compare(&st, &rt) => {
-                // ✅ Token valide
-
-                // 5. Générer un nouveau token
+                // ✅ Token valide - Générer un nouveau token UNIQUE
                 let session = req.extensions().get::<Session>().unwrap();
                 let session_id = session.id()
                     .map(|id| id.to_string())
                     .unwrap_or_else(|| "no-session-id".to_string());
 
+                // 🔥 Génère un nouveau token avec timestamp (unique à chaque fois)
                 let new_token = generate_csrf_token(&config.server.secret_key, &session_id);
 
-                // 6. Stocker le nouveau token en session
+                // Stocker le nouveau token en session
                 let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
 
-                tracing::debug!("CSRF token validated and renewed");
+                tracing::debug!("CSRF token validated and renewed: {}...", &new_token[..12]);
 
-                Ok(new_token)
+                new_token
+            }
+            (None, _) => {
+                // ❌ Token manquant en session
+                tracing::error!("CSRF verification failed: No session token");
+
+                let mut session = req.extensions_mut().get_mut::<Session>()
+                    .expect("Session middleware missing")
+                    .clone();
+
+                let _ = session.insert_message(FlashMessage::error(
+                    "Erreur de sécurité : Token CSRF manquant. Veuillez réessayer."
+                )).await;
+
+                return Redirect::to(&uri_path).into_response();
+            }
+            (_, None) => {
+                // ❌ Token manquant dans la requête
+                tracing::error!("CSRF verification failed: No request token");
+
+                let mut session = req.extensions_mut().get_mut::<Session>()
+                    .expect("Session middleware missing")
+                    .clone();
+
+                let _ = session.insert_message(FlashMessage::error(
+                    "Erreur de sécurité : Token CSRF manquant dans le formulaire. Veuillez réessayer."
+                )).await;
+
+                return Redirect::to(&uri_path).into_response();
             }
             _ => {
                 // ❌ Token invalide
-                tracing::error!("CSRF verification failed");
-                Err((StatusCode::FORBIDDEN, "CSRF token verification failed").into_response())
+                tracing::error!("CSRF verification failed: Token mismatch");
+
+                let mut session = req.extensions_mut().get_mut::<Session>()
+                    .expect("Session middleware missing")
+                    .clone();
+
+                let _ = session.insert_message(FlashMessage::error(
+                    "Erreur de sécurité : Token CSRF invalide. Votre session a peut-être expiré. Veuillez réessayer."
+                )).await;
+
+                return Redirect::to(&uri_path).into_response();
             }
         }
     } else {
-        // === GET : Générer ou récupérer le token ===
+        // === GET : Récupérer ou créer le token ===
 
         let session = match req.extensions().get::<Session>() {
             Some(s) => s,
@@ -126,7 +173,7 @@ pub async fn csrf_middleware(
 
         let existing = session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten();
 
-        let token = if let Some(t) = existing {
+        if let Some(t) = existing {
             t  // Réutiliser le token existant
         } else {
             // Générer un nouveau token
@@ -138,15 +185,7 @@ pub async fn csrf_middleware(
             let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
 
             new_token
-        };
-
-        Ok(token)
-    };
-
-    // Gérer le résultat
-    let token_to_inject = match token_result {
-        Ok(t) => t,
-        Err(error_response) => return error_response,
+        }
     };
 
     // Injecter le token dans les extensions de la requête

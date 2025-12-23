@@ -67,4 +67,5 @@ impl UserForm {
     }
 
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
+    pub fn is_not_valid(&self) -> bool { !self.0.is_valid() }
 }

@@ -67,10 +67,15 @@ pub async fn user_profile_submit(
 
     if raw.is_valid() {
         message.success("Profil mis à jour avec succès !").await.unwrap();
-    } else {
+        Redirect::to(&format!("/user/{}/{}", id, name)).into_response()
+    } else if raw.is_not_valid() {
         message.error("Erreur lors de la mise à jour du profil.").await.unwrap();
+        Redirect::to(&format!("/user/{}/{}", id, name)).into_response()
+    } else {
+        message.info("Aucune modification détectée dans le profil.").await.unwrap();
+        Redirect::to(&format!("/user/{}/{}", id, name)).into_response()
     }
-    Redirect::to(&format!("/user/{}/{}", id, name)).into_response()
+
 }
 
 /// Page spéciale sapin de Noël
