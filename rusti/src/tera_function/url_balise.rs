@@ -60,7 +60,7 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
     }
 
     // 5. Collecter les paramètres fournis
-    let mut provided_params: Vec<(String, String)> = Vec::new();
+    let mut list_params: Vec<(String, String)> = Vec::new();
 
     for (key, value) in args.iter() {
         if key == "link" {
@@ -77,17 +77,17 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
             ))),
         };
 
-        provided_params.push((key.clone(), value_str));
+        list_params.push((key.clone(), value_str));
     }
 
     // 6. Vérifier les paramètres manquants
-    let provided_keys: Vec<&str> = provided_params.iter()
+    let list_keys: Vec<&str> = list_params.iter()
         .map(|(k, _)| k.as_str())
         .collect();
 
     let missing_params: Vec<&String> = expected_params
         .iter()
-        .filter(|p| !provided_keys.contains(&p.as_str()))
+        .filter(|p| !list_keys.contains(&p.as_str()))
         .collect();
 
     if !missing_params.is_empty() {
@@ -116,7 +116,7 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
     }
 
     // 7. Vérifier les paramètres en trop
-    let extra_params: Vec<&String> = provided_params
+    let extra_params: Vec<&String> = list_params
         .iter()
         .map(|(k, _)| k)
         .filter(|k| !expected_params.contains(k))
@@ -133,17 +133,16 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
     }
 
     // 8. Créer les références
-    let params_refs: Vec<(&str, &str)> = provided_params
+    let list_refs: Vec<(&str, &str)> = list_params
         .iter()
         .map(|(k, v)| (k.as_str(), v.as_str()))
         .collect();
 
     // 9. Résoudre l'URL finale
-    let final_url = crate::macro_perso::router::reverse_with_parameters(link_name, &params_refs)
+    let final_url = crate::macro_perso::router::reverse_with_parameters(link_name, &list_refs)
         .ok_or_else(|| tera::Error::msg(format!(
             "Impossible de construire l'URL pour '{}'",
             link_name
         )))?;
-
     Ok(Value::String(final_url))
 }

@@ -25,6 +25,7 @@ pub mod orm;
 pub mod processor;
 pub mod macro_perso;
 pub mod tera_function;
+pub mod formulaire;
 
 pub use serde_json::json;
 #[cfg(feature = "orm")]
@@ -33,13 +34,18 @@ pub mod database;
 // Middleware
 pub use middleware::flash_message::flash_middleware;
 pub use middleware::csrf::csrf_middleware;
+pub use middleware::middleware_sanetiser::sanitize_middleware;
 pub use processor::message_processor::{Message, Template};
+
 
 pub use macro_perso::router::{
     reverse,
     reverse_with_parameters,
     register_name_url::register_name_url
 };
+
+// Formulaires
+pub use formulaire::sanetizer;
 
 // Modules et ré-exports liés à la base de données
 
@@ -64,13 +70,12 @@ pub use axum;
 pub use axum::{
     Router,
     routing::{get, post, put, delete, patch},
-    response::{IntoResponse, Html},
-    extract::{State, Path, Query},
+    response::{IntoResponse, Html, Response, Redirect},
+    extract::{State, Path, Query, Form},
     http::StatusCode,
     Extension,
-    response::Response,
     debug_handler,
-
+    Form as AxumForm,
 };
 pub use once_cell::sync::Lazy;
 
@@ -80,6 +85,10 @@ pub use tower_sessions::Session;
 pub use tera::{Tera, Context};
 pub use serde::{Serialize, Deserialize};
 pub use async_trait::async_trait;
+
+// Ré-exports pour la gestion des formulaires
+pub use formulaire::forms::Forms;
+pub use formulaire::field::RustiField;
 
 
 /// Macro pour faciliter la création de routes

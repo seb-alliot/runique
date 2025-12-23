@@ -25,6 +25,7 @@ use crate::settings::Settings;
 use crate::middleware::error_handler::{error_handler_middleware, render_index};
 use crate::middleware::flash_message::flash_middleware;
 use crate::middleware::csrf::csrf_middleware;
+use crate::middleware::middleware_sanetiser::sanitize_middleware;
 use crate::response::render_404;
 
 pub struct RustiApp {
@@ -227,7 +228,17 @@ impl RustiApp {
         self.router = self.router.layer(middleware::from_fn(csrf_middleware));
         self
     }
-
+    pub fn with_sanitize_text_inputs(mut self, enable: bool) -> Self {
+        if !enable {
+            return self;
+        }
+        let config = self.config.clone();
+        self.router = self.router.layer(middleware::from_fn_with_state(
+            config,
+            sanitize_middleware
+        ));
+        self
+    }
     pub async fn run(self) -> Result<(), Box<dyn Error>> {
         println!("🦀 Rusti Framework v{}", crate::VERSION);
         println!("   Starting server at http://{}", self.addr);

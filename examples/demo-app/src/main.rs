@@ -6,6 +6,7 @@ use rusti::{
 
 mod url;
 mod views;
+mod form;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -34,6 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_flash_messages()
         .with_csrf_tokens()
         .with_default_middleware()
+        .with_sanitize_text_inputs(true)
         .run()
         .await?;
 

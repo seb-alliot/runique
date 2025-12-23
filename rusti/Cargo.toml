@@ -14,6 +14,15 @@ axum.workspace = true
 tower.workspace = true
 tower-http.workspace = true
 tower-sessions.workspace = true
+# Sécurity
+urlencoding.workspace = true
+byte.workspace = true
+http-body-util.workspace = true
+
+# gestion password
+argon2.workspace = true
+password-hash.workspace = true
+rand.workspace = true
 
 # Runtime async
 tokio.workspace = true
@@ -48,7 +57,6 @@ once_cell.workspace = true
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
-rand = "0.8"
 
 
 [features]

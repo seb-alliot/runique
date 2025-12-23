@@ -29,8 +29,25 @@ impl Function for CsrfTokenFunction {
             .unwrap_or("");
 
         Ok(Value::String(format!(
-            r#"<input type="hidden" name="csrf_token" value="{}">"#,
-            token
+            r#"<input type="hidden" name="csrf_token" value="{token}" class="rusti-csrf-field">
+            <script>
+                if (!window.rustiCsrfInitialized) {{
+                    window.rustiCsrfInitialized = true;
+                    const {{ fetch: originalFetch }} = window;
+                    window.fetch = async (...args) => {{
+                        const response = await originalFetch(...args);
+                        const newToken = response.headers.get('X-CSRF-Token');
+                        if (newToken) {{
+                            // Met à jour tous les champs cachés du framework sur la page
+                            document.querySelectorAll('.rusti-csrf-field').forEach(el => el.value = newToken);
+                            // Optionnel: mettre à jour une variable globale pour les futurs fetch manuels
+                            window._rusti_csrf_token = newToken;
+                        }}
+                        return response;
+                    }};
+                }}
+            </script>"#,
+            token = token
         )))
     }
 }

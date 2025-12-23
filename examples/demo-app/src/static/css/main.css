@@ -22,6 +22,7 @@ body {
     flex-direction: column;
 }
 
+
 html {
     margin:0;
     padding:0;
@@ -60,6 +61,7 @@ footer {
     background-color: var(--background-color);
     color: #888888;
     width: 100%;
+    gap: clamp(1rem, 4vw, 2rem);
 }
 
 
@@ -128,4 +130,62 @@ div.content > p {
     color: blue;
     font-weight: bold;
     margin-top: 10px;
+}
+
+
+/* Formulaire styles */
+form#userform > div {
+    display: flex;
+}
+#userform > div:first-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+#userform input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    text-align: center;
+}
+
+#userform input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+#userform span {
+    color: red;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+#userform > div:last-of-type {
+    text-align: center;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+#userform button {
+    padding: 12px 40px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#userform button:hover {
+    background-color: #0056b3;
+}
+
+@media (max-width: 768px) {
+    #userform > div:first-child {
+        grid-template-columns: 1fr;
+    }
 }

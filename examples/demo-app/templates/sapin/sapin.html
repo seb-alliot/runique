@@ -1,0 +1,73 @@
+{% extends "index.html" %}
+
+
+{% block content %}
+<link rel="stylesheet" href='{% static "css/sapin.css" %}'>
+<div id="principal">
+    <div class="elf-container">
+        <div class="elf">
+            <!-- Tête avec chapeau -->
+            <div class="elf-head">
+                <div class="elf-hat"></div>
+                <div class="elf-eye left"></div>
+                <div class="elf-eye right"></div>
+                <div class="elf-nose"></div>
+                <div class="elf-smile"></div>
+            </div>
+
+            <!-- Corps avec ceinture -->
+            <div class="elf-body">
+                <div class="elf-belt">
+                    <div class="elf-buckle"></div>
+                </div>
+            </div>
+
+            <!-- Bras gauche -->
+            <div class="elf-arm-left">
+                <div class="elf-hand"></div>
+            </div>
+
+            <!-- Bras droit -->
+            <div class="elf-arm-right">
+                <div class="elf-hand"></div>
+            </div>
+
+            <!-- Jambe gauche -->
+            <div class="elf-leg-left">
+                <div class="elf-shoe-left"></div>
+            </div>
+
+            <!-- Jambe droite -->
+            <div class="elf-leg-right">
+                <div class="elf-shoe-right"></div>
+            </div>
+
+            <!-- Ombre -->
+            <div class="elf-shadow"></div>
+        </div>
+    </div>
+
+    <div class="christmas-tree">
+        <div class="tree-section"></div>
+        <div class="tree-section"></div>
+        <div class="tree-section"></div>
+        <div class="ornament"></div>
+        <div class="ornament"></div>
+        <div class="ornament"></div>
+        <div class="ornament"></div>
+        <div class="tree-trunk"></div>
+        <div class="snow">
+            <div class="snowflake">❄</div>
+            <div class="snowflake">❄</div>
+            <div class="snowflake">❄</div>
+            <div class="snowflake">❄</div>
+            <div class="snowflake">❄</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block footer %}
+    <a href={% link "index" %}>Revenir à l'accueil</a>
+    <p>&copy; 2025 My Web Application</p>
+{% endblock %}

@@ -6,15 +6,19 @@ use axum::{
     body::Body,
     http::Method,
     response::IntoResponse,
+    http::HeaderValue,
 };
 use sha2::Sha256;
 use hmac::{Hmac, Mac};
 use std::sync::Arc;
 use crate::settings::Settings;
 use serde::{Serialize, Deserialize};
+use http_body_util::BodyExt;
+
 type HmacSha256 = Hmac<Sha256>;
 
 const CSRF_TOKEN_KEY: &str = "csrf_token";
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CsrfToken(pub String);
 
@@ -33,78 +37,141 @@ pub async fn csrf_middleware(
     mut req: axum::http::Request<Body>,
     next: Next,
 ) -> Response {
-    let config_opt = req.extensions().get::<Arc<Settings>>().cloned();
-    let method = req.method().clone();
-    let headers = req.headers().clone();
-
-    // Si pas de config, passer directement
-    let config = match config_opt {
+    let config = match req.extensions().get::<Arc<Settings>>().cloned() {
         Some(c) => c,
         None => return next.run(req).await,
     };
 
-    // Vérifier le CSRF
-    let should_block: Option<Response> = {
-        let session = match req.extensions_mut().get_mut::<Session>() {
-            Some(s) => s,
-            None => return next.run(req).await,
+    let method = req.method().clone();
+    let headers = req.headers().clone();
+
+    let requires_csrf = matches!(
+        method,
+        Method::POST | Method::PUT | Method::DELETE | Method::PATCH
+    );
+
+    // 🔥 Traiter le CSRF selon la méthode
+    let token_result: Result<String, Response> = if requires_csrf {
+        // === POST/PUT/DELETE/PATCH : Vérifier et renouveler ===
+
+        // 1. Récupérer le token de session
+        let session_token = {
+            let session = match req.extensions().get::<Session>() {
+                Some(s) => s,
+                None => return (StatusCode::INTERNAL_SERVER_ERROR, "Session middleware missing").into_response(),
+            };
+            session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten()
         };
 
-        let requires_csrf = matches!(
-            &method,
-            &Method::POST | &Method::PUT | &Method::DELETE | &Method::PATCH
-        );
+        // 2. Récupérer le token de la requête (headers)
+        let mut request_token = headers
+            .get("X-CSRF-Token")
+            .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
+            .or_else(|| {
+                headers.get("X-CSRFToken")
+                    .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
+            });
 
-        if requires_csrf {
-            let session_token = session
-                .get::<String>(CSRF_TOKEN_KEY)
-                .await
-                .ok()
-                .flatten();
-
-            let request_token = headers
-                .get("X-CSRF-Token")
-                .and_then(|h| h.to_str().ok())
-                .or_else(|| {
-                    headers.get("X-CSRFToken").and_then(|h| h.to_str().ok())
-                });
-
-            match (session_token, request_token) {
-                (Some(st), Some(rt)) if constant_time_compare(&st, rt) => None,
-                _ => {
-                    tracing::error!("CSRF verification failed");
-                    Some(if config.debug {
-                        (StatusCode::FORBIDDEN, "CSRF token verification failed").into_response()
-                    } else {
-                        (StatusCode::FORBIDDEN, "Forbidden").into_response()
-                    })
+        // 3. Si pas dans les headers, chercher dans le body
+        if request_token.is_none() {
+            let (parts, body) = req.into_parts();
+            let bytes = match body.collect().await {
+                Ok(collected) => collected.to_bytes(),
+                Err(_) => {
+                    return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response();
                 }
+            };
+
+            if let Ok(body_str) = std::str::from_utf8(&bytes) {
+                request_token = extract_csrf_from_form(body_str);
             }
-            } else {
-                        // 1. On récupère le token existant en session
-                        let existing_token = session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten();
 
-                        let token = if let Some(t) = existing_token {
-                            t // Utilise le token existant
-                        } else {
-                            // 2. Ou on en génère un nouveau si absent
-                            let session_id = session.id()
-                                .map(|id| id.to_string())
-                                .unwrap_or_else(|| "no-session-id".to_string());
-
-                            let new_token = generate_csrf_token(&config.server.secret_key, &session_id);
-                            let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
-                            new_token
-                        };
-            req.extensions_mut().insert(CsrfToken(token));
-            None
+            // Recréer la requête avec le body
+            req = axum::http::Request::from_parts(parts, Body::from(bytes));
         }
-    };
-    if let Some(error_response) = should_block {
-        error_response
+
+        // 4. Vérifier le token
+        match (session_token, request_token) {
+            (Some(st), Some(rt)) if constant_time_compare(&st, &rt) => {
+                // ✅ Token valide
+
+                // 5. Générer un nouveau token
+                let session = req.extensions().get::<Session>().unwrap();
+                let session_id = session.id()
+                    .map(|id| id.to_string())
+                    .unwrap_or_else(|| "no-session-id".to_string());
+
+                let new_token = generate_csrf_token(&config.server.secret_key, &session_id);
+
+                // 6. Stocker le nouveau token en session
+                let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
+
+                tracing::debug!("CSRF token validated and renewed");
+
+                Ok(new_token)
+            }
+            _ => {
+                // ❌ Token invalide
+                tracing::error!("CSRF verification failed");
+                Err((StatusCode::FORBIDDEN, "CSRF token verification failed").into_response())
+            }
+        }
     } else {
-        next.run(req).await
+        // === GET : Générer ou récupérer le token ===
+
+        let session = match req.extensions().get::<Session>() {
+            Some(s) => s,
+            None => return (StatusCode::INTERNAL_SERVER_ERROR, "Session middleware missing").into_response(),
+        };
+
+        let existing = session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten();
+
+        let token = if let Some(t) = existing {
+            t  // Réutiliser le token existant
+        } else {
+            // Générer un nouveau token
+            let session_id = session.id()
+                .map(|id| id.to_string())
+                .unwrap_or_else(|| "no-session-id".to_string());
+
+            let new_token = generate_csrf_token(&config.server.secret_key, &session_id);
+            let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
+
+            new_token
+        };
+
+        Ok(token)
+    };
+
+    // Gérer le résultat
+    let token_to_inject = match token_result {
+        Ok(t) => t,
+        Err(error_response) => return error_response,
+    };
+
+    // Injecter le token dans les extensions de la requête
+    req.extensions_mut().insert(CsrfToken(token_to_inject.clone()));
+
+    // Exécuter la suite du pipeline
+    let mut response = next.run(req).await;
+
+    // Ajouter le token dans un header de réponse (pour AJAX)
+    if let Ok(hv) = HeaderValue::from_str(&token_to_inject) {
+        response.headers_mut().insert("X-CSRF-Token", hv);
     }
+
+    response
+}
+
+fn extract_csrf_from_form(body: &str) -> Option<String> {
+    for pair in body.split('&') {
+        if let Some((key, value)) = pair.split_once('=') {
+            if key == "csrf_token" {
+                return urlencoding::decode(value).ok().map(|s| s.to_string());
+            }
+        }
+    }
+    None
 }
 
 fn constant_time_compare(a: &str, b: &str) -> bool {
@@ -114,8 +181,8 @@ fn constant_time_compare(a: &str, b: &str) -> bool {
 
     let a_bytes = a.as_bytes();
     let b_bytes = b.as_bytes();
-
     let mut result = 0u8;
+
     for i in 0..a_bytes.len() {
         result |= a_bytes[i] ^ b_bytes[i];
     }
@@ -134,5 +201,3 @@ impl CsrfSession for Session {
         self.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten()
     }
 }
-
-

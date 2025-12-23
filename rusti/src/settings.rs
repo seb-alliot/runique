@@ -39,6 +39,12 @@ pub struct Settings {
     pub password_hashers: Vec<String>,
     pub default_auto_field: String,
     pub logging_config: String,
+
+    // Security settings can be added here
+    pub sanitize_inputs: bool,
+    pub strict_csp: bool,
+    pub rate_limiting: bool,
+    pub enforce_https: bool,
 }
 
 /// Configuration du serveur
@@ -49,6 +55,8 @@ pub struct ServerSettings {
     pub port: u16,
     pub secret_key: String,
 }
+
+
 
 impl ServerSettings {
     pub fn from_env() -> Self {
@@ -118,6 +126,11 @@ impl Settings {
             password_hashers: vec![],
             default_auto_field: String::from("BigAutoField"),
             logging_config: String::from("default"),
+
+            sanitize_inputs: true,
+            strict_csp: true,
+            rate_limiting: true,
+            enforce_https: !cfg!(debug_assertions),
         }
     }
 
@@ -196,6 +209,26 @@ impl SettingsBuilder {
 
     pub fn media_url(mut self, url: impl Into<String>) -> Self {
         self.settings.media_url = url.into();
+        self
+    }
+
+    pub fn sanitize_inputs(mut self, enabled: bool) -> Self {
+        self.settings.sanitize_inputs = enabled;
+        self
+    }
+
+    pub fn strict_csp(mut self, enabled: bool) -> Self {
+        self.settings.strict_csp = enabled;
+        self
+    }
+
+    pub fn rate_limiting(mut self, enabled: bool) -> Self {
+        self.settings.rate_limiting = enabled;
+        self
+    }
+
+    pub fn enforce_https(mut self, enabled: bool) -> Self {
+        self.settings.enforce_https = enabled;
         self
     }
 
