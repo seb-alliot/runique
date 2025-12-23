@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_flash_messages()
         .with_csrf_tokens()
         .with_default_middleware()
-        .with_sanitize_text_inputs(true)
+        .with_sanitize_text_inputs(false)
         .run()
         .await?;
 

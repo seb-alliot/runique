@@ -63,18 +63,17 @@ pub async fn csrf_middleware(
     );
 
     let token_to_inject: String = if requires_csrf {
-        // === POST/PUT/DELETE/PATCH : Vérifier et renouveler ===
-
         // 1. Récupérer le token de session
         let session_token = {
             let session = match req.extensions().get::<Session>() {
                 Some(s) => s,
                 None => return (StatusCode::INTERNAL_SERVER_ERROR, "Session middleware missing").into_response(),
             };
-            session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten()
+            let t = session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten();
+            t
         };
 
-        // 2. Récupérer le token de la requête (headers)
+        // 2. Récupérer le token de la requête
         let mut request_token = headers
             .get("X-CSRF-Token")
             .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
@@ -83,89 +82,48 @@ pub async fn csrf_middleware(
                     .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
             });
 
-        // 3. Si pas dans les headers, chercher dans le body
-        if request_token.is_none() {
-            let (parts, body) = req.into_parts();
-            let bytes = match body.collect().await {
-                Ok(collected) => collected.to_bytes(),
-                Err(_) => {
-                    return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response();
-                }
-            };
+        let (parts, body) = req.into_parts();
+        let bytes = match body.collect().await {
+            Ok(collected) => collected.to_bytes(),
+            Err(_) => return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response(),
+        };
+        req = axum::http::Request::from_parts(parts, Body::from(bytes.clone()));
+        req.extensions_mut().insert(bytes.clone());
 
-            if let Ok(body_str) = std::str::from_utf8(&bytes) {
+
+        if let Ok(body_str) = std::str::from_utf8(&bytes) {
+            if request_token.is_none() {
                 request_token = extract_csrf_from_form(body_str);
             }
-
-            // Recréer la requête avec le body
-            req = axum::http::Request::from_parts(parts, Body::from(bytes));
         }
 
-        // 4. Vérifier le token
+        // Réinjection dans la requête ET dans les extensions
+
+        // 3. Vérification
         match (session_token, request_token) {
             (Some(st), Some(rt)) if constant_time_compare(&st, &rt) => {
-                // ✅ Token valide - Générer un nouveau token UNIQUE
                 let session = req.extensions().get::<Session>().unwrap();
-                let session_id = session.id()
-                    .map(|id| id.to_string())
-                    .unwrap_or_else(|| "no-session-id".to_string());
-
-                // 🔥 Génère un nouveau token avec timestamp (unique à chaque fois)
+                let session_id = session.id().map(|id| id.to_string()).unwrap_or_else(|| "no-session-id".to_string());
                 let new_token = generate_csrf_token(&config.server.secret_key, &session_id);
-
-                // Stocker le nouveau token en session
                 let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
-
-                tracing::debug!("CSRF token validated and renewed: {}...", &new_token[..12]);
-
                 new_token
             }
-            (None, _) => {
-                // ❌ Token manquant en session
-                tracing::error!("CSRF verification failed: No session token");
-
-                let mut session = req.extensions_mut().get_mut::<Session>()
-                    .expect("Session middleware missing")
-                    .clone();
-
+            (_, _) => {
+                let mut session = req.extensions().get::<Session>().cloned().expect("Session missing");
                 let _ = session.insert_message(FlashMessage::error(
-                    "Erreur de sécurité : Token CSRF manquant. Veuillez réessayer."
+                    "Erreur de sécurité : Token CSRF invalide ou manquant."
                 )).await;
 
-                return Redirect::to(&uri_path).into_response();
-            }
-            (_, None) => {
-                // ❌ Token manquant dans la requête
-                tracing::error!("CSRF verification failed: No request token");
-
-                let mut session = req.extensions_mut().get_mut::<Session>()
-                    .expect("Session middleware missing")
-                    .clone();
-
-                let _ = session.insert_message(FlashMessage::error(
-                    "Erreur de sécurité : Token CSRF manquant dans le formulaire. Veuillez réessayer."
-                )).await;
+                // Si c'est une requête AJAX/JSON, on renvoie un code d'erreur au lieu d'une redirection
+                if headers.get("Accept").and_then(|h| h.to_str().ok()).unwrap_or("").contains("application/json") {
+                    return (StatusCode::BAD_REQUEST, "Invalid CSRF Token").into_response();
+                }
 
                 return Redirect::to(&uri_path).into_response();
-            }
-            _ => {
-                // ❌ Token invalide
-                tracing::error!("CSRF verification failed: Token mismatch");
-
-                let mut session = req.extensions_mut().get_mut::<Session>()
-                    .expect("Session middleware missing")
-                    .clone();
-
-                let _ = session.insert_message(FlashMessage::error(
-                    "Erreur de sécurité : Token CSRF invalide. Votre session a peut-être expiré. Veuillez réessayer."
-                )).await;
-
-                return Redirect::to(&uri_path).into_response();
-            }
-        }
-    } else {
-        // === GET : Récupérer ou créer le token ===
-
+                        }
+                    }
+        } else {
+        // === GET ===
         let session = match req.extensions().get::<Session>() {
             Some(s) => s,
             None => return (StatusCode::INTERNAL_SERVER_ERROR, "Session middleware missing").into_response(),
@@ -174,27 +132,18 @@ pub async fn csrf_middleware(
         let existing = session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten();
 
         if let Some(t) = existing {
-            t  // Réutiliser le token existant
+            t
         } else {
-            // Générer un nouveau token
-            let session_id = session.id()
-                .map(|id| id.to_string())
-                .unwrap_or_else(|| "no-session-id".to_string());
-
+            let session_id = session.id().map(|id| id.to_string()).unwrap_or_else(|| "no-session-id".to_string());
             let new_token = generate_csrf_token(&config.server.secret_key, &session_id);
             let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
-
             new_token
         }
     };
 
-    // Injecter le token dans les extensions de la requête
     req.extensions_mut().insert(CsrfToken(token_to_inject.clone()));
-
-    // Exécuter la suite du pipeline
     let mut response = next.run(req).await;
 
-    // Ajouter le token dans un header de réponse (pour AJAX)
     if let Ok(hv) = HeaderValue::from_str(&token_to_inject) {
         response.headers_mut().insert("X-CSRF-Token", hv);
     }

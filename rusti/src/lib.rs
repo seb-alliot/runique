@@ -35,7 +35,7 @@ pub mod database;
 pub use middleware::flash_message::flash_middleware;
 pub use middleware::csrf::csrf_middleware;
 pub use middleware::middleware_sanetiser::sanitize_middleware;
-pub use processor::message_processor::{Message, Template};
+pub use processor::processor::{Message, Template};
 
 
 pub use macro_perso::router::{
@@ -87,8 +87,10 @@ pub use serde::{Serialize, Deserialize};
 pub use async_trait::async_trait;
 
 // Ré-exports pour la gestion des formulaires
-pub use formulaire::forms::Forms;
+pub use formulaire::forms_rusti::Forms;
 pub use formulaire::field::RustiField;
+pub use formulaire::extracteur::AxumForm as FormulaireAxumForm;
+pub use formulaire::extracteur;
 
 
 /// Macro pour faciliter la création de routes

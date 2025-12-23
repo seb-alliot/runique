@@ -43,6 +43,7 @@ dotenvy.workspace = true
 chrono.workspace = true
 anyhow.workspace = true
 regex.workspace = true
+serde_urlencoded.workspace = true
 
 # Logging
 tracing.workspace = true

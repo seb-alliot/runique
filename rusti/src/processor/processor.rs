@@ -37,9 +37,8 @@ where
 
         let mut context = Context::new();
 
-        // --- AUTO-INJECTION MAGIQUE ---
 
-        // 2. Injection du CSRF Token (pour tes fonctions/filtres de template)
+        // 2. Injection du CSRF Token
         if let Some(token) = parts.extensions.get::<CsrfToken>() {
             context.insert("csrf_token", &token.0);
         }

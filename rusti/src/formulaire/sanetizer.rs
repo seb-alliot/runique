@@ -2,12 +2,12 @@ use regex::Regex;
 use once_cell::sync::Lazy;
 
 /// Liste des balises HTML à supprimer systématiquement car elles n'ont pas leur place
-/// dans un contenu textuel sécurisé (Scripts, Iframes, etc.)
+/// dans un contenu textuel sécurisé (XSS)
 static DANGEROUS_TAGS: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"(?i)<script[^>]*>.*?</script>|<script[^>]*>|</script>|<iframe[^>]*>.*?</iframe>|<iframe[^>]*>|<embed[^>]*>|<object[^>]*>.*?</object>|<meta[^>]*>|<link[^>]*>|<style[^>]*>.*?</style>"#).unwrap()
 });
 
-/// Regex pour détecter les attributs d'événements JavaScript (ex: onclick, onerror, etc.)
+/// Regex pour détecter les attributs d'événements JavaScript
 static JS_EVENTS: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"(?i)\bon\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)"#).unwrap()
 });
@@ -23,12 +23,12 @@ static ALL_HTML_TAGS: Lazy<Regex> = Lazy::new(|| {
 });
 
 /// Sanitise une chaîne de caractères contre les attaques XSS
-/// tout en préservant la mise en forme (espaces et sauts de ligne)
+/// tout en préservant la mise en forme
 pub fn auto_sanitize(input: &str) -> String {
     if input.is_empty() {
         return String::new();
     }
-    
+
     // 1. Supprimer les balises les plus dangereuses et leur contenu
     let mut cleaned = DANGEROUS_TAGS.replace_all(input, "").to_string();
 
@@ -41,7 +41,6 @@ pub fn auto_sanitize(input: &str) -> String {
     // 4. Supprimer toutes les balises HTML restantes (strip_tags)
     cleaned = ALL_HTML_TAGS.replace_all(&cleaned, "").to_string();
 
-    // Note : Nous ne touchons plus aux espaces (\s+) pour préserver
     // les sauts de ligne et l'indentation des formulaires (textareas).
     cleaned.trim().to_string()
 }

@@ -1,3 +1,3 @@
-pub mod message_processor;
+pub mod processor;
 
-pub use message_processor::{Message, Template};
+pub use processor::{Message, Template};

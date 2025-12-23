@@ -21,5 +21,8 @@ pub use field::{
 };
 
 
-pub mod forms;
-pub use forms::Forms;
+pub mod forms_rusti;
+pub use forms_rusti::Forms;
+
+pub mod extracteur;
+pub use extracteur::AxumForm;

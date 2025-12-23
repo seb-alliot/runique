@@ -1,15 +1,19 @@
-use rusti::{Router, urlpatterns};
+use rusti::{Router, urlpatterns, get, post};
 use crate::views;
 
 pub fn urls() -> Router {
     urlpatterns! {
-        // Get requests
+        // index
         "/" => get(views::index), name ="index",
+
+        // footer links
         "/about" => get(views::about), name ="about",
-        "/user/{id}/{name}" => get(views::user_profile) ,name ="user_profile",
         "/sapin" => get(views::about_sapin), name ="about_sapin",
-        // Post requests
-        "/user/{id}/{name}" => post(views::user_profile_submit), name ="user_profile_submit",
+
+        // other links
+        "/user/{id}/{name}" => get(views::user_profile).post(views::user_profile_submit), name = "user_profile",
+
+        // Ajax CSRF test
         "/test-csrf" => post(views::test_csrf), name ="test_csrf",
     }
 }

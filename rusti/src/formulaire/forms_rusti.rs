@@ -3,22 +3,13 @@ use std::collections::HashMap;
 use serde_json::Value;
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Deserialize};
-use axum::{
-    extract::{FromRequest, Form},
-    http::Request,
-    body::Body,
-    response::{IntoResponse, Response},
-};
 
-// --- 1. La Structure de Base ---
-
-#[derive(Serialize, Deserialize, Clone)]
-
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Forms {
-    #[serde(default)] // Ajoute ceci ici
+    #[serde(default)]
     pub errors: HashMap<String, String>,
 
-    #[serde(default)] // Et ajoute ceci ici
+    #[serde(default)]
     pub cleaned_data: HashMap<String, Value>,
 }
 
@@ -30,7 +21,6 @@ impl Forms {
         }
     }
 
-    /// Traite un champ et stocke la valeur nettoyée ou l'erreur
     pub fn field<F: RustiField>(
         &mut self,
         name: &str,
@@ -68,34 +58,9 @@ impl Forms {
     }
 }
 
-// --- 2. Le Trait (Le Contrat du Framework) ---
-
-pub trait FormulaireTrait: Send {
+pub trait FormulaireTrait: Send + Sync + 'static {
     fn new() -> Self;
-    /// Cette méthode fait le lien entre les données brutes et la validation
     fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool;
 }
 
 
-pub struct AxumForm<T>(pub T);
-
-impl<S, T> FromRequest<S> for AxumForm<T>
-where
-    S: Send + Sync,
-    T: FormulaireTrait + Send + 'static,
-{
-    type Rejection = Response;
-
-    async fn from_request(req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
-        // On utilise l'extracteur standard d'Axum.
-        // Comme le middleware a recréé le corps avec Body::from(bytes), Form peut le relire.
-        let Form(payload) = Form::<HashMap<String, String>>::from_request(req, state)
-            .await
-            .map_err(|e| e.into_response())?;
-
-        let mut form_instance = T::new();
-        form_instance.validate(&payload); //
-
-        Ok(AxumForm(form_instance))
-    }
-}
