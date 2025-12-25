@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "rusti",
-    "examples/demo-app"
+    "rusti/derive_form",
+    "examples/demo-app",
 ]
 resolver = "2"
 

@@ -66,33 +66,26 @@ pub async fn user_profile_submit(
 ) -> Response {
 
     if user.is_valid() {
-        let username: Option<String> = user.internal.get_value("username");
-        let email: Option<String> = user.internal.get_value("email");
-        let age: Option<i32> = user
-            .get_value::<i64>("age")
-            .map(|v| v as i32);
-        let password: Option<String> = user.internal.get_value("password");
-        let info = format!("ID: {}, Name: {}", id, name);
-        let content = format!("Ton pseudo {}, email {}, age {}, et mot de passe {}  ont étais valider", username.unwrap_or_default(), email.unwrap_or_default(), age.unwrap_or_default(), password.unwrap_or_default());
-        message.success(&content).await.unwrap();
-        message.info(&info).await.unwrap();
+        let username: Option<String> = user.get_value("username");
+        let email: Option<String> = user.get_value("email");
+        let age: Option<i32> = user.get_value::<i64>("age").map(|v| v as i32);
+        let password: Option<String> = user.get_value("password");
+
+        message.success(format!("Ton pseudo {}, email {}, age {}, et mot de passe {}  ont étais valider", username.unwrap_or_default(), email.unwrap_or_default(), age.unwrap_or_default(), password.unwrap_or_default())).await.unwrap();
+        message.info(format!("ID: {}, Name: {}", id, name)).await.unwrap();
+
         let target = reverse_with_parameters("user_profile", &[("id", &id.to_string()), ("name", &name)]).unwrap();
-                Redirect::to(&target).into_response() // Pas de return + ; ici, c'est l'expression de sortie
-            }
-            else {
-                // On regroupe le is_not_valid et le else ici
-                if user.is_not_valid() {
-                    message.error("Veuillez corriger les erreurs.").await.unwrap();
-                }
-
-                let context = Context::from_serialize(json!({
-                    "form": &user,
-                    "title": &format!("Erreur sur le profil de {}", name),
-                })).unwrap_or_default();
-
-                template.render("profile/profile.html", &context)
-            }
+        Redirect::to(&target).into_response()
         }
+    else {
+        message.error("Veuillez corriger les erreurs.").await.unwrap();
+        let context = Context::from_serialize(json!({
+            "form": &user,
+            "title": &format!("Erreur sur le profil de {}", name),
+        })).unwrap_or_default();
+        template.render("profile/profile.html", &context)
+    }
+}
 
 /// Page spéciale sapin de Noël
 pub async fn about_sapin(

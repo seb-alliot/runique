@@ -8,7 +8,6 @@ use serde::{Serialize, Deserialize};
 pub struct Forms {
     #[serde(default)]
     pub errors: HashMap<String, String>,
-
     #[serde(default)]
     pub cleaned_data: HashMap<String, Value>,
 }
@@ -21,6 +20,36 @@ impl Forms {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.errors.clear();
+        self.cleaned_data.clear();
+    }
+
+    pub fn require<F: RustiField>(
+        &mut self,
+        name: &str,
+        field: &F,
+        raw_data: &HashMap<String, String>
+    ) where F::Output: Serialize + Clone
+    {
+        match raw_data.get(name) {
+            Some(value) => { self.field(name, field, value); },
+            None => { self.errors.insert(name.to_string(), "Requis".to_string()); }
+        }
+    }
+
+    pub fn optional<F: RustiField>(
+        &mut self,
+        name: &str,
+        field: &F,
+        raw_data: &HashMap<String, String>
+    ) where F::Output: Serialize + Clone
+    {
+        if let Some(value) = raw_data.get(name) {
+            self.field(name, field, value);
+        }
+    }
+
     pub fn field<F: RustiField>(
         &mut self,
         name: &str,
@@ -29,7 +58,14 @@ impl Forms {
     ) -> Option<F::Output>
     where F::Output: Serialize + Clone
     {
-        match field.process(raw_value) {
+        // Trim automatique basé sur field.strip()
+        let value_to_process = if field.strip() {
+            raw_value.trim()
+        } else {
+            raw_value
+        };
+
+        match field.process(value_to_process) {
             Ok(value) => {
                 if let Ok(json_val) = serde_json::to_value(value.clone()) {
                     self.cleaned_data.insert(name.to_string(), json_val);
@@ -62,5 +98,3 @@ pub trait FormulaireTrait: Send + Sync + 'static {
     fn new() -> Self;
     fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool;
 }
-
-

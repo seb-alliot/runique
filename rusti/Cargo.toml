@@ -8,6 +8,7 @@ description = "A Django-inspired web framework for Rust"
 keywords = ["web", "framework", "axum", "django"]
 categories = ["web-programming::http-server"]
 
+
 [dependencies]
 # Framework web
 axum.workspace = true
@@ -58,6 +59,9 @@ once_cell.workspace = true
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
+
+# macro externe
+derive_form = { path = "derive_form" }
 
 
 [features]

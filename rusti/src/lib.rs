@@ -36,12 +36,12 @@ pub use middleware::flash_message::flash_middleware;
 pub use middleware::csrf::csrf_middleware;
 pub use middleware::middleware_sanetiser::sanitize_middleware;
 pub use processor::processor::{Message, Template};
-
+pub use derive_form::rusti_form;
 
 pub use macro_perso::router::{
     reverse,
     reverse_with_parameters,
-    register_name_url::register_name_url
+    register_name_url::register_name_url,
 };
 
 // Formulaires
