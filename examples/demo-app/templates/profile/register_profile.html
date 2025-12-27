@@ -1,9 +1,31 @@
 {% extends "index.html" %}
 {% block content %}
-
 <div class="content">
     <h1>{{ title }}</h1>
+    {% if messages %}
+        {% for msg in messages %}
+            <ul {{ msg }}>
+        {% endfor %}
+    {% endif %}
 
+    {% if db_error %}
+        <div class="alert alert-danger">
+            <span class="alert-message">{{ db_error }}</span>
+        </div>
+    {% endif %}
+
+    {% if form.errors %}
+        <div class="alert alert-warning">
+            <div class="alert-message">
+                <strong>Veuillez corriger les erreurs suivantes :</strong>
+                <ul>
+                    {% for field, error in form.errors %}
+                        <li><strong>{{ field }} :</strong> {{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
     <div class="form-container">
         <form method="post" id="userform">
             {% csrf %}
@@ -17,9 +39,6 @@
                             name="username"
                             value="{{ form.cleaned_data.username | default(value='') }}"
                         >
-                        {% if form.errors.username %}
-                            <span class="error">{{ form.errors.username }}</span>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -32,9 +51,6 @@
                             name="email"
                             value="{{ form.cleaned_data.email | default(value='') }}"
                         >
-                        {% if form.errors.email %}
-                            <span class="error">{{ form.errors.email }}</span>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -47,9 +63,6 @@
                             name="age"
                             value="{{ form.cleaned_data.age | default(value='') }}"
                         >
-                        {% if form.errors.age %}
-                            <span class="error">{{ form.errors.age }}</span>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -61,9 +74,6 @@
                             id="password"
                             name="password"
                         >
-                        {% if form.errors.password %}
-                            <span class="error">{{ form.errors.password }}</span>
-                        {% endif %}
                     </div>
                 </div>
             </div>

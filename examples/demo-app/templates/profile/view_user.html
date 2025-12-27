@@ -1,0 +1,71 @@
+{% extends "index.html" %}
+{% block content %}
+<div class="content">
+    {% if title %}
+        <h1>{{ title }}</h1>
+    {% endif %}
+    {% if messages %}
+        {% for msg in messages %}
+            <ul {{ msg }}>
+        {% endfor %}
+    {% endif %}
+
+    {% if db_error %}
+        <div class="alert alert-danger">
+            <span class="alert-message">{{ db_error }}</span>
+        </div>
+    {% endif %}
+
+    {% if form.errors %}
+        <div class="alert alert-warning">
+            <div class="alert-message">
+                <strong>Veuillez corriger les erreurs suivantes :</strong>
+                <ul>
+                    {% for field, error in form.errors %}
+                        <li><strong>{{ field }} :</strong> {{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Formulaire de recherche d'utilisateur -->
+    <div class="form-container">
+        <form id="username-form" method="post">
+            {% csrf %}
+            <div class="form-group">
+                <label for="username-input">Rechercher un utilisateur :</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="Entrez un nom d'utilisateur"
+                    required
+                >
+            </div>
+            <button type="submit">Rechercher</button>
+        </form>
+    </div>
+
+    <!-- Affichage des informations de l'utilisateur -->
+    <div class="form-container">
+        {% if username %}
+            <p><strong>Nom d'utilisateur :</strong> {{ username }}</p>
+        {% endif %}
+        {% if email %}
+            <p><strong>Email :</strong> {{ email }}</p>
+        {% endif %}
+        {% if age %}
+            <p><strong>Âge :</strong> {{ age }}</p>
+        {% endif %}
+    </div>
+    {% block script %}
+    <script src='{% static "js/test_csrf.js" %}'></script>
+    {% endblock %}
+
+
+{% endblock %}
+{% block footer %}
+    <a href={% link "index" %}>Revenir à l'accueil</a>
+    <p>&copy; 2025 My Web Application</p>
+{% endblock %}

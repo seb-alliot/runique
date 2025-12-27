@@ -36,7 +36,7 @@ pub use middleware::flash_message::flash_middleware;
 pub use middleware::csrf::csrf_middleware;
 pub use middleware::middleware_sanetiser::sanitize_middleware;
 pub use processor::processor::{Message, Template};
-pub use derive_form::rusti_form;
+pub use derive_form;
 
 pub use macro_perso::router::{
     reverse,
@@ -44,15 +44,20 @@ pub use macro_perso::router::{
     register_name_url::register_name_url,
 };
 
-// Formulaires
-pub use formulaire::sanetizer;
+
 
 // Modules et ré-exports liés à la base de données
-
-#[cfg(feature = "orm")]
-pub use sea_orm::{DatabaseConnection};
-
-#[cfg(feature = "orm")]
+pub use sea_orm;
+pub use sea_orm::{
+    DatabaseConnection,
+    Database,
+    EntityTrait,
+    ModelTrait,
+    ActiveModelTrait,
+    ColumnTrait,
+    QueryFilter,
+    Set,
+};
 pub use database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
 
 // Token csrf
@@ -86,11 +91,12 @@ pub use tera::{Tera, Context};
 pub use serde::{Serialize, Deserialize};
 pub use async_trait::async_trait;
 
-// Ré-exports pour la gestion des formulaires
-pub use formulaire::forms_rusti::Forms;
-pub use formulaire::field::RustiField;
-pub use formulaire::extracteur::AxumForm as FormulaireAxumForm;
-pub use formulaire::extracteur;
+pub use derive_form::rusti_form;
+pub use derive_form::DeriveModelForm;
+
+pub use formulaire::formsrusti::{Forms, FormulaireTrait};
+pub use formulaire::extracteur::ExtractForm;
+pub use macro_perso::context_macro::ContextHelper;
 
 
 /// Macro pour faciliter la création de routes

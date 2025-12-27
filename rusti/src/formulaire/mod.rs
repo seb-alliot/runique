@@ -6,7 +6,6 @@ pub use sanetizer::{
     is_sensitive_field,
 };
 
-
 pub mod field;
 pub use field::{
     RustiField,
@@ -14,15 +13,19 @@ pub use field::{
     TextField,
     PasswordField,
     EmailField,
-    IPAddressField,
+    IntegerField,
+    FloatField,
+    BooleanField,
     DateField,
     DateTimeField,
+    IPAddressField,
+    URLField,
+    SlugField,
     JSONField,
 };
 
-
-pub mod forms_rusti;
-pub use forms_rusti::Forms;
+pub mod formsrusti;
+pub use formsrusti::{Forms, FormulaireTrait};
 
 pub mod extracteur;
-pub use extracteur::AxumForm;
+pub use extracteur::ExtractForm;

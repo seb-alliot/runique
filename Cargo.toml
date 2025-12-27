@@ -3,6 +3,7 @@ members = [
     "rusti",
     "rusti/derive_form",
     "examples/demo-app",
+    "examples/demo-app/migration",
 ]
 resolver = "2"
 
@@ -31,6 +32,12 @@ tera = { version = "1.20.1", features = ["builtins"] }
 
 # ORM
 sea-orm = { version = "2.0.0-rc.18", features = ["sqlx-sqlite", "sqlx-postgres", "runtime-tokio", "macros", "with-chrono", "with-uuid"] }
+sea-orm-cli = "1.1.19"
+sea-orm-migration = { version = "2.0.0-rc.18", features = [
+    "runtime-tokio-rustls",
+    "sqlx-postgres", # Indispensable pour votre URL postgres://
+    "sqlx-sqlite",
+] }
 
 # Utilitaires
 dotenvy = "0.15"

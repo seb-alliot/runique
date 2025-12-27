@@ -18,7 +18,6 @@ use tera::{Tera, Context};
 use anyhow::Result;
 use glob;
 
-#[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
 
 use crate::settings::Settings;
@@ -170,9 +169,9 @@ impl RustiApp {
         self
     }
 
-    #[cfg(feature = "orm")]
     pub fn with_database(mut self, db: DatabaseConnection) -> Self {
-        self.router = self.router.layer(Extension(Arc::new(db)));
+        let shared_db: std::sync::Arc<DatabaseConnection> = std::sync::Arc::new(db);
+        self.router = self.router.layer(axum::extract::Extension(shared_db));
         self
     }
 

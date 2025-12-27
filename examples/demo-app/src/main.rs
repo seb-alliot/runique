@@ -3,19 +3,29 @@ use rusti::{
     Settings,
     DatabaseConfig,
 };
-
 mod url;
 mod views;
-mod form;
+mod models;
+mod forms;
+
+
+// use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
+    // Initialisation du logging
+    // tracing_subscriber::registry()
+    //     .with(
+    //         tracing_subscriber::EnvFilter::try_from_default_env()
+    //             .unwrap_or_else(|_| "sqlx=debug,sea_orm=debug,demo_app=debug".into())
+    //     )
+    //     .with(tracing_subscriber::fmt::layer())
+    //     .init();
 
     // Connexion à la base de données
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
-    println!("Connected to the database successfully. {}", db_config.engine.name());
 
     // Configuration de l'application !!
     // Vous pouvez personnaliser les paramètres du settings ici
@@ -27,17 +37,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .server("127.0.0.1", 3000, "change_your_secrete_key")
         .build();
 
+
     // Créer et lancer l'application
     RustiApp::new(settings).await?
         .routes(url::urls())
-        .with_database(db)
         .with_static_files()?
         .with_flash_messages()
         .with_csrf_tokens()
         .with_default_middleware()
         .with_sanitize_text_inputs(false)
+        .with_database(db)
         .run()
         .await?;
+
 
     Ok(())
 }

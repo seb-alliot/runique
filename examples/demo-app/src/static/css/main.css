@@ -27,6 +27,10 @@ html {
     margin:0;
     padding:0;
 }
+.form-container {
+    display: flex;
+    flex: 1;
+}
 
 header > img {
     width: 80vw;

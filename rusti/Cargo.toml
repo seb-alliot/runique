@@ -38,6 +38,7 @@ glob = "0.3"
 
 # ORM
 sea-orm = { workspace = true, optional = true }
+sea-orm-cli.workspace = true
 
 # Utilitaires
 dotenvy.workspace = true
@@ -65,13 +66,11 @@ derive_form = { path = "derive_form" }
 
 
 [features]
-default = ["orm", "sqlite"]
 orm = ["dep:sea-orm"]
 
-# Bases de données
-sqlite = ["sea-orm?/sqlx-sqlite", "sea-orm?/runtime-tokio-rustls"]
-postgres = ["sea-orm?/sqlx-postgres", "sea-orm?/runtime-tokio-rustls"]
-mysql = ["sea-orm?/sqlx-mysql", "sea-orm?/runtime-tokio-rustls"]
+sqlite = ["orm", "sea-orm?/sqlx-sqlite", "sea-orm?/runtime-tokio-rustls"]
+postgres = ["orm", "sea-orm?/sqlx-postgres", "sea-orm?/runtime-tokio-rustls"]  # ← Ajouter "orm"
+mysql = ["orm", "sea-orm?/sqlx-mysql", "sea-orm?/runtime-tokio-rustls"]
 
 # Alias pour MariaDB
 mariadb = ["mysql"]

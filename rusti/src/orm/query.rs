@@ -9,7 +9,8 @@ use sea_orm::{
     QuerySelect,
     Select,
 };
-
+use crate::processor::processor::Template;
+use axum::response::Response;
 /// Wrapper pour Select avec méthodes pratiques et chainables
 ///
 /// Cette struct encapsule un `Select<E>` de SeaORM et fournit
@@ -145,5 +146,27 @@ impl<E: EntityTrait> RustiQueryBuilder<E> {
     /// ```
     pub async fn first(self, db: &DatabaseConnection) -> Result<Option<E::Model>, DbErr> {
         self.select.one(db).await
+    }
+
+    /// Récupère le premier résultat ou retourne une 404
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// let user = User::objects
+    ///     .filter(user::Column::Username.eq("alice"))
+    ///     .get_or_404(&db, &template, "Utilisateur introuvable")
+    ///     .await?;
+    /// ```
+    pub async fn get_or_404(
+        self,
+        db: &DatabaseConnection,
+        template: &Template,
+        error_msg: &str,
+    ) -> Result<E::Model, Response> {
+        match self.first(db).await {
+            Ok(Some(entity)) => Ok(entity),
+            Ok(None) => Err(template.render_404(error_msg)),
+            Err(_) => Err(template.render_500("Erreur de base de données")),
+        }
     }
 }

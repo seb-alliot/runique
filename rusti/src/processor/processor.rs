@@ -11,6 +11,10 @@ use tera::{Tera, Context};
 use crate::middleware::flash_message::FlashMessage;
 use crate::middleware::flash_message::FlashMessageSession;
 use crate::settings::Settings;
+use crate::context;
+
+
+#[derive(Clone)]
 pub struct Template {
     tera: Arc<Tera>,
     config: Arc<Settings>,
@@ -78,6 +82,21 @@ impl Template {
             status,
             &self.config,
         )
+    }
+    pub fn render_404(&self, message: &str) -> Response {
+        let ctx = context! {
+            "title", "Page non trouvée";
+            "error_message", message
+        };
+        self.clone().render("404", &ctx)
+    }
+
+    pub fn render_500(&self, message: &str) -> Response {
+        let ctx = context! {
+            "title", "Erreur serveur";
+            "error_message", message
+        };
+        self.clone().render("500", &ctx)
     }
 }
 

@@ -1,8 +1,10 @@
 use sea_orm::{EntityTrait, Condition, DatabaseConnection, DbErr};
 use std::marker::PhantomData;
 use super::query::RustiQueryBuilder;
+use crate::processor::processor::Template;
+use axum::response::Response;
 
-/// Struct qui encapsule la logique "objects" (comme le Manager de Django)
+/// Struct qui encapsule la logique "objects"
 ///
 /// Cette struct permet d'avoir la syntaxe `User::objects.filter(...)`
 /// sans parenthèses après `objects`, exactement comme Django.
@@ -47,7 +49,7 @@ impl<E: EntityTrait> Objects<E> {
         RustiQueryBuilder::new(E::find()).filter(condition.into())
     }
 
-    /// Exclut des enregistrements 
+    /// Exclut des enregistrements
     pub fn exclude<C>(&self, condition: C) -> RustiQueryBuilder<E>
     where
         C: Into<Condition>,
@@ -99,6 +101,28 @@ impl<E: EntityTrait> Objects<E> {
     pub async fn count(&self, db: &DatabaseConnection) -> Result<u64, DbErr> {
         let items = E::find().all(db).await?;
         Ok(items.len() as u64)
+    }
+
+    /// Récupère un enregistrement ou retourne une erreur 404
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// let user = User::objects
+    ///     .get_or_404(&db, 1, &template, "Utilisateur introuvable")
+    ///     .await?;
+    /// ```
+    pub async fn get_or_404(
+        &self,
+        db: &DatabaseConnection,
+        id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
+        template: &Template,
+        error_msg: &str,
+    ) -> Result<E::Model, Response> {
+        match self.get_optional(db, id).await {
+            Ok(Some(entity)) => Ok(entity),
+            Ok(None) => Err(template.render_404(error_msg)),
+            Err(_) => Err(template.render_500("Erreur de base de données")),
+        }
     }
 }
 
