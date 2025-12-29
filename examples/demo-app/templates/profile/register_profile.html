@@ -85,7 +85,7 @@
     </div>
 </div>
     {% block script %}
-    <script src='{% static "js/test_csrf.js" %}'></script>
+    <script {{ csp }} src='{% static "js/test_csrf.js" %}'></script>
     {% endblock %}
 
 {% endblock %}

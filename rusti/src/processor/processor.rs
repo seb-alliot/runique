@@ -55,8 +55,8 @@ where
         context.insert("debug", &config_arc.debug);
 
         // 5. Injection du nonce CSP
-        if let Some(nonce) = parts.extensions.get::<String>() {
-            context.insert("csp_nonce", nonce);
+        if let Some(csp_nonce) = parts.extensions.get::<String>() {
+            context.insert("csp_nonce", csp_nonce);
         }
 
         Ok(Template {
@@ -158,5 +158,5 @@ impl Message {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
-    
+
 }

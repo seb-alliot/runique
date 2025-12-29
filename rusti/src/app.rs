@@ -41,7 +41,6 @@ impl RustiApp {
         let addr = config.server.domain_server.parse()?;
 
         let mut tera = Tera::default();
-
         // 1. Templates internes
         Self::load_internal_templates(&mut tera)?;
 
@@ -61,6 +60,7 @@ impl RustiApp {
 
                     content = content.replace("{% csrf %}", r#"{% include "csrf" %}"#);
                     content = content.replace("{% messages %}", r#"{% include "message" %}"#);
+                    content = content.replace("{{ csp }}", r#"{% include "csp" %}"#);
 
                     // Transformation {% link "name" %}
                     let link_simple = regex::Regex::new(
@@ -147,6 +147,7 @@ impl RustiApp {
         tera.add_raw_template("500", include_str!("../templates/errors/500.html"))?;
         tera.add_raw_template("debug", include_str!("../templates/errors/debug_error.html"))?;
         tera.add_raw_template("csrf", include_str!("../templates/csrf/csrf.html"))?;
+        tera.add_raw_template("csp", include_str!("../templates/csp/csp.html"))?;
 
         const ERROR_CORPS: [(&str, &str); 8] = [
             ("errors/corps-error/header-error.html", include_str!("../templates/errors/corps-error/header-error.html")),

@@ -37,7 +37,15 @@
     </div>
 
     {% endblock %}
-    <script {{ nonce }}>console.log('Hello');</script>
+
+<script>
+    {{ csp }}
+    console.log('Hello');
+</script>
+
+<p>Nonce de sécurité CSP insérée dans la page. {{ csp_nonce }}</p>
+
+
     <footer>
         {% block footer %}
         <a href={% link "view-user" %}>Recherche user</a>

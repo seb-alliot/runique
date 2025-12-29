@@ -19,6 +19,7 @@ fn generic_url_filter(base_url: String) -> impl Fn(&Value, &HashMap<String, Valu
 }
 
 
+
 pub struct CsrfTokenFilter;
 
 impl Filter for CsrfTokenFilter {

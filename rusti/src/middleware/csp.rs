@@ -7,7 +7,9 @@ use axum::{
 };
 use std::sync::Arc;
 use crate::settings::Settings;
-use crate::utils::generate_token::generate_token;
+use crate::utils::generate_token;
+
+pub const NONCE_KEY: &str = "csp_nonce";
 
 /// Configuration de la Content Security Policy
 #[derive(Clone, Debug)]
@@ -21,7 +23,7 @@ pub struct CspConfig {
     pub frame_ancestors: Vec<String>,
     pub base_uri: Vec<String>,
     pub form_action: Vec<String>,
-    pub use_nonce: bool,
+    pub use_nonce: bool, 
 }
 
 impl Default for CspConfig {
