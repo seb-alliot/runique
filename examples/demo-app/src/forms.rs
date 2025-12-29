@@ -1,4 +1,7 @@
-use rusti::rusti_form;
+use rusti::{
+    rusti_form,
+}
+    ;
 use rusti::formulaire::formsrusti::{Forms, FormulaireTrait};
 use rusti::formulaire::field::{CharField};
 use std::collections::HashMap;

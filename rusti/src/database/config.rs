@@ -176,6 +176,9 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
                 Or enable all databases:\n\
                 rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
             );
+
+            #[cfg(feature = "postgres")]
+            Ok(())  
         }
         DatabaseEngine::MySQL => {
             #[cfg(not(feature = "mysql"))]
@@ -187,6 +190,9 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
                 Or enable all databases:\n\
                 rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
             );
+
+            #[cfg(feature = "mysql")]
+            Ok(())
         }
         DatabaseEngine::MariaDB => {
             #[cfg(not(feature = "mariadb"))]
@@ -199,6 +205,9 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
                 Or enable all databases:\n\
                 rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
             );
+
+            #[cfg(feature = "mariadb")]
+            Ok(())
         }
         DatabaseEngine::SQLite => {
             #[cfg(not(feature = "sqlite"))]
@@ -210,9 +219,11 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
                 Or use the default features (SQLite is enabled by default):\n\
                 rusti = \"0.1\"".to_string()
             );
+
+            #[cfg(feature = "sqlite")]
+            Ok(())
         }
     }
-    Ok(())
 }
 
 /// Builder pour DatabaseConfig

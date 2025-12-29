@@ -37,6 +37,7 @@
     </div>
 
     {% endblock %}
+    <script {{ nonce }}>console.log('Hello');</script>
     <footer>
         {% block footer %}
         <a href={% link "view-user" %}>Recherche user</a>

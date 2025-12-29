@@ -17,6 +17,8 @@ fn generic_url_filter(base_url: String) -> impl Fn(&Value, &HashMap<String, Valu
         Ok(Value::String(full_url))
     }
 }
+
+
 pub struct CsrfTokenFilter;
 
 impl Filter for CsrfTokenFilter {

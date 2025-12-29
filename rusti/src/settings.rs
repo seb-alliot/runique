@@ -90,7 +90,10 @@ impl Settings {
     /// ```
     pub fn default_values() -> Self {
         let base_dir = ".".to_string();
-
+        let rusti_root = env!("CARGO_MANIFEST_DIR");
+        let static_rusti_path = format!("{}/static", rusti_root);
+        let media_rusti_path = format!("{}/media", rusti_root);
+        let templates_rusti = format!("{}/templates", rusti_root);
         Settings {
             server: ServerSettings::from_env(),
             base_dir,
@@ -104,10 +107,10 @@ impl Settings {
             root_urlconf: String::from("urls"),
 
             // Rusti-specific settings
-            templates_rusti: String::new(),
-            static_rusti_path: "../../rusti/static".to_string(),     // Chemin physique
-            static_rusti_url: "/rusti/static".to_string(),     // URL
-            media_rusti_path: "../../rusti/media".to_string(),       // Chemin physique
+            templates_rusti: templates_rusti,
+            static_rusti_path,
+            static_rusti_url: "/rusti/static".to_string(),
+            media_rusti_path,
             media_rusti_url: "/rusti/media".to_string(),
 
             // Settings pour le projet utilisateur

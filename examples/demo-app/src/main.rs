@@ -2,6 +2,8 @@ use rusti::{
     RustiApp,
     Settings,
     DatabaseConfig,
+    tokio,
+    CspConfig,
 };
 mod url;
 mod views;
@@ -44,6 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_static_files()?
         .with_flash_messages()
         .with_csrf_tokens()
+        .with_security_headers(CspConfig::strict())
         .with_default_middleware()
         .with_sanitize_text_inputs(false)
         .with_database(db)

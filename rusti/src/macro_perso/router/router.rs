@@ -1,6 +1,5 @@
 #[macro_export]
 macro_rules! urlpatterns {
-    // Version avec NAME
     (
         $($path:expr => $handler:expr, name = $name:expr) ,* $(,)?
     ) => {{
@@ -10,13 +9,12 @@ macro_rules! urlpatterns {
             $crate::register_name_url($name, $path);
             router = router.route(
                 $path,
-                $handler // 👈 On capture toute l'expression ici
+                $handler
             );
         )*
         router
     }};
 
-    // Version sans NAME
     (
         $($path:expr => $handler:expr) , * $(,)?
     ) => {{
@@ -30,4 +28,3 @@ macro_rules! urlpatterns {
         router
     }};
 }
-

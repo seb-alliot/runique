@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Data, Fields};
-use crate::helpers::*;  // Import des helpers
+use crate::helpers::*;
 
 /// Implémentation de la macro #[rusti_form]
 pub(crate) fn rusti_form_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -21,14 +21,13 @@ pub(crate) fn rusti_form_impl(_attr: TokenStream, item: TokenStream) -> TokenStr
 
     let form_field = find_forms_field(&input.data, &name);
 
-    // 2. Ajouter les derives si pas déjà présents
     let has_derive = has_derive_attribute(&input.attrs);
 
     let derive_clause = if has_derive {
         quote! {}
     } else {
         quote! {
-            #[derive(serde::Serialize, serde::Deserialize, Debug)]
+            #[derive(::rusti::serde::Serialize, ::rusti::serde::Deserialize, Debug)]
         }
     };
 
@@ -37,7 +36,7 @@ pub(crate) fn rusti_form_impl(_attr: TokenStream, item: TokenStream) -> TokenStr
         #input
 
         impl std::ops::Deref for #name {
-            type Target = rusti::formulaire::formsrusti::Forms;
+            type Target = ::rusti::formulaire::formsrusti::Forms;
             fn deref(&self) -> &Self::Target { &self.#form_field }
         }
 

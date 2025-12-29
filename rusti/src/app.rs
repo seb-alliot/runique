@@ -25,6 +25,7 @@ use crate::middleware::error_handler::{error_handler_middleware, render_index};
 use crate::middleware::flash_message::flash_middleware;
 use crate::middleware::csrf::csrf_middleware;
 use crate::middleware::middleware_sanetiser::sanitize_middleware;
+use crate::middleware::csp::{security_headers_middleware, CspConfig};
 use crate::response::render_404;
 
 pub struct RustiApp {
@@ -238,6 +239,102 @@ impl RustiApp {
         ));
         self
     }
+
+    /// Active la Content Security Policy
+    ///
+    /// # Exemple
+    ///
+    /// ```rust
+    /// use rusti::middleware::csp::CspConfig;
+    ///
+    /// RustiApp::new(settings).await?
+    ///     .routes(routes)
+    ///     .with_csp(CspConfig::strict())
+    ///     .run()
+    ///     .await?;
+    /// ```
+    pub fn with_csp(self, config: CspConfig) -> Self {
+        let router = self.router.layer(
+            axum::middleware::from_fn_with_state(
+                config,
+                crate::middleware::csp::csp_middleware
+            )
+        );
+
+        Self {
+            router,
+            config: self.config,
+            addr: self.addr,
+            tera: self.tera,
+        }
+    }
+
+    /// Active tous les en-têtes de sécurité (CSP + headers)
+    ///
+    /// Inclut :
+    /// - Content-Security-Policy
+    /// - X-Content-Type-Options
+    /// - X-Frame-Options
+    /// - X-XSS-Protection
+    /// - Referrer-Policy
+    /// - Permissions-Policy
+    ///
+    /// # Exemple
+    ///
+    /// ```rust
+    /// use rusti::middleware::csp::CspConfig;
+    ///
+    /// RustiApp::new(settings).await?
+    ///     .routes(routes)
+    ///     .with_security_headers(CspConfig::default())
+    ///     .run()
+    ///     .await?;
+    /// ```
+    pub fn with_security_headers(self, config: CspConfig) -> Self {
+        let router = self.router.layer(
+            axum::middleware::from_fn_with_state(
+                config,
+                security_headers_middleware
+            )
+        );
+
+        Self {
+            router,
+            config: self.config,
+            addr: self.addr,
+            tera: self.tera,
+        }
+    }
+
+    /// Active la CSP en mode report-only (pour tester)
+    ///
+    /// # Exemple
+    ///
+    /// ```rust
+    /// use rusti::middleware::csp::CspConfig;
+    ///
+    /// RustiApp::new(settings).await?
+    ///     .routes(routes)
+    ///     .with_csp_report_only(CspConfig::strict())
+    ///     .run()
+    ///     .await?;
+    /// ```
+    pub fn with_csp_report_only(self, config: CspConfig) -> Self {
+        let router = self.router.layer(
+            axum::middleware::from_fn_with_state(
+                config,
+                crate::middleware::csp::csp_report_only_middleware
+            )
+        );
+
+        Self {
+            router,
+            config: self.config,
+            addr: self.addr,
+            tera: self.tera,
+        }
+    }
+
     pub async fn run(self) -> Result<(), Box<dyn Error>> {
         println!("🦀 Rusti Framework v{}", crate::VERSION);
         println!("   Starting server at http://{}", self.addr);

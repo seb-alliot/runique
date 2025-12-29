@@ -1,8 +1,7 @@
-
 #[macro_export]
 macro_rules! view {
     (GET => $get_handler:expr, POST => $post_handler:expr) => {
-        $crate::axum::routing::get($get_handler).post($post_handler)  // ← Utilise $crate::axum
+        $crate::axum::routing::get($get_handler).post($post_handler)
     };
 
     (POST => $post_handler:expr, GET => $get_handler:expr) => {

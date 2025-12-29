@@ -8,13 +8,13 @@ description = "A Django-inspired web framework for Rust"
 keywords = ["web", "framework", "axum", "django"]
 categories = ["web-programming::http-server"]
 
-
 [dependencies]
 # Framework web
 axum.workspace = true
 tower.workspace = true
 tower-http.workspace = true
 tower-sessions.workspace = true
+
 # Sécurity
 urlencoding.workspace = true
 byte.workspace = true
@@ -55,25 +55,19 @@ tracing-subscriber.workspace = true
 async-trait.workspace = true
 once_cell.workspace = true
 
-
 # CSRF
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
-
+base64.workspace = true
 # macro externe
 derive_form = { path = "derive_form" }
 
-
 [features]
+default = ["orm"]  # ← AJOUTE CETTE LIGNE !
 orm = ["dep:sea-orm"]
-
 sqlite = ["orm", "sea-orm?/sqlx-sqlite", "sea-orm?/runtime-tokio-rustls"]
-postgres = ["orm", "sea-orm?/sqlx-postgres", "sea-orm?/runtime-tokio-rustls"]  # ← Ajouter "orm"
+postgres = ["orm", "sea-orm?/sqlx-postgres", "sea-orm?/runtime-tokio-rustls"]
 mysql = ["orm", "sea-orm?/sqlx-mysql", "sea-orm?/runtime-tokio-rustls"]
-
-# Alias pour MariaDB
 mariadb = ["mysql"]
-
-# Feature pour activer toutes les BDD
 all-databases = ["sqlite", "postgres", "mysql"]

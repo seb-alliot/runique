@@ -7,9 +7,7 @@ use axum::{
 use tera::{Tera, Context};
 use std::sync::Arc;
 use crate::settings::Settings;
-
 use crate::error::ErrorContext;
-
 
 pub async fn error_handler_middleware(
     Extension(tera): Extension<Arc<Tera>>,
@@ -19,17 +17,14 @@ pub async fn error_handler_middleware(
 ) -> Response {
     let response = next.run(request).await;
 
-    // Si c'est une erreur 500, on la gère
     if response.status() == StatusCode::INTERNAL_SERVER_ERROR {
         tracing::error!("Middleware intercepted 500 error");
-
         if !config.debug {
             return render_500(&tera, &config);
         }
     }
     if response.status() == StatusCode::NOT_FOUND {
         tracing::warn!("Middleware intercepted 404 error");
-
         if !config.debug {
             return render_404(&tera, &config);
         }
@@ -61,8 +56,6 @@ pub fn render_template(
     }
 }
 
-
-// Gestion des erreurs en production
 fn render_production_error(
     tera: &Tera,
     error: &tera::Error,
@@ -82,7 +75,6 @@ fn render_production_error(
     }
 }
 
-// Les fonctions render deviennent simples
 pub fn render_404(tera: &Tera, config: &Settings) -> Response {
     let mut context = Context::new();
     context.insert("static_rusti", &config.static_rusti_url);
@@ -90,7 +82,7 @@ pub fn render_404(tera: &Tera, config: &Settings) -> Response {
     match tera.render("404", &context) {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
-            tracing::error!("Failed to serialize error context: {}", e);
+            tracing::error!("Failed to render 404 template: {}", e);
             fallback_404_html()
         }
     }
@@ -103,7 +95,7 @@ pub fn render_500(tera: &Tera, config: &Settings) -> Response {
     match tera.render("500", &context) {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
         Err(e) => {
-            tracing::error!("Failed to serialize error context: {}", e);
+            tracing::error!("Failed to render 500 template: {}", e);
             fallback_500_html()
         }
     }
@@ -115,10 +107,8 @@ fn render_debug_error(
     error: &tera::Error,
     config: &Settings,
 ) -> Response {
-    // Utilisation de ErrorContext pour structurer les infos
     let error_ctx = ErrorContext::from_tera_error(error, template_name, tera);
 
-    // Convertir en Context Tera
     let mut template_context = match Context::from_serialize(&error_ctx) {
         Ok(ctx) => ctx,
         Err(e) => {
@@ -127,28 +117,36 @@ fn render_debug_error(
         }
     };
 
-    // Ajouter la configuration rusti au contexte
     template_context.insert("static_rusti", &config.static_rusti_url);
 
-    // Rendre le template d'erreur détaillé
     match tera.render("errors/debug_error.html", &template_context) {
-        Ok(html) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
-        }
+        Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
         Err(fallback_err) => {
-            tracing::error!(
-                "Fallback template rendering also failed for '{}': {}",
-                template_name,
-                fallback_err
-            );
+            tracing::error!("Fallback template rendering failed: {}", fallback_err);
             critical_error_html(&fallback_err.to_string(), tera, &template_context, config)
         }
     }
 }
 
+pub fn render_index(tera: &Tera, context: &Context, config: &Settings) -> Response {
+    let mut context = context.clone();
+    context.insert("static_rusti", &config.static_rusti_url);
+
+    if let Ok(html) = tera.render("index.html", &context) {
+        return (StatusCode::OK, Html(html)).into_response();
+    }
+
+    if let Ok(html) = tera.render("base_index", &context) {
+        return (StatusCode::OK, Html(html)).into_response();
+    }
+
+    fallback_index_html()
+}
+
+// --- Fonctions Fallback HTML (Rétablies avec ton contenu original) ---
+
 fn fallback_404_html() -> Response {
-    let html =
-    r#"<!DOCTYPE html>
+    let html = r#"<!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
@@ -191,8 +189,7 @@ fn fallback_404_html() -> Response {
 }
 
 fn fallback_500_html() -> Response {
-    let html =
-    r#"<!DOCTYPE html>
+    let html = r#"<!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
@@ -234,80 +231,8 @@ fn fallback_500_html() -> Response {
     (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
 }
 
-fn critical_error_html(
-    error: &str,
-    tera: &Tera,
-    context: &Context,
-    config: &Settings,
-) -> Response {
-    let mut context = context.clone();
-    context.insert("static_rusti", &config.static_rusti_url);
-
-    if let Ok(html) = tera.render("debug", &context) {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response();
-    }
-
-    let escaped_error = html_escape(error);
-    let html = format!(
-        r#"<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Critical Error</title>
-            <style>
-                body {{
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    background: #f8d7da;
-                    color: #721c24;
-                    padding: 40px;
-                }}
-                .container {{
-                    background: white;
-                    border: 2px solid #f5c6cb;
-                    border-radius: 12px;
-                    padding: 30px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                }}
-                h1 {{ margin-bottom: 20px; }}
-                pre {{
-                    background: #f1f1f1;
-                    padding: 20px;
-                    border-radius: 8px;
-                    overflow-x: auto;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Critical Error Occurred</h1>
-                <p>An unrecoverable error occurred while processing your request:</p>
-                <pre>{}</pre>
-            </div>
-        </body>
-        </html>"#,
-        escaped_error
-    );
-    (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
-}
-
-pub fn render_index(tera: &Tera, context: &Context, config: &Settings) -> Response {
-    let mut context = context.clone();
-    context.insert("static_rusti", &config.static_rusti_url);
-
-    // 1. Essaie le template utilisateur
-    if let Ok(html) = tera.render("index.html", &context) {
-        return (StatusCode::OK, Html(html)).into_response();
-    }
-
-    // 2. Essaie le template d'erreur du framework
-    if let Ok(html) = tera.render("base_index", &context) {
-        return (StatusCode::OK, Html(html)).into_response();
-    }
-
-    // 3. Fallback statique
-    let rusti_index =
-    r#"<!DOCTYPE html>
+fn fallback_index_html() -> Response {
+    let html = r#"<!DOCTYPE html>
         <html lang="fr">
         <head>
             <meta charset="UTF-8">
@@ -439,13 +364,66 @@ cargo add rusti</code></pre>
         </body>
         </html>"#;
 
-    (StatusCode::OK, Html(rusti_index)).into_response()
+    (StatusCode::OK, Html(html)).into_response()
+}
+
+fn critical_error_html(
+    error: &str,
+    tera: &Tera,
+    context: &Context,
+    config: &Settings,
+) -> Response {
+    let mut context = context.clone();
+    context.insert("static_rusti", &config.static_rusti_url);
+
+    if let Ok(html) = tera.render("debug", &context) {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response();
+    }
+
+    let escaped_error = html_escape(error);
+    let html = format!(
+        r#"<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Critical Error</title>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: #f8d7da;
+                    color: #721c24;
+                    padding: 40px;
+                }}
+                .container {{
+                    background: white;
+                    border: 2px solid #f5c6cb;
+                    border-radius: 12px;
+                    padding: 30px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                }}
+                h1 {{ margin-bottom: 20px; }}
+                pre {{
+                    background: #f1f1f1;
+                    padding: 20px;
+                    border-radius: 8px;
+                    overflow-x: auto;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Critical Error Occurred</h1>
+                <p>An unrecoverable error occurred while processing your request:</p>
+                <pre>{}</pre>
+            </div>
+        </body>
+        </html>"#,
+        escaped_error
+    );
+    (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
 }
 
 fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#x27;")
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&#x27;")
 }

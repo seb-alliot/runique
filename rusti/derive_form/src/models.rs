@@ -27,14 +27,14 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
         .collect();
 
     let expanded = quote! {
-        #[derive(serde::Serialize, serde::Deserialize, Debug)]
+        #[derive(::rusti::serde::Serialize, ::rusti::serde::Deserialize, Debug)]
         pub struct #form_name {
             #[serde(flatten)]
-            pub form: rusti::formulaire::formsrusti::Forms,
+            pub form: ::rusti::formulaire::formsrusti::Forms,
         }
 
         impl std::ops::Deref for #form_name {
-            type Target = rusti::formulaire::formsrusti::Forms;
+            type Target = ::rusti::formulaire::formsrusti::Forms;
             fn deref(&self) -> &Self::Target { &self.form }
         }
 
@@ -42,9 +42,9 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
             fn deref_mut(&mut self) -> &mut Self::Target { &mut self.form }
         }
 
-        impl rusti::formulaire::formsrusti::FormulaireTrait for #form_name {
+        impl ::rusti::formulaire::formsrusti::FormulaireTrait for #form_name {
             fn new() -> Self {
-                Self { form: rusti::formulaire::formsrusti::Forms::new() }
+                Self { form: ::rusti::formulaire::formsrusti::Forms::new() }
             }
 
             fn validate(&mut self, raw_data: &std::collections::HashMap<String, String>) -> bool {
@@ -55,7 +55,7 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
 
         impl #form_name {
             pub fn to_active_model(&self) -> ActiveModel {
-                use sea_orm::ActiveValue::Set;
+                use ::rusti::sea_orm::ActiveValue::Set;
 
                 ActiveModel {
                     #(#conversions)*
@@ -63,10 +63,10 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
                 }
             }
 
-            pub async fn save(&self, db: &sea_orm::DatabaseConnection)
-                -> Result<#model_name, sea_orm::DbErr>
+            pub async fn save(&self, db: &::rusti::sea_orm::DatabaseConnection)
+                -> Result<#model_name, ::rusti::sea_orm::DbErr>
             {
-                use sea_orm::EntityTrait;
+                use ::rusti::sea_orm::EntityTrait;
                 self.to_active_model().insert(db).await
             }
         }

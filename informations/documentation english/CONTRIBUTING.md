@@ -27,7 +27,7 @@ Nous nous engageons à créer une communauté accueillante et inclusive. En part
 
 ## Comment contribuer
 
-### 🐛 Signaler un bug
+###  Signaler un bug
 
 1. Vérifiez que le bug n'est pas déjà signalé dans les [Issues](https://github.com/votre-repo/rusti/issues)
 2. Ouvrez une nouvelle issue avec le template "Bug Report"
@@ -287,7 +287,7 @@ mod tests {
         let settings = Settings::builder()
             .debug(true)
             .build();
-        
+
         assert!(settings.debug);
     }
 
@@ -295,7 +295,7 @@ mod tests {
     async fn test_app_creation() {
         let settings = Settings::default_values();
         let app = RustiApp::new(settings).await;
-        
+
         assert!(app.is_ok());
     }
 }

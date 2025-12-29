@@ -3,7 +3,7 @@
 use axum::{
     extract::FromRequestParts,
     http::request::Parts,
-    response::{Response},
+    response::Response,
     http::StatusCode,
 };
 use std::sync::Arc;
@@ -13,7 +13,6 @@ use crate::middleware::flash_message::FlashMessageSession;
 use crate::settings::Settings;
 use crate::context;
 
-
 #[derive(Clone)]
 pub struct Template {
     tera: Arc<Tera>,
@@ -21,8 +20,7 @@ pub struct Template {
     context: Context,
 }
 
-// ... tes imports existants ...
-use crate::middleware::csrf::CsrfToken; // Assure-toi d'importer ta struct CsrfToken
+use crate::middleware::csrf::CsrfToken;
 
 impl<S> FromRequestParts<S> for Template
 where
@@ -33,14 +31,15 @@ where
         parts: &mut Parts,
         _state: &S,
     ) -> Result<Self, Self::Rejection> {
-        // 1. Récupération des extensions indispensables (Tera et Config)
-        let tera = parts.extensions.get::<Arc<Tera>>()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?.clone();
-        let config = parts.extensions.get::<Arc<Settings>>()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?.clone();
+        let tera_arc = parts.extensions.get::<Arc<Tera>>()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+        let config_arc = parts.extensions.get::<Arc<Settings>>()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let mut context = Context::new();
 
+        // 1. Injection automatique des URLs statiques
+        context.insert("static_rusti", &config_arc.static_rusti_url);
 
         // 2. Injection du CSRF Token
         if let Some(token) = parts.extensions.get::<CsrfToken>() {
@@ -53,11 +52,21 @@ where
         }
 
         // 4. Injection du flag Debug
-        context.insert("debug", &config.debug);
+        context.insert("debug", &config_arc.debug);
 
-        Ok(Template { tera, config, context })
+        // 5. Injection du nonce CSP
+        if let Some(nonce) = parts.extensions.get::<String>() {
+            context.insert("csp_nonce", nonce);
+        }
+
+        Ok(Template {
+            tera: Arc::clone(tera_arc),
+            config: Arc::clone(config_arc),
+            context
+        })
     }
 }
+
 impl Template {
     /// Render avec StatusCode::OK par défaut
     pub fn render(self, template_name: &str, user_context: &Context) -> Response {
@@ -71,10 +80,11 @@ impl Template {
         user_context: &Context,
         status: StatusCode,
     ) -> Response {
-        // Merge user context avec le context auto-injecté
+        // On étend le contexte existant avec celui de l'utilisateur
+        // .extend() est plus efficace ici car 'self' est consommé (ownership)
         self.context.extend(user_context.clone());
 
-        // Utilise la fonction render_template existante pour la gestion d'erreur !
+        // Appel à ton error_handler optimisé
         crate::middleware::error_handler::render_template(
             &self.tera,
             template_name,
@@ -83,11 +93,13 @@ impl Template {
             &self.config,
         )
     }
+
     pub fn render_404(&self, message: &str) -> Response {
         let ctx = context! {
             "title", "Page non trouvée";
             "error_message", message
         };
+        // Utilisation de self.clone() car la méthode render() consomme le Template
         self.clone().render("404", &ctx)
     }
 
@@ -98,12 +110,11 @@ impl Template {
         };
         self.clone().render("500", &ctx)
     }
+
 }
 
 use tower_sessions::Session;
 
-// L'Extractor Flash que vous utiliserez dans vos Handlers Axum.
-// Il encapsule la Session pour y ajouter des méthodes d'insertion simplifiées.
 pub struct Message(Session);
 
 impl<S> FromRequestParts<S> for Message
@@ -116,18 +127,17 @@ where
         parts: &mut Parts,
         _state: &S,
     ) -> Result<Self, Self::Rejection> {
-        // Récupérer la session depuis les extensions
         let session = parts
             .extensions
             .get::<Session>()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?
-            .clone();
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        Ok(Message(session))
+        // On clone la session (qui est un wrapper vers un Arc en interne dans tower-sessions)
+        Ok(Message(session.clone()))
     }
 }
+
 impl Message {
-    /// Ajoute un message flash de succès
     pub async fn success<S: Into<String>>(&mut self, content: S) -> Result<(), StatusCode> {
         self.0
             .insert_message(FlashMessage::success(content.into()))
@@ -135,7 +145,6 @@ impl Message {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
-    /// Ajoute un message flash d'erreur
     pub async fn error<S: Into<String>>(&mut self, content: S) -> Result<(), StatusCode> {
         self.0
             .insert_message(FlashMessage::error(content.into()))
@@ -143,11 +152,11 @@ impl Message {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
-    /// Ajoute un message flash d'information
     pub async fn info<S: Into<String>>(&mut self, content: S) -> Result<(), StatusCode> {
         self.0
             .insert_message(FlashMessage::info(content.into()))
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
+    
 }

@@ -45,8 +45,6 @@ pub(crate) fn find_forms_field(data: &Data, struct_name: &syn::Ident) -> syn::Id
     panic!("Struct '{}' doit avoir un champ 'Forms'", struct_name)
 }
 
-// ==================== HELPERS POUR DeriveModelForm ====================
-
 /// Exclure les champs système
 pub(crate) fn is_excluded(field: &Field) -> bool {
     let name = field.ident.as_ref().unwrap().to_string();

@@ -9,40 +9,19 @@ use axum::{
     http::HeaderValue,
     response::Redirect,
 };
-use sha2::Sha256;
-use hmac::{Hmac, Mac};
 use std::sync::Arc;
 use crate::settings::Settings;
 use serde::{Serialize, Deserialize};
 use http_body_util::BodyExt;
 use crate::middleware::flash_message::{FlashMessage, FlashMessageSession};
 
-type HmacSha256 = Hmac<Sha256>;
+use crate::utils::generate_token;
 
 const CSRF_TOKEN_KEY: &str = "csrf_token";
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CsrfToken(pub String);
 
-/// Génère un token CSRF unique en utilisant session_id + timestamp
-pub fn generate_csrf_token(secret_key: &str, session_id: &str) -> String {
-    let mut mac = HmacSha256::new_from_slice(secret_key.as_bytes())
-        .expect("HMAC can take key of any size");
-
-    mac.update(b"rusti.middleware.csrf");
-    mac.update(session_id.as_bytes());
-
-    // 🔥 Ajout d'un timestamp pour rendre chaque token unique
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos()
-        .to_string();
-    mac.update(timestamp.as_bytes());
-
-    let result = mac.finalize();
-    hex::encode(result.into_bytes())
-}
 
 pub async fn csrf_middleware(
     mut req: axum::http::Request<Body>,
@@ -104,7 +83,7 @@ pub async fn csrf_middleware(
             (Some(st), Some(rt)) if constant_time_compare(&st, &rt) => {
                 let session = req.extensions().get::<Session>().unwrap();
                 let session_id = session.id().map(|id| id.to_string()).unwrap_or_else(|| "no-session-id".to_string());
-                let new_token = generate_csrf_token(&config.server.secret_key, &session_id);
+                let new_token = generate_token(&config.server.secret_key, &session_id);
                 let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
                 new_token
             }
@@ -135,7 +114,7 @@ pub async fn csrf_middleware(
             t
         } else {
             let session_id = session.id().map(|id| id.to_string()).unwrap_or_else(|| "no-session-id".to_string());
-            let new_token = generate_csrf_token(&config.server.secret_key, &session_id);
+            let new_token = generate_token(&config.server.secret_key, &session_id);
             let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
             new_token
         }
