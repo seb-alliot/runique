@@ -2,7 +2,7 @@
 
 > A modern web framework for Rust, inspired by Django and built on Axum
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/your-repo/rusti)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/seb-alliot/rusti.git)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 
