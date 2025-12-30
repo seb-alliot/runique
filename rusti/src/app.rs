@@ -62,55 +62,33 @@ impl RustiApp {
                     content = content.replace("{% messages %}", r#"{% include "message" %}"#);
                     content = content.replace("{{ csp }}", r#"{% include "csp" %}"#);
 
-                    // Transformation {% link "name" %}
-                    let link_simple = regex::Regex::new(
-                        r#"\{%\s*link\s+['"](?P<name>[^'"]+)['"]\s*%}"#
+                    // Transformation unifiée pour {% link "name" %} avec ou sans paramètres
+                    // Gère les formats suivants :
+                    // - {% link "name" %}
+                    // - {% link "name", params %}
+                    // - {% link "name" params %}
+                    let link_regex = regex::Regex::new(
+                        r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#
                     ).unwrap();
 
-                    let link_params = regex::Regex::new(
-                        r#"\{%\s*link\s+['"](?P<name>[^'"]+)['"],\s*(?P<params>[^%]+)%}"#
-                    ).unwrap();
-
-                    // Appliquer les transformations
-                    content = link_simple.replace_all(&content, |caps: &regex::Captures| {
+                    // Appliquer la transformation unifiée
+                    content = link_regex.replace_all(&content, |caps: &regex::Captures| {
                         let name = &caps["name"];
-                        format!(r#"{{{{ link(link='{}') }}}}"#, name)
-                    }).to_string();
+                        let params = caps.name("params")
+                            .map(|m| m.as_str().trim())
+                            .filter(|s| !s.is_empty());
 
-                    content = link_params.replace_all(&content, |caps: &regex::Captures| {
-                        let name = &caps["name"];
-                        let params = &caps["params"].trim();
-                        format!(r#"{{{{ link(link='{}', {}) }}}}"#, name, params)
+                        if let Some(params) = params {
+                            format!(r#"{{{{ link(link='{}', {}) }}}}"#, name, params)
+                        } else {
+                            format!(r#"{{{{ link(link='{}') }}}}"#, name)
+                        }
                     }).to_string();
 
                     content = balise_link.replace_all(&content, |caps: &regex::Captures| {
                         let tag = &caps["tag"];
                         let link = &caps["link"];
                         format!(r#"{{{{ "{}" | {} }}}}"#, link, tag)
-                    }).to_string();
-                    // Dans RustiApp::new(), après les transformations existantes
-
-                    // Transformation {% link "name" %}
-                    let link_simple = regex::Regex::new(
-                        r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*%}"#
-                    ).unwrap();
-
-                    let link_with_params = regex::Regex::new(
-                        r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s+(?P<params>[^%]+)%}"#
-                    ).unwrap();
-
-                    // Transformer {% link "about" %} → {{ link(link='about') }}
-                    content = link_simple.replace_all(&content, |caps: &regex::Captures| {
-                        let name = &caps["name"];
-                        format!(r#"{{{{ link(link='{}') }}}}"#, name)
-                    }).to_string();
-
-                    // Transformer {% link "user_profile" id=66 name='sebastien' %}
-                    // → {{ link(link='user_profile', id=66, name='sebastien') }}
-                    content = link_with_params.replace_all(&content, |caps: &regex::Captures| {
-                        let name = &caps["name"];
-                        let params = &caps["params"];
-                        format!(r#"{{{{ link(link='{}', {}) }}}}"#, name, params.trim())
                     }).to_string();
 
                     let name = entry.strip_prefix(template_dir)?
@@ -240,7 +218,34 @@ impl RustiApp {
         ));
         self
     }
+    /// Active la validation des hosts autorisés (ALLOWED_HOSTS)
+    ///
+    /// Protège contre les attaques de type Host Header Injection.
+    /// Les hosts autorisés sont configurés dans Settings.allowed_hosts
+    ///
+    /// # Exemple
+    ///
+    /// ```rust
+    /// RustiApp::new(settings).await?
+    ///     .routes(routes)
+    ///     .with_allowed_hosts()
+    ///     .run()
+    ///     .await?;
+    /// ```
+    pub fn with_allowed_hosts(mut self, hosts: Option<Vec<String>>) -> Self {
+        let allowed_hosts = hosts.unwrap_or_else(|| self.config.allowed_hosts.clone());
 
+        let mut config = (*self.config).clone();
+        config.allowed_hosts = allowed_hosts;
+        self.config = Arc::new(config);
+
+        self.router = self.router.layer(
+            axum::middleware::from_fn(
+                crate::middleware::allowed_hosts::allowed_hosts_middleware
+            )
+        );
+        self
+    }
     /// Active la Content Security Policy
     ///
     /// # Exemple

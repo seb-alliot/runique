@@ -4,20 +4,21 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <title>{{ title }}</title>
     <link rel="stylesheet" href='{% static "css/main.css" %}'>
-
+    <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
 </head>
 <body>
     {% if debug %}
-    <div class="debug-banner">
-        <strong>Debug Mode Activé</strong>
-    </div>
+        <div class="debug-banner">
+            <strong>Debug Mode Activé</strong>
+        </div>
     {% endif %}
 
     {% block header %}
     <header>
-        <img src='{% media "toshiro.jpg" %}' alt="Logo">
+        <img src='{% media "media_user/toshiro.jpg" %}' alt="Logo">
     </header>
     {% endblock %}
 
@@ -37,14 +38,6 @@
     </div>
 
     {% endblock %}
-
-<script>
-    {{ csp }}
-    console.log('Hello');
-</script>
-
-<p>Nonce de sécurité CSP insérée dans la page. {{ csp_nonce }}</p>
-
 
     <footer>
         {% block footer %}

@@ -144,8 +144,26 @@ pub async fn load_user_middleware(
 }
 
 /// Helper pour vérifier les permissions (exemple)
-pub async fn has_permission(session: &Session, permission: &str) -> bool {
-    // TODO: Implémenter la logique de permissions
-    // Par exemple, récupérer les rôles depuis la DB
+///
+/// # Note
+/// Cette fonction est un stub de base. Pour une implémentation complète,
+/// vous devrez récupérer les rôles/permissions depuis la base de données.
+///
+/// # Exemple d'implémentation complète
+/// ```rust,no_run
+/// pub async fn has_permission(session: &Session, permission: &str) -> bool {
+///     if let Some(user_id) = get_user_id(session).await {
+///         // Récupérer les permissions depuis la DB
+///         // let user = User::objects.get(&db, user_id).await?;
+///         // user.permissions.contains(permission)
+///         true  // Stub pour l'instant
+///     } else {
+///         false
+///     }
+/// }
+/// ```
+pub async fn has_permission(session: &Session, _permission: &str) -> bool {
+    // Stub de base : pour l'instant, seul l'authentification est vérifiée
+    // TODO: Implémenter la logique complète de permissions avec la DB
     is_authenticated(session).await
 }

@@ -76,6 +76,35 @@ impl ServerSettings {
             secret_key: secret_key.to_string(),
         }
     }
+
+    /// Parse ALLOWED_HOSTS depuis une variable d'environnement
+    ///
+    /// Format attendu dans .env:
+    /// ```env
+    /// ALLOWED_HOSTS=localhost,127.0.0.1,exemple.com,.exemple.com
+    /// ```
+    ///
+    /// Supporte les wildcards: `.exemple.com` matchera tous les sous-domaines
+    pub fn parse_allowed_hosts_from_env() -> Vec<String> {
+        use dotenvy::dotenv;
+        use std::env;
+
+        dotenv().ok();
+
+        env::var("ALLOWED_HOSTS")
+            .ok()
+            .map(|hosts| {
+                hosts
+                    .split(',')
+                    .map(|h| h.trim().to_string())
+                    .filter(|h| !h.is_empty())
+                    .collect()
+            })
+            .unwrap_or_else(|| vec![
+                String::from("localhost"),
+                String::from("127.0.0.1")
+            ])
+    }
 }
 
 
@@ -94,14 +123,13 @@ impl Settings {
         let static_rusti_path = format!("{}/static", rusti_root);
         let media_rusti_path = format!("{}/media", rusti_root);
         let templates_rusti = format!("{}/templates", rusti_root);
+
         Settings {
             server: ServerSettings::from_env(),
             base_dir,
             debug: cfg!(debug_assertions),
-            allowed_hosts: vec![
-                String::from("localhost"),
-                String::from("127.0.0.1")
-            ],
+            // Charge ALLOWED_HOSTS depuis .env ou utilise les valeurs par défaut
+            allowed_hosts: ServerSettings::parse_allowed_hosts_from_env(),
             installed_apps: vec![],
             middleware: vec![],
             root_urlconf: String::from("urls"),
@@ -146,6 +174,34 @@ impl Settings {
     pub fn builder() -> SettingsBuilder {
         SettingsBuilder::new()
     }
+
+    /// Valide que ALLOWED_HOSTS est correctement configuré en production
+    ///
+    /// # Panics
+    /// Panique si debug=false et allowed_hosts est vide ou contient uniquement localhost/127.0.0.1
+    pub fn validate_allowed_hosts(&self) {
+        if !self.debug {
+            if self.allowed_hosts.is_empty() {
+                panic!(
+                    "ALLOWED_HOSTS ne peut pas être vide en production!\n\
+                    Ajoutez vos domaines dans le fichier .env:\n\
+                    ALLOWED_HOSTS=exemple.com,www.exemple.com"
+                );
+            }
+
+            let only_local = self.allowed_hosts.iter().all(|h| {
+                h == "localhost" || h == "127.0.0.1" || h == "::1"
+            });
+
+            if only_local {
+                eprintln!(
+                    "AVERTISSEMENT: ALLOWED_HOSTS contient uniquement des hôtes locaux en production.\n\
+                    Ajoutez vos domaines de production dans le fichier .env:\n\
+                    ALLOWED_HOSTS=exemple.com,www.exemple.com,localhost,127.0.0.1"
+                );
+            }
+        }
+    }
 }
 
 /// Builder pour créer des Settings personnalisés
@@ -162,6 +218,29 @@ impl SettingsBuilder {
 
     pub fn debug(mut self, debug: bool) -> Self {
         self.settings.debug = debug;
+        self
+    }
+
+    /// Configure ALLOWED_HOSTS manuellement
+    ///
+    /// # Exemple
+    /// ```rust
+    /// let settings = Settings::builder()
+    ///     .allowed_hosts(vec![
+    ///         "exemple.com".to_string(),
+    ///         "www.exemple.com".to_string(),
+    ///         ".sous-domaine.exemple.com".to_string(), // Wildcard
+    ///     ])
+    ///     .build();
+    /// ```
+    pub fn allowed_hosts(mut self, hosts: Vec<String>) -> Self {
+        self.settings.allowed_hosts = hosts;
+        self
+    }
+
+    /// Ajoute un host à ALLOWED_HOSTS
+    pub fn add_allowed_host(mut self, host: impl Into<String>) -> Self {
+        self.settings.allowed_hosts.push(host.into());
         self
     }
 
@@ -247,6 +326,8 @@ impl SettingsBuilder {
     }
 
     pub fn build(self) -> Settings {
+        // Valide la configuration avant de la retourner
+        self.settings.validate_allowed_hosts();
         self.settings
     }
 }

@@ -17,3 +17,6 @@ pub use middleware_sanetiser::sanitize_middleware;
 pub mod csp;
 
 pub mod login_requiert;
+
+pub mod allowed_hosts;
+pub use allowed_hosts::{AllowedHostsValidator, allowed_hosts_middleware};
