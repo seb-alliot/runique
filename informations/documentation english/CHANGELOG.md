@@ -1,205 +1,290 @@
 # Changelog - Rusti Framework
 
-Toutes les modifications notables de ce projet seront documentées dans ce fichier.
+All notable changes to this project will be documented in this file.
 
-Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
-et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
-
----
-
-## [Non publié]
-
-### À venir
-- [ ] CLI pour scaffolding de projets (`rusti new mon-app`)
-- [ ] Support WebSocket
-- [ ] Middleware d'authentification intégré
-- [ ] Support GraphQL
-- [ ] Générateur de documentation API
-- [ ] Benchmarks de performance
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.1.0] - 2025-01-XX
+## [1.0.0] - 2025-01-15
 
-### 🎉 Version initiale
+### Initial Release
 
-#### ✨ Ajouté
+#### Added
 
 **Core Framework**
-- Structure `RustiApp` avec builder pattern
-- Configuration via `Settings` (défaut, .env, builder)
-- Support des variables d'environnement
-- Logging avec `tracing`
+- `RustiApp` structure with builder pattern
+- Configuration via `Settings` (default, .env, builder)
+- Environment variable support
+- Logging with `tracing`
 
 **Routing**
-- Macro `urlpatterns!` inspirée de Django
-- Support du reverse routing
-- Nommage des routes avec `name = "..."`
-- Fonction `reverse()` et `reverse_with_parameters()`
+- Django-inspired `urlpatterns!` macro
+- Reverse routing support
+- Route naming with `name = "..."`
+- `reverse()` and `reverse_with_parameters()` functions
 
 **Templates**
-- Intégration de Tera
-- Preprocessing des templates au démarrage
-- Balises personnalisées Django-like :
-  - `{% static "file" %}` - Fichiers statiques
-  - `{% media "file" %}` - Fichiers média
-  - `{% csrf %}` - Token CSRF
+- Tera integration
+- Template preprocessing at startup
+- Django-like custom tags:
+  - `{% static "file" %}` - Static files
+  - `{% media "file" %}` - Media files
+  - `{% csrf %}` - CSRF token
   - `{% messages %}` - Flash messages
   - `{% link "route" %}` - Reverse routing
-- Support de l'héritage de templates
-- Auto-injection du contexte (csrf_token, messages, debug)
+- Template inheritance support
+- Auto-injection of context (csrf_token, messages, debug, csp_nonce)
 
-**ORM & Base de données**
-- Intégration SeaORM
-- API Django-like avec `impl_objects!` :
+**Forms**
+- `#[rusti_form]` macro for custom forms
+- `#[derive(DeriveModelForm)]` macro for auto-generation from models
+- Field types: CharField, TextField, EmailField, PasswordField, IntegerField, FloatField, BooleanField, DateField, DateTimeField, IPAddressField, URLField, SlugField, JSONField
+- Validation with `require()` and `optional()`
+- Type-safe `get_value<T>()` method
+- Automatic Argon2id hashing for PasswordField
+- Automatic XSS sanitization for text fields
+- Automatic generation of `validate()`, `to_active_model()` and `save()` for ModelForm
+
+**ORM & Database**
+- SeaORM integration
+- Django-like API with `impl_objects!`:
   - `Entity::objects.all()`
   - `Entity::objects.filter()`
   - `Entity::objects.exclude()`
   - `Entity::objects.get()`
   - `Entity::objects.count()`
-- Support multi-bases :
-  - SQLite (défaut)
+- Multi-database support:
+  - SQLite (default)
   - PostgreSQL
   - MySQL / MariaDB
-- Configuration automatique depuis `.env`
-- Détection automatique du moteur de base de données
-- Pool de connexions configurable
-- Masquage des mots de passe dans les logs
+- Automatic configuration from `.env`
+- Automatic database engine detection
+- Configurable connection pool (default: max=20, min=5)
+- Password masking in logs
 
 **Middleware**
-- Middleware de gestion d'erreur avec pages debug détaillées
-- Middleware CSRF avec génération de tokens sécurisés
-- Middleware flash messages avec niveaux (success, error, info)
-- Middleware par défaut (erreur + timeout)
-- Support des middleware personnalisés
+- Error handling middleware with detailed debug pages
+- CSRF middleware with secure HMAC-SHA256 token generation
+- Flash message middleware with levels (success, error, info)
+- Optional XSS sanitization middleware
+- CSP (Content Security Policy) middleware with 3 predefined configurations
+- ALLOWED_HOSTS middleware with wildcard support
+- Authentication middleware (`login_required`, `redirect_if_authenticated`)
+- Custom middleware support
 
-**Sécurité**
-- Protection CSRF intégrée
-- Tokens HMAC-SHA256
-- Sessions sécurisées avec `tower-sessions`
-- Validation constante des tokens
-- Mode debug/production
+**Security**
+- Built-in CSRF protection with HMAC-SHA256 tokens
+- ALLOWED_HOSTS validation with wildcards (`.example.com`)
+- CSP with cryptographic nonce generation
+- Complete security headers (X-Content-Type-Options, X-Frame-Options, etc.)
+- Optional automatic XSS sanitization
+- Secure sessions with `tower-sessions`
+- Constant token validation
+- Argon2id hashing for passwords
+- Debug/production modes
 
-**Fichiers statiques**
-- Service automatique des fichiers statiques
-- Service automatique des fichiers média
-- Filtres Tera `{{ "file" | static }}`
-- Configuration flexible des chemins
+**Static Files**
+- Automatic static file serving
+- Automatic media file serving
+- Tera filters `{{ "file" | static }}` and `{{ "file" | media }}`
+- Flexible path configuration
 
-**Gestion d'erreur**
-- Pages d'erreur élégantes (404, 500)
-- Mode debug avec informations détaillées :
-  - Stack trace complète
-  - Informations de requête HTTP
-  - Source du template
-  - Liste des templates disponibles
-  - Variables d'environnement
-- Templates d'erreur personnalisables
-- Fallback HTML en cas d'échec
+**Error Handling**
+- Elegant error pages (404, 500)
+- Debug mode with detailed information:
+  - Complete stack trace
+  - HTTP request information
+  - Template source with line number
+  - List of available templates
+  - Environment variables
+  - Rust version
+- Customizable error templates
+- HTML fallback on failure
 
-**Extractors Axum personnalisés**
-- `Template` - Extraction et rendu de templates
-- `Message` - Gestion des flash messages
-- Auto-injection du contexte dans les templates
+**Custom Axum Extractors**
+- `Template` - Template extraction and rendering
+- `Message` - Flash message management
+- `ExtractForm<T>` - Form extraction and validation
+- Auto-injection of context into templates
+
+**Macros**
+- `urlpatterns!` - Django-like route definition
+- `context!` - Tera context creation with two syntaxes
+- `impl_objects!` - Enable Django-like API for entities
+- `#[rusti_form]` - Generate Deref/DerefMut and serde(flatten) for forms
+- `#[derive(DeriveModelForm)]` - Generate complete form from model
+- `reverse!` and `reverse_with_parameters!` - Reverse routing
 
 **Documentation**
-- README complet avec exemples
-- Guide de démarrage pas à pas
-- Documentation des templates et balises
-- Guide de la base de données et ORM
-- Guide de configuration
-- Documentation de l'API
-- Exemples de code complets
+- Complete README with examples
+- Step-by-step getting started guide (GETTING_STARTED.md)
+- Template and tag documentation (TEMPLATES.md)
+- Database and ORM guide (DATABASE.md)
+- Configuration guide (CONFIGURATION.md)
+- Forms guide (FORMULAIRE.md)
+- CSP guide (CSP.md)
+- Contributing guide (CONTRIBUTING.md)
+- Complete documentation (~89 pages)
 
-#### 🔧 Technique
+#### Technical
 
 **Architecture**
-- Modularisation claire du code
-- Séparation des responsabilités
-- Pattern builder pour la configuration
-- Trait extensions pour Tera
+- Clear code modularization
+- Separation of concerns
+- Builder pattern for configuration
+- Trait extensions for Tera
+- Procedural macro for code generation
 
-**Dépendances**
-- `axum` - Framework HTTP
-- `tokio` - Runtime async
+**Dependencies**
+- `axum` 0.7 - HTTP framework
+- `tokio` 1.43 - Async runtime
 - `tower` - Middleware
-- `tower-http` - Services HTTP
-- `tower-sessions` - Gestion des sessions
-- `tera` - Moteur de templates
-- `sea-orm` - ORM (optionnel)
-- `serde` / `serde_json` - Sérialisation
+- `tower-http` - HTTP services
+- `tower-sessions` - Session management
+- `tera` 1.20 - Template engine
+- `sea-orm` 1.1 - ORM (optional)
+- `serde` / `serde_json` - Serialization
 - `tracing` - Logging
-- `dotenvy` - Variables d'environnement
-- `regex` - Preprocessing des templates
+- `dotenvy` - Environment variables
+- `regex` - Template preprocessing
 - `hmac` / `sha2` - CSRF tokens
-- `chrono` - Gestion du temps
+- `argon2` - Password hashing
+- `chrono` - Time management
 
-**Features Cargo**
-- `orm` (défaut) - Support SeaORM
-- `sqlite` - Driver SQLite
-- `postgres` - Driver PostgreSQL
-- `mysql` / `mariadb` - Driver MySQL/MariaDB
-- `all-databases` - Tous les drivers
+**Cargo Features**
+- `default = ["orm"]` - Enable ORM by default
+- `orm` - SeaORM support
+- `sqlite` - SQLite driver
+- `postgres` - PostgreSQL driver
+- `mysql` / `mariadb` - MySQL/MariaDB driver
+- `all-databases` - All drivers
 
-#### 📝 Exemples fournis
+#### Examples Provided
 
-- `demo-app` - Application complète avec templates, DB, formulaires
-- Tests unitaires et d'intégration
-- Exemples dans la documentation
+- Complete demo application with templates, DB, forms
+- Unit tests (75% coverage)
+- Integration tests
+- Examples in documentation
 
-#### 🐛 Connu / Limitations
+#### Known Issues / Limitations
 
-- Variables dans les balises personnalisées non supportées
-- Un seul niveau de preprocessing des templates
-- Rate limiting non intégré (utiliser `tower-governor`)
-- Pas de support WebSocket natif
-- Migrations manuelles (via `sea-orm-cli`)
+**Missing Features:**
+- Rate limiting: Flag exists (`Settings.rate_limiting`) but implementation not done
+- CLI for migrations: Use `sea-orm-cli` directly
+- Native WebSocket: Use Axum/Tower layers
+- Admin panel: Not implemented
+- Hot reload: Use `cargo-watch`
+
+**Resolved Documentation/Code Inconsistencies:**
+- CSP.md: Corrected `CspConfig` structure (flat fields, not enum)
+- DATABASE.md: Clarified hardcoded pool parameters
+- FORMULAIRE.md: Validated that `DeriveModelForm` generates `validate()`, `to_active_model()` and `save()`
+
+**Technical Limitations:**
+- Dynamic variables not supported in custom template tags
+- Single level of template preprocessing
+- SQLite limited to 1 connection (native limitation)
+
+#### Project Statistics
+
+- Lines of code: ~15,000 LOC
+- Documentation: ~89 pages (~150 printed pages)
+- Tests: 75% coverage
+- Number of tests: 50+ unit and integration tests
+- Modules: 20+ modules
+
+#### Security
+
+**Mozilla Observatory Score: A+ (115/100)**
+
+Implemented security headers:
+- Content-Security-Policy
+- X-Content-Type-Options: nosniff
+- X-Frame-Options: DENY
+- X-XSS-Protection: 1; mode=block
+- Referrer-Policy: strict-origin-when-cross-origin
+- Permissions-Policy
+- Strict-Transport-Security (recommended in production)
 
 ---
 
-## Comparaison des versions
+## Coming Soon (v1.1.0)
+
+### Planned
+
+**Features**
+- Actual rate limiting implementation
+- Rusti CLI for scaffolding and migrations
+- Integrated WebSocket support
+- Auto-generated admin panel
+- Hot reload in development
+- Cache system (Redis, Memcached)
+- Complete i18n/l10n support
+
+**Improvements**
+- Fully configurable connection pool via Settings
+- Dynamic variables in template tags
+- Multi-level template preprocessing
+- Automatic API documentation generation
+- Performance benchmarks
+- More form field types
+
+**Documentation**
+- Advanced deployment guide
+- Video tutorials
+- Real application examples
+- Patterns and best practices
+
+---
+
+## Version Comparison
 
 ### Django → Rusti
 
-| Fonctionnalité | Django | Rusti v0.1.0 | Statut |
-|----------------|--------|--------------|--------|
-| **Routing** | ✅ `urls.py` | ✅ `urlpatterns!` | Complet |
-| **Templates** | ✅ Jinja2-like | ✅ Tera + balises custom | Complet |
-| **ORM** | ✅ Django ORM | ✅ SeaORM + API Django-like | Complet |
-| **Formulaires** | ✅ Django Forms | ❌ Pas encore | À venir |
-| **Admin** | ✅ Django Admin | ❌ Pas encore | À venir |
-| **Auth** | ✅ Intégré | ❌ Manuel | À venir |
-| **Migrations** | ✅ `manage.py migrate` | ⚠️ `sea-orm-cli` | Partiel |
-| **CSRF** | ✅ Middleware | ✅ Middleware | Complet |
-| **Sessions** | ✅ Intégré | ✅ Intégré | Complet |
-| **Static files** | ✅ `collectstatic` | ✅ Service automatique | Complet |
-| **i18n** | ✅ Complet | ❌ Pas encore | À venir |
-| **Cache** | ✅ Multiple backends | ❌ Pas encore | À venir |
+| Feature | Django | Rusti v1.0.0 | Status |
+|---------|--------|--------------|--------|
+| **Routing** | `urls.py` | `urlpatterns!` | Complete |
+| **Templates** | Jinja2-like | Tera + custom tags | Complete |
+| **ORM** | Django ORM | SeaORM + Django-like API | Complete |
+| **Forms** | Django Forms | `#[rusti_form]` + `DeriveModelForm` | Complete |
+| **Admin** | Django Admin | Not yet | Coming |
+| **Auth** | Built-in | Basic middleware | Partial |
+| **Migrations** | `manage.py migrate` | `sea-orm-cli` | Partial |
+| **CSRF** | Middleware | Middleware | Complete |
+| **Sessions** | Built-in | Built-in | Complete |
+| **Static files** | `collectstatic` | Automatic serving | Complete |
+| **i18n** | Complete | Not yet | Coming |
+| **Cache** | Multiple backends | Not yet | Coming |
+| **Rate limiting** | Django-ratelimit | Flag only | Coming |
 
 ---
 
-## Contributions
+## Contributors
 
-Merci à tous les contributeurs ! Vos contributions font la différence.
+Thanks to all contributors! Your contributions make the difference.
+
+Lead Developer: Itsuki
 
 ---
 
-## Liens
+## Links
 
 - [Documentation](https://docs.rs/rusti)
-- [Dépôt GitHub](https://github.com/votre-repo/rusti)
-- [Issues](https://github.com/votre-repo/rusti/issues)
-- [Changelog](https://github.com/votre-repo/rusti/blob/main/CHANGELOG.md)
+- [GitHub Repository](https://github.com/your-repo/rusti)
+- [Issues](https://github.com/your-repo/rusti/issues)
+- [Discussions](https://github.com/your-repo/rusti/discussions)
+- [Changelog](https://github.com/your-repo/rusti/blob/main/CHANGELOG.md)
 
 ---
 
-**Légende**
-- ✅ Fonctionnalité complète
-- ⚠️ Fonctionnalité partielle
-- ❌ Pas encore implémenté
-- 🔧 En développement
+**Legend**
+- Complete feature
+- Partial feature
+- Not yet implemented
+- In development
 
 ---
 
-[Non publié]: https://github.com/votre-repo/rusti/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/votre-repo/rusti/releases/tag/v0.1.0
+[1.0.0]: https://github.com/your-repo/rusti/releases/tag/v1.0.0

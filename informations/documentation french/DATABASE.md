@@ -1,4 +1,4 @@
-# 🗄️ Guide de la base de données - Rusti Framework
+# Guide de la base de données - Rusti Framework
 
 Rusti propose une intégration avec SeaORM qui offre une API inspirée de Django ORM.
 
@@ -83,17 +83,17 @@ use rusti::prelude::*;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::from_env();
-    
+
     // Détection automatique depuis .env
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
-    
+
     RustiApp::new(settings).await?
         .with_database(db)
         .routes(routes())
         .run()
         .await?;
-    
+
     Ok(())
 }
 ```
@@ -114,6 +114,36 @@ let db_config = DatabaseConfig::from_url("postgres://user:pass@localhost/mydb")?
 
 let db = db_config.connect().await?;
 ```
+
+### Configuration du pool de connexions
+
+**Note importante :** Les paramètres de pool de connexions sont actuellement configurables via le builder `DatabaseConfigBuilder`, mais les valeurs par défaut sont définies dans `database/config.rs`.
+
+**Valeurs par défaut du pool :**
+```rust
+// Définies dans database/config.rs
+pub struct DatabaseConfig {
+    pub max_connections: u32,        // Défaut: 20
+    pub min_connections: u32,        // Défaut: 5
+    pub connect_timeout: Duration,   // Défaut: 8 secondes
+    pub acquire_timeout: Duration,   // Défaut: 8 secondes
+    pub idle_timeout: Duration,      // Défaut: 300 secondes (5 minutes)
+    pub max_lifetime: Duration,      // Défaut: 3600 secondes (1 heure)
+}
+```
+
+**Configuration personnalisée :**
+```rust
+let db_config = DatabaseConfig::from_url("postgres://localhost/mydb")?
+    .max_connections(50)              // Modifier le maximum
+    .min_connections(10)              // Modifier le minimum
+    .connect_timeout(Duration::from_secs(30))  // Timeout custom
+    .pool_size(10, 50)               // Ou les deux en une fois
+    .build();
+```
+
+**Pour SQLite :**
+SQLite force automatiquement `max_connections: 1` et `min_connections: 1` car SQLite ne supporte pas le multi-threading natif.
 
 ---
 
@@ -141,7 +171,7 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-// ✨ Active l'API Django-like
+// Active l'API Django-like
 impl_objects!(Entity);
 ```
 
@@ -153,19 +183,19 @@ impl_objects!(Entity);
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    
+
     #[sea_orm(unique)]
     pub slug: String,
-    
+
     #[sea_orm(column_type = "Text")]
     pub content: String,
-    
+
     #[sea_orm(nullable)]
     pub published_at: Option<DateTime>,
-    
+
     #[sea_orm(default_value = "true")]
     pub is_draft: bool,
-    
+
     #[sea_orm(indexed)]
     pub author_id: i32,
 }
@@ -214,16 +244,16 @@ use rusti::prelude::*;
 pub async fn examples(db: &DatabaseConnection) -> Result<(), DbErr> {
     // Tous les enregistrements
     let all_users = User::objects.all().all(db).await?;
-    
+
     // Un enregistrement par ID (erreur si absent)
     let user = User::objects.get(db, 1).await?;
-    
+
     // Un enregistrement par ID (None si absent)
     let maybe_user = User::objects.get_optional(db, 999).await?;
-    
+
     // Compter
     let count = User::objects.count(db).await?;
-    
+
     Ok(())
 }
 ```
@@ -521,7 +551,7 @@ db.transaction::<_, (), DbErr>(|txn| {
             ..Default::default()
         };
         user.insert(txn).await?;
-        
+
         Ok(())
     })
 }).await?;
@@ -531,14 +561,20 @@ db.transaction::<_, (), DbErr>(|txn| {
 
 ## Migrations
 
-### Création de migrations
+### Utilisation de sea-orm-cli
 
-Utilisez `sea-orm-cli` :
+Rusti n'intègre pas encore de wrapper pour les migrations. Utilisez `sea-orm-cli` directement :
 
 ```bash
+# Installer sea-orm-cli
 cargo install sea-orm-cli
 
-# Générer une migration
+# Générer des entités depuis une base existante
+sea-orm-cli generate entity \
+    -u postgresql://user:pass@localhost/mydb \
+    -o src/entities
+
+# Créer une migration
 sea-orm-cli migrate generate create_users_table
 
 # Appliquer les migrations
@@ -546,6 +582,16 @@ sea-orm-cli migrate up
 
 # Rollback
 sea-orm-cli migrate down
+```
+
+### Structure des migrations
+
+```
+migrations/
+├── mod.rs
+├── m20220101_000001_create_users_table.rs
+├── m20220102_000001_create_posts_table.rs
+└── m20220103_000001_add_email_index.rs
 ```
 
 ### Exemple de migration
@@ -621,12 +667,12 @@ pub async fn create_user(
         .filter(users::Column::Email.eq(&payload.email))
         .first(&db)
         .await;
-    
+
     if existing.is_ok() {
         let _ = message.error("Cet email est déjà utilisé").await;
         return redirect("/register");
     }
-    
+
     // Créer l'utilisateur
     let user = users::ActiveModel {
         username: Set(payload.username),
@@ -634,7 +680,7 @@ pub async fn create_user(
         created_at: Set(chrono::Utc::now()),
         ..Default::default()
     };
-    
+
     match user.insert(&*db).await {
         Ok(inserted) => {
             let _ = message.success("Compte créé avec succès !").await;
@@ -655,7 +701,7 @@ pub async fn create_user(
 ### 1. Utilisez des transactions pour les opérations multiples
 
 ```rust
-// ✅ Bon
+// Bon
 db.transaction(|txn| {
     Box::pin(async move {
         user.insert(txn).await?;
@@ -664,7 +710,7 @@ db.transaction(|txn| {
     })
 }).await?;
 
-// ❌ Mauvais (risque d'incohérence)
+// Mauvais (risque d'incohérence)
 user.insert(db).await?;
 post.insert(db).await?; // Si ça échoue, user existe déjà
 ```
@@ -694,21 +740,37 @@ match User::objects.get(db, id).await {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    
-    #[sea_orm(indexed)] // ✅ Index pour recherche rapide
+
+    #[sea_orm(indexed)] // Index pour recherche rapide
     pub email: String,
-    
+
     #[sea_orm(indexed)]
     pub username: String,
 }
+```
+
+### 4. Optimisez le pool de connexions selon vos besoins
+
+```rust
+// Pour une application à fort trafic
+let db_config = DatabaseConfig::from_env()?
+    .max_connections(100)
+    .min_connections(20)
+    .build();
+
+// Pour une petite application
+let db_config = DatabaseConfig::from_env()?
+    .max_connections(10)
+    .min_connections(2)
+    .build();
 ```
 
 ---
 
 ## Voir aussi
 
-- 📖 [SeaORM Documentation](https://www.sea-ql.org/SeaORM/)
-- 🚀 [Guide de démarrage](GETTING_STARTED.md)
-- 🔧 [Configuration](CONFIGURATION.md)
+- [SeaORM Documentation](https://www.sea-ql.org/SeaORM/)
+- [Guide de démarrage](GETTING_STARTED.md)
+- [Configuration](CONFIGURATION.md)
 
-**Développez efficacement avec Rusti ! 🦀**
+Développez efficacement avec Rusti !

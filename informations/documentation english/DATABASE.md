@@ -1,11 +1,11 @@
-# 🗄️ Database Guide - Rusti Framework
+# Database Guide - Rusti Framework
 
-Rusti offers integration with SeaORM providing a Django-like API.
+Rusti provides integration with SeaORM that offers a Django ORM-inspired API.
 
 ## Table of Contents
 
 1. [Configuration](#configuration)
-2. [Defining Models](#defining-models)
+2. [Model Definition](#model-definition)
 3. [Django-like API](#django-like-api)
 4. [Migrations](#migrations)
 5. [Advanced Queries](#advanced-queries)
@@ -17,6 +17,8 @@ Rusti offers integration with SeaORM providing a Django-like API.
 ## Configuration
 
 ### Supported Databases
+
+Rusti supports multiple database engines via SeaORM:
 
 | Database | Cargo Feature | Connection URL |
 |----------|---------------|----------------|
@@ -73,30 +75,79 @@ DB_NAME=database.sqlite
 
 ### Programmatic Configuration
 
+#### Method 1: From `.env`
+
 ```rust
 use rusti::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::from_env();
-    
+
     // Automatic detection from .env
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
-    
+
     RustiApp::new(settings).await?
         .with_database(db)
         .routes(routes())
         .run()
         .await?;
-    
+
     Ok(())
 }
 ```
 
+#### Method 2: Manual Configuration
+
+```rust
+use rusti::DatabaseConfig;
+use std::time::Duration;
+
+let db_config = DatabaseConfig::from_url("postgres://user:pass@localhost/mydb")?
+    .max_connections(20)
+    .min_connections(5)
+    .connect_timeout(Duration::from_secs(10))
+    .pool_size(5, 20)
+    .logging(true)
+    .build();
+
+let db = db_config.connect().await?;
+```
+
+### Connection Pool Configuration
+
+**Important note:** Connection pool parameters are currently configurable via the `DatabaseConfigBuilder`, but default values are defined in `database/config.rs`.
+
+**Default pool values:**
+```rust
+// Defined in database/config.rs
+pub struct DatabaseConfig {
+    pub max_connections: u32,        // Default: 20
+    pub min_connections: u32,        // Default: 5
+    pub connect_timeout: Duration,   // Default: 8 seconds
+    pub acquire_timeout: Duration,   // Default: 8 seconds
+    pub idle_timeout: Duration,      // Default: 300 seconds (5 minutes)
+    pub max_lifetime: Duration,      // Default: 3600 seconds (1 hour)
+}
+```
+
+**Custom configuration:**
+```rust
+let db_config = DatabaseConfig::from_url("postgres://localhost/mydb")?
+    .max_connections(50)              // Modify maximum
+    .min_connections(10)              // Modify minimum
+    .connect_timeout(Duration::from_secs(30))  // Custom timeout
+    .pool_size(10, 50)               // Or both at once
+    .build();
+```
+
+**For SQLite:**
+SQLite automatically forces `max_connections: 1` and `min_connections: 1` because SQLite doesn't natively support multi-threading.
+
 ---
 
-## Defining Models
+## Model Definition
 
 ### Basic Model
 
@@ -120,7 +171,7 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-// ✨ Enable Django-like API
+// Enable Django-like API
 impl_objects!(Entity);
 ```
 
@@ -132,21 +183,47 @@ impl_objects!(Entity);
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    
+
     #[sea_orm(unique)]
     pub slug: String,
-    
+
     #[sea_orm(column_type = "Text")]
     pub content: String,
-    
+
     #[sea_orm(nullable)]
     pub published_at: Option<DateTime>,
-    
+
     #[sea_orm(default_value = "true")]
     pub is_draft: bool,
-    
+
     #[sea_orm(indexed)]
     pub author_id: i32,
+}
+
+impl_objects!(Entity);
+```
+
+### Enumerations
+
+```rust
+#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "String(Some(20))")]
+pub enum UserRole {
+    #[sea_orm(string_value = "admin")]
+    Admin,
+    #[sea_orm(string_value = "moderator")]
+    Moderator,
+    #[sea_orm(string_value = "user")]
+    User,
+}
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub username: String,
+    pub role: UserRole,
 }
 
 impl_objects!(Entity);
@@ -167,16 +244,16 @@ use rusti::prelude::*;
 pub async fn examples(db: &DatabaseConnection) -> Result<(), DbErr> {
     // All records
     let all_users = User::objects.all().all(db).await?;
-    
-    // One record by ID (error if absent)
+
+    // One record by ID (error if not found)
     let user = User::objects.get(db, 1).await?;
-    
-    // One record by ID (None if absent)
+
+    // One record by ID (None if not found)
     let maybe_user = User::objects.get_optional(db, 999).await?;
-    
+
     // Count
     let count = User::objects.count(db).await?;
-    
+
     Ok(())
 }
 ```
@@ -218,6 +295,13 @@ let active_users = User::objects
     .exclude(users::Column::IsActive.eq(false))
     .all(db)
     .await?;
+
+// Exclude multiple conditions
+let valid_users = User::objects
+    .exclude(users::Column::Email.like("%@spam.com"))
+    .exclude(users::Column::IsBanned.eq(true))
+    .all(db)
+    .await?;
 ```
 
 ### Sorting and Limiting
@@ -257,7 +341,7 @@ let first_user = User::objects
     .await?;
 ```
 
-### Complete Chaining
+### Full Chaining
 
 ```rust
 let result = User::objects
@@ -282,13 +366,17 @@ use sea_orm::prelude::*;
 // Equality
 .filter(users::Column::Role.eq("admin"))
 
-// Greater/Less than
+// Inequality
+.filter(users::Column::Status.ne("banned"))
+
+// Greater / Less than
 .filter(users::Column::Age.gte(18))
 .filter(users::Column::Score.lt(100))
 
 // LIKE
 .filter(users::Column::Email.like("%@gmail.com"))
 .filter(users::Column::Username.starts_with("admin"))
+.filter(users::Column::Slug.ends_with("-draft"))
 
 // IN
 .filter(users::Column::Status.is_in(["active", "pending"]))
@@ -314,6 +402,35 @@ let users = User::objects
     )
     .all(db)
     .await?;
+```
+
+### Raw SQL Queries
+
+```rust
+use sea_orm::{FromQueryResult, Statement};
+
+#[derive(Debug, FromQueryResult)]
+struct CustomResult {
+    username: String,
+    post_count: i64,
+}
+
+let results = CustomResult::find_by_statement(
+    Statement::from_sql_and_values(
+        sea_orm::DatabaseBackend::Postgres,
+        r#"
+        SELECT u.username, COUNT(p.id) as post_count
+        FROM users u
+        LEFT JOIN posts p ON p.author_id = u.id
+        GROUP BY u.username
+        ORDER BY post_count DESC
+        LIMIT $1
+        "#,
+        [10.into()],
+    )
+)
+.all(db)
+.await?;
 ```
 
 ---
@@ -365,6 +482,35 @@ let user = User::objects.get(db, 1).await?;
 let posts = user.find_related(Post).all(db).await?;
 ```
 
+### ManyToMany (Many-to-Many)
+
+```rust
+// Junction table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "post_tags")]
+pub struct PostTagModel {
+    #[sea_orm(primary_key)]
+    pub post_id: i32,
+    #[sea_orm(primary_key)]
+    pub tag_id: i32,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum PostTagRelation {
+    #[sea_orm(belongs_to = "super::posts::Entity")]
+    Post,
+    #[sea_orm(belongs_to = "super::tags::Entity")]
+    Tag,
+}
+
+// Get tags for a post
+let post = Post::objects.get(db, 1).await?;
+let tags = post
+    .find_linked(post_tags::PostToTag)
+    .all(db)
+    .await?;
+```
+
 ---
 
 ## Transactions
@@ -376,7 +522,7 @@ use sea_orm::TransactionTrait;
 
 let txn = db.begin().await?;
 
-// Operations in the transaction
+// Operations within the transaction
 let user = users::ActiveModel {
     username: Set("alice".to_string()),
     ..Default::default()
@@ -394,18 +540,41 @@ post.insert(&txn).await?;
 txn.commit().await?;
 ```
 
+### Transaction with Closure
+
+```rust
+db.transaction::<_, (), DbErr>(|txn| {
+    Box::pin(async move {
+        // Your operations here
+        let user = users::ActiveModel {
+            username: Set("bob".to_string()),
+            ..Default::default()
+        };
+        user.insert(txn).await?;
+
+        Ok(())
+    })
+}).await?;
+```
+
 ---
 
 ## Migrations
 
-### Creating Migrations
+### Using sea-orm-cli
 
-Use `sea-orm-cli`:
+Rusti doesn't yet include a migration wrapper. Use `sea-orm-cli` directly:
 
 ```bash
+# Install sea-orm-cli
 cargo install sea-orm-cli
 
-# Generate a migration
+# Generate entities from existing database
+sea-orm-cli generate entity \
+    -u postgresql://user:pass@localhost/mydb \
+    -o src/entities
+
+# Create a migration
 sea-orm-cli migrate generate create_users_table
 
 # Apply migrations
@@ -413,6 +582,70 @@ sea-orm-cli migrate up
 
 # Rollback
 sea-orm-cli migrate down
+```
+
+### Migration Structure
+
+```
+migrations/
+├── mod.rs
+├── m20220101_000001_create_users_table.rs
+├── m20220102_000001_create_posts_table.rs
+└── m20220103_000001_add_email_index.rs
+```
+
+### Migration Example
+
+```rust
+// migration/m20250101_000001_create_users.rs
+use sea_orm_migration::prelude::*;
+
+pub struct Migration;
+
+impl MigrationName for Migration {
+    fn name(&self) -> &str {
+        "m20250101_000001_create_users"
+    }
+}
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(Users::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Users::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Users::Username).string().not_null())
+                    .col(ColumnDef::new(Users::Email).string().not_null().unique_key())
+                    .col(ColumnDef::new(Users::CreatedAt).timestamp().not_null())
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Users::Table).to_owned())
+            .await
+    }
+}
+
+#[derive(Iden)]
+enum Users {
+    Table,
+    Id,
+    Username,
+    Email,
+    CreatedAt,
+}
 ```
 
 ---
@@ -427,18 +660,19 @@ pub async fn create_user(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     Json(payload): Json<CreateUserRequest>,
     mut message: Message,
+    template: Template,
 ) -> Response {
     // Check if user exists
     let existing = User::objects
         .filter(users::Column::Email.eq(&payload.email))
         .first(&db)
         .await;
-    
+
     if existing.is_ok() {
         let _ = message.error("This email is already in use").await;
         return redirect("/register");
     }
-    
+
     // Create user
     let user = users::ActiveModel {
         username: Set(payload.username),
@@ -446,13 +680,13 @@ pub async fn create_user(
         created_at: Set(chrono::Utc::now()),
         ..Default::default()
     };
-    
+
     match user.insert(&*db).await {
         Ok(inserted) => {
             let _ = message.success("Account created successfully!").await;
             redirect(&format!("/user/{}", inserted.id))
         }
-        Err(_) => {
+        Err(e) => {
             let _ = message.error("Error during creation").await;
             redirect("/register")
         }
@@ -464,10 +698,10 @@ pub async fn create_user(
 
 ## Best Practices
 
-### 1. Use transactions for multiple operations
+### 1. Use Transactions for Multiple Operations
 
 ```rust
-// ✅ Good
+// Good
 db.transaction(|txn| {
     Box::pin(async move {
         user.insert(txn).await?;
@@ -476,12 +710,12 @@ db.transaction(|txn| {
     })
 }).await?;
 
-// ❌ Bad (risk of inconsistency)
+// Bad (risk of inconsistency)
 user.insert(db).await?;
 post.insert(db).await?; // If this fails, user already exists
 ```
 
-### 2. Handle errors properly
+### 2. Handle Errors Properly
 
 ```rust
 match User::objects.get(db, id).await {
@@ -498,7 +732,7 @@ match User::objects.get(db, id).await {
 }
 ```
 
-### 3. Use indexes for frequent queries
+### 3. Use Indexes for Frequent Queries
 
 ```rust
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -506,21 +740,37 @@ match User::objects.get(db, id).await {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    
-    #[sea_orm(indexed)] // ✅ Index for fast search
+
+    #[sea_orm(indexed)] // Index for fast lookup
     pub email: String,
-    
+
     #[sea_orm(indexed)]
     pub username: String,
 }
+```
+
+### 4. Optimize Connection Pool According to Your Needs
+
+```rust
+// For high-traffic application
+let db_config = DatabaseConfig::from_env()?
+    .max_connections(100)
+    .min_connections(20)
+    .build();
+
+// For small application
+let db_config = DatabaseConfig::from_env()?
+    .max_connections(10)
+    .min_connections(2)
+    .build();
 ```
 
 ---
 
 ## See Also
 
-- 📖 [SeaORM Documentation](https://www.sea-ql.org/SeaORM/)
-- 🚀 [Getting Started](GETTING_STARTED.md)
-- 🔧 [Configuration](CONFIGURATION.md)
+- [SeaORM Documentation](https://www.sea-ql.org/SeaORM/)
+- [Getting Started Guide](GETTING_STARTED.md)
+- [Configuration](CONFIGURATION.md)
 
-**Develop efficiently with Rusti! 🦀**
+Develop efficiently with Rusti!
