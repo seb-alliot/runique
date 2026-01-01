@@ -207,7 +207,7 @@ async fn test_complex_query() -> Result<(), DbErr> {
     for i in 1..=10 {
         let user = ActiveModel {
             username: Set(format!("user{}", i)),
-            age: Set(15 + i as i32),
+            age: Set(15 + i),
             ..Default::default()
         };
         user.insert(&db).await?;

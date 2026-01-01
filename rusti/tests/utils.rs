@@ -13,7 +13,7 @@ fn test_generate_token() {
 
     // Mais ils devraient avoir la même longueur (format hex)
     assert_eq!(token1.len(), token2.len());
-    assert!(token1.len() > 0);
+    assert!(!token1.is_empty());
 }
 
 #[test]
