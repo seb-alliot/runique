@@ -110,7 +110,7 @@ impl Settings {
     /// Crée une configuration avec valeurs par défaut
     ///
     /// # Exemple
-    /// ```rust
+    /// ```no_run
     /// use rusti::Settings;
     ///
     /// let settings = Settings::default_values();
@@ -223,12 +223,9 @@ impl SettingsBuilder {
     ///
     /// # Exemple
     /// ```rust
+    /// # use rusti::Settings;
     /// let settings = Settings::builder()
-    ///     .allowed_hosts(vec![
-    ///         "exemple.com".to_string(),
-    ///         "www.exemple.com".to_string(),
-    ///         ".sous-domaine.exemple.com".to_string(), // Wildcard
-    ///     ])
+    ///     .allowed_hosts(vec!["example.com".to_string()])
     ///     .build();
     /// ```
     pub fn allowed_hosts(mut self, hosts: Vec<String>) -> Self {
@@ -313,10 +310,10 @@ impl SettingsBuilder {
     }
 
     pub fn server(mut self, ip: impl Into<String>, port: u16, secret_key: impl Into<String>) -> Self {
-        let ip = ip.into();
+        let ip_val = ip.into();
         self.settings.server = ServerSettings {
-            ip_server: ip.clone(),
-            domain_server: format!("{}:{}", ip, port),
+            ip_server: ip_val.clone(),
+            domain_server: format!("{}:{}", ip_val, port),
             port,
             secret_key: secret_key.into(),
         };

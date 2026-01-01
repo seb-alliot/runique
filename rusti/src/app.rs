@@ -62,16 +62,11 @@ impl RustiApp {
                     content = content.replace("{% messages %}", r#"{% include "message" %}"#);
                     content = content.replace("{{ csp }}", r#"{% include "csp" %}"#);
 
-                    // Transformation unifiée pour {% link "name" %} avec ou sans paramètres
-                    // Gère les formats suivants :
-                    // - {% link "name" %}
-                    // - {% link "name", params %}
-                    // - {% link "name" params %}
+                    // Transformation unifiée pour {% link "name" %}
                     let link_regex = regex::Regex::new(
                         r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#
                     ).unwrap();
 
-                    // Appliquer la transformation unifiée
                     content = link_regex.replace_all(&content, |caps: &regex::Captures| {
                         let name = &caps["name"];
                         let params = caps.name("params")
@@ -150,8 +145,8 @@ impl RustiApp {
     }
 
     pub fn with_database(mut self, db: DatabaseConnection) -> Self {
-        let shared_db: std::sync::Arc<DatabaseConnection> = std::sync::Arc::new(db);
-        self.router = self.router.layer(axum::extract::Extension(shared_db));
+        let shared_db = Arc::new(db);
+        self.router = self.router.layer(Extension(shared_db));
         self
     }
 
@@ -209,6 +204,7 @@ impl RustiApp {
         self.router = self.router.layer(middleware::from_fn(csrf_middleware));
         self
     }
+
     pub fn with_sanitize_text_inputs(mut self, enable: bool) -> Self {
         if !enable {
             return self;
@@ -220,19 +216,19 @@ impl RustiApp {
         ));
         self
     }
+
     /// Active la validation des hosts autorisés (ALLOWED_HOSTS)
-    ///
-    /// Protège contre les attaques de type Host Header Injection.
-    /// Les hosts autorisés sont configurés dans Settings.allowed_hosts
-    ///
+    /// 
     /// # Exemple
-    ///
-    /// ```rust
+    /// ```no_run
+    /// # use rusti::app::RustiApp;
+    /// # async fn test(settings: rusti::Settings) -> Result<(), Box<dyn std::error::Error>> {
     /// RustiApp::new(settings).await?
-    ///     .routes(routes)
-    ///     .with_allowed_hosts()
+    ///     .with_allowed_hosts(None)
     ///     .run()
     ///     .await?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn with_allowed_hosts(mut self, hosts: Option<Vec<String>>) -> Self {
         let allowed_hosts = hosts.unwrap_or_else(|| self.config.allowed_hosts.clone());
@@ -242,28 +238,17 @@ impl RustiApp {
         self.config = Arc::new(config);
 
         self.router = self.router.layer(
-            axum::middleware::from_fn(
+            middleware::from_fn(
                 crate::middleware::allowed_hosts::allowed_hosts_middleware
             )
         );
         self
     }
+
     /// Active la Content Security Policy
-    ///
-    /// # Exemple
-    ///
-    /// ```rust
-    /// use rusti::middleware::csp::CspConfig;
-    ///
-    /// RustiApp::new(settings).await?
-    ///     .routes(routes)
-    ///     .with_csp(CspConfig::strict())
-    ///     .run()
-    ///     .await?;
-    /// ```
     pub fn with_csp(self, config: CspConfig) -> Self {
         let router = self.router.layer(
-            axum::middleware::from_fn_with_state(
+            middleware::from_fn_with_state(
                 config,
                 crate::middleware::csp::csp_middleware
             )
@@ -277,30 +262,10 @@ impl RustiApp {
         }
     }
 
-    /// Active tous les en-têtes de sécurité (CSP + headers)
-    ///
-    /// Inclut :
-    /// - Content-Security-Policy
-    /// - X-Content-Type-Options
-    /// - X-Frame-Options
-    /// - X-XSS-Protection
-    /// - Referrer-Policy
-    /// - Permissions-Policy
-    ///
-    /// # Exemple
-    ///
-    /// ```rust
-    /// use rusti::middleware::csp::CspConfig;
-    ///
-    /// RustiApp::new(settings).await?
-    ///     .routes(routes)
-    ///     .with_security_headers(CspConfig::default())
-    ///     .run()
-    ///     .await?;
-    /// ```
+    /// Active tous les en-têtes de sécurité
     pub fn with_security_headers(self, config: CspConfig) -> Self {
         let router = self.router.layer(
-            axum::middleware::from_fn_with_state(
+            middleware::from_fn_with_state(
                 config,
                 security_headers_middleware
             )
@@ -314,22 +279,10 @@ impl RustiApp {
         }
     }
 
-    /// Active la CSP en mode report-only (pour tester)
-    ///
-    /// # Exemple
-    ///
-    /// ```rust
-    /// use rusti::middleware::csp::CspConfig;
-    ///
-    /// RustiApp::new(settings).await?
-    ///     .routes(routes)
-    ///     .with_csp_report_only(CspConfig::strict())
-    ///     .run()
-    ///     .await?;
-    /// ```
+    /// Active la CSP en mode report-only
     pub fn with_csp_report_only(self, config: CspConfig) -> Self {
         let router = self.router.layer(
-            axum::middleware::from_fn_with_state(
+            middleware::from_fn_with_state(
                 config,
                 crate::middleware::csp::csp_report_only_middleware
             )

@@ -129,16 +129,21 @@ impl AllowedHostsValidator {
 
 /// Middleware Axum pour valider les hosts autorisés
 ///
-/// # Exemple d'utilisation
-///
-/// ```rust
-/// use rusti::middleware::allowed_hosts::allowed_hosts_middleware;
-///
-/// let app = RustiApp::new(settings).await?
+/// ```rust,no_run
+/// # use rusti::Settings;
+/// # use rusti::app::RustiApp;
+/// # use axum::Router;
+/// # async fn doc() -> Result<(), Box<dyn std::error::Error>> {
+/// let settings = Settings::default_values();
+/// let routes = Router::new();
+/// 
+/// // On attend le build, mais pas l'objet final lui-même
+/// let app = RustiApp::builder(settings).await
 ///     .routes(routes)
-///     .with_allowed_hosts()  // Utilise la méthode helper
-///     .run()
+///     .build()
 ///     .await?;
+/// # Ok(())
+/// # }
 /// ```
 pub async fn allowed_hosts_middleware(
     settings: axum::extract::Extension<Arc<Settings>>,

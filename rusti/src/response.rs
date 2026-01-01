@@ -10,10 +10,12 @@ use tera::Tera;
 ///
 /// # Exemple
 /// ```rust,no_run
-/// use rusti::response::render_simple_404;
-/// use rusti::Tera;
+/// # use std::sync::Arc;
+/// # use axum::extract::Extension;
+/// use rusti::response::render_404;
+/// use tera::Tera;
 ///
-/// async fn fallback_handler(tera: std::sync::Arc<Tera>) -> axum::response::Response {
+/// async fn fallback_handler(Extension(tera): Extension<Arc<Tera>>) -> axum::response::Response {
 ///     render_404(&tera)
 /// }
 /// ```

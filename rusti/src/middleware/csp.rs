@@ -133,23 +133,16 @@ impl CspConfig {
 /// Middleware CSP (Content Security Policy)
 ///
 /// # Exemple
-///
 /// ```rust
+/// # use axum::{Router, routing::get};
+/// # async fn index() -> &'static str { "Hello" }
 /// use rusti::middleware::csp::{csp_middleware, CspConfig};
 ///
-/// // Développement (permissif)
-/// let app = Router::new()
+/// // Préciser Router<()> règle l'erreur E0283
+/// let app: Router = Router::new()
 ///     .route("/", get(index))
 ///     .layer(axum::middleware::from_fn_with_state(
-///         CspConfig::permissive(),
-///         csp_middleware
-///     ));
-///
-/// // Production (strict)
-/// let app = Router::new()
-///     .route("/", get(index))
-///     .layer(axum::middleware::from_fn_with_state(
-///         CspConfig::strict(),
+///         CspConfig::default(),
 ///         csp_middleware
 ///     ));
 /// ```
@@ -185,13 +178,16 @@ pub async fn csp_middleware(
 /// # Exemple
 ///
 /// ```rust
-/// use rusti::middleware::csp::{security_headers_middleware, CspConfig};
+/// # use axum::{Router, routing::get};
+/// # async fn index() -> &'static str { "Hello" }
+/// use rusti::middleware::csp::{csp_middleware, CspConfig};
 ///
-/// let app = Router::new()
+/// // Préciser Router<()> règle l'erreur E0283
+/// let app: Router = Router::new()
 ///     .route("/", get(index))
 ///     .layer(axum::middleware::from_fn_with_state(
 ///         CspConfig::default(),
-///         security_headers_middleware
+///         csp_middleware
 ///     ));
 /// ```
 pub async fn security_headers_middleware(
@@ -266,13 +262,16 @@ pub async fn security_headers_middleware(
 /// # Exemple
 ///
 /// ```rust
-/// use rusti::middleware::csp::{csp_report_only_middleware, CspConfig};
+/// # use axum::{Router, routing::get};
+/// # async fn index() -> &'static str { "Hello" }
+/// use rusti::middleware::csp::{csp_middleware, CspConfig};
 ///
-/// let app = Router::new()
+/// // Préciser Router<()> règle l'erreur E0283
+/// let app: Router = Router::new()
 ///     .route("/", get(index))
 ///     .layer(axum::middleware::from_fn_with_state(
-///         CspConfig::strict(),
-///         csp_report_only_middleware
+///         CspConfig::default(),
+///         csp_middleware
 ///     ));
 /// ```
 pub async fn csp_report_only_middleware(

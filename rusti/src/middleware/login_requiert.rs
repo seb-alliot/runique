@@ -49,14 +49,16 @@ pub async fn logout_user(session: &Session) -> Result<(), tower_sessions::sessio
 }
 
 /// Middleware pour protéger les routes (nécessite authentification)
-///
+/// ...
 /// # Exemple
-///
 /// ```rust
-/// use rusti::middleware::auth::login_required;
-/// use axum::routing::get;
+/// # use axum::{Router, routing::get};
+/// # async fn dashboard() -> &'static str { "Dashboard" }
+/// # async fn profile() -> &'static str { "Profile" }
+/// use rusti::middleware::login_requiert::login_required;
 ///
-/// let protected_routes = Router::new()
+/// // Utilisation de Router<()> pour aider l'inférence de type
+/// let protected_routes: Router = Router::new()
 ///     .route("/dashboard", get(dashboard))
 ///     .route("/profile", get(profile))
 ///     .layer(axum::middleware::from_fn(login_required));
@@ -80,11 +82,13 @@ pub async fn login_required(
 /// (utile pour les pages login/register)
 ///
 /// # Exemple
-///
 /// ```rust
-/// use rusti::middleware::auth::redirect_if_authenticated;
+/// # use axum::{Router, routing::get};
+/// # async fn login_page() -> &'static str { "Login" }
+/// # async fn register_page() -> &'static str { "Register" }
+/// use rusti::middleware::login_requiert::redirect_if_authenticated;
 ///
-/// let public_routes = Router::new()
+/// let public_routes: Router = Router::new()
 ///     .route("/login", get(login_page))
 ///     .route("/register", get(register_page))
 ///     .layer(axum::middleware::from_fn(redirect_if_authenticated));
@@ -107,16 +111,12 @@ pub async fn redirect_if_authenticated(
 /// (permet d'accéder à l'utilisateur dans les handlers sans session)
 ///
 /// # Exemple
-///
 /// ```rust
-/// use rusti::middleware::auth::{load_user_middleware, CurrentUser};
-/// use axum::Extension;
+/// # use axum::{Router, routing::get};
+/// # async fn dashboard() -> &'static str { "Dashboard" }
+/// use rusti::middleware::login_requiert::{load_user_middleware, CurrentUser};
 ///
-/// async fn dashboard(Extension(user): Extension<CurrentUser>) -> String {
-///     format!("Hello, {}!", user.username)
-/// }
-///
-/// let app = Router::new()
+/// let app: Router = Router::new()
 ///     .route("/dashboard", get(dashboard))
 ///     .layer(axum::middleware::from_fn(load_user_middleware));
 /// ```
@@ -151,12 +151,12 @@ pub async fn load_user_middleware(
 ///
 /// # Exemple d'implémentation complète
 /// ```rust,no_run
+/// # use tower_sessions::Session;
+/// # use rusti::middleware::login_requiert::get_user_id;
 /// pub async fn has_permission(session: &Session, permission: &str) -> bool {
 ///     if let Some(user_id) = get_user_id(session).await {
 ///         // Récupérer les permissions depuis la DB
-///         // let user = User::objects.get(&db, user_id).await?;
-///         // user.permissions.contains(permission)
-///         true  // Stub pour l'instant
+///         true 
 ///     } else {
 ///         false
 ///     }
