@@ -111,5 +111,9 @@ async fn test_sanitization_get_request() {
 
     let res = app.oneshot(req).await.unwrap();
     // GET sur une route POST devrait retourner 405 Method Not Allowed
-    assert!(res.status().is_client_error() || res.status().is_success() || res.status().is_redirection());
+    assert!(
+        res.status().is_client_error()
+            || res.status().is_success()
+            || res.status().is_redirection()
+    );
 }
