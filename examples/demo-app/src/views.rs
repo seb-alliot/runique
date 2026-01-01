@@ -77,8 +77,8 @@ pub async fn user_profile_submit(
     }
     message.error("Veuillez corriger les erreurs du formulaire").await.unwrap();
     let ctx = context!{
-        "form", ModelForm::build();  // ← Change ici !
-        "forms_errors", user.get_errors();  // ← Ajoute les erreurs
+        "form", ModelForm::build();  
+        "forms_errors", user.get_errors();  
         "title", "Erreur de validation"
     };
     template.render("profile/register_profile.html", &ctx)

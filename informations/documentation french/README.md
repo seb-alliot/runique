@@ -2,7 +2,7 @@
 
 > Un framework web moderne pour Rust, inspiré de Django et construit sur Axum
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/votre-repo/rusti)
+[![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com/seb-alliot/rusti)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 
@@ -36,21 +36,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 | Fonctionnalité | Description |
 |----------------|-------------|
-| 🎯 **Django-like** | Syntaxe familière, patterns éprouvés |
-| ⚡ **Performances** | Basé sur Axum et Tokio |
-| 🛡️ **Sécurité intégrée** | CSRF, sessions, validation |
-| 📝 **Templates Tera** | Moteur inspiré de Jinja2 |
-| 🗄️ **ORM SeaORM** | Support multi-bases (PostgreSQL, MySQL, SQLite) |
-| 🔧 **Configuration flexible** | Builder pattern + variables d'environnement |
-| 🐛 **Debug avancé** | Pages d'erreur détaillées en développement |
-| 📨 **Flash messages** | Messages entre requêtes |
-| 🔗 **Reverse routing** | URLs générées automatiquement |
+|  **Django-like** | Syntaxe familière, patterns éprouvés |
+|  **Performances** | Basé sur Axum et Tokio |
+|  **Sécurité intégrée** | CSRF, sessions, validation |
+|  **Templates Tera** | Moteur inspiré de Jinja2 |
+|  **ORM SeaORM** | Support multi-bases (PostgreSQL, MySQL, SQLite) |
+|  **Configuration flexible** | Builder pattern + variables d'environnement |
+|  **Debug avancé** | Pages d'erreur détaillées en développement |
+|  **Flash messages** | Messages entre requêtes |
+|  **Reverse routing** | URLs générées automatiquement |
 
-## 📦 Installation
+##  Installation
 
 ```toml
 [dependencies]
-rusti = "0.1"
+rusti = "1.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -70,7 +70,7 @@ rusti = { version = "0.1", features = ["mysql"] }
 rusti = { version = "0.1", features = ["all-databases"] }
 ```
 
-## 🎓 Guide de démarrage rapide
+##  Guide de démarrage rapide
 
 ### 1. Créer votre projet
 

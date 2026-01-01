@@ -64,7 +64,7 @@ base64.workspace = true
 derive_form = { path = "derive_form" }
 
 [features]
-default = ["orm"]  # ← AJOUTE CETTE LIGNE !
+default = ["orm"] 
 orm = ["dep:sea-orm"]
 sqlite = ["orm", "sea-orm?/sqlx-sqlite", "sea-orm?/runtime-tokio-rustls"]
 postgres = ["orm", "sea-orm?/sqlx-postgres", "sea-orm?/runtime-tokio-rustls"]

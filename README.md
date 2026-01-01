@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```toml
 [dependencies]
-rusti = "0.1"
+rusti = "1.0"
 tokio = { version = "1", features = ["full"] }
 ```
 

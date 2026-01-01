@@ -22,7 +22,7 @@
 - [ ] ⚠️ **Linting** : `cargo clippy` dans le CI
 
 ### 4. Documentation
-- [ ] ⚠️ **Guide de migration** : 0.1.0 → 1.0.0
+- [ ] ⚠️ **Guide de migration** : 1.0.0
 - [ ] ⚠️ **Breaking changes** : Documenter les changements incompatibles
 - [ ] ⚠️ **API stability** : Marquer les APIs comme stables/deprecated
 
@@ -35,7 +35,7 @@
 
 ### 6. Tests et qualité
 - [x] ✅ Tests d'intégration complets (82 tests)
-- [ ] 📝 **Couverture de tests** : Mesurer avec `cargo-tarpaulin`
+- [x] 📝 **Couverture de tests** : Mesurer avec `cargo-tarpaulin`
 - [ ] 📝 **Tests de performance** : Benchmarks basiques
 - [ ] 📝 **Tests de charge** : Vérifier la robustesse
 
@@ -46,19 +46,19 @@
 - [ ] 📝 **Troubleshooting** : Guide de résolution de problèmes
 
 ### 8. Exemples
-- [x] ✅ Exemple demo-app
+- [x] ✅ Exemple examples/demo-app
 - [ ] 📝 **Exemple API REST** : CRUD complet
 - [ ] 📝 **Exemple authentification** : Login/logout complet
 - [ ] 📝 **Exemple déploiement** : Docker, nginx, etc.
 
 ### 9. Fichiers de projet
-- [ ] 📝 **LICENSE** : Copier à la racine (actuellement dans informations/)
+- [ ] 📝 **LICENSE** : Copier à la racine 
 - [ ] 📝 **README.md** : À la racine du projet
 - [ ] 📝 **.github/workflows/** : CI/CD
 - [ ] 📝 **.github/ISSUE_TEMPLATE** : Templates pour les issues
 - [ ] 📝 **.github/PULL_REQUEST_TEMPLATE** : Template pour les PRs
 
-## 🟢 OPTIONNELS (Peuvent attendre)
+## 🟢 OPTIONNELS 
 
 ### 10. Fonctionnalités avancées
 - [ ] 💡 CLI pour scaffolding (`rusti new mon-app`)
@@ -85,8 +85,6 @@
 ### ⚠️ À faire pour v1.0
 - ⚠️ Corriger le TODO dans `has_permission()`
 - ⚠️ CI/CD basique
-- ⚠️ Changer version → 1.0.0
-- ⚠️ README principal
 - ⚠️ Guide de migration
 - ⚠️ Audit de sécurité
 
@@ -95,7 +93,6 @@
 **Minimum viable pour v1.0 :**
 1. Corriger le TODO dans `has_permission()`
 2. Créer CI/CD basique (tests + lint)
-3. Changer version → 1.0.0
 4. Créer README principal
 5. Audit de sécurité rapide
 6. Guide de migration

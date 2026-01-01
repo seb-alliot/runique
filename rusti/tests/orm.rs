@@ -29,7 +29,7 @@ impl_objects!(Entity);
 #[test]
 fn test_objects_without_parentheses() {
     let _builder = Entity::objects;
-    println!("✅ Entity::objects fonctionne (sans parenthèses)");
+    println!("Entity::objects fonctionne (sans parenthèses)");
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn test_filter_without_parentheses() {
     let _query = Entity::objects
         .filter(Column::Age.gte(18));
 
-    println!("✅ Entity::objects.filter() fonctionne (sans parenthèses)");
+    println!("Entity::objects.filter() fonctionne (sans parenthèses)");
 }
 
 #[test]
@@ -48,7 +48,7 @@ fn test_chaining() {
         .order_by_desc(Column::Age)
         .limit(10);
 
-    println!("✅ Chaînage complet fonctionne");
+    println!("Chaînage complet fonctionne");
 }
 
 // ========================================
@@ -88,7 +88,7 @@ async fn test_objects_all() -> Result<(), DbErr> {
 
     let users = Entity::objects.all().all(&db).await?;
     assert_eq!(users.len(), 2);
-    println!("✅ objects.all().all() fonctionne : {} utilisateurs", users.len());
+    println!("objects.all().all() fonctionne : {} utilisateurs", users.len());
 
     Ok(())
 }
@@ -118,7 +118,7 @@ async fn test_objects_filter() -> Result<(), DbErr> {
 
     assert_eq!(adults.len(), 1);
     assert_eq!(adults[0].username, "adult");
-    println!("✅ objects.filter() fonctionne : {} adulte trouvé", adults.len());
+    println!("objects.filter() fonctionne : {} adulte trouvé", adults.len());
 
     Ok(())
 }
@@ -148,7 +148,7 @@ async fn test_objects_exclude() -> Result<(), DbErr> {
 
     assert_eq!(active_users.len(), 1);
     assert_eq!(active_users[0].username, "alice");
-    println!("✅ objects.exclude() fonctionne : {} utilisateur actif", active_users.len());
+    println!("objects.exclude() fonctionne : {} utilisateur actif", active_users.len());
 
     Ok(())
 }
@@ -167,7 +167,7 @@ async fn test_objects_get() -> Result<(), DbErr> {
 
     let found = Entity::objects.get(&db, inserted.id).await?;
     assert_eq!(found.username, "test");
-    println!("✅ objects.get() fonctionne : utilisateur '{}'", found.username);
+    println!("objects.get() fonctionne : utilisateur '{}'", found.username);
 
     Ok(())
 }
@@ -187,7 +187,7 @@ async fn test_objects_count() -> Result<(), DbErr> {
 
     let count = Entity::objects.count(&db).await?;
     assert_eq!(count, 3);
-    println!("✅ objects.count() fonctionne : {} utilisateurs", count);
+    println!("objects.count() fonctionne : {} utilisateurs", count);
 
     Ok(())
 }
@@ -214,7 +214,7 @@ async fn test_complex_query() -> Result<(), DbErr> {
         .await?;
 
     assert!(results.len() <= 3);
-    println!("✅ Query complexe fonctionne : {} résultats", results.len());
+    println!("Query complexe fonctionne : {} résultats", results.len());
 
     Ok(())
 }

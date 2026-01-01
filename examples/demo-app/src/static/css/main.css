@@ -194,3 +194,8 @@ form#userform > div {
         grid-template-columns: 1fr;
     }
 }
+
+
+.alert, .alert-danger {
+    display: None;
+}
