@@ -18,3 +18,8 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Demo app
+examples/demo-app/src/media/
+examples/demo-app/.env
+
