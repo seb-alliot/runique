@@ -66,7 +66,7 @@ pub async fn user_profile_submit(
                 };
                 message.error(error_msg).await.unwrap();
                 let ctx = context!{
-                    "form", ModelForm::build();  
+                    "form", ModelForm::build();
                     "forms_errors", user.get_errors();
                     "title", "Profil";
                     "db_error", error_msg
