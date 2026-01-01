@@ -1,16 +1,12 @@
-use tera::{Result as TeraResult, Value, Function};
 use std::collections::HashMap;
+use tera::{Function, Result as TeraResult, Value};
 
 use async_trait::async_trait;
-use tower_sessions::{Session};
-use tower_sessions::session::Error as SessionError;
 use axum::{
-    response::IntoResponse,
-    response::Response,
-    http::StatusCode,
-    middleware::Next,
-    body::Body,
+    body::Body, http::StatusCode, middleware::Next, response::IntoResponse, response::Response,
 };
+use tower_sessions::session::Error as SessionError;
+use tower_sessions::Session;
 
 use crate::middleware::csrf::CsrfToken;
 
@@ -19,15 +15,16 @@ pub struct CsrfTokenFunction;
 const CSRF_TOKEN_KEY: &str = "csrf_token";
 
 impl Function for CsrfTokenFunction {
-    fn is_safe(&self) -> bool { true }
+    fn is_safe(&self) -> bool {
+        true
+    }
 
     fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
         // On récupère le token. S'il n'est pas passé en argument,
         // on peut le chercher dans le contexte global si ton système de rendu l'y met.
-        let token = args.get("token")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        Ok(Value::String(format!(r#"<input type="hidden" name="csrf_token" value="{}">"#,
+        let token = args.get("token").and_then(|v| v.as_str()).unwrap_or("");
+        Ok(Value::String(format!(
+            r#"<input type="hidden" name="csrf_token" value="{}">"#,
             token
         )))
     }
@@ -63,10 +60,7 @@ impl IntoResponse for CsrfContextError {
     }
 }
 
-pub async fn extract_csrf_token(
-    mut req: axum::http::Request<Body>,
-    next: Next,
-) -> Response {
+pub async fn extract_csrf_token(mut req: axum::http::Request<Body>, next: Next) -> Response {
     let token = {
         // On utilise get_mut pour la session
         let session = match req.extensions().get::<Session>() {
@@ -75,7 +69,11 @@ pub async fn extract_csrf_token(
         };
 
         // On récupère le token
-        session.get::<CsrfToken>(CSRF_TOKEN_KEY).await.ok().flatten()
+        session
+            .get::<CsrfToken>(CSRF_TOKEN_KEY)
+            .await
+            .ok()
+            .flatten()
     };
 
     if let Some(t) = token {

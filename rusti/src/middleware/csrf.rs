@@ -1,19 +1,13 @@
-use tower_sessions::Session;
-use axum::{
-    response::Response,
-    http::StatusCode,
-    middleware::Next,
-    body::Body,
-    http::Method,
-    response::IntoResponse,
-    http::HeaderValue,
-    response::Redirect,
-};
-use std::sync::Arc;
-use crate::settings::Settings;
-use serde::{Serialize, Deserialize};
-use http_body_util::BodyExt;
 use crate::middleware::flash_message::{FlashMessage, FlashMessageSession};
+use crate::settings::Settings;
+use axum::{
+    body::Body, http::HeaderValue, http::Method, http::StatusCode, middleware::Next,
+    response::IntoResponse, response::Redirect, response::Response,
+};
+use http_body_util::BodyExt;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tower_sessions::Session;
 
 use crate::utils::generate_token;
 
@@ -22,11 +16,7 @@ const CSRF_TOKEN_KEY: &str = "csrf_token";
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CsrfToken(pub String);
 
-
-pub async fn csrf_middleware(
-    mut req: axum::http::Request<Body>,
-    next: Next,
-) -> Response {
+pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> Response {
     let config = match req.extensions().get::<Arc<Settings>>().cloned() {
         Some(c) => c,
         None => return next.run(req).await,
@@ -46,7 +36,13 @@ pub async fn csrf_middleware(
         let session_token = {
             let session = match req.extensions().get::<Session>() {
                 Some(s) => s,
-                None => return (StatusCode::INTERNAL_SERVER_ERROR, "Session middleware missing").into_response(),
+                None => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Session middleware missing",
+                    )
+                        .into_response()
+                }
             };
             let t = session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten();
             t
@@ -57,18 +53,20 @@ pub async fn csrf_middleware(
             .get("X-CSRF-Token")
             .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
             .or_else(|| {
-                headers.get("X-CSRFToken")
+                headers
+                    .get("X-CSRFToken")
                     .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
             });
 
         let (parts, body) = req.into_parts();
         let bytes = match body.collect().await {
             Ok(collected) => collected.to_bytes(),
-            Err(_) => return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response(),
+            Err(_) => {
+                return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response()
+            }
         };
         req = axum::http::Request::from_parts(parts, Body::from(bytes.clone()));
         req.extensions_mut().insert(bytes.clone());
-
 
         if let Ok(body_str) = std::str::from_utf8(&bytes) {
             if request_token.is_none() {
@@ -82,30 +80,50 @@ pub async fn csrf_middleware(
         match (session_token, request_token) {
             (Some(st), Some(rt)) if constant_time_compare(&st, &rt) => {
                 let session = req.extensions().get::<Session>().unwrap();
-                let session_id = session.id().map(|id| id.to_string()).unwrap_or_else(|| "no-session-id".to_string());
+                let session_id = session
+                    .id()
+                    .map(|id| id.to_string())
+                    .unwrap_or_else(|| "no-session-id".to_string());
                 let new_token = generate_token(&config.server.secret_key, &session_id);
                 let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
                 new_token
             }
             (_, _) => {
-                let mut session = req.extensions().get::<Session>().cloned().expect("Session missing");
-                let _ = session.insert_message(FlashMessage::error(
-                    "Erreur de sécurité : Token CSRF invalide ou manquant."
-                )).await;
+                let mut session = req
+                    .extensions()
+                    .get::<Session>()
+                    .cloned()
+                    .expect("Session missing");
+                let _ = session
+                    .insert_message(FlashMessage::error(
+                        "Erreur de sécurité : Token CSRF invalide ou manquant.",
+                    ))
+                    .await;
 
                 // Si c'est une requête AJAX/JSON, on renvoie un code d'erreur au lieu d'une redirection
-                if headers.get("Accept").and_then(|h| h.to_str().ok()).unwrap_or("").contains("application/json") {
+                if headers
+                    .get("Accept")
+                    .and_then(|h| h.to_str().ok())
+                    .unwrap_or("")
+                    .contains("application/json")
+                {
                     return (StatusCode::BAD_REQUEST, "Invalid CSRF Token").into_response();
                 }
 
                 return Redirect::to(&uri_path).into_response();
-                        }
-                    }
-        } else {
+            }
+        }
+    } else {
         // === GET ===
         let session = match req.extensions().get::<Session>() {
             Some(s) => s,
-            None => return (StatusCode::INTERNAL_SERVER_ERROR, "Session middleware missing").into_response(),
+            None => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Session middleware missing",
+                )
+                    .into_response()
+            }
         };
 
         let existing = session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten();
@@ -113,14 +131,18 @@ pub async fn csrf_middleware(
         if let Some(t) = existing {
             t
         } else {
-            let session_id = session.id().map(|id| id.to_string()).unwrap_or_else(|| "no-session-id".to_string());
+            let session_id = session
+                .id()
+                .map(|id| id.to_string())
+                .unwrap_or_else(|| "no-session-id".to_string());
             let new_token = generate_token(&config.server.secret_key, &session_id);
             let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
             new_token
         }
     };
 
-    req.extensions_mut().insert(CsrfToken(token_to_inject.clone()));
+    req.extensions_mut()
+        .insert(CsrfToken(token_to_inject.clone()));
     let mut response = next.run(req).await;
 
     if let Ok(hv) = HeaderValue::from_str(&token_to_inject) {

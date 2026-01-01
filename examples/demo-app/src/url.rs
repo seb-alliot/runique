@@ -1,5 +1,5 @@
-use rusti::{Router, urlpatterns, view , post};
 use crate::views;
+use rusti::{post, urlpatterns, view, Router};
 
 pub fn urls() -> Router {
     urlpatterns! {

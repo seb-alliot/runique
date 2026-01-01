@@ -1,17 +1,12 @@
 // rusti/src/processor/message_processor.rs
 
-use axum::{
-    extract::FromRequestParts,
-    http::request::Parts,
-    response::Response,
-    http::StatusCode,
-};
-use std::sync::Arc;
-use tera::{Tera, Context};
+use crate::context;
 use crate::middleware::flash_message::FlashMessage;
 use crate::middleware::flash_message::FlashMessageSession;
 use crate::settings::Settings;
-use crate::context;
+use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode, response::Response};
+use std::sync::Arc;
+use tera::{Context, Tera};
 
 #[derive(Clone)]
 pub struct Template {
@@ -24,16 +19,18 @@ use crate::middleware::csrf::CsrfToken;
 
 impl<S> FromRequestParts<S> for Template
 where
-    S: Send + Sync {
+    S: Send + Sync,
+{
     type Rejection = StatusCode;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        _state: &S,
-    ) -> Result<Self, Self::Rejection> {
-        let tera_arc = parts.extensions.get::<Arc<Tera>>()
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let tera_arc = parts
+            .extensions
+            .get::<Arc<Tera>>()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-        let config_arc = parts.extensions.get::<Arc<Settings>>()
+        let config_arc = parts
+            .extensions
+            .get::<Arc<Settings>>()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let mut context = Context::new();
@@ -62,7 +59,7 @@ where
         Ok(Template {
             tera: Arc::clone(tera_arc),
             config: Arc::clone(config_arc),
-            context
+            context,
         })
     }
 }
@@ -110,7 +107,6 @@ impl Template {
         };
         self.clone().render("500", &ctx)
     }
-
 }
 
 use tower_sessions::Session;
@@ -123,10 +119,7 @@ where
 {
     type Rejection = StatusCode;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        _state: &S,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let session = parts
             .extensions
             .get::<Session>()
@@ -158,5 +151,4 @@ impl Message {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
-
 }

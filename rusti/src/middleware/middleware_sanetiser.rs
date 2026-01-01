@@ -10,8 +10,8 @@ use http_body_util::BodyExt;
 use serde_json::Value;
 use std::sync::Arc;
 
-use crate::settings::Settings;
 use crate::formulaire::sanetizer;
+use crate::settings::Settings;
 
 /// Middleware de sanitisation automatique des formulaires
 ///
@@ -34,9 +34,9 @@ pub async fn sanitize_middleware(
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
     if content_type.contains("multipart/form-data") {
-    // Pour l'instant, on ne gère pas multipart/form-data, on sépare le traitement
-    // Gestion des uploads de fichiers à part
-    return next.run(request).await;
+        // Pour l'instant, on ne gère pas multipart/form-data, on sépare le traitement
+        // Gestion des uploads de fichiers à part
+        return next.run(request).await;
     }
     // Sanitiser selon le type de contenu
     if content_type.contains("application/x-www-form-urlencoded") {

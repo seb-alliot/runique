@@ -1,14 +1,10 @@
-use serde::{Serialize, Deserialize};
 use async_trait::async_trait;
-use tower_sessions::{Session};
-use tower_sessions::session::Error as SessionError;
 use axum::{
-    response::IntoResponse,
-    response::Response,
-    http::StatusCode,
-    middleware::Next,
-    body::Body,
+    body::Body, http::StatusCode, middleware::Next, response::IntoResponse, response::Response,
 };
+use serde::{Deserialize, Serialize};
+use tower_sessions::session::Error as SessionError;
+use tower_sessions::Session;
 
 /// Représente le type d'un message flash.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,11 +78,11 @@ pub trait FlashMessageSession {
 
 #[async_trait]
 impl FlashMessageSession for Session {
-
     async fn insert_message(&mut self, message: FlashMessage) -> Result<(), SessionError> {
         // Tenter de récupérer la liste actuelle des messages (Vec<Message>)
         // Le turbofish <Vec<Message>> est nécessaire pour la désérialisation
-        let mut messages: Vec<FlashMessage> = self.get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
+        let mut messages: Vec<FlashMessage> = self
+            .get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
             .await?
             .unwrap_or_default();
         messages.push(message);
@@ -104,18 +100,14 @@ impl IntoResponse for FlashContextError {
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Erreur lors de la lecture des messages flash: {}", self.0),
         )
-        .into_response()
+            .into_response()
     }
 }
 
 /// Middleware Axum pour gérer les messages flash.
 /// Lit les messages flash de la session et les insère dans les extensions de la requête
 /// les supprime ensuite de la session pour assurer qu'ils ne sont lus qu'une seule fois.
-pub async fn flash_middleware(
-    mut req: axum::http::Request<Body>,
-    next: Next,
-) -> Response {
-
+pub async fn flash_middleware(mut req: axum::http::Request<Body>, next: Next) -> Response {
     // Étape 1 : extraire les messages sans toucher aux extensions ensuite
     let messages: Vec<FlashMessage> = {
         let session = match req.extensions_mut().get_mut::<Session>() {
@@ -124,15 +116,17 @@ pub async fn flash_middleware(
         };
 
         let messages = session
-        .get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or_default();
+            .get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default();
 
         if !messages.is_empty() {
             // Supprimer les messages après les avoir lus
-            let _ = session.remove::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY).await;
+            let _ = session
+                .remove::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
+                .await;
         }
         messages
     };

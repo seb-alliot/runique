@@ -1,7 +1,7 @@
+use crate::helpers::*;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Data, Fields};
-use crate::helpers::*;
+use syn::{parse_macro_input, Data, DeriveInput, Fields};
 
 /// Implémentation de la macro #[rusti_form]
 pub(crate) fn rusti_form_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {

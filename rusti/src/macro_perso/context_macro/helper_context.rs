@@ -1,11 +1,10 @@
-use tera::Context;
 use serde::Serialize;
 use serde_json::Value;
+use tera::Context;
 
 pub struct ContextHelper {
     inner: Context,
 }
-
 
 impl ContextHelper {
     pub fn new() -> Self {

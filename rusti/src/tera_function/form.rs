@@ -1,5 +1,5 @@
-use tera::{Tera, Value, Result as TeraResult};
 use std::collections::HashMap;
+use tera::{Result as TeraResult, Tera, Value};
 
 pub fn register_form_filter(tera: &mut Tera) {
     tera.register_filter("form_html", form_html_filter);
@@ -12,7 +12,7 @@ fn form_html_filter(value: &Value, _args: &HashMap<String, Value>) -> TeraResult
             return Ok(html.clone());
         }
     }
-    
+
     // Si pas trouvé, retourner une erreur claire
     Err(tera::Error::msg("Le formulaire n'a pas de champ 'html'. Assurez-vous que Forms implémente Serialize correctement."))
 }

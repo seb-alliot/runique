@@ -1,17 +1,14 @@
+use axum::extract::Extension;
 use axum::{
-    Router,
-    routing::post,
     body::Body,
-    http::{Request, header},
+    http::{header, Request},
     middleware,
+    routing::post,
+    Router,
 };
+use rusti::{middleware::middleware_sanetiser::sanitize_middleware, Settings};
 use std::sync::Arc;
 use tower::ServiceExt;
-use rusti::{
-    Settings,
-    middleware::middleware_sanetiser::sanitize_middleware,
-};
-use axum::extract::Extension;
 
 /// Handler de test qui retourne le body
 async fn test_handler() -> &'static str {
@@ -26,7 +23,10 @@ fn create_test_app(sanitize_enabled: bool) -> Router {
 
     Router::new()
         .route("/", post(test_handler))
-        .layer(middleware::from_fn_with_state(settings.clone(), sanitize_middleware))
+        .layer(middleware::from_fn_with_state(
+            settings.clone(),
+            sanitize_middleware,
+        ))
         .layer(Extension(settings))
 }
 
@@ -88,7 +88,10 @@ async fn test_sanitization_multipart_skipped() {
     let req = Request::builder()
         .method("POST")
         .uri("/")
-        .header(header::CONTENT_TYPE, "multipart/form-data; boundary=----WebKitFormBoundary")
+        .header(
+            header::CONTENT_TYPE,
+            "multipart/form-data; boundary=----WebKitFormBoundary",
+        )
         .body(Body::from("test"))
         .unwrap();
 

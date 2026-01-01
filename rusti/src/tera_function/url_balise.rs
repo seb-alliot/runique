@@ -1,5 +1,5 @@
-use tera::{Tera, Value, Result as TeraResult};
 use std::collections::HashMap;
+use tera::{Result as TeraResult, Tera, Value};
 
 /// Enregistre la fonction `link()` dans Tera
 pub fn register_url(tera: &mut Tera) {
@@ -38,11 +38,12 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
         .ok_or_else(|| tera::Error::msg("link() nécessite un argument 'link'"))?;
 
     // 2. Résoudre le pattern de la route
-    let pattern = crate::macro_perso::router::reverse(link_name)
-        .ok_or_else(|| tera::Error::msg(format!(
+    let pattern = crate::macro_perso::router::reverse(link_name).ok_or_else(|| {
+        tera::Error::msg(format!(
             "Route '{}' introuvable.\n\nVérifiez que la route existe dans votre urlpatterns!",
             link_name
-        )))?;
+        ))
+    })?;
 
     // 3. Extraire les placeholders attendus
     let expected_params = extract_placeholders(&pattern);
@@ -71,19 +72,19 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
             Value::String(s) => s.clone(),
             Value::Number(n) => n.to_string(),
             Value::Bool(b) => b.to_string(),
-            _ => return Err(tera::Error::msg(format!(
-                "Le paramètre '{}' a un type invalide. Utilisez String, Number ou Bool.",
-                key
-            ))),
+            _ => {
+                return Err(tera::Error::msg(format!(
+                    "Le paramètre '{}' a un type invalide. Utilisez String, Number ou Bool.",
+                    key
+                )))
+            }
         };
 
         list_params.push((key.clone(), value_str));
     }
 
     // 6. Vérifier les paramètres manquants
-    let list_keys: Vec<&str> = list_params.iter()
-        .map(|(k, _)| k.as_str())
-        .collect();
+    let list_keys: Vec<&str> = list_params.iter().map(|(k, _)| k.as_str()).collect();
 
     let missing_params: Vec<&String> = expected_params
         .iter()
@@ -91,10 +92,7 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
         .collect();
 
     if !missing_params.is_empty() {
-        let mut message = format!(
-            "Paramètres manquants pour la route '{}':\n\n",
-            link_name
-        );
+        let mut message = format!("Paramètres manquants pour la route '{}':\n\n", link_name);
         message.push_str(&format!("Pattern: {}\n\n", pattern));
         message.push_str("Paramètres requis:\n");
         for p in &expected_params {
@@ -107,7 +105,8 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
         message.push_str(&format!(
             "\nExemple: {{{{ link(link='{}', {}) }}}}\n",
             link_name,
-            expected_params.iter()
+            expected_params
+                .iter()
                 .map(|p| format!("{}=value", p))
                 .collect::<Vec<_>>()
                 .join(", ")
@@ -140,9 +139,11 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
 
     // 9. Résoudre l'URL finale
     let final_url = crate::macro_perso::router::reverse_with_parameters(link_name, &list_refs)
-        .ok_or_else(|| tera::Error::msg(format!(
-            "Impossible de construire l'URL pour '{}'",
-            link_name
-        )))?;
+        .ok_or_else(|| {
+            tera::Error::msg(format!(
+                "Impossible de construire l'URL pour '{}'",
+                link_name
+            ))
+        })?;
     Ok(Value::String(final_url))
 }

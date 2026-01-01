@@ -1,9 +1,9 @@
 // rusti/src/middleware/auth.rs
 
 use axum::{
+    extract::Request,
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
-    extract::Request,
 };
 use tower_sessions::Session;
 
@@ -13,7 +13,8 @@ pub const SESSION_USER_USERNAME_KEY: &str = "_username";
 
 /// Vérifie si l'utilisateur est authentifié
 pub async fn is_authenticated(session: &Session) -> bool {
-    session.get::<i32>(SESSION_USER_ID_KEY)
+    session
+        .get::<i32>(SESSION_USER_ID_KEY)
         .await
         .ok()
         .flatten()
@@ -22,24 +23,28 @@ pub async fn is_authenticated(session: &Session) -> bool {
 
 /// Récupère l'ID de l'utilisateur connecté
 pub async fn get_user_id(session: &Session) -> Option<i32> {
-    session.get::<i32>(SESSION_USER_ID_KEY)
-        .await
-        .ok()
-        .flatten()
+    session.get::<i32>(SESSION_USER_ID_KEY).await.ok().flatten()
 }
 
 /// Récupère le username de l'utilisateur connecté
 pub async fn get_username(session: &Session) -> Option<String> {
-    session.get::<String>(SESSION_USER_USERNAME_KEY)
+    session
+        .get::<String>(SESSION_USER_USERNAME_KEY)
         .await
         .ok()
         .flatten()
 }
 
 /// Connecte un utilisateur (stocke son ID et username en session)
-pub async fn login_user(session: &Session, user_id: i32, username: &str) -> Result<(), tower_sessions::session::Error> {
+pub async fn login_user(
+    session: &Session,
+    user_id: i32,
+    username: &str,
+) -> Result<(), tower_sessions::session::Error> {
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
-    session.insert(SESSION_USER_USERNAME_KEY, username.to_string()).await?;
+    session
+        .insert(SESSION_USER_USERNAME_KEY, username.to_string())
+        .await?;
     Ok(())
 }
 
@@ -63,11 +68,7 @@ pub async fn logout_user(session: &Session) -> Result<(), tower_sessions::sessio
 ///     .route("/profile", get(profile))
 ///     .layer(axum::middleware::from_fn(login_required));
 /// ```
-pub async fn login_required(
-    session: Session,
-    request: Request,
-    next: Next,
-) -> Response {
+pub async fn login_required(session: Session, request: Request, next: Next) -> Response {
     // Vérifier si l'utilisateur est authentifié
     if is_authenticated(&session).await {
         next.run(request).await
@@ -93,11 +94,7 @@ pub async fn login_required(
 ///     .route("/register", get(register_page))
 ///     .layer(axum::middleware::from_fn(redirect_if_authenticated));
 /// ```
-pub async fn redirect_if_authenticated(
-    session: Session,
-    request: Request,
-    next: Next,
-) -> Response {
+pub async fn redirect_if_authenticated(session: Session, request: Request, next: Next) -> Response {
     // Si déjà connecté, rediriger vers dashboard
     if is_authenticated(&session).await {
         let redirect_url = "/dashboard"; // Configurable ?
@@ -126,17 +123,15 @@ pub struct CurrentUser {
     pub username: String,
 }
 
-pub async fn load_user_middleware(
-    session: Session,
-    mut request: Request,
-    next: Next,
-) -> Response {
+pub async fn load_user_middleware(session: Session, mut request: Request, next: Next) -> Response {
     // Charger l'utilisateur si authentifié
-    if let (Some(user_id), Some(username)) = (
-        get_user_id(&session).await,
-        get_username(&session).await,
-    ) {
-        let current_user = CurrentUser { id: user_id, username };
+    if let (Some(user_id), Some(username)) =
+        (get_user_id(&session).await, get_username(&session).await)
+    {
+        let current_user = CurrentUser {
+            id: user_id,
+            username,
+        };
         request.extensions_mut().insert(current_user);
     }
 
@@ -156,7 +151,7 @@ pub async fn load_user_middleware(
 /// pub async fn has_permission(session: &Session, permission: &str) -> bool {
 ///     if let Some(user_id) = get_user_id(session).await {
 ///         // Récupérer les permissions depuis la DB
-///         true 
+///         true
 ///     } else {
 ///         false
 ///     }

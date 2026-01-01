@@ -1,5 +1,5 @@
-use serde::Serialize;
 use axum::http::StatusCode;
+use serde::Serialize;
 use std::collections::HashMap;
 
 /// Contexte complet pour les erreurs avec toutes les informations de débogage
@@ -84,11 +84,7 @@ impl ErrorContext {
     }
 
     /// Crée un ErrorContext depuis une erreur Tera
-    pub fn from_tera_error(
-        error: &tera::Error,
-        template_name: &str,
-        tera: &tera::Tera,
-    ) -> Self {
+    pub fn from_tera_error(error: &tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
         let mut ctx = Self::new(
             ErrorType::Template,
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -100,9 +96,7 @@ impl ErrorContext {
             name: template_name.to_string(),
             source: read_template_source(template_name),
             line_number: None,
-            available_templates: tera.get_template_names()
-                .map(|s| s.to_string())
-                .collect(),
+            available_templates: tera.get_template_names().map(|s| s.to_string()).collect(),
         });
 
         ctx.build_stack_trace(error);
@@ -155,7 +149,8 @@ impl ErrorContext {
             method: request.method().to_string(),
             path: request.uri().path().to_string(),
             query: request.uri().query().map(|q| q.to_string()),
-            headers: request.headers()
+            headers: request
+                .headers()
                 .iter()
                 .filter(|(k, _)| {
                     let key = k.as_str().to_lowercase();
@@ -209,7 +204,8 @@ fn rust_version() -> String {
         .get_or_init(|| {
             if let Ok(output) = Command::new("rustc").arg("--version").output() {
                 if let Ok(version) = String::from_utf8(output.stdout) {
-                    return version.split('(')
+                    return version
+                        .split('(')
                         .next()
                         .unwrap_or("N/A")
                         .trim()

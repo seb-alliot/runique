@@ -1,6 +1,5 @@
-use std::vec;
 use serde::{Deserialize, Serialize};
-
+use std::vec;
 
 /// Configuration principale de l'application Rusti
 ///
@@ -65,7 +64,8 @@ impl ServerSettings {
         let ip = env::var("IP_SERVER").unwrap_or_else(|_| "127.0.0.1".to_string());
         let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
         let domain_server = format!("{}:{}", ip, port);
-        let secret_key = env::var("SECRET_KEY").unwrap_or_else(|_| "default_secret_key".to_string());
+        let secret_key =
+            env::var("SECRET_KEY").unwrap_or_else(|_| "default_secret_key".to_string());
 
         ServerSettings {
             ip_server: ip,
@@ -98,13 +98,9 @@ impl ServerSettings {
                     .filter(|h| !h.is_empty())
                     .collect()
             })
-            .unwrap_or_else(|| vec![
-                String::from("localhost"),
-                String::from("127.0.0.1")
-            ])
+            .unwrap_or_else(|| vec![String::from("localhost"), String::from("127.0.0.1")])
     }
 }
-
 
 impl Settings {
     /// Crée une configuration avec valeurs par défaut
@@ -187,9 +183,10 @@ impl Settings {
                 );
             }
 
-            let only_local = self.allowed_hosts.iter().all(|h| {
-                h == "localhost" || h == "127.0.0.1" || h == "::1"
-            });
+            let only_local = self
+                .allowed_hosts
+                .iter()
+                .all(|h| h == "localhost" || h == "127.0.0.1" || h == "::1");
 
             if only_local {
                 eprintln!(
@@ -309,7 +306,12 @@ impl SettingsBuilder {
         self
     }
 
-    pub fn server(mut self, ip: impl Into<String>, port: u16, secret_key: impl Into<String>) -> Self {
+    pub fn server(
+        mut self,
+        ip: impl Into<String>,
+        port: u16,
+        secret_key: impl Into<String>,
+    ) -> Self {
         let ip_val = ip.into();
         self.settings.server = ServerSettings {
             ip_server: ip_val.clone(),

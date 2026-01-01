@@ -1,9 +1,8 @@
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::RwLock;
-use once_cell::sync::Lazy;
 
-static NAME_URL: Lazy<RwLock<HashMap<String, String>>> =
-    Lazy::new(|| RwLock::new(HashMap::new()));
+static NAME_URL: Lazy<RwLock<HashMap<String, String>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
 pub fn register_name_url(name: impl Into<String>, path: impl Into<String>) {
     let mut name_url_map = NAME_URL.write().unwrap();
@@ -15,9 +14,7 @@ pub fn reverse(name: &str) -> Option<String> {
     name_url_map.get(name).cloned()
 }
 
-
 pub fn reverse_with_parameters(name: &str, parameters: &[(&str, &str)]) -> Option<String> {
-
     let path = reverse(name)?;
 
     Some(parameters.iter().fold(path, |acc, (key, value)| {

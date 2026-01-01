@@ -1,7 +1,7 @@
-use sea_orm::{ConnectOptions, DatabaseConnection, Database, DbErr};
-use std::time::Duration;
 use dotenvy::dotenv;
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use std::env;
+use std::time::Duration;
 
 /// Configuration avancée de la base de données
 #[derive(Debug, Clone)]
@@ -70,7 +70,7 @@ impl DatabaseConfig {
                 idle_timeout: Duration::from_secs(300),
                 max_lifetime: Duration::from_secs(3600),
                 sqlx_logging: true,
-            }
+            },
         })
     }
 
@@ -78,8 +78,7 @@ impl DatabaseConfig {
     pub fn from_env() -> Result<DatabaseConfigBuilder, String> {
         dotenv().ok();
 
-        let engine = env::var("DB_ENGINE")
-            .unwrap_or_else(|_| "sqlite".to_string());
+        let engine = env::var("DB_ENGINE").unwrap_or_else(|_| "sqlite".to_string());
 
         let url = match engine.as_str() {
             "postgres" | "postgresql" | "mysql" | "mariadb" => {
@@ -126,8 +125,7 @@ impl DatabaseConfig {
         tracing::info!("🔌 Connecting to {} database...", self.engine.name());
 
         // Vérification que le driver est activé
-        verify_database_driver(&self.engine)
-            .map_err(|e| DbErr::Custom(e))?;
+        verify_database_driver(&self.engine).map_err(|e| DbErr::Custom(e))?;
 
         let mut opt = ConnectOptions::new(&self.url);
 
@@ -168,57 +166,53 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
     match engine {
         DatabaseEngine::PostgreSQL => {
             #[cfg(not(feature = "postgres"))]
-            return Err(
-                "❌ PostgreSQL driver not enabled.\n\n\
+            return Err("❌ PostgreSQL driver not enabled.\n\n\
                 To fix this, add the 'postgres' feature to rusti in your Cargo.toml:\n\n\
                 [dependencies]\n\
                 rusti = { version = \"0.1\", features = [\"postgres\"] }\n\n\
                 Or enable all databases:\n\
-                rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
-            );
+                rusti = { version = \"0.1\", features = [\"all-databases\"] }"
+                .to_string());
 
             #[cfg(feature = "postgres")]
-            Ok(())  
+            Ok(())
         }
         DatabaseEngine::MySQL => {
             #[cfg(not(feature = "mysql"))]
-            return Err(
-                "❌ MySQL driver not enabled.\n\n\
+            return Err("❌ MySQL driver not enabled.\n\n\
                 To fix this, add the 'mysql' feature to rusti in your Cargo.toml:\n\n\
                 [dependencies]\n\
                 rusti = { version = \"0.1\", features = [\"mysql\"] }\n\n\
                 Or enable all databases:\n\
-                rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
-            );
+                rusti = { version = \"0.1\", features = [\"all-databases\"] }"
+                .to_string());
 
             #[cfg(feature = "mysql")]
             Ok(())
         }
         DatabaseEngine::MariaDB => {
             #[cfg(not(feature = "mariadb"))]
-            return Err(
-                "❌ MariaDB driver not enabled.\n\n\
+            return Err("❌ MariaDB driver not enabled.\n\n\
                 To fix this, add the 'mariadb' feature to rusti in your Cargo.toml:\n\n\
                 [dependencies]\n\
                 rusti = { version = \"0.1\", features = [\"mariadb\"] }\n\n\
                 Note: MariaDB uses the MySQL driver.\n\n\
                 Or enable all databases:\n\
-                rusti = { version = \"0.1\", features = [\"all-databases\"] }".to_string()
-            );
+                rusti = { version = \"0.1\", features = [\"all-databases\"] }"
+                .to_string());
 
             #[cfg(feature = "mariadb")]
             Ok(())
         }
         DatabaseEngine::SQLite => {
             #[cfg(not(feature = "sqlite"))]
-            return Err(
-                "❌ SQLite driver not enabled.\n\n\
+            return Err("❌ SQLite driver not enabled.\n\n\
                 To fix this, add the 'sqlite' feature to rusti in your Cargo.toml:\n\n\
                 [dependencies]\n\
                 rusti = { version = \"0.1\", features = [\"sqlite\"] }\n\n\
                 Or use the default features (SQLite is enabled by default):\n\
-                rusti = \"0.1\"".to_string()
-            );
+                rusti = \"0.1\""
+                .to_string());
 
             #[cfg(feature = "sqlite")]
             Ok(())
@@ -266,12 +260,12 @@ impl DatabaseConfigBuilder {
 /// Masque le mot de passe dans l'URL pour les logs
 fn mask_password(url: &str) -> String {
     if let Some(idx) = url.find("://") {
-        if let Some(at_idx) = url[idx+3..].find('@') {
-            let before = &url[..idx+3];
-            let after = &url[idx+3+at_idx..];
+        if let Some(at_idx) = url[idx + 3..].find('@') {
+            let before = &url[..idx + 3];
+            let after = &url[idx + 3 + at_idx..];
 
-            if let Some(colon) = url[idx+3..idx+3+at_idx].find(':') {
-                let user = &url[idx+3..idx+3+colon];
+            if let Some(colon) = url[idx + 3..idx + 3 + at_idx].find(':') {
+                let user = &url[idx + 3..idx + 3 + colon];
                 return format!("{}{}:****{}", before, user, after);
             }
         }

@@ -1,12 +1,7 @@
-use axum::{
-    body::Body,
-    extract::FromRequest,
-    http::Request,
-    response::Response,
-};
+use crate::formulaire::formsrusti::RustiForm;
+use axum::{body::Body, extract::FromRequest, http::Request, response::Response};
 use http_body_util::BodyExt;
 use std::collections::HashMap;
-use crate::formulaire::formsrusti::RustiForm;
 
 pub struct ExtractForm<T>(pub T);
 
@@ -19,17 +14,21 @@ where
 
     async fn from_request(mut req: Request<Body>, _state: &S) -> Result<Self, Self::Rejection> {
         // Lire le body brut
-        let bytes = req.body_mut()
+        let bytes = req
+            .body_mut()
             .collect()
             .await
-            .map_err(|_| Response::builder()
-                .status(400)
-                .body(Body::from("Failed to read body"))
-                .unwrap())?
+            .map_err(|_| {
+                Response::builder()
+                    .status(400)
+                    .body(Body::from("Failed to read body"))
+                    .unwrap()
+            })?
             .to_bytes();
 
         // Parser selon le Content-Type
-        let parsed: HashMap<String, String> = match req.headers()
+        let parsed: HashMap<String, String> = match req
+            .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
         {

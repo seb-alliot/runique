@@ -1,13 +1,8 @@
-use tower_sessions::Session;
-use axum::{
-    response::Response,
-    middleware::Next,
-    http::HeaderValue,
-    extract::Request,
-};
-use std::sync::Arc;
 use crate::settings::Settings;
 use crate::utils::generate_token;
+use axum::{extract::Request, http::HeaderValue, middleware::Next, response::Response};
+use std::sync::Arc;
+use tower_sessions::Session;
 
 pub const NONCE_KEY: &str = "csp_nonce";
 
@@ -23,7 +18,7 @@ pub struct CspConfig {
     pub frame_ancestors: Vec<String>,
     pub base_uri: Vec<String>,
     pub form_action: Vec<String>,
-    pub use_nonce: bool, 
+    pub use_nonce: bool,
 }
 
 impl Default for CspConfig {
@@ -65,9 +60,17 @@ impl CspConfig {
     pub fn permissive() -> Self {
         Self {
             default_src: vec!["'self'".to_string()],
-            script_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string(), "'unsafe-eval'".to_string()],
+            script_src: vec![
+                "'self'".to_string(),
+                "'unsafe-inline'".to_string(),
+                "'unsafe-eval'".to_string(),
+            ],
             style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
-            img_src: vec!["'self'".to_string(), "data:".to_string(), "https:".to_string()],
+            img_src: vec![
+                "'self'".to_string(),
+                "data:".to_string(),
+                "https:".to_string(),
+            ],
             font_src: vec!["'self'".to_string(), "data:".to_string()],
             connect_src: vec!["'self'".to_string()],
             frame_ancestors: vec!["'self'".to_string()],
@@ -117,7 +120,10 @@ impl CspConfig {
             directives.push(format!("connect-src {}", self.connect_src.join(" ")));
         }
         if !self.frame_ancestors.is_empty() {
-            directives.push(format!("frame-ancestors {}", self.frame_ancestors.join(" ")));
+            directives.push(format!(
+                "frame-ancestors {}",
+                self.frame_ancestors.join(" ")
+            ));
         }
         if !self.base_uri.is_empty() {
             directives.push(format!("base-uri {}", self.base_uri.join(" ")));
@@ -156,10 +162,9 @@ pub async fn csp_middleware(
     // Ajouter l'en-tête CSP
     let csp_value = config.to_header_value(None);
     if let Ok(header_value) = HeaderValue::from_str(&csp_value) {
-        response.headers_mut().insert(
-            axum::http::header::CONTENT_SECURITY_POLICY,
-            header_value,
-        );
+        response
+            .headers_mut()
+            .insert(axum::http::header::CONTENT_SECURITY_POLICY, header_value);
     }
 
     response
@@ -204,7 +209,10 @@ pub async fn security_headers_middleware(
         None => return next.run(request).await,
     };
     let nonce = if csp_config.use_nonce {
-        Some(generate_token(&config.server.secret_key, &session.id().unwrap_or_default().to_string()))
+        Some(generate_token(
+            &config.server.secret_key,
+            &session.id().unwrap_or_default().to_string(),
+        ))
     } else {
         None
     };
@@ -219,10 +227,7 @@ pub async fn security_headers_middleware(
     // Content Security Policy avec nonce
     let csp_value = csp_config.to_header_value(nonce.as_deref());
     if let Ok(header_value) = HeaderValue::from_str(&csp_value) {
-        headers.insert(
-            axum::http::header::CONTENT_SECURITY_POLICY,
-            header_value,
-        );
+        headers.insert(axum::http::header::CONTENT_SECURITY_POLICY, header_value);
     }
 
     // X-Content-Type-Options

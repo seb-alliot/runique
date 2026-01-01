@@ -2,15 +2,15 @@ use proc_macro::TokenStream;
 
 // Modules PRIVÉS (pas de pub)
 mod forms;
-mod models;
 mod helpers;
+mod models;
 
 // ==================== MACROS PUBLIQUES ====================
 
 /// Macro #[rusti_form]
 #[proc_macro_attribute]
 pub fn rusti_form(attr: TokenStream, item: TokenStream) -> TokenStream {
-    forms::rusti_form_impl(attr, item) 
+    forms::rusti_form_impl(attr, item)
 }
 
 /// Macro #[derive(DeriveModelForm)]

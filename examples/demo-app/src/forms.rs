@@ -1,10 +1,10 @@
-use rusti::formulaire::formsrusti::{Forms, RustiForm};
 use rusti::formulaire::field::CharField;
+use rusti::formulaire::formsrusti::{Forms, RustiForm};
+use rusti::serde::ser::{SerializeStruct, Serializer};
 use rusti::serde::{Deserialize, Serialize};
-use rusti::serde::ser::{Serializer, SerializeStruct};
 use std::collections::HashMap;
 
-#[derive(Deserialize)]  // ← Seulement Deserialize
+#[derive(Deserialize)] // ← Seulement Deserialize
 pub struct UsernameForm {
     pub form: Forms,
 }
@@ -16,29 +16,28 @@ impl Serialize for UsernameForm {
         S: Serializer,
     {
         let mut state = serializer.serialize_struct("UsernameForm", 1)?;
-        state.serialize_field("form_html", &self.form)?;  
+        state.serialize_field("form_html", &self.form)?;
         state.end()
     }
 }
-
 
 impl RustiForm for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.register_field("username", "Nom d'utilisateur", &CharField::new());
     }
-    
+
     fn validate_fields(form: &mut Forms, raw_data: &HashMap<String, String>) {
         form.require("username", &CharField::new(), raw_data);
     }
-    
+
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    
+
     fn get_form(&self) -> &Forms {
         &self.form
     }
-    
+
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }

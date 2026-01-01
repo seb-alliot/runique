@@ -1,16 +1,9 @@
-use sea_orm::{
-    ColumnTrait,
-    Condition,
-    DatabaseConnection,
-    DbErr,
-    EntityTrait,
-    QueryFilter,
-    QueryOrder,
-    QuerySelect,
-    Select,
-};
 use crate::processor::processor::Template;
 use axum::response::Response;
+use sea_orm::{
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, Select,
+};
 /// Wrapper pour Select avec méthodes pratiques et chainables
 ///
 /// Cette struct encapsule un `Select<E>` de SeaORM et fournit

@@ -1,8 +1,8 @@
-use sea_orm::{EntityTrait, Condition, DatabaseConnection, DbErr};
-use std::marker::PhantomData;
 use super::query::RustiQueryBuilder;
 use crate::processor::processor::Template;
 use axum::response::Response;
+use sea_orm::{Condition, DatabaseConnection, DbErr, EntityTrait};
+use std::marker::PhantomData;
 
 /// Struct qui encapsule la logique "objects"
 ///
@@ -71,9 +71,7 @@ impl<E: EntityTrait> Objects<E> {
         E::find_by_id(id)
             .one(db)
             .await?
-            .ok_or(DbErr::RecordNotFound(
-                "Record not found".to_string()
-            ))
+            .ok_or(DbErr::RecordNotFound("Record not found".to_string()))
     }
 
     /// Récupère un enregistrement par ID (None si non trouvé)

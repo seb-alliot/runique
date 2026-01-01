@@ -1,5 +1,5 @@
-use sea_orm::{entity::prelude::*, DatabaseConnection, Database, DbErr, Set};
 use rusti::impl_objects;
+use sea_orm::{entity::prelude::*, Database, DatabaseConnection, DbErr, Set};
 
 // ========================================
 // Mock Entity pour les tests
@@ -34,8 +34,7 @@ fn test_objects_without_parentheses() {
 
 #[test]
 fn test_filter_without_parentheses() {
-    let _query = Entity::objects
-        .filter(Column::Age.gte(18));
+    let _query = Entity::objects.filter(Column::Age.gte(18));
 
     println!("Entity::objects.filter() fonctionne (sans parenthèses)");
 }
@@ -88,7 +87,10 @@ async fn test_objects_all() -> Result<(), DbErr> {
 
     let users = Entity::objects.all().all(&db).await?;
     assert_eq!(users.len(), 2);
-    println!("objects.all().all() fonctionne : {} utilisateurs", users.len());
+    println!(
+        "objects.all().all() fonctionne : {} utilisateurs",
+        users.len()
+    );
 
     Ok(())
 }
@@ -111,14 +113,14 @@ async fn test_objects_filter() -> Result<(), DbErr> {
     young.insert(&db).await?;
     adult.insert(&db).await?;
 
-    let adults = Entity::objects
-        .filter(Column::Age.gte(18))
-        .all(&db)
-        .await?;
+    let adults = Entity::objects.filter(Column::Age.gte(18)).all(&db).await?;
 
     assert_eq!(adults.len(), 1);
     assert_eq!(adults[0].username, "adult");
-    println!("objects.filter() fonctionne : {} adulte trouvé", adults.len());
+    println!(
+        "objects.filter() fonctionne : {} adulte trouvé",
+        adults.len()
+    );
 
     Ok(())
 }
@@ -148,7 +150,10 @@ async fn test_objects_exclude() -> Result<(), DbErr> {
 
     assert_eq!(active_users.len(), 1);
     assert_eq!(active_users[0].username, "alice");
-    println!("objects.exclude() fonctionne : {} utilisateur actif", active_users.len());
+    println!(
+        "objects.exclude() fonctionne : {} utilisateur actif",
+        active_users.len()
+    );
 
     Ok(())
 }
@@ -167,7 +172,10 @@ async fn test_objects_get() -> Result<(), DbErr> {
 
     let found = Entity::objects.get(&db, inserted.id).await?;
     assert_eq!(found.username, "test");
-    println!("objects.get() fonctionne : utilisateur '{}'", found.username);
+    println!(
+        "objects.get() fonctionne : utilisateur '{}'",
+        found.username
+    );
 
     Ok(())
 }

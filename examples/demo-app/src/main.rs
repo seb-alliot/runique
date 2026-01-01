@@ -1,18 +1,11 @@
-use rusti::{
-    RustiApp,
-    Settings,
-    DatabaseConfig,
-    tokio,
-    CspConfig,
-};
+use rusti::{tokio, CspConfig, DatabaseConfig, RustiApp, Settings};
+mod forms;
+mod models;
 mod url;
 mod views;
-mod models;
-mod forms;
 
 use std::env;
 // use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,19 +32,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .templates_dir(vec!["templates".to_string()])
         .server("127.0.0.1", 3000, "change_your_secrete_key")
         .build();
-        settings.validate_allowed_hosts();
+    settings.validate_allowed_hosts();
 
     let host = env::var("ALLOWED_HOSTS").unwrap_or_else(|_| "localhost,".to_string());
     println!("Allowed hosts: {}", host);
 
     // Créer et lancer l'application
-    RustiApp::new(settings).await?
+    RustiApp::new(settings)
+        .await?
         .routes(url::urls())
         .with_database(db)
         .with_static_files()?
-        .with_allowed_hosts(env::var("ALLOWED_HOSTS")
-            .ok()
-            .map(|s| s.split(',').map(|h| h.to_string()).collect()))
+        .with_allowed_hosts(
+            env::var("ALLOWED_HOSTS")
+                .ok()
+                .map(|s| s.split(',').map(|h| h.to_string()).collect()),
+        )
         .with_sanitize_text_inputs(false)
         .with_security_headers(CspConfig::strict())
         .with_default_middleware()

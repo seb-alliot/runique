@@ -1,26 +1,17 @@
+use axum::middleware;
 use axum::{
-    response::IntoResponse,
-    http::StatusCode,
-    extract::Request,
-    middleware::Next,
-    body::Body,
+    body::Body, extract::Request, http::StatusCode, middleware::Next, response::IntoResponse,
     response::Response,
 };
-use tower_sessions::session::Session;
-use axum::middleware;
 use rusti::middleware::flash_message::FlashMessage;
 use rusti::middleware::flash_message::FlashMessageSession;
 use rusti::middleware::flash_middleware;
-
+use tower_sessions::session::Session;
 
 /// Clé de session pour stocker les messages flash
 pub const FLASH_MESSAGES_KEY: &str = "flash_messages";
 
-pub async fn test(
-    mut req: axum::http::Request<Body>,
-    next: Next,
-) -> Response {
-
+pub async fn test(mut req: axum::http::Request<Body>, next: Next) -> Response {
     // Étape 1 : extraire les messages sans toucher aux extensions ensuite
     let messages = {
         let session = match req.extensions_mut().get_mut::<Session>() {
@@ -29,15 +20,17 @@ pub async fn test(
         };
 
         let messages = session
-        .get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or_default();
+            .get::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default();
 
         if !messages.is_empty() {
             // Supprimer les messages après les avoir lus
-            let _ = session.remove::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY).await;
+            let _ = session
+                .remove::<Vec<FlashMessage>>(FLASH_MESSAGES_KEY)
+                .await;
         }
         messages
     };
@@ -47,7 +40,6 @@ pub async fn test(
     }
     next.run(req).await
 }
-
 
 /// Handler pour définir un message flash
 /// Utilisé pour les tests
@@ -67,24 +59,20 @@ async fn read_flash(req: Request) -> impl IntoResponse {
         .cloned()
         .unwrap_or_default();
 
-    (
-        StatusCode::OK,
-        format!("messages={}", messages.len()),
-    )
+    (StatusCode::OK, format!("messages={}", messages.len()))
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use axum::{
-        Router,
-        routing::get,
         body::Body,
         http::{Request, StatusCode},
+        routing::get,
+        Router,
     };
     use tower::ServiceExt;
-    use tower_sessions::{SessionManagerLayer, MemoryStore};
+    use tower_sessions::{MemoryStore, SessionManagerLayer};
 
     #[tokio::test]
     async fn flash_middleware_injects_messages() {
@@ -103,12 +91,7 @@ mod tests {
         // 1 écrire le flash
         let res1 = app
             .clone()
-            .oneshot(
-                Request::builder()
-                    .uri("/set")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri("/set").body(Body::empty()).unwrap())
             .await
             .unwrap();
 

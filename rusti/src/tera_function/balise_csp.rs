@@ -1,8 +1,8 @@
 // rusti/src/tera_function/nonce_balise.rs
 
-use tera::{Result as TeraResult};
 use std::collections::HashMap;
-use tera::{Value};
+use tera::Result as TeraResult;
+use tera::Value;
 
 /// Fonction Tera pour générer l'attribut nonce dans les templates
 ///
@@ -26,5 +26,5 @@ pub fn nonce_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
         }
     }
 
-        Ok(Value::String(String::new()))
-    }
+    Ok(Value::String(String::new()))
+}

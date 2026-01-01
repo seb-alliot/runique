@@ -1,6 +1,6 @@
 use axum::{
-    response::{Response, IntoResponse, Html},
     http::StatusCode,
+    response::{Html, IntoResponse, Response},
 };
 use tera::Tera;
 
@@ -33,8 +33,7 @@ pub fn render_404(tera: &Tera) -> Response {
 
 /// Fallback HTML pour erreur 404
 pub fn fallback_404_html() -> Response {
-    let html =
-    r#"<!DOCTYPE html>
+    let html = r#"<!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">

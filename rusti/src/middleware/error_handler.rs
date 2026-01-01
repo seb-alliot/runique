@@ -1,13 +1,13 @@
-use axum::{
-    response::{Response, IntoResponse, Html},
-    http::StatusCode,
-    extract::{Request, Extension},
-    middleware::Next,
-};
-use tera::{Tera, Context};
-use std::sync::Arc;
-use crate::settings::Settings;
 use crate::error::ErrorContext;
+use crate::settings::Settings;
+use axum::{
+    extract::{Extension, Request},
+    http::StatusCode,
+    middleware::Next,
+    response::{Html, IntoResponse, Response},
+};
+use std::sync::Arc;
+use tera::{Context, Tera};
 
 pub async fn error_handler_middleware(
     Extension(tera): Extension<Arc<Tera>>,
@@ -56,15 +56,8 @@ pub fn render_template(
     }
 }
 
-fn render_production_error(
-    tera: &Tera,
-    error: &tera::Error,
-    config: &Settings,
-) -> Response {
-    let is_not_found = matches!(
-        &error.kind,
-        tera::ErrorKind::TemplateNotFound(_)
-    );
+fn render_production_error(tera: &Tera, error: &tera::Error, config: &Settings) -> Response {
+    let is_not_found = matches!(&error.kind, tera::ErrorKind::TemplateNotFound(_));
 
     if is_not_found {
         tracing::warn!("Template not found in production mode");
@@ -367,12 +360,7 @@ cargo add rusti</code></pre>
     (StatusCode::OK, Html(html)).into_response()
 }
 
-fn critical_error_html(
-    error: &str,
-    tera: &Tera,
-    context: &Context,
-    config: &Settings,
-) -> Response {
+fn critical_error_html(error: &str, tera: &Tera, context: &Context, config: &Settings) -> Response {
     let mut context = context.clone();
     context.insert("static_rusti", &config.static_rusti_url);
 
@@ -425,5 +413,9 @@ fn critical_error_html(
 }
 
 fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&#x27;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
 }

@@ -1,5 +1,5 @@
 use quote::{quote, ToTokens};
-use syn::{Data, Fields, Field, Attribute};
+use syn::{Attribute, Data, Field, Fields};
 
 // ==================== HELPERS PARTAGÉS ====================
 
@@ -103,7 +103,7 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
     let field_name = field.ident.as_ref().unwrap().to_string();
     let ty = &field.ty;
     let ty_str = quote!(#ty).to_string().replace(" ", "");
-    
+
     // Détection par nom de champ (priorité haute)
     if field_name.contains("email") {
         return quote! { ::rusti::formulaire::field::EmailField };
@@ -117,51 +117,56 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
     if field_name.contains("slug") {
         return quote! { ::rusti::formulaire::field::SlugField };
     }
-    
+
     // Enlever Option<> si présent
-    let base_type = ty_str.replace("Option<", "").replace(">", "").trim().to_string();
-    
+    let base_type = ty_str
+        .replace("Option<", "")
+        .replace(">", "")
+        .trim()
+        .to_string();
+
     // Détection par type
     if base_type.contains("String") {
         // Vérifier si c'est un TextField
-        if field_name.contains("description") || 
-           field_name.contains("bio") || 
-           field_name.contains("content") || 
-           field_name.contains("text") ||
-           field_name.contains("message") {
+        if field_name.contains("description")
+            || field_name.contains("bio")
+            || field_name.contains("content")
+            || field_name.contains("text")
+            || field_name.contains("message")
+        {
             return quote! { ::rusti::formulaire::field::TextField::new() };
         }
         return quote! { ::rusti::formulaire::field::CharField::new() };
     }
-    
+
     if base_type.contains("i32") || base_type.contains("i64") {
         return quote! { ::rusti::formulaire::field::IntegerField };
     }
-    
+
     if base_type.contains("f32") || base_type.contains("f64") {
         return quote! { ::rusti::formulaire::field::FloatField };
     }
-    
+
     if base_type.contains("bool") {
         return quote! { ::rusti::formulaire::field::BooleanField };
     }
-    
+
     if base_type.contains("DateTime") || base_type.contains("NaiveDateTime") {
         return quote! { ::rusti::formulaire::field::DateTimeField };
     }
-    
+
     if base_type.contains("NaiveDate") || base_type.contains("Date") {
         return quote! { ::rusti::formulaire::field::DateField };
     }
-    
+
     if base_type.contains("IpAddr") {
         return quote! { ::rusti::formulaire::field::IPAddressField };
     }
-    
+
     if base_type.contains("Value") || base_type.contains("Json") {
         return quote! { ::rusti::formulaire::field::JSONField };
     }
-    
+
     // Par défaut: CharField
     quote! { ::rusti::formulaire::field::CharField::new() }
 }
@@ -184,7 +189,11 @@ pub(crate) fn infer_field_type(field: &Field) -> proc_macro2::TokenStream {
     }
 
     // Détection par type
-    let base_type = ty_str.replace("Option < ", "").replace(" >", "").trim().to_string();
+    let base_type = ty_str
+        .replace("Option < ", "")
+        .replace(" >", "")
+        .trim()
+        .to_string();
     match base_type.as_str() {
         "String" => quote! { rusti::formulaire::field::CharField { allow_blank: false } },
         "i32" | "i64" => quote! { rusti::formulaire::field::IntegerField },
@@ -224,8 +233,12 @@ pub(crate) fn generate_conversion(field: &Field) -> proc_macro2::TokenStream {
     }
 
     // Types standards
-    let base_type = ty_str.replace("Option<", "").replace(">", "").trim().to_string();
-    
+    let base_type = ty_str
+        .replace("Option<", "")
+        .replace(">", "")
+        .trim()
+        .to_string();
+
     if base_type.contains("i32") {
         quote! {
             #field_name: Set(self.get_value::<i64>(#field_name_str).unwrap_or(0) as i32),
