@@ -46,14 +46,14 @@ impl RustiApp {
             regex::Regex::new(r#"\{%\s*(?P<tag>static|media)\s*['"](?P<link>[^'"]+)['"]\s*%}"#)
                 .unwrap();
         let link_regex = regex::Regex::new(
-            r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#
-                ).unwrap();
+            r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#,
+        )
+        .unwrap();
         for dir_string in &config.templates_dir {
             let template_dir = std::path::Path::new(dir_string);
             let pattern = format!("{}/**/*.html", template_dir.display());
 
             if let Ok(paths) = glob::glob(&pattern) {
-
                 for entry in paths.flatten() {
                     let mut content = std::fs::read_to_string(&entry)?;
 
@@ -62,7 +62,6 @@ impl RustiApp {
                     content = content.replace("{{ csp }}", r#"{% include "csp" %}"#);
 
                     // Transformation unifiée pour {% link "name" %}
-
 
                     content = link_regex
                         .replace_all(&content, |caps: &regex::Captures| {
