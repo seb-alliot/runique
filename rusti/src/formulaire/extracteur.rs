@@ -6,13 +6,14 @@ use axum::{
 };
 use http_body_util::BodyExt;
 use std::collections::HashMap;
+use crate::formulaire::formsrusti::RustiForm;
 
 pub struct ExtractForm<T>(pub T);
 
 impl<S, T> FromRequest<S> for ExtractForm<T>
 where
     S: Send + Sync,
-    T: crate::formulaire::formsrusti::FormulaireTrait,
+    T: RustiForm,
 {
     type Rejection = Response;
 
@@ -41,9 +42,8 @@ where
             _ => HashMap::new(),
         };
 
-        // Créer et valider le formulaire
-        let mut form = T::new();
-        form.validate(&parsed);
+        // Créer et valider le formulaire avec RustiForm
+        let form = T::build_with_data(&parsed);
 
         Ok(ExtractForm(form))
     }

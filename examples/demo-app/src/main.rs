@@ -28,6 +28,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connexion à la base de données
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
+    print!("Connected to database {}", db_config.engine.name());
+
     // Configuration de l'application !!
     // Vous pouvez personnaliser les paramètres du settings ici
     // La clef secrète doit être changée pour la production( secret_key dans the server)
@@ -37,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .templates_dir(vec!["templates".to_string()])
         .server("127.0.0.1", 3000, "change_your_secrete_key")
         .build();
-    settings.validate_allowed_hosts();
+        settings.validate_allowed_hosts();
 
     let host = env::var("ALLOWED_HOSTS").unwrap_or_else(|_| "localhost,".to_string());
     println!("Allowed hosts: {}", host);
@@ -51,8 +53,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .ok()
             .map(|s| s.split(',').map(|h| h.to_string()).collect()))
         .with_sanitize_text_inputs(false)
-        .with_csrf_tokens()
-        .with_flash_messages()
         .with_security_headers(CspConfig::strict())
         .with_default_middleware()
         .run()

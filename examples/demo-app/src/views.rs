@@ -1,14 +1,5 @@
 use rusti::{
-    ExtractForm,
-    IntoResponse,
-    Message,
-    Redirect,
-    Response,
-    Template,
-    reverse_with_parameters,
-    DatabaseConnection,
-    context,
-    ColumnTrait,
+    ColumnTrait, DatabaseConnection, ExtractForm, IntoResponse, Message, Redirect, Response, RustiForm, Template, context, reverse_with_parameters
 };
 //     get_or_return, a utilisé pour récupérer ou retourner une réponse d'erreur
 
@@ -33,33 +24,18 @@ pub async fn index(template: Template) -> Response {
     template.render("index.html", &ctx)
 }
 
-/// Page "À propos"
-pub async fn about(
-    template: Template,
-    mut message: Message,
-) -> Response {
-    message.success("Ceci est un message de succès de test.").await.unwrap();
-    message.info("Ceci est un message d'information de test.").await.unwrap();
-    message.error("Ceci est un message d'erreur de test.").await.unwrap();
-
-    let ctx = context!{
-        "title", "À propos de Rusti Framework";
-        "content", "Rusti est un framework web inspiré de Django, construit sur Axum et Tera."
-    };
-    template.render("about/about.html", &ctx)
-}
-
-/// GET - Afficher le profil utilisateur
 pub async fn user_profile(
     template: Template,
+    ExtractForm(form): ExtractForm<ModelForm>,
 ) -> Response {
-    let ctx = context!()
-        .add("title", "Profil Utilisateur");
-
+    let ctx = context!{
+        "title", "Profil Utilisateur";
+        "form", form
+    };
     template.render("profile/register_profile.html", &ctx)
 }
 
-/// POST - Traiter le formulaire de profil
+/// GET - Afficher le profil utilisateur
 pub async fn user_profile_submit(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
@@ -69,17 +45,11 @@ pub async fn user_profile_submit(
     if user.is_valid() {
         match user.save(&*db).await {
             Ok(created_user) => {
-                message.success(format!(
-                    "Utilisateur {} créé avec ID {} !",
-                    created_user.username,
-                    created_user.id
-                )).await.unwrap();
-
+                message.success("Profil utilisateur créé avec succès !").await.unwrap();
                 let target = reverse_with_parameters(
                     "user_profile",
                     &[("id", &created_user.id.to_string()), ("name", &created_user.username)]
                 ).unwrap();
-
                 return Redirect::to(&target).into_response();
             }
             Err(err) => {
@@ -94,33 +64,31 @@ pub async fn user_profile_submit(
                 } else {
                     "Erreur lors de la sauvegarde"
                 };
-
                 message.error(error_msg).await.unwrap();
-
                 let ctx = context!{
-                "form", &user;
-                "title", "Profil";
-                "db_error", error_msg
+                    "form", ModelForm::build();  
+                    "forms_errors", user.get_errors();
+                    "title", "Profil";
+                    "db_error", error_msg
                 };
                 return template.render("profile/register_profile.html", &ctx);
             }
         }
     }
-
     message.error("Veuillez corriger les erreurs du formulaire").await.unwrap();
-
     let ctx = context!{
-        "form", &user;
+        "form", ModelForm::build();  // ← Change ici !
+        "forms_errors", user.get_errors();  // ← Ajoute les erreurs
         "title", "Erreur de validation"
     };
-
     template.render("profile/register_profile.html", &ctx)
 }
 
 /// GET - Affiche la page avec le formulaire de recherche
 pub async fn user(template: Template) -> Response {
     let ctx = context!{
-        "title", "Rechercher un utilisateur"
+        "title", "Rechercher un utilisateur";
+        "form", UsernameForm::build()
     };
     template.render("profile/view_user.html", &ctx)
 }
@@ -145,7 +113,8 @@ pub async fn view_user(
                 "title", "Vue Utilisateur";
                 "username", &user.username;
                 "email", &user.email;
-                "age", user.age
+                "age", user.age;
+                "form", UsernameForm::build()
             };
             template.render("profile/view_user.html", &ctx)
         }
@@ -153,8 +122,6 @@ pub async fn view_user(
             // Aucun utilisateur trouvé - 200 OK avec message
             let ctx = context!{
                 "title", "Utilisateur non trouvé";
-                "searched_username", &name;
-                "message", format!("Aucun utilisateur trouvé pour '{}'", name)
             };
             template.render("profile/view_user.html", &ctx)
         }
@@ -165,13 +132,22 @@ pub async fn view_user(
     }
 }
 
-/// Page spéciale sapin de Noël
-pub async fn about_sapin(template: Template) -> Response {
-    let ctx = context!()
-    .add("title", "Sapin de Noël avec Rusti");
+/// Page "À propos"
+pub async fn about(
+    template: Template,
+    mut message: Message,
+) -> Response {
+    message.success("Ceci est un message de succès de test.").await.unwrap();
+    message.info("Ceci est un message d'information de test.").await.unwrap();
+    message.error("Ceci est un message d'erreur de test.").await.unwrap();
 
-    template.render("sapin/sapin.html", &ctx)
+    let ctx = context!{
+        "title", "À propos de Rusti Framework";
+        "content", "Rusti est un framework web inspiré de Django, construit sur Axum et Tera."
+    };
+    template.render("about/about.html", &ctx)
 }
+
 
 /// Ajax test CSRF
 pub async fn test_csrf(mut message: Message) -> Response {

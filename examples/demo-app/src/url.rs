@@ -15,12 +15,6 @@ pub fn urls() -> Router {
         },
         name ="about",
 
-        // sapin page
-        "/sapin" => view!{
-            GET => views::about_sapin
-        },
-        name ="about_sapin",
-
         // other links
         "/user" => view! {
             GET => views::user_profile,

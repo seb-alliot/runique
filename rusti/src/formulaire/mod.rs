@@ -25,7 +25,7 @@ pub use field::{
 };
 
 pub mod formsrusti;
-pub use formsrusti::{Forms, FormulaireTrait};
+pub use formsrusti::{Forms, RustiForm };
 
 pub mod extracteur;
 pub use extracteur::ExtractForm;

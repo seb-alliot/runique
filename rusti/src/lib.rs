@@ -119,7 +119,7 @@ pub use async_trait::async_trait;
 pub use derive_form::rusti_form;
 pub use derive_form::DeriveModelForm;
 
-pub use formulaire::formsrusti::{Forms, FormulaireTrait};
+pub use formulaire::formsrusti::{Forms, RustiForm };
 pub use formulaire::extracteur::ExtractForm;
 pub use macro_perso::context_macro::ContextHelper;
 

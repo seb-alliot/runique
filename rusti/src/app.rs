@@ -190,6 +190,8 @@ impl RustiApp {
                         std::time::Duration::from_secs(10)
                     ))
             )
+            .layer(middleware::from_fn(csrf_middleware))    
+            .layer(middleware::from_fn(flash_middleware))     
             .layer(middleware::from_fn(error_handler_middleware));
         self
     }

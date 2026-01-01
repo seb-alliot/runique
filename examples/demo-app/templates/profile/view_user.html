@@ -33,16 +33,9 @@
     <div class="form-container">
         <form id="username-form" method="post">
             {% csrf %}
-            <div class="form-group">
-                <label for="username-input">Rechercher un utilisateur :</label>
-                <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    placeholder="Entrez un nom d'utilisateur"
-                    required
-                >
-            </div>
+                <div class="form-container">
+                    {{ form.form_html | form_html | safe }}
+                </div>
             <button type="submit">Rechercher</button>
         </form>
     </div>

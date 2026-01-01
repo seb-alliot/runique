@@ -1,89 +1,43 @@
 {% extends "index.html" %}
 {% block content %}
-<div class="content">
-    <h1>{{ title }}</h1>
-    {% if messages %}
-        {% for msg in messages %}
-            <ul {{ msg }}>
-        {% endfor %}
-    {% endif %}
+    <div class="content">
+        <h1>{{ title }}</h1>
+        {% if messages %}
+            {% for msg in messages %}
+                <ul {{ msg }}>
+            {% endfor %}
+        {% endif %}
 
-    {% if db_error %}
-        <div class="alert alert-danger">
-            <span class="alert-message">{{ db_error }}</span>
-        </div>
-    {% endif %}
-
-    {% if form.errors %}
-        <div class="alert alert-warning">
-            <div class="alert-message">
-                <strong>Veuillez corriger les erreurs suivantes :</strong>
-                <ul>
-                    {% for field, error in form.errors %}
-                        <li><strong>{{ field }} :</strong> {{ error }}</li>
-                    {% endfor %}
-                </ul>
+        {% if db_error %}
+            <div class="alert alert-danger">
+                <span class="alert-message">{{ db_error }}</span>
             </div>
-        </div>
-    {% endif %}
-    <div class="form-container">
-        <form method="post" id="userform">
-            {% csrf %}
-            <div>
-                <div>
-                    <div>
-                        <input
-                            placeholder="Nom d'utilisateur"
-                            type="text"
-                            id="username"
-                            name="username"
-                            value="{{ form.cleaned_data.username | default(value='') }}"
-                        >
-                    </div>
-                </div>
+        {% endif %}
 
-                <div>
-                    <div>
-                        <input
-                            placeholder="Votre email"
-                            type="email"
-                            id="email"
-                            name="email"
-                            value="{{ form.cleaned_data.email | default(value='') }}"
-                        >
-                    </div>
-                </div>
-
-                <div>
-                    <div>
-                        <input
-                            placeholder="Votre âge"
-                            type="text"
-                            id="age"
-                            name="age"
-                            value="{{ form.cleaned_data.age | default(value='') }}"
-                        >
-                    </div>
-                </div>
-
-                <div>
-                    <div>
-                        <input
-                            placeholder="Mot de passe"
-                            type="password"
-                            id="password"
-                            name="password"
-                        >
-                    </div>
+        {% if forms_errors %}
+            <div class="alert alert-warning">
+                <div class="alert-message">
+                    <strong>Veuillez corriger les erreurs suivantes :</strong>
+                    <ul>
+                        {% for field, error in forms_errors %}
+                            <li><strong>{{ field }} :</strong> {{ error }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
+        {% endif %}
 
-            <div>
+        <div class="form-container">
+            <form id="username-form" method="post">
+                {% csrf %}
+                    <div class="form-container">
+                        {{ form | form_html | safe }}
+                    </div>
                 <button type="submit">Enregistrer</button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
+
     {% block script %}
         <script src='{% static "js/test_csrf.js" %}'></script>
     {% endblock %}

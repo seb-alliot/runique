@@ -3,10 +3,9 @@ use rusti::sea_orm;
 use rusti::sea_orm::entity::prelude::*;
 use rusti::DeriveModelForm;
 use rusti::impl_objects;
-use rusti::Serialize;
+use rusti::serde::{Serialize, Deserialize};  // ← Ajoute Deserialize
 
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize, Deserialize)]  // ← Ajoute Deserialize
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key)]
