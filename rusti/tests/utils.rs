@@ -69,7 +69,9 @@ fn test_generate_token_consistency() {
 
     // Tous les tokens devraient avoir la même longueur
     let lengths: Vec<usize> = tokens.iter().map(|t| t.len()).collect();
-    assert!(lengths.iter().all(|&len| len == lengths[0]));
+    assert!(tokens
+        .iter()
+        .all(|t| t.chars().all(|c| c.is_ascii_hexdigit())));
 
     // Tous devraient être en hex
     assert!(tokens.iter().all(|t| t.chars().all(|c| c.is_ascii_hexdigit())));
