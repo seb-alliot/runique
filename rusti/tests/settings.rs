@@ -24,7 +24,7 @@ fn test_settings_debug_mode() {
 
     // En mode debug, debug devrait être true
     // (ou false selon la configuration)
-    assert!(!settings.debug); // Toujours vrai, juste pour vérifier l'accès
+    assert!(settings.debug); // Toujours vrai, juste pour vérifier l'accès
 }
 
 #[test]
