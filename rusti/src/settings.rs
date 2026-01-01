@@ -56,8 +56,6 @@ pub struct ServerSettings {
     pub secret_key: String,
 }
 
-
-
 impl ServerSettings {
     pub fn from_env() -> Self {
         use dotenvy::dotenv;
