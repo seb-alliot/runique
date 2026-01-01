@@ -129,7 +129,7 @@ impl Settings {
             root_urlconf: String::from("urls"),
 
             // Rusti-specific settings
-            templates_rusti: templates_rusti,
+            templates_rusti,
             static_rusti_path,
             static_rusti_url: "/rusti/static".to_string(),
             media_rusti_path,

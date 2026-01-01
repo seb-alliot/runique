@@ -1,5 +1,5 @@
 use super::query::RustiQueryBuilder;
-use crate::processor::processor::Template;
+use crate::processor::Template;
 use axum::response::Response;
 use sea_orm::{Condition, DatabaseConnection, DbErr, EntityTrait};
 use std::marker::PhantomData;
@@ -11,7 +11,11 @@ use std::marker::PhantomData;
 pub struct Objects<E: EntityTrait> {
     _phantom: PhantomData<E>,
 }
-
+impl<E: sea_orm::EntityTrait> Default for Objects<E> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl<E: EntityTrait> Objects<E> {
     /// Constructeur const pour pouvoir l'utiliser en constante
     ///

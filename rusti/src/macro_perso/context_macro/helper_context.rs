@@ -6,6 +6,12 @@ pub struct ContextHelper {
     inner: Context,
 }
 
+impl Default for ContextHelper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ContextHelper {
     pub fn new() -> Self {
         Self {

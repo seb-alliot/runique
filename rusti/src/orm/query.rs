@@ -1,4 +1,4 @@
-use crate::processor::processor::Template;
+use crate::processor::Template;
 use axum::response::Response;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,

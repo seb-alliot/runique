@@ -19,7 +19,7 @@ pub(crate) fn rusti_form_impl(_attr: TokenStream, item: TokenStream) -> TokenStr
         }
     }
 
-    let form_field = find_forms_field(&input.data, &name);
+    let form_field = find_forms_field(&input.data, name);
 
     let has_derive = has_derive_attribute(&input.attrs);
 

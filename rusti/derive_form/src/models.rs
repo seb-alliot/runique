@@ -36,14 +36,14 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
     let validations: Vec<_> = fields
         .iter()
         .filter(|f| !is_excluded(f))
-        .map(|f| generate_validation_rustiform(f))
+        .map(generate_validation_rustiform)
         .collect();
 
     // Générer les conversions pour to_active_model
     let conversions: Vec<_> = fields
         .iter()
         .filter(|f| !is_excluded(f))
-        .map(|f| generate_conversion(f))
+        .map(generate_conversion)
         .collect();
 
     let expanded = quote! {

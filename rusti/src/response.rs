@@ -5,7 +5,6 @@ use axum::{
 use tera::Tera;
 
 /// Module contenant les helpers pour créer des réponses HTTP
-
 /// Rend une page 404 simple
 ///
 /// # Exemple

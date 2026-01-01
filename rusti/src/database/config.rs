@@ -125,7 +125,7 @@ impl DatabaseConfig {
         tracing::info!("🔌 Connecting to {} database...", self.engine.name());
 
         // Vérification que le driver est activé
-        verify_database_driver(&self.engine).map_err(|e| DbErr::Custom(e))?;
+        verify_database_driver(&self.engine).map_err(DbErr::Custom)?;
 
         let mut opt = ConnectOptions::new(&self.url);
 

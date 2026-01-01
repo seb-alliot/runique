@@ -26,6 +26,12 @@ impl Serialize for Forms {
     }
 }
 
+impl Default for Forms {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Forms {
     pub fn new() -> Self {
         Self {
@@ -129,7 +135,7 @@ impl Forms {
         let mut html = String::new();
         // Boucle sur tous les champs enregistrés
         for (field_name, field_html) in &self.fields_html {
-            html.push_str(&field_html);
+            html.push_str(field_html);
 
             // Ajouter les erreurs si présentes
             if let Some(error) = self.errors.get(field_name) {

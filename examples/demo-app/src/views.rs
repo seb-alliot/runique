@@ -44,7 +44,7 @@ pub async fn user_profile_submit(
     ExtractForm(user): ExtractForm<ModelForm>,
 ) -> Response {
     if user.is_valid() {
-        match user.save(&*db).await {
+        match user.save(&db).await {
             Ok(created_user) => {
                 message
                     .success("Profil utilisateur créé avec succès !")

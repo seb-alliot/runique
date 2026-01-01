@@ -33,6 +33,12 @@ pub struct TextField {
     pub allow_blank: bool,
 }
 
+impl Default for CharField {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CharField {
     pub fn new() -> Self {
         Self { allow_blank: false }
@@ -40,6 +46,12 @@ impl CharField {
 
     pub fn allow_blank() -> Self {
         Self { allow_blank: true }
+    }
+}
+
+impl Default for TextField {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

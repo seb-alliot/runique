@@ -48,7 +48,7 @@ pub use middleware::login_requiert::{login_required, redirect_if_authenticated};
 pub use middleware::middleware_sanetiser::sanitize_middleware;
 
 pub use derive_form;
-pub use processor::processor::{Message, Template};
+pub use processor::{Message, Template};
 
 pub use macro_perso::router::{
     register_name_url::register_name_url, reverse, reverse_with_parameters,
@@ -113,6 +113,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// # Exemple
 ///
 /// ```rust,no_run
+/// # use axum::{Router, routing::get};
+/// # use rusti::prelude::*;
+/// # async fn index() -> &'static str { "Hello, Rusti!" }
+/// # async fn doc_test() -> Result<(), Box<dyn std::error::Error>> {
 /// use rusti::prelude::*;
 ///
 /// #[tokio::main]
@@ -126,14 +130,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 ///
 ///     Ok(())
 /// }
-///
-/// async fn index() -> &'static str {
-///     "Hello, Rusti!"
-/// }
+/// # Ok(())
+/// # }
 /// ```
 pub mod prelude {
-    //! Prelude pour importer tous les types couramment utilisés en une seule ligne
-
     // === Framework Rusti ===
     pub use crate::app::RustiApp;
     pub use crate::processor::{Message, Template};
