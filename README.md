@@ -147,8 +147,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn routes() -> Router {
     urlpatterns![
-        path!("/", index),
-        path!("hello/<n>", hello),
+        "/" => view!{
+            GET => views::index
+        },
+        name ="index",
+
+        "/hello" => view!{
+            GET => views::hello
+        },
+        name ="hello",
+
+
+        "/user" => view! {
+            GET => views::user_profile,
+            POST => views::user_profile_submit
+        },
+         name = "user_profile",
     ]
 }
 
@@ -158,6 +172,71 @@ async fn index() -> &'static str {
 
 async fn hello(Path(name): Path<String>) -> String {
     format!("Hello, {}!", name)
+}
+
+pub async fn user_profile(
+    template: Template,
+    ExtractForm(form): ExtractForm<ModelForm>,
+) -> Response {
+    let ctx = context! {
+        "title", "User Profile";
+        "form", form
+    };
+    template.render("profile/register_profile.html", &ctx)
+}
+
+pub async fn user_profile_submit(
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    mut message: Message,
+    template: Template,
+    ExtractForm(user): ExtractForm<ModelForm>,
+) -> Response {
+    if user.is_valid() {
+        match user.save(&db).await {
+            Ok(created_user) => {
+                success!(message, "User profile created successfully!");
+                let target = reverse_with_parameters(
+                    "user_profile",
+                    &[
+                        ("id", &created_user.id.to_string()),
+                        ("name", &created_user.username),
+                    ],
+                )
+                .unwrap();
+                return Redirect::to(&target).into_response();
+            }
+            Err(err) => {
+                // Database unique constraint error handling
+                let error_msg = if err.to_string().contains("unique") {
+                    if err.to_string().contains("username") {
+                        "This username is already taken!"
+                    } else if err.to_string().contains("email") {
+                        "This email is already in use!"
+                    } else {
+                        "This value already exists in the database"
+                    }
+                } else {
+                    "Error occurred during save"
+                };
+                error!(message, error_msg);
+                let ctx = context! {
+                    "form", ModelForm::build();
+                    "forms_errors", user.get_errors();
+                    "title", "Profile";
+                    "db_error", error_msg
+                };
+                return template.render("name.html", &ctx);
+            }
+        }
+    }
+    
+    error!(message, "Form validation error");
+    let ctx = context! {
+        "form", ModelForm::build();
+        "forms_errors", user.get_errors();
+        "title", "Validation Error"
+    };
+    template.render("name.html", &ctx)
 }
 ```
 

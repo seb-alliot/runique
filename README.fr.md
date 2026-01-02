@@ -147,8 +147,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn routes() -> Router {
     urlpatterns![
-        path!("", index),
-        path!("hello/<name>", hello),
+        "/" => view!{
+            GET => views::index
+        },
+        name ="index",
+
+        "/hello" => view!{
+            GET => views::hello
+        },
+        name ="hello",
+
+        "/user" => view! {
+            GET => views::user_profile,
+            POST => views::user_profile_submit
+        },
+         name = "user_profile",
     ]
 }
 
@@ -158,6 +171,78 @@ async fn index() -> &'static str {
 
 async fn hello(Path(name): Path<String>) -> String {
     format!("Bonjour, {} !", name)
+}
+
+pub async fn user_profile(
+    template: Template,
+    ExtractForm(form): ExtractForm<ModelForm>,
+) -> Response {
+    let ctx = context! {
+        "title", "Profil Utilisateur";
+        "form", form
+    };
+    template.render("profile/register_profile.html", &ctx)
+}
+
+pub async fn user_profile_submit(
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    mut message: Message,
+    template: Template,
+    ExtractForm(user): ExtractForm<ModelForm>,
+) -> Response {
+    // 1. Vérification de la validité du formulaire
+    if user.is_valid() {
+        match user.save(&db).await {
+            Ok(created_user) => {
+                success!(message, "Profil utilisateur créé avec succès !");
+                
+                // Génération de l'URL de redirection
+                let target = reverse_with_parameters(
+                    "user_profile",
+                    &[
+                        ("id", &created_user.id.to_string()),
+                        ("name", &created_user.username),
+                    ],
+                ).unwrap();
+                
+                return Redirect::to(&target).into_response();
+            }
+            Err(err) => {
+                // Gestion des erreurs d'unicité de la base de données
+                let error_msg = if err.to_string().contains("unique") {
+                    if err.to_string().contains("username") {
+                        "Ce nom d'utilisateur est déjà pris !"
+                    } else if err.to_string().contains("email") {
+                        "Cette adresse email est déjà utilisée !"
+                    } else {
+                        "Cette valeur existe déjà dans la base de données."
+                    }
+                } else {
+                    "Une erreur est survenue lors de l'enregistrement."
+                };
+
+                error!(message, error_msg);
+                
+                let ctx = context! {
+                    "form", ModelForm::build();
+                    "forms_errors", user.get_errors();
+                    "title", "Profil";
+                    "db_error", error_msg
+                };
+                return template.render("name.html", &ctx);
+            }
+        }
+    }
+    
+    // 2. Cas d'erreur de validation (champs mal remplis)
+    error!(message, "Le formulaire contient des erreurs de validation.");
+    
+    let ctx = context! {
+        "form", ModelForm::build();
+        "forms_errors", user.get_errors();
+        "title", "Erreur de validation"
+    };
+    template.render("name.html", &ctx)
 }
 ```
 
@@ -332,6 +417,7 @@ pub async fn create_post(
         }
     }
 }
+
 ```
 
 ### Template (templates/posts/list.html)
