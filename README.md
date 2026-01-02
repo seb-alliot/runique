@@ -280,6 +280,7 @@ Open [http://localhost:8000](http://localhost:8000)
 - [🛣️ Macro](informations/documentation_english/MACRO%2520CONTEXT.md)
 - [🔧 changelog](informations/documentation_english/CHANGELOG.md)
 - [🚀 Contribuer](informations/documentation_english/CONTRIBUTING.md)
+- [🆕 New project](informations/documentation_english/NEW_PROJECT.md)
 - [📖 Documentation Overview](README.md)
 
 
@@ -294,6 +295,7 @@ Open [http://localhost:8000](http://localhost:8000)
 - [🛣️ Macro](informations/documentation_french/MACRO%2520CONTEXT.md)
 - [🔧 changelog](informations/documentation_french/CHANGELOG.md)
 - [🚀 Contribuer](informations/documentation_french/CONTRIBUTING.md)
+- [🆕 New project](informations/documentation_english/NOUVEAU_PROJET.md)
 - [📖 Documentation Overview](README.fr.md.md)
 
 ---
