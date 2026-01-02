@@ -757,9 +757,9 @@ Rusti s'appuie sur d'excellentes bibliothèques de l'écosystème Rust :
 
 ## 📧 Contact
 
-- **GitHub Issues** : [github.com/votre-username/rusti/issues](https://github.com/votre-username/rusti/issues)
-- **Discord** : [Rejoindre le serveur](#)
-- **Email** : contact@rusti-framework.dev
+- **GitHub Issues** : [github.com/seb-alliot/rusti/tree/issues](https://github.com/seb-alliot/rusti/tree/issues)
+- **Discord** : [Rejoindre le serveur](https://discord.gg/Y5zW7rbt)
+- **Email** : alliotsebastien04@gmail.com
 
 ---
 

@@ -296,7 +296,7 @@ Open [http://localhost:8000](http://localhost:8000)
 - [🔧 changelog](informations/documentation_french/CHANGELOG.md)
 - [🚀 Contribuer](informations/documentation_french/CONTRIBUTING.md)
 - [🆕 New project](informations/documentation_english/NOUVEAU_PROJET.md)
-- [📖 Documentation Overview](README.fr.md.md)
+- [📖 Documentation Overview](README.fr.md)
 
 ---
 
@@ -758,9 +758,9 @@ Rusti builds upon excellent libraries from the Rust ecosystem:
 
 ## 📧 Contact
 
-- **GitHub Issues**: [github.com/your-username/rusti/issues](https://github.com/your-username/rusti/issues)
-- **Discord**: [Join the server](#)
-- **Email**: contact@rusti-framework.dev
+- **GitHub Issues**: [github.com/seb-alliot/rusti/tree/issues](https://github.com/seb-alliot/rusti/tree/issues)
+- **Discord**: [Join the server](https://discord.gg/Y5zW7rbt)
+- **Email**: alliotsebastien04@gmail.com
 
 ---
 
