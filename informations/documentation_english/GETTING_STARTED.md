@@ -371,7 +371,7 @@ Template `templates/contact.html`:
 <h2>Contact Us</h2>
 
 <form method="post">
-    {{ csrf_input() }}
+    {% csrf %}
     {{ form }}
     <button type="submit">Send</button>
 </form>
@@ -446,7 +446,7 @@ Automatic with `CsrfMiddleware`:
 
 ```html
 <form method="post">
-    {{ csrf_input() }}
+    {% csrf %}
     <!-- Token is verified automatically -->
 </form>
 ```

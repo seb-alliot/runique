@@ -461,11 +461,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 | Middleware | Description | Required |
 |------------|-------------|----------|
-| `CsrfMiddleware` | CSRF protection via HMAC-SHA256 token | ✅ Recommended |
+| `CsrfMiddleware` | CSRF protection via HMAC-SHA256 token | ✅ Include |
 | `SecurityHeadersMiddleware` | HTTP security headers | ✅ Recommended |
 | `AllowedHostsMiddleware` | Host header validation | ✅ Recommended |
-| `FlashMiddleware` | Flash messages between requests | Optional |
-| `MessageMiddleware` | User messages | Optional |
+| `FlashMiddleware` | Flash messages between requests | ✅ Include |
+| `MessageMiddleware` | User messages | ✅ Include |
 | `XssSanitizerMiddleware` | XSS sanitization (ammonia) | ✅ Recommended |
 | `CspMiddleware` | Content Security Policy | ✅ Recommended |
 

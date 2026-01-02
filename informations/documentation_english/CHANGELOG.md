@@ -272,9 +272,9 @@ Lead Developer: Itsuki
 ## Links
 
 - [Documentation](https://docs.rs/rusti)
-- [GitHub Repository](https://github.com/your-repo/rusti)
-- [Issues](https://github.com/your-repo/rusti/issues)
-- [Discussions](https://github.com/your-repo/rusti/discussions)
+- [GitHub Repository](https://github.com/seb-alliot/rusti)
+- [Issues](https://github.com/seb-alliot/rusti/issues)
+- [Discussions](https://github.com/seb-alliot/rusti/discussions)
 - [Changelog](https://github.com/your-repo/rusti/blob/main/CHANGELOG.md)
 
 ---
@@ -287,4 +287,4 @@ Lead Developer: Itsuki
 
 ---
 
-[1.0.0]: https://github.com/your-repo/rusti/releases/tag/v1.0.0
+[1.0.0]: https://github.com/seb-alliot/rusti/releases

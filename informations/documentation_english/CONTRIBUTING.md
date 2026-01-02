@@ -1,86 +1,91 @@
-# 🤝 Guide de contribution - Rusti Framework
-
-Merci de votre intérêt pour contribuer à Rusti ! Ce guide vous aidera à bien démarrer.
-
-## Table des matières
-
-1. [Code de conduite](#code-de-conduite)
-2. [Comment contribuer](#comment-contribuer)
-3. [Configuration de l'environnement](#configuration-de-lenvironnement)
-4. [Workflow de contribution](#workflow-de-contribution)
-5. [Standards de code](#standards-de-code)
-6. [Tests](#tests)
-7. [Documentation](#documentation)
+Voici la traduction en anglais de ton guide de contribution, en respectant le format Markdown et les terminologies standards de l'écosystème Open Source.
 
 ---
 
-## Code de conduite
+# 🤝 Contributing Guide - Rusti Framework
 
-Nous nous engageons à créer une communauté accueillante et inclusive. En participant à ce projet, vous acceptez de :
+Thank you for your interest in contributing to Rusti! This guide will help you get started.
 
-- Respecter tous les contributeurs
-- Accepter les critiques constructives
-- Vous concentrer sur ce qui est le mieux pour la communauté
-- Faire preuve d'empathie envers les autres
+## Table of Contents
 
----
-
-## Comment contribuer
-
-###  Signaler un bug
-
-1. Vérifiez que le bug n'est pas déjà signalé dans les [Issues](https://github.com/votre-repo/rusti/issues)
-2. Ouvrez une nouvelle issue avec le template "Bug Report"
-3. Fournissez un exemple minimal reproductible
-4. Incluez les informations système (OS, version de Rust, etc.)
-
-### ✨ Proposer une fonctionnalité
-
-1. Ouvrez une issue avec le template "Feature Request"
-2. Expliquez le problème que vous voulez résoudre
-3. Décrivez votre solution proposée
-4. Discutez avec la communauté avant de coder
-
-### 📝 Améliorer la documentation
-
-La documentation est aussi importante que le code !
-
-- Corrections de typos
-- Clarifications
-- Nouveaux exemples
-- Traductions
+1. [Code of Conduct](https://www.google.com/search?q=%23code-of-conduct)
+2. [How to Contribute](https://www.google.com/search?q=%23how-to-contribute)
+3. [Environment Setup](https://www.google.com/search?q=%23environment-setup)
+4. [Contribution Workflow](https://www.google.com/search?q=%23contribution-workflow)
+5. [Code Standards](https://www.google.com/search?q=%23code-standards)
+6. [Testing](https://www.google.com/search?q=%23testing)
+7. [Documentation](https://www.google.com/search?q=%23documentation)
 
 ---
 
-## Configuration de l'environnement
+## Code of Conduct
 
-### Prérequis
+We are committed to creating a welcoming and inclusive community. By participating in this project, you agree to:
 
-- Rust 1.70 ou supérieur
-- Git
-- PostgreSQL, MySQL ou SQLite (pour les tests DB)
+* Respect all contributors
+* Accept constructive criticism
+* Focus on what is best for the community
+* Show empathy towards others
+
+---
+
+## How to Contribute
+
+### 🐛 Report a Bug
+
+1. Check that the bug has not already been reported in the [Issues](https://github.com/your-repo/rusti/issues)
+2. Open a new issue using the "Bug Report" template
+3. Provide a minimal reproducible example
+4. Include system information (OS, Rust version, etc.)
+
+### ✨ Propose a Feature
+
+1. Open an issue using the "Feature Request" template
+2. Explain the problem you want to solve
+3. Describe your proposed solution
+4. Discuss with the community before coding
+
+### 📝 Improve Documentation
+
+Documentation is just as important as code!
+
+* Typos corrections
+* Clarifications
+* New examples
+* Translations
+
+---
+
+## Environment Setup
+
+### Prerequisites
+
+* Rust 1.70 or higher
+* Git
+* PostgreSQL, MySQL, or SQLite (for DB tests)
 
 ### Installation
 
 ```bash
-# Cloner le dépôt
-git clone https://github.com/votre-repo/rusti.git
+# Clone the repository
+git clone https://github.com/your-repo/rusti.git
 cd rusti
 
-# Installer les dépendances
+# Install dependencies
 cargo build
 
-# Lancer les tests
+# Run tests
 cargo test
 
-# Vérifier le formatage
+# Check formatting
 cargo fmt --check
 
-# Lancer clippy
+# Run clippy
 cargo clippy --all-features -- -D warnings
+
 ```
 
-### Structure du projet
+### Project Structure
 
 ```
 rusti/
@@ -92,130 +97,138 @@ rusti/
 │   │   ├── middleware/
 │   │   ├── database/
 │   │   └── ...
-│   ├── templates/          # Templates internes
-│   ├── static/             # Assets du framework
+│   ├── templates/          # Internal templates
+│   ├── static/             # Framework assets
 │   └── tests/
 │
 ├── examples/
-│   └── demo-app/          # Application exemple
+│   └── demo-app/           # Example application
 │
-├── docs/                  # Documentation
+├── docs/                   # Documentation
 │   ├── README.md
 │   ├── GETTING_STARTED.md
 │   └── ...
 │
-└── Cargo.toml            # Workspace root
+└── Cargo.toml              # Workspace root
+
 ```
 
 ---
 
-## Workflow de contribution
+## Contribution Workflow
 
-### 1. Fork et clone
+### 1. Fork and Clone
 
 ```bash
-# Fork sur GitHub puis :
-git clone https://github.com/VOTRE-USERNAME/rusti.git
+# Fork on GitHub, then:
+git clone https://github.com/YOUR-USERNAME/rusti.git
 cd rusti
-git remote add upstream https://github.com/votre-repo/rusti.git
+git remote add upstream https://github.com/your-repo/rusti.git
+
 ```
 
-### 2. Créer une branche
+### 2. Create a Branch
 
 ```bash
 # Feature
-git checkout -b feature/ma-super-fonctionnalite
+git checkout -b feature/my-awesome-feature
 
 # Bugfix
-git checkout -b fix/correction-du-bug
+git checkout -b fix/bug-fix
 
 # Documentation
-git checkout -b docs/amelioration-docs
+git checkout -b docs/improve-docs
+
 ```
 
-### 3. Développer
+### 3. Develop
 
 ```bash
-# Faire vos modifications
+# Make your changes
 
-# Tester
+# Test
 cargo test
 
-# Formatter
+# Format
 cargo fmt
 
-# Linter
+# Lint
 cargo clippy --all-features -- -D warnings
+
 ```
 
-### 4. Committer
+### 4. Commit
 
-Utilisez des messages de commit clairs :
+Use clear commit messages:
 
 ```bash
-# ✅ Bon
-git commit -m "feat: ajouter support WebSocket"
-git commit -m "fix: corriger validation CSRF"
-git commit -m "docs: améliorer exemples ORM"
+# ✅ Good
+git commit -m "feat: add WebSocket support"
+git commit -m "fix: correct CSRF validation"
+git commit -m "docs: improve ORM examples"
 
-# ❌ Mauvais
+# ❌ Bad
 git commit -m "update"
 git commit -m "fix stuff"
 git commit -m "WIP"
+
 ```
 
-**Format des commits :**
-- `feat:` Nouvelle fonctionnalité
-- `fix:` Correction de bug
-- `docs:` Documentation
-- `style:` Formatage, pas de changement de code
-- `refactor:` Refactoring
-- `test:` Ajout/modification de tests
-- `chore:` Maintenance (dépendances, etc.)
+**Commit Format:**
 
-### 5. Push et Pull Request
+* `feat:` New feature
+* `fix:` Bug fix
+* `docs:` Documentation
+* `style:` Formatting, no code change
+* `refactor:` Refactoring
+* `test:` Adding/modifying tests
+* `chore:` Maintenance (dependencies, etc.)
+
+### 5. Push and Pull Request
 
 ```bash
-# Push vers votre fork
-git push origin feature/ma-super-fonctionnalite
+# Push to your fork
+git push origin feature/my-awesome-feature
 
-# Créer une Pull Request sur GitHub
+# Create a Pull Request on GitHub
+
 ```
 
-**Template de Pull Request :**
+**Pull Request Template:**
 
 ```markdown
 ## Description
-Brève description des changements
+Brief description of the changes
 
-## Type de changement
+## Type of Change
 - [ ] Bug fix
-- [ ] Nouvelle fonctionnalité
+- [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation
 
 ## Tests
-- [ ] Tests unitaires ajoutés/modifiés
-- [ ] Tests d'intégration ajoutés/modifiés
-- [ ] Tous les tests passent
+- [ ] Unit tests added/modified
+- [ ] Integration tests added/modified
+- [ ] All tests passed
 
 ## Checklist
-- [ ] Code formaté (`cargo fmt`)
-- [ ] Pas d'avertissements clippy
-- [ ] Documentation mise à jour
-- [ ] CHANGELOG.md mis à jour (si applicable)
+- [ ] Code formatted (`cargo fmt`)
+- [ ] No clippy warnings
+- [ ] Documentation updated
+- [ ] CHANGELOG.md updated (if applicable)
+
 ```
 
 ---
 
-## Standards de code
+## Code Standards
 
-### Style Rust
+### Rust Style
 
-Suivez les conventions Rust standards :
+Follow standard Rust conventions:
 
 ```rust
-// ✅ Bon
+// ✅ Good
 pub struct RustiApp {
     router: Router,
     config: Arc<Settings>,
@@ -227,21 +240,22 @@ impl RustiApp {
     }
 }
 
-// ❌ Mauvais
+// ❌ Bad
 pub struct rustiApp {
     Router: Router,
     CONFIG: Arc<Settings>,
 }
+
 ```
 
 ### Documentation
 
-Documentez toutes les fonctions publiques :
+Document all public functions:
 
 ```rust
-/// Crée une nouvelle instance de RustiApp
+/// Creates a new instance of RustiApp
 ///
-/// # Exemples
+/// # Examples
 ///
 /// ```rust
 /// use rusti::{RustiApp, Settings};
@@ -249,33 +263,35 @@ Documentez toutes les fonctions publiques :
 /// let app = RustiApp::new(Settings::default_values())?;
 /// ```
 ///
-/// # Erreurs
+/// # Errors
 ///
-/// Retourne une erreur si la configuration est invalide
+/// Returns an error if the configuration is invalid
 pub fn new(settings: Settings) -> Result<Self> {
     // ...
 }
+
 ```
 
-### Gestion d'erreur
+### Error Handling
 
-Utilisez `Result` et des types d'erreur appropriés :
+Use `Result` and appropriate error types:
 
 ```rust
-// ✅ Bon
+// ✅ Good
 pub fn connect(&self) -> Result<DatabaseConnection, DbErr> {
     // ...
 }
 
-// ❌ Mauvais
+// ❌ Bad
 pub fn connect(&self) -> DatabaseConnection {
-    // panic! si erreur
+    // panic! if error
 }
+
 ```
 
-### Tests
+### Testing
 
-Écrivez des tests pour chaque fonctionnalité :
+Write tests for every feature:
 
 ```rust
 #[cfg(test)]
@@ -299,155 +315,169 @@ mod tests {
         assert!(app.is_ok());
     }
 }
+
 ```
 
 ---
 
-## Tests
+## Testing
 
-### Lancer tous les tests
+### Run All Tests
 
 ```bash
-# Tests unitaires et d'intégration
+# Unit and integration tests
 cargo test
 
-# Tests d'une feature spécifique
+# Tests for a specific feature
 cargo test --features postgres
 
-# Tests avec output détaillé
+# Tests with detailed output
 cargo test -- --nocapture
 
-# Tests en parallèle
+# Parallel tests
 cargo test -- --test-threads=4
+
 ```
 
 ### Coverage
 
 ```bash
-# Installer tarpaulin
+# Install tarpaulin
 cargo install cargo-tarpaulin
 
-# Générer le rapport
+# Generate report
 cargo tarpaulin --out Html --output-dir coverage
+
 ```
 
 ### Benchmarks
 
 ```bash
-# Installer criterion
+# Install criterion
 cargo install cargo-criterion
 
-# Lancer les benchmarks
+# Run benchmarks
 cargo bench
+
 ```
 
 ---
 
 ## Documentation
 
-### Documentation du code
+### Code Documentation
 
 ```bash
-# Générer la documentation
+# Generate documentation
 cargo doc
 
-# Ouvrir dans le navigateur
+# Open in browser
 cargo doc --open
 
-# Avec les dépendances privées
+# Including private items
 cargo doc --document-private-items
+
 ```
 
-### Documentation Markdown
+### Markdown Documentation
 
-Les fichiers de documentation se trouvent dans `docs/` :
+Documentation files are located in `docs/`:
 
-- Utilisez des titres clairs
-- Incluez des exemples de code
-- Ajoutez des liens entre les documents
-- Gardez un ton accessible
+* Use clear headings
+* Include code examples
+* Add links between documents
+* Keep an accessible tone
 
-### Exemples
+### Examples
 
-Les exemples dans `examples/` doivent :
+Examples in `examples/` must:
 
-- Être fonctionnels (`cargo run` doit marcher)
-- Être bien commentés
-- Couvrir un cas d'usage réel
-- Inclure un README.md
-
----
-
-## Revue de code
-
-Toutes les Pull Requests sont revues par les mainteneurs. Soyez patient et ouvert aux suggestions.
-
-### Critères de revue
-
-- ✅ Code propre et bien structuré
-- ✅ Tests passent
-- ✅ Documentation à jour
-- ✅ Pas de breaking changes non documentés
-- ✅ Performance acceptable
-- ✅ Sécurité respectée
-
-### Après la revue
-
-- Répondez aux commentaires
-- Effectuez les modifications demandées
-- Marquez les conversations comme résolues
-- Demandez une nouvelle revue
+* Be functional (`cargo run` should work)
+* Be well-commented
+* Cover a real-world use case
+* Include a README.md
 
 ---
 
-## Premiers pas
+## Code Review
 
-### Issues "good first issue"
+All Pull Requests are reviewed by maintainers. Please be patient and open to suggestions.
 
-Cherchez les issues marquées `good first issue` pour commencer :
-- Bugs simples
-- Améliorations de documentation
-- Petites fonctionnalités
+### Review Criteria
+
+* ✅ Clean and well-structured code
+* ✅ Tests passing
+* ✅ Documentation updated
+* ✅ No undocumented breaking changes
+* ✅ Acceptable performance
+* ✅ Security respected
+
+### After Review
+
+* Respond to comments
+* Perform requested changes
+* Mark conversations as resolved
+* Request a new review
+
+---
+
+## Getting Started
+
+### "Good first issue"
+
+Look for issues labeled `good first issue` to start:
+
+* Simple bugs
+* Documentation improvements
+* Small features
 
 ### Mentors
 
-N'hésitez pas à demander de l'aide :
-- Commentez sur l'issue
-- Rejoignez les discussions GitHub
-- Posez des questions (il n'y a pas de question stupide !)
+Don't hesitate to ask for help:
+
+* Comment on the issue
+* Join GitHub discussions
+* Ask questions (there are no stupid questions!)
 
 ---
 
-## Ressources
+## Resources
 
-### Documentation Rust
-- [The Rust Book](https://doc.rust-lang.org/book/)
-- [Rust by Example](https://doc.rust-lang.org/rust-by-example/)
-- [Async Book](https://rust-lang.github.io/async-book/)
+### Rust Documentation
 
-### Dépendances principales
-- [Axum](https://docs.rs/axum/)
-- [Tokio](https://tokio.rs/)
-- [SeaORM](https://www.sea-ql.org/SeaORM/)
-- [Tera](https://keats.github.io/tera/)
+* [The Rust Book](https://doc.rust-lang.org/book/)
+* [Rust by Example](https://doc.rust-lang.org/rust-by-example/)
+* [Async Book](https://rust-lang.github.io/async-book/)
 
-### Outils utiles
-- [rust-analyzer](https://rust-analyzer.github.io/) - LSP pour IDE
-- [cargo-watch](https://github.com/watchexec/cargo-watch) - Auto-reload
-- [cargo-edit](https://github.com/killercup/cargo-edit) - Gérer les dépendances
+### Main Dependencies
 
----
+* [Axum](https://docs.rs/axum/)
+* [Tokio](https://tokio.rs/)
+* [SeaORM](https://www.sea-ql.org/SeaORM/)
+* [Tera](https://keats.github.io/tera/)
 
-## Questions ?
+### Useful Tools
 
-- 💬 [GitHub Discussions](https://github.com/votre-repo/rusti/discussions)
-- 🐛 [Issues](https://github.com/votre-repo/rusti/issues)
-- 📧 Email : [votre-email@example.com]
+* [rust-analyzer](https://rust-analyzer.github.io/) - IDE LSP
+* [cargo-watch](https://github.com/watchexec/cargo-watch) - Auto-reload
+* [cargo-edit](https://github.com/killercup/cargo-edit) - Manage dependencies
 
 ---
 
-## Remerciements
+## Questions?
 
-Merci de contribuer à Rusti ! Chaque contribution, aussi petite soit-elle, aide à améliorer le framework.
+* 💬 [GitHub Discussions](https://github.com/your-repo/rusti/discussions)
+* 🐛 [Issues](https://github.com/your-repo/rusti/issues)
+* 📧 Email: [your-email@example.com]
 
-**Ensemble, construisons le meilleur framework web pour Rust ! 🦀**
+---
+
+## Acknowledgments
+
+Thank you for contributing to Rusti! Every contribution, no matter how small, helps improve the framework.
+
+**Together, let's build the best web framework for Rust! 🦀**
+
+---
+
+Souhaitez-vous que je traduise également le **CHANGELOG** ou un autre document technique pour finaliser la version anglaise de votre dépôt ?

@@ -160,6 +160,7 @@ Nonces (Number used ONCE) are cryptographically random values that allow inline 
 **Solution with nonce:**
 ```html
 <!-- ✅ Allowed with nonce -->
+<!-- replace nonce="abc123xyz789" by {{ csp }}> -->
 <script nonce="abc123xyz789">
     console.log("This is allowed");
 </script>
@@ -183,13 +184,13 @@ let csp_config = CspConfig {
 
 ```html
 <!-- Inline script with nonce -->
-<script nonce="{{ csp }}">
+<script {{ csp }}>
     // JavaScript code
     console.log("Script allowed with nonce");
 </script>
 
 <!-- Inline style with nonce -->
-<style nonce="{{ csp }}">
+<style {{ csp }}>
     /* CSS code */
     body { background: #f0f0f0; }
 </style>
@@ -231,7 +232,7 @@ The `{{ csp }}` tag will generate an **empty string**:
 <script src="{% static 'js/chart.min.js' %}"></script>
 
 <!-- Inline script (requires nonce if strict CSP) -->
-<script nonce="{{ csp }}">
+<script {{ csp }}>
     const data = {{ chart_data|json_encode|safe }};
     
     new Chart(document.getElementById('chart'), {
@@ -431,7 +432,7 @@ RustiApp::new(settings).await?
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     
     <!-- Inline style (requires nonce) -->
-    <style nonce="{{ csp }}">
+    <style {{ csp }}>
         .custom-chart { width: 100%; height: 400px; }
     </style>
 </head>
@@ -442,7 +443,7 @@ RustiApp::new(settings).await?
     <script src="{% static 'js/vue.min.js' %}"></script>
     
     <!-- Inline script (requires nonce) -->
-    <script nonce="{{ csp }}">
+    <script {{ csp }}>
         new Vue({
             el: '#app',
             data: {{ app_data|json_encode|safe }}
@@ -523,7 +524,7 @@ let csp_config = CspConfig {
 ```
 
 ```html
-<script nonce="{{ csp }}">
+<script {{ csp }}>
     console.log("Now allowed");
 </script>
 ```

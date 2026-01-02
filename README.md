@@ -146,7 +146,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn routes() -> Router {
     urlpatterns![
-        path!("", index),
+        path!("/", index),
         path!("hello/<n>", hello),
     ]
 }

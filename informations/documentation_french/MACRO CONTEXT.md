@@ -1,6 +1,6 @@
 # Guide d'utilisation de la macro context!
 
-**Version:** 1.0
+**Version:** 1.0.0
 **Framework:** Rusti
 **Langue:** Français
 

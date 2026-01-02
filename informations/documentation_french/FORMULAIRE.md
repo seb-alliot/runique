@@ -362,7 +362,7 @@ impl RegisterForm {
 ```html
 <!-- templates/form.html -->
 <form method="post">
-    {{ csrf_input() }}
+    {% csrf %}
 
     <!-- Rendu automatique de tous les champs -->
     {{ form }}
@@ -375,7 +375,7 @@ impl RegisterForm {
 
 ```html
 <form method="post">
-    {{ csrf_input() }}
+    {% csrf %}
 
     <div class="form-group">
         <label>{{ form.username.label }}</label>
@@ -458,7 +458,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```html
 <form method="post">
     <!-- Token CSRF automatique -->
-    {{ csrf_input() }}
+    {% csrf %}
 
     {{ form }}
 
