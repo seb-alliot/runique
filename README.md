@@ -286,7 +286,7 @@ Open [http://localhost:8000](http://localhost:8000)
 
 ### French Guides
 
-- [🚀 Getting Started](docs/documentation_french/GETTING_STARTED.md)
+- [🚀 Getting Started](informations/documentation_french/GETTING_STARTED.md)
 - [⚙️ Configuration](docs/documentation_french/CONFIGURATION.md)
 - [🗄️ Database](docs//documentation_french/DATABASE.md)
 - [📝 Forms](docs/documentation_french/FORMULAIRE.md)
