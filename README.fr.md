@@ -195,8 +195,6 @@ pub async fn user_profile_submit(
         match user.save(&db).await {
             Ok(created_user) => {
                 success!(message, "Profil utilisateur créé avec succès !");
-                
-                // Génération de l'URL de redirection
                 let target = reverse_with_parameters(
                     "user_profile",
                     &[
@@ -204,7 +202,6 @@ pub async fn user_profile_submit(
                         ("name", &created_user.username),
                     ],
                 ).unwrap();
-                
                 return Redirect::to(&target).into_response();
             }
             Err(err) => {
@@ -220,9 +217,7 @@ pub async fn user_profile_submit(
                 } else {
                     "Une erreur est survenue lors de l'enregistrement."
                 };
-
                 error!(message, error_msg);
-                
                 let ctx = context! {
                     "form", ModelForm::build();
                     "forms_errors", user.get_errors();
@@ -286,10 +281,10 @@ Ouvrez [http://localhost:8000](http://localhost:8000)
 - [🛣️ Macro](informations/documentation_english/MACRO%2520CONTEXT.md)
 - [🔧 changelog](informations/documentation_english/CHANGELOG.md)
 - [🚀 Contribuer](informations/documentation_english/CONTRIBUTING.md)
+- [🆕 New project](informations/documentation_english/NEW_PROJECT.md)
 - [📖 Documentation Overview](README.md)
 
-
-### French Guides
+### 📚 Documentation (French)
 
 - [🚀 Getting Started](informations/documentation_french/GETTING_STARTED.md)
 - [⚙️ Configuration](informations/documentation_french/CONFIGURATION.md)
@@ -300,6 +295,8 @@ Ouvrez [http://localhost:8000](http://localhost:8000)
 - [🛣️ Macro](informations/documentation_french/MACRO%2520CONTEXT.md)
 - [🔧 changelog](informations/documentation_french/CHANGELOG.md)
 - [🚀 Contribuer](informations/documentation_french/CONTRIBUTING.md)
+- [🆕 New project](informations/documentation_english/NOUVEAU_PROJET.md)
+- [📖 Documentation Overview](README.fr.md)
 
 ---
 
@@ -489,12 +486,19 @@ let csp_config = CspConfig {
     default_src: vec!["'self'".to_string()],
     script_src: vec!["'self'".to_string()],
     style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
-    use_nonce: true,
+    img_src: vec!["'self'".to_string(), "data:".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: false,
     ..Default::default()
 };
 
 RustiApp::new(settings).await?
-    .middleware(CspMiddleware::new(csp_config))
+    .middleware(SecurityHeadersMiddleware::new())
+    .with_default_middleware()
     .routes(routes())
     .run()
     .await?;
@@ -505,6 +509,7 @@ RustiApp::new(settings).await?
 ```rust
 RustiApp::new(settings).await?
     .middleware(SecurityHeadersMiddleware::new())
+    .with_default_middleware()
     .routes(routes())
     .run()
     .await?;

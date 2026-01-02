@@ -157,7 +157,6 @@ fn routes() -> Router {
         },
         name ="hello",
 
-
         "/user" => view! {
             GET => views::user_profile,
             POST => views::user_profile_submit
@@ -230,7 +229,9 @@ pub async fn user_profile_submit(
         }
     }
     
+    // 2. Validation error scenarios (invalid field inputs)
     error!(message, "Form validation error");
+
     let ctx = context! {
         "form", ModelForm::build();
         "forms_errors", user.get_errors();
@@ -267,7 +268,7 @@ cargo run
 Open [http://localhost:8000](http://localhost:8000)
 
 ---
-
+## 📚 Complete Documentation
 
 ### 📚 Documentation (English)
 
@@ -282,7 +283,6 @@ Open [http://localhost:8000](http://localhost:8000)
 - [🚀 Contribuer](informations/documentation_english/CONTRIBUTING.md)
 - [🆕 New project](informations/documentation_english/NEW_PROJECT.md)
 - [📖 Documentation Overview](README.md)
-
 
 ### 📚 Documentation (French)
 
@@ -415,6 +415,7 @@ pub async fn create_post(
         }
     }
 }
+
 ```
 
 ### Template (templates/posts/list.html)
@@ -492,10 +493,12 @@ let csp_config = CspConfig {
     base_uri: vec!["'self'".to_string()],
     form_action: vec!["'self'".to_string()],
     use_nonce: false,
+    ..Default::default()
 };
 
 RustiApp::new(settings).await?
-    .middleware(CspMiddleware::new(csp_config))
+    .middleware(SecurityHeadersMiddleware::new())
+    .with_default_middleware()
     .routes(routes())
     .run()
     .await?;
@@ -506,6 +509,7 @@ RustiApp::new(settings).await?
 ```rust
 RustiApp::new(settings).await?
     .middleware(SecurityHeadersMiddleware::new())
+    .with_default_middleware()
     .routes(routes())
     .run()
     .await?;
