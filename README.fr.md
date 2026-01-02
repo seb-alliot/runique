@@ -4,8 +4,9 @@
 
 Rusti est un framework web moderne qui combine la sécurité et les performances de Rust avec l'ergonomie de Django. Il offre une expérience de développement familière aux développeurs Django tout en exploitant la puissance du système de types de Rust.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Rust Version](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/seb-alliot/rusti)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
 
 ---
 
