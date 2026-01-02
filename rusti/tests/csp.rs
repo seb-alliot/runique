@@ -1,18 +1,18 @@
+use axum::extract::Extension;
 use axum::{
-    Router,
-    routing::get,
     body::Body,
-    http::{Request, header},
+    http::{header, Request},
     middleware,
+    routing::get,
+    Router,
+};
+use rusti::{
+    middleware::csp::{security_headers_middleware, CspConfig},
+    Settings,
 };
 use std::sync::Arc;
 use tower::ServiceExt;
-use rusti::{
-    Settings,
-    middleware::csp::{security_headers_middleware, CspConfig},
-};
-use axum::extract::Extension;
-use tower_sessions::{SessionManagerLayer, MemoryStore};
+use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 /// Handler de test simple
 async fn test_handler() -> &'static str {
@@ -30,7 +30,10 @@ fn create_test_app(csp_config: CspConfig) -> Router {
 
     Router::new()
         .route("/", get(test_handler))
-        .layer(middleware::from_fn_with_state(csp_config, security_headers_middleware))
+        .layer(middleware::from_fn_with_state(
+            csp_config,
+            security_headers_middleware,
+        ))
         .layer(Extension(settings))
         .layer(session_layer)
 }
@@ -40,10 +43,7 @@ async fn test_csp_headers_present() {
     let csp_config = CspConfig::strict();
     let app = create_test_app(csp_config);
 
-    let req = Request::builder()
-        .uri("/")
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
 
     let res = app.oneshot(req).await.unwrap();
 
@@ -59,10 +59,7 @@ async fn test_csp_x_content_type_options() {
     let csp_config = CspConfig::strict();
     let app = create_test_app(csp_config);
 
-    let req = Request::builder()
-        .uri("/")
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
 
     let res = app.oneshot(req).await.unwrap();
 
@@ -76,10 +73,7 @@ async fn test_csp_x_frame_options() {
     let csp_config = CspConfig::strict();
     let app = create_test_app(csp_config);
 
-    let req = Request::builder()
-        .uri("/")
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
 
     let res = app.oneshot(req).await.unwrap();
 
@@ -93,10 +87,7 @@ async fn test_csp_referrer_policy() {
     let csp_config = CspConfig::strict();
     let app = create_test_app(csp_config);
 
-    let req = Request::builder()
-        .uri("/")
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
 
     let res = app.oneshot(req).await.unwrap();
 
@@ -113,10 +104,7 @@ async fn test_csp_x_xss_protection() {
     let csp_config = CspConfig::strict();
     let app = create_test_app(csp_config);
 
-    let req = Request::builder()
-        .uri("/")
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
 
     let res = app.oneshot(req).await.unwrap();
 
@@ -131,10 +119,7 @@ async fn test_csp_permissions_policy() {
     let csp_config = CspConfig::strict();
     let app = create_test_app(csp_config);
 
-    let req = Request::builder()
-        .uri("/")
-        .body(Body::empty())
-        .unwrap();
+    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
 
     let res = app.oneshot(req).await.unwrap();
 

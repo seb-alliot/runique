@@ -20,7 +20,7 @@ This guide walks you through building a complete CRUD (Create, Read, Update, Del
 
 ## Prerequisites
 
-* Rust 1.70 or higher
+* Rust 1.75 or higher
 * PostgreSQL installed and running
 * Basic SQL knowledge
 

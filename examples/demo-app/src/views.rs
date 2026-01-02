@@ -138,7 +138,6 @@ pub async fn view_user(
 
 /// Page "À propos"
 pub async fn about(template: Template, mut message: Message) -> Response {
-
     success!(message, "Ceci est un message de succès de test.");
     info!(message, "Ceci est un message d'information de test.");
     error!(message, "Ceci est un message d'erreur de test.");

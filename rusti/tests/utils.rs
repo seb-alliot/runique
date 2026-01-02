@@ -13,7 +13,7 @@ fn test_generate_token() {
 
     // Mais ils devraient avoir la même longueur (format hex)
     assert_eq!(token1.len(), token2.len());
-    assert!(token1.len() > 0);
+    assert!(!token1.is_empty());
 }
 
 #[test]
@@ -72,5 +72,7 @@ fn test_generate_token_consistency() {
     assert!(lengths.iter().all(|&len| len == lengths[0]));
 
     // Tous devraient être en hex
-    assert!(tokens.iter().all(|t| t.chars().all(|c| c.is_ascii_hexdigit())));
+    assert!(tokens
+        .iter()
+        .all(|t| t.chars().all(|c| c.is_ascii_hexdigit())));
 }

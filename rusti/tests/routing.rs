@@ -1,9 +1,4 @@
-use rusti::{
-    reverse,
-    reverse_with_parameters,
-    register_name_url,
-};
-
+use rusti::{register_name_url, reverse, reverse_with_parameters};
 
 #[test]
 fn test_register_name_url() {
@@ -30,10 +25,7 @@ fn test_reverse_with_parameters() {
     assert_eq!(user_url, Some("/user/123".to_string()));
 
     // Test avec plusieurs paramètres
-    let post_url = reverse_with_parameters("post", &[
-        ("slug", "my-post"),
-        ("comment_id", "456"),
-    ]);
+    let post_url = reverse_with_parameters("post", &[("slug", "my-post"), ("comment_id", "456")]);
     assert_eq!(post_url, Some("/post/my-post/comment/456".to_string()));
 }
 

@@ -15,7 +15,7 @@ Ce guide vous montre comment créer une application CRUD (Create, Read, Update, 
 
 ## Prérequis
 
-- Rust 1.70 ou supérieur
+- Rust 1.75 ou supérieur
 - PostgreSQL installé et en cours d'exécution
 - Connaissances de base en SQL
 
