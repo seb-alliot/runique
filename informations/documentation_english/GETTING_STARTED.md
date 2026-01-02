@@ -90,7 +90,7 @@ cargo run
 
 Open http://127.0.0.1:3000
 
-🎉 **Congratulations!** Your first Rusti application is running.
+**Congratulations!** Your first Rusti application is running.
 
 ---
 
