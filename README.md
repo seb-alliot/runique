@@ -272,7 +272,7 @@ Open [http://localhost:8000](http://localhost:8000)
 
 ### English Guide
 
-- [🚀 Getting Started](docs/documentation_english/GETTING_STARTED.md)
+- [🚀 Getting Started](documentation_english/GETTING_STARTED.md)
 - [⚙️ Configuration](docs/documentation_english/CONFIGURATION.md)
 - [🗄️ Database](docs/documentation_english/DATABASE.md)
 - [📝 Forms](docs/documentation_english/FORMULAIRE.md)
