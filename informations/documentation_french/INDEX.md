@@ -97,8 +97,6 @@ RustiApp::new(settings).await?
     .routes(routes)              // Ajouter les routes
     .with_database(db)           // Optionnel: DB
     .with_static_files()?        // Optionnel: fichiers statiques
-    .with_flash_messages()       // Optionnel: flash messages
-    .with_csrf_tokens()          // Optionnel: protection CSRF
     .with_default_middleware()   // Optionnel: middleware erreur
     .run().await?;               // Lancer le serveur
 ```
@@ -152,7 +150,7 @@ Entity::objects
 | **Templates Tera** | [TEMPLATES.md](TEMPLATES.md) | `{% static "file.css" %}` |
 | **Balises personnalisées** | [TEMPLATES.md](TEMPLATES.md#balises-disponibles) | `{% csrf %}`, `{% messages %}` |
 | **Reverse routing** | [TEMPLATES.md](TEMPLATES.md#-link-route_name-params) | `{% link "home" %}` |
-| **Flash messages** | [GETTING_STARTED.md](GETTING_STARTED.md#routes-et-handlers) | `message.success().await` |
+| **Flash messages** | [GETTING_STARTED.md](GETTING_STARTED.md#routes-et-handlers) | `success!(message,"message");` |
 | **Protection CSRF** | [CONFIGURATION.md](CONFIGURATION.md#middleware) | `.with_csrf_tokens()` |
 | **ORM SeaORM** | [DATABASE.md](DATABASE.md) | `Entity::objects.all()` |
 | **Migrations** | [DATABASE.md](DATABASE.md#migrations) | `sea-orm-cli migrate up` |
@@ -212,7 +210,6 @@ use rusti::{
     RustiApp,
     Settings,
     Router,
-    urlpatterns,
     Context,
     Template,
     Message,

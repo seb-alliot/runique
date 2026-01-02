@@ -86,14 +86,14 @@ impl AllowedHostsValidator {
                 Err(_) => {
                     return Err((
                         StatusCode::BAD_REQUEST,
-                        self.make_error_message("<invalid host header>"),
+                        self.make_error_message("<invalid host header>")
                     ));
                 }
             },
             None => {
                 return Err((
                     StatusCode::BAD_REQUEST,
-                    self.make_error_message("<no host>"),
+                    self.make_error_message("<no host>")
                 ));
             }
         };
@@ -104,7 +104,10 @@ impl AllowedHostsValidator {
                 "⚠️  Host non autorisé: '{}'. Hosts autorisés: {:?}",
                 host, self.allowed_hosts
             );
-            return Err((StatusCode::BAD_REQUEST, self.make_error_message(host)));
+            return Err((
+                StatusCode::BAD_REQUEST,
+                self.make_error_message(host)
+            ));
         }
 
         Ok(())
@@ -126,21 +129,16 @@ impl AllowedHostsValidator {
 
 /// Middleware Axum pour valider les hosts autorisés
 ///
-/// ```rust,no_run
-/// # use rusti::Settings;
-/// # use rusti::app::RustiApp;
-/// # use axum::Router;
-/// # async fn doc() -> Result<(), Box<dyn std::error::Error>> {
-/// let settings = Settings::default_values();
-/// let routes = Router::new();
+/// # Exemple d'utilisation
 ///
-/// // On attend le build, mais pas l'objet final lui-même
-/// let app = RustiApp::builder(settings).await
+/// ```rust
+/// use rusti::middleware::allowed_hosts::allowed_hosts_middleware;
+///
+/// let app = RustiApp::new(settings).await?
 ///     .routes(routes)
-///     .build()
+///     .with_allowed_hosts()  // Utilise la méthode helper
+///     .run()
 ///     .await?;
-/// # Ok(())
-/// # }
 /// ```
 pub async fn allowed_hosts_middleware(
     settings: axum::extract::Extension<Arc<Settings>>,
@@ -164,7 +162,10 @@ mod tests {
 
     #[test]
     fn test_exact_match() {
-        let validator = AllowedHostsValidator::new(vec!["exemple.com".to_string()], false);
+        let validator = AllowedHostsValidator::new(
+            vec!["exemple.com".to_string()],
+            false,
+        );
 
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(!validator.is_host_allowed("www.exemple.com"));
@@ -173,7 +174,10 @@ mod tests {
 
     #[test]
     fn test_wildcard_subdomain() {
-        let validator = AllowedHostsValidator::new(vec![".exemple.com".to_string()], false);
+        let validator = AllowedHostsValidator::new(
+            vec![".exemple.com".to_string()],
+            false,
+        );
 
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(validator.is_host_allowed("www.exemple.com"));
@@ -184,7 +188,10 @@ mod tests {
 
     #[test]
     fn test_wildcard_all() {
-        let validator = AllowedHostsValidator::new(vec!["*".to_string()], false);
+        let validator = AllowedHostsValidator::new(
+            vec!["*".to_string()],
+            false,
+        );
 
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(validator.is_host_allowed("n-importe-quoi.com"));
@@ -210,7 +217,10 @@ mod tests {
 
     #[test]
     fn test_host_with_port() {
-        let validator = AllowedHostsValidator::new(vec!["exemple.com".to_string()], false);
+        let validator = AllowedHostsValidator::new(
+            vec!["exemple.com".to_string()],
+            false,
+        );
 
         assert!(validator.is_host_allowed("exemple.com:8080"));
         assert!(validator.is_host_allowed("exemple.com:443"));
@@ -230,7 +240,10 @@ mod tests {
     #[test]
     fn test_wildcard_subdomain_security() {
         // Test pour éviter que "malicious-exemple.com" match ".exemple.com"
-        let validator = AllowedHostsValidator::new(vec![".exemple.com".to_string()], false);
+        let validator = AllowedHostsValidator::new(
+            vec![".exemple.com".to_string()],
+            false,
+        );
 
         // Doit matcher
         assert!(validator.is_host_allowed("exemple.com"));

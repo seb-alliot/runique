@@ -1,9 +1,9 @@
 // rusti/src/middleware/auth.rs
 
 use axum::{
-    extract::Request,
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
+    extract::Request,
 };
 use tower_sessions::Session;
 
@@ -13,8 +13,7 @@ pub const SESSION_USER_USERNAME_KEY: &str = "_username";
 
 /// Vérifie si l'utilisateur est authentifié
 pub async fn is_authenticated(session: &Session) -> bool {
-    session
-        .get::<i32>(SESSION_USER_ID_KEY)
+    session.get::<i32>(SESSION_USER_ID_KEY)
         .await
         .ok()
         .flatten()
@@ -23,28 +22,24 @@ pub async fn is_authenticated(session: &Session) -> bool {
 
 /// Récupère l'ID de l'utilisateur connecté
 pub async fn get_user_id(session: &Session) -> Option<i32> {
-    session.get::<i32>(SESSION_USER_ID_KEY).await.ok().flatten()
+    session.get::<i32>(SESSION_USER_ID_KEY)
+        .await
+        .ok()
+        .flatten()
 }
 
 /// Récupère le username de l'utilisateur connecté
 pub async fn get_username(session: &Session) -> Option<String> {
-    session
-        .get::<String>(SESSION_USER_USERNAME_KEY)
+    session.get::<String>(SESSION_USER_USERNAME_KEY)
         .await
         .ok()
         .flatten()
 }
 
 /// Connecte un utilisateur (stocke son ID et username en session)
-pub async fn login_user(
-    session: &Session,
-    user_id: i32,
-    username: &str,
-) -> Result<(), tower_sessions::session::Error> {
+pub async fn login_user(session: &Session, user_id: i32, username: &str) -> Result<(), tower_sessions::session::Error> {
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
-    session
-        .insert(SESSION_USER_USERNAME_KEY, username.to_string())
-        .await?;
+    session.insert(SESSION_USER_USERNAME_KEY, username.to_string()).await?;
     Ok(())
 }
 
@@ -54,21 +49,23 @@ pub async fn logout_user(session: &Session) -> Result<(), tower_sessions::sessio
 }
 
 /// Middleware pour protéger les routes (nécessite authentification)
-/// ...
-/// # Exemple
-/// ```rust
-/// # use axum::{Router, routing::get};
-/// # async fn dashboard() -> &'static str { "Dashboard" }
-/// # async fn profile() -> &'static str { "Profile" }
-/// use rusti::middleware::login_requiert::login_required;
 ///
-/// // Utilisation de Router<()> pour aider l'inférence de type
-/// let protected_routes: Router = Router::new()
+/// # Exemple
+///
+/// ```rust
+/// use rusti::middleware::auth::login_required;
+/// use axum::routing::get;
+///
+/// let protected_routes = Router::new()
 ///     .route("/dashboard", get(dashboard))
 ///     .route("/profile", get(profile))
 ///     .layer(axum::middleware::from_fn(login_required));
 /// ```
-pub async fn login_required(session: Session, request: Request, next: Next) -> Response {
+pub async fn login_required(
+    session: Session,
+    request: Request,
+    next: Next,
+) -> Response {
     // Vérifier si l'utilisateur est authentifié
     if is_authenticated(&session).await {
         next.run(request).await
@@ -83,18 +80,20 @@ pub async fn login_required(session: Session, request: Request, next: Next) -> R
 /// (utile pour les pages login/register)
 ///
 /// # Exemple
-/// ```rust
-/// # use axum::{Router, routing::get};
-/// # async fn login_page() -> &'static str { "Login" }
-/// # async fn register_page() -> &'static str { "Register" }
-/// use rusti::middleware::login_requiert::redirect_if_authenticated;
 ///
-/// let public_routes: Router = Router::new()
+/// ```rust
+/// use rusti::middleware::auth::redirect_if_authenticated;
+///
+/// let public_routes = Router::new()
 ///     .route("/login", get(login_page))
 ///     .route("/register", get(register_page))
 ///     .layer(axum::middleware::from_fn(redirect_if_authenticated));
 /// ```
-pub async fn redirect_if_authenticated(session: Session, request: Request, next: Next) -> Response {
+pub async fn redirect_if_authenticated(
+    session: Session,
+    request: Request,
+    next: Next,
+) -> Response {
     // Si déjà connecté, rediriger vers dashboard
     if is_authenticated(&session).await {
         let redirect_url = "/dashboard"; // Configurable ?
@@ -108,12 +107,16 @@ pub async fn redirect_if_authenticated(session: Session, request: Request, next:
 /// (permet d'accéder à l'utilisateur dans les handlers sans session)
 ///
 /// # Exemple
-/// ```rust
-/// # use axum::{Router, routing::get};
-/// # async fn dashboard() -> &'static str { "Dashboard" }
-/// use rusti::middleware::login_requiert::{load_user_middleware, CurrentUser};
 ///
-/// let app: Router = Router::new()
+/// ```rust
+/// use rusti::middleware::auth::{load_user_middleware, CurrentUser};
+/// use axum::Extension;
+///
+/// async fn dashboard(Extension(user): Extension<CurrentUser>) -> String {
+///     format!("Hello, {}!", user.username)
+/// }
+///
+/// let app = Router::new()
 ///     .route("/dashboard", get(dashboard))
 ///     .layer(axum::middleware::from_fn(load_user_middleware));
 /// ```
@@ -123,15 +126,17 @@ pub struct CurrentUser {
     pub username: String,
 }
 
-pub async fn load_user_middleware(session: Session, mut request: Request, next: Next) -> Response {
+pub async fn load_user_middleware(
+    session: Session,
+    mut request: Request,
+    next: Next,
+) -> Response {
     // Charger l'utilisateur si authentifié
-    if let (Some(user_id), Some(username)) =
-        (get_user_id(&session).await, get_username(&session).await)
-    {
-        let current_user = CurrentUser {
-            id: user_id,
-            username,
-        };
+    if let (Some(user_id), Some(username)) = (
+        get_user_id(&session).await,
+        get_username(&session).await,
+    ) {
+        let current_user = CurrentUser { id: user_id, username };
         request.extensions_mut().insert(current_user);
     }
 
@@ -146,12 +151,12 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
 ///
 /// # Exemple d'implémentation complète
 /// ```rust,no_run
-/// # use tower_sessions::Session;
-/// # use rusti::middleware::login_requiert::get_user_id;
 /// pub async fn has_permission(session: &Session, permission: &str) -> bool {
 ///     if let Some(user_id) = get_user_id(session).await {
 ///         // Récupérer les permissions depuis la DB
-///         true
+///         // let user = User::objects.get(&db, user_id).await?;
+///         // user.permissions.contains(permission)
+///         true  // Stub pour l'instant
 ///     } else {
 ///         false
 ///     }

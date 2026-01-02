@@ -142,6 +142,7 @@ pub mod prelude {
     // === Macros Rusti ===
     pub use crate::context;
     pub use crate::urlpatterns;
+    pub use crate::{error, info, success, warning};
 
     // === Formulaires ===
     pub use crate::formulaire::extracteur::ExtractForm;

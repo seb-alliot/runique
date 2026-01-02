@@ -151,4 +151,11 @@ impl Message {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
+
+    pub async fn warning<S: Into<String>>(&mut self, content: S) -> Result<(), StatusCode> {
+        self.0
+            .insert_message(FlashMessage::warning(content.into()))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
 }

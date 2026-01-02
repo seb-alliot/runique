@@ -4,13 +4,13 @@ Rusti propose une intégration avec SeaORM qui offre une API inspirée de Django
 
 ## Table des matières
 
-1. [Configuration](#configuration)
-2. [Définition des modèles](#définition-des-modèles)
-3. [API Django-like](#api-django-like)
-4. [Migrations](#migrations)
-5. [Requêtes avancées](#requêtes-avancées)
-6. [Relations](#relations)
-7. [Transactions](#transactions)
+1. [Configuration](https://www.google.com/search?q=%23configuration)
+2. [Définition des modèles](https://www.google.com/search?q=%23d%C3%A9finition-des-mod%C3%A8les)
+3. [API Django-like](https://www.google.com/search?q=%23api-django-like)
+4. [Migrations](https://www.google.com/search?q=%23migrations)
+5. [Requêtes avancées](https://www.google.com/search?q=%23requ%C3%AAtes-avanc%C3%A9es)
+6. [Relations](https://www.google.com/search?q=%23relations)
+7. [Transactions](https://www.google.com/search?q=%23transactions)
 
 ---
 
@@ -21,7 +21,7 @@ Rusti propose une intégration avec SeaORM qui offre une API inspirée de Django
 Rusti supporte plusieurs moteurs de bases de données via SeaORM :
 
 | Base de données | Feature Cargo | URL de connexion |
-|-----------------|---------------|------------------|
+| --- | --- | --- |
 | **SQLite** | `sqlite` (défaut) | `sqlite://database.db?mode=rwc` |
 | **PostgreSQL** | `postgres` | `postgres://user:pass@host:5432/db` |
 | **MySQL** | `mysql` | `mysql://user:pass@host:3306/db` |
@@ -34,19 +34,20 @@ Rusti supporte plusieurs moteurs de bases de données via SeaORM :
 
 # SQLite (activé par défaut)
 [dependencies]
-rusti = "0.1"
+rusti = "1.0.0"
 
 # PostgreSQL
 [dependencies]
-rusti = { version = "0.1", features = ["postgres"] }
+rusti = { version = "1.0.0", features = ["postgres"] }
 
 # MySQL
 [dependencies]
-rusti = { version = "0.1", features = ["mysql"] }
+rusti = { version = "1.0.0", features = ["mysql"] }
 
 # Toutes les bases
 [dependencies]
-rusti = { version = "0.1", features = ["all-databases"] }
+rusti = { version = "1.0.0", features = ["all-databases"] }
+
 ```
 
 ### Configuration via fichier `.env`
@@ -71,6 +72,7 @@ DB_NAME=mydb
 # SQLite
 DB_ENGINE=sqlite
 DB_NAME=database.sqlite
+
 ```
 
 ### Configuration programmatique
@@ -96,6 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
 ```
 
 #### Méthode 2 : Configuration manuelle
@@ -113,6 +116,7 @@ let db_config = DatabaseConfig::from_url("postgres://user:pass@localhost/mydb")?
     .build();
 
 let db = db_config.connect().await?;
+
 ```
 
 ### Configuration du pool de connexions
@@ -120,6 +124,7 @@ let db = db_config.connect().await?;
 **Note importante :** Les paramètres de pool de connexions sont actuellement configurables via le builder `DatabaseConfigBuilder`, mais les valeurs par défaut sont définies dans `database/config.rs`.
 
 **Valeurs par défaut du pool :**
+
 ```rust
 // Définies dans database/config.rs
 pub struct DatabaseConfig {
@@ -130,9 +135,11 @@ pub struct DatabaseConfig {
     pub idle_timeout: Duration,      // Défaut: 300 secondes (5 minutes)
     pub max_lifetime: Duration,      // Défaut: 3600 secondes (1 heure)
 }
+
 ```
 
 **Configuration personnalisée :**
+
 ```rust
 let db_config = DatabaseConfig::from_url("postgres://localhost/mydb")?
     .max_connections(50)              // Modifier le maximum
@@ -140,6 +147,7 @@ let db_config = DatabaseConfig::from_url("postgres://localhost/mydb")?
     .connect_timeout(Duration::from_secs(30))  // Timeout custom
     .pool_size(10, 50)               // Ou les deux en une fois
     .build();
+
 ```
 
 **Pour SQLite :**
@@ -173,6 +181,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 // Active l'API Django-like
 impl_objects!(Entity);
+
 ```
 
 ### Colonnes avec options
@@ -201,6 +210,7 @@ pub struct Model {
 }
 
 impl_objects!(Entity);
+
 ```
 
 ### Énumérations
@@ -227,6 +237,7 @@ pub struct Model {
 }
 
 impl_objects!(Entity);
+
 ```
 
 ---
@@ -256,6 +267,7 @@ pub async fn examples(db: &DatabaseConnection) -> Result<(), DbErr> {
 
     Ok(())
 }
+
 ```
 
 ### Filtrage
@@ -285,6 +297,7 @@ let users = User::objects
     )
     .all(db)
     .await?;
+
 ```
 
 ### Exclusion
@@ -302,6 +315,7 @@ let valid_users = User::objects
     .exclude(users::Column::IsBanned.eq(true))
     .all(db)
     .await?;
+
 ```
 
 ### Tri et limitation
@@ -339,6 +353,7 @@ let first_user = User::objects
     .order_by_asc(users::Column::CreatedAt)
     .first(db)
     .await?;
+
 ```
 
 ### Chaînage complet
@@ -352,6 +367,7 @@ let result = User::objects
     .limit(20)
     .all(db)
     .await?;
+
 ```
 
 ---
@@ -387,6 +403,7 @@ use sea_orm::prelude::*;
 // IS NULL / IS NOT NULL
 .filter(users::Column::DeletedAt.is_null())
 .filter(users::Column::VerifiedAt.is_not_null())
+
 ```
 
 ### Conditions OR
@@ -402,6 +419,7 @@ let users = User::objects
     )
     .all(db)
     .await?;
+
 ```
 
 ### Requêtes brutes SQL
@@ -431,6 +449,7 @@ let results = CustomResult::find_by_statement(
 )
 .all(db)
 .await?;
+
 ```
 
 ---
@@ -480,6 +499,7 @@ use sea_orm::ModelTrait;
 
 let user = User::objects.get(db, 1).await?;
 let posts = user.find_related(Post).all(db).await?;
+
 ```
 
 ### ManyToMany (Plusieurs à plusieurs)
@@ -509,6 +529,7 @@ let tags = post
     .find_linked(post_tags::PostToTag)
     .all(db)
     .await?;
+
 ```
 
 ---
@@ -538,6 +559,7 @@ post.insert(&txn).await?;
 
 // Valider
 txn.commit().await?;
+
 ```
 
 ### Transaction avec closure
@@ -555,6 +577,7 @@ db.transaction::<_, (), DbErr>(|txn| {
         Ok(())
     })
 }).await?;
+
 ```
 
 ---
@@ -582,6 +605,7 @@ sea-orm-cli migrate up
 
 # Rollback
 sea-orm-cli migrate down
+
 ```
 
 ### Structure des migrations
@@ -592,6 +616,7 @@ migrations/
 ├── m20220101_000001_create_users_table.rs
 ├── m20220102_000001_create_posts_table.rs
 └── m20220103_000001_add_email_index.rs
+
 ```
 
 ### Exemple de migration
@@ -646,6 +671,7 @@ enum Users {
     Email,
     CreatedAt,
 }
+
 ```
 
 ---
@@ -692,6 +718,7 @@ pub async fn create_user(
         }
     }
 }
+
 ```
 
 ---
@@ -713,6 +740,7 @@ db.transaction(|txn| {
 // Mauvais (risque d'incohérence)
 user.insert(db).await?;
 post.insert(db).await?; // Si ça échoue, user existe déjà
+
 ```
 
 ### 2. Gérez les erreurs proprement
@@ -730,6 +758,7 @@ match User::objects.get(db, id).await {
         return (StatusCode::INTERNAL_SERVER_ERROR, "Error").into_response();
     }
 }
+
 ```
 
 ### 3. Utilisez des index pour les requêtes fréquentes
@@ -747,6 +776,7 @@ pub struct Model {
     #[sea_orm(indexed)]
     pub username: String,
 }
+
 ```
 
 ### 4. Optimisez le pool de connexions selon vos besoins
@@ -763,14 +793,10 @@ let db_config = DatabaseConfig::from_env()?
     .max_connections(10)
     .min_connections(2)
     .build();
-```
 
----
 
 ## Voir aussi
 
-- [SeaORM Documentation](https://www.sea-ql.org/SeaORM/)
-- [Guide de démarrage](GETTING_STARTED.md)
-- [Configuration](CONFIGURATION.md)
-
-Développez efficacement avec Rusti !
+* [SeaORM Documentation](https://www.sea-ql.org/SeaORM/)
+* [Guide de démarrage](https://www.google.com/search?q=GETTING_STARTED.md)
+* [Configuration](https://www.google.com/search?q=CONFIGURATION.md)

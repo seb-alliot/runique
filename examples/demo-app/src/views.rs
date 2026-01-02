@@ -1,8 +1,7 @@
+use rusti::prelude::*;
 use rusti::{
-    context, reverse_with_parameters, ColumnTrait, DatabaseConnection, ExtractForm, IntoResponse,
-    Message, Redirect, Response, RustiForm, Template,
+    reverse_with_parameters, ColumnTrait, DatabaseConnection, ExtractForm, Redirect, RustiForm,
 };
-//     get_or_return, a utilisé pour récupérer ou retourner une réponse d'erreur
 
 use crate::forms::UsernameForm;
 use crate::models::users;
@@ -46,10 +45,7 @@ pub async fn user_profile_submit(
     if user.is_valid() {
         match user.save(&db).await {
             Ok(created_user) => {
-                message
-                    .success("Profil utilisateur créé avec succès !")
-                    .await
-                    .unwrap();
+                success!(message, "Profil utilisateur créé avec succès !");
                 let target = reverse_with_parameters(
                     "user_profile",
                     &[
@@ -72,7 +68,7 @@ pub async fn user_profile_submit(
                 } else {
                     "Erreur lors de la sauvegarde"
                 };
-                message.error(error_msg).await.unwrap();
+                error!(message, error_msg);
                 let ctx = context! {
                     "form", ModelForm::build();
                     "forms_errors", user.get_errors();
@@ -83,10 +79,7 @@ pub async fn user_profile_submit(
             }
         }
     }
-    message
-        .error("Veuillez corriger les erreurs du formulaire")
-        .await
-        .unwrap();
+    error!(message, "Erreur de validation du formulaire");
     let ctx = context! {
         "form", ModelForm::build();
         "forms_errors", user.get_errors();
@@ -145,18 +138,10 @@ pub async fn view_user(
 
 /// Page "À propos"
 pub async fn about(template: Template, mut message: Message) -> Response {
-    message
-        .success("Ceci est un message de succès de test.")
-        .await
-        .unwrap();
-    message
-        .info("Ceci est un message d'information de test.")
-        .await
-        .unwrap();
-    message
-        .error("Ceci est un message d'erreur de test.")
-        .await
-        .unwrap();
+    success!(message, "Ceci est un message de succès de test.");
+    info!(message, "Ceci est un message d'information de test.");
+    error!(message, "Ceci est un message d'erreur de test.");
+    warning!(message, "Ceci est un message d'avertissement de test.");
 
     let ctx = context! {
         "title", "À propos de Rusti Framework";
@@ -167,9 +152,6 @@ pub async fn about(template: Template, mut message: Message) -> Response {
 
 /// Ajax test CSRF
 pub async fn test_csrf(mut message: Message) -> Response {
-    message
-        .success("Requête POST avec CSRF réussie !")
-        .await
-        .unwrap();
+    success!(message, "CSRF token validé avec succès !");
     Redirect::to("/").into_response()
 }

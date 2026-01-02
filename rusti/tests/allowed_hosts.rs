@@ -1,14 +1,17 @@
-use axum::extract::Extension;
 use axum::{
-    body::Body,
-    http::{header, Request, StatusCode},
-    middleware,
-    routing::get,
     Router,
+    routing::get,
+    body::Body,
+    http::{Request, StatusCode, header},
+    middleware,
 };
-use rusti::{middleware::allowed_hosts::allowed_hosts_middleware, Settings};
 use std::sync::Arc;
 use tower::ServiceExt;
+use rusti::{
+    Settings,
+    middleware::allowed_hosts::allowed_hosts_middleware,
+};
+use axum::extract::Extension;
 
 /// Handler de test simple
 async fn test_handler() -> &'static str {
@@ -77,12 +80,7 @@ async fn test_allowed_host_wildcard_subdomain() {
             .unwrap();
 
         let res = app.clone().oneshot(req).await.unwrap();
-        assert_eq!(
-            res.status(),
-            StatusCode::OK,
-            "Host '{}' devrait être autorisé",
-            host
-        );
+        assert_eq!(res.status(), StatusCode::OK, "Host '{}' devrait être autorisé", host);
     }
 }
 
@@ -119,7 +117,11 @@ async fn test_allowed_host_wildcard_all() {
     let app = create_test_app(vec!["*".to_string()], false);
 
     // Tous les hosts devraient être autorisés
-    let hosts = vec!["example.com", "any-domain.com", "malicious.com"];
+    let hosts = vec![
+        "example.com",
+        "any-domain.com",
+        "malicious.com",
+    ];
 
     for host in hosts {
         let req = Request::builder()
@@ -129,12 +131,7 @@ async fn test_allowed_host_wildcard_all() {
             .unwrap();
 
         let res = app.clone().oneshot(req).await.unwrap();
-        assert_eq!(
-            res.status(),
-            StatusCode::OK,
-            "Host '{}' devrait être autorisé avec wildcard *",
-            host
-        );
+        assert_eq!(res.status(), StatusCode::OK, "Host '{}' devrait être autorisé avec wildcard *", host);
     }
 }
 
@@ -173,7 +170,10 @@ async fn test_allowed_host_missing_header() {
     let app = create_test_app(vec!["example.com".to_string()], false);
 
     // Requête sans header Host
-    let req = Request::builder().uri("/").body(Body::empty()).unwrap();
+    let req = Request::builder()
+        .uri("/")
+        .body(Body::empty())
+        .unwrap();
 
     let res = app.oneshot(req).await.unwrap();
     assert_eq!(res.status(), StatusCode::BAD_REQUEST);
@@ -187,7 +187,7 @@ async fn test_allowed_host_multiple_allowed() {
             "test.com".to_string(),
             ".api.example.com".to_string(),
         ],
-        false,
+        false
     );
 
     // Tous ces hosts devraient être autorisés
@@ -206,12 +206,7 @@ async fn test_allowed_host_multiple_allowed() {
             .unwrap();
 
         let res = app.clone().oneshot(req).await.unwrap();
-        assert_eq!(
-            res.status(),
-            StatusCode::OK,
-            "Host '{}' devrait être autorisé",
-            host
-        );
+        assert_eq!(res.status(), StatusCode::OK, "Host '{}' devrait être autorisé", host);
     }
 
     // Ce host ne devrait pas être autorisé

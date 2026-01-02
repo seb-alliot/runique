@@ -34,13 +34,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build();
     settings.validate_allowed_hosts();
 
-    let host = env::var("ALLOWED_HOSTS").unwrap_or_else(|_| "localhost,".to_string());
-    println!("Allowed hosts: {}", host);
-
     // Créer et lancer l'application
     RustiApp::new(settings)
         .await?
-        .routes(url::urls())
+        .routes(url::routes())
         .with_database(db)
         .with_static_files()?
         .with_allowed_hosts(
@@ -53,7 +50,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_default_middleware()
         .run()
         .await?;
-    println!("{:?}", env::var("ALLOWED_HOSTS"));
 
     Ok(())
 }

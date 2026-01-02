@@ -1,6 +1,6 @@
 use rusti::formulaire::{
-    field::{CharField, EmailField, IntegerField},
     formsrusti::{Forms, FormulaireTrait},
+    field::{CharField, IntegerField, EmailField},
 };
 use std::collections::HashMap;
 
@@ -11,7 +11,9 @@ struct TestForm {
 
 impl TestForm {
     fn new() -> Self {
-        Self { form: Forms::new() }
+        Self {
+            form: Forms::new(),
+        }
     }
 }
 
@@ -21,8 +23,7 @@ impl FormulaireTrait for TestForm {
     }
 
     fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool {
-        self.form
-            .require("name", &CharField { allow_blank: false }, raw_data);
+        self.form.require("name", &CharField { allow_blank: false }, raw_data);
         self.form.optional("age", &IntegerField, raw_data);
         self.form.is_valid()
     }
@@ -40,8 +41,7 @@ fn test_forms_new() {
 fn test_forms_clear() {
     let mut form = Forms::new();
     form.errors.insert("test".to_string(), "error".to_string());
-    form.cleaned_data
-        .insert("test".to_string(), serde_json::json!("value"));
+    form.cleaned_data.insert("test".to_string(), serde_json::json!("value"));
 
     form.clear();
 

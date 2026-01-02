@@ -1,10 +1,10 @@
 # 🚀 Getting Started - Rusti Framework
 
-This guide will walk you through creating your first Rusti application step by step.
+This guide will walk you through creating your first application with Rusti, step by step.
 
 ## Prerequisites
 
-- Rust 1.70 or higher
+- Rust 1.75 or higher
 - Cargo (installed with Rust)
 - Basic knowledge of Rust and web development
 
@@ -25,10 +25,11 @@ This guide will walk you through creating your first Rusti application step by s
 
 ### 1. Install Rust
 
-If not already done:
+If you haven't already:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+curl --proto '=https' --tlsv1.2 -sSf [https://sh.rustup.rs](https://sh.rustup.rs) | sh
+
 ```
 
 ### 2. Create a New Project
@@ -36,6 +37,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```bash
 cargo new my-rusti-app
 cd my-rusti-app
+
 ```
 
 ### 3. Add Dependencies
@@ -43,10 +45,11 @@ cd my-rusti-app
 ```toml
 # Cargo.toml
 [dependencies]
-rusti = "0.1"
+rusti = "1.0.0"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
 ```
 
 ---
@@ -67,20 +70,22 @@ async fn hello() -> &'static str {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::default_values();
-    
+
     RustiApp::new(settings).await?
         .routes(Router::new().route("/", get(hello)))
         .run()
         .await?;
-    
+
     Ok(())
 }
+
 ```
 
 Run the application:
 
 ```bash
 cargo run
+
 ```
 
 Open http://127.0.0.1:3000
@@ -91,7 +96,7 @@ Open http://127.0.0.1:3000
 
 ## Project Structure
 
-For a complete application, organize your code as follows:
+For a full-scale application, organize your code as follows:
 
 ```
 my-rusti-app/
@@ -102,10 +107,8 @@ my-rusti-app/
 │   └── models.rs        # Database models (optional)
 ├── templates/           # Tera templates
 │   ├── base.html        # Parent template
-│   ├── index.html       # Homepage
-│   └── errors/          # Custom error pages
-│       ├── 404.html
-│       └── 500.html
+│   └── index.html       # Homepage
+
 ├── static/              # Static files
 │   ├── css/
 │   │   └── main.css
@@ -113,21 +116,23 @@ my-rusti-app/
 │   │   └── app.js
 │   └── images/
 │       └── logo.png
-├── media/               # User uploaded files
+├── media/               # User-uploaded files
 ├── .env                 # Environment variables
 ├── .env.example         # Configuration example
 ├── Cargo.toml
 └── README.md
+
 ```
 
 ### Create the Structure
 
 ```bash
-mkdir -p templates/errors static/{css,js,images} media
+mkdir -p templates/ static/{css,js,images} media
 touch src/{urls.rs,views.rs}
 touch templates/{base.html,index.html}
 touch static/css/main.css
 touch .env.example
+
 ```
 
 ---
@@ -149,6 +154,7 @@ pub fn routes() -> Router {
         "/user/{id}" => get(views::user_detail), name = "user_detail",
     }
 }
+
 ```
 
 ### 2. Create Handlers (`src/views.rs`)
@@ -161,29 +167,38 @@ pub async fn index(
     template: Template,
     mut message: Message,
 ) -> Response {
-    let _ = message.info("Welcome to Rusti!").await;
-    
-    let context = Context::from_serialize(json!({
-        "title": "Home",
-        "description": "Rust web framework inspired by Django",
-    })).unwrap_or_default();
+    info!(message, "This is a test information message.");
 
-    template.render("index.html", &context)
+    let ctx = context! {
+        "title": "Home",
+        "description": "A Django-inspired Rust web framework",
+    };
+
+    template.render("index.html", &ctx)
 }
 
 // About page
 pub async fn about(template: Template) -> Response {
-    let context = Context::from_serialize(json!({
+    let ctx = context! {
         "title": "About",
         "features": vec![
             "Django-like",
-            "Performant",
+            "High performance",
             "Secure",
             "Modern"
         ],
-    })).unwrap_or_default();
-    
-    template.render("about.html", &context)
+    };
+
+    template.render("about.html", &ctx)
+}
+
+// Contact page
+pub async fn contact(template: Template) -> Response {
+    let ctx = context! {
+        "title": "Contact",
+    };
+
+    template.render("contact.html", &ctx)
 }
 
 // JSON API
@@ -194,7 +209,7 @@ pub async fn api_users() -> Response {
             {"id": 2, "name": "Bob"},
         ]
     });
-    
+
     (StatusCode::OK, Json(users)).into_response()
 }
 
@@ -203,19 +218,21 @@ pub async fn user_detail(
     Path(id): Path<u32>,
     template: Template,
 ) -> Response {
-    let context = Context::from_serialize(json!({
+    let ctx = context! {
         "user_id": id,
         "title": format!("User #{}", id),
-    })).unwrap_or_default();
-    
-    template.render("user_detail.html", &context)
+    };
+
+    template.render("user_detail.html", &ctx)
 }
+
 ```
 
 ### 3. Update `main.rs`
 
 ```rust
 use rusti::prelude::*;
+use std::env;
 
 mod urls;
 mod views;
@@ -231,18 +248,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .server("127.0.0.1", 3000, "change-this-key-in-production")
         .build();
 
-    // Launch application
+    // Start application
     RustiApp::new(settings).await?
         .routes(urls::routes())
         .with_static_files()?
-        .with_flash_messages()
-        .with_csrf_tokens()
+        .with_allowed_hosts(
+            env::var("ALLOWED_HOSTS")
+                .ok()
+                .map(|s| s.split(',').map(|h| h.to_string()).collect()),
+        )
+        .with_sanitize_text_inputs(false)
+        .with_security_headers(CspConfig::strict())
         .with_default_middleware()
         .run()
         .await?;
 
     Ok(())
 }
+
 ```
 
 ---
@@ -275,23 +298,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     <main class="container">
         {% messages %}
-        
+
         {% block content %}
         {% endblock %}
     </main>
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2025 My Rusti Application</p>
+            <p>&copy; 2026 My Rusti Application</p>
         </div>
     </footer>
 
     {% block extra_js %}{% endblock %}
 </body>
 </html>
-```
 
-See [TEMPLATES.md](TEMPLATES.md) for complete template documentation.
+```
 
 ---
 
@@ -303,19 +325,9 @@ Add the feature in `Cargo.toml`:
 
 ```toml
 [dependencies]
-rusti = { version = "0.1", features = ["postgres"] }
+rusti = { version = "1.0.0", features = ["postgres"] }
 sea-orm = { version = "1", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
-```
 
-Create `.env`:
-
-```env
-DB_ENGINE=postgres
-DB_USER=myuser
-DB_PASSWORD=mypassword
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=mydb
 ```
 
 ### 2. Define a Model (`src/models.rs`)
@@ -341,91 +353,20 @@ impl ActiveModelBehavior for ActiveModel {}
 
 // Enable Django-like API
 impl_objects!(Entity);
-```
 
-### 3. Use in Handlers
-
-```rust
-use rusti::prelude::*;
-use crate::models::{users, Entity as User};
-
-pub async fn list_users(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
-) -> Response {
-    // Django-like query
-    let users = User::objects
-        .order_by_desc(users::Column::CreatedAt)
-        .limit(10)
-        .all(&db)
-        .await
-        .unwrap_or_default();
-    
-    let context = Context::from_serialize(json!({
-        "users": users,
-    })).unwrap_or_default();
-    
-    template.render("users/list.html", &context)
-}
-```
-
-See [DATABASE.md](DATABASE.md) for complete database documentation.
-
----
-
-## Deployment
-
-### Production Build
-
-```bash
-cargo build --release
-```
-
-The executable will be in `target/release/my-rusti-app`
-
-### Production Environment Variables
-
-```env
-IP_SERVER=0.0.0.0
-PORT=8080
-SECRET_KEY=your-super-secret-and-long-key
-DB_ENGINE=postgres
-DB_URL=postgresql://user:pass@host:5432/dbname
-```
-
-### nginx Configuration (reverse proxy)
-
-```nginx
-server {
-    listen 80;
-    server_name myapp.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    location /static {
-        alias /path/to/static;
-    }
-
-    location /media {
-        alias /path/to/media;
-    }
-}
 ```
 
 ---
 
 ## Next Steps
 
-✅ You now have a working Rusti application!
+✅ You now have a functional Rusti application!
 
 To go further:
 
-- 📖 [Template Documentation](TEMPLATES.md)
-- 🗄️ [Database Guide](DATABASE.md)
-- 🔧 [Advanced Configuration](CONFIGURATION.md)
+* 📖 [Template Documentation](https://www.google.com/search?q=TEMPLATES.md)
+* 🗄️ [Database Guide](DATABASE.md)
+* 🔧 [Advanced Configuration](https://www.google.com/search?q=CONFIGURATION.md)
+* 🎨 [Full API Reference](API.md)
 
 **Happy coding with Rusti! 🦀**

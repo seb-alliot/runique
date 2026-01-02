@@ -1,13 +1,16 @@
 use axum::{
+    Router,
+    routing::get,
     body::Body,
     http::{Request, StatusCode},
     middleware,
-    routing::get,
-    Router,
 };
-use rusti::middleware::login_requiert::{login_required, redirect_if_authenticated};
 use tower::ServiceExt;
-use tower_sessions::{MemoryStore, SessionManagerLayer};
+use rusti::middleware::login_requiert::{
+    login_required,
+    redirect_if_authenticated,
+};
+use tower_sessions::{SessionManagerLayer, MemoryStore};
 
 /// Handler protégé
 async fn protected_handler() -> &'static str {

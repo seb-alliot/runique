@@ -34,19 +34,19 @@ Rusti supports multiple database engines via SeaORM:
 
 # SQLite (enabled by default)
 [dependencies]
-rusti = "0.1"
+rusti = "1.0.0"
 
 # PostgreSQL
 [dependencies]
-rusti = { version = "0.1", features = ["postgres"] }
+rusti = { version = "1.0.0", features = ["postgres"] }
 
 # MySQL
 [dependencies]
-rusti = { version = "0.1", features = ["mysql"] }
+rusti = { version = "1.0.0", features = ["mysql"] }
 
 # All databases
 [dependencies]
-rusti = { version = "0.1", features = ["all-databases"] }
+rusti = { version = "1.0.0", features = ["all-databases"] }
 ```
 
 ### Configuration via `.env` File

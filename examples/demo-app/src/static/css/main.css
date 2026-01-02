@@ -118,7 +118,7 @@ div.content > p {
 }
 
 /* Styles for flash messages */
-.message-Error, .message-Success, .message-Info {
+.message-Error, .message-Success, .message-Info ,.message-Warning {
     text-align: center;
 }
 .message-Error {
@@ -133,6 +133,11 @@ div.content > p {
 }
 .message-Info {
     color: blue;
+    font-weight: bold;
+    margin-top: 10px;
+}
+.message-Warning {
+    color: orange;
     font-weight: bold;
     margin-top: 10px;
 }

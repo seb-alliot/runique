@@ -2,9 +2,9 @@
 
 > A modern web framework for Rust, inspired by Django and built on Axum
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/seb-alliot/rusti)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
-[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/seb-alliot/rusti.git)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 
 ## ✨ Why Rusti?
 
@@ -13,27 +13,18 @@ Rusti combines **Django's familiarity** with **Rust's performance**. If you know
 ```rust
 use rusti::prelude::*;
 
-mod urls;
-mod views;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Connect to database
-    let db_config = DatabaseConfig::from_env()?.build();
-    let db = db_config.connect().await?;
-    
-    let settings = Settings::builder()
-        .debug(true)
-        .templates_dir(vec!["templates".to_string()])
-        .server("127.0.0.1", 3000, "your-secret-key")
-        .build();
+    let settings = Settings::default_values();
 
-    // Create and run the application
     RustiApp::new(settings).await?
-        .routes(urls::routes())
-        .with_database(db)
+        .routes(urlpatterns! {
+            "/" => get(index), name = "home",
+            "/about" => get(about), name = "about",
+        })
         .with_static_files()?
-        .with_default_middleware()
+        .with_flash_messages()
+        .with_csrf_tokens()
         .run()
         .await?;
 
@@ -59,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```toml
 [dependencies]
-rusti = "1.0.0"
+rusti = "0.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -67,444 +58,60 @@ tokio = { version = "1", features = ["full"] }
 
 ```toml
 # SQLite (default)
-rusti = "1.0.0"
+rusti = "0.1"
 
 # PostgreSQL
-rusti = { version = "1.0.0", features = ["postgres"] }
+rusti = { version = "0.1", features = ["postgres"] }
 
 # MySQL / MariaDB
-rusti = { version = "1.0.0", features = ["mysql"] }
+rusti = { version = "0.1", features = ["mysql"] }
 
 # All databases
-rusti = { version = "1.0.0", features = ["all-databases"] }
+rusti = { version = "0.1", features = ["all-databases"] }
 ```
 
-## 🎓 Quick Start Guide
+## 📚 Documentation
 
-### 1. Create Your Project
+- **[Getting Started](informations/documentation%20english/GETTING_STARTED.md)** - Quick start guide
+- **[Full Documentation](informations/documentation%20english/)** - Complete documentation
+- **[Cours d'implémentation](informations/cours/)** - Learn how to implement features yourself
+- **[Examples](examples/demo-app/)** - Working examples
+
+## 🎓 Learning Resources
+
+- **[Cours Rusti](informations/cours/)** - Step-by-step implementation guides
+- **[Documentation française](informations/documentation%20french/)** - Documentation complète en français
+
+## 🧪 Testing
 
 ```bash
-cargo new my-app
-cd my-app
-cargo add rusti tokio --features full
-```
-
-### 2. Recommended Structure
-
-```
-my-app/
-├── src/
-│   ├── main.rs          # Entry point
-│   ├── urls.rs          # Routes
-│   ├── models.rs        # Main structures
-│   ├── forms.rs         # Forms
-│   └── views.rs         # Handlers
-├── templates/           # Tera templates
-│   └── index.html
-├── static/              # CSS, JS, images
-│   ├── css/
-│   │   └── main.css
-│   └── js/
-│       └── main.js
-├── media/               # User uploads
-└── .env                 # Configuration
-```
-### `.env` File
-
-```env
-# Server
-IP_SERVER=127.0.0.1
-PORT=3000
-SECRET_KEY=your-super-secret-key
-
-# Allowed hosts (production)
-ALLOWED_HOSTS=example.com,www.example.com
-
-# PostgreSQL Database
-DB_ENGINE=postgres
-DB_USER=myuser
-DB_PASSWORD=mypassword
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=mydb
-
-```
-
-### 3. Minimal Code (`src/main.rs`)
-
-```rust
-use rusti::prelude::*;
-
-mod urls;
-mod views;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // connect to database
-    let db_config = DatabaseConfig::from_env()?.build();
-    let db = db_config.connect().await?;
-    
-    let settings = Settings::builder()
-        .debug(true)
-        .templates_dir(vec!["templates".to_string()])
-        .server("127.0.0.1", 3000, "your-secret-key")
-        .build();
-    
-    // Create and run the application
-    RustiApp::new(settings).await?
-        .routes(urls::routes())
-        .with_database(db)
-        .with_static_files()?
-        .with_default_middleware()
-        .run()
-        .await?;
-
-    Ok(())
-}
-```
-
-### 4. Define Routes (`src/urls.rs`)
-
-```rust
-use rusti::{Router, urlpatterns, view};
-use crate::views;
-
-pub fn routes() -> Router {
-    urlpatterns! {
-
-        // index
-        "/" => view!{
-            GET => views::index
-        },
-        name ="index",
-
-        // About
-        "/about" => view!{
-            GET => views::about
-        },
-        name ="about",
-
-        // User profile
-        "/user/{id}/{name}" => view! {
-            GET => views::user_profile
-        }, name = "user_profile",
-    }
-}
-```
-
-### 5. Create Handlers (`src/views.rs`)
-
-```rust
-use rusti::prelude::*;
-use rusti::context;
-
-pub async fn index(
-    template: Template,
-    mut message: Message,
-) -> Response {
-    message.success("Welcome to Rusti!").await;
-    
-    let ctx = context!{ 
-        "title", "Home";
-        "content", "Welcome to Rusti Framework"
-    };
-
-    template.render("index.html", &ctx)
-}
-
-pub async fn about(template: Template) -> Response {
-    let ctx = context!{ 
-        "title", "About"
-    };
-    
-    template.render("about.html", &ctx)
-}
-
-pub async fn user_profile(
-    Path((id, name)): Path<(u32, String)>,
-    template: Template,
-) -> Response {
-    let ctx = context!{ 
-        "user_id", id;
-        "username", name
-    };
-
-    template.render("user_profile.html", &ctx)
-}
-```
-
-### 6. Base Template (`templates/index.html`)
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ title }}</title>
-    <link rel="stylesheet" href='{% static "css/main.css" %}'>
-</head>
-<body>
-    <nav>
-        <a href='{% link "index" %}'>Home</a>
-        <a href='{% link "about" %}'>About</a>
-    </nav>
-
-    {% messages %}
-
-    <main>
-        <h1>{{ title }}</h1>
-        <p>{{ content }}</p>
-    </main>
-</body>
-</html>
-```
-
-### 7. Run the Application
-
-```bash
-cargo run
-```
-
-Open http://127.0.0.1:3000 🎉
-
-## 📚 Complete Documentation
-
-- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Complete step-by-step tutorial
-- **[Templates & Tags](docs/TEMPLATES.md)** - Custom template system
-- **[Database Guide](docs/DATABASE.md)** - Configuration and Django-like ORM
-- **[Configuration](docs/CONFIGURATION.md)** - Settings and environment variables
-- **[API Reference](docs/API.md)** - Complete types and functions documentation
-
-## 🎨 Advanced Features
-
-### Django-like ORM with SeaORM
-
-```rust
-use rusti::prelude::*;
-use sea_orm::entity::prelude::*;
-
-// Define your model
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-    pub age: i32,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
-
-// Enable Django-like API
-impl_objects!(Entity);
-
-// Use like Django!
-pub async fn list_users(db: Extension<Arc<DatabaseConnection>>) -> Response {
-    // Get all adults, sorted by age
-    let adults = Entity::objects
-        .filter(Column::Age.gte(18))
-        .order_by_desc(Column::Age)
-        .all(&**db)
-        .await?;
-    
-    // Complex query with chaining
-    let recent_active = Entity::objects
-        .filter(Column::IsActive.eq(true))
-        .exclude(Column::Email.like("%@banned.com"))
-        .order_by_desc(Column::CreatedAt)
-        .limit(10)
-        .all(&**db)
-        .await?;
-}
-```
-
-### Automatic Forms with Validation
-
-```rust
-use rusti::prelude::*;
-use sea_orm::entity::prelude::*;
-
-// Define your model
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-    pub age: i32,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
-
-// Derive automatic form generation
-#[derive(DeriveModelForm)]
-struct User;
-
-// Use in your views
-pub async fn register(template: Template) -> Response {
-    let form = UserForm::build();
-    
-    let ctx = context! {
-        "form", form
-    };
-    
-    template.render("register.html", &ctx)
-}
-
-pub async fn register_submit(
-    ExtractForm(form): ExtractForm<UserForm>,
-    db: Extension<Arc<DatabaseConnection>>,
-    mut message: Message,
-) -> Response {
-    if form.is_not_valid() {
-        message.error("Validation failed").await;
-        return redirect("/register");
-    }
-    
-    // Save to database
-    form.save(&**db).await.unwrap();
-    message.success("Registration successful!").await;
-    redirect("/dashboard")
-}
-```
-
-### Flash Messages
-
-```rust
-pub async fn create_post(mut message: Message) -> Response {
-    // ... creation logic ...
-    
-    message.success("Post created successfully!").await;
-    message.info("Don't forget to publish it").await;
-    message.error("Error uploading file").await;
-    
-    redirect("/posts")
-}
-```
-
-### Automatic CSRF Protection
-
-```html
-<form method="post" action="/submit">
-    {% csrf %}
-    <input type="text" name="title">
-    <button type="submit">Submit</button>
-</form>
-```
-
-### Reverse Routing
-
-```html
-<!-- In templates -->
-<a href='{% link "user_profile", id=42, name="alice" %}'>
-    View profile
-</a>
-
-<!-- Automatically generates: /user/42/alice -->
-```
-
-```rust
-// In Rust code
-use rusti::reverse_with_parameters;
-
-let url = reverse_with_parameters("user_profile", &[
-    ("id", "42"),
-    ("name", "alice"),
-]).unwrap();
-Redirect::to(&url).into_response()
-```
-
-
-## 🐛 Elegant Debug Pages
-
-In development mode, Rusti displays detailed error pages:
-
-- ✅ Complete stack trace
-- ✅ HTTP request information
-- ✅ Template source with line numbers
-- ✅ List of available templates
-- ✅ Environment variables
-- ✅ Rust version used
-
-## 🤝 Django Comparison
-
-| Django Concept | Rusti Equivalent |
-|---------------|------------------|
-| `settings.py` | `Settings::builder()` |
-| `urls.py` | `urlpatterns! { ... }` |
-| `views.py` | Axum handlers |
-| `models.py` | SeaORM entities |
-| `{% url 'name' %}` | `{% link "name" %}` |
-| `{% static 'file' %}` | `{% static "file" %}` |
-| `messages.success()` | `message.success().await` |
-| `{% csrf_token %}` | `{% csrf %}` |
-| `Model.objects.filter()` | `Entity::objects.filter()` |
-
-## 📖 Examples
-
-Check the `examples/` directory for complete projects:
-
-- **`demo-app`** - Complete application with templates, static files, forms
-- **`rest-api`** - JSON API with database
-- **`blog`** - Blog with authentication and CRUD
-
-## 🛠️ Development
-
-```bash
-# Clone the repository
-git clone https://github.com/seb-alliot/rusti
-cd rusti
-
-# Build the framework
-cargo build
-
-# Run tests
+# Run all tests
 cargo test
 
-# Generate documentation
-cargo doc --open
-
-# Run the example
-cd examples/demo-app
-cargo run
+# Run specific test suite
+cargo test --test allowed_hosts
 ```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](informations/documentation%20english/CONTRIBUTING.md) for guidelines.
 
 ## 📄 License
 
-This project is dual-licensed under MIT / Apache-2.0.
+This project is licensed under either of
 
-```
-MIT License
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
-Copyright (c) 2025 Itsuki
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files, to deal in the software
-without restriction, including the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the software.
-```
+at your option.
 
 ## 🙏 Acknowledgments
 
 - Inspired by [Django](https://www.djangoproject.com/)
 - Built on [Axum](https://github.com/tokio-rs/axum)
-- Templates [Tera](https://github.com/Keats/tera)
-- ORM [SeaORM](https://www.sea-ql.org/SeaORM/)
-
-## 📞 Support
-
-- 📖 [Documentation](https://docs.rs/rusti)
-- 💬 [GitHub Discussions](https://github.com/seb-alliot/rusti/discussions)
-- 🐛 [Issues](https://github.com/seb-alliot/rusti/issues)
+- Uses [SeaORM](https://www.sea-ql.org/SeaORM/) for database operations
+- Template engine powered by [Tera](https://keats.github.io/tera/)
 
 ---
 
-**Developed with ❤️ in Rust**
+**Made with 🦀 Rust**

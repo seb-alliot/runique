@@ -1,7 +1,7 @@
 use crate::views;
 use rusti::{post, urlpatterns, view, Router};
 
-pub fn urls() -> Router {
+pub fn routes() -> Router {
     urlpatterns! {
         // index
         "/" => view!{

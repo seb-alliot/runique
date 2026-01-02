@@ -12,6 +12,7 @@ pub enum MessageLevel {
     Success,
     Error,
     Info,
+    Warning,
 }
 
 impl MessageLevel {
@@ -22,6 +23,7 @@ impl MessageLevel {
             MessageLevel::Success => "success-message",
             MessageLevel::Error => "error-message",
             MessageLevel::Info => "info-message",
+            MessageLevel::Warning => "warning-message",
         }
     }
 }
@@ -59,6 +61,12 @@ impl FlashMessage {
         FlashMessage {
             content: content.into(),
             level: MessageLevel::Info,
+        }
+    }
+    pub fn warning<S: Into<String>>(content: S) -> Self {
+        FlashMessage {
+            content: content.into(),
+            level: MessageLevel::Warning,
         }
     }
 }

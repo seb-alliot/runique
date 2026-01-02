@@ -1,15 +1,18 @@
-use axum::extract::Extension;
 use axum::{
-    body::Body,
-    http::{header, Method, Request, StatusCode},
-    middleware,
-    routing::{get, post},
     Router,
+    routing::{get, post},
+    body::Body,
+    http::{Request, StatusCode, header, Method},
+    middleware,
 };
-use rusti::{middleware::csrf::csrf_middleware, Settings};
 use std::sync::Arc;
 use tower::ServiceExt;
-use tower_sessions::{MemoryStore, SessionManagerLayer};
+use rusti::{
+    Settings,
+    middleware::csrf::csrf_middleware,
+};
+use axum::extract::Extension;
+use tower_sessions::{SessionManagerLayer, MemoryStore};
 
 /// Handler GET simple (pas de CSRF requis)
 async fn get_handler() -> &'static str {
