@@ -1,58 +1,49 @@
-# Content Security Policy (CSP) - Rusti Framework
+# Content Security Policy (CSP) Guide - Rusti Framework
 
-Rusti provides an integrated Content Security Policy (CSP) middleware to protect your application against XSS attacks, code injection, and other security threats.
+Rusti includes built-in Content Security Policy (CSP) support to protect your application against XSS attacks and code injection.
 
 ## Table of Contents
 
-1. [Introduction](#introduction)
-2. [Basic Configuration](#basic-configuration)
-3. [Predefined Configurations](#predefined-configurations)
-4. [Custom Configuration](#custom-configuration)
-5. [Nonce Usage](#nonce-usage)
-6. [Middleware Integration](#middleware-integration)
-7. [Common Patterns](#common-patterns)
-8. [Progressive Migration](#progressive-migration)
-9. [Debugging](#debugging)
-10. [Best Practices](#best-practices)
-11. [API Reference](#api-reference)
+1. [What is CSP?](#what-is-csp)
+2. [Configuration](#configuration)
+3. [Using Nonces](#using-nonces)
+4. [Preset Configurations](#preset-configurations)
+5. [Complete Examples](#complete-examples)
+6. [Debugging](#debugging)
 
 ---
 
-## Introduction
+## What is CSP?
 
-### What is CSP?
+Content Security Policy (CSP) is an HTTP security header that helps prevent:
+- **XSS attacks** (Cross-Site Scripting)
+- **Code injection**
+- **Clickjacking**
+- **Data theft**
 
-Content Security Policy (CSP) is an HTTP security header that allows you to control which resources the browser can load. It acts as a whitelist of trusted sources for:
+CSP works by defining which sources are authorized to load resources (scripts, styles, images, etc.).
 
-- Scripts (`script-src`)
-- Stylesheets (`style-src`)
-- Images (`img-src`)
-- Fonts (`font-src`)
-- External connections (`connect-src`)
-- Frames (`frame-ancestors`)
-- And more
+### Basic Example
 
-### Why Use CSP?
+```
+Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.example.com
+```
 
-CSP provides strong protection against:
-
-- **XSS attacks**: Blocks execution of malicious injected scripts
-- **Data injection**: Prevents loading of untrusted resources
-- **Clickjacking**: Controls framing of your pages
-- **Mixed content**: Forces HTTPS usage
-
-**Mozilla Observatory Score:** Rusti's strict CSP contributes to an A+ (115/100) score.
+This policy means:
+- By default, only load resources from the same origin (`'self'`)
+- Scripts can come from the same origin or `cdn.example.com`
 
 ---
 
-## Basic Configuration
+## Configuration
 
-### CSP Structure
+### CspConfig Structure
 
-The `CspConfig` struct defines all CSP directives:
+The `CspConfig` struct uses **individual named fields** (not a HashMap):
 
 ```rust
 pub struct CspConfig {
+    // Individual directives
     pub default_src: Vec<String>,
     pub script_src: Vec<String>,
     pub style_src: Vec<String>,
@@ -62,685 +53,634 @@ pub struct CspConfig {
     pub frame_ancestors: Vec<String>,
     pub base_uri: Vec<String>,
     pub form_action: Vec<String>,
+    
+    // Nonce configuration
     pub use_nonce: bool,
 }
 ```
 
-### Standard Directives
+### Available Directives
 
-| Directive | Description | Example |
-|-----------|-------------|---------|
-| `default-src` | Default policy for all resources | `'self'` |
-| `script-src` | JavaScript sources | `'self' https://cdn.example.com` |
-| `style-src` | CSS sources | `'self' 'unsafe-inline'` |
-| `img-src` | Image sources | `'self' data: https:` |
-| `font-src` | Font sources | `'self' https://fonts.gstatic.com` |
-| `connect-src` | AJAX/WebSocket/EventSource | `'self' https://api.example.com` |
-| `frame-ancestors` | Who can frame your page | `'none'` |
-| `base-uri` | `<base>` tag restrictions | `'self'` |
-| `form-action` | Form submission destinations | `'self'` |
+| Directive | Description | Common Values |
+|-----------|-------------|---------------|
+| `default_src` | Default policy for all resources | `'self'`, `'none'`, domains |
+| `script_src` | JavaScript sources | `'self'`, CDN domains |
+| `style_src` | CSS sources | `'self'`, `'unsafe-inline'` |
+| `img_src` | Image sources | `'self'`, `data:`, domains |
+| `font_src` | Font sources | `'self'`, font CDNs |
+| `connect_src` | AJAX/WebSocket/EventSource | `'self'`, API domains |
+| `frame_ancestors` | Who can embed this page | `'none'`, `'self'` |
+| `base_uri` | Allowed `<base>` URLs | `'self'`, `'none'` |
+| `form_action` | Form submission targets | `'self'`, specific domains |
+| `use_nonce` | Enable cryptographic nonces | `true`, `false` |
 
-### Special Keywords
-
-- `'self'`: Same origin (protocol + domain + port)
-- `'none'`: Block everything
-- `'unsafe-inline'`: Allow inline scripts/styles (avoid in production)
-- `'unsafe-eval'`: Allow `eval()` and similar (avoid)
-- `'nonce-xxx'`: Allow specific inline code with cryptographic nonce
-
----
-
-## Predefined Configurations
-
-Rusti provides three ready-to-use CSP configurations:
-
-### 1. Development Mode (`default()`)
-
-Permissive for rapid development:
+### Basic Configuration
 
 ```rust
+use rusti::prelude::*;
 use rusti::middleware::CspConfig;
 
-let csp = CspConfig::default();
-
-RustiApp::new(settings)
-    .await?
-    .middleware(csp.into_middleware())
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-**Directives:**
-```
-default-src 'self'
-script-src 'self' 'unsafe-inline' 'unsafe-eval'
-style-src 'self' 'unsafe-inline'
-img-src 'self' data: https:
-font-src 'self' data:
-connect-src 'self'
-frame-ancestors 'self'
-base-uri 'self'
-form-action 'self'
-```
-
-**Use case:** Local development, prototyping
-
-### 2. Production Mode (`strict()`)
-
-Maximum security:
-
-```rust
-use rusti::middleware::CspConfig;
-
-let csp = CspConfig::strict();
-
-RustiApp::new(settings)
-    .await?
-    .middleware(csp.into_middleware())
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-**Directives:**
-```
-default-src 'self'
-script-src 'self'
-style-src 'self'
-img-src 'self' data:
-font-src 'self'
-connect-src 'self'
-frame-ancestors 'none'
-base-uri 'self'
-form-action 'self'
-```
-
-**Use case:** Production deployment, high security
-
-### 3. Testing Mode (`permissive()`)
-
-Very permissive for tests:
-
-```rust
-use rusti::middleware::CspConfig;
-
-let csp = CspConfig::permissive();
-
-RustiApp::new(settings)
-    .await?
-    .middleware(csp.into_middleware())
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-**Directives:**
-```
-default-src *
-script-src * 'unsafe-inline' 'unsafe-eval'
-style-src * 'unsafe-inline'
-img-src * data: blob:
-font-src *
-connect-src *
-frame-ancestors *
-base-uri *
-form-action *
-```
-
-**Use case:** Integration tests, debugging
-
----
-
-## Custom Configuration
-
-### Manual Configuration
-
-```rust
-use rusti::middleware::CspConfig;
-
-let csp = CspConfig {
+let csp_config = CspConfig {
     default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    img_src: vec!["'self'".to_string(), "data:".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: false,
+};
+
+RustiApp::new(settings).await?
+    .middleware(CspMiddleware::new(csp_config))
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+### Configuration with External CDNs
+
+```rust
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    
     script_src: vec![
         "'self'".to_string(),
         "https://cdn.jsdelivr.net".to_string(),
+        "https://unpkg.com".to_string(),
     ],
+    
     style_src: vec![
         "'self'".to_string(),
+        "'unsafe-inline'".to_string(),
         "https://fonts.googleapis.com".to_string(),
-        "'unsafe-inline'".to_string(), // For inline styles
     ],
+    
     img_src: vec![
         "'self'".to_string(),
         "data:".to_string(),
         "https:".to_string(),
     ],
+    
     font_src: vec![
         "'self'".to_string(),
         "https://fonts.gstatic.com".to_string(),
     ],
+    
     connect_src: vec![
         "'self'".to_string(),
         "https://api.example.com".to_string(),
     ],
+    
     frame_ancestors: vec!["'none'".to_string()],
     base_uri: vec!["'self'".to_string()],
     form_action: vec!["'self'".to_string()],
-    use_nonce: true, // Enable nonces for inline scripts
+    use_nonce: false,
 };
-
-RustiApp::new(settings)
-    .await?
-    .middleware(csp.into_middleware())
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-### Modifying a Predefined Configuration
-
-```rust
-let mut csp = CspConfig::strict();
-
-// Add a CDN
-csp.script_src.push("https://cdn.example.com".to_string());
-csp.style_src.push("https://cdn.example.com".to_string());
-
-// Allow images from external sources
-csp.img_src.push("https://images.example.com".to_string());
-
-RustiApp::new(settings)
-    .await?
-    .middleware(csp.into_middleware())
-    .routes(routes())
-    .run()
-    .await?;
 ```
 
 ---
 
-## Nonce Usage
+## Using Nonces
 
-### What is a Nonce?
+Nonces (Number used ONCE) are cryptographically random values that allow inline scripts and styles.
 
-A nonce (Number used ONCE) is a cryptographic random value that authorizes a specific inline script or style. This avoids using `'unsafe-inline'`.
+### Why Use Nonces?
+
+**Problem without nonce:**
+```html
+<!-- ❌ Blocked by CSP if script-src doesn't allow 'unsafe-inline' -->
+<script>
+    console.log("This will be blocked");
+</script>
+```
+
+**Solution with nonce:**
+```html
+<!-- ✅ Allowed with nonce -->
+<script nonce="abc123xyz789">
+    console.log("This is allowed");
+</script>
+```
 
 ### Enabling Nonces
 
 ```rust
-let mut csp = CspConfig::strict();
-csp.use_nonce = true; // Enable nonce generation
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string()],
+    use_nonce: true,  // ✅ Enable nonce generation
+    ..Default::default()
+};
+```
 
-RustiApp::new(settings)
-    .await?
-    .middleware(csp.into_middleware())
+### Using Nonces in Templates
+
+**⚠️ IMPORTANT:** The `{{ csp }}` tag generates a nonce **ONLY if `use_nonce: true`** in the CSP configuration.
+
+```html
+<!-- Inline script with nonce -->
+<script nonce="{{ csp }}">
+    // JavaScript code
+    console.log("Script allowed with nonce");
+</script>
+
+<!-- Inline style with nonce -->
+<style nonce="{{ csp }}">
+    /* CSS code */
+    body { background: #f0f0f0; }
+</style>
+```
+
+**If `use_nonce: false`:**
+
+The `{{ csp }}` tag will generate an **empty string**:
+
+```html
+<script nonce="">
+    console.log("No nonce generated");
+</script>
+```
+
+### When to Use Nonces
+
+| Use Case | Use Nonce? |
+|----------|------------|
+| Inline scripts necessary | ✅ Yes |
+| Inline styles necessary | ✅ Yes |
+| External scripts only | ❌ No (use `script-src 'self'`) |
+| Strict mode without inline | ❌ No |
+
+### Complete Example with Nonces
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Dashboard</h2>
+
+<div id="chart"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- External script (no nonce needed) -->
+<script src="{% static 'js/chart.min.js' %}"></script>
+
+<!-- Inline script (requires nonce if strict CSP) -->
+<script nonce="{{ csp }}">
+    const data = {{ chart_data|json_encode|safe }};
+    
+    new Chart(document.getElementById('chart'), {
+        type: 'bar',
+        data: data,
+    });
+</script>
+{% endblock %}
+```
+
+---
+
+## Preset Configurations
+
+Rusti provides three preset CSP configurations:
+
+### 1. Default Configuration (Balanced)
+
+Suitable for most applications with modern practices.
+
+```rust
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    img_src: vec!["'self'".to_string(), "data:".to_string(), "https:".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: false,
+};
+```
+
+**Features:**
+- ✅ Blocks most XSS attacks
+- ✅ Allows inline styles (`'unsafe-inline'`)
+- ✅ Allows data URIs for images
+- ✅ Allows HTTPS images
+- ❌ Doesn't allow inline scripts
+
+### 2. Strict Configuration (Maximum Security)
+
+For applications requiring maximum security.
+
+```rust
+let csp_config = CspConfig {
+    default_src: vec!["'none'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string()],
+    img_src: vec!["'self'".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'none'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: true,  // Nonces for inline scripts
+};
+```
+
+**Features:**
+- ✅ Maximum protection
+- ✅ Blocks all inline code without nonce
+- ✅ No external resources by default
+- ⚠️ Requires nonces for inline scripts/styles
+- ⚠️ Requires explicit configuration for CDNs
+
+### 3. Permissive Configuration (Development)
+
+For development or legacy applications.
+
+```rust
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec![
+        "'self'".to_string(),
+        "'unsafe-inline'".to_string(),
+        "'unsafe-eval'".to_string(),
+    ],
+    style_src: vec![
+        "'self'".to_string(),
+        "'unsafe-inline'".to_string(),
+    ],
+    img_src: vec!["*".to_string()],
+    font_src: vec!["*".to_string()],
+    connect_src: vec!["*".to_string()],
+    frame_ancestors: vec!["'self'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: false,
+};
+```
+
+**Features:**
+- ✅ Very permissive, few restrictions
+- ✅ Allows inline scripts and styles
+- ✅ Allows `eval()`
+- ❌ Minimal protection against XSS
+- ⚠️ **NOT recommended for production**
+
+---
+
+## Complete Examples
+
+### Example 1: Modern SPA with CDN
+
+```rust
+use rusti::prelude::*;
+use rusti::middleware::CspConfig;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let settings = Settings::from_env();
+
+    let csp_config = CspConfig {
+        default_src: vec!["'self'".to_string()],
+        
+        script_src: vec![
+            "'self'".to_string(),
+            "https://cdn.jsdelivr.net".to_string(),
+            "https://unpkg.com".to_string(),
+        ],
+        
+        style_src: vec![
+            "'self'".to_string(),
+            "'unsafe-inline'".to_string(),
+            "https://fonts.googleapis.com".to_string(),
+        ],
+        
+        img_src: vec![
+            "'self'".to_string(),
+            "data:".to_string(),
+            "https:".to_string(),
+        ],
+        
+        font_src: vec![
+            "'self'".to_string(),
+            "https://fonts.gstatic.com".to_string(),
+        ],
+        
+        connect_src: vec![
+            "'self'".to_string(),
+            "https://api.example.com".to_string(),
+            "wss://websocket.example.com".to_string(),
+        ],
+        
+        frame_ancestors: vec!["'none'".to_string()],
+        base_uri: vec!["'self'".to_string()],
+        form_action: vec!["'self'".to_string()],
+        use_nonce: false,
+    };
+
+    RustiApp::new(settings).await?
+        .middleware(CspMiddleware::new(csp_config))
+        .middleware(SecurityHeadersMiddleware::new())
+        .routes(routes())
+        .run()
+        .await?;
+
+    Ok(())
+}
+```
+
+### Example 2: Application with Inline Scripts (Nonces)
+
+```rust
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string()],
+    img_src: vec!["'self'".to_string(), "data:".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: true,  // ✅ Enable nonces
+};
+
+RustiApp::new(settings).await?
+    .middleware(CspMiddleware::new(csp_config))
     .routes(routes())
     .run()
     .await?;
 ```
 
-### Using in Templates
-
-Rusti automatically injects nonce into the context with the `{{ csp_nonce }}` variable:
+**Template with nonce:**
 
 ```html
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Page</title>
-
-    <!-- Inline style with nonce -->
-    <style nonce="{{ csp_nonce }}">
-        body {
-            background: #f0f0f0;
-        }
+    <title>Dashboard</title>
+    
+    <!-- External style (no nonce needed) -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <!-- Inline style (requires nonce) -->
+    <style nonce="{{ csp }}">
+        .custom-chart { width: 100%; height: 400px; }
     </style>
 </head>
 <body>
-    <h1>Hello World</h1>
-
-    <!-- Inline script with nonce -->
-    <script nonce="{{ csp_nonce }}">
-        console.log('This script is authorized by CSP');
+    <div id="app"></div>
+    
+    <!-- External script (no nonce needed) -->
+    <script src="{% static 'js/vue.min.js' %}"></script>
+    
+    <!-- Inline script (requires nonce) -->
+    <script nonce="{{ csp }}">
+        new Vue({
+            el: '#app',
+            data: {{ app_data|json_encode|safe }}
+        });
     </script>
 </body>
 </html>
 ```
 
-### Alternative Template Tag
-
-You can also use the `{% csp %}` tag:
-
-```html
-<script nonce="{% csp %}">
-    // Your inline code
-</script>
-
-<style nonce="{% csp %}">
-    /* Your inline styles */
-</style>
-```
-
-**Important:** Without a nonce, inline scripts/styles will be blocked if `'unsafe-inline'` is not in your CSP.
-
----
-
-## Middleware Integration
-
-Rusti provides three methods to integrate CSP:
-
-### 1. `with_csp()` - CSP Only
-
-Adds only the CSP header:
+### Example 3: API with Strict CSP
 
 ```rust
-use rusti::middleware::CspConfig;
-
-let csp = CspConfig::strict();
-
-RustiApp::new(settings)
-    .await?
-    .with_csp(csp) // CSP only
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-### 2. `with_security_headers()` - Complete Security
-
-Adds CSP + all security headers:
-
-```rust
-use rusti::middleware::CspConfig;
-
-let csp = CspConfig::strict();
-
-RustiApp::new(settings)
-    .await?
-    .with_security_headers(csp) // CSP + all headers
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-**Added headers:**
-- `Content-Security-Policy`
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `X-XSS-Protection: 1; mode=block`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Permissions-Policy: geolocation=(), microphone=(), camera=()`
-
-### 3. `with_csp_report_only()` - Report Mode
-
-Sends CSP in report mode (doesn't block, only reports violations):
-
-```rust
-use rusti::middleware::CspConfig;
-
-let csp = CspConfig::strict();
-
-RustiApp::new(settings)
-    .await?
-    .with_csp_report_only(csp) // Test without blocking
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-**Use:** Test CSP without breaking your application. Violations are logged in browser console.
-
----
-
-## Common Patterns
-
-### Pattern 1: Development
-
-```rust
-let csp = CspConfig::default(); // Permissive
-
-RustiApp::new(settings)
-    .await?
-    .with_csp(csp)
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-### Pattern 2: Production with CDN
-
-```rust
-let mut csp = CspConfig::strict();
-
-// Add your CDNs
-csp.script_src.push("https://cdn.jsdelivr.net".to_string());
-csp.style_src.push("https://cdn.jsdelivr.net".to_string());
-csp.font_src.push("https://fonts.gstatic.com".to_string());
-csp.style_src.push("https://fonts.googleapis.com".to_string());
-
-// Enable nonces for inline scripts
-csp.use_nonce = true;
-
-RustiApp::new(settings)
-    .await?
-    .with_security_headers(csp) // Complete security
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-### Pattern 3: API with External Connections
-
-```rust
-let mut csp = CspConfig::strict();
-
-// Allow API calls
-csp.connect_src.push("https://api.example.com".to_string());
-csp.connect_src.push("wss://ws.example.com".to_string());
-
-RustiApp::new(settings)
-    .await?
-    .with_csp(csp)
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-### Pattern 4: Progressive Migration
-
-Start with report-only mode:
-
-```rust
-// Phase 1: Report only
-let csp = CspConfig::strict();
-app.with_csp_report_only(csp);
-
-// Phase 2: After validation, enable enforcement
-let csp = CspConfig::strict();
-app.with_csp(csp);
-```
-
----
-
-## Progressive Migration
-
-### Step 1: Analyze Current Application
-
-Identify all resources used:
-- External scripts (CDN, analytics, ads)
-- Inline scripts and styles
-- Images from external sources
-- Fonts
-- API calls
-
-### Step 2: Start with Report Mode
-
-```rust
-let csp = CspConfig::strict();
-
-RustiApp::new(settings)
-    .await?
-    .with_csp_report_only(csp)
-    .routes(routes())
-    .run()
-    .await?;
-```
-
-### Step 3: Check Browser Console
-
-Open DevTools (F12) and check for CSP violations:
-
-```
-[Report Only] Refused to load the script 'https://example.com/script.js'
-because it violates the following Content Security Policy directive: "script-src 'self'"
-```
-
-### Step 4: Adjust Configuration
-
-Add missing sources:
-
-```rust
-let mut csp = CspConfig::strict();
-
-// Add sources identified in console
-csp.script_src.push("https://example.com".to_string());
-csp.img_src.push("https://images.example.com".to_string());
-
-app.with_csp_report_only(csp); // Still in report mode
-```
-
-### Step 5: Switch to Enforcement
-
-Once there are no more violations:
-
-```rust
-let csp = CspConfig::strict();
-// ... your adjustments
-
-RustiApp::new(settings)
-    .await?
-    .with_csp(csp) // Enforcement enabled
-    .routes(routes())
-    .run()
-    .await?;
+let csp_config = CspConfig {
+    default_src: vec!["'none'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string()],
+    img_src: vec!["'self'".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec![
+        "'self'".to_string(),
+        "https://api.backend.com".to_string(),
+    ],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'none'".to_string()],
+    form_action: vec!["'none'".to_string()],
+    use_nonce: true,
+};
 ```
 
 ---
 
 ## Debugging
 
-### Common CSP Issues
+### Testing Your CSP
 
-#### 1. Inline Script Blocked
+1. **Browser Console**
+
+Open DevTools (F12) and check the Console. CSP violations appear as warnings:
+
+```
+Refused to execute inline script because it violates the following 
+Content Security Policy directive: "script-src 'self'".
+```
+
+2. **CSP Report URI** (Advanced)
+
+```rust
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    // ... other directives
+    report_uri: Some("https://example.com/csp-report".to_string()),
+    use_nonce: false,
+};
+```
+
+3. **Mozilla Observatory**
+
+Test your site: [https://observatory.mozilla.org/](https://observatory.mozilla.org/)
+
+### Common Issues
+
+#### Issue 1: Inline Scripts Blocked
 
 **Error:**
 ```
-Refused to execute inline script because it violates CSP directive: "script-src 'self'"
+Refused to execute inline script because it violates CSP
 ```
 
 **Solutions:**
 
-a) Use nonces (recommended):
+**Option A:** Use nonces (recommended)
 ```rust
-let mut csp = CspConfig::strict();
-csp.use_nonce = true;
+let csp_config = CspConfig {
+    script_src: vec!["'self'".to_string()],
+    use_nonce: true,  // ✅
+    ..Default::default()
+};
 ```
 
 ```html
-<script nonce="{{ csp_nonce }}">
-    console.log('Authorized');
+<script nonce="{{ csp }}">
+    console.log("Now allowed");
 </script>
 ```
 
-b) Allow `'unsafe-inline'` (not recommended):
+**Option B:** Allow `'unsafe-inline'` (not recommended)
 ```rust
-csp.script_src.push("'unsafe-inline'".to_string());
+let csp_config = CspConfig {
+    script_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    ..Default::default()
+};
 ```
 
-#### 2. External Resource Blocked
+#### Issue 2: External CDN Blocked
 
 **Error:**
 ```
-Refused to load 'https://cdn.example.com/script.js' because it violates CSP
+Refused to load script from 'https://cdn.jsdelivr.net' because it violates CSP
 ```
 
-**Solution:** Add the domain:
+**Solution:** Add the CDN to `script_src`
 ```rust
-csp.script_src.push("https://cdn.example.com".to_string());
+let csp_config = CspConfig {
+    script_src: vec![
+        "'self'".to_string(),
+        "https://cdn.jsdelivr.net".to_string(),
+    ],
+    ..Default::default()
+};
 ```
 
-#### 3. Image Blocked
-
-**Error:**
-```
-Refused to load the image 'https://example.com/image.jpg'
-```
+#### Issue 3: Images from Other Domains Blocked
 
 **Solution:**
 ```rust
-csp.img_src.push("https://example.com".to_string());
-// Or allow all HTTPS images
-csp.img_src.push("https:".to_string());
+let csp_config = CspConfig {
+    img_src: vec![
+        "'self'".to_string(),
+        "data:".to_string(),
+        "https:".to_string(),  // All HTTPS images
+        // Or specific:
+        "https://images.example.com".to_string(),
+    ],
+    ..Default::default()
+};
 ```
 
-#### 4. Font Blocked
-
-**Error:**
-```
-Refused to load the font 'https://fonts.gstatic.com/...'
-```
+#### Issue 4: Google Fonts Blocked
 
 **Solution:**
 ```rust
-csp.font_src.push("https://fonts.gstatic.com".to_string());
-csp.style_src.push("https://fonts.googleapis.com".to_string());
+let csp_config = CspConfig {
+    style_src: vec![
+        "'self'".to_string(),
+        "https://fonts.googleapis.com".to_string(),
+    ],
+    font_src: vec![
+        "'self'".to_string(),
+        "https://fonts.gstatic.com".to_string(),
+    ],
+    ..Default::default()
+};
 ```
-
-### Inspecting CSP in Browser
-
-1. Open DevTools (F12)
-2. Go to **Network** tab
-3. Click on your page
-4. Check **Headers** → **Response Headers**
-5. Look for `Content-Security-Policy`
 
 ---
 
 ## Best Practices
 
-### 1. Use `strict()` in Production
+### 1. Start with a Strict Policy
 
 ```rust
-// Good
-let csp = CspConfig::strict();
-
-// Bad (too permissive)
-let csp = CspConfig::permissive();
+// Start strict
+let csp_config = CspConfig {
+    default_src: vec!["'none'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string()],
+    use_nonce: true,
+    ..Default::default()
+};
 ```
 
-### 2. Prefer Nonces over `unsafe-inline`
+Then relax as needed.
+
+### 2. Avoid `'unsafe-inline'` and `'unsafe-eval'`
 
 ```rust
-// Good
-csp.use_nonce = true;
+// ❌ Bad
+script_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()]
 
-// Bad
-csp.script_src.push("'unsafe-inline'".to_string());
+// ✅ Good - use nonces
+script_src: vec!["'self'".to_string()]
+use_nonce: true
 ```
 
-### 3. Never Use `unsafe-eval`
+### 3. Use Specific Domains, Not Wildcards
 
 ```rust
-// Very bad
-csp.script_src.push("'unsafe-eval'".to_string());
+// ❌ Bad
+img_src: vec!["*".to_string()]
+
+// ✅ Good
+img_src: vec![
+    "'self'".to_string(),
+    "https://images.example.com".to_string(),
+]
 ```
 
-This allows `eval()`, `new Function()`, and opens major XSS vulnerabilities.
-
-### 4. Be Specific with Domains
+### 4. Test in Development Mode First
 
 ```rust
-// Good (specific)
-csp.script_src.push("https://cdn.jsdelivr.net".to_string());
-
-// Bad (too broad)
-csp.script_src.push("https:".to_string());
+// Development
+let csp_config = if settings.debug {
+    // Permissive config
+} else {
+    // Strict config
+};
 ```
 
-### 5. Block Framing
+### 5. Monitor CSP Violations
 
-```rust
-// Good (prevents clickjacking)
-csp.frame_ancestors = vec!["'none'".to_string()];
-
-// Or allow only your domain
-csp.frame_ancestors = vec!["'self'".to_string()];
-```
-
-### 6. Use Report-Only for Testing
-
-Always test with `with_csp_report_only()` before deploying a strict CSP.
-
-### 7. Combine with Other Security Headers
-
-Use `with_security_headers()` for comprehensive protection:
-
-```rust
-RustiApp::new(settings)
-    .await?
-    .with_security_headers(csp) // CSP + X-Frame-Options + etc.
-    .routes(routes())
-    .run()
-    .await?;
-```
+Use `report-uri` or browser console to identify issues.
 
 ---
 
-## API Reference
+## Migration from Old Documentation
 
-### `CspConfig`
+If you were using the old documentation with `HashMap<String, Vec<String>>`:
 
+**Before (incorrect):**
 ```rust
-pub struct CspConfig {
-    pub default_src: Vec<String>,
-    pub script_src: Vec<String>,
-    pub style_src: Vec<String>,
-    pub img_src: Vec<String>,
-    pub font_src: Vec<String>,
-    pub connect_src: Vec<String>,
-    pub frame_ancestors: Vec<String>,
-    pub base_uri: Vec<String>,
-    pub form_action: Vec<String>,
-    pub use_nonce: bool,
-}
+let mut directives = HashMap::new();
+directives.insert("default-src".to_string(), vec!["'self'".to_string()]);
+directives.insert("script-src".to_string(), vec!["'self'".to_string()]);
 ```
 
-### Predefined Configurations
-
+**Now (correct):**
 ```rust
-impl CspConfig {
-    /// Development configuration (permissive)
-    pub fn default() -> Self;
-
-    /// Production configuration (strict)
-    pub fn strict() -> Self;
-
-    /// Testing configuration (very permissive)
-    pub fn permissive() -> Self;
-
-    /// Convert to middleware
-    pub fn into_middleware(self) -> CspMiddleware;
-}
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string()],
+    // ... other fields
+    ..Default::default()
+};
 ```
-
-### Integration Methods
-
-```rust
-impl RustiApp {
-    /// Add CSP header only
-    pub fn with_csp(self, config: CspConfig) -> Self;
-
-    /// Add CSP + all security headers
-    pub fn with_security_headers(self, config: CspConfig) -> Self;
-
-    /// Add CSP in report-only mode (doesn't block)
-    pub fn with_csp_report_only(self, config: CspConfig) -> Self;
-}
-```
-
-### Template Variables
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `{{ csp_nonce }}` | Current CSP nonce | `8f7a9b2c...` |
-| `{% csp %}` | Template tag for nonce | Same as above |
 
 ---
 
 ## See Also
 
-- [Configuration Guide](CONFIGURATION.md)
 - [Security Guide](SECURITY.md)
-- [Getting Started](GETTING_STARTED.md)
+- [Configuration](CONFIGURATION.md)
+- [Templates](TEMPLATES.md)
+- [MDN CSP Documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
 
-Develop securely with Rusti!
+Protect your application with Rusti's CSP!
+
+---
+
+**Version:** 1.0 (Corrected - January 2, 2026)
+**License:** MIT

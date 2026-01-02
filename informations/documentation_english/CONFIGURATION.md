@@ -1,41 +1,75 @@
-# Rusti Configuration Guide
+# Configuration Guide - Rusti Framework
 
-## Application Configuration in the Rusti Framework
+Rusti uses a centralized configuration system via the `Settings` struct and the `.env` file.
 
-### Overview
+## Table of Contents
 
-Rusti uses a centralized configuration system that allows you to manage all aspects of your application through a single `Settings` object. Configuration can be defined programmatically or loaded from environment variables for flexibility across different environments (development, testing, production).
-
-### Table of Contents
-
-1. [Basic Configuration](#basic-configuration)
-2. [Configuration Builder](#configuration-builder)
-3. [Server Configuration](#server-configuration)
-4. [Database Configuration](#database-configuration)
-5. [Template Configuration](#template-configuration)
-6. [Static and Media Files](#static-and-media-files)
-7. [Security Settings](#security-settings)
-8. [Environment Variables](#environment-variables)
-9. [Complete Examples](#complete-examples)
+1. [Settings Structure](#settings-structure)
+2. [Configuration via .env](#configuration-via-env)
+3. [Programmatic Configuration](#programmatic-configuration)
+4. [Environment Variables](#environment-variables)
+5. [Security](#security)
+6. [Middleware](#middleware)
 
 ---
 
-## Basic Configuration
+## Settings Structure
 
-### Minimal Setup
+The `Settings` struct centralizes all configuration for your Rusti application.
 
-The simplest way to configure a Rusti application:
+### Definition
+
+```rust
+pub struct Settings {
+    // Server
+    pub host: String,
+    pub port: u16,
+    pub workers: usize,
+
+    // Security
+    pub secret_key: String,
+    pub allowed_hosts: Vec<String>,
+    pub debug: bool,
+
+    // Database
+    pub database_url: Option<String>,
+
+    // Static files
+    pub static_url: String,
+    pub static_root: PathBuf,
+    pub media_url: String,
+    pub media_root: PathBuf,
+
+    // Templates
+    pub templates_dir: PathBuf,
+
+    // Sessions
+    pub session_cookie_name: String,
+    pub session_cookie_secure: bool,
+    pub session_cookie_httponly: bool,
+    pub session_cookie_samesite: String,
+
+    // CSRF
+    pub csrf_cookie_name: String,
+    pub csrf_header_name: String,
+
+    // Placeholder for future features
+    pub rate_limiting: bool,  // ⚠️ Not implemented - See Rate Limiting section
+}
+```
+
+### Loading from `.env`
+
 ```rust
 use rusti::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::builder()
-        .server("127.0.0.1", 8080, "my-secret-key-change-in-production")
-        .build();
+    // Automatically loads from .env
+    let settings = Settings::from_env();
 
     RustiApp::new(settings).await?
-        .routes(routes)
+        .routes(routes())
         .run()
         .await?;
 
@@ -43,713 +77,612 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Settings Structure
-```rust
-pub struct Settings {
-    pub debug: bool,
-    pub secret_key: String,
-    pub allowed_hosts: Vec<String>,
-    pub server_host: String,
-    pub server_port: u16,
-    pub templates_dir: Vec<String>,
-    pub static_url: String,
-    pub static_root: String,
-    pub media_url: String,
-    pub media_root: String,
-    pub database_url: Option<String>,
-}
+---
+
+## Configuration via .env
+
+Create a `.env` file at the root of your project:
+
+```env
+# Server
+HOST=127.0.0.1
+PORT=8000
+WORKERS=4
+
+# Security
+SECRET_KEY=your-very-long-and-random-secret-key
+ALLOWED_HOSTS=localhost,127.0.0.1,example.com
+DEBUG=true
+
+# Database (PostgreSQL)
+DB_ENGINE=postgres
+DB_USER=myuser
+DB_PASSWORD=mypassword
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=mydb
+
+# Static files
+STATIC_URL=/static/
+STATIC_ROOT=static/
+MEDIA_URL=/media/
+MEDIA_ROOT=media/
+
+# Templates
+TEMPLATES_DIR=templates/
+
+# Sessions
+SESSION_COOKIE_NAME=sessionid
+SESSION_COOKIE_SECURE=false
+SESSION_COOKIE_HTTPONLY=true
+SESSION_COOKIE_SAMESITE=Lax
+
+# CSRF
+CSRF_COOKIE_NAME=csrftoken
+CSRF_HEADER_NAME=X-CSRFToken
+
+# Placeholder (not implemented)
+RATE_LIMITING=false
 ```
 
 ---
 
-## Configuration Builder
+## Programmatic Configuration
 
-### Using the Builder Pattern
+### Manual Configuration
 
-Rusti uses the builder pattern for flexible configuration:
 ```rust
-let settings = Settings::builder()
-    .debug(true)                                    // Enable debug mode
-    .secret_key("your-secret-key-here")            // Secret key
-    .allowed_hosts(vec![                           // Allowed hosts
-        "localhost".to_string(),
-        "127.0.0.1".to_string(),
-        "example.com".to_string(),
-    ])
-    .server_host("0.0.0.0")                        // Server host
-    .server_port(8080)                              // Server port
-    .templates_dir(vec!["templates".to_string()])  // Template directories
-    .static_url("/static/")                         // Static URL
-    .static_root("static")                          // Static files directory
-    .media_url("/media/")                           // Media URL
-    .media_root("media")                            // Media files directory
-    .database_url("postgresql://user:pass@localhost/db") // Database
-    .build();
-```
+use rusti::prelude::*;
+use std::path::PathBuf;
 
-### Available Methods
-```rust
-impl SettingsBuilder {
-    pub fn new() -> Self;
-    pub fn debug(mut self, debug: bool) -> Self;
-    pub fn secret_key(mut self, key: String) -> Self;
-    pub fn allowed_hosts(mut self, hosts: Vec<String>) -> Self;
-    pub fn server_host(mut self, host: String) -> Self;
-    pub fn server_port(mut self, port: u16) -> Self;
-    pub fn server(mut self, host: &str, port: u16, secret_key: &str) -> Self;
-    pub fn templates_dir(mut self, dirs: Vec<String>) -> Self;
-    pub fn static_url(mut self, url: String) -> Self;
-    pub fn static_root(mut self, root: String) -> Self;
-    pub fn media_url(mut self, url: String) -> Self;
-    pub fn media_root(mut self, root: String) -> Self;
-    pub fn database_url(mut self, url: String) -> Self;
-    pub fn build(self) -> Settings;
-}
-```
-
----
-
-## Server Configuration
-
-### Basic Server Setup
-```rust
-let settings = Settings::builder()
-    .server("127.0.0.1", 8080, "secret-key")
-    .build();
-```
-
-The `server()` method is a shortcut that configures:
-- Server host
-- Server port
-- Secret key
-
-### Custom Server Configuration
-```rust
-let settings = Settings::builder()
-    .server_host("0.0.0.0")        // Listen on all interfaces
-    .server_port(3000)              // Custom port
-    .secret_key("my-secret-key")    // Secret key for sessions/CSRF
-    .build();
-```
-
-### Production Server
-```rust
-let settings = Settings::builder()
-    .debug(false)                   // Disable debug mode
-    .server_host("0.0.0.0")        // Public access
-    .server_port(8080)
-    .secret_key(env::var("SECRET_KEY").expect("SECRET_KEY must be set"))
-    .allowed_hosts(vec![           // Security: limit allowed hosts
+let settings = Settings {
+    host: "0.0.0.0".to_string(),
+    port: 3000,
+    workers: 8,
+    secret_key: "my-secret-key".to_string(),
+    allowed_hosts: vec![
         "example.com".to_string(),
         "www.example.com".to_string(),
-    ])
-    .build();
-```
-
----
-
-## Database Configuration
-
-### PostgreSQL Configuration
-```rust
-let settings = Settings::builder()
-    .database_url("postgresql://user:password@localhost:5432/mydb")
-    .build();
-
-let db = Database::new(&settings.database_url.unwrap()).await?;
+    ],
+    debug: false,
+    database_url: Some("postgres://user:pass@localhost/db".to_string()),
+    static_url: "/static/".to_string(),
+    static_root: PathBuf::from("static"),
+    media_url: "/media/".to_string(),
+    media_root: PathBuf::from("media"),
+    templates_dir: PathBuf::from("templates"),
+    session_cookie_name: "sessionid".to_string(),
+    session_cookie_secure: true,
+    session_cookie_httponly: true,
+    session_cookie_samesite: "Strict".to_string(),
+    csrf_cookie_name: "csrftoken".to_string(),
+    csrf_header_name: "X-CSRFToken".to_string(),
+    rate_limiting: false,
+};
 
 RustiApp::new(settings).await?
-    .with_database(db)
+    .routes(routes())
     .run()
     .await?;
 ```
 
-### MySQL Configuration
+### Modifying Default Values
+
 ```rust
-let settings = Settings::builder()
-    .database_url("mysql://user:password@localhost:3306/mydb")
-    .build();
-```
+let mut settings = Settings::from_env();
 
-### SQLite Configuration
-```rust
-let settings = Settings::builder()
-    .database_url("sqlite://database.db?mode=rwc")
-    .build();
-```
-
-### Connection Pool Configuration
-
-Connection pool settings are managed in `database/config.rs`:
-```rust
-pub struct DatabaseConfig {
-    max_connections: u32,      // Default: 20
-    min_connections: u32,      // Default: 5
-    connect_timeout: Duration, // Default: 30s
-    idle_timeout: Duration,    // Default: 600s
-}
-```
-
-**Note:** These values are currently hardcoded in the framework. Future versions will expose them in `Settings`.
-
----
-
-## Template Configuration
-
-### Single Template Directory
-```rust
-let settings = Settings::builder()
-    .templates_dir(vec!["templates".to_string()])
-    .build();
-```
-
-Directory structure:
-```
-project/
-├── templates/
-│   ├── base.html
-│   ├── home.html
-│   └── about.html
-└── src/
-    └── main.rs
-```
-
-### Multiple Template Directories
-```rust
-let settings = Settings::builder()
-    .templates_dir(vec![
-        "templates".to_string(),
-        "app1/templates".to_string(),
-        "app2/templates".to_string(),
-    ])
-    .build();
-```
-
-Directory structure:
-```
-project/
-├── templates/          # Global templates
-│   └── base.html
-├── app1/
-│   └── templates/      # App1 templates
-│       └── app1.html
-├── app2/
-│   └── templates/      # App2 templates
-│       └── app2.html
-└── src/
-    └── main.rs
-```
-
-**Template resolution order:**
-1. First directory in the list
-2. Second directory
-3. Etc.
-
-### Template Engine (Tera)
-
-Rusti uses Tera as its template engine with custom extensions:
-
-**Built-in filters:**
-- `{{ path | static }}` - Static file URL
-- `{{ path | media }}` - Media file URL
-
-**Built-in tags:**
-- `{% csrf %}` - CSRF token
-- `{% messages %}` - Flash messages
-- `{% link "route_name" %}` - URL resolution
-
----
-
-## Static and Media Files
-
-### Static Files Configuration
-
-Static files are CSS, JavaScript, images, fonts, etc., that don't change:
-```rust
-let settings = Settings::builder()
-    .static_url("/static/")     // URL prefix
-    .static_root("static")      // Filesystem directory
-    .build();
+// Modify after loading
+settings.port = 9000;
+settings.workers = 16;
+settings.allowed_hosts.push("api.example.com".to_string());
 
 RustiApp::new(settings).await?
-    .with_static_files()?       // Enable static file serving
+    .routes(routes())
     .run()
     .await?;
-```
-
-Directory structure:
-```
-project/
-├── static/
-│   ├── css/
-│   │   └── style.css
-│   ├── js/
-│   │   └── app.js
-│   └── img/
-│       └── logo.png
-└── src/
-    └── main.rs
-```
-
-Usage in templates:
-```html
-<link rel="stylesheet" href='{% static "css/style.css" %}'>
-<script src='{% static "js/app.js" %}'></script>
-<img src='{% static "img/logo.png" %}'>
-```
-
-### Media Files Configuration
-
-Media files are user-uploaded content:
-```rust
-let settings = Settings::builder()
-    .media_url("/media/")       // URL prefix
-    .media_root("media")        // Filesystem directory
-    .build();
-```
-
-Directory structure:
-```
-project/
-├── media/
-│   └── uploads/
-│       ├── avatars/
-│       └── documents/
-└── src/
-    └── main.rs
-```
-
-Usage in templates:
-```html
-<img src='{{ user.avatar | media }}'>
-<a href='{{ document.file | media }}'>Download</a>
-```
-
-### Production Setup
-
-In production, serve static/media files through a reverse proxy (nginx, Caddy):
-
-**nginx configuration:**
-```nginx
-server {
-    listen 80;
-    server_name example.com;
-
-    location /static/ {
-        alias /var/www/myapp/static/;
-        expires 30d;
-    }
-
-    location /media/ {
-        alias /var/www/myapp/media/;
-        expires 7d;
-    }
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-    }
-}
-```
-
----
-
-## Security Settings
-
-### Debug Mode
-```rust
-let settings = Settings::builder()
-    .debug(true)  // Development
-    .build();
-
-let settings = Settings::builder()
-    .debug(false) // Production
-    .build();
-```
-
-**Debug mode enabled:**
-- Detailed error pages with stack traces
-- Template auto-reload
-- Verbose logging
-
-**Debug mode disabled:**
-- Generic error pages
-- No stack traces exposed
-- Production logging
-
-### Secret Key
-
-The secret key is used for:
-- Session signing
-- CSRF token generation
-- Cookie signing
-```rust
-// Development (never use in production)
-let settings = Settings::builder()
-    .secret_key("dev-secret-key-change-me")
-    .build();
-
-// Production (from environment)
-let settings = Settings::builder()
-    .secret_key(env::var("SECRET_KEY")?)
-    .build();
-```
-
-**Generate a secure secret key:**
-```bash
-openssl rand -base64 32
-```
-
-### Allowed Hosts
-
-Protection against Host Header Injection attacks:
-```rust
-let settings = Settings::builder()
-    .allowed_hosts(vec![
-        "localhost".to_string(),
-        "127.0.0.1".to_string(),
-        "example.com".to_string(),
-        "www.example.com".to_string(),
-    ])
-    .build();
-```
-
-**How it works:**
-1. Middleware checks the `Host` header
-2. If not in `allowed_hosts`, returns 400 Bad Request
-3. Prevents attacks using malicious Host headers
-
-**Development:**
-```rust
-.allowed_hosts(vec!["localhost".to_string(), "127.0.0.1".to_string()])
-```
-
-**Production:**
-```rust
-.allowed_hosts(vec!["example.com".to_string(), "www.example.com".to_string()])
 ```
 
 ---
 
 ## Environment Variables
 
-### Loading from .env File
+### Server
 
-Create a `.env` file at project root:
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `HOST` | String | `127.0.0.1` | Server listening address |
+| `PORT` | u16 | `8000` | Listening port |
+| `WORKERS` | usize | `4` | Number of Tokio workers |
+
+**Example:**
+
 ```env
+HOST=0.0.0.0
+PORT=3000
+WORKERS=8
+```
+
+### Security
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `SECRET_KEY` | String | **Required** | Secret key for CSRF/sessions (min 32 chars) |
+| `ALLOWED_HOSTS` | Vec | `[]` | List of authorized domains (comma-separated) |
+| `DEBUG` | bool | `false` | Debug mode (shows detailed errors) |
+
+**Example:**
+
+```env
+SECRET_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0
+ALLOWED_HOSTS=localhost,127.0.0.1,example.com,*.example.com
 DEBUG=false
-SECRET_KEY=your-super-secret-key-here-change-in-production
-ALLOWED_HOSTS=localhost,127.0.0.1,example.com
-SERVER_HOST=0.0.0.0
-SERVER_PORT=8080
-DATABASE_URL=postgresql://user:password@localhost:5432/mydb
+```
+
+**⚠️ IMPORTANT:**
+- `SECRET_KEY` must be **minimum 32 characters**
+- Generate it with: `openssl rand -base64 32`
+- **NEVER** commit your `.env` to Git
+- In production: `DEBUG=false` is mandatory
+
+### Database
+
+See [Database Guide](DATABASE.md) for complete configuration.
+
+```env
+DB_ENGINE=postgres
+DB_USER=myuser
+DB_PASSWORD=mypassword
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=mydb
+```
+
+### Static and Media Files
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `STATIC_URL` | String | `/static/` | Base URL for static files |
+| `STATIC_ROOT` | Path | `static/` | Physical path to static files |
+| `MEDIA_URL` | String | `/media/` | Base URL for uploaded files |
+| `MEDIA_ROOT` | Path | `media/` | Physical path to uploaded files |
+
+**Example:**
+
+```env
 STATIC_URL=/static/
-STATIC_ROOT=static
+STATIC_ROOT=/var/www/myapp/static/
 MEDIA_URL=/media/
-MEDIA_ROOT=media
+MEDIA_ROOT=/var/www/myapp/media/
 ```
 
-### Using dotenv
+### Templates
 
-Add to `Cargo.toml`:
-```toml
-[dependencies]
-dotenv = "0.15"
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `TEMPLATES_DIR` | Path | `templates/` | Tera templates directory |
+
+**Example:**
+
+```env
+TEMPLATES_DIR=templates/
 ```
 
-Load in `main.rs`:
+### Sessions
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `SESSION_COOKIE_NAME` | String | `sessionid` | Session cookie name |
+| `SESSION_COOKIE_SECURE` | bool | `false` | Cookie only on HTTPS |
+| `SESSION_COOKIE_HTTPONLY` | bool | `true` | Cookie not accessible via JavaScript |
+| `SESSION_COOKIE_SAMESITE` | String | `Lax` | SameSite policy (`Strict`, `Lax`, `None`) |
+
+**Example (production):**
+
+```env
+SESSION_COOKIE_NAME=sessionid
+SESSION_COOKIE_SECURE=true
+SESSION_COOKIE_HTTPONLY=true
+SESSION_COOKIE_SAMESITE=Strict
+```
+
+### CSRF
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CSRF_COOKIE_NAME` | String | `csrftoken` | CSRF cookie name |
+| `CSRF_HEADER_NAME` | String | `X-CSRFToken` | HTTP header for AJAX requests |
+
+**Example:**
+
+```env
+CSRF_COOKIE_NAME=csrftoken
+CSRF_HEADER_NAME=X-CSRFToken
+```
+
+### Rate Limiting
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `RATE_LIMITING` | bool | `false` | ⚠️ **Non-implemented placeholder** |
+
+**⚠️ IMPORTANT: Feature Not Implemented**
+
+The `RATE_LIMITING` flag exists in the configuration but **no rate limiting middleware is currently implemented in Rusti**.
+
+**If you need rate limiting:**
+
+You can manually integrate the [tower-governor](https://crates.io/crates/tower-governor) library:
+
 ```rust
-use dotenv::dotenv;
-use std::env;
+use tower_governor::{
+    governor::GovernorConfigBuilder, 
+    GovernorLayer,
+};
+use std::time::Duration;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok(); // Load .env file
+// Configuration: 10 requests per minute per IP
+let governor_conf = Box::new(
+    GovernorConfigBuilder::default()
+        .per_second(10)
+        .burst_size(20)
+        .finish()
+        .unwrap(),
+);
 
-    let settings = Settings::builder()
-        .debug(env::var("DEBUG")?.parse()?)
-        .secret_key(env::var("SECRET_KEY")?)
-        .allowed_hosts(
-            env::var("ALLOWED_HOSTS")?
-                .split(',')
-                .map(|s| s.to_string())
-                .collect()
-        )
-        .server_host(env::var("SERVER_HOST")?)
-        .server_port(env::var("SERVER_PORT")?.parse()?)
-        .database_url(env::var("DATABASE_URL")?)
-        .static_url(env::var("STATIC_URL")?)
-        .static_root(env::var("STATIC_ROOT")?)
-        .media_url(env::var("MEDIA_URL")?)
-        .media_root(env::var("MEDIA_ROOT")?)
-        .build();
+let governor_limiter = governor_conf.limiter().clone();
+let governor_layer = GovernorLayer {
+    config: Box::leak(governor_conf),
+};
 
-    RustiApp::new(settings).await?
-        .routes(routes)
-        .run()
-        .await?;
-
-    Ok(())
-}
+// Add to RustiApp
+RustiApp::new(settings).await?
+    .middleware(governor_layer)  // ✅ Rate limiting active
+    .routes(routes())
+    .run()
+    .await?;
 ```
 
-### Configuration Helper Function
+**Future Roadmap:**
 
-Create a reusable configuration loader:
-```rust
-use dotenv::dotenv;
-use std::env;
-
-pub fn load_settings() -> Result<Settings, Box<dyn std::error::Error>> {
-    dotenv().ok();
-
-    Ok(Settings::builder()
-        .debug(env::var("DEBUG")?.parse()?)
-        .secret_key(env::var("SECRET_KEY")?)
-        .allowed_hosts(
-            env::var("ALLOWED_HOSTS")?
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .collect()
-        )
-        .server_host(env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()))
-        .server_port(env::var("SERVER_PORT")?.parse()?)
-        .database_url(env::var("DATABASE_URL")?)
-        .templates_dir(vec!["templates".to_string()])
-        .static_url(env::var("STATIC_URL").unwrap_or_else(|_| "/static/".to_string()))
-        .static_root(env::var("STATIC_ROOT").unwrap_or_else(|_| "static".to_string()))
-        .media_url(env::var("MEDIA_URL").unwrap_or_else(|_| "/media/".to_string()))
-        .media_root(env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string()))
-        .build())
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = load_settings()?;
-
-    RustiApp::new(settings).await?
-        .routes(routes)
-        .run()
-        .await?;
-
-    Ok(())
-}
-```
+This feature is planned for a future version of Rusti as an integrated middleware. Until then, use `tower-governor` directly.
 
 ---
 
-## Complete Examples
+## Security
 
-### Development Configuration
+### Generating SECRET_KEY
+
+```bash
+# Method 1: OpenSSL
+openssl rand -base64 32
+
+# Method 2: Python
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# Method 3: Rust
+cargo add rand
+```
+
+```rust
+use rand::Rng;
+use rand::distributions::Alphanumeric;
+
+fn generate_secret_key() -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(64)
+        .map(char::from)
+        .collect()
+}
+```
+
+### ALLOWED_HOSTS Configuration
+
+**Syntax:**
+
+```env
+# Exact domains
+ALLOWED_HOSTS=example.com,www.example.com
+
+# Wildcard for subdomains
+ALLOWED_HOSTS=*.example.com
+
+# Localhost + production
+ALLOWED_HOSTS=localhost,127.0.0.1,example.com
+
+# All subdomains AND main domain
+ALLOWED_HOSTS=example.com,*.example.com
+```
+
+**⚠️ Security:**
+- Never use `*` alone in production
+- Always explicitly list authorized domains
+- Wildcards match only one level: `*.example.com` matches `api.example.com` but not `v1.api.example.com`
+
+### DEBUG Mode
+
+```env
+# Development
+DEBUG=true
+
+# Production
+DEBUG=false
+```
+
+**In DEBUG=true mode:**
+- Shows complete stack traces
+- Verbose logging
+- Detailed error messages
+
+**In DEBUG=false mode (production):**
+- Generic errors for users
+- Logs only to files
+- No exposed stack traces
+
+---
+
+## Middleware
+
+### Configuration via RustiApp
+
 ```rust
 use rusti::prelude::*;
+use rusti::middleware::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::builder()
-        .debug(true)
-        .server("127.0.0.1", 8080, "dev-secret-key")
-        .templates_dir(vec!["templates".to_string()])
-        .allowed_hosts(vec!["localhost".to_string(), "127.0.0.1".to_string()])
-        .database_url("postgresql://user:pass@localhost/dev_db")
-        .build();
-
-    let db = Database::new(&settings.database_url.unwrap()).await?;
+    let settings = Settings::from_env();
 
     RustiApp::new(settings).await?
-        .routes(routes)
-        .with_database(db)
-        .with_static_files()?
-        .with_default_middleware()
+        // Security middleware
+        .middleware(CsrfMiddleware::new())
+        .middleware(SecurityHeadersMiddleware::new())
+        .middleware(AllowedHostsMiddleware)
+
+        // Session and messages middleware
+        .middleware(FlashMiddleware)
+        .middleware(MessageMiddleware)
+
+        // Sanitization middleware
+        .middleware(XssSanitizerMiddleware)
+
+        // Routes
+        .routes(routes())
+
+        // Launch
         .run()
         .await?;
 
     Ok(())
 }
+```
+
+### Available Middleware
+
+| Middleware | Description | Required |
+|------------|-------------|----------|
+| `CsrfMiddleware` | CSRF protection via HMAC-SHA256 token | ✅ Recommended |
+| `SecurityHeadersMiddleware` | HTTP security headers | ✅ Recommended |
+| `AllowedHostsMiddleware` | Host header validation | ✅ Recommended |
+| `FlashMiddleware` | Flash messages between requests | Optional |
+| `MessageMiddleware` | User messages | Optional |
+| `XssSanitizerMiddleware` | XSS sanitization (ammonia) | ✅ Recommended |
+| `CspMiddleware` | Content Security Policy | ✅ Recommended |
+
+See [Security Guide](SECURITY.md) for complete details.
+
+---
+
+## Configuration Examples
+
+### Development Configuration
+
+```env
+# .env.development
+HOST=127.0.0.1
+PORT=8000
+WORKERS=4
+SECRET_KEY=dev-secret-key-change-in-production
+ALLOWED_HOSTS=localhost,127.0.0.1
+DEBUG=true
+
+DB_ENGINE=sqlite
+DB_NAME=dev.sqlite
+
+STATIC_URL=/static/
+STATIC_ROOT=static/
+MEDIA_URL=/media/
+MEDIA_ROOT=media/
+
+TEMPLATES_DIR=templates/
+
+SESSION_COOKIE_SECURE=false
+SESSION_COOKIE_HTTPONLY=true
+SESSION_COOKIE_SAMESITE=Lax
 ```
 
 ### Production Configuration
-```rust
-use rusti::prelude::*;
-use dotenv::dotenv;
-use std::env;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok();
+```env
+# .env.production
+HOST=0.0.0.0
+PORT=8000
+WORKERS=16
+SECRET_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0
+ALLOWED_HOSTS=example.com,www.example.com,api.example.com
+DEBUG=false
 
-    let settings = Settings::builder()
-        .debug(false)
-        .secret_key(env::var("SECRET_KEY")?)
-        .server_host("0.0.0.0")
-        .server_port(8080)
-        .allowed_hosts(vec![
-            env::var("DOMAIN")?,
-            format!("www.{}", env::var("DOMAIN")?),
-        ])
-        .templates_dir(vec!["templates".to_string()])
-        .database_url(env::var("DATABASE_URL")?)
-        .static_url("/static/")
-        .static_root("/var/www/static")
-        .media_url("/media/")
-        .media_root("/var/www/media")
-        .build();
+DB_ENGINE=postgres
+DB_USER=produser
+DB_PASSWORD=secure-password-here
+DB_HOST=db.internal.example.com
+DB_PORT=5432
+DB_NAME=proddb
 
-    let db = Database::new(&settings.database_url.unwrap()).await?;
+STATIC_URL=/static/
+STATIC_ROOT=/var/www/example.com/static/
+MEDIA_URL=/media/
+MEDIA_ROOT=/var/www/example.com/media/
 
-    RustiApp::new(settings).await?
-        .routes(routes)
-        .with_database(db)
-        .with_static_files()?
-        .with_security_headers(CspConfig::strict())
-        .with_default_middleware()
-        .run()
-        .await?;
+TEMPLATES_DIR=/var/www/example.com/templates/
 
-    Ok(())
-}
+SESSION_COOKIE_SECURE=true
+SESSION_COOKIE_HTTPONLY=true
+SESSION_COOKIE_SAMESITE=Strict
+
+CSRF_COOKIE_NAME=csrftoken
+CSRF_HEADER_NAME=X-CSRFToken
 ```
 
-### Multi-Environment Configuration
-```rust
-use rusti::prelude::*;
-use std::env;
+### Docker Configuration
 
-pub enum Environment {
-    Development,
-    Testing,
-    Production,
-}
+```env
+# .env.docker
+HOST=0.0.0.0
+PORT=8000
+WORKERS=8
+SECRET_KEY=${SECRET_KEY}
+ALLOWED_HOSTS=localhost,app
+DEBUG=false
 
-impl Environment {
-    pub fn from_env() -> Self {
-        match env::var("ENVIRONMENT")
-            .unwrap_or_else(|_| "development".to_string())
-            .to_lowercase()
-            .as_str()
-        {
-            "production" | "prod" => Environment::Production,
-            "testing" | "test" => Environment::Testing,
-            _ => Environment::Development,
-        }
-    }
-}
+DB_ENGINE=postgres
+DB_USER=${POSTGRES_USER}
+DB_PASSWORD=${POSTGRES_PASSWORD}
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=${POSTGRES_DB}
 
-pub fn load_settings() -> Result<Settings, Box<dyn std::error::Error>> {
-    let env = Environment::from_env();
+STATIC_URL=/static/
+STATIC_ROOT=/app/static/
+MEDIA_URL=/media/
+MEDIA_ROOT=/app/media/
 
-    let builder = Settings::builder();
-
-    let settings = match env {
-        Environment::Development => {
-            builder
-                .debug(true)
-                .server("127.0.0.1", 8080, "dev-key")
-                .allowed_hosts(vec!["localhost".to_string()])
-                .database_url("postgresql://localhost/dev_db")
-        },
-        Environment::Testing => {
-            builder
-                .debug(true)
-                .server("127.0.0.1", 8081, "test-key")
-                .allowed_hosts(vec!["localhost".to_string()])
-                .database_url("postgresql://localhost/test_db")
-        },
-        Environment::Production => {
-            builder
-                .debug(false)
-                .secret_key(env::var("SECRET_KEY")?)
-                .server_host("0.0.0.0")
-                .server_port(8080)
-                .allowed_hosts(vec![env::var("DOMAIN")?])
-                .database_url(env::var("DATABASE_URL")?)
-        },
-    };
-
-    Ok(settings
-        .templates_dir(vec!["templates".to_string()])
-        .build())
-}
+TEMPLATES_DIR=/app/templates/
 ```
 
 ---
 
 ## Best Practices
 
-### Security
+### 1. Never Commit .env File
 
-1. Never commit `.env` files with secrets
-2. Use strong, random secret keys in production
-3. Always set `allowed_hosts` in production
-4. Disable debug mode in production
-5. Use environment variables for sensitive data
+```gitignore
+# .gitignore
+.env
+.env.*
+!.env.example
+```
 
-### Performance
+### 2. Create a .env.example
 
-1. Use connection pooling for databases
-2. Serve static files through reverse proxy in production
-3. Enable compression at reverse proxy level
-4. Use CDN for static assets when possible
+```env
+# .env.example
+HOST=127.0.0.1
+PORT=8000
+WORKERS=4
+SECRET_KEY=change-me-in-production
+ALLOWED_HOSTS=localhost,127.0.0.1
+DEBUG=true
 
-### Organization
+DB_ENGINE=postgres
+DB_USER=your_user
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=your_database
 
-1. Separate configuration per environment
-2. Use `.env.example` as template (without secrets)
-3. Document all configuration options
-4. Validate configuration at startup
-5. Use type-safe configuration
+STATIC_URL=/static/
+STATIC_ROOT=static/
+MEDIA_URL=/media/
+MEDIA_ROOT=media/
+
+TEMPLATES_DIR=templates/
+```
+
+### 3. Use Different .env Files per Environment
+
+```bash
+# Recommended structure
+.
+├── .env                    # Ignored by Git
+├── .env.example           # Template committed
+├── .env.development       # Dev config (ignored)
+├── .env.production        # Prod config (ignored)
+└── .env.docker           # Docker config (ignored)
+```
+
+### 4. Validate Configuration at Startup
+
+```rust
+use rusti::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let settings = Settings::from_env();
+
+    // Validations
+    assert!(settings.secret_key.len() >= 32, "SECRET_KEY too short");
+    assert!(!settings.allowed_hosts.is_empty(), "ALLOWED_HOSTS empty");
+    
+    if !settings.debug {
+        assert!(settings.session_cookie_secure, "COOKIE_SECURE must be true in production");
+    }
+
+    RustiApp::new(settings).await?
+        .routes(routes())
+        .run()
+        .await?;
+
+    Ok(())
+}
+```
+
+### 5. Use Managed Secrets in Production
+
+```rust
+// Example with AWS Secrets Manager, Vault, etc.
+use aws_sdk_secretsmanager::Client;
+
+async fn load_secret_key() -> String {
+    let config = aws_config::load_from_env().await;
+    let client = Client::new(&config);
+
+    let response = client
+        .get_secret_value()
+        .secret_id("myapp/secret_key")
+        .send()
+        .await
+        .unwrap();
+
+    response.secret_string().unwrap().to_string()
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut settings = Settings::from_env();
+    settings.secret_key = load_secret_key().await;
+
+    RustiApp::new(settings).await?
+        .routes(routes())
+        .run()
+        .await?;
+
+    Ok(())
+}
+```
 
 ---
 
-## Troubleshooting
+## See Also
 
-### Common Issues
+- [Getting Started](GETTING_STARTED.md)
+- [Security](SECURITY.md)
+- [Database](DATABASE.md)
+- [Middleware](MIDDLEWARE.md)
 
-**Issue: "Secret key not set"**
-```
-Solution: Set SECRET_KEY environment variable or provide via builder
-```
-
-**Issue: "Database connection failed"**
-```
-Solution: Verify DATABASE_URL format and database is running
-```
-
-**Issue: "Template not found"**
-```
-Solution: Check templates_dir path and file exists
-```
-
-**Issue: "Static files not served"**
-```
-Solution: Verify .with_static_files()? is called and path is correct
-```
-
-**Issue: "Host header validation failed"**
-```
-Solution: Add your domain to allowed_hosts list
-```
+Configure Rusti securely and efficiently!
 
 ---
 
-## Further Reading
-
-### Related Documentation
-
-- Security Guide (SECURITY.md)
-- Database Guide (DATABASE.md)
-- Template Guide (TEMPLATES.md)
-- Middleware Guide (MIDDLEWARE.md)
-
-### External Resources
-
-- Tera Template Documentation - https://keats.github.io/tera/
-- Sea-ORM Documentation - https://www.sea-ql.org/SeaORM/
-- Axum Documentation - https://docs.rs/axum/
-
----
-
-This documentation is part of the Rusti web framework. For more information, see the complete documentation (README.md).
-
-**Version:** 1.0
-**Last updated:** January 2025
+**Version:** 1.0 (Corrected - January 2, 2026)
 **License:** MIT

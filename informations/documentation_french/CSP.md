@@ -25,6 +25,18 @@ pub struct CspConfig {
 }
 ```
 
+**Explications des champs:**
+- `default_src`: Directive par défaut pour toutes les ressources
+- `script_src`: Sources autorisées pour les scripts JavaScript
+- `style_src`: Sources autorisées pour les feuilles de style
+- `img_src`: Sources autorisées pour les images
+- `font_src`: Sources autorisées pour les polices
+- `connect_src`: Sources autorisées pour les connexions (fetch, WebSocket, etc.)
+- `frame_ancestors`: Contrôle quelles pages peuvent embarquer cette page dans un iframe
+- `base_uri`: URLs autorisées pour la balise `<base>`
+- `form_action`: URLs autorisées pour les soumissions de formulaires
+- `use_nonce`: Active la génération automatique de nonces cryptographiques
+
 #### Configurations prédéfinies
 
 Rusti fournit trois configurations CSP prêtes à l'emploi :
@@ -32,31 +44,63 @@ Rusti fournit trois configurations CSP prêtes à l'emploi :
 **1. CspConfig::default() - Pour le développement**
 ```rust
 let csp = CspConfig::default();
-// Equivalent à :
-// - default_src: ['self']
-// - script_src: ['self', 'unsafe-inline']
-// - style_src: ['self', 'unsafe-inline']
-// - use_nonce: false
+// Équivalent à :
+CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    img_src: vec!["'self'".to_string(), "data:".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: false,
+}
 ```
 
 **2. CspConfig::strict() - Pour la production**
 ```rust
 let csp = CspConfig::strict();
-// Equivalent à :
-// - default_src: ['self']
-// - script_src: ['self']
-// - style_src: ['self']
-// - use_nonce: true (génération automatique de nonces)
+// Équivalent à :
+CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string()],
+    img_src: vec!["'self'".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: true, // ✅ Nonces activés en production
+}
 ```
 
 **3. CspConfig::permissive() - Pour les tests**
 ```rust
 let csp = CspConfig::permissive();
-// Equivalent à :
-// - default_src: ['self']
-// - script_src: ['self', 'unsafe-inline', 'unsafe-eval']
-// - style_src: ['self', 'unsafe-inline']
-// - use_nonce: false
+// Équivalent à :
+CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec![
+        "'self'".to_string(),
+        "'unsafe-inline'".to_string(),
+        "'unsafe-eval'".to_string(),
+    ],
+    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    img_src: vec![
+        "'self'".to_string(),
+        "data:".to_string(),
+        "https:".to_string(),
+    ],
+    font_src: vec!["'self'".to_string(), "data:".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'self'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: false,
+}
 ```
 
 #### Configuration personnalisée
@@ -64,14 +108,27 @@ let csp = CspConfig::permissive();
 ```rust
 let csp = CspConfig {
     default_src: vec!["'self'".to_string()],
-    script_src: vec!["'self'".to_string(), "https://cdn.example.com".to_string()],
-    style_src: vec!["'self'".to_string()],
-    img_src: vec!["'self'".to_string(), "data:".to_string()],
-    font_src: vec!["'self'".to_string()],
-    connect_src: vec!["'self'".to_string()],
+    script_src: vec![
+        "'self'".to_string(),
+        "https://cdn.example.com".to_string(),
+    ],
+    style_src: vec![
+        "'self'".to_string(),
+        "https://cdn.example.com".to_string(),
+    ],
+    img_src: vec![
+        "'self'".to_string(),
+        "data:".to_string(),
+        "https://images.example.com".to_string(),
+    ],
+    font_src: vec![
+        "'self'".to_string(),
+        "https://fonts.gstatic.com".to_string(),
+    ],
+    connect_src: vec!["'self'".to_string(), "https://api.example.com".to_string()],
     frame_ancestors: vec!["'none'".to_string()],
     base_uri: vec!["'self'".to_string()],
-    form_action: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string(), "https://example.com".to_string()],
     use_nonce: true,
 };
 ```
@@ -95,6 +152,8 @@ Lorsque `use_nonce: true`, Rusti génère automatiquement des nonces cryptograph
 ```html
 nonce="abc123xyz..."
 ```
+
+**Important:** Le tag `{{ csp }}` ne génère le nonce que si `use_nonce: true`. Sinon, il reste vide.
 
 ### Intégration middleware
 
@@ -284,6 +343,6 @@ pub async fn csp_report_only_middleware(...)
 
 Cette documentation fait partie du framework web Rusti. Pour plus d'informations, consultez la documentation complète.
 
-Version: 1.0
-Dernière mise à jour: Janvier 2025
+Version: 1.0 (Corrigée - 2 Janvier 2026)
+Dernière mise à jour: Janvier 2026
 Licence: MIT

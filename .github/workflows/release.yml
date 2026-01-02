@@ -9,6 +9,7 @@ jobs:
   publish:
     name: Publish to crates.io
     runs-on: ubuntu-latest
+    # Empêche l'exécution sur les forks si nécessaire
     if: github.repository_owner != 'actions'
 
     steps:
@@ -17,8 +18,15 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # Étape cruciale : installer cargo-audit sinon la commande échouera
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Security Audit
+        # On ignore l'alerte spécifique ici
+        run: cargo audit --ignore RUSTSEC-2024-0384
+
       - name: Publish to crates.io
-        run: |
-          cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}

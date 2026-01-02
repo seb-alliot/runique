@@ -1,117 +1,698 @@
-# 🦀 Rusti Framework
+# Rusti
 
-> A modern web framework for Rust, inspired by Django and built on Axum
+**A Django-inspired Rust web framework**
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/seb-alliot/rusti.git)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
+Rusti is a modern web framework that combines Rust's safety and performance with Django's ergonomics. It offers a familiar development experience for Django developers while leveraging the power of Rust's type system.
 
-## ✨ Why Rusti?
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 
-Rusti combines **Django's familiarity** with **Rust's performance**. If you know Django, you'll feel right at home.
+---
+
+## 🚀 Main Features
+
+### Django-like Architecture
+- **Declarative routing** with `urlpatterns!` macro
+- **Intuitive ORM** based on SeaORM with Django-style API
+- **Template system** Tera with custom preprocessing
+- **Automatic form generation** via procedural macros
+- **Flash messages** between requests
+- **Static and media file management**
+
+### Built-in Security
+- ✅ **CSRF Protection** (HMAC-SHA256)
+- ✅ **Content Security Policy** (CSP) with nonces
+- ✅ **XSS Sanitization** (ammonia)
+- ✅ **Automatic Security Headers** (HSTS, X-Frame-Options, etc.)
+- ✅ **ALLOWED_HOSTS Validation**
+- ✅ **Integrated Argon2id Hashing**
+
+### Multi-database Support
+- PostgreSQL
+- MySQL / MariaDB
+- SQLite
+
+### Modern Development
+- **Native Async/await** with Tokio
+- **Type-safe** thanks to Rust's type system
+- **Zero-cost abstractions**
+- **Hot reload** in development
+- **Complete documentation** in French and English
+
+---
+
+## 📦 Installation
+
+### Prerequisites
+
+- Rust 1.70+ ([install Rust](https://www.rust-lang.org/tools/install))
+- Cargo
+
+### Add Rusti to Your Project
+
+```toml
+# Cargo.toml
+
+# Minimal configuration (SQLite by default)
+[dependencies]
+rusti = "1.0"
+
+# With PostgreSQL
+[dependencies]
+rusti = { version = "1.0", features = ["postgres"] }
+
+# With MySQL
+[dependencies]
+rusti = { version = "1.0", features = ["mysql"] }
+
+# With MariaDB
+[dependencies]
+rusti = { version = "1.0", features = ["mariadb"] }
+
+# With all databases
+[dependencies]
+rusti = { version = "1.0", features = ["all-databases"] }
+```
+
+### Available Cargo Features
+
+| Feature | Description | Default |
+|---------|-------------|---------|
+| `default` | Enables ORM support with SQLite | ✅ |
+| `orm` | Enables SeaORM | ✅ (included in `default`) |
+| `sqlite` | SQLite driver | ✅ (included in `orm`) |
+| `postgres` | PostgreSQL driver | ❌ |
+| `mysql` | MySQL driver | ❌ |
+| `mariadb` | MariaDB driver (uses MySQL driver) | ❌ |
+| `all-databases` | Enables all drivers simultaneously | ❌ |
+
+**Configuration examples:**
+
+```toml
+# SQLite only (default configuration)
+[dependencies]
+rusti = "1.0"
+
+# PostgreSQL + MySQL
+[dependencies]
+rusti = { version = "1.0", features = ["postgres", "mysql"] }
+
+# All databases
+[dependencies]
+rusti = { version = "1.0", features = ["all-databases"] }
+
+# Without ORM (minimal framework)
+[dependencies]
+rusti = { version = "1.0", default-features = false }
+```
+
+### Create a New Project
+
+```bash
+cargo new my_app
+cd my_app
+```
+
+Add Rusti to `Cargo.toml`:
+
+```toml
+[dependencies]
+rusti = { version = "1.0", features = ["postgres"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+```
+
+---
+
+## 🏁 Quick Start
+
+### Minimal Application
 
 ```rust
+// src/main.rs
 use rusti::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::default_values();
+    let settings = Settings::from_env();
 
     RustiApp::new(settings).await?
-        .routes(urlpatterns! {
-            "/" => get(index), name = "home",
-            "/about" => get(about), name = "about",
-        })
-        .with_static_files()?
-        .with_flash_messages()
-        .with_csrf_tokens()
+        .routes(routes())
         .run()
         .await?;
 
     Ok(())
 }
+
+fn routes() -> Router {
+    urlpatterns![
+        path!("", index),
+        path!("hello/<n>", hello),
+    ]
+}
+
+async fn index() -> &'static str {
+    "Welcome to Rusti!"
+}
+
+async fn hello(Path(name): Path<String>) -> String {
+    format!("Hello, {}!", name)
+}
 ```
 
-## 🚀 Key Features
+### Configuration (.env)
 
-| Feature | Description |
-|---------|-------------|
-| 🎯 **Django-like** | Familiar syntax, proven patterns |
-| ⚡ **Performance** | Built on Axum and Tokio |
-| 🛡️ **Built-in Security** | CSRF, sessions, validation |
-| 📝 **Tera Templates** | Jinja2-inspired engine |
-| 🗄️ **SeaORM ORM** | Multi-database support (PostgreSQL, MySQL, SQLite) |
-| 🔧 **Flexible Config** | Builder pattern + environment variables |
-| 🐛 **Advanced Debug** | Detailed error pages in development |
-| 📨 **Flash Messages** | Messages between requests |
-| 🔗 **Reverse Routing** | Automatically generated URLs |
-
-## 📦 Installation
-
-```toml
-[dependencies]
-rusti = "0.1"
-tokio = { version = "1", features = ["full"] }
-```
-
-### Database Selection
-
-```toml
-# SQLite (default)
-rusti = "0.1"
+```env
+HOST=127.0.0.1
+PORT=8000
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=localhost,127.0.0.1
+DEBUG=true
 
 # PostgreSQL
-rusti = { version = "0.1", features = ["postgres"] }
-
-# MySQL / MariaDB
-rusti = { version = "0.1", features = ["mysql"] }
-
-# All databases
-rusti = { version = "0.1", features = ["all-databases"] }
+DB_ENGINE=postgres
+DB_USER=user
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=mydb
 ```
 
-## 📚 Documentation
-
-- **[Getting Started](informations/documentation%20english/GETTING_STARTED.md)** - Quick start guide
-- **[Full Documentation](informations/documentation%20english/)** - Complete documentation
-- **[Cours d'implémentation](informations/cours/)** - Learn how to implement features yourself
-- **[Examples](examples/demo-app/)** - Working examples
-
-## 🎓 Learning Resources
-
-- **[Cours Rusti](informations/cours/)** - Step-by-step implementation guides
-- **[Documentation française](informations/documentation%20french/)** - Documentation complète en français
-
-## 🧪 Testing
+### Launch
 
 ```bash
-# Run all tests
-cargo test
-
-# Run specific test suite
-cargo test --test allowed_hosts
+cargo run
 ```
 
-## 🤝 Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](informations/documentation%20english/CONTRIBUTING.md) for guidelines.
-
-## 📄 License
-
-This project is licensed under either of
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-at your option.
-
-## 🙏 Acknowledgments
-
-- Inspired by [Django](https://www.djangoproject.com/)
-- Built on [Axum](https://github.com/tokio-rs/axum)
-- Uses [SeaORM](https://www.sea-ql.org/SeaORM/) for database operations
-- Template engine powered by [Tera](https://keats.github.io/tera/)
+Open [http://localhost:8000](http://localhost:8000)
 
 ---
 
-**Made with 🦀 Rust**
+## 📚 Complete Documentation
+
+### French Guides
+
+- [🚀 Getting Started](docs/fr/GETTING_STARTED.md)
+- [⚙️ Configuration](docs/fr/CONFIGURATION.md)
+- [🗄️ Database](docs/fr/DATABASE.md)
+- [📝 Forms](docs/fr/FORMULAIRE.md)
+- [🎨 Templates](docs/fr/TEMPLATES.md)
+- [🔒 Security](docs/fr/SECURITY.md)
+- [🛣️ Routing](docs/fr/ROUTING.md)
+- [🔧 Middleware](docs/fr/MIDDLEWARE.md)
+- [🚀 Deployment](docs/fr/DEPLOIEMENT.md)
+
+### English Guides
+
+- [🚀 Getting Started](docs/en/GETTING_STARTED.md)
+- [⚙️ Configuration](docs/en/CONFIGURATION.md)
+- [🗄️ Database](docs/en/DATABASE.md)
+- [📝 Forms](docs/en/FORMS.md)
+- [🎨 Templates](docs/en/TEMPLATES.md)
+- [🔒 Security](docs/en/SECURITY.md)
+- [🛣️ Routing](docs/en/ROUTING.md)
+- [🔧 Middleware](docs/en/MIDDLEWARE.md)
+- [🚀 Deployment](docs/en/DEPLOYMENT.md)
+
+---
+
+## 🎯 Complete Example
+
+### Project Structure
+
+```
+my_app/
+├── Cargo.toml
+├── .env
+├── src/
+│   ├── main.rs
+│   ├── models/
+│   │   └── mod.rs
+│   ├── views/
+│   │   └── mod.rs
+│   └── forms/
+│       └── mod.rs
+├── templates/
+│   ├── base.html
+│   └── index.html
+└── static/
+    ├── css/
+    └── js/
+```
+
+### Model (models/mod.rs)
+
+```rust
+use sea_orm::entity::prelude::*;
+use rusti::impl_objects;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "posts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    pub content: String,
+    pub published: bool,
+    pub created_at: DateTime,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+// Django-like API
+impl_objects!(Entity);
+```
+
+### Form (forms/mod.rs)
+
+```rust
+use rusti::forms::prelude::*;
+
+#[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
+#[sea_orm(model = "crate::models::Model", entity = "crate::models::Entity")]
+pub struct PostForm {
+    #[field(max_length = 200, required = true)]
+    pub title: CharField,
+
+    #[field(widget = "textarea", required = true)]
+    pub content: CharField,
+
+    #[field(default = "false")]
+    pub published: BooleanField,
+}
+```
+
+### View (views/mod.rs)
+
+```rust
+use rusti::prelude::*;
+use crate::models::{posts, Entity as Post};
+use crate::forms::PostForm;
+
+pub async fn list_posts(
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    template: Template,
+) -> Response {
+    let posts = Post::objects
+        .filter(posts::Column::Published.eq(true))
+        .order_by_desc(posts::Column::CreatedAt)
+        .all(&*db)
+        .await
+        .unwrap_or_default();
+
+    template.render("posts/list.html", context! {
+        posts: posts,
+    })
+}
+
+pub async fn create_post(
+    Form(form): Form<PostForm>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    template: Template,
+    mut message: Message,
+) -> Response {
+    if !form.is_valid() {
+        return template.render("posts/create.html", context! { form });
+    }
+
+    match form.save(&*db).await {
+        Ok(post) => {
+            success!(message, "Article created successfully!");
+            redirect(&format!("/posts/{}", post.id))
+        }
+        Err(_) => {
+            error!(message, "Error creating article");
+            template.render("posts/create.html", context! { form })
+        }
+    }
+}
+```
+
+### Template (templates/posts/list.html)
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Articles</h1>
+
+{% for post in posts %}
+<article>
+    <h2>{{ post.title }}</h2>
+    <p>{{ post.content|truncate(200) }}</p>
+    <a href="{% link 'post_detail' id=post.id %}">Read more</a>
+</article>
+{% endfor %}
+
+<a href="{% link 'post_create' %}">Create article</a>
+{% endblock %}
+```
+
+### Routes (main.rs)
+
+```rust
+use rusti::prelude::*;
+
+fn routes() -> Router {
+    urlpatterns![
+        path!("", views::index, "index"),
+        path!("posts/", views::list_posts, "post_list"),
+        path!("posts/create/", views::create_post, "post_create"),
+        path!("posts/<id>/", views::detail_post, "post_detail"),
+    ]
+}
+```
+
+---
+
+## 🔒 Security
+
+Rusti integrates multiple security layers by default:
+
+### CSRF Protection
+
+```rust
+RustiApp::new(settings).await?
+    .middleware(CsrfMiddleware::new())
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+In templates:
+```html
+<form method="post">
+    {{ csrf_input() }}
+    <!-- form fields -->
+</form>
+```
+
+### Content Security Policy
+
+```rust
+use rusti::middleware::CspConfig;
+
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    img_src: vec!["'self'".to_string(), "data:".to_string()],
+    font_src: vec!["'self'".to_string()],
+    connect_src: vec!["'self'".to_string()],
+    frame_ancestors: vec!["'none'".to_string()],
+    base_uri: vec!["'self'".to_string()],
+    form_action: vec!["'self'".to_string()],
+    use_nonce: false,
+};
+
+RustiApp::new(settings).await?
+    .middleware(CspMiddleware::new(csp_config))
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+### Security Headers
+
+```rust
+RustiApp::new(settings).await?
+    .middleware(SecurityHeadersMiddleware::new())
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+Headers automatically configured:
+- `Strict-Transport-Security`
+- `X-Content-Type-Options`
+- `X-Frame-Options`
+- `X-XSS-Protection`
+- `Referrer-Policy`
+- `Permissions-Policy`
+
+---
+
+## 🗄️ Database
+
+### Django-like API
+
+```rust
+use crate::models::{users, Entity as User};
+
+// Retrieval
+let all_users = User::objects.all().all(&db).await?;
+let user = User::objects.get(&db, 1).await?;
+
+// Filtering
+let active_users = User::objects
+    .filter(users::Column::IsActive.eq(true))
+    .filter(users::Column::Age.gte(18))
+    .all(&db)
+    .await?;
+
+// Ordering and pagination
+let recent_users = User::objects
+    .order_by_desc(users::Column::CreatedAt)
+    .limit(10)
+    .all(&db)
+    .await?;
+
+// Count
+let count = User::objects.count(&db).await?;
+```
+
+### Migrations
+
+Use `sea-orm-cli` for migrations:
+
+```bash
+cargo install sea-orm-cli
+
+# Create a migration
+sea-orm-cli migrate generate create_users_table
+
+# Apply
+sea-orm-cli migrate up
+
+# Rollback
+sea-orm-cli migrate down
+```
+
+---
+
+## 🎨 Templates
+
+### Custom Tags
+
+```html
+<!-- Static files -->
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<script src="{% static 'js/app.js' %}"></script>
+
+<!-- Media files -->
+<img src="{% media user.avatar %}" alt="Avatar">
+
+<!-- CSRF token -->
+<form method="post">
+    {{ csrf_input() }}
+    <!-- ... -->
+</form>
+
+<!-- Flash messages -->
+{% messages %}
+
+<!-- Links with reverse routing -->
+<a href="{% link 'post_detail' id=post.id %}">Details</a>
+
+<!-- CSP nonce (if enabled) -->
+<script nonce="{{ csp }}">
+    // JavaScript code
+</script>
+```
+
+---
+
+## 📦 Utility Macros
+
+Rusti provides macros to simplify common operations.
+
+### Flash Messages
+
+```rust
+use rusti::prelude::*;
+
+async fn my_handler(mut message: Message) -> Response {
+    // Simple messages
+    success!(message, "Operation successful!");
+    error!(message, "An error occurred");
+    info!(message, "Important information");
+    warning!(message, "Warning");
+
+    // Multiple messages
+    success!(
+        message,
+        "User created",
+        "Email sent",
+        "Welcome!"
+    );
+
+    redirect("/")
+}
+```
+
+**Advantages:**
+- Concise and expressive syntax
+- Automatic handling of `.await.unwrap()`
+- Support for multiple messages
+- More readable and maintainable code
+
+**Available macros:**
+- `success!(message, "text")` - Success messages
+- `error!(message, "text")` - Error messages
+- `info!(message, "text")` - Information messages
+- `warning!(message, "text")` - Warning messages
+
+---
+
+## 🚀 Performance
+
+Rusti leverages Rust and Tokio performance:
+
+- **Zero-cost abstractions**: No runtime overhead
+- **Native async/await**: Efficient concurrency with Tokio
+- **Connection pooling**: Optimized DB connection management
+- **Optimized compilation**: Highly optimized binary
+
+### Benchmark (example)
+
+```
+Requests/sec: ~50,000
+Latency p50: ~1ms
+Latency p99: ~5ms
+Memory: ~20MB
+```
+
+---
+
+## 🛠️ Development
+
+### Tests
+
+```bash
+cargo test
+```
+
+### Linting
+
+```bash
+cargo clippy
+```
+
+### Formatting
+
+```bash
+cargo fmt
+```
+
+### Documentation
+
+```bash
+cargo doc --open
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how to contribute:
+
+1. Fork the project
+2. Create a branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Guidelines
+
+- Write tests for new features
+- Follow Rust code conventions (rustfmt)
+- Document public APIs
+- Add examples if relevant
+
+---
+
+## 📝 Roadmap
+
+### Version 1.1 (Q1 2026)
+
+- [ ] Integrated authentication system
+- [ ] Auto-generated admin panel
+- [ ] Rate limiting middleware
+- [ ] WebSocket support
+- [ ] Cache layer (Redis)
+
+### Version 1.2 (Q2 2026)
+
+- [ ] CLI for scaffolding
+- [ ] Improved hot reload
+- [ ] GraphQL support
+- [ ] Background jobs (Tokio tasks)
+
+### Version 2.0 (Q3 2026)
+
+- [ ] Plugin system
+- [ ] Multi-tenancy
+- [ ] Internationalization (i18n)
+- [ ] Advanced ORM features
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+Rusti builds upon excellent libraries from the Rust ecosystem:
+
+- [Axum](https://github.com/tokio-rs/axum) - Web framework
+- [Tokio](https://tokio.rs/) - Async runtime
+- [SeaORM](https://www.sea-ql.org/SeaORM/) - ORM
+- [Tera](https://keats.github.io/tera/) - Template engine
+- [Tower](https://github.com/tower-rs/tower) - Middleware
+- [Argon2](https://github.com/RustCrypto/password-hashes) - Password hashing
+- [ammonia](https://github.com/rust-ammonia/ammonia) - HTML sanitization
+
+---
+
+## 📧 Contact
+
+- **GitHub Issues**: [github.com/your-username/rusti/issues](https://github.com/your-username/rusti/issues)
+- **Discord**: [Join the server](#)
+- **Email**: contact@rusti-framework.dev
+
+---
+
+## ⭐ Support the Project
+
+If Rusti is useful to you, consider:
+
+- ⭐ Starring on GitHub
+- 🐛 Reporting bugs
+- 💡 Suggesting features
+- 📖 Improving documentation
+- 🤝 Contributing code
+
+---
+
+**Build secure and performant web applications with Rusti!**
+
+---
+
+**Version:** 1.0.0 (Corrected - January 2, 2026)
+**License:** MIT

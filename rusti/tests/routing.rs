@@ -3,20 +3,7 @@ use rusti::{
     reverse_with_parameters,
     register_name_url,
 };
-use axum::routing::get;
 
-/// Handler de test simple
-async fn index_handler() -> &'static str {
-    "Index"
-}
-
-async fn about_handler() -> &'static str {
-    "About"
-}
-
-async fn user_handler(axum::extract::Path(id): axum::extract::Path<i32>) -> String {
-    format!("User {}", id)
-}
 
 #[test]
 fn test_register_name_url() {

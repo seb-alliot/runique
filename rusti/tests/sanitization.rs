@@ -2,7 +2,7 @@ use axum::{
     Router,
     routing::post,
     body::Body,
-    http::{Request, StatusCode, header},
+    http::{Request, header},
     middleware,
 };
 use std::sync::Arc;

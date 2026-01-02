@@ -1,281 +1,866 @@
-# 🚀 Guide de démarrage - Rusti Framework
+# Guide de démarrage rapide - Rusti Framework
 
-Ce guide vous accompagne pas à pas dans la création de votre première application Rusti.
+Bienvenue dans Rusti ! Ce guide vous accompagnera pas à pas dans la création de votre première application web avec Rusti.
 
 ## Prérequis
 
-* Rust (dernière version stable recommandée)
-* Cargo (installé avec Rust)
-* Connaissances de base en Rust et développement web
-
-## Table des matières
-
-1. [Installation](https://www.google.com/search?q=%23installation)
-2. [Première application](https://www.google.com/search?q=%23premi%C3%A8re-application)
-3. [Structure du projet](https://www.google.com/search?q=%23structure-du-projet)
-4. [Routes et handlers](https://www.google.com/search?q=%23routes-et-handlers)
-5. [Templates](https://www.google.com/search?q=%23templates)
-6. [Fichiers statiques](https://www.google.com/search?q=%23fichiers-statiques)
-7. [Base de données](https://www.google.com/search?q=%23base-de-donn%C3%A9es)
-8. [Déploiement](https://www.google.com/search?q=%23d%C3%A9ploiement)
+- **Rust 1.70+** - [Installer Rust](https://www.rust-lang.org/tools/install)
+- **Cargo** (installé automatiquement avec Rust)
+- Connaissances de base en Rust (ownership, borrowing, async/await)
 
 ---
 
 ## Installation
 
-### 1. Installer Rust
-
-Si ce n'est pas déjà fait :
+### 1. Créer un nouveau projet
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
+cargo new mon_app
+cd mon_app
 ```
 
-### 2. Créer un nouveau projet
+### 2. Ajouter Rusti aux dépendances
 
-```bash
-cargo new mon-app-rusti
-cd mon-app-rusti
-
-```
-
-### 3. Ajouter les dépendances
+Éditez `Cargo.toml` :
 
 ```toml
-# Cargo.toml
+[package]
+name = "mon_app"
+version = "0.1.0"
+edition = "2021"
+
 [dependencies]
-rusti = "1.0.0"
+rusti = "1.0"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+```
 
+**Avec PostgreSQL :**
+
+```toml
+[dependencies]
+rusti = { version = "1.0", features = ["postgres"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
 ```
 
 ---
 
-## Première application
+## Application minimale
 
-### Application minimale
-
-Créez `src/main.rs` :
+### 1. Code source (src/main.rs)
 
 ```rust
 use rusti::prelude::*;
 
-async fn hello() -> &'static str {
-    "Hello, Rusti!"
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::default_values();
+    // Charger la configuration depuis .env
+    let settings = Settings::from_env();
 
+    // Créer et lancer l'application
     RustiApp::new(settings).await?
-        .routes(Router::new().route("/", get(hello)))
+        .routes(routes())
         .run()
         .await?;
 
     Ok(())
 }
 
+fn routes() -> Router {
+    urlpatterns![
+        path!("", index),
+    ]
+}
+
+async fn index() -> &'static str {
+    "Bienvenue sur Rusti !"
+}
 ```
 
-Lancez l'application :
+### 2. Configuration (.env)
+
+Créez un fichier `.env` à la racine :
+
+```env
+HOST=127.0.0.1
+PORT=8000
+SECRET_KEY=change-me-in-production-with-32-chars-minimum
+ALLOWED_HOSTS=localhost,127.0.0.1
+DEBUG=true
+```
+
+### 3. Lancement
 
 ```bash
 cargo run
-
 ```
 
-Ouvrez [http://127.0.0.1:3000](http://127.0.0.1:3000)
+Ouvrez [http://localhost:8000](http://localhost:8000) dans votre navigateur.
 
-🎉 **Félicitations !** Votre première application Rusti fonctionne.
+✅ Vous devriez voir : **"Bienvenue sur Rusti !"**
 
 ---
 
-## Structure du projet
+## Routing basique
 
-Pour une application complète, organisez votre code ainsi :
+### URLs avec paramètres
+
+```rust
+use rusti::prelude::*;
+
+fn routes() -> Router {
+    urlpatterns![
+        path!("", index),
+        path!("hello/<name>", hello),
+        path!("user/<id>", user_detail),
+    ]
+}
+
+async fn index() -> &'static str {
+    "Page d'accueil"
+}
+
+async fn hello(Path(name): Path<String>) -> String {
+    format!("Bonjour, {} !", name)
+}
+
+async fn user_detail(Path(id): Path<i32>) -> String {
+    format!("Détails de l'utilisateur #{}", id)
+}
+```
+
+**Test :**
+- `GET /` → "Page d'accueil"
+- `GET /hello/Alice` → "Bonjour, Alice !"
+- `GET /user/42` → "Détails de l'utilisateur #42"
+
+### Noms de routes (reverse routing)
+
+```rust
+use rusti::prelude::*;
+
+fn routes() -> Router {
+    urlpatterns![
+        path!("", index, "index"),
+        path!("posts/", list_posts, "post_list"),
+        path!("posts/<id>/", detail_post, "post_detail"),
+    ]
+}
+```
+
+---
+
+## Templates avec Tera
+
+### 1. Structure des dossiers
 
 ```
-mon-app-rusti/
-├── src/
-│   ├── main.rs          # Point d'entrée
-│   ├── urls.rs          # Configuration des routes
-│   ├── views.rs         # Handlers (logique métier)
-│   └── models.rs        # Modèles de base de données (optionnel)
-├── templates/           # Templates Tera
-│   ├── base.html        # Template parent
-│   └── index.html       # Page d'accueil
-├── static/              # Fichiers statiques
-│   ├── css/
-│   │   └── main.css
-├── .env                 # Variables d'environnement
+mon_app/
 ├── Cargo.toml
-└── README.md
-
+├── .env
+├── src/
+│   └── main.rs
+└── templates/
+    ├── base.html
+    └── index.html
 ```
 
----
-
-## Routes et handlers
-
-### 1. Définir les routes (`src/urls.rs`)
-
-```rust
-use rusti::{Router, urlpatterns};
-use crate::views;
-
-pub fn routes() -> Router {
-    urlpatterns! {
-        "/" => get(views::index), name = "home",
-        "/about" => get(views::about), name = "about",
-        "/contact" => get(views::contact), name = "contact",
-        "/api/users" => get(views::api_users), name = "api_users",
-        "/user/{id}" => get(views::user_detail), name = "user_detail",
-    }
-}
-
-```
-
-### 2. Créer les handlers (`src/views.rs`)
-
-```rust
-use rusti::prelude::*;
-
-pub async fn index(template: Template, mut message: Message) -> Response {
-    info!(message, "Ceci est un message d'information de test.");
-    let ctx = context! {
-        "title": "Accueil",
-        "description": "Framework web Rust inspiré de Django",
-    };
-    template.render("index.html", &ctx)
-}
-
-pub async fn about(template: Template) -> Response {
-    let ctx = context! {
-        "title": "À propos",
-        "features": vec!["Django-like", "Performant", "Sécurisé", "Moderne"],
-    };
-    template.render("about.html", &ctx)
-}
-
-pub async fn api_users() -> Response {
-    let users = json!({"users": [{"id": 1, "name": "Alice"}]});
-    (StatusCode::OK, Json(users)).into_response()
-}
-
-pub async fn user_detail(Path(id): Path<u32>, template: Template) -> Response {
-    let ctx = context! { "user_id": id, "title": format!("Utilisateur #{}", id) };
-    template.render("user_detail.html", &ctx)
-}
-
-```
-
-### 3. Mettre à jour `main.rs`
-
-```rust
-use rusti::prelude::*;
-use std::env; // Import nécessaire pour env::var
-
-mod urls;
-mod views;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::builder()
-        .debug(true)
-        .templates_dir(vec!["templates".to_string()])
-        .staticfiles_dirs("static")
-        .media_root("media")
-        .server("127.0.0.1", 3000, "changez-cette-clef-en-production")
-        .build();
-
-    RustiApp::new(settings).await?
-        .routes(urls::routes()) // Corrigé : utilise 'urls' au pluriel
-        .with_static_files()?
-        .with_allowed_hosts(
-            env::var("ALLOWED_HOSTS")
-                .ok()
-                .map(|s| s.split(',').map(|h| h.to_string()).collect()),
-        )
-        .with_security_headers(CspConfig::strict())
-        .with_default_middleware()
-        .run()
-        .await?;
-
-    Ok(())
-}
-
-```
-
----
-
-## Templates
-
-### Template de base (`templates/base.html`)
+### 2. Template de base (templates/base.html)
 
 ```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Mon App Rusti{% endblock %}</title>
-    <link rel="stylesheet" href='{% static "css/main.css" %}'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mon App{% endblock %}</title>
 </head>
 <body>
-    <nav>
-        <a href='{% link "home" %}'>Accueil</a>
-        <a href='{% link "about" %}'>À propos</a>
-    </nav>
+    <header>
+        <h1>Mon Application Rusti</h1>
+        <nav>
+            <a href="{% link 'index' %}">Accueil</a>
+        </nav>
+    </header>
 
     <main>
-        {% messages %}
         {% block content %}{% endblock %}
     </main>
 
     <footer>
-        <p>&copy; 2026 Mon Application Rusti</p> </footer>
+        <p>© 2026 Mon App</p>
+    </footer>
 </body>
 </html>
+```
 
+### 3. Template de page (templates/index.html)
+
+```html
+{% extends "base.html" %}
+
+{% block title %}Accueil{% endblock %}
+
+{% block content %}
+<h2>Bienvenue {{ username }} !</h2>
+<p>Vous êtes connecté depuis le {{ date }}.</p>
+{% endblock %}
+```
+
+### 4. Utilisation dans un handler
+
+```rust
+use rusti::prelude::*;
+
+async fn index(template: Template) -> Response {
+    template.render("index.html", context! {
+        username: "Alice",
+        date: chrono::Utc::now().format("%d/%m/%Y").to_string(),
+    })
+}
 ```
 
 ---
 
 ## Base de données
 
-### Utiliser dans les handlers
+### 1. Configuration
+
+Ajoutez dans `.env` :
+
+```env
+# PostgreSQL
+DB_ENGINE=postgres
+DB_USER=myuser
+DB_PASSWORD=mypassword
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=mydb
+
+# SQLite (alternative)
+# DB_ENGINE=sqlite
+# DB_NAME=database.sqlite
+```
+
+### 2. Définir un modèle
+
+Créez `src/models.rs` :
+
+```rust
+use rusti::prelude::*;
+use sea_orm::entity::prelude::*;
+use rusti::impl_objects;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub username: String,
+    pub email: String,
+    pub created_at: DateTime,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+// Active l'API Django-like
+impl_objects!(Entity);
+```
+
+### 3. Connexion à la base
+
+```rust
+use rusti::prelude::*;
+mod models;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let settings = Settings::from_env();
+
+    // Connexion à la base de données
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db = db_config.connect().await?;
+
+    RustiApp::new(settings).await?
+        .with_database(db)
+        .routes(routes())
+        .run()
+        .await?;
+
+    Ok(())
+}
+```
+
+### 4. Utilisation dans un handler
 
 ```rust
 use rusti::prelude::*;
 use crate::models::{users, Entity as User};
 
-pub async fn list_users(
+async fn list_users(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     template: Template,
 ) -> Response {
+    // API Django-like
     let users = User::objects
-        .order_by_desc(users::Column::CreatedAt)
-        .limit(10)
-        .all(&db)
+        .filter(users::Column::IsActive.eq(true))
+        .order_by_asc(users::Column::Username)
+        .all(&*db)
         .await
         .unwrap_or_default();
 
-    let context = context! { "users": users };
-    template.render("users/list.html", &context)
+    template.render("users.html", context! {
+        users: users,
+    })
+}
+```
+
+---
+
+## Formulaires
+
+### 1. Définir un formulaire
+
+Créez `src/forms.rs` :
+
+```rust
+use rusti::prelude::*;
+use rusti::forms::prelude::*;
+
+#[rusti_form]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContactForm {
+    #[field(max_length = 100, required = true)]
+    pub name: CharField,
+
+    #[field(required = true)]
+    pub email: EmailField,
+
+    #[field(max_length = 50, required = true)]
+    pub subject: CharField,
+
+    #[field(widget = "textarea", required = true)]
+    pub message: CharField,
+}
+```
+
+### 2. Affichage du formulaire
+
+```rust
+use rusti::prelude::*;
+use crate::forms::ContactForm;
+
+async fn contact_view(template: Template) -> Response {
+    let form = ContactForm::new();
+    template.render("contact.html", context! {
+        form: form,
+    })
+}
+```
+
+Template `templates/contact.html` :
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Contactez-nous</h2>
+
+<form method="post">
+    {{ csrf_input() }}
+    {{ form }}
+    <button type="submit">Envoyer</button>
+</form>
+{% endblock %}
+```
+
+### 3. Traitement du formulaire
+
+```rust
+use rusti::prelude::*;
+use crate::forms::ContactForm;
+
+async fn contact_submit(
+    Form(form): Form<ContactForm>,
+    template: Template,
+    mut message: Message,
+) -> Response {
+    // Validation
+    if !form.is_valid() {
+        return template.render("contact.html", context! {
+            form: form,
+            errors: form.errors(),
+        });
+    }
+
+    // Traitement (envoyer email, etc.)
+    success!(message, "Message envoyé avec succès !");
+
+    redirect("/")
+}
+```
+
+---
+
+## Middleware et sécurité
+
+### Configuration recommandée
+
+```rust
+use rusti::prelude::*;
+use rusti::middleware::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let settings = Settings::from_env();
+
+    RustiApp::new(settings).await?
+        // Sécurité
+        .middleware(CsrfMiddleware::new())
+        .middleware(SecurityHeadersMiddleware::new())
+        .middleware(AllowedHostsMiddleware)
+        .middleware(XssSanitizerMiddleware)
+
+        // Fonctionnalités
+        .middleware(FlashMiddleware)
+        .middleware(MessageMiddleware)
+
+        // Routes
+        .routes(routes())
+
+        // Lancement
+        .run()
+        .await?;
+
+    Ok(())
+}
+```
+
+### Protection CSRF
+
+Automatique avec `CsrfMiddleware` :
+
+```html
+<form method="post">
+    {{ csrf_input() }}
+    <!-- Le token est vérifié automatiquement -->
+</form>
+```
+
+### Content Security Policy
+
+```rust
+use rusti::prelude::*;
+use rusti::middleware::CspConfig;
+
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    use_nonce: true,
+    ..Default::default()
+};
+
+RustiApp::new(settings).await?
+    .middleware(CspMiddleware::new(csp_config))
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+---
+
+## Fichiers statiques
+
+### 1. Configuration (.env)
+
+```env
+STATIC_URL=/static/
+STATIC_ROOT=static/
+MEDIA_URL=/media/
+MEDIA_ROOT=media/
+```
+
+### 2. Structure des dossiers
+
+```
+mon_app/
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── app.js
+└── media/
+    └── uploads/
+```
+
+### 3. Utilisation dans les templates
+
+```html
+<!-- Fichiers statiques -->
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<script src="{% static 'js/app.js' %}"></script>
+
+<!-- Fichiers media (uploadés) -->
+<img src="{% media user.avatar %}" alt="Avatar">
+```
+
+---
+
+## Messages flash
+
+### 1. Activation
+
+```rust
+use rusti::prelude::*;
+
+RustiApp::new(settings).await?
+    .middleware(FlashMiddleware)
+    .middleware(MessageMiddleware)
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+### 2. Utilisation dans les handlers
+
+```rust
+use rusti::prelude::*;
+
+async fn create_user(
+    Form(form): Form<UserForm>,
+    mut message: Message,
+) -> Response {
+    if !form.is_valid() {
+        let _ = message.error("Données invalides").await;
+        return redirect("/register");
+    }
+
+    // Créer l'utilisateur...
+
+    let _ = message.success("Compte créé avec succès !").await;
+    redirect("/dashboard")
+}
+```
+
+### 3. Affichage dans les templates
+
+```html
+{% messages %}
+```
+
+Ou manuellement :
+
+```html
+{% for msg in get_messages() %}
+<div class="alert alert-{{ msg.level }}">
+    {{ msg.message }}
+</div>
+{% endfor %}
+```
+
+### 4. Macros utilitaires
+
+Pour simplifier l'envoi de messages, Rusti fournit des macros :
+
+```rust
+use rusti::prelude::*;
+
+async fn create_user(
+    Form(form): Form<UserForm>,
+    mut message: Message,
+) -> Response {
+    if !form.is_valid() {
+        // Macro error! - plus concis
+        error!(message, "Données invalides");
+        return redirect("/register");
+    }
+
+    // Créer l'utilisateur...
+
+    // Macro success! - plus concis
+    success!(message, "Compte créé avec succès !");
+    redirect("/dashboard")
+}
+```
+
+**Macros disponibles :**
+
+| Macro | Équivalent | Utilisation |
+|-------|-----------|-------------|
+| `success!(msg, "text")` | `msg.success("text").await.unwrap()` | Messages de succès |
+| `error!(msg, "text")` | `msg.error("text").await.unwrap()` | Messages d'erreur |
+| `info!(msg, "text")` | `msg.info("text").await.unwrap()` | Messages d'information |
+| `warning!(msg, "text")` | `msg.warning("text").await.unwrap()` | Messages d'avertissement |
+
+**Plusieurs messages en une fois :**
+
+```rust
+// Envoyer plusieurs messages successifs
+success!(
+    message,
+    "Utilisateur créé",
+    "Email envoyé",
+    "Bienvenue !"
+);
+
+// Ou de manière plus lisible
+success!(message, "Utilisateur créé");
+info!(message, "Vérifiez votre email");
+warning!(message, "Pensez à valider votre compte");
+```
+
+**Avantages des macros :**
+- ✅ Syntaxe plus concise
+- ✅ Gestion automatique du `.await.unwrap()`
+- ✅ Support de messages multiples
+- ✅ Code plus lisible
+
+---
+
+## Exemple complet : Blog simple
+
+### Structure
+
+```
+blog/
+├── Cargo.toml
+├── .env
+├── src/
+│   ├── main.rs
+│   ├── models.rs
+│   ├── forms.rs
+│   └── views.rs
+├── templates/
+│   ├── base.html
+│   ├── posts/
+│   │   ├── list.html
+│   │   ├── detail.html
+│   │   └── create.html
+└── static/
+    └── css/
+        └── style.css
+```
+
+### Modèle (src/models.rs)
+
+```rust
+use rusti::prelude::*;
+use sea_orm::entity::prelude::*;
+use rusti::impl_objects;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "posts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    pub slug: String,
+    #[sea_orm(column_type = "Text")]
+    pub content: String,
+    pub published: bool,
+    pub created_at: DateTime,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+impl_objects!(Entity);
+```
+
+### Formulaire (src/forms.rs)
+
+```rust
+use rusti::prelude::*;
+use rusti::forms::prelude::*;
+
+#[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
+#[sea_orm(model = "crate::models::Model", entity = "crate::models::Entity")]
+pub struct PostForm {
+    #[field(max_length = 200, required = true)]
+    pub title: CharField,
+
+    #[field(max_length = 200, required = true)]
+    pub slug: CharField,
+
+    #[field(widget = "textarea", required = true)]
+    pub content: CharField,
+
+    #[field(default = "false")]
+    pub published: BooleanField,
+}
+```
+
+### Vues (src/views.rs)
+
+```rust
+use rusti::prelude::*;
+use crate::models::{posts, Entity as Post};
+use crate::forms::PostForm;
+
+// Liste des articles
+pub async fn list_posts(
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    template: Template,
+) -> Response {
+    let posts = Post::objects
+        .filter(posts::Column::Published.eq(true))
+        .order_by_desc(posts::Column::CreatedAt)
+        .all(&*db)
+        .await
+        .unwrap_or_default();
+
+    template.render("posts/list.html", context! {
+        posts: posts,
+    })
+}
+
+// Détail d'un article
+pub async fn detail_post(
+    Path(id): Path<i32>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    template: Template,
+) -> Response {
+    let post = match Post::objects.get(&*db, id).await {
+        Ok(p) => p,
+        Err(_) => return (StatusCode::NOT_FOUND, "Article introuvable").into_response(),
+    };
+
+    template.render("posts/detail.html", context! {
+        post: post,
+    })
+}
+
+// Formulaire de création
+pub async fn create_post_view(template: Template) -> Response {
+    let form = PostForm::new();
+    template.render("posts/create.html", context! {
+        form: form,
+    })
+}
+
+// Traitement de création
+pub async fn create_post_submit(
+    Form(form): Form<PostForm>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    template: Template,
+    mut message: Message,
+) -> Response {
+    if !form.is_valid() {
+        return template.render("posts/create.html", context! {
+            form: form,
+        });
+    }
+
+    match form.save(&*db).await {
+        Ok(post) => {
+            success!(message, "Article créé avec succès !");
+            redirect(&format!("/posts/{}/", post.id))
+        }
+        Err(_) => {
+            error!(message, "Erreur lors de la création");
+            template.render("posts/create.html", context! {
+                form: form,
+            })
+        }
+    }
+}
+```
+
+### Routes (src/main.rs)
+
+```rust
+use rusti::prelude::*;
+
+mod models;
+mod forms;
+mod views;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let settings = Settings::from_env();
+
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db = db_config.connect().await?;
+
+    RustiApp::new(settings).await?
+        .with_database(db)
+        .middleware(CsrfMiddleware::new())
+        .middleware(SecurityHeadersMiddleware::new())
+        .middleware(FlashMiddleware)
+        .middleware(MessageMiddleware)
+        .routes(routes())
+        .run()
+        .await?;
+
+    Ok(())
+}
+
+fn routes() -> Router {
+    urlpatterns![
+        path!("", views::list_posts, "post_list"),
+        path!("posts/<id>/", views::detail_post, "post_detail"),
+        path!("posts/create/", views::create_post_view, "post_create"),
+        path!("posts/create/submit/", views::create_post_submit),
+    ]
+}
+```
+
+### Template liste (templates/posts/list.html)
+
+```html
+{% extends "base.html" %}
+
+{% block title %}Articles{% endblock %}
+
+{% block content %}
+<h2>Tous les articles</h2>
+
+{% messages %}
+
+{% for post in posts %}
+<article>
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content|truncate(200) }}</p>
+    <a href="{% link 'post_detail' id=post.id %}">Lire la suite</a>
+</article>
+{% endfor %}
+
+<a href="{% link 'post_create' %}">Créer un article</a>
+{% endblock %}
 ```
 
 ---
 
 ## Prochaines étapes
 
-✅ Votre application Rusti est prête !
+Maintenant que vous maîtrisez les bases, explorez :
 
-* 📖 [Documentation des templates](https://www.google.com/search?q=TEMPLATES.md)
-* 🗄️ [Guide de la base de données](DATABASE.md)
+1. **[Configuration avancée](CONFIGURATION.md)** - Variables d'environnement, settings
+2. **[Base de données](DATABASE.md)** - Relations, transactions, migrations
+3. **[Sécurité](SECURITY.md)** - CSP, CSRF, XSS, headers HTTP
+4. **[Templates](TEMPLATES.md)** - Tags personnalisés, filtres, préprocessing
+5. **[Déploiement](DEPLOIEMENT.md)** - Production, Docker, reverse proxy
 
-**Bon développement avec Rusti ! 🦀**
+---
+
+## Besoin d'aide ?
+
+- 📖 [Documentation complète](README.md)
+- 🐛 [Signaler un bug](https://github.com/votre-username/rusti/issues)
+- 💬 [Discord](#)
+
+---
+
+**Bon développement avec Rusti ! 🚀**
+
+---
+
+**Version:** 1.0 (Corrigée - 2 Janvier 2026)
+**Licence:** MIT

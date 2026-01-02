@@ -1,309 +1,651 @@
-# 📖 Guide d'utilisation de la documentation Rusti
+# Rusti
 
-Bienvenue ! Cette documentation complète a été créée pour vous accompagner dans l'utilisation du framework Rusti.
+**Un framework web Rust inspiré de Django**
 
-## 📦 Contenu de cette documentation
+Rusti est un framework web moderne qui combine la sécurité et les performances de Rust avec l'ergonomie de Django. Il offre une expérience de développement familière aux développeurs Django tout en exploitant la puissance du système de types de Rust.
 
-Vous disposez de **9 fichiers de documentation** couvrant tous les aspects de Rusti :
-
-| Fichier | Pages | Description | Priorité |
-|---------|-------|-------------|----------|
-| **INDEX.md** | ~9 | Table des matières principale et navigation | ⭐⭐⭐ |
-| **README.md** | ~11 | Vue d'ensemble et présentation du framework | ⭐⭐⭐ |
-| **GETTING_STARTED.md** | ~13 | Tutorial complet pas à pas | ⭐⭐⭐ |
-| **TEMPLATES.md** | ~11 | Système de templates et balises personnalisées | ⭐⭐ |
-| **DATABASE.md** | ~15 | ORM Django-like et gestion BDD | ⭐⭐ |
-| **CONFIGURATION.md** | ~12 | Configuration avancée et production | ⭐⭐ |
-| **CHANGELOG.md** | ~6 | Historique des versions et modifications | ⭐ |
-| **CONTRIBUTING.md** | ~9 | Guide de contribution au projet | ⭐ |
-| **LICENSE-MIT-FR.md** | ~3 | Licence MIT traduite en français | ⭐ |
-
-**Total : ~89 pages** de documentation complète et détaillée.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 
 ---
 
-## 🎯 Par où commencer ?
+## 🚀 Caractéristiques principales
 
-### Vous découvrez Rusti ?
+### Architecture Django-like
+- **Routing déclaratif** avec `urlpatterns!` macro
+- **ORM intuitif** basé sur SeaORM avec API Django-style
+- **Système de templates** Tera avec préprocessing personnalisé
+- **Génération automatique de formulaires** via macros procédurales
+- **Messages flash** entre requêtes
+- **Gestion des fichiers statiques et media**
 
-**Parcours recommandé (3-4 heures) :**
+### Sécurité intégrée
+- ✅ **Protection CSRF** (HMAC-SHA256)
+- ✅ **Content Security Policy** (CSP) avec nonces
+- ✅ **Sanitization XSS** (ammonia)
+- ✅ **Security Headers** automatiques (HSTS, X-Frame-Options, etc.)
+- ✅ **Validation ALLOWED_HOSTS**
+- ✅ **Hachage Argon2id** intégré
 
-1. **[INDEX.md](INDEX.md)** (10 min)
-   - Comprendre l'organisation de la documentation
-   - Identifier les ressources dont vous avez besoin
+### Support multi-bases de données
+- PostgreSQL
+- MySQL / MariaDB
+- SQLite
 
-2. **[README.md](README.md)** (20 min)
-   - Découvrir le framework
-   - Voir les fonctionnalités principales
-   - Installer Rusti
-
-3. **[GETTING_STARTED.md](GETTING_STARTED.md)** (2-3 heures)
-   - Créer votre première application
-   - Comprendre la structure
-   - Coder votre premier projet fonctionnel
-
-4. **[TEMPLATES.md](TEMPLATES.md)** (30 min)
-   - Maîtriser les templates Tera
-   - Utiliser les balises personnalisées
-
-### Vous voulez ajouter une base de données ?
-
-1. **[DATABASE.md](DATABASE.md)** (1 heure)
-   - Configuration PostgreSQL/MySQL/SQLite
-   - Utilisation de l'ORM Django-like
-   - Requêtes avancées
-
-### Vous préparez un déploiement en production ?
-
-1. **[CONFIGURATION.md](CONFIGURATION.md)** (45 min)
-   - Variables d'environnement
-   - Sécurité
-   - Optimisations
-   - Checklist production
-
-### Vous voulez contribuer ?
-
-1. **[CONTRIBUTING.md](CONTRIBUTING.md)** (30 min)
-   - Standards de code
-   - Workflow Git
-   - Tests et documentation
+### Développement moderne
+- **Async/await** natif avec Tokio
+- **Type-safe** grâce au système de types Rust
+- **Zero-cost abstractions**
+- **Hot reload** en développement
+- **Documentation complète** en français et anglais
 
 ---
 
-## 🗂️ Organisation de la documentation
+## 📦 Installation
 
-### Structure logique
+### Prérequis
 
-```
-Documentation Rusti
-│
-├── 📍 Navigation
-│   └── INDEX.md ..................... Table des matières principale
-│
-├── 🎓 Apprentissage
-│   ├── README.md .................... Présentation et installation
-│   ├── GETTING_STARTED.md ........... Tutorial complet (ESSENTIEL)
-│   ├── TEMPLATES.md ................. Système de templates
-│   ├── DATABASE.md .................. ORM et base de données
-│   └── CONFIGURATION.md ............. Config avancée et production
-│
-├── 📚 Référence
-│   ├── CHANGELOG.md ................. Historique des versions
-│   └── LICENSE-MIT-FR.md ............ Licence traduite
-│
-└── 🤝 Communauté
-    └── CONTRIBUTING.md .............. Guide de contribution
+- Rust 1.70+ ([installer Rust](https://www.rust-lang.org/tools/install))
+- Cargo
+
+### Ajouter Rusti à votre projet
+
+```toml
+# Cargo.toml
+
+# Configuration minimale (SQLite par défaut)
+[dependencies]
+rusti = "1.0"
+
+# Avec PostgreSQL
+[dependencies]
+rusti = { version = "1.0", features = ["postgres"] }
+
+# Avec MySQL
+[dependencies]
+rusti = { version = "1.0", features = ["mysql"] }
+
+# Avec MariaDB
+[dependencies]
+rusti = { version = "1.0", features = ["mariadb"] }
+
+# Avec toutes les bases de données
+[dependencies]
+rusti = { version = "1.0", features = ["all-databases"] }
 ```
 
-### Liens entre les documents
+### Features Cargo disponibles
 
-Tous les documents sont **interconnectés** :
-- Chaque section renvoie aux documents pertinents
-- Navigation facile entre les concepts
-- Exemples de code référencés
+| Feature | Description | Par défaut |
+|---------|-------------|------------|
+| `default` | Active le support ORM avec SQLite | ✅ |
+| `orm` | Active SeaORM | ✅ (inclus dans `default`) |
+| `sqlite` | Driver SQLite | ✅ (inclus dans `orm`) |
+| `postgres` | Driver PostgreSQL | ❌ |
+| `mysql` | Driver MySQL | ❌ |
+| `mariadb` | Driver MariaDB (utilise le driver MySQL) | ❌ |
+| `all-databases` | Active tous les drivers simultanément | ❌ |
+
+**Exemples de configuration :**
+
+```toml
+# SQLite uniquement (configuration par défaut)
+[dependencies]
+rusti = "1.0"
+
+# PostgreSQL + MySQL
+[dependencies]
+rusti = { version = "1.0", features = ["postgres", "mysql"] }
+
+# Toutes les bases de données
+[dependencies]
+rusti = { version = "1.0", features = ["all-databases"] }
+
+# Sans ORM (framework minimal)
+[dependencies]
+rusti = { version = "1.0", default-features = false }
+```
+
+### Créer un nouveau projet
+
+```bash
+cargo new mon_app
+cd mon_app
+```
+
+Ajoutez Rusti dans `Cargo.toml` :
+
+```toml
+[dependencies]
+rusti = { version = "1.0", features = ["postgres"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+```
 
 ---
 
-## 💡 Conseils d'utilisation
+## 🏁 Démarrage rapide
 
-### 1. Utilisez la recherche
+### Application minimale
 
-Tous les fichiers sont en Markdown, utilisez `Ctrl+F` (ou `Cmd+F` sur Mac) pour chercher :
-- Concepts spécifiques
-- Exemples de code
-- Commandes
-
-### 2. Suivez les exemples de code
-
-Tous les exemples sont **testés et fonctionnels** :
 ```rust
-// ✅ Ce code fonctionne vraiment
-let settings = Settings::builder()
-    .debug(true)
-    .server("127.0.0.1", 3000, "secret")
-    .build();
+// src/main.rs
+use rusti::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let settings = Settings::from_env();
+
+    RustiApp::new(settings).await?
+        .routes(routes())
+        .run()
+        .await?;
+
+    Ok(())
+}
+
+fn routes() -> Router {
+    urlpatterns![
+        path!("", index),
+        path!("hello/<name>", hello),
+    ]
+}
+
+async fn index() -> &'static str {
+    "Bienvenue sur Rusti !"
+}
+
+async fn hello(Path(name): Path<String>) -> String {
+    format!("Bonjour, {} !", name)
+}
 ```
 
-### 3. Consultez les "Voir aussi"
+### Configuration (.env)
 
-Chaque document contient des sections **"Voir aussi"** qui pointent vers :
-- Documents connexes
-- Sections spécifiques
-- Ressources externes
+```env
+HOST=127.0.0.1
+PORT=8000
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=localhost,127.0.0.1
+DEBUG=true
 
-### 4. Utilisez INDEX.md comme hub
-
-**INDEX.md** est votre point de départ :
-- Navigation par tâche ("Je veux créer une API REST")
-- Navigation par niveau (débutant, intermédiaire, avancé)
-- Résolution de problèmes courants
-- Références rapides
-
----
-
-## 🎨 Fonctionnalités de la documentation
-
-### ✅ Documentation complète et pratique
-
-- **89 pages** de contenu détaillé
-- **100+ exemples de code** fonctionnels
-- **Diagrammes** et tableaux explicatifs
-- **Cas d'usage réels**
-
-### 🔍 Facile à naviguer
-
-- Table des matières dans chaque document
-- Liens internes entre sections
-- Navigation par tâche dans INDEX.md
-- Références croisées
-
-### 📚 Multilingue
-
-- Documentation principale en **français**
-- Exemples de code en **anglais** (convention Rust)
-- Licence traduite disponible
-
-### 🎯 Adaptée à tous les niveaux
-
-- **Débutants** : Tutorial pas à pas
-- **Intermédiaires** : Guides spécialisés
-- **Avancés** : Configuration production, contribution
-
----
-
-## 📊 Statistiques
-
-| Métrique | Valeur |
-|----------|--------|
-| **Nombre de fichiers** | 9 |
-| **Pages totales** | ~89 |
-| **Exemples de code** | 100+ |
-| **Lignes de code d'exemple** | 2000+ |
-| **Temps de lecture estimé** | 5-6 heures |
-| **Concepts couverts** | 50+ |
-
----
-
-## 🚀 Prochaines étapes
-
-### Après avoir lu la documentation
-
-1. **Créer votre premier projet**
-   ```bash
-   cargo new mon-app-rusti
-   cd mon-app-rusti
-   # Suivez GETTING_STARTED.md
-   ```
-
-2. **Explorer les exemples**
-   - Application complète dans `examples/demo-app`
-   - API REST
-   - Intégration base de données
-
-3. **Rejoindre la communauté**
-   - GitHub Discussions
-   - Contribuer au projet
-   - Partager vos créations
-
----
-
-## 💬 Feedback
-
-Cette documentation peut être améliorée ! N'hésitez pas à :
-
-- 🐛 Signaler les erreurs ou typos
-- 💡 Proposer des améliorations
-- 📝 Suggérer de nouveaux exemples
-- 🌍 Contribuer à la traduction
-
----
-
-## 📁 Structure des fichiers
-
-Tous les fichiers sont au format **Markdown (.md)** :
-
-```
-documentation/
-├── INDEX.md                 # 📍 Commencez ici !
-├── README.md                # Présentation
-├── GETTING_STARTED.md       # Tutorial complet
-├── TEMPLATES.md             # Templates Tera
-├── DATABASE.md              # ORM et BDD
-├── CONFIGURATION.md         # Configuration
-├── CHANGELOG.md             # Versions
-├── CONTRIBUTING.md          # Contribution
-└── LICENSE-MIT-FR.md        # Licence
+# PostgreSQL
+DB_ENGINE=postgres
+DB_USER=user
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=mydb
 ```
 
----
+### Lancement
 
-## 🎓 Ressources complémentaires
+```bash
+cargo run
+```
 
-### Documentation externe
-
-- [Rust Book](https://doc.rust-lang.org/book/) - Apprendre Rust
-- [Axum Docs](https://docs.rs/axum/) - Framework HTTP
-- [Tera Docs](https://keats.github.io/tera/) - Templates
-- [SeaORM Docs](https://www.sea-ql.org/SeaORM/) - ORM
-
-### Outils recommandés
-
-- **IDE** : VSCode avec rust-analyzer
-- **Terminal** : Utilisez `cargo watch` pour le développement
-- **Base de données** : TablePlus, DBeaver, ou pgAdmin
+Ouvrez [http://localhost:8000](http://localhost:8000)
 
 ---
 
-## ✨ Points forts de cette documentation
+## 📚 Documentation complète
 
-### 1. Inspiration Django
+### Guides français
 
-Vous connaissez Django ? Vous vous sentirez chez vous :
-- Concepts familiers
-- Même philosophie
-- Transitions expliquées
+- [🚀 Guide de démarrage](docs/fr/GETTING_STARTED.md)
+- [⚙️ Configuration](docs/fr/CONFIGURATION.md)
+- [🗄️ Base de données](docs/fr/DATABASE.md)
+- [📝 Formulaires](docs/fr/FORMULAIRE.md)
+- [🎨 Templates](docs/fr/TEMPLATES.md)
+- [🔒 Sécurité](docs/fr/SECURITY.md)
+- [🛣️ Routing](docs/fr/ROUTING.md)
+- [🔧 Middleware](docs/fr/MIDDLEWARE.md)
+- [🚀 Déploiement](docs/fr/DEPLOIEMENT.md)
 
-### 2. Exemples pratiques
+### English guides
 
-Pas de théorie abstraite :
-- Code immédiatement utilisable
-- Cas d'usage réels
-- Projets complets
-
-### 3. Production-ready
-
-Pas seulement pour le développement :
-- Guide de déploiement
-- Optimisations
-- Sécurité
-- Checklist complète
-
----
-
-## 🎯 Objectifs de cette documentation
-
-✅ **Vous rendre autonome** dans l'utilisation de Rusti en moins d'une journée
-
-✅ **Couvrir tous les aspects** du framework, du Hello World à la production
-
-✅ **Être une référence** que vous revisitez régulièrement
-
-✅ **Faciliter la contribution** au projet
+- [🚀 Getting Started](docs/en/GETTING_STARTED.md)
+- [⚙️ Configuration](docs/en/CONFIGURATION.md)
+- [🗄️ Database](docs/en/DATABASE.md)
+- [📝 Forms](docs/en/FORMS.md)
+- [🎨 Templates](docs/en/TEMPLATES.md)
+- [🔒 Security](docs/en/SECURITY.md)
+- [🛣️ Routing](docs/en/ROUTING.md)
+- [🔧 Middleware](docs/en/MIDDLEWARE.md)
+- [🚀 Deployment](docs/en/DEPLOYMENT.md)
 
 ---
 
-## 📞 Besoin d'aide ?
+## 🎯 Exemple complet
 
-Si quelque chose n'est pas clair :
+### Structure du projet
 
-1. Consultez **INDEX.md** → Section "Résolution de problèmes"
-2. Cherchez dans la documentation (Ctrl+F)
-3. Consultez les **exemples** dans `examples/`
-4. Posez votre question sur GitHub Discussions
-5. Ouvrez une issue si c'est un bug
+```
+mon_app/
+├── Cargo.toml
+├── .env
+├── src/
+│   ├── main.rs
+│   ├── models/
+│   │   └── mod.rs
+│   ├── views/
+│   │   └── mod.rs
+│   └── forms/
+│       └── mod.rs
+├── templates/
+│   ├── base.html
+│   └── index.html
+└── static/
+    ├── css/
+    └── js/
+```
+
+### Modèle (models/mod.rs)
+
+```rust
+use sea_orm::entity::prelude::*;
+use rusti::impl_objects;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "posts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,
+    pub content: String,
+    pub published: bool,
+    pub created_at: DateTime,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+// API Django-like
+impl_objects!(Entity);
+```
+
+### Formulaire (forms/mod.rs)
+
+```rust
+use rusti::forms::prelude::*;
+
+#[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
+#[sea_orm(model = "crate::models::Model", entity = "crate::models::Entity")]
+pub struct PostForm {
+    #[field(max_length = 200, required = true)]
+    pub title: CharField,
+
+    #[field(widget = "textarea", required = true)]
+    pub content: CharField,
+
+    #[field(default = "false")]
+    pub published: BooleanField,
+}
+```
+
+### Vue (views/mod.rs)
+
+```rust
+use rusti::prelude::*;
+use crate::models::{posts, Entity as Post};
+use crate::forms::PostForm;
+
+pub async fn list_posts(
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    template: Template,
+) -> Response {
+    let posts = Post::objects
+        .filter(posts::Column::Published.eq(true))
+        .order_by_desc(posts::Column::CreatedAt)
+        .all(&*db)
+        .await
+        .unwrap_or_default();
+
+    template.render("posts/list.html", context! {
+        posts: posts,
+    })
+}
+
+pub async fn create_post(
+    Form(form): Form<PostForm>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    template: Template,
+    mut message: Message,
+) -> Response {
+    if !form.is_valid() {
+        return template.render("posts/create.html", context! { form });
+    }
+
+    match form.save(&*db).await {
+        Ok(post) => {
+            let _ = message.success("Article créé avec succès !").await;
+            redirect(&format!("/posts/{}", post.id))
+        }
+        Err(_) => {
+            let _ = message.error("Erreur lors de la création").await;
+            template.render("posts/create.html", context! { form })
+        }
+    }
+}
+```
+
+### Template (templates/posts/list.html)
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Articles</h1>
+
+{% for post in posts %}
+<article>
+    <h2>{{ post.title }}</h2>
+    <p>{{ post.content|truncate(200) }}</p>
+    <a href="{% link 'post_detail' id=post.id %}">Lire la suite</a>
+</article>
+{% endfor %}
+
+<a href="{% link 'post_create' %}">Créer un article</a>
+{% endblock %}
+```
+
+### Routes (main.rs)
+
+```rust
+use rusti::prelude::*;
+
+fn routes() -> Router {
+    urlpatterns![
+        path!("", views::index, "index"),
+        path!("posts/", views::list_posts, "post_list"),
+        path!("posts/create/", views::create_post, "post_create"),
+        path!("posts/<id>/", views::detail_post, "post_detail"),
+    ]
+}
+```
 
 ---
 
-**Bonne lecture et bon développement avec Rusti ! 🦀**
+## 🔒 Sécurité
 
-*Documentation créée avec ❤️ par Claude pour Itsuki*
+Rusti intègre plusieurs couches de sécurité par défaut :
+
+### Protection CSRF
+
+```rust
+RustiApp::new(settings).await?
+    .middleware(CsrfMiddleware::new())
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+Dans les templates :
+```html
+<form method="post">
+    {{ csrf_input() }}
+    <!-- champs du formulaire -->
+</form>
+```
+
+### Content Security Policy
+
+```rust
+use rusti::middleware::CspConfig;
+
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
+    use_nonce: true,
+    ..Default::default()
+};
+
+RustiApp::new(settings).await?
+    .middleware(CspMiddleware::new(csp_config))
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+### Security Headers
+
+```rust
+RustiApp::new(settings).await?
+    .middleware(SecurityHeadersMiddleware::new())
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+Headers configurés automatiquement :
+- `Strict-Transport-Security`
+- `X-Content-Type-Options`
+- `X-Frame-Options`
+- `X-XSS-Protection`
+- `Referrer-Policy`
+- `Permissions-Policy`
+
+---
+
+## 🗄️ Base de données
+
+### API Django-like
+
+```rust
+use crate::models::{users, Entity as User};
+
+// Récupération
+let all_users = User::objects.all().all(&db).await?;
+let user = User::objects.get(&db, 1).await?;
+
+// Filtrage
+let active_users = User::objects
+    .filter(users::Column::IsActive.eq(true))
+    .filter(users::Column::Age.gte(18))
+    .all(&db)
+    .await?;
+
+// Tri et pagination
+let recent_users = User::objects
+    .order_by_desc(users::Column::CreatedAt)
+    .limit(10)
+    .all(&db)
+    .await?;
+
+// Comptage
+let count = User::objects.count(&db).await?;
+```
+
+### Migrations
+
+Utilisez `sea-orm-cli` pour les migrations :
+
+```bash
+cargo install sea-orm-cli
+
+# Créer une migration
+sea-orm-cli migrate generate create_users_table
+
+# Appliquer
+sea-orm-cli migrate up
+
+# Rollback
+sea-orm-cli migrate down
+```
+
+---
+
+## 🎨 Templates
+
+### Tags personnalisés
+
+```html
+<!-- Fichiers statiques -->
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<script src="{% static 'js/app.js' %}"></script>
+
+<!-- Fichiers media -->
+<img src="{% media user.avatar %}" alt="Avatar">
+
+<!-- Token CSRF -->
+<form method="post">
+    {{ csrf_input() }}
+    <!-- ... -->
+</form>
+
+<!-- Messages flash -->
+{% messages %}
+
+<!-- Liens avec reverse routing -->
+<a href="{% link 'post_detail' id=post.id %}">Détails</a>
+
+<!-- CSP nonce (si activé) -->
+<script nonce="{{ csp_nonce() }}">
+    // Code JavaScript
+</script>
+```
+
+---
+
+## 🚀 Performance
+
+Rusti exploite les performances de Rust et Tokio :
+
+- **Zéro-cost abstractions** : Aucun overhead à l'exécution
+- **Async/await natif** : Concurrence efficace avec Tokio
+- **Connection pooling** : Gestion optimisée des connexions DB
+- **Compilation optimisée** : Binaire hautement optimisé
+
+### Benchmark (exemple)
+
+```
+Requêtes/sec : ~50,000
+Latence p50 : ~1ms
+Latence p99 : ~5ms
+Mémoire : ~20MB
+```
+
+---
+
+## 🛠️ Développement
+
+### Tests
+
+```bash
+cargo test
+```
+
+### Linting
+
+```bash
+cargo clippy
+```
+
+### Formatage
+
+```bash
+cargo fmt
+```
+
+### Documentation
+
+```bash
+cargo doc --open
+```
+
+---
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! Voici comment contribuer :
+
+1. Fork le projet
+2. Créez une branche (`git checkout -b feature/amazing-feature`)
+3. Committez vos changements (`git commit -m 'Add amazing feature'`)
+4. Push vers la branche (`git push origin feature/amazing-feature`)
+5. Ouvrez une Pull Request
+
+### Directives
+
+- Écrivez des tests pour les nouvelles fonctionnalités
+- Suivez les conventions de code Rust (rustfmt)
+- Documentez les API publiques
+- Ajoutez des exemples si pertinent
+
+---
+
+## 📝 Roadmap
+
+### Version 1.1 (Q1 2026)
+
+- [ ] Authentication system intégré
+- [ ] Admin panel auto-généré
+- [ ] Rate limiting middleware
+- [ ] WebSocket support
+- [ ] Cache layer (Redis)
+
+### Version 1.2 (Q2 2026)
+
+- [ ] CLI pour scaffolding
+- [ ] Hot reload amélioré
+- [ ] GraphQL support
+- [ ] Background jobs (Tokio tasks)
+
+### Version 2.0 (Q3 2026)
+
+- [ ] Plugin system
+- [ ] Multi-tenancy
+- [ ] Internationalization (i18n)
+- [ ] Advanced ORM features
+
+---
+
+## 📄 Licence
+
+Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+---
+
+## 🙏 Remerciements
+
+Rusti s'appuie sur d'excellentes bibliothèques de l'écosystème Rust :
+
+- [Axum](https://github.com/tokio-rs/axum) - Framework web
+- [Tokio](https://tokio.rs/) - Runtime async
+- [SeaORM](https://www.sea-ql.org/SeaORM/) - ORM
+- [Tera](https://keats.github.io/tera/) - Moteur de templates
+- [Tower](https://github.com/tower-rs/tower) - Middleware
+- [Argon2](https://github.com/RustCrypto/password-hashes) - Hachage de mots de passe
+- [ammonia](https://github.com/rust-ammonia/ammonia) - Sanitization HTML
+
+---
+
+## 📧 Contact
+
+- **GitHub Issues** : [https://github.com/seb-alliot/rusti/issues](https://github.com/seb-alliot/rusti/releases)
+- **Discord** : [Rejoindre le serveur](#)
+- **Email** : contact@rusti-framework.dev
+
+---
+
+## ⭐ Soutenez le projet
+
+Si Rusti vous est utile, pensez à :
+
+- ⭐ Mettre une étoile sur GitHub
+- 🐛 Signaler des bugs
+- 💡 Proposer des fonctionnalités
+- 📖 Améliorer la documentation
+- 🤝 Contribuer au code
+
+---
+
+**Développez des applications web sécurisées et performantes avec Rusti !**
+
+---
+
+**Version:** 1.0.0 (Corrigée - 2 Janvier 2026)
+**Licence:** MIT

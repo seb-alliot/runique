@@ -1,501 +1,835 @@
-# Balises de Template Rusti
+# Templates Guide - Rusti Framework
 
-Rusti supporte des balises Django-like qui sont transformées en syntaxe Tera native au chargement des templates.
+Rusti uses **Tera** as its template engine with a **custom preprocessing system** to add Django-like tags.
 
-## Balises disponibles
+## Table of Contents
 
-### {% static "path" %}
+1. [Basic Tera Syntax](#basic-tera-syntax)
+2. [Rusti Custom Tags](#rusti-custom-tags)
+3. [Preprocessing](#preprocessing)
+4. [Context and Variables](#context-and-variables)
+5. [Template Inheritance](#template-inheritance)
+6. [Complete Examples](#complete-examples)
 
-Charge un fichier statique (CSS, JS, images du dossier static).
+---
 
-**Syntaxe :**
+## Basic Tera Syntax
+
+Tera is a template engine inspired by Jinja2/Django.
+
+### Variables
+
 ```html
-{% static "chemin/vers/fichier" %}
+{{ variable }}
+{{ user.name }}
+{{ user.age }}
 ```
 
-**Exemples :**
+### Filters
+
+```html
+{{ text|upper }}
+{{ text|lower }}
+{{ text|truncate(length=100) }}
+{{ date|date(format="%m/%d/%Y") }}
+{{ price|floatformat(decimal_places=2) }}
+```
+
+### Conditions
+
+```html
+{% if user.is_authenticated %}
+    <p>Welcome {{ user.username }}!</p>
+{% else %}
+    <p>Please log in.</p>
+{% endif %}
+```
+
+### Loops
+
+```html
+{% for post in posts %}
+    <article>
+        <h2>{{ post.title }}</h2>
+        <p>{{ post.content }}</p>
+    </article>
+{% endfor %}
+```
+
+### Blocks and Inheritance
+
+```html
+{% extends "base.html" %}
+
+{% block title %}My title{% endblock %}
+
+{% block content %}
+    <p>My page content</p>
+{% endblock %}
+```
+
+---
+
+## Rusti Custom Tags
+
+Rusti adds **custom tags** via a preprocessing system that transforms tags before Tera processes them.
+
+### 1. Tag `{% static %}`
+
+Generates the URL for a static file.
+
+**Syntax:**
+
+```html
+{% static 'path/to/file' %}
+```
+
+**Examples:**
+
 ```html
 <!-- CSS -->
-<link rel="stylesheet" href='{% static "css/main.css" %}'>
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
 
 <!-- JavaScript -->
-<script src='{% static "js/app.js" %}'></script>
+<script src="{% static 'js/app.js' %}"></script>
 
-<!-- Images statiques -->
-<img src='{% static "images/logo.png" %}' alt="Logo">
+<!-- Images -->
+<img src="{% static 'images/logo.png' %}" alt="Logo">
 
 <!-- Fonts -->
-<link rel="preload" href='{% static "fonts/roboto.woff2" %}' as="font">
+<link rel="stylesheet" href="{% static 'fonts/custom-font.woff2' %}">
 ```
 
-**Transformation :**
+**Configuration (.env):**
+
+```env
+STATIC_URL=/static/
+STATIC_ROOT=static/
 ```
-{% static "css/main.css" %}  →  {{ "css/main.css" | static }}
-```
 
----
+**Result after preprocessing:**
 
-### {% media "path" %}
-
-Charge un fichier média uploadé par les utilisateurs.
-
-**Syntaxe :**
 ```html
-{% media "chemin/vers/fichier" %}
+<link rel="stylesheet" href="/static/css/style.css">
 ```
 
-**Exemples :**
+### 2. Tag `{% media %}`
+
+Generates the URL for a media file (uploaded by users).
+
+**Syntax:**
+
 ```html
-<!-- Avatar utilisateur -->
-<img src='{% media "avatars/user123.jpg" %}' alt="Avatar">
-
-<!-- Document uploadé -->
-<a href='{% media "documents/report.pdf" %}'>Télécharger le rapport</a>
-
-<!-- Vidéo -->
-<video src='{% media "videos/demo.mp4" %}' controls></video>
+{% media 'path/to/file' %}
+{% media variable %}
 ```
 
-**Transformation :**
+**Examples:**
+
+```html
+<!-- Uploaded image -->
+<img src="{% media user.avatar %}" alt="Avatar">
+
+<!-- Uploaded document -->
+<a href="{% media document.file %}">Download document</a>
+
+<!-- Video -->
+<video src="{% media video.path %}" controls></video>
 ```
-{% media "avatars/user.jpg" %}  →  {{ "avatars/user.jpg" | media }}
+
+**Configuration (.env):**
+
+```env
+MEDIA_URL=/media/
+MEDIA_ROOT=media/
 ```
 
----
+### 3. Tag `{% csrf %}`
 
-### {% csrf %}
+Generates the hidden CSRF token field.
 
-Insère le token CSRF dans un formulaire pour la protection contre les attaques CSRF.
+**Syntax:**
 
-**Syntaxe :**
 ```html
 {% csrf %}
 ```
 
-**Exemples :**
+**Example:**
+
 ```html
-<!-- Formulaire POST -->
-<form method="post" action="/submit">
+<form method="post" action="/submit/">
     {% csrf %}
-    <input type="text" name="message">
-    <button type="submit">Envoyer</button>
-</form>
 
-<!-- Formulaire de connexion -->
-<form method="post" action="/login">
-    {% csrf %}
-    <input type="email" name="email" required>
-    <input type="password" name="password" required>
-    <button type="submit">Se connecter</button>
+    <input type="text" name="username">
+    <input type="password" name="password">
+    <button type="submit">Log in</button>
 </form>
 ```
 
-**Transformation :**
-```
-{% csrf %}  →  {% include "csrf" %}
-```
+**Result after preprocessing:**
 
-**Note :** Le middleware CSRF doit être activé dans votre application :
-```rust
-app.with_csrf_tokens()
+```html
+<input type="hidden" name="csrftoken" value="abc123...xyz789">
 ```
 
----
+**⚠️ Important:** The `CsrfMiddleware` must be enabled for this tag to work.
 
-### {% messages %}
+### 4. Tag `{% messages %}`
 
-Affiche les messages flash (success, error, info).
+Displays flash messages (success, error, warning, info).
 
-**Syntaxe :**
+**Syntax:**
+
 ```html
 {% messages %}
 ```
 
-**Exemples :**
+**Example:**
+
 ```html
-<!-- Dans le header -->
-<header>
-    {% messages %}
-    <h1>Mon Application</h1>
-</header>
+<body>
+    <header>
+        <h1>My App</h1>
+    </header>
 
-<!-- Zone dédiée -->
-<div class="alerts-container">
+    <!-- Automatic message display -->
     {% messages %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+```
+
+**Generated result:**
+
+```html
+<div class="messages">
+    <div class="alert alert-success">Operation successful!</div>
+    <div class="alert alert-error">An error occurred.</div>
 </div>
-
-<!-- Dans un bloc -->
-{% block notifications %}
-    {% messages %}
-{% endblock %}
 ```
 
-**Transformation :**
-```
-{% messages %}  →  {% include "message" %}
-```
+**Usage in handlers:**
 
-**Note :** Le middleware flash doit être activé :
 ```rust
-app.with_flash_messages()
-```
+use rusti::prelude::*;
 
-**Utilisation dans les handlers :**
-```rust
-async fn my_handler(mut messages: Message) -> Response {
-    let _ = messages.success("Opération réussie !").await;
-    let _ = messages.error("Une erreur est survenue").await;
-    let _ = messages.info("Information importante").await;
-    // ...
+async fn create_user(
+    Form(form): Form<UserForm>,
+    mut message: Message,
+) -> Response {
+    if !form.is_valid() {
+        let _ = message.error("Invalid data").await;
+        return redirect("/register");
+    }
+
+    // Create user...
+
+    let _ = message.success("Account created successfully!").await;
+    redirect("/dashboard")
 }
 ```
 
----
+### 5. Tag `{% link %}`
 
-### {% link "route_name", params %}
+Generates URLs using **reverse routing** (route names).
 
-Génère une URL via reverse routing (résolution inverse des routes).
+**Syntax:**
 
-**Syntaxe :**
 ```html
-<!-- Route simple -->
-{% link "nom_route" %}
-
-<!-- Route avec paramètres -->
-{% link "nom_route", param1=value1, param2=value2 %}
+{% link 'route_name' %}
+{% link 'route_name' param1=value1 param2=value2 %}
 ```
 
-**Exemples :**
+**Examples:**
 
 ```html
-<!-- Navigation simple -->
-<nav>
-    <a href='{% link "home" %}'>Accueil</a>
-    <a href='{% link "about" %}'>À propos</a>
-    <a href='{% link "contact" %}'>Contact</a>
-</nav>
+<!-- Route without parameter -->
+<a href="{% link 'index' %}">Home</a>
 
-<!-- Lien avec paramètres -->
-<a href='{% link "user_profile", id=42 %}'>Voir le profil</a>
+<!-- Route with parameter -->
+<a href="{% link 'post_detail' id=post.id %}">View article</a>
 
-<!-- Lien avec plusieurs paramètres -->
-<a href='{% link "post_detail", id=post.id, slug=post.slug %}'>
-    Lire l'article
+<!-- Multiple parameters -->
+<a href="{% link 'user_post' user_id=user.id post_id=post.id %}">
+    User's article
 </a>
+```
 
-<!-- Dans un formulaire -->
-<form method="post" action='{% link "submit_form" %}'>
+**Route configuration:**
+
+```rust
+use rusti::prelude::*;
+
+fn routes() -> Router {
+    urlpatterns![
+        path!("", index, "index"),
+        path!("posts/<id>/", post_detail, "post_detail"),
+        path!("users/<user_id>/posts/<post_id>/", user_post, "user_post"),
+    ]
+}
+```
+
+**Result after preprocessing:**
+
+```html
+<a href="/">Home</a>
+<a href="/posts/42/">View article</a>
+<a href="/users/10/posts/42/">User's article</a>
+```
+
+### 6. Tag `{{ csp }}`
+
+**⚠️ IMPORTANT: Generates CSP nonce ONLY if `use_nonce: true` in CSP configuration.**
+
+**Syntax:**
+
+```html
+{{ csp }}
+```
+
+**Example:**
+
+```html
+<script nonce="{{ csp }}">
+    // Inline JavaScript code
+    console.log("Script allowed with CSP nonce");
+</script>
+
+<style nonce="{{ csp }}">
+    /* Inline CSS */
+    body { background: #f0f0f0; }
+</style>
+```
+
+**CSP Configuration with nonce:**
+
+```rust
+use rusti::prelude::*;
+use rusti::middleware::CspConfig;
+
+let csp_config = CspConfig {
+    default_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string()],
+    style_src: vec!["'self'".to_string()],
+    use_nonce: true,  // ✅ Enables nonce generation
+    ..Default::default()
+};
+
+RustiApp::new(settings).await?
+    .middleware(CspMiddleware::new(csp_config))
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+**Result after preprocessing:**
+
+```html
+<script nonce="abc123xyz789">
+    console.log("Script allowed");
+</script>
+```
+
+**If `use_nonce: false`:**
+
+The `{{ csp }}` tag generates an **empty string**:
+
+```html
+<script nonce="">
+    console.log("No nonce generated");
+</script>
+```
+
+**When to use CSP nonce:**
+
+| Use Case | Use nonce? |
+|----------|------------|
+| Necessary inline scripts | ✅ Yes |
+| Necessary inline styles | ✅ Yes |
+| External scripts only | ❌ No (use `script-src 'self'`) |
+| Strict mode without inline | ❌ No |
+
+**Best practices:**
+
+1. **Prefer external files** over inline scripts
+2. **Enable `use_nonce: true`** only if you have inline code
+3. **Never hardcode nonces** - always use `{{ csp }}`
+4. **Add nonce** on each inline `<script>` and `<style>` tag
+
+---
+
+## Preprocessing
+
+Rusti uses a **preprocessing system** that transforms custom tags into standard Tera tags **before** Tera processes them.
+
+### Processing Order
+
+1. **Rusti Preprocessing** → Transforms custom tags
+2. **Tera** → Processes standard Tera tags
+3. **HTML Rendering** → Final result sent to client
+
+### Transformation Example
+
+**Original template:**
+
+```html
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<img src="{% media user.avatar %}" alt="Avatar">
+<form method="post">
     {% csrf %}
-    <button type="submit">Envoyer</button>
+    <button type="submit">Send</button>
 </form>
-
-<!-- Bouton de suppression -->
-<a href='{% link "delete_item", id=item.id %}' 
-   class="btn-danger"
-   onclick="return confirm('Êtes-vous sûr ?')">
-    Supprimer
-</a>
 ```
 
-**Transformation :**
-```
-{% link "home" %}  →  {{ link(link='home') }}
-
-{% link "user_profile", id=42 %}  →  {{ link(link='user_profile', id=42) }}
-```
-
-**Définition des routes :**
-```rust
-use rusti::urlpatterns;
-
-let routes = urlpatterns![
-    "/" => get(home), name = "home",
-    "/about" => get(about), name = "about",
-    "/user/{id}" => get(user_profile), name = "user_profile",
-    "/post/{id}/{slug}" => get(post_detail), name = "post_detail",
-];
-```
-
----
-
-## Comment ça marche ?
-
-### Preprocessing des templates
-
-Les balises personnalisées sont transformées **AVANT** le parsing par Tera, lors du chargement des templates :
-
-1. **Lecture des fichiers** `.html` dans `templates/`
-2. **Transformation regex** des balises personnalisées
-3. **Ajout à Tera** avec la syntaxe native
-
-```rust
-// Exemple de transformation interne
-{% static "file.css" %}     →  {{ "file.css" | static }}
-{% csrf %}                   →  {% include "csrf" %}
-{% link "home" %}            →  {{ link(link='home') }}
-```
-
-### Avantages de cette approche
-
-✅ **Compatibilité** : Utilise les capacités natives de Tera  
-✅ **Performance** : Transformation une seule fois au chargement  
-✅ **Maintenabilité** : Pas de custom parser compliqué  
-✅ **Familiarité** : Syntaxe proche de Django  
-✅ **Pas de runtime overhead** : Tout est fait au démarrage  
-
----
-
-## Balises Tera natives toujours disponibles
-
-Toutes les fonctionnalités Tera restent disponibles :
+**After preprocessing (before Tera):**
 
 ```html
-<!-- Variables -->
-{{ user.name }}
-{{ product.price }}
+<link rel="stylesheet" href="{{ settings.static_url }}css/style.css">
+<img src="{{ settings.media_url }}{{ user.avatar }}" alt="Avatar">
+<form method="post">
+    {{ csrf_input() }}
+    <button type="submit">Send</button>
+</form>
+```
 
-<!-- Filtres -->
-{{ title | upper }}
-{{ content | safe }}
-{{ date | date(format="%Y-%m-%d") }}
+**After Tera (final HTML):**
 
-<!-- Conditions -->
-{% if user.is_admin %}
-    <button>Admin Panel</button>
-{% endif %}
+```html
+<link rel="stylesheet" href="/static/css/style.css">
+<img src="/media/avatars/user123.jpg" alt="Avatar">
+<form method="post">
+    <input type="hidden" name="csrftoken" value="abc123...xyz">
+    <button type="submit">Send</button>
+</form>
+```
 
-<!-- Boucles -->
-{% for item in items %}
-    <li>{{ item.name }}</li>
+---
+
+## Context and Variables
+
+### Passing Variables
+
+```rust
+use rusti::prelude::*;
+
+async fn index(template: Template) -> Response {
+    template.render("index.html", context! {
+        title: "Welcome",
+        username: "Alice",
+        posts: vec![
+            Post { id: 1, title: "First article".to_string() },
+            Post { id: 2, title: "Second article".to_string() },
+        ],
+    })
+}
+```
+
+### Global Variables
+
+Some variables are **automatically available** in all templates:
+
+| Variable | Description |
+|----------|-------------|
+| `settings.static_url` | Base URL for static files |
+| `settings.media_url` | Base URL for media files |
+| `csrf_token()` | Function to generate CSRF token |
+| `csrf_input()` | Function to generate CSRF hidden field |
+| `get_messages()` | Function to retrieve flash messages |
+| `csp_nonce()` | Function to retrieve CSP nonce |
+
+**Example:**
+
+```html
+<!-- Access settings -->
+<p>Static URL: {{ settings.static_url }}</p>
+<p>Media URL: {{ settings.media_url }}</p>
+
+<!-- CSRF token -->
+{{ csrf_input() }}
+
+<!-- Flash messages -->
+{% for msg in get_messages() %}
+    <div class="alert">{{ msg.message }}</div>
 {% endfor %}
 
-<!-- Héritage -->
-{% extends "base.html" %}
-{% block content %}
-    <!-- contenu -->
-{% endblock %}
-
-<!-- Includes -->
-{% include "header.html" %}
+<!-- CSP nonce (if use_nonce: true) -->
+<script nonce="{{ csp_nonce() }}">
+    console.log("Script with nonce");
+</script>
 ```
 
 ---
 
-## Exemple complet
+## Template Inheritance
 
-### Template `base.html`
+### Base Template (templates/base.html)
 
 ```html
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Mon Site{% endblock %}</title>
-    <link rel="stylesheet" href='{% static "css/main.css" %}'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My App{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {% if debug %}
-    <div class="debug-banner">
-        🔧 Mode Debug Activé
-    </div>
-    {% endif %}
-
     <header>
-        <img src='{% static "images/logo.png" %}' alt="Logo">
+        <h1>My Application</h1>
         <nav>
-            <a href='{% link "home" %}'>Accueil</a>
-            <a href='{% link "about" %}'>À propos</a>
-            <a href='{% link "contact" %}'>Contact</a>
+            <a href="{% link 'index' %}">Home</a>
+            <a href="{% link 'post_list' %}">Articles</a>
+            <a href="{% link 'contact' %}">Contact</a>
         </nav>
     </header>
 
+    <!-- Flash messages -->
+    {% messages %}
+
     <main>
-        {% messages %}
-        
-        {% block content %}
-        <!-- Contenu par défaut -->
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
     <footer>
-        <p>&copy; 2025 Mon Application</p>
+        <p>© 2026 My App</p>
     </footer>
 
-    <script src='{% static "js/main.js" %}'></script>
+    <script src="{% static 'js/app.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
 ```
 
-### Template `user_profile.html`
+### Child Template (templates/posts/list.html)
 
 ```html
 {% extends "base.html" %}
 
-{% block title %}Profil de {{ user.name }}{% endblock %}
+{% block title %}Articles{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/posts.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="profile">
-    <img src='{% media user.avatar %}' alt="Avatar" class="avatar">
-    
-    <h1>{{ user.name }}</h1>
-    <p>{{ user.bio }}</p>
-    
-    <form method="post" action='{% link "update_profile", id=user.id %}'>
-        {% csrf %}
-        
-        <input type="text" name="name" value="{{ user.name }}">
-        <textarea name="bio">{{ user.bio }}</textarea>
-        
-        <button type="submit">Mettre à jour</button>
-    </form>
-    
-    <a href='{% link "user_list" %}'>← Retour à la liste</a>
-</div>
+<h2>All Articles</h2>
+
+{% for post in posts %}
+<article>
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content|truncate(length=200) }}</p>
+    <a href="{% link 'post_detail' id=post.id %}">Read more</a>
+</article>
+{% endfor %}
+
+{% if posts|length == 0 %}
+<p>No articles yet.</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/posts.js' %}"></script>
 {% endblock %}
 ```
 
 ---
 
-## Configuration
+## Complete Examples
 
-### Structure des dossiers
+### Example 1: Login Form
 
+```html
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<h2>Login</h2>
+
+<form method="post" action="/login/">
+    {% csrf %}
+
+    <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+    </div>
+
+    <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+    </div>
+
+    <button type="submit">Log in</button>
+</form>
+
+<p>
+    <a href="{% link 'register' %}">Create account</a> |
+    <a href="{% link 'password_reset' %}">Forgot password?</a>
+</p>
+{% endblock %}
 ```
-mon-projet/
-├── src/
-│   ├── templates/        # Templates utilisateur
-│   │   ├── base.html
-│   │   ├── index.html
-│   │   └── ...
-│   ├── static/           # Fichiers statiques
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── images/
-│   └── media/            # Fichiers uploadés
-│       └── ...
+
+### Example 2: User Profile with Avatar
+
+```html
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="profile">
+    <div class="profile-header">
+        {% if user.avatar %}
+            <img src="{% media user.avatar %}" alt="{{ user.username }}'s avatar">
+        {% else %}
+            <img src="{% static 'images/default-avatar.png' %}" alt="Default avatar">
+        {% endif %}
+
+        <h2>{{ user.username }}</h2>
+        <p>{{ user.bio|default(value="No biography") }}</p>
+    </div>
+
+    <div class="profile-stats">
+        <p>Member since: {{ user.created_at|date(format="%m/%d/%Y") }}</p>
+        <p>Published articles: {{ user.posts|length }}</p>
+    </div>
+
+    {% if user.id == current_user.id %}
+        <a href="{% link 'profile_edit' %}" class="btn">Edit my profile</a>
+    {% endif %}
+</div>
+{% endblock %}
 ```
 
-### Settings
+### Example 3: Post List with Pagination
 
-```rust
-use rusti::Settings;
+```html
+{% extends "base.html" %}
 
-let settings = Settings::builder()
-    .templates_dir(vec!["src/templates".to_string()])
-    .staticfiles_dirs("src/static")
-    .media_root("src/media")
-    .static_url("/static")
-    .media_url("/media")
-    .build();
+{% block title %}Articles - Page {{ page }}{% endblock %}
+
+{% block content %}
+<h2>Recent Articles</h2>
+
+{% for post in posts %}
+<article class="post">
+    <h3>
+        <a href="{% link 'post_detail' id=post.id %}">{{ post.title }}</a>
+    </h3>
+
+    <div class="post-meta">
+        By {{ post.author.username }} on {{ post.created_at|date(format="%m/%d/%Y") }}
+    </div>
+
+    <p>{{ post.content|truncate(length=300) }}</p>
+
+    <a href="{% link 'post_detail' id=post.id %}" class="read-more">
+        Read more →
+    </a>
+</article>
+{% endfor %}
+
+<!-- Pagination -->
+<div class="pagination">
+    {% if has_previous %}
+        <a href="{% link 'post_list' %}?page={{ page - 1 }}">← Previous</a>
+    {% endif %}
+
+    <span>Page {{ page }} of {{ total_pages }}</span>
+
+    {% if has_next %}
+        <a href="{% link 'post_list' %}?page={{ page + 1 }}">Next →</a>
+    {% endif %}
+</div>
+{% endblock %}
 ```
 
-### Application complète
+### Example 4: Auto-generated Form
 
-```rust
-use rusti::prelude::*;
+```html
+{% extends "base.html" %}
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::default_values();
-    
-    let routes = urlpatterns![
-        "/" => get(index), name = "home",
-        "/about" => get(about), name = "about",
-        "/user/{id}" => get(user_profile), name = "user_profile",
-    ];
-    
-    RustiApp::new(settings).await?
-        .routes(routes)
-        .with_static_files()?
-        .with_default_middleware()
-        .with_flash_messages()    // Active {% messages %}
-        .with_csrf_tokens()       // Active {% csrf %}
-        .run()
-        .await?;
-    
-    Ok(())
-}
+{% block title %}Create Article{% endblock %}
+
+{% block content %}
+<h2>New Article</h2>
+
+<form method="post">
+    {% csrf %}
+
+    <!-- Automatic form rendering -->
+    {{ form }}
+
+    <!-- Or manual field-by-field rendering -->
+    <!--
+    <div class="form-group">
+        <label>{{ form.title.label }}</label>
+        {{ form.title }}
+        {% if form.title.errors %}
+            <div class="errors">
+                {% for error in form.title.errors %}
+                    <span class="error">{{ error }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    -->
+
+    <button type="submit">Publish</button>
+</form>
+{% endblock %}
+```
+
+### Example 5: Inline Scripts with CSP Nonce
+
+```html
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h2>Dashboard</h2>
+
+<div id="chart"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- External script (no nonce needed) -->
+<script src="{% static 'js/chart.min.js' %}"></script>
+
+<!-- Inline script (requires nonce if strict CSP) -->
+<script nonce="{{ csp }}">
+    // Inline JavaScript code
+    const data = {{ chart_data|json_encode|safe }};
+
+    new Chart(document.getElementById('chart'), {
+        type: 'bar',
+        data: data,
+    });
+</script>
+{% endblock %}
 ```
 
 ---
 
-## Limitations connues
+## Rusti Custom Filters
 
-### Guillemets
+In addition to standard Tera filters, Rusti can add custom filters:
 
-Utilisez des guillemets simples `'` ou doubles `"` de manière cohérente :
+### Filter `json_encode`
 
 ```html
-✅ {% static "file.css" %}
-✅ {% static 'file.css' %}
-❌ {% static file.css %}     <!-- Sans guillemets -->
+<script nonce="{{ csp }}">
+    const config = {{ config|json_encode|safe }};
+</script>
 ```
 
-### Espaces
-
-Des espaces supplémentaires sont tolérés :
+### Filter `slugify`
 
 ```html
-✅ {% static "file.css" %}
-✅ {%  static  "file.css"  %}
+<a href="/posts/{{ post.title|slugify }}/">{{ post.title }}</a>
 ```
 
-### Variables dans les balises
-
-Les variables ne sont pas supportées dans les balises personnalisées, utilisez la syntaxe Tera native :
+### Filter `markdown`
 
 ```html
-❌ {% static my_var %}
-✅ {{ my_var | static }}
-
-❌ {% link route_name %}
-✅ {{ link(link=route_name) }}
+<div class="content">
+    {{ post.content|markdown|safe }}
+</div>
 ```
 
 ---
 
-## Dépannage
+## Best Practices
 
-### "Template not found"
+### 1. Use Template Inheritance
 
-Vérifiez que votre template est dans le dossier configuré :
-- Chemin configuré dans `Settings::templates_dir`
-- Fichier avec extension `.html`
+```html
+<!-- Good -->
+{% extends "base.html" %}
+{% block content %}...{% endblock %}
 
-### "Route not found" avec {% link %}
-
-Assurez-vous que la route est enregistrée avec un nom :
-
-```rust
-urlpatterns![
-    "/user/{id}" => get(handler), name = "user_profile",
-    //                            ^^^^^^^^^^^^^^^^^^^^^^
-];
+<!-- Bad: code duplication -->
+<!DOCTYPE html>
+<html>
+<head>...</head>
+<body>...</body>
+</html>
 ```
 
-### Token CSRF manquant
-
-Activez le middleware CSRF :
+### 2. Name Your Routes for Reverse Routing
 
 ```rust
-app.with_csrf_tokens()
+// Good
+path!("posts/<id>/", detail_post, "post_detail")
+
+// Less good (no name)
+path!("posts/<id>/", detail_post)
 ```
 
-### Messages flash ne s'affichent pas
+### 3. Escape User Variables
 
-Activez le middleware flash :
+```html
+<!-- Good (automatic escaping) -->
+<p>{{ user.bio }}</p>
 
-```rust
-app.with_flash_messages()
+<!-- Dangerous (disables escaping) -->
+<p>{{ user.bio|safe }}</p>
+```
+
+### 4. Organize Your Templates
+
+```
+templates/
+├── base.html
+├── components/
+│   ├── header.html
+│   ├── footer.html
+│   └── pagination.html
+├── posts/
+│   ├── list.html
+│   ├── detail.html
+│   └── create.html
+└── users/
+    ├── profile.html
+    └── settings.html
+```
+
+### 5. Use Includes for Reusable Components
+
+```html
+<!-- templates/components/pagination.html -->
+<div class="pagination">
+    {% if has_previous %}
+        <a href="?page={{ page - 1 }}">← Previous</a>
+    {% endif %}
+    <span>Page {{ page }}</span>
+    {% if has_next %}
+        <a href="?page={{ page + 1 }}">Next →</a>
+    {% endif %}
+</div>
+
+<!-- Usage -->
+{% include "components/pagination.html" %}
 ```
 
 ---
 
-## Voir aussi
+## See Also
 
-- [Documentation Tera](https://keats.github.io/tera/)
-- [Guide du routing Rusti](./ROUTING.md)
-- [Middleware Rusti](./MIDDLEWARE.md)
-- [Exemples complets](../examples/)
+- [Getting Started](GETTING_STARTED.md)
+- [Security (CSP)](SECURITY.md)
+- [Forms](FORMS.md)
+- [Tera Documentation](https://keats.github.io/tera/)
+
+Create powerful and secure templates with Rusti!
+
+---
+
+**Version:** 1.0 (Corrected - January 2, 2026)
+**License:** MIT

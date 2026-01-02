@@ -1,6 +1,6 @@
 # Database Guide - Rusti Framework
 
-Rusti provides integration with SeaORM that offers a Django ORM-inspired API.
+Rusti provides integration with SeaORM offering a Django ORM-inspired API.
 
 ## Table of Contents
 
@@ -27,27 +27,37 @@ Rusti supports multiple database engines via SeaORM:
 | **MySQL** | `mysql` | `mysql://user:pass@host:3306/db` |
 | **MariaDB** | `mariadb` | `mariadb://user:pass@host:3306/db` |
 
-### Installation with Feature
+### Installation with Features
 
 ```toml
 # Cargo.toml
 
-# SQLite (enabled by default)
+# SQLite (enabled by default with 'orm' feature)
 [dependencies]
-rusti = "1.0.0"
+rusti = "0.1"
 
 # PostgreSQL
 [dependencies]
-rusti = { version = "1.0.0", features = ["postgres"] }
+rusti = { version = "0.1", features = ["postgres"] }
 
 # MySQL
 [dependencies]
-rusti = { version = "1.0.0", features = ["mysql"] }
+rusti = { version = "0.1", features = ["mysql"] }
+
+# MariaDB (uses MySQL driver)
+[dependencies]
+rusti = { version = "0.1", features = ["mariadb"] }
 
 # All databases
 [dependencies]
-rusti = { version = "1.0.0", features = ["all-databases"] }
+rusti = { version = "0.1", features = ["all-databases"] }
 ```
+
+**Feature Notes:**
+- `default = ["orm"]` - ORM feature is enabled by default
+- `orm` - Enables SeaORM support
+- `sqlite`, `postgres`, `mysql`, `mariadb` - Specific drivers
+- `all-databases` - Enables all drivers simultaneously
 
 ### Configuration via `.env` File
 
@@ -117,11 +127,11 @@ let db = db_config.connect().await?;
 
 ### Connection Pool Configuration
 
-**Important note:** Connection pool parameters are currently configurable via the `DatabaseConfigBuilder`, but default values are defined in `database/config.rs`.
+#### Default Values
 
-**Default pool values:**
+**Important:** Connection pool parameters have default values defined in the code (`rusti/src/database/config.rs`):
+
 ```rust
-// Defined in database/config.rs
 pub struct DatabaseConfig {
     pub max_connections: u32,        // Default: 20
     pub min_connections: u32,        // Default: 5
@@ -129,21 +139,71 @@ pub struct DatabaseConfig {
     pub acquire_timeout: Duration,   // Default: 8 seconds
     pub idle_timeout: Duration,      // Default: 300 seconds (5 minutes)
     pub max_lifetime: Duration,      // Default: 3600 seconds (1 hour)
+    pub sqlx_logging: bool,          // Default: true
 }
 ```
 
-**Custom configuration:**
+**These values are automatically applied** when creating a `DatabaseConfig` via `from_env()` or `from_url()`.
+
+#### Customization via Builder
+
+You can modify these values using builder methods:
+
 ```rust
 let db_config = DatabaseConfig::from_url("postgres://localhost/mydb")?
     .max_connections(50)              // Modify maximum
     .min_connections(10)              // Modify minimum
     .connect_timeout(Duration::from_secs(30))  // Custom timeout
     .pool_size(10, 50)               // Or both at once
+    .logging(false)                   // Disable SQL logs
     .build();
 ```
 
-**For SQLite:**
-SQLite automatically forces `max_connections: 1` and `min_connections: 1` because SQLite doesn't natively support multi-threading.
+**Available Methods:**
+- `.max_connections(u32)` - Maximum number of connections in the pool
+- `.min_connections(u32)` - Minimum number of connections maintained
+- `.connect_timeout(Duration)` - Timeout to establish a connection
+- `.pool_size(min: u32, max: u32)` - Configure min and max simultaneously
+- `.logging(bool)` - Enable/disable SQL logs
+
+#### Special Behavior for SQLite
+
+**SQLite automatically forces `max_connections: 1` and `min_connections: 1`** because SQLite doesn't support native multi-threading the same way PostgreSQL/MySQL do.
+
+```rust
+// Configuration for SQLite
+let db_config = DatabaseConfig::from_url("sqlite://local.db")?
+    .max_connections(10)  // Will be ignored and replaced with 1
+    .build();
+
+// The SQLite pool will automatically have:
+// - max_connections: 1
+// - min_connections: 1
+```
+
+This limitation is **normal and expected** for SQLite.
+
+#### Example: High-Load Configuration
+
+```rust
+// For a high-traffic application (PostgreSQL/MySQL)
+let db_config = DatabaseConfig::from_env()?
+    .max_connections(100)
+    .min_connections(20)
+    .connect_timeout(Duration::from_secs(10))
+    .acquire_timeout(Duration::from_secs(8))
+    .build();
+```
+
+#### Example: Small Application Configuration
+
+```rust
+// For a small application
+let db_config = DatabaseConfig::from_env()?
+    .max_connections(10)
+    .min_connections(2)
+    .build();
+```
 
 ---
 
@@ -296,7 +356,7 @@ let active_users = User::objects
     .all(db)
     .await?;
 
-// Exclude multiple conditions
+// Multiple exclusions
 let valid_users = User::objects
     .exclude(users::Column::Email.like("%@spam.com"))
     .exclude(users::Column::IsBanned.eq(true))
@@ -304,16 +364,16 @@ let valid_users = User::objects
     .await?;
 ```
 
-### Sorting and Limiting
+### Ordering and Limiting
 
 ```rust
-// Ascending sort
+// Ascending order
 let users = User::objects
     .order_by_asc(users::Column::Username)
     .all(db)
     .await?;
 
-// Descending sort
+// Descending order
 let recent_users = User::objects
     .order_by_desc(users::Column::CreatedAt)
     .all(db)
@@ -341,7 +401,7 @@ let first_user = User::objects
     .await?;
 ```
 
-### Full Chaining
+### Complete Chaining
 
 ```rust
 let result = User::objects
@@ -369,7 +429,7 @@ use sea_orm::prelude::*;
 // Inequality
 .filter(users::Column::Status.ne("banned"))
 
-// Greater / Less than
+// Greater / Less
 .filter(users::Column::Age.gte(18))
 .filter(users::Column::Score.lt(100))
 
@@ -407,7 +467,7 @@ let users = User::objects
 ### Raw SQL Queries
 
 ```rust
-use sea_orm::{FromQueryResult, Statement};
+use sea_orm::{FromQueryResult, Statement, DatabaseBackend};
 
 #[derive(Debug, FromQueryResult)]
 struct CustomResult {
@@ -417,7 +477,7 @@ struct CustomResult {
 
 let results = CustomResult::find_by_statement(
     Statement::from_sql_and_values(
-        sea_orm::DatabaseBackend::Postgres,
+        DatabaseBackend::Postgres,  // ✅ Use DatabaseBackend::
         r#"
         SELECT u.username, COUNT(p.id) as post_count
         FROM users u
@@ -433,11 +493,13 @@ let results = CustomResult::find_by_statement(
 .await?;
 ```
 
+**Note:** Use `DatabaseBackend::Postgres`, `DatabaseBackend::MySql`, or `DatabaseBackend::Sqlite` depending on your database.
+
 ---
 
 ## Relations
 
-### OneToMany (One-to-Many)
+### OneToMany (One to Many)
 
 ```rust
 // User model (parent)
@@ -482,7 +544,7 @@ let user = User::objects.get(db, 1).await?;
 let posts = user.find_related(Post).all(db).await?;
 ```
 
-### ManyToMany (Many-to-Many)
+### ManyToMany (Many to Many)
 
 ```rust
 // Junction table
@@ -522,7 +584,7 @@ use sea_orm::TransactionTrait;
 
 let txn = db.begin().await?;
 
-// Operations within the transaction
+// Operations within transaction
 let user = users::ActiveModel {
     username: Set("alice".to_string()),
     ..Default::default()
@@ -650,7 +712,7 @@ enum Users {
 
 ---
 
-## Complete Example in a Handler
+## Complete Handler Example
 
 ```rust
 use rusti::prelude::*;
@@ -687,7 +749,7 @@ pub async fn create_user(
             redirect(&format!("/user/{}", inserted.id))
         }
         Err(e) => {
-            let _ = message.error("Error during creation").await;
+            let _ = message.error("Error creating account").await;
             redirect("/register")
         }
     }
@@ -741,7 +803,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
 
-    #[sea_orm(indexed)] // Index for fast lookup
+    #[sea_orm(indexed)] // Index for fast search
     pub email: String,
 
     #[sea_orm(indexed)]
@@ -749,7 +811,7 @@ pub struct Model {
 }
 ```
 
-### 4. Optimize Connection Pool According to Your Needs
+### 4. Optimize Connection Pool Based on Your Needs
 
 ```rust
 // For high-traffic application
@@ -774,3 +836,8 @@ let db_config = DatabaseConfig::from_env()?
 - [Configuration](CONFIGURATION.md)
 
 Develop efficiently with Rusti!
+
+---
+
+**Version:** 1.0 (Corrected - January 2, 2026)
+**License:** MIT
