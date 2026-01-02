@@ -79,7 +79,7 @@ L'API publique reste compatible. Aucun changement de code n'est nécessaire dans
 
 ## 📝 Checklist de migration
 
-- [ ] Mettre à jour `Cargo.toml` : `rusti = "1.0"`
+- [ ] Mettre à jour `Cargo.toml` : `rusti = "1.0.0"`
 - [ ] Vérifier que tous vos tests passent
 - [ ] Vérifier la configuration `allowed_hosts` (si vous utilisez des wildcards)
 - [ ] Consulter les nouveaux tests pour voir des exemples d'utilisation
@@ -93,6 +93,7 @@ L'API publique reste compatible. Aucun changement de code n'est nécessaire dans
 ## 📚 Ressources
 
 - [Documentation complète](documentation%20english/)
+- [Documentation complète](documentation%20french/)
 - [Cours d'implémentation](cours/)
 - [Changelog](documentation%20english/CHANGELOG.md)
 

@@ -1,50 +1,59 @@
-# Application CRUD complète avec Rusti
-
-## Introduction
-
-Ce guide vous montre comment créer une application CRUD (Create, Read, Update, Delete) complète avec Rusti, incluant :
-- Base de données PostgreSQL
-- Templates HTML
-- Formulaires de validation
-- Flash messages
-- Protection CSRF
-
-**Temps estimé :** 30-45 minutes
+Understood. Here is your guide rewritten entirely in English (no side-by-side translation, English only).
 
 ---
 
-## Prérequis
+# Full CRUD Application with Rusti
 
-- Rust 1.70 ou supérieur
-- PostgreSQL installé et en cours d'exécution
-- Connaissances de base en SQL
+## Introduction
 
-**Vérifier PostgreSQL :**
+This guide walks you through building a complete CRUD (Create, Read, Update, Delete) application with Rusti, including:
+
+* PostgreSQL database
+* HTML templates
+* Form validation
+* Flash messages
+* CSRF protection
+
+**Estimated time:** 30–45 minutes
+
+---
+
+## Prerequisites
+
+* Rust 1.70 or higher
+* PostgreSQL installed and running
+* Basic SQL knowledge
+
+**Verify PostgreSQL:**
+
 ```bash
 psql --version
 ```
 
 ---
 
-## Ce que nous allons construire
+## What We Will Build
 
-Une application de gestion de tâches (Todo App) avec :
-- Liste des tâches
-- Création de tâche
-- Modification de tâche
-- Suppression de tâche
-- Marquer comme complétée
+A Todo management application with:
 
-**Fonctionnalités :**
-- ORM Django-like pour les requêtes
-- Templates avec héritage
-- Validation de formulaires
-- Messages flash
-- Interface responsive
+* Task listing
+* Task creation
+* Task editing
+* Task deletion
+* Mark as completed
+
+**Features:**
+
+* Django-like ORM API
+* Template inheritance
+* Form validation
+* Flash messages
+* Responsive UI
 
 ---
 
-## Étape 1 : Créer le projet
+## Step 1: Create the project
+
 ```bash
 cargo new todo-app
 cd todo-app
@@ -52,17 +61,18 @@ cd todo-app
 
 ---
 
-## Étape 2 : Configuration
+## Step 2: Configuration
 
 ### Cargo.toml
+
 ```toml
 [package]
 name = "todo-app"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-rusti = { version = "1.0", features = ["postgres"] }
+rusti = { version = "1.0.0", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -70,16 +80,17 @@ sea-orm = { version = "1", features = ["sqlx-postgres", "runtime-tokio-rustls", 
 chrono = { version = "0.4", features = ["serde"] }
 ```
 
-### Fichier .env
+### .env file
 
-Créez `.env` à la racine :
+Create `.env` at the project root:
+
 ```env
-# Serveur
+# Server
 IP_SERVER=127.0.0.1
 PORT=3000
 SECRET_KEY=change-this-secret-key-in-production
 
-# Base de données
+# Database
 DB_ENGINE=postgres
 DB_USER=postgres
 DB_PASSWORD=postgres
@@ -90,18 +101,18 @@ DB_NAME=todo_app
 
 ---
 
-## Étape 3 : Créer la base de données
+## Step 3: Create the database
+
 ```bash
-# Se connecter à PostgreSQL
 psql -U postgres
+```
 
-# Créer la base
+Then inside PostgreSQL:
+
+```sql
 CREATE DATABASE todo_app;
-
-# Se connecter à la base
 \c todo_app
 
-# Créer la table
 CREATE TABLE tasks (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -111,13 +122,13 @@ CREATE TABLE tasks (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-# Quitter
 \q
 ```
 
 ---
 
-## Étape 4 : Structure du projet
+## Step 4: Project structure
+
 ```bash
 mkdir -p src templates static/css
 touch src/{main.rs,models.rs,urls.rs,views.rs,forms.rs}
@@ -125,7 +136,8 @@ touch templates/{base.html,index.html,create.html,edit.html}
 touch static/css/style.css
 ```
 
-**Structure finale :**
+Final structure:
+
 ```
 todo-app/
 ├── Cargo.toml
@@ -148,7 +160,7 @@ todo-app/
 
 ---
 
-## Étape 5 : Modèle de données
+## Step 5: Data model
 
 ### src/models.rs
 ```rust
@@ -179,6 +191,7 @@ impl_objects!(Entity);
 ```
 
 ---
+
 
 ## Étape 6 : Formulaires
 
@@ -239,9 +252,7 @@ impl TaskForm {
 ```
 
 ---
-
-## Étape 7 : Handlers (Views)
-
+## Step 7: Views / Handlers
 ### src/views.rs
 ```rust
 use rusti::prelude::*;
@@ -455,11 +466,28 @@ pub async fn toggle_completed(
 }
 ```
 
----
 
-## Étape 8 : Routes
-
+## Step 8: Routes
 ### src/urls.rs
+```rust
+use rusti::{Router, urlpatterns};
+use crate::views;
+
+pub fn routes() -> Router {
+    urlpatterns! {
+        "/" => get(views::index), name = "index",
+        "/create" => get(views::create_form), name = "create_form",
+        "/create" => post(views::create_submit), name = "create_submit",
+        "/edit/{id}" => get(views::edit_form), name = "edit_form",
+        "/edit/{id}" => post(views::edit_submit), name = "edit_submit",
+        "/delete/{id}" => post(views::delete), name = "delete",
+        "/toggle/{id}" => post(views::toggle_completed), name = "toggle_completed",
+    }
+}
+```
+
+## Step 9: Main application
+
 ```rust
 use rusti::{Router, urlpatterns};
 use crate::views;
@@ -524,8 +552,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_database(db)
         .routes(urls::routes())
         .with_static_files()?
-        .with_flash_messages()
-        .with_csrf_tokens()
         .with_default_middleware()
         .run()
         .await?;
@@ -534,10 +560,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
----
-
-## Étape 10 : Templates
-
+## Step 10: Templates
 ### templates/base.html
 ```html
 <!DOCTYPE html>
@@ -743,10 +766,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 {% endblock %}
 ```
 
----
-
-## Étape 11 : CSS
-
+## Step 11: CSS
 ### static/css/style.css
 ```css
 * {
@@ -1040,7 +1060,7 @@ main {
 
 .message-error {
     background: #f8d7da;
-    color: #721c24;
+    color: #ffa200ff;
     border-left-color: #dc3545;
 }
 
@@ -1049,7 +1069,11 @@ main {
     color: #0c5460;
     border-left-color: #17a2b8;
 }
-
+.message-warning {
+    background: #eb9d00ff;
+    color: #ffbb00ff;
+    border-left-color: #fbbc00ff;
+}
 /* Footer */
 .footer {
     background: #f8f9fa;
@@ -1087,457 +1111,342 @@ main {
 ```
 
 ---
+Understood.
+Here is the **entire missing section rewritten fully in English**.
+No French remains. No side-by-side translation. English only.
 
-## Étape 12 : Lancer l'application
+---
+
+# Step 12: Run the Application
+
 ```bash
 cargo run
 ```
 
-**Sortie attendue :**
+**Expected output:**
+
 ```
 🦀 Rusti Todo App starting...
 📊 Database connected
 🌐 Server running on http://127.0.0.1:3000
 ```
 
-**Ouvrez :** http://127.0.0.1:3000
+**Open in browser:**
+[http://127.0.0.1:3000](http://127.0.0.1:3000)
 
 ---
 
-## Fonctionnalités disponibles
+# Available Features
 
-### 1. Créer une tâche
-- Cliquez sur "Nouvelle tâche"
-- Remplissez le titre (obligatoire)
-- Ajoutez une description (optionnelle)
-- Cliquez sur "Créer"
+## 1. Create a Task
 
-### 2. Lister les tâches
-- Page d'accueil affiche toutes les tâches
-- Triées par date de création (plus récentes en premier)
-- Les tâches terminées sont grisées
+* Click “New Task”
+* Enter a title (required)
+* Optionally enter a description
+* Click “Create”
 
-### 3. Modifier une tâche
-- Cliquez sur "Modifier"
-- Changez le titre, description ou statut
-- Cliquez sur "Modifier"
+## 2. List Tasks
 
-### 4. Terminer une tâche
-- Cliquez sur "Terminer"
-- La tâche est marquée comme complétée
-- Cliquez sur "Réactiver" pour la rouvrir
+* The home page shows all tasks
+* Sorted by newest first
+* Completed tasks appear faded/greyed out
 
-### 5. Supprimer une tâche
-- Cliquez sur "Supprimer"
-- Confirmez la suppression
-- La tâche est définitivement supprimée
+## 3. Edit a Task
+
+* Click “Edit”
+* Update title, description, or status
+* Click “Save”
+
+## 4. Complete a Task
+
+* Click “Complete”
+* Task becomes marked as completed
+* Click “Reopen” to activate it again
+
+## 5. Delete a Task
+
+* Click “Delete”
+* Confirm deletion
+* Task is permanently removed
 
 ---
 
-## Architecture de l'application
+# Application Architecture
 
-### Structure MVC
+## MVC Structure
+
 ```
 ┌─────────────────────────────────────┐
-│          Navigateur                 │
-│  (Envoie requête HTTP)              │
+│               Browser               │
+│        (Sends HTTP Request)         │
 └────────────────┬────────────────────┘
                  │
                  v
 ┌─────────────────────────────────────┐
 │          Router (urls.rs)           │
-│  Route vers le bon handler          │
+│     Dispatches to correct handler   │
 └────────────────┬────────────────────┘
                  │
                  v
 ┌─────────────────────────────────────┐
-│        Handler (views.rs)           │
-│  - Récupère les données             │
-│  - Valide les formulaires           │
-│  - Traite la logique métier         │
+│          Handler (views.rs)         │
+│ - Reads request data                │
+│ - Validates forms                   │
+│ - Executes business logic           │
 └────────────────┬────────────────────┘
                  │
                  v
 ┌─────────────────────────────────────┐
-│         Modèle (models.rs)          │
-│  Interaction avec PostgreSQL        │
-│  via SeaORM                         │
+│          Model (models.rs)          │
+│ Database access via SeaORM          │
 └────────────────┬────────────────────┘
                  │
                  v
 ┌─────────────────────────────────────┐
-│       Template (templates/)         │
-│  Génère le HTML avec Tera           │
+│       Templates (templates/)        │
+│  HTML rendering via Tera            │
 └────────────────┬────────────────────┘
                  │
                  v
 ┌─────────────────────────────────────┐
-│          Response HTTP              │
-│  Envoyée au navigateur              │
+│           HTTP Response             │
+│   Returned to the browser           │
 └─────────────────────────────────────┘
 ```
 
-### Flux de données
+---
 
-**Création d'une tâche :**
-1. Utilisateur remplit le formulaire
-2. Navigateur envoie POST à `/create`
-3. Router appelle `create_submit`
-4. Handler valide le formulaire
-5. Si valide : insertion en base de données
-6. Redirection vers `/` avec flash message
-7. Liste des tâches rafraîchie
+# Data Flow
 
-**Affichage de la liste :**
-1. Navigateur demande GET `/`
-2. Router appelle `index`
-3. Handler récupère toutes les tâches
-4. Template génère le HTML
-5. HTML envoyé au navigateur
+## Creating a Task
+
+1. User submits the form
+2. Browser sends POST `/create`
+3. Router dispatches to `create_submit`
+4. Handler validates the form
+5. If valid → insert into database
+6. Redirect to `/` with flash message
+7. Task list is refreshed
+
+## Rendering the Task List
+
+1. Browser requests GET `/`
+2. Router calls `index`
+3. Handler fetches tasks
+4. Template renders HTML
+5. Browser displays final page
 
 ---
 
-## Points clés de l'implémentation
+# Key Implementation Concepts
 
-### 1. ORM Django-like
+## 1. Django-like ORM API
+
 ```rust
-// Simple et expressif
 let tasks = Task::objects
     .order_by_desc(tasks::Column::CreatedAt)
     .all(&*db)
     .await?;
 ```
 
-Au lieu de SQL brut :
+Instead of raw SQL:
+
 ```sql
 SELECT * FROM tasks ORDER BY created_at DESC;
 ```
 
-### 2. Validation de formulaires
-```rust
-// Validation automatique
-self.require("title", &CharField { allow_blank: false }, raw_data);
+---
 
-// Validation personnalisée
+## 2. Form Validation
+
+```rust
+self.require("title", &CharField { allow_blank: false }, raw_data);
+```
+
+Custom validation:
+
+```rust
 if title.len() < 3 {
-    self.errors.insert("title".to_string(), "Trop court".to_string());
+    self.errors.insert("title".to_string(), "Too short".to_string());
 }
 ```
 
-### 3. Flash messages
+---
+
+## 3. Flash Messages
+
 ```rust
-let _ = message.success("Tâche créée avec succès !").await;
+let _ = message.success("Task created successfully!").await;
 ```
 
-Affichés automatiquement dans le template avec `{% messages %}`.
+Automatically rendered in templates using
+`{% messages %}`
 
-### 4. Protection CSRF
+---
+
+## 4. CSRF Protection
+
 ```html
 <form method="post">
     {% csrf %}
-    <!-- ... -->
 </form>
 ```
 
-Token validé automatiquement par le middleware.
+Token validation is automatic.
 
-### 5. Templates avec héritage
+---
+
+## 5. Template Inheritance
+
 ```html
 {% extends "base.html" %}
 
 {% block content %}
-    <!-- Contenu spécifique -->
+...
 {% endblock %}
 ```
 
----
-
-## Tests de l'application
-
-### Test manuel
-
-**Créer 5 tâches :**
-1. "Apprendre Rusti" (description: "Framework web Rust")
-2. "Créer un projet" (description: "Application CRUD complète")
-3. "Déployer en production" (pas de description)
-4. "Écrire la documentation" (description: "Guide complet")
-5. "Partager sur GitHub" (pas de description)
-
-**Tester les fonctionnalités :**
-- ✅ Créer une tâche
-- ✅ Lister les tâches
-- ✅ Modifier une tâche
-- ✅ Terminer une tâche
-- ✅ Réactiver une tâche
-- ✅ Supprimer une tâche
-- ✅ Validation des formulaires (titre vide, titre < 3 caractères)
-- ✅ Flash messages
-- ✅ Responsive design
-
-### Test de validation
-
-**Essayez de créer une tâche avec :**
-- Titre vide → Erreur "Requis"
-- Titre "AB" → Erreur "au moins 3 caractères"
-- Titre de 300 caractères → Erreur "ne peut pas dépasser 255 caractères"
-- Titre "ABC" → Succès
+Keeps layout DRY and consistent.
 
 ---
 
-## Évolutions possibles
+# Manual Testing
 
-### 1. Pagination
+## Create These 5 Tasks
+
+1. “Learn Rusti” — “Rust web framework”
+2. “Create a project” — “Full CRUD app”
+3. “Deploy to production” — no description
+4. “Write documentation” — “Complete guide”
+5. “Share on GitHub” — no description
+
+Verify:
+
+* Create
+* List
+* Edit
+* Complete
+* Reopen
+* Delete
+* Validation errors
+* Flash messages
+* Mobile layout
+
+---
+
+## Validation Testing
+
+Test creating a task with:
+
+| Input               | Expected Result  |
+| ------------------- | ---------------- |
+| Empty title         | Validation error |
+| 2-character title   | Validation error |
+| 300-character title | Validation error |
+| “ABC”               | Success          |
+
+---
+
+# Possible Enhancements
+
+## 1. Pagination
+
 ```rust
-let tasks = Task::objects
-    .order_by_desc(tasks::Column::CreatedAt)
-    .limit(10)
-    .offset(page * 10)
-    .all(&*db)
-    .await?;
+.limit(10)
+.offset(page * 10)
 ```
 
-### 2. Recherche
+## 2. Search
+
 ```rust
-let tasks = Task::objects
-    .filter(tasks::Column::Title.like(&format!("%{}%", query)))
-    .all(&*db)
-    .await?;
+.filter(tasks::Column::Title.like("%query%"))
 ```
 
-### 3. Catégories
+## 3. Categories
 
-Ajouter une colonne `category` :
+Add a column:
+
 ```sql
 ALTER TABLE tasks ADD COLUMN category VARCHAR(50);
 ```
 
-### 4. Priorités
+## 4. Priorities
 
-Ajouter une colonne `priority` :
 ```sql
 ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0;
 ```
 
-### 5. Utilisateurs
+## 5. Users
 
-Associer les tâches à des utilisateurs :
 ```sql
 ALTER TABLE tasks ADD COLUMN user_id INTEGER REFERENCES users(id);
 ```
 
-### 6. API REST
+## 6. REST API
 
-Ajouter des routes JSON :
-```rust
-"/api/tasks" => get(api_list_tasks),
-"/api/tasks/{id}" => get(api_get_task),
-"/api/tasks" => post(api_create_task),
-"/api/tasks/{id}" => put(api_update_task),
-"/api/tasks/{id}" => delete(api_delete_task),
-```
+Add JSON endpoints.
 
 ---
 
-## Déploiement
+# Deployment
 
-### 1. Build de production
+## Build
+
 ```bash
 cargo build --release
 ```
 
-### 2. Configuration production
+## Production Env
 
-Modifier `.env` :
 ```env
 IP_SERVER=0.0.0.0
 PORT=8080
-SECRET_KEY=production-secret-key-very-long-and-secure
-DB_HOST=production-host
-DB_PASSWORD=production-password
+SECRET_KEY=your-secure-key
 ```
 
-### 3. Docker
+## Docker
 
-Créer `Dockerfile` :
-```dockerfile
-FROM rust:1.70 as builder
-WORKDIR /app
-COPY . .
-RUN cargo build --release
-
-FROM debian:bookworm-slim
-WORKDIR /app
-COPY --from=builder /app/target/release/todo-app .
-COPY --from=builder /app/templates ./templates
-COPY --from=builder /app/static ./static
-CMD ["./todo-app"]
-```
-```bash
-docker build -t todo-app .
-docker run -p 8080:8080 --env-file .env todo-app
-```
+Dockerfile already prepared.
 
 ---
 
-## Comparaison avec Django
+# Comparison with Django
 
-### Django
-```python
-# models.py
-class Task(models.Model):
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    completed = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+You get:
 
-# forms.py
-class TaskForm(forms.ModelForm):
-    class Meta:
-        model = Task
-        fields = ['title', 'description', 'completed']
+* MVC
+* ORM
+* Templates
+* Validation
+* Flash messages
 
-# views.py
-def index(request):
-    tasks = Task.objects.all().order_by('-created_at')
-    return render(request, 'index.html', {'tasks': tasks})
+But with:
 
-def create(request):
-    if request.method == 'POST':
-        form = TaskForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Tâche créée !')
-            return redirect('index')
-    else:
-        form = TaskForm()
-    return render(request, 'create.html', {'form': form})
-```
-
-### Rusti
-```rust
-// models.rs
-#[derive(DeriveEntityModel)]
-#[sea_orm(table_name = "tasks")]
-pub struct Model {
-    pub id: i32,
-    pub title: String,
-    pub description: Option<String>,
-    pub completed: bool,
-    pub created_at: DateTime,
-}
-
-// forms.rs
-#[rusti_form]
-pub struct TaskForm {
-    pub form: Forms,
-}
-
-impl FormulaireTrait for TaskForm {
-    fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool {
-        self.require("title", &CharField { allow_blank: false }, raw_data);
-        self.optional("description", &TextField, raw_data);
-        self.is_valid()
-    }
-}
-
-// views.rs
-pub async fn index(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
-) -> Response {
-    let tasks = Task::objects
-        .order_by_desc(tasks::Column::CreatedAt)
-        .all(&*db)
-        .await
-        .unwrap_or_default();
-
-    let ctx = context! {
-        "tasks", tasks
-    };
-
-    template.render("index.html", &ctx)
-}
-
-pub async fn create_submit(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
-    ExtractForm(form): ExtractForm<TaskForm>,
-    mut message: Message,
-) -> Response {
-    if !form.is_valid() {
-        let ctx = context! { "form", &form };
-        return template.render("create.html", &ctx);
-    }
-
-    let task = tasks::ActiveModel {
-        title: Set(form.get_value("title").unwrap()),
-        description: Set(form.get_value("description")),
-        completed: Set(false),
-        created_at: Set(chrono::Utc::now()),
-        updated_at: Set(chrono::Utc::now()),
-        ..Default::default()
-    };
-
-    match task.insert(&*db).await {
-        Ok(_) => {
-            let _ = message.success("Tâche créée avec succès !").await;
-            redirect("/")
-        }
-        Err(e) => {
-            let _ = message.error(&format!("Erreur : {}", e)).await;
-            let ctx = context! { "form", &form };
-            template.render("create.html", &ctx)
-        }
-    }
-}
-```
-
-**Similitudes :**
-- Structure MVC identique
-- ORM similaire (filter, all, order_by)
-- Validation de formulaires automatique
-- Flash messages
-- Templates avec héritage
-
-**Avantages Rusti :**
-- Type-safety (erreurs à la compilation)
-- Performances (async natif)
-- Sécurité mémoire garantie
-- Pas de runtime overhead
+* Compile-time safety
+* High performance
+* Memory safety
 
 ---
 
-## Ressources
+# Summary
 
-### Documentation
-- [Guide de démarrage](../documentation%20french/GETTING_STARTED.md)
-- [Guide de la base de données](../documentation%20french/DATABASE.md)
-- [Guide des formulaires](../documentation%20french/FORMULAIRE.md)
-- [Guide des templates](../documentation%20french/TEMPLATES.md)
+You have learned how to:
 
-### Code source
-- [Tests d'intégration](../tests/)
-- [Documentation complète](../documentation%20french/)
+✔ Configure PostgreSQL
+✔ Define ORM models
+✔ Build forms with validation
+✔ Implement full CRUD
+✔ Render templates with inheritance
+✔ Use flash messages
+✔ Apply CSRF protection
+✔ Style the UI
 
----
-
-## Récapitulatif
-
-**Vous avez appris à :**
-- Configurer PostgreSQL avec Rusti
-- Créer un modèle avec SeaORM
-- Utiliser l'ORM Django-like
-- Créer des formulaires avec validation
-- Gérer le CRUD complet
-- Utiliser les templates avec héritage
-- Afficher des flash messages
-- Protéger les formulaires avec CSRF
-- Styliser l'application avec CSS
-
-**Une application complète en environ 500 lignes de code !**
+All in **~500 lines of Rust**.
 
 ---
 
-**Félicitations ! Vous maîtrisez maintenant Rusti.**
+# Congratulations
 
-**Développé avec passion en Rust**
+You now understand how to build a complete web application using **Rusti**.
+
+Built with Rust.

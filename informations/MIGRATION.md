@@ -4,7 +4,6 @@
 
 Ce document explique le contenu de la **première version stable publique** de Rusti Framework.
 
-**Note importante :** Il n'y a **aucune migration** à faire car c'est la première release publique. Si vous découvrez Rusti, consultez directement le [Guide de démarrage](documentation%20french/GETTING_STARTED.md).
 
 ---
 
@@ -32,7 +31,7 @@ Ce document explique le contenu de la **première version stable publique** de R
 ### 1. Installation
 ```toml
 [dependencies]
-rusti = "1.0"
+rusti = "1.0.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
