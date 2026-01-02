@@ -230,7 +230,9 @@ my_app/
 │   │   └── mod.rs
 │   ├── views/
 │   │   └── mod.rs
-│   └── forms/
+│   ├──  forms/
+│   |   └── mod.rs
+│   └── urls/
 │       └── mod.rs
 ├── templates/
 │   ├── base.html
@@ -385,7 +387,7 @@ RustiApp::new(settings).await?
 In templates:
 ```html
 <form method="post">
-    {{ csrf_input() }}
+    {% csrf %}
     <!-- form fields -->
 </form>
 ```
@@ -490,14 +492,14 @@ sea-orm-cli migrate down
 ```html
 <!-- Static files -->
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
-<script src="{% static 'js/app.js' %}"></script>
+<script src='{% static "js/main.js" %}'></script>
 
 <!-- Media files -->
-<img src="{% media user.avatar %}" alt="Avatar">
+<img src='{% media "media.jpg" %}' alt="Avatar">
 
 <!-- CSRF token -->
 <form method="post">
-    {{ csrf_input() }}
+    {% csrf %}
     <!-- ... -->
 </form>
 
@@ -508,7 +510,7 @@ sea-orm-cli migrate down
 <a href="{% link 'post_detail' id=post.id %}">Details</a>
 
 <!-- CSP nonce (if enabled) -->
-<script nonce="{{ csp }}">
+<script {{ csp }}>
     // JavaScript code
 </script>
 ```

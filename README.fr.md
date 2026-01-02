@@ -221,7 +221,7 @@ Ouvrez [http://localhost:8000](http://localhost:8000)
 ### Structure du projet
 
 ```
-mon_app/
+my_app/
 ├── Cargo.toml
 ├── .env
 ├── src/
@@ -230,7 +230,9 @@ mon_app/
 │   │   └── mod.rs
 │   ├── views/
 │   │   └── mod.rs
-│   └── forms/
+│   ├──  forms/
+│   |   └── mod.rs
+│   └── urls/
 │       └── mod.rs
 ├── templates/
 │   ├── base.html
@@ -385,7 +387,7 @@ RustiApp::new(settings).await?
 Dans les templates :
 ```html
 <form method="post">
-    {{ csrf_input() }}
+    {% csrf %}
     <!-- champs du formulaire -->
 </form>
 ```
@@ -492,7 +494,7 @@ sea-orm-cli migrate down
 
 <!-- Token CSRF -->
 <form method="post">
-    {{ csrf_input() }}
+    {% csrf %}
     <!-- ... -->
 </form>
 
@@ -503,7 +505,7 @@ sea-orm-cli migrate down
 <a href="{% link 'post_detail' id=post.id %}">Détails</a>
 
 <!-- CSP nonce (si activé) -->
-<script nonce="{{ csp_nonce() }}">
+<script {{ csp }}>
     // Code JavaScript
 </script>
 ```
