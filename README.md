@@ -268,33 +268,32 @@ Open [http://localhost:8000](http://localhost:8000)
 
 ---
 
-## 📚 Complete Documentation
 
-### English Guide
+### 📚 Documentation (English)
 
-- [🚀 Getting Started](documentation_english/GETTING_STARTED.md)
-- [⚙️ Configuration](docs/documentation_english/CONFIGURATION.md)
-- [🗄️ Database](docs/documentation_english/DATABASE.md)
-- [📝 Forms](docs/documentation_english/FORMULAIRE.md)
-- [🎨 Templates](docs/documentation_english/TEMPLATES.md)
-- [🔒 Security](docs/documentation_english/CSP.md)
-- [🛣️ Macro](docs/documentation_english/MACRO%2520CONTEXT.md)
-- [🔧 changelog](docs//documentation_english/CHANGELOG.md)
-- [🚀 Contribuer](docs/documentation_english/CONTRIBUTING.md)
-- [📖 Documentation Overview](docs/README.md)
+- [🚀 Getting Started](informations/documentation_english/GETTING_STARTED.md)
+- [⚙️ Configuration](informations/documentation_english/CONFIGURATION.md)
+- [🗄️ Database](informations/documentation_english/DATABASE.md)
+- [📝 Forms](informations/documentation_english/FORMULAIRE.md)
+- [🎨 Templates](informations/documentation_english/TEMPLATES.md)
+- [🔒 Security](informations/documentation_english/CSP.md)
+- [🛣️ Macro](informations/documentation_english/MACRO%2520CONTEXT.md)
+- [🔧 changelog](informations/documentation_english/CHANGELOG.md)
+- [🚀 Contribuer](informations/documentation_english/CONTRIBUTING.md)
+- [📖 Documentation Overview](README.md)
 
 
-### French Guides
+### 📚 Documentation (French)
 
 - [🚀 Getting Started](informations/documentation_french/GETTING_STARTED.md)
-- [⚙️ Configuration](docs/documentation_french/CONFIGURATION.md)
-- [🗄️ Database](docs//documentation_french/DATABASE.md)
-- [📝 Forms](docs/documentation_french/FORMULAIRE.md)
-- [🎨 Templates](docs/documentation_french/TEMPLATES.md)
-- [🔒 Security](docs/documentation_french/CSP.md)
-- [🛣️ Macro](docs/documentation_french/MACRO%2520CONTEXT.md)
-- [🔧 changelog](docs/documentation_french/CHANGELOG.md)
-- [🚀 Contribuer](docs/documentation_french/CONTRIBUTING.md)
+- [⚙️ Configuration](informations/documentation_french/CONFIGURATION.md)
+- [🗄️ Database](informations/documentation_french/DATABASE.md)
+- [📝 Forms](informations/documentation_french/FORMULAIRE.md)
+- [🎨 Templates](informations/documentation_french/TEMPLATES.md)
+- [🔒 Security](informations/documentation_french/CSP.md)
+- [🛣️ Macro](informations/documentation_french/MACRO%2520CONTEXT.md)
+- [🔧 changelog](informations/documentation_french/CHANGELOG.md)
+- [🚀 Contribuer](informations/documentation_french/CONTRIBUTING.md)
 
 ---
 
