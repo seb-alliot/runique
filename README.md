@@ -270,29 +270,30 @@ Open [http://localhost:8000](http://localhost:8000)
 
 ## 📚 Complete Documentation
 
-### French Guides
+### 📚 Documentation (English)
 
-- [🚀 Getting Started](docs/fr/GETTING_STARTED.md)
-- [⚙️ Configuration](docs/fr/CONFIGURATION.md)
-- [🗄️ Database](docs/fr/DATABASE.md)
-- [📝 Forms](docs/fr/FORMULAIRE.md)
-- [🎨 Templates](docs/fr/TEMPLATES.md)
-- [🔒 Security](docs/fr/SECURITY.md)
-- [🛣️ Routing](docs/fr/ROUTING.md)
-- [🔧 Middleware](docs/fr/MIDDLEWARE.md)
-- [🚀 Deployment](docs/fr/DEPLOIEMENT.md)
+* [🚀 Getting Started](https://www.google.com/search?q=informations/documentation_english/GETTING_STARTED.md)
+* [⚙️ Configuration](https://www.google.com/search?q=informations/documentation_english/CONFIGURATION.md)
+* [🗄️ Database](https://www.google.com/search?q=informations/documentation_english/DATABASE.md)
+* [📝 Forms](https://www.google.com/search?q=informations/documentation_english/FORMULAIRE.md)
+* [🎨 Templates](https://www.google.com/search?q=informations/documentation_english/TEMPLATES.md)
+* [🔒 Security (CSP)](https://www.google.com/search?q=informations/documentation_english/CSP.md)
+* [🧠 Macro Context](https://www.google.com/search?q=informations/documentation_english/MACRO%2520CONTEXT.md)
+* [📜 Changelog](https://www.google.com/search?q=informations/documentation_english/CHANGELOG.md)
+* [🤝 Contributing](https://www.google.com/search?q=informations/documentation_english/CONTRIBUTING.md)
+* [📖 Documentation Overview](https://www.google.com/search?q=informations/documentation_english/README_DOCUMENTATION.md)
 
-### English Guides
+### 📚 Documentation (Français)
 
-- [🚀 Getting Started](docs/en/GETTING_STARTED.md)
-- [⚙️ Configuration](docs/en/CONFIGURATION.md)
-- [🗄️ Database](docs/en/DATABASE.md)
-- [📝 Forms](docs/en/FORMS.md)
-- [🎨 Templates](docs/en/TEMPLATES.md)
-- [🔒 Security](docs/en/SECURITY.md)
-- [🛣️ Routing](docs/en/ROUTING.md)
-- [🔧 Middleware](docs/en/MIDDLEWARE.md)
-- [🚀 Deployment](docs/en/DEPLOYMENT.md)
+* [🚀 Guide de démarrage](https://www.google.com/search?q=informations/documentation_french/GETTING_STARTED.md)
+* [⚙️ Configuration](https://www.google.com/search?q=informations/documentation_french/CONFIGURATION.md)
+* [🗄️ Base de données](https://www.google.com/search?q=informations/documentation_french/DATABASE.md)
+* [📝 Formulaires](https://www.google.com/search?q=informations/documentation_french/FORMULAIRE.md)
+* [🎨 Templates](https://www.google.com/search?q=informations/documentation_french/TEMPLATES.md)
+* [🔒 Sécurité (CSP)](https://www.google.com/search?q=informations/documentation_french/CSP.md)
+* [🧠 Macro Context](https://www.google.com/search?q=informations/documentation_french/MACRO%2520CONTEXT.md)
+* [📜 Changelog](https://www.google.com/search?q=informations/documentation_french/CHANGELOG.md)
+* [🤝 Contribuer](https://www.google.com/search?q=informations/documentation_french/CONTRIBUTING.md)
 
 ---
 
