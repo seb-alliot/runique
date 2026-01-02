@@ -270,30 +270,31 @@ Open [http://localhost:8000](http://localhost:8000)
 
 ## 📚 Complete Documentation
 
-### 📚 Documentation (English)
+### English Guide
 
-* [🚀 Getting Started](https://www.google.com/search?q=informations/documentation_english/GETTING_STARTED.md)
-* [⚙️ Configuration](https://www.google.com/search?q=informations/documentation_english/CONFIGURATION.md)
-* [🗄️ Database](https://www.google.com/search?q=informations/documentation_english/DATABASE.md)
-* [📝 Forms](https://www.google.com/search?q=informations/documentation_english/FORMULAIRE.md)
-* [🎨 Templates](https://www.google.com/search?q=informations/documentation_english/TEMPLATES.md)
-* [🔒 Security (CSP)](https://www.google.com/search?q=informations/documentation_english/CSP.md)
-* [🧠 Macro Context](https://www.google.com/search?q=informations/documentation_english/MACRO%2520CONTEXT.md)
-* [📜 Changelog](https://www.google.com/search?q=informations/documentation_english/CHANGELOG.md)
-* [🤝 Contributing](https://www.google.com/search?q=informations/documentation_english/CONTRIBUTING.md)
-* [📖 Documentation Overview](https://www.google.com/search?q=informations/documentation_english/README_DOCUMENTATION.md)
+- [🚀 Getting Started](docs/documentation_english/GETTING_STARTED.md)
+- [⚙️ Configuration](docs/documentation_english/CONFIGURATION.md)
+- [🗄️ Database](docs/documentation_english/DATABASE.md)
+- [📝 Forms](docs/documentation_english/FORMULAIRE.md)
+- [🎨 Templates](docs/documentation_english/TEMPLATES.md)
+- [🔒 Security](docs/documentation_english/CSP.md)
+- [🛣️ Macro](docs/documentation_english/MACRO%2520CONTEXT.md)
+- [🔧 changelog](docs//documentation_english/CHANGELOG.md)
+- [🚀 Contribuer](docs/documentation_english/CONTRIBUTING.md)
+- [📖 Documentation Overview](docs/README.md)
 
-### 📚 Documentation (Français)
 
-* [🚀 Guide de démarrage](https://www.google.com/search?q=informations/documentation_french/GETTING_STARTED.md)
-* [⚙️ Configuration](https://www.google.com/search?q=informations/documentation_french/CONFIGURATION.md)
-* [🗄️ Base de données](https://www.google.com/search?q=informations/documentation_french/DATABASE.md)
-* [📝 Formulaires](https://www.google.com/search?q=informations/documentation_french/FORMULAIRE.md)
-* [🎨 Templates](https://www.google.com/search?q=informations/documentation_french/TEMPLATES.md)
-* [🔒 Sécurité (CSP)](https://www.google.com/search?q=informations/documentation_french/CSP.md)
-* [🧠 Macro Context](https://www.google.com/search?q=informations/documentation_french/MACRO%2520CONTEXT.md)
-* [📜 Changelog](https://www.google.com/search?q=informations/documentation_french/CHANGELOG.md)
-* [🤝 Contribuer](https://www.google.com/search?q=informations/documentation_french/CONTRIBUTING.md)
+### French Guides
+
+- [🚀 Getting Started](docs/documentation_french/GETTING_STARTED.md)
+- [⚙️ Configuration](docs/documentation_french/CONFIGURATION.md)
+- [🗄️ Database](docs//documentation_french/DATABASE.md)
+- [📝 Forms](docs/documentation_french/FORMULAIRE.md)
+- [🎨 Templates](docs/documentation_french/TEMPLATES.md)
+- [🔒 Security](docs/documentation_french/CSP.md)
+- [🛣️ Macro](docs/documentation_french/MACRO%2520CONTEXT.md)
+- [🔧 changelog](docs/documentation_french/CHANGELOG.md)
+- [🚀 Contribuer](docs/documentation_french/CONTRIBUTING.md)
 
 ---
 
