@@ -5,7 +5,7 @@
 Rusti is a modern web framework that combines Rust's safety and performance with Django's ergonomics. It offers a familiar development experience for Django developers while leveraging the power of Rust's type system.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+[![Rust Version](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 
 ---
 
@@ -45,7 +45,7 @@ Rusti is a modern web framework that combines Rust's safety and performance with
 
 ### Prerequisites
 
-- Rust 1.70+ ([install Rust](https://www.rust-lang.org/tools/install))
+- Rust 1.75+ ([install Rust](https://www.rust-lang.org/tools/install))
 - Cargo
 
 ### Add Rusti to Your Project
@@ -55,23 +55,23 @@ Rusti is a modern web framework that combines Rust's safety and performance with
 
 # Minimal configuration (SQLite by default)
 [dependencies]
-rusti = "1.0"
+rusti = "1.0.0"
 
 # With PostgreSQL
 [dependencies]
-rusti = { version = "1.0", features = ["postgres"] }
+rusti = { version = "1.0.0", features = ["postgres"] }
 
 # With MySQL
 [dependencies]
-rusti = { version = "1.0", features = ["mysql"] }
+rusti = { version = "1.0.0", features = ["mysql"] }
 
 # With MariaDB
 [dependencies]
-rusti = { version = "1.0", features = ["mariadb"] }
+rusti = { version = "1.0.0", features = ["mariadb"] }
 
 # With all databases
 [dependencies]
-rusti = { version = "1.0", features = ["all-databases"] }
+rusti = { version = "1.0.0", features = ["all-databases"] }
 ```
 
 ### Available Cargo Features
@@ -91,19 +91,19 @@ rusti = { version = "1.0", features = ["all-databases"] }
 ```toml
 # SQLite only (default configuration)
 [dependencies]
-rusti = "1.0"
+rusti = "1.0.0"
 
 # PostgreSQL + MySQL
 [dependencies]
-rusti = { version = "1.0", features = ["postgres", "mysql"] }
+rusti = { version = "1.0.0", features = ["postgres", "mysql"] }
 
 # All databases
 [dependencies]
-rusti = { version = "1.0", features = ["all-databases"] }
+rusti = { version = "1.0.0", features = ["all-databases"] }
 
 # Without ORM (minimal framework)
 [dependencies]
-rusti = { version = "1.0", default-features = false }
+rusti = { version = "1.0.0", default-features = false }
 ```
 
 ### Create a New Project
@@ -117,7 +117,7 @@ Add Rusti to `Cargo.toml`:
 
 ```toml
 [dependencies]
-rusti = { version = "1.0", features = ["postgres"] }
+rusti = { version = "1.0.0", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -276,13 +276,13 @@ use rusti::forms::prelude::*;
 #[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
 #[sea_orm(model = "crate::models::Model", entity = "crate::models::Entity")]
 pub struct PostForm {
-    #[field(max_length = 200, required = true)]
+    #[form_field(widget = "textarea", required = true)]
     pub title: CharField,
 
-    #[field(widget = "textarea", required = true)]
+    #[form_field(widget = "textarea", required = true)]
     pub content: CharField,
 
-    #[field(default = "false")]
+    #[form_field(default = "false")]
     pub published: BooleanField,
 }
 ```
