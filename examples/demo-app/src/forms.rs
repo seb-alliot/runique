@@ -1,7 +1,6 @@
 use rusti::prelude::*;
 
-
-#[derive(Deserialize)] 
+#[derive(Deserialize)]
 pub struct UsernameForm {
     pub form: Forms,
 }

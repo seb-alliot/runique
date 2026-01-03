@@ -32,7 +32,7 @@ pub mod utils;
 
 // Réexports des crates externes (pour que les utilisateurs n'aient pas à les ajouter)
 pub use axum;
-pub use serde; 
+pub use serde;
 pub use serde_json;
 pub use tera;
 pub use tokio;
@@ -92,8 +92,8 @@ pub use once_cell::sync::Lazy;
 pub use tera::{Context, Tera};
 
 // Ré-export de serde
-pub use serde::{Deserialize, Serialize};
 pub use serde::ser::{SerializeStruct, Serializer};
+pub use serde::{Deserialize, Serialize};
 pub use serde_json::json;
 
 pub use async_trait::async_trait;
@@ -181,7 +181,6 @@ pub mod prelude {
     // === Serde ===
     pub use crate::serde::ser::{SerializeStruct, Serializer};
     pub use crate::serde::{Deserialize, Serialize};
-    
 
     // === Collections ===
     pub use std::collections::{HashMap, HashSet};
