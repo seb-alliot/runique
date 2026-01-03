@@ -4,7 +4,7 @@ use crate::context;
 use crate::middleware::flash_message::FlashMessage;
 use crate::middleware::flash_message::FlashMessageSession;
 use crate::settings::Settings;
-use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode, response::Response};
+use axum::{extract::FromRequestParts, http::StatusCode, http::request::Parts, response::Response};
 use std::sync::Arc;
 use tera::{Context, Tera};
 

@@ -1,7 +1,7 @@
 // runique/src/app.rs
 use anyhow::Result;
 use axum::http::StatusCode;
-use axum::{middleware, Extension, Router};
+use axum::{Extension, Router, middleware};
 use glob;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -16,7 +16,7 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 
 use sea_orm::DatabaseConnection;
 
-use crate::middleware::csp::{security_headers_middleware, CspConfig};
+use crate::middleware::csp::{CspConfig, security_headers_middleware};
 use crate::middleware::csrf::csrf_middleware;
 use crate::middleware::error_handler::{error_handler_middleware, render_index};
 use crate::middleware::flash_message::flash_middleware;

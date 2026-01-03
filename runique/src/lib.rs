@@ -39,8 +39,8 @@ pub use tokio;
 pub use tower_sessions;
 
 // Middleware
-pub use middleware::csp::security_headers_middleware;
 pub use middleware::csp::CspConfig;
+pub use middleware::csp::security_headers_middleware;
 pub use middleware::csrf::csrf_middleware;
 pub use middleware::error_handler::{render_404, render_500};
 pub use middleware::flash_message::flash_middleware;
@@ -78,12 +78,11 @@ pub use settings::Settings;
 
 // Ré-exports de types Axum couramment utilisés
 pub use axum::{
-    debug_handler,
+    Extension, Form as AxumForm, Router, debug_handler,
     extract::{Form, Path, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect, Response},
     routing::{delete, get, patch, post, put},
-    Extension, Form as AxumForm, Router,
 };
 
 pub use once_cell::sync::Lazy;
@@ -99,8 +98,8 @@ pub use serde_json::json;
 pub use async_trait::async_trait;
 
 // Macros de formulaire
-pub use derive_form::runique_form;
 pub use derive_form::DeriveModelForm;
+pub use derive_form::runique_form;
 
 pub use formulaire::extracteur::ExtractForm;
 pub use formulaire::formsrunique::{Forms, RuniqueForm};
@@ -146,11 +145,11 @@ pub mod prelude {
     pub use crate::{error, info, success, warning};
 
     // === Formulaires ===
+    pub use crate::DeriveModelForm;
     pub use crate::formulaire::extracteur::ExtractForm;
     pub use crate::formulaire::field::*;
     pub use crate::formulaire::formsrunique::{Forms, FormulaireTrait, RuniqueForm};
     pub use crate::runique_form;
-    pub use crate::DeriveModelForm;
 
     // === Routing et URL reversing ===
     pub use crate::reverse;
@@ -158,16 +157,16 @@ pub mod prelude {
 
     // === Axum - Router et Routing ===
     pub use axum::{
-        routing::{delete, get, patch, post, put},
         Router,
+        routing::{delete, get, patch, post, put},
     };
 
     // === Axum - Response ===
     pub use axum::response::{Html, IntoResponse, Redirect, Response};
 
     // === Axum - Extractors ===
-    pub use axum::extract::{Extension, Form, Path, Query, State};
     pub use axum::Json;
+    pub use axum::extract::{Extension, Form, Path, Query, State};
 
     // === Axum - HTTP ===
     pub use axum::http::StatusCode;

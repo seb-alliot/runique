@@ -41,7 +41,7 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
                         StatusCode::INTERNAL_SERVER_ERROR,
                         "Session middleware missing",
                     )
-                        .into_response()
+                        .into_response();
                 }
             };
             let t = session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten();
@@ -62,7 +62,7 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
         let bytes = match body.collect().await {
             Ok(collected) => collected.to_bytes(),
             Err(_) => {
-                return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response()
+                return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response();
             }
         };
         req = axum::http::Request::from_parts(parts, Body::from(bytes.clone()));
@@ -122,7 +122,7 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Session middleware missing",
                 )
-                    .into_response()
+                    .into_response();
             }
         };
 

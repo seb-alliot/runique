@@ -76,7 +76,7 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
                 return Err(tera::Error::msg(format!(
                     "Le paramètre '{}' a un type invalide. Utilisez String, Number ou Bool.",
                     key
-                )))
+                )));
             }
         };
 

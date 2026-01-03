@@ -1,12 +1,12 @@
 use axum::extract::Extension;
 use axum::{
+    Router,
     body::Body,
-    http::{header, Method, Request, StatusCode},
+    http::{Method, Request, StatusCode, header},
     middleware,
     routing::{get, post},
-    Router,
 };
-use runique::{middleware::csrf::csrf_middleware, Settings};
+use runique::{Settings, middleware::csrf::csrf_middleware};
 use std::sync::Arc;
 use tower::ServiceExt;
 use tower_sessions::{MemoryStore, SessionManagerLayer};

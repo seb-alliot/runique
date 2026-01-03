@@ -14,5 +14,7 @@ fn form_html_filter(value: &Value, _args: &HashMap<String, Value>) -> TeraResult
     }
 
     // Si pas trouvé, retourner une erreur claire
-    Err(tera::Error::msg("Le formulaire n'a pas de champ 'html'. Assurez-vous que Forms implémente Serialize correctement."))
+    Err(tera::Error::msg(
+        "Le formulaire n'a pas de champ 'html'. Assurez-vous que Forms implémente Serialize correctement.",
+    ))
 }

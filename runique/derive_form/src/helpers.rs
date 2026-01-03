@@ -1,4 +1,4 @@
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{Attribute, Data, Field, Fields};
 
 // ==================== HELPERS PARTAGÉS ====================

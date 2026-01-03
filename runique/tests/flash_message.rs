@@ -66,10 +66,10 @@ async fn read_flash(req: Request) -> impl IntoResponse {
 mod tests {
     use super::*;
     use axum::{
+        Router,
         body::Body,
         http::{Request, StatusCode},
         routing::get,
-        Router,
     };
     use tower::ServiceExt;
     use tower_sessions::{MemoryStore, SessionManagerLayer};

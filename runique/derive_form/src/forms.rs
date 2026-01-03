@@ -1,7 +1,7 @@
 use crate::helpers::*;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
+use syn::{Data, DeriveInput, Fields, parse_macro_input};
 
 /// Implémentation de la macro #[runique_form]
 pub(crate) fn runique_form_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {

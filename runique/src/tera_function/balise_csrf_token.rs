@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use axum::{
     body::Body, http::StatusCode, middleware::Next, response::IntoResponse, response::Response,
 };
-use tower_sessions::session::Error as SessionError;
 use tower_sessions::Session;
+use tower_sessions::session::Error as SessionError;
 
 use crate::middleware::csrf::CsrfToken;
 

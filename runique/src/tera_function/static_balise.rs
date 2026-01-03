@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use tera::{to_value, Filter};
+use tera::{Filter, to_value};
 use tera::{Result as TeraResult, Tera, Value};
 
 // Fonction générique interne pour éviter la répétition

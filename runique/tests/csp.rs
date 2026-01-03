@@ -1,14 +1,14 @@
 use axum::extract::Extension;
 use axum::{
+    Router,
     body::Body,
-    http::{header, Request},
+    http::{Request, header},
     middleware,
     routing::get,
-    Router,
 };
 use runique::{
-    middleware::csp::{security_headers_middleware, CspConfig},
     Settings,
+    middleware::csp::{CspConfig, security_headers_middleware},
 };
 use std::sync::Arc;
 use tower::ServiceExt;

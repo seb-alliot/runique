@@ -1,7 +1,7 @@
 use crate::helpers::*;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
+use syn::{Data, DeriveInput, Fields, parse_macro_input};
 
 pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
