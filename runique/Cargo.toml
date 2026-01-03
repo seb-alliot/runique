@@ -83,7 +83,7 @@ hex = "0.4"
 base64.workspace = true
 
 # macro externe
-derive_form = { version = "1.0.0", path = "derive_form" }
+derive_form = "1.0.0"
 
 # cli
 clap.workspace = true
