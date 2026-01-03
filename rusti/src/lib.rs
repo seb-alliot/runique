@@ -146,8 +146,8 @@ pub mod prelude {
     pub use crate::{error, info, success, warning};
 
     // === Formulaires ===
-    pub use crate::formulaire::field::*;
     pub use crate::formulaire::extracteur::ExtractForm;
+    pub use crate::formulaire::field::*;
     pub use crate::formulaire::formsrusti::{Forms, FormulaireTrait, RustiForm};
     pub use crate::rusti_form;
     pub use crate::DeriveModelForm;
@@ -179,8 +179,9 @@ pub mod prelude {
     pub use crate::async_trait;
 
     // === Serde ===
-    pub use crate::serde::{Deserialize, Serialize};
     pub use crate::serde::ser::{SerializeStruct, Serializer};
+    pub use crate::serde::{Deserialize, Serialize};
+    
 
     // === Collections ===
     pub use std::collections::{HashMap, HashSet};
