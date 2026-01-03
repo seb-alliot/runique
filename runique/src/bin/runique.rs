@@ -137,7 +137,7 @@ ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
 use runique::prelude::*;
 "#;
     // Créer la structure de dossiers
-    fs::create_dir_all(&project_dir)?;
+    fs::create_dir_all(project_dir)?;
     fs::create_dir_all(project_dir.join("src/models"))?;
     fs::create_dir_all(project_dir.join("src/static/css"))?;
     fs::create_dir_all(project_dir.join("src/static/js"))?;
