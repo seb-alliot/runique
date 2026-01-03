@@ -1,6 +1,6 @@
-# 📚 Cours Rusti Framework - Guide d'implémentation
+# 📚 Cours Runique Framework - Guide d'implémentation
 
-Ce dossier contient des cours détaillés pour apprendre à implémenter toutes les fonctionnalités du framework Rusti.
+Ce dossier contient des cours détaillés pour apprendre à implémenter toutes les fonctionnalités du framework Runique.
 
 ## 📖 Structure des cours
 

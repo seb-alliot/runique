@@ -93,7 +93,7 @@ pub fn generate_token(secret_key: &str, session_id: &str) -> String {
     let mut mac = HmacSha256::new_from_slice(secret_key.as_bytes())
         .expect("HMAC can take key of any size");
 
-    mac.update(b"rusti.middleware.csrf");
+    mac.update(b"runique.middleware.csrf");
     mac.update(session_id.as_bytes());
 
     // Ajouter un timestamp pour l'unicité

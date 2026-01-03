@@ -784,7 +784,7 @@ If Runique is useful to you, consider:
 
 ---
 
-**Version:** 1.0.0 (Corrected - January 2, 2026)
+**Version:** 1.0.2 (Corrected - January 2, 2026)
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*

@@ -1,8 +1,8 @@
-# 🚀 Guide de Démarrage - Cours Rusti
+# 🚀 Guide de Démarrage - Cours Runique
 
 ## Bienvenue !
 
-Ce guide vous aidera à apprendre à implémenter toutes les fonctionnalités du framework Rusti étape par étape.
+Ce guide vous aidera à apprendre à implémenter toutes les fonctionnalités du framework Runique étape par étape.
 
 ## 📚 Ordre recommandé de lecture
 
@@ -66,8 +66,8 @@ Cochez au fur et à mesure :
 ## 🚨 En cas de difficulté
 
 1. **Relisez** la section problématique
-2. **Regardez** le code source existant dans `rusti/src/`
-3. **Consultez** les tests dans `rusti/tests/` pour voir des exemples
+2. **Regardez** le code source existant dans `runique/src/`
+3. **Consultez** les tests dans `runique/tests/` pour voir des exemples
 4. **Expérimentez** avec du code simple d'abord
 
 ## 🎉 Objectif final

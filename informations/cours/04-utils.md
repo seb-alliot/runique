@@ -29,7 +29,7 @@ pub fn generate_token(secret_key: &str, session_id: &str) -> String {
         .expect("HMAC can take key of any size");
 
     // 2. Ajouter un préfixe pour le contexte
-    mac.update(b"rusti.middleware.csrf");
+    mac.update(b"runique.middleware.csrf");
 
     // 3. Ajouter l'ID de session (unique par utilisateur)
     mac.update(session_id.as_bytes());

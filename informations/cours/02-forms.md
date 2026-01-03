@@ -14,7 +14,7 @@ Forms (conteneur)
   └── cleaned_data: HashMap<String, Value>
        └── Données validées et typées
 
-RustiField (trait)
+RuniqueField (trait)
   ├── CharField
   ├── IntegerField
   ├── EmailField
@@ -49,12 +49,12 @@ impl Forms {
 }
 ```
 
-### Étape 2 : Trait RustiField
+### Étape 2 : Trait RuniqueField
 
 Le trait définit le comportement de tous les champs :
 
 ```rust
-pub trait RustiField {
+pub trait RuniqueField {
     type Output;  // Type de sortie après validation
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String>;
@@ -77,7 +77,7 @@ pub struct CharField {
     pub allow_blank: bool,
 }
 
-impl RustiField for CharField {
+impl RuniqueField for CharField {
     type Output = String;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
@@ -97,7 +97,7 @@ impl RustiField for CharField {
 ```rust
 pub struct IntegerField;
 
-impl RustiField for IntegerField {
+impl RuniqueField for IntegerField {
     type Output = i64;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
@@ -112,7 +112,7 @@ impl RustiField for IntegerField {
 
 ```rust
 impl Forms {
-    pub fn field<F: RustiField>(
+    pub fn field<F: RuniqueField>(
         &mut self,
         name: &str,
         field: &F,
@@ -152,7 +152,7 @@ impl Forms {
 ```rust
 impl Forms {
     // Champ obligatoire
-    pub fn require<F: RustiField>(
+    pub fn require<F: RuniqueField>(
         &mut self,
         name: &str,
         field: &F,
@@ -169,7 +169,7 @@ impl Forms {
     }
 
     // Champ optionnel
-    pub fn optional<F: RustiField>(
+    pub fn optional<F: RuniqueField>(
         &mut self,
         name: &str,
         field: &F,

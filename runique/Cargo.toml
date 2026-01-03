@@ -7,9 +7,10 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "A Django-inspired web framework for Rust with ORM, templates, and comprehensive security middleware"
-keywords = ["web", "framework", "django", "orm"]
+keywords = ["web", "framework", "django", "rust", "orm"]
 categories = ["web-programming::http-server"]
 readme = "../README.md"
+document = "../informations/documentation_english"
 
 exclude = [
     "tests/*",
