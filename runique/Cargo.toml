@@ -4,12 +4,25 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "A Django-inspired web framework for Rust"
-keywords = ["web", "framework", "axum", "django"]
+repository.workspace = true
+homepage.workspace = true
+description = "A Django-inspired web framework for Rust with ORM, templates, and comprehensive security middleware"
+keywords = ["web", "framework", "django", "orm"]
 categories = ["web-programming::http-server"]
+readme = "../README.md"
+
+exclude = [
+    "tests/*",
+    "**/*.db",
+    "**/*.sqlite",
+    "**/target/*",
+]
+
+[lib]
+name = "runique"
+path = "src/lib.rs"
 
 [[bin]]
-# Commande new-project
 name = "runique"
 path = "src/bin/runique.rs"
 
@@ -37,7 +50,6 @@ tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
-
 # Templates
 tera.workspace = true
 glob = "0.3"
@@ -61,13 +73,17 @@ tracing-subscriber.workspace = true
 async-trait.workspace = true
 once_cell.workspace = true
 
+# Validation et sécurité
+validator = { version = "0.20", features = ["derive"] }
+
 # CSRF
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
 base64.workspace = true
+
 # macro externe
-derive_form = { path = "derive_form" }
+derive_form = { version = "1.0.0", path = "derive_form" }
 
 # cli
 clap.workspace = true

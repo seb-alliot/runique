@@ -764,7 +764,7 @@ Runique s'appuie sur d'excellentes bibliothèques de l'écosystème Rust :
 
 - **GitHub Issues** : [github.com/seb-alliot/runique/tree/issues](https://github.com/seb-alliot/runique/tree/issues)
 - **Discord** : [Rejoindre le serveur](https://discord.gg/Y5zW7rbt)
-- **Email** : alliotsebastien04@gmail.com
+- **Email** : (alliotsebastien04@gmail.com)
 
 ---
 
@@ -786,3 +786,5 @@ Si Runique vous est utile, pensez à :
 
 **Version:** 1.0.0 (Corrigée - 2 Janvier 2026)
 **Licence:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

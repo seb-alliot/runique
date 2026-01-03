@@ -546,3 +546,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 **Bienvenue dans l'écosystème Runique !**
 
 **Développé avec passion en Rust**
+
+*Documentation created with ❤️ by Claude for Itsuki*
