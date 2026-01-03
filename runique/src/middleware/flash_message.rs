@@ -3,8 +3,8 @@ use axum::{
     body::Body, http::StatusCode, middleware::Next, response::IntoResponse, response::Response,
 };
 use serde::{Deserialize, Serialize};
-use tower_sessions::Session;
 use tower_sessions::session::Error as SessionError;
+use tower_sessions::Session;
 
 /// Représente le type d'un message flash.
 #[derive(Debug, Clone, Serialize, Deserialize)]

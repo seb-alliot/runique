@@ -16,4 +16,4 @@ pub mod csp;
 pub mod login_requiert;
 
 pub mod allowed_hosts;
-pub use allowed_hosts::{AllowedHostsValidator, allowed_hosts_middleware};
+pub use allowed_hosts::{allowed_hosts_middleware, AllowedHostsValidator};

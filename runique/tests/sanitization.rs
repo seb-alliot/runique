@@ -1,12 +1,12 @@
 use axum::extract::Extension;
 use axum::{
-    Router,
     body::Body,
-    http::{Request, header},
+    http::{header, Request},
     middleware,
     routing::post,
+    Router,
 };
-use runique::{Settings, middleware::middleware_sanetiser::sanitize_middleware};
+use runique::{middleware::middleware_sanetiser::sanitize_middleware, Settings};
 use std::sync::Arc;
 use tower::ServiceExt;
 

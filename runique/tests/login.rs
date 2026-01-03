@@ -1,9 +1,9 @@
 use axum::{
-    Router,
     body::Body,
     http::{Request, StatusCode},
     middleware,
     routing::get,
+    Router,
 };
 use runique::middleware::login_requiert::{login_required, redirect_if_authenticated};
 use tower::ServiceExt;

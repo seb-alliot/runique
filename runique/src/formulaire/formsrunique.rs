@@ -1,7 +1,7 @@
 use crate::formulaire::field::RuniqueField;
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
 

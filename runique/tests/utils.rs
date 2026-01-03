@@ -72,9 +72,7 @@ fn test_generate_token_consistency() {
     assert!(lengths.iter().all(|&len| len == lengths[0]));
 
     // Tous devraient être en hex
-    assert!(
-        tokens
-            .iter()
-            .all(|t| t.chars().all(|c| c.is_ascii_hexdigit()))
-    );
+    assert!(tokens
+        .iter()
+        .all(|t| t.chars().all(|c| c.is_ascii_hexdigit())));
 }
