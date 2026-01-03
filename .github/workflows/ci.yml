@@ -49,7 +49,7 @@ jobs:
 
       - name: Run tests
         run: cargo test --verbose --all-features
-        working-directory: rusti
+        working-directory: runique
 
   security:
     name: Security Audit
@@ -78,5 +78,5 @@ jobs:
 
       - name: Build documentation
         run: cargo doc --no-deps --all-features
-        working-directory: rusti
+        working-directory: runique
         continue-on-error: true

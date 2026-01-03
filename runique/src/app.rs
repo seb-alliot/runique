@@ -125,10 +125,7 @@ impl RuniqueApp {
         tera.add_raw_template("message", include_str!("../templates/message.html"))?;
         tera.add_raw_template("404", include_str!("../templates/errors/404.html"))?;
         tera.add_raw_template("500", include_str!("../templates/errors/500.html"))?;
-        tera.add_raw_template(
-            "debug",
-            include_str!("../templates/errors/debug_error.html"),
-        )?;
+        tera.add_raw_template("debug",include_str!("../templates/errors/debug_error.html"),)?;
         tera.add_raw_template("csrf", include_str!("../templates/csrf/csrf.html"))?;
         tera.add_raw_template("csp", include_str!("../templates/csp/csp.html"))?;
 

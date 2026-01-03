@@ -21,7 +21,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connexion à la base de données
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
-    print!("Connected to database {}", db_config.engine.name());
 
     // Configuration de l'application !!
     // Vous pouvez personnaliser les paramètres du settings ici
@@ -46,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|s| s.split(',').map(|h| h.to_string()).collect()),
         )
         .with_sanitize_text_inputs(false)
-        .with_security_headers(CspConfig::permissive())
+        .with_security_headers(CspConfig::strict())
         .with_default_middleware()
         .run()
         .await?;
