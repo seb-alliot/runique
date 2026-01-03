@@ -1,10 +1,7 @@
-use rusti::formulaire::field::CharField;
-use rusti::formulaire::formsrusti::{Forms, RustiForm};
-use rusti::serde::ser::{SerializeStruct, Serializer};
-use rusti::serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use rusti::prelude::*;
 
-#[derive(Deserialize)] // ← Seulement Deserialize
+
+#[derive(Deserialize)] 
 pub struct UsernameForm {
     pub form: Forms,
 }

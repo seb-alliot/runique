@@ -1,4 +1,4 @@
-use rusti::{tokio, CspConfig, DatabaseConfig, RustiApp, Settings};
+use rusti::prelude::*;
 mod forms;
 mod models;
 mod url;

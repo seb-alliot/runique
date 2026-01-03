@@ -1,7 +1,4 @@
 use rusti::prelude::*;
-use rusti::{
-    reverse_with_parameters, ColumnTrait, DatabaseConnection, ExtractForm, Redirect, RustiForm,
-};
 
 use crate::forms::UsernameForm;
 use crate::models::users;

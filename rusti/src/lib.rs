@@ -32,7 +32,7 @@ pub mod utils;
 
 // Réexports des crates externes (pour que les utilisateurs n'aient pas à les ajouter)
 pub use axum;
-pub use serde;
+pub use serde; 
 pub use serde_json;
 pub use tera;
 pub use tokio;
@@ -93,6 +93,7 @@ pub use tera::{Context, Tera};
 
 // Ré-export de serde
 pub use serde::{Deserialize, Serialize};
+pub use serde::ser::{SerializeStruct, Serializer};
 pub use serde_json::json;
 
 pub use async_trait::async_trait;
@@ -134,7 +135,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// # }
 /// ```
 pub mod prelude {
-    // === Framework Rusti ===
+    // === Framework Rusti Core ===
     pub use crate::app::RustiApp;
     pub use crate::processor::{Message, Template};
     pub use crate::settings::{Settings, SettingsBuilder};
@@ -145,12 +146,13 @@ pub mod prelude {
     pub use crate::{error, info, success, warning};
 
     // === Formulaires ===
+    pub use crate::formulaire::field::*;
     pub use crate::formulaire::extracteur::ExtractForm;
-    pub use crate::formulaire::formsrusti::{Forms, FormulaireTrait};
+    pub use crate::formulaire::formsrusti::{Forms, FormulaireTrait, RustiForm};
     pub use crate::rusti_form;
     pub use crate::DeriveModelForm;
 
-    // === Routing et reverse ===
+    // === Routing et URL reversing ===
     pub use crate::reverse;
     pub use crate::reverse_with_parameters;
 
@@ -165,23 +167,34 @@ pub mod prelude {
 
     // === Axum - Extractors ===
     pub use axum::extract::{Extension, Form, Path, Query, State};
+    pub use axum::Json;
 
     // === Axum - HTTP ===
     pub use axum::http::StatusCode;
-    pub use axum::Json;
 
-    // === Tokio (IMPORTANT pour #[tokio::main]) ===
+    // === Tokio ===
     pub use crate::tokio;
+
+    // === Async ===
+    pub use crate::async_trait;
 
     // === Serde ===
     pub use crate::serde::{Deserialize, Serialize};
-    pub use crate::serde_json::json;
+    pub use crate::serde::ser::{SerializeStruct, Serializer};
+
+    // === Collections ===
+    pub use std::collections::{HashMap, HashSet};
+    pub use std::sync::Arc;
 
     // === Tera ===
     pub use crate::tera::Context;
 
     // === Sessions ===
     pub use crate::tower_sessions::Session;
+
+    // === Middleware courants ===
+    pub use crate::middleware::csp::CspConfig;
+    pub use crate::middleware::login_requiert::{login_required, redirect_if_authenticated};
 
     // === ORM (si feature orm activée) ===
     #[cfg(feature = "orm")]
@@ -195,7 +208,4 @@ pub mod prelude {
 
     #[cfg(feature = "orm")]
     pub use crate::orm::impl_objects;
-
-    // === Async ===
-    pub use async_trait;
 }
