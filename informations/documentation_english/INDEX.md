@@ -1,6 +1,6 @@
-# 📚 Rusti Framework Documentation
+# 📚 Runique Framework Documentation
 
-Welcome to the complete documentation for Rusti, a modern web framework for Rust inspired by Django.
+Welcome to the complete documentation for Runique, a modern web framework for Rust inspired by Django.
 
 ## 🎯 Quick Navigation
 
@@ -18,7 +18,7 @@ Welcome to the complete documentation for Rusti, a modern web framework for Rust
 
 ### 🌱 Beginner Level
 
-1. **[README](README.md)** - Understand what Rusti is
+1. **[README](README.md)** - Understand what Runique is
 2. **[GETTING_STARTED](GETTING_STARTED.md)** - Create your first application
 3. **[TEMPLATES](TEMPLATES.md)** - Master templates
 
@@ -90,10 +90,10 @@ documentation/
 
 ## 🔑 Key Concepts
 
-### RustiApp - The Framework Core
+### RuniqueApp - The Framework Core
 
 ```rust
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .routes(routes)              // Add routes
     .with_database(db)           // Optional: Database
     .with_static_files()?        // Optional: Static files
@@ -166,7 +166,7 @@ Entity::objects
 ```bash
 # Create a project
 cargo new my-app && cd my-app
-cargo add rusti tokio --features full
+cargo add runique tokio --features full
 
 # Run in dev
 cargo run
@@ -203,11 +203,11 @@ my-project/
 ### Common Imports
 
 ```rust
-use rusti::prelude::*;  // Main import
+use runique::prelude::*;  // Main import
 
 // Or specific
-use rusti::{
-    RustiApp,
+use runique::{
+    RuniqueApp,
     Settings,
     Router,
     Context,
@@ -247,7 +247,7 @@ use rusti::{
 
 **Solution:** Check your `.env` and Cargo feature
 ```toml
-rusti = { version = "0.1", features = ["postgres"] }
+runique = { version = "0.1", features = ["postgres"] }
 ```
 
 **See:** [Database - Configuration](DATABASE.md#configuration)
@@ -270,15 +270,15 @@ urlpatterns! {
 ### Example 1: Minimal Application
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn hello() -> &'static str {
-    "Hello, Rusti!"
+    "Hello, Runique!"
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    RustiApp::new(Settings::default_values()).await?
+    RuniqueApp::new(Settings::default_values()).await?
         .routes(Router::new().route("/", get(hello)))
         .run()
         .await?;
@@ -318,7 +318,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 🤝 Contributing
 
-Want to contribute to Rusti? Great!
+Want to contribute to Runique? Great!
 
 1. Fork the project
 2. Create a branch (`git checkout -b feature/AmazingFeature`)
@@ -330,21 +330,23 @@ Want to contribute to Rusti? Great!
 
 ## 📄 License
 
-This project is dual-licensed under MIT / Apache-2.0.
+This project is licensed under MIT.
 
-**See:** [LICENSE-MIT](../LICENSE-MIT)
+**See:** [LICENSE-MIT](../../LICENSE-MIT.md)
 
 ---
 
 ## 📞 Support and Community
 
-- 📖 [Complete documentation](https://docs.rs/rusti)
-- 💬 [GitHub Discussions](https://github.com/your-repo/rusti/discussions)
-- 🐛 [Report a bug](https://github.com/your-repo/rusti/issues)
-- ⭐ [Give a star](https://github.com/your-repo/rusti)
+- 📖 [Complete documentation](README.md)
+- 💬 [GitHub Discussions](https://github.com/seb-alliot/runique/tree/discussions)
+- 🐛 [Report a bug](https://github.com/seb-alliot/runique/tree/issues)
+- ⭐ [Give a star](https://github.com/seb-alliot/runique)
 
 ---
 
 **Developed with ❤️ in Rust by Itsuki**
 
-**Happy coding with Rusti! 🦀**
+**Happy coding with Runique! 🦀**
+
+*Documentation created with ❤️ by Claude for Itsuki*

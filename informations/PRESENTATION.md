@@ -1,14 +1,14 @@
-# Hello World avec Rusti
+# Hello World avec Runique
 
 ## Introduction
 
-Ce guide vous montre comment créer votre première application web avec Rusti en moins de 5 minutes.
+Ce guide vous montre comment créer votre première application web avec Runique en moins de 5 minutes.
 
 ---
 
 ## Prérequis
 
-- Rust 1.9 ou supérieur installé
+- Rust 1.75 ou supérieur installé
 - Cargo (installé avec Rust)
 - Un éditeur de texte
 
@@ -22,13 +22,13 @@ cargo --version
 
 ## Étape 1 : Créer un nouveau projet
 ```bash
-cargo new hello-rusti
-cd hello-rusti
+cargo new hello-runique
+cd hello-runique
 ```
 
 **Structure créée :**
 ```
-hello-rusti/
+hello-runique/
 ├── Cargo.toml
 └── src/
     └── main.rs
@@ -36,17 +36,17 @@ hello-rusti/
 
 ---
 
-## Étape 2 : Ajouter Rusti
+## Étape 2 : Ajouter Runique
 
 Modifiez `Cargo.toml` :
 ```toml
 [package]
-name = "hello-rusti"
+name = "hello-runique"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rusti = "1.0"
+runique = "1.0.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -56,17 +56,17 @@ tokio = { version = "1", features = ["full"] }
 
 Remplacez le contenu de `src/main.rs` :
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn hello() -> &'static str {
-    "Hello, Rusti!"
+    "Hello, Runique!"
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::default_values();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(Router::new().route("/", get(hello)))
         .run()
         .await?;
@@ -76,10 +76,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **Explications :**
-- `use rusti::prelude::*` : Importe les types essentiels
-- `async fn hello()` : Handler qui retourne "Hello, Rusti!"
+- `use runique::prelude::*` : Importe les types essentiels
+- `async fn hello()` : Handler qui retourne "Hello, Runique!"
 - `Settings::default_values()` : Configuration par défaut
-- `RustiApp::new()` : Crée l'application
+- `RuniqueApp::new()` : Crée l'application
 - `.routes()` : Définit les routes
 - `.run()` : Lance le serveur
 
@@ -92,10 +92,10 @@ cargo run
 
 **Sortie attendue :**
 ```
-   Compiling hello-rusti v0.1.0
+   Compiling hello-runique v0.1.0
     Finished dev [unoptimized + debuginfo] target(s) in 3.45s
-     Running `target/debug/hello-rusti`
-🦀 Rusti server running on http://127.0.0.1:3000
+     Running `target/debug/hello-runique`
+🦀 Runique server running on http://127.0.0.1:3000
 ```
 
 ---
@@ -109,7 +109,7 @@ http://127.0.0.1:3000
 
 **Vous devriez voir :**
 ```
-Hello, Rusti!
+Hello, Runique!
 ```
 
 **Ou testez en ligne de commande :**
@@ -123,11 +123,11 @@ curl http://127.0.0.1:3000
 
 ### 1. Import du prelude
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 ```
 
 Le prelude contient tous les types essentiels :
-- `RustiApp` : L'application principale
+- `RuniqueApp` : L'application principale
 - `Settings` : Configuration
 - `Router` : Système de routing
 - `Response` : Type de réponse
@@ -136,7 +136,7 @@ Le prelude contient tous les types essentiels :
 ### 2. Le handler
 ```rust
 async fn hello() -> &'static str {
-    "Hello, Rusti!"
+    "Hello, Runique!"
 }
 ```
 
@@ -165,7 +165,7 @@ Configuration par défaut :
 
 ### 4. Création de l'application
 ```rust
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
 ```
 
 Initialise l'application avec :
@@ -195,14 +195,14 @@ Lance le serveur et attend les connexions.
 
 Modifiez `src/main.rs` :
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn hello() -> &'static str {
-    "Hello, Rusti!"
+    "Hello, Runique!"
 }
 
 async fn about() -> &'static str {
-    "À propos de Rusti - Framework web moderne pour Rust"
+    "À propos de Runique - Framework web moderne pour Rust"
 }
 
 #[tokio::main]
@@ -213,7 +213,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/", get(hello))
         .route("/about", get(about));
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(routes)
         .run()
         .await?;
@@ -223,19 +223,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **Testez :**
-- http://127.0.0.1:3000 → "Hello, Rusti!"
-- http://127.0.0.1:3000/about → "À propos de Rusti..."
+- http://127.0.0.1:3000 → "Hello, Runique!"
+- http://127.0.0.1:3000/about → "À propos de Runique..."
 
 ---
 
 ## Évolution : Retourner du JSON
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use serde_json::json;
 
 async fn hello() -> Response {
     let data = json!({
-        "message": "Hello, Rusti!",
+        "message": "Hello, Runique!",
         "version": "1.0.0",
         "status": "ok"
     });
@@ -247,7 +247,7 @@ async fn hello() -> Response {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::default_values();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(Router::new().route("/", get(hello)))
         .run()
         .await?;
@@ -264,7 +264,7 @@ curl http://127.0.0.1:3000
 **Réponse :**
 ```json
 {
-  "message": "Hello, Rusti!",
+  "message": "Hello, Runique!",
   "version": "1.0.0",
   "status": "ok"
 }
@@ -274,7 +274,7 @@ curl http://127.0.0.1:3000
 
 ## Évolution : Paramètres d'URL
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn greet(Path(name): Path<String>) -> String {
     format!("Hello, {}!", name)
@@ -284,7 +284,7 @@ async fn greet(Path(name): Path<String>) -> String {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::default_values();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(Router::new().route("/hello/{name}", get(greet)))
         .run()
         .await?;
@@ -348,10 +348,10 @@ urlpatterns = [
 ]
 ```
 
-**Rusti :**
+**Runique :**
 ```rust
 async fn hello() -> &'static str {
-    "Hello, Rusti!"
+    "Hello, Runique!"
 }
 
 Router::new().route("/", get(hello))
@@ -371,13 +371,13 @@ app.get('/', (req, res) => {
 app.listen(3000);
 ```
 
-**Rusti :**
+**Runique :**
 ```rust
 async fn hello() -> &'static str {
-    "Hello, Rusti!"
+    "Hello, Runique!"
 }
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .routes(Router::new().route("/", get(hello)))
     .run()
     .await?;
@@ -398,13 +398,13 @@ if __name__ == '__main__':
     app.run()
 ```
 
-**Rusti :**
+**Runique :**
 ```rust
 async fn hello() -> &'static str {
-    "Hello, Rusti!"
+    "Hello, Runique!"
 }
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .routes(Router::new().route("/", get(hello)))
     .run()
     .await?;
@@ -412,7 +412,7 @@ RustiApp::new(settings).await?
 
 ---
 
-## Pourquoi Rusti ?
+## Pourquoi Runique ?
 
 ### 1. Familier
 
@@ -459,7 +459,7 @@ pub async fn index(template: Template) -> Response {
 }
 ```
 
-**Voir :** [Guide des templates](../documentation%20french/TEMPLATES.md)
+**Voir :** [Guide des templates](../informations/documentation_french/TEMPLATES.md)
 
 ### 2. Base de données
 ```rust
@@ -498,24 +498,24 @@ urlpatterns! {
 ## Ressources
 
 ### Documentation
-- [Guide de démarrage complet](../documentation%20french/GETTING_STARTED.md)
-- [Documentation complète](../documentation%20french/)
-- [README principal](../documentation%20french/README.md)
+- [Guide de démarrage complet](../informations/documentation_english/GETTING_STARTED.md)
+- [Documentation complète](../informations/documentation_french/)
+- [README principal](../../README.fr.md)
 
 ### Exemples
-- [Tests d'intégration](../tests/) - 50+ exemples
-- [Demo app](../demo-app/) - Application complète
+- [Tests d'intégration](../runique/tests) - 50+ exemples
+- [Demo app](../examples/demo-app) - Application complète
 
 ### Support
-- [GitHub Issues](https://github.com/votre-repo/rusti/issues)
-- [Discussions](https://github.com/votre-repo/rusti/discussions)
+- [GitHub Issues](https://github.com/votre-repo/runique/issues)
+- [Discussions](https://github.com/votre-repo/runique/discussions)
 
 ---
 
 ## Récapitulatif
 
 **Vous avez appris à :**
-- Créer un projet Rusti
+- Créer un projet Runique
 - Écrire un handler simple
 - Définir des routes
 - Lancer le serveur
@@ -525,15 +525,15 @@ urlpatterns! {
 
 **En seulement 10 lignes de code !**
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn hello() -> &'static str {
-    "Hello, Rusti!"
+    "Hello, Runique!"
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    RustiApp::new(Settings::default_values()).await?
+    RuniqueApp::new(Settings::default_values()).await?
         .routes(Router::new().route("/", get(hello)))
         .run()
         .await?;
@@ -543,6 +543,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ---
 
-**Bienvenue dans l'écosystème Rusti !**
+**Bienvenue dans l'écosystème Runique !**
 
 **Développé avec passion en Rust**

@@ -1,7 +1,7 @@
 # context! Macro Usage Guide
 
 **Version:** 1.0
-**Framework:** Rusti
+**Framework:** Runique
 **Language:** English
 
 ---
@@ -15,7 +15,7 @@ The `context!` macro simplifies the creation of Tera contexts for your templates
 ## Installation
 
 ```rust
-use rusti::context;
+use runique::context;
 ```
 
 ---
@@ -116,7 +116,7 @@ let ctx = context!()
 ### Complete example with form
 
 ```rust
-use rusti::{context, Template, Response, ExtractForm};
+use runique::{context, Template, Response, ExtractForm};
 
 pub async fn user_profile_submit(
     template: Template,
@@ -145,8 +145,8 @@ pub async fn user_profile_submit(
 ### Example with database error handling
 
 ```rust
-use rusti::{context, Template, Message, DatabaseConnection};
-use rusti::axum::Extension;
+use runique::{context, Template, Message, DatabaseConnection};
+use runique::axum::Extension;
 use std::sync::Arc;
 
 pub async fn create_user(
@@ -278,7 +278,7 @@ context = {
 return render(request, 'page.html', context)
 ```
 
-### Rusti (Rust) - Method 1
+### Runique (Rust) - Method 1
 ```rust
 let ctx = context! {
     "form", &form ;
@@ -289,7 +289,7 @@ let ctx = context! {
 template.render("page.html", &ctx)
 ```
 
-### Rusti (Rust) - Method 2
+### Runique (Rust) - Method 2
 ```rust
 let ctx = context!()
     .add("form", &form)
@@ -413,12 +413,13 @@ let ctx = context! {
 
 ## Resources
 
-- **Rusti Documentation:** rusti.dev (coming soon)
-- **Examples:** rusti/examples/demo-app
-- **Issues:** GitHub Issues
+- **Runique Documentation:** [Documentation](informations)
+- **Examples:** [Exemples](runique/examples/demo-app)
+- **Issues:** [GitHub Issues](https://github.com/seb-alliot/runique/tree/issues)
 
 ---
 
 **Version:** 1.0
 **Last updated:** December 2025
 **License:** MIT
+*Documentation created with ❤️ by Claude for Itsuki*

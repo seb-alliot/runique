@@ -1,10 +1,10 @@
-# Guide de démarrage rapide - Rusti Framework
+# Guide de démarrage rapide - RuniqueFramework
 
-Bienvenue dans Rusti ! Ce guide vous accompagnera pas à pas dans la création de votre première application web avec Rusti.
+Bienvenue dans Runique! Ce guide vous accompagnera pas à pas dans la création de votre première application web avec Runique.
 
 ## Prérequis
 
-- **Rust 1.70+** - [Installer Rust](https://www.rust-lang.org/tools/install)
+- **Rust 1.75+** - [Installer Rust](https://www.rust-lang.org/tools/install)
 - **Cargo** (installé automatiquement avec Rust)
 - Connaissances de base en Rust (ownership, borrowing, async/await)
 
@@ -19,7 +19,7 @@ cargo new mon_app
 cd mon_app
 ```
 
-### 2. Ajouter Rusti aux dépendances
+### 2. Ajouter Runiqueaux dépendances
 
 Éditez `Cargo.toml` :
 
@@ -30,7 +30,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rusti = "1.0"
+runique= "1.0"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -39,7 +39,7 @@ serde = { version = "1", features = ["derive"] }
 
 ```toml
 [dependencies]
-rusti = { version = "1.0", features = ["postgres"] }
+runique= { version = "1.0", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -51,7 +51,7 @@ serde = { version = "1", features = ["derive"] }
 ### 1. Code source (src/main.rs)
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::from_env();
 
     // Créer et lancer l'application
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(routes())
         .run()
         .await?;
@@ -74,7 +74,7 @@ fn routes() -> Router {
 }
 
 async fn index() -> &'static str {
-    "Bienvenue sur Rusti !"
+    "Bienvenue sur Runique!"
 }
 ```
 
@@ -98,7 +98,7 @@ cargo run
 
 Ouvrez [http://localhost:8000](http://localhost:8000) dans votre navigateur.
 
-✅ Vous devriez voir : **"Bienvenue sur Rusti !"**
+✅ Vous devriez voir : **"Bienvenue sur Runique!"**
 
 ---
 
@@ -107,7 +107,7 @@ Ouvrez [http://localhost:8000](http://localhost:8000) dans votre navigateur.
 ### URLs avec paramètres
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 fn routes() -> Router {
     urlpatterns![
@@ -138,7 +138,7 @@ async fn user_detail(Path(id): Path<i32>) -> String {
 ### Noms de routes (reverse routing)
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 fn routes() -> Router {
     urlpatterns![
@@ -178,7 +178,7 @@ mon_app/
 </head>
 <body>
     <header>
-        <h1>Mon Application Rusti</h1>
+        <h1>Mon Application Runique</h1>
         <nav>
             <a href="{% link 'index' %}">Accueil</a>
         </nav>
@@ -211,7 +211,7 @@ mon_app/
 ### 4. Utilisation dans un handler
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn index(template: Template) -> Response {
     template.render("index.html", context! {
@@ -248,9 +248,9 @@ DB_NAME=mydb
 Créez `src/models.rs` :
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use sea_orm::entity::prelude::*;
-use rusti::impl_objects;
+use runique::impl_objects;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "users")]
@@ -274,7 +274,7 @@ impl_objects!(Entity);
 ### 3. Connexion à la base
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 mod models;
 
 #[tokio::main]
@@ -285,7 +285,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .with_database(db)
         .routes(routes())
         .run()
@@ -298,7 +298,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### 4. Utilisation dans un handler
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::models::{users, Entity as User};
 
 async fn list_users(
@@ -328,19 +328,19 @@ async fn list_users(
 Créez `src/forms.rs` :
 
 ```rust
-use rusti::prelude::*;
-use rusti::forms::prelude::*;
+use runique::prelude::*;
+use runique::forms::prelude::*;
 
-#[rusti_form]
+#[runique_form]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactForm {
-    #[field(max_length = 100, required = true)]
+    #[field(required = true)]
     pub name: CharField,
 
     #[field(required = true)]
     pub email: EmailField,
 
-    #[field(max_length = 50, required = true)]
+    #[field(required = true)]
     pub subject: CharField,
 
     #[field(widget = "textarea", required = true)]
@@ -351,7 +351,7 @@ pub struct ContactForm {
 ### 2. Affichage du formulaire
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::forms::ContactForm;
 
 async fn contact_view(template: Template) -> Response {
@@ -381,7 +381,7 @@ Template `templates/contact.html` :
 ### 3. Traitement du formulaire
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::forms::ContactForm;
 
 async fn contact_submit(
@@ -411,14 +411,14 @@ async fn contact_submit(
 ### Configuration recommandée
 
 ```rust
-use rusti::prelude::*;
-use rusti::middleware::*;
+use runique::prelude::*;
+use runique::middleware::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::from_env();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         // Sécurité
         .middleware(CsrfMiddleware::new())
         .middleware(SecurityHeadersMiddleware::new())
@@ -454,8 +454,8 @@ Automatique avec `CsrfMiddleware` :
 ### Content Security Policy
 
 ```rust
-use rusti::prelude::*;
-use rusti::middleware::CspConfig;
+use runique::prelude::*;
+use runique::middleware::CspConfig;
 
 let csp_config = CspConfig {
     default_src: vec!["'self'".to_string()],
@@ -465,7 +465,7 @@ let csp_config = CspConfig {
     ..Default::default()
 };
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(CspMiddleware::new(csp_config))
     .routes(routes())
     .run()
@@ -516,9 +516,9 @@ mon_app/
 ### 1. Activation
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(FlashMiddleware)
     .middleware(MessageMiddleware)
     .routes(routes())
@@ -529,7 +529,7 @@ RustiApp::new(settings).await?
 ### 2. Utilisation dans les handlers
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn create_user(
     Form(form): Form<UserForm>,
@@ -565,10 +565,10 @@ Ou manuellement :
 
 ### 4. Macros utilitaires
 
-Pour simplifier l'envoi de messages, Rusti fournit des macros :
+Pour simplifier l'envoi de messages, Runiquefournit des macros :
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn create_user(
     Form(form): Form<UserForm>,
@@ -649,9 +649,9 @@ blog/
 ### Modèle (src/models.rs)
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use sea_orm::entity::prelude::*;
-use rusti::impl_objects;
+use runique::impl_objects;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "posts")]
@@ -677,16 +677,16 @@ impl_objects!(Entity);
 ### Formulaire (src/forms.rs)
 
 ```rust
-use rusti::prelude::*;
-use rusti::forms::prelude::*;
+use runique::prelude::*;
+use runique::forms::prelude::*;
 
 #[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
 #[sea_orm(model = "crate::models::Model", entity = "crate::models::Entity")]
 pub struct PostForm {
-    #[field(max_length = 200, required = true)]
+    #[field(required = true)]
     pub title: CharField,
 
-    #[field(max_length = 200, required = true)]
+    #[field(required = true)]
     pub slug: CharField,
 
     #[field(widget = "textarea", required = true)]
@@ -700,7 +700,7 @@ pub struct PostForm {
 ### Vues (src/views.rs)
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::models::{posts, Entity as Post};
 use crate::forms::PostForm;
 
@@ -776,7 +776,7 @@ pub async fn create_post_submit(
 ### Routes (src/main.rs)
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 mod models;
 mod forms;
@@ -789,7 +789,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .with_database(db)
         .middleware(CsrfMiddleware::new())
         .middleware(SecurityHeadersMiddleware::new())
@@ -853,14 +853,16 @@ Maintenant que vous maîtrisez les bases, explorez :
 ## Besoin d'aide ?
 
 - 📖 [Documentation complète](README.md)
-- 🐛 [Signaler un bug](https://github.com/votre-username/rusti/issues)
-- 💬 [Discord](#)
+- 🐛 [Signaler un bug](https://github.com/seb-alliot/runique/tree/issues)
+- 💬 [Discord](https://discord.gg/Y5zW7rbt)
 
 ---
 
-**Bon développement avec Rusti ! 🚀**
+**Bon développement avec Runique! 🚀**
 
 ---
 
 **Version:** 1.0.0 (Corrigée - 2 Janvier 2026)
 **Licence:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "rusti",
-    "rusti/derive_form",
+    "runique",
+    "runique/derive_form",
     "examples/demo-app",
     "examples/demo-app/migration",
 ]
@@ -63,3 +63,6 @@ password-hash = "0.6.0-rc.3"
 rand = "0.9"
 serde_urlencoded = "0.7"
 base64 = "0.22.1"
+
+# cli
+clap = { version = "4.5", features = ["derive"] }

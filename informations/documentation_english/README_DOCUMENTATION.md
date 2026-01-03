@@ -1,10 +1,10 @@
-# 📖 Rusti Documentation Guide
+# 📖 Runique Documentation Guide
 
-Welcome! This comprehensive documentation has been created to guide you through using the Rusti framework.
+Welcome! This comprehensive documentation has been created to guide you through using the Runique framework.
 
 ## 📦 Documentation Contents
 
-You have **9 documentation files** covering all aspects of Rusti:
+You have **9 documentation files** covering all aspects of Runique:
 
 | File | Pages | Description | Priority |
 |------|-------|-------------|----------|
@@ -24,7 +24,7 @@ You have **9 documentation files** covering all aspects of Rusti:
 
 ## 🎯 Where to Start?
 
-### New to Rusti?
+### New to Runique?
 
 **Recommended Path (3-4 hours):**
 
@@ -35,7 +35,7 @@ You have **9 documentation files** covering all aspects of Rusti:
 2. **[README.md](README.md)** (20 min)
    - Discover the framework
    - See main features
-   - Install Rusti
+   - Install Runique
 
 3. **[GETTING_STARTED.md](GETTING_STARTED.md)** (2-3 hours)
    - Create your first application
@@ -75,7 +75,7 @@ You have **9 documentation files** covering all aspects of Rusti:
 ### Logical Structure
 
 ```
-Rusti Documentation
+Runique Documentation
 │
 ├── 📍 Navigation
 │   └── INDEX.md ..................... Main table of contents
@@ -184,8 +184,8 @@ Each document contains **"See Also"** sections pointing to:
 
 1. **Create Your First Project**
    ```bash
-   cargo new my-rusti-app
-   cd my-rusti-app
+   cargo new my-runique-app
+   cd my-runique-app
    # Follow GETTING_STARTED.md
    ```
 
@@ -276,7 +276,7 @@ Not just for development:
 
 ## 🎯 Documentation Goals
 
-✅ **Make you autonomous** in using Rusti in less than a day
+✅ **Make you autonomous** in using Runique in less than a day
 
 ✅ **Cover all aspects** of the framework, from Hello World to production
 
@@ -298,6 +298,6 @@ If something isn't clear:
 
 ---
 
-**Happy reading and happy coding with Rusti! 🦀**
+**Happy reading and happy coding with Runique! 🦀**
 
 *Documentation created with ❤️ by Claude for Itsuki*

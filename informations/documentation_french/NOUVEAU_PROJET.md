@@ -1,8 +1,8 @@
-# Application CRUD complète avec Rusti
+# Application CRUD complète avec Runique
 
 ## Introduction
 
-Ce guide vous montre comment créer une application CRUD (Create, Read, Update, Delete) complète avec Rusti, incluant :
+Ce guide vous montre comment créer une application CRUD (Create, Read, Update, Delete) complète avec Runique, incluant :
 - Base de données PostgreSQL
 - Templates HTML
 - Formulaires de validation
@@ -62,7 +62,7 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-rusti = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0.0", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -154,7 +154,7 @@ todo-app/
 ```rust
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use rusti::impl_objects;
+use runique::impl_objects;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "tasks")]
@@ -184,12 +184,12 @@ impl_objects!(Entity);
 
 ### src/forms.rs
 ```rust
-use rusti::prelude::*;
-use rusti::formulaire::formsrusti::{Forms, FormulaireTrait};
-use rusti::formulaire::field::{CharField, TextField, BooleanField};
+use runique::prelude::*;
+use runique::formulaire::formsrunique::{Forms, FormulaireTrait};
+use runique::formulaire::field::{CharField, TextField, BooleanField};
 use std::collections::HashMap;
 
-#[rusti_form]
+#[runique_form]
 pub struct TaskForm {
     pub form: Forms,
 }
@@ -244,7 +244,7 @@ impl TaskForm {
 
 ### src/views.rs
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::models::{tasks, Entity as Task};
 use crate::forms::TaskForm;
 use sea_orm::ActiveValue::Set;
@@ -461,7 +461,7 @@ pub async fn toggle_completed(
 
 ### src/urls.rs
 ```rust
-use rusti::{Router, urlpatterns};
+use runique::{Router, urlpatterns};
 use crate::views;
 
 pub fn routes() -> Router {
@@ -483,7 +483,7 @@ pub fn routes() -> Router {
 
 ### src/main.rs
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use std::sync::Arc;
 
 mod models;
@@ -512,7 +512,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
 
-    println!("🦀 Rusti Todo App starting...");
+    println!("🦀 Runique Todo App starting...");
     println!("📊 Database connected");
     println!("🌐 Server running on http://{}:{}",
         settings.server.ip_server,
@@ -520,7 +520,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Lancer l'application
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .with_database(db)
         .routes(urls::routes())
         .with_static_files()?
@@ -543,7 +543,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Todo App{% endblock %} - Rusti</title>
+    <title>{% block title %}Todo App{% endblock %} - Runique</title>
     <link rel="stylesheet" href='{% static "css/style.css" %}'>
 </head>
 <body>
@@ -566,7 +566,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     <footer class="footer">
         <div class="container">
-            <p>Développé avec Rusti Framework</p>
+            <p>Développé avec Runique</p>
         </div>
     </footer>
 </body>
@@ -1097,7 +1097,7 @@ cargo run
 
 **Sortie attendue :**
 ```
-🦀 Rusti Todo App starting...
+🦀 Runique Todo App starting...
 📊 Database connected
 🌐 Server running on http://127.0.0.1:3000
 ```
@@ -1259,7 +1259,7 @@ Token validé automatiquement par le middleware.
 ### Test manuel
 
 **Créer 5 tâches :**
-1. "Apprendre Rusti" (description: "Framework web Rust")
+1. "Apprendre Runique" (description: "Framework web Rust")
 2. "Créer un projet" (description: "Application CRUD complète")
 3. "Déployer en production" (pas de description)
 4. "Écrire la documentation" (description: "Guide complet")
@@ -1415,7 +1415,7 @@ def create(request):
     return render(request, 'create.html', {'form': form})
 ```
 
-### Rusti
+### Runique
 ```rust
 // models.rs
 #[derive(DeriveEntityModel)]
@@ -1429,7 +1429,7 @@ pub struct Model {
 }
 
 // forms.rs
-#[rusti_form]
+#[runique_form]
 pub struct TaskForm {
     pub form: Forms,
 }
@@ -1487,7 +1487,7 @@ pub async fn create_submit(
         }
         Err(e) => {
             let _ = message.error(&format!("Erreur : {}", e)).await;
-            // ou 
+            // ou
             // let error = format!("Erreur : {}", e)
             // error!(message, error)
             let ctx = context! { "form", &form };
@@ -1504,7 +1504,7 @@ pub async fn create_submit(
 - Flash messages
 - Templates avec héritage
 
-**Avantages Rusti :**
+**Avantages Runique :**
 - Type-safety (erreurs à la compilation)
 - Performances (async natif)
 - Sécurité mémoire garantie
@@ -1529,7 +1529,7 @@ pub async fn create_submit(
 ## Récapitulatif
 
 **Vous avez appris à :**
-- Configurer PostgreSQL avec Rusti
+- Configurer PostgreSQL avec Runique
 - Créer un modèle avec SeaORM
 - Utiliser l'ORM Django-like
 - Créer des formulaires avec validation
@@ -1543,6 +1543,8 @@ pub async fn create_submit(
 
 ---
 
-**Félicitations ! Vous maîtrisez maintenant Rusti.**
+**Félicitations ! Vous maîtrisez maintenant Runique.**
 
 **Développé avec passion en Rust**
+
+*Documentation created with ❤️ by Claude for Itsuki*

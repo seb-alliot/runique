@@ -2,9 +2,9 @@ Voici la traduction en anglais de ton guide de contribution, en respectant le fo
 
 ---
 
-# 🤝 Contributing Guide - Rusti Framework
+# 🤝 Contributing Guide - Runique Framework
 
-Thank you for your interest in contributing to Rusti! This guide will help you get started.
+Thank you for your interest in contributing to Runique! This guide will help you get started.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ We are committed to creating a welcoming and inclusive community. By participati
 
 ### 🐛 Report a Bug
 
-1. Check that the bug has not already been reported in the [Issues](https://github.com/your-repo/rusti/issues)
+1. Check that the bug has not already been reported in the [Issues](https://github.com/your-repo/runique/issues)
 2. Open a new issue using the "Bug Report" template
 3. Provide a minimal reproducible example
 4. Include system information (OS, Rust version, etc.)
@@ -68,8 +68,8 @@ Documentation is just as important as code!
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/rusti.git
-cd rusti
+git clone https://github.com/seb-alliot/runique.git
+cd runique
 
 # Install dependencies
 cargo build
@@ -88,8 +88,8 @@ cargo clippy --all-features -- -D warnings
 ### Project Structure
 
 ```
-rusti/
-├── rusti/                  # Framework core
+runique/
+├── runique/                  # Framework core
 │   ├── src/
 │   │   ├── lib.rs
 │   │   ├── app.rs
@@ -121,9 +121,9 @@ rusti/
 
 ```bash
 # Fork on GitHub, then:
-git clone https://github.com/YOUR-USERNAME/rusti.git
-cd rusti
-git remote add upstream https://github.com/your-repo/rusti.git
+git clone https://github.com/seb-alliot/runique.git
+cd runique
+git remote add upstream https://github.com/seb-alliot/runique.git
 
 ```
 
@@ -229,19 +229,19 @@ Follow standard Rust conventions:
 
 ```rust
 // ✅ Good
-pub struct RustiApp {
+pub struct RuniqueApp {
     router: Router,
     config: Arc<Settings>,
 }
 
-impl RustiApp {
+impl RuniqueApp {
     pub fn new(settings: Settings) -> Result<Self> {
         // ...
     }
 }
 
 // ❌ Bad
-pub struct rustiApp {
+pub struct RuniqueApp {
     Router: Router,
     CONFIG: Arc<Settings>,
 }
@@ -253,14 +253,14 @@ pub struct rustiApp {
 Document all public functions:
 
 ```rust
-/// Creates a new instance of RustiApp
+/// Creates a new instance of RuniqueApp
 ///
 /// # Examples
 ///
 /// ```rust
-/// use rusti::{RustiApp, Settings};
+/// use runique::{RuniqueApp, Settings};
 ///
-/// let app = RustiApp::new(Settings::default_values())?;
+/// let app = RuniqueApp::new(Settings::default_values())?;
 /// ```
 ///
 /// # Errors
@@ -310,7 +310,7 @@ mod tests {
     #[tokio::test]
     async fn test_app_creation() {
         let settings = Settings::default_values();
-        let app = RustiApp::new(settings).await;
+        let app = RuniqueApp::new(settings).await;
 
         assert!(app.is_ok());
     }
@@ -466,18 +466,18 @@ Don't hesitate to ask for help:
 
 ## Questions?
 
-* 💬 [GitHub Discussions](https://github.com/your-repo/rusti/discussions)
-* 🐛 [Issues](https://github.com/your-repo/rusti/issues)
-* 📧 Email: [your-email@example.com]
+* 💬 [GitHub Discussions](https://github.com/seb-alliot/runique/tree/discussions)
+* 🐛 [Issues](https://github.com/seb-alliot/runique/tree/issues)
+* 📧 Email: [alliotsebastien04@gmail.com]
 
 ---
 
 ## Acknowledgments
 
-Thank you for contributing to Rusti! Every contribution, no matter how small, helps improve the framework.
+Thank you for contributing to Runique! Every contribution, no matter how small, helps improve the framework.
 
 **Together, let's build the best web framework for Rust! 🦀**
 
 ---
 
-Souhaitez-vous que je traduise également le **CHANGELOG** ou un autre document technique pour finaliser la version anglaise de votre dépôt ?
+*Documentation created with ❤️ by Claude for Itsuki*

@@ -1,7 +1,7 @@
 # Guide d'utilisation de la macro context!
 
 **Version:** 1.0.0
-**Framework:** Rusti
+**Framework:** Runique
 **Langue:** Français
 
 ---
@@ -15,7 +15,7 @@ La macro `context!` simplifie la création de contextes Tera pour vos templates,
 ## Installation
 
 ```rust
-use rusti::context;
+use runique::context;
 ```
 
 ---
@@ -116,7 +116,7 @@ let ctx = context!()
 ### Exemple complet avec formulaire
 
 ```rust
-use rusti::{context, Template, Response, ExtractForm};
+use runique::{context, Template, Response, ExtractForm};
 
 pub async fn user_profile_submit(
     template: Template,
@@ -145,8 +145,8 @@ pub async fn user_profile_submit(
 ### Exemple avec gestion d'erreurs DB
 
 ```rust
-use rusti::{context, Template, Message, DatabaseConnection};
-use rusti::axum::Extension;
+use runique::{context, Template, Message, DatabaseConnection};
+use runique::axum::Extension;
 use std::sync::Arc;
 
 pub async fn create_user(
@@ -278,7 +278,7 @@ context = {
 return render(request, 'page.html', context)
 ```
 
-### Rusti (Rust) - Méthode 1
+### Runique (Rust) - Méthode 1
 ```rust
 let ctx = context! {
     "form", &form ;
@@ -289,7 +289,7 @@ let ctx = context! {
 template.render("page.html", &ctx)
 ```
 
-### Rusti (Rust) - Méthode 2
+### Runique (Rust) - Méthode 2
 ```rust
 let ctx = context!()
     .add("form", &form)
@@ -413,8 +413,7 @@ let ctx = context! {
 
 ## Ressources
 
-- **Documentation Rusti:** rusti.dev (à venir)
-- **Exemples:** rusti/examples/demo-app
+- **Exemples:** runique/examples/demo-app
 - **Issues:** GitHub Issues
 
 ---
@@ -422,3 +421,5 @@ let ctx = context! {
 **Version:** 1.0
 **Dernière mise à jour:** Décembre 2025
 **Licence:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

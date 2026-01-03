@@ -1,8 +1,8 @@
-# Bienvenue dans Rusti 1.0.0 - Première Release
+# Bienvenue dans Runique 1.0.0 - Première Release
 
 ## À propos de ce document
 
-Ce document explique le contenu de la **première version stable publique** de Rusti Framework.
+Ce document explique le contenu de la **première version stable publique** de Runique Framework.
 
 
 ---
@@ -31,23 +31,23 @@ Ce document explique le contenu de la **première version stable publique** de R
 ### 1. Installation
 ```toml
 [dependencies]
-rusti = "1.0.0"
+runique = "1.0.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
 ### 2. Hello World
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn hello() -> &'static str {
-    "Hello, Rusti 1.0!"
+    "Hello, Runique 1.0!"
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::default_values();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(Router::new().route("/", get(hello)))
         .run()
         .await?;
@@ -67,7 +67,7 @@ Ouvrez http://127.0.0.1:3000
 
 ## Documentation complète
 
-Rusti 1.0 inclut **89 pages** de documentation professionnelle.
+Runique 1.0 inclut **89 pages** de documentation professionnelle.
 
 ### Guides principaux
 
@@ -85,7 +85,7 @@ Rusti 1.0 inclut **89 pages** de documentation professionnelle.
 ### Parcours d'apprentissage
 
 **Débutant (2-3 heures) :**
-1. README.md - Comprendre Rusti
+1. README.md - Comprendre Runique
 2. GETTING_STARTED.md - Créer votre première app
 3. TEMPLATES.md - Maîtriser les templates
 
@@ -150,7 +150,7 @@ cargo test
 17. Sanitization process
 18. Response generation
 
-**Localisation :** `informations/diagramme sequence rusti/`
+**Localisation :** `informations/diagramme sequence Runique/`
 
 ---
 
@@ -207,13 +207,13 @@ Des cours détaillés dans `informations/cours/` expliquent :
 **Installation :**
 ```toml
 # PostgreSQL
-rusti = { version = "1.0", features = ["postgres"] }
+runique = { version = "1.0", features = ["postgres"] }
 
 # MySQL
-rusti = { version = "1.0", features = ["mysql"] }
+runique = { version = "1.0", features = ["mysql"] }
 
 # Toutes les bases
-rusti = { version = "1.0", features = ["all-databases"] }
+runique = { version = "1.0", features = ["all-databases"] }
 ```
 
 ---
@@ -233,7 +233,7 @@ rusti = { version = "1.0", features = ["all-databases"] }
 
 ## Comparaison avec Django
 
-| Concept Django | Équivalent Rusti | Notes |
+| Concept Django | Équivalent Runique | Notes |
 |----------------|------------------|-------|
 | `settings.py` | `Settings::builder()` | Configuration |
 | `urls.py` | `urlpatterns! { ... }` | Routing |
@@ -336,7 +336,7 @@ pub async fn create_post(mut message: Message) -> Response {
 
 ## Checklist de démarrage
 
-Pour bien démarrer avec Rusti 1.0 :
+Pour bien démarrer avec Runique 1.0 :
 
 - [ ] Lire le README.md
 - [ ] Suivre le GETTING_STARTED.md
@@ -352,7 +352,7 @@ Pour bien démarrer avec Rusti 1.0 :
 
 ### Pages d'erreur élégantes en dev
 
-En mode développement, Rusti affiche des pages d'erreur détaillées :
+En mode développement, Runique affiche des pages d'erreur détaillées :
 - Stack trace complète
 - Informations de requête HTTP
 - Source du template avec numéro de ligne
@@ -380,7 +380,7 @@ let url = reverse_with_parameters("user_profile", &[
 
 **Fonctionnalités :**
 - Implémentation réelle du rate limiting
-- CLI Rusti pour scaffolding
+- CLI Runique pour scaffolding
 - Support WebSocket intégré
 - Admin panel auto-généré
 - Hot reload en développement
@@ -397,7 +397,7 @@ let url = reverse_with_parameters("user_profile", &[
 
 ## Contribution
 
-Rusti est open source et accueille les contributions.
+Runique est open source et accueille les contributions.
 
 **Comment contribuer :**
 1. Fork le projet
@@ -406,7 +406,7 @@ Rusti est open source et accueille les contributions.
 4. Push vers la branche (`git push origin feature/AmazingFeature`)
 5. Ouvrir une Pull Request
 
-**Voir :** [Guide de contribution](documentation%20french/CONTRIBUTING.md)
+**Voir :** [Guide de contribution](informations/documentation_french/CONTRIBUTING.md)
 
 ---
 
@@ -428,7 +428,7 @@ Rusti est open source et accueille les contributions.
 
 ## Remerciements
 
-Rusti s'appuie sur l'excellent travail de :
+Runique s'appuie sur l'excellent travail de :
 - Django - Inspiration
 - Axum - Framework HTTP
 - Tokio - Runtime async
@@ -440,10 +440,10 @@ Rusti s'appuie sur l'excellent travail de :
 
 ## Licence
 
-Rusti est distribué sous double licence MIT / Apache-2.0.
+Runique est distribué sous double licence MIT / Apache-2.0.
 
 Vous êtes libre de :
-- Utiliser Rusti dans des projets commerciaux
+- Utiliser Runique dans des projets commerciaux
 - Modifier le code source
 - Distribuer votre application
 - Contribuer au projet
@@ -454,7 +454,7 @@ Vous êtes libre de :
 
 ## C'est parti
 
-Rusti 1.0.0 est prêt pour la production. Construisez des applications web performantes et sécurisées avec Rust.
+Runique 1.0.0 est prêt pour la production. Construisez des applications web performantes et sécurisées avec Rust.
 
 **Prochaines étapes :**
 1. Lire le Guide de démarrage
@@ -466,4 +466,4 @@ Rusti 1.0.0 est prêt pour la production. Construisez des applications web perfo
 
 **Développé avec passion en Rust par Itsuki**
 
-**Bon développement avec Rusti 1.0**
+**Bon développement avec Runique 1.0**

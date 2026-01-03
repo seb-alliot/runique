@@ -1,11 +1,11 @@
 // examples/demo-app/src/models/users.rs
-use rusti::impl_objects;
-use rusti::sea_orm;
-use rusti::sea_orm::entity::prelude::*;
-use rusti::serde::{Deserialize, Serialize};
-use rusti::DeriveModelForm; // ← Ajoute Deserialize
+use runique::impl_objects;
+use runique::sea_orm;
+use runique::sea_orm::entity::prelude::*;
+use runique::serde::{Deserialize, Serialize};
+use runique::DeriveModelForm;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize, Deserialize)] // ← Ajoute Deserialize
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize, Deserialize)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key)]

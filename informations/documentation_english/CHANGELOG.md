@@ -1,4 +1,4 @@
-# Changelog - Rusti Framework
+# Changelog - Runique Framework
 
 All notable changes to this project will be documented in this file.
 
@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 #### Added
 
 **Core Framework**
-- `RustiApp` structure with builder pattern
+- `RuniqueApp` structure with builder pattern
 - Configuration via `Settings` (default, .env, builder)
 - Environment variable support
 - Logging with `tracing`
@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Auto-injection of context (csrf_token, messages, debug, csp_nonce)
 
 **Forms**
-- `#[rusti_form]` macro for custom forms
+- `#[runique_form]` macro for custom forms
 - `#[derive(DeriveModelForm)]` macro for auto-generation from models
 - Field types: CharField, TextField, EmailField, PasswordField, IntegerField, FloatField, BooleanField, DateField, DateTimeField, IPAddressField, URLField, SlugField, JSONField
 - Validation with `require()` and `optional()`
@@ -88,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 **Static Files**
 - Automatic static file serving
 - Automatic media file serving
-- Tera filters `{{ "file" | static }}` and `{{ "file" | media }}`
+- Filtres Tera {% static "css/main.css %} et {% media "media_name.format %}
 - Flexible path configuration
 
 **Error Handling**
@@ -113,7 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `urlpatterns!` - Django-like route definition
 - `context!` - Tera context creation with two syntaxes
 - `impl_objects!` - Enable Django-like API for entities
-- `#[rusti_form]` - Generate Deref/DerefMut and serde(flatten) for forms
+- `#[runique_form]` - Generate Deref/DerefMut and serde(flatten) for forms
 - `#[derive(DeriveModelForm)]` - Generate complete form from model
 - `reverse!` and `reverse_with_parameters!` - Reverse routing
 
@@ -216,7 +216,7 @@ Implemented security headers:
 
 **Features**
 - Actual rate limiting implementation
-- Rusti CLI for scaffolding and migrations
+- Runique CLI for scaffolding and migrations
 - Integrated WebSocket support
 - Auto-generated admin panel
 - Hot reload in development
@@ -241,14 +241,14 @@ Implemented security headers:
 
 ## Version Comparison
 
-### Django → Rusti
+### Django → Runique
 
-| Feature | Django | Rusti v1.0.0 | Status |
+| Feature | Django | Runique v1.0.0 | Status |
 |---------|--------|--------------|--------|
 | **Routing** | `urls.py` | `urlpatterns!` | Complete |
 | **Templates** | Jinja2-like | Tera + custom tags | Complete |
 | **ORM** | Django ORM | SeaORM + Django-like API | Complete |
-| **Forms** | Django Forms | `#[rusti_form]` + `DeriveModelForm` | Complete |
+| **Forms** | Django Forms | `#[runique_form]` + `DeriveModelForm` | Complete |
 | **Admin** | Django Admin | Not yet | Coming |
 | **Auth** | Built-in | Basic middleware | Partial |
 | **Migrations** | `manage.py migrate` | `sea-orm-cli` | Partial |
@@ -271,11 +271,11 @@ Lead Developer: Itsuki
 
 ## Links
 
-- [Documentation](https://docs.rs/rusti)
-- [GitHub Repository](https://github.com/seb-alliot/rusti)
-- [Issues](https://github.com/seb-alliot/rusti/issues)
-- [Discussions](https://github.com/seb-alliot/rusti/discussions)
-- [Changelog](https://github.com/your-repo/rusti/blob/main/CHANGELOG.md)
+- [Documentation](informations)
+- [GitHub Repository](https://github.com/seb-alliot/runique)
+- [Issues](https://github.com/seb-alliot/runique/tree/issues)
+- [Discussions](https://github.com/seb-alliot/runique/tree/discussions)
+- [Changelog](hinformations/documentation_english/CHANGELOG.md)
 
 ---
 
@@ -287,4 +287,4 @@ Lead Developer: Itsuki
 
 ---
 
-[1.0.0]: https://github.com/seb-alliot/rusti/releases
+[1.0.0]: https://github.com/seb-alliot/runique/releases/tag/v1.0.0

@@ -1,4 +1,4 @@
-use rusti::prelude::*;
+use runique::prelude::*;
 mod forms;
 mod models;
 mod url;
@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings.validate_allowed_hosts();
 
     // Créer et lancer l'application
-    RustiApp::new(settings)
+    RuniqueApp::new(settings)
         .await?
         .routes(url::routes())
         .with_database(db)
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|s| s.split(',').map(|h| h.to_string()).collect()),
         )
         .with_sanitize_text_inputs(false)
-        .with_security_headers(CspConfig::strict())
+        .with_security_headers(CspConfig::permissive())
         .with_default_middleware()
         .run()
         .await?;

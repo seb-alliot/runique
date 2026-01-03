@@ -1,6 +1,6 @@
-# Content Security Policy (CSP) Guide - Rusti Framework
+# Content Security Policy (CSP) Guide - Runique Framework
 
-Rusti includes built-in Content Security Policy (CSP) support to protect your application against XSS attacks and code injection.
+Runique includes built-in Content Security Policy (CSP) support to protect your application against XSS attacks and code injection.
 
 ## Table of Contents
 
@@ -53,7 +53,7 @@ pub struct CspConfig {
     pub frame_ancestors: Vec<String>,
     pub base_uri: Vec<String>,
     pub form_action: Vec<String>,
-    
+
     // Nonce configuration
     pub use_nonce: bool,
 }
@@ -77,8 +77,8 @@ pub struct CspConfig {
 ### Basic Configuration
 
 ```rust
-use rusti::prelude::*;
-use rusti::middleware::CspConfig;
+use runique::prelude::*;
+use runique::middleware::CspConfig;
 
 let csp_config = CspConfig {
     default_src: vec!["'self'".to_string()],
@@ -93,7 +93,7 @@ let csp_config = CspConfig {
     use_nonce: false,
 };
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(CspMiddleware::new(csp_config))
     .routes(routes())
     .run()
@@ -105,35 +105,35 @@ RustiApp::new(settings).await?
 ```rust
 let csp_config = CspConfig {
     default_src: vec!["'self'".to_string()],
-    
+
     script_src: vec![
         "'self'".to_string(),
         "https://cdn.jsdelivr.net".to_string(),
         "https://unpkg.com".to_string(),
     ],
-    
+
     style_src: vec![
         "'self'".to_string(),
         "'unsafe-inline'".to_string(),
         "https://fonts.googleapis.com".to_string(),
     ],
-    
+
     img_src: vec![
         "'self'".to_string(),
         "data:".to_string(),
         "https:".to_string(),
     ],
-    
+
     font_src: vec![
         "'self'".to_string(),
         "https://fonts.gstatic.com".to_string(),
     ],
-    
+
     connect_src: vec![
         "'self'".to_string(),
         "https://api.example.com".to_string(),
     ],
-    
+
     frame_ancestors: vec!["'none'".to_string()],
     base_uri: vec!["'self'".to_string()],
     form_action: vec!["'self'".to_string()],
@@ -234,7 +234,7 @@ The `{{ csp }}` tag will generate an **empty string**:
 <!-- Inline script (requires nonce if strict CSP) -->
 <script {{ csp }}>
     const data = {{ chart_data|json_encode|safe }};
-    
+
     new Chart(document.getElementById('chart'), {
         type: 'bar',
         data: data,
@@ -247,7 +247,7 @@ The `{{ csp }}` tag will generate an **empty string**:
 
 ## Preset Configurations
 
-Rusti provides three preset CSP configurations:
+Runique provides three preset CSP configurations:
 
 ### 1. Default Configuration (Balanced)
 
@@ -341,8 +341,8 @@ let csp_config = CspConfig {
 ### Example 1: Modern SPA with CDN
 
 ```rust
-use rusti::prelude::*;
-use rusti::middleware::CspConfig;
+use runique::prelude::*;
+use runique::middleware::CspConfig;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -350,43 +350,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let csp_config = CspConfig {
         default_src: vec!["'self'".to_string()],
-        
+
         script_src: vec![
             "'self'".to_string(),
             "https://cdn.jsdelivr.net".to_string(),
             "https://unpkg.com".to_string(),
         ],
-        
+
         style_src: vec![
             "'self'".to_string(),
             "'unsafe-inline'".to_string(),
             "https://fonts.googleapis.com".to_string(),
         ],
-        
+
         img_src: vec![
             "'self'".to_string(),
             "data:".to_string(),
             "https:".to_string(),
         ],
-        
+
         font_src: vec![
             "'self'".to_string(),
             "https://fonts.gstatic.com".to_string(),
         ],
-        
+
         connect_src: vec![
             "'self'".to_string(),
             "https://api.example.com".to_string(),
             "wss://websocket.example.com".to_string(),
         ],
-        
+
         frame_ancestors: vec!["'none'".to_string()],
         base_uri: vec!["'self'".to_string()],
         form_action: vec!["'self'".to_string()],
         use_nonce: false,
     };
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .middleware(CspMiddleware::new(csp_config))
         .middleware(SecurityHeadersMiddleware::new())
         .routes(routes())
@@ -413,7 +413,7 @@ let csp_config = CspConfig {
     use_nonce: true,  // ✅ Enable nonces
 };
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(CspMiddleware::new(csp_config))
     .routes(routes())
     .run()
@@ -427,10 +427,10 @@ RustiApp::new(settings).await?
 <html>
 <head>
     <title>Dashboard</title>
-    
+
     <!-- External style (no nonce needed) -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    
+
     <!-- Inline style (requires nonce) -->
     <style {{ csp }}>
         .custom-chart { width: 100%; height: 400px; }
@@ -438,10 +438,10 @@ RustiApp::new(settings).await?
 </head>
 <body>
     <div id="app"></div>
-    
+
     <!-- External script (no nonce needed) -->
     <script src="{% static 'js/vue.min.js' %}"></script>
-    
+
     <!-- Inline script (requires nonce) -->
     <script {{ csp }}>
         new Vue({
@@ -484,7 +484,7 @@ let csp_config = CspConfig {
 Open DevTools (F12) and check the Console. CSP violations appear as warnings:
 
 ```
-Refused to execute inline script because it violates the following 
+Refused to execute inline script because it violates the following
 Content Security Policy directive: "script-src 'self'".
 ```
 
@@ -674,14 +674,16 @@ let csp_config = CspConfig {
 
 ## See Also
 
-- [Security Guide](SECURITY.md)
-- [Configuration](CONFIGURATION.md)
-- [Templates](TEMPLATES.md)
+- [Security Guide](informations/documentation_english/CSP.md)
+- [Configuration](informations/documentation_english/CONFIGURATION.md)
+- [Templates](informations/documentation_english/TEMPLATES.md)
 - [MDN CSP Documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
 
-Protect your application with Rusti's CSP!
+Protect your application with Runique's CSP!
 
 ---
 
 **Version:** 1.0 (Corrected - January 2, 2026)
 **License:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

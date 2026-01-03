@@ -1,6 +1,6 @@
-# Guide des formulaires - Rusti Framework
+# Guide des formulaires - RuniqueFramework
 
-Rusti propose un système de formulaires inspiré de Django avec génération automatique via macros procédurales.
+Runiquepropose un système de formulaires inspiré de Django avec génération automatique via macros procédurales.
 
 ## Table des matières
 
@@ -18,7 +18,7 @@ Rusti propose un système de formulaires inspiré de Django avec génération au
 ### Création basique
 
 ```rust
-use rusti::forms::{RustiForm, Field, fields::{CharField, EmailField}};
+use runique::forms::{RuniqueForm, Field, fields::{CharField, EmailField}};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,15 +27,13 @@ pub struct LoginForm {
     pub password: CharField,
 }
 
-impl RustiForm for LoginForm {
+impl RuniqueForm for LoginForm {
     fn new() -> Self {
         Self {
             username: CharField::new()
-                .max_length(150)
                 .required(true)
                 .label("Nom d'utilisateur"),
             password: CharField::new()
-                .max_length(128)
                 .required(true)
                 .widget("password")
                 .label("Mot de passe"),
@@ -58,7 +56,7 @@ impl RustiForm for LoginForm {
 ### Utilisation dans un handler
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 pub async fn login(
     Form(form): Form<LoginForm>,
@@ -84,28 +82,28 @@ pub async fn login(
 
 ## Formulaires auto-générés
 
-Rusti propose **deux macros** pour générer automatiquement des formulaires depuis vos modèles SeaORM :
+Runiquepropose **deux macros** pour générer automatiquement des formulaires depuis vos modèles SeaORM :
 
-1. **`#[rusti_form]`** - Pour créer des formulaires personnalisés
+1. **`#[runique_form]`** - Pour créer des formulaires personnalisés
 2. **`#[derive(DeriveModelForm)]`** - Pour générer des formulaires liés aux modèles
 
-### Macro `#[rusti_form]`
+### Macro `#[runique_form]`
 
-Cette macro génère automatiquement l'implémentation du trait `RustiForm`.
+Cette macro génère automatiquement l'implémentation du trait `RuniqueForm`.
 
 ```rust
-use rusti::forms::prelude::*;
+use runique::forms::prelude::*;
 
-#[rusti_form]
+#[runique_form]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactForm {
-    #[field(max_length = 100, required = true)]
+    #[field(required = true)]
     pub name: CharField,
 
     #[field(required = true)]
     pub email: EmailField,
 
-    #[field(max_length = 50, required = true)]
+    #[field(required = true)]
     pub subject: CharField,
 
     #[field(widget = "textarea", required = true)]
@@ -116,7 +114,7 @@ pub struct ContactForm {
 **Ce qui est généré automatiquement :**
 
 ```rust
-impl RustiForm for ContactForm {
+impl RuniqueForm for ContactForm {
     fn new() -> Self { /* ... */ }
     fn is_valid(&self) -> bool { /* ... */ }
     fn errors(&self) -> Vec<String> { /* ... */ }
@@ -130,7 +128,7 @@ Cette macro est plus puissante et génère **plusieurs éléments** :
 #### 1. Structure du formulaire
 
 ```rust
-use rusti::forms::prelude::*;
+use runique::forms::prelude::*;
 use sea_orm::entity::prelude::*;
 
 // Votre modèle SeaORM
@@ -148,7 +146,7 @@ pub struct Model {
 #[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
 #[sea_orm(model = "Model", entity = "Entity")]
 pub struct UserForm {
-    #[field(max_length = 150, required = true)]
+    #[field(required = true)]
     pub username: CharField,
 
     #[field(required = true)]
@@ -181,11 +179,11 @@ impl std::ops::DerefMut for UserForm {
 }
 ```
 
-##### b) Implémentation du trait `RustiForm`
+##### b) Implémentation du trait `RuniqueForm`
 
 ```rust
 // ✅ Généré automatiquement
-impl RustiForm for UserForm {
+impl RuniqueForm for UserForm {
     fn new() -> Self { /* ... */ }
     fn is_valid(&self) -> bool { /* ... */ }
     fn errors(&self) -> Vec<String> { /* ... */ }
@@ -273,10 +271,10 @@ pub async fn create_user_simple(
 
 #### 3. Récapitulatif des éléments générés
 
-| Élément | Généré par `#[rusti_form]` | Généré par `#[derive(DeriveModelForm)]` |
+| Élément | Généré par `#[runique_form]` | Généré par `#[derive(DeriveModelForm)]` |
 |---------|---------------------------|----------------------------------------|
 | Struct du formulaire | ✅ (manuel) | ✅ (manuel) |
-| `impl RustiForm` | ✅ | ✅ |
+| `impl RuniqueForm` | ✅ | ✅ |
 | `impl Deref/DerefMut` | ❌ | ✅ |
 | Méthode `to_active_model()` | ❌ | ✅ |
 | Méthode `save()` | ❌ | ✅ |
@@ -288,7 +286,7 @@ pub async fn create_user_simple(
 ### Types de champs disponibles
 
 ```rust
-use rusti::forms::fields::*;
+use runique::forms::fields::*;
 
 // Texte simple
 pub name: CharField,
@@ -312,11 +310,11 @@ pub role: ChoiceField,
 ### Attributs de validation
 
 ```rust
-#[rusti_form]
+#[runique_form]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterForm {
     // Longueur max
-    #[field(max_length = 150, required = true)]
+    #[field(required = true)]
     pub username: CharField,
 
     // Validation email automatique
@@ -324,7 +322,7 @@ pub struct RegisterForm {
     pub email: EmailField,
 
     // Longueur min et max
-    #[field(min_length = 8, max_length = 128, required = true, widget = "password")]
+    #[field(required = true, widget = "password")]
     pub password: CharField,
 
     // Valeur par défaut
@@ -408,10 +406,10 @@ impl RegisterForm {
 ### Widgets personnalisés
 
 ```rust
-#[rusti_form]
+#[runique_form]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArticleForm {
-    #[field(max_length = 200, required = true)]
+    #[field(required = true)]
     pub title: CharField,
 
     // Textarea pour contenu long
@@ -419,7 +417,7 @@ pub struct ArticleForm {
     pub content: CharField,
 
     // Input password
-    #[field(widget = "password", max_length = 128)]
+    #[field(widget = "password")]
     pub password: CharField,
 
     // Select dropdown
@@ -434,16 +432,16 @@ pub struct ArticleForm {
 
 ### Activation automatique
 
-La protection CSRF est **automatiquement activée** dans Rusti lorsque le middleware `CsrfMiddleware` est ajouté.
+La protection CSRF est **automatiquement activée** dans Runiquelorsque le middleware `CsrfMiddleware` est ajouté.
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::from_env();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .middleware(CsrfMiddleware::new())  // ✅ CSRF activé
         .routes(routes())
         .run()
@@ -493,19 +491,19 @@ pub async fn submit_form(
 ### Exemple 1 : Formulaire de contact simple
 
 ```rust
-use rusti::prelude::*;
-use rusti::forms::prelude::*;
+use runique::prelude::*;
+use runique::forms::prelude::*;
 
-#[rusti_form]
+#[runique_form]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactForm {
-    #[field(max_length = 100, required = true)]
+    #[field(required = true)]
     pub name: CharField,
 
     #[field(required = true)]
     pub email: EmailField,
 
-    #[field(max_length = 50, required = true)]
+    #[field(required = true)]
     pub subject: CharField,
 
     #[field(widget = "textarea", required = true)]
@@ -539,8 +537,8 @@ pub async fn contact_submit(
 ### Exemple 2 : Formulaire lié au modèle avec sauvegarde
 
 ```rust
-use rusti::prelude::*;
-use rusti::forms::prelude::*;
+use runique::prelude::*;
+use runique::forms::prelude::*;
 use sea_orm::entity::prelude::*;
 
 // Modèle SeaORM
@@ -564,10 +562,10 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
 #[sea_orm(model = "Model", entity = "Entity")]
 pub struct ArticleForm {
-    #[field(max_length = 200, required = true)]
+    #[field(required = true)]
     pub title: CharField,
 
-    #[field(max_length = 200, required = true)]
+    #[field(required = true)]
     pub slug: CharField,
 
     #[field(widget = "textarea", required = true)]
@@ -699,13 +697,13 @@ pub async fn update_article(
 #[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
 #[sea_orm(model = "Model", entity = "Entity")]
 pub struct UserForm {
-    #[field(max_length = 150, required = true)]
+    #[field(required = true)]
     pub username: CharField,
 
     #[field(required = true)]
     pub email: EmailField,
 
-    #[field(min_length = 8, max_length = 128, required = true, widget = "password")]
+    #[field(required = true, widget = "password")]
     pub password: CharField,
 }
 
@@ -895,7 +893,7 @@ pub async fn create_user_with_profile(
 Les macros `success!()`, `error!()`, `info!()` et `warning!()` simplifient l'envoi de messages :
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 pub async fn create_article(
     Form(form): Form<ArticleForm>,
@@ -926,13 +924,13 @@ pub async fn create_article(
     match form.save(&*db).await {
         Ok(article) => {
             success!(message, "Article créé avec succès !");
-            
+
             if article.published {
                 info!(message, "Votre article est maintenant visible par tous");
             } else {
                 info!(message, "Votre article est en brouillon");
             }
-            
+
             redirect(&format!("/articles/{}", article.id))
         }
         Err(e) => {
@@ -958,14 +956,16 @@ error!(message, "Erreur");
 
 ## Voir aussi
 
-- [Guide de démarrage](GETTING_STARTED.md)
-- [Templates](TEMPLATES.md)
-- [Sécurité](SECURITY.md)
-- [Base de données](DATABASE.md)
+- [Guide de démarrage](informations/documentation_french/GETTING_STARTED.md)
+- [Templates](informations/documentation_french/TEMPLATES.md)
+- [Sécurité](informations/documentation_french/CSP.md)
+- [Base de données](informations/documentation_french/DATABASE.md)
 
-Créez des formulaires robustes avec Rusti !
+Créez des formulaires robustes avec Runique!
 
 ---
 
 **Version:** 1.0 (Corrigée - 2 Janvier 2026)
 **Licence:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

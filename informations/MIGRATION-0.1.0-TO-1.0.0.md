@@ -1,8 +1,8 @@
-# Guide de Migration : 0.1.0 → 1.0.0
+# Guide de Migration : 1.0.0
 
 ## 🎯 Vue d'ensemble
 
-Ce guide vous aidera à migrer votre application Rusti de la version 0.1.0 vers 1.0.0.
+Ce guide vous aidera à migrer votre application Runique de la version 0.1.0 vers 1.0.0.
 
 ## ⚠️ Breaking Changes
 
@@ -79,7 +79,7 @@ L'API publique reste compatible. Aucun changement de code n'est nécessaire dans
 
 ## 📝 Checklist de migration
 
-- [ ] Mettre à jour `Cargo.toml` : `rusti = "1.0.0"`
+- [ ] Mettre à jour `Cargo.toml` : `runique = "1.0.0"`
 - [ ] Vérifier que tous vos tests passent
 - [ ] Vérifier la configuration `allowed_hosts` (si vous utilisez des wildcards)
 - [ ] Consulter les nouveaux tests pour voir des exemples d'utilisation
@@ -92,8 +92,8 @@ L'API publique reste compatible. Aucun changement de code n'est nécessaire dans
 
 ## 📚 Ressources
 
-- [Documentation complète](documentation%20english/)
-- [Documentation complète](documentation%20french/)
+- [Documentation completed in english](informations/documentation_english/)
+- [Documentation complète en francais](informations/documentation_french/)
 - [Cours d'implémentation](cours/)
 - [Changelog](documentation%20english/CHANGELOG.md)
 

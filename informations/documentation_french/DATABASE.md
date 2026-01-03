@@ -1,6 +1,6 @@
-# Guide de la base de données - Rusti Framework
+# Guide de la base de données - Runique Framework
 
-Rusti propose une intégration avec SeaORM qui offre une API inspirée de Django ORM.
+Runique propose une intégration avec SeaORM qui offre une API inspirée de Django ORM.
 
 ## Table des matières
 
@@ -18,7 +18,7 @@ Rusti propose une intégration avec SeaORM qui offre une API inspirée de Django
 
 ### Bases de données supportées
 
-Rusti supporte plusieurs moteurs de bases de données via SeaORM :
+Runique supporte plusieurs moteurs de bases de données via SeaORM :
 
 | Base de données | Feature Cargo | URL de connexion |
 |-----------------|---------------|------------------|
@@ -34,23 +34,23 @@ Rusti supporte plusieurs moteurs de bases de données via SeaORM :
 
 # SQLite (activé par défaut avec la feature 'orm')
 [dependencies]
-rusti = "0.1"
+runique= "0.1"
 
 # PostgreSQL
 [dependencies]
-rusti = { version = "0.1", features = ["postgres"] }
+runique= { version = "0.1", features = ["postgres"] }
 
 # MySQL
 [dependencies]
-rusti = { version = "0.1", features = ["mysql"] }
+runique= { version = "0.1", features = ["mysql"] }
 
 # MariaDB (utilise le driver MySQL)
 [dependencies]
-rusti = { version = "0.1", features = ["mariadb"] }
+runique= { version = "0.1", features = ["mariadb"] }
 
 # Toutes les bases
 [dependencies]
-rusti = { version = "0.1", features = ["all-databases"] }
+runique= { version = "0.1", features = ["all-databases"] }
 ```
 
 **Note sur les features:**
@@ -88,7 +88,7 @@ DB_NAME=database.sqlite
 #### Méthode 1 : Depuis `.env`
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .with_database(db)
         .routes(routes())
         .run()
@@ -111,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #### Méthode 2 : Configuration manuelle
 
 ```rust
-use rusti::DatabaseConfig;
+use runique::DatabaseConfig;
 use std::time::Duration;
 
 let db_config = DatabaseConfig::from_url("postgres://user:pass@localhost/mydb")?
@@ -129,7 +129,7 @@ let db = db_config.connect().await?;
 
 #### Valeurs par défaut
 
-**Important:** Les paramètres de pool de connexions ont des valeurs par défaut définies dans le code (`rusti/src/database/config.rs`) :
+**Important:** Les paramètres de pool de connexions ont des valeurs par défaut définies dans le code (`runique/src/database/config.rs`) :
 
 ```rust
 pub struct DatabaseConfig {
@@ -213,7 +213,7 @@ let db_config = DatabaseConfig::from_env()?
 
 ```rust
 use sea_orm::entity::prelude::*;
-use rusti::impl_objects;
+use runique::impl_objects;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "users")]
@@ -299,7 +299,7 @@ Grâce à `impl_objects!(Entity)`, vous bénéficiez d'une API similaire à Djan
 
 ```rust
 use crate::models::{users, Entity as User};
-use rusti::prelude::*;
+use runique::prelude::*;
 
 pub async fn examples(db: &DatabaseConnection) -> Result<(), DbErr> {
     // Tous les enregistrements
@@ -625,7 +625,7 @@ db.transaction::<_, (), DbErr>(|txn| {
 
 ### Utilisation de sea-orm-cli
 
-Rusti n'intègre pas encore de wrapper pour les migrations. Utilisez `sea-orm-cli` directement :
+Runiquen'intègre pas encore de wrapper pour les migrations. Utilisez `sea-orm-cli` directement :
 
 ```bash
 # Installer sea-orm-cli
@@ -715,7 +715,7 @@ enum Users {
 ## Exemple complet dans un handler
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::models::{users, Entity as User};
 
 pub async fn create_user(
@@ -832,12 +832,14 @@ let db_config = DatabaseConfig::from_env()?
 ## Voir aussi
 
 - [SeaORM Documentation](https://www.sea-ql.org/SeaORM/)
-- [Guide de démarrage](GETTING_STARTED.md)
-- [Configuration](CONFIGURATION.md)
+- [Guide de démarrage](informations/documentation_french/GETTING_STARTED.md)
+- [Configuration](informations/documentation_french/CONFIGURATION.md)
 
-Développez efficacement avec Rusti !
+Développez efficacement avec Runique !
 
 ---
 
 **Version:** 1.0 (Corrigée - 2 Janvier 2026)
 **Licence:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

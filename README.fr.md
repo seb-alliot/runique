@@ -1,10 +1,10 @@
-# Rusti
+# Runique
 
 **Un framework web Rust inspiré de Django**
 
-Rusti est un framework web moderne qui combine la sécurité et les performances de Rust avec l'ergonomie de Django. Il offre une expérience de développement familière aux développeurs Django tout en exploitant la puissance du système de types de Rust.
+Runique est un framework web moderne qui combine la sécurité et les performances de Rust avec l'ergonomie de Django. Il offre une expérience de développement familière aux développeurs Django tout en exploitant la puissance du système de types de Rust.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/seb-alliot/rusti)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/seb-alliot/runique)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
 
@@ -49,30 +49,30 @@ Rusti est un framework web moderne qui combine la sécurité et les performances
 - Rust 1.75+ ([installer Rust](https://www.rust-lang.org/tools/install))
 - Cargo
 
-### Ajouter Rusti à votre projet
+### Ajouter Runique à votre projet
 
 ```toml
 # Cargo.toml
 
 # Configuration minimale (SQLite par défaut)
 [dependencies]
-rusti = "1.0.0"
+runique = "1.0.0"
 
 # Avec PostgreSQL
 [dependencies]
-rusti = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0.0", features = ["postgres"] }
 
 # Avec MySQL
 [dependencies]
-rusti = { version = "1.0.0", features = ["mysql"] }
+runique = { version = "1.0.0", features = ["mysql"] }
 
 # Avec MariaDB
 [dependencies]
-rusti = { version = "1.0.0", features = ["mariadb"] }
+runique = { version = "1.0.0", features = ["mariadb"] }
 
 # Avec toutes les bases de données
 [dependencies]
-rusti = { version = "1.0.0", features = ["all-databases"] }
+runique = { version = "1.0.0", features = ["all-databases"] }
 ```
 
 ### Features Cargo disponibles
@@ -92,19 +92,19 @@ rusti = { version = "1.0.0", features = ["all-databases"] }
 ```toml
 # SQLite uniquement (configuration par défaut)
 [dependencies]
-rusti = "1.0.0"
+runique = "1.0.0"
 
 # PostgreSQL + MySQL
 [dependencies]
-rusti = { version = "1.0.0", features = ["postgres", "mysql"] }
+runique = { version = "1.0.0", features = ["postgres", "mysql"] }
 
 # Toutes les bases de données
 [dependencies]
-rusti = { version = "1.0.0", features = ["all-databases"] }
+runique = { version = "1.0.0", features = ["all-databases"] }
 
 # Sans ORM (framework minimal)
 [dependencies]
-rusti = { version = "1.0.0", default-features = false }
+runique = { version = "1.0.0", default-features = false }
 ```
 
 ### Créer un nouveau projet
@@ -114,11 +114,11 @@ cargo new mon_app
 cd mon_app
 ```
 
-Ajoutez Rusti dans `Cargo.toml` :
+Ajoutez Runique dans `Cargo.toml` :
 
 ```toml
 [dependencies]
-rusti = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0.0", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -131,13 +131,13 @@ serde = { version = "1", features = ["derive"] }
 
 ```rust
 // src/main.rs
-use rusti::prelude::*;
+use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::from_env();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(routes())
         .run()
         .await?;
@@ -166,7 +166,7 @@ fn routes() -> Router {
 }
 
 async fn index() -> &'static str {
-    "Bienvenue sur Rusti !"
+    "Bienvenue sur Runique !"
 }
 
 async fn hello(Path(name): Path<String>) -> String {
@@ -228,10 +228,10 @@ pub async fn user_profile_submit(
             }
         }
     }
-    
+
     // 2. Cas d'erreur de validation (champs mal remplis)
     error!(message, "Le formulaire contient des erreurs de validation.");
-    
+
     let ctx = context! {
         "form", ModelForm::build();
         "forms_errors", user.get_errors();
@@ -330,7 +330,7 @@ my_app/
 
 ```rust
 use sea_orm::entity::prelude::*;
-use rusti::impl_objects;
+use runique::impl_objects;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "posts")]
@@ -355,7 +355,7 @@ impl_objects!(Entity);
 ### Formulaire (forms/mod.rs)
 
 ```rust
-use rusti::forms::prelude::*;
+use runique::forms::prelude::*;
 
 #[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
 #[sea_orm(model = "crate::models::Model", entity = "crate::models::Entity")]
@@ -374,7 +374,7 @@ pub struct PostForm {
 ### Vue (views/mod.rs)
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::models::{posts, Entity as Post};
 use crate::forms::PostForm;
 
@@ -441,7 +441,7 @@ pub async fn create_post(
 ### Routes (main.rs)
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 fn routes() -> Router {
     urlpatterns![
@@ -457,12 +457,12 @@ fn routes() -> Router {
 
 ## 🔒 Sécurité
 
-Rusti intègre plusieurs couches de sécurité par défaut :
+Runique intègre plusieurs couches de sécurité par défaut :
 
 ### Protection CSRF
 
 ```rust
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(CsrfMiddleware::new())
     .routes(routes())
     .run()
@@ -480,7 +480,7 @@ Dans les templates :
 ### Content Security Policy
 
 ```rust
-use rusti::middleware::CspConfig;
+use runique::middleware::CspConfig;
 
 let csp_config = CspConfig {
     default_src: vec!["'self'".to_string()],
@@ -496,7 +496,7 @@ let csp_config = CspConfig {
     ..Default::default()
 };
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(SecurityHeadersMiddleware::new())
     .with_default_middleware()
     .routes(routes())
@@ -507,7 +507,7 @@ RustiApp::new(settings).await?
 ### Security Headers
 
 ```rust
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(SecurityHeadersMiddleware::new())
     .with_default_middleware()
     .routes(routes())
@@ -607,12 +607,12 @@ sea-orm-cli migrate down
 
 ## 📦 Macros utilitaires
 
-Rusti fournit des macros pour simplifier les opérations courantes.
+Runique fournit des macros pour simplifier les opérations courantes.
 
 ### Messages Flash
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn my_handler(mut message: Message) -> Response {
     // Messages simples
@@ -649,7 +649,7 @@ async fn my_handler(mut message: Message) -> Response {
 
 ## 🚀 Performance
 
-Rusti exploite les performances de Rust et Tokio :
+Runique exploite les performances de Rust et Tokio :
 
 - **Zéro-cost abstractions** : Aucun overhead à l'exécution
 - **Async/await natif** : Concurrence efficace avec Tokio
@@ -748,7 +748,7 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 
 ## 🙏 Remerciements
 
-Rusti s'appuie sur d'excellentes bibliothèques de l'écosystème Rust :
+Runique s'appuie sur d'excellentes bibliothèques de l'écosystème Rust :
 
 - [Axum](https://github.com/tokio-rs/axum) - Framework web
 - [Tokio](https://tokio.rs/) - Runtime async
@@ -762,7 +762,7 @@ Rusti s'appuie sur d'excellentes bibliothèques de l'écosystème Rust :
 
 ## 📧 Contact
 
-- **GitHub Issues** : [github.com/seb-alliot/rusti/tree/issues](https://github.com/seb-alliot/rusti/tree/issues)
+- **GitHub Issues** : [github.com/seb-alliot/runique/tree/issues](https://github.com/seb-alliot/runique/tree/issues)
 - **Discord** : [Rejoindre le serveur](https://discord.gg/Y5zW7rbt)
 - **Email** : alliotsebastien04@gmail.com
 
@@ -770,7 +770,7 @@ Rusti s'appuie sur d'excellentes bibliothèques de l'écosystème Rust :
 
 ## ⭐ Soutenez le projet
 
-Si Rusti vous est utile, pensez à :
+Si Runique vous est utile, pensez à :
 
 - ⭐ Mettre une étoile sur GitHub
 - 🐛 Signaler des bugs
@@ -780,7 +780,7 @@ Si Rusti vous est utile, pensez à :
 
 ---
 
-**Développez des applications web sécurisées et performantes avec Rusti !**
+**Développez des applications web sécurisées et performantes avec Runique !**
 
 ---
 

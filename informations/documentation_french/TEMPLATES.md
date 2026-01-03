@@ -1,11 +1,11 @@
-# Guide des templates - Rusti Framework
+# Guide des templates - Runique Framework
 
-Rusti utilise **Tera** comme moteur de templates avec un système de **préprocessing personnalisé** pour ajouter des tags Django-like.
+Runique utilise **Tera** comme moteur de templates avec un système de **préprocessing personnalisé** pour ajouter des tags Django-like.
 
 ## Table des matières
 
 1. [Syntaxe Tera de base](#syntaxe-tera-de-base)
-2. [Tags personnalisés Rusti](#tags-personnalisés-rusti)
+2. [Tags personnalisés Runique](#tags-personnalisés-runique)
 3. [Préprocessing](#préprocessing)
 4. [Contexte et variables](#contexte-et-variables)
 5. [Héritage de templates](#héritage-de-templates)
@@ -70,9 +70,9 @@ Tera est un moteur de templates inspiré de Jinja2/Django.
 
 ---
 
-## Tags personnalisés Rusti
+## Tags personnalisés Runique
 
-Rusti ajoute des **tags personnalisés** via un système de préprocessing qui transforme les tags avant que Tera ne les traite.
+Runique ajoute des **tags personnalisés** via un système de préprocessing qui transforme les tags avant que Tera ne les traite.
 
 ### 1. Tag `{% static %}`
 
@@ -213,7 +213,7 @@ Affiche les messages flash (success, error, warning, info).
 **Utilisation dans les handlers :**
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn create_user(
     Form(form): Form<UserForm>,
@@ -260,7 +260,7 @@ Génère des URLs en utilisant le **reverse routing** (noms de routes).
 **Configuration des routes :**
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 fn routes() -> Router {
     urlpatterns![
@@ -306,8 +306,8 @@ fn routes() -> Router {
 **Configuration CSP avec nonce :**
 
 ```rust
-use rusti::prelude::*;
-use rusti::middleware::CspConfig;
+use runique::prelude::*;
+use runique::middleware::CspConfig;
 
 let csp_config = CspConfig {
     default_src: vec!["'self'".to_string()],
@@ -317,7 +317,7 @@ let csp_config = CspConfig {
     ..Default::default()
 };
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(CspMiddleware::new(csp_config))
     .routes(routes())
     .run()
@@ -362,11 +362,11 @@ Le tag `{{ csp }}` générera une **chaîne vide** :
 
 ## Préprocessing
 
-Rusti utilise un système de **préprocessing** qui transforme les tags personnalisés en tags Tera standards **avant** que Tera ne les traite.
+Runique utilise un système de **préprocessing** qui transforme les tags personnalisés en tags Tera standards **avant** que Tera ne les traite.
 
 ### Ordre de traitement
 
-1. **Préprocessing Rusti** → Transforme les tags personnalisés
+1. **Préprocessing Runique** → Transforme les tags personnalisés
 2. **Tera** → Traite les tags Tera standards
 3. **Rendu HTML** → Résultat final envoyé au client
 
@@ -412,7 +412,7 @@ Rusti utilise un système de **préprocessing** qui transforme les tags personna
 ### Passage de variables
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn index(template: Template) -> Response {
     template.render("index.html", context! {
@@ -717,9 +717,9 @@ Certaines variables sont **automatiquement disponibles** dans tous les templates
 
 ---
 
-## Filtres personnalisés Rusti
+## Filtres personnalisés Runique
 
-En plus des filtres Tera standards, Rusti peut ajouter des filtres personnalisés :
+En plus des filtres Tera standards, Runique peut ajouter des filtres personnalisés :
 
 ### Filtre `json_encode`
 
@@ -822,14 +822,17 @@ templates/
 
 ## Voir aussi
 
-- [Guide de démarrage](GETTING_STARTED.md)
-- [Sécurité (CSP)](SECURITY.md)
-- [Formulaires](FORMULAIRE.md)
-- [Documentation Tera](https://keats.github.io/tera/)
+- [Getting Started](informations/documentation_french/GETTING_STARTED.md)
+- [Security (CSP)](informations/documentation_french/CSP.md)
+- [Forms](informations/documentation_french/FORMULAIRE.md)
+- [Tera Documentation](https://keats.github.io/tera/)
 
-Créez des templates puissants et sécurisés avec Rusti !
+Créez des templates puissants et sécurisés avec Runique !
 
 ---
 
 **Version:** 1.0 (Corrigée - 2 Janvier 2026)
 **Licence:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*
+

@@ -61,7 +61,7 @@
 ## 🟢 OPTIONNELS (Peuvent attendre)
 
 ### 10. Fonctionnalités avancées
-- [ ] 💡 CLI pour scaffolding (`rusti new mon-app`)
+- [ ] 💡 CLI pour scaffolding (`runique new mon-app`)
 - [ ] 💡 Support WebSocket
 - [ ] 💡 Middleware d'authentification complet
 - [ ] 💡 Support GraphQL

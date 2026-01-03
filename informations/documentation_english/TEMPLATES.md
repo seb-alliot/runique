@@ -1,11 +1,11 @@
-# Templates Guide - Rusti Framework
+# Templates Guide - Runique Framework
 
-Rusti uses **Tera** as its template engine with a **custom preprocessing system** to add Django-like tags.
+Runique uses **Tera** as its template engine with a **custom preprocessing system** to add Django-like tags.
 
 ## Table of Contents
 
 1. [Basic Tera Syntax](#basic-tera-syntax)
-2. [Rusti Custom Tags](#rusti-custom-tags)
+2. [Runique Custom Tags](#runique-custom-tags)
 3. [Preprocessing](#preprocessing)
 4. [Context and Variables](#context-and-variables)
 5. [Template Inheritance](#template-inheritance)
@@ -70,9 +70,9 @@ Tera is a template engine inspired by Jinja2/Django.
 
 ---
 
-## Rusti Custom Tags
+## Runique Custom Tags
 
-Rusti adds **custom tags** via a preprocessing system that transforms tags before Tera processes them.
+Runique adds **custom tags** via a preprocessing system that transforms tags before Tera processes them.
 
 ### 1. Tag `{% static %}`
 
@@ -213,7 +213,7 @@ Displays flash messages (success, error, warning, info).
 **Usage in handlers:**
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn create_user(
     Form(form): Form<UserForm>,
@@ -260,7 +260,7 @@ Generates URLs using **reverse routing** (route names).
 **Route configuration:**
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 fn routes() -> Router {
     urlpatterns![
@@ -306,8 +306,8 @@ fn routes() -> Router {
 **CSP Configuration with nonce:**
 
 ```rust
-use rusti::prelude::*;
-use rusti::middleware::CspConfig;
+use runique::prelude::*;
+use runique::middleware::CspConfig;
 
 let csp_config = CspConfig {
     default_src: vec!["'self'".to_string()],
@@ -317,7 +317,7 @@ let csp_config = CspConfig {
     ..Default::default()
 };
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .middleware(CspMiddleware::new(csp_config))
     .routes(routes())
     .run()
@@ -362,11 +362,11 @@ The `{{ csp }}` tag generates an **empty string**:
 
 ## Preprocessing
 
-Rusti uses a **preprocessing system** that transforms custom tags into standard Tera tags **before** Tera processes them.
+Runique uses a **preprocessing system** that transforms custom tags into standard Tera tags **before** Tera processes them.
 
 ### Processing Order
 
-1. **Rusti Preprocessing** → Transforms custom tags
+1. **Runique Preprocessing** → Transforms custom tags
 2. **Tera** → Processes standard Tera tags
 3. **HTML Rendering** → Final result sent to client
 
@@ -412,7 +412,7 @@ Rusti uses a **preprocessing system** that transforms custom tags into standard 
 ### Passing Variables
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 async fn index(template: Template) -> Response {
     template.render("index.html", context! {
@@ -717,9 +717,9 @@ Some variables are **automatically available** in all templates:
 
 ---
 
-## Rusti Custom Filters
+## Runique Custom Filters
 
-In addition to standard Tera filters, Rusti can add custom filters:
+In addition to standard Tera filters, Runique can add custom filters:
 
 ### Filter `json_encode`
 
@@ -822,14 +822,16 @@ templates/
 
 ## See Also
 
-- [Getting Started](GETTING_STARTED.md)
-- [Security (CSP)](SECURITY.md)
-- [Forms](FORMS.md)
+- [Getting Started](informations/documentation_english/GETTING_STARTED.md)
+- [Security (CSP)](informations/documentation_english/CSP.md)
+- [Forms](informations/documentation_english/FORMULAIRE.md)
 - [Tera Documentation](https://keats.github.io/tera/)
 
-Create powerful and secure templates with Rusti!
+Create powerful and secure templates with Runique!
 
 ---
 
 **Version:** 1.0 (Corrected - January 2, 2026)
 **License:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

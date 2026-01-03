@@ -1,6 +1,6 @@
-# Configuration Guide - Rusti Framework
+# Configuration Guide - Runique Framework
 
-Rusti uses a centralized configuration system via the `Settings` struct and the `.env` file.
+Runique uses a centralized configuration system via the `Settings` struct and the `.env` file.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ Rusti uses a centralized configuration system via the `Settings` struct and the 
 
 ## Settings Structure
 
-The `Settings` struct centralizes all configuration for your Rusti application.
+The `Settings` struct centralizes all configuration for your Runique application.
 
 ### Definition
 
@@ -61,14 +61,14 @@ pub struct Settings {
 ### Loading from `.env`
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Automatically loads from .env
     let settings = Settings::from_env();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(routes())
         .run()
         .await?;
@@ -132,7 +132,7 @@ RATE_LIMITING=false
 ### Manual Configuration
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use std::path::PathBuf;
 
 let settings = Settings {
@@ -160,7 +160,7 @@ let settings = Settings {
     rate_limiting: false,
 };
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .routes(routes())
     .run()
     .await?;
@@ -176,7 +176,7 @@ settings.port = 9000;
 settings.workers = 16;
 settings.allowed_hosts.push("api.example.com".to_string());
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .routes(routes())
     .run()
     .await?;
@@ -307,7 +307,7 @@ CSRF_HEADER_NAME=X-CSRFToken
 
 **⚠️ IMPORTANT: Feature Not Implemented**
 
-The `RATE_LIMITING` flag exists in the configuration but **no rate limiting middleware is currently implemented in Rusti**.
+The `RATE_LIMITING` flag exists in the configuration but **no rate limiting middleware is currently implemented in Runique**.
 
 **If you need rate limiting:**
 
@@ -315,7 +315,7 @@ You can manually integrate the [tower-governor](https://crates.io/crates/tower-g
 
 ```rust
 use tower_governor::{
-    governor::GovernorConfigBuilder, 
+    governor::GovernorConfigBuilder,
     GovernorLayer,
 };
 use std::time::Duration;
@@ -334,8 +334,8 @@ let governor_layer = GovernorLayer {
     config: Box::leak(governor_conf),
 };
 
-// Add to RustiApp
-RustiApp::new(settings).await?
+// Add to RuniqueApp
+RuniqueApp::new(settings).await?
     .middleware(governor_layer)  // ✅ Rate limiting active
     .routes(routes())
     .run()
@@ -344,7 +344,7 @@ RustiApp::new(settings).await?
 
 **Future Roadmap:**
 
-This feature is planned for a future version of Rusti as an integrated middleware. Until then, use `tower-governor` directly.
+This feature is planned for a future version of Runique as an integrated middleware. Until then, use `tower-governor` directly.
 
 ---
 
@@ -423,17 +423,17 @@ DEBUG=false
 
 ## Middleware
 
-### Configuration via RustiApp
+### Configuration via RuniqueApp
 
 ```rust
-use rusti::prelude::*;
-use rusti::middleware::*;
+use runique::prelude::*;
+use runique::middleware::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::from_env();
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         // Security middleware
         .middleware(CsrfMiddleware::new())
         .middleware(SecurityHeadersMiddleware::new())
@@ -469,7 +469,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | `XssSanitizerMiddleware` | XSS sanitization (ammonia) | ✅ Recommended |
 | `CspMiddleware` | Content Security Policy | ✅ Recommended |
 
-See [Security Guide](SECURITY.md) for complete details.
+See [Security Guide](informations/documentation_english/CSP.md) for complete details.
 
 ---
 
@@ -614,7 +614,7 @@ TEMPLATES_DIR=templates/
 ### 4. Validate Configuration at Startup
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -623,12 +623,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Validations
     assert!(settings.secret_key.len() >= 32, "SECRET_KEY too short");
     assert!(!settings.allowed_hosts.is_empty(), "ALLOWED_HOSTS empty");
-    
+
     if !settings.debug {
         assert!(settings.session_cookie_secure, "COOKIE_SECURE must be true in production");
     }
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(routes())
         .run()
         .await?;
@@ -662,7 +662,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut settings = Settings::from_env();
     settings.secret_key = load_secret_key().await;
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .routes(routes())
         .run()
         .await?;
@@ -680,7 +680,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - [Database](DATABASE.md)
 - [Middleware](MIDDLEWARE.md)
 
-Configure Rusti securely and efficiently!
+Configure Runique securely and efficiently!
 
 ---
 

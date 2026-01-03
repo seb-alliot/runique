@@ -2,11 +2,11 @@ Understood. Here is your guide rewritten entirely in English (no side-by-side tr
 
 ---
 
-# Full CRUD Application with Rusti
+# Full CRUD Application with Runique
 
 ## Introduction
 
-This guide walks you through building a complete CRUD (Create, Read, Update, Delete) application with Rusti, including:
+This guide walks you through building a complete CRUD (Create, Read, Update, Delete) application with Runique, including:
 
 * PostgreSQL database
 * HTML templates
@@ -72,7 +72,7 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-rusti = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0.0", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -166,7 +166,7 @@ todo-app/
 ```rust
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use rusti::impl_objects;
+use runique::impl_objects;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "tasks")]
@@ -197,12 +197,12 @@ impl_objects!(Entity);
 
 ### src/forms.rs
 ```rust
-use rusti::prelude::*;
-use rusti::formulaire::formsrusti::{Forms, FormulaireTrait};
-use rusti::formulaire::field::{CharField, TextField, BooleanField};
+use runique::prelude::*;
+use runique::formulaire::formsrunique::{Forms, FormulaireTrait};
+use runique::formulaire::field::{CharField, TextField, BooleanField};
 use std::collections::HashMap;
 
-#[rusti_form]
+#[runique_form]
 pub struct TaskForm {
     pub form: Forms,
 }
@@ -255,7 +255,7 @@ impl TaskForm {
 ## Step 7: Views / Handlers
 ### src/views.rs
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::models::{tasks, Entity as Task};
 use crate::forms::TaskForm;
 use sea_orm::ActiveValue::Set;
@@ -470,7 +470,7 @@ pub async fn toggle_completed(
 ## Step 8: Routes
 ### src/urls.rs
 ```rust
-use rusti::{Router, urlpatterns};
+use runique::{Router, urlpatterns};
 use crate::views;
 
 pub fn routes() -> Router {
@@ -489,7 +489,7 @@ pub fn routes() -> Router {
 ## Step 9: Main application
 
 ```rust
-use rusti::{Router, urlpatterns};
+use runique::{Router, urlpatterns};
 use crate::views;
 
 pub fn routes() -> Router {
@@ -511,7 +511,7 @@ pub fn routes() -> Router {
 
 ### src/main.rs
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use std::sync::Arc;
 
 mod models;
@@ -540,7 +540,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
 
-    println!("🦀 Rusti Todo App starting...");
+    println!("🦀 Runique Todo App starting...");
     println!("📊 Database connected");
     println!("🌐 Server running on http://{}:{}",
         settings.server.ip_server,
@@ -548,7 +548,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Lancer l'application
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .with_database(db)
         .routes(urls::routes())
         .with_static_files()?
@@ -568,7 +568,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Todo App{% endblock %} - Rusti</title>
+    <title>{% block title %}Todo App{% endblock %} - Runique</title>
     <link rel="stylesheet" href='{% static "css/style.css" %}'>
 </head>
 <body>
@@ -591,7 +591,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     <footer class="footer">
         <div class="container">
-            <p>Développé avec Rusti Framework</p>
+            <p>Développé avec Runique Framework</p>
         </div>
     </footer>
 </body>
@@ -1126,7 +1126,7 @@ cargo run
 **Expected output:**
 
 ```
-🦀 Rusti Todo App starting...
+🦀 Runique Todo App starting...
 📊 Database connected
 🌐 Server running on http://127.0.0.1:3000
 ```
@@ -1314,7 +1314,7 @@ Keeps layout DRY and consistent.
 
 ## Create These 5 Tasks
 
-1. “Learn Rusti” — “Rust web framework”
+1. “Learn Runique” — “Rust web framework”
 2. “Create a project” — “Full CRUD app”
 3. “Deploy to production” — no description
 4. “Write documentation” — “Complete guide”
@@ -1447,6 +1447,8 @@ All in **~500 lines of Rust**.
 
 # Congratulations
 
-You now understand how to build a complete web application using **Rusti**.
+You now understand how to build a complete web application using **Runique**.
 
 Built with Rust.
+
+*Documentation created with ❤️ by Claude for Itsuki*

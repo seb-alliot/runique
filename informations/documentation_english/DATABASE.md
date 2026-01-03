@@ -1,6 +1,6 @@
-# Database Guide - Rusti Framework
+# Database Guide - Runique Framework
 
-Rusti provides integration with SeaORM offering a Django ORM-inspired API.
+Runique provides integration with SeaORM offering a Django ORM-inspired API.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ Rusti provides integration with SeaORM offering a Django ORM-inspired API.
 
 ### Supported Databases
 
-Rusti supports multiple database engines via SeaORM:
+Runique supports multiple database engines via SeaORM:
 
 | Database | Cargo Feature | Connection URL |
 |----------|---------------|----------------|
@@ -34,23 +34,23 @@ Rusti supports multiple database engines via SeaORM:
 
 # SQLite (enabled by default with 'orm' feature)
 [dependencies]
-rusti = "0.1"
+runique = "0.1"
 
 # PostgreSQL
 [dependencies]
-rusti = { version = "0.1", features = ["postgres"] }
+runique = { version = "0.1", features = ["postgres"] }
 
 # MySQL
 [dependencies]
-rusti = { version = "0.1", features = ["mysql"] }
+runique = { version = "0.1", features = ["mysql"] }
 
 # MariaDB (uses MySQL driver)
 [dependencies]
-rusti = { version = "0.1", features = ["mariadb"] }
+runique = { version = "0.1", features = ["mariadb"] }
 
 # All databases
 [dependencies]
-rusti = { version = "0.1", features = ["all-databases"] }
+runique = { version = "0.1", features = ["all-databases"] }
 ```
 
 **Feature Notes:**
@@ -88,7 +88,7 @@ DB_NAME=database.sqlite
 #### Method 1: From `.env`
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
 
-    RustiApp::new(settings).await?
+    RuniqueApp::new(settings).await?
         .with_database(db)
         .routes(routes())
         .run()
@@ -111,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #### Method 2: Manual Configuration
 
 ```rust
-use rusti::DatabaseConfig;
+use runique::DatabaseConfig;
 use std::time::Duration;
 
 let db_config = DatabaseConfig::from_url("postgres://user:pass@localhost/mydb")?
@@ -129,7 +129,7 @@ let db = db_config.connect().await?;
 
 #### Default Values
 
-**Important:** Connection pool parameters have default values defined in the code (`rusti/src/database/config.rs`):
+**Important:** Connection pool parameters have default values defined in the code (`runique/src/database/config.rs`):
 
 ```rust
 pub struct DatabaseConfig {
@@ -213,7 +213,7 @@ let db_config = DatabaseConfig::from_env()?
 
 ```rust
 use sea_orm::entity::prelude::*;
-use rusti::impl_objects;
+use runique::impl_objects;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "users")]
@@ -299,7 +299,7 @@ Thanks to `impl_objects!(Entity)`, you get a Django ORM-like API.
 
 ```rust
 use crate::models::{users, Entity as User};
-use rusti::prelude::*;
+use runique::prelude::*;
 
 pub async fn examples(db: &DatabaseConnection) -> Result<(), DbErr> {
     // All records
@@ -625,7 +625,7 @@ db.transaction::<_, (), DbErr>(|txn| {
 
 ### Using sea-orm-cli
 
-Rusti doesn't yet include a migration wrapper. Use `sea-orm-cli` directly:
+Runique doesn't yet include a migration wrapper. Use `sea-orm-cli` directly:
 
 ```bash
 # Install sea-orm-cli
@@ -715,7 +715,7 @@ enum Users {
 ## Complete Handler Example
 
 ```rust
-use rusti::prelude::*;
+use runique::prelude::*;
 use crate::models::{users, Entity as User};
 
 pub async fn create_user(
@@ -832,12 +832,14 @@ let db_config = DatabaseConfig::from_env()?
 ## See Also
 
 - [SeaORM Documentation](https://www.sea-ql.org/SeaORM/)
-- [Getting Started Guide](GETTING_STARTED.md)
-- [Configuration](CONFIGURATION.md)
+- [Getting Started Guide](informations/documentation_english/GETTING_STARTED.md)
+- [Configuration](informations/documentation_english/CONFIGURATION.md)
 
-Develop efficiently with Rusti!
+Develop efficiently with Runique!
 
 ---
 
 **Version:** 1.0 (Corrected - January 2, 2026)
 **License:** MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

@@ -1,10 +1,10 @@
-# Documentation CSP de Rusti
+# Documentation CSP de Runique
 
-## Content Security Policy dans le Framework Rusti
+## Content Security Policy dans le Framework Runique
 
 ### Vue d'ensemble
 
-Rusti fournit une implémentation complète de Content Security Policy (CSP) qui aide à protéger vos applications web contre les attaques de type Cross-Site Scripting (XSS), le clickjacking et d'autres injections de code malveillant.
+Runique fournit une implémentation complète de Content Security Policy (CSP) qui aide à protéger vos applications web contre les attaques de type Cross-Site Scripting (XSS), le clickjacking et d'autres injections de code malveillant.
 
 ### Configuration
 
@@ -39,7 +39,7 @@ pub struct CspConfig {
 
 #### Configurations prédéfinies
 
-Rusti fournit trois configurations CSP prêtes à l'emploi :
+Runique fournit trois configurations CSP prêtes à l'emploi :
 
 **1. CspConfig::default() - Pour le développement**
 ```rust
@@ -135,7 +135,7 @@ let csp = CspConfig {
 
 ### Utilisation des nonces
 
-Lorsque `use_nonce: true`, Rusti génère automatiquement des nonces cryptographiques pour les scripts et styles inline.
+Lorsque `use_nonce: true`, Runique génère automatiquement des nonces cryptographiques pour les scripts et styles inline.
 
 **Dans vos templates :**
 ```html
@@ -160,7 +160,7 @@ nonce="abc123xyz..."
 #### Méthode 1 : CSP seule
 
 ```rust
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .routes(routes)
     .with_csp(CspConfig::strict())
     .run()
@@ -170,7 +170,7 @@ RustiApp::new(settings).await?
 #### Méthode 2 : CSP + tous les headers de sécurité
 
 ```rust
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .routes(routes)
     .with_security_headers(CspConfig::strict())
     .run()
@@ -188,7 +188,7 @@ Headers inclus avec `with_security_headers()` :
 #### Méthode 3 : Mode report-only (pour tester)
 
 ```rust
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .routes(routes)
     .with_csp_report_only(CspConfig::strict())
     .run()
@@ -204,7 +204,7 @@ En mode report-only, les violations sont signalées mais les ressources ne sont 
 ```rust
 let csp = CspConfig::permissive();
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .with_csp(csp)
     .run()
     .await?;
@@ -215,7 +215,7 @@ RustiApp::new(settings).await?
 ```rust
 let csp = CspConfig::strict();
 
-RustiApp::new(settings).await?
+RuniqueApp::new(settings).await?
     .with_security_headers(csp)
     .run()
     .await?;
@@ -341,8 +341,10 @@ pub async fn csp_report_only_middleware(...)
 
 ---
 
-Cette documentation fait partie du framework web Rusti. Pour plus d'informations, consultez la documentation complète.
+Cette documentation fait partie du framework web Runique. Pour plus d'informations, consultez la documentation complète.
 
 Version: 1.0 (Corrigée - 2 Janvier 2026)
 Dernière mise à jour: Janvier 2026
 Licence: MIT
+
+*Documentation created with ❤️ by Claude for Itsuki*

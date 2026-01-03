@@ -1,16 +1,16 @@
-use rusti::prelude::*;
+use runique::prelude::*;
 
 use crate::forms::UsernameForm;
 use crate::models::users;
 use crate::models::users::Entity as User;
 use crate::models::users::ModelForm;
-use rusti::axum::Extension;
+use runique::axum::Extension;
 use std::sync::Arc;
 
 /// Page d'accueil
 pub async fn index(template: Template) -> Response {
     let ctx = context! {
-    "title", "Bienvenue sur Rusti";
+    "title", "Bienvenue sur Runique";
     "description", "Un framework web moderne inspiré de Django";
     "status", "Framework en cours de développement...";
     "backend", "J'utilise axum pour le backend";
@@ -141,8 +141,8 @@ pub async fn about(template: Template, mut message: Message) -> Response {
     warning!(message, "Ceci est un message d'avertissement de test.");
 
     let ctx = context! {
-        "title", "À propos de Rusti Framework";
-        "content", "Rusti est un framework web inspiré de Django, construit sur Axum et Tera."
+        "title", "À propos de Runique Framework";
+        "content", "Runique est un framework web inspiré de Django, construit sur Axum et Tera."
     };
     template.render("about/about.html", &ctx)
 }

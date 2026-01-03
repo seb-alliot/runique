@@ -1,4 +1,4 @@
-use rusti::prelude::*;
+use runique::prelude::*;
 
 #[derive(Deserialize)]
 pub struct UsernameForm {
@@ -17,7 +17,7 @@ impl Serialize for UsernameForm {
     }
 }
 
-impl RustiForm for UsernameForm {
+impl RuniqueForm for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.register_field("username", "Nom d'utilisateur", &CharField::new());
     }
