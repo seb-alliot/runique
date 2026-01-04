@@ -29,13 +29,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::builder()
         .debug(true)
         .templates_dir(vec!["templates".to_string()])
-        .server("127.0.0.1", 3000, "change_your_secrete_key")
+        .server("127.0.0.1", 3000, "change_your_secret_key")
         .build();
     settings.validate_allowed_hosts();
 
     // Créer et lancer l'application
     RuniqueApp::new(settings)
-        .await?
         .routes(url::routes())
         .with_database(db)
         .with_static_files()?
