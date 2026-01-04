@@ -68,11 +68,11 @@ cd todo-app
 ```toml
 [package]
 name = "todo-app"
-version = "1.0.0"
+version = "1.0"
 edition = "2021"
 
 [dependencies]
-runique = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

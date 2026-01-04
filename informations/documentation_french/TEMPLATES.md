@@ -831,8 +831,7 @@ Créez des templates puissants et sécurisés avec Runique !
 
 ---
 
-**Version:** 1.0 (Corrigée - 2 Janvier 2026)
+**Version:** 1.0.6 (Corrigée - 2 Janvier 2026)
 **Licence:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*
-
