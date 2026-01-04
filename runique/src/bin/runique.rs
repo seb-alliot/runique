@@ -71,6 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings.validate_allowed_hosts();
 
     RuniqueApp::new(settings)
+        .await?
         .routes(url::routes())
         .with_database(db)
         .with_static_files()?
@@ -97,7 +98,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-runique = {{ version = "1.0.5", features = ["sqlite"] }}
+runique = {{ version = "1.0.6", features = ["sqlite"] }}
 serde = "1.0"
 "#,
         name

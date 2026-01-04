@@ -35,6 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Créer et lancer l'application
     RuniqueApp::new(settings)
+        .await?
         .routes(url::routes())
         .with_database(db)
         .with_static_files()?

@@ -148,24 +148,24 @@ impl<E: EntityTrait> Clone for Objects<E> {
 // =====================================================
 
 #[cfg(feature = "sqlite")]
-async fn setup_db() -> Result<DatabaseConnection, DbErr> {
-    let db = sea_orm::Database::connect("sqlite::memory:").await?;
-
-    use sea_orm::Schema;
-    let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
-    let stmt = schema.create_table_from_entity(Entity);
-    db.execute(&stmt).await?;
-
-    Ok(db)
-}
-
-#[cfg(feature = "sqlite")]
 #[cfg(test)]
 mod tests {
     use super::*;
     use sea_orm::entity::prelude::*;
     use sea_orm::ActiveModelTrait;
     use sea_orm::Set;
+
+    // Fonction helper pour setup DB - déplacée dans le module tests
+    async fn setup_db() -> Result<DatabaseConnection, DbErr> {
+        let db = sea_orm::Database::connect("sqlite::memory:").await?;
+
+        use sea_orm::Schema;
+        let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+        let stmt = schema.create_table_from_entity(Entity);
+        db.execute(&stmt).await?;
+
+        Ok(db)
+    }
 
     #[tokio::test]
     async fn test_objects_all() -> Result<(), DbErr> {
