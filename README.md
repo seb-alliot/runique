@@ -4,9 +4,18 @@
 
 Runique is a modern web framework that combines Rust's safety and performance with Django's ergonomics. It offers a familiar development experience for Django developers while leveraging the power of Rust's type system.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/seb-alliot/runique)
+[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://crates.io/crates/runique)
+[![docs.rs](https://img.shields.io/docsrs/runique)](https://docs.rs/runique)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
+
+---
+
+## 🤔 Why Runique?
+
+- **For Django developers**: Familiar API and patterns with Rust's performance and safety
+- **For Rust developers**: Django-inspired ergonomics without sacrificing type safety
+- **For everyone**: Security built-in from day one, not bolted-on as an afterthought
 
 ---
 
@@ -38,7 +47,7 @@ Runique is a modern web framework that combines Rust's safety and performance wi
 - **Type-safe** thanks to Rust's type system
 - **Zero-cost abstractions**
 - **Hot reload** in development
-- **Complete documentation** in French and English
+- **Complete documentation**
 
 ---
 
@@ -56,23 +65,23 @@ Runique is a modern web framework that combines Rust's safety and performance wi
 
 # Minimal configuration (SQLite by default)
 [dependencies]
-runique = "1.0.0"
+runique = "1.0.3"
 
 # With PostgreSQL
 [dependencies]
-runique = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0.3", features = ["postgres"] }
 
 # With MySQL
 [dependencies]
-runique = { version = "1.0.0", features = ["mysql"] }
+runique = { version = "1.0.3", features = ["mysql"] }
 
 # With MariaDB
 [dependencies]
-runique = { version = "1.0.0", features = ["mariadb"] }
+runique = { version = "1.0.3", features = ["mariadb"] }
 
 # With all databases
 [dependencies]
-runique = { version = "1.0.0", features = ["all-databases"] }
+runique = { version = "1.0.3", features = ["all-databases"] }
 ```
 
 ### Available Cargo Features
@@ -92,25 +101,26 @@ runique = { version = "1.0.0", features = ["all-databases"] }
 ```toml
 # SQLite only (default configuration)
 [dependencies]
-runique = "1.0.0"
+runique = "1.0.3"
 
 # PostgreSQL + MySQL
 [dependencies]
-runique = { version = "1.0.0", features = ["postgres", "mysql"] }
+runique = { version = "1.0.3", features = ["postgres", "mysql"] }
 
 # All databases
 [dependencies]
-runique = { version = "1.0.0", features = ["all-databases"] }
+runique = { version = "1.0.3", features = ["all-databases"] }
 
 # Without ORM (minimal framework)
 [dependencies]
-runique = { version = "1.0.0", default-features = false }
+runique = { version = "1.0.3", default-features = false }
 ```
 
 ### Create a New Project
 
 ```bash
-cargo new my_app
+cargo install runique
+runique new my_app
 cd my_app
 ```
 
@@ -118,7 +128,7 @@ Add Runique to `Cargo.toml`:
 
 ```toml
 [dependencies]
-runique = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0.3", features = ["sqlite"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -150,29 +160,103 @@ fn routes() -> Router {
         "/" => view!{
             GET => views::index
         },
-        name ="index",
+        name = "index",
 
-        "/hello" => view!{
+        "/hello/:name" => view!{
             GET => views::hello
         },
-        name ="hello",
-
-        "/user" => view! {
-            GET => views::user_profile,
-            POST => views::user_profile_submit
-        },
-         name = "user_profile",
+        name = "hello",
     ]
 }
 
 async fn index() -> &'static str {
-    "Welcome to Runique!"
+    "Welcome to Runique! 🚀"
 }
 
 async fn hello(Path(name): Path<String>) -> String {
     format!("Hello, {}!", name)
 }
+```
 
+### Configuration (.env)
+
+```env
+HOST=127.0.0.1
+PORT=8000
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=localhost,127.0.0.1
+DEBUG=true
+
+# PostgreSQL (optional)
+DB_ENGINE=postgres
+DB_USER=user
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=mydb
+```
+
+### Launch
+
+```bash
+cargo run
+```
+
+Open [http://localhost:8000](http://localhost:8000)
+
+**For more advanced examples, see the [Complete Example](#-complete-example) section below.**
+
+---
+
+## 📚 Documentation
+
+- [🚀 Getting Started](informations/documentation_english/GETTING_STARTED.md)
+- [⚙️ Configuration](informations/documentation_english/CONFIGURATION.md)
+- [🗄️ Database](informations/documentation_english/DATABASE.md)
+- [📝 Forms](informations/documentation_english/FORMULAIRE.md)
+- [🎨 Templates](informations/documentation_english/TEMPLATES.md)
+- [🔒 Security](informations/documentation_english/CSP.md)
+- [🛣️ Macro](informations/documentation_english/MACRO_CONTEXT.md)
+- [🔧 Changelog](informations/documentation_english/CHANGELOG.md)
+- [🚀 Contributing](informations/documentation_english/CONTRIBUTING.md)
+- [🆕 New project](informations/documentation_english/NEW_PROJECT.md)
+- [📖 API Documentation](https://docs.rs/runique)
+
+---
+
+## 🎯 Complete Example
+
+### Project Structure
+### You can use: `cargo install runique` → `runique new project_name`
+
+```
+my_app/
+├── Cargo.toml
+├── .env
+├── src/
+│   ├── main.rs
+│   ├── models/
+│   │   └── mod.rs
+│   ├── views/
+│   │   └── mod.rs
+│   ├──  forms/
+│   |   └── mod.rs
+│   └── urls/
+│       └── mod.rs
+├── templates/
+│   ├── base.html
+│   └── index.html
+└── static/
+    ├── css/
+    └── js/
+```
+
+### Advanced Handler with Form Validation
+
+```rust
+use runique::prelude::*;
+
+// Form handler with validation
 pub async fn user_profile(
     template: Template,
     ExtractForm(form): ExtractForm<ModelForm>,
@@ -184,6 +268,7 @@ pub async fn user_profile(
     template.render("profile/register_profile.html", &ctx)
 }
 
+// Form submission with error handling
 pub async fn user_profile_submit(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
@@ -229,7 +314,7 @@ pub async fn user_profile_submit(
         }
     }
 
-    // 2. Validation error scenarios (invalid field inputs)
+    // Validation error scenarios
     error!(message, "Form validation error");
 
     let ctx = context! {
@@ -241,235 +326,26 @@ pub async fn user_profile_submit(
 }
 ```
 
-### Configuration (.env)
-
-```env
-HOST=127.0.0.1
-PORT=8000
-SECRET_KEY=your-secret-key-here
-ALLOWED_HOSTS=localhost,127.0.0.1
-DEBUG=true
-
-# PostgreSQL
-DB_ENGINE=postgres
-DB_USER=user
-DB_PASSWORD=password
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=mydb
-```
-
-### Launch
-
-```bash
-cargo run
-```
-
-Open [http://localhost:8000](http://localhost:8000)
-
----
-## 📚 Complete Documentation
-
-### 📚 Documentation (English)
-
-- [🚀 Getting Started](informations/documentation_english/GETTING_STARTED.md)
-- [⚙️ Configuration](informations/documentation_english/CONFIGURATION.md)
-- [🗄️ Database](informations/documentation_english/DATABASE.md)
-- [📝 Forms](informations/documentation_english/FORMULAIRE.md)
-- [🎨 Templates](informations/documentation_english/TEMPLATES.md)
-- [🔒 Security](informations/documentation_english/CSP.md)
-- [🛣️ Macro](informations/documentation_english/MACRO%2520CONTEXT.md)
-- [🔧 changelog](informations/documentation_english/CHANGELOG.md)
-- [🚀 Contribuer](informations/documentation_english/CONTRIBUTING.md)
-- [🆕 New project](informations/documentation_english/NEW_PROJECT.md)
-- [📖 Documentation Overview](README.md)
-
-### 📚 Documentation (French)
-
-- [🚀 Getting Started](informations/documentation_french/GETTING_STARTED.md)
-- [⚙️ Configuration](informations/documentation_french/CONFIGURATION.md)
-- [🗄️ Database](informations/documentation_french/DATABASE.md)
-- [📝 Forms](informations/documentation_french/FORMULAIRE.md)
-- [🎨 Templates](informations/documentation_french/TEMPLATES.md)
-- [🔒 Security](informations/documentation_french/CSP.md)
-- [🛣️ Macro](informations/documentation_french/MACRO%2520CONTEXT.md)
-- [🔧 changelog](informations/documentation_french/CHANGELOG.md)
-- [🚀 Contribuer](informations/documentation_french/CONTRIBUTING.md)
-- [🆕 New project](informations/documentation_english/NOUVEAU_PROJET.md)
-- [📖 Documentation Overview](README.fr.md)
-
----
-
-## 🎯 Complete Example
-
-### Project Structure
-
-```
-my_app/
-├── Cargo.toml
-├── .env
-├── src/
-│   ├── main.rs
-│   ├── models/
-│   │   └── mod.rs
-│   ├── views/
-│   │   └── mod.rs
-│   ├──  forms/
-│   |   └── mod.rs
-│   └── urls/
-│       └── mod.rs
-├── templates/
-│   ├── base.html
-│   └── index.html
-└── static/
-    ├── css/
-    └── js/
-```
-
-### Model (models/mod.rs)
-
-```rust
-use sea_orm::entity::prelude::*;
-use runique::impl_objects;
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "posts")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub title: String,
-    pub content: String,
-    pub published: bool,
-    pub created_at: DateTime,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
-
-// Django-like API
-impl_objects!(Entity);
-```
-
-### Form (forms/mod.rs)
-
-```rust
-use runique::forms::prelude::*;
-
-#[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
-#[sea_orm(model = "crate::models::Model", entity = "crate::models::Entity")]
-pub struct PostForm {
-    #[form_field(widget = "textarea", required = true)]
-    pub title: CharField,
-
-    #[form_field(widget = "textarea", required = true)]
-    pub content: CharField,
-
-    #[form_field(default = "false")]
-    pub published: BooleanField,
-}
-```
-
-### View (views/mod.rs)
-
-```rust
-use runique::prelude::*;
-use crate::models::{posts, Entity as Post};
-use crate::forms::PostForm;
-
-pub async fn list_posts(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
-) -> Response {
-    let posts = Post::objects
-        .filter(posts::Column::Published.eq(true))
-        .order_by_desc(posts::Column::CreatedAt)
-        .all(&*db)
-        .await
-        .unwrap_or_default();
-
-    template.render("posts/list.html", context! {
-        posts: posts,
-    })
-}
-
-pub async fn create_post(
-    Form(form): Form<PostForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
-    mut message: Message,
-) -> Response {
-    if !form.is_valid() {
-        return template.render("posts/create.html", context! { form });
-    }
-
-    match form.save(&*db).await {
-        Ok(post) => {
-            success!(message, "Article created successfully!");
-            redirect(&format!("/posts/{}", post.id))
-        }
-        Err(_) => {
-            error!(message, "Error creating article");
-            template.render("posts/create.html", context! { form })
-        }
-    }
-}
-
-```
-
-### Template (templates/posts/list.html)
-
-```html
-{% extends "base.html" %}
-
-{% block content %}
-<h1>Articles</h1>
-
-{% for post in posts %}
-<article>
-    <h2>{{ post.title }}</h2>
-    <p>{{ post.content|truncate(200) }}</p>
-    <a href="{% link 'post_detail' id=post.id %}">Read more</a>
-</article>
-{% endfor %}
-
-<a href="{% link 'post_create' %}">Create article</a>
-{% endblock %}
-```
-
-### Routes (main.rs)
-
-```rust
-use runique::prelude::*;
-
-fn routes() -> Router {
-    urlpatterns![
-        path!("", views::index, "index"),
-        path!("posts/", views::list_posts, "post_list"),
-        path!("posts/create/", views::create_post, "post_create"),
-        path!("posts/<id>/", views::detail_post, "post_detail"),
-    ]
-}
-```
-
 ---
 
 ## 🔒 Security
 
-Runique integrates multiple security layers by default:
-
 ### CSRF Protection
 
+CSRF protection is automatically enabled when using `.with_default_middleware()`.
+
 ```rust
+use runique::prelude::*;
+
 RuniqueApp::new(settings).await?
-    .middleware(CsrfMiddleware::new())
+    .with_default_middleware()  // Includes CSRF protection
     .routes(routes())
     .run()
     .await?;
 ```
 
-In templates:
+In your templates:
+
 ```html
 <form method="post">
     {% csrf %}
@@ -480,24 +356,10 @@ In templates:
 ### Content Security Policy
 
 ```rust
-use runique::middleware::CspConfig;
-
-let csp_config = CspConfig {
-    default_src: vec!["'self'".to_string()],
-    script_src: vec!["'self'".to_string()],
-    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
-    img_src: vec!["'self'".to_string(), "data:".to_string()],
-    font_src: vec!["'self'".to_string()],
-    connect_src: vec!["'self'".to_string()],
-    frame_ancestors: vec!["'none'".to_string()],
-    base_uri: vec!["'self'".to_string()],
-    form_action: vec!["'self'".to_string()],
-    use_nonce: false,
-    ..Default::default()
-};
+use runique::prelude::*;
 
 RuniqueApp::new(settings).await?
-    .middleware(SecurityHeadersMiddleware::new())
+    .with_security_headers(CspConfig::strict())
     .with_default_middleware()
     .routes(routes())
     .run()
@@ -508,7 +370,12 @@ RuniqueApp::new(settings).await?
 
 ```rust
 RuniqueApp::new(settings).await?
-    .middleware(SecurityHeadersMiddleware::new())
+    .with_static_files()?
+    .with_allowed_hosts(
+        env::var("ALLOWED_HOSTS")
+        .ok()
+        .map(|s| s.split(',').map(|h| h.to_string()).collect()),
+    )
     .with_default_middleware()
     .routes(routes())
     .run()
@@ -526,6 +393,24 @@ Headers automatically configured:
 ---
 
 ## 🗄️ Database
+
+### Configuration
+
+```rust
+RuniqueApp::new(settings).await?
+    .with_database(db)
+    .with_static_files()?
+    .with_allowed_hosts(
+        env::var("ALLOWED_HOSTS")
+        .ok()
+        .map(|s| s.split(',').map(|h| h.to_string()).collect()),
+    )
+    .with_sanitize_text_inputs(false)
+    .with_default_middleware()
+    .routes(routes())
+    .run()
+    .await?;
+```
 
 ### Django-like API
 
@@ -615,6 +500,7 @@ Runique provides macros to simplify common operations.
 use runique::prelude::*;
 
 async fn my_handler(mut message: Message) -> Response {
+    // Note: Must use `mut` here for message, otherwise it won't work
     // Simple messages
     success!(message, "Operation successful!");
     error!(message, "An error occurred");
@@ -656,14 +542,17 @@ Runique leverages Rust and Tokio performance:
 - **Connection pooling**: Optimized DB connection management
 - **Optimized compilation**: Highly optimized binary
 
-### Benchmark (example)
+### Benchmark (indicative)
 
 ```
+Setup: Local development machine
 Requests/sec: ~50,000
 Latency p50: ~1ms
 Latency p99: ~5ms
 Memory: ~20MB
 ```
+
+*Note: Actual performance depends on your hardware and application complexity. Run your own benchmarks for production estimates.*
 
 ---
 
@@ -672,7 +561,14 @@ Memory: ~20MB
 ### Tests
 
 ```bash
+# Run all tests
 cargo test
+
+# Run integration tests
+cargo test --test integration
+
+# Run doc tests
+cargo test --doc
 ```
 
 ### Linting
@@ -690,7 +586,11 @@ cargo fmt
 ### Documentation
 
 ```bash
+# Generate and open documentation
 cargo doc --open
+
+# Test documentation examples
+cargo test --doc
 ```
 
 ---
@@ -712,6 +612,8 @@ Contributions are welcome! Here's how to contribute:
 - Document public APIs
 - Add examples if relevant
 
+See [CONTRIBUTING.md](informations/documentation_english/CONTRIBUTING.md) for more details.
+
 ---
 
 ## 📝 Roadmap
@@ -726,7 +628,7 @@ Contributions are welcome! Here's how to contribute:
 
 ### Version 1.2 (Q2 2026)
 
-- [ ] CLI for scaffolding
+- [x] CLI for scaffolding
 - [ ] Improved hot reload
 - [ ] GraphQL support
 - [ ] Background jobs (Tokio tasks)
@@ -742,7 +644,7 @@ Contributions are welcome! Here's how to contribute:
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE-MIT.md) file for details.
+This project is licensed under the MIT License. See the [LICENSE-MIT](LICENSE-MIT) file for details.
 
 ---
 
@@ -758,13 +660,17 @@ Runique builds upon excellent libraries from the Rust ecosystem:
 - [Argon2](https://github.com/RustCrypto/password-hashes) - Password hashing
 - [ammonia](https://github.com/rust-ammonia/ammonia) - HTML sanitization
 
+Special thanks to all contributors and the Rust community!
+
 ---
 
 ## 📧 Contact
 
-- **GitHub Issues**: [github.com/seb-alliot/runique/tree/issues](https://github.com/seb-alliot/runique/tree/issues)
-- **Discord**: [Join the server](https://discord.gg/Y5zW7rbt)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/seb-alliot/runique/tree/issues)
+- **Discord**: [Join our community](https://discord.gg/Y5zW7rbt)
 - **Email**: alliotsebastien04@gmail.com
+- **Crates.io**: [View on crates.io](https://crates.io/crates/runique)
+- **Docs.rs**: [Read the API documentation](https://docs.rs/runique)
 
 ---
 
@@ -772,19 +678,21 @@ Runique builds upon excellent libraries from the Rust ecosystem:
 
 If Runique is useful to you, consider:
 
-- ⭐ Starring on GitHub
+- ⭐ [Starring on GitHub](https://github.com/seb-alliot/runique)
 - 🐛 Reporting bugs
 - 💡 Suggesting features
 - 📖 Improving documentation
 - 🤝 Contributing code
+- 💬 Joining our Discord community
 
 ---
 
-**Build secure and performant web applications with Runique!**
+**Build secure and performant web applications with Runique!** 🚀
 
 ---
 
-**Version:** 1.0.2 (Corrected - January 2, 2026)
+**Version:** 1.0.3
 **License:** MIT
+**Status:** Stable
 
-*Documentation created with ❤️ by Claude for Itsuki*
+*Made with ❤️ and 🦀 by the Runique community*

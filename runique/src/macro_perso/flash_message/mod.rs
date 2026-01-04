@@ -7,7 +7,7 @@
 //!
 //! # Exemples
 //!
-//! ```rust,ignore
+//! ```rust
 //! use runique::prelude::*;
 //!
 //! async fn create_user(mut message: Message) -> Response {
@@ -25,13 +25,6 @@
 //! }
 //! ```
 
-/// Envoie un ou plusieurs messages de succès
-///
-/// # Syntaxe
-/// ```ignore
-/// success!(message, "Un message");
-/// success!(message, "Message 1", "Message 2", "Message 3");
-/// ```
 #[macro_export]
 macro_rules! success {
     ($msg:expr, $content:expr) => {
@@ -45,13 +38,6 @@ macro_rules! success {
     };
 }
 
-/// Envoie un ou plusieurs messages d'erreur
-///
-/// # Syntaxe
-/// ```ignore
-/// error!(message, "Un message");
-/// error!(message, "Message 1", "Message 2");
-/// ```
 #[macro_export]
 macro_rules! error {
     ($msg:expr, $content:expr) => {
@@ -65,13 +51,6 @@ macro_rules! error {
     };
 }
 
-/// Envoie un ou plusieurs messages d'information
-///
-/// # Syntaxe
-/// ```ignore
-/// info!(message, "Un message");
-/// info!(message, "Message 1", "Message 2");
-/// ```
 #[macro_export]
 macro_rules! info {
     ($msg:expr, $content:expr) => {
@@ -85,13 +64,6 @@ macro_rules! info {
     };
 }
 
-/// Envoie un ou plusieurs messages d'avertissement
-///
-/// # Syntaxe
-/// ```ignore
-/// warning!(message, "Un message");
-/// warning!(message, "Message 1", "Message 2");
-/// ```
 #[macro_export]
 macro_rules! warning {
     ($msg:expr, $content:expr) => {
@@ -103,4 +75,70 @@ macro_rules! warning {
             $msg.warning($rest).await.unwrap();
         )+
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use tokio;
+
+    struct MockMessage {
+        pub msgs: Vec<String>,
+    }
+
+    impl MockMessage {
+        fn new() -> Self {
+            Self { msgs: vec![] }
+        }
+
+        async fn success(&mut self, content: &str) -> Result<(), ()> {
+            self.msgs.push(format!("success: {}", content));
+            Ok(())
+        }
+
+        async fn error(&mut self, content: &str) -> Result<(), ()> {
+            self.msgs.push(format!("error: {}", content));
+            Ok(())
+        }
+
+        async fn info(&mut self, content: &str) -> Result<(), ()> {
+            self.msgs.push(format!("info: {}", content));
+            Ok(())
+        }
+
+        async fn warning(&mut self, content: &str) -> Result<(), ()> {
+            self.msgs.push(format!("warning: {}", content));
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_success_macro() {
+        let mut msg = MockMessage::new();
+        success!(msg, "Test message 1", "Test message 2");
+        assert_eq!(
+            msg.msgs,
+            vec!["success: Test message 1", "success: Test message 2"]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_error_macro() {
+        let mut msg = MockMessage::new();
+        error!(msg, "Erreur 1", "Erreur 2");
+        assert_eq!(msg.msgs, vec!["error: Erreur 1", "error: Erreur 2"]);
+    }
+
+    #[tokio::test]
+    async fn test_info_macro() {
+        let mut msg = MockMessage::new();
+        info!(msg, "Info 1", "Info 2");
+        assert_eq!(msg.msgs, vec!["info: Info 1", "info: Info 2"]);
+    }
+
+    #[tokio::test]
+    async fn test_warning_macro() {
+        let mut msg = MockMessage::new();
+        warning!(msg, "Warning 1", "Warning 2");
+        assert_eq!(msg.msgs, vec!["warning: Warning 1", "warning: Warning 2"]);
+    }
 }

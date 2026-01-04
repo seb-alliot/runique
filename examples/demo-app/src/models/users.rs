@@ -1,4 +1,4 @@
-// examples/demo-app/src/models/users.rs
+// src/models/users.rs
 use runique::impl_objects;
 use runique::sea_orm;
 use runique::sea_orm::entity::prelude::*;

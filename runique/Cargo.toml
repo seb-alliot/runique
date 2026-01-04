@@ -7,10 +7,10 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "A Django-inspired web framework for Rust with ORM, templates, and comprehensive security middleware"
-keywords = ["web", "framework", "django", "rust", "orm"]
+keywords = ["web", "framework", "django", "orm", "runique"]
 categories = ["web-programming::http-server"]
 readme = "../README.md"
-document = "../informations/documentation_english"
+documentation = "https://docs.rs/runique"
 
 exclude = [
     "tests/*",
@@ -84,7 +84,7 @@ hex = "0.4"
 base64.workspace = true
 
 # macro externe
-derive_form = "1.0.0"
+derive_form = "1.0.2"
 
 # cli
 clap.workspace = true
@@ -92,8 +92,8 @@ clap.workspace = true
 [features]
 default = ["orm"]
 orm = ["dep:sea-orm"]
-sqlite = ["orm", "sea-orm?/sqlx-sqlite", "sea-orm?/runtime-tokio-rustls"]
-postgres = ["orm", "sea-orm?/sqlx-postgres", "sea-orm?/runtime-tokio-rustls"]
-mysql = ["orm", "sea-orm?/sqlx-mysql", "sea-orm?/runtime-tokio-rustls"]
+sqlite = ["orm", "sea-orm/sqlx-sqlite", "sea-orm/runtime-tokio-rustls"]
+postgres = ["orm", "sea-orm/sqlx-postgres", "sea-orm/runtime-tokio-rustls"]
+mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]
 mariadb = ["mysql"]
 all-databases = ["sqlite", "postgres", "mysql"]

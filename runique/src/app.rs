@@ -1,4 +1,33 @@
-// runique/src/app.rs
+//! Main application builder and runner
+//!
+//! This module provides the `RuniqueApp` struct, which is the main entry point
+//! for building and running a Runique web application. It handles template loading,
+//! middleware configuration, routing, and server lifecycle.
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use runique::{RuniqueApp, Settings, DatabaseConfig};
+//! use runique::prelude::*;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let settings = Settings::default_values();
+//!     let db_config = DatabaseConfig::from_env()?.build();
+//!     let db = db_config.connect().await?;
+//!
+//!     RuniqueApp::new(settings)
+//!         .await?
+//!         .with_database(db)
+//!         .with_static_files()?
+//!         .with_default_middleware()
+//!         .run()
+//!         .await?;
+//!
+//!     Ok(())
+//! }
+//! ```
+
 use anyhow::Result;
 use axum::http::StatusCode;
 use axum::{middleware, Extension, Router};
@@ -24,6 +53,28 @@ use crate::middleware::middleware_sanetiser::sanitize_middleware;
 use crate::response::render_404;
 use crate::settings::Settings;
 
+/// Main Runique application
+///
+/// This is the central struct for building and configuring a Runique web application.
+/// It uses a builder pattern to allow fluent configuration of routes, middleware,
+/// database connections, and other features.
+///
+/// # Examples
+///
+/// ```no_run
+/// use runique::{RuniqueApp, Settings};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let settings = Settings::default_values();
+///
+/// RuniqueApp::new(settings)
+///     .await?
+///     .with_default_middleware()
+///     .run()
+///     .await?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct RuniqueApp {
     router: Router,
     config: Arc<Settings>,
@@ -32,6 +83,46 @@ pub struct RuniqueApp {
 }
 
 impl RuniqueApp {
+    /// Creates a new Runique application
+    ///
+    /// Initializes the application with the provided settings, sets up the
+    /// template engine, and loads both internal and user templates.
+    ///
+    /// # Template Processing
+    ///
+    /// This method automatically processes templates to support Django-style syntax:
+    /// - `{% csrf %}` → CSRF token inclusion
+    /// - `{% messages %}` → Flash message display
+    /// - `{% static "path" %}` → Static file URL
+    /// - `{% media "path" %}` → Media file URL
+    /// - `{% link "name" %}` → Named URL reverse lookup
+    ///
+    /// # Arguments
+    ///
+    /// * `settings` - Application settings
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let settings = Settings::builder()
+    ///     .debug(true)
+    ///     .server("127.0.0.1", 8000, "secret-key")
+    ///     .build();
+    ///
+    /// let app = RuniqueApp::new(settings).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Template loading fails
+    /// - Invalid socket address in settings
+    /// - Template directory is inaccessible
     pub async fn new(settings: Settings) -> Result<Self, Box<dyn Error>> {
         let config = Arc::new(settings);
         let addr = config.server.domain_server.parse()?;
@@ -120,6 +211,10 @@ impl RuniqueApp {
         })
     }
 
+    /// Loads internal Runique templates
+    ///
+    /// Embeds and loads built-in templates for error pages, CSRF tokens,
+    /// flash messages, and other framework features.
     fn load_internal_templates(tera: &mut Tera) -> Result<(), Box<dyn Error>> {
         tera.add_raw_template("base_index", include_str!("../templates/base_index.html"))?;
         tera.add_raw_template("message", include_str!("../templates/message.html"))?;
@@ -173,17 +268,99 @@ impl RuniqueApp {
         Ok(())
     }
 
+    /// Adds routes to the application
+    ///
+    /// Merges the provided router with the application's existing routes.
+    ///
+    /// # Arguments
+    ///
+    /// * `routes` - Router containing application routes
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings, Router, get};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// async fn index() -> &'static str { "Hello" }
+    ///
+    /// let settings = Settings::default_values();
+    /// let routes = Router::new().route("/", get(index));
+    ///
+    /// RuniqueApp::new(settings)
+    ///     .await?
+    ///     .routes(routes)
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn routes(mut self, routes: Router) -> Self {
         self.router = self.router.merge(routes);
         self
     }
 
+    /// Adds database connection to the application
+    ///
+    /// Makes the database connection available as a shared extension
+    /// throughout the application via `Extension<Arc<DatabaseConnection>>`.
+    ///
+    /// # Arguments
+    ///
+    /// * `db` - Database connection
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings, DatabaseConfig};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let settings = Settings::default_values();
+    /// let db_config = DatabaseConfig::from_env()?.build();
+    /// let db = db_config.connect().await?;
+    ///
+    /// RuniqueApp::new(settings)
+    ///     .await?
+    ///     .with_database(db)
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_database(mut self, db: DatabaseConnection) -> Self {
         let shared_db = Arc::new(db);
         self.router = self.router.layer(Extension(shared_db));
         self
     }
 
+    /// Configures static and media file serving
+    ///
+    /// Sets up routes to serve static assets, media uploads, and Runique's
+    /// internal assets based on the paths configured in settings.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let settings = Settings::builder()
+    ///     .static_url("/static")
+    ///     .media_url("/media")
+    ///     .build();
+    ///
+    /// RuniqueApp::new(settings)
+    ///     .await?
+    ///     .with_static_files()?
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if static file directories are inaccessible
     pub fn with_static_files(mut self) -> Result<Self, Box<dyn Error>> {
         let conf = self.config.as_ref();
         self.router = self
@@ -200,6 +377,30 @@ impl RuniqueApp {
         Ok(self)
     }
 
+    /// Adds default middleware stack
+    ///
+    /// Configures the following middleware:
+    /// - Error handler with custom error pages
+    /// - Flash message support
+    /// - CSRF token generation and validation
+    /// - Request tracing
+    /// - Request timeout (10 seconds)
+    /// - 404 handler
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_default_middleware()
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_default_middleware(mut self) -> Self {
         let tera = self.tera.clone();
         let config = self.config.clone();
@@ -230,20 +431,96 @@ impl RuniqueApp {
         self
     }
 
+    /// Builds and returns the final Router
+    ///
+    /// Consumes the `RuniqueApp` and returns the configured Axum router.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let router = RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .build();
+    ///
+    /// // Use router with custom server configuration
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn build(self) -> Router {
         self.router
     }
 
+    /// Adds flash message middleware
+    ///
+    /// Enables flash messages for one-time notifications across requests.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_flash_messages()
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_flash_messages(mut self) -> Self {
         self.router = self.router.layer(middleware::from_fn(flash_middleware));
         self
     }
 
+    /// Adds CSRF protection middleware
+    ///
+    /// Generates and validates CSRF tokens for forms.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_csrf_tokens()
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_csrf_tokens(mut self) -> Self {
         self.router = self.router.layer(middleware::from_fn(csrf_middleware));
         self
     }
 
+    /// Enables automatic text input sanitization
+    ///
+    /// When enabled, automatically sanitizes user input to prevent XSS attacks.
+    ///
+    /// # Arguments
+    ///
+    /// * `enable` - Whether to enable sanitization
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_sanitize_text_inputs(true)
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_sanitize_text_inputs(mut self, enable: bool) -> Self {
         if !enable {
             return self;
@@ -255,14 +532,32 @@ impl RuniqueApp {
         self
     }
 
-    /// Active la validation des hosts autorisés (ALLOWED_HOSTS)
+    /// Enables allowed hosts validation (ALLOWED_HOSTS)
     ///
-    /// # Exemple
+    /// Validates incoming requests against a whitelist of allowed host headers.
+    /// This is a security feature to prevent Host header attacks.
+    ///
+    /// # Arguments
+    ///
+    /// * `hosts` - Optional list of allowed hosts. If None, uses hosts from settings.
+    ///
+    /// # Examples
+    ///
     /// ```no_run
-    /// # use runique::app::RuniqueApp;
-    /// # async fn test(settings: runique::Settings) -> Result<(), Box<dyn std::error::Error>> {
-    /// RuniqueApp::new(settings).await?
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Use hosts from settings
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
     ///     .with_allowed_hosts(None)
+    ///     .run()
+    ///     .await?;
+    ///
+    /// // Or provide custom hosts
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_allowed_hosts(Some(vec!["example.com".to_string()]))
     ///     .run()
     ///     .await?;
     /// # Ok(())
@@ -281,7 +576,28 @@ impl RuniqueApp {
         self
     }
 
-    /// Active la Content Security Policy
+    /// Enables Content Security Policy
+    ///
+    /// Adds CSP headers to protect against XSS and injection attacks.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - CSP configuration
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings, CspConfig};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_csp(CspConfig::strict())
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_csp(self, config: CspConfig) -> Self {
         let router = self.router.layer(middleware::from_fn_with_state(
             config,
@@ -296,7 +612,29 @@ impl RuniqueApp {
         }
     }
 
-    /// Active tous les en-têtes de sécurité
+    /// Enables all security headers
+    ///
+    /// Adds comprehensive security headers including CSP, X-Frame-Options,
+    /// X-Content-Type-Options, and more.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - CSP configuration
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings, CspConfig};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_security_headers(CspConfig::strict())
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_security_headers(self, config: CspConfig) -> Self {
         let router = self.router.layer(middleware::from_fn_with_state(
             config,
@@ -311,7 +649,28 @@ impl RuniqueApp {
         }
     }
 
-    /// Active la CSP en mode report-only
+    /// Enables CSP in report-only mode
+    ///
+    /// Adds CSP headers in report-only mode for testing without blocking content.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - CSP configuration
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings, CspConfig};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_csp_report_only(CspConfig::strict())
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_csp_report_only(self, config: CspConfig) -> Self {
         let router = self.router.layer(middleware::from_fn_with_state(
             config,
@@ -326,6 +685,43 @@ impl RuniqueApp {
         }
     }
 
+    /// Runs the application server
+    ///
+    /// Starts the HTTP server and listens for incoming requests.
+    /// Blocks until the server is shut down (via Ctrl+C).
+    ///
+    /// # Session Management
+    ///
+    /// Automatically configures session management with:
+    /// - In-memory session store
+    /// - Secure cookies in production
+    /// - 24-hour session expiry
+    ///
+    /// # Graceful Shutdown
+    ///
+    /// The server listens for SIGINT (Ctrl+C) and shuts down gracefully,
+    /// allowing in-flight requests to complete.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// RuniqueApp::new(Settings::default_values())
+    ///     .await?
+    ///     .with_default_middleware()
+    ///     .run()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Unable to bind to the configured address/port
+    /// - Server encounters a fatal error
     pub async fn run(self) -> Result<(), Box<dyn Error>> {
         println!("🦀 Runique Framework v{}", crate::VERSION);
         println!("   Starting server at http://{}", self.addr);
@@ -351,6 +747,33 @@ impl RuniqueApp {
         Ok(())
     }
 
+    /// Creates a new application builder
+    ///
+    /// Alternative API using the builder pattern for application configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `settings` - Application settings
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::{RuniqueApp, Settings, Router, get};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// async fn index() -> &'static str { "Hello" }
+    ///
+    /// let settings = Settings::default_values();
+    /// let routes = Router::new().route("/", get(index));
+    ///
+    /// let app = RuniqueApp::builder(settings)
+    ///     .await
+    ///     .routes(routes)
+    ///     .build()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn builder(settings: Settings) -> RuniqueAppBuilder {
         RuniqueAppBuilder {
             settings,
@@ -359,17 +782,45 @@ impl RuniqueApp {
     }
 }
 
+/// Builder for RuniqueApp
+///
+/// Provides an alternative API for building Runique applications
+/// using the builder pattern.
+///
+/// # Examples
+///
+/// ```no_run
+/// use runique::{RuniqueApp, Settings};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let app = RuniqueApp::builder(Settings::default_values())
+///     .await
+///     .build()
+///     .await?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct RuniqueAppBuilder {
     settings: Settings,
     routes: Option<Router>,
 }
 
 impl RuniqueAppBuilder {
+    /// Adds routes to the builder
+    ///
+    /// # Arguments
+    ///
+    /// * `routes` - Router containing application routes
     pub fn routes(mut self, routes: Router) -> Self {
         self.routes = Some(routes);
         self
     }
 
+    /// Builds the final RuniqueApp
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if application initialization fails
     pub async fn build(self) -> Result<RuniqueApp, Box<dyn Error>> {
         let mut app = RuniqueApp::new(self.settings).await?;
         if let Some(routes) = self.routes {

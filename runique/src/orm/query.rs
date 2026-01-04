@@ -1,43 +1,79 @@
+/// Django-inspired query builder for SeaORM
+///
+/// This struct wraps SeaORM's `Select<E>` and provides convenient,
+/// chainable methods like `.filter()`, `.exclude()`, `.order_by_desc()`, etc.
+///
+/// # Examples
+///
+/// ```rust
+/// #[cfg(feature = "sqlite")]
+/// async fn sqlite_query_example() {
+///     use sea_orm::entity::prelude::*;
+///     use sea_orm::{Database, DbBackend, Schema, Set};
+///
+///     #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+///     #[sea_orm(table_name = "users")]
+///     pub struct Model {
+///         #[sea_orm(primary_key)]
+///         pub id: i32,
+///         pub username: String,
+///         pub age: i32,
+///     }
+///
+///     #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+///     pub enum Relation {}
+///
+///     impl ActiveModelBehavior for ActiveModel {}
+///
+///     // Connexion SQLite en mémoire
+///     let db = Database::connect("sqlite::memory:").await.unwrap();
+///
+///     // Création de la table
+///     let stmt = Schema::new(DbBackend::Sqlite).create_table_from_entity(Entity);
+///     db.execute(&stmt).await.unwrap();
+///
+///     // Insertion d'un utilisateur
+///     ActiveModel {
+///         username: Set("Alice".to_owned()),
+///         age: Set(30),
+///         ..Default::default()
+///     }
+///     .insert(&db)
+///     .await
+///     .unwrap();
+///
+///     // Vérification via query
+///     let user: Option<Model> = Entity::find()
+///         .filter(Column::username.eq("Alice"))
+///         .one(&db)
+///         .await
+///         .unwrap();
+///     assert!(user.is_some());
+/// }
+///
+/// #[cfg(feature = "sqlite")]
+/// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_query_example());
+/// ```
 use crate::processor::Template;
 use axum::response::Response;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
     QuerySelect, Select,
 };
-/// Wrapper pour Select avec méthodes pratiques et chainables
-///
-/// Cette struct encapsule un `Select<E>` de SeaORM et fournit
-/// des méthodes pratiques inspirées de Django ORM.
+
 pub struct RuniqueQueryBuilder<E: EntityTrait> {
     select: Select<E>,
 }
 
 impl<E: EntityTrait> RuniqueQueryBuilder<E> {
-    /// Crée un nouveau QueryBuilder à partir d'un Select
     pub fn new(select: Select<E>) -> Self {
         Self { select }
     }
 
-    /// Récupère tous les enregistrements
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let users = User::objects.all().all(&db).await?;
-    /// ```
     pub async fn all(self, db: &DatabaseConnection) -> Result<Vec<E::Model>, DbErr> {
         self.select.all(db).await
     }
 
-    /// Filtre par une condition
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let adults = User::objects
-    ///     .filter(user::Column::Age.gte(18))
-    ///     .all(&db)
-    ///     .await?;
-    /// ```
-    /// Filtre par une condition
     pub fn filter<C>(mut self, condition: C) -> Self
     where
         C: Into<Condition>,
@@ -46,7 +82,6 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
-    /// Exclut les enregistrements correspondant à une condition
     pub fn exclude<C>(mut self, condition: C) -> Self
     where
         C: Into<Condition>,
@@ -55,101 +90,35 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
-    /// Ordre croissant par colonne
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let users = User::objects
-    ///     .order_by_asc(user::Column::Username)
-    ///     .all(&db)
-    ///     .await?;
-    /// ```
     pub fn order_by_asc<C: ColumnTrait>(mut self, column: C) -> Self {
         self.select = self.select.order_by_asc(column);
         self
     }
 
-    /// Ordre décroissant par colonne
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let users = User::objects
-    ///     .order_by_desc(user::Column::CreatedAt)
-    ///     .all(&db)
-    ///     .await?;
-    /// ```
     pub fn order_by_desc<C: ColumnTrait>(mut self, column: C) -> Self {
         self.select = self.select.order_by_desc(column);
         self
     }
 
-    /// Limite le nombre de résultats
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let users = User::objects
-    ///     .limit(10)
-    ///     .all(&db)
-    ///     .await?;
-    /// ```
     pub fn limit(mut self, limit: u64) -> Self {
         self.select = self.select.limit(limit);
         self
     }
 
-    /// Skip les n premiers résultats
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let page_2 = User::objects
-    ///     .offset(20)
-    ///     .limit(10)
-    ///     .all(&db)
-    ///     .await?;
-    /// ```
     pub fn offset(mut self, offset: u64) -> Self {
         self.select = self.select.offset(offset);
         self
     }
 
-    /// Compte le nombre d'enregistrements
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let count = User::objects
-    ///     .filter(user::Column::Age.gte(18))
-    ///     .count(&db)
-    ///     .await?;
-    /// ```
     pub async fn count(self, db: &DatabaseConnection) -> Result<u64, DbErr> {
         let items = self.select.all(db).await?;
         Ok(items.len() as u64)
     }
 
-    /// Récupère le premier résultat
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// if let Some(user) = User::objects
-    ///     .filter(user::Column::Username.eq("alice"))
-    ///     .first(&db)
-    ///     .await? {
-    ///     println!("Found: {}", user.username);
-    /// }
-    /// ```
     pub async fn first(self, db: &DatabaseConnection) -> Result<Option<E::Model>, DbErr> {
         self.select.one(db).await
     }
 
-    /// Récupère le premier résultat ou retourne une 404
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let user = User::objects
-    ///     .filter(user::Column::Username.eq("alice"))
-    ///     .get_or_404(&db, &template, "Utilisateur introuvable")
-    ///     .await?;
-    /// ```
     pub async fn get_or_404(
         self,
         db: &DatabaseConnection,
@@ -159,7 +128,114 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         match self.first(db).await {
             Ok(Some(entity)) => Ok(entity),
             Ok(None) => Err(template.render_404(error_msg)),
-            Err(_) => Err(template.render_500("Erreur de base de données")),
+            Err(_) => Err(template.render_500("Database error")),
         }
+    }
+}
+
+// =====================================================
+// Tests SQLite activés avec feature "sqlite"
+// =====================================================
+
+#[cfg(feature = "sqlite")]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_orm::entity::prelude::*;
+    use sea_orm::ActiveModelTrait;
+    use sea_orm::Set;
+
+    #[cfg(feature = "sqlite")]
+    async fn setup_db() -> Result<DatabaseConnection, DbErr> {
+        let db = sea_orm::Database::connect("sqlite::memory:").await?;
+
+        use sea_orm::Schema;
+        let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+        let stmt = schema.create_table_from_entity(Entity);
+        db.execute(&stmt).await?;
+
+        Ok(db)
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_all() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+
+        let user = ActiveModel {
+            username: Set("alice".to_string()),
+            age: Set(25),
+            ..Default::default()
+        };
+        user.insert(&db).await?;
+
+        let users = RuniqueQueryBuilder::new(Entity::find()).all(&db).await?;
+        assert_eq!(users.len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_filter_exclude() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+
+        let alice = ActiveModel {
+            username: Set("alice".to_string()),
+            age: Set(25),
+            ..Default::default()
+        };
+        let bob = ActiveModel {
+            username: Set("bob".to_string()),
+            age: Set(30),
+            ..Default::default()
+        };
+        alice.insert(&db).await?;
+        bob.insert(&db).await?;
+
+        let adults = RuniqueQueryBuilder::new(Entity::find())
+            .filter(Column::Age.gte(26))
+            .all(&db)
+            .await?;
+        assert_eq!(adults.len(), 1);
+        assert_eq!(adults[0].username, "bob");
+
+        let not_bob = RuniqueQueryBuilder::new(Entity::find())
+            .exclude(Column::Username.eq("bob"))
+            .all(&db)
+            .await?;
+        assert_eq!(not_bob.len(), 1);
+        assert_eq!(not_bob[0].username, "alice");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_order_limit_count_first() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+
+        for i in 1..=3 {
+            let user = ActiveModel {
+                username: Set(format!("user{}", i)),
+                age: Set(20 + i),
+                ..Default::default()
+            };
+            user.insert(&db).await?;
+        }
+
+        let count = RuniqueQueryBuilder::new(Entity::find()).count(&db).await?;
+        assert_eq!(count, 3);
+
+        let first = RuniqueQueryBuilder::new(Entity::find())
+            .order_by_asc(Column::Age)
+            .first(&db)
+            .await?
+            .unwrap();
+        assert_eq!(first.age, 21);
+
+        let limited = RuniqueQueryBuilder::new(Entity::find())
+            .limit(2)
+            .all(&db)
+            .await?;
+        assert_eq!(limited.len(), 2);
+
+        Ok(())
     }
 }

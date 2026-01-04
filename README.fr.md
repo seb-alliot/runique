@@ -2,43 +2,52 @@
 
 **Un framework web Rust inspiré de Django**
 
-Runique est un framework web moderne qui combine la sécurité et les performances de Rust avec l'ergonomie de Django. Il offre une expérience de développement familière aux développeurs Django tout en exploitant la puissance du système de types de Rust.
+Runique est un framework web moderne qui combine la sécurité et les performances de Rust avec l'ergonomie de Django. Il offre une expérience de développement familière pour les développeurs Django tout en tirant parti de la puissance du système de types de Rust.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/seb-alliot/runique)
+[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://crates.io/crates/runique)
+[![docs.rs](https://img.shields.io/docsrs/runique)](https://docs.rs/runique)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
 
 ---
 
-## 🚀 Caractéristiques principales
+## 🤔 Pourquoi Runique ?
 
-### Architecture Django-like
-- **Routing déclaratif** avec `urlpatterns!` macro
-- **ORM intuitif** basé sur SeaORM avec API Django-style
+- **Pour les développeurs Django** : API et patterns familiers avec les performances et la sécurité de Rust
+- **Pour les développeurs Rust** : Ergonomie inspirée de Django sans sacrifier la sécurité des types
+- **Pour tout le monde** : Sécurité intégrée dès le départ, pas ajoutée après coup
+
+---
+
+## 🚀 Fonctionnalités Principales
+
+### Architecture Similaire à Django
+- **Routing déclaratif** avec la macro `urlpatterns!`
+- **ORM intuitif** basé sur SeaORM avec une API dans le style Django
 - **Système de templates** Tera avec préprocessing personnalisé
 - **Génération automatique de formulaires** via macros procédurales
-- **Messages flash** entre requêtes
-- **Gestion des fichiers statiques et media**
+- **Messages flash** entre les requêtes
+- **Gestion des fichiers statiques et médias**
 
-### Sécurité intégrée
+### Sécurité Intégrée
 - ✅ **Protection CSRF** (HMAC-SHA256)
 - ✅ **Content Security Policy** (CSP) avec nonces
-- ✅ **Sanitization XSS** (ammonia)
-- ✅ **Security Headers** automatiques (HSTS, X-Frame-Options, etc.)
+- ✅ **Sanitisation XSS** (ammonia)
+- ✅ **Headers de Sécurité Automatiques** (HSTS, X-Frame-Options, etc.)
 - ✅ **Validation ALLOWED_HOSTS**
-- ✅ **Hachage Argon2id** intégré
+- ✅ **Hachage Argon2id Intégré**
 
-### Support multi-bases de données
+### Support Multi-bases de Données
 - PostgreSQL
 - MySQL / MariaDB
 - SQLite
 
-### Développement moderne
-- **Async/await** natif avec Tokio
-- **Type-safe** grâce au système de types Rust
-- **Zero-cost abstractions**
+### Développement Moderne
+- **Async/await natif** avec Tokio
+- **Type-safe** grâce au système de types de Rust
+- **Abstractions sans coût**
 - **Hot reload** en développement
-- **Documentation complète** en français et anglais
+- **Documentation complète**
 
 ---
 
@@ -49,33 +58,33 @@ Runique est un framework web moderne qui combine la sécurité et les performanc
 - Rust 1.75+ ([installer Rust](https://www.rust-lang.org/tools/install))
 - Cargo
 
-### Ajouter Runique à votre projet
+### Ajouter Runique à Votre Projet
 
 ```toml
 # Cargo.toml
 
 # Configuration minimale (SQLite par défaut)
 [dependencies]
-runique = "1.0.0"
+runique = "1.0.3"
 
 # Avec PostgreSQL
 [dependencies]
-runique = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0.3", features = ["postgres"] }
 
 # Avec MySQL
 [dependencies]
-runique = { version = "1.0.0", features = ["mysql"] }
+runique = { version = "1.0.3", features = ["mysql"] }
 
 # Avec MariaDB
 [dependencies]
-runique = { version = "1.0.0", features = ["mariadb"] }
+runique = { version = "1.0.3", features = ["mariadb"] }
 
 # Avec toutes les bases de données
 [dependencies]
-runique = { version = "1.0.0", features = ["all-databases"] }
+runique = { version = "1.0.3", features = ["all-databases"] }
 ```
 
-### Features Cargo disponibles
+### Features Cargo Disponibles
 
 | Feature | Description | Par défaut |
 |---------|-------------|------------|
@@ -92,42 +101,43 @@ runique = { version = "1.0.0", features = ["all-databases"] }
 ```toml
 # SQLite uniquement (configuration par défaut)
 [dependencies]
-runique = "1.0.0"
+runique = "1.0.3"
 
 # PostgreSQL + MySQL
 [dependencies]
-runique = { version = "1.0.0", features = ["postgres", "mysql"] }
+runique = { version = "1.0.3", features = ["postgres", "mysql"] }
 
 # Toutes les bases de données
 [dependencies]
-runique = { version = "1.0.0", features = ["all-databases"] }
+runique = { version = "1.0.3", features = ["all-databases"] }
 
 # Sans ORM (framework minimal)
 [dependencies]
-runique = { version = "1.0.0", default-features = false }
+runique = { version = "1.0.3", default-features = false }
 ```
 
-### Créer un nouveau projet
+### Créer un Nouveau Projet
 
 ```bash
-cargo new mon_app
+cargo install runique
+runique new mon_app
 cd mon_app
 ```
 
-Ajoutez Runique dans `Cargo.toml` :
+Ajouter Runique au `Cargo.toml` :
 
 ```toml
 [dependencies]
-runique = { version = "1.0.0", features = ["postgres"] }
+runique = { version = "1.0.3", features = ["sqlite"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
 
 ---
 
-## 🏁 Démarrage rapide
+## 🏁 Démarrage Rapide
 
-### Application minimale
+### Application Minimale
 
 ```rust
 // src/main.rs
@@ -150,94 +160,21 @@ fn routes() -> Router {
         "/" => view!{
             GET => views::index
         },
-        name ="index",
+        name = "index",
 
-        "/hello" => view!{
+        "/hello/:name" => view!{
             GET => views::hello
         },
-        name ="hello",
-
-        "/user" => view! {
-            GET => views::user_profile,
-            POST => views::user_profile_submit
-        },
-         name = "user_profile",
+        name = "hello",
     ]
 }
 
 async fn index() -> &'static str {
-    "Bienvenue sur Runique !"
+    "Bienvenue sur Runique ! 🚀"
 }
 
 async fn hello(Path(name): Path<String>) -> String {
     format!("Bonjour, {} !", name)
-}
-
-pub async fn user_profile(
-    template: Template,
-    ExtractForm(form): ExtractForm<ModelForm>,
-) -> Response {
-    let ctx = context! {
-        "title", "Profil Utilisateur";
-        "form", form
-    };
-    template.render("profile/register_profile.html", &ctx)
-}
-
-pub async fn user_profile_submit(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    mut message: Message,
-    template: Template,
-    ExtractForm(user): ExtractForm<ModelForm>,
-) -> Response {
-    // 1. Vérification de la validité du formulaire
-    if user.is_valid() {
-        match user.save(&db).await {
-            Ok(created_user) => {
-                success!(message, "Profil utilisateur créé avec succès !");
-                let target = reverse_with_parameters(
-                    "user_profile",
-                    &[
-                        ("id", &created_user.id.to_string()),
-                        ("name", &created_user.username),
-                    ],
-                ).unwrap();
-                return Redirect::to(&target).into_response();
-            }
-            Err(err) => {
-                // Gestion des erreurs d'unicité de la base de données
-                let error_msg = if err.to_string().contains("unique") {
-                    if err.to_string().contains("username") {
-                        "Ce nom d'utilisateur est déjà pris !"
-                    } else if err.to_string().contains("email") {
-                        "Cette adresse email est déjà utilisée !"
-                    } else {
-                        "Cette valeur existe déjà dans la base de données."
-                    }
-                } else {
-                    "Une erreur est survenue lors de l'enregistrement."
-                };
-                error!(message, error_msg);
-                let ctx = context! {
-                    "form", ModelForm::build();
-                    "forms_errors", user.get_errors();
-                    "title", "Profil";
-                    "db_error", error_msg
-                };
-                return template.render("name.html", &ctx);
-            }
-        }
-    }
-
-    // 2. Cas d'erreur de validation (champs mal remplis)
-    error!(message, "Le formulaire contient des erreurs de validation.");
-
-    let ctx = context! {
-        "form", ModelForm::build();
-        "forms_errors", user.get_errors();
-        "title", "Erreur de validation"
-    };
-    template.render("name.html", &ctx)
 }
 ```
 
@@ -246,17 +183,17 @@ pub async fn user_profile_submit(
 ```env
 HOST=127.0.0.1
 PORT=8000
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=votre-cle-secrete-ici
 ALLOWED_HOSTS=localhost,127.0.0.1
 DEBUG=true
 
-# PostgreSQL
+# PostgreSQL (optionnel)
 DB_ENGINE=postgres
-DB_USER=user
-DB_PASSWORD=password
+DB_USER=utilisateur
+DB_PASSWORD=motdepasse
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=mydb
+DB_NAME=mabase
 ```
 
 ### Lancement
@@ -265,47 +202,35 @@ DB_NAME=mydb
 cargo run
 ```
 
-Ouvrez [http://localhost:8000](http://localhost:8000)
+Ouvrir [http://localhost:8000](http://localhost:8000)
+
+**Pour des exemples plus avancés, voir la section [Exemple Complet](#-exemple-complet) ci-dessous.**
 
 ---
-## 📚 Complete Documentation
 
-### 📚 Documentation (English)
+## 📚 Documentation
 
-- [🚀 Getting Started](informations/documentation_english/GETTING_STARTED.md)
-- [⚙️ Configuration](informations/documentation_english/CONFIGURATION.md)
-- [🗄️ Database](informations/documentation_english/DATABASE.md)
-- [📝 Forms](informations/documentation_english/FORMULAIRE.md)
-- [🎨 Templates](informations/documentation_english/TEMPLATES.md)
-- [🔒 Security](informations/documentation_english/CSP.md)
-- [🛣️ Macro](informations/documentation_english/MACRO%2520CONTEXT.md)
-- [🔧 changelog](informations/documentation_english/CHANGELOG.md)
-- [🚀 Contribuer](informations/documentation_english/CONTRIBUTING.md)
-- [🆕 New project](informations/documentation_english/NEW_PROJECT.md)
-- [📖 Documentation Overview](README.md)
-
-### 📚 Documentation (French)
-
-- [🚀 Getting Started](informations/documentation_french/GETTING_STARTED.md)
+- [🚀 Démarrage](informations/documentation_french/GETTING_STARTED.md)
 - [⚙️ Configuration](informations/documentation_french/CONFIGURATION.md)
-- [🗄️ Database](informations/documentation_french/DATABASE.md)
-- [📝 Forms](informations/documentation_french/FORMULAIRE.md)
+- [🗄️ Base de Données](informations/documentation_french/DATABASE.md)
+- [📝 Formulaires](informations/documentation_french/FORMULAIRE.md)
 - [🎨 Templates](informations/documentation_french/TEMPLATES.md)
-- [🔒 Security](informations/documentation_french/CSP.md)
-- [🛣️ Macro](informations/documentation_french/MACRO%2520CONTEXT.md)
-- [🔧 changelog](informations/documentation_french/CHANGELOG.md)
+- [🔒 Sécurité](informations/documentation_french/CSP.md)
+- [🛣️ Macros](informations/documentation_french/MACRO_CONTEXT.md)
+- [🔧 Changelog](informations/documentation_french/CHANGELOG.md)
 - [🚀 Contribuer](informations/documentation_french/CONTRIBUTING.md)
-- [🆕 New project](informations/documentation_english/NOUVEAU_PROJET.md)
-- [📖 Documentation Overview](README.fr.md)
+- [🆕 Nouveau projet](informations/documentation_french/NOUVEAU_PROJET.md)
+- [📖 Documentation API](https://docs.rs/runique)
 
 ---
 
-## 🎯 Exemple complet
+## 🎯 Exemple Complet
 
-### Structure du projet
+### Structure du Projet
+### Vous pouvez utiliser : `cargo install runique` → `runique new nom_projet`
 
 ```
-my_app/
+mon_app/
 ├── Cargo.toml
 ├── .env
 ├── src/
@@ -326,130 +251,78 @@ my_app/
     └── js/
 ```
 
-### Modèle (models/mod.rs)
-
-```rust
-use sea_orm::entity::prelude::*;
-use runique::impl_objects;
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "posts")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub title: String,
-    pub content: String,
-    pub published: bool,
-    pub created_at: DateTime,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
-
-// API Django-like
-impl_objects!(Entity);
-```
-
-### Formulaire (forms/mod.rs)
-
-```rust
-use runique::forms::prelude::*;
-
-#[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
-#[sea_orm(model = "crate::models::Model", entity = "crate::models::Entity")]
-pub struct PostForm {
-    #[form_field(widget = "textarea", required = true)]
-    pub title: CharField,
-
-    #[form_field(widget = "textarea", required = true)]
-    pub content: CharField,
-
-    #[form_field(default = "false")]
-    pub published: BooleanField,
-}
-```
-
-### Vue (views/mod.rs)
+### Handler Avancé avec Validation de Formulaire
 
 ```rust
 use runique::prelude::*;
-use crate::models::{posts, Entity as Post};
-use crate::forms::PostForm;
 
-pub async fn list_posts(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
+// Handler de formulaire avec validation
+pub async fn profil_utilisateur(
     template: Template,
+    ExtractForm(form): ExtractForm<ModelForm>,
 ) -> Response {
-    let posts = Post::objects
-        .filter(posts::Column::Published.eq(true))
-        .order_by_desc(posts::Column::CreatedAt)
-        .all(&*db)
-        .await
-        .unwrap_or_default();
-
-    template.render("posts/list.html", context! {
-        posts: posts,
-    })
+    let ctx = context! {
+        "title", "Profil Utilisateur";
+        "form", form
+    };
+    template.render("profile/register_profile.html", &ctx)
 }
 
-pub async fn create_post(
-    Form(form): Form<PostForm>,
+// Soumission de formulaire avec gestion d'erreurs
+pub async fn profil_utilisateur_submit(
     Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
     mut message: Message,
+    template: Template,
+    ExtractForm(user): ExtractForm<ModelForm>,
 ) -> Response {
-    if !form.is_valid() {
-        return template.render("posts/create.html", context! { form });
+    if user.is_valid() {
+        match user.save(&db).await {
+            Ok(created_user) => {
+                success!(message, "Profil utilisateur créé avec succès !");
+                let target = reverse_with_parameters(
+                    "user_profile",
+                    &[
+                        ("id", &created_user.id.to_string()),
+                        ("name", &created_user.username),
+                    ],
+                )
+                .unwrap();
+                return Redirect::to(&target).into_response();
+            }
+            Err(err) => {
+                // Gestion des erreurs de contrainte unique
+                let error_msg = if err.to_string().contains("unique") {
+                    if err.to_string().contains("username") {
+                        "Ce nom d'utilisateur est déjà pris !"
+                    } else if err.to_string().contains("email") {
+                        "Cet email est déjà utilisé !"
+                    } else {
+                        "Cette valeur existe déjà dans la base de données"
+                    }
+                } else {
+                    "Erreur lors de la sauvegarde"
+                };
+                error!(message, error_msg);
+                let ctx = context! {
+                    "form", ModelForm::build();
+                    "forms_errors", user.get_errors();
+                    "title", "Profil";
+                    "db_error", error_msg
+                };
+                return template.render("name.html", &ctx);
+            }
+        }
     }
 
-    match form.save(&*db).await {
-        Ok(post) => {
-            success!(message, "Article créé avec succès !");
-            redirect(&format!("/posts/{}", post.id))
-        }
-        Err(_) => {
-            error!(message, "Erreur lors de la création");
-            template.render("posts/create.html", context! { form })
-        }
-    }
-}
+    // Scénarios d'erreur de validation
+    error!(message, "Erreur de validation du formulaire");
 
-```
-
-### Template (templates/posts/list.html)
-
-```html
-{% extends "base.html" %}
-
-{% block content %}
-<h1>Articles</h1>
-
-{% for post in posts %}
-<article>
-    <h2>{{ post.title }}</h2>
-    <p>{{ post.content|truncate(200) }}</p>
-    <a href="{% link 'post_detail' id=post.id %}">Lire la suite</a>
-</article>
-{% endfor %}
-
-<a href="{% link 'post_create' %}">Créer un article</a>
-{% endblock %}
-```
-
-### Routes (main.rs)
-
-```rust
-use runique::prelude::*;
-
-fn routes() -> Router {
-    urlpatterns![
-        path!("", views::index, "index"),
-        path!("posts/", views::list_posts, "post_list"),
-        path!("posts/create/", views::create_post, "post_create"),
-        path!("posts/<id>/", views::detail_post, "post_detail"),
-    ]
+    let ctx = context! {
+        "form", ModelForm::build();
+        "forms_errors", user.get_errors();
+        "title", "Erreur de Validation"
+    };
+    template.render("name.html", &ctx)
 }
 ```
 
@@ -457,19 +330,22 @@ fn routes() -> Router {
 
 ## 🔒 Sécurité
 
-Runique intègre plusieurs couches de sécurité par défaut :
-
 ### Protection CSRF
 
+La protection CSRF est automatiquement activée lors de l'utilisation de `.with_default_middleware()`.
+
 ```rust
+use runique::prelude::*;
+
 RuniqueApp::new(settings).await?
-    .middleware(CsrfMiddleware::new())
+    .with_default_middleware()  // Inclut la protection CSRF
     .routes(routes())
     .run()
     .await?;
 ```
 
-Dans les templates :
+Dans vos templates :
+
 ```html
 <form method="post">
     {% csrf %}
@@ -480,42 +356,33 @@ Dans les templates :
 ### Content Security Policy
 
 ```rust
-use runique::middleware::CspConfig;
-
-let csp_config = CspConfig {
-    default_src: vec!["'self'".to_string()],
-    script_src: vec!["'self'".to_string()],
-    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
-    img_src: vec!["'self'".to_string(), "data:".to_string()],
-    font_src: vec!["'self'".to_string()],
-    connect_src: vec!["'self'".to_string()],
-    frame_ancestors: vec!["'none'".to_string()],
-    base_uri: vec!["'self'".to_string()],
-    form_action: vec!["'self'".to_string()],
-    use_nonce: false,
-    ..Default::default()
-};
+use runique::prelude::*;
 
 RuniqueApp::new(settings).await?
-    .middleware(SecurityHeadersMiddleware::new())
+    .with_security_headers(CspConfig::strict())
     .with_default_middleware()
     .routes(routes())
     .run()
     .await?;
 ```
 
-### Security Headers
+### Headers de Sécurité
 
 ```rust
 RuniqueApp::new(settings).await?
-    .middleware(SecurityHeadersMiddleware::new())
+    .with_static_files()?
+    .with_allowed_hosts(
+        env::var("ALLOWED_HOSTS")
+        .ok()
+        .map(|s| s.split(',').map(|h| h.to_string()).collect()),
+    )
     .with_default_middleware()
     .routes(routes())
     .run()
     .await?;
 ```
 
-Headers configurés automatiquement :
+Headers automatiquement configurés :
 - `Strict-Transport-Security`
 - `X-Content-Type-Options`
 - `X-Frame-Options`
@@ -525,9 +392,27 @@ Headers configurés automatiquement :
 
 ---
 
-## 🗄️ Base de données
+## 🗄️ Base de Données
 
-### API Django-like
+### Configuration
+
+```rust
+RuniqueApp::new(settings).await?
+    .with_database(db)
+    .with_static_files()?
+    .with_allowed_hosts(
+        env::var("ALLOWED_HOSTS")
+        .ok()
+        .map(|s| s.split(',').map(|h| h.to_string()).collect()),
+    )
+    .with_sanitize_text_inputs(false)
+    .with_default_middleware()
+    .routes(routes())
+    .run()
+    .await?;
+```
+
+### API dans le Style Django
 
 ```rust
 use crate::models::{users, Entity as User};
@@ -556,7 +441,7 @@ let count = User::objects.count(&db).await?;
 
 ### Migrations
 
-Utilisez `sea-orm-cli` pour les migrations :
+Utiliser `sea-orm-cli` pour les migrations :
 
 ```bash
 cargo install sea-orm-cli
@@ -567,7 +452,7 @@ sea-orm-cli migrate generate create_users_table
 # Appliquer
 sea-orm-cli migrate up
 
-# Rollback
+# Annuler
 sea-orm-cli migrate down
 ```
 
@@ -575,15 +460,15 @@ sea-orm-cli migrate down
 
 ## 🎨 Templates
 
-### Tags personnalisés
+### Tags Personnalisés
 
 ```html
 <!-- Fichiers statiques -->
 <link rel="stylesheet" href="{% static 'css/style.css' %}">
-<script src="{% static 'js/app.js' %}"></script>
+<script src='{% static "js/main.js" %}'></script>
 
-<!-- Fichiers media -->
-<img src="{% media user.avatar %}" alt="Avatar">
+<!-- Fichiers médias -->
+<img src='{% media "media.jpg" %}' alt="Avatar">
 
 <!-- Token CSRF -->
 <form method="post">
@@ -605,7 +490,7 @@ sea-orm-cli migrate down
 
 ---
 
-## 📦 Macros utilitaires
+## 📦 Macros Utilitaires
 
 Runique fournit des macros pour simplifier les opérations courantes.
 
@@ -614,10 +499,11 @@ Runique fournit des macros pour simplifier les opérations courantes.
 ```rust
 use runique::prelude::*;
 
-async fn my_handler(mut message: Message) -> Response {
+async fn mon_handler(mut message: Message) -> Response {
+    // Note : Il faut utiliser `mut` pour message, sinon ça ne fonctionnera pas
     // Messages simples
     success!(message, "Opération réussie !");
-    error!(message, "Une erreur est survenue");
+    error!(message, "Une erreur s'est produite");
     info!(message, "Information importante");
     warning!(message, "Attention");
 
@@ -636,14 +522,14 @@ async fn my_handler(mut message: Message) -> Response {
 **Avantages :**
 - Syntaxe concise et expressive
 - Gestion automatique de `.await.unwrap()`
-- Support de messages multiples
+- Support des messages multiples
 - Code plus lisible et maintenable
 
 **Macros disponibles :**
-- `success!(message, "text")` - Messages de succès
-- `error!(message, "text")` - Messages d'erreur
-- `info!(message, "text")` - Messages d'information
-- `warning!(message, "text")` - Messages d'avertissement
+- `success!(message, "texte")` - Messages de succès
+- `error!(message, "texte")` - Messages d'erreur
+- `info!(message, "texte")` - Messages d'information
+- `warning!(message, "texte")` - Messages d'avertissement
 
 ---
 
@@ -651,19 +537,22 @@ async fn my_handler(mut message: Message) -> Response {
 
 Runique exploite les performances de Rust et Tokio :
 
-- **Zéro-cost abstractions** : Aucun overhead à l'exécution
+- **Abstractions sans coût** : Aucune surcharge à l'exécution
 - **Async/await natif** : Concurrence efficace avec Tokio
-- **Connection pooling** : Gestion optimisée des connexions DB
+- **Pool de connexions** : Gestion optimisée des connexions DB
 - **Compilation optimisée** : Binaire hautement optimisé
 
-### Benchmark (exemple)
+### Benchmark (indicatif)
 
 ```
-Requêtes/sec : ~50,000
+Configuration : Machine de développement locale
+Requêtes/sec : ~50 000
 Latence p50 : ~1ms
 Latence p99 : ~5ms
 Mémoire : ~20MB
 ```
+
+*Note : Les performances réelles dépendent de votre matériel et de la complexité de votre application. Effectuez vos propres benchmarks pour des estimations en production.*
 
 ---
 
@@ -672,7 +561,14 @@ Mémoire : ~20MB
 ### Tests
 
 ```bash
+# Lancer tous les tests
 cargo test
+
+# Lancer les tests d'intégration
+cargo test --test integration
+
+# Lancer les doc tests
+cargo test --doc
 ```
 
 ### Linting
@@ -690,59 +586,65 @@ cargo fmt
 ### Documentation
 
 ```bash
+# Générer et ouvrir la documentation
 cargo doc --open
+
+# Tester les exemples de documentation
+cargo test --doc
 ```
 
 ---
 
-## 🤝 Contribution
+## 🤝 Contribuer
 
 Les contributions sont les bienvenues ! Voici comment contribuer :
 
 1. Fork le projet
-2. Créez une branche (`git checkout -b feature/amazing-feature`)
-3. Committez vos changements (`git commit -m 'Add amazing feature'`)
-4. Push vers la branche (`git push origin feature/amazing-feature`)
-5. Ouvrez une Pull Request
+2. Créer une branche (`git checkout -b feature/fonctionnalite-incroyable`)
+3. Committer vos changements (`git commit -m 'Ajout d'une fonctionnalité incroyable'`)
+4. Pusher vers la branche (`git push origin feature/fonctionnalite-incroyable`)
+5. Ouvrir une Pull Request
 
 ### Directives
 
-- Écrivez des tests pour les nouvelles fonctionnalités
-- Suivez les conventions de code Rust (rustfmt)
-- Documentez les API publiques
-- Ajoutez des exemples si pertinent
+- Écrire des tests pour les nouvelles fonctionnalités
+- Suivre les conventions de code Rust (rustfmt)
+- Documenter les APIs publiques
+- Ajouter des exemples si pertinent
+
+Voir [CONTRIBUTING.md](informations/documentation_french/CONTRIBUTING.md) pour plus de détails.
 
 ---
 
 ## 📝 Roadmap
 
-### Version 1.1 (Q1 2026)
+### Version 1.1 (T1 2026)
 
-- [ ] Authentication system intégré
-- [ ] Admin panel auto-généré
-- [ ] Rate limiting middleware
-- [ ] WebSocket support
-- [ ] Cache layer (Redis)
+- [ ] Système d'authentification intégré
+- [ ] Panel d'administration auto-généré
+- [ ] Middleware de limitation de débit
+- [ ] Support WebSocket
+- [ ] Couche de cache (Redis)
 
-### Version 1.2 (Q2 2026)
+### Version 1.2 (T2 2026)
 
-- [ ] CLI pour scaffolding
+- [x] CLI pour le scaffolding
 - [ ] Hot reload amélioré
-- [ ] GraphQL support
-- [ ] Background jobs (Tokio tasks)
+- [ ] Support GraphQL
+- [ ] Tâches en arrière-plan (Tokio tasks)
 
-### Version 2.0 (Q3 2026)
+### Version 2.0 (T3 2026)
 
-- [ ] Plugin system
+- [ ] Système de plugins
 - [ ] Multi-tenancy
-- [ ] Internationalization (i18n)
-- [ ] Advanced ORM features
+- [ ] Internationalisation (i18n)
+- [ ] Fonctionnalités ORM avancées
 
 ---
 
 ## 📄 Licence
 
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+Ce projet est sous licence MIT. Voir le fichier [LICENSE-MIT](LICENSE-MIT) pour plus de détails.
 
 ---
 
@@ -751,40 +653,46 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 Runique s'appuie sur d'excellentes bibliothèques de l'écosystème Rust :
 
 - [Axum](https://github.com/tokio-rs/axum) - Framework web
-- [Tokio](https://tokio.rs/) - Runtime async
+- [Tokio](https://tokio.rs/) - Runtime asynchrone
 - [SeaORM](https://www.sea-ql.org/SeaORM/) - ORM
 - [Tera](https://keats.github.io/tera/) - Moteur de templates
 - [Tower](https://github.com/tower-rs/tower) - Middleware
 - [Argon2](https://github.com/RustCrypto/password-hashes) - Hachage de mots de passe
-- [ammonia](https://github.com/rust-ammonia/ammonia) - Sanitization HTML
+- [ammonia](https://github.com/rust-ammonia/ammonia) - Sanitisation HTML
+
+Merci spécial à tous les contributeurs et à la communauté Rust !
 
 ---
 
 ## 📧 Contact
 
-- **GitHub Issues** : [github.com/seb-alliot/runique/tree/issues](https://github.com/seb-alliot/runique/tree/issues)
-- **Discord** : [Rejoindre le serveur](https://discord.gg/Y5zW7rbt)
-- **Email** : (alliotsebastien04@gmail.com)
+- **GitHub Issues** : [Signaler des bugs ou demander des fonctionnalités](https://github.com/seb-alliot/runique/tree/issues)
+- **Discord** : [Rejoindre notre communauté](https://discord.gg/Y5zW7rbt)
+- **Email** : alliotsebastien04@gmail.com
+- **Crates.io** : [Voir sur crates.io](https://crates.io/crates/runique)
+- **Docs.rs** : [Lire la documentation de l'API](https://docs.rs/runique)
 
 ---
 
-## ⭐ Soutenez le projet
+## ⭐ Soutenir le Projet
 
 Si Runique vous est utile, pensez à :
 
-- ⭐ Mettre une étoile sur GitHub
+- ⭐ [Mettre une étoile sur GitHub](https://github.com/seb-alliot/runique)
 - 🐛 Signaler des bugs
-- 💡 Proposer des fonctionnalités
+- 💡 Suggérer des fonctionnalités
 - 📖 Améliorer la documentation
-- 🤝 Contribuer au code
+- 🤝 Contribuer du code
+- 💬 Rejoindre notre communauté Discord
 
 ---
 
-**Développez des applications web sécurisées et performantes avec Runique !**
+**Construisez des applications web sécurisées et performantes avec Runique !** 🚀
 
 ---
 
-**Version:** 1.0.2 (Corrigée - 2 Janvier 2026)
-**Licence:** MIT
+**Version :** 1.0.3
+**Licence :** MIT
+**Statut :** Stable
 
-*Documentation created with ❤️ by Claude for Itsuki*
+*Fait avec ❤️ et 🦀 par la communauté Runique*

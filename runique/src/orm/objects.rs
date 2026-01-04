@@ -1,51 +1,88 @@
+/// Django-style ORM manager for entities
+///
+/// This struct provides a Django-like interface for querying database entities.
+/// It's designed to be used as a constant field on entity structs, enabling
+/// the syntax `User::objects.filter(...)` without parentheses.
+///
+/// # Examples
+///
+/// ```rust
+/// #[cfg(feature = "sqlite")]
+/// async fn sqlite_objects_example() {
+///     use sea_orm::entity::prelude::*;
+///     use sea_orm::{Database, DbBackend, Schema, Set};
+///
+///     #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+///     #[sea_orm(table_name = "users")]
+///     pub struct Model {
+///         #[sea_orm(primary_key)]
+///         pub id: i32,
+///         pub username: String,
+///         pub age: i32,
+///     }
+///
+///     #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+///     pub enum Relation {}
+///
+///     impl ActiveModelBehavior for ActiveModel {}
+///
+///     // Connexion SQLite en mémoire
+///     let db = Database::connect("sqlite::memory:").await.unwrap();
+///
+///     // Création de la table
+///     let stmt = Schema::new(DbBackend::Sqlite).create_table_from_entity(Entity);
+///     db.execute(&stmt).await.unwrap();
+///
+///     // Utilisation de ActiveModel pour insertion
+///     ActiveModel {
+///         username: Set("Bob".to_owned()),
+///         age: Set(25),
+///         ..Default::default()
+///     }
+///     .insert(&db)
+///     .await
+///     .unwrap();
+///
+///     // Récupération
+///     let user: Option<Model> = Entity::find()
+///         .filter(Column::username.eq("Bob"))
+///         .one(&db)
+///         .await
+///         .unwrap();
+///     assert!(user.is_some());
+/// }
+///
+/// #[cfg(feature = "sqlite")]
+/// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_objects_example());
+/// ```
 use super::query::RuniqueQueryBuilder;
 use crate::processor::Template;
 use axum::response::Response;
 use sea_orm::{Condition, DatabaseConnection, DbErr, EntityTrait};
 use std::marker::PhantomData;
 
-/// Struct qui encapsule la logique "objects"
-///
-/// Cette struct permet d'avoir la syntaxe `User::objects.filter(...)`
-/// sans parenthèses après `objects`, exactement comme Django.
+/// Django-style ORM manager for entities
 pub struct Objects<E: EntityTrait> {
     _phantom: PhantomData<E>,
 }
-impl<E: sea_orm::EntityTrait> Default for Objects<E> {
+
+impl<E: EntityTrait> Default for Objects<E> {
     fn default() -> Self {
         Self::new()
     }
 }
+
 impl<E: EntityTrait> Objects<E> {
-    /// Constructeur const pour pouvoir l'utiliser en constante
-    ///
-    /// Ceci permet de faire : `pub const objects: Objects<Self> = Objects::new();`
     pub const fn new() -> Self {
         Self {
             _phantom: PhantomData,
         }
     }
 
-    /// Retourne un QueryBuilder pour tous les enregistrements
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let users = User::objects.all().all(&db).await?;
-    /// ```
     pub fn all(&self) -> RuniqueQueryBuilder<E> {
         RuniqueQueryBuilder::new(E::find())
     }
 
-    /// Filtre les enregistrements selon une condition
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let adults = User::objects
-    ///     .filter(user::Column::Age.gte(18))
-    ///     .all(&db)
-    ///     .await?;
-    /// ```
-    /// Filtre les enregistrements selon une condition
     pub fn filter<C>(&self, condition: C) -> RuniqueQueryBuilder<E>
     where
         C: Into<Condition>,
@@ -53,7 +90,6 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find()).filter(condition.into())
     }
 
-    /// Exclut des enregistrements
     pub fn exclude<C>(&self, condition: C) -> RuniqueQueryBuilder<E>
     where
         C: Into<Condition>,
@@ -61,12 +97,6 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find()).exclude(condition.into())
     }
 
-    /// Récupère un enregistrement par ID (erreur si non trouvé)
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let user = User::objects.get(&db, 1).await?;
-    /// ```
     pub async fn get(
         &self,
         db: &DatabaseConnection,
@@ -78,14 +108,6 @@ impl<E: EntityTrait> Objects<E> {
             .ok_or(DbErr::RecordNotFound("Record not found".to_string()))
     }
 
-    /// Récupère un enregistrement par ID (None si non trouvé)
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// if let Some(user) = User::objects.get_optional(&db, 999).await? {
-    ///     println!("Found: {}", user.username);
-    /// }
-    /// ```
     pub async fn get_optional(
         &self,
         db: &DatabaseConnection,
@@ -94,25 +116,11 @@ impl<E: EntityTrait> Objects<E> {
         E::find_by_id(id).one(db).await
     }
 
-    /// Compte tous les enregistrements
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let count = User::objects.count(&db).await?;
-    /// ```
     pub async fn count(&self, db: &DatabaseConnection) -> Result<u64, DbErr> {
         let items = E::find().all(db).await?;
         Ok(items.len() as u64)
     }
 
-    /// Récupère un enregistrement ou retourne une erreur 404
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let user = User::objects
-    ///     .get_or_404(&db, 1, &template, "Utilisateur introuvable")
-    ///     .await?;
-    /// ```
     pub async fn get_or_404(
         &self,
         db: &DatabaseConnection,
@@ -123,15 +131,119 @@ impl<E: EntityTrait> Objects<E> {
         match self.get_optional(db, id).await {
             Ok(Some(entity)) => Ok(entity),
             Ok(None) => Err(template.render_404(error_msg)),
-            Err(_) => Err(template.render_500("Erreur de base de données")),
+            Err(_) => Err(template.render_500("Database error")),
         }
     }
 }
 
-// Implémentation Copy et Clone pour pouvoir utiliser Objects facilement
 impl<E: EntityTrait> Copy for Objects<E> {}
 impl<E: EntityTrait> Clone for Objects<E> {
     fn clone(&self) -> Self {
         *self
+    }
+}
+
+// =====================================================
+// Tests SQLite activés avec feature "sqlite"
+// =====================================================
+
+#[cfg(feature = "sqlite")]
+async fn setup_db() -> Result<DatabaseConnection, DbErr> {
+    let db = sea_orm::Database::connect("sqlite::memory:").await?;
+
+    use sea_orm::Schema;
+    let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
+    let stmt = schema.create_table_from_entity(Entity);
+    db.execute(&stmt).await?;
+
+    Ok(db)
+}
+
+#[cfg(feature = "sqlite")]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_orm::entity::prelude::*;
+    use sea_orm::ActiveModelTrait;
+    use sea_orm::Set;
+
+    #[tokio::test]
+    async fn test_objects_all() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+
+        let user = ActiveModel {
+            username: Set("alice".to_string()),
+            age: Set(25),
+            ..Default::default()
+        };
+        user.insert(&db).await?;
+
+        let users = Entity::objects.all().all(&db).await?;
+        assert_eq!(users.len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_objects_filter() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+
+        let young = ActiveModel {
+            username: Set("young".to_string()),
+            age: Set(16),
+            ..Default::default()
+        };
+        let adult = ActiveModel {
+            username: Set("adult".to_string()),
+            age: Set(25),
+            ..Default::default()
+        };
+        young.insert(&db).await?;
+        adult.insert(&db).await?;
+
+        let adults = Entity::objects.filter(Column::Age.gte(18)).all(&db).await?;
+        assert_eq!(adults.len(), 1);
+        assert_eq!(adults[0].username, "adult");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_objects_exclude() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+
+        let alice = ActiveModel {
+            username: Set("alice".to_string()),
+            age: Set(25),
+            ..Default::default()
+        };
+        let banned = ActiveModel {
+            username: Set("banned".to_string()),
+            age: Set(30),
+            ..Default::default()
+        };
+        alice.insert(&db).await?;
+        banned.insert(&db).await?;
+
+        let active_users = Entity::objects.exclude(Column::Age.eq(30)).all(&db).await?;
+        assert_eq!(active_users.len(), 1);
+        assert_eq!(active_users[0].username, "alice");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_objects_count() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+
+        for i in 1..=3 {
+            let user = ActiveModel {
+                username: Set(format!("user{}", i)),
+                age: Set(20 + i),
+                ..Default::default()
+            };
+            user.insert(&db).await?;
+        }
+
+        let count = Entity::objects.count(&db).await?;
+        assert_eq!(count, 3);
+        Ok(())
     }
 }

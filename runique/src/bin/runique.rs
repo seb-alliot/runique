@@ -96,7 +96,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-runique = {{ version = "1.0", features = ["sqlite"] }}
+runique = {{ version = "1.0.2", features = ["sqlite"] }}
 serde = "1.0"
 "#,
         name
@@ -136,6 +136,32 @@ ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
     let formulaire = r#"// Vos formulaires ici
 use runique::prelude::*;
 "#;
+    let user_exemple = r#"// src/models/users.rs
+use runique::impl_objects;
+use runique::sea_orm;
+use runique::sea_orm::entity::prelude::*;
+use runique::serde::{Deserialize, Serialize};
+use runique::DeriveModelForm;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub username: String,
+    pub email: String,
+    pub password: String,
+    pub age: i32,
+    pub created_at: DateTime,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+impl_objects!(Entity);
+"#;
     // Créer la structure de dossiers
     fs::create_dir_all(project_dir)?;
     fs::create_dir_all(project_dir.join("src/models"))?;
@@ -158,10 +184,14 @@ use runique::prelude::*;
     fs::write(project_dir.join("src/url.rs"), url_rs)?;
 
     // src/views.rs
-    fs::write(project_dir.join("src/views.rs"), "//Vos vues ici")?;
+    fs::write(project_dir.join("src/views.rs"), "// pub mod users;")?;
 
     // src/models/mod.rs
-    fs::write(project_dir.join("src/models/mod.rs"), "//Vos modèles ici")?;
+    fs::write(
+        project_dir.join("src/models/mod.rs"),
+        "//Vos import de models ici",
+    )?;
+    fs::write(project_dir.join("src/models/users.rs"), user_exemple)?;
 
     // .env
     fs::write(project_dir.join(".env"), env_file)?;

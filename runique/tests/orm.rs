@@ -1,5 +1,5 @@
 use runique::impl_objects;
-use sea_orm::{entity::prelude::*, Database, DatabaseConnection, DbErr, Set};
+use sea_orm::entity::prelude::*;
 
 // ========================================
 // Mock Entity pour les tests
@@ -35,7 +35,6 @@ fn test_objects_without_parentheses() {
 #[test]
 fn test_filter_without_parentheses() {
     let _query = Entity::objects.filter(Column::Age.gte(18));
-
     println!("Entity::objects.filter() fonctionne (sans parenthèses)");
 }
 
@@ -54,19 +53,21 @@ fn test_chaining() {
 // Tests avec base de données en mémoire
 // ========================================
 
+#[cfg(feature = "sqlite")]
 async fn setup_db() -> Result<DatabaseConnection, DbErr> {
+    // Connexion à SQLite en mémoire
     let db = Database::connect("sqlite::memory:").await?;
 
+    // Créer la table users
     use sea_orm::Schema;
     let schema = Schema::new(sea_orm::DatabaseBackend::Sqlite);
     let stmt = schema.create_table_from_entity(Entity);
-
-    // Correction : execute le Statement directement
     db.execute(&stmt).await?;
 
     Ok(db)
 }
 
+#[cfg(feature = "sqlite")]
 #[tokio::test]
 async fn test_objects_all() -> Result<(), DbErr> {
     let db = setup_db().await?;
@@ -95,6 +96,7 @@ async fn test_objects_all() -> Result<(), DbErr> {
     Ok(())
 }
 
+#[cfg(feature = "sqlite")]
 #[tokio::test]
 async fn test_objects_filter() -> Result<(), DbErr> {
     let db = setup_db().await?;
@@ -114,7 +116,6 @@ async fn test_objects_filter() -> Result<(), DbErr> {
     adult.insert(&db).await?;
 
     let adults = Entity::objects.filter(Column::Age.gte(18)).all(&db).await?;
-
     assert_eq!(adults.len(), 1);
     assert_eq!(adults[0].username, "adult");
     println!(
@@ -125,6 +126,7 @@ async fn test_objects_filter() -> Result<(), DbErr> {
     Ok(())
 }
 
+#[cfg(feature = "sqlite")]
 #[tokio::test]
 async fn test_objects_exclude() -> Result<(), DbErr> {
     let db = setup_db().await?;
@@ -158,6 +160,7 @@ async fn test_objects_exclude() -> Result<(), DbErr> {
     Ok(())
 }
 
+#[cfg(feature = "sqlite")]
 #[tokio::test]
 async fn test_objects_get() -> Result<(), DbErr> {
     let db = setup_db().await?;
@@ -169,7 +172,6 @@ async fn test_objects_get() -> Result<(), DbErr> {
     };
 
     let inserted = user.insert(&db).await?;
-
     let found = Entity::objects.get(&db, inserted.id).await?;
     assert_eq!(found.username, "test");
     println!(
@@ -180,6 +182,7 @@ async fn test_objects_get() -> Result<(), DbErr> {
     Ok(())
 }
 
+#[cfg(feature = "sqlite")]
 #[tokio::test]
 async fn test_objects_count() -> Result<(), DbErr> {
     let db = setup_db().await?;
@@ -200,6 +203,7 @@ async fn test_objects_count() -> Result<(), DbErr> {
     Ok(())
 }
 
+#[cfg(feature = "sqlite")]
 #[tokio::test]
 async fn test_complex_query() -> Result<(), DbErr> {
     let db = setup_db().await?;

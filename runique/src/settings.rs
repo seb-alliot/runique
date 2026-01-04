@@ -1,61 +1,163 @@
+//! Application configuration and settings
+//!
+//! This module provides Django-inspired settings management for Runique applications.
+//! Settings can be loaded from environment variables or configured programmatically
+//! using the builder pattern.
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use runique::Settings;
+//!
+//! // Load from environment variables
+//! let settings = Settings::default_values();
+//!
+//! // Or use the builder pattern
+//! let settings = Settings::builder()
+//!     .debug(true)
+//!     .allowed_hosts(vec!["example.com".to_string()])
+//!     .server("127.0.0.1", 8000, "my-secret-key")
+//!     .build();
+//! ```
+
 use serde::{Deserialize, Serialize};
 use std::vec;
 
-/// Configuration principale de l'application Runique
+/// Main application configuration for Runique
 ///
-/// Structure inspirée de settings.py de Django
+/// Inspired by Django's settings.py, this struct contains all configuration
+/// options for a Runique application including server settings, static files,
+/// templates, security options, and more.
+///
+/// # Examples
+///
+/// ```no_run
+/// use runique::Settings;
+///
+/// // Load with default values from environment
+/// let settings = Settings::default_values();
+///
+/// // Check if debug mode is enabled
+/// if settings.debug {
+///     println!("Running in debug mode");
+/// }
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
+    /// Server configuration (IP, port, secret key)
     pub server: ServerSettings,
+    /// Base directory for the application
     pub base_dir: String,
+    /// Enable debug mode (more verbose logging, detailed errors)
     pub debug: bool,
+    /// List of allowed host headers (security feature)
     pub allowed_hosts: Vec<String>,
+    /// List of installed applications
     pub installed_apps: Vec<String>,
+    /// Middleware stack
     pub middleware: Vec<String>,
+    /// Root URL configuration module
     pub root_urlconf: String,
 
     // Runique-specific settings
+    /// Path to Runique's internal static files
     pub static_runique_path: String,
+    /// URL prefix for Runique's static files
     pub static_runique_url: String,
+    /// Path to Runique's internal media files
     pub media_runique_path: String,
+    /// URL prefix for Runique's media files
     pub media_runique_url: String,
+    /// Path to Runique's internal templates
     pub templates_runique: String,
 
-    // Settings new-project
+    // User project settings
+    /// Directories containing user templates
     pub templates_dir: Vec<String>,
+    /// Directory containing user static files
     pub staticfiles_dirs: String,
+    /// Root directory for user media uploads
     pub media_root: String,
+    /// URL prefix for static files
     pub static_url: String,
+    /// URL prefix for media files
     pub media_url: String,
 
+    /// Static files storage backend
     pub staticfiles_storage: String,
 
+    /// Language code (e.g., "en-us", "fr-fr")
     pub language_code: String,
+    /// Timezone (e.g., "UTC", "America/New_York")
     pub time_zone: String,
+    /// Enable internationalization
     pub use_i18n: bool,
+    /// Enable timezone support
     pub use_tz: bool,
+    /// Password validation rules
     pub auth_password_validators: Vec<String>,
+    /// Password hashing algorithms
     pub password_hashers: Vec<String>,
+    /// Default auto field type for models
     pub default_auto_field: String,
+    /// Logging configuration
     pub logging_config: String,
 
-    // Security settings can be added here
+    // Security settings
+    /// Enable automatic input sanitization
     pub sanitize_inputs: bool,
+    /// Enable strict Content Security Policy
     pub strict_csp: bool,
+    /// Enable rate limiting
     pub rate_limiting: bool,
+    /// Enforce HTTPS in production
     pub enforce_https: bool,
 }
 
-/// Configuration du serveur
+/// Server configuration
+///
+/// Contains network and security settings for the HTTP server.
+///
+/// # Examples
+///
+/// ```no_run
+/// use runique::settings::ServerSettings;
+///
+/// let server = ServerSettings::from_env();
+/// println!("Server running on {}:{}", server.ip_server, server.port);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerSettings {
+    /// IP address to bind to
     pub ip_server: String,
+    /// Full domain (IP:port)
     pub domain_server: String,
+    /// Port to listen on
     pub port: u16,
+    /// Secret key for cryptographic signing
     pub secret_key: String,
 }
 
 impl ServerSettings {
+    /// Creates server settings from environment variables
+    ///
+    /// Reads the following environment variables:
+    /// - `IP_SERVER` - Server IP (default: "127.0.0.1")
+    /// - `PORT` - Server port (default: 3000)
+    /// - `SECRET_KEY` - Secret key for signing (default: "default_secret_key")
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::settings::ServerSettings;
+    ///
+    /// // .env file:
+    /// // IP_SERVER=0.0.0.0
+    /// // PORT=8000
+    /// // SECRET_KEY=my-secret-key
+    ///
+    /// let server = ServerSettings::from_env();
+    /// ```
     pub fn from_env() -> Self {
         use dotenvy::dotenv;
         use std::env;
@@ -75,14 +177,23 @@ impl ServerSettings {
         }
     }
 
-    /// Parse ALLOWED_HOSTS depuis une variable d'environnement
+    /// Parses ALLOWED_HOSTS from environment variable
     ///
-    /// Format attendu dans .env:
+    /// Expected format in `.env`:
     /// ```env
-    /// ALLOWED_HOSTS=localhost,127.0.0.1,exemple.com,.exemple.com
+    /// ALLOWED_HOSTS=localhost,127.0.0.1,example.com,.example.com
     /// ```
     ///
-    /// Supporte les wildcards: `.exemple.com` matchera tous les sous-domaines
+    /// Supports wildcards: `.example.com` will match all subdomains
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::settings::ServerSettings;
+    ///
+    /// let hosts = ServerSettings::parse_allowed_hosts_from_env();
+    /// assert!(hosts.contains(&"localhost".to_string()));
+    /// ```
     pub fn parse_allowed_hosts_from_env() -> Vec<String> {
         use dotenvy::dotenv;
         use std::env;
@@ -103,13 +214,18 @@ impl ServerSettings {
 }
 
 impl Settings {
-    /// Crée une configuration avec valeurs par défaut
+    /// Creates a configuration with default values
     ///
-    /// # Exemple
+    /// Loads settings from environment variables when available,
+    /// otherwise uses sensible defaults.
+    ///
+    /// # Examples
+    ///
     /// ```no_run
     /// use runique::Settings;
     ///
     /// let settings = Settings::default_values();
+    /// assert_eq!(settings.language_code, "en-us");
     /// ```
     pub fn default_values() -> Self {
         let base_dir = ".".to_string();
@@ -159,27 +275,64 @@ impl Settings {
         }
     }
 
-    /// Charge la configuration depuis des variables d'environnement
+    /// Loads configuration from environment variables
+    ///
+    /// This is currently an alias for `default_values()`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::from_env();
+    /// ```
     pub fn from_env() -> Self {
         Self::default_values()
     }
 
-    /// Builder pattern pour personnaliser la configuration
+    /// Creates a settings builder for custom configuration
+    ///
+    /// The builder pattern allows fluent configuration of all settings.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .debug(false)
+    ///     .server("0.0.0.0", 8000, "production-secret")
+    ///     .add_allowed_host("example.com")
+    ///     .build();
+    /// ```
     pub fn builder() -> SettingsBuilder {
         SettingsBuilder::new()
     }
 
-    /// Valide que ALLOWED_HOSTS est correctement configuré en production
+    /// Validates that ALLOWED_HOSTS is properly configured in production
     ///
     /// # Panics
-    /// Panique si debug=false et allowed_hosts est vide ou contient uniquement localhost/127.0.0.1
+    ///
+    /// Panics if `debug = false` and `allowed_hosts` is empty or contains
+    /// only localhost/127.0.0.1
+    ///
+    /// # Examples
+    ///
+    /// ```should_panic
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .debug(false)
+    ///     .allowed_hosts(vec![]) // This will panic!
+    ///     .build();
+    /// ```
     pub fn validate_allowed_hosts(&self) {
         if !self.debug {
             if self.allowed_hosts.is_empty() {
                 panic!(
-                    "ALLOWED_HOSTS ne peut pas être vide en production!\n\
-                    Ajoutez vos domaines dans le fichier .env:\n\
-                    ALLOWED_HOSTS=exemple.com,www.exemple.com"
+                    "ALLOWED_HOSTS cannot be empty in production!\n\
+                    Add your domains in the .env file:\n\
+                    ALLOWED_HOSTS=example.com,www.example.com"
                 );
             }
 
@@ -190,39 +343,71 @@ impl Settings {
 
             if only_local {
                 eprintln!(
-                    "AVERTISSEMENT: ALLOWED_HOSTS contient uniquement des hôtes locaux en production.\n\
-                    Ajoutez vos domaines de production dans le fichier .env:\n\
-                    ALLOWED_HOSTS=exemple.com,www.exemple.com,localhost,127.0.0.1"
+                    "WARNING: ALLOWED_HOSTS contains only local hosts in production.\n\
+                    Add your production domains in the .env file:\n\
+                    ALLOWED_HOSTS=example.com,www.example.com,localhost,127.0.0.1"
                 );
             }
         }
     }
 }
 
-/// Builder pour créer des Settings personnalisés
+/// Builder for creating custom Settings
+///
+/// Provides a fluent interface for configuring all aspects of a Runique application.
+///
+/// # Examples
+///
+/// ```no_run
+/// use runique::Settings;
+///
+/// let settings = Settings::builder()
+///     .debug(true)
+///     .server("127.0.0.1", 3000, "dev-secret")
+///     .allowed_hosts(vec!["localhost".to_string()])
+///     .sanitize_inputs(true)
+///     .strict_csp(false)
+///     .build();
+/// ```
 pub struct SettingsBuilder {
     settings: Settings,
 }
 
 impl SettingsBuilder {
+    /// Creates a new settings builder with default values
     pub fn new() -> Self {
         Self {
             settings: Settings::default_values(),
         }
     }
 
+    /// Sets debug mode
+    ///
+    /// When enabled, provides more verbose logging and detailed error pages.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .debug(true)
+    ///     .build();
+    /// ```
     pub fn debug(mut self, debug: bool) -> Self {
         self.settings.debug = debug;
         self
     }
 
-    /// Configure ALLOWED_HOSTS manuellement
+    /// Configures ALLOWED_HOSTS manually
     ///
-    /// # Exemple
-    /// ```rust
-    /// # use runique::Settings;
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
     /// let settings = Settings::builder()
-    ///     .allowed_hosts(vec!["example.com".to_string()])
+    ///     .allowed_hosts(vec!["example.com".to_string(), "www.example.com".to_string()])
     ///     .build();
     /// ```
     pub fn allowed_hosts(mut self, hosts: Vec<String>) -> Self {
@@ -230,82 +415,148 @@ impl SettingsBuilder {
         self
     }
 
-    /// Ajoute un host à ALLOWED_HOSTS
+    /// Adds a host to ALLOWED_HOSTS
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .add_allowed_host("example.com")
+    ///     .add_allowed_host("api.example.com")
+    ///     .build();
+    /// ```
     pub fn add_allowed_host(mut self, host: impl Into<String>) -> Self {
         self.settings.allowed_hosts.push(host.into());
         self
     }
 
+    /// Sets Runique's internal static files path
     pub fn static_runique_path(mut self, path: impl Into<String>) -> Self {
         self.settings.static_runique_path = path.into();
         self
     }
 
+    /// Sets Runique's internal static files URL prefix
     pub fn static_runique_url(mut self, url: impl Into<String>) -> Self {
         self.settings.static_runique_url = url.into();
         self
     }
 
+    /// Sets Runique's internal media files path
     pub fn media_runique_path(mut self, path: impl Into<String>) -> Self {
         self.settings.media_runique_path = path.into();
         self
     }
 
+    /// Sets Runique's internal media files URL prefix
     pub fn media_runique_url(mut self, url: impl Into<String>) -> Self {
         self.settings.media_runique_url = url.into();
         self
     }
 
+    /// Sets Runique's internal templates directory
     pub fn templates_runique(mut self, dir: impl Into<String>) -> Self {
         self.settings.templates_runique = dir.into();
         self
     }
 
+    /// Sets user template directories
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .templates_dir(vec!["templates".to_string(), "extra_templates".to_string()])
+    ///     .build();
+    /// ```
     pub fn templates_dir(mut self, dir: impl Into<Vec<std::string::String>>) -> Self {
         self.settings.templates_dir = dir.into();
         self
     }
 
+    /// Sets static files directory
     pub fn staticfiles_dirs(mut self, dir: impl Into<String>) -> Self {
         self.settings.staticfiles_dirs = dir.into();
         self
     }
 
+    /// Sets media root directory
     pub fn media_root(mut self, dir: impl Into<String>) -> Self {
         self.settings.media_root = dir.into();
         self
     }
 
+    /// Sets static files URL prefix
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .static_url("/assets")
+    ///     .build();
+    /// ```
     pub fn static_url(mut self, url: impl Into<String>) -> Self {
         self.settings.static_url = url.into();
         self
     }
 
+    /// Sets media files URL prefix
     pub fn media_url(mut self, url: impl Into<String>) -> Self {
         self.settings.media_url = url.into();
         self
     }
 
+    /// Enables or disables automatic input sanitization
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .sanitize_inputs(false)
+    ///     .build();
+    /// ```
     pub fn sanitize_inputs(mut self, enabled: bool) -> Self {
         self.settings.sanitize_inputs = enabled;
         self
     }
 
+    /// Enables or disables strict Content Security Policy
     pub fn strict_csp(mut self, enabled: bool) -> Self {
         self.settings.strict_csp = enabled;
         self
     }
 
+    /// Enables or disables rate limiting
     pub fn rate_limiting(mut self, enabled: bool) -> Self {
         self.settings.rate_limiting = enabled;
         self
     }
 
+    /// Enforces HTTPS in production
     pub fn enforce_https(mut self, enabled: bool) -> Self {
         self.settings.enforce_https = enabled;
         self
     }
 
+    /// Configures server settings (IP, port, secret key)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .server("0.0.0.0", 8000, "my-secret-key")
+    ///     .build();
+    /// ```
     pub fn server(
         mut self,
         ip: impl Into<String>,
@@ -322,6 +573,23 @@ impl SettingsBuilder {
         self
     }
 
+    /// Builds the final Settings instance
+    ///
+    /// Validates the configuration before returning.
+    ///
+    /// # Panics
+    ///
+    /// Panics if ALLOWED_HOSTS validation fails in production mode
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use runique::Settings;
+    ///
+    /// let settings = Settings::builder()
+    ///     .debug(true)
+    ///     .build();
+    /// ```
     pub fn build(self) -> Settings {
         // Valide la configuration avant de la retourner
         self.settings.validate_allowed_hosts();
