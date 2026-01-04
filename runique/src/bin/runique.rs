@@ -135,8 +135,7 @@ ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
 *.sqlite
 .env
 "#;
-    let formulaire =
-r#"// src/forms.rs
+    let formulaire = r#"// src/forms.rs
 // Your form example here
 // use runique::prelude::*;
 // use runique::prelude::*;
@@ -261,8 +260,7 @@ pub async fn index(template: Template) -> Response {
     fs::write(project_dir.join("src/views.rs"), view_rs_content)?;
 
     // src/models/mod.rs
-    fs::write(
-        project_dir.join("src/models/mod.rs"),mod_rs_content)?;
+    fs::write(project_dir.join("src/models/mod.rs"), mod_rs_content)?;
     fs::write(project_dir.join("src/models/users.rs"), user_exemple)?;
 
     // templates/index.html
