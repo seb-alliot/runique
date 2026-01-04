@@ -382,13 +382,15 @@ RuniqueApp::new(settings).await?
     .await?;
 ```
 
-Headers automatically configured:
-- `Strict-Transport-Security`
-- `X-Content-Type-Options`
-- `X-Frame-Options`
-- `X-XSS-Protection`
-- `Referrer-Policy`
-- `Permissions-Policy`
+✅ Content-Security-Policy
+✅ X-Content-Type-Options
+✅ X-Frame-Options
+✅ X-XSS-Protection
+✅ Referrer-Policy
+✅ Permissions-Policy
+🆕 Cross-Origin-Embedder-Policy
+🆕 Cross-Origin-Opener-Policy
+🆕 Cross-Origin-Resource-Policy
 
 ---
 
@@ -500,7 +502,7 @@ Runique provides macros to simplify common operations.
 use runique::prelude::*;
 
 async fn my_handler(mut message: Message) -> Response {
-    // Note: Must use `mut` here for message, otherwise it won't work
+    // Note: Must use `mut message: Message' otherwise it won't work
     // Simple messages
     success!(message, "Operation successful!");
     error!(message, "An error occurred");
@@ -618,7 +620,7 @@ See [CONTRIBUTING.md](informations/documentation_english/CONTRIBUTING.md) for mo
 
 ## 📝 Roadmap
 
-### Version 1.1 (Q1 2026)
+### Version 1.1
 
 - [ ] Integrated authentication system
 - [ ] Auto-generated admin panel
@@ -626,14 +628,14 @@ See [CONTRIBUTING.md](informations/documentation_english/CONTRIBUTING.md) for mo
 - [ ] WebSocket support
 - [ ] Cache layer (Redis)
 
-### Version 1.2 (Q2 2026)
+### Version 1.2
 
 - [x] CLI for scaffolding
 - [ ] Improved hot reload
 - [ ] GraphQL support
 - [ ] Background jobs (Tokio tasks)
 
-### Version 2.0 (Q3 2026)
+### Version 2.0
 
 - [ ] Plugin system
 - [ ] Multi-tenancy

@@ -382,13 +382,15 @@ RuniqueApp::new(settings).await?
     .await?;
 ```
 
-Headers automatiquement configurés :
-- `Strict-Transport-Security`
-- `X-Content-Type-Options`
-- `X-Frame-Options`
-- `X-XSS-Protection`
-- `Referrer-Policy`
-- `Permissions-Policy`
+✅ Content-Security-Policy
+✅ X-Content-Type-Options
+✅ X-Frame-Options
+✅ X-XSS-Protection
+✅ Referrer-Policy
+✅ Permissions-Policy
+🆕 Cross-Origin-Embedder-Policy
+🆕 Cross-Origin-Opener-Policy
+🆕 Cross-Origin-Resource-Policy
 
 ---
 
@@ -500,7 +502,7 @@ Runique fournit des macros pour simplifier les opérations courantes.
 use runique::prelude::*;
 
 async fn mon_handler(mut message: Message) -> Response {
-    // Note : Il faut utiliser `mut` pour message, sinon ça ne fonctionnera pas
+    // Note : Il faut utiliser `mut message: Message' sinon ça ne fonctionnera pas
     // Messages simples
     success!(message, "Opération réussie !");
     error!(message, "Une erreur s'est produite");
@@ -618,7 +620,7 @@ Voir [CONTRIBUTING.md](informations/documentation_french/CONTRIBUTING.md) pour p
 
 ## 📝 Roadmap
 
-### Version 1.1 (T1 2026)
+### Version 1.1
 
 - [ ] Système d'authentification intégré
 - [ ] Panel d'administration auto-généré
@@ -626,14 +628,14 @@ Voir [CONTRIBUTING.md](informations/documentation_french/CONTRIBUTING.md) pour p
 - [ ] Support WebSocket
 - [ ] Couche de cache (Redis)
 
-### Version 1.2 (T2 2026)
+### Version 1.2
 
 - [x] CLI pour le scaffolding
 - [ ] Hot reload amélioré
 - [ ] Support GraphQL
 - [ ] Tâches en arrière-plan (Tokio tasks)
 
-### Version 2.0 (T3 2026)
+### Version 2.0
 
 - [ ] Système de plugins
 - [ ] Multi-tenancy
