@@ -38,7 +38,7 @@ pub fn routes() -> Router {
 
         // Vos routes ici
         // Exemple :
-        // view!("index", crate::views::index),
+        view!("index", crate::views::index),
         }
     }
 "#;
@@ -132,34 +132,106 @@ ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
 *.sqlite
 .env
 "#;
-    let formulaire = r#"// Vos formulaires ici
-use runique::prelude::*;
+    let formulaire =
+r#"// src/forms.rs
+// Your form example here
+// use runique::prelude::*;
+// use runique::prelude::*;
+
+// #[derive(Deserialize)]
+// pub struct UsernameForm {
+//     pub form: Forms,
+// }
+
+// // Implémenter Serialize manuellement
+// impl Serialize for UsernameForm {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         let mut state = serializer.serialize_struct("UsernameForm", 1)?;
+//         state.serialize_field("form_html", &self.form)?;
+//         state.end()
+//     }
+// }
+
+// impl RuniqueForm for UsernameForm {
+//     fn register_fields(form: &mut Forms) {
+//         form.register_field("username", "Nom d'utilisateur", &CharField::new());
+//     }
+
+//     fn validate_fields(form: &mut Forms, raw_data: &HashMap<String, String>) {
+//         form.require("username", &CharField::new(), raw_data);
+//     }
+
+//     fn from_form(form: Forms) -> Self {
+//         Self { form }
+//     }
+
+//     fn get_form(&self) -> &Forms {
+//         &self.form
+//     }
+
+//     fn get_form_mut(&mut self) -> &mut Forms {
+//         &mut self.form
+//     }
+// }
 "#;
     let user_exemple = r#"// src/models/users.rs
-use runique::impl_objects;
-use runique::sea_orm;
-use runique::sea_orm::entity::prelude::*;
-use runique::serde::{Deserialize, Serialize};
-use runique::DeriveModelForm;
+// for exemple purposes only
+// use runique::prelude::*;
+// use runique::impl_objects;
+// use runique::sea_orm;
+// use runique::sea_orm::entity::prelude::*;
+// use runique::serde::{Deserialize, Serialize};
+// use runique::DeriveModelForm;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-    pub password: String,
-    pub age: i32,
-    pub created_at: DateTime,
+// #[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize, Deserialize)]
+// #[sea_orm(table_name = "users")]
+// pub struct Model {
+//     #[sea_orm(primary_key)]
+//     pub id: i32,
+//     pub username: String,
+//     pub email: String,
+//     pub password: String,
+//     pub age: i32,
+//     pub created_at: DateTime,
+// }
+
+// #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+// pub enum Relation {}
+
+// impl ActiveModelBehavior for ActiveModel {}
+
+// impl_objects!(Entity);
+"#;
+    let mod_rs_content = r#"// src/models/mod.rs
+pub mod users;
+"#;
+    let view_rs_content = r#"// src/views.rs
+// pub mod users;
+use runique::prelude::*;
+pub async fn index(template: Template) -> Response {
+    let ctx = context! {
+        "title", "Bienvenue dans Runique";
+    };
+    template.render("index.html", &ctx)
 }
+"#;
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
-
-impl_objects!(Entity);
+    let htmtl_example = r#"<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>{{ title }}</h1>
+    <p>Ceci est une page d'exemple pour votre projet Runique.</p>
+</body>
+</html>
 "#;
     // Créer la structure de dossiers
     fs::create_dir_all(project_dir)?;
@@ -183,14 +255,15 @@ impl_objects!(Entity);
     fs::write(project_dir.join("src/url.rs"), url_rs)?;
 
     // src/views.rs
-    fs::write(project_dir.join("src/views.rs"), "// pub mod users;")?;
+    fs::write(project_dir.join("src/views.rs"), view_rs_content)?;
 
     // src/models/mod.rs
     fs::write(
-        project_dir.join("src/models/mod.rs"),
-        "//Vos import de models ici",
-    )?;
+        project_dir.join("src/models/mod.rs"),mod_rs_content)?;
     fs::write(project_dir.join("src/models/users.rs"), user_exemple)?;
+
+    // templates/index.html
+    fs::write(project_dir.join("templates/index.html"), htmtl_example)?;
 
     // .env
     fs::write(project_dir.join(".env"), env_file)?;
