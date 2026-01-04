@@ -37,10 +37,12 @@ pub fn routes() -> Router {
     urlpatterns! {
 
         // Vos routes ici
-        // Exemple :
-        view!("index", crate::views::index),
-        }
+        "/" => view!{
+            GET => views::index
+        },
+        name ="index",
     }
+}
 "#;
 
     // src/main.rs
@@ -95,7 +97,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-runique = {{ version = "1.0.4", features = ["sqlite"] }}
+runique = {{ version = "1.0.5", features = ["sqlite"] }}
 serde = "1.0"
 "#,
         name
@@ -276,6 +278,8 @@ pub async fn index(template: Template) -> Response {
     println!("   {}/", name);
     println!("   ├── src/");
     println!("   │   ├── models/");
+    println!("   │   │   ├── mod.rs");
+    println!("   │   │   └── users.rs");
     println!("   │   ├── static/");
     println!("   │   │   ├── css/");
     println!("   │   │   ├── js/");
@@ -286,6 +290,7 @@ pub async fn index(template: Template) -> Response {
     println!("   │   ├── url.rs");
     println!("   │   └── views.rs");
     println!("   ├── templates/");
+    println!("   │   └── index.html");
     println!("   ├── .env");
     println!("   ├── .gitignore");
     println!("   └── Cargo.toml");
