@@ -45,7 +45,7 @@
 ///
 ///     // Récupération
 ///     let user: Option<Model> = Entity::find()
-///         .filter(Column::username.eq("Bob"))
+///         .filter(Column::Username.eq("Bob"))
 ///         .one(&db)
 ///         .await
 ///         .unwrap();
@@ -155,7 +155,28 @@ mod tests {
     use sea_orm::ActiveModelTrait;
     use sea_orm::Set;
 
-    // Fonction helper pour setup DB - déplacée dans le module tests
+    // Définition du modèle de test
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+    #[sea_orm(table_name = "users")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub username: String,
+        pub age: i32,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+
+    // Implémentation de Objects pour notre Entity de test
+    impl Entity {
+        #[allow(non_upper_case_globals)]
+        pub const objects: Objects<Self> = Objects::new();
+    }
+
+    // Fonction helper pour setup DB
     async fn setup_db() -> Result<DatabaseConnection, DbErr> {
         let db = sea_orm::Database::connect("sqlite::memory:").await?;
 

@@ -1,5 +1,6 @@
 use runique::impl_objects;
 use sea_orm::entity::prelude::*;
+use sea_orm::{ActiveModelTrait, Database, DatabaseConnection, DbErr, Set};
 
 // ========================================
 // Mock Entity pour les tests

@@ -44,7 +44,7 @@
 ///
 ///     // Vérification via query
 ///     let user: Option<Model> = Entity::find()
-///         .filter(Column::username.eq("Alice"))
+///         .filter(Column::Username.eq("Alice"))
 ///         .one(&db)
 ///         .await
 ///         .unwrap();
@@ -145,7 +145,21 @@ mod tests {
     use sea_orm::ActiveModelTrait;
     use sea_orm::Set;
 
-    #[cfg(feature = "sqlite")]
+    // Définition du modèle de test
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+    #[sea_orm(table_name = "users")]
+    pub struct Model {
+        #[sea_orm(primary_key)]
+        pub id: i32,
+        pub username: String,
+        pub age: i32,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+
     async fn setup_db() -> Result<DatabaseConnection, DbErr> {
         let db = sea_orm::Database::connect("sqlite::memory:").await?;
 
