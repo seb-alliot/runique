@@ -87,14 +87,9 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
         }
 
         // Démasquer le token
-        let request_token = if let Some(masked) = request_token_masked {
-            match unmask_csrf_token(&masked) {
-                Ok(token_hex) => Some(token_hex),
-                Err(_) => None,
-            }
-        } else {
-            None
-        };
+        let request_token = request_token_masked
+            .as_deref()                  
+            .and_then(|masked| unmask_csrf_token(masked).ok());
 
         // Comparer les tokens
         match request_token {
