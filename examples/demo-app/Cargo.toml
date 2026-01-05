@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 
 # Base de données : sqlite (défaut) | postgres | mysql | mariadb | all-databases
-runique = { path = "../../runique", features = ["postgres"] }
+runique = { version = "1.0.8", features = ["orm", "postgres"] }
 serde ="1"
 
 chrono = "0.4"

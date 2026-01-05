@@ -98,7 +98,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-runique = {{ version = "1.0.6", features = ["sqlite"] }}
+runique = {{ version = "1.0.8", features = ["sqlite"] }}
 serde = "1.0"
 "#,
         name

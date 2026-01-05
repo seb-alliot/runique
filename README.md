@@ -4,7 +4,7 @@
 
 Runique is a modern web framework that combines Rust's safety and performance with Django's ergonomics. It offers a familiar development experience for Django developers while leveraging the power of Rust's type system.
 
-[![Version](https://img.shields.io/badge/version-1.0.7-blue.svg)](https://crates.io/crates/runique)
+[![Version](https://img.shields.io/badge/version-1.0.8-blue.svg)](https://crates.io/crates/runique)
 [![docs.rs](https://img.shields.io/docsrs/runique)](https://docs.rs/runique)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
@@ -65,23 +65,23 @@ Runique is a modern web framework that combines Rust's safety and performance wi
 
 # Minimal configuration (SQLite by default)
 [dependencies]
-runique = "1.0.7"
+runique = "1.0.8"
 
 # With PostgreSQL
 [dependencies]
-runique = { version = "1.0.7", features = ["postgres"] }
+runique = { version = "1.0.8", features = ["postgres"] }
 
 # With MySQL
 [dependencies]
-runique = { version = "1.0.7", features = ["mysql"] }
+runique = { version = "1.0.8", features = ["mysql"] }
 
 # With MariaDB
 [dependencies]
-runique = { version = "1.0.7", features = ["mariadb"] }
+runique = { version = "1.0.8", features = ["mariadb"] }
 
 # With all databases
 [dependencies]
-runique = { version = "1.0.7", features = ["all-databases"] }
+runique = { version = "1.0.8", features = ["all-databases"] }
 ```
 
 ### Available Cargo Features
@@ -101,19 +101,19 @@ runique = { version = "1.0.7", features = ["all-databases"] }
 ```toml
 # SQLite only (default configuration)
 [dependencies]
-runique = "1.0.7"
+runique = "1.0.8"
 
 # PostgreSQL + MySQL
 [dependencies]
-runique = { version = "1.0.7", features = ["postgres", "mysql"] }
+runique = { version = "1.0.8", features = ["postgres", "mysql"] }
 
 # All databases
 [dependencies]
-runique = { version = "1.0.7", features = ["all-databases"] }
+runique = { version = "1.0.8", features = ["all-databases"] }
 
 # Without ORM (minimal framework)
 [dependencies]
-runique = { version = "1.0.7", default-features = false }
+runique = { version = "1.0.8", default-features = false }
 ```
 
 ### Create a New Project
@@ -128,7 +128,7 @@ Add Runique to `Cargo.toml`:
 
 ```toml
 [dependencies]
-runique = { version = "1.0.7", features = ["sqlite"] }
+runique = { version = "1.0.8", features = ["sqlite"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -693,7 +693,7 @@ If Runique is useful to you, consider:
 
 ---
 
-**Version:** 1.0.7
+**Version:** 1.0.8
 **License:** MIT
 **Status:** Stable
 
