@@ -4,7 +4,7 @@
 
 Runique est un framework web moderne qui combine la sécurité et les performances de Rust avec l'ergonomie de Django. Il offre une expérience de développement familière pour les développeurs Django tout en tirant parti de la puissance du système de types de Rust.
 
-[![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](https://crates.io/crates/runique)
+[![Version](https://img.shields.io/badge/version-1.0.7-blue.svg)](https://crates.io/crates/runique)
 [![docs.rs](https://img.shields.io/docsrs/runique)](https://docs.rs/runique)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
@@ -65,23 +65,23 @@ Runique est un framework web moderne qui combine la sécurité et les performanc
 
 # Configuration minimale (SQLite par défaut)
 [dependencies]
-runique = "1.0.6"
+runique = "1.0.7"
 
 # Avec PostgreSQL
 [dependencies]
-runique = { version = "1.0.6", features = ["postgres"] }
+runique = { version = "1.0.7", features = ["postgres"] }
 
 # Avec MySQL
 [dependencies]
-runique = { version = "1.0.6", features = ["mysql"] }
+runique = { version = "1.0.7", features = ["mysql"] }
 
 # Avec MariaDB
 [dependencies]
-runique = { version = "1.0.6", features = ["mariadb"] }
+runique = { version = "1.0.7", features = ["mariadb"] }
 
 # Avec toutes les bases de données
 [dependencies]
-runique = { version = "1.0.6", features = ["all-databases"] }
+runique = { version = "1.0.7", features = ["all-databases"] }
 ```
 
 ### Features Cargo Disponibles
@@ -101,19 +101,19 @@ runique = { version = "1.0.6", features = ["all-databases"] }
 ```toml
 # SQLite uniquement (configuration par défaut)
 [dependencies]
-runique = "1.0.6"
+runique = "1.0.7"
 
 # PostgreSQL + MySQL
 [dependencies]
-runique = { version = "1.0.6", features = ["postgres", "mysql"] }
+runique = { version = "1.0.7", features = ["postgres", "mysql"] }
 
 # Toutes les bases de données
 [dependencies]
-runique = { version = "1.0.6", features = ["all-databases"] }
+runique = { version = "1.0.7", features = ["all-databases"] }
 
 # Sans ORM (framework minimal)
 [dependencies]
-runique = { version = "1.0.6", default-features = false }
+runique = { version = "1.0.7", default-features = false }
 ```
 
 ### Créer un Nouveau Projet
@@ -128,7 +128,7 @@ Ajouter Runique au `Cargo.toml` :
 
 ```toml
 [dependencies]
-runique = { version = "1.0.6", features = ["sqlite"] }
+runique = { version = "1.0.7", features = ["sqlite"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -382,15 +382,15 @@ RuniqueApp::new(settings).await?
     .await?;
 ```
 
-✅ Content-Security-Policy
-✅ X-Content-Type-Options
-✅ X-Frame-Options
-✅ X-XSS-Protection
-✅ Referrer-Policy
-✅ Permissions-Policy
-🆕 Cross-Origin-Embedder-Policy
-🆕 Cross-Origin-Opener-Policy
-🆕 Cross-Origin-Resource-Policy
+- ✅ Content-Security-Policy
+- ✅ X-Content-Type-Options
+- ✅ X-Frame-Options
+- ✅ X-XSS-Protection
+- ✅ Referrer-Policy
+- ✅ Permissions-Policy
+- 🆕 Cross-Origin-Embedder-Policy
+- 🆕 Cross-Origin-Opener-Policy
+- 🆕 Cross-Origin-Resource-Policy
 
 ---
 
@@ -693,7 +693,7 @@ Si Runique vous est utile, pensez à :
 
 ---
 
-**Version :** 1.0.6
+**Version :** 1.0.7
 **Licence :** MIT
 **Statut :** Stable
 
