@@ -2,6 +2,7 @@
 members = [
     "runique",
     "runique/derive_form",
+    "examples/demo-app",
 ]
 resolver = "2"
 
