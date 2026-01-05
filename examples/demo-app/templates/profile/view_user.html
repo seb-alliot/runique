@@ -35,9 +35,7 @@
     <div class="form-container">
         <form id="username-form" method="post">
             {% csrf %}
-                <div class="form-container">
-                    {{ form.form_html | form_html | safe }}
-                </div>
+            {{ form.form_html | form_html | safe }}
             <button type="submit">Rechercher</button>
         </form>
     </div>
@@ -54,10 +52,11 @@
             <p><strong>Âge :</strong> {{ age }}</p>
         {% endif %}
     </div>
+</div>
 
-    {% block script %}
-    <script {{ csp }} src='{% static "js/test_csrf.js" %}'></script>
-    {% endblock %}
+{% block script %}
+    <script src='{% static "js/test_csrf.js" %}'></script>
+{% endblock %}
 
 
 {% endblock %}

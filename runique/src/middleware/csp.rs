@@ -242,7 +242,6 @@ pub async fn security_headers_middleware(
         HeaderValue::from_static("DENY"),
     );
 
-    // X-XSS-Protection
     headers.insert(
         "x-xss-protection",
         HeaderValue::from_static("1; mode=block"),
@@ -258,24 +257,6 @@ pub async fn security_headers_middleware(
     headers.insert(
         "permissions-policy",
         HeaderValue::from_static("geolocation=(), microphone=(), camera=()"),
-    );
-
-    // Cross-Origin-Embedder-Policy
-    headers.insert(
-        "cross-origin-embedder-policy",
-        HeaderValue::from_static("require-corp"),
-    );
-
-    // Cross-Origin-Opener-Policy
-    headers.insert(
-        "cross-origin-opener-policy",
-        HeaderValue::from_static("same-origin"),
-    );
-
-    // Cross-Origin-Resource-Policy
-    headers.insert(
-        "cross-origin-resource-policy",
-        HeaderValue::from_static("same-origin"),
     );
 
     response
