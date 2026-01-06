@@ -8,8 +8,8 @@ use axum::{
 use tower_sessions::Session;
 
 /// Clé de session pour stocker l'ID utilisateur
-pub const SESSION_USER_ID_KEY: &str = "_user_id";
-pub const SESSION_USER_USERNAME_KEY: &str = "_username";
+pub const SESSION_USER_ID_KEY: &str = "user_id";
+pub const SESSION_USER_USERNAME_KEY: &str = "username";
 
 /// Vérifie si l'utilisateur est authentifié
 pub async fn is_authenticated(session: &Session) -> bool {

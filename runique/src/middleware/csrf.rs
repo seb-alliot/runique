@@ -1,6 +1,7 @@
 use crate::middleware::flash_message::{FlashMessage, FlashMessageSession};
+use crate::middleware::login_requiert::is_authenticated;
 use crate::settings::Settings;
-use crate::utils::{generate_token, mask_csrf_token, unmask_csrf_token};
+use crate::utils::{generate_token, generate_user_token, mask_csrf_token, unmask_csrf_token};
 use axum::{
     body::Body, http::HeaderValue, http::Method, http::StatusCode, middleware::Next,
     response::IntoResponse, response::Response,
@@ -24,7 +25,15 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
     let method = req.method().clone();
     let headers = req.headers().clone();
     let _uri_path = req.uri().path().to_string();
-
+    let user_id = if let Some(session) = req.extensions().get::<Session>() {
+        if let Some(uid) = session.get::<i32>("user_id").await.ok().flatten() {
+            uid
+        } else {
+            0
+        }
+    } else {
+        0
+    };
     let requires_csrf = matches!(
         method,
         Method::POST | Method::PUT | Method::DELETE | Method::PATCH
@@ -50,9 +59,17 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
                     .id()
                     .map(|id| id.to_string())
                     .unwrap_or_else(|| "no-session-id".to_string());
-                let new_token = generate_token(&config.server.secret_key, &session_id);
-                let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
-                new_token
+
+                if is_authenticated(&session).await {
+                    let user_token =
+                        generate_user_token(&config.server.secret_key, &user_id.to_string());
+                    let _ = session.insert(CSRF_TOKEN_KEY, user_token.clone()).await;
+                    user_token
+                } else {
+                    let new_token = generate_token(&config.server.secret_key, &session_id);
+                    let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
+                    new_token
+                }
             }
         }
     };
