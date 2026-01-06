@@ -49,7 +49,7 @@ pub async fn login_user(
 }
 
 /// Déconnecte un utilisateur (supprime la session)
-pub async fn logout_user(session: &Session) -> Result<(), tower_sessions::session::Error> {
+pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Error> {
     session.delete().await
 }
 

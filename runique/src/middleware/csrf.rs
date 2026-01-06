@@ -26,11 +26,12 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
     let headers = req.headers().clone();
     let _uri_path = req.uri().path().to_string();
     let user_id = if let Some(session) = req.extensions().get::<Session>() {
-        if let Some(uid) = session.get::<i32>("user_id").await.ok().flatten() {
-            uid
-        } else {
-            0
-        }
+        session
+            .get::<i32>("user_id")
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default()
     } else {
         0
     };
@@ -60,7 +61,7 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
                     .map(|id| id.to_string())
                     .unwrap_or_else(|| "no-session-id".to_string());
 
-                if is_authenticated(&session).await {
+                if is_authenticated(session).await {
                     let user_token =
                         generate_user_token(&config.server.secret_key, &user_id.to_string());
                     let _ = session.insert(CSRF_TOKEN_KEY, user_token.clone()).await;

@@ -728,6 +728,7 @@ impl RuniqueApp {
 
         let session_layer = SessionManagerLayer::new(MemoryStore::default())
             .with_secure(!self.config.debug)
+            .with_http_only(!self.config.debug)
             .with_expiry(Expiry::OnInactivity(Duration::seconds(86400)));
 
         let router = self
