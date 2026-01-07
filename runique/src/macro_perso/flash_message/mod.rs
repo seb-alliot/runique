@@ -161,4 +161,10 @@ mod tests {
         warning!(msg, "Warning 1", "Warning 2");
         assert_eq!(msg.msgs, vec!["warning: Warning 1", "warning: Warning 2"]);
     }
+
+    #[tokio::test]
+    async fn test_flash_now_macro() {
+        let messages = flash_now!(success, "Immediate success", "Another success");
+        assert_eq!(messages.len(), 2);
+    }
 }
