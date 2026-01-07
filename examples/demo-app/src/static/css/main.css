@@ -201,6 +201,6 @@ form#userform > div {
 }
 
 
-.alert, .alert-danger {
+.alert-danger {
     display: None;
 }

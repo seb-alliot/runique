@@ -18,7 +18,8 @@ impl Serialize for Forms {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Forms", 3)?;
+        let mut state = serializer.serialize_struct("Forms", 4)?;
+        state.serialize_field("csrf_token", &self.fields_html)?;
         state.serialize_field("errors", &self.errors)?;
         state.serialize_field("cleaned_data", &self.cleaned_data)?;
         state.serialize_field("html", &self.render_html())?;
@@ -49,7 +50,31 @@ impl Forms {
 
     /// Enregistrer un champ avec son HTML
     pub fn register_field<F: RuniqueField>(&mut self, name: &str, label: &str, field: &F) {
-        let html = field.render_html(name, label);
+        let value_attr = self
+            .cleaned_data
+            .get(name)
+            .map(|v| match v {
+                Value::String(s) => s.clone(),
+                Value::Number(n) => n.to_string(),
+                Value::Bool(b) => b.to_string(),
+                _ => "".to_string(),
+            })
+            .unwrap_or_default();
+
+        let mut html = field.render_html(name, label);
+
+        if !value_attr.is_empty() {
+            // 1. On cherche où commence la balise <input
+            if let Some(input_start) = html.find("<input") {
+                // 2. On cherche le '>' de CETTE balise input (après son début)
+                if let Some(bracket_pos) = html[input_start..].find('>') {
+                    let insert_pos: usize = input_start + bracket_pos;
+                    let injection = format!(" value=\"{}\"", value_attr);
+                    html.insert_str(insert_pos, &injection);
+                }
+            }
+        }
+
         self.fields_html.push((name.to_string(), html));
     }
 
@@ -133,24 +158,19 @@ impl Forms {
     /// Générer le HTML complet du formulaire
     pub fn render_html(&self) -> String {
         let mut html = String::new();
-        // Boucle sur tous les champs enregistrés
         for (field_name, field_html) in &self.fields_html {
             html.push_str(field_html);
-
-            // Ajouter les erreurs si présentes
             if let Some(error) = self.errors.get(field_name) {
                 html.push_str(&format!(
-                    r#"
-    <div class="alert alert-danger">{}</div>"#,
+                    r#"<div class="alert alert-danger">{}</div>"#,
                     error
                 ));
             }
         }
-
         html
     }
 
-    /// Générer le HTML d'un seul champ (pour templates)
+    /// Générer le HTML d'un seul champ
     pub fn render_field(&self, field_name: &str) -> Option<String> {
         self.fields_html
             .iter()
@@ -180,7 +200,7 @@ pub trait RuniqueForm: Sized {
     /// Valider tous les champs avec les données brutes
     fn validate_fields(form: &mut Forms, raw_data: &HashMap<String, String>);
 
-    /// Construire le formulaire vide (GET request)
+    /// Construire le formulaire vide
     fn build() -> Self {
         let mut form = Forms::new();
         Self::register_fields(&mut form);
@@ -188,14 +208,48 @@ pub trait RuniqueForm: Sized {
     }
 
     /// Construire le formulaire avec validation (POST request)
-    fn build_with_data(raw_data: &HashMap<String, String>) -> Self {
+    fn build_with_current_data(raw_data: &HashMap<String, String>) -> Self {
         let mut form = Forms::new();
-        Self::register_fields(&mut form);
         Self::validate_fields(&mut form, raw_data);
+        Self::register_fields(&mut form);
         Self::from_form(form)
     }
+    /// Reconstruire le formulaire en excluant les champs sensibles
+    fn rebuild_form(&self) -> Self {
+        let mut data_map = HashMap::new();
+        let sensitive_fields = ["password", "password_confirm", "current_password"];
 
-    /// Créer l'instance depuis Forms
+        for (key, value) in self.get_cleaned_data() {
+            if sensitive_fields.contains(&key.as_str()) {
+                continue;
+            }
+            let val_str = match value {
+                Value::String(s) => s.clone(),
+                Value::Number(n) => n.to_string(),
+                Value::Bool(b) => b.to_string(),
+                _ => "".to_string(),
+            };
+            data_map.insert(key.clone(), val_str);
+        }
+
+        let mut new_form = Self::build_with_current_data(&data_map);
+
+        for (field, error) in self.get_errors() {
+            new_form
+                .get_form_mut()
+                .errors
+                .insert(field.clone(), error.clone());
+        }
+
+        let internal = new_form.get_form_mut();
+        internal.fields_html.clear();
+        Self::register_fields(internal);
+        for field in sensitive_fields {
+            new_form.get_form_mut().errors.remove(field);
+        }
+
+        new_form
+    }
     fn from_form(form: Forms) -> Self;
 
     /// Accéder au Forms interne (immutable)
@@ -238,7 +292,7 @@ pub trait RuniqueForm: Sized {
     }
 }
 
-/// Trait original (pour compatibilité)
+/// Trait original
 pub trait FormulaireTrait: Send + Sync + 'static {
     fn new() -> Self;
     fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool;

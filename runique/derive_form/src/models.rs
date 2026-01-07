@@ -49,6 +49,9 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #[derive(::runique::serde::Serialize, ::runique::serde::Deserialize, Debug)]
         pub struct #form_name {
+
+            pub csrf_token: Option<String>,
+
             #[serde(flatten)]
             pub form: ::runique::formulaire::formsrunique::Forms,
         }
@@ -62,7 +65,6 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
             fn deref_mut(&mut self) -> &mut Self::Target { &mut self.form }
         }
 
-        // Nouveau trait RuniqueForm
         impl ::runique::formulaire::formsrunique::RuniqueForm for #form_name {
             fn register_fields(form: &mut ::runique::formulaire::formsrunique::Forms) {
                 #(#register_fields)*

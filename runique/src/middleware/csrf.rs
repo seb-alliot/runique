@@ -21,7 +21,6 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
         Some(c) => c,
         None => return next.run(req).await,
     };
-
     let method = req.method().clone();
     let headers = req.headers().clone();
     let _uri_path = req.uri().path().to_string();

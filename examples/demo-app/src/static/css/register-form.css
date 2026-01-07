@@ -1,0 +1,3 @@
+form#username-form input, form#password-form input , form#username-form > button {
+    margin: 0.2rem;
+}

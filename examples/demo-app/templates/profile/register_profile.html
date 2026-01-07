@@ -1,12 +1,11 @@
 {% extends "index.html" %}
+
 {% block content %}
+
+    <link rel="stylesheet" href='{% static "css/register-form.css" %}'>
+
     <div class="content">
         <h1>{{ title }}</h1>
-        {% if messages %}
-            {% for msg in messages %}
-                <ul {{ msg }}>
-            {% endfor %}
-        {% endif %}
 
         {% if db_error %}
             <div class="alert alert-danger">
@@ -15,35 +14,34 @@
         {% endif %}
 
         {% if forms_errors %}
-            <div class="alert alert-warning">
-                <div class="alert-message">
-                    <strong>Veuillez corriger les erreurs suivantes :</strong>
-                    <ul>
-                        {% for field, error in forms_errors %}
-                            <li><strong>{{ field }} :</strong> {{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
+            <ul>
+                {% for key, value in forms_errors %}
+                    <li><strong>{{ key }}</strong> : {{ value }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
         {% endif %}
 
         <div class="form-container">
             <form id="username-form" method="post">
                 {% csrf %}
-                    <div class="form-container">
-                        {{ form | form_html | safe }}
-                    </div>
+
+                <div class="fields-container">
+                    {{ form.html | safe }}
+                </div>
+
                 <button type="submit">Enregistrer</button>
             </form>
         </div>
     </div>
 
     {% block script %}
-        <script {{ csp }} src='{% static "js/test_csrf.js" %}'></script>
+        <script src='{% static "js/test_csrf.js" %}'></script>
     {% endblock %}
 
 {% endblock %}
+
 {% block footer %}
-    <a href={% link "index" %}>Revenir à l'accueil</a>
+    <a href="{% link 'index' %}">Revenir à l'accueil</a>
     <p>&copy; 2025 My Web Application</p>
 {% endblock %}

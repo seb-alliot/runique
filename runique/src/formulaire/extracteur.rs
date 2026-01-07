@@ -99,7 +99,7 @@ where
         }
 
         // Créer et valider le formulaire avec RuniqueForm
-        let form = T::build_with_data(&parsed);
+        let form = T::build_with_current_data(&parsed);
 
         Ok(ExtractForm(form))
     }

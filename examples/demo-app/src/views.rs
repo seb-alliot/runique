@@ -1,10 +1,9 @@
-use runique::prelude::*;
-
 use crate::forms::UsernameForm;
 use crate::models::users;
 use crate::models::users::Entity as User;
 use crate::models::users::ModelForm;
 use runique::axum::Extension;
+use runique::prelude::*;
 use std::sync::Arc;
 
 /// Page d'accueil
@@ -21,13 +20,10 @@ pub async fn index(template: Template) -> Response {
     template.render("index.html", &ctx)
 }
 
-pub async fn user_profile(
-    template: Template,
-    ExtractForm(form): ExtractForm<ModelForm>,
-) -> Response {
+pub async fn form_register_user(template: Template) -> Response {
     let ctx = context! {
         "title", "Profil Utilisateur";
-        "form", form
+        "form", ModelForm::build();
     };
     template.render("profile/register_profile.html", &ctx)
 }
@@ -60,26 +56,41 @@ pub async fn user_profile_submit(
                     } else if err.to_string().contains("email") {
                         "Cet email est déjà utilisé !"
                     } else {
-                        "Cette valeur existe déjà dans la base de données"
+                        "Cette valeur existe déjà"
                     }
                 } else {
-                    "Erreur lors de la sauvegarde"
+                    "Fait ta migrations de modele stp !"
                 };
-                error!(message, error_msg);
-                let ctx = context! {
-                    "form", ModelForm::build();
-                    "forms_errors", user.get_errors();
-                    "title", "Profil";
-                    "db_error", error_msg
+
+                let mut reloaded_form = user.rebuild_form();
+                reloaded_form
+                    .get_form_mut()
+                    .errors
+                    .insert("username".to_string(), error_msg.to_string());
+
+                // On prépare manuellement l'objet message pour Tera
+                let mut ctx = context! {
+                    "form", &reloaded_form;
+                    "title", "Erreur de base de données";
+                    "forms_errors", &reloaded_form.get_errors();
                 };
+                ctx.insert(
+                    "messages",
+                    &flash_now!(
+                        error,
+                        "Une erreur est survenue lors de la création du profil utilisateur"
+                    ),
+                );
+
                 return template.render("profile/register_profile.html", &ctx);
             }
         }
     }
+
     error!(message, "Erreur de validation du formulaire");
     let ctx = context! {
-        "form", ModelForm::build();
-        "forms_errors", user.get_errors();
+        "form", &user;
+        "forms_errors", &user.get_errors();
         "title", "Erreur de validation"
     };
     template.render("profile/register_profile.html", &ctx)
@@ -97,6 +108,7 @@ pub async fn user(template: Template) -> Response {
 /// POST - Traite le formulaire de recherche et affiche les résultats
 pub async fn view_user(
     Extension(db): Extension<Arc<DatabaseConnection>>,
+    mut message: Message,
     template: Template,
     ExtractForm(form): ExtractForm<UsernameForm>,
 ) -> Response {
@@ -114,15 +126,17 @@ pub async fn view_user(
                 "title", "Vue Utilisateur";
                 "username", &user.username;
                 "email", &user.email;
-                "age", user.age;
                 "form", UsernameForm::build()
             };
+            success!(message, "Utilisateur trouvé avec succès.");
             template.render("profile/view_user.html", &ctx)
         }
         Ok(None) => {
-            // Aucun utilisateur trouvé - 200 OK avec message
+            // Utilisateur non trouvé
+            error!(message, "Utilisateur non trouvé flash  message.");
             let ctx = context! {
                 "title", "Utilisateur non trouvé";
+                "form", UsernameForm::rebuild_form(&form)
             };
             template.render("profile/view_user.html", &ctx)
         }

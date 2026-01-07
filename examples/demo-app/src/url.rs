@@ -17,10 +17,12 @@ pub fn routes() -> Router {
 
         // other links
         "/user" => view! {
-            GET => views::user_profile,
+            GET => views::form_register_user,
             POST => views::user_profile_submit
         }, name = "user_profile",
 
+
+        // search by username
         "/view-user" => view! {
             GET => views::user,
             POST => views::view_user

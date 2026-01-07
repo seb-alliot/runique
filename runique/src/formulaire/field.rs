@@ -1,10 +1,9 @@
 use crate::formulaire::sanetizer;
-
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-    Argon2,
+    Algorithm, Argon2, Params, Version,
 };
-
+use fancy_regex::Regex;
 use serde_json::Value;
 
 use std::net::IpAddr;
@@ -70,7 +69,7 @@ impl RuniqueField for CharField {
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
         if !self.allow_blank && raw_value.is_empty() {
-            return Err("Ce champ ne peut pas Ãªtre vide".to_string());
+            return Err("Ce champ ne peut pas être vide".to_string());
         }
 
         Ok(sanetizer::auto_sanitize(raw_value))
@@ -107,7 +106,7 @@ impl RuniqueField for TextField {
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
         if !self.allow_blank && raw_value.is_empty() {
-            return Err("Ce champ ne peut pas Ãªtre vide".to_string());
+            return Err("Ce champ ne peut pas être vide".to_string());
         }
 
         Ok(sanetizer::auto_sanitize(raw_value))
@@ -118,23 +117,20 @@ impl RuniqueField for TextField {
 
         format!(
             r#"
+                <div class="form-group">
+                    <label for="id_{0}">{1}</label>
+                    <textarea
+                        name="{0}"
 
-            <div class="form-group">
+                        id="id_{0}"
 
-                <label for="id_{}">{}</label>
+                        class="form-control"
 
-                <input type="text"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control"
-
-                {}>
-
-            </div>"#,
-            field_name, label, field_name, field_name, required
+                        {2}>
+                    </textarea>
+                </div>
+    "#,
+            field_name, label, required
         )
     }
 }
@@ -151,7 +147,7 @@ impl RuniqueField for PasswordField {
 
         let salt = SaltString::generate(&mut OsRng);
 
-        let argon2 = Argon2::default();
+        let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, Params::default());
 
         let password_hash = argon2
             .hash_password(raw_value.as_bytes(), &salt)
@@ -191,11 +187,16 @@ impl RuniqueField for EmailField {
     type Output = String;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
-        if raw_value.contains('@') && raw_value.contains('.') && raw_value.len() > 5 {
-            Ok(raw_value.to_lowercase()) // Lowercase pour email
-        } else {
-            Err("Format d'email invalide.".to_string())
+        let val = raw_value.trim().to_lowercase();
+
+        let re: Regex =
+            fancy_regex::Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap();
+
+        if !re.is_match(&val).unwrap_or(false) {
+            return Err("Format d'email invalide.".to_string());
         }
+
+        Ok(val)
     }
 
     fn render_html(&self, field_name: &str, label: &str) -> String {
@@ -230,7 +231,7 @@ impl RuniqueField for IntegerField {
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
         raw_value
             .parse::<i64>()
-            .map_err(|_| "EntrÃ© un nombre entier.".to_string())
+            .map_err(|_| "Veuillez entrer un nombre entier.".to_string())
     }
 
     fn render_html(&self, field_name: &str, label: &str) -> String {
@@ -264,7 +265,7 @@ impl RuniqueField for FloatField {
         raw_value
             .replace(',', ".")
             .parse::<f64>()
-            .map_err(|_| "EntrÃ© un nombre dÃ©cimal.".to_string())
+            .map_err(|_| "Veuillez entrer un nombre décimal.".to_string())
     }
 
     fn render_html(&self, field_name: &str, label: &str) -> String {
@@ -332,7 +333,7 @@ impl RuniqueField for DateField {
     type Output = NaiveDate;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
-        // raw_value est dÃ©jÃ  trimmed
+        // raw_value est déjÃ  trimmed
 
         NaiveDate::parse_from_str(raw_value, "%Y-%m-%d")
             .map_err(|_| "Format de date invalide (AAAA-MM-JJ).".to_string())
@@ -342,7 +343,7 @@ impl RuniqueField for DateField {
         format!(
             r#"
 
-            <div class="form-group
+            <div class="form-group">
 
                 <label for="id_{}">{}</label>
 
@@ -366,11 +367,12 @@ impl RuniqueField for DateTimeField {
     type Output = NaiveDateTime;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
-        // raw_value est dÃ©jÃ  trimmed
+        // raw_value est déjÃ  trimmed
 
         let val = raw_value.replace('T', " ");
 
         NaiveDateTime::parse_from_str(&val, "%Y-%m-%d %H:%M:%S")
+            .or_else(|_| NaiveDateTime::parse_from_str(&val, "%Y-%m-%d %H:%M"))
             .map_err(|_| "Format date/heure invalide.".to_string())
     }
 
@@ -404,7 +406,7 @@ impl RuniqueField for IPAddressField {
     type Output = IpAddr;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
-        // raw_value est dÃ©jÃ  trimmed
+        // raw_value est déjÃ  trimmed
 
         raw_value
             .parse::<IpAddr>()
@@ -439,7 +441,7 @@ impl RuniqueField for JSONField {
     type Output = Value;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
-        serde_json::from_str(raw_value).map_err(|_| "Contenu JSON malformÃ©.".to_string())
+        serde_json::from_str(raw_value).map_err(|_| "Contenu JSON malformé.".to_string())
     }
 
     fn render_html(&self, field_name: &str, label: &str) -> String {
@@ -516,7 +518,7 @@ impl RuniqueField for SlugField {
             .join("-");
 
         if slug.is_empty() {
-            return Err("Le titre ne peut pas Ãªtre vide.".to_string());
+            return Err("Le titre ne peut pas être vide.".to_string());
         }
 
         Ok(slug)

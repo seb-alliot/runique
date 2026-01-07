@@ -143,7 +143,7 @@ pub mod prelude {
     // === Macros Runique ===
     pub use crate::context;
     pub use crate::urlpatterns;
-    pub use crate::{error, info, success, warning};
+    pub use crate::{error, flash_now, info, success, warning};
 
     // === Formulaires ===
     pub use crate::formulaire::extracteur::ExtractForm;

@@ -49,7 +49,7 @@ pub(crate) fn find_forms_field(data: &Data, struct_name: &syn::Ident) -> syn::Id
 pub(crate) fn is_excluded(field: &Field) -> bool {
     let name = field.ident.as_ref().unwrap().to_string();
 
-    if name == "id" || name == "created_at" || name == "updated_at" {
+    if name == "id" || name == "created_at" || name == "updated_at" || name == "_csrf_token" {
         return true;
     }
 
