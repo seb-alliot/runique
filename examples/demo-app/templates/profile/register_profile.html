@@ -27,7 +27,10 @@
                 {% csrf %}
 
                 <div class="fields-container">
-                    {{ form.html | safe }}
+                    {% form.register_form.username %}
+                    {% form.register_form.email %}
+                    {% form.register_form.password %}
+                    {% form.register_form.age %}
                 </div>
 
                 <button type="submit">Enregistrer</button>

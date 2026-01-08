@@ -139,6 +139,9 @@ impl RuniqueApp {
             r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#,
         )
         .unwrap();
+        let re =
+            regex::Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?\s*%}"#).unwrap();
+
         for dir_string in &config.templates_dir {
             let template_dir = std::path::Path::new(dir_string);
             let pattern = format!("{}/**/*.html", template_dir.display());
@@ -151,8 +154,29 @@ impl RuniqueApp {
                     content = content.replace("{% messages %}", r#"{% include "message" %}"#);
                     content = content.replace("{{ csp }}", r#"{% include "csp" %}"#);
 
-                    // Transformation unifiée pour {% link "name" %}
+                    // Transformation pour les formulaire
+                    content = re
+                        .replace_all(&content, |caps: &regex::Captures| {
+                            let form_name = &caps[1];
 
+                            match caps.get(2) {
+                                // Cas A : {% form.user.email %} -> rendu d'un champ seul
+                                Some(field_name) => {
+                                    format!(
+                                        "{{{{ {} | form(field='{}') | safe }}}}",
+                                        form_name,
+                                        field_name.as_str()
+                                    )
+                                }
+                                // Cas B : {% form.user %} -> rendu du formulaire complet
+                                None => {
+                                    format!("{{{{ {} | form | safe }}}}", form_name)
+                                }
+                            }
+                        })
+                        .to_string();
+
+                    // Transformation unifiée pour {% link "name" %}
                     content = link_regex
                         .replace_all(&content, |caps: &regex::Captures| {
                             let name = &caps["name"];
@@ -538,7 +562,11 @@ impl RuniqueApp {
         self.router = self.router.layer(middleware::from_fn(flash_middleware));
         self
     }
-
+    /// Crée un nouveau builder d'application (méthode statique).
+    /// Permet d'utiliser la syntaxe RuniqueApp::builder(settings) dans les tests et l'API.
+    pub async fn builder(settings: Settings) -> RuniqueAppBuilder {
+        crate::app::builder(settings).await
+    }
     /// Adds CSRF protection middleware
     ///
     /// Generates and validates CSRF tokens for forms.

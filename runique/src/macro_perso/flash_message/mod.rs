@@ -12,14 +12,14 @@
 //!
 //! async fn create_user(mut message: Message) -> Response {
 //!     // Un seul message
-//!     success!(message, "Utilisateur créé avec succès");
+//!     success!(message => "Utilisateur créé avec succès");
 //!
 //!     // Plusieurs messages
-//!     success!(message, "Utilisateur créé", "Email envoyé", "Bienvenue !");
+//!     success!(message => "Utilisateur créé", "Email envoyé", "Bienvenue !");
 //!
 //!     // Messages mixtes
-//!     success!(message, "Opération réussie");
-//!     info!(message, "Vérifiez votre email");
+//!     success!(message => "Opération réussie");
+//!     info!(message => "Vérifiez votre email");
 //!
 //!     Redirect::to("/users").into_response()
 //! }

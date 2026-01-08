@@ -33,7 +33,7 @@
     <div class="form-container">
         <form id="username-form" method="post">
             {% csrf %}
-            {{ form.form_html | form_html | safe }}
+            {% form.user.username %}
             <button type="submit">Rechercher</button>
         </form>
     </div>

@@ -135,7 +135,8 @@ impl AllowedHostsValidator {
 /// let routes = Router::new();
 ///
 /// // On attend le build, mais pas l'objet final lui-même
-/// let app = RuniqueApp::builder(settings).await
+/// let app = RuniqueApp::builder(settings)
+///     .await
 ///     .routes(routes)
 ///     .build()
 ///     .await?;

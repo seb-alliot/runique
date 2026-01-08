@@ -1,20 +1,21 @@
 use std::collections::HashMap;
-use tera::{Result as TeraResult, Tera, Value};
+use tera::Value;
 
-pub fn register_form_filter(tera: &mut Tera) {
-    tera.register_filter("form_html", form_html_filter);
-}
-
-fn form_html_filter(value: &Value, _args: &HashMap<String, Value>) -> TeraResult<Value> {
-    // Extraire le champ "html" de l'objet sérialisé
-    if let Some(obj) = value.as_object() {
-        if let Some(html) = obj.get("html") {
-            return Ok(html.clone());
+pub fn form_filter(value: &Value, args: &HashMap<String, Value>) -> tera::Result<Value> {
+    // Si on demande un champ précis
+    if let Some(field_name) = args.get("field").and_then(|v| v.as_str()) {
+        if let Some(fields) = value.get("fields").and_then(|f| f.as_object()) {
+            if let Some(field_html) = fields.get(field_name) {
+                return Ok(field_html.clone());
+            }
         }
+        return Ok(Value::String(field_name.to_string()));
     }
 
-    // Si pas trouvé, retourner une erreur claire
-    Err(tera::Error::msg(
-        "Le formulaire n'a pas de champ 'html'. Assurez-vous que Forms implémente Serialize correctement.",
-    ))
+    // Sinon, on rend tout le formulaire
+    if let Some(html) = value.get("html") {
+        return Ok(html.clone());
+    }
+
+    Ok(Value::Null)
 }

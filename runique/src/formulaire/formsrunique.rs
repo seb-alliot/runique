@@ -12,7 +12,7 @@ use tera::Tera;
 pub struct Forms {
     pub errors: HashMap<String, String>,
     pub cleaned_data: HashMap<String, Value>,
-    pub fields_html: Vec<(String, String)>,
+    pub fields_html: indexmap::IndexMap<String, String>,
 
     #[serde(skip)]
     pub tera: Option<Arc<Tera>>,
@@ -23,10 +23,13 @@ impl Serialize for Forms {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Forms", 3)?;
+        let mut state = serializer.serialize_struct("Forms", 4)?;
         state.serialize_field("errors", &self.errors)?;
         state.serialize_field("cleaned_data", &self.cleaned_data)?;
         state.serialize_field("html", &self.render_html())?;
+
+        state.serialize_field("fields", &self.fields_html)?;
+
         state.end()
     }
 }
@@ -42,7 +45,7 @@ impl Forms {
         Self {
             errors: HashMap::new(),
             cleaned_data: HashMap::new(),
-            fields_html: Vec::new(),
+            fields_html: indexmap::IndexMap::new(),
             tera: None,
         }
     }
@@ -66,12 +69,12 @@ impl Forms {
 
             let html = field.render(tera_instance, name, label, value, error);
 
-            self.fields_html.push((name.to_string(), html));
+            self.fields_html.insert(name.to_string(), html);
         } else {
-            self.fields_html.push((
+            self.fields_html.insert(
                 name.to_string(),
-                "<p>test e trouvaille d'erreur ligne 73 formrunique</p>".to_string(),
-            ));
+                "<p>Erreur : Tera non initialisé</p>".to_string(),
+            );
         }
     }
 
@@ -145,9 +148,9 @@ impl Forms {
 
     pub fn render_html(&self) -> String {
         self.fields_html
-            .iter()
-            .map(|(_, html)| html.as_str())
-            .collect::<Vec<_>>()
+            .values()
+            .cloned()
+            .collect::<Vec<String>>()
             .join("\n")
     }
 
@@ -178,13 +181,11 @@ pub trait RuniqueForm: Sized {
         let mut form = Forms::new();
         form.set_tera(tera);
 
-        // 1. D'abord on valide (remplit errors et cleaned_data)
+        // 1. On traite les DATA d'abord (sans toucher au HTML)
         Self::validate_fields(&mut form, raw_data);
 
-        // 2. On VIDE les champs HTML potentiellement créés par erreur durant la validation
-        form.fields_html.clear();
-
-        // 3. On génère le rendu final PROPRE (avec les erreurs et les valeurs)
+        // 2. On génère le HTML à la toute fin, une seule fois.
+        // L'IndexMap se remplira dans l'ordre exact défini ici.
         Self::register_fields(&mut form);
 
         Self::from_form(form)

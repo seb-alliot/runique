@@ -48,5 +48,5 @@ pub fn register_all_asset_filters(
     tera.register_filter("runique_static", generic_url_filter(runique_static_url));
     tera.register_filter("runique_media", generic_url_filter(runique_media_url));
     tera.register_filter("csrf_token", CsrfTokenFilter);
-    crate::tera_function::form::register_form_filter(tera);
+    tera.register_filter("form", crate::tera_function::form::form_filter);
 }

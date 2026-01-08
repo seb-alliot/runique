@@ -25,11 +25,11 @@ pub async fn form_register_user(
     template: Template,
     Extension(tera): Extension<Arc<Tera>>,
 ) -> Response {
-    let form = ModelForm::build(tera.clone());
+    let register_form = ModelForm::build(tera.clone());
 
     let ctx = context! {
         "title" => "Profil Utilisateur",
-        "form" => form
+        "register_form" => register_form
     };
     template.render("profile/register_profile.html", &ctx)
 }
@@ -38,10 +38,10 @@ pub async fn user_profile_submit(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
-    ExtractForm(user): ExtractForm<ModelForm>,
+    ExtractForm(register_form): ExtractForm<ModelForm>,
 ) -> Response {
-    if user.is_valid() {
-        match user.save(&db).await {
+    if register_form.is_valid() {
+        match register_form.save(&db).await {
             Ok(created_user) => {
                 success!(message => "Profil utilisateur créé avec succès !");
                 let target = reverse_with_parameters(
@@ -69,7 +69,7 @@ pub async fn user_profile_submit(
 
                 let mut ctx = context! {
                     "title" => "Erreur de base de données",
-                    "form" => user
+                    "register_form" => register_form
                 };
 
                 ctx.insert(
@@ -94,7 +94,7 @@ pub async fn user(template: Template, Extension(tera): Extension<Arc<Tera>>) -> 
 
     let ctx = context! {
         "title" => "Rechercher un utilisateur",
-        "form" => user
+        "user" => user
     };
     template.render("profile/view_user.html", &ctx)
 }
@@ -103,9 +103,9 @@ pub async fn view_user(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
-    ExtractForm(user): ExtractForm<UsernameForm>,
+    ExtractForm(form): ExtractForm<UsernameForm>,
 ) -> Response {
-    let name: String = user.form.get_value("username").unwrap_or_default();
+    let name: String = form.get_form().get_value("username").unwrap_or_default();
 
     match User::objects
         .filter(users::Column::Username.eq(&name))
@@ -118,7 +118,7 @@ pub async fn view_user(
                 "username" => &user.username,
                 "email" => &user.email,
                 "age" => &user.age,
-                "user" => user
+                "user" => form
             };
             success!(message => "Utilisateur trouvé avec succès.");
             template.render("profile/view_user.html", &ctx)
@@ -127,7 +127,7 @@ pub async fn view_user(
             error!(message => "Utilisateur non trouvé.");
             let ctx = context! {
                 "title" => "Utilisateur non trouvé",
-                "form" => user
+                "user" => &form
             };
             template.render("profile/view_user.html", &ctx)
         }
