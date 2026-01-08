@@ -49,10 +49,11 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #[derive(::runique::serde::Serialize, ::runique::serde::Deserialize, Debug)]
         pub struct #form_name {
-
             pub csrf_token: Option<String>,
 
             #[serde(flatten)]
+            // On ajoute 'default' pour que Serde puisse créer l'objet Forms vide
+            #[serde(skip_deserializing, default)]
             pub form: ::runique::formulaire::formsrunique::Forms,
         }
 

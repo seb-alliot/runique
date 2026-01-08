@@ -1,0 +1,32 @@
+<div class="field-group mb-3">
+    <label
+        for="id_{{ name }}"
+        class="form-label">
+        {{ label }}
+    </label>
+
+    {% set p_text = "Choisir un fichier..." %}
+    {% if accept %}
+        {% set p_text = "Formats acceptés : " ~ accept %}
+    {% endif %}
+
+    <input
+        type="file"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        class="form-control {% if error %}is-invalid{% endif %}"
+        {% if accept %}accept="{{ accept }}"{% endif %}
+        placeholder="{{ p_text }}">
+
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    {% if help_text %}
+        <div class="form-text">
+            {{ help_text }}
+        </div>
+    {% endif %}
+</div>

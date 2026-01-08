@@ -1,0 +1,19 @@
+<div class="field-group mb-3">
+    <label
+        for="id_{{ name }}"
+        class="form-label">
+        {{ label }}{% if required %} *{% endif %}
+    </label>
+    <input
+        type="text"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        value="{{ value | default(value='') }}"
+        class="form-control {% if error %}is-invalid{% endif %}"
+        {% if required %}required{% endif %}>
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>

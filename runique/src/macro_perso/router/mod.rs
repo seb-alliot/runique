@@ -7,7 +7,7 @@ macro_rules! urlpatterns {
     (
         $($path:expr => $handler:expr, name = $name:expr) ,* $(,)?
     ) => {{
-        let mut router = $crate::Router::new();
+        let mut router: $crate::axum::Router<std::sync::Arc<$crate::tera::Tera>> = $crate::axum::Router::new();
 
         $(
             $crate::register_name_url($name, $path);
@@ -22,7 +22,7 @@ macro_rules! urlpatterns {
     (
         $($path:expr => $handler:expr) , * $(,)?
     ) => {{
-        let mut router = $crate::Router::new();
+        let mut router: $crate::axum::Router<std::sync::Arc<$crate::tera::Tera>> = $crate::axum::Router::new();
         $(
             router = router.route(
                 $path,

@@ -5,30 +5,35 @@ use crate::models::users::ModelForm;
 use runique::axum::Extension;
 use runique::prelude::*;
 use std::sync::Arc;
+use tera::Tera;
 
-/// Page d'accueil
 pub async fn index(template: Template) -> Response {
     let ctx = context! {
-    "title", "Bienvenue sur Runique";
-    "description", "Un framework web moderne inspiré de Django";
-    "status", "Framework en cours de développement...";
-    "backend", "J'utilise axum pour le backend";
-    "template", "Tera pour moteur de templates.";
-    "tokio", "Le runtime asynchrone tokio";
-    "session", "Tower pour la gestion des sessions."};
+        "title" => "Bienvenue sur Runique",
+        "description" => "Un framework web moderne inspiré de Django",
+        "status" => "Framework en cours de développement...",
+        "backend" => "J'utilise axum pour le backend",
+        "template" => "Tera pour moteur de templates.",
+        "tokio" => "Le runtime asynchrone tokio",
+        "session" => "Tower pour la gestion des sessions."
+    };
 
     template.render("index.html", &ctx)
 }
 
-pub async fn form_register_user(template: Template) -> Response {
+pub async fn form_register_user(
+    template: Template,
+    Extension(tera): Extension<Arc<Tera>>,
+) -> Response {
+    let form = ModelForm::build(tera.clone());
+
     let ctx = context! {
-        "title", "Profil Utilisateur";
-        "form", ModelForm::build();
+        "title" => "Profil Utilisateur",
+        "form" => form
     };
     template.render("profile/register_profile.html", &ctx)
 }
 
-/// GET - Afficher le profil utilisateur
 pub async fn user_profile_submit(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
@@ -38,7 +43,7 @@ pub async fn user_profile_submit(
     if user.is_valid() {
         match user.save(&db).await {
             Ok(created_user) => {
-                success!(message, "Profil utilisateur créé avec succès !");
+                success!(message => "Profil utilisateur créé avec succès !");
                 let target = reverse_with_parameters(
                     "user_profile",
                     &[
@@ -50,7 +55,7 @@ pub async fn user_profile_submit(
                 return Redirect::to(&target).into_response();
             }
             Err(err) => {
-                let error_msg = if err.to_string().contains("unique") {
+                let _error_msg = if err.to_string().contains("unique") {
                     if err.to_string().contains("username") {
                         "Ce nom d'utilisateur existe déjà !"
                     } else if err.to_string().contains("email") {
@@ -59,27 +64,17 @@ pub async fn user_profile_submit(
                         "Cette valeur existe déjà"
                     }
                 } else {
-                    "Fait ta migrations de modele stp !"
+                    "Faites vos migrations de modèle svp !"
                 };
 
-                let mut reloaded_form = user.rebuild_form();
-                reloaded_form
-                    .get_form_mut()
-                    .errors
-                    .insert("username".to_string(), error_msg.to_string());
-
-                // On prépare manuellement l'objet message pour Tera
                 let mut ctx = context! {
-                    "form", &reloaded_form;
-                    "title", "Erreur de base de données";
-                    "forms_errors", &reloaded_form.get_errors();
+                    "title" => "Erreur de base de données",
+                    "form" => user
                 };
+
                 ctx.insert(
                     "messages",
-                    &flash_now!(
-                        error,
-                        "Une erreur est survenue lors de la création du profil utilisateur"
-                    ),
+                    &flash_now!(error => "Une erreur est survenue lors de la création du profil"),
                 );
 
                 return template.render("profile/register_profile.html", &ctx);
@@ -87,72 +82,65 @@ pub async fn user_profile_submit(
         }
     }
 
-    error!(message, "Erreur de validation du formulaire");
+    error!(message => "Erreur de validation du formulaire");
     let ctx = context! {
-        "form", &user;
-        "forms_errors", &user.get_errors();
-        "title", "Erreur de validation"
+        "title" => "Erreur de validation"
     };
     template.render("profile/register_profile.html", &ctx)
 }
 
-/// GET - Affiche la page avec le formulaire de recherche
-pub async fn user(template: Template) -> Response {
+pub async fn user(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
+    let user = UsernameForm::build(tera.clone());
+
     let ctx = context! {
-        "title", "Rechercher un utilisateur";
-        "form", UsernameForm::build()
+        "title" => "Rechercher un utilisateur",
+        "form" => user
     };
     template.render("profile/view_user.html", &ctx)
 }
 
-/// POST - Traite le formulaire de recherche et affiche les résultats
 pub async fn view_user(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
-    ExtractForm(form): ExtractForm<UsernameForm>,
+    ExtractForm(user): ExtractForm<UsernameForm>,
 ) -> Response {
-    let name: String = form.form.get_value("username").unwrap_or_default();
+    let name: String = user.form.get_value("username").unwrap_or_default();
 
-    // Rechercher l'utilisateur dans la base de données
     match User::objects
         .filter(users::Column::Username.eq(&name))
         .first(&db)
         .await
     {
         Ok(Some(user)) => {
-            // Utilisateur trouvé
             let ctx = context! {
-                "title", "Vue Utilisateur";
-                "username", &user.username;
-                "email", &user.email;
-                "form", UsernameForm::build()
+                "title" => "Vue Utilisateur",
+                "username" => &user.username,
+                "email" => &user.email,
+                "age" => &user.age,
+                "user" => user
             };
-            success!(message, "Utilisateur trouvé avec succès.");
+            success!(message => "Utilisateur trouvé avec succès.");
             template.render("profile/view_user.html", &ctx)
         }
         Ok(None) => {
-            // Utilisateur non trouvé
-            error!(message, "Utilisateur non trouvé flash  message.");
+            error!(message => "Utilisateur non trouvé.");
             let ctx = context! {
-                "title", "Utilisateur non trouvé";
-                "form", UsernameForm::rebuild_form(&form)
+                "title" => "Utilisateur non trouvé",
+                "form" => user
             };
             template.render("profile/view_user.html", &ctx)
         }
-        Err(_) => {
-            // Erreur base de données - 500
-            template.render_500("Erreur lors de la recherche")
-        }
+        Err(_) => template.render_500("Erreur lors de la recherche"),
     }
 }
 
 /// Page "À propos"
 pub async fn about(template: Template, mut message: Message) -> Response {
-    success!(message, "Ceci est un message de succès de test.");
-    info!(message, "Ceci est un message d'information de test.");
-    error!(message, "Ceci est un message d'erreur de test.");
-    warning!(message, "Ceci est un message d'avertissement de test.");
+    success!(message => "Ceci est un message de succès de test.");
+    info!(message => "Ceci est un message d'information de test.");
+    error!(message => "Ceci est un message d'erreur de test.");
+    warning!(message => "Ceci est un message d'avertissement de test.");
 
     let ctx = context! {
         "title", "À propos de Runique Framework";
@@ -163,6 +151,6 @@ pub async fn about(template: Template, mut message: Message) -> Response {
 
 /// Ajax test CSRF
 pub async fn test_csrf(mut message: Message) -> Response {
-    success!(message, "CSRF token validé avec succès !");
+    success!(message => "CSRF token validé avec succès !");
     Redirect::to("/").into_response()
 }

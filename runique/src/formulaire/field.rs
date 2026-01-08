@@ -5,8 +5,9 @@ use argon2::{
 };
 use fancy_regex::Regex;
 use serde_json::Value;
-
 use std::net::IpAddr;
+use tera::Context;
+use tera::Tera;
 
 use chrono::{NaiveDate, NaiveDateTime};
 
@@ -14,12 +15,46 @@ pub trait RuniqueField {
     type Output;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String>;
+    fn template_name(&self) -> &str;
 
+    // Indique si on doit trimmer la valeur (utile pour ton Forms::field)
     fn strip(&self) -> bool {
         true
     }
 
-    fn render_html(&self, field_name: &str, label: &str) -> String;
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({})
+    }
+
+    /// La méthode qui rend le template Tera
+    fn render(
+        &self,
+        tera: &Tera,
+        name: &str,
+        label: &str,
+        value: &Value,
+        error: Option<&String>,
+    ) -> String {
+        let mut ctx = Context::new();
+        ctx.insert("name", name);
+        ctx.insert("label", label);
+        ctx.insert("id", &format!("id_{}", name));
+        ctx.insert("value", value);
+
+        if let Some(err) = error {
+            ctx.insert("error", err);
+        }
+
+        // On injecte les données spécifiques (comme 'accept' ou 'options')
+        if let Value::Object(map) = self.get_context() {
+            for (k, v) in map {
+                ctx.insert(k, &v);
+            }
+        }
+
+        tera.render(self.template_name(), &ctx)
+            .unwrap_or_else(|e| format!("Erreur Tera ({}): {}", self.template_name(), e))
+    }
 }
 
 // --- TEXTE ET SECURITE ---
@@ -74,30 +109,8 @@ impl RuniqueField for CharField {
 
         Ok(sanetizer::auto_sanitize(raw_value))
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        let required = if self.allow_blank { "" } else { "required" };
-
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <input type="text"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control"
-
-                {}>
-
-            </div>"#,
-            field_name, label, field_name, field_name, required
-        )
+    fn template_name(&self) -> &str {
+        "text"
     }
 }
 
@@ -111,27 +124,8 @@ impl RuniqueField for TextField {
 
         Ok(sanetizer::auto_sanitize(raw_value))
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        let required = if self.allow_blank { "" } else { "required" };
-
-        format!(
-            r#"
-                <div class="form-group">
-                    <label for="id_{0}">{1}</label>
-                    <textarea
-                        name="{0}"
-
-                        id="id_{0}"
-
-                        class="form-control"
-
-                        {2}>
-                    </textarea>
-                </div>
-    "#,
-            field_name, label, required
-        )
+    fn template_name(&self) -> &str {
+        "textarea"
     }
 }
 
@@ -142,42 +136,43 @@ impl RuniqueField for PasswordField {
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
         if raw_value.len() < 8 {
-            return Err("Le mot de passe doit contenir au moins 8 caractÃ¨res.".to_string());
+            return Err("Le mot de passe doit contenir au moins 8 caractères.".to_string());
         }
 
         let salt = SaltString::generate(&mut OsRng);
-
         let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, Params::default());
 
-        let password_hash = argon2
+        let hashed = argon2
             .hash_password(raw_value.as_bytes(), &salt)
             .map_err(|_| "Erreur lors du hachage du mot de passe".to_string())?
             .to_string();
 
-        Ok(password_hash)
+        Ok(hashed)
     }
 
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
+    fn template_name(&self) -> &str {
+        "password"
+    }
 
-            <div class="form-group">
+    fn render(
+        &self,
+        tera: &Tera,
+        name: &str,
+        label: &str,
+        _value: &Value,
+        error: Option<&String>,
+    ) -> String {
+        let mut ctx = Context::new();
+        ctx.insert("name", name);
+        ctx.insert("label", label);
+        ctx.insert("id", &format!("id_{}", name));
+        ctx.insert("value", "");
 
-                <label for="id_{}">{}</label>
-
-                <input type="password"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control"
-
-                >
-
-            </div>"#,
-            field_name, label, field_name, field_name
-        )
+        if let Some(err) = error {
+            ctx.insert("error", err);
+        }
+        tera.render(self.template_name(), &ctx)
+            .unwrap_or_else(|e| format!("Erreur Tera ({}): {}", self.template_name(), e))
     }
 }
 
@@ -198,30 +193,12 @@ impl RuniqueField for EmailField {
 
         Ok(val)
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <input type="email"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control">
-
-            </div>"#,
-            field_name, label, field_name, field_name
-        )
+    fn template_name(&self) -> &str {
+        "email"
     }
 }
 
-// --- NUMÃ‰RIQUE ET LOGIQUE ---
+// --- NUMERIQUE ET LOGIQUE ---
 
 pub struct IntegerField;
 
@@ -233,26 +210,8 @@ impl RuniqueField for IntegerField {
             .parse::<i64>()
             .map_err(|_| "Veuillez entrer un nombre entier.".to_string())
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <input type="number"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control">
-
-            </div>"#,
-            field_name, label, field_name, field_name,
-        )
+    fn template_name(&self) -> &str {
+        "number"
     }
 }
 
@@ -267,26 +226,8 @@ impl RuniqueField for FloatField {
             .parse::<f64>()
             .map_err(|_| "Veuillez entrer un nombre décimal.".to_string())
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <input type="number" step="any"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control">
-
-            </div>"#,
-            field_name, label, field_name, field_name,
-        )
+    fn template_name(&self) -> &str {
+        "number"
     }
 }
 
@@ -302,26 +243,8 @@ impl RuniqueField for BooleanField {
             _ => Ok(false),
         }
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group form-check">
-
-                <input type="checkbox"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-check-input">
-
-                <label for="id_{}" class="form-check-label">{}</label>
-
-            </div>"#,
-            field_name, field_name, field_name, label,
-        )
+    fn template_name(&self) -> &str {
+        "checkbox"
     }
 }
 
@@ -333,31 +256,11 @@ impl RuniqueField for DateField {
     type Output = NaiveDate;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
-        // raw_value est déjÃ  trimmed
-
         NaiveDate::parse_from_str(raw_value, "%Y-%m-%d")
             .map_err(|_| "Format de date invalide (AAAA-MM-JJ).".to_string())
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <input type="date"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control">
-
-            </div>"#,
-            field_name, label, field_name, field_name
-        )
+    fn template_name(&self) -> &str {
+        "date"
     }
 }
 
@@ -375,30 +278,12 @@ impl RuniqueField for DateTimeField {
             .or_else(|_| NaiveDateTime::parse_from_str(&val, "%Y-%m-%d %H:%M"))
             .map_err(|_| "Format date/heure invalide.".to_string())
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <input type="datetime-local"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control">
-
-            </div>"#,
-            field_name, label, field_name, field_name
-        )
+    fn template_name(&self) -> &str {
+        "datetime-local"
     }
 }
 
-// --- RÃ‰SEAU ET DONNÃ‰ES ---
+// --- RÉSEAU ET DONNÉES ---
 
 pub struct IPAddressField;
 
@@ -412,26 +297,8 @@ impl RuniqueField for IPAddressField {
             .parse::<IpAddr>()
             .map_err(|_| "Adresse IP invalide.".to_string())
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <input type="text"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control">
-
-            </div>"#,
-            field_name, label, field_name, field_name
-        )
+    fn template_name(&self) -> &str {
+        "ipaddress"
     }
 }
 
@@ -443,28 +310,8 @@ impl RuniqueField for JSONField {
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
         serde_json::from_str(raw_value).map_err(|_| "Contenu JSON malformé.".to_string())
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <textarea
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control"
-
-                rows="5"></textarea>
-
-            </div>"#,
-            field_name, label, field_name, field_name
-        )
+    fn template_name(&self) -> &str {
+        "json"
     }
 }
 
@@ -480,26 +327,8 @@ impl RuniqueField for URLField {
             Err("L'URL doit commencer par http:// ou https://".to_string())
         }
     }
-
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
-
-            <div class="form-group">
-
-                <label for="id_{}">{}</label>
-
-                <input type="url"
-
-                name="{}"
-
-                id="id_{}"
-
-                class="form-control">
-
-            </div>"#,
-            field_name, label, field_name, field_name
-        )
+    fn template_name(&self) -> &str {
+        "url"
     }
 }
 
@@ -523,25 +352,73 @@ impl RuniqueField for SlugField {
 
         Ok(slug)
     }
+    fn template_name(&self) -> &str {
+        "slug"
+    }
+}
 
-    fn render_html(&self, field_name: &str, label: &str) -> String {
-        format!(
-            r#"
+pub struct FileField {
+    pub accept: String,
+}
 
-            <div class="form-group">
+impl RuniqueField for FileField {
+    type Output = String;
 
-                <label for="id_{}">{}</label>
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        Ok(raw_value.to_string())
+    }
 
-                <input type="text"
+    fn template_name(&self) -> &str {
+        "file"
+    }
 
-                name="{}"
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({ "accept": self.accept })
+    }
+}
 
-                id="id_{}"
+pub struct SelectOption {
+    pub value: String,
+    pub label: String,
+}
 
-                class="form-control">
+pub struct SelectField {
+    pub options: Vec<SelectOption>,
+}
 
-            </div>"#,
-            field_name, label, field_name, field_name
-        )
+impl RuniqueField for SelectField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        if self.options.iter().any(|o| o.value == raw_value) {
+            Ok(raw_value.to_string())
+        } else {
+            Err("Option invalide".to_string())
+        }
+    }
+
+    fn template_name(&self) -> &str {
+        "select"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({
+            "options": self.options.iter().map(|o| {
+                serde_json::json!({ "value": o.value, "label": o.label })
+            }).collect::<Vec<_>>()
+        })
+    }
+}
+
+pub struct HiddenField;
+
+impl RuniqueField for HiddenField {
+    type Output = String;
+    fn process(&self, v: &str) -> Result<Self::Output, String> {
+        Ok(v.to_string())
+    }
+
+    fn template_name(&self) -> &str {
+        "hidden"
     }
 }

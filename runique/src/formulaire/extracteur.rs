@@ -1,8 +1,10 @@
 use crate::formulaire::formsrunique::RuniqueForm;
 use crate::utils::unmask_csrf_token;
-use axum::{body::Body, extract::FromRequest, http::Request, response::Response};
+use axum::{body::Body, extract::FromRef, extract::FromRequest, http::Request, response::Response};
 use http_body_util::BodyExt;
 use std::collections::HashMap;
+use std::sync::Arc;
+use tera::Tera;
 use tower_sessions::Session;
 
 pub struct ExtractForm<T>(pub T);
@@ -11,11 +13,15 @@ impl<S, T> FromRequest<S> for ExtractForm<T>
 where
     S: Send + Sync,
     T: RuniqueForm,
+    Arc<Tera>: FromRef<S>, // IMPORTANT: S doit pouvoir fournir Tera
 {
     type Rejection = Response;
 
-    async fn from_request(mut req: Request<Body>, _state: &S) -> Result<Self, Self::Rejection> {
-        // Lire le body brut
+    async fn from_request(mut req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
+        // 1. Récupérer Tera depuis le State via FromRef
+        let tera = Arc::<Tera>::from_ref(state);
+
+        // 2. Lire le body brut
         let bytes = req
             .body_mut()
             .collect()
@@ -28,7 +34,7 @@ where
             })?
             .to_bytes();
 
-        // Parser le formulaire
+        // 3. Parser le formulaire
         let parsed: HashMap<String, String> = match req
             .headers()
             .get("content-type")
@@ -43,27 +49,31 @@ where
             _ => HashMap::new(),
         };
 
-        // Vérifier CSRF
-        let session = match req.extensions().get::<Session>() {
-            Some(s) => s,
-            None => {
-                return Err(Response::builder()
+        // 4. Vérifier CSRF (Session)
+        let session = req.extensions().get::<Session>().ok_or_else(|| {
+            Response::builder()
+                .status(500)
+                .body(Body::from("Session middleware missing"))
+                .unwrap()
+        })?;
+
+        let session_token = session
+            .get::<String>("csrf_token")
+            .await
+            .map_err(|_| {
+                Response::builder()
                     .status(500)
-                    .body(Body::from("Session middleware missing"))
-                    .unwrap())
-            }
-        };
-        let session_token = match session.get::<String>("csrf_token").await {
-            Ok(Some(token)) => token,
-            _ => {
-                return Err(Response::builder()
+                    .body(Body::from("Session error"))
+                    .unwrap()
+            })?
+            .ok_or_else(|| {
+                Response::builder()
                     .status(403)
                     .body(Body::from("CSRF token missing in session"))
-                    .unwrap())
-            }
-        };
+                    .unwrap()
+            })?;
 
-        // Récupérer le token du formulaire
+        // 5. Validation du token
         let form_token = parsed.get("csrf_token").ok_or_else(|| {
             Response::builder()
                 .status(403)
@@ -71,35 +81,24 @@ where
                 .unwrap()
         })?;
 
-        // Décode et démasque le token reçu
-        let unmasked_token = match unmask_csrf_token(form_token) {
-            Ok(t) => t,
-            Err(_) => {
-                return Err(Response::builder()
-                    .status(403)
-                    .body(Body::from("Invalid CSRF token"))
-                    .unwrap())
-            }
-        };
+        let unmasked_token = unmask_csrf_token(form_token).map_err(|_| {
+            Response::builder()
+                .status(403)
+                .body(Body::from("Invalid CSRF token masking"))
+                .unwrap()
+        })?;
 
-        // Compare avec le token stocké en session
         if unmasked_token != session_token {
             return Err(Response::builder()
                 .status(403)
-                .body(Body::from("Invalid CSRF token"))
+                .body(Body::from("Invalid CSRF token mismatch"))
                 .unwrap());
         }
 
-        // Comparer avec le token stocké en session
-        if unmasked_token != session_token {
-            return Err(Response::builder()
-                .status(403)
-                .body(Body::from("Invalid CSRF token"))
-                .unwrap());
-        }
-
-        // Créer et valider le formulaire avec RuniqueForm
-        let form = T::build_with_current_data(&parsed);
+        // 6. Créer et valider le formulaire
+        // On injecte Tera juste après la construction
+        let mut form = T::build_with_current_data(&parsed, tera.clone());
+        form.get_form_mut().set_tera(tera);
 
         Ok(ExtractForm(form))
     }

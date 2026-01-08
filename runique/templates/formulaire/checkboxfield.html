@@ -1,0 +1,18 @@
+<div class="field-group form-check mb-3">
+    <input
+        type="checkbox"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        {% if value %}checked{% endif %}
+        class="form-check-input {% if error %}is-invalid{% endif %}">
+    <label
+        for="id_{{ name }}"
+        class="form-check-label">
+        {{ label }}
+    </label>
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>

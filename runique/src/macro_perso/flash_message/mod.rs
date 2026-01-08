@@ -27,10 +27,10 @@
 
 #[macro_export]
 macro_rules! success {
-    ($msg:expr, $content:expr) => {
+    ($msg:expr => $content:expr) => {
         $msg.success($content).await.unwrap()
     };
-    ($msg:expr, $first:expr, $($rest:expr),+ $(,)?) => {
+    ($msg:expr => $first:expr, $($rest:expr),+ $(,)?) => {
         $msg.success($first).await.unwrap();
         $(
             $msg.success($rest).await.unwrap();
@@ -40,10 +40,10 @@ macro_rules! success {
 
 #[macro_export]
 macro_rules! error {
-    ($msg:expr, $content:expr) => {
+    ($msg:expr => $content:expr) => {
         $msg.error($content).await.unwrap()
     };
-    ($msg:expr, $first:expr, $($rest:expr),+ $(,)?) => {
+    ($msg:expr => $first:expr, $($rest:expr),+ $(,)?) => {
         $msg.error($first).await.unwrap();
         $(
             $msg.error($rest).await.unwrap();
@@ -53,10 +53,10 @@ macro_rules! error {
 
 #[macro_export]
 macro_rules! info {
-    ($msg:expr, $content:expr) => {
+    ($msg:expr => $content:expr) => {
         $msg.info($content).await.unwrap()
     };
-    ($msg:expr, $first:expr, $($rest:expr),+ $(,)?) => {
+    ($msg:expr => $first:expr, $($rest:expr),+ $(,)?) => {
         $msg.info($first).await.unwrap();
         $(
             $msg.info($rest).await.unwrap();
@@ -66,10 +66,10 @@ macro_rules! info {
 
 #[macro_export]
 macro_rules! warning {
-    ($msg:expr, $content:expr) => {
+    ($msg:expr => $content:expr) => {
         $msg.warning($content).await.unwrap()
     };
-    ($msg:expr, $first:expr, $($rest:expr),+ $(,)?) => {
+    ($msg:expr => $first:expr, $($rest:expr),+ $(,)?) => {
         $msg.warning($first).await.unwrap();
         $(
             $msg.warning($rest).await.unwrap();
@@ -79,14 +79,14 @@ macro_rules! warning {
 
 #[macro_export]
 macro_rules! flash_now {
-    ($msg_type:ident, $content:expr) => {
+    ($msg_type:ident => $content:expr) => {
         {
             let mut messages = vec![];
             messages.push($crate::middleware::flash_message::FlashMessage::$msg_type($content));
             messages
         }
     };
-    ($msg_type:ident, $first:expr, $($rest:expr),+ $(,)?) => {
+    ($msg_type:ident => $first:expr, $($rest:expr),+ $(,)?) => {
         {
             let mut messages = vec![$crate::middleware::flash_message::FlashMessage::$msg_type($first)];
             $(
@@ -134,7 +134,7 @@ mod tests {
     #[tokio::test]
     async fn test_success_macro() {
         let mut msg = MockMessage::new();
-        success!(msg, "Test message 1", "Test message 2");
+        success!(msg => "Test message 1", "Test message 2");
         assert_eq!(
             msg.msgs,
             vec!["success: Test message 1", "success: Test message 2"]
@@ -144,27 +144,27 @@ mod tests {
     #[tokio::test]
     async fn test_error_macro() {
         let mut msg = MockMessage::new();
-        error!(msg, "Erreur 1", "Erreur 2");
+        error!(msg => "Erreur 1", "Erreur 2");
         assert_eq!(msg.msgs, vec!["error: Erreur 1", "error: Erreur 2"]);
     }
 
     #[tokio::test]
     async fn test_info_macro() {
         let mut msg = MockMessage::new();
-        info!(msg, "Info 1", "Info 2");
+        info!(msg => "Info 1", "Info 2");
         assert_eq!(msg.msgs, vec!["info: Info 1", "info: Info 2"]);
     }
 
     #[tokio::test]
     async fn test_warning_macro() {
         let mut msg = MockMessage::new();
-        warning!(msg, "Warning 1", "Warning 2");
+        warning!(msg => "Warning 1", "Warning 2");
         assert_eq!(msg.msgs, vec!["warning: Warning 1", "warning: Warning 2"]);
     }
 
     #[tokio::test]
     async fn test_flash_now_macro() {
-        let messages = flash_now!(success, "Immediate success", "Another success");
+        let messages = flash_now!(success => "Immediate success", "Another success");
         assert_eq!(messages.len(), 2);
     }
 }

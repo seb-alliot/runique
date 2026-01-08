@@ -1,0 +1,19 @@
+<div class="field-group mb-3">
+    <label
+        for="id_{{ name }}"
+        class="form-label">
+        {{ label }}
+    </label>
+    <input
+        type="email"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        value="{{ value | default(value='') }}"
+        class="form-control {% if error %}is-invalid{% endif %}"
+        placeholder="exemple@domaine.com">
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>

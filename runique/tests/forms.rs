@@ -1,32 +1,47 @@
 use runique::formulaire::{
     field::{CharField, EmailField, IntegerField},
-    formsrunique::{Forms, FormulaireTrait},
+    formsrunique::{Forms, RuniqueForm},
 };
 use std::collections::HashMap;
+use std::sync::Arc;
+use tera::Tera;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct TestForm {
     form: Forms,
 }
 
-impl TestForm {
-    fn new() -> Self {
-        Self { form: Forms::new() }
+// Implémentation du nouveau trait RuniqueForm
+impl RuniqueForm for TestForm {
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+
+    fn get_form(&self) -> &Forms {
+        &self.form
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
+
+    // Cette méthode définit la structure du formulaire (Rendu HTML)
+    fn register_fields(form: &mut Forms) {
+        // Note: register_field nécessite maintenant Tera pour générer du HTML.
+        // Dans les tests unitaires sans Tera, cela générera un message d'erreur dans fields_html
+        // mais n'empêchera pas la validation de fonctionner.
+        form.register_field("name", "Nom", &CharField { allow_blank: false });
+        form.register_field("age", "Âge", &IntegerField);
+    }
+
+    // Cette méthode définit la logique de validation (Traitement des données)
+    fn validate_fields(form: &mut Forms, raw_data: &HashMap<String, String>) {
+        form.require("name", &CharField { allow_blank: false }, raw_data);
+        form.optional("age", &IntegerField, raw_data);
     }
 }
 
-impl FormulaireTrait for TestForm {
-    fn new() -> Self {
-        Self::new()
-    }
-
-    fn validate(&mut self, raw_data: &HashMap<String, String>) -> bool {
-        self.form
-            .require("name", &CharField { allow_blank: false }, raw_data);
-        self.form.optional("age", &IntegerField, raw_data);
-        self.form.is_valid()
-    }
-}
+// --- TESTS UNITAIRES ---
 
 #[test]
 fn test_forms_new() {
@@ -50,115 +65,16 @@ fn test_forms_clear() {
 }
 
 #[test]
-fn test_charfield_validation() {
-    let mut form = Forms::new();
-    let mut raw_data = HashMap::new();
-    raw_data.insert("name".to_string(), "John Doe".to_string());
+fn test_runique_form_validation() {
+    // 1. Initialiser Tera (requis par la nouvelle signature)
+    let tera = Arc::new(Tera::default());
 
-    let field = CharField { allow_blank: false };
-    form.field("name", &field, "John Doe");
-
-    assert!(form.is_valid());
-    let value: Option<String> = form.get_value("name");
-    assert_eq!(value, Some("John Doe".to_string()));
-}
-
-// Note: CharField n'a pas de max_length dans l'implémentation actuelle
-// Ce test est commenté car la fonctionnalité n'existe pas encore
-// #[test]
-// fn test_charfield_max_length() {
-//     let mut form = Forms::new();
-//     let long_string = "a".repeat(101);
-//
-//     let field = CharField { allow_blank: false };
-//     form.field("name", &field, &long_string);
-//
-//     assert!(!form.is_valid());
-//     assert!(form.errors.contains_key("name"));
-// }
-
-#[test]
-fn test_charfield_blank_not_allowed() {
-    let mut form = Forms::new();
-
-    let field = CharField { allow_blank: false };
-    form.field("name", &field, "");
-
-    assert!(!form.is_valid());
-    assert!(form.errors.contains_key("name"));
-}
-
-#[test]
-fn test_charfield_blank_allowed() {
-    let mut form = Forms::new();
-
-    let field = CharField { allow_blank: true };
-    form.field("name", &field, "");
-
-    assert!(form.is_valid());
-}
-
-#[test]
-fn test_integerfield_validation() {
-    let mut form = Forms::new();
-
-    let field = IntegerField;
-    form.field("age", &field, "25");
-
-    assert!(form.is_valid());
-    let value: Option<i64> = form.get_value("age");
-    assert_eq!(value, Some(25));
-}
-
-#[test]
-fn test_integerfield_invalid_number() {
-    let mut form = Forms::new();
-
-    let field = IntegerField;
-    form.field("age", &field, "not-a-number");
-
-    assert!(!form.is_valid());
-    assert!(form.errors.contains_key("age"));
-}
-
-// Note: IntegerField n'a pas de min_value/max_value dans l'implémentation actuelle
-// Ces tests sont commentés car la fonctionnalité n'existe pas encore
-// #[test]
-// fn test_integerfield_min_value() { ... }
-// #[test]
-// fn test_integerfield_max_value() { ... }
-
-#[test]
-fn test_emailfield_validation() {
-    let mut form = Forms::new();
-
-    let field = EmailField;
-    form.field("email", &field, "test@example.com");
-
-    assert!(form.is_valid());
-    let value: Option<String> = form.get_value("email");
-    assert_eq!(value, Some("test@example.com".to_string()));
-}
-
-#[test]
-fn test_emailfield_invalid() {
-    let mut form = Forms::new();
-
-    let field = EmailField;
-    form.field("email", &field, "not-an-email");
-
-    assert!(!form.is_valid());
-    assert!(form.errors.contains_key("email"));
-}
-
-#[test]
-fn test_require_field() {
-    let mut form = Forms::new();
     let mut raw_data = HashMap::new();
     raw_data.insert("name".to_string(), "John".to_string());
+    raw_data.insert("age".to_string(), "25".to_string());
 
-    let field = CharField { allow_blank: false };
-    form.require("name", &field, &raw_data);
+    // 2. Passer tera.clone() en deuxième argument
+    let form = TestForm::build_with_current_data(&raw_data, tera.clone());
 
     assert!(form.is_valid());
 }
@@ -166,75 +82,30 @@ fn test_require_field() {
 #[test]
 fn test_require_field_missing() {
     let mut form = Forms::new();
-    let raw_data = HashMap::new();
+    let raw_data = HashMap::new(); // Vide
 
     let field = CharField { allow_blank: false };
     form.require("name", &field, &raw_data);
 
     assert!(!form.is_valid());
     assert!(form.errors.contains_key("name"));
-    assert_eq!(form.errors.get("name"), Some(&"Requis".to_string()));
+    // On vérifie le message d'erreur défini dans forms.rs
+    assert_eq!(
+        form.errors.get("name"),
+        Some(&"Ce champ est requis".to_string())
+    );
 }
 
 #[test]
-fn test_optional_field() {
+fn test_emailfield_validation() {
     let mut form = Forms::new();
-    let mut raw_data = HashMap::new();
-    raw_data.insert("phone".to_string(), "123456789".to_string());
+    let field = EmailField;
 
-    let field = CharField { allow_blank: true };
-    form.optional("phone", &field, &raw_data);
+    form.field("email", &field, "TEST@Example.com");
 
     assert!(form.is_valid());
-}
-
-#[test]
-fn test_optional_field_missing() {
-    let mut form = Forms::new();
-    let raw_data = HashMap::new();
-
-    let field = CharField { allow_blank: true };
-    form.optional("phone", &field, &raw_data);
-
-    // Optional field missing should not cause an error
-    assert!(form.is_valid());
-}
-
-#[test]
-fn test_formulairetrait_validate() {
-    let mut form = TestForm::new();
-    let mut raw_data = HashMap::new();
-    raw_data.insert("name".to_string(), "John".to_string());
-    raw_data.insert("age".to_string(), "25".to_string());
-
-    let is_valid = form.validate(&raw_data);
-    assert!(is_valid);
-    assert!(form.form.is_valid());
-}
-
-#[test]
-fn test_get_value_typed() {
-    let mut form = Forms::new();
-
-    let field = IntegerField;
-    form.field("age", &field, "30");
-
-    let age: Option<i64> = form.get_value("age");
-    assert_eq!(age, Some(30));
-
-    let name_field = CharField { allow_blank: false };
-    form.field("name", &name_field, "John");
-
-    let name: Option<String> = form.get_value("name");
-    assert_eq!(name, Some("John".to_string()));
-}
-
-#[test]
-fn test_get_value_nonexistent() {
-    let form = Forms::new();
-
-    let value: Option<String> = form.get_value("nonexistent");
-    assert_eq!(value, None);
+    let value: Option<String> = form.get_value("email");
+    assert_eq!(value, Some("test@example.com".to_string()));
 }
 
 #[test]

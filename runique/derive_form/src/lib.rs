@@ -5,8 +5,6 @@ mod forms;
 mod helpers;
 mod models;
 
-// ==================== MACROS PUBLIQUES ====================
-
 /// Macro #[runique_form]
 #[proc_macro_attribute]
 pub fn runique_form(attr: TokenStream, item: TokenStream) -> TokenStream {

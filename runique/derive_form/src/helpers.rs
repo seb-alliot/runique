@@ -20,10 +20,10 @@ pub(crate) fn is_forms_field(field: &Field) -> bool {
 
 /// Ajoute #[serde(flatten)] à un champ
 pub(crate) fn add_serde_flatten(field: &mut Field) {
-    let flatten_attr: syn::Attribute = syn::parse_quote! {
-        #[serde(flatten)]
+    let attr: syn::Attribute = syn::parse_quote! {
+        #[serde(flatten, skip_deserializing, default)]
     };
-    field.attrs.push(flatten_attr);
+    field.attrs.push(attr);
 }
 
 /// Trouve le champ de type Forms

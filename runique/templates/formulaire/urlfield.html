@@ -1,0 +1,26 @@
+<div class="field-group mb-3">
+    <label
+        for="id_{{ name }}"
+        class="form-label">
+        {{ label }}
+    </label>
+    {% set p_text = "https://..." %}
+    {% if type == 'ip' %}
+        {% set p_text = ip | default(value='127.0.0.1') %}
+    {% elif type == 'domaine' %}
+        {% set p_text = domaine | default(value='http://127.0.0.1:3000') %}
+    {% endif %}
+
+    <input
+        type="text"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        value="{{ value }}"
+        class="form-control {% if error %}is-invalid{% endif %}"
+        placeholder="{{ p_text }}">
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>

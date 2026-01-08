@@ -148,8 +148,9 @@ pub mod prelude {
     // === Formulaires ===
     pub use crate::formulaire::extracteur::ExtractForm;
     pub use crate::formulaire::field::*;
-    pub use crate::formulaire::formsrunique::{Forms, FormulaireTrait, RuniqueForm};
+    pub use crate::formulaire::formsrunique::{Forms, RuniqueForm};
     pub use crate::runique_form;
+    pub use crate::tera;
     pub use crate::DeriveModelForm;
 
     // === Routing et URL reversing ===

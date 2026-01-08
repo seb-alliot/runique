@@ -76,7 +76,7 @@ use crate::settings::Settings;
 /// # }
 /// ```
 pub struct RuniqueApp {
-    router: Router,
+    router: Router<Arc<Tera>>,
     config: Arc<Settings>,
     addr: SocketAddr,
     tera: Arc<Tera>,
@@ -128,7 +128,6 @@ impl RuniqueApp {
         let addr = config.server.domain_server.parse()?;
 
         let mut tera = Tera::default();
-        // 1. Templates internes
         Self::load_internal_templates(&mut tera)?;
 
         // 2. Traitement des templates utilisateurs (Regex tags)
@@ -201,7 +200,7 @@ impl RuniqueApp {
         crate::tera_function::url_balise::register_url(&mut tera);
 
         let tera = Arc::new(tera);
-        let router = Router::new();
+        let router = Router::new().with_state(tera.clone());
 
         Ok(Self {
             router,
@@ -216,6 +215,7 @@ impl RuniqueApp {
     /// Embeds and loads built-in templates for error pages, CSRF tokens,
     /// flash messages, and other framework features.
     fn load_internal_templates(tera: &mut Tera) -> Result<(), Box<dyn Error>> {
+        // Templates principales
         tera.add_raw_template("base_index", include_str!("../templates/base_index.html"))?;
         tera.add_raw_template("message", include_str!("../templates/message.html"))?;
         tera.add_raw_template("404", include_str!("../templates/errors/404.html"))?;
@@ -224,9 +224,11 @@ impl RuniqueApp {
             "debug",
             include_str!("../templates/errors/debug_error.html"),
         )?;
+        // Templates de sécurité
         tera.add_raw_template("csrf", include_str!("../templates/csrf/csrf.html"))?;
         tera.add_raw_template("csp", include_str!("../templates/csp/csp.html"))?;
 
+        // Corps des pages d'erreurs détaillées
         const ERROR_CORPS: [(&str, &str); 8] = [
             (
                 "errors/corps-error/header-error.html",
@@ -265,6 +267,67 @@ impl RuniqueApp {
         for (name, content) in ERROR_CORPS {
             tera.add_raw_template(name, content)?;
         }
+        // Champs de formulaire
+
+        tera.add_raw_template(
+            "checkbox",
+            include_str!("../templates/formulaire/checkboxfield.html"),
+        )?;
+        tera.add_raw_template(
+            "charfield",
+            include_str!("../templates/formulaire/charfield.html"),
+        )?;
+        tera.add_raw_template(
+            "number",
+            include_str!("../templates/formulaire/numberfield.html"),
+        )?;
+        tera.add_raw_template(
+            "date",
+            include_str!("../templates/formulaire/datefield.html"),
+        )?;
+        tera.add_raw_template(
+            "email",
+            include_str!("../templates/formulaire/emailfield.html"),
+        )?;
+        tera.add_raw_template(
+            "file",
+            include_str!("../templates/formulaire/filefield.html"),
+        )?;
+        tera.add_raw_template(
+            "json",
+            include_str!("../templates/formulaire/jsonfield.html"),
+        )?;
+        tera.add_raw_template("url", include_str!("../templates/formulaire/urlfield.html"))?;
+        tera.add_raw_template(
+            "password",
+            include_str!("../templates/formulaire/passwordfield.html"),
+        )?;
+        println!("template password trouver");
+        tera.add_raw_template(
+            "slug",
+            include_str!("../templates/formulaire/slugfield.html"),
+        )?;
+        tera.add_raw_template(
+            "text",
+            include_str!("../templates/formulaire/textarea.html"),
+        )?;
+        tera.add_raw_template(
+            "select",
+            include_str!("../templates/formulaire/selectfield.html"),
+        )?;
+        tera.add_raw_template(
+            "hidden",
+            include_str!("../templates/formulaire/hiddenfield.html"),
+        )?;
+        tera.add_raw_template(
+            "datetime-local",
+            include_str!("../templates/formulaire/datetime-local.html"),
+        )?;
+        tera.add_raw_template(
+            "ipaddress",
+            include_str!("../templates/formulaire/ipfield.html"),
+        )?;
+
         Ok(())
     }
 
@@ -295,7 +358,7 @@ impl RuniqueApp {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn routes(mut self, routes: Router) -> Self {
+    pub fn routes(mut self, routes: Router<Arc<Tera>>) -> Self {
         self.router = self.router.merge(routes);
         self
     }
@@ -449,7 +512,7 @@ impl RuniqueApp {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn build(self) -> Router {
+    pub fn build(self) -> Router<Arc<Tera>> {
         self.router
     }
 
@@ -731,13 +794,24 @@ impl RuniqueApp {
             .with_http_only(!self.config.debug)
             .with_expiry(Expiry::OnInactivity(Duration::seconds(86400)));
 
+        // Clonage de l'état Tera pour l'injection
+        let state = self.tera.clone();
+
+        // On construit le router final
+        // .with_state() est déjà appliqué au début, mais on s'assure que
+        // les extensions globales sont ajoutées ici.
         let router = self
             .router
             .layer(Extension(self.config.clone()))
-            .layer(Extension(self.tera.clone()))
-            .layer(session_layer);
+            .layer(Extension(self.tera.clone())) // Pour compatibilité ancienne
+            .layer(session_layer)
+            .with_state(state);
 
         let listener = TcpListener::bind(&self.addr).await?;
+
+        // Axum::serve attend un Router<()> ou une méthode qui gère l'état.
+        // Puisque nous avons déjà injecté l'état via with_state(),
+        // le Router est compatible.
         axum::serve(listener, router)
             .with_graceful_shutdown(async {
                 signal::ctrl_c().await.expect("Failed to listen for ctrl+c");
@@ -747,39 +821,39 @@ impl RuniqueApp {
 
         Ok(())
     }
+}
 
-    /// Creates a new application builder
-    ///
-    /// Alternative API using the builder pattern for application configuration.
-    ///
-    /// # Arguments
-    ///
-    /// * `settings` - Application settings
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use runique::{RuniqueApp, Settings, Router, get};
-    ///
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// async fn index() -> &'static str { "Hello" }
-    ///
-    /// let settings = Settings::default_values();
-    /// let routes = Router::new().route("/", get(index));
-    ///
-    /// let app = RuniqueApp::builder(settings)
-    ///     .await
-    ///     .routes(routes)
-    ///     .build()
-    ///     .await?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub async fn builder(settings: Settings) -> RuniqueAppBuilder {
-        RuniqueAppBuilder {
-            settings,
-            routes: None,
-        }
+/// Creates a new application builder
+///
+/// Alternative API using the builder pattern for application configuration.
+///
+/// # Arguments
+///
+/// * `settings` - Application settings
+///
+/// # Examples
+///
+/// ```no_run
+/// use runique::{RuniqueApp, Settings, Router, get};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// async fn index() -> &'static str { "Hello" }
+///
+/// let settings = Settings::default_values();
+/// let routes = Router::new().route("/", get(index));
+///
+/// let app = RuniqueApp::builder(settings)
+///     .await
+///     .routes(routes)
+///     .build()
+///     .await?;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn builder(settings: Settings) -> RuniqueAppBuilder {
+    RuniqueAppBuilder {
+        settings,
+        routes: None,
     }
 }
 
@@ -803,7 +877,7 @@ impl RuniqueApp {
 /// ```
 pub struct RuniqueAppBuilder {
     settings: Settings,
-    routes: Option<Router>,
+    routes: Option<Router<Arc<Tera>>>,
 }
 
 impl RuniqueAppBuilder {
@@ -812,7 +886,7 @@ impl RuniqueAppBuilder {
     /// # Arguments
     ///
     /// * `routes` - Router containing application routes
-    pub fn routes(mut self, routes: Router) -> Self {
+    pub fn routes(mut self, routes: Router<Arc<Tera>>) -> Self {
         self.routes = Some(routes);
         self
     }
