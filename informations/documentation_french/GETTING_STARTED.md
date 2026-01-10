@@ -26,11 +26,11 @@ cd mon_app
 ```toml
 [package]
 name = "mon_app"
-version = "0.1.0.6"
+version = "0.1.0.86"
 edition = "2021"
 
 [dependencies]
-runique= "1.0.6"
+runique= "1.0.86"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -39,7 +39,7 @@ serde = { version = "1", features = ["derive"] }
 
 ```toml
 [dependencies]
-runique= { version = "1.0.6", features = ["postgres"] }
+runique= { version = "1.0.86", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -862,7 +862,7 @@ Maintenant que vous maîtrisez les bases, explorez :
 
 ---
 
-**Version:** 1.0.6.0 (Corrigée - 2 Janvier 2026)
+**Version:** 1.0.86.0 (Corrigée - 2 Janvier 2026)
 **Licence:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*

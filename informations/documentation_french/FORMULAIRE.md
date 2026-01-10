@@ -965,7 +965,7 @@ Créez des formulaires robustes avec Runique!
 
 ---
 
-**Version:** 1.0.6 (Corrigée - 2 Janvier 2026)
+**Version:** 1.0.86 (Corrigée - 2 Janvier 2026)
 **Licence:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*

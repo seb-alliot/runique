@@ -26,11 +26,11 @@ Edit `Cargo.toml`:
 ```toml
 [package]
 name = "my_app"
-version = "0.1.0.6"
+version = "1.0.86"
 edition = "2021"
 
 [dependencies]
-runique = "1.0.6"
+runique = "1.0.86"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -39,7 +39,7 @@ serde = { version = "1", features = ["derive"] }
 
 ```toml
 [dependencies]
-runique = { version = "1.0.6", features = ["postgres"] }
+runique = { version = "1.0.86", features = ["postgres"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 ```
@@ -862,7 +862,7 @@ Now that you master the basics, explore:
 
 ---
 
-**Version:** 1.0.6 (Corrected - January 2, 2026)
+**Version:** 1.0.86 (Corrected - January 2, 2026)
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*

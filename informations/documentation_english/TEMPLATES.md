@@ -831,7 +831,7 @@ Create powerful and secure templates with Runique!
 
 ---
 
-**Version:** 1.0.6 (Corrected - January 2, 2026)
+**Version:** 1.0.86 (Corrected - January 2, 2026)
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*

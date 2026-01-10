@@ -1,6 +1,6 @@
 # context! Macro Usage Guide
 
-**Version:** 1.0.6
+**Version:** 1.0.86
 **Framework:** Runique
 **Language:** English
 
@@ -419,7 +419,7 @@ let ctx = context! {
 
 ---
 
-**Version:** 1.0.6
+**Version:** 1.0.86
 **Last updated:** December 2025
 **License:** MIT
 *Documentation created with ❤️ by Claude for Itsuki*

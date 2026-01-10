@@ -1,8 +1,8 @@
-# Guide de Migration : 1.0.0
+# Guide de Migration : 1.0.86
 
 ## 🎯 Vue d'ensemble
 
-Ce guide vous aidera à migrer votre application Runique de la version 0.1.0 vers 1.0.0.
+Ce guide vous aidera à migrer votre application Runique de la version 0.1.0 vers 1.0.86.
 
 ## ⚠️ Breaking Changes
 
@@ -20,7 +20,7 @@ let validator = AllowedHostsValidator::new(
 // ❌ "malicious-example.com" était incorrectement autorisé
 ```
 
-**Après (v1.0.0) :**
+**Après (v1.0.86) :**
 ```rust
 // ✅ "malicious-example.com" est maintenant correctement rejeté
 let validator = AllowedHostsValidator::new(
@@ -41,7 +41,7 @@ let validator = AllowedHostsValidator::new(
 headers.get("host")  // Fonctionne mais moins explicite
 ```
 
-**Après (v1.0.0) :**
+**Après (v1.0.86) :**
 ```rust
 headers.get(header::HOST)  // Plus explicite et type-safe
 ```
@@ -79,7 +79,7 @@ L'API publique reste compatible. Aucun changement de code n'est nécessaire dans
 
 ## 📝 Checklist de migration
 
-- [ ] Mettre à jour `Cargo.toml` : `runique = "1.0.0"`
+- [ ] Mettre à jour `Cargo.toml` : `runique = "1.0.86"`
 - [ ] Vérifier que tous vos tests passent
 - [ ] Vérifier la configuration `allowed_hosts` (si vous utilisez des wildcards)
 - [ ] Consulter les nouveaux tests pour voir des exemples d'utilisation

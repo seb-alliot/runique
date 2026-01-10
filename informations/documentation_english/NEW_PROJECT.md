@@ -72,7 +72,7 @@ version = "1.0"
 edition = "2021"
 
 [dependencies]
-runique = { version = "1.0", features = ["postgres"] }
+runique = { version = "1.0.86", features = ["orm", "sqlite"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

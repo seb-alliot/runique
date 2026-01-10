@@ -1,4 +1,4 @@
-# ✅ Checklist pour la v1.0.0
+# ✅ Checklist pour la v1.0.86
 
 ## 🔴 CRITIQUES (À faire avant v1.0)
 
@@ -9,29 +9,29 @@
 - [ ] ⚠️ **Stabilité API** : Documenter les APIs publiques comme stables
 
 ### 2. Version et publication
-- [ ] ⚠️ **Version** : Changer `0.1.0` → `1.0.0` dans `Cargo.toml`
-- [ ] ⚠️ **Publication** : Publier sur crates.io
+- [ ] ⚠️ **Version** : Changer `0.1.0` → `1.0.86` dans `Cargo.toml`
+- [x] ⚠️ **Publication** : Publier sur crates.io
 - [ ] ⚠️ **Documentation** : Publier sur docs.rs
-- [ ] ⚠️ **README principal** : Créer un README.md à la racine du projet
+- [x] ⚠️ **README principal** : Créer un README.md à la racine du projet
 
 ### 3. CI/CD et automatisation
 - [ ] ⚠️ **GitHub Actions** : Workflow de tests automatiques
 - [ ] ⚠️ **Tests multi-versions** : Tester sur plusieurs versions de Rust
 - [ ] ⚠️ **Audit sécurité** : `cargo audit` dans le CI
-- [ ] ⚠️ **Formatage** : `cargo fmt --check` dans le CI
-- [ ] ⚠️ **Linting** : `cargo clippy` dans le CI
+- [x] ⚠️ **Formatage** : `cargo fmt --check` dans le CI
+- [x] ⚠️ **Linting** : `cargo clippy` dans le CI
 
 ### 4. Documentation
-- [ ] ⚠️ **Guide de migration** : 0.1.0 → 1.0.0
+- [x] ⚠️ **Guide de migration** : 1.0.86
 - [ ] ⚠️ **Breaking changes** : Documenter les changements incompatibles
 - [ ] ⚠️ **API stability** : Marquer les APIs comme stables/deprecated
 
 ### 5. Sécurité
 - [ ] ⚠️ **Audit dépendances** : `cargo audit` et corriger les vulnérabilités
-- [ ] ⚠️ **Secrets** : Vérifier qu'aucun secret n'est dans le code
+- [x] ⚠️ **Secrets** : Vérifier qu'aucun secret n'est dans le code
 - [ ] ⚠️ **Dépendances obsolètes** : Mettre à jour si nécessaire
 
-## 🟡 IMPORTANTS (Recommandés pour v1.0)
+## 🟡 IMPORTANTS
 
 ### 6. Tests et qualité
 - [x] ✅ Tests d'intégration complets (82 tests)
@@ -47,7 +47,7 @@
 
 ### 8. Exemples
 - [x] ✅ Exemple demo-app
-- [ ] 📝 **Exemple API REST** : CRUD complet
+- [x] 📝 **Exemple API REST** : CRUD complet
 - [ ] 📝 **Exemple authentification** : Login/logout complet
 - [ ] 📝 **Exemple déploiement** : Docker, nginx, etc.
 
@@ -61,7 +61,7 @@
 ## 🟢 OPTIONNELS (Peuvent attendre)
 
 ### 10. Fonctionnalités avancées
-- [ ] 💡 CLI pour scaffolding (`runique new mon-app`)
+- [x] 💡 CLI pour scaffolding (`runique new mon-app`)
 - [ ] 💡 Support WebSocket
 - [ ] 💡 Middleware d'authentification complet
 - [ ] 💡 Support GraphQL
@@ -85,8 +85,6 @@
 ### ⚠️ À faire pour v1.0
 - ⚠️ Corriger le TODO dans `has_permission()`
 - ⚠️ CI/CD basique
-- ⚠️ Changer version → 1.0.0
-- ⚠️ README principal
 - ⚠️ Guide de migration
 - ⚠️ Audit de sécurité
 
@@ -95,7 +93,7 @@
 **Minimum viable pour v1.0 :**
 1. Corriger le TODO dans `has_permission()`
 2. Créer CI/CD basique (tests + lint)
-3. Changer version → 1.0.0
+3. Changer version → 1.0.86
 4. Créer README principal
 5. Audit de sécurité rapide
 6. Guide de migration

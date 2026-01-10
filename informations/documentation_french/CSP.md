@@ -343,7 +343,7 @@ pub async fn csp_report_only_middleware(...)
 
 Cette documentation fait partie du framework web Runique. Pour plus d'informations, consultez la documentation complète.
 
-Version: 1.0.6 (Corrigée - 2 Janvier 2026)
+Version: 1.0.86 (Corrigée - 2 Janvier 2026)
 Dernière mise à jour: Janvier 2026
 Licence: MIT
 

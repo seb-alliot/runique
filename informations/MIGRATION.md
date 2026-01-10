@@ -1,4 +1,4 @@
-# Bienvenue dans Runique 1.0.0 - Première Release
+# Bienvenue dans Runique 1.0.86 - Première Release
 
 ## À propos de ce document
 
@@ -7,7 +7,7 @@ Ce document explique le contenu de la **première version stable publique** de R
 
 ---
 
-## Contenu de la release 1.0.0
+## Contenu de la release 1.0.86
 
 ### Fonctionnalités principales
 
@@ -31,7 +31,7 @@ Ce document explique le contenu de la **première version stable publique** de R
 ### 1. Installation
 ```toml
 [dependencies]
-runique = "1.0.0"
+runique = "1.0.86"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -454,7 +454,7 @@ Vous êtes libre de :
 
 ## C'est parti
 
-Runique 1.0.0 est prêt pour la production. Construisez des applications web performantes et sécurisées avec Rust.
+Runique 1.0.86 est prêt pour la production. Construisez des applications web performantes et sécurisées avec Rust.
 
 **Prochaines étapes :**
 1. Lire le Guide de démarrage

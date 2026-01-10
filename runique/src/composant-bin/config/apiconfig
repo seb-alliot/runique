@@ -11,4 +11,3 @@ runique = { version = "{{RUNIQUE_VERSION}}", features = ["orm", "sqlite"] }
 serde ="1"
 
 chrono = "0.4"
-tracing-subscriber.workspace = true

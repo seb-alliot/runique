@@ -50,7 +50,7 @@ fn create_new_project(name: &str) -> Result<()> {
     println!("🦀 Création du projet '{}'...", name);
 
     // === CONFIGURATION ===
-    let runique_version = "1.0.85";
+    let runique_version = "1.0.86";
 
     // === CHARGEMENT DES TEMPLATES ===
 

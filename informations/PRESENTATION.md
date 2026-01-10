@@ -42,11 +42,11 @@ Modifiez `Cargo.toml` :
 ```toml
 [package]
 name = "hello-runique"
-version = "1.0.6"
+version = "1.0.86"
 edition = "2021"
 
 [dependencies]
-runique = "1.0.6"
+runique = { version = "1.0.86", features = ["orm", "sqlite"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -92,7 +92,7 @@ cargo run
 
 **Sortie attendue :**
 ```
-   Compiling hello-runique v1.0.6
+   Compiling hello-runique v1.0.86
     Finished dev [unoptimized + debuginfo] target(s) in 3.45s
      Running `target/debug/hello-runique`
 🦀 Runique server running on http://127.0.0.1:3000
@@ -236,7 +236,7 @@ use serde_json::json;
 async fn hello() -> Response {
     let data = json!({
         "message": "Hello, Runique!",
-        "version": "1.0.6",
+        "version": "1.0.86",
         "status": "ok"
     });
 
@@ -265,7 +265,7 @@ curl http://127.0.0.1:3000
 ```json
 {
   "message": "Hello, Runique!",
-  "version": "1.0.6",
+  "version": "1.0.86",
   "status": "ok"
 }
 ```
