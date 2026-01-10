@@ -6,7 +6,8 @@ edition = "2021"
 [dependencies]
 
 # Base de données : sqlite (défaut) | postgres | mysql | mariadb | all-databases
-runique = { version = "{{RUNIQUE_VERSION}}", features = ["orm", "sqlite"] }
+# en prod => runique = { version = "1.0.8", features = ["orm", "postgres"] }
+runique = { path = "../runique", features = ["orm", "sqlite"] }
 
 serde ="1"
 

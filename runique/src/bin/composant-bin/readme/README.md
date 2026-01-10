@@ -120,7 +120,7 @@ async fn main() {
 }
 ```
 
-> **Note**: This version ensures compatibility with Runique v1.0.8+
+> **Note**: This version ensures compatibility with Runique v1.0.85+
 
 ---
 

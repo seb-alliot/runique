@@ -117,7 +117,7 @@ async fn main() {
 }
 ```
 
-> 💡 **Note** : Cette version assure la compatibilité avec Runique v1.0.8+
+> 💡 **Note** : Cette version assure la compatibilité avec Runique v1.0.855+
 
 ---
 
