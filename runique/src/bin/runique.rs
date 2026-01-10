@@ -79,13 +79,13 @@ fn create_new_project(name: &str) -> Result<()> {
     let image = include_bytes!("../composant-bin/image/toshiro.jpg").to_vec();
     let favicon = include_bytes!("../composant-bin/image/favicon.ico").to_vec();
     // Fichiers de configuration
-    let cargo_toml = include_str!("../composant-bin/config/Cargo.toml")
+    let cargo_toml = include_str!("../composant-bin/config/apiconfig")
         .replace("{{PROJECT_NAME}}", name)
         .replace("{{RUNIQUE_VERSION}}", runique_version)
         .to_string()
         .into_bytes();
-    let env_file = include_bytes!("../composant-bin/config/env").to_vec();
-    let gitignore = include_bytes!("../composant-bin/config/.gitignore").to_vec();
+    let env_file = include_bytes!("../composant-bin/config/secret").to_vec();
+    let gitignore = include_bytes!("../composant-bin/config/ignore").to_vec();
     let readme_va = include_bytes!("../composant-bin/readme/README.md").to_vec();
     let readme_fr = include_bytes!("../composant-bin/readme/README.fr.md").to_vec();
 
