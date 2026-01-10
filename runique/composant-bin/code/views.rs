@@ -9,13 +9,13 @@ use tera::Tera;
 
 pub async fn index(template: Template) -> Response {
     let ctx = context! {
-        "title" => "Bienvenue sur Runique",
-        "description" => "Un framework web moderne inspiré de Django",
-        "status" => "Framework en cours de développement...",
-        "backend" => "J'utilise axum pour le backend",
-        "template" => "Tera pour moteur de templates.",
-        "tokio" => "Le runtime asynchrone tokio",
-        "session" => "Tower pour la gestion des sessions."
+        "title" => "Welcome to Runique",
+        "description" => "A modern web framework inspired by Django",
+        "status" => "Framework under development...",
+        "backend" => "I use Axum for the backend",
+        "template" => "Tera for template engine.",
+        "tokio" => "The tokio asynchronous runtime",
+        "session" => "Tower for session management."
     };
 
     template.render("index.html", &ctx)
@@ -28,7 +28,7 @@ pub async fn form_register_user(
     let register_form = ModelForm::build(tera.clone());
 
     let ctx = context! {
-        "title" => "Profil Utilisateur",
+        "title" => "User Profile",
         "register_form" => register_form
     };
     template.render("profile/register_user.html", &ctx)
@@ -43,7 +43,7 @@ pub async fn user_profile_submit(
     if register_form.is_valid() {
         match register_form.save(&db).await {
             Ok(created_user) => {
-                success!(message => " Profil utilisateur créé avec succès !");
+                success!(message => "User profile created successfully!");
                 let target = reverse_with_parameters(
                     "user_profile",
                     &[
@@ -57,31 +57,34 @@ pub async fn user_profile_submit(
             Err(err) => {
                 let _error_msg = if err.to_string().contains("unique") {
                     if err.to_string().contains("username") {
-                        " Ce nom d'utilisateur existe déjà !"
+                        "This username already exists!"
                     } else if err.to_string().contains("email") {
-                        " Cet email est déjà utilisé !"
+                        "This email is already in use!"
                     } else {
-                        " Cette valeur existe déjà"
+                        "This value already exists"
                     }
                 } else {
-                    " Faites vos migrations de modèle svp !"
+                    "Please run your model migrations!"
                 };
 
                 let mut ctx = context! {
-                    "title" => "Erreur de base de données",
+                    "title" => "Database error",
                     "register_form" => register_form
                 };
 
-                ctx.insert("messages", &flash_now!(error => _error_msg));
+                ctx.insert(
+                    "messages",
+                    &flash_now!(error => _error_msg),
+                );
 
                 return template.render("profile/register_user.html", &ctx);
             }
         }
     }
 
-    error!(message => "Erreur de validation du formulaire");
+    error!(message => "Form validation error");
     let ctx = context! {
-        "title" => "Erreur de validation"
+        "title" => "Validation error"
     };
     template.render("profile/register_user.html", &ctx)
 }
@@ -90,7 +93,7 @@ pub async fn user(template: Template, Extension(tera): Extension<Arc<Tera>>) -> 
     let user = UsernameForm::build(tera.clone());
 
     let ctx = context! {
-        "title" => "Rechercher un utilisateur",
+        "title" => "Search for a user",
         "user" => user
     };
     template.render("profile/view_user.html", &ctx)
@@ -110,7 +113,7 @@ pub async fn view_user(
     {
         Ok(Some(user)) => {
             let mut ctx = context! {
-                "title" => "Vue Utilisateur",
+                "title" => "User View",
                 "username" => &user.username,
                 "email" => &user.email,
                 "age" => &user.age,
@@ -118,42 +121,36 @@ pub async fn view_user(
             };
             ctx.insert(
                 "messages",
-                &flash_now!(warning => &user.username.to_uppercase(), ("Existe , louez moi !!!").to_uppercase(), "en promotion chez C DISCOUNT"),
+                &flash_now!(warning => &user.username.to_uppercase(), ("Exists, praise me!!!").to_uppercase(), "on sale at C DISCOUNT"),
             );
             template.render("profile/view_user.html", &ctx)
         }
         Ok(None) => {
             let mut ctx = context! {
-                "title" => "Utilisateur non trouvé",
+                "title" => "User not found",
                 "user" => &form
             };
             let message_okanime = format!("{} !!!", name.to_uppercase());
             ctx.insert(
                 "messages",
-                &flash_now!(error => message_okanime, " Je ne te connais pas dans ma BDD, Come HERE NOW :p "),
+                &flash_now!(error => message_okanime, "I don't know you in my DB, Come HERE NOW :p"),
             );
             template.render("profile/view_user.html", &ctx)
         }
-        Err(_) => template.render_500("Erreur lors de la recherche"),
+        Err(_) => template.render_500("Error during search"),
     }
 }
 
-/// Page "À propos"
+/// "About" page
 pub async fn about(template: Template, mut message: Message) -> Response {
-    success!(message => "Ceci est un message de succès de test.");
-    info!(message => "Ceci est un message d'information de test.");
-    error!(message => "Ceci est un message d'erreur de test.");
-    warning!(message => "Ceci est un message d'avertissement de test.");
+    success!(message => "This is a test success message.");
+    info!(message => "This is a test information message.");
+    error!(message => "This is a test error message.");
+    warning!(message => "This is a test warning message.");
 
     let ctx = context! {
-        "title", "À propos de Runique Framework";
-        "content", "Runique est un framework web inspiré de Django, construit sur Axum et Tera."
+        "title" => "About Runique Framework",
+        "content" => "Runique is a web framework inspired by Django, built on Axum and Tera."
     };
     template.render("about/about.html", &ctx)
-}
-
-/// Ajax test CSRF
-pub async fn test_csrf(mut message: Message) -> Response {
-    success!(message => "CSRF token validé avec succès !");
-    Redirect::to("/").into_response()
 }

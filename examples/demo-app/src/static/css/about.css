@@ -1,0 +1,62 @@
+/* =========================
+    ABOUT PAGE
+   ========================= */
+
+.about {
+    max-width: 90%;
+}
+
+.about .lead {
+    font-size: 1.05rem;
+    margin-bottom: 2rem;
+}
+
+.about section {
+    margin-top: 2.5rem;
+}
+
+.about ul {
+    margin-top: 1rem;
+    padding-left: 1.2rem;
+}
+
+.about li {
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+}
+
+/* =========================
+    RESPONSIVE
+   ========================= */
+@media (max-width: 768px) {
+    .about h1 {
+        font-size: 1.8rem;
+    }
+
+    .about .lead {
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .about section {
+        margin-top: 1.5rem;
+    }
+
+    .about h2 {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .about h1 {
+        font-size: 1.5rem;
+    }
+
+    .about h2 {
+        font-size: 1.1rem;
+    }
+
+    .about .lead {
+        font-size: 0.9rem;
+    }
+}

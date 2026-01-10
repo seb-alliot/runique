@@ -1,0 +1,14 @@
+[package]
+name = "{{PROJECT_NAME}}"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+
+# Base de données : sqlite (défaut) | postgres | mysql | mariadb | all-databases
+runique = { version = "{{RUNIQUE_VERSION}}", features = ["orm", "sqlite"] }
+
+serde ="1"
+
+chrono = "0.4"
+tracing-subscriber.workspace = true

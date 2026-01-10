@@ -26,252 +26,128 @@ fn main() -> Result<()> {
 }
 
 fn create_new_project(name: &str) -> Result<()> {
-    println!("🦀 Création du projet '{}'...", name);
+    // === VALIDATION ===
+    if name.is_empty() {
+        anyhow::bail!("Le nom du projet ne peut pas être vide");
+    }
+
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+    {
+        anyhow::bail!("Le nom doit contenir uniquement des lettres, chiffres, _ ou -");
+    }
+
+    if name.starts_with('-') {
+        anyhow::bail!("Le nom ne peut pas commencer par -");
+    }
+
     let project_dir = Path::new(name);
-    // src/url.rs
-    let url_rs = r#"// src/url.rs
-use crate::views;
-use runique::{post, urlpatterns, view, Router};
-
-pub fn routes() -> Router {
-    urlpatterns! {
-
-        // Vos routes ici
-        "/" => view!{
-            GET => views::index
-        },
-        name ="index",
+    if project_dir.exists() {
+        anyhow::bail!("Le dossier '{}' existe déjà", name);
     }
-}
-"#;
 
-    // src/main.rs
-    let main_rs = r#"// src/main.rs
-use runique::prelude::*;
+    println!("🦀 Création du projet '{}'...", name);
 
-mod forms;
-mod models;
-mod url;
-mod views;
+    // === CONFIGURATION ===
+    let runique_version = "1.0.8";
 
-use std::env;
+    // === CHARGEMENT DES TEMPLATES ===
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Code Rust
+    let view_rs_content = include_bytes!("../../composant-bin/code/views.rs").to_vec();
+    let formulaire = include_bytes!("../../composant-bin/code/forms.rs").to_vec();
+    let user_exemple = include_bytes!("../../composant-bin/code/users.rs").to_vec();
+    let mod_rs_content = include_bytes!("../../composant-bin/code/mod.rs").to_vec();
+    let url_rs = include_bytes!("../../composant-bin/code/url.rs").to_vec();
+    let main_rs = include_bytes!("../../composant-bin/code/main.rs").to_vec();
 
-    let db_config = DatabaseConfig::from_env()?.build();
-    let db = db_config.connect().await?;
+    // Templates HTML
+    let index_html = include_bytes!("../../composant-bin/template/index.html").to_vec();
+    let about_html = include_bytes!("../../composant-bin/template/about.html").to_vec();
+    let view_user_html = include_bytes!("../../composant-bin/template/view_user.html").to_vec();
+    let register_user_html =
+        include_bytes!("../../composant-bin/template/register_user.html").to_vec();
 
-    let settings = Settings::builder()
-        .debug(true)
-        .templates_dir(vec!["templates".to_string()])
-        .server("127.0.0.1", 3000, "change_your_secret_key")
-        .build();
+    // CSS
+    let main_css = include_bytes!("../../composant-bin/css/main.css").to_vec();
+    let about_css = include_bytes!("../../composant-bin/css/about.css").to_vec();
+    let register_form_css = include_bytes!("../../composant-bin/css/register-form.css").to_vec();
+    let search_user_css = include_bytes!("../../composant-bin/css/search-user.css").to_vec();
 
-    settings.validate_allowed_hosts();
+    // Images
+    let image = include_bytes!("../../composant-bin/image/toshiro.jpg").to_vec();
+    let favicon = include_bytes!("../../composant-bin/image/favicon.ico").to_vec();
 
-    RuniqueApp::new(settings)
-        .await?
-        .routes(url::routes())
-        .with_database(db)
-        .with_static_files()?
-        .with_allowed_hosts(
-            env::var("ALLOWED_HOSTS")
-            .ok()
-            .map(|s| s.split(',').map(|h| h.to_string()).collect()),
-        )
-        .with_sanitize_text_inputs(false)
-        .with_security_headers(CspConfig::strict())
-        .with_default_middleware()
-        .run()
-        .await?;
+    // Fichiers de configuration
+    let cargo_toml = include_str!("../../composant-bin/config/Cargo.toml")
+        .replace("{{PROJECT_NAME}}", name)
+        .replace("{{RUNIQUE_VERSION}}", runique_version)
+        .to_string()
+        .into_bytes();
+    let env_file = include_bytes!("../../composant-bin/config/.env").to_vec();
+    let gitignore = include_bytes!("../../composant-bin/config/.gitignore").to_vec();
+    let readme_va = include_bytes!("../../composant-bin/readme/README.md").to_vec();
+    let readme_fr = include_bytes!("../../composant-bin/readme/README.fr.md").to_vec();
 
-    Ok(())
-    }
-"#;
-
-    // Cargo.toml
-    let cargo_toml = format!(
-        r#"[package]
-name = "{}"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-runique = {{ version = "1.0.8", features = ["sqlite"] }}
-serde = "1.0"
-"#,
-        name
-    );
-    // .env
-    let env_file = r#"# src/.env
-# Server Configuration
-IP_SERVER=127.0.0.1
-PORT=3000
-
-DEBUG=true
-# Database Configuration (SQLite par défaut)
-
-# Secret key for csrf management
-SECRETE_KEY=your_secret_key_here
-
-# A completer pour toute bdd autre que SQLite
-DB_ENGINE=sqlite
-DB_USER=username
-DB_PASSWORD=password
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=database_name
-
-DATABASE_URL=postgres://postgres:password@localhost:5432/database_name
-# Allowed hosts for production
-ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
-"#;
-
-    // .gitignore
-    let gitignore = r#"# .gitignore
-/target/
-*.db
-*.sqlite
-.env
-"#;
-    let formulaire = r#"// src/forms.rs
-// Your form example here
-// use runique::prelude::*;
-// use runique::prelude::*;
-
-// #[derive(Deserialize)]
-// pub struct UsernameForm {
-//     pub form: Forms,
-// }
-
-// // Implémenter Serialize manuellement
-// impl Serialize for UsernameForm {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         let mut state = serializer.serialize_struct("UsernameForm", 1)?;
-//         state.serialize_field("form_html", &self.form)?;
-//         state.end()
-//     }
-// }
-
-// impl RuniqueForm for UsernameForm {
-//     fn register_fields(form: &mut Forms) {
-//         form.register_field("username", "Nom d'utilisateur", &CharField::new());
-//     }
-
-//     fn validate_fields(form: &mut Forms, raw_data: &HashMap<String, String>) {
-//         form.require("username", &CharField::new(), raw_data);
-//     }
-
-//     fn from_form(form: Forms) -> Self {
-//         Self { form }
-//     }
-
-//     fn get_form(&self) -> &Forms {
-//         &self.form
-//     }
-
-//     fn get_form_mut(&mut self) -> &mut Forms {
-//         &mut self.form
-//     }
-// }
-"#;
-    let user_exemple = r#"// src/models/users.rs
-// for exemple purposes only
-// use runique::prelude::*;
-// use runique::impl_objects;
-// use runique::sea_orm;
-// use runique::sea_orm::entity::prelude::*;
-// use runique::serde::{Deserialize, Serialize};
-// use runique::DeriveModelForm;
-
-// #[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize, Deserialize)]
-// #[sea_orm(table_name = "users")]
-// pub struct Model {
-//     #[sea_orm(primary_key)]
-//     pub id: i32,
-//     pub username: String,
-//     pub email: String,
-//     pub password: String,
-//     pub age: i32,
-//     pub created_at: DateTime,
-// }
-
-// #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-// pub enum Relation {}
-
-// impl ActiveModelBehavior for ActiveModel {}
-
-// impl_objects!(Entity);
-"#;
-    let mod_rs_content = r#"// src/models/mod.rs
-pub mod users;
-"#;
-    let view_rs_content = r#"// src/views.rs
-// pub mod users;
-use runique::prelude::*;
-pub async fn index(template: Template) -> Response {
-    let ctx = context! {
-        "title", "Bienvenue dans Runique";
-    };
-    template.render("index.html", &ctx)
-}
-"#;
-
-    let htmtl_example = r#"<!-- templates/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
-</head>
-<body>
-    <h1>{{ title }}</h1>
-    <p>Ceci est une page d'exemple pour votre projet Runique.</p>
-</body>
-</html>
-"#;
-    // Créer la structure de dossiers
+    // === CRÉATION DES DOSSIERS ===
     fs::create_dir_all(project_dir)?;
     fs::create_dir_all(project_dir.join("src/models"))?;
     fs::create_dir_all(project_dir.join("src/static/css"))?;
     fs::create_dir_all(project_dir.join("src/static/js"))?;
     fs::create_dir_all(project_dir.join("src/static/images"))?;
     fs::create_dir_all(project_dir.join("src/media"))?;
+    fs::create_dir_all(project_dir.join("src/media/favicon"))?;
     fs::create_dir_all(project_dir.join("templates"))?;
+    fs::create_dir_all(project_dir.join("templates/profile"))?;
+    fs::create_dir_all(project_dir.join("templates/about"))?;
 
-    // Cargo.toml
+    // === ÉCRITURE DES FICHIERS ===
+
+    // Fichiers racine
     fs::write(project_dir.join("Cargo.toml"), cargo_toml)?;
+    fs::write(project_dir.join(".env"), env_file)?;
+    fs::write(project_dir.join(".gitignore"), gitignore)?;
+    fs::write(project_dir.join("README.md"), readme_va)?;
+    fs::write(project_dir.join("README.fr.md"), readme_fr)?;
 
-    // src/main.rs
+    // Code Rust sources
     fs::write(project_dir.join("src/main.rs"), main_rs)?;
-
-    // src/forms.rs
     fs::write(project_dir.join("src/forms.rs"), formulaire)?;
-
-    // src/url.rs
     fs::write(project_dir.join("src/url.rs"), url_rs)?;
-
-    // src/views.rs
     fs::write(project_dir.join("src/views.rs"), view_rs_content)?;
-
-    // src/models/mod.rs
     fs::write(project_dir.join("src/models/mod.rs"), mod_rs_content)?;
     fs::write(project_dir.join("src/models/users.rs"), user_exemple)?;
 
-    // templates/index.html
-    fs::write(project_dir.join("templates/index.html"), htmtl_example)?;
+    // Templates HTML
+    fs::write(project_dir.join("templates/index.html"), index_html)?;
+    fs::write(project_dir.join("templates/about/about.html"), about_html)?;
+    fs::write(
+        project_dir.join("templates/profile/view_user.html"),
+        view_user_html,
+    )?;
+    fs::write(
+        project_dir.join("templates/profile/register_user.html"),
+        register_user_html,
+    )?;
 
-    // .env
-    fs::write(project_dir.join(".env"), env_file)?;
+    // CSS
+    fs::write(project_dir.join("src/static/css/main.css"), main_css)?;
+    fs::write(project_dir.join("src/static/css/about.css"), about_css)?;
+    fs::write(
+        project_dir.join("src/static/css/register-form.css"),
+        register_form_css,
+    )?;
+    fs::write(
+        project_dir.join("src/static/css/search-user.css"),
+        search_user_css,
+    )?;
 
-    // .gitignore
-    fs::write(project_dir.join(".gitignore"), gitignore)?;
+    // Images
+    fs::write(project_dir.join("src/media/toshiro.jpg"), image)?;
+    fs::write(project_dir.join("src/media/favicon/favicon.ico"), favicon)?;
 
+    // === MESSAGE DE SUCCÈS ===
     println!("   Projet '{}' créé avec succès !", name);
     println!("   Structure créée :");
     println!("   {}/", name);
@@ -281,14 +157,26 @@ pub async fn index(template: Template) -> Response {
     println!("   │   │   └── users.rs");
     println!("   │   ├── static/");
     println!("   │   │   ├── css/");
+    println!("   │   │   |   ├── main.css");
+    println!("   │   │   |   ├── register-form.css");
+    println!("   │   │   |   ├── search-user.css");
+    println!("   │   │   |   └── about.css");
     println!("   │   │   ├── js/");
     println!("   │   │   └── images/");
     println!("   │   ├── media/");
+    println!("   │   │   ├── favicon/");
+    println!("   │   │   │   └── favicon.ico");
+    println!("   │   │   └── toshiro.jpg");
     println!("   │   ├── forms.rs");
     println!("   │   ├── main.rs");
     println!("   │   ├── url.rs");
     println!("   │   └── views.rs");
     println!("   ├── templates/");
+    println!("   │   ├── about/");
+    println!("   │   │   └── about.html");
+    println!("   │   ├── profile/");
+    println!("   │   │   ├── register_user.html");
+    println!("   │   │   └── view_user.html");
     println!("   │   └── index.html");
     println!("   ├── .env");
     println!("   ├── .gitignore");

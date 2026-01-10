@@ -8,7 +8,7 @@ if (!window.rustiCsrfInitialized) {
     function updateTokenInDom(newToken) {
         if (!newToken) return;
 
-        document.querySelectorAll('input.rusti-csrf-field').forEach(el => el.value = newToken);
+        document.querySelectorAll('input.runique-csrf-field').forEach(el => el.value = newToken);
 
         window._rusti_csrf_token = newToken;
     }

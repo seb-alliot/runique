@@ -6,9 +6,6 @@
     padding: 0;
     box-sizing: border-box;
 }
-html, body {
-    height: 100%;
-}
 
 body {
     display: flex;
@@ -21,7 +18,7 @@ main {
 }
 
 /* =========================
-    VARIABLES DE COULEURS
+   VARIABLES DE COULEURS
    ========================= */
 :root {
     --bg-main: #0f1216;
@@ -35,14 +32,13 @@ main {
 }
 
 html, body {
-    height: 100%;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background-color: var(--bg-main);
     color: var(--text-main);
 }
 
 /* =========================
-    DEBUG
+   DEBUG
    ========================= */
 .debug-banner {
     background: linear-gradient(90deg, #b91c1c, #ef4444);
@@ -54,7 +50,7 @@ html, body {
 }
 
 /* =========================
-    HEADER (IMAGE EN FOND)
+   HEADER (IMAGE EN FOND)
    ========================= */
 header {
     position: relative;
@@ -186,7 +182,7 @@ header::after {
 
 
 /* =========================
-    FOOTER
+   FOOTER
    ========================= */
 footer {
     background: var(--bg-footer);
@@ -218,7 +214,7 @@ footer p {
 }
 
 /* =========================
-    RESPONSIVE
+   RESPONSIVE
    ========================= */
 
 /* Tablettes */
@@ -228,6 +224,7 @@ footer p {
     }
 
     .content {
+        max-width: 95%;
         margin: -3rem auto 2rem auto;
         padding: 1.5rem;
     }
@@ -258,6 +255,7 @@ footer p {
     }
 
     .content {
+        max-width: 98%;
         margin: 2rem;
         border-radius: 0.75rem;
     }

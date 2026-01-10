@@ -326,7 +326,6 @@ impl RuniqueApp {
             "password",
             include_str!("../templates/formulaire/passwordfield.html"),
         )?;
-        println!("template password trouver");
         tera.add_raw_template(
             "slug",
             include_str!("../templates/formulaire/slugfield.html"),
@@ -814,7 +813,7 @@ impl RuniqueApp {
     /// - Unable to bind to the configured address/port
     /// - Server encounters a fatal error
     pub async fn run(self) -> Result<(), Box<dyn Error>> {
-        println!("🦀 Runique Framework v{}", crate::VERSION);
+        println!("🦀 Runique Framework v {}", crate::VERSION);
         println!("   Starting server at http://{}", self.addr);
 
         let session_layer = SessionManagerLayer::new(MemoryStore::default())
