@@ -38,7 +38,7 @@ pub async fn user_profile_submit(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
-    ExtractForm(register_form): ExtractForm<ModelForm>,
+    ExtractForm(mut register_form): ExtractForm<ModelForm>,
 ) -> Response {
     if register_form.is_valid() {
         match register_form.save(&db).await {

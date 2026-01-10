@@ -160,6 +160,7 @@ fn create_new_project(name: &str) -> Result<()> {
     println!("   │   │   └── users.rs");
     println!("   │   ├── static/");
     println!("   │   │   ├── css/");
+    println!("   │   │   |   ├── variables.css");
     println!("   │   │   |   ├── main.css");
     println!("   │   │   |   ├── register-form.css");
     println!("   │   │   |   ├── search-user.css");
