@@ -2,14 +2,11 @@
 members = [
     "runique",
     "runique/derive_form",
-    "examples/demo-app",
-    "ecoride",
-    "ecoride/migration"
 ]
 resolver = "2"
 
 [workspace.package]
-version = "1.0.8"
+version = "1.0.85"
 edition = "2021"
 authors = ["Itsuki"]
 license = "MIT"
