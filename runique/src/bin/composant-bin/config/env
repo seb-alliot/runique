@@ -1,0 +1,22 @@
+# Server Configuration
+IP_SERVER=127.0.0.1
+PORT=3000
+
+DEBUG=true
+# Database Configuration (SQLite par défaut)
+
+# Secret key for csrf management
+SECRETE_KEY=your_secret_key_here
+
+# A completer pour toute bdd autre que SQLite
+DB_ENGINE=sqlite
+DB_USER=username
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=data.db
+
+DATABASE_URL="sqlite://data.db?mode=rwc"
+
+# Allowed hosts for production
+ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1

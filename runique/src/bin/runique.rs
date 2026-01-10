@@ -84,7 +84,7 @@ fn create_new_project(name: &str) -> Result<()> {
         .replace("{{RUNIQUE_VERSION}}", runique_version)
         .to_string()
         .into_bytes();
-    let env_file = include_bytes!("composant-bin/config/.env").to_vec();
+    let env_file = include_bytes!("composant-bin/config/env").to_vec();
     let gitignore = include_bytes!("composant-bin/config/.gitignore").to_vec();
     let readme_va = include_bytes!("composant-bin/readme/README.md").to_vec();
     let readme_fr = include_bytes!("composant-bin/readme/README.fr.md").to_vec();
