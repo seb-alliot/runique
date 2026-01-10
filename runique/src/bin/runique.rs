@@ -66,7 +66,8 @@ fn create_new_project(name: &str) -> Result<()> {
     let index_html = include_bytes!("../composant-bin/template/index.html").to_vec();
     let about_html = include_bytes!("../composant-bin/template/about.html").to_vec();
     let view_user_html = include_bytes!("../composant-bin/template/view_user.html").to_vec();
-    let register_user_html = include_bytes!("../composant-bin/template/register_user.html").to_vec();
+    let register_user_html =
+        include_bytes!("../composant-bin/template/register_user.html").to_vec();
 
     // CSS
     let main_css = include_bytes!("../composant-bin/css/main.css").to_vec();
