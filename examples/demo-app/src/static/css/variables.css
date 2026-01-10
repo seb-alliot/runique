@@ -1,0 +1,13 @@
+/* =========================
+    VARIABLES DE COULEURS
+   ========================= */
+:root {
+    --bg-main: #0f1216;
+    --bg-card: #161b22;
+    --bg-header: #11161c;
+    --bg-footer: #0d1117;
+    --accent: #4fa3ff;
+    --text-main: #e6edf3;
+    --text-muted: #9aa4af;
+    --danger: #ff6b6b;
+}

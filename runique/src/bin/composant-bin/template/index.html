@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="...">
     <title>{{ title }}</title>
     {% block style %}
+        <link rel="stylesheet" href='{% static "css/variables.css" %}'>
         <link rel="stylesheet" href='{% static "css/main.css" %}'>
     {% endblock %}
     <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
@@ -45,10 +46,10 @@
 
     <footer>
         {% block footer %}
-            <a href={% link "view-user" %}>Research user</a>
-            <a href="{% link "user_profile" %}">Register</a>
-            <a href={% link "about" %}>About</a>
-            <p>&copy; 2026 My Web Application</p>
+            <a href={% link "view-user" %}>Recherche user</a>
+            <a href="{% link "user_profile" %}">S'inscrire</a>
+            <a href={% link "about" %}>À propos</a>
+            <p>&copy; 2025 My Web Application</p>
         {% endblock %}
     </footer>
 

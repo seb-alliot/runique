@@ -13,12 +13,11 @@ impl<S, T> FromRequest<S> for ExtractForm<T>
 where
     S: Send + Sync,
     T: RuniqueForm,
-    Arc<Tera>: FromRef<S>, // IMPORTANT: S doit pouvoir fournir Tera
+    Arc<Tera>: FromRef<S>,
 {
     type Rejection = Response;
 
     async fn from_request(mut req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
-        // 1. Récupérer Tera depuis le State via FromRef
         let tera = Arc::<Tera>::from_ref(state);
 
         // 2. Lire le body brut
@@ -34,7 +33,12 @@ where
             })?
             .to_bytes();
 
-        // 3. Parser le formulaire
+        if bytes.is_empty() {
+            let mut form = T::build(tera.clone());
+            form.get_form_mut().set_tera(tera);
+            return Ok(ExtractForm(form));
+        }
+
         let parsed: HashMap<String, String> = match req
             .headers()
             .get("content-type")
@@ -49,7 +53,6 @@ where
             _ => HashMap::new(),
         };
 
-        // 4. Vérifier CSRF (Session)
         let session = req.extensions().get::<Session>().ok_or_else(|| {
             Response::builder()
                 .status(500)
@@ -73,7 +76,7 @@ where
                     .unwrap()
             })?;
 
-        // 5. Validation du token
+        // 6. Validation du token
         let form_token = parsed.get("csrf_token").ok_or_else(|| {
             Response::builder()
                 .status(403)
@@ -95,8 +98,6 @@ where
                 .unwrap());
         }
 
-        // 6. Créer et valider le formulaire
-        // On injecte Tera juste après la construction
         let mut form = T::build_with_current_data(&parsed, tera.clone());
         form.get_form_mut().set_tera(tera);
 

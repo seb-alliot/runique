@@ -138,6 +138,101 @@ impl Forms {
             self.field(name, field, value);
         }
     }
+    pub fn add_error(&mut self, field: &str, message: &str) {
+        self.errors.insert(field.to_string(), message.to_string());
+    }
+
+    /// Gérer automatiquement une erreur de base de données
+    pub fn handle_database_error(&mut self, db_err: &sea_orm::DbErr) {
+        let err_msg = db_err.to_string();
+
+        if err_msg.contains("unique") || err_msg.contains("UNIQUE") || err_msg.contains("Duplicate")
+        {
+            let field_name = Self::extract_field_name(&err_msg);
+
+            if let Some(field) = field_name {
+                let friendly_name = field.replace("_", " ");
+                let message = format!("This {} is already in use.", friendly_name);
+                self.errors.insert(field, message);
+            } else {
+                self.errors.insert(
+                    "error".to_string(),
+                    "This value is already in use.".to_string(),
+                );
+            }
+        } else {
+            self.errors
+                .insert("error".to_string(), "Database error occurred.".to_string());
+        }
+    }
+
+    /// Extraire le nom du champ depuis différents formats d'erreur SQL
+    fn extract_field_name(err_msg: &str) -> Option<String> {
+        if let Some(start) = err_msg.find("contrainte unique « ") {
+            let remaining = &err_msg[start + 20..];
+            if let Some(end) = remaining.find(" »") {
+                let constraint_name = &remaining[..end];
+                if let Some(parts) = Self::parse_constraint_name(constraint_name) {
+                    return Some(parts);
+                }
+            }
+        }
+
+        // PostgreSQL anglais: unique constraint "users_username_key"
+        if let Some(start) = err_msg.find("unique constraint \"") {
+            let remaining = &err_msg[start + 19..];
+            if let Some(end) = remaining.find('"') {
+                let constraint_name = &remaining[..end];
+                if let Some(parts) = Self::parse_constraint_name(constraint_name) {
+                    return Some(parts);
+                }
+            }
+        }
+
+        // PostgreSQL Key (username)=(value)
+        if let Some(start) = err_msg.find("Key (") {
+            if let Some(end) = err_msg[start..].find(')') {
+                let field = &err_msg[start + 5..start + end];
+                return Some(field.to_string());
+            }
+        }
+
+        // SQLite: UNIQUE constraint failed: users.username
+        if let Some(pos) = err_msg.find("failed: ") {
+            let remaining = &err_msg[pos + 8..];
+            if let Some(dot_pos) = remaining.find('.') {
+                let field = &remaining[dot_pos + 1..];
+                let field_clean = field.split_whitespace().next()?;
+                return Some(field_clean.to_string());
+            }
+        }
+
+        // MySQL: Duplicate entry 'value' for key 'users.username'
+        if let Some(pos) = err_msg.find("for key '") {
+            let remaining = &err_msg[pos + 9..];
+            if let Some(dot_pos) = remaining.find('.') {
+                let after_dot = &remaining[dot_pos + 1..];
+                if let Some(quote_pos) = after_dot.find('\'') {
+                    return Some(after_dot[..quote_pos].to_string());
+                }
+            }
+        }
+
+        None
+    }
+
+    fn parse_constraint_name(constraint: &str) -> Option<String> {
+        // Format typique: table_field_key ou table_field_idx
+        let parts: Vec<&str> = constraint.split('_').collect();
+
+        if parts.len() >= 3 {
+            // Enlever le premier élément (nom de table) et le dernier (key/idx)
+            let field_parts = &parts[1..parts.len() - 1];
+            return Some(field_parts.join("_"));
+        }
+
+        None
+    }
 
     pub fn is_valid(&self) -> bool {
         self.errors.is_empty()
@@ -176,12 +271,12 @@ pub trait RuniqueForm: Sized {
         Self::from_form(form)
     }
 
-    /// Pour une soumission : on valide, PUIS on génère le HTML (une seule fois)
+    /// Pour une soumission : on valide, PUIS on génère le HTML
     fn build_with_current_data(raw_data: &HashMap<String, String>, tera: Arc<Tera>) -> Self {
         let mut form = Forms::new();
         form.set_tera(tera);
 
-        // 1. On traite les DATA d'abord (sans toucher au HTML)
+        // 1. On traite les DATA d'abord
         Self::validate_fields(&mut form, raw_data);
 
         // 2. On génère le HTML à la toute fin, une seule fois.

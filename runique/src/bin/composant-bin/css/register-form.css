@@ -1,5 +1,5 @@
 /* =========================
-   FORMULAIRE D'INSCRIPTION
+    FORMULAIRE D'INSCRIPTION
    ========================= */
 
 /* Conteneur principal du formulaire */
@@ -8,7 +8,6 @@
     margin: 20px 0;
 }
 
-/* La grille magique */
 .fields-container {
     display: grid;
     grid-template-columns: 150px 1fr;
@@ -16,7 +15,6 @@
     row-gap: 15px;
     align-items: center;
 }
-
 
 .field-group {
     display: contents;
@@ -35,6 +33,24 @@
     border: 1px solid #ced4da;
     border-radius: 4px;
     box-sizing: border-box;
+}
+
+.error-row {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.field-error {
+    padding: 0.5rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid var(--danger);
+    color: #fecaca;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.25rem;
 }
 
 .invalid-feedback {
@@ -93,6 +109,10 @@ button[type="submit"]:hover {
     }
 
     .form-control {
+        grid-column: 1;
+    }
+
+    .error-row {
         grid-column: 1;
     }
 

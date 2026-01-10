@@ -38,12 +38,14 @@ pub async fn user_profile_submit(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
-    ExtractForm(register_form): ExtractForm<ModelForm>,
+    ExtractForm(mut register_form): ExtractForm<ModelForm>,
 ) -> Response {
+    // 1. Vérifier la validation de base
     if register_form.is_valid() {
+        // 2. Essayer de sauvegarder en BDD
         match register_form.save(&db).await {
             Ok(created_user) => {
-                success!(message => " Profil utilisateur créé avec succès !");
+                success!(message => "User profile created successfully!");
                 let target = reverse_with_parameters(
                     "user_profile",
                     &[
@@ -54,34 +56,22 @@ pub async fn user_profile_submit(
                 .unwrap();
                 return Redirect::to(&target).into_response();
             }
-            Err(err) => {
-                let _error_msg = if err.to_string().contains("unique") {
-                    if err.to_string().contains("username") {
-                        " Ce nom d'utilisateur existe déjà !"
-                    } else if err.to_string().contains("email") {
-                        " Cet email est déjà utilisé !"
-                    } else {
-                        " Cette valeur existe déjà"
-                    }
-                } else {
-                    " Faites vos migrations de modèle svp !"
-                };
-
-                let mut ctx = context! {
+            Err(db_err) => {
+                register_form.get_form_mut().handle_database_error(&db_err);
+                let ctx = context! {
                     "title" => "Erreur de base de données",
-                    "register_form" => register_form
+                    "register_form" => register_form,
+                    "messages" => flash_now!(warning => "Veuillez corriger les erreurs ci-dessous")
                 };
-
-                ctx.insert("messages", &flash_now!(error => _error_msg));
-
                 return template.render("profile/register_user.html", &ctx);
             }
         }
     }
 
-    error!(message => "Erreur de validation du formulaire");
     let ctx = context! {
-        "title" => "Erreur de validation"
+        "title" => "Erreur de validation",
+        "register_form" => register_form,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous")
     };
     template.render("profile/register_user.html", &ctx)
 }

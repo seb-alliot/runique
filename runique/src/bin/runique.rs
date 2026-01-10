@@ -55,40 +55,39 @@ fn create_new_project(name: &str) -> Result<()> {
     // === CHARGEMENT DES TEMPLATES ===
 
     // Code Rust
-    let view_rs_content = include_bytes!("../../composant-bin/code/views.rs").to_vec();
-    let formulaire = include_bytes!("../../composant-bin/code/forms.rs").to_vec();
-    let user_exemple = include_bytes!("../../composant-bin/code/users.rs").to_vec();
-    let mod_rs_content = include_bytes!("../../composant-bin/code/mod.rs").to_vec();
-    let url_rs = include_bytes!("../../composant-bin/code/url.rs").to_vec();
-    let main_rs = include_bytes!("../../composant-bin/code/main.rs").to_vec();
+    let view_rs_content = include_bytes!("composant-bin/code/views.rs").to_vec();
+    let formulaire = include_bytes!("composant-bin/code/forms.rs").to_vec();
+    let user_exemple = include_bytes!("composant-bin/code/users.rs").to_vec();
+    let mod_rs_content = include_bytes!("composant-bin/code/mod.rs").to_vec();
+    let url_rs = include_bytes!("composant-bin/code/url.rs").to_vec();
+    let main_rs = include_bytes!("composant-bin/code/main.rs").to_vec();
 
     // Templates HTML
-    let index_html = include_bytes!("../../composant-bin/template/index.html").to_vec();
-    let about_html = include_bytes!("../../composant-bin/template/about.html").to_vec();
-    let view_user_html = include_bytes!("../../composant-bin/template/view_user.html").to_vec();
-    let register_user_html =
-        include_bytes!("../../composant-bin/template/register_user.html").to_vec();
+    let index_html = include_bytes!("composant-bin/template/index.html").to_vec();
+    let about_html = include_bytes!("composant-bin/template/about.html").to_vec();
+    let view_user_html = include_bytes!("composant-bin/template/view_user.html").to_vec();
+    let register_user_html = include_bytes!("composant-bin/template/register_user.html").to_vec();
 
     // CSS
-    let main_css = include_bytes!("../../composant-bin/css/main.css").to_vec();
-    let about_css = include_bytes!("../../composant-bin/css/about.css").to_vec();
-    let register_form_css = include_bytes!("../../composant-bin/css/register-form.css").to_vec();
-    let search_user_css = include_bytes!("../../composant-bin/css/search-user.css").to_vec();
+    let main_css = include_bytes!("composant-bin/css/main.css").to_vec();
+    let about_css = include_bytes!("composant-bin/css/about.css").to_vec();
+    let register_form_css = include_bytes!("composant-bin/css/register-form.css").to_vec();
+    let search_user_css = include_bytes!("composant-bin/css/search-user.css").to_vec();
+    let variable_css = include_bytes!("composant-bin/css/variables.css").to_vec();
 
     // Images
-    let image = include_bytes!("../../composant-bin/image/toshiro.jpg").to_vec();
-    let favicon = include_bytes!("../../composant-bin/image/favicon.ico").to_vec();
-
+    let image = include_bytes!("composant-bin/image/toshiro.jpg").to_vec();
+    let favicon = include_bytes!("composant-bin/image/favicon.ico").to_vec();
     // Fichiers de configuration
-    let cargo_toml = include_str!("../../composant-bin/config/Cargo.toml")
+    let cargo_toml = include_str!("composant-bin/config/Cargo.toml")
         .replace("{{PROJECT_NAME}}", name)
         .replace("{{RUNIQUE_VERSION}}", runique_version)
         .to_string()
         .into_bytes();
-    let env_file = include_bytes!("../../composant-bin/config/.env").to_vec();
-    let gitignore = include_bytes!("../../composant-bin/config/.gitignore").to_vec();
-    let readme_va = include_bytes!("../../composant-bin/readme/README.md").to_vec();
-    let readme_fr = include_bytes!("../../composant-bin/readme/README.fr.md").to_vec();
+    let env_file = include_bytes!("composant-bin/config/.env").to_vec();
+    let gitignore = include_bytes!("composant-bin/config/.gitignore").to_vec();
+    let readme_va = include_bytes!("composant-bin/readme/README.md").to_vec();
+    let readme_fr = include_bytes!("composant-bin/readme/README.fr.md").to_vec();
 
     // === CRÉATION DES DOSSIERS ===
     fs::create_dir_all(project_dir)?;
@@ -141,6 +140,10 @@ fn create_new_project(name: &str) -> Result<()> {
     fs::write(
         project_dir.join("src/static/css/search-user.css"),
         search_user_css,
+    )?;
+    fs::write(
+        project_dir.join("src/static/css/variables.css"),
+        variable_css,
     )?;
 
     // Images

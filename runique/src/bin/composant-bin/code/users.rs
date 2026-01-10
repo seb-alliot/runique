@@ -13,7 +13,7 @@ pub struct Model {
     pub username: String,
     pub email: String,
     pub password: String,
-    pub age: u8,
+    pub age: i32,
     pub created_at: DateTime,
 }
 

@@ -29,10 +29,6 @@
     RESPONSIVE
    ========================= */
 @media (max-width: 768px) {
-    .about {
-        max-width: 80%;
-    }
-
     .about h1 {
         font-size: 1.8rem;
     }

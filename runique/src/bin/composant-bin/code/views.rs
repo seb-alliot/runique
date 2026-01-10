@@ -54,18 +54,8 @@ pub async fn user_profile_submit(
                 .unwrap();
                 return Redirect::to(&target).into_response();
             }
-            Err(err) => {
-                let _error_msg = if err.to_string().contains("unique") {
-                    if err.to_string().contains("username") {
-                        "This username already exists!"
-                    } else if err.to_string().contains("email") {
-                        "This email is already in use!"
-                    } else {
-                        "This value already exists"
-                    }
-                } else {
-                    "Please run your model migrations!"
-                };
+            Err(db_err) => {
+                register_form.get_form_mut().handle_database_error(&db_err);
 
                 let mut ctx = context! {
                     "title" => "Database error",
@@ -74,7 +64,7 @@ pub async fn user_profile_submit(
 
                 ctx.insert(
                     "messages",
-                    &flash_now!(error => _error_msg),
+                    &flash_now!(error => "Database error occurred"),
                 );
 
                 return template.render("profile/register_user.html", &ctx);
@@ -82,9 +72,10 @@ pub async fn user_profile_submit(
         }
     }
 
-    error!(message => "Form validation error");
     let ctx = context! {
-        "title" => "Validation error"
+        "title" => "Validation error",
+        "register_form" => register_form,
+        "messages" => flash_now!(error => "Form validation error")
     };
     template.render("profile/register_user.html", &ctx)
 }
@@ -121,7 +112,7 @@ pub async fn view_user(
             };
             ctx.insert(
                 "messages",
-                &flash_now!(warning => &user.username.to_uppercase(), ("Exists, praise me!!!").to_uppercase(), "on sale at C DISCOUNT"),
+                &flash_now!(warning => &user.username.to_uppercase(), "Welcome to Runique!"),
             );
             template.render("profile/view_user.html", &ctx)
         }

@@ -20,19 +20,7 @@ main {
     flex: 1;
 }
 
-/* =========================
-    VARIABLES DE COULEURS
-   ========================= */
-:root {
-    --bg-main: #0f1216;
-    --bg-card: #161b22;
-    --bg-header: #11161c;
-    --bg-footer: #0d1117;
-    --accent: #4fa3ff;
-    --text-main: #e6edf3;
-    --text-muted: #9aa4af;
-    --danger: #ff6b6b;
-}
+
 
 html, body {
     height: 100%;
@@ -128,7 +116,6 @@ header::after {
 .flash-messages  {
     display: flex;
     flex-direction: column;
-    align-items: center;
     margin: 0.5rem;
 }
 [class^="message-"] {
@@ -296,7 +283,7 @@ footer p {
 /* Très petit mobile (320px) */
 @media (max-width: 360px) {
     .content h1 {
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
 
     .content {

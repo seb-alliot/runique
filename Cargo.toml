@@ -3,6 +3,7 @@ members = [
     "runique",
     "runique/derive_form",
     "examples/demo-app",
+    "examples/demo-app/migration",
 ]
 resolver = "2"
 
