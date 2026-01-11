@@ -1,0 +1,38 @@
+# deny.toml - Configuration for cargo-deny
+# More info: https://embarkstudios.github.io/cargo-deny/
+
+[advisories]
+# Vulnerability database to use
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+
+# How to handle vulnerabilities
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "warn"
+notice = "warn"
+ignore = [
+    "RUSTSEC-2023-0071",  # rsa 0.9.10: Marvin Attack - no fix available
+    "RUSTSEC-2025-0052",  # async-std: unmaintained, transitive dep via SeaORM
+    "RUSTSEC-2024-0384",  # instant: unmaintained, transitive dep via sqlx
+]
+
+[licenses]
+# Don't check licenses for now
+unlicensed = "allow"
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+]
+
+[bans]
+# Don't check for duplicate dependencies
+multiple-versions = "allow"
+
+[sources]
+# Allow all sources for now
+unknown-registry = "allow"
+unknown-git = "allow"
