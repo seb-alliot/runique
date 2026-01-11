@@ -1,4 +1,3 @@
-use crate::middleware::flash_message::{FlashMessage, FlashMessageSession};
 use crate::middleware::login_requiert::is_authenticated;
 use crate::settings::Settings;
 use crate::utils::{generate_token, generate_user_token, mask_csrf_token, unmask_csrf_token};
@@ -21,9 +20,10 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
         Some(c) => c,
         None => return next.run(req).await,
     };
+
     let method = req.method().clone();
     let headers = req.headers().clone();
-    let _uri_path = req.uri().path().to_string();
+
     let user_id = if let Some(session) = req.extensions().get::<Session>() {
         session
             .get::<i32>("user_id")
@@ -34,6 +34,7 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
     } else {
         0
     };
+
     let requires_csrf = matches!(
         method,
         Method::POST | Method::PUT | Method::DELETE | Method::PATCH
@@ -60,22 +61,39 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
                     .map(|id| id.to_string())
                     .unwrap_or_else(|| "no-session-id".to_string());
 
-                if is_authenticated(session).await {
-                    let user_token =
-                        generate_user_token(&config.server.secret_key, &user_id.to_string());
-                    let _ = session.insert(CSRF_TOKEN_KEY, user_token.clone()).await;
-                    user_token
+                let token = if is_authenticated(session).await {
+                    generate_user_token(&config.server.secret_key, &user_id.to_string())
                 } else {
-                    let new_token = generate_token(&config.server.secret_key, &session_id);
-                    let _ = session.insert(CSRF_TOKEN_KEY, new_token.clone()).await;
-                    new_token
-                }
+                    generate_token(&config.server.secret_key, &session_id)
+                };
+
+                let _ = session.insert(CSRF_TOKEN_KEY, token.clone()).await;
+                token
             }
         }
     };
 
+    let content_type = headers
+        .get(axum::http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    // Si multipart, déléguer la vérification à ExtractForm
+    if requires_csrf && content_type.contains("multipart/form-data") {
+        let token_to_inject = mask_csrf_token(&session_token);
+        req.extensions_mut()
+            .insert(CsrfToken(token_to_inject.clone()));
+
+        let mut response = next.run(req).await;
+        if let Ok(hv) = HeaderValue::from_str(&token_to_inject) {
+            response.headers_mut().insert("X-CSRF-Token", hv);
+        }
+
+        return response;
+    }
+
     let token_to_inject: String = if requires_csrf {
-        // Récupérer le token masqué
+        // Tenter de récupérer le token depuis les headers
         let mut request_token_masked = headers
             .get("X-CSRF-Token")
             .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
@@ -85,53 +103,36 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
                     .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
             });
 
-        // Lire le body
-        let (parts, body) = req.into_parts();
-        let bytes = match body.collect().await {
-            Ok(collected) => collected.to_bytes(),
-            Err(_) => {
-                return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response();
-            }
-        };
+        // Si non trouvé dans les headers et form-urlencoded, lire le body
+        if request_token_masked.is_none()
+            && content_type.contains("application/x-www-form-urlencoded")
+        {
+            let (parts, body) = req.into_parts();
+            let bytes = match body.collect().await {
+                Ok(collected) => collected.to_bytes(),
+                Err(_) => {
+                    return (StatusCode::BAD_REQUEST, "Failed to read request body")
+                        .into_response();
+                }
+            };
 
-        req = axum::http::Request::from_parts(parts, Body::from(bytes.clone()));
-        req.extensions_mut().insert(bytes.clone());
+            req = axum::http::Request::from_parts(parts, Body::from(bytes.clone()));
 
-        if let Ok(body_str) = std::str::from_utf8(&bytes) {
-            if request_token_masked.is_none() {
+            if let Ok(body_str) = std::str::from_utf8(&bytes) {
                 request_token_masked = extract_csrf_from_form(body_str);
             }
         }
 
-        // Démasquer le token
+        // Validation du token
         let request_token = request_token_masked
             .as_deref()
             .and_then(|masked| unmask_csrf_token(masked).ok());
 
-        // Comparer les tokens
         match request_token {
             Some(rt) if constant_time_compare(&session_token, &rt) => {
                 mask_csrf_token(&session_token)
             }
             _ => {
-                let session = req.extensions().get::<Session>().cloned();
-                if let Some(mut sess) = session {
-                    let _ = sess
-                        .insert_message(FlashMessage::error(
-                            "Erreur de sécurité : Token CSRF invalide ou manquant.",
-                        ))
-                        .await;
-                }
-
-                if headers
-                    .get("Accept")
-                    .and_then(|h| h.to_str().ok())
-                    .unwrap_or("")
-                    .contains("application/json")
-                {
-                    return (StatusCode::BAD_REQUEST, "Invalid CSRF Token").into_response();
-                }
-
                 return (StatusCode::FORBIDDEN, "Invalid CSRF Token").into_response();
             }
         }
@@ -143,7 +144,6 @@ pub async fn csrf_middleware(mut req: axum::http::Request<Body>, next: Next) -> 
         .insert(CsrfToken(token_to_inject.clone()));
 
     let mut response = next.run(req).await;
-
     if let Ok(hv) = HeaderValue::from_str(&token_to_inject) {
         response.headers_mut().insert("X-CSRF-Token", hv);
     }

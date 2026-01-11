@@ -240,8 +240,11 @@ impl RuniqueApp {
     /// flash messages, and other framework features.
     fn load_internal_templates(tera: &mut Tera) -> Result<(), Box<dyn Error>> {
         // Templates principales
-        tera.add_raw_template("base_index", include_str!("../templates/base_index.html"))?;
-        tera.add_raw_template("message", include_str!("../templates/message.html"))?;
+        tera.add_raw_template(
+            "base_index",
+            include_str!("../templates/runique_index/base_index.html"),
+        )?;
+        tera.add_raw_template("message", include_str!("../templates/message/message.html"))?;
         tera.add_raw_template("404", include_str!("../templates/errors/404.html"))?;
         tera.add_raw_template("500", include_str!("../templates/errors/500.html"))?;
         tera.add_raw_template(
@@ -291,14 +294,14 @@ impl RuniqueApp {
         for (name, content) in ERROR_CORPS {
             tera.add_raw_template(name, content)?;
         }
-        // Champs de formulaire
 
+        // Champs de formulaire
         tera.add_raw_template(
             "checkbox",
             include_str!("../templates/formulaire/checkboxfield.html"),
         )?;
         tera.add_raw_template(
-            "charfield",
+            "text",
             include_str!("../templates/formulaire/charfield.html"),
         )?;
         tera.add_raw_template(
@@ -331,7 +334,7 @@ impl RuniqueApp {
             include_str!("../templates/formulaire/slugfield.html"),
         )?;
         tera.add_raw_template(
-            "text",
+            "textarea",
             include_str!("../templates/formulaire/textarea.html"),
         )?;
         tera.add_raw_template(
@@ -349,6 +352,21 @@ impl RuniqueApp {
         tera.add_raw_template(
             "ipaddress",
             include_str!("../templates/formulaire/ipfield.html"),
+        )?;
+
+        // Nouveaux champs
+        tera.add_raw_template("color", include_str!("../templates/formulaire/color.html"))?;
+        tera.add_raw_template("time", include_str!("../templates/formulaire/time.html"))?;
+        tera.add_raw_template("tel", include_str!("../templates/formulaire/telephon.html"))?;
+        tera.add_raw_template("range", include_str!("../templates/formulaire/range.html"))?;
+        tera.add_raw_template("radio", include_str!("../templates/formulaire/radio.html"))?;
+        tera.add_raw_template(
+            "select-multiple",
+            include_str!("../templates/formulaire/select-multiple.html"),
+        )?;
+        tera.add_raw_template(
+            "file-multiple",
+            include_str!("../templates/formulaire/multiple-file.html"),
         )?;
 
         Ok(())

@@ -1,6 +1,11 @@
 use crate::formulaire::formsrunique::RuniqueForm;
 use crate::utils::unmask_csrf_token;
-use axum::{body::Body, extract::FromRef, extract::FromRequest, http::Request, response::Response};
+use axum::{
+    body::Body,
+    extract::{FromRef, FromRequest, Multipart},
+    http::{Request, StatusCode},
+    response::{IntoResponse, Response},
+};
 use http_body_util::BodyExt;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,87 +22,80 @@ where
 {
     type Rejection = Response;
 
-    async fn from_request(mut req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
         let tera = Arc::<Tera>::from_ref(state);
 
-        // 2. Lire le body brut
-        let bytes = req
-            .body_mut()
-            .collect()
-            .await
-            .map_err(|_| {
-                Response::builder()
-                    .status(400)
-                    .body(Body::from("Failed to read body"))
-                    .unwrap()
-            })?
-            .to_bytes();
-
-        if bytes.is_empty() {
-            let mut form = T::build(tera.clone());
-            form.get_form_mut().set_tera(tera);
-            return Ok(ExtractForm(form));
-        }
-
-        let parsed: HashMap<String, String> = match req
+        // Récupérer le type de contenu
+        let content_type = req
             .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
-        {
-            Some(ct) if ct.starts_with("application/x-www-form-urlencoded") => {
-                serde_urlencoded::from_bytes(&bytes).unwrap_or_default()
-            }
-            Some(ct) if ct.starts_with("application/json") => {
-                serde_json::from_slice(&bytes).unwrap_or_default()
-            }
-            _ => HashMap::new(),
-        };
+            .unwrap_or("")
+            .to_string();
 
-        let session = req.extensions().get::<Session>().ok_or_else(|| {
-            Response::builder()
-                .status(500)
-                .body(Body::from("Session middleware missing"))
-                .unwrap()
+        // Récupérer la session AVANT de consommer la requête
+        let session = req.extensions().get::<Session>().cloned().ok_or_else(|| {
+            (StatusCode::INTERNAL_SERVER_ERROR, "Session manquante").into_response()
         })?;
 
-        let session_token = session
-            .get::<String>("csrf_token")
-            .await
-            .map_err(|_| {
-                Response::builder()
-                    .status(500)
-                    .body(Body::from("Session error"))
-                    .unwrap()
-            })?
-            .ok_or_else(|| {
-                Response::builder()
-                    .status(403)
-                    .body(Body::from("CSRF token missing in session"))
-                    .unwrap()
+        let mut parsed = HashMap::new();
+
+        // --- EXTRACTION DES DONNÉES ---
+        if content_type.starts_with("multipart/form-data") {
+            // Mode Multipart
+            let mut multipart = Multipart::from_request(req, state).await.map_err(|_| {
+                (StatusCode::BAD_REQUEST, "Error parsing multipart").into_response()
             })?;
 
-        // 6. Validation du token
-        let form_token = parsed.get("csrf_token").ok_or_else(|| {
-            Response::builder()
-                .status(403)
-                .body(Body::from("CSRF token missing"))
-                .unwrap()
-        })?;
+            while let Ok(Some(field)) = multipart.next_field().await {
+                let name = field.name().unwrap_or_default().to_string();
+                if let Ok(data) = field.text().await {
+                    parsed.insert(name, data);
+                }
+            }
+        } else {
+            // Mode URL-encoded ou JSON
+            let bytes = req
+                .into_body()
+                .collect()
+                .await
+                .map_err(|_| (StatusCode::BAD_REQUEST, "Failed to read body").into_response())?
+                .to_bytes();
 
-        let unmasked_token = unmask_csrf_token(form_token).map_err(|_| {
-            Response::builder()
-                .status(403)
-                .body(Body::from("Invalid CSRF token masking"))
-                .unwrap()
-        })?;
-
-        if unmasked_token != session_token {
-            return Err(Response::builder()
-                .status(403)
-                .body(Body::from("Invalid CSRF token mismatch"))
-                .unwrap());
+            if !bytes.is_empty() {
+                if content_type.starts_with("application/x-www-form-urlencoded") {
+                    parsed = serde_urlencoded::from_bytes(&bytes).unwrap_or_default();
+                } else if content_type.starts_with("application/json") {
+                    parsed = serde_json::from_slice(&bytes).unwrap_or_default();
+                }
+            }
         }
 
+        // --- VALIDATION CSRF (pour multipart uniquement) ---
+        if content_type.starts_with("multipart/form-data") {
+            let session_secret = session
+                .get::<String>("csrf_token")
+                .await
+                .ok()
+                .flatten()
+                .ok_or_else(|| {
+                    (StatusCode::FORBIDDEN, "No CSRF token in session").into_response()
+                })?;
+
+            let token_fourni = parsed
+                .get("csrf_token")
+                .ok_or_else(|| (StatusCode::FORBIDDEN, "CSRF token missing").into_response())?;
+
+            let token_de_la_requete = unmask_csrf_token(token_fourni).map_err(|_| {
+                (StatusCode::FORBIDDEN, "Invalid CSRF token format").into_response()
+            })?;
+
+            if session_secret != token_de_la_requete {
+                return Err((StatusCode::FORBIDDEN, "Invalid CSRF token").into_response());
+            }
+        }
+
+        // --- CONSTRUCTION DU FORMULAIRE ---
         let mut form = T::build_with_current_data(&parsed, tera.clone());
         form.get_form_mut().set_tera(tera);
 

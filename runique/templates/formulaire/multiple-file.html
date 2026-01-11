@@ -5,11 +5,12 @@
         {{ label }}
     </label>
     <input
-        type="text"
+        type="file"
         name="{{ name }}"
         id="id_{{ name }}"
-        value="{{ value | default(value='') }}"
-        class="form-control {% if error %}is-invalid{% endif %}">
+        class="form-control {% if error %}is-invalid{% endif %}"
+        {% if accept %}accept="{{ accept }}"{% endif %}
+        multiple>
     {% if error %}
         <div class="invalid-feedback">
             {{ error }}

@@ -5,11 +5,11 @@
         {{ label }}
     </label>
     <input
-        type="text"
+        type="color"
         name="{{ name }}"
         id="id_{{ name }}"
-        value="{{ value | default(value='') }}"
-        class="form-control {% if error %}is-invalid{% endif %}">
+        value="{{ value | default(value='#000000') }}"
+        class="form-control form-control-color {% if error %}is-invalid{% endif %}">
     {% if error %}
         <div class="invalid-feedback">
             {{ error }}

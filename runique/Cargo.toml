@@ -66,6 +66,9 @@ anyhow.workspace = true
 regex.workspace = true
 serde_urlencoded.workspace = true
 fancy-regex.workspace = true
+postal-code.workspace = true
+country.workspace = true
+
 
 # Logging
 tracing.workspace = true

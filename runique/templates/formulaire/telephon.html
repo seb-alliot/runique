@@ -5,11 +5,12 @@
         {{ label }}
     </label>
     <input
-        type="text"
+        type="tel"
         name="{{ name }}"
         id="id_{{ name }}"
         value="{{ value | default(value='') }}"
-        class="form-control {% if error %}is-invalid{% endif %}">
+        class="form-control {% if error %}is-invalid{% endif %}"
+        placeholder="+33 6 12 34 56 78">
     {% if error %}
         <div class="invalid-feedback">
             {{ error }}
