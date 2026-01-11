@@ -227,7 +227,7 @@ impl Forms {
 
         if parts.len() >= 3 {
             // Enlever le premier élément (nom de table) et le dernier (key/idx)
-            let field_parts = &parts[1..parts.len() - 1];
+            let field_parts: &[&str] = &parts[1..parts.len() - 1];
             return Some(field_parts.join("_"));
         }
 

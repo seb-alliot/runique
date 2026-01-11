@@ -4,13 +4,12 @@
         class="form-label">
         {{ label }}{% if required %} *{% endif %}
     </label>
-    <input
-        type="text"
+    <textarea
         name="{{ name }}"
         id="id_{{ name }}"
-        value="{{ value | default(value='') }}"
         class="form-control {% if error %}is-invalid{% endif %}"
-        {% if required %}required{% endif %}>
+        rows="5"
+        {% if required %}required{% endif %}>{{ value | default(value='') }}</textarea>
     {% if error %}
         <div class="invalid-feedback">
             {{ error }}

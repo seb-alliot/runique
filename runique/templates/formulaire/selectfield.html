@@ -1,28 +1,19 @@
 <div class="field-group mb-3">
-    <label
-        for="id_{{ name }}"
-        class="form-label">
-        {{ label }}
+    <label for="id_{{ name }}" class="form-label">
+        {{ label }}{% if required %} *{% endif %}
     </label>
-
     <select
         name="{{ name }}"
         id="id_{{ name }}"
-        class="form-select {% if error %}is-invalid{% endif %}">
-
-        <option value="" disabled {% if not value %}selected{% endif %}>
-            {{ placeholder | default(value="Choisir une option...") }}
-        </option>
-
+        class="form-control {% if error %}is-invalid{% endif %}"
+        {% if required %}required{% endif %}>
+        <option value="">-- Sélectionner --</option>
         {% for option in options %}
-            <option
-                value="{{ option.value }}"
-                {% if value == option.value %}selected{% endif %}>
+            <option value="{{ option.value }}" {% if option.value == value %}selected{% endif %}>
                 {{ option.label }}
             </option>
         {% endfor %}
     </select>
-
     {% if error %}
         <div class="invalid-feedback">
             {{ error }}

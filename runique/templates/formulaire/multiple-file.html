@@ -1,0 +1,19 @@
+<div class="field-group mb-3">
+    <label
+        for="id_{{ name }}"
+        class="form-label">
+        {{ label }}
+    </label>
+    <input
+        type="file"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        class="form-control {% if error %}is-invalid{% endif %}"
+        {% if accept %}accept="{{ accept }}"{% endif %}
+        multiple>
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>

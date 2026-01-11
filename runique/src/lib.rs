@@ -32,6 +32,7 @@ pub mod utils;
 
 // Réexports des crates externes (pour que les utilisateurs n'aient pas à les ajouter)
 pub use axum;
+pub use country::Country;
 pub use serde;
 pub use serde_json;
 pub use tera;
@@ -152,6 +153,7 @@ pub mod prelude {
     pub use crate::runique_form;
     pub use crate::tera;
     pub use crate::DeriveModelForm;
+    pub use country::Country;
 
     // === Routing et URL reversing ===
     pub use crate::reverse;

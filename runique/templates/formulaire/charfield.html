@@ -4,13 +4,12 @@
         class="form-label">
         {{ label }}
     </label>
-    <textarea
+    <input
+        type="text"
         name="{{ name }}"
         id="id_{{ name }}"
-        rows="5"
+        value="{{ value | default(value='') }}"
         class="form-control {% if error %}is-invalid{% endif %}">
-        {{ value | default(value='') }}
-    </textarea>
     {% if error %}
         <div class="invalid-feedback">
             {{ error }}

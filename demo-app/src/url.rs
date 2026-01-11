@@ -22,16 +22,26 @@ pub fn routes() -> Router<Arc<Tera>> {
         "/user" => view! {
             GET => views::form_register_user,
             POST => views::user_profile_submit
-        }, name = "user_profile",
+        },
+        name = "user_profile",
 
 
         // search by username
         "/view-user" => view! {
             GET => views::user,
             POST => views::view_user
-        }, name = "view-user",
+        },
+        name = "view-user",
 
         // Ajax CSRF test
-        "/test-csrf" => post(views::test_csrf), name ="test_csrf",
+        "/test-csrf" => post(views::test_csrf),
+        name ="test_csrf",
+
+        // Form with advanced fields
+        "/test-fields" => view! {
+        GET => views::show_form,
+        POST => views::submit_form
+        },
+        name ="test_fields",
     }
 }

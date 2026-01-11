@@ -10,6 +10,25 @@ use tera::Context;
 use tera::Tera;
 
 use chrono::{NaiveDate, NaiveDateTime};
+use country::Country;
+use postal_code::PostalCode;
+
+// --- FONCTION UTILITAIRE ---
+pub fn to_options(opts: Vec<(&str, &str)>) -> Vec<SelectOption> {
+    opts.into_iter()
+        .map(|(v, l): (&str, &str)| SelectOption {
+            // Type du tuple explicite
+            value: v.to_string(),
+            label: l.to_string(),
+        })
+        .collect::<Vec<SelectOption>>() // Type de collection explicite
+}
+
+// Struct utilitaire
+pub struct SelectOption {
+    pub value: String,
+    pub label: String,
+}
 
 pub trait RuniqueField {
     type Output;
@@ -17,7 +36,7 @@ pub trait RuniqueField {
     fn process(&self, raw_value: &str) -> Result<Self::Output, String>;
     fn template_name(&self) -> &str;
 
-    // Indique si on doit trimmer la valeur (utile pour ton Forms::field)
+    // Indique si on doit trimmer la valeur
     fn strip(&self) -> bool {
         true
     }
@@ -300,6 +319,9 @@ impl RuniqueField for IPAddressField {
     fn template_name(&self) -> &str {
         "ipaddress"
     }
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({ "type": "ip" })
+    }
 }
 
 pub struct JSONField;
@@ -327,6 +349,10 @@ impl RuniqueField for URLField {
             Err("L'URL doit commencer par http:// ou https://".to_string())
         }
     }
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({ "type": "domaine" })
+    }
+
     fn template_name(&self) -> &str {
         "url"
     }
@@ -377,11 +403,6 @@ impl RuniqueField for FileField {
     }
 }
 
-pub struct SelectOption {
-    pub value: String,
-    pub label: String,
-}
-
 pub struct SelectField {
     pub options: Vec<SelectOption>,
 }
@@ -403,8 +424,11 @@ impl RuniqueField for SelectField {
 
     fn get_context(&self) -> serde_json::Value {
         serde_json::json!({
-            "options": self.options.iter().map(|o| {
-                serde_json::json!({ "value": o.value, "label": o.label })
+            "options": self.options.iter().map(|o: &SelectOption| {
+                serde_json::json!({
+                    "value": o.value,
+                    "label": o.label
+                })
             }).collect::<Vec<_>>()
         })
     }
@@ -420,5 +444,553 @@ impl RuniqueField for HiddenField {
 
     fn template_name(&self) -> &str {
         "hidden"
+    }
+}
+
+// --- TEXTE AVANCÉ ---
+
+pub struct PhoneField;
+
+impl RuniqueField for PhoneField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        // Nettoie les espaces, tirets, parenthèses
+        let cleaned: String = raw_value
+            .chars()
+            .filter(|c| c.is_numeric() || *c == '+')
+            .collect();
+
+        // Validation basique : entre 8 et 15 chiffres
+        if cleaned.len() < 8 || cleaned.len() > 15 {
+            return Err("Numéro de téléphone invalide.".to_string());
+        }
+
+        Ok(cleaned)
+    }
+
+    fn template_name(&self) -> &str {
+        "tel"
+    }
+}
+
+pub struct ColorField;
+
+impl RuniqueField for ColorField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let val = raw_value.trim();
+
+        // Validation format hexadécimal #RRGGBB
+        let re = fancy_regex::Regex::new(r"^#[0-9A-Fa-f]{6}$").unwrap();
+
+        if !re.is_match(val).unwrap_or(false) {
+            return Err("Format de couleur invalide (attendu: #RRGGBB).".to_string());
+        }
+
+        Ok(val.to_lowercase())
+    }
+
+    fn template_name(&self) -> &str {
+        "color"
+    }
+}
+
+pub struct UUIDField;
+
+impl RuniqueField for UUIDField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let val = raw_value.trim().to_lowercase();
+
+        // Validation format UUID
+        let re = fancy_regex::Regex::new(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        )
+        .unwrap();
+
+        if !re.is_match(&val).unwrap_or(false) {
+            return Err("Format UUID invalide.".to_string());
+        }
+
+        Ok(val)
+    }
+
+    fn template_name(&self) -> &str {
+        "text"
+    }
+}
+
+// --- NUMÉRIQUE AVANCÉ ---
+
+pub struct DecimalField {
+    pub max_digits: usize,
+    pub decimal_places: usize,
+}
+
+impl DecimalField {
+    pub fn new(max_digits: usize, decimal_places: usize) -> Self {
+        Self {
+            max_digits,
+            decimal_places,
+        }
+    }
+}
+
+impl RuniqueField for DecimalField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let val = raw_value.replace(',', ".");
+
+        // Valide que c'est un nombre
+        let parsed: f64 = val
+            .parse()
+            .map_err(|_| "Veuillez entrer un nombre décimal valide.".to_string())?;
+
+        // Vérifie le nombre de décimales
+        let parts: Vec<&str> = val.split('.').collect();
+        if parts.len() > 1 && parts[1].len() > self.decimal_places {
+            return Err(format!(
+                "Maximum {} décimales autorisées.",
+                self.decimal_places
+            ));
+        }
+
+        // Vérifie le nombre total de chiffres
+        let total_digits = val.replace(['.', '-'], "").len();
+        if total_digits > self.max_digits {
+            return Err(format!("Maximum {} chiffres autorisés.", self.max_digits));
+        }
+
+        Ok(format!("{:.prec$}", parsed, prec = self.decimal_places))
+    }
+
+    fn template_name(&self) -> &str {
+        "number"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({
+            "step": format!("0.{:0>width$}1", "", width = self.decimal_places - 1)
+        })
+    }
+}
+
+pub struct RangeField {
+    pub min: i64,
+    pub max: i64,
+    pub step: i64,
+}
+
+impl RangeField {
+    pub fn new(min: i64, max: i64) -> Self {
+        Self { min, max, step: 1 }
+    }
+
+    pub fn with_step(min: i64, max: i64, step: i64) -> Self {
+        Self { min, max, step }
+    }
+}
+
+impl RuniqueField for RangeField {
+    type Output = i64;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let val: i64 = raw_value
+            .parse()
+            .map_err(|_| "Valeur numérique invalide.".to_string())?;
+
+        if val < self.min || val > self.max {
+            return Err(format!(
+                "La valeur doit être comprise entre {} et {}.",
+                self.min, self.max
+            ));
+        }
+
+        Ok(val)
+    }
+
+    fn template_name(&self) -> &str {
+        "range"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({
+            "min": self.min,
+            "max": self.max,
+            "step": self.step
+        })
+    }
+}
+
+pub struct PositiveIntegerField;
+
+impl RuniqueField for PositiveIntegerField {
+    type Output = u64;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let val: u64 = raw_value
+            .parse()
+            .map_err(|_| "Veuillez entrer un nombre entier positif.".to_string())?;
+
+        Ok(val)
+    }
+
+    fn template_name(&self) -> &str {
+        "number"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({ "min": 0 })
+    }
+}
+
+pub struct PercentageField;
+
+impl RuniqueField for PercentageField {
+    type Output = f64;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let val: f64 = raw_value
+            .replace(',', ".")
+            .parse()
+            .map_err(|_| "Veuillez entrer un nombre.".to_string())?;
+
+        if !(0.0..=100.0).contains(&val) {
+            return Err("Le pourcentage doit être entre 0 et 100.".to_string());
+        }
+
+        Ok(val)
+    }
+
+    fn template_name(&self) -> &str {
+        "number"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({
+            "min": 0,
+            "max": 100,
+            "step": 0.01
+        })
+    }
+}
+
+pub struct CurrencyField {
+    pub currency: String,
+    pub decimal_places: usize,
+}
+
+impl CurrencyField {
+    pub fn new(currency: &str) -> Self {
+        Self {
+            currency: currency.to_string(),
+            decimal_places: 2, // Par défaut 2 décimales pour la monnaie
+        }
+    }
+
+    pub fn with_decimal_places(currency: &str, decimal_places: usize) -> Self {
+        Self {
+            currency: currency.to_string(),
+            decimal_places,
+        }
+    }
+}
+
+impl RuniqueField for CurrencyField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let cleaned = raw_value
+            .replace(&self.currency, "")
+            .replace(' ', "")
+            .replace(',', ".");
+
+        let val: f64 = cleaned
+            .parse()
+            .map_err(|_| "Montant invalide.".to_string())?;
+
+        if val < 0.0 {
+            return Err("Le montant ne peut pas être négatif.".to_string());
+        }
+
+        // Formatte avec le nombre exact de décimales
+        Ok(format!("{:.prec$}", val, prec = self.decimal_places))
+    }
+
+    fn template_name(&self) -> &str {
+        "number"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({
+            "step": format!("0.{:0>width$}1", "", width = self.decimal_places.saturating_sub(1)),
+            "min": 0
+        })
+    }
+}
+
+// --- TEMPOREL AVANCÉ ---
+
+pub struct TimeField;
+
+impl RuniqueField for TimeField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        // Valide le format HH:MM ou HH:MM:SS
+        let re =
+            fancy_regex::Regex::new(r"^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$").unwrap();
+
+        if !re.is_match(raw_value).unwrap_or(false) {
+            return Err("Format d'heure invalide (HH:MM).".to_string());
+        }
+
+        Ok(raw_value.to_string())
+    }
+
+    fn template_name(&self) -> &str {
+        "time"
+    }
+}
+
+pub struct DurationField;
+
+impl RuniqueField for DurationField {
+    type Output = u64; // Durée en secondes
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let val = raw_value.to_lowercase();
+        let mut total_seconds = 0u64;
+
+        // Parse formats comme "2h30m", "90m", "1h", "3600s"
+        let re = fancy_regex::Regex::new(r"(\d+)([hms])").unwrap();
+
+        for cap in re.captures_iter(&val) {
+            if let Ok(capture) = cap {
+                let num: u64 = capture[1].parse().unwrap_or(0);
+                let unit = &capture[2];
+
+                total_seconds += match unit {
+                    "h" => num * 3600,
+                    "m" => num * 60,
+                    "s" => num,
+                    _ => 0,
+                };
+            }
+        }
+        Ok(total_seconds)
+    }
+
+    fn template_name(&self) -> &str {
+        "time"
+    }
+}
+
+// --- FICHIERS AVANCÉS ---
+
+pub struct ImageField {
+    pub max_size_mb: f64,
+}
+
+impl ImageField {
+    pub fn new() -> Self {
+        Self { max_size_mb: 5.0 }
+    }
+
+    pub fn with_max_size(max_size_mb: f64) -> Self {
+        Self { max_size_mb }
+    }
+}
+
+impl Default for ImageField {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RuniqueField for ImageField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        // Validation basique du nom de fichier
+        let lower = raw_value.to_lowercase();
+        let valid_extensions = [
+            "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico", "tiff", "tif", "avif",
+            "heic", "heif", "jfif", "pjpeg", "pjp", "apng", "png",
+        ];
+
+        if !valid_extensions.iter().any(|ext| lower.ends_with(ext)) {
+            return Err("Format d'image non supporté.".to_string());
+        }
+
+        Ok(raw_value.to_string())
+    }
+
+    fn template_name(&self) -> &str {
+        "file"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({
+            "accept": "image/*"
+        })
+    }
+}
+
+pub struct MultipleFileField {
+    pub accept: String,
+    pub max_files: usize,
+}
+
+impl MultipleFileField {
+    pub fn new(accept: &str) -> Self {
+        Self {
+            accept: accept.to_string(),
+            max_files: 10,
+        }
+    }
+
+    pub fn with_max_files(accept: &str, max_files: usize) -> Self {
+        Self {
+            accept: accept.to_string(),
+            max_files,
+        }
+    }
+}
+
+impl RuniqueField for MultipleFileField {
+    type Output = Vec<String>;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let files: Vec<String> = raw_value
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        if files.len() > self.max_files {
+            return Err(format!("Maximum {} fichiers autorisés.", self.max_files));
+        }
+        if files.is_empty() {
+            return Err("Aucun fichier sélectionné.".to_string());
+        }
+        Ok(files)
+    }
+
+    fn template_name(&self) -> &str {
+        "file-multiple"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({
+            "accept": self.accept,
+            "max_files": self.max_files
+        })
+    }
+}
+
+// --- RELATIONNEL/CHOIX ---
+
+pub struct MultipleChoiceField {
+    pub options: Vec<SelectOption>,
+}
+
+impl RuniqueField for MultipleChoiceField {
+    type Output = Vec<String>;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let selected: Vec<String> = raw_value
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        // Vérifie que toutes les valeurs sont valides
+        for val in &selected {
+            if !self.options.iter().any(|o| &o.value == val) {
+                return Err(format!("Option invalide: {}", val));
+            }
+        }
+
+        if selected.is_empty() {
+            return Err("Veuillez sélectionner au moins une option.".to_string());
+        }
+
+        Ok(selected)
+    }
+
+    fn template_name(&self) -> &str {
+        "select-multiple"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        serde_json::json!({
+            "options": self.options.iter().map(|o: &SelectOption| { // Ajout du type explicite ici
+                serde_json::json!({
+                    "value": o.value,
+                    "label": o.label
+                })
+            }).collect::<Vec<serde_json::Value>>() // Préciser le type de collection aide aussi
+        })
+    }
+}
+
+pub struct RadioSelectField {
+    pub options: Vec<SelectOption>,
+}
+
+impl RuniqueField for RadioSelectField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        if self.options.iter().any(|o| o.value == raw_value) {
+            Ok(raw_value.to_string())
+        } else {
+            Err("Option invalide".to_string())
+        }
+    }
+
+    fn template_name(&self) -> &str {
+        "radio"
+    }
+
+    fn get_context(&self) -> serde_json::Value {
+        let opts: Vec<serde_json::Value> = self
+            .options
+            .iter()
+            .map(|o: &SelectOption| serde_json::json!({ "value": o.value, "label": o.label }))
+            .collect();
+        serde_json::json!({ "options": opts })
+    }
+}
+
+pub struct PostalCodeField {
+    pub country: Country,
+}
+
+impl PostalCodeField {
+    pub fn new(country: Country) -> Self {
+        Self { country }
+    }
+}
+
+impl RuniqueField for PostalCodeField {
+    type Output = String;
+
+    fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
+        let val = raw_value.trim();
+
+        match PostalCode::new(self.country, val) {
+            Ok(postal_code) => Ok(postal_code.to_string()),
+            Err(_) => Err("Code postal invalide pour le pays sélectionné.".to_string()),
+        }
+    }
+
+    fn template_name(&self) -> &str {
+        "text"
     }
 }

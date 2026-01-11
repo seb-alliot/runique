@@ -2,6 +2,9 @@ use crate::forms::UsernameForm;
 use crate::models::users;
 use crate::models::users::Entity as User;
 use crate::models::users::ModelForm;
+
+use crate::forms::TestFieldsForm;
+
 use runique::axum::Extension;
 use runique::prelude::*;
 use std::sync::Arc;
@@ -40,7 +43,6 @@ pub async fn user_profile_submit(
     template: Template,
     ExtractForm(mut register_form): ExtractForm<ModelForm>,
 ) -> Response {
-    // 1. Vérifier la validation de base
     if register_form.is_valid() {
         // 2. Essayer de sauvegarder en BDD
         match register_form.save(&db).await {
@@ -128,7 +130,6 @@ pub async fn view_user(
     }
 }
 
-/// Page "À propos"
 pub async fn about(template: Template, mut message: Message) -> Response {
     success!(message => "Ceci est un message de succès de test.");
     info!(message => "Ceci est un message d'information de test.");
@@ -142,8 +143,64 @@ pub async fn about(template: Template, mut message: Message) -> Response {
     template.render("about/about.html", &ctx)
 }
 
-/// Ajax test CSRF
 pub async fn test_csrf(mut message: Message) -> Response {
     success!(message => "CSRF token validé avec succès !");
     Redirect::to("/").into_response()
+}
+
+pub async fn show_form(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
+    let test_form = TestFieldsForm::build(tera.clone());
+
+    let ctx = context! {
+        "title" => "Test des champs",
+        "test_form" => test_form
+    };
+    template.render("test-field/test.html", &ctx)
+}
+
+pub async fn submit_form(
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    mut message: Message,
+    template: Template,
+    ExtractForm(mut test_form): ExtractForm<TestFieldsForm>,
+) -> Response {
+    println!("données du formulaire reçues: {:?}", test_form.get_form());
+    // 1. Vérifier la validation
+    if test_form.is_valid() {
+        // 2. Sauvegarder en BDD
+        match test_form.save(&db).await {
+            Ok(saved_data) => {
+                success!(message => "Formulaire sauvegardé avec succès !");
+
+                // Debug: afficher les données
+                println!("📝 Données sauvegardées:");
+                println!("  ID: {}", saved_data.id);
+                println!("  Phone: {}", saved_data.phone);
+                println!("  Color: {}", saved_data.color);
+                println!("  UUID: {}", saved_data.uuid);
+                println!("  Price: {}", saved_data.price);
+                println!("  Rating: {}", saved_data.rating);
+                println!("  Quantity: {}", saved_data.quantity);
+
+                return Redirect::to("/test-fields").into_response();
+            }
+            Err(db_err) => {
+                // Gérer les erreurs de base de données
+                test_form.get_form_mut().handle_database_error(&db_err);
+                println!(
+                    "❌ Erreur lors de la sauvegarde en base de données: {:?}",
+                    db_err
+                );
+            }
+        }
+    } else {
+        warning!(message => "Veuillez corriger les erreurs");
+    }
+
+    // Ré-afficher le formulaire avec les erreurs
+    let ctx = context! {
+        "title" => "Test des champs",
+        "test_form" => test_form
+    };
+    template.render("test-field/test.html", &ctx)
 }
