@@ -23,10 +23,15 @@ jobs:
         run: cargo install cargo-audit
 
       - name: Security Audit
-        # On ignore l'alerte spécifique ici
-        run: cargo audit --ignore RUSTSEC-2024-0384
+        # On ignore les vulnérabilités connues sans fix disponible
+        run: |
+          cargo audit \
+            --ignore RUSTSEC-2023-0071 \
+            --ignore RUSTSEC-2025-0052 \
+            --ignore RUSTSEC-2024-0384
 
       - name: Publish to crates.io
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+        working-directory: runique
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
