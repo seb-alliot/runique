@@ -5,11 +5,16 @@
     <select
         name="{{ name }}"
         id="id_{{ name }}"
-        class="form-control {% if error %}is-invalid{% endif %}"
+        {# Utilisation de form-select pour la flèche Bootstrap #}
+        class="form-select {% if error %}is-invalid{% endif %}"
         {% if required %}required{% endif %}>
-        <option value="">-- Sélectionner --</option>
+
+        <option value="" {% if not value %}selected{% endif %}>-- Sélectionner --</option>
+
         {% for option in options %}
-            <option value="{{ option.value }}" {% if option.value == value %}selected{% endif %}>
+            <option
+                value="{{ option.value }}"
+                {% if option.value == value %}selected{% endif %}>
                 {{ option.label }}
             </option>
         {% endfor %}

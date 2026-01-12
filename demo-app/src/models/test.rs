@@ -29,7 +29,7 @@ pub struct Model {
     pub duration: i64,        // DurationField (en secondes)
 
     // Fichiers
-    pub profile_image: String, // ImageField
+    pub image: String, // ImageField
     pub attachments: String,   // MultipleFileField (stocké en JSON)
 
     // Choix
