@@ -1,5 +1,5 @@
-use crate::formulaire::field::RuniqueField;
 use crate::formulaire::composant_field::utils::upload::UploadConfig;
+use crate::formulaire::field::RuniqueField;
 
 pub struct FileField {
     pub accept: String,

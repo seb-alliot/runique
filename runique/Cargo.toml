@@ -69,7 +69,8 @@ fancy-regex.workspace = true
 postal-code.workspace = true
 country.workspace = true
 uuid.workspace = true
-
+url.workspace = true
+phonenumber.workspace = true
 
 # Logging
 tracing.workspace = true

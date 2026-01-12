@@ -18,14 +18,11 @@ pub struct ExtractForm<T>(pub T);
 
 fn sanitize_filename(original: &str) -> String {
     let path = Path::new(original);
-    let stem = path.file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("file");
-    let ext = path.extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("bin");
+    let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("bin");
 
-    let clean_stem: String = stem.chars()
+    let clean_stem: String = stem
+        .chars()
         .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
         .take(50)
         .collect();
@@ -66,7 +63,11 @@ where
 
             // Créer le dossier uploads si nécessaire
             std::fs::create_dir_all("./static/uploads").map_err(|_| {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Impossible de créer uploads/").into_response()
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Impossible de créer uploads/",
+                )
+                    .into_response()
             })?;
 
             while let Ok(Some(field)) = multipart.next_field().await {
@@ -75,7 +76,8 @@ where
                 if let Some(file_name) = field.file_name().map(|s| s.to_string()) {
                     if !file_name.is_empty() {
                         let data = field.bytes().await.map_err(|_| {
-                            (StatusCode::INTERNAL_SERVER_ERROR, "Erreur lecture fichier").into_response()
+                            (StatusCode::INTERNAL_SERVER_ERROR, "Erreur lecture fichier")
+                                .into_response()
                         })?;
 
                         // Génère un nom sécurisé
@@ -84,7 +86,11 @@ where
 
                         // Sauvegarde
                         std::fs::write(&path, &data).map_err(|_| {
-                            (StatusCode::INTERNAL_SERVER_ERROR, "Erreur sauvegarde fichier").into_response()
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                "Erreur sauvegarde fichier",
+                            )
+                                .into_response()
                         })?;
 
                         // Accumulation pour fichiers multiples
@@ -127,7 +133,6 @@ where
             if session_secret != token_de_la_requete {
                 return Err((StatusCode::FORBIDDEN, "Invalid CSRF token").into_response());
             }
-
         } else {
             // URL-encoded et JSON sont déjà validés par le middleware
             let bytes = req

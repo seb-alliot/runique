@@ -5,7 +5,7 @@ pub fn to_options(opts: Vec<(&str, &str)>) -> Vec<SelectOption> {
     opts.into_iter()
         .map(|(v, l)| SelectOption {
             value: v.to_string(),
-            label: l.to_string()
+            label: l.to_string(),
         })
         .collect()
 }

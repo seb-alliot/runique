@@ -1,0 +1,36 @@
+<div class="field-group mb-3 js-phone-wrapper">
+    <label for="id_{{ name }}" class="form-label">
+        {{ label }}{% if required %} *{% endif %}
+    </label>
+
+    <div class="input-group">
+        <input
+            type="text"
+            id="prefix_{{ name }}"
+            class="form-control js-phone-prefix"
+            style="max-width: 80px; text-transform: uppercase;"
+            placeholder="{{ default_country | default(value='FR') }}"
+            value="{{ country_value | default(value='') }}"
+            maxlength="3">
+
+        <input
+            type="tel"
+            id="raw_{{ name }}"
+            class="form-control js-phone-number {% if error %}is-invalid{% endif %}"
+            placeholder="+33 6 12 34 56 78"
+            value="{{ value_phone_part | default(value='') }}">
+    </div>
+
+    <input
+        type="hidden"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        value="{{ value | default(value='') }}"
+        class="js-phone-hidden">
+
+    {% if error %}
+        <div class="invalid-feedback d-block">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>

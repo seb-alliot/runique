@@ -1,6 +1,5 @@
 use crate::formulaire::field::RuniqueField;
 
-
 pub struct ColorField;
 
 impl RuniqueField for ColorField {

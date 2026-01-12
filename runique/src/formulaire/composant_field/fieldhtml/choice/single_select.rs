@@ -2,7 +2,6 @@ use crate::formulaire::field::RuniqueField;
 use crate::formulaire::field::SelectOption;
 use serde_json::Value;
 
-
 pub struct SelectField {
     pub options: Vec<SelectOption>,
 }
