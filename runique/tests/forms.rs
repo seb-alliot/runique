@@ -1,6 +1,6 @@
 use runique::formulaire::{
-    field::{CharField, EmailField, IntegerField},
-    formsrunique::{Forms, RuniqueForm},
+    field_folder::fieldhtml::{CharField, EmailField, IntegerField},
+    forms::{Forms, RuniqueForm},
 };
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -1,7 +1,5 @@
 <div class="field-group mb-3">
-    <label
-        for="id_{{ name }}"
-        class="form-label">
+    <label for="id_{{ name }}" class="form-label">
         {{ label }}
     </label>
 
@@ -17,6 +15,15 @@
         class="form-control {% if error %}is-invalid{% endif %}"
         {% if accept %}accept="{{ accept }}"{% endif %}
         placeholder="{{ p_text }}">
+
+    {% if value and value != "" %}
+        <div class="mt-2 p-2 bg-light rounded">
+            <small class="text-muted">📎 Fichier actuel :</small>
+            <a href="/static/uploads/{{ value }}" target="_blank" class="ms-2">
+                {{ value }}
+            </a>
+        </div>
+    {% endif %}
 
     {% if error %}
         <div class="invalid-feedback">

@@ -68,6 +68,7 @@ serde_urlencoded.workspace = true
 fancy-regex.workspace = true
 postal-code.workspace = true
 country.workspace = true
+uuid.workspace = true
 
 
 # Logging

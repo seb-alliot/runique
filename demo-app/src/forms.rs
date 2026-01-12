@@ -1,7 +1,8 @@
 use crate::models::test;
 use crate::sea_orm::DbErr;
+
+
 use runique::formulaire::field::{
-    to_options, // ✅ Ajout de TextField
     CharField,
     ColorField,
     CurrencyField,
@@ -83,7 +84,7 @@ impl RuniqueForm for TestFieldsForm {
         form.register_field("phone", "Téléphone", &PhoneField);
         form.register_field("color", "Couleur", &ColorField);
         form.register_field("uuid", "UUID", &UUIDField);
-        form.register_field("description", "Description", &TextField::new()); // ✅ Minuscule
+        form.register_field("description", "Description", &TextField::new());
         form.register_field(
             "postal_code",
             "Code Postal",
@@ -154,11 +155,11 @@ impl RuniqueForm for TestFieldsForm {
         form.optional("opening_time", &TimeField, raw_data);
         form.optional("duration", &DurationField, raw_data);
 
-        // FICHIERS - Optional ✅
-        form.optional("profile_image", &ImageField::new(), raw_data);
+        // FICHIERS - Optional
+        form.optional("image", &ImageField::new(), raw_data);
         form.optional("attachments", &MultipleFileField::new("*/*"), raw_data);
 
-        // CHOIX - Optional ✅
+        // CHOIX - Optional
         form.optional(
             "preferences",
             &MultipleChoiceField {
@@ -231,7 +232,7 @@ impl TestFieldsForm {
                 .unwrap_or(0)),
 
             // FICHIERS
-            profile_image: Set(f.get_value("profile_image").unwrap_or_default()),
+            image: Set(f.get_value("image").unwrap_or_default()),
             attachments: Set(f.get_value("attachments").unwrap_or_default()),
 
             // CHOIX
