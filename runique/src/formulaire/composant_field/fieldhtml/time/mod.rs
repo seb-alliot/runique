@@ -1,5 +1,5 @@
-mod time;
 mod duration;
+mod time;
 
-pub use time::TimeField;
 pub use duration::DurationField;
+pub use time::TimeField;

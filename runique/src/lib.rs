@@ -147,11 +147,11 @@ pub mod prelude {
     pub use crate::{error, flash_now, info, success, warning};
 
     // === Formulaires ===
-    pub use crate::formulaire::extracteur::ExtractForm;
+    pub use crate::formulaire::composant_field::utils::to_option_form::to_options;
     pub use crate::formulaire::composant_field::*;
+    pub use crate::formulaire::extracteur::ExtractForm;
     pub use crate::formulaire::formsrunique::{Forms, RuniqueForm};
     pub use crate::runique_form;
-    pub use crate::formulaire::composant_field::utils::to_option_form::to_options;
     pub use crate::tera;
     pub use crate::DeriveModelForm;
     pub use country::Country;

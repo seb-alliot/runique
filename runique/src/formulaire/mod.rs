@@ -1,10 +1,9 @@
 pub mod composant_field;
+pub mod extracteur;
 pub mod field;
 pub mod formsrunique;
-pub mod extracteur;
 pub mod sanetizer;
 pub use sanetizer::{auto_sanitize, is_dangerous, is_sensitive_field};
-
 
 // Ré-exportations pour un usage plus simple
 pub use extracteur::ExtractForm;

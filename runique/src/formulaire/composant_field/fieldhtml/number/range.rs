@@ -8,11 +8,7 @@ pub struct RangeField {
 
 impl RangeField {
     pub fn new(min: i64, max: i64) -> Self {
-        Self {
-            min,
-            max,
-            step: 1
-        }
+        Self { min, max, step: 1 }
     }
 
     pub fn with_step(min: i64, max: i64, step: i64) -> Self {
@@ -29,7 +25,10 @@ impl RuniqueField for RangeField {
             .map_err(|_| "Valeur numérique invalide.".to_string())?;
 
         if val < self.min || val > self.max {
-            return Err(format!("La valeur doit être comprise entre {} et {}.", self.min, self.max));
+            return Err(format!(
+                "La valeur doit être comprise entre {} et {}.",
+                self.min, self.max
+            ));
         }
 
         Ok(val)

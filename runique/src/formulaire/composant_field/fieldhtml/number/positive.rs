@@ -1,6 +1,5 @@
 use crate::formulaire::field::RuniqueField;
 
-
 pub struct PositiveIntegerField;
 
 impl PositiveIntegerField {

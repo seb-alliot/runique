@@ -19,9 +19,7 @@ impl UploadConfig {
     }
 
     pub fn get_path(&self) -> String {
-        self.path
-            .clone()
-            .unwrap_or_else(|| "uploads/".to_string())
+        self.path.clone().unwrap_or_else(|| "uploads/".to_string())
     }
 }
 

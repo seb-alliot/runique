@@ -1,5 +1,5 @@
+use crate::formulaire::composant_field::utils::upload::UploadConfig;
 use crate::formulaire::field::RuniqueField;
-use crate::formulaire::field_folder::utils::upload::UploadConfig;
 use serde_json::Value;
 
 pub struct ImageField {
@@ -11,14 +11,14 @@ impl ImageField {
     pub fn new() -> Self {
         Self {
             max_size_mb: 5.0,
-            upload_to: UploadConfig::new()
+            upload_to: UploadConfig::new(),
         }
     }
 
     pub fn with_max_size(max_size_mb: f64) -> Self {
         Self {
             max_size_mb,
-            upload_to: UploadConfig::new()
+            upload_to: UploadConfig::new(),
         }
     }
 
@@ -49,12 +49,8 @@ impl RuniqueField for ImageField {
 
         let lower = raw_value.to_lowercase();
         let valid_extensions = [
-            ".jpg", ".jpeg", ".jpe", ".jif", ".jfif", ".pjpeg", ".pjp",
-            ".png", ".apng",
-            ".gif", ".webp", ".svg", ".avif",
-            ".bmp", ".ico",
-            ".tiff", ".tif",
-            ".heic", ".heif",
+            ".jpg", ".jpeg", ".jpe", ".jif", ".jfif", ".pjpeg", ".pjp", ".png", ".apng", ".gif",
+            ".webp", ".svg", ".avif", ".bmp", ".ico", ".tiff", ".tif", ".heic", ".heif",
         ];
 
         if !valid_extensions.iter().any(|ext| lower.ends_with(ext)) {

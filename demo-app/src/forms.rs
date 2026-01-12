@@ -1,25 +1,10 @@
 use crate::models::test;
 use crate::sea_orm::DbErr;
 
-
 use runique::formulaire::field::{
-    CharField,
-    ColorField,
-    CurrencyField,
-    DecimalField,
-    DurationField,
-    ImageField,
-    MultipleChoiceField,
-    MultipleFileField,
-    PercentageField,
-    PhoneField,
-    PositiveIntegerField,
-    PostalCodeField,
-    RadioSelectField,
-    RangeField,
-    TextField,
-    TimeField,
-    UUIDField,
+    CharField, ColorField, CurrencyField, DecimalField, DurationField, ImageField,
+    MultipleChoiceField, MultipleFileField, PercentageField, PhoneField, PositiveIntegerField,
+    PostalCodeField, RadioSelectField, RangeField, TextField, TimeField, UUIDField,
 };
 use runique::prelude::*;
 use runique::Country;

@@ -1,5 +1,5 @@
+use crate::formulaire::composant_field::utils::clean_slug_accent::remove_accents;
 use crate::formulaire::field::RuniqueField;
-use crate::formulaire::field_folder::utils::clean_slug_accent::remove_accents;
 
 pub struct SlugField;
 
@@ -18,7 +18,6 @@ impl RuniqueField for SlugField {
     type Output = String;
 
     fn process(&self, raw_value: &str) -> Result<Self::Output, String> {
-
         let slug = remove_accents(raw_value)
             .to_lowercase()
             .replace(|c: char| !c.is_alphanumeric(), "-")

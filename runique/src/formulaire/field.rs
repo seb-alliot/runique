@@ -2,7 +2,6 @@ use serde_json::Value;
 use tera::Context;
 use tera::Tera;
 
-
 pub struct SelectOption {
     pub value: String,
     pub label: String,
@@ -51,24 +50,3 @@ pub trait RuniqueField {
             .unwrap_or_else(|e| format!("Erreur Tera ({}): {}", self.template_name(), e))
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

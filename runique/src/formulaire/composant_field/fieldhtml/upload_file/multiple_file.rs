@@ -1,5 +1,5 @@
-use crate::formulaire::field::RuniqueField;
 use crate::formulaire::composant_field::utils::upload::UploadConfig;
+use crate::formulaire::field::RuniqueField;
 use serde_json::Value;
 
 pub struct MultipleFileField {

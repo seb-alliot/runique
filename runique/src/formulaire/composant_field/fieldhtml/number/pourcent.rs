@@ -23,6 +23,10 @@ impl RuniqueField for PercentageField {
             .parse()
             .map_err(|_| "Veuillez entrer un nombre.".to_string())?;
 
+        if val < -100.0 || val > 100.0 {
+            return Err("Le pourcentage doit être entre -100 et 100.".to_string());
+        }
+
         Ok(val)
     }
 
@@ -32,7 +36,10 @@ impl RuniqueField for PercentageField {
 
     fn get_context(&self) -> serde_json::Value {
         serde_json::json!({
-            "step": 0.01
+            "step": 0.01,
+            "min": -100,
+            "max": 100,
+            "value": 0  // Valeur par défaut
         })
     }
 }

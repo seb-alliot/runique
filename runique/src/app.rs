@@ -357,7 +357,10 @@ impl RuniqueApp {
         // Nouveaux champs
         tera.add_raw_template("color", include_str!("../templates/formulaire/color.html"))?;
         tera.add_raw_template("time", include_str!("../templates/formulaire/time.html"))?;
-        tera.add_raw_template("tel", include_str!("../templates/formulaire/telephon.html"))?;
+        tera.add_raw_template(
+            "telephone",
+            include_str!("../templates/formulaire/phone/telephone.html"),
+        )?;
         tera.add_raw_template("range", include_str!("../templates/formulaire/range.html"))?;
         tera.add_raw_template("radio", include_str!("../templates/formulaire/radio.html"))?;
         tera.add_raw_template(

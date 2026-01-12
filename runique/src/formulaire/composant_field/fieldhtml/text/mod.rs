@@ -1,11 +1,13 @@
 mod char;
+mod email;
 mod password;
+mod phone;
 mod postal;
 mod text;
-mod email;
 
 pub use char::CharField;
+pub use email::EmailField;
 pub use password::PasswordField;
+pub use phone::PhoneField;
 pub use postal::PostalCodeField;
 pub use text::TextField;
-pub use email::EmailField;
