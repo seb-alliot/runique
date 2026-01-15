@@ -1,295 +1,227 @@
 /* =========================
-   FORMULAIRE TEST FIELDS
+   VARIABLES & THEME
    ========================= */
-
-/* Conteneur principal du formulaire */
-.form-container {
-    max-width: 900px;
-    margin: 20px auto;
-    padding: 0;
-}
-
-.main-title {
-    text-align: center;
-    font-size: 2.5rem;
-    margin-bottom: 2rem;
-    color: var(--accent);
-    font-weight: 800;
-}
-
-/* Sections du formulaire */
-.section-title {
-    color: var(--accent);
-    font-weight: 700;
-    margin-top: 2rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 3px solid var(--accent);
-    font-size: 1.5rem;
-}
-
-.section-title:first-of-type {
-    margin-top: 0;
-}
-
-/* La grille pour chaque field-group */
-.field-group {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 20px;
-    row-gap: 10px;
-    align-items: start;
-    margin-bottom: 1.5rem;
-}
-
-/* Label */
-.field-group .form-label {
-    grid-column: 1;
-    font-weight: 600;
-    color: var(--text-main);
-    margin: 0;
-    padding-top: 8px;
-}
-
-/* Input */
-.field-group .form-control,
-.field-group input,
-.field-group select,
-.field-group textarea {
-    grid-column: 2;
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid #374151;
-    background: var(--bg-input, #1f2937);
-    color: var(--text-main);
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-}
-
-.field-group input:focus,
-.field-group select:focus,
-.field-group textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-/* Erreurs de validation */
-.error-row {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
-}
-
-.field-error,
-.invalid-feedback {
-    padding: 0.5rem 0.75rem;
-    background: rgba(239, 68, 68, 0.1);
-    border-left: 3px solid #ef4444;
-    color: #fecaca;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border-radius: 0.25rem;
-}
-
-/* Pour les champs en ligne (row) */
-.row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.row .field-group {
-    margin-bottom: 0;
-}
-
-/* Bouton submit */
-.btn-submit {
-    margin-top: 2rem;
-    padding: 12px 40px;
-    background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-}
-
-.btn-submit:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
-}
-
-.btn-submit:active {
-    transform: translateY(0);
-}
-
-/* Lien retour */
-.text-center a {
-    color: var(--text-muted);
-    text-decoration: none;
-    font-size: 0.95rem;
-    transition: color 0.2s ease;
-}
-
-.text-center a:hover {
-    color: var(--accent);
-}
-
-/* Champs de fichier */
-input[type="file"] {
-    padding: 8px 12px !important;
-    cursor: pointer;
-}
-
-input[type="file"]::file-selector-button {
-    padding: 6px 12px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-right: 10px;
-    font-weight: 500;
-}
-
-input[type="file"]::file-selector-button:hover {
-    background: #7c3aed;
-}
-
-/* Checkbox et Radio */
-input[type="checkbox"],
-input[type="radio"] {
-    width: auto !important;
-    margin-right: 8px;
-    cursor: pointer;
-}
-
-/* Select multiple */
-select[multiple] {
-    min-height: 120px;
-}
-
-/* Textarea */
-textarea {
-    min-height: 100px;
-    resize: vertical;
-    font-family: inherit;
+:root {
+    --bg-main: #0f1216;
+    --bg-header: #111827;
+    --bg-card: #111827;
+    --bg-input: #1f2937;
+    --bg-footer: #0f1216;
+    --text-main: #f9fafb;
+    --text-muted: #9ca3af;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --border-color: #374151;
+    --error-color: #ef4444;
+    --success-color: #22c55e;
 }
 
 /* =========================
-   RESPONSIVE
+   STRUCTURE GLOBALE
    ========================= */
+body {
+    background: var(--bg-main);
+    color: var(--text-main);
+}
 
-/* Tablettes */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 4rem 1rem;
+}
+
+.form-container {
+    width: 100%;
+    max-width: 900px;
+    background: var(--bg-card);
+    padding: 3rem;
+    border-radius: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
 @media (max-width: 768px) {
     .form-container {
-        max-width: 100%;
-        padding: 0 1rem;
-    }
-
-    .main-title {
-        font-size: 2rem;
-    }
-
-    .section-title {
-        font-size: 1.3rem;
-        margin-top: 1.5rem;
-    }
-
-    .field-group {
-        grid-template-columns: 120px 1fr;
-        column-gap: 15px;
-    }
-
-    .row {
-        grid-template-columns: 1fr;
-    }
-
-    .btn-submit {
-        padding: 10px 30px;
-        font-size: 1rem;
+        padding: 1.5rem;
     }
 }
-
-/* Mobile */
-@media (max-width: 480px) {
-    .main-title {
-        font-size: 1.6rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .section-title {
-        font-size: 1.2rem;
-        margin-top: 1.25rem;
-        margin-bottom: 1rem;
-    }
-
-    .field-group {
-        grid-template-columns: 1fr;
-        row-gap: 6px;
-        margin-bottom: 1.25rem;
-    }
-
-    .field-group .form-label {
-        text-align: left;
-        font-size: 0.9rem;
-        padding-top: 0;
-    }
-
-    .field-group .form-control,
-    .field-group input,
-    .field-group select,
-    .field-group textarea {
-        grid-column: 1;
-        padding: 8px 12px;
-    }
-
-    .error-row {
-        grid-column: 1;
-    }
-
-    .row {
-        gap: 1rem;
-    }
-
-    .btn-submit {
-        width: 100%;
-        padding: 12px;
-        font-size: 1rem;
-    }
-
-    input[type="file"]::file-selector-button {
-        font-size: 0.85rem;
-        padding: 5px 10px;
-    }
+/* =========================
+    TITRES
+   ========================= */
+.main-title {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(to right, var(--accent), #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-/* Très petit mobile */
-@media (max-width: 360px) {
-    .main-title {
-        font-size: 1.4rem;
-    }
+.section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
 
-    .section-title {
-        font-size: 1.1rem;
-    }
+/* =========================
+    FORMULAIRE
+   ========================= */
+form {
+    width: 100%;
+}
 
-    .field-group .form-label {
-        font-size: 0.85rem;
-    }
+.field-group {
+    margin-bottom: 1.5rem;
+}
 
-    .field-group input,
-    .field-group select,
-    .field-group textarea {
-        font-size: 0.9rem;
-    }
+.form-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* =========================
+    INPUTS
+   ========================= */
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+textarea.form-control {
+    min-height: 120px;
+}
+
+input[type="color"] {
+    height: 45px;
+}
+
+input[type="range"] {
+    accent-color: var(--accent);
+}
+
+/* =========================
+    ERREURS
+   ========================= */
+.field-error {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid var(--error-color);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.invalid-feedback {
+    color: var(--error-color);
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+}
+
+/* =========================
+    BOUTON
+   ========================= */
+.btn-submit {
+    background: var(--accent);
+    padding: 0.9rem 2.5rem;
+    border-radius: 0.9rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+/* =========================
+    LIENS
+   ========================= */
+a {
+    color: var(--accent);
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* =========================
+    SECTIONS FORMULAIRE
+   ========================= */
+.form-section {
+    margin-bottom: 2.5rem;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 1.5rem;
+}
+
+.form-section .row {
+    margin-bottom: 1rem;
+}
+
+.form-section .row:last-child {
+    margin-bottom: 0;
+}
+
+/* =========================
+    ALIGNEMENT
+   ========================= */
+.text-center {
+    text-align: center;
+}
+
+.text-center.mt-3 {
+    margin-top: 1rem;
+}
+
+.text-center.mt-3 a {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
+
+.text-center.mt-3 a:hover {
+    color: var(--accent);
+}
+
+/* =========================
+    GRILLE RESPONSIVE
+   ========================= */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -0.5rem;
+}
+
+[class^="col-"] {
+    padding: 0.5rem;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .col-md-6 { width: 50%; }
+    .col-md-4 { width: 33.333%; }
 }

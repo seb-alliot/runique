@@ -1,0 +1,35 @@
+<div class="field-group mb-3">
+    <label for="id_{{ name }}" class="form-label">
+        {{ label | default(value=name) }}
+    </label>
+
+    {# Logique du Placeholder spécifique à l'UUID #}
+    {% set p_text = placeholder | default(value="00000000-0000-0000-0000-000000000000") %}
+
+    {# Préparation de la valeur (UUID propre) #}
+    {% set display_value = value | default(value='') %}
+
+    <input
+        type="text"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        value="{{ display_value }}"
+        class="form-control {% if error %}is-invalid{% endif %}"
+        placeholder="{{ p_text }}"
+        {# Pattern HTML5 pour valider le format UUID standard #}
+        {% if field_type == "uuid" %}
+            pattern="^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            title="Veuillez entrer un UUID valide (ex: 550e8400-e29b-41d4-a716-446655440000)"
+        {% endif %}
+        {% if not allow_blank %}required{% endif %}>
+
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <small class="form-text text-muted">
+        Format attendu : 8-4-4-4-12 caractères hexadécimaux.
+    </small>
+</div>

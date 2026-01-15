@@ -25,7 +25,7 @@ cargo install sea-orm-cli --no-default-features \
     --features cli,runtime-tokio-rustls,sqlite
 ```
 
-Cela prend environ 2-3 minutes au lieu de 5-10 minutes.
+Cela prend quelques minutes.
 
 </details>
 

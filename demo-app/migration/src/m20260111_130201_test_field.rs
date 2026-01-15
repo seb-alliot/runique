@@ -1,4 +1,3 @@
-// migration/m20260111_130201_test_fields.rs
 // Migration pour créer la table de test des nouveaux fields
 
 use sea_orm_migration::prelude::*;
@@ -27,23 +26,15 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(TestFields::Uuid).string().not_null())
                     .col(ColumnDef::new(TestFields::Description).text().not_null())
                     .col(ColumnDef::new(TestFields::PostalCode).string().not_null())
-                    // Numérique avancé
-                    .col(ColumnDef::new(TestFields::Price).string().not_null())
-                    .col(ColumnDef::new(TestFields::Rating).big_integer().not_null())
-                    .col(
-                        ColumnDef::new(TestFields::Quantity)
-                            .big_integer()
-                            .not_null(),
-                    )
+                    // Numérique
+                    .col(ColumnDef::new(TestFields::Price).double().not_null())
+                    .col(ColumnDef::new(TestFields::Rating).integer().not_null())
+                    .col(ColumnDef::new(TestFields::Quantity).integer().not_null())
                     .col(ColumnDef::new(TestFields::Discount).double().not_null())
                     .col(ColumnDef::new(TestFields::Amount).string().not_null())
-                    // Temporel avancé
+                    // Temporel
                     .col(ColumnDef::new(TestFields::OpeningTime).string().not_null())
-                    .col(
-                        ColumnDef::new(TestFields::Duration)
-                            .big_integer()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(TestFields::Duration).big_integer().not_null())
                     // Fichiers
                     .col(ColumnDef::new(TestFields::ProfileImage).string().not_null())
                     .col(ColumnDef::new(TestFields::Attachments).text().not_null())
@@ -51,7 +42,9 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(TestFields::Preferences).text().not_null())
                     .col(ColumnDef::new(TestFields::Subscription).string().not_null())
                     // Meta
-                    .col(ColumnDef::new(TestFields::CreatedAt).timestamp().not_null())
+                    .col(ColumnDef::new(TestFields::CreatedAt).timestamp().default(Expr::current_timestamp())
+                            .not_null()
+                    )
                     .to_owned(),
             )
             .await
@@ -69,9 +62,9 @@ enum TestFields {
     Table,
     Id,
     Phone,
-    Description,
     Color,
     Uuid,
+    Description,
     PostalCode,
     Price,
     Rating,

@@ -1,7 +1,8 @@
 use runique::formulaire::{
-    field_folder::fieldhtml::{CharField, EmailField, IntegerField},
-    forms::{Forms, RuniqueForm},
+    composant_field::*,
+    RuniqueForm,
 };
+use runique::Forms;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
@@ -99,7 +100,7 @@ fn test_require_field_missing() {
 #[test]
 fn test_emailfield_validation() {
     let mut form = Forms::new();
-    let field = EmailField;
+    let field = EmailField::allow_blank();
 
     form.field("email", &field, "TEST@Example.com");
 

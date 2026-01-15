@@ -1,7 +1,7 @@
 pub mod get_post;
 pub mod register_name_url;
 
-pub use register_name_url::{reverse, reverse_with_parameters};
+pub use register_name_url::{reverse, reverse_with_parameters, register_name_url};
 #[macro_export]
 macro_rules! urlpatterns {
     (

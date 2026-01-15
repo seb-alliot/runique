@@ -1,0 +1,19 @@
+<div class="field-group mb-3">
+    <label
+        for="id_{{ name }}"
+        class="form-label">
+        {{ label }}
+    </label>
+    <textarea
+        name="{{ name }}"
+        id="id_{{ name }}"
+        class="form-control font-monospace {% if error %}is-invalid{% endif %}"
+        style="background: #f8f9fa;">
+        {{ value | json_encode(pretty=true) | default(value='{}') }}
+    </textarea>
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>

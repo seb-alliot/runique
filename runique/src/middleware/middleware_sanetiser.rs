@@ -10,7 +10,7 @@ use http_body_util::BodyExt;
 use serde_json::Value;
 use std::sync::Arc;
 
-use crate::formulaire::sanetizer;
+use crate::formulaire::utils::sanitizer;
 use crate::settings::Settings;
 
 /// Middleware de sanitisation automatique des formulaires
@@ -82,12 +82,12 @@ fn sanitize_urlencoded_string(data: &str) -> String {
         .map(|pair| {
             if let Some((key, value)) = pair.split_once('=') {
                 // On vérifie si la CLÉ est sensible avant de toucher à la valeur
-                if sanetizer::is_sensitive_field(key) {
+                if sanitizer::is_sensitive_field(key) {
                     return pair.to_string();
                 }
 
                 let decoded = urlencoding::decode(value).unwrap_or_default();
-                let sanitized = sanetizer::auto_sanitize(&decoded);
+                let sanitized = sanitizer::auto_sanitize(&decoded);
                 let encoded = urlencoding::encode(&sanitized);
 
                 format!("{}={}", key, encoded)
@@ -131,8 +131,8 @@ async fn sanitize_json(request: Request) -> Request {
 fn sanitize_json_value(key: &str, value: &mut Value) {
     match value {
         Value::String(s) => {
-            if !sanetizer::is_sensitive_field(key) {
-                *s = sanetizer::auto_sanitize(s);
+            if !sanitizer::is_sensitive_field(key) {
+                *s = sanitizer::auto_sanitize(s);
             }
         }
         Value::Object(map) => {

@@ -1,0 +1,19 @@
+<div class="field-group mb-3">
+    <label for="id_{{ name }}" class="form-label">
+        {{ label }}
+    </label>
+    <input
+        type="range"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        min="{{ min }}"
+        max="{{ max }}"
+        step="{{ step }}"
+        value="{{ default }}"
+        class="form-range {% if error %}is-invalid{% endif %}">
+    {% if error %}
+        <div class="invalid-feedback d-block">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>

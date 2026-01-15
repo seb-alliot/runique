@@ -21,13 +21,17 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
         .iter()
         .filter(|f| !is_excluded(f))
         .map(|f| {
-            let field_name = &f.ident.as_ref().unwrap();
+            let field_name = f.ident.as_ref().unwrap();
             let field_name_str = field_name.to_string();
             let label = format_field_label(&field_name_str);
             let field_type = get_field_type(f);
 
             quote! {
-                form.register_field(#field_name_str, #label, &#field_type);
+                form.register_field(
+                    #field_name_str,
+                    #label,
+                    &::runique::prelude::#field_type::new()
+                );
             }
         })
         .collect();
@@ -47,46 +51,43 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
         .collect();
 
     let expanded = quote! {
-        #[derive(::runique::serde::Serialize, ::runique::serde::Deserialize, Debug)]
-        pub struct #form_name {
-            pub csrf_token: Option<String>,
+    #[derive(::runique::serde::Serialize, ::runique::serde::Deserialize, Debug, Clone)]
+    pub struct #form_name {
+        pub csrf_token: Option<String>,
 
-            #[serde(flatten)]
-            // On ajoute 'default' pour que Serde puisse créer l'objet Forms vide
-            #[serde(skip_deserializing, default)]
-            pub form: ::runique::formulaire::formsrunique::Forms,
+        #[serde(flatten)]
+        #[serde(skip_deserializing, default)]
+        pub form: ::runique::formulaire::formsrunique::Forms,
+    }
+
+    impl std::ops::Deref for #form_name {
+        type Target = ::runique::formulaire::formsrunique::Forms;
+        fn deref(&self) -> &Self::Target { &self.form }
+    }
+
+    impl std::ops::DerefMut for #form_name {
+        fn deref_mut(&mut self) -> &mut Self::Target { &mut self.form }
+    }
+
+    impl ::runique::formulaire::formsrunique::RuniqueForm for #form_name {
+        fn register_fields(form: &mut ::runique::formulaire::formsrunique::Forms) {
+            #(#register_fields)*
         }
 
-        impl std::ops::Deref for #form_name {
-            type Target = ::runique::formulaire::formsrunique::Forms;
-            fn deref(&self) -> &Self::Target { &self.form }
+        fn validate_fields(form: &mut ::runique::formulaire::formsrunique::Forms, raw_data: &std::collections::HashMap<String, String>) {
+            #(#validations)*
         }
 
-        impl std::ops::DerefMut for #form_name {
-            fn deref_mut(&mut self) -> &mut Self::Target { &mut self.form }
-        }
-
-        impl ::runique::formulaire::formsrunique::RuniqueForm for #form_name {
-            fn register_fields(form: &mut ::runique::formulaire::formsrunique::Forms) {
-                #(#register_fields)*
-            }
-
-            fn validate_fields(form: &mut ::runique::formulaire::formsrunique::Forms, raw_data: &std::collections::HashMap<String, String>) {
-                #(#validations)*
-            }
-
-            fn from_form(form: ::runique::formulaire::formsrunique::Forms) -> Self {
-                Self { form }
-            }
-
-            fn get_form(&self) -> &::runique::formulaire::formsrunique::Forms {
-                &self.form
-            }
-
-            fn get_form_mut(&mut self) -> &mut ::runique::formulaire::formsrunique::Forms {
-                &mut self.form
+        fn from_form(form: ::runique::formulaire::formsrunique::Forms) -> Self {
+            Self {
+                csrf_token: None, // Initialisation explicite
+                form
             }
         }
+
+        fn get_form(&self) -> &::runique::formulaire::formsrunique::Forms { &self.form }
+        fn get_form_mut(&mut self) -> &mut ::runique::formulaire::formsrunique::Forms { &mut self.form }
+    }
 
         impl #form_name {
             pub fn to_active_model(&self) -> ActiveModel {

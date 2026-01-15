@@ -1,14 +1,19 @@
-use crate::forms::UsernameForm;
-use crate::models::users;
-use crate::models::users::Entity as User;
-use crate::models::users::ModelForm;
+use crate::forms::{UsernameForm, RegisterForm};
+use crate::models::users as users_mod;
+use crate::models::users::Entity as UserEntity;
+use crate::models::users::ModelForm as UserFormModel;
 
-use crate::forms::TestFieldsForm;
+// use crate::models::test as test_mod;
+// use crate::models::test::Entity as TestEntity;
+use crate::models::test::ModelForm as TestFormModel;
 
 use runique::axum::Extension;
 use runique::prelude::*;
 use std::sync::Arc;
 use tera::Tera;
+
+
+
 
 pub async fn index(template: Template) -> Response {
     let ctx = context! {
@@ -28,7 +33,7 @@ pub async fn form_register_user(
     template: Template,
     Extension(tera): Extension<Arc<Tera>>,
 ) -> Response {
-    let register_form = ModelForm::build(tera.clone());
+    let register_form = UserFormModel::build(tera.clone());
 
     let ctx = context! {
         "title" => "Profil Utilisateur",
@@ -41,7 +46,7 @@ pub async fn user_profile_submit(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
-    ExtractForm(mut register_form): ExtractForm<ModelForm>,
+    ExtractForm(mut register_form): ExtractForm<UserFormModel>,
 ) -> Response {
     if register_form.is_valid() {
         // 2. Essayer de sauvegarder en BDD
@@ -95,8 +100,8 @@ pub async fn view_user(
 ) -> Response {
     let name: String = form.get_form().get_value("username").unwrap_or_default();
 
-    match User::objects
-        .filter(users::Column::Username.eq(&name))
+    match UserEntity::objects
+        .filter(users_mod::Column::Username.eq(&name))
         .first(&db)
         .await
     {
@@ -149,7 +154,7 @@ pub async fn test_csrf(mut message: Message) -> Response {
 }
 
 pub async fn show_form(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
-    let test_form = TestFieldsForm::build(tera.clone());
+    let test_form = RegisterForm::build(tera.clone());
 
     let ctx = context! {
         "title" => "Test des champs",
@@ -162,42 +167,55 @@ pub async fn submit_form(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
-    ExtractForm(mut test_form): ExtractForm<TestFieldsForm>,
+    ExtractForm(mut test_form): ExtractForm<TestFormModel>,
 ) -> Response {
-    println!("données du formulaire reçues: {:?}", test_form.get_form());
-    // 1. Vérifier la validation
+    println!("=== Soumission du formulaire ===");
+
+    // Récupération des données nettoyées
+    let data = test_form.get_cleaned_data();
+
+    // Affiche chaque champ avec type et valeur
+    for (key, value) in data.iter() {
+        match value {
+            tera::Value::String(s) => println!("Champ '{}' (String): '{}'", key, s),
+            tera::Value::Number(n) => println!("Champ '{}' (Number): {}", key, n),
+            tera::Value::Bool(b) => println!("Champ '{}' (Bool): {}", key, b),
+            _ => println!("Champ '{}' (Autre type): {:?}", key, value),
+        }
+        for (key_inner, value_inner) in data.iter() {
+            println!("  Donnée interne '{}' => {:?}", key_inner, value_inner);
+        }
+    }
+
+    // Vérification de la validité du formulaire
     if test_form.is_valid() {
-        // 2. Sauvegarder en BDD
+        println!("Formulaire valide. Tentative de sauvegarde en base...");
         match test_form.save(&db).await {
-            Ok(saved_data) => {
+            Ok(_saved_data) => {
+                println!("Formulaire sauvegardé avec succès !");
                 success!(message => "Formulaire sauvegardé avec succès !");
-
-                // Debug: afficher les données
-                println!("📝 Données sauvegardées:");
-                println!("  ID: {}", saved_data.id);
-                println!("  Phone: {}", saved_data.phone);
-                println!("  Color: {}", saved_data.color);
-                println!("  UUID: {}", saved_data.uuid);
-                println!("  Price: {}", saved_data.price);
-                println!("  Rating: {}", saved_data.rating);
-                println!("  Quantity: {}", saved_data.quantity);
-
                 return Redirect::to("/test-fields").into_response();
             }
             Err(db_err) => {
-                // Gérer les erreurs de base de données
+                println!("Erreur lors de la sauvegarde en base : {:?}", db_err);
                 test_form.get_form_mut().handle_database_error(&db_err);
-                println!(
-                    "❌ Erreur lors de la sauvegarde en base de données: {:?}",
-                    db_err
-                );
+
+                let ctx = context! {
+                    "title" => "Erreur de base de données",
+                    "test_form" => test_form,
+                    "messages" => flash_now!(warning => "Veuillez corriger les erreurs ci-dessous")
+                };
+                return template.render("test-field/test.html", &ctx);
             }
         }
     } else {
-        warning!(message => "Veuillez corriger les erreurs");
+        println!("Formulaire invalide. Erreurs présentes :");
+        for (field, errors) in test_form.get_errors() {
+            println!(" - Champ '{}': {}", field, errors);
+        }
     }
 
-    // Ré-afficher le formulaire avec les erreurs
+    // Ré-affichage du formulaire avec erreurs
     let ctx = context! {
         "title" => "Test des champs",
         "test_form" => test_form

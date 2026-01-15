@@ -1,0 +1,19 @@
+<div class="field-group mb-3">
+    <label
+        for="id_{{ name }}"
+        class="form-label">
+        {{ label }}
+    </label>
+    <input
+        type="number"
+        step="{% if step %}{{ step }}{% else %}any{% endif %}"
+        name="{{ name }}"
+        id="id_{{ name }}"
+        value="{{ value }}"
+        class="form-control {% if error %}is-invalid{% endif %}">
+    {% if error %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endif %}
+</div>
