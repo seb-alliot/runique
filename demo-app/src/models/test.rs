@@ -1,42 +1,41 @@
-// models/test_fields.rs
+use runique::impl_objects;
 use runique::prelude::*;
 use runique::sea_orm;
 use runique::sea_orm::entity::prelude::*;
 use runique::serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize, DeriveModelForm)]
 #[sea_orm(table_name = "test_fields")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
 
-    // Texte avancé
-    pub phone: String,       // PhoneField
-    pub color: String,       // ColorField
-    pub uuid: String,        // UUIDField
-    pub postal_code: String, // PostalCodeField
-    pub description: String, // TextField
+    // Texte
+    pub phone: String,
+    pub color: String,
+    pub uuid: String,
+    pub postal_code: String,
+    pub description: String,
 
-    // Numérique avancé
-    pub price: String,  // DecimalField
-    pub rating: i64,    // RangeField (1-5)
-    pub quantity: i64,  // PositiveIntegerField
-    pub discount: f64,  // PercentageField
-    pub amount: String, // CurrencyField
+    // Numérique
+    pub price: f64,
+    pub rating: i32,
+    pub quantity: i32,
+    pub discount: f64,
+    pub amount: String,
 
-    // Temporel avancé
-    pub opening_time: String, // TimeField
-    pub duration: i64,        // DurationField (en secondes)
+    // Temporel
+    pub opening_time: String,
+    pub duration: i64,
 
     // Fichiers
-    pub image: String,       // ImageField
-    pub attachments: String, // MultipleFileField (stocké en JSON)
+    pub profile_image: String,
+    pub attachments: String, // JSON string ou texte
 
     // Choix
-    pub preferences: String,  // MultipleChoiceField (stocké en JSON)
-    pub subscription: String, // RadioSelectField
+    pub preferences: String, // JSON array string
+    pub subscription: String,
 
-    pub created_at: DateTime, // DateTime
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

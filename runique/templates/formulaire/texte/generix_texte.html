@@ -1,0 +1,86 @@
+<div class="field-group mb-3">
+    <label for="id_{{ name }}" class="form-label">
+        {{ label | default(value=name) }}
+    </label>
+
+    {# 1. Logique du Placeholder (selon tes préférences) #}
+    {% if field_type == 'ip' %}
+        {% set p_text = ip | default(value='127.0.0.1') %}
+    {% elif field_type == 'domaine' %}
+        {% set p_text = domaine | default(value='http://127.0.0.1:3000') %}
+    {% elif field_type == 'email' %}
+        {% set p_text = email | default(value='user@example.com') %}
+    {% elif field_type == 'url' %}
+        {% set p_text = url | default(value='https://example.com') %}
+    {% elif field_type == 'tel' %}
+        {% set p_text = tel | default(value='+33123456789') %}
+    {% elif field_type == 'slug' %}
+        {% set p_text = slug | default(value='mon-slug-exemple') %}
+    {% elif field_type == 'postalcode' %}
+        {% set p_text = postalcode | default(value='75000') %}
+    {% elif field_type == 'duration' %}
+        {% set p_text = duration | default(value='2h30m, 90m, 3600s') %}
+    {% elif placeholder %}
+        {% set p_text = placeholder %}
+    {% endif %}
+
+    {# 2. Application sécurisée des filtres (évite le "Failed to render") #}
+    {% set d_val = value | default(value="") %}
+
+    {# On ne lance le filtre que si la valeur n'est pas vide pour éviter les erreurs #}
+    {% if d_val != "" %}
+        {% if field_type == "slug" %}
+            {% set d_val = d_val | slug | default(value=d_val) %}
+        {% elif field_type == "postalcode" %}
+            {% set d_val = d_val | postalcode | default(value=d_val) %}
+        {% elif field_type == "duration" %}
+            {% set d_val = d_val | duration | default(value=d_val) %}
+        {% endif %}
+    {% endif %}
+
+    {# 3. Rendu du champ selon le type #}
+    {% if field_type == "TextareaField" %}
+        <textarea
+            name="{{ name }}"
+            id="id_{{ name }}"
+            class="form-control {% if error %}is-invalid{% endif %}"
+            placeholder="{{ p_text }}"
+            rows="4"
+            {% if not allow_blank %}required{% endif %}>{{ d_val }}</textarea>
+
+    {% else %}
+        {# Mappage automatique du type HTML #}
+        {% set input_type = "text" %}
+        {% if field_type == "email" %}{% set input_type = "email" %}
+        {% elif field_type == "password" %}{% set input_type = "password" %}
+        {% elif field_type == "url" %}{% set input_type = "url" %}
+        {% elif field_type == "tel" %}{% set input_type = "tel" %}
+        {% elif field_type == "number" %}{% set input_type = "number" %}
+        {% elif field_type == "date" %}{% set input_type = "date" %}
+        {% elif field_type == "time" %}{% set input_type = "time" %}
+        {% elif field_type == "datetime-local" %}{% set input_type = "datetime-local" %}
+        {% elif field_type == "postalcode" %}{% set input_type = "postalcode" %}
+        {% elif field_type == "duration" %}{% set input_type = "duration" %}
+        {% endif %}
+
+        <input
+            type="{{ input_type }}"
+            name="{{ name }}"
+            id="id_{{ name }}"
+            value="{{ d_val }}"
+            class="form-control {% if error %}is-invalid{% endif %}"
+            placeholder="{{ p_text }}"
+            {% if not allow_blank %}required{% endif %}
+            {% if min_length %}minlength="{{ min_length }}"{% endif %}
+            {% if pattern %}pattern="{{ pattern }}"{% endif %}>
+    {% endif %}
+
+    {# 4. Erreurs et aide #}
+    {% if rules and rules | length > 0 %}
+        <small class="form-text text-muted d-block">Requis : {{ rules | join(sep=", ") }}</small>
+    {% endif %}
+
+    {% if error %}
+        <div class="invalid-feedback">{{ error }}</div>
+    {% endif %}
+</div>

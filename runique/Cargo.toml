@@ -66,11 +66,12 @@ anyhow.workspace = true
 regex.workspace = true
 serde_urlencoded.workspace = true
 fancy-regex.workspace = true
-postal-code.workspace = true
-country.workspace = true
 uuid.workspace = true
-url.workspace = true
+futures-util.workspace = true
 phonenumber.workspace = true
+country.workspace = true
+url.workspace = true
+postal-code.workspace = true
 
 # Logging
 tracing.workspace = true
@@ -90,7 +91,7 @@ hex = "0.4"
 base64.workspace = true
 
 # macro externe
-derive_form = "1.0.2"
+derive_form = { path = "derive_form"}
 
 # cli
 clap.workspace = true
