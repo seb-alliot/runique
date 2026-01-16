@@ -1,74 +1,159 @@
-use crate::formulaire::validation_form::builder_form::trait_form::FormField;
-use crate::formulaire::validation_form::builder_form::base_struct::FieldConfig;
-
-use crate::app::TERA;
+use crate::formulaire::builder_form::base_struct::{FieldConfig, TextConfig};
+use crate::formulaire::builder_form::trait_form::FormField;
+// Ajout de LengthConstraint ici
+use crate::formulaire::builder_form::option_field::{BoolChoice, LengthConstraint};
+use std::collections::HashMap;
+use std::sync::Arc;
 use tera::Context;
 
+#[derive(Clone)]
 pub struct RichTextField {
-    pub base : FieldConfig,
-    pub editor_config: String,
+    pub config: TextConfig,
 }
 
 impl RichTextField {
-    pub fn new(id: &str, name: &str, label: &str) -> Self {
+    pub fn new(name: &str, label: &str) -> Self {
         Self {
-            base: FieldConfig {
-                id: id.to_string(),
-                name: name.to_string(),
-                label: label.to_string(),
-                value: String::new(),
-                placeholder: String::new(),
-                is_required: false,
-                error: None,
+            config: TextConfig {
+                base: FieldConfig {
+                    name: name.to_string(),
+                    label: label.to_string(),
+                    value: String::new(),
+                    placeholder: String::new(),
+                    is_required: BoolChoice {
+                        choice: false,
+                        message: None,
+                    },
+                    error: None,
+                    readonly: None,
+                    disabled: None,
+                    type_field: "richtext".to_string(),
+                    html_attributes: HashMap::new(),
+                    template_name: "base_string".to_string(),
+                    extra_context: HashMap::new(),
+                },
+                max_length: Some(LengthConstraint {
+                    limit: 255,
+                    message: None,
+                }),
             },
-            editor_config: "default".to_string(),
         }
     }
 
-    pub fn config(mut self, config: &str) -> Self {
-        self.editor_config = config.to_string();
+    pub fn required(mut self, msg: &str) -> Self {
+        self.config.base.is_required = BoolChoice {
+            choice: true,
+            message: if msg.is_empty() {
+                None
+            } else {
+                Some(msg.to_string())
+            },
+        };
         self
     }
 
-    pub fn required(mut self) -> Self {
-        self.base.is_required = true;
+    pub fn readonly(mut self, msg: &str) -> Self {
+        self.config.base.readonly = Some(BoolChoice {
+            choice: true,
+            message: if msg.is_empty() {
+                None
+            } else {
+                Some(msg.to_string())
+            },
+        });
+        self
+    }
+
+    pub fn max_length(mut self, limit: usize, msg: &str) -> Self {
+        self.config.max_length = Some(LengthConstraint {
+            limit,
+            message: if msg.is_empty() {
+                None
+            } else {
+                Some(msg.to_string())
+            },
+        });
         self
     }
 }
 
 impl FormField for RichTextField {
-    fn id(&self) -> &str { &self.base.id }
-    fn name(&self) -> &str { &self.base.name }
-    fn label(&self) -> &str { &self.base.label }
-    fn value(&self) -> &str { &self.base.value }
-    fn placeholder(&self) -> &str { &self.base.placeholder }
-    fn get_error(&self) -> Option<&String> { self.base.error.as_ref() }
+    fn name(&self) -> &str {
+        &self.config.base.name
+    }
+    fn label(&self) -> &str {
+        &self.config.base.label
+    }
+    fn value(&self) -> &str {
+        &self.config.base.value
+    }
+    fn placeholder(&self) -> &str {
+        &self.config.base.placeholder
+    }
+    fn is_required(&self) -> bool {
+        self.config.base.is_required.choice
+    }
+    fn get_error(&self) -> Option<&String> {
+        self.config.base.error.as_ref()
+    }
 
-    fn validate(&mut self) -> bool {
-        if self.base.is_required && self.base.value.trim().is_empty() {
-            self.base.error = Some("Le contenu riche est obligatoire".to_string());
-            return false;
+    fn set_error(&mut self, message: String) {
+        if message.is_empty() {
+            self.config.base.error = None;
+        } else {
+            self.config.base.error = Some(message);
         }
-        self.base.error = None;
-        true
     }
 
     fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
+        self.config.base.value = value.to_string();
     }
 
-    fn render(&self) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("id", &self.base.id);
-        context.insert("name", &self.base.name);
-        context.insert("label", &self.base.label);
-        context.insert("value", &self.base.value);
-        context.insert("placeholder", &self.base.placeholder);
-        context.insert("error", &self.base.error);
-        context.insert("required", &self.base.is_required);
-        context.insert("editor_config", &self.editor_config);
+    fn validate(&mut self) -> bool {
+        let val = self.config.base.value.trim();
+        let count = val.chars().count();
 
-        TERA.render("rich_text", &context)
-            .map_err(|e| format!("Erreur rendu RichText ({}): {}", self.base.id, e))
+        if self.config.base.is_required.choice && val.is_empty() {
+            let msg = self
+                .config
+                .base
+                .is_required
+                .message
+                .clone()
+                .unwrap_or_else(|| "Ce champ est obligatoire".to_string());
+            self.set_error(msg);
+            return false;
+        }
+
+        if let Some(config) = &self.config.max_length {
+            if count > config.limit {
+                let msg = config
+                    .message
+                    .clone()
+                    .unwrap_or_else(|| format!("Trop long (max {} caractères)", config.limit));
+                self.set_error(msg);
+                return false;
+            }
+        }
+
+        self.set_error("".to_string());
+        true
+    }
+
+    fn set_name(&mut self, name: &str) {
+        self.config.base.name = name.to_string();
+    }
+    fn set_label(&mut self, label: &str) {
+        self.config.base.label = label.to_string();
+    }
+
+    fn render(&self, tera: &Arc<tera::Tera>) -> Result<String, String> {
+        let mut context = Context::new();
+        context.insert("field", &self.config.base);
+        context.insert("editor_config", &self.config);
+        context.insert("input_type", "richtext");
+
+        tera.render(&self.config.base.template_name, &context)
+            .map_err(|e| format!("Erreur rendu RichText: {}", e))
     }
 }

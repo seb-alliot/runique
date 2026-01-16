@@ -20,6 +20,7 @@
         </div>
     {% endif %}
 
+
     {% block header %}
         <header>
             <img src='{% media "toshiro.jpg" %}' alt="Logo">
@@ -45,6 +46,7 @@
     </main>
     <footer>
         {% block footer %}
+            <a href={% link "test_new_form" %}>Test New Form</a>
             <a href={% link "view-user" %}>Recherche user</a>
             <a href="{% link "user_profile" %}">S'inscrire</a>
             <a href={% link "about" %}>À propos</a>
@@ -52,5 +54,4 @@
             <p>&copy; 2025 My Web Application</p>
         {% endblock %}
     </footer>
-
 </body>

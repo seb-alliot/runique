@@ -1,10 +1,10 @@
 use axum::extract::Multipart;
-use axum::response::{IntoResponse, Response};
 use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use futures_util::StreamExt;
-use tokio::io::AsyncWriteExt;
 use std::collections::HashMap;
 use std::path::Path;
+use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 pub async fn parse_multipart(
@@ -28,22 +28,18 @@ pub async fn parse_multipart(
             let safe = sanitize_filename(&filename);
             let path = upload_dir.join(&safe);
 
-            let mut file = tokio::fs::File::create(&path)
-                .await
-                .map_err(|_| {
-                    (StatusCode::INTERNAL_SERVER_ERROR, "File create error").into_response()
-                })?;
+            let mut file = tokio::fs::File::create(&path).await.map_err(|_| {
+                (StatusCode::INTERNAL_SERVER_ERROR, "File create error").into_response()
+            })?;
 
             while let Some(chunk) = field.next().await {
                 let bytes = chunk.map_err(|_| {
                     (StatusCode::BAD_REQUEST, "Multipart stream error").into_response()
                 })?;
 
-                file.write_all(&bytes)
-                    .await
-                    .map_err(|_| {
-                        (StatusCode::INTERNAL_SERVER_ERROR, "File write error").into_response()
-                    })?;
+                file.write_all(&bytes).await.map_err(|_| {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "File write error").into_response()
+                })?;
             }
 
             data.entry(name).or_default().push(safe);
@@ -58,7 +54,6 @@ pub async fn parse_multipart(
     Ok(data)
 }
 
-
 fn sanitize_filename(filename: &str) -> String {
     let ext = Path::new(filename)
         .extension()
@@ -71,4 +66,3 @@ fn sanitize_filename(filename: &str) -> String {
         format!("{}.{}", uuid, ext)
     }
 }
-

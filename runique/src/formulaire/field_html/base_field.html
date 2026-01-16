@@ -1,9 +1,0 @@
-<div class="field-group mb-3">
-    <label for="id_{{ field.name }}" class="form-label">{{ field.label }}</label>
-
-    {% include "formulaire/" ~ field.type_dir ~ "/" ~ field.template_name ~ ".html" %}
-
-    {% if field.error %}
-        <div class="invalid-feedback">{{ field.error }}</div>
-    {% endif %}
-</div>

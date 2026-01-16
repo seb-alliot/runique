@@ -13,6 +13,15 @@
                 {% messages %}
             {% endblock %}
 
+        <div>
+            <h3>Debug Info:</h3>
+            <ul>
+                <li>Titre: {{ title }}</li>
+                <li>Nombre de champs: {{ register_form.cleaned_data | length }}</li>
+                <li>Erreurs: {{ register_form.errors | length }}</li>
+            </ul>
+            <hr>
+        </div>
             <form id="username-form" method="post">
                 {% csrf %}
                 {% if register_form.errors %}
@@ -23,10 +32,7 @@
                     </div>
                 {% endif %}
                 <div class="fields-container">
-                    {% form.register_form.username %}
-                    {% form.register_form.email %}
-                    {% form.register_form.password %}
-                    {% form.register_form.age %}
+                    {% form.register_form %}
                 </div>
                 <button type="submit">Register</button>
             </form>

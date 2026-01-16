@@ -46,12 +46,13 @@ pub(crate) fn find_forms_field(data: &Data, struct_name: &syn::Ident) -> syn::Id
 pub(crate) fn is_excluded(field: &Field) -> bool {
     let name = field.ident.as_ref().unwrap().to_string();
 
-    if name == "id" ||
-       name == "csrf_token" ||
-       name == "_csrf_token" ||
-       name == "form" ||
-       name == "created_at" ||
-       name == "updated_at" {
+    if name == "id"
+        || name == "csrf_token"
+        || name == "_csrf_token"
+        || name == "form"
+        || name == "created_at"
+        || name == "updated_at"
+    {
         return true;
     }
 
@@ -59,7 +60,9 @@ pub(crate) fn is_excluded(field: &Field) -> bool {
     for attr in &field.attrs {
         if attr.path().is_ident("sea_orm") {
             let tokens = attr.meta.to_token_stream().to_string();
-            if tokens.contains("primary_key") { return true; }
+            if tokens.contains("primary_key") {
+                return true;
+            }
         }
     }
     false
@@ -141,7 +144,6 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
     // Fallback propre
     quote! { CharField }
 }
-
 
 /// Générer la validation pour RuniqueForm
 pub(crate) fn generate_validation_runiqueform(field: &Field) -> proc_macro2::TokenStream {

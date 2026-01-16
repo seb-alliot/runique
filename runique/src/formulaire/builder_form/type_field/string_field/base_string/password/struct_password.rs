@@ -1,42 +1,80 @@
-use crate::formulaire::validation_form::builder_form::trait_form::FormField;
-use crate::formulaire::validation_form::builder_form::base_struct::FieldConfig;
+use crate::formulaire::builder_form::base_struct::FieldConfig;
+use crate::formulaire::builder_form::option_field::{BoolChoice, LengthConstraint};
+use crate::formulaire::builder_form::trait_form::FormField;
 
-use crate::app::TERA;
-use tera::Context;
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use std::collections::HashMap;
+use std::sync::Arc;
+use tera::Context;
 
+#[derive(Clone)]
 pub struct PasswordField {
-    pub base : FieldConfig,
-    pub min_length: usize,
+    pub base: FieldConfig,
+    pub min_length: Option<LengthConstraint>,
 }
 
 impl PasswordField {
-    pub fn new(id: &str, name: &str, label: &str) -> Self {
+    pub fn new(name: &str, label: &str) -> Self {
         Self {
             base: FieldConfig {
-                id: id.to_string(),
                 name: name.to_string(),
                 label: label.to_string(),
                 value: "".to_string(),
                 placeholder: "".to_string(),
-                is_required: false,
+                is_required: BoolChoice {
+                    choice: false,
+                    message: None,
+                },
                 error: None,
+                readonly: None,
+                disabled: None,
+                type_field: "password".to_string(),
+                html_attributes: HashMap::new(),
+                template_name: "base_string".to_string(),
+                extra_context: HashMap::new(),
             },
-            min_length: 8,
+            min_length: Some(LengthConstraint {
+                limit: 8,
+                message: None,
+            }),
         }
     }
 
+    // Builder cohérent avec le reste du framework
+    pub fn required(mut self, msg: &str) -> Self {
+        self.base.is_required = BoolChoice {
+            choice: true,
+            message: if msg.is_empty() {
+                None
+            } else {
+                Some(msg.to_string())
+            },
+        };
+        self
+    }
+
+    pub fn min_length(mut self, limit: usize, msg: &str) -> Self {
+        self.min_length = Some(LengthConstraint {
+            limit,
+            message: if msg.is_empty() {
+                None
+            } else {
+                Some(msg.to_string())
+            },
+        });
+        self
+    }
+
+    // Logique Argon2
     pub fn hash(&self) -> Result<String, String> {
         if self.base.value.is_empty() {
             return Err("Le mot de passe est vide".to_string());
         }
-
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
-
         match argon2.hash_password(self.base.value.as_bytes(), &salt) {
             Ok(h) => Ok(h.to_string()),
             Err(e) => Err(format!("Erreur de hachage : {}", e)),
@@ -47,7 +85,6 @@ impl PasswordField {
         let Ok(parsed_hash) = PasswordHash::new(password_hash) else {
             return false;
         };
-
         Argon2::default()
             .verify_password(password_plain.as_bytes(), &parsed_hash)
             .is_ok()
@@ -55,42 +92,87 @@ impl PasswordField {
 }
 
 impl FormField for PasswordField {
-    fn id(&self) -> &str { &self.base.id }
-    fn name(&self) -> &str { &self.base.name }
-    fn label(&self) -> &str { &self.base.label }
-    fn value(&self) -> &str { &self.base.value }
-    fn placeholder(&self) -> &str { &self.base.placeholder }
-    fn get_error(&self) -> Option<&String> { self.base.error.as_ref() }
-
-    fn validate(&mut self) -> bool {
-        if self.base.is_required && self.base.value.is_empty() {
-            self.base.error = Some("Le mot de passe est obligatoire".to_string());
-            return false;
-        }
-
-        if self.base.value.chars().count() < self.min_length {
-            self.base.error = Some(format!("Le mot de passe doit faire au moins {} caractères", self.min_length));
-            return false;
-        }
-
-        self.base.error = None;
-        true
+    fn name(&self) -> &str {
+        &self.base.name
+    }
+    fn label(&self) -> &str {
+        &self.base.label
+    }
+    fn value(&self) -> &str {
+        &self.base.value
+    }
+    fn placeholder(&self) -> &str {
+        &self.base.placeholder
+    }
+    fn is_required(&self) -> bool {
+        self.base.is_required.choice
+    }
+    fn get_error(&self) -> Option<&String> {
+        self.base.error.as_ref()
+    }
+    fn set_error(&mut self, message: String) {
+        self.base.error = if message.is_empty() {
+            None
+        } else {
+            Some(message)
+        };
     }
     fn set_value(&mut self, value: &str) {
         self.base.value = value.to_string();
     }
-    fn render(&self) -> Result<String, String> {
+
+    fn validate(&mut self) -> bool {
+        let val = self.base.value.trim();
+        let count = val.chars().count();
+
+        if self.base.is_required.choice && val.is_empty() {
+            let msg = self
+                .base
+                .is_required
+                .message
+                .clone()
+                .unwrap_or_else(|| "Le mot de passe est obligatoire".to_string());
+            self.set_error(msg);
+            return false;
+        }
+
+        if !val.is_empty() {
+            if let Some(min) = &self.min_length {
+                if count < min.limit {
+                    let msg = min.message.clone().unwrap_or_else(|| {
+                        format!(
+                            "Le mot de passe doit faire au moins {} caractères",
+                            min.limit
+                        )
+                    });
+                    self.set_error(msg);
+                    return false;
+                }
+            }
+        }
+
+        self.set_error("".to_string());
+        true
+    }
+
+    fn set_name(&mut self, name: &str) {
+        self.base.name = name.to_string();
+    }
+    fn set_label(&mut self, label: &str) {
+        self.base.label = label.to_string();
+    }
+
+    fn render(&self, tera: &Arc<tera::Tera>) -> Result<String, String> {
         let mut context = Context::new();
-        context.insert("id", &self.base.id);
-        context.insert("name", &self.base.name);
-        context.insert("label", &self.base.label);
-        context.insert("value", &self.base.value);
-        context.insert("placeholder", &self.base.placeholder);
-        context.insert("error", &self.base.error);
-        context.insert("required", &self.base.is_required);
+
+        // Pour la sécurité, on peut cloner la base et vider la value avant le rendu
+        let mut safe_base = self.base.clone();
+        safe_base.value = "".to_string();
+
+        context.insert("field", &safe_base);
         context.insert("input_type", "password");
 
-        TERA.render("base_string", &context)
-            .map_err(|e| format!("Erreur rendu Password ({}): {}", self.base.id, e))
+        tera.render(&self.base.template_name, &context)
+            .map_err(|e| format!("Erreur rendu Password: {}", e))
     }
 }

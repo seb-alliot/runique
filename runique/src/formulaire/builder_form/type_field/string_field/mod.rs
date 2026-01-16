@@ -6,8 +6,3 @@ pub mod format_special;
 pub mod identite;
 pub mod informatique;
 pub mod securite;
-
-
-
-
-

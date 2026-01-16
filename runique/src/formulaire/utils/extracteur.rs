@@ -11,9 +11,6 @@ use http_body_util::BodyExt;
 use std::{collections::HashMap, path::Path, sync::Arc};
 use tera::Tera;
 
-
-// ... tes imports restent identiques ...
-
 pub struct ExtractForm<T>(pub T);
 
 impl<S, T> FromRequest<S> for ExtractForm<T>
@@ -44,7 +41,6 @@ where
 
             let upload_dir = Path::new(&config.media_root);
             parsed = parse_multipart(multipart, upload_dir).await?;
-
         } else {
             let bytes = req
                 .into_body()
@@ -59,7 +55,6 @@ where
                     .into_iter()
                     .map(|(k, v)| (k, vec![v]))
                     .collect();
-
             } else if content_type.starts_with("application/json") {
                 parsed = serde_json::from_slice::<HashMap<String, String>>(&bytes)
                     .unwrap_or_default()
@@ -78,7 +73,6 @@ where
         Ok(ExtractForm(form))
     }
 }
-
 
 fn convert_for_form(parsed: HashMap<String, Vec<String>>) -> HashMap<String, String> {
     parsed

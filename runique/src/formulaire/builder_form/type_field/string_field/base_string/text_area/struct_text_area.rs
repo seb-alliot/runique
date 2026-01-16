@@ -1,89 +1,153 @@
-use crate::formulaire::validation_form::builder_form::trait_form::FormField;
-use crate::formulaire::validation_form::builder_form::base_struct::FieldConfig;
+use crate::formulaire::builder_form::base_struct::{FieldConfig, TextConfig};
+use crate::formulaire::builder_form::option_field::{BoolChoice, LengthConstraint};
+use crate::formulaire::builder_form::trait_form::FormField;
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tera::{Context, Tera};
 
-use crate::app::TERA;
-use tera::Context;
-
+#[derive(Clone)]
 pub struct TextAreaField {
-    pub base : FieldConfig,
-    pub max_length: Option<usize>,
-    pub rows: u32,
+    pub config: TextConfig,
 }
 
 impl TextAreaField {
-    pub fn new(id: &str, name: &str, label: &str) -> Self {
+    pub fn new(name: &str, label: &str, placeholder: &str) -> Self {
         Self {
-            base: FieldConfig {
-                id: id.to_string(),
-                name: name.to_string(),
-                label: label.to_string(),
-                value: String::new(),
-                placeholder: String::new(),
-                error: None,
-                is_required: false,
+            config: TextConfig {
+                base: FieldConfig {
+                    name: name.to_string(),
+                    label: label.to_string(),
+                    value: String::new(),
+                    placeholder: placeholder.to_string(),
+                    is_required: BoolChoice {
+                        choice: false,
+                        message: None,
+                    },
+                    error: None,
+                    readonly: None,
+                    disabled: None,
+                    type_field: "textarea".to_string(),
+                    html_attributes: HashMap::new(),
+                    template_name: "base_string".to_string(),
+                    extra_context: HashMap::new(),
+                },
+                max_length: Some(LengthConstraint {
+                    limit: 255,
+                    message: None,
+                }),
             },
-            max_length: None,
-            rows: 3,
         }
     }
 
-    // Builder pour le placeholder (il manquait celui-là !)
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.base.placeholder = p.to_string();
+    pub fn required(mut self, msg: &str) -> Self {
+        self.config.base.is_required = BoolChoice {
+            choice: true,
+            message: if msg.is_empty() {
+                None
+            } else {
+                Some(msg.to_string())
+            },
+        };
         self
     }
 
-    pub fn rows(mut self, rows: u32) -> Self {
-        self.rows = rows;
+    pub fn readonly(mut self, msg: &str) -> Self {
+        self.config.base.readonly = Some(BoolChoice {
+            choice: true,
+            message: if msg.is_empty() {
+                None
+            } else {
+                Some(msg.to_string())
+            },
+        });
         self
     }
 
-    pub fn required(mut self) -> Self {
-        self.base.is_required = true;
+    pub fn max_length(mut self, limit: usize, msg: &str) -> Self {
+        self.config.max_length = Some(LengthConstraint {
+            limit,
+            message: if msg.is_empty() {
+                None
+            } else {
+                Some(msg.to_string())
+            },
+        });
         self
     }
 }
 
 impl FormField for TextAreaField {
-    fn id(&self) -> &str { &self.base.id }
-    fn name(&self) -> &str { &self.base.name }
-    fn label(&self) -> &str { &self.base.label }
-    fn value(&self) -> &str { &self.base.value }
-    fn placeholder(&self) -> &str { &self.base.placeholder }
-    fn get_error(&self) -> Option<&String> { self.base.error.as_ref() }
+    fn name(&self) -> &str {
+        &self.config.base.name
+    }
+    fn label(&self) -> &str {
+        &self.config.base.label
+    }
+    fn value(&self) -> &str {
+        &self.config.base.value
+    }
+    fn placeholder(&self) -> &str {
+        &self.config.base.placeholder
+    }
+    fn is_required(&self) -> bool {
+        self.config.base.is_required.choice
+    }
+    fn get_error(&self) -> Option<&String> {
+        self.config.base.error.as_ref()
+    }
 
-    fn validate(&mut self) -> bool {
-        if self.base.is_required && self.base.value.trim().is_empty() {
-            self.base.error = Some("Ce champ est obligatoire".to_string());
-            return false;
-        }
-        if let Some(max) = self.max_length {
-            if self.base.value.chars().count() > max {
-                self.base.error = Some(format!("Maximum {} caractères", max));
-                return false;
-            }
-        }
-        self.base.error = None;
-        true
+    fn set_error(&mut self, message: String) {
+        self.config.base.error = Some(message);
     }
 
     fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
+        self.config.base.value = value.to_string();
     }
 
-    fn render(&self) -> Result<String, String> {
-        let mut context = Context::new();
-        context.insert("id", &self.base.id);
-        context.insert("name", &self.base.name);
-        context.insert("label", &self.base.label);
-        context.insert("value", &self.base.value);
-        context.insert("placeholder", &self.base.placeholder);
-        context.insert("error", &self.base.error);
-        context.insert("required", &self.base.is_required);
-        context.insert("max_length", &self.max_length);
-        context.insert("rows", &self.rows);
+    fn get_json_value(&self) -> Value {
+        json!(self.config.base.value)
+    }
 
-        TERA.render("text_area", &context)
-            .map_err(|e| format!("Erreur rendu TextArea ({}): {}", self.base.id, e))
+    fn validate(&mut self) -> bool {
+        let val = self.config.base.value.trim();
+
+        if self.config.base.is_required.choice && val.is_empty() {
+            let msg = self
+                .config
+                .base
+                .is_required
+                .message
+                .clone()
+                .unwrap_or_else(|| "Ce champ est requis".to_string());
+            self.set_error(msg);
+            return false;
+        }
+
+        if let Some(max_length) = &self.config.max_length {
+            if val.chars().count() > max_length.limit {
+                self.set_error(format!("Maximum {} caractères", max_length.limit));
+                return false;
+            }
+        }
+
+        self.config.base.error = None;
+        true
+    }
+
+    fn set_name(&mut self, name: &str) {
+        self.config.base.name = name.to_string();
+    }
+
+    fn set_label(&mut self, label: &str) {
+        self.config.base.label = label.to_string();
+    }
+    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+        let mut context = Context::new();
+        context.insert("field", &self.config.base);
+        context.insert("input_type", "textarea");
+
+        tera.render(&self.config.base.template_name, &context)
+            .map_err(|e| format!("Erreur rendu TextArea: {}", e))
     }
 }

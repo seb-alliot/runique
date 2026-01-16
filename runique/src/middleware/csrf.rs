@@ -1,13 +1,13 @@
 use crate::middleware::login_requiert::is_authenticated;
 use crate::settings::Settings;
 use crate::utils::{generate_token, generate_user_token, mask_csrf_token, unmask_csrf_token};
+use axum::http::Request;
 use axum::{
     body::Body,
     http::{HeaderValue, Method, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use axum::http::Request;
 use http_body_util::BodyExt;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -45,7 +45,12 @@ pub async fn csrf_middleware(mut req: Request<Body>, next: Next) -> Response {
 
             // Détecter si utilisateur connecté
             let token = if is_authenticated(&session).await {
-                let user_id = session.get::<i32>("user_id").await.ok().flatten().unwrap_or(0);
+                let user_id = session
+                    .get::<i32>("user_id")
+                    .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or(0);
                 generate_user_token(&config.server.secret_key, &user_id.to_string())
             } else {
                 generate_token(&config.server.secret_key, &session_id)
@@ -77,7 +82,8 @@ pub async fn csrf_middleware(mut req: Request<Body>, next: Next) -> Response {
             let bytes = match body.collect().await {
                 Ok(collected) => collected.to_bytes(),
                 Err(_) => {
-                    return (StatusCode::BAD_REQUEST, "Failed to read request body").into_response();
+                    return (StatusCode::BAD_REQUEST, "Failed to read request body")
+                        .into_response();
                 }
             };
 

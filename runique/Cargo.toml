@@ -70,8 +70,8 @@ uuid.workspace = true
 futures-util.workspace = true
 phonenumber.workspace = true
 country.workspace = true
-url.workspace = true
 postal-code.workspace = true
+dyn-clone.workspace = true
 
 # Logging
 tracing.workspace = true

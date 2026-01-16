@@ -8,48 +8,37 @@
 {% block content %}
 <div class="container">
     <div class="form-container">
-        <h1 class="main-title">Test des Fields Runique</h1>
+        <h1 class="main-title">Configuration du Profil</h1>
 
         {% if messages %}
             {% messages %}
         {% endif %}
 
-        <form method="post" enctype="multipart/form-data">
+        <form method="post">
             {% csrf %}
 
-
-            {% if test_form.errors %}
-            <div class="field-error">
-                {% for field_name, error_message in test_form.errors %}
-                    <p><strong>{{ field_name }}:</strong> {{ error_message }}</p>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-
             <section class="form-section">
-                <h2 class="section-title">Informations générales</h2>
+                <h2 class="section-title">Informations de compte</h2>
                 <div class="row">
                     <div class="col-md-6 field-group">
-                        {% form.test_form.phone %}
+                        {% form.test_form.username %}
                     </div>
                     <div class="col-md-6 field-group">
-                        {% form.test_form.color %}
+                        {% form.test_form.email %}
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 field-group">
-                        {% form.test_form.uuid %}
+                        {% form.test_form.password %}
                     </div>
                     <div class="col-md-6 field-group">
-                        {% form.test_form.postal_code %}
+                        {% form.test_form.website %}
                     </div>
                 </div>
             </section>
 
-
             <section class="form-section">
-                <h2 class="section-title">Détails</h2>
+                <h2 class="section-title">Présentation</h2>
                 <div class="row">
                     <div class="col-12 field-group">
                         {% form.test_form.description %}
@@ -57,76 +46,13 @@
                 </div>
             </section>
 
-
-            <section class="form-section">
-                <h2 class="section-title">Informations financières</h2>
-                <div class="row">
-                    <div class="col-md-6 field-group">
-                        {% form.test_form.price %}
-                    </div>
-                    <div class="col-md-6 field-group">
-                        {% form.test_form.amount %}
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4 field-group">
-                        {% form.test_form.rating %}
-                    </div>
-                    <div class="col-md-4 field-group">
-                        {% form.test_form.quantity %}
-                    </div>
-                    <div class="col-md-4 field-group">
-                        {% form.test_form.discount %}
-                    </div>
-                </div>
-            </section>
-
-
-            <section class="form-section">
-                <h2 class="section-title">Temps et horaires</h2>
-                <div class="row">
-                    <div class="col-md-6 field-group">
-                        {% form.test_form.opening_time %}
-                    </div>
-                    <div class="col-md-6 field-group">
-                        {% form.test_form.duration %}
-                    </div>
-                </div>
-            </section>
-
-
-            <section class="form-section">
-                <h2 class="section-title">Fichiers</h2>
-                <div class="row">
-                    <div class="col-md-6 field-group">
-                        {% form.test_form.profile_image %}
-                    </div>
-                    <div class="col-md-6 field-group">
-                        {% form.test_form.attachments %}
-                    </div>
-                </div>
-            </section>
-
-
-            <section class="form-section">
-                <h2 class="section-title">Préférences et abonnements</h2>
-                <div class="field-group">
-                    {% form.test_form.preferences %}
-                </div>
-                <div class="field-group">
-                    {% form.test_form.subscription %}
-                </div>
-            </section>
-
-
             <div class="text-center mt-4">
                 <button type="submit" class="btn btn-primary btn-submit">
-                    Valider le formulaire
+                    Enregistrer le profil
                 </button>
             </div>
 
         </form>
-
 
         <div class="text-center mt-3">
             <a href="/" class="text-decoration-none">← Retour à l'accueil</a>
@@ -138,5 +64,5 @@
 
 {% block footer %}
     <a href="{% link 'index' %}">Home</a>
-    <p>&copy; 2026 My Web Application</p>
+    <p>&copy; 2026 Runique Framework</p>
 {% endblock %}
