@@ -1,8 +1,8 @@
 use crate::formulaire::builder_form::option_field::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FieldConfig {
     pub name: String,
     pub label: String,
@@ -18,48 +18,20 @@ pub struct FieldConfig {
     pub extra_context: HashMap<String, String>,
 }
 
-#[derive(Serialize, Clone)]
-pub struct DateDisplayConfig {
-    pub base: FieldConfig,
-    pub display_value: String,
-}
-
-#[derive(Serialize, Clone)]
-pub struct DateTimeConfig {
-    pub base: FieldConfig,
-    pub format: String,
-    pub min_datetime: Option<String>,
-    pub max_datetime: Option<String>,
-}
-
-#[derive(Serialize, Clone)]
+// On ajoute Default pour pouvoir initialiser GenericField facilement
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TextConfig {
-    pub base: FieldConfig,
     pub max_length: Option<LengthConstraint>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct IntConfig {
-    pub base: FieldConfig,
     pub min: Option<i64>,
     pub max: Option<i64>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct FloatConfig {
-    pub base: FieldConfig,
     pub min: Option<f64>,
     pub max: Option<f64>,
-}
-
-#[derive(Serialize, Clone)]
-pub struct PositiveIntConfig {
-    pub base: FieldConfig,
-    pub max: Option<u64>,
-}
-
-#[derive(Serialize, Clone)]
-pub struct BooleanConfig {
-    pub base: FieldConfig,
-    pub checked: bool,
 }

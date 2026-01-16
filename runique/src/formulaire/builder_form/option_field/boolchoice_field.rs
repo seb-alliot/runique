@@ -1,6 +1,7 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+
 pub struct BoolChoice {
     pub choice: bool,
     pub message: Option<String>,

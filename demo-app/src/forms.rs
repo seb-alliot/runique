@@ -4,55 +4,11 @@ use runique::serde::{Serialize, Serializer};
 use sea_orm::DbErr;
 use sea_orm::{ActiveModelTrait, Set};
 
-pub struct RegisterForm {
-    pub form: Forms,
-}
-impl Serialize for RegisterForm {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.form.serialize(serializer)
-    }
-}
-impl RuniqueForm for RegisterForm {
-    fn register_fields(form: &mut Forms) {
-        form.register_field(&TextField::new("username", "Pseudo").max_length(50, "Trop long"));
-        form.register_field(&EmailField::new("email", "Mon email").required("L'email est requis"));
-        form.register_field(
-            &PasswordField::new("password", "Mot de passe").required("Sécurité requise"),
-        );
-    }
-
-    fn from_form(form: Forms) -> Self {
-        Self { form }
-    }
-    fn get_form(&self) -> &Forms {
-        &self.form
-    }
-    fn get_form_mut(&mut self) -> &mut Forms {
-        &mut self.form
-    }
-}
-impl RegisterForm {
-    pub async fn save(&self, db: &DatabaseConnection) -> Result<users_mod::Model, DbErr> {
-        let username = self.form.get_value("username").unwrap_or_default();
-        let email = self.form.get_value("email").unwrap_or_default();
-        let password = self.form.get_value("password").unwrap_or_default();
-
-        let new_user = users_mod::ActiveModel {
-            username: Set(username),
-            email: Set(email),
-            password: Set(password),
-            ..Default::default()
-        };
-
-        new_user.insert(db).await
-    }
-}
+// --- USERNAME FORM ---
 pub struct UsernameForm {
     pub form: Forms,
 }
+
 impl Serialize for UsernameForm {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -65,7 +21,7 @@ impl Serialize for UsernameForm {
 impl RuniqueForm for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.register_field(
-            &TextField::new("username", "Nom d'utilisateur").required("Le nom est requis"),
+            &GenericField::new_text("username", "Nom d'utilisateur").required("Le nom est requis"),
         );
     }
     fn from_form(form: Forms) -> Self {
@@ -79,9 +35,11 @@ impl RuniqueForm for UsernameForm {
     }
 }
 
+// --- POST FORM ---
 pub struct PostForm {
     pub form: Forms,
 }
+
 impl Serialize for PostForm {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -90,32 +48,44 @@ impl Serialize for PostForm {
         self.form.serialize(serializer)
     }
 }
+
 impl RuniqueForm for PostForm {
     fn register_fields(form: &mut Forms) {
+        // Titre : Utilisation de limites_caractere (min, max)
         form.register_field(
-            &TextField::new("title", "Titre de l'article")
+            &GenericField::new_text("title", "Titre de l'article")
                 .placeholder("Entrez le titre ici")
                 .required("Le titre est obligatoire")
-                .max_length(150, "Le titre ne peut pas dépasser 150 caractères"),
+                .limites_caractere(
+                    None,
+                    Some(150),
+                    "Le titre ne peut pas dépasser 150 caractères",
+                ),
         );
 
+        // Email
         form.register_field(
-            &EmailField::new("author_email", "Email de l'auteur")
+            &GenericField::new_email("author_email", "Email de l'auteur")
                 .placeholder("Entrez l'email de l'auteur")
                 .required("L'email de l'auteur est obligatoire"),
         );
 
+        // URL
         form.register_field(
-            &URLField::new("website", "Site web source").placeholder("Entrez le site web source"),
+            &GenericField::new_url("website", "Site web source")
+                .placeholder("Entrez le site web source"),
         );
 
+        // Résumé (TextArea)
         form.register_field(
-            &TextAreaField::new("summary", "Résumé", "Entrez le résumé ici")
+            &GenericField::new_textarea("summary", "Résumé")
+                .placeholder("Entrez le résumé ici")
                 .required("Le résumé est obligatoire"),
         );
 
+        // Contenu (RichText)
         form.register_field(
-            &RichTextField::new("content", "Contenu de l'article")
+            &GenericField::new_richtext("content", "Contenu de l'article")
                 .required("Le contenu est obligatoire"),
         );
     }
@@ -123,7 +93,6 @@ impl RuniqueForm for PostForm {
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-
     fn get_form(&self) -> &Forms {
         &self.form
     }
@@ -132,6 +101,65 @@ impl RuniqueForm for PostForm {
     }
 }
 
+// --- FORMULAIRE D'INSCRIPTION ---
+pub struct RegisterForm {
+    pub form: Forms,
+}
+
+impl Serialize for RegisterForm {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.form.serialize(serializer)
+    }
+}
+
+impl RuniqueForm for RegisterForm {
+    fn register_fields(form: &mut Forms) {
+        // Utilisation de GenericField au lieu de TextField/EmailField
+        form.register_field(&GenericField::new_text("username", "Pseudo"));
+
+        form.register_field(
+            &GenericField::new_email("email", "Mon email").required("L'email est requis"),
+        );
+
+        form.register_field(
+            &GenericField::new_password("password", "Mot de passe").required("Sécurité requise"),
+        );
+    }
+
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    fn get_form(&self) -> &Forms {
+        &self.form
+    }
+    fn get_form_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
+}
+
+impl RegisterForm {
+    pub async fn save(&self, db: &DatabaseConnection) -> Result<users_mod::Model, DbErr> {
+        let username = self.form.get_value("username").unwrap_or_default();
+        let email = self.form.get_value("email").unwrap_or_default();
+
+        // Optionnel : Tu peux utiliser field.hash_password() ici si tu récupères l'instance
+        let password = self.form.get_value("password").unwrap_or_default();
+
+        let new_user = users_mod::ActiveModel {
+            username: Set(username),
+            email: Set(email),
+            password: Set(password),
+            ..Default::default()
+        };
+
+        new_user.insert(db).await
+    }
+}
+
+// --- FORMULAIRE BLOG ---
 pub struct Blog {
     pub form: Forms,
 }
@@ -147,88 +175,56 @@ impl Serialize for Blog {
 
 impl RuniqueForm for Blog {
     fn register_fields(form: &mut Forms) {
-        // Champ Titre
+        // Titre (Texte simple)
         form.register_field(
-            &TextField::new("title", "Titre de l'article")
+            &GenericField::new_text("title", "Titre de l'article")
                 .placeholder("Entrez un titre accrocheur")
-                .required("Le titre est obligatoire")
-                .max_length(150, "Le titre est trop long"),
+                .required("Le titre est obligatoire"),
         );
 
-        // Champ Email de l'auteur
+        // Email de l'auteur
         form.register_field(
-            &EmailField::new("email", "Email de l'auteur")
-                .placeholder("auteur@exemple.com")
-                .required("L'email est requis pour le suivi"),
+            &GenericField::new_email("email", "Email de l'auteur").required("L'email est requis"),
         );
 
-        // Champ Site Web (Optionnel)
-        form.register_field(
-            &URLField::new("website", "Site Web source").placeholder("https://..."),
-        );
+        // Site Web (URL)
+        form.register_field(&GenericField::new_url("website", "Site Web source"));
 
-        // Champ Résumé (Simple texte)
+        // Résumé (TextArea)
         form.register_field(
-            &TextAreaField::new("summary", "Résumé", "Un court résumé de l'article...")
+            &GenericField::new_textarea("summary", "Résumé")
+                .placeholder("Un court résumé...")
                 .required("Veuillez fournir un résumé"),
         );
 
-        // Champ Contenu (Peut être un RichText si tu l'as implémenté)
+        // Contenu (TextArea ou RichText si implémenté dans GenericField)
         form.register_field(
-            &TextAreaField::new(
-                "content",
-                "Contenu de l'article",
-                "Écrivez votre article ici...",
-            )
-            .required("Le contenu ne peut pas être vide"),
+            &GenericField::new_textarea("content", "Contenu de l'article")
+                .required("Le contenu ne peut pas être vide"),
         );
     }
 
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-
     fn get_form(&self) -> &Forms {
         &self.form
     }
-
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
 }
 
 impl Blog {
-    pub async fn save(
-        &self,
-        db: &DatabaseConnection,
-    ) -> Result<crate::models::blog::Model, sea_orm::DbErr> {
+    pub async fn save(&self, db: &DatabaseConnection) -> Result<crate::models::blog::Model, DbErr> {
         use crate::models::blog as post_mod;
-        use sea_orm::{ActiveModelTrait, Set};
 
-        // Extraction des valeurs nettoyées
-        let title = self.form.get_value("title").unwrap_or_default().to_string();
-        let email = self.form.get_value("email").unwrap_or_default().to_string();
-        let website = self
-            .form
-            .get_value("website")
-            .unwrap_or_default()
-            .to_string();
-        let content = self
-            .form
-            .get_value("content")
-            .unwrap_or_default()
-            .to_string();
-        let summary = self
-            .form
-            .get_value("summary")
-            .unwrap_or_default()
-            .to_string();
         let new_post = post_mod::ActiveModel {
-            title: Set(title),
-            email: Set(email),
-            website: Set(website),
-            content: Set(content),
-            summary: Set(summary),
+            title: Set(self.form.get_value("title").unwrap_or_default()),
+            email: Set(self.form.get_value("email").unwrap_or_default()),
+            website: Set(self.form.get_value("website").unwrap_or_default()),
+            content: Set(self.form.get_value("content").unwrap_or_default()),
+            summary: Set(self.form.get_value("summary").unwrap_or_default()),
             ..Default::default()
         };
 
