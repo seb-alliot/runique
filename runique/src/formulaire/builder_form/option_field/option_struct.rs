@@ -1,24 +1,21 @@
 use serde::Serialize;
 use crate::formulaire::builder_form::base_struct::FieldConfig;
 
-#[derive(Serialize)]
-
+#[derive(Serialize, Clone )]
 pub struct ChoiceOption {
     pub label: String,
     pub value: String,
     pub is_disabled: bool,
 }
 
-#[derive(Serialize)]
-
+#[derive(Serialize, Clone )]
 pub struct ChoiceMultiple {
     pub base: FieldConfig,
     pub options: Vec<ChoiceOption>,
     pub multiple: bool,
 }
 
-#[derive(Serialize)]
-
+#[derive(Serialize, Clone )]
 pub struct DateConfig {
     pub base: FieldConfig,
     pub min_date: Option<String>,
@@ -27,8 +24,7 @@ pub struct DateConfig {
 }
 
 
-#[derive(Serialize)]
-
+#[derive(Serialize, Clone )]
 pub struct FileConfig {
     pub base: FieldConfig,
     pub target_path: String,
@@ -38,35 +34,3 @@ pub struct FileConfig {
     pub current_file_path: Option<String>,
 }
 
-#[derive(Serialize)]
-
-pub struct MaxlenghtConfig {
-    pub max_length: usize,
-}
-
-#[derive(Serialize)]
-
-pub struct MinlenghtConfig {
-    pub min_length: usize,
-}
-
-#[derive(Serialize)]
-
-pub struct IsRequired {
-    pub choice : bool,
-    pub message: Option<String>,
-}
-
-
-#[derive(Serialize)]
-pub struct ConfigReadOnly {
-    pub read: bool,
-    pub reason: Option<String>,
-}
-
-#[derive(Serialize)]
-
-pub struct ConfigDisabled {
-    pub disabled: bool,
-    pub reason: Option<String>,
-}

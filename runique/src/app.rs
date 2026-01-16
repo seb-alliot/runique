@@ -139,8 +139,7 @@ impl RuniqueApp {
             r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#,
         )
         .unwrap();
-        let re =
-            regex::Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?\s*%}"#).unwrap();
+        let re = regex::Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?\s*%}"#).unwrap();
 
         for dir_string in &config.templates_dir {
             let template_dir = std::path::Path::new(dir_string);
@@ -297,46 +296,10 @@ impl RuniqueApp {
 
         // Champs de formulaire
         // Champs de texte
-        tera.add_raw_template("charfield", include_str!("../templates/formulaire/texte/generix_texte.html"))?;
-        tera.add_raw_template("email", include_str!("../templates/formulaire/texte/generix_texte.html"))?;
-        tera.add_raw_template("password", include_str!("../templates/formulaire/texte/generix_texte.html"))?;
-        tera.add_raw_template("TextareaField", include_str!("../templates/formulaire/texte/generix_texte.html"))?;
-        tera.add_raw_template("telephone", include_str!("../templates/formulaire/phone/telephone.html"))?;
-        tera.add_raw_template("postalcode", include_str!("../templates/formulaire/texte/generix_texte.html"))?;
-        tera.add_raw_template("uuid", include_str!("../templates/formulaire/texte/uuid.html"))?;
-        // Choix / select
-        tera.add_raw_template("select", include_str!("../templates/formulaire/choice/selectfield.html"))?;
-        tera.add_raw_template("select-multiple", include_str!("../templates/formulaire/choice/select-multiple.html"))?;
-        tera.add_raw_template("radio", include_str!("../templates/formulaire/radio/radio.html"))?;
-        tera.add_raw_template("checkbox", include_str!("../templates/formulaire/radio/checkboxfield.html"))?;
-
-        // Couleur
-        tera.add_raw_template("color-picker", include_str!("../templates/formulaire/color/color.html"))?;
-
-        // Date / datetime / time
-        tera.add_raw_template("date", include_str!("../templates/formulaire/date/date.html"))?;
-        tera.add_raw_template("datetime-local", include_str!("../templates/formulaire/date/datetime-local.html"))?;
-        tera.add_raw_template("time", include_str!("../templates/formulaire/time/time.html"))?;
-        tera.add_raw_template("duration", include_str!("../templates/formulaire/texte/generix_texte.html"))?;
-
-        // Numérique
-        tera.add_raw_template("number", include_str!("../templates/formulaire/nombre/numberfield.html"))?;
-        tera.add_raw_template("range", include_str!("../templates/formulaire/nombre/range.html"))?;
-
-        // Fichiers
-        tera.add_raw_template("file", include_str!("../templates/formulaire/upload/filefield.html"))?;
-        tera.add_raw_template("image", include_str!("../templates/formulaire/upload/image_field.html"))?;
-        tera.add_raw_template("multiple-file", include_str!("../templates/formulaire/upload/multiple-file.html"))?;
-
-        // Réseau
-        tera.add_raw_template("url", include_str!("../templates/formulaire/reseau/url.html"))?;
-        tera.add_raw_template("ipaddress", include_str!("../templates/formulaire/reseau/ipaddress.html"))?;
-
-        // Slug / JSON / Hidden
-        tera.add_raw_template("slug", include_str!("../templates/formulaire/texte/generix_texte.html"))?;
-        tera.add_raw_template("json", include_str!("../templates/formulaire/json/jsonfield.html"))?;
-        tera.add_raw_template("hidden", include_str!("../templates/formulaire/hidden/hiddenfield.html"))?;
-
+        tera.add_raw_template(
+            "base_string",
+            include_str!("../templates/field_html/string_html/base_string.html"),
+        )?;
 
         Ok(())
     }

@@ -15,12 +15,12 @@
             </div>
         {% endif %}
 
-        {% if form.errors %}
+        {% if user.errors %}
             <div class="alert alert-warning">
                 <div class="alert-message">
                     <strong>Veuillez corriger les erreurs suivantes :</strong>
                     <ul>
-                        {% for field, error in form.errors %}
+                        {% for field, error in user.errors %}
                             <li><strong>{{ field }} :</strong> {{ error }}</li>
                         {% endfor %}
                     </ul>

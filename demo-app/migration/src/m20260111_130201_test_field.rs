@@ -34,7 +34,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(TestFields::Amount).string().not_null())
                     // Temporel
                     .col(ColumnDef::new(TestFields::OpeningTime).string().not_null())
-                    .col(ColumnDef::new(TestFields::Duration).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(TestFields::Duration)
+                            .big_integer()
+                            .not_null(),
+                    )
                     // Fichiers
                     .col(ColumnDef::new(TestFields::ProfileImage).string().not_null())
                     .col(ColumnDef::new(TestFields::Attachments).text().not_null())
@@ -42,8 +46,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(TestFields::Preferences).text().not_null())
                     .col(ColumnDef::new(TestFields::Subscription).string().not_null())
                     // Meta
-                    .col(ColumnDef::new(TestFields::CreatedAt).timestamp().default(Expr::current_timestamp())
-                            .not_null()
+                    .col(
+                        ColumnDef::new(TestFields::CreatedAt)
+                            .timestamp()
+                            .default(Expr::current_timestamp())
+                            .not_null(),
                     )
                     .to_owned(),
             )

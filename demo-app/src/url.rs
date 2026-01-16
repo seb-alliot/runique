@@ -18,7 +18,13 @@ pub fn routes() -> Router<Arc<Tera>> {
         },
         name ="about",
 
-        // other links
+        // New form test
+        "/test-new-form" => view! {
+            GET => views::test_new_form,
+            POST => views::test_new_form_submit
+        },
+        name = "test_new_form",
+        // // other links
         "/user" => view! {
             GET => views::form_register_user,
             POST => views::user_profile_submit
@@ -37,7 +43,8 @@ pub fn routes() -> Router<Arc<Tera>> {
         "/test-csrf" => post(views::test_csrf),
         name ="test_csrf",
 
-        // Form with advanced fields
+
+        // // Form with advanced fields
         "/test-fields" => view! {
         GET => views::show_form,
         POST => views::submit_form

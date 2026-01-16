@@ -53,9 +53,13 @@ pub use derive_form::{runique_form, DeriveModelForm};
 pub use processor::{Message, Template};
 
 // Routing & URL reversing
-pub use macro_perso::router::{register_name_url::register_name_url, reverse, reverse_with_parameters};
+pub use macro_perso::router::{
+    register_name_url::register_name_url, reverse, reverse_with_parameters,
+};
 
 // ORM (SeaORM)
+#[cfg(feature = "orm")]
+pub use database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
 #[cfg(feature = "orm")]
 pub use sea_orm;
 #[cfg(feature = "orm")]
@@ -63,8 +67,6 @@ pub use sea_orm::{
     ActiveModelTrait, ColumnTrait, Database, DatabaseConnection, EntityTrait, ModelTrait,
     QueryFilter, Set,
 };
-#[cfg(feature = "orm")]
-pub use database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
 
 // CSRF / HMAC
 pub use hmac::{Hmac, Mac};
@@ -86,16 +88,16 @@ pub use axum::{
 };
 
 // Divers utilitaires
+pub use async_trait::async_trait;
 pub use once_cell::sync::Lazy;
-pub use tera::{Context, Tera};
 pub use serde::ser::{SerializeStruct, Serializer};
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::json;
-pub use async_trait::async_trait;
+pub use tera::{Context, Tera};
 
 // Formulaires
+pub use formulaire::builder_form::form_manager::Forms;
 pub use formulaire::utils::extracteur::ExtractForm;
-pub use formulaire::validation_form::builder_form::form_manager::Forms;
 pub use macro_perso::context_macro::ContextHelper;
 
 // Version du framework
@@ -109,28 +111,43 @@ pub mod prelude {
     pub use crate::settings::Settings;
 
     // === Macros ===
-    pub use crate::{DeriveModelForm, runique_form};
+    pub use crate::{runique_form, DeriveModelForm};
 
     // === Formulaires ===
-    pub use crate::formulaire::validation_form::builder_form::form_manager::Forms;
+    pub use crate::formulaire::builder_form::form_manager::Forms;
     pub use crate::formulaire::utils::extracteur::ExtractForm;
     pub use country::Country;
     pub use phonenumber::{country::Id as CountryId, parse, Mode};
 
     // === Champs standards ===
 
+    // Core logic
+    pub use crate::formulaire::builder_form::base_struct::*;
+    pub use crate::formulaire::builder_form::option_field::*;
+    pub use crate::formulaire::builder_form::trait_form::{FormField, RuniqueForm};
 
+    // Champs mis à jour
+    // Base string fields
+    pub use crate::formulaire::builder_form::type_field::string_field::base_string::text::struct_string::TextField;
+    pub use crate::formulaire::builder_form::type_field::string_field::base_string::text_area::struct_text_area::TextAreaField;
+    pub use crate::formulaire::builder_form::type_field::string_field::base_string::rich_text::struct_rich_text::RichTextField;
+    pub use crate::formulaire::builder_form::type_field::string_field::base_string::password::struct_password::PasswordField;
 
-
+    // Format special fields
+    pub use crate::formulaire::builder_form::type_field::string_field::format_special::base_email::struct_email::EmailField;
+    pub use crate::formulaire::builder_form::type_field::string_field::format_special::base_url::struct_url::URLField;
 
     // === Messages flash ===
-    pub use crate::{context, flash_now, success, warning, error, info};
+    pub use crate::{context, error, flash_now, info, success, warning};
 
     // === Routing et URL reversing ===
     pub use crate::{reverse, reverse_with_parameters};
 
     // === Axum - Router et Routing ===
-    pub use axum::{routing::{delete, get, patch, post, put}, Router};
+    pub use axum::{
+        routing::{delete, get, patch, post, put},
+        Router,
+    };
 
     // === Axum - Response ===
     pub use axum::response::{Html, IntoResponse, Redirect, Response};
@@ -143,8 +160,8 @@ pub mod prelude {
     pub use axum::http::StatusCode;
 
     // === Tokio / Async ===
-    pub use tokio;
     pub use async_trait;
+    pub use tokio;
 
     // === Serde ===
     pub use crate::serde::ser::{SerializeStruct, Serializer};
@@ -166,12 +183,12 @@ pub mod prelude {
 
     // === ORM (si feature orm activée) ===
     #[cfg(feature = "orm")]
+    pub use crate::database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
+    #[cfg(feature = "orm")]
+    pub use crate::orm::impl_objects;
+    #[cfg(feature = "orm")]
     pub use sea_orm::{
         self, ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait,
         QueryFilter, QueryOrder, QuerySelect, Set,
     };
-    #[cfg(feature = "orm")]
-    pub use crate::database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
-    #[cfg(feature = "orm")]
-    pub use crate::orm::impl_objects;
 }

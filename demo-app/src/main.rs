@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connexion à la base de données
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
-    
+
     // Configuration de l'application !!
     // Vous pouvez personnaliser les paramètres du settings ici
     // La clef secrète doit être changée pour la production( secret_key dans the server)
