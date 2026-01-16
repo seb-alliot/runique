@@ -16,7 +16,7 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
         _ => panic!("DeriveModelForm : structs uniquement"),
     };
 
-    // Générer les register_field pour chaque champ
+    // Générer les champs pour register_fields
     let register_fields: Vec<_> = fields
         .iter()
         .filter(|f| !is_excluded(f))
@@ -25,22 +25,35 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
             let field_name_str = field_name.to_string();
             let label = format_field_label(&field_name_str);
             let field_type = get_field_type(f);
+            let is_optional = is_optional_field(f);
+
+            // Construction différente selon le type de champ
+            let field_construction = if field_type.to_string().contains("TextAreaField") {
+                // TextAreaField::new prend 3 arguments (name, label, placeholder)
+                quote! {
+                    ::runique::prelude::#field_type::new(#field_name_str, #label, "")
+                }
+            } else {
+                // Les autres prennent 2 arguments (name, label)
+                quote! {
+                    ::runique::prelude::#field_type::new(#field_name_str, #label)
+                }
+            };
+
+            // Déterminer si le champ est requis
+            let required_clause = if is_optional {
+                quote! {}
+            } else {
+                quote! { .required("Ce champ est obligatoire") }
+            };
 
             quote! {
-                form.register_field(
-                    #field_name_str,
-                    #label,
-                    &::runique::prelude::#field_type::new()
+                form.add(
+                    #field_construction
+                        #required_clause
                 );
             }
         })
-        .collect();
-
-    // Générer les validations pour chaque champ
-    let validations: Vec<_> = fields
-        .iter()
-        .filter(|f| !is_excluded(f))
-        .map(generate_validation_runiqueform)
         .collect();
 
     // Générer les conversions pour to_active_model
@@ -51,43 +64,58 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
         .collect();
 
     let expanded = quote! {
-    #[derive(::runique::serde::Serialize, ::runique::serde::Deserialize, Debug, Clone)]
-    pub struct #form_name {
-        pub csrf_token: Option<String>,
-
-        #[serde(flatten)]
-        #[serde(skip_deserializing, default)]
-        pub form: ::runique::formulaire::formsrunique::Forms,
-    }
-
-    impl std::ops::Deref for #form_name {
-        type Target = ::runique::formulaire::formsrunique::Forms;
-        fn deref(&self) -> &Self::Target { &self.form }
-    }
-
-    impl std::ops::DerefMut for #form_name {
-        fn deref_mut(&mut self) -> &mut Self::Target { &mut self.form }
-    }
-
-    impl ::runique::formulaire::formsrunique::RuniqueForm for #form_name {
-        fn register_fields(form: &mut ::runique::formulaire::formsrunique::Forms) {
-            #(#register_fields)*
+        #[derive(::runique::serde::Serialize, Debug, Clone)]
+        pub struct #form_name {
+            #[serde(flatten, skip_deserializing)]
+            pub form: ::runique::formulaire::builder_form::form_manager::Forms,
         }
 
-        fn validate_fields(form: &mut ::runique::formulaire::formsrunique::Forms, raw_data: &std::collections::HashMap<String, String>) {
-            #(#validations)*
-        }
+        // Implémentation manuelle de Deserialize
+        impl<'de> ::runique::serde::Deserialize<'de> for #form_name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: ::runique::serde::Deserializer<'de>,
+            {
+                // On désérialise juste un objet vide
+                let _ = <std::collections::HashMap<String, ::runique::serde_json::Value>>::deserialize(deserializer)?;
 
-        fn from_form(form: ::runique::formulaire::formsrunique::Forms) -> Self {
-            Self {
-                csrf_token: None, // Initialisation explicite
-                form
+                // On retourne un formulaire vide qui sera reconstruit par build()
+                Ok(Self {
+                    form: ::runique::formulaire::builder_form::form_manager::Forms::new(),
+                })
             }
         }
 
-        fn get_form(&self) -> &::runique::formulaire::formsrunique::Forms { &self.form }
-        fn get_form_mut(&mut self) -> &mut ::runique::formulaire::formsrunique::Forms { &mut self.form }
-    }
+        impl std::ops::Deref for #form_name {
+            type Target = ::runique::formulaire::builder_form::form_manager::Forms;
+            fn deref(&self) -> &Self::Target {
+                &self.form
+            }
+        }
+
+        impl std::ops::DerefMut for #form_name {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.form
+            }
+        }
+
+        impl ::runique::formulaire::builder_form::trait_form::RuniqueForm for #form_name {
+            fn register_fields(form: &mut ::runique::formulaire::builder_form::form_manager::Forms) {
+                #(#register_fields)*
+            }
+
+            fn from_form(form: ::runique::formulaire::builder_form::form_manager::Forms) -> Self {
+                Self { form }
+            }
+
+            fn get_form(&self) -> &::runique::formulaire::builder_form::form_manager::Forms {
+                &self.form
+            }
+
+            fn get_form_mut(&mut self) -> &mut ::runique::formulaire::builder_form::form_manager::Forms {
+                &mut self.form
+            }
+        }
 
         impl #form_name {
             pub fn to_active_model(&self) -> ActiveModel {
@@ -106,6 +134,5 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
             }
         }
     };
-
     TokenStream::from(expanded)
 }

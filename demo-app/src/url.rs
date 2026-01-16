@@ -20,22 +20,24 @@ pub fn routes() -> Router<Arc<Tera>> {
 
         // New form test
         "/test-new-form" => view! {
-            GET => views::test_new_form,
-            POST => views::test_new_form_submit
+            GET => views::test_champs_form,
+            POST => views::soumission_champs_form
         },
-        name = "test_new_form",
+        name = "test_champs_form",
+
+        // Enregistrement utilisateur
         // // other links
         "/user" => view! {
-            GET => views::form_register_user,
-            POST => views::user_profile_submit
+            GET => views::inscription,
+            POST => views::soumissioninscription
         },
         name = "user_profile",
 
 
-        // search by username
+        // Recupération et affichage profil utilisateur
         "/view-user" => view! {
-            GET => views::user,
-            POST => views::view_user
+            GET => views::cherche_user,
+            POST => views::info_user
         },
         name = "view-user",
 
@@ -45,10 +47,17 @@ pub fn routes() -> Router<Arc<Tera>> {
 
 
         // // Form with advanced fields
-        "/test-fields" => view! {
-        GET => views::show_form,
-        POST => views::submit_form
+        "/blog" => view! {
+        GET => views::blog_form,
+        POST => views::soumission_blog_info
         },
-        name ="test_fields",
+        name ="blog_info",
+
+
+        "/inscription" => view! {
+        GET => views::affiche_form_generer,
+        POST => views::soumission_form_generer
+        },
+        name ="inscription",
     }
 }

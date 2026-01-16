@@ -1,11 +1,10 @@
 // --- Definitions communes pour les champs de formulaire ---
 use crate::formulaire::builder_form::form_manager::Forms;
 use sea_orm::DbErr;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
-
-use serde_json::Value;
 
 pub trait FormField: Send + Sync + dyn_clone::DynClone {
     fn name(&self) -> &str;
@@ -15,11 +14,16 @@ pub trait FormField: Send + Sync + dyn_clone::DynClone {
 
     fn set_name(&mut self, name: &str);
     fn set_label(&mut self, label: &str);
-    // ----------------------------------------
+    fn set_placeholder(&mut self, placeholder: &str);
+    fn set_readonly(&mut self, readonly: bool, msg: Option<&str>);
+    fn set_disabled(&mut self, disabled: bool, msg: Option<&str>);
+    fn set_required(&mut self, required: bool, msg: Option<&str>);
+    fn set_html_attribute(&mut self, key: &str, value: &str);
 
     fn is_required(&self) -> bool {
         false
     }
+
     fn validate(&mut self) -> bool;
     fn get_error(&self) -> Option<&String>;
     fn set_error(&mut self, message: String);
@@ -29,7 +33,33 @@ pub trait FormField: Send + Sync + dyn_clone::DynClone {
         Value::String(self.value().to_string())
     }
 
+    fn field_type(&self) -> &str;
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String>;
+
+    fn get_is_required_config(&self) -> serde_json::Value {
+        serde_json::json!({
+            "choice": self.is_required(),
+            "message": null
+        })
+    }
+
+    fn get_readonly_config(&self) -> serde_json::Value {
+        serde_json::json!({
+            "choice": false,
+            "message": null
+        })
+    }
+
+    fn get_disabled_config(&self) -> serde_json::Value {
+        serde_json::json!({
+            "choice": false,
+            "message": null
+        })
+    }
+
+    fn get_html_attributes(&self) -> serde_json::Value {
+        serde_json::json!({})
+    }
 }
 
 dyn_clone::clone_trait_object!(FormField);
@@ -55,6 +85,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
         form.is_valid();
         Self::from_form(form)
     }
+
     fn database_error(&mut self, err: &DbErr) {
         self.get_form_mut().database_error(err);
     }

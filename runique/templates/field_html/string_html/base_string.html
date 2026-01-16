@@ -4,7 +4,7 @@
             {{ field.label }}
             {# On vérifie si is_required existe et si choice est vrai #}
             {% if field.is_required and field.is_required.choice %}
-                <span class="text-danger">*</span>
+                <span class="text-danger"></span>
             {% endif %}
         </label>
     {% endif %}

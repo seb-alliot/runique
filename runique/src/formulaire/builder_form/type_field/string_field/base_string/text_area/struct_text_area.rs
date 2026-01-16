@@ -96,7 +96,9 @@ impl FormField for TextAreaField {
     fn get_error(&self) -> Option<&String> {
         self.config.base.error.as_ref()
     }
-
+    fn field_type(&self) -> &str {
+        &self.config.base.type_field
+    }
     fn set_error(&mut self, message: String) {
         self.config.base.error = Some(message);
     }
@@ -142,6 +144,65 @@ impl FormField for TextAreaField {
     fn set_label(&mut self, label: &str) {
         self.config.base.label = label.to_string();
     }
+    fn set_placeholder(&mut self, placeholder: &str) {
+        self.config.base.placeholder = placeholder.to_string();
+    }
+
+    fn set_readonly(&mut self, readonly: bool, msg: Option<&str>) {
+        self.config.base.readonly = Some(BoolChoice {
+            choice: readonly,
+            message: msg.map(|s| s.to_string()),
+        });
+    }
+
+    fn set_disabled(&mut self, disabled: bool, msg: Option<&str>) {
+        self.config.base.disabled = Some(BoolChoice {
+            choice: disabled,
+            message: msg.map(|s| s.to_string()),
+        });
+    }
+
+    fn set_required(&mut self, required: bool, msg: Option<&str>) {
+        self.config.base.is_required = BoolChoice {
+            choice: required,
+            message: msg.map(|s| s.to_string()),
+        };
+    }
+
+    fn set_html_attribute(&mut self, key: &str, value: &str) {
+        self.config
+            .base
+            .html_attributes
+            .insert(key.to_string(), value.to_string());
+    }
+
+    fn get_is_required_config(&self) -> serde_json::Value {
+        serde_json::to_value(&self.config.base.is_required)
+            .unwrap_or(serde_json::json!({"choice": false, "message": null}))
+    }
+
+    fn get_readonly_config(&self) -> serde_json::Value {
+        if let Some(ref readonly) = self.config.base.readonly {
+            serde_json::to_value(readonly)
+                .unwrap_or(serde_json::json!({"choice": false, "message": null}))
+        } else {
+            serde_json::json!({"choice": false, "message": null})
+        }
+    }
+
+    fn get_disabled_config(&self) -> serde_json::Value {
+        if let Some(ref disabled) = self.config.base.disabled {
+            serde_json::to_value(disabled)
+                .unwrap_or(serde_json::json!({"choice": false, "message": null}))
+        } else {
+            serde_json::json!({"choice": false, "message": null})
+        }
+    }
+
+    fn get_html_attributes(&self) -> serde_json::Value {
+        serde_json::to_value(&self.config.base.html_attributes).unwrap_or(serde_json::json!({}))
+    }
+
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
         context.insert("field", &self.config.base);

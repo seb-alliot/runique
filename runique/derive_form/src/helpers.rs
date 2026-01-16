@@ -1,3 +1,5 @@
+use darling::FromField;
+use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{Attribute, Data, Field, Fields, Type};
 
@@ -52,11 +54,13 @@ pub(crate) fn is_excluded(field: &Field) -> bool {
         || name == "form"
         || name == "created_at"
         || name == "updated_at"
+        || name == "updated_at"
+        || name == "is_active"
+        || name == "deleted_at"
     {
         return true;
     }
 
-    // Exclusion des clés primaires SeaORM
     for attr in &field.attrs {
         if attr.path().is_ident("sea_orm") {
             let tokens = attr.meta.to_token_stream().to_string();
@@ -68,7 +72,7 @@ pub(crate) fn is_excluded(field: &Field) -> bool {
     false
 }
 
-/// Vérifier si Option<T> est utilisé
+/// Vérifier si Option<T>
 pub(crate) fn is_optional_field(field: &Field) -> bool {
     if let Type::Path(type_path) = &field.ty {
         if let Some(segment) = type_path.path.segments.first() {
@@ -78,13 +82,13 @@ pub(crate) fn is_optional_field(field: &Field) -> bool {
     false
 }
 
-/// Déterminer le type de champ Runique à partir du type Rust
+/// Déterminer le type de champ field à partir du type Rust
 pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
     let field_name = field.ident.as_ref().unwrap().to_string().to_lowercase();
     let ty = &field.ty;
     let ty_str = quote!(#ty).to_string().replace(" ", "");
 
-    // 1. Détection par nom (priorité haute)
+    // 1. Détection par nom de field
     if field_name.contains("email") {
         return quote! { EmailField };
     }
@@ -94,9 +98,6 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
     if field_name.contains("url") || field_name.contains("link") || field_name.contains("website") {
         return quote! { URLField };
     }
-    if field_name.contains("slug") {
-        return quote! { SlugField };
-    }
 
     // 2. Détection par type
     let base_type = ty_str.replace("Option<", "").replace(">", "");
@@ -105,63 +106,20 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
         if field_name.contains("description")
             || field_name.contains("bio")
             || field_name.contains("content")
-            || field_name.contains("text")
             || field_name.contains("message")
+            || field_name.contains("text")
+            || field_name.contains("comment")
         {
-            return quote! { TextareaField };
+            return quote! { TextAreaField };
         }
-        return quote! { CharField };
+        return quote! { TextField };
     }
 
-    if base_type.contains("i32") || base_type.contains("i64") {
-        return quote! { IntegerField };
-    }
-
-    if base_type.contains("f32") || base_type.contains("f64") {
-        return quote! { FloatField };
-    }
-
-    if base_type.contains("bool") {
-        return quote! { BooleanField };
-    }
-
-    if base_type.contains("DateTime") || base_type.contains("NaiveDateTime") {
-        return quote! { DateTimeField };
-    }
-
-    if base_type.contains("NaiveDate") || base_type.contains("Date") {
-        return quote! { DateField };
-    }
-
-    if base_type.contains("IpAddr") {
-        return quote! { IPAddressField };
-    }
-
-    if base_type.contains("Value") || base_type.contains("Json") {
-        return quote! { JSONField };
-    }
-
-    // Fallback propre
-    quote! { CharField }
+    // Fallback
+    quote! { TextField }
 }
 
-/// Générer la validation pour RuniqueForm
-pub(crate) fn generate_validation_runiqueform(field: &Field) -> proc_macro2::TokenStream {
-    let field_name_str = field.ident.as_ref().unwrap().to_string();
-    let field_type = get_field_type(field);
-
-    if is_optional_field(field) {
-        quote! {
-            form.optional(#field_name_str, &::runique::prelude::#field_type::new(), raw_data);
-        }
-    } else {
-        quote! {
-            form.require(#field_name_str, &::runique::prelude::#field_type::new(), raw_data);
-        }
-    }
-}
-
-/// Formater le nom du champ en label lisible
+/// Formater le nom du champ en label
 pub(crate) fn format_field_label(field_name: &str) -> String {
     field_name
         .split('_')
@@ -183,50 +141,76 @@ pub(crate) fn generate_conversion(field: &Field) -> proc_macro2::TokenStream {
     let ty = &field.ty;
     let ty_str = quote!(#ty).to_string().replace(" ", "");
 
-    // Champ interne ignoré
-    if field_name_str == "_csrf_token" {
-        return quote! {};
-    }
-
     // Timestamps automatiques
     if field_name_str == "created_at" || field_name_str == "updated_at" {
         return quote! {
             #field_name: Set(chrono::Utc::now().naive_utc()),
         };
     }
-
+    // Exemple pour is_active avec valeur par défaut
+    if field_name_str == "is_active" {
+        // Chercher l'attribut #[model_form(default = ...)]
+        let default_value = get_default_value(field);
+        return quote! {
+            #field_name: Set(#default_value),
+        };
+    }
     // Option<T>
     if is_optional_field(field) {
         return quote! {
-            #field_name: Set(self.get_value(#field_name_str)),
+            #field_name: Set(self.form.get_value(#field_name_str)),
         };
     }
 
     let base_type = ty_str.replace("Option<", "").replace(">", "");
 
-    if base_type.contains("i32") {
+    // Types numériques
+    if base_type.contains("i32")
+        || base_type.contains("i64")
+        || base_type.contains("u32")
+        || base_type.contains("u64")
+    {
         quote! {
-            #field_name: Set(self.get_value::<i64>(#field_name_str).unwrap_or(0) as i32),
+            #field_name: Set({
+                let val = self.form.get_value(#field_name_str).unwrap_or_default();
+                val.parse().unwrap_or(0)
+            }),
         }
-    } else if base_type.contains("i64") {
+    } else if base_type.contains("f32") || base_type.contains("f64") {
         quote! {
-            #field_name: Set(self.get_value::<i64>(#field_name_str).unwrap_or(0)),
-        }
-    } else if base_type.contains("f32") {
-        quote! {
-            #field_name: Set(self.get_value::<f64>(#field_name_str).unwrap_or(0.0) as f32),
-        }
-    } else if base_type.contains("f64") {
-        quote! {
-            #field_name: Set(self.get_value::<f64>(#field_name_str).unwrap_or(0.0)),
+            #field_name: Set({
+                let val = self.form.get_value(#field_name_str).unwrap_or_default();
+                val.parse().unwrap_or(0.0)
+            }),
         }
     } else if base_type.contains("bool") {
         quote! {
-            #field_name: Set(self.get_value::<bool>(#field_name_str).unwrap_or(false)),
+            #field_name: Set({
+                let val = self.form.get_value(#field_name_str).unwrap_or_default();
+                val == "true" || val == "1" || val == "on"
+            }),
         }
     } else {
+        // String par défaut
         quote! {
-            #field_name: Set(self.get_value(#field_name_str).unwrap_or_default()),
+            #field_name: Set(self.form.get_value(#field_name_str).unwrap_or_default()),
         }
+    }
+}
+
+#[derive(FromField)]
+#[darling(attributes(model_form))]
+struct FieldArgs {
+    #[darling(default)]
+    default: bool,
+}
+
+pub(crate) fn get_default_value(field: &Field) -> TokenStream {
+    match FieldArgs::from_field(field) {
+        Ok(args) => {
+            let val = args.default;
+            quote! { #val }
+        }
+        Err(_) => quote! { true },
     }
 }

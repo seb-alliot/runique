@@ -139,7 +139,11 @@ impl RuniqueApp {
             r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#,
         )
         .unwrap();
-        let re = regex::Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?\s*%}"#).unwrap();
+
+        // Deux regex séparées pour les formulaires
+        let form_field_regex =
+            regex::Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\s*%}"#).unwrap();
+        let form_full_regex = regex::Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)\s*%}"#).unwrap();
 
         for dir_string in &config.templates_dir {
             let template_dir = std::path::Path::new(dir_string);
@@ -153,29 +157,24 @@ impl RuniqueApp {
                     content = content.replace("{% messages %}", r#"{% include "message" %}"#);
                     content = content.replace("{{ csp }}", r#"{% include "csp" %}"#);
 
-                    // Transformation pour les formulaire
-                    content = re
+                    content = form_field_regex
                         .replace_all(&content, |caps: &regex::Captures| {
                             let form_name = &caps[1];
-
-                            match caps.get(2) {
-                                // Cas A : {% form.user.email %} -> rendu d'un champ seul
-                                Some(field_name) => {
-                                    format!(
-                                        "{{{{ {} | form(field='{}') | safe }}}}",
-                                        form_name,
-                                        field_name.as_str()
-                                    )
-                                }
-                                // Cas B : {% form.user %} -> rendu du formulaire complet
-                                None => {
-                                    format!("{{{{ {} | form | safe }}}}", form_name)
-                                }
-                            }
+                            let field_name = &caps[2];
+                            format!(
+                                r#"{{% set field = {} | form(field='{}') %}}{{% set input_type = field.field_type %}}{{% include "base_string" %}}"#,
+                                form_name, field_name
+                            )
                         })
                         .to_string();
 
-                    // Transformation unifiée pour {% link "name" %}
+                    content = form_full_regex
+                        .replace_all(&content, |caps: &regex::Captures| {
+                            let form_name = &caps[1];
+                            format!("{{{{ {} | form | safe }}}}", form_name)
+                        })
+                        .to_string();
+
                     content = link_regex
                         .replace_all(&content, |caps: &regex::Captures| {
                             let name = &caps["name"];
