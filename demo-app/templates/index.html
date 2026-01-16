@@ -29,6 +29,11 @@
 
     <main>
 
+        {% block inscription %}
+        <div class="inscription-banner">
+            <a href="{% link "inscription" %}">Inscrivez-vous dès maintenant !</a>
+        </div>
+        {% endblock %}
 
         {% block content %}
     <div class="content">
@@ -46,11 +51,11 @@
     </main>
     <footer>
         {% block footer %}
-            <a href={% link "test_new_form" %}>Test New Form</a>
+            <a href={% link "test_champs_form" %}>Test New Form</a>
             <a href={% link "view-user" %}>Recherche user</a>
             <a href="{% link "user_profile" %}">S'inscrire</a>
             <a href={% link "about" %}>À propos</a>
-            <a href="{% link "test_fields" %}">Test Fields</a>
+            <a href="{% link "blog_info" %}">Blog</a>
             <p>&copy; 2025 My Web Application</p>
         {% endblock %}
     </footer>

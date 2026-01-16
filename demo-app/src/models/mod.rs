@@ -1,3 +1,5 @@
+pub mod blog;
 pub mod test;
-pub mod Blog;
 pub mod users;
+
+pub mod model_derive;

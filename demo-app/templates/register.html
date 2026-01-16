@@ -1,0 +1,17 @@
+{% extends 'index.html' %}
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/test-field.css" %}'>
+    <link rel="stylesheet" href='{% static "css/register.css" %}'>
+{% endblock %}
+{% block content %}
+    <h1>{{ title }}</h1>
+
+    {% messages %}
+
+    <form method="post" action="/register">
+        {% csrf %}
+        {% form.inscription_form %}
+        <button type="submit">S'inscrire</button>
+    </form>
+{% endblock %}

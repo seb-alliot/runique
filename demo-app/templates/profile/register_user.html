@@ -13,15 +13,6 @@
                 {% messages %}
             {% endblock %}
 
-        <div>
-            <h3>Debug Info:</h3>
-            <ul>
-                <li>Titre: {{ title }}</li>
-                <li>Nombre de champs: {{ register_form.cleaned_data | length }}</li>
-                <li>Erreurs: {{ register_form.errors | length }}</li>
-            </ul>
-            <hr>
-        </div>
             <form id="username-form" method="post">
                 {% csrf %}
                 {% if register_form.errors %}

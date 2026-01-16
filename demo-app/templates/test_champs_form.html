@@ -1,5 +1,8 @@
 {% extends "index.html" %}
-
+    {% block style %}
+        {{ super() }}
+        <link rel="stylesheet" href='{% static "css/test_form.css" %}'>
+    {% endblock %}
 <div class="content">
     {% block content %}
         <link rel="stylesheet" href='{% static "css/search-user.css" %}'>
@@ -30,7 +33,7 @@
 
 
             <form method="POST">
-                {% form.test_new_form.html %}
+                {% form.test_new_form %}
                 <button type="submit">Envoyer</button>
             </form>
         </div>

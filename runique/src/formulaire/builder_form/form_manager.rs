@@ -7,10 +7,27 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
 
+#[derive(Clone)] // Ajouter Clone
 pub struct Forms {
     pub fields: IndexMap<String, Box<dyn FormField>>,
     pub tera: Option<Arc<Tera>>,
     pub global_errors: Vec<String>,
+}
+
+impl Default for Forms {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl std::fmt::Debug for Forms {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Forms")
+            .field("fields_count", &self.fields.len())
+            .field("has_tera", &self.tera.is_some())
+            .field("global_errors", &self.global_errors)
+            .finish()
+    }
 }
 
 impl Serialize for Forms {
@@ -18,7 +35,7 @@ impl Serialize for Forms {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Forms", 5)?;
+        let mut state = serializer.serialize_struct("Forms", 6)?;
         state.serialize_field("cleaned_data", &self.cleaned_data())?;
         state.serialize_field("errors", &self.all_errors())?;
         state.serialize_field("global_errors", &self.global_errors)?;
@@ -30,6 +47,48 @@ impl Serialize for Forms {
         state.serialize_field("html", &rendered_html)?;
 
         state.serialize_field("is_valid", &self.is_valid_const())?;
+
+        // Sérialiser les champs avec leurs métadonnées complètes
+        let fields_data: HashMap<String, serde_json::Value> = self
+            .fields
+            .iter()
+            .enumerate()
+            .map(|(index, (name, field))| {
+                let mut field_map = serde_json::Map::new();
+                field_map.insert("name".to_string(), serde_json::Value::String(name.clone()));
+                field_map.insert(
+                    "label".to_string(),
+                    serde_json::Value::String(field.label().to_string()),
+                );
+                field_map.insert(
+                    "field_type".to_string(),
+                    serde_json::Value::String(field.field_type().to_string()),
+                );
+                field_map.insert(
+                    "value".to_string(),
+                    serde_json::Value::String(field.value().to_string()),
+                );
+                field_map.insert(
+                    "placeholder".to_string(),
+                    serde_json::Value::String(field.placeholder().to_string()),
+                );
+                field_map.insert("index".to_string(), serde_json::Value::Number(index.into()));
+
+                if let Some(err) = field.get_error() {
+                    field_map.insert("error".to_string(), serde_json::Value::String(err.clone()));
+                }
+
+                // Utiliser les nouvelles méthodes du trait
+                field_map.insert("is_required".to_string(), field.get_is_required_config());
+                field_map.insert("readonly".to_string(), field.get_readonly_config());
+                field_map.insert("disabled".to_string(), field.get_disabled_config());
+                field_map.insert("html_attributes".to_string(), field.get_html_attributes());
+
+                (name.clone(), serde_json::Value::Object(field_map))
+            })
+            .collect();
+        state.serialize_field("fields", &fields_data)?;
+
         state.end()
     }
 }
@@ -109,6 +168,7 @@ impl Forms {
         }
         Ok(html.join("\n"))
     }
+
     pub fn register_field<T>(&mut self, field_template: &T)
     where
         T: FormField + Clone + 'static,
@@ -116,6 +176,7 @@ impl Forms {
         let field_instance = field_template.clone();
         self.add(field_instance);
     }
+
     pub fn get_value(&self, name: &str) -> Option<String> {
         self.fields.get(name).map(|field| field.value().to_string())
     }
@@ -123,30 +184,27 @@ impl Forms {
     pub fn get_value_or_default(&self, name: &str) -> String {
         self.get_value(name).unwrap_or_default()
     }
+
     pub fn database_error(&mut self, db_err: &sea_orm::DbErr) {
         let err_msg = db_err.to_string();
 
         if err_msg.contains("unique") || err_msg.contains("UNIQUE") || err_msg.contains("Duplicate")
         {
             if let Some(field_name) = Self::extract_field_name(&err_msg) {
-                // On cherche le champ dans notre HashMap de champs
                 if let Some(field) = self.fields.get_mut(&field_name) {
                     let friendly_name = field_name.replace("_", " ");
                     field.set_error(format!("Ce {} est déjà utilisé.", friendly_name));
                 } else {
-                    // Si on ne trouve pas le champ précis, on met une erreur globale
-                    // Tu peux avoir un champ invisible "form_error" ou logger l'erreur
                     println!("Champ {} non trouvé pour l'erreur unique", field_name);
                 }
             }
         } else {
-            // Erreur générique si ce n'est pas un problème d'unicité
-            // On peut l'attribuer au premier champ ou gérer une erreur globale
             if let Some((_, first_field)) = self.fields.iter_mut().next() {
                 first_field.set_error("Une erreur de base de données est survenue.".to_string());
             }
         }
     }
+
     fn extract_field_name(err_msg: &str) -> Option<String> {
         if let Some(start) = err_msg.find("contrainte unique « ") {
             let remaining = &err_msg[start + 20..];
@@ -158,7 +216,6 @@ impl Forms {
             }
         }
 
-        // PostgreSQL anglais: unique constraint "users_username_key"
         if let Some(start) = err_msg.find("unique constraint \"") {
             let remaining = &err_msg[start + 19..];
             if let Some(end) = remaining.find('"') {
@@ -168,7 +225,7 @@ impl Forms {
                 }
             }
         }
-        // PostgreSQL Key (username)=(value)
+
         if let Some(start) = err_msg.find("Key (") {
             if let Some(end) = err_msg[start..].find(')') {
                 let field = &err_msg[start + 5..start + end];
@@ -176,7 +233,6 @@ impl Forms {
             }
         }
 
-        // SQLite: UNIQUE constraint failed: users.username
         if let Some(pos) = err_msg.find("failed: ") {
             let remaining = &err_msg[pos + 8..];
             if let Some(dot_pos) = remaining.find('.') {
@@ -186,7 +242,6 @@ impl Forms {
             }
         }
 
-        // MySQL: Duplicate entry 'value' for key 'users.username'
         if let Some(pos) = err_msg.find("for key '") {
             let remaining = &err_msg[pos + 9..];
             if let Some(dot_pos) = remaining.find('.') {
@@ -199,12 +254,11 @@ impl Forms {
 
         None
     }
+
     fn parse_constraint_name(constraint: &str) -> Option<String> {
-        // Format typique: table_field_key ou table_field_idx
         let parts: Vec<&str> = constraint.split('_').collect();
 
         if parts.len() >= 3 {
-            // Enlever le premier élément (nom de table) et le dernier (key/idx)
             let field_parts = &parts[1..parts.len() - 1];
             return Some(field_parts.join("_"));
         }

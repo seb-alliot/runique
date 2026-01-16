@@ -3,13 +3,16 @@ use runique::prelude::*;
 use std::sync::Arc;
 use tera::Tera;
 
+use crate::forms::Blog as blog_mod;
 use crate::forms::PostForm as test_new_form;
 use crate::forms::RegisterForm as register_form;
 use crate::forms::UsernameForm as username_form;
+use crate::models::model_derive::ModelForm as InscriptionForm;
 
 use crate::models::users as users_mod;
 use crate::models::users::Entity as UserEntity;
 
+// Index.html
 pub async fn index(template: Template) -> Response {
     let ctx = context! {
         "title" => "Bienvenue sur Runique",
@@ -24,10 +27,8 @@ pub async fn index(template: Template) -> Response {
     template.render("index.html", &ctx)
 }
 
-pub async fn form_register_user(
-    template: Template,
-    Extension(tera): Extension<Arc<Tera>>,
-) -> Response {
+// Formulaire d'enregistrement utilisateur
+pub async fn inscription(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
     let register_form = register_form::build(tera.clone());
 
     let ctx = context! {
@@ -37,7 +38,8 @@ pub async fn form_register_user(
     template.render("profile/register_user.html", &ctx)
 }
 
-pub async fn user_profile_submit(
+// Soumission du formulaire d'enregistrement utilisateur
+pub async fn soumissioninscription(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
@@ -59,7 +61,10 @@ pub async fn user_profile_submit(
             }
             Err(db_err) => {
                 let debug_error = register_form.get_form_mut();
-                println!("Database error during user creation: {:?}", debug_error.all_errors());
+                println!(
+                    "Database error during user creation: {:?}",
+                    debug_error.all_errors()
+                );
                 debug_error.database_error(&db_err);
                 let ctx = context! {
                     "title" => "Erreur de base de données",
@@ -79,7 +84,8 @@ pub async fn user_profile_submit(
     template.render("profile/register_user.html", &ctx)
 }
 
-pub async fn user(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
+// Affichage d'un utilisateur
+pub async fn cherche_user(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
     let user = username_form::build(tera.clone());
 
     let ctx = context! {
@@ -89,7 +95,8 @@ pub async fn user(template: Template, Extension(tera): Extension<Arc<Tera>>) -> 
     template.render("profile/view_user.html", &ctx)
 }
 
-pub async fn view_user(
+// Soumission du formulaire de recherche utilisateur
+pub async fn info_user(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     template: Template,
     ExtractForm(user): ExtractForm<username_form>,
@@ -130,28 +137,28 @@ pub async fn view_user(
     }
 }
 
-pub async fn show_form(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
-    let test_form = register_form::build(tera.clone());
+// Formulaire avec des champs avancés
+pub async fn blog_form(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
+    let blog_form = blog_mod::build(tera.clone());
 
     let ctx = context! {
         "title" => "Test des champs",
-        "test_form" => test_form
+        "blog_form" => blog_form
     };
-    template.render("test-field/test.html", &ctx)
+    template.render("blog/blog.html", &ctx)
 }
 
-pub async fn submit_form(
+// Soumission du formulaire avec des champs avancés
+pub async fn soumission_blog_info(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     mut message: Message,
     template: Template,
-    ExtractForm(mut test_form): ExtractForm<register_form>,
+    ExtractForm(mut blog_form): ExtractForm<blog_mod>,
 ) -> Response {
     println!("=== Soumission du formulaire ===");
 
-    // Récupération des données nettoyées
-
     // Affiche chaque champ avec type et valeur
-    for (key, value) in test_form.form.cleaned_data().iter() {
+    for (key, value) in blog_form.form.cleaned_data().iter() {
         match value {
             tera::Value::String(s) => println!("Champ '{}' (String): '{}'", key, s),
             tera::Value::Number(n) => println!("Champ '{}' (Number): {}", key, n),
@@ -161,29 +168,27 @@ pub async fn submit_form(
     }
 
     // Vérification de la validité du formulaire
-    if test_form.form.is_valid() {
-        println!("Formulaire valide. Tentative de sauvegarde en base...");
-        match test_form.save(&db).await {
+    if blog_form.form.is_valid() {
+        match blog_form.save(&db).await {
             Ok(_saved_data) => {
-                println!("Formulaire sauvegardé avec succès !");
                 success!(message => "Formulaire sauvegardé avec succès !");
-                return Redirect::to("/test-fields").into_response();
+                return Redirect::to("/blog").into_response();
             }
             Err(db_err) => {
                 println!("Erreur lors de la sauvegarde en base : {:?}", db_err);
-                test_form.get_form_mut().database_error(&db_err);
+                blog_form.get_form_mut().database_error(&db_err);
 
                 let ctx = context! {
                     "title" => "Erreur de base de données",
-                    "test_form" => test_form,
+                    "blog_form" => blog_form,
                     "messages" => flash_now!(warning => "Veuillez corriger les erreurs ci-dessous")
                 };
-                return template.render("test-field/test.html", &ctx);
+                return template.render("blog/blog.html", &ctx);
             }
         }
     } else {
         println!("Formulaire invalide. Erreurs présentes :");
-        for (field, errors) in test_form.form.all_errors() {
+        for (field, errors) in blog_form.form.all_errors() {
             println!(" - Champ '{}': {}", field, errors);
         }
     }
@@ -191,11 +196,57 @@ pub async fn submit_form(
     // Ré-affichage du formulaire avec erreurs
     let ctx = context! {
         "title" => "Test des champs",
-        "test_form" => test_form
+        "blog_form" => blog_form
     };
-    template.render("test-field/test.html", &ctx)
+    template.render("blog/blog.html", &ctx)
 }
 
+// Test du formulaire avec des champs avancés
+pub async fn test_champs_form(
+    Extension(tera): Extension<Arc<Tera>>,
+    template: Template,
+) -> Response {
+    let test_new_form = test_new_form::build(tera.clone());
+
+    let ctx = context! {
+        "title" => "Test des champs",
+        "test_new_form" => test_new_form
+    };
+    template.render("test_champs_form.html", &ctx)
+}
+
+// Soumission du formulaire avec des champs avancés
+pub async fn soumission_champs_form(
+    Extension(_db): Extension<Arc<DatabaseConnection>>,
+    template: Template,
+    mut message: Message,
+    ExtractForm(mut test_new_form): ExtractForm<test_new_form>,
+) -> Response {
+    println!("=== Soumission du formulaire ===");
+    if test_new_form.form.is_valid() {
+        println!("Formulaire valide. Tentative de sauvegarde en base...");
+        success!(message => "Formulaire sauvegardé avec succès !");
+        return Redirect::to("/test-new-form").into_response();
+    } else {
+        println!("Formulaire invalide. Erreurs présentes :");
+        for (field, errors) in test_new_form.form.all_errors() {
+            println!(" - Champ '{}': {}", field, errors);
+        }
+    }
+    let ctx = context! {
+        "title" => "Test des champs",
+        "test_champs_form" => test_new_form
+    };
+    template.render("test_champs_form.html", &ctx)
+}
+
+// test de script en js pour CSRF
+pub async fn test_csrf(mut message: Message) -> Response {
+    success!(message => "CSRF token validé avec succès !");
+    Redirect::to("/").into_response()
+}
+
+// À propos de Runique
 pub async fn about(template: Template, mut message: Message) -> Response {
     success!(message => "Ceci est un message de succès de test.");
     info!(message => "Ceci est un message d'information de test.");
@@ -209,45 +260,45 @@ pub async fn about(template: Template, mut message: Message) -> Response {
     template.render("about/about.html", &ctx)
 }
 
-pub async fn test_csrf(mut message: Message) -> Response {
-    success!(message => "CSRF token validé avec succès !");
-    Redirect::to("/").into_response()
-}
-
-pub async fn test_new_form(Extension(tera): Extension<Arc<Tera>>, template: Template) -> Response {
-    let test_new_form = test_new_form::build(tera.clone());
+// test d'un formulaire avec derive_form
+pub async fn affiche_form_generer(
+    Extension(tera): Extension<Arc<Tera>>,
+    template: Template,
+) -> Response {
+    let inscription_form = InscriptionForm::build(tera.clone());
 
     let ctx = context! {
-        "title" => "Test des champs",
-        "test_new_form" => test_new_form
+        "title" => "Formulaire d'inscription généré",
+        "inscription_form" => &inscription_form
     };
-    template.render("test_new_form.html", &ctx)
+
+    template.render("register.html", &ctx)
 }
 
-pub async fn test_new_form_submit(
-    Extension(_db): Extension<Arc<DatabaseConnection>>,
+// POST - Traiter la soumission
+pub async fn soumission_form_generer(
+    Extension(db): Extension<Arc<DatabaseConnection>>,
     template: Template,
     mut message: Message,
-    ExtractForm(mut test_new_form): ExtractForm<test_new_form>,
+    ExtractForm(mut inscription_form): ExtractForm<InscriptionForm>,
 ) -> Response {
-    println!("=== Soumission du formulaire ===");
-    // Récupération des données nettoyées
-    // Vérification de la validité du formulaire
-    if test_new_form.form.is_valid() {
-        println!("Formulaire valide. Tentative de sauvegarde en base...");
-        // Ici, vous pouvez ajouter la logique pour sauvegarder les données en base
-        success!(message => "Formulaire sauvegardé avec succès !");
-        return Redirect::to("/test-new-form").into_response();
-    } else {
-        println!("Formulaire invalide. Erreurs présentes :");
-        for (field, errors) in test_new_form.form.all_errors() {
-            println!(" - Champ '{}': {}", field, errors);
+    if inscription_form.form.is_valid() {
+        // Sauvegarder en base de données
+        match inscription_form.save(&db).await {
+            Ok(user) => {
+                success!(message => format!("Compte créé avec succès {} !", user.id));
+                return Redirect::to("/").into_response();
+            }
+            Err(e) => {
+                inscription_form.database_error(&e);
+            }
         }
     }
-    // Ré-affichage du formulaire avec erreurs
+
+    // Réafficher le formulaire avec les erreurs
     let ctx = context! {
-        "title" => "Test des champs",
-        "test_new_form" => test_new_form
+        "title" => "Formulaire d'inscription généré",
+        "inscription_form" => &inscription_form
     };
-    template.render("test_new_form.html", &ctx)
+    template.render("register.html", &ctx)
 }
