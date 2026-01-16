@@ -88,15 +88,15 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
     let ty = &field.ty;
     let ty_str = quote!(#ty).to_string().replace(" ", "");
 
-    // 1. Détection par nom de field
+    // 1. Détection par nom (Priorité aux formats spéciaux)
     if field_name.contains("email") {
-        return quote! { EmailField };
+        return quote! { new_email };
     }
     if field_name.contains("password") || field_name.contains("pwd") {
-        return quote! { PasswordField };
+        return quote! { new_password };
     }
     if field_name.contains("url") || field_name.contains("link") || field_name.contains("website") {
-        return quote! { URLField };
+        return quote! { new_url };
     }
 
     // 2. Détection par type
@@ -107,18 +107,19 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
             || field_name.contains("bio")
             || field_name.contains("content")
             || field_name.contains("message")
-            || field_name.contains("text")
-            || field_name.contains("comment")
         {
-            return quote! { TextAreaField };
+            return quote! { new_textarea };
         }
-        return quote! { TextField };
+        return quote! { new_text };
     }
 
-    // Fallback
-    quote! { TextField }
-}
+    if base_type.contains("i32") || base_type.contains("i64") || base_type.contains("u32") {
+        return quote! { new_int };
+    }
 
+    // Fallback standard
+    quote! { new_text }
+}
 /// Formater le nom du champ en label
 pub(crate) fn format_field_label(field_name: &str) -> String {
     field_name

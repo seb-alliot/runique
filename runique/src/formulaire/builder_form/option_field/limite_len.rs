@@ -1,16 +1,8 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct LengthConstraint {
-    pub limit: usize,
+    pub min: Option<usize>,
+    pub max: Option<usize>,
     pub message: Option<String>,
-}
-
-impl LengthConstraint {
-    pub fn new(limit: usize) -> Self {
-        Self {
-            limit,
-            message: None,
-        }
-    }
 }

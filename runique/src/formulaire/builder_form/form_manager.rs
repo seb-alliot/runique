@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
 
-#[derive(Clone)] // Ajouter Clone
+#[derive(Clone)]
 pub struct Forms {
     pub fields: IndexMap<String, Box<dyn FormField>>,
     pub tera: Option<Arc<Tera>>,
@@ -121,13 +121,20 @@ impl Forms {
     }
 
     pub fn is_valid(&mut self) -> bool {
-        let mut valid = true;
+        let mut is_all_valid = true;
+
         for field in self.fields.values_mut() {
+            if field.is_required() && field.value().is_empty() {
+                field.set_error("Ce champ est obligatoire".to_string());
+                is_all_valid = false;
+            }
+
             if !field.validate() {
-                valid = false;
+                is_all_valid = false;
             }
         }
-        valid && self.global_errors.is_empty()
+
+        is_all_valid && self.global_errors.is_empty()
     }
 
     fn is_valid_const(&self) -> bool {

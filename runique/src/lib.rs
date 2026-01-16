@@ -127,15 +127,7 @@ pub mod prelude {
     pub use crate::formulaire::builder_form::trait_form::{FormField, RuniqueForm};
 
     // Champs mis à jour
-    // Base string fields
-    pub use crate::formulaire::builder_form::type_field::string_field::base_string::text::struct_string::TextField;
-    pub use crate::formulaire::builder_form::type_field::string_field::base_string::text_area::struct_text_area::TextAreaField;
-    pub use crate::formulaire::builder_form::type_field::string_field::base_string::rich_text::struct_rich_text::RichTextField;
-    pub use crate::formulaire::builder_form::type_field::string_field::base_string::password::struct_password::PasswordField;
-
-    // Format special fields
-    pub use crate::formulaire::builder_form::type_field::string_field::format_special::base_email::struct_email::EmailField;
-    pub use crate::formulaire::builder_form::type_field::string_field::format_special::base_url::struct_url::URLField;
+    pub use crate::formulaire::builder_form::generique_field::GenericField;
 
     // === Messages flash ===
     pub use crate::{context, error, flash_now, info, success, warning};
