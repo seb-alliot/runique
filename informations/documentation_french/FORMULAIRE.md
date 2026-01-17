@@ -471,9 +471,60 @@ pub async fn register(
 
 ## Affichage des erreurs
 
-### Dans les templates Tera
+### Syntaxe Django-like dans les templates
 
-Les erreurs sont automatiquement disponibles dans vos templates :
+Runique supporte une syntaxe similaire à Django pour afficher les formulaires dans Tera. Le framework transforme automatiquement ces balises via des filtres personnalisés.
+
+#### Rendu automatique complet
+
+```html
+<form method="post">
+    {% csrf %}
+    {% form.register_form %}  <!-- Génère tous les champs automatiquement -->
+    <button type="submit">Valider</button>
+</form>
+```
+
+**Ce qui est généré** : Le formulaire complet avec tous les champs, leurs labels, erreurs et attributs HTML.
+
+#### Rendu d'un champ spécifique
+
+```html
+<form method="post">
+    {% csrf %}
+    
+    <div class="form-group">
+        <label>Nom d'utilisateur</label>
+        {% form.register_form.username %}
+        <!-- Génère l'input avec tous ses attributs et erreurs -->
+    </div>
+    
+    <div class="form-group">
+        <label>Email</label>
+        {% form.register_form.email %}
+    </div>
+    
+    <button type="submit">S'inscrire</button>
+</form>
+```
+
+#### Syntaxe alternative (filtre explicite)
+
+Si vous préférez utiliser la syntaxe Tera standard :
+
+```html
+<!-- Formulaire complet -->
+{{ register_form | form | safe }}
+
+<!-- Champ spécifique -->
+{% set field = register_form | form(field="username") %}
+{% set input_type = field.field_type %}
+{% include "base_string" %}
+```
+
+### Rendu manuel avec contrôle total
+
+Pour un contrôle total sur le HTML :
 
 ```html
 <form method="post">
@@ -510,14 +561,46 @@ Les erreurs sont automatiquement disponibles dans vos templates :
 </form>
 ```
 
-### Rendu automatique complet
+### Comment ça fonctionne ?
+
+Runique transforme automatiquement la syntaxe Django-like en appels de filtres Tera :
+
+1. **`{% form.register_form %}`** → `{{ register_form | form | safe }}`
+2. **`{% form.register_form.username %}`** → `{{ register_form | form(field="username") }}`
+
+Le filtre `form` :
+- **Sans argument** : retourne le HTML complet du formulaire
+- **Avec `field="nom"`** : retourne le HTML du champ spécifique
+
+Cette transformation se fait au moment du chargement des templates (dans `RuniqueApp::new()`)
+
+### Autres balises Django-like
+
+Runique supporte plusieurs balises Django-like qui sont automatiquement transformées :
 
 ```html
-<form method="post">
-    {{ form }}  <!-- Génère tous les champs automatiquement -->
-    <button type="submit">Submit</button>
-</form>
+{# Token CSRF #}
+{% csrf %}  → {% include "csrf" %}
+
+{# Messages flash #}
+{% messages %}  → {% include "message" %}
+
+{# En-têtes CSP #}
+{{ csp }}  → {% include "csp" %}
+
+{# Fichiers statiques #}
+{% static "css/main.css" %}  → {{ "css/main.css" | static }}
+{% static "js/app.js" %}     → {{ "js/app.js" | static }}
+
+{# Fichiers media #}
+{% media "images/logo.png" %}  → {{ "images/logo.png" | media }}
+
+{# URLs nommées (reverse) #}
+{% link "home" %}                      → {{ link(link='home') }}
+{% link "user-detail", id=user.id %}   → {{ link(link='user-detail', id=user.id) }}
 ```
+
+**Ces transformations sont appliquées automatiquement** par Runique lors du chargement des templates via des regex dans `app.rs`.
 
 ### Récupérer les erreurs en Rust
 
@@ -1275,6 +1358,7 @@ Créez des formulaires robustes avec Runique!
 ---
 
 **Version:** 1.0.86 (Corrigée - 2 Janvier 2026)
+**Dernière mise à jour:** Janvier 2026 
 **Licence:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*
