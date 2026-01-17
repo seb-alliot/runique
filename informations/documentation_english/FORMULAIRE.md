@@ -45,15 +45,6 @@ pub struct ContactForm {
     pub form: Forms,
 }
 
-impl Serialize for ContactForm {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.form.serialize(serializer)
-    }
-}
-
 impl RuniqueForm for ContactForm {
     fn register_fields(form: &mut Forms) {
         form.field(
