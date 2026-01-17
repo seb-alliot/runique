@@ -10,7 +10,6 @@ button[type="submit"] {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    margin-left : 30%;
 }
 
 button[type="submit"]:hover {
