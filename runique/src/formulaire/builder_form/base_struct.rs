@@ -9,32 +9,62 @@ pub struct FieldConfig {
     pub value: String,
     pub placeholder: String,
     pub is_required: BoolChoice,
-    pub min_length: Option<LengthConstraint>,
-    pub max_length: Option<LengthConstraint>,
     pub error: Option<String>,
-    pub readonly: Option<BoolChoice>,
-    pub disabled: Option<BoolChoice>,
     pub type_field: String,
     pub html_attributes: HashMap<String, String>,
     pub template_name: String,
     pub extra_context: HashMap<String, String>,
 }
 
-// On ajoute Default pour pouvoir initialiser GenericField facilement
+impl FieldConfig {
+    pub fn new(name: &str, type_field: &str, template_name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            label: String::new(),
+            value: String::new(),
+            placeholder: String::new(),
+            is_required: BoolChoice::default(),
+            error: None,
+            type_field: type_field.to_string(),
+            html_attributes: HashMap::new(),
+            template_name: template_name.to_string(),
+            extra_context: HashMap::new(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TextConfig {
-    pub max_length: Option<LengthConstraint>,
-    pub min_length: Option<LengthConstraint>,
+    pub max_length: Option<LengthConstraint<usize>>,
+    pub min_length: Option<LengthConstraint<usize>>,
+    pub readonly: Option<BoolChoice>,
+    pub disabled: Option<BoolChoice>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct IntConfig {
-    pub min: Option<i64>,
-    pub max: Option<i64>,
+#[derive(Clone, Serialize, Debug)]
+pub enum NumericConfig {
+    Integer {
+        min: Option<i64>,
+        max: Option<i64>,
+    },
+    Float {
+        value: Option<Fouchette>,
+    },
+    Decimal {
+        value: Option<Fouchette>,
+    },
+    Percent {
+        value: Fouchette,
+    },
+    Range {
+        value: Fouchette,
+        default: f64,
+        step: f64,
+    },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct FloatConfig {
-    pub min: Option<f64>,
-    pub max: Option<f64>,
+#[derive(Clone, Serialize, Debug)]
+pub struct Fouchette {
+    pub min: f64,
+    pub max: f64,
 }

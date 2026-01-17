@@ -127,6 +127,8 @@ pub mod prelude {
     pub use crate::formulaire::builder_form::trait_form::{FormField, RuniqueForm};
 
     // Champs mis à jour
+    pub use crate::formulaire::builder_form::field_type::number_mode::NumericField;
+    pub use crate::formulaire::builder_form::field_type::text_mode::TextField;
     pub use crate::formulaire::builder_form::generique_field::GenericField;
 
     // === Messages flash ===
@@ -174,6 +176,9 @@ pub mod prelude {
     pub use crate::middleware::csp::CspConfig;
     pub use crate::middleware::login_requiert::{login_required, redirect_if_authenticated};
 
+    // === SeaORM ===
+    pub use crate::sea_orm;
+
     // === ORM (si feature orm activée) ===
     #[cfg(feature = "orm")]
     pub use crate::database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
@@ -181,7 +186,7 @@ pub mod prelude {
     pub use crate::orm::impl_objects;
     #[cfg(feature = "orm")]
     pub use sea_orm::{
-        self, ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait,
-        QueryFilter, QueryOrder, QuerySelect, Set,
+        ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
+        QueryOrder, QuerySelect, Set,
     };
 }

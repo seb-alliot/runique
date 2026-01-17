@@ -25,7 +25,7 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
             let field_name_str = field_name.to_string();
             let label = format_field_label(&field_name_str);
 
-            let constructor: proc_macro2::TokenStream = get_field_type(f);
+            let field_constructor = get_field_type(f);
             let is_optional = is_optional_field(f);
 
             let required_clause = if is_optional {
@@ -36,7 +36,7 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
 
             quote! {
                 form.field(
-                    &::runique::prelude::GenericField::#constructor(#field_name_str)
+                    &#field_constructor
                         .label(#label)
                         #required_clause
                 );

@@ -1,0 +1,27 @@
+<div class="form-check mb-3" id="container_{{ field.name }}">
+    <input
+        type="{{ input_type }}"
+        class="form-check-input {% if field.error %}is-invalid{% endif %}"
+        id="id_{{ field.name }}"
+        name="{{ field.name }}"
+        value="true"
+        {% if checked %}checked{% endif %}
+        {% if field.is_required and field.is_required.choice %}required{% endif %}
+        {% for attr, val in field.html_attributes %}{{ attr }}="{{ val }}" {% endfor %}
+    >
+
+    {% if field.label %}
+        <label class="form-check-label" for="id_{{ field.name }}">
+            {{ field.label }}
+            {% if field.is_required and field.is_required.choice %}
+                <span class="text-danger">*</span>
+            {% endif %}
+        </label>
+    {% endif %}
+
+    {% if field.error %}
+        <div class="invalid-feedback d-block">
+            {{ field.error }}
+        </div>
+    {% endif %}
+</div>

@@ -1,6 +1,5 @@
 use runique::prelude::*;
 
-
 use crate::forms::Blog as blog_mod;
 use crate::forms::PostForm as test_new_form;
 use crate::forms::RegisterForm as register_form;
@@ -153,7 +152,6 @@ pub async fn soumission_blog_info(
     template: Template,
     ExtractForm(mut blog_form): ExtractForm<blog_mod>,
 ) -> Response {
-
     // Affiche chaque champ avec type et valeur
     for (key, value) in blog_form.form.data().iter() {
         match value {

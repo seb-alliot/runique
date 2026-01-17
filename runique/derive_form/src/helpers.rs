@@ -82,42 +82,67 @@ pub(crate) fn is_optional_field(field: &Field) -> bool {
 }
 
 /// Déterminer le type de champ field à partir du type Rust
+/// Déterminer le type de champ field à partir du type Rust
 pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
-    let field_name = field.ident.as_ref().unwrap().to_string().to_lowercase();
+    let field_name = field.ident.as_ref().unwrap();
+    let field_name_str = field_name.to_string();
     let ty = &field.ty;
     let ty_str = quote!(#ty).to_string().replace(" ", "");
+    let base_type = ty_str.replace("Option<", "").replace(">", "");
 
-    // 1. Détection par nom (Priorité aux formats spéciaux)
-    if field_name.contains("email") {
-        return quote! { email };
+    // 1. Détection par nom (Module text_mode)
+    if field_name_str.contains("email") {
+        return quote! {
+            ::runique::formulaire::builder_form::field_type::text_mode::TextField::email(#field_name_str)
+        };
     }
-    if field_name.contains("password") || field_name.contains("pwd") {
-        return quote! { password };
+    if field_name_str.contains("password") || field_name_str.contains("pwd") {
+        return quote! {
+            ::runique::formulaire::builder_form::field_type::text_mode::TextField::password(#field_name_str)
+        };
     }
-    if field_name.contains("url") || field_name.contains("link") || field_name.contains("website") {
-        return quote! { url };
+    if field_name_str.contains("url")
+        || field_name_str.contains("link")
+        || field_name_str.contains("website")
+    {
+        return quote! {
+            ::runique::formulaire::builder_form::field_type::text_mode::TextField::url(#field_name_str)
+        };
     }
 
     // 2. Détection par type
-    let base_type = ty_str.replace("Option<", "").replace(">", "");
-
     if base_type.contains("String") {
-        if field_name.contains("description")
-            || field_name.contains("bio")
-            || field_name.contains("content")
-            || field_name.contains("message")
+        if field_name_str.contains("description")
+            || field_name_str.contains("bio")
+            || field_name_str.contains("content")
+            || field_name_str.contains("message")
         {
-            return quote! { textarea };
+            return quote! {
+                ::runique::formulaire::builder_form::field_type::text_mode::TextField::textarea(#field_name_str)
+            };
         }
-        return quote! { text };
+        return quote! {
+            ::runique::formulaire::builder_form::field_type::text_mode::TextField::text(#field_name_str)
+        };
     }
 
+    // Types numériques (Module number_mode)
     if base_type.contains("i32") || base_type.contains("i64") || base_type.contains("u32") {
-        return quote! { int };
+        return quote! {
+            ::runique::formulaire::builder_form::field_type::number_mode::NumericField::integer(#field_name_str)
+        };
+    }
+
+    if base_type.contains("f32") || base_type.contains("f64") {
+        return quote! {
+            ::runique::formulaire::builder_form::field_type::number_mode::NumericField::float(#field_name_str)
+        };
     }
 
     // Fallback standard
-    quote! { text }
+    quote! {
+        ::runique::formulaire::builder_form::field_type::text_mode::TextField::text(#field_name_str)
+    }
 }
 
 /// Formater le nom du champ en label
