@@ -21,7 +21,7 @@ impl Serialize for UsernameForm {
 impl RuniqueForm for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
-            &GenericField::text("username")
+            &TextField::text("username")
                 .placeholder("Entrez votre nom")
                 .required("Le nom est requis"),
         );
@@ -48,7 +48,7 @@ impl RuniqueForm for PostForm {
     fn register_fields(form: &mut Forms) {
         // Titre : Utilisation de limites_caractere (min, max)
         form.field(
-            &GenericField::text("title")
+            &TextField::text("title")
                 .placeholder("Entrez le titre ici")
                 .required("Le titre est obligatoire")
                 .min_length(10, "Le titre doit contenir au moins 10 caractères"),
@@ -56,23 +56,23 @@ impl RuniqueForm for PostForm {
 
         // Email
         form.field(
-            &GenericField::email("email")
+            &TextField::email("email")
                 .placeholder("Entrez l'email de l'auteur")
                 .required("L'email de l'auteur est obligatoire"),
         );
 
         // URL
-        form.field(&GenericField::url("website").placeholder("Entrez le site web source"));
+        form.field(&TextField::url("website").placeholder("Entrez le site web source"));
 
         // Résumé (TextArea)
         form.field(
-            &GenericField::textarea("summary")
+            &TextField::textarea("summary")
                 .placeholder("Entrez le résumé ici")
                 .required("Le résumé est obligatoire"),
         );
 
         // Contenu (RichText)
-        form.field(&GenericField::richtext("content").required("Le contenu est obligatoire"));
+        form.field(&TextField::richtext("content").required("Le contenu est obligatoire"));
     }
 
     fn from_form(form: Forms) -> Self {
@@ -96,18 +96,18 @@ pub struct RegisterForm {
 impl RuniqueForm for RegisterForm {
     fn register_fields(form: &mut Forms) {
         form.field(
-            &GenericField::text("username")
+            &TextField::text("username")
                 .placeholder("Entrez votre nom d'utilisateur")
                 .required("Le nom d'utilisateur est requis"),
         );
 
         form.field(
-            &GenericField::email("email")
+            &TextField::email("email")
                 .placeholder("Entrez votre email")
                 .required("L'email est requis"),
         );
 
-        form.field(&GenericField::password("password").required("Sécurité requise"));
+        form.field(&TextField::password("password").required("Sécurité requise"));
     }
 
     fn from_form(form: Forms) -> Self {
@@ -150,37 +150,37 @@ impl RuniqueForm for Blog {
     fn register_fields(form: &mut Forms) {
         // Titre (Texte simple)
         form.field(
-            &GenericField::text("title")
+            &TextField::text("title")
                 .placeholder("Entrez un titre accrocheur")
                 .required("Le titre est obligatoire"),
         );
 
         // Email de l'auteur
         form.field(
-            &GenericField::email("email")
+            &TextField::email("email")
                 .placeholder("Entrez l'email de l'auteur")
                 .required("L'email est requis"),
         );
 
         // Site Web (URL)
-        form.field(&GenericField::url("website").placeholder("Entrez le site web source"));
+        form.field(&TextField::url("website").placeholder("Entrez le site web source"));
 
         // Résumé (TextArea)
         form.field(
-            &GenericField::textarea("summary")
+            &TextField::textarea("summary")
                 .placeholder("Un court résumé...")
                 .required("Veuillez fournir un résumé"),
         );
 
         // Contenu (TextArea ou RichText si implémenté dans GenericField)
         form.field(
-            &GenericField::richtext("content")
+            &TextField::richtext("content")
                 .placeholder("Entrez le contenu de l'article ici")
                 .required("Le contenu ne peut pas être vide"),
         );
 
         form.field(
-            &GenericField::password("password")
+            &TextField::password("password")
                 .placeholder("Entrez un mot de passe sécurisé")
                 .required("Le mot de passe est obligatoire")
                 .min_length(8, "Le mot de passe doit contenir au moins 8 caractères"),

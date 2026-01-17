@@ -1,0 +1,36 @@
+<div class="form-group mb-3" id="container_{{ field.name }}">
+    {% if field.label %}
+        <label for="id_{{ field.name }}" class="form-label">
+            {{ field.label }}
+            {% if field.is_required and field.is_required.choice %}
+                <span class="text-danger">*</span>
+            {% endif %}
+        </label>
+    {% endif %}
+
+    <input
+        type="number"
+        step="0.01"
+        id="id_{{ field.name }}"
+        name="{{ field.name }}"
+        value="{{ field.value }}"
+        placeholder="{{ field.placeholder }}"
+        class="form-control {% if field.error %}is-invalid{% endif %}"
+        {% if field.is_required and field.is_required.choice %}required{% endif %}
+        {% if min %}min="{{ min }}"{% endif %}
+        {% if max %}max="{{ max }}"{% endif %}
+        {% for attr, val in field.html_attributes %}{{ attr }}="{{ val }}" {% endfor %}
+    >
+
+    {% if field.error %}
+        <div class="invalid-feedback d-block">
+            {{ field.error }}
+        </div>
+    {% endif %}
+
+    {% if field.help_text %}
+        <div class="form-text text-muted small">
+            {{ field.help_text }}
+        </div>
+    {% endif %}
+</div>

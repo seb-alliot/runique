@@ -1,5 +1,5 @@
-use runique::prelude::GenericField;
 use runique::prelude::RuniqueForm;
+use runique::prelude::*;
 use runique::Forms;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -30,12 +30,12 @@ impl RuniqueForm for TestForm {
         // Dans les tests unitaires sans Tera, cela générera un message d'erreur dans fields_html
         // mais n'empêchera pas la validation de fonctionner.
         form.field(
-            &GenericField::text("name")
+            &TextField::text("name")
                 .label("Nom")
                 .required("Ce champ est requis"),
         );
 
-        form.field(&GenericField::int("age").label("Âge"));
+        form.field(&NumericField::integer("age").label("Âge"));
     }
 }
 
@@ -111,7 +111,7 @@ async fn test_emailfield_validation() {
 
     impl RuniqueForm for EmailTestForm {
         fn register_fields(form: &mut Forms) {
-            form.field(&GenericField::email("email").label("Email"));
+            form.field(&TextField::email("email").label("Email"));
         }
 
         fn from_form(form: Forms) -> Self {

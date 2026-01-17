@@ -1,6 +1,5 @@
 // --- Definitions communes pour les champs de formulaire ---
 use crate::formulaire::builder_form::form_manager::Forms;
-use crate::formulaire::builder_form::option_field::LengthConstraint;
 use sea_orm::DbErr;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -15,8 +14,6 @@ pub trait FormField: Send + Sync + dyn_clone::DynClone {
     fn label(&self) -> &str;
     fn value(&self) -> &str;
     fn placeholder(&self) -> &str;
-    fn min_length(&self) -> Option<&LengthConstraint>;
-    fn max_length(&self) -> Option<&LengthConstraint>;
     fn field_type(&self) -> &str;
     fn error(&self) -> Option<&String>;
 
@@ -30,8 +27,8 @@ pub trait FormField: Send + Sync + dyn_clone::DynClone {
     fn set_placeholder(&mut self, placeholder: &str);
     fn set_value(&mut self, value: &str);
     fn set_error(&mut self, message: String);
-    fn set_readonly(&mut self, readonly: bool, msg: Option<&str>);
-    fn set_disabled(&mut self, disabled: bool, msg: Option<&str>);
+    fn set_readonly(&mut self, _readonly: bool, _msg: Option<&str>) {}
+    fn set_disabled(&mut self, _disabled: bool, _msg: Option<&str>) {}
     fn set_required(&mut self, required: bool, msg: Option<&str>);
     fn set_html_attribute(&mut self, key: &str, value: &str);
 
@@ -88,7 +85,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     fn is_valid(&mut self) -> Pin<Box<dyn Future<Output = bool> + Send + '_>> {
         Box::pin(async move {
-            let fields_valid = self.get_form_mut().is_valid();
+            let fields_valid = self.get_form_mut().is_valid().await;
 
             if !fields_valid {
                 return false;
