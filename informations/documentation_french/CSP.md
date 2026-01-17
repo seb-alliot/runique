@@ -41,6 +41,12 @@ pub struct CspConfig {
 
 Runique fournit trois configurations CSP prêtes à l'emploi :
 
+| Preset | Script-src | Nonce | Unsafe-inline | Usage |
+|--------|-----------|-------|----------------|-------|
+| `default()` | `'self' 'unsafe-inline'` | ❌ | ✅ | Développement |
+| `strict()` | `'self'` | ✅ | ❌ | Production |
+| `permissive()` | `'self' 'unsafe-inline' 'unsafe-eval'` | ❌ | ✅ | Dev avancé |
+
 **1. CspConfig::default() - Pour le développement**
 ```rust
 let csp = CspConfig::default();
@@ -103,7 +109,17 @@ CspConfig {
 }
 ```
 
-#### Configuration personnalisée
+#### Configuration personnalisée avec Builder Pattern
+
+```rust
+let csp = CspConfig::strict()
+    .script_src(vec!["'self'", "https://cdn.example.com"])
+    .style_src(vec!["'self'", "'unsafe-inline'"])
+    .img_src(vec!["'self'", "data:", "https:"])
+    .build();
+```
+
+**Ou configuration manuelle complète :**
 
 ```rust
 let csp = CspConfig {
@@ -139,25 +155,25 @@ Lorsque `use_nonce: true`, Runique génère automatiquement des nonces cryptogra
 
 **Dans vos templates :**
 ```html
-<script {{ csp }}>
+<script {{ nonce() }}>
     console.log('Protégé par nonce CSP');
 </script>
 
-<style {{ csp }}>
-    .protected { color: blue; }
+<style {{ nonce() }}>
+    body { color: blue; }
 </style>
 ```
 
-**Le tag {{ csp }} est automatiquement remplacé par :**
+**Le tag {{ nonce() }} est automatiquement remplacé par :**
 ```html
 nonce="abc123xyz..."
 ```
 
-**Important:** Le tag `{{ csp }}` ne génère le nonce que si `use_nonce: true`. Sinon, il reste vide.
+**Important:** Le tag `{{ nonce() }}` ne génère le nonce que si `use_nonce: true`. Sinon, il reste vide.
 
 ### Intégration middleware
 
-#### Méthode 1 : CSP seule
+#### Méthode 1 : CSP seule (csp_middleware)
 
 ```rust
 RuniqueApp::new(settings).await?
@@ -167,7 +183,7 @@ RuniqueApp::new(settings).await?
     .await?;
 ```
 
-#### Méthode 2 : CSP + tous les headers de sécurité
+#### Méthode 2 : CSP + tous les headers de sécurité (security_headers_middleware)
 
 ```rust
 RuniqueApp::new(settings).await?
@@ -177,15 +193,18 @@ RuniqueApp::new(settings).await?
     .await?;
 ```
 
-Headers inclus avec `with_security_headers()` :
-- Content-Security-Policy
-- X-Content-Type-Options: nosniff
-- X-Frame-Options: DENY
-- X-XSS-Protection: 1; mode=block
-- Referrer-Policy: strict-origin-when-cross-origin
-- Permissions-Policy: geolocation=(), microphone=(), camera=()
+Headers ajoutés avec `with_security_headers()` :
+- **Content-Security-Policy** (votre configuration CSP)
+- **X-Content-Type-Options**: nosniff
+- **X-Frame-Options**: DENY
+- **X-XSS-Protection**: 1; mode=block
+- **Referrer-Policy**: strict-origin-when-cross-origin
+- **Permissions-Policy**: geolocation=(), microphone=(), camera=()
+- **Cross-Origin-Embedder-Policy**: require-corp
+- **Cross-Origin-Opener-Policy**: same-origin
+- **Cross-Origin-Resource-Policy**: same-origin
 
-#### Méthode 3 : Mode report-only (pour tester)
+#### Méthode 3 : Mode report-only (csp_report_only_middleware)
 
 ```rust
 RuniqueApp::new(settings).await?
@@ -343,7 +362,7 @@ pub async fn csp_report_only_middleware(...)
 
 Cette documentation fait partie du framework web Runique. Pour plus d'informations, consultez la documentation complète.
 
-Version: 1.0.86 (Corrigée - 2 Janvier 2026)
+Version: 1.0.87 (17 Janvier 2026)
 Dernière mise à jour: Janvier 2026
 Licence: MIT
 

@@ -186,11 +186,6 @@ pub async fn soumission_blog_info(
                 return template.render("blog/blog.html", &ctx);
             }
         }
-    } else {
-        println!("Formulaire invalide. Erreurs présentes :");
-        for (field, errors) in blog_form.form.errors() {
-            println!(" - Champ '{}': {}", field, errors);
-        }
     }
 
     // Ré-affichage du formulaire avec erreurs

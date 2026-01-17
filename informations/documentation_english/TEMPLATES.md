@@ -74,30 +74,39 @@ Tera is a template engine inspired by Jinja2/Django.
 
 Runique adds **custom tags** via a preprocessing system that transforms tags before Tera processes them.
 
-### 1. Tag `{% static %}`
+### 1. Filters `static` and `media`
 
-Generates the URL for a static file.
+Generate URLs for static and media files.
 
 **Syntax:**
 
 ```html
-{% static 'path/to/file' %}
+{{ "path/to/file" | static }}
+{{ "path/to/file" | media }}
+{{ variable | static }}
+{{ variable | media }}
 ```
 
 **Examples:**
 
 ```html
 <!-- CSS -->
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{{ 'css/style.css' | static }}">
 
 <!-- JavaScript -->
-<script src="{% static 'js/app.js' %}"></script>
+<script src="{{ 'js/app.js' | static }}"></script>
 
-<!-- Images -->
-<img src="{% static 'images/logo.png' %}" alt="Logo">
+<!-- Static images -->
+<img src="{{ 'images/logo.png' | static }}" alt="Logo">
 
-<!-- Fonts -->
-<link rel="stylesheet" href="{% static 'fonts/custom-font.woff2' %}">
+<!-- User uploaded image -->
+<img src="{{ user.avatar | media }}" alt="Avatar">
+
+<!-- Uploaded document -->
+<a href="{{ document.file | media }}">Download document</a>
+
+<!-- Video -->
+<video src="{{ video.path | media }}" controls></video>
 ```
 
 **Configuration (.env):**
@@ -105,60 +114,42 @@ Generates the URL for a static file.
 ```env
 STATIC_URL=/static/
 STATIC_ROOT=static/
-```
-
-**Result after preprocessing:**
-
-```html
-<link rel="stylesheet" href="/static/css/style.css">
-```
-
-### 2. Tag `{% media %}`
-
-Generates the URL for a media file (uploaded by users).
-
-**Syntax:**
-
-```html
-{% media 'path/to/file' %}
-{% media variable %}
-```
-
-**Examples:**
-
-```html
-<!-- Uploaded image -->
-<img src="{% media user.avatar %}" alt="Avatar">
-
-<!-- Uploaded document -->
-<a href="{% media document.file %}">Download document</a>
-
-<!-- Video -->
-<video src="{% media video.path %}" controls></video>
-```
-
-**Configuration (.env):**
-
-```env
 MEDIA_URL=/media/
 MEDIA_ROOT=media/
 ```
 
-### 3. Tag `{% csrf %}`
+**Result after rendering:**
+
+```html
+<link rel="stylesheet" href="/static/css/style.css">
+<img src="/media/avatars/user123.jpg" alt="Avatar">
+```
+
+**Filters for internal Runique files:**
+
+```html
+<!-- Internal Runique static files -->
+{{ "theme.css" | runique_static }}
+
+<!-- Internal Runique media files -->
+{{ file | runique_media }}
+```
+
+### 2. Function `csrf_token()`
 
 Generates the hidden CSRF token field.
 
 **Syntax:**
 
 ```html
-{% csrf %}
+{{ csrf_token(token=csrf_token) }}
 ```
 
 **Example:**
 
 ```html
 <form method="post" action="/submit/">
-    {% csrf %}
+    {{ csrf_token(token=csrf_token) }}
 
     <input type="text" name="username">
     <input type="password" name="password">
@@ -166,15 +157,24 @@ Generates the hidden CSRF token field.
 </form>
 ```
 
-**Result after preprocessing:**
+**Result after rendering:**
 
 ```html
-<input type="hidden" name="csrftoken" value="abc123...xyz789">
+<input type="hidden" name="csrf_token" value="abc123...xyz789">
 ```
 
-**⚠️ Important:** The `CsrfMiddleware` must be enabled for this tag to work.
+**⚠️ Important:** The `CsrfMiddleware` must be enabled for this function to work.
 
-### 4. Tag `{% messages %}`
+**Alternative with preprocessed tag `{% csrf %}` :**
+
+```html
+<form method="post">
+    {% csrf %}
+    <!-- Automatically transformed to {% include "csrf" %} -->
+</form>
+```
+
+### 3. Tag `{% messages %}`
 
 Displays flash messages (success, error, warning, info).
 
@@ -183,6 +183,8 @@ Displays flash messages (success, error, warning, info).
 ```html
 {% messages %}
 ```
+
+**Note:** This tag is automatically transformed to `{% include "message" %}` during preprocessing.
 
 **Example:**
 
@@ -231,30 +233,36 @@ async fn create_user(
 }
 ```
 
-### 5. Tag `{% link %}`
+### 4. Function `link()`
 
 Generates URLs using **reverse routing** (route names).
 
 **Syntax:**
 
 ```html
-{% link 'route_name' %}
-{% link 'route_name' param1=value1 param2=value2 %}
+{{ link(link='route_name') }}
+{{ link(link='route_name', param1=value1, param2=value2) }}
 ```
+
+**Note:** The tag `{{ link(link='route_name') }}` is automatically transformed to `{{ link(link='route_name') }}` during preprocessing.
 
 **Examples:**
 
 ```html
 <!-- Route without parameter -->
-<a href="{% link 'index' %}">Home</a>
+<a href="{{ link(link='index') }}">Home</a>
 
 <!-- Route with parameter -->
-<a href="{% link 'post_detail' id=post.id %}">View article</a>
+<a href="{{ link(link='post_detail', id=post.id) }}">View article</a>
 
 <!-- Multiple parameters -->
-<a href="{% link 'user_post' user_id=user.id post_id=post.id %}">
+<a href="{{ link(link='user_post', user_id=user.id, post_id=post.id) }}">
     User's article
 </a>
+
+<!-- Alternative with preprocessed tag -->
+<a href="{{ link(link='index') }}">Home</a>
+<a href="{{ link(link='post_detail' id=post.id %}">View article</a>
 ```
 
 **Route configuration:**
@@ -265,13 +273,13 @@ use runique::prelude::*;
 fn routes() -> Router {
     urlpatterns![
         path!("", index, "index"),
-        path!("posts/<id>/", post_detail, "post_detail"),
-        path!("users/<user_id>/posts/<post_id>/", user_post, "user_post"),
+        path!("posts/{id}/", post_detail, "post_detail"),
+        path!("users/{user_id}/posts/{post_id}/", user_post, "user_post"),
     ]
 }
 ```
 
-**Result after preprocessing:**
+**Result after rendering:**
 
 ```html
 <a href="/">Home</a>
@@ -279,28 +287,42 @@ fn routes() -> Router {
 <a href="/users/10/posts/42/">User's article</a>
 ```
 
-### 6. Tag `{{ csp }}`
+**Automatic validation:**
+
+The `link()` function automatically validates:
+- Missing parameters (error if a required parameter is not provided)
+- Extra parameters (error if an unexpected parameter is provided)
+- Parameter types (String, Number, Bool accepted)
+
+### 5. Function `nonce()`
 
 **⚠️ IMPORTANT: Generates CSP nonce ONLY if `use_nonce: true` in CSP configuration.**
 
 **Syntax:**
 
 ```html
-{{ csp }}
+{{ nonce() }}
 ```
+
+**Note:** The tag `{{ csp }}` is automatically transformed to `{% include "csp" %}` during preprocessing.
 
 **Example:**
 
 ```html
-<script nonce="{{ csp }}">
+<script {{ nonce() }}>
     // Inline JavaScript code
     console.log("Script allowed with CSP nonce");
 </script>
 
-<style nonce="{{ csp }}">
+<style {{ nonce() }}>
     /* Inline CSS */
     body { background: #f0f0f0; }
 </style>
+
+<!-- Alternative with preprocessed tag -->
+<script {{ csp }}>
+    console.log("Script with nonce");
+</script>
 ```
 
 **CSP Configuration with nonce:**
@@ -324,7 +346,7 @@ RuniqueApp::new(settings).await?
     .await?;
 ```
 
-**Result after preprocessing:**
+**Result after rendering:**
 
 ```html
 <script nonce="abc123xyz789">
@@ -334,7 +356,7 @@ RuniqueApp::new(settings).await?
 
 **If `use_nonce: false`:**
 
-The `{{ csp }}` tag generates an **empty string**:
+The `nonce()` function generates an **empty string**:
 
 ```html
 <script nonce="">
@@ -355,8 +377,109 @@ The `{{ csp }}` tag generates an **empty string**:
 
 1. **Prefer external files** over inline scripts
 2. **Enable `use_nonce: true`** only if you have inline code
-3. **Never hardcode nonces** - always use `{{ csp }}`
+3. **Never hardcode nonces** - always use `{{ nonce() }}`
 4. **Add nonce** on each inline `<script>` and `<style>` tag
+
+### 6. Filter `form`
+
+Automatically generates the HTML for a form or a specific field.
+
+**Syntax:**
+
+```html
+{{ form | form }}
+{{ form | form(field='field_name' | static }}
+```
+
+**Examples:**
+
+```html
+<!-- Auto-generated complete form -->
+<form method="post">
+    {{ csrf_token(token=csrf_token) }}
+    {{ form | form }}
+    <button type="submit">Submit</button>
+</form>
+
+<!-- Specific field -->
+<form method="post">
+    {{ csrf_token(token=csrf_token) }}
+    
+    <div class="form-group">
+        {{ form | form(field='username' | static }}
+    </div>
+    
+    <div class="form-group">
+        {{ form | form(field='password' | static }}
+    </div>
+    
+    <button type="submit">Log in</button>
+</form>
+```
+
+**Usage in handlers:**
+
+```rust
+use runique::prelude::*;
+
+#[derive(Form)]
+struct LoginForm {
+    username: String,
+    password: String,
+}
+
+async fn login_page(template: Template) -> Response {
+    let form = LoginForm::default();
+    
+    template.render("login.html", context! {
+        form: form,
+        csrf_token: csrf_token,
+    })
+}
+```
+
+---
+
+## Django-like tags transformed
+
+Runique preprocesses certain tags for more concise syntax:
+
+| Original tag | Transformed to | Description |
+|--------------|----------------|-------------|
+| `{% csrf %}` | `{% include "csrf" %}` | Hidden CSRF field |
+| `{% messages %}` | `{% include "message" %}` | Flash messages |
+| `{{ csp }}` | `{% include "csp" %}` | CSP nonce |
+| `{{ "file" %}` | `{{ "file" \| static }}` | Static file |
+| `{{ "file" %}` | `{{ "file" \| media }}` | Media file |
+| `{% link "name" %}` | `{{ link(link='name') }}` | Reverse routing |
+
+**Complete transformation example:**
+
+```html
+<!-- Before preprocessing -->
+<link rel="stylesheet" href="{{ 'css/style.css' | static }}">
+<img src="{{ user.avatar %}" alt="Avatar">
+<a href="{{ link(link='home') }}">Home</a>
+<form method="post">
+    {% csrf %}
+    {% messages %}
+    <button>Submit</button>
+</form>
+<script {{ csp }}>console.log('Hello');</script>
+```
+
+```html
+<!-- After preprocessing -->
+<link rel="stylesheet" href="{{ 'css/style.css' | static }}">
+<img src="{{ user.avatar | media }}" alt="Avatar">
+<a href="{{ link(link='home') }}">Home</a>
+<form method="post">
+    {% include "csrf" %}
+    {% include "message" %}
+    <button>Submit</button>
+</form>
+<script {% include "csp" %}>console.log('Hello');</script>
+```
 
 ---
 
@@ -375,8 +498,8 @@ Runique uses a **preprocessing system** that transforms custom tags into standar
 **Original template:**
 
 ```html
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
-<img src="{% media user.avatar %}" alt="Avatar">
+<link rel="stylesheet" href="{{ 'css/style.css' | static }}">
+<img src="{{ user.avatar %}" alt="Avatar">
 <form method="post">
     {% csrf %}
     <button type="submit">Send</button>
@@ -386,10 +509,10 @@ Runique uses a **preprocessing system** that transforms custom tags into standar
 **After preprocessing (before Tera):**
 
 ```html
-<link rel="stylesheet" href="{{ settings.static_url }}css/style.css">
-<img src="{{ settings.media_url }}{{ user.avatar }}" alt="Avatar">
+<link rel="stylesheet" href="{{ 'css/style.css' | static }}">
+<img src="{{ user.avatar | media }}" alt="Avatar">
 <form method="post">
-    {{ csrf_input() }}
+    {% include "csrf" %}
     <button type="submit">Send</button>
 </form>
 ```
@@ -400,7 +523,7 @@ Runique uses a **preprocessing system** that transforms custom tags into standar
 <link rel="stylesheet" href="/static/css/style.css">
 <img src="/media/avatars/user123.jpg" alt="Avatar">
 <form method="post">
-    <input type="hidden" name="csrftoken" value="abc123...xyz">
+    <input type="hidden" name="csrf_token" value="abc123...xyz">
     <button type="submit">Send</button>
 </form>
 ```
@@ -432,30 +555,17 @@ Some variables are **automatically available** in all templates:
 
 | Variable | Description |
 |----------|-------------|
-| `settings.static_url` | Base URL for static files |
-| `settings.media_url` | Base URL for media files |
-| `csrf_token()` | Function to generate CSRF token |
-| `csrf_input()` | Function to generate CSRF hidden field |
-| `get_messages()` | Function to retrieve flash messages |
-| `csp_nonce()` | Function to retrieve CSP nonce |
+| `csrf_token` | CSRF token of the current session |
+| `csp_nonce` | CSP nonce (if `use_nonce: true`) |
 
 **Example:**
 
 ```html
-<!-- Access settings -->
-<p>Static URL: {{ settings.static_url }}</p>
-<p>Media URL: {{ settings.media_url }}</p>
-
 <!-- CSRF token -->
-{{ csrf_input() }}
-
-<!-- Flash messages -->
-{% for msg in get_messages() %}
-    <div class="alert">{{ msg.message }}</div>
-{% endfor %}
+{{ csrf_token(token=csrf_token) }}
 
 <!-- CSP nonce (if use_nonce: true) -->
-<script nonce="{{ csp_nonce() }}">
+<script {{ nonce() }}>
     console.log("Script with nonce");
 </script>
 ```
@@ -474,16 +584,16 @@ Some variables are **automatically available** in all templates:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}My App{% endblock %}</title>
 
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{{ 'css/style.css' | static }}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <header>
         <h1>My Application</h1>
         <nav>
-            <a href="{% link 'index' %}">Home</a>
-            <a href="{% link 'post_list' %}">Articles</a>
-            <a href="{% link 'contact' %}">Contact</a>
+            <a href="{{ link(link='index') }}">Home</a>
+            <a href="{{ link(link='post_list') }}">Articles</a>
+            <a href="{{ link(link='contact') }}">Contact</a>
         </nav>
     </header>
 
@@ -498,7 +608,7 @@ Some variables are **automatically available** in all templates:
         <p>© 2026 My App</p>
     </footer>
 
-    <script src="{% static 'js/app.js' %}"></script>
+    <script src="{{ 'js/app.js' | static }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
@@ -512,7 +622,7 @@ Some variables are **automatically available** in all templates:
 {% block title %}Articles{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/posts.css' %}">
+<link rel="stylesheet" href="{{ 'css/posts.css' | static }}">
 {% endblock %}
 
 {% block content %}
@@ -522,7 +632,7 @@ Some variables are **automatically available** in all templates:
 <article>
     <h3>{{ post.title }}</h3>
     <p>{{ post.content|truncate(length=200) }}</p>
-    <a href="{% link 'post_detail' id=post.id %}">Read more</a>
+    <a href="{{ link(link='post_detail' id=post.id %}">Read more</a>
 </article>
 {% endfor %}
 
@@ -532,7 +642,7 @@ Some variables are **automatically available** in all templates:
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/posts.js' %}"></script>
+<script src="{{ 'js/posts.js' | static }}"></script>
 {% endblock %}
 ```
 
@@ -551,7 +661,7 @@ Some variables are **automatically available** in all templates:
 <h2>Login</h2>
 
 <form method="post" action="/login/">
-    {% csrf %}
+    {{ csrf_token(token=csrf_token) }}
 
     <div class="form-group">
         <label for="username">Username</label>
@@ -567,8 +677,8 @@ Some variables are **automatically available** in all templates:
 </form>
 
 <p>
-    <a href="{% link 'register' %}">Create account</a> |
-    <a href="{% link 'password_reset' %}">Forgot password?</a>
+    <a href="{{ link(link='register') }}">Create account</a> |
+    <a href="{{ link(link='password_reset') }}">Forgot password?</a>
 </p>
 {% endblock %}
 ```
@@ -584,9 +694,9 @@ Some variables are **automatically available** in all templates:
 <div class="profile">
     <div class="profile-header">
         {% if user.avatar %}
-            <img src="{% media user.avatar %}" alt="{{ user.username }}'s avatar">
+            <img src="{{ user.avatar %}" alt="{{ user.username }}'s avatar">
         {% else %}
-            <img src="{% static 'images/default-avatar.png' %}" alt="Default avatar">
+            <img src="{{ 'images/default-avatar.png' | static }}" alt="Default avatar">
         {% endif %}
 
         <h2>{{ user.username }}</h2>
@@ -599,7 +709,7 @@ Some variables are **automatically available** in all templates:
     </div>
 
     {% if user.id == current_user.id %}
-        <a href="{% link 'profile_edit' %}" class="btn">Edit my profile</a>
+        <a href="{{ link(link='profile_edit') }}" class="btn">Edit my profile</a>
     {% endif %}
 </div>
 {% endblock %}
@@ -618,7 +728,7 @@ Some variables are **automatically available** in all templates:
 {% for post in posts %}
 <article class="post">
     <h3>
-        <a href="{% link 'post_detail' id=post.id %}">{{ post.title }}</a>
+        <a href="{{ link(link='post_detail' id=post.id %}">{{ post.title }}</a>
     </h3>
 
     <div class="post-meta">
@@ -627,7 +737,7 @@ Some variables are **automatically available** in all templates:
 
     <p>{{ post.content|truncate(length=300) }}</p>
 
-    <a href="{% link 'post_detail' id=post.id %}" class="read-more">
+    <a href="{{ link(link='post_detail' id=post.id %}" class="read-more">
         Read more →
     </a>
 </article>
@@ -636,13 +746,13 @@ Some variables are **automatically available** in all templates:
 <!-- Pagination -->
 <div class="pagination">
     {% if has_previous %}
-        <a href="{% link 'post_list' %}?page={{ page - 1 }}">← Previous</a>
+        <a href="{{ link(link='post_list') }}?page={{ page - 1 }}">← Previous</a>
     {% endif %}
 
     <span>Page {{ page }} of {{ total_pages }}</span>
 
     {% if has_next %}
-        <a href="{% link 'post_list' %}?page={{ page + 1 }}">Next →</a>
+        <a href="{{ link(link='post_list') }}?page={{ page + 1 }}">Next →</a>
     {% endif %}
 </div>
 {% endblock %}
@@ -659,23 +769,19 @@ Some variables are **automatically available** in all templates:
 <h2>New Article</h2>
 
 <form method="post">
-    {% csrf %}
+    {{ csrf_token(token=csrf_token) }}
 
     <!-- Automatic form rendering -->
-    {{ form }}
+    {{ form | form }}
 
     <!-- Or manual field-by-field rendering -->
     <!--
     <div class="form-group">
-        <label>{{ form.title.label }}</label>
-        {{ form.title }}
-        {% if form.title.errors %}
-            <div class="errors">
-                {% for error in form.title.errors %}
-                    <span class="error">{{ error }}</span>
-                {% endfor %}
-            </div>
-        {% endif %}
+        {{ form | form(field='title') }}
+    </div>
+    
+    <div class="form-group">
+        {{ form | form(field='content') }}
     </div>
     -->
 
@@ -700,10 +806,10 @@ Some variables are **automatically available** in all templates:
 
 {% block extra_js %}
 <!-- External script (no nonce needed) -->
-<script src="{% static 'js/chart.min.js' %}"></script>
+<script src="{{ 'js/chart.min.js' | static }}"></script>
 
 <!-- Inline script (requires nonce if strict CSP) -->
-<script nonce="{{ csp }}">
+<script {{ nonce() }}>
     // Inline JavaScript code
     const data = {{ chart_data|json_encode|safe }};
 
@@ -719,28 +825,47 @@ Some variables are **automatically available** in all templates:
 
 ## Runique Custom Filters
 
-In addition to standard Tera filters, Runique can add custom filters:
+In addition to standard Tera filters, Runique provides custom filters:
 
-### Filter `json_encode`
+### Filter `static`
 
 ```html
-<script nonce="{{ csp }}">
-    const config = {{ config|json_encode|safe }};
-</script>
+<link rel="stylesheet" href="{{ 'css/style.css' | static }}">
 ```
 
-### Filter `slugify`
+### Filter `media`
 
 ```html
-<a href="/posts/{{ post.title|slugify }}/">{{ post.title }}</a>
+<img src="{{ user.avatar | media }}" alt="Avatar">
 ```
 
-### Filter `markdown`
+### Filter `runique_static`
 
 ```html
-<div class="content">
-    {{ post.content|markdown|safe }}
-</div>
+<link rel="stylesheet" href="{{ 'theme.css' | runique_static }}">
+```
+
+### Filter `runique_media`
+
+```html
+<img src="{{ file | runique_media }}" alt="Runique file">
+```
+
+### Filter `form`
+
+```html
+<!-- Complete form -->
+{{ form | form }}
+
+<!-- Specific field -->
+{{ form | form(field='username') }}
+```
+
+### Filter `csrf_token` (deprecated)
+
+```html
+<!-- Use csrf_token() function instead -->
+{{ csrf_token(token=csrf_token) }}
 ```
 
 ---
@@ -766,10 +891,10 @@ In addition to standard Tera filters, Runique can add custom filters:
 
 ```rust
 // Good
-path!("posts/<id>/", detail_post, "post_detail")
+path!("posts/{id}/", detail_post, "post_detail")
 
 // Less good (no name)
-path!("posts/<id>/", detail_post)
+path!("posts/{id}/", detail_post)
 ```
 
 ### 3. Escape User Variables
@@ -831,7 +956,8 @@ Create powerful and secure templates with Runique!
 
 ---
 
-**Version:** 1.0.86 (Corrected - January 2, 2026)
+**Version:** 1.0.87 (January 17, 2026)
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*
+

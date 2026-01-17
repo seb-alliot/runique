@@ -80,24 +80,23 @@ pub struct CspConfig {
 use runique::prelude::*;
 use runique::middleware::CspConfig;
 
-let csp_config = CspConfig {
-    default_src: vec!["'self'".to_string()],
-    script_src: vec!["'self'".to_string()],
-    style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
-    img_src: vec!["'self'".to_string(), "data:".to_string()],
-    font_src: vec!["'self'".to_string()],
-    connect_src: vec!["'self'".to_string()],
-    frame_ancestors: vec!["'none'".to_string()],
-    base_uri: vec!["'self'".to_string()],
-    form_action: vec!["'self'".to_string()],
-    use_nonce: false,
-};
+let csp_config = CspConfig::default();
 
 RuniqueApp::new(settings).await?
-    .middleware(CspMiddleware::new(csp_config))
+    .with_csp(csp_config)
     .routes(routes())
     .run()
     .await?;
+```
+
+### Configuration with Builder Pattern
+
+```rust
+let csp = CspConfig::strict()
+    .script_src(vec!["'self'", "https://cdn.example.com"])
+    .style_src(vec!["'self'", "'unsafe-inline'"])
+    .img_src(vec!["'self'", "data:", "https:"])
+    .build();
 ```
 
 ### Configuration with External CDNs
@@ -180,17 +179,17 @@ let csp_config = CspConfig {
 
 ### Using Nonces in Templates
 
-**⚠️ IMPORTANT:** The `{{ csp }}` tag generates a nonce **ONLY if `use_nonce: true`** in the CSP configuration.
+**⚠️ IMPORTANT:** The `{{ nonce() }}` tag generates a nonce **ONLY if `use_nonce: true`** in the CSP configuration.
 
 ```html
 <!-- Inline script with nonce -->
-<script {{ csp }}>
+<script {{ nonce() }}>
     // JavaScript code
     console.log("Script allowed with nonce");
 </script>
 
 <!-- Inline style with nonce -->
-<style {{ csp }}>
+<style {{ nonce() }}>
     /* CSS code */
     body { background: #f0f0f0; }
 </style>
@@ -198,10 +197,10 @@ let csp_config = CspConfig {
 
 **If `use_nonce: false`:**
 
-The `{{ csp }}` tag will generate an **empty string**:
+The `{{ nonce() }}` tag will generate an **empty string**:
 
 ```html
-<script nonce="">
+<script>
     console.log("No nonce generated");
 </script>
 ```
@@ -232,7 +231,7 @@ The `{{ csp }}` tag will generate an **empty string**:
 <script src="{% static 'js/chart.min.js' %}"></script>
 
 <!-- Inline script (requires nonce if strict CSP) -->
-<script {{ csp }}>
+<script {{ nonce() }}>
     const data = {{ chart_data|json_encode|safe }};
 
     new Chart(document.getElementById('chart'), {
@@ -245,53 +244,116 @@ The `{{ csp }}` tag will generate an **empty string**:
 
 ---
 
+## Middleware Integration
+
+Runique provides three middleware functions for CSP:
+
+### 1. csp_middleware()
+
+Adds the CSP header only.
+
+```rust
+RuniqueApp::new(settings).await?
+    .routes(routes)
+    .with_csp(CspConfig::strict())
+    .run()
+    .await?;
+```
+
+### 2. security_headers_middleware()
+
+Adds CSP + 8 additional security headers.
+
+```rust
+RuniqueApp::new(settings).await?
+    .routes(routes)
+    .with_security_headers(CspConfig::strict())
+    .run()
+    .await?;
+```
+
+**Security headers added by `with_security_headers()`:**
+
+- **Content-Security-Policy** (your CSP configuration)
+- **X-Content-Type-Options**: nosniff
+- **X-Frame-Options**: DENY
+- **X-XSS-Protection**: 1; mode=block
+- **Referrer-Policy**: strict-origin-when-cross-origin
+- **Permissions-Policy**: geolocation=(), microphone=(), camera=()
+- **Cross-Origin-Embedder-Policy**: require-corp
+- **Cross-Origin-Opener-Policy**: same-origin
+- **Cross-Origin-Resource-Policy**: same-origin
+
+### 3. csp_report_only_middleware()
+
+CSP in report-only mode (violations are logged but not blocked).
+
+```rust
+RuniqueApp::new(settings).await?
+    .routes(routes)
+    .with_csp_report_only(CspConfig::strict())
+    .run()
+    .await?;
+```
+
+---
+
 ## Preset Configurations
 
 Runique provides three preset CSP configurations:
+
+| Preset | Script-src | Nonce | Unsafe-inline | Usage |
+|--------|-----------|-------|----------------|-------|
+| `default()` | `'self' 'unsafe-inline'` | ❌ | ✅ | Development |
+| `strict()` | `'self'` | ✅ | ❌ | Production |
+| `permissive()` | `'self' 'unsafe-inline' 'unsafe-eval'` | ❌ | ✅ | Advanced Dev |
 
 ### 1. Default Configuration (Balanced)
 
 Suitable for most applications with modern practices.
 
 ```rust
-let csp_config = CspConfig {
+let csp_config = CspConfig::default();
+// Equivalent to:
+CspConfig {
     default_src: vec!["'self'".to_string()],
-    script_src: vec!["'self'".to_string()],
+    script_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
     style_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
-    img_src: vec!["'self'".to_string(), "data:".to_string(), "https:".to_string()],
+    img_src: vec!["'self'".to_string(), "data:".to_string()],
     font_src: vec!["'self'".to_string()],
     connect_src: vec!["'self'".to_string()],
     frame_ancestors: vec!["'none'".to_string()],
     base_uri: vec!["'self'".to_string()],
     form_action: vec!["'self'".to_string()],
     use_nonce: false,
-};
+}
 ```
 
 **Features:**
 - ✅ Blocks most XSS attacks
-- ✅ Allows inline styles (`'unsafe-inline'`)
+- ✅ Allows inline scripts and styles (`'unsafe-inline'`)
 - ✅ Allows data URIs for images
-- ✅ Allows HTTPS images
-- ❌ Doesn't allow inline scripts
+- ❌ No nonces enabled
 
 ### 2. Strict Configuration (Maximum Security)
 
 For applications requiring maximum security.
 
 ```rust
-let csp_config = CspConfig {
-    default_src: vec!["'none'".to_string()],
+let csp_config = CspConfig::strict();
+// Equivalent to:
+CspConfig {
+    default_src: vec!["'self'".to_string()],
     script_src: vec!["'self'".to_string()],
     style_src: vec!["'self'".to_string()],
     img_src: vec!["'self'".to_string()],
     font_src: vec!["'self'".to_string()],
     connect_src: vec!["'self'".to_string()],
     frame_ancestors: vec!["'none'".to_string()],
-    base_uri: vec!["'none'".to_string()],
+    base_uri: vec!["'self'".to_string()],
     form_action: vec!["'self'".to_string()],
-    use_nonce: true,  // Nonces for inline scripts
-};
+    use_nonce: true,  // ✅ Nonces enabled for production
+}
 ```
 
 **Features:**
@@ -306,7 +368,9 @@ let csp_config = CspConfig {
 For development or legacy applications.
 
 ```rust
-let csp_config = CspConfig {
+let csp_config = CspConfig::permissive();
+// Equivalent to:
+CspConfig {
     default_src: vec!["'self'".to_string()],
     script_src: vec![
         "'self'".to_string(),
@@ -317,20 +381,25 @@ let csp_config = CspConfig {
         "'self'".to_string(),
         "'unsafe-inline'".to_string(),
     ],
-    img_src: vec!["*".to_string()],
-    font_src: vec!["*".to_string()],
-    connect_src: vec!["*".to_string()],
+    img_src: vec![
+        "'self'".to_string(),
+        "data:".to_string(),
+        "https:".to_string(),
+    ],
+    font_src: vec!["'self'".to_string(), "data:".to_string()],
+    connect_src: vec!["'self'".to_string()],
     frame_ancestors: vec!["'self'".to_string()],
     base_uri: vec!["'self'".to_string()],
     form_action: vec!["'self'".to_string()],
     use_nonce: false,
-};
+}
 ```
 
 **Features:**
 - ✅ Very permissive, few restrictions
 - ✅ Allows inline scripts and styles
 - ✅ Allows `eval()`
+- ✅ Allows HTTPS images
 - ❌ Minimal protection against XSS
 - ⚠️ **NOT recommended for production**
 
@@ -387,8 +456,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     RuniqueApp::new(settings).await?
-        .middleware(CspMiddleware::new(csp_config))
-        .middleware(SecurityHeadersMiddleware::new())
+        .with_security_headers(csp_config)
         .routes(routes())
         .run()
         .await?;
@@ -400,21 +468,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Example 2: Application with Inline Scripts (Nonces)
 
 ```rust
-let csp_config = CspConfig {
-    default_src: vec!["'self'".to_string()],
-    script_src: vec!["'self'".to_string()],
-    style_src: vec!["'self'".to_string()],
-    img_src: vec!["'self'".to_string(), "data:".to_string()],
-    font_src: vec!["'self'".to_string()],
-    connect_src: vec!["'self'".to_string()],
-    frame_ancestors: vec!["'none'".to_string()],
-    base_uri: vec!["'self'".to_string()],
-    form_action: vec!["'self'".to_string()],
-    use_nonce: true,  // ✅ Enable nonces
-};
+let csp_config = CspConfig::strict();
 
 RuniqueApp::new(settings).await?
-    .middleware(CspMiddleware::new(csp_config))
+    .with_csp(csp_config)
     .routes(routes())
     .run()
     .await?;
@@ -432,7 +489,7 @@ RuniqueApp::new(settings).await?
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
     <!-- Inline style (requires nonce) -->
-    <style {{ csp }}>
+    <style {{ nonce() }}>
         .custom-chart { width: 100%; height: 400px; }
     </style>
 </head>
@@ -443,7 +500,7 @@ RuniqueApp::new(settings).await?
     <script src="{% static 'js/vue.min.js' %}"></script>
 
     <!-- Inline script (requires nonce) -->
-    <script {{ csp }}>
+    <script {{ nonce() }}>
         new Vue({
             el: '#app',
             data: {{ app_data|json_encode|safe }}
@@ -516,25 +573,18 @@ Refused to execute inline script because it violates CSP
 
 **Option A:** Use nonces (recommended)
 ```rust
-let csp_config = CspConfig {
-    script_src: vec!["'self'".to_string()],
-    use_nonce: true,  // ✅
-    ..Default::default()
-};
+let csp_config = CspConfig::strict();
 ```
 
 ```html
-<script {{ csp }}>
+<script {{ nonce() }}>
     console.log("Now allowed");
 </script>
 ```
 
 **Option B:** Allow `'unsafe-inline'` (not recommended)
 ```rust
-let csp_config = CspConfig {
-    script_src: vec!["'self'".to_string(), "'unsafe-inline'".to_string()],
-    ..Default::default()
-};
+let csp_config = CspConfig::default();  // or permissive()
 ```
 
 #### Issue 2: External CDN Blocked
@@ -683,7 +733,7 @@ Protect your application with Runique's CSP!
 
 ---
 
-**Version:** 1.0.86 (Corrected - January 2, 2026)
+**Version:** 1.0.87 (January 17, 2026)
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*
