@@ -20,8 +20,10 @@ impl Serialize for UsernameForm {
 
 impl RuniqueForm for UsernameForm {
     fn register_fields(form: &mut Forms) {
-        form.register_field(
-            &GenericField::new_text("username", "Nom d'utilisateur").required("Le nom est requis"),
+        form.field(
+            &GenericField::text("username")
+                .placeholder("Entrez votre nom")
+                .required("Le nom est requis"),
         );
     }
     fn from_form(form: Forms) -> Self {
@@ -36,58 +38,41 @@ impl RuniqueForm for UsernameForm {
 }
 
 // --- POST FORM ---
+#[derive(Serialize)]
+#[serde(transparent)]
 pub struct PostForm {
     pub form: Forms,
-}
-
-impl Serialize for PostForm {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.form.serialize(serializer)
-    }
 }
 
 impl RuniqueForm for PostForm {
     fn register_fields(form: &mut Forms) {
         // Titre : Utilisation de limites_caractere (min, max)
-        form.register_field(
-            &GenericField::new_text("title", "Titre de l'article")
+        form.field(
+            &GenericField::text("title")
                 .placeholder("Entrez le titre ici")
                 .required("Le titre est obligatoire")
-                .limites_caractere(
-                    None,
-                    Some(150),
-                    "Le titre ne peut pas dépasser 150 caractères",
-                ),
+                .min_length(10, "Le titre doit contenir au moins 10 caractères"),
         );
 
         // Email
-        form.register_field(
-            &GenericField::new_email("author_email", "Email de l'auteur")
+        form.field(
+            &GenericField::email("email")
                 .placeholder("Entrez l'email de l'auteur")
                 .required("L'email de l'auteur est obligatoire"),
         );
 
         // URL
-        form.register_field(
-            &GenericField::new_url("website", "Site web source")
-                .placeholder("Entrez le site web source"),
-        );
+        form.field(&GenericField::url("website").placeholder("Entrez le site web source"));
 
         // Résumé (TextArea)
-        form.register_field(
-            &GenericField::new_textarea("summary", "Résumé")
+        form.field(
+            &GenericField::textarea("summary")
                 .placeholder("Entrez le résumé ici")
                 .required("Le résumé est obligatoire"),
         );
 
         // Contenu (RichText)
-        form.register_field(
-            &GenericField::new_richtext("content", "Contenu de l'article")
-                .required("Le contenu est obligatoire"),
-        );
+        form.field(&GenericField::richtext("content").required("Le contenu est obligatoire"));
     }
 
     fn from_form(form: Forms) -> Self {
@@ -102,31 +87,27 @@ impl RuniqueForm for PostForm {
 }
 
 // --- FORMULAIRE D'INSCRIPTION ---
+#[derive(Serialize)]
+#[serde(transparent)]
 pub struct RegisterForm {
     pub form: Forms,
 }
 
-impl Serialize for RegisterForm {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.form.serialize(serializer)
-    }
-}
-
 impl RuniqueForm for RegisterForm {
     fn register_fields(form: &mut Forms) {
-        // Utilisation de GenericField au lieu de TextField/EmailField
-        form.register_field(&GenericField::new_text("username", "Pseudo"));
-
-        form.register_field(
-            &GenericField::new_email("email", "Mon email").required("L'email est requis"),
+        form.field(
+            &GenericField::text("username")
+                .placeholder("Entrez votre nom d'utilisateur")
+                .required("Le nom d'utilisateur est requis"),
         );
 
-        form.register_field(
-            &GenericField::new_password("password", "Mot de passe").required("Sécurité requise"),
+        form.field(
+            &GenericField::email("email")
+                .placeholder("Entrez votre email")
+                .required("L'email est requis"),
         );
+
+        form.field(&GenericField::password("password").required("Sécurité requise"));
     }
 
     fn from_form(form: Forms) -> Self {
@@ -147,7 +128,6 @@ impl RegisterForm {
 
         // Optionnel : Tu peux utiliser field.hash_password() ici si tu récupères l'instance
         let password = self.form.get_value("password").unwrap_or_default();
-
         let new_user = users_mod::ActiveModel {
             username: Set(username),
             email: Set(email),
@@ -160,47 +140,50 @@ impl RegisterForm {
 }
 
 // --- FORMULAIRE BLOG ---
+#[derive(Serialize)]
+#[serde(transparent)]
 pub struct Blog {
     pub form: Forms,
-}
-
-impl Serialize for Blog {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.form.serialize(serializer)
-    }
 }
 
 impl RuniqueForm for Blog {
     fn register_fields(form: &mut Forms) {
         // Titre (Texte simple)
-        form.register_field(
-            &GenericField::new_text("title", "Titre de l'article")
+        form.field(
+            &GenericField::text("title")
                 .placeholder("Entrez un titre accrocheur")
                 .required("Le titre est obligatoire"),
         );
 
         // Email de l'auteur
-        form.register_field(
-            &GenericField::new_email("email", "Email de l'auteur").required("L'email est requis"),
+        form.field(
+            &GenericField::email("email")
+                .placeholder("Entrez l'email de l'auteur")
+                .required("L'email est requis"),
         );
 
         // Site Web (URL)
-        form.register_field(&GenericField::new_url("website", "Site Web source"));
+        form.field(&GenericField::url("website").placeholder("Entrez le site web source"));
 
         // Résumé (TextArea)
-        form.register_field(
-            &GenericField::new_textarea("summary", "Résumé")
+        form.field(
+            &GenericField::textarea("summary")
                 .placeholder("Un court résumé...")
                 .required("Veuillez fournir un résumé"),
         );
 
         // Contenu (TextArea ou RichText si implémenté dans GenericField)
-        form.register_field(
-            &GenericField::new_textarea("content", "Contenu de l'article")
+        form.field(
+            &GenericField::richtext("content")
+                .placeholder("Entrez le contenu de l'article ici")
                 .required("Le contenu ne peut pas être vide"),
+        );
+
+        form.field(
+            &GenericField::password("password")
+                .placeholder("Entrez un mot de passe sécurisé")
+                .required("Le mot de passe est obligatoire")
+                .min_length(8, "Le mot de passe doit contenir au moins 8 caractères"),
         );
     }
 

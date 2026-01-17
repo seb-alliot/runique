@@ -1,134 +1,170 @@
-# Forms Guide - Runique Framework
+# Runique Forms Guide
 
-Runique provides a Django-inspired form system with automatic generation via procedural macros.
+Complete documentation of the Django-inspired forms system for Runique.
 
 ## Table of Contents
 
-1. [Manual Forms](#manual-forms)
-2. [Auto-generated Forms](#auto-generated-forms)
-3. [Validation](#validation)
-4. [HTML Rendering](#html-rendering)
-5. [CSRF Protection](#csrf-protection)
-6. [Complete Examples](#complete-examples)
+1. [Introduction](#introduction)
+2. [Manual Form Creation](#manual-form-creation)
+3. [Automatic Generation with Macros](#automatic-generation-with-macros)
+4. [Available Field Types](#available-field-types)
+5. [Validation](#validation)
+6. [Error Display](#error-display)
+7. [Database Saving](#database-saving)
+8. [CSRF Protection](#csrf-protection)
+9. [Complete Examples](#complete-examples)
+10. [Best Practices](#best-practices)
 
 ---
 
-## Manual Forms
+## Introduction
 
-### Basic Creation
+Runique provides a Django-inspired forms system that allows you to:
+- ✅ Create typed and validated forms
+- ✅ Automatically manage errors
+- ✅ Easily integrate with SeaORM
+- ✅ Automatically generate from models via macros
+- ✅ Generate HTML via Tera templates
+- ✅ Built-in CSRF protection
+
+---
+
+## Manual Form Creation
+
+### Basic Structure
+
+Each Runique form implements the `RuniqueForm` trait:
 
 ```rust
-use runique::forms::{RuniqueForm, Field, fields::{CharField, EmailField}};
-use serde::{Deserialize, Serialize};
+use runique::prelude::*;
+use runique::serde::{Serialize, Serializer};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LoginForm {
-    pub username: CharField,
-    pub password: CharField,
+#[derive(Serialize)]
+#[serde(transparent)]
+pub struct ContactForm {
+    pub form: Forms,
 }
 
-impl RuniqueForm for LoginForm {
-    fn new() -> Self {
-        Self {
-            username: CharField::new()
-                .required(true)
-                .label("Username"),
-            password: CharField::new()
-                .required(true)
-                .widget("password")
-                .label("Password"),
-        }
+impl Serialize for ContactForm {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.form.serialize(serializer)
     }
+}
 
-    fn is_valid(&self) -> bool {
-        self.username.is_valid() && self.password.is_valid()
+impl RuniqueForm for ContactForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &GenericField::text("name")
+                .placeholder("Your name")
+                .required("Name is required"),
+        );
+        
+        form.field(
+            &GenericField::email("email")
+                .placeholder("your@email.com")
+                .required("Email is required"),
+        );
+        
+        form.field(
+            &GenericField::textarea("message")
+                .placeholder("Your message...")
+                .required("Message is required"),
+        );
     }
-
-    fn errors(&self) -> Vec<String> {
-        let mut errors = Vec::new();
-        errors.extend(self.username.errors());
-        errors.extend(self.password.errors());
-        errors
+    
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    
+    fn get_form(&self) -> &Forms {
+        &self.form
+    }
+    
+    fn get_form_mut(&mut self) -> &mut Forms {
+        &mut self.form
     }
 }
 ```
 
-### Usage in a Handler
+### Using in a Handler
+
+```rust
+use axum::{extract::{Form, State}, response::{Html, Redirect}};
+use std::collections::HashMap;
+
+pub async fn show_contact(State(state): State<AppState>) -> Html<String> {
+    let contact_form = ContactForm::build(state.tera.clone());
+    
+    let html = state.tera
+        .render("contact.html", &tera::context! { form => contact_form })
+        .unwrap();
+    
+    Html(html)
+}
+
+pub async fn submit_contact(
+    State(state): State<AppState>,
+    Form(raw_data): Form<HashMap<String, String>>,
+) -> Result<Redirect, Html<String>> {
+    let mut contact_form = ContactForm::build_with_data(&raw_data, state.tera.clone());
+    
+    if !contact_form.is_valid().await {
+        let html = state.tera
+            .render("contact.html", &tera::context! { form => contact_form })
+            .unwrap();
+        return Err(Html(html));
+    }
+    
+    // Process the message
+    // ...
+    
+    Ok(Redirect::to("/success"))
+}
+```
+
+---
+
+## Automatic Generation with Macros
+
+Runique provides **two macros** to automatically generate forms:
+
+### 1. `#[runique_form]` Macro
+
+For creating custom forms with automatic `Deref/DerefMut` management:
 
 ```rust
 use runique::prelude::*;
 
-pub async fn login(
-    Form(form): Form<LoginForm>,
-    template: Template,
-) -> Response {
-    if !form.is_valid() {
-        return template.render("login.html", context! {
-            form: form,
-            errors: form.errors(),
-        });
-    }
-
-    // Process valid form
-    let username = form.username.value();
-    let password = form.password.value();
-
-    // Authentication...
-    redirect("/dashboard")
-}
-```
-
----
-
-## Auto-generated Forms
-
-Runique provides **two macros** to automatically generate forms from your SeaORM models:
-
-1. **`#[runique_form]`** - For creating custom forms
-2. **`#[derive(DeriveModelForm)]`** - For generating model-linked forms
-
-### `#[runique_form]` Macro
-
-This macro automatically generates the implementation of the `RuniqueForm` trait.
-
-```rust
-use runique::forms::prelude::*;
-
 #[runique_form]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ContactForm {
-    #[field(required = true)]
-    pub name: CharField,
-
-    #[field(required = true)]
-    pub email: EmailField,
-
-    #[field(required = true)]
-    pub subject: CharField,
-
-    #[field(widget = "textarea", required = true)]
-    pub message: CharField,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct LoginForm {
+    pub form: Forms,
 }
 ```
 
 **What is automatically generated:**
 
 ```rust
-impl RuniqueForm for ContactForm {
-    fn new() -> Self { /* ... */ }
-    fn is_valid(&self) -> bool { /* ... */ }
-    fn errors(&self) -> Vec<String> { /* ... */ }
+// ✅ Deref implementation
+impl std::ops::Deref for LoginForm {
+    type Target = Forms;
+    fn deref(&self) -> &Self::Target { &self.form }
+}
+
+// ✅ DerefMut implementation
+impl std::ops::DerefMut for LoginForm {
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.form }
 }
 ```
 
-### `#[derive(DeriveModelForm)]` Macro
+### 2. `#[derive(DeriveModelForm)]` Macro
 
-This macro is more powerful and generates **multiple elements**:
-
-#### 1. Form Structure
+To automatically generate a complete form from a SeaORM model:
 
 ```rust
-use runique::forms::prelude::*;
 use sea_orm::entity::prelude::*;
 
 // Your SeaORM model
@@ -140,291 +176,458 @@ pub struct Model {
     pub username: String,
     pub email: String,
     pub bio: Option<String>,
+    pub created_at: DateTime,
 }
 
-// Form generation
-#[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
-#[sea_orm(model = "Model", entity = "Entity")]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+// Automatic form generation
+#[derive(DeriveModelForm)]
+pub struct User;
+```
+
+**What is automatically generated:**
+
+#### a) Form Structure
+
+```rust
+#[derive(Serialize, Debug, Clone)]
 pub struct UserForm {
-    #[field(required = true)]
-    pub username: CharField,
-
-    #[field(required = true)]
-    pub email: EmailField,
-
-    #[field(widget = "textarea")]
-    pub bio: CharField,
+    #[serde(flatten, skip_deserializing)]
+    pub form: Forms,
 }
 ```
 
-#### 2. Auto-generated Methods
-
-The `DeriveModelForm` macro **automatically generates** the following elements:
-
-##### a) Implementation of `Deref` and `DerefMut`
+#### b) `RuniqueForm` Implementation
 
 ```rust
-// ✅ Generated automatically
-impl std::ops::Deref for UserForm {
-    type Target = UserFormInner;
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl std::ops::DerefMut for UserForm {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-```
-
-##### b) Implementation of `RuniqueForm` Trait
-
-```rust
-// ✅ Generated automatically
 impl RuniqueForm for UserForm {
-    fn new() -> Self { /* ... */ }
-    fn is_valid(&self) -> bool { /* ... */ }
-    fn errors(&self) -> Vec<String> { /* ... */ }
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &GenericField::text("username")
+                .label("Username")
+                .required("This field is required")
+        );
+        
+        form.field(
+            &GenericField::email("email")
+                .label("Email")
+                .required("This field is required")
+        );
+        
+        form.field(
+            &GenericField::textarea("bio")
+                .label("Bio")
+        );
+    }
+    
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    
+    fn get_form(&self) -> &Forms {
+        &self.form
+    }
+    
+    fn get_form_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
 }
 ```
 
-##### c) `to_active_model()` Method
+#### c) `to_active_model()` Method
 
-**Automatic conversion to SeaORM `ActiveModel`:**
+Automatic conversion to SeaORM `ActiveModel`:
 
 ```rust
-// ✅ Generated automatically
 impl UserForm {
     pub fn to_active_model(&self) -> ActiveModel {
+        use sea_orm::ActiveValue::Set;
+        
         ActiveModel {
-            username: Set(self.username.value().clone()),
-            email: Set(self.email.value().clone()),
-            bio: Set(self.bio.value().clone().into()),
+            username: Set(self.form.get_value("username").unwrap_or_default()),
+            email: Set(self.form.get_value("email").unwrap_or_default()),
+            bio: Set(self.form.get_value("bio")),
             ..Default::default()
         }
     }
 }
 ```
 
-**Usage:**
+#### d) `save()` Method
+
+Direct database saving:
 
 ```rust
-pub async fn create_user(
-    Form(form): Form<UserForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-) -> Response {
-    if !form.is_valid() {
-        return template.render("form.html", context! { form });
-    }
-
-    // ✅ Automatic conversion to ActiveModel
-    let active_model = form.to_active_model();
-
-    // Insert into database
-    match active_model.insert(&*db).await {
-        Ok(user) => redirect(&format!("/user/{}", user.id)),
-        Err(e) => template.render("form.html", context! {
-            form,
-            error: "Error creating user"
-        }),
-    }
-}
-```
-
-##### d) `save()` Method
-
-**Direct database save:**
-
-```rust
-// ✅ Generated automatically
 impl UserForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<Model, DbErr> {
-        let active_model = self.to_active_model();
-        active_model.insert(db).await
+        use sea_orm::EntityTrait;
+        self.to_active_model().insert(db).await
     }
 }
 ```
 
-**Simplified usage:**
+### Macro Comparison
+
+| Element | `#[runique_form]` | `#[derive(DeriveModelForm)]` |
+|---------|-------------------|------------------------------|
+| Form struct | ❌ Manual | ✅ Generated |
+| `impl RuniqueForm` | ❌ Manual | ✅ Generated |
+| `impl Deref/DerefMut` | ✅ Generated | ✅ Generated |
+| `to_active_model()` | ❌ Manual | ✅ Generated |
+| `save()` | ❌ Manual | ✅ Generated |
+| **Usage** | Custom forms | Model-linked forms |
+
+---
+
+## Available Field Types
+
+### Text Fields
 
 ```rust
-pub async fn create_user_simple(
-    Form(form): Form<UserForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-) -> Response {
-    if !form.is_valid() {
-        return template.render("form.html", context! { form });
-    }
+// Simple text field
+GenericField::text("username")
+    .placeholder("Username...")
+    .required("Username is required")
+    .min_length(3, "At least 3 characters")
+    .max_length(20, "Maximum 20 characters")
 
-    // ✅ Direct save in one line
-    match form.save(&*db).await {
-        Ok(user) => redirect(&format!("/user/{}", user.id)),
-        Err(e) => template.render("form.html", context! {
-            form,
-            error: "Error saving"
-        }),
-    }
-}
+// Textarea
+GenericField::textarea("description")
+    .placeholder("Long description...")
+    .required("Description is required")
+    .max_length(500, "Maximum 500 characters")
+
+// Rich text (WYSIWYG)
+GenericField::richtext("content")
+    .required("Content is required")
 ```
 
-#### 3. Summary of Generated Elements
+### Fields with Special Validation
 
-| Element | Generated by `#[runique_form]` | Generated by `#[derive(DeriveModelForm)]` |
-|---------|------------------------------|------------------------------------------|
-| Form struct | ✅ (manual) | ✅ (manual) |
-| `impl RuniqueForm` | ✅ | ✅ |
-| `impl Deref/DerefMut` | ❌ | ✅ |
-| `to_active_model()` method | ❌ | ✅ |
-| `save()` method | ❌ | ✅ |
+```rust
+// Email (automatic format validation)
+GenericField::email("email")
+    .placeholder("example@domain.com")
+    .required("Email required")
+
+// URL (automatic format validation)
+GenericField::url("website")
+    .placeholder("https://example.com")
+
+// Password (masked in HTML)
+GenericField::password("password")
+    .required("Password required")
+    .min_length(8, "Minimum 8 characters")
+```
+
+### Numeric Fields
+
+```rust
+// Integer
+GenericField::int("age")
+    .required("Age is required")
+```
+
+### Configuration Methods (Builder Pattern)
+
+All methods can be chained:
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `.placeholder("text")` | Help text | `.placeholder("Enter your name")` |
+| `.label("Label")` | Field label | `.label("Full Name")` |
+| `.required("message")` | Required field | `.required("This field is required")` |
+| `.min_length(n, "msg")` | Minimum length | `.min_length(3, "Min 3 characters")` |
+| `.max_length(n, "msg")` | Maximum length | `.max_length(50, "Max 50 characters")` |
 
 ---
 
 ## Validation
 
-### Available Field Types
+### Automatic Validation
+
+Call `is_valid()` to validate all fields:
 
 ```rust
-use runique::forms::fields::*;
-
-// Simple text
-pub name: CharField,
-
-// Email with validation
-pub email: EmailField,
-
-// Integer
-pub age: IntegerField,
-
-// Boolean
-pub is_active: BooleanField,
-
-// Date
-pub birth_date: DateField,
-
-// Choice (select)
-pub role: ChoiceField,
-```
-
-### Validation Attributes
-
-```rust
-#[runique_form]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RegisterForm {
-    // Max length
-    #[field(required = true)]
-    pub username: CharField,
-
-    // Automatic email validation
-    #[field(required = true)]
-    pub email: EmailField,
-
-    // Min and max length
-    #[field(required = true, widget = "password")]
-    pub password: CharField,
-
-    // Default value
-    #[field(default = "user")]
-    pub role: CharField,
-
-    // Optional (not required)
-    #[field(required = false, widget = "textarea")]
-    pub bio: CharField,
+pub async fn create_post(
+    State(state): State<AppState>,
+    Form(raw_data): Form<HashMap<String, String>>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let mut post_form = PostForm::build_with_data(&raw_data, state.tera.clone());
+    
+    // Automatic validation of all fields
+    if !post_form.is_valid().await {
+        // Form contains errors
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Html(state.tera.render("post_form.html", &context! { form => post_form }).unwrap())
+        ));
+    }
+    
+    // Form is valid
+    Ok(Redirect::to("/success"))
 }
 ```
 
-### Custom Validation
+### Automatic Validations Performed
+
+1. **Required fields**: Checks that required fields are not empty
+2. **Min/max length**: Respects length constraints
+3. **Email format**: Validates email format with robust regex
+4. **URL format**: Validates URL format (http/https)
+5. **Numeric types**: Checks conversion to number
+
+### Custom Business Validation
+
+Implement the `clean()` method for complex business validations:
+
+```rust
+impl RuniqueForm for RegisterForm {
+    // ... other methods ...
+    
+    fn clean(
+        &mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), HashMap<String, String>>> + Send + '_>> {
+        Box::pin(async move {
+            let mut errors = HashMap::new();
+            
+            // Check that passwords match
+            let password = self.form.get_value("password").unwrap_or_default();
+            let password_confirm = self.form.get_value("password_confirm").unwrap_or_default();
+            
+            if password != password_confirm {
+                errors.insert(
+                    "password_confirm".to_string(),
+                    "Passwords do not match".to_string()
+                );
+            }
+            
+            // Check password strength
+            if password.len() >= 8 && !password.chars().any(|c| c.is_numeric()) {
+                errors.insert(
+                    "password".to_string(),
+                    "Password must contain at least one digit".to_string()
+                );
+            }
+            
+            if !errors.is_empty() {
+                return Err(errors);
+            }
+            
+            Ok(())
+        })
+    }
+}
+```
+
+### Asynchronous Validation (with database)
 
 ```rust
 impl RegisterForm {
-    pub fn validate_passwords_match(&self, password_confirm: &str) -> bool {
-        self.password.value() == password_confirm
+    pub async fn validate_unique_email(&self, db: &DatabaseConnection) -> bool {
+        use crate::models::users;
+        use sea_orm::EntityTrait;
+        
+        let email = self.form.get_value("email").unwrap_or_default();
+        
+        let existing = users::Entity::find()
+            .filter(users::Column::Email.eq(&email))
+            .one(db)
+            .await;
+        
+        existing.is_err() || existing.unwrap().is_none()
     }
+}
 
-    pub fn validate_username_unique(&self, db: &DatabaseConnection) -> bool {
-        // Check database
-        // ...
-        true
+// In handler
+pub async fn register(
+    Form(mut form): Form<RegisterForm>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+) -> Response {
+    if !form.is_valid().await {
+        return template.render("register.html", context! { form });
     }
+    
+    // Custom async validation
+    if !form.validate_unique_email(&*db).await {
+        form.get_form_mut()
+            .fields
+            .get_mut("email")
+            .unwrap()
+            .set_error("This email is already in use".to_string());
+        
+        return template.render("register.html", context! { form });
+    }
+    
+    // Save...
 }
 ```
 
 ---
 
-## HTML Rendering
+## Error Display
 
-### Automatic Rendering in Templates
+### In Tera Templates
+
+Errors are automatically available in your templates:
 
 ```html
-<!-- templates/form.html -->
 <form method="post">
-    {% csrf %}
+    {% for field_name, field in form.fields %}
+    <div class="form-group">
+        <label for="{{ field.name }}">{{ field.label or field.name }}</label>
+        <input 
+            type="{{ field.field_type }}" 
+            id="{{ field.name }}"
+            name="{{ field.name }}"
+            value="{{ field.value }}"
+            placeholder="{{ field.placeholder }}"
+            class="{% if field.error %}is-invalid{% endif %}"
+            {% if field.is_required.choice %}required{% endif %}
+        />
+        
+        {% if field.error %}
+        <div class="invalid-feedback">{{ field.error }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    
+    {% if form.global_errors %}
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            {% for error in form.global_errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+```
 
-    <!-- Automatic rendering of all fields -->
-    {{ form }}
+### Complete Automatic Rendering
 
+```html
+<form method="post">
+    {{ form }}  <!-- Generates all fields automatically -->
     <button type="submit">Submit</button>
 </form>
 ```
 
-### Field-by-field Rendering
-
-```html
-<form method="post">
-    {% csrf %}
-
-    <div class="form-group">
-        <label>{{ form.username.label }}</label>
-        {{ form.username }}
-        {% if form.username.errors %}
-            <div class="errors">
-                {% for error in form.username.errors %}
-                    <span class="error">{{ error }}</span>
-                {% endfor %}
-            </div>
-        {% endif %}
-    </div>
-
-    <div class="form-group">
-        <label>{{ form.email.label }}</label>
-        {{ form.email }}
-        {% if form.email.errors %}
-            <div class="errors">
-                {% for error in form.email.errors %}
-                    <span class="error">{{ error }}</span>
-                {% endfor %}
-            </div>
-        {% endif %}
-    </div>
-
-    <button type="submit">Create</button>
-</form>
-```
-
-### Custom Widgets
+### Retrieving Errors in Rust
 
 ```rust
-#[runique_form]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ArticleForm {
-    #[field(required = true)]
-    pub title: CharField,
+// Check if form has errors
+if post_form.form.has_errors() {
+    // Get all errors
+    let all_errors = post_form.form.errors();
+    
+    for (field_name, error_msg) in all_errors {
+        println!("Error on {}: {}", field_name, error_msg);
+    }
+}
 
-    // Textarea for long content
-    #[field(widget = "textarea", required = true)]
-    pub content: CharField,
+// Get error for specific field
+if let Some(field) = post_form.form.fields.get("email") {
+    if let Some(error) = field.error() {
+        println!("Email error: {}", error);
+    }
+}
 
-    // Password input
-    #[field(widget = "password")]
-    pub password: CharField,
+// Add global error manually
+post_form.form.global_errors.push("Temporary server error".to_string());
+```
 
-    // Select dropdown
-    #[field(widget = "select")]
-    pub category: ChoiceField,
+### Error Types
+
+1. **Field errors**: Associated with a specific field (displayed under the field)
+2. **Global errors**: Errors not related to a particular field (displayed at top of form)
+
+---
+
+## Database Saving
+
+### With `DeriveModelForm` (recommended method)
+
+The macro automatically generates the `save()` method:
+
+```rust
+pub async fn create_article(
+    Form(form): Form<ArticleForm>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+) -> Response {
+    if !form.is_valid().await {
+        return template.render("article_form.html", context! { form });
+    }
+    
+    // ✅ Save in one line
+    match form.save(&*db).await {
+        Ok(article) => redirect(&format!("/article/{}", article.id)),
+        Err(e) => {
+            error!(message, "Error during creation");
+            template.render("article_form.html", context! { form })
+        }
+    }
 }
 ```
+
+### With Manual Form
+
+Add a `save()` method to your form:
+
+```rust
+impl RegisterForm {
+    pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
+        use sea_orm::{ActiveModelTrait, Set};
+        use crate::models::users;
+        
+        let username = self.form.get_value("username").unwrap_or_default();
+        let email = self.form.get_value("email").unwrap_or_default();
+        let password = self.form.get_value("password").unwrap_or_default();
+        
+        let new_user = users::ActiveModel {
+            username: Set(username),
+            email: Set(email),
+            password: Set(password),
+            ..Default::default()
+        };
+        
+        new_user.insert(db).await
+    }
+}
+```
+
+### Handling Database Errors
+
+Use `database_error()` to automatically parse DB errors:
+
+```rust
+match register_form.save(&state.db).await {
+    Ok(user) => {
+        success!(message, "User created successfully!");
+        Ok(Redirect::to(&format!("/user/{}", user.id)))
+    }
+    Err(db_err) => {
+        // Parse error and assign to correct field automatically
+        register_form.database_error(&db_err);
+        
+        Err((
+            StatusCode::BAD_REQUEST,
+            Html(state.tera.render("register.html", &context! { form => register_form }).unwrap())
+        ))
+    }
+}
+```
+
+The `database_error()` method automatically detects:
+- ✅ UNIQUE constraint violations
+- ✅ Foreign key errors
+- ✅ And assigns them to the concerned field with a localized message
 
 ---
 
@@ -432,7 +635,7 @@ pub struct ArticleForm {
 
 ### Automatic Activation
 
-CSRF protection is **automatically activated** in Runique when the `CsrfMiddleware` is added.
+CSRF protection is **automatically activated** when you add the middleware:
 
 ```rust
 use runique::prelude::*;
@@ -451,7 +654,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Usage in Templates
+### Using in Templates
 
 ```html
 <form method="post">
@@ -464,7 +667,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 </form>
 ```
 
-### Validation in Handlers
+### Automatic Validation
 
 CSRF validation is **automatic** via the `Form<T>` extractor:
 
@@ -473,12 +676,14 @@ pub async fn submit_form(
     Form(form): Form<ContactForm>,  // ✅ CSRF validated automatically
     template: Template,
 ) -> Response {
+    // If CSRF token is invalid, a 403 error is returned
+    // BEFORE this code is executed
+    
     if !form.is_valid() {
         return template.render("contact.html", context! { form });
     }
 
     // Form is valid AND CSRF token has been verified
-    // ...
 }
 ```
 
@@ -492,53 +697,97 @@ pub async fn submit_form(
 
 ```rust
 use runique::prelude::*;
-use runique::forms::prelude::*;
 
-#[runique_form]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize)]
+#[serde(transparent)]
 pub struct ContactForm {
-    #[field(required = true)]
-    pub name: CharField,
-
-    #[field(required = true)]
-    pub email: EmailField,
-
-    #[field(required = true)]
-    pub subject: CharField,
-
-    #[field(widget = "textarea", required = true)]
-    pub message: CharField,
+    pub form: Forms,
 }
 
-pub async fn contact_view(template: Template) -> Response {
-    let form = ContactForm::new();
-    template.render("contact.html", context! { form })
+impl Serialize for ContactForm {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.form.serialize(serializer)
+    }
+}
+
+impl RuniqueForm for ContactForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &GenericField::text("name")
+                .placeholder("Your name")
+                .required("Name is required")
+                .min_length(2, "At least 2 characters"),
+        );
+        
+        form.field(
+            &GenericField::email("email")
+                .placeholder("your@email.com")
+                .required("Email is required"),
+        );
+        
+        form.field(
+            &GenericField::text("subject")
+                .placeholder("Message subject")
+                .required("Subject is required"),
+        );
+        
+        form.field(
+            &GenericField::textarea("message")
+                .placeholder("Your message...")
+                .required("Message is required")
+                .max_length(1000, "Maximum 1000 characters"),
+        );
+    }
+    
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    
+    fn get_form(&self) -> &Forms {
+        &self.form
+    }
+    
+    fn get_form_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
+}
+
+// Handlers
+pub async fn contact_view(
+    State(state): State<AppState>,
+) -> Html<String> {
+    let form = ContactForm::build(state.tera.clone());
+    
+    Html(state.tera.render("contact.html", &tera::context! { form }).unwrap())
 }
 
 pub async fn contact_submit(
-    Form(form): Form<ContactForm>,
-    template: Template,
+    State(state): State<AppState>,
+    Form(raw_data): Form<HashMap<String, String>>,
     mut message: Message,
 ) -> Response {
-    if !form.is_valid() {
-        return template.render("contact.html", context! {
-            form,
-            errors: form.errors(),
-        });
+    let mut form = ContactForm::build_with_data(&raw_data, state.tera.clone());
+    
+    if !form.is_valid().await {
+        return Html(state.tera.render("contact.html", &tera::context! { form }).unwrap())
+            .into_response();
     }
-
-    // Process message (send email, etc.)
-    let _ = message.success("Message sent successfully!").await;
-
-    redirect("/")
+    
+    // Process message (send email, save, etc.)
+    // ...
+    
+    success!(message, "Message sent successfully!");
+    Redirect::to("/").into_response()
 }
 ```
 
-### Example 2: Model-linked Form with Save
+### Example 2: Model-linked Form with `DeriveModelForm`
 
 ```rust
 use runique::prelude::*;
-use runique::forms::prelude::*;
 use sea_orm::entity::prelude::*;
 
 // SeaORM Model
@@ -551,6 +800,8 @@ pub struct Model {
     pub slug: String,
     pub content: String,
     pub published: bool,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -558,211 +809,241 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-// Auto-generated form
-#[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
-#[sea_orm(model = "Model", entity = "Entity")]
-pub struct ArticleForm {
-    #[field(required = true)]
-    pub title: CharField,
+// Automatic form generation
+#[derive(DeriveModelForm)]
+pub struct Article;
 
-    #[field(required = true)]
-    pub slug: CharField,
-
-    #[field(widget = "textarea", required = true)]
-    pub content: CharField,
-
-    #[field(default = "false")]
-    pub published: BooleanField,
+// Handlers
+pub async fn create_article_view(
+    State(state): State<AppState>,
+) -> Html<String> {
+    let form = ArticleForm::build(state.tera.clone());
+    Html(state.tera.render("article_form.html", &tera::context! { form }).unwrap())
 }
 
-// Create handler
-pub async fn create_article(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
-) -> Response {
-    let form = ArticleForm::new();
-    template.render("article_form.html", context! { form })
-}
-
-// Submit handler
 pub async fn store_article(
-    Form(form): Form<ArticleForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
+    Form(raw_data): Form<HashMap<String, String>>,
+    State(state): State<AppState>,
     mut message: Message,
 ) -> Response {
-    if !form.is_valid() {
-        return template.render("article_form.html", context! {
-            form,
-            errors: form.errors(),
-        });
+    let mut form = ArticleForm::build_with_data(&raw_data, state.tera.clone());
+    
+    if !form.is_valid().await {
+        error!(message, "Form contains errors");
+        return Html(state.tera.render("article_form.html", &tera::context! { form }).unwrap())
+            .into_response();
     }
-
-    // ✅ Method 1: Direct save with .save()
-    match form.save(&*db).await {
+    
+    // ✅ Automatic save with .save()
+    match form.save(&*state.db).await {
         Ok(article) => {
             success!(message, "Article created successfully!");
-            redirect(&format!("/article/{}", article.id))
+            Redirect::to(&format!("/article/{}", article.id)).into_response()
         }
         Err(e) => {
-            error!(message, "Error creating article");
-            template.render("article_form.html", context! { form })
+            form.database_error(&e);
+            error!(message, "Error during creation");
+            Html(state.tera.render("article_form.html", &tera::context! { form }).unwrap())
+                .into_response()
         }
     }
-
-    // ✅ Method 2: Manual conversion with .to_active_model()
-    // let active_model = form.to_active_model();
-    // match active_model.insert(&*db).await {
-    //     Ok(article) => { /* ... */ }
-    //     Err(e) => { /* ... */ }
-    // }
 }
 ```
 
-### Example 3: Form with Editing
+### Example 3: Registration Form with Custom Validation
 
 ```rust
-pub async fn edit_article(
+use runique::prelude::*;
+
+#[derive(Serialize)]
+#[serde(transparent)]
+pub struct RegisterForm {
+    pub form: Forms,
+}
+
+impl Serialize for RegisterForm {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.form.serialize(serializer)
+    }
+}
+
+impl RuniqueForm for RegisterForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &GenericField::text("username")
+                .placeholder("Username")
+                .required("Username is required")
+                .min_length(3, "At least 3 characters")
+                .max_length(20, "Maximum 20 characters"),
+        );
+        
+        form.field(
+            &GenericField::email("email")
+                .placeholder("your@email.com")
+                .required("Email is required"),
+        );
+        
+        form.field(
+            &GenericField::password("password")
+                .required("Password is required")
+                .min_length(8, "Minimum 8 characters"),
+        );
+        
+        form.field(
+            &GenericField::password("password_confirm")
+                .required("Confirm your password"),
+        );
+    }
+    
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    
+    fn get_form(&self) -> &Forms {
+        &self.form
+    }
+    
+    fn get_form_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
+    
+    // Custom validation
+    fn clean(
+        &mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), HashMap<String, String>>> + Send + '_>> {
+        Box::pin(async move {
+            let mut errors = HashMap::new();
+            
+            let password = self.form.get_value("password").unwrap_or_default();
+            let password_confirm = self.form.get_value("password_confirm").unwrap_or_default();
+            
+            // Check passwords match
+            if password != password_confirm {
+                errors.insert(
+                    "password_confirm".to_string(),
+                    "Passwords do not match".to_string()
+                );
+            }
+            
+            // Check password complexity
+            if !password.chars().any(|c| c.is_numeric()) {
+                errors.insert(
+                    "password".to_string(),
+                    "Password must contain at least one digit".to_string()
+                );
+            }
+            
+            if !password.chars().any(|c| c.is_uppercase()) {
+                errors.insert(
+                    "password".to_string(),
+                    "Password must contain at least one uppercase letter".to_string()
+                );
+            }
+            
+            if !errors.is_empty() {
+                return Err(errors);
+            }
+            
+            Ok(())
+        })
+    }
+}
+
+impl RegisterForm {
+    pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
+        use sea_orm::{ActiveModelTrait, Set};
+        use crate::models::users;
+        
+        let new_user = users::ActiveModel {
+            username: Set(self.form.get_value("username").unwrap_or_default()),
+            email: Set(self.form.get_value("email").unwrap_or_default()),
+            password: Set(self.form.get_value("password").unwrap_or_default()),
+            ..Default::default()
+        };
+        
+        new_user.insert(db).await
+    }
+}
+```
+
+### Example 4: Editing an Existing Article
+
+```rust
+pub async fn edit_article_view(
     Path(id): Path<i32>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
+    State(state): State<AppState>,
 ) -> Response {
-    let article = match Article::objects.get(&*db, id).await {
-        Ok(a) => a,
-        Err(_) => return (StatusCode::NOT_FOUND, "Article not found").into_response(),
+    // Get existing article
+    let article = match Article::find_by_id(id).one(&*state.db).await {
+        Ok(Some(a)) => a,
+        _ => return (StatusCode::NOT_FOUND, "Article not found").into_response(),
     };
-
-    // Pre-fill form with existing data
-    let mut form = ArticleForm::new();
-    form.title.set_value(article.title);
-    form.slug.set_value(article.slug);
-    form.content.set_value(article.content);
-    form.published.set_value(article.published.to_string());
-
-    template.render("article_form.html", context! {
+    
+    // Create form and pre-fill it
+    let mut form = ArticleForm::build(state.tera.clone());
+    
+    if let Some(title_field) = form.form.fields.get_mut("title") {
+        title_field.set_value(&article.title);
+    }
+    if let Some(slug_field) = form.form.fields.get_mut("slug") {
+        slug_field.set_value(&article.slug);
+    }
+    if let Some(content_field) = form.form.fields.get_mut("content") {
+        content_field.set_value(&article.content);
+    }
+    
+    Html(state.tera.render("article_form.html", &tera::context! {
         form,
         article_id: id,
         is_edit: true,
-    })
+    }).unwrap()).into_response()
 }
 
 pub async fn update_article(
     Path(id): Path<i32>,
-    Form(form): Form<ArticleForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
+    Form(raw_data): Form<HashMap<String, String>>,
+    State(state): State<AppState>,
     mut message: Message,
 ) -> Response {
-    if !form.is_valid() {
-        return template.render("article_form.html", context! {
+    let mut form = ArticleForm::build_with_data(&raw_data, state.tera.clone());
+    
+    if !form.is_valid().await {
+        error!(message, "Form contains errors");
+        return Html(state.tera.render("article_form.html", &tera::context! {
             form,
             article_id: id,
             is_edit: true,
-        });
+        }).unwrap()).into_response();
     }
-
+    
     // Get existing article
-    let existing = match Article::objects.get(&*db, id).await {
-        Ok(a) => a,
-        Err(_) => return (StatusCode::NOT_FOUND, "Article not found").into_response(),
+    let existing = match Article::find_by_id(id).one(&*state.db).await {
+        Ok(Some(a)) => a,
+        _ => return (StatusCode::NOT_FOUND, "Article not found").into_response(),
     };
-
+    
     // Create ActiveModel for update
     let mut active_model: ActiveModel = existing.into();
-    active_model.title = Set(form.title.value().clone());
-    active_model.slug = Set(form.slug.value().clone());
-    active_model.content = Set(form.content.value().clone());
-    active_model.published = Set(form.published.value().parse().unwrap_or(false));
-
-    match active_model.update(&*db).await {
+    active_model.title = Set(form.form.get_value("title").unwrap_or_default());
+    active_model.slug = Set(form.form.get_value("slug").unwrap_or_default());
+    active_model.content = Set(form.form.get_value("content").unwrap_or_default());
+    
+    match active_model.update(&*state.db).await {
         Ok(updated) => {
             success!(message, "Article updated successfully!");
-            redirect(&format!("/article/{}", updated.id))
+            Redirect::to(&format!("/article/{}", updated.id)).into_response()
         }
         Err(e) => {
-            error!(message, "Error updating article");
-            template.render("article_form.html", context! {
+            form.database_error(&e);
+            error!(message, "Error during update");
+            Html(state.tera.render("article_form.html", &tera::context! {
                 form,
                 article_id: id,
                 is_edit: true,
-            })
-        }
-    }
-}
-```
-
-### Example 4: Custom Validation
-
-```rust
-#[derive(DeriveModelForm, Debug, Clone, Serialize, Deserialize)]
-#[sea_orm(model = "Model", entity = "Entity")]
-pub struct UserForm {
-    #[field(required = true)]
-    pub username: CharField,
-
-    #[field(required = true)]
-    pub email: EmailField,
-
-    #[field(required = true, widget = "password")]
-    pub password: CharField,
-}
-
-impl UserForm {
-    /// Custom validation: check username is unique
-    pub async fn validate_unique_username(&self, db: &DatabaseConnection) -> bool {
-        let existing = User::objects
-            .filter(users::Column::Username.eq(self.username.value()))
-            .first(db)
-            .await;
-
-        existing.is_err() // True if no user found (username available)
-    }
-
-    /// Custom validation: check email is unique
-    pub async fn validate_unique_email(&self, db: &DatabaseConnection) -> bool {
-        let existing = User::objects
-            .filter(users::Column::Email.eq(self.email.value()))
-            .first(db)
-            .await;
-
-        existing.is_err()
-    }
-}
-
-pub async fn register_user(
-    Form(mut form): Form<UserForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
-    mut message: Message,
-) -> Response {
-    // Standard validation
-    if !form.is_valid() {
-        return template.render("register.html", context! {
-            form,
-            errors: form.errors(),
-        });
-    }
-
-    // Custom validations
-    if !form.validate_unique_username(&*db).await {
-        error!(message, "This username is already taken");
-        return template.render("register.html", context! { form });
-    }
-
-    if !form.validate_unique_email(&*db).await {
-        error!(message, "This email is already in use");
-        return template.render("register.html", context! { form });
-    }
-
-    // Save user
-    match form.save(&*db).await {
-        Ok(user) => {
-            success!(message, "Account created successfully!");
-            redirect(&format!("/user/{}", user.id))
-        }
-        Err(e) => {
-            error!(message, "Error creating account");
-            template.render("register.html", context! { form })
+            }).unwrap()).into_response()
         }
     }
 }
@@ -775,16 +1056,21 @@ pub async fn register_user(
 ### 1. Always Validate Forms
 
 ```rust
-// ✅ Good
-pub async fn submit(Form(form): Form<MyForm>) -> Response {
-    if !form.is_valid() {
+// ✅ CORRECT
+pub async fn submit(Form(raw_data): Form<HashMap<String, String>>) -> Response {
+    let mut form = MyForm::build_with_data(&raw_data, tera);
+    
+    if !form.is_valid().await {
         return template.render("form.html", context! { form });
     }
-    // Process...
+    
+    // Process validated data
 }
 
-// ❌ Bad
-pub async fn submit(Form(form): Form<MyForm>) -> Response {
+// ❌ INCORRECT
+pub async fn submit(Form(raw_data): Form<HashMap<String, String>>) -> Response {
+    let form = MyForm::build_with_data(&raw_data, tera);
+    
     // No validation!
     form.save(&db).await?; // Risk of invalid data
 }
@@ -793,16 +1079,16 @@ pub async fn submit(Form(form): Form<MyForm>) -> Response {
 ### 2. Use Auto-generated Methods
 
 ```rust
-// ✅ Good (uses automatically generated .save())
+// ✅ OPTIMAL (with DeriveModelForm)
 match form.save(&*db).await {
-    Ok(user) => redirect("/success"),
+    Ok(article) => redirect("/success"),
     Err(e) => handle_error(e),
 }
 
-// ⚠️ Acceptable but more verbose
+// ⚠️ ACCEPTABLE but more verbose
 let active_model = form.to_active_model();
 match active_model.insert(&*db).await {
-    Ok(user) => redirect("/success"),
+    Ok(article) => redirect("/success"),
     Err(e) => handle_error(e),
 }
 ```
@@ -810,35 +1096,36 @@ match active_model.insert(&*db).await {
 ### 3. Handle Errors Properly
 
 ```rust
-pub async fn submit(
-    Form(form): Form<UserForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
-    template: Template,
+pub async fn create_user(
+    Form(raw_data): Form<HashMap<String, String>>,
+    State(state): State<AppState>,
     mut message: Message,
 ) -> Response {
-    if !form.is_valid() {
-        return template.render("form.html", context! {
-            form,
-            errors: form.errors(),
-        });
+    let mut form = UserForm::build_with_data(&raw_data, state.tera.clone());
+    
+    if !form.is_valid().await {
+        error!(message, "Form contains errors");
+        return template.render("form.html", context! { form });
     }
-
-    match form.save(&*db).await {
+    
+    match form.save(&*state.db).await {
         Ok(user) => {
-            let _ = message.success("User created!").await;
-            redirect(&format!("/user/{}", user.id))
+            success!(message, "User created!");
+            Redirect::to(&format!("/user/{}", user.id)).into_response()
         }
         Err(DbErr::RecordNotFound(_)) => {
-            let _ = message.error("Record not found").await;
+            error!(message, "Record not found");
             template.render("form.html", context! { form })
         }
         Err(DbErr::Exec(_)) => {
-            let _ = message.error("Constraint error (duplicate?)").await;
+            // Database constraint violated
+            form.database_error(&DbErr::Exec("".into()));
+            error!(message, "Database constraint (duplicate?)");
             template.render("form.html", context! { form })
         }
         Err(e) => {
             tracing::error!("Database error: {}", e);
-            let _ = message.error("Internal error").await;
+            error!(message, "Internal error");
             template.render("form.html", context! { form })
         }
     }
@@ -849,36 +1136,44 @@ pub async fn submit(
 
 ```rust
 pub async fn create_user_with_profile(
-    Form(user_form): Form<UserForm>,
-    Form(profile_form): Form<ProfileForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
+    Form(user_data): Form<HashMap<String, String>>,
+    Form(profile_data): Form<HashMap<String, String>>,
+    State(state): State<AppState>,
+    mut message: Message,
 ) -> Response {
-    if !user_form.is_valid() || !profile_form.is_valid() {
+    let mut user_form = UserForm::build_with_data(&user_data, state.tera.clone());
+    let mut profile_form = ProfileForm::build_with_data(&profile_data, state.tera.clone());
+    
+    if !user_form.is_valid().await || !profile_form.is_valid().await {
+        error!(message, "Form contains errors");
         return template.render("form.html", context! {
             user_form,
             profile_form,
         });
     }
-
+    
     // Transaction to ensure consistency
-    let result = db.transaction::<_, (), DbErr>(|txn| {
+    let result = state.db.transaction::<_, (), DbErr>(|txn| {
         Box::pin(async move {
             // Create user
             let user = user_form.to_active_model().insert(txn).await?;
-
-            // Create profile
+            
+            // Create linked profile
             let mut profile = profile_form.to_active_model();
             profile.user_id = Set(user.id);
             profile.insert(txn).await?;
-
+            
             Ok(())
         })
     }).await;
-
+    
     match result {
-        Ok(_) => redirect("/success"),
+        Ok(_) => {
+            success!(message, "Account created successfully!");
+            Redirect::to("/success").into_response()
+        }
         Err(e) => {
-            let _ = message.error("Error creating account").await;
+            error!(message, "Error creating account");
             template.render("form.html", context! {
                 user_form,
                 profile_form,
@@ -888,69 +1183,82 @@ pub async fn create_user_with_profile(
 }
 ```
 
-### Example 5: Using Message Macros
-
-The `success!()`, `error!()`, `info!()` and `warning!()` macros simplify message sending:
+### 5. Use Message Macros
 
 ```rust
 use runique::prelude::*;
 
-pub async fn create_article(
-    Form(form): Form<ArticleForm>,
-    Extension(db): Extension<Arc<DatabaseConnection>>,
+pub async fn submit(
+    Form(raw_data): Form<HashMap<String, String>>,
+    State(state): State<AppState>,
     mut message: Message,
-    template: Template,
 ) -> Response {
-    // Standard validation
-    if !form.is_valid() {
-        error!(message, "The form contains errors");
-        return template.render("article_form.html", context! { form });
+    let mut form = ArticleForm::build_with_data(&raw_data, state.tera.clone());
+    
+    if !form.is_valid().await {
+        error!(message, "Form contains errors");
+        return template.render("form.html", context! { form });
     }
-
-    // Custom validation
-    if form.title.value().len() < 10 {
-        error!(message, "Title must be at least 10 characters long");
-        return template.render("article_form.html", context! { form });
-    }
-
-    // Check if slug is unique
-    if Article::slug_exists(&form.slug.value(), &db).await {
-        error!(message, "This slug is already in use");
-        warning!(message, "Try adding a number or date");
-        return template.render("article_form.html", context! { form });
-    }
-
-    // Save
-    match form.save(&*db).await {
+    
+    match form.save(&*state.db).await {
         Ok(article) => {
             success!(message, "Article created successfully!");
-
+            
             if article.published {
-                info!(message, "Your article is now visible to everyone");
+                info!(message, "Your article is now publicly visible");
             } else {
-                info!(message, "Your article is a draft");
+                warning!(message, "Your article is a draft");
             }
-
-            redirect(&format!("/articles/{}", article.id))
+            
+            Redirect::to(&format!("/article/{}", article.id)).into_response()
         }
         Err(e) => {
             error!(message, "Error during creation");
-            template.render("article_form.html", context! { form })
+            template.render("form.html", context! { form })
         }
     }
 }
 ```
 
-**Syntax comparison:**
+---
+
+## API Summary
+
+### Form Lifecycle
+
+1. **Creation**: `MyForm::build(tera)` or `build_with_data(&data, tera)`
+2. **Validation**: `form.is_valid().await`
+3. **Data Retrieval**: `form.data()` or `form.get_value("field")`
+4. **Saving**: `form.save(&db).await`
+5. **Error Handling**: `form.database_error(&err)`
+
+### Main API
 
 ```rust
-// ❌ Old syntax (verbose)
-let _ = message.success("Article created!").await;
-let _ = message.error("Error").await;
+// Form Creation
+MyForm::build(tera)                               // Empty form
+MyForm::build_with_data(&data, tera)              // Pre-filled form
 
-// ✅ New syntax (with macros)
-success!(message, "Article created!");
-error!(message, "Error");
+// Validation
+form.is_valid().await                             // Validate all fields
+form.has_errors()                                 // Check for errors
+
+// Data Retrieval
+form.data()                                       // HashMap<String, Value>
+form.get_value("name")                            // Option<String>
+form.get_value_or_default("name")                 // String
+
+// Error Management
+form.errors()                                     // HashMap<String, String>
+form.global_errors                                // Vec<String>
+form.database_error(&db_err)                      // Parse DB errors
+
+// Field Access
+field.error()                                     // Option<&String>
+field.value()                                     // &str
+field.validate()                                  // bool
+field.set_value("value")                          // Modify value
+field.set_error("message")                        // Add error
 ```
 
 ---
@@ -967,6 +1275,7 @@ Create robust forms with Runique!
 ---
 
 **Version:** 1.0.86 (Corrected - January 2, 2026)
+**Last Updated:** January 2026  
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*

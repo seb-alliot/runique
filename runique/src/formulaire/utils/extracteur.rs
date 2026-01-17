@@ -66,7 +66,7 @@ where
 
         let form_data_for_validation = convert_for_form(parsed);
 
-        let mut form = T::build_with_current_data(&form_data_for_validation, tera.clone());
+        let mut form = T::build_with_data(&form_data_for_validation, tera.clone());
 
         form.get_form_mut().set_tera(tera);
 

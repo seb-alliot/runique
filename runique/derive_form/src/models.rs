@@ -25,11 +25,9 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
             let field_name_str = field_name.to_string();
             let label = format_field_label(&field_name_str);
 
-            // On récupère le nom du constructeur (ex: new_text)
             let constructor = get_field_type(f);
             let is_optional = is_optional_field(f);
 
-            // Déterminer si le champ est requis
             let required_clause = if is_optional {
                 quote! {}
             } else {
@@ -37,8 +35,9 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
             };
 
             quote! {
-                form.register_field(
-                    &::runique::prelude::GenericField::#constructor(#field_name_str, #label)
+                form.field(
+                    &::runique::prelude::GenericField::#constructor(#field_name_str)
+                        .label(#label)
                         #required_clause
                 );
             }
