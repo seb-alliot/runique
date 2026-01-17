@@ -471,9 +471,60 @@ pub async fn register(
 
 ## Error Display
 
-### In Tera Templates
+### Django-like Syntax in Templates
 
-Errors are automatically available in your templates:
+Runique supports Django-like syntax for displaying forms in Tera templates. The framework automatically transforms these tags via custom filters.
+
+#### Complete Automatic Rendering
+
+```html
+<form method="post">
+    {% csrf %}
+    {% form.register_form %}  <!-- Generates all fields automatically -->
+    <button type="submit">Submit</button>
+</form>
+```
+
+**What is generated**: The complete form with all fields, labels, errors, and HTML attributes.
+
+#### Rendering a Specific Field
+
+```html
+<form method="post">
+    {% csrf %}
+    
+    <div class="form-group">
+        <label>Username</label>
+        {% form.register_form.username %}
+        <!-- Generates the input with all attributes and errors -->
+    </div>
+    
+    <div class="form-group">
+        <label>Email</label>
+        {% form.register_form.email %}
+    </div>
+    
+    <button type="submit">Register</button>
+</form>
+```
+
+#### Alternative Syntax (explicit filter)
+
+If you prefer using standard Tera syntax:
+
+```html
+<!-- Complete form -->
+{{ register_form | form | safe }}
+
+<!-- Specific field -->
+{% set field = register_form | form(field="username") %}
+{% set input_type = field.field_type %}
+{% include "base_string" %}
+```
+
+### Manual Rendering with Full Control
+
+For complete control over HTML:
 
 ```html
 <form method="post">
@@ -510,14 +561,46 @@ Errors are automatically available in your templates:
 </form>
 ```
 
-### Complete Automatic Rendering
+### How It Works
+
+Runique automatically transforms Django-like syntax into Tera filter calls:
+
+1. **`{% form.register_form %}`** → `{{ register_form | form | safe }}`
+2. **`{% form.register_form.username %}`** → `{{ register_form | form(field="username") }}`
+
+The `form` filter:
+- **Without arguments**: returns the complete form HTML
+- **With `field="name"`**: returns the HTML for the specific field
+
+This transformation happens when templates are loaded (in `RuniqueApp::new()`)
+
+### Other Django-like Tags
+
+Runique supports several Django-like tags that are automatically transformed:
 
 ```html
-<form method="post">
-    {{ form }}  <!-- Generates all fields automatically -->
-    <button type="submit">Submit</button>
-</form>
+{# CSRF Token #}
+{% csrf %}  → {% include "csrf" %}
+
+{# Flash messages #}
+{% messages %}  → {% include "message" %}
+
+{# CSP headers #}
+{{ csp }}  → {% include "csp" %}
+
+{# Static files #}
+{% static "css/main.css" %}  → {{ "css/main.css" | static }}
+{% static "js/app.js" %}     → {{ "js/app.js" | static }}
+
+{# Media files #}
+{% media "images/logo.png" %}  → {{ "images/logo.png" | media }}
+
+{# Named URLs (reverse) #}
+{% link "home" %}                      → {{ link(link='home') }}
+{% link "user-detail", id=user.id %}   → {{ link(link='user-detail', id=user.id) }}
 ```
+
+**These transformations are applied automatically** by Runique when loading templates via regex in `app.rs`.
 
 ### Retrieving Errors in Rust
 
@@ -1264,6 +1347,7 @@ field.set_error("message")                        // Add error
 ---
 
 ## See Also
+
 
 - [Getting Started](informations/documentation_english/GETTING_STARTED.md)
 - [Templates](informations/documentation_english/TEMPLATES.md)

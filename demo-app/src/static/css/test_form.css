@@ -10,9 +10,15 @@ button[type="submit"] {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    margin-left : 33.3%;
+    margin-left : 30%;
 }
 
 button[type="submit"]:hover {
     background-color: #0056b3;
+}
+
+#test_new_form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
