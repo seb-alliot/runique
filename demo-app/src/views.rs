@@ -45,7 +45,7 @@ pub async fn soumissioninscription(
     template: Template,
     ExtractForm(mut register_form): ExtractForm<register_form>,
 ) -> Response {
-    if register_form.form.is_valid() {
+    if register_form.is_valid().await {
         match register_form.save(&db).await {
             Ok(created_user) => {
                 success!(message => "User profile created successfully!");
@@ -63,7 +63,7 @@ pub async fn soumissioninscription(
                 let debug_error = register_form.get_form_mut();
                 println!(
                     "Database error during user creation: {:?}",
-                    debug_error.all_errors()
+                    debug_error.errors()
                 );
                 debug_error.database_error(&db_err);
                 let ctx = context! {
@@ -158,7 +158,7 @@ pub async fn soumission_blog_info(
     println!("=== Soumission du formulaire ===");
 
     // Affiche chaque champ avec type et valeur
-    for (key, value) in blog_form.form.cleaned_data().iter() {
+    for (key, value) in blog_form.form.data().iter() {
         match value {
             tera::Value::String(s) => println!("Champ '{}' (String): '{}'", key, s),
             tera::Value::Number(n) => println!("Champ '{}' (Number): {}", key, n),
@@ -168,7 +168,7 @@ pub async fn soumission_blog_info(
     }
 
     // Vérification de la validité du formulaire
-    if blog_form.form.is_valid() {
+    if blog_form.is_valid().await {
         match blog_form.save(&db).await {
             Ok(_saved_data) => {
                 success!(message => "Formulaire sauvegardé avec succès !");
@@ -188,7 +188,7 @@ pub async fn soumission_blog_info(
         }
     } else {
         println!("Formulaire invalide. Erreurs présentes :");
-        for (field, errors) in blog_form.form.all_errors() {
+        for (field, errors) in blog_form.form.errors() {
             println!(" - Champ '{}': {}", field, errors);
         }
     }
@@ -223,13 +223,13 @@ pub async fn soumission_champs_form(
     ExtractForm(mut test_new_form): ExtractForm<test_new_form>,
 ) -> Response {
     println!("=== Soumission du formulaire ===");
-    if test_new_form.form.is_valid() {
+    if test_new_form.is_valid().await {
         println!("Formulaire valide. Tentative de sauvegarde en base...");
         success!(message => "Formulaire sauvegardé avec succès !");
         return Redirect::to("/test-new-form").into_response();
     } else {
         println!("Formulaire invalide. Erreurs présentes :");
-        for (field, errors) in test_new_form.form.all_errors() {
+        for (field, errors) in test_new_form.form.errors() {
             println!(" - Champ '{}': {}", field, errors);
         }
     }
@@ -282,7 +282,7 @@ pub async fn soumission_form_generer(
     mut message: Message,
     ExtractForm(mut inscription_form): ExtractForm<InscriptionForm>,
 ) -> Response {
-    if inscription_form.form.is_valid() {
+    if inscription_form.is_valid().await {
         // Sauvegarder en base de données
         match inscription_form.save(&db).await {
             Ok(user) => {

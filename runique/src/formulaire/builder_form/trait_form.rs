@@ -1,63 +1,73 @@
 // --- Definitions communes pour les champs de formulaire ---
 use crate::formulaire::builder_form::form_manager::Forms;
+use crate::formulaire::builder_form::option_field::LengthConstraint;
 use sea_orm::DbErr;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 use tera::Tera;
 
 pub trait FormField: Send + Sync + dyn_clone::DynClone {
+    // Getters
     fn name(&self) -> &str;
     fn label(&self) -> &str;
     fn value(&self) -> &str;
     fn placeholder(&self) -> &str;
-
-    fn set_name(&mut self, name: &str);
-    fn set_label(&mut self, label: &str);
-    fn set_placeholder(&mut self, placeholder: &str);
-    fn set_readonly(&mut self, readonly: bool, msg: Option<&str>);
-    fn set_disabled(&mut self, disabled: bool, msg: Option<&str>);
-    fn set_required(&mut self, required: bool, msg: Option<&str>);
-    fn set_html_attribute(&mut self, key: &str, value: &str);
+    fn min_length(&self) -> Option<&LengthConstraint>;
+    fn max_length(&self) -> Option<&LengthConstraint>;
+    fn field_type(&self) -> &str;
+    fn error(&self) -> Option<&String>;
 
     fn is_required(&self) -> bool {
         false
     }
 
-    fn validate(&mut self) -> bool;
-    fn get_error(&self) -> Option<&String>;
-    fn set_error(&mut self, message: String);
+    // Setters
+    fn set_name(&mut self, name: &str);
+    fn set_label(&mut self, label: &str);
+    fn set_placeholder(&mut self, placeholder: &str);
     fn set_value(&mut self, value: &str);
+    fn set_error(&mut self, message: String);
+    fn set_readonly(&mut self, readonly: bool, msg: Option<&str>);
+    fn set_disabled(&mut self, disabled: bool, msg: Option<&str>);
+    fn set_required(&mut self, required: bool, msg: Option<&str>);
+    fn set_html_attribute(&mut self, key: &str, value: &str);
 
-    fn get_json_value(&self) -> Value {
+    // Validation
+    fn validate(&mut self) -> bool;
+
+    // Rendu
+    fn render(&self, tera: &Arc<Tera>) -> Result<String, String>;
+
+    // Conversion JSON
+    fn to_json_value(&self) -> Value {
         Value::String(self.value().to_string())
     }
 
-    fn field_type(&self) -> &str;
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String>;
-
-    fn get_is_required_config(&self) -> serde_json::Value {
+    fn to_json_required(&self) -> serde_json::Value {
         serde_json::json!({
             "choice": self.is_required(),
             "message": null
         })
     }
 
-    fn get_readonly_config(&self) -> serde_json::Value {
+    fn to_json_readonly(&self) -> serde_json::Value {
         serde_json::json!({
             "choice": false,
             "message": null
         })
     }
 
-    fn get_disabled_config(&self) -> serde_json::Value {
+    fn to_json_disabled(&self) -> serde_json::Value {
         serde_json::json!({
             "choice": false,
             "message": null
         })
     }
 
-    fn get_html_attributes(&self) -> serde_json::Value {
+    fn to_json_attributes(&self) -> serde_json::Value {
         serde_json::json!({})
     }
 }
@@ -70,6 +80,37 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn get_form(&self) -> &Forms;
     fn get_form_mut(&mut self) -> &mut Forms;
 
+    fn clean(
+        &mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), HashMap<String, String>>> + Send + '_>> {
+        Box::pin(async move { Ok(()) })
+    }
+
+    fn is_valid(&mut self) -> Pin<Box<dyn Future<Output = bool> + Send + '_>> {
+        Box::pin(async move {
+            let fields_valid = self.get_form_mut().is_valid();
+
+            if !fields_valid {
+                return false;
+            }
+
+            match self.clean().await {
+                Ok(_) => true,
+                Err(business_errors) => {
+                    let form = self.get_form_mut();
+                    for (name, msg) in business_errors {
+                        if let Some(field) = form.fields.get_mut(&name) {
+                            field.set_error(msg);
+                        } else {
+                            form.global_errors.push(msg);
+                        }
+                    }
+                    false
+                }
+            }
+        })
+    }
+
     fn build(tera: Arc<Tera>) -> Self {
         let mut form = Forms::new();
         form.set_tera(tera);
@@ -77,7 +118,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Self::from_form(form)
     }
 
-    fn build_with_current_data(raw_data: &HashMap<String, String>, tera: Arc<Tera>) -> Self {
+    fn build_with_data(raw_data: &HashMap<String, String>, tera: Arc<Tera>) -> Self {
         let mut form = Forms::new();
         form.set_tera(tera);
         Self::register_fields(&mut form);

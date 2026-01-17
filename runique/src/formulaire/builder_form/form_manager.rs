@@ -35,18 +35,16 @@ impl Serialize for Forms {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Forms", 6)?;
-        state.serialize_field("cleaned_data", &self.cleaned_data())?;
-        state.serialize_field("errors", &self.all_errors())?;
+        let mut state = serializer.serialize_struct("Forms", 5)?;
+        state.serialize_field("data", &self.data())?;
+        state.serialize_field("errors", &self.errors())?;
         state.serialize_field("global_errors", &self.global_errors)?;
 
-        let rendered_html = match self.render_all() {
+        let rendered_html = match self.render() {
             Ok(h) => h,
             Err(e) => format!("<p style='color:red'>Erreur de rendu : {}</p>", e),
         };
         state.serialize_field("html", &rendered_html)?;
-
-        state.serialize_field("is_valid", &self.is_valid_const())?;
 
         // Sérialiser les champs avec leurs métadonnées complètes
         let fields_data: HashMap<String, serde_json::Value> = self
@@ -74,15 +72,15 @@ impl Serialize for Forms {
                 );
                 field_map.insert("index".to_string(), serde_json::Value::Number(index.into()));
 
-                if let Some(err) = field.get_error() {
+                if let Some(err) = field.error() {
                     field_map.insert("error".to_string(), serde_json::Value::String(err.clone()));
                 }
 
                 // Utiliser les nouvelles méthodes du trait
-                field_map.insert("is_required".to_string(), field.get_is_required_config());
-                field_map.insert("readonly".to_string(), field.get_readonly_config());
-                field_map.insert("disabled".to_string(), field.get_disabled_config());
-                field_map.insert("html_attributes".to_string(), field.get_html_attributes());
+                field_map.insert("is_required".to_string(), field.to_json_required());
+                field_map.insert("readonly".to_string(), field.to_json_readonly());
+                field_map.insert("disabled".to_string(), field.to_json_disabled());
+                field_map.insert("html_attributes".to_string(), field.to_json_attributes());
 
                 (name.clone(), serde_json::Value::Object(field_map))
             })
@@ -100,6 +98,14 @@ impl Forms {
             tera: None,
             global_errors: Vec::new(),
         }
+    }
+
+    pub fn field<T>(&mut self, field_template: &T)
+    where
+        T: FormField + Clone + 'static,
+    {
+        let field_instance = field_template.clone();
+        self.add(field_instance);
     }
 
     pub fn set_tera(&mut self, tera: Arc<Tera>) {
@@ -122,37 +128,34 @@ impl Forms {
 
     pub fn is_valid(&mut self) -> bool {
         let mut is_all_valid = true;
-
         for field in self.fields.values_mut() {
             if field.is_required() && field.value().is_empty() {
                 field.set_error("Ce champ est obligatoire".to_string());
                 is_all_valid = false;
             }
-
             if !field.validate() {
                 is_all_valid = false;
             }
         }
-
         is_all_valid && self.global_errors.is_empty()
     }
 
-    fn is_valid_const(&self) -> bool {
-        self.global_errors.is_empty() && self.fields.values().all(|f| f.get_error().is_none())
+    pub fn has_errors(&self) -> bool {
+        !self.global_errors.is_empty() || self.fields.values().any(|f| f.error().is_some())
     }
 
-    pub fn cleaned_data(&self) -> HashMap<String, Value> {
+    pub fn data(&self) -> HashMap<String, Value> {
         self.fields
             .iter()
-            .map(|(name, field)| (name.clone(), field.get_json_value()))
+            .map(|(name, field)| (name.clone(), field.to_json_value()))
             .collect()
     }
 
-    pub fn all_errors(&self) -> HashMap<String, String> {
+    pub fn errors(&self) -> HashMap<String, String> {
         let mut errs: HashMap<String, String> = self
             .fields
             .iter()
-            .filter_map(|(name, field)| field.get_error().map(|err| (name.clone(), err.clone())))
+            .filter_map(|(name, field)| field.error().map(|err| (name.clone(), err.clone())))
             .collect();
 
         if !self.global_errors.is_empty() {
@@ -161,7 +164,7 @@ impl Forms {
         errs
     }
 
-    pub fn render_all(&self) -> Result<String, String> {
+    pub fn render(&self) -> Result<String, String> {
         let mut html = Vec::new();
         let tera_instance = self.tera.as_ref().ok_or("Tera not set")?;
 
@@ -174,14 +177,6 @@ impl Forms {
             }
         }
         Ok(html.join("\n"))
-    }
-
-    pub fn register_field<T>(&mut self, field_template: &T)
-    where
-        T: FormField + Clone + 'static,
-    {
-        let field_instance = field_template.clone();
-        self.add(field_instance);
     }
 
     pub fn get_value(&self, name: &str) -> Option<String> {
@@ -202,7 +197,8 @@ impl Forms {
                     let friendly_name = field_name.replace("_", " ");
                     field.set_error(format!("Ce {} est déjà utilisé.", friendly_name));
                 } else {
-                    println!("Champ {} non trouvé pour l'erreur unique", field_name);
+                    self.global_errors
+                        .push("Une erreur de base de données est survenue.".to_string());
                 }
             }
         } else {

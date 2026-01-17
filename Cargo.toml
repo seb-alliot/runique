@@ -18,7 +18,7 @@ homepage = "https://github.com/seb-alliot/runique"
 [workspace.dependencies]
 # Framework web
 axum = { version = "0.8.7", features = ["macros", "form" ,"multipart"] }
-tower = { version = "0.5.2", features = ["util"] }
+tower = { version = "0.5.3", features = ["util"] }
 tower-http = { version = "0.6", features = ["fs", "util", "trace", "timeout"] }
 tower-sessions = "0.14.0"
 
@@ -39,7 +39,7 @@ sea-orm-cli = "1.1.19"
 
 # Utilitaires
 dotenvy = "0.15"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.43", features = ["serde"] }
 anyhow = "1.0"
 regex = "1.12.2"
 fancy-regex = "0.17.0"

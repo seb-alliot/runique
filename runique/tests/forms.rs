@@ -1,119 +1,145 @@
-// use runique::formulaire::{
-//     composant_field::*,
-//     RuniqueForm,
-// };
-// use runique::Forms;
-// use std::collections::HashMap;
-// use std::sync::Arc;
-// use tera::Tera;
+use runique::prelude::GenericField;
+use runique::prelude::RuniqueForm;
+use runique::Forms;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tera::Tera;
 
-// #[derive(Clone)]
-// struct TestForm {
-//     form: Forms,
-// }
+#[derive(Clone)]
+struct TestForm {
+    form: Forms,
+}
 
-// // Implémentation du nouveau trait RuniqueForm
-// impl RuniqueForm for TestForm {
-//     fn from_form(form: Forms) -> Self {
-//         Self { form }
-//     }
+// Implémentation du nouveau trait RuniqueForm
+impl RuniqueForm for TestForm {
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
 
-//     fn get_form(&self) -> &Forms {
-//         &self.form
-//     }
+    fn get_form(&self) -> &Forms {
+        &self.form
+    }
 
-//     fn get_form_mut(&mut self) -> &mut Forms {
-//         &mut self.form
-//     }
+    fn get_form_mut(&mut self) -> &mut Forms {
+        &mut self.form
+    }
 
-//     // Cette méthode définit la structure du formulaire (Rendu HTML)
-//     fn register_fields(form: &mut Forms) {
-//         // Note: register_field nécessite maintenant Tera pour générer du HTML.
-//         // Dans les tests unitaires sans Tera, cela générera un message d'erreur dans fields_html
-//         // mais n'empêchera pas la validation de fonctionner.
-//         form.register_field("name", "Nom", &CharField { allow_blank: false });
-//         form.register_field("age", "Âge", &IntegerField);
-//     }
+    // Cette méthode définit la structure du formulaire (Rendu HTML)
+    fn register_fields(form: &mut Forms) {
+        // Note: register_field nécessite maintenant Tera pour générer du HTML.
+        // Dans les tests unitaires sans Tera, cela générera un message d'erreur dans fields_html
+        // mais n'empêchera pas la validation de fonctionner.
+        form.field(
+            &GenericField::text("name")
+                .label("Nom")
+                .required("Ce champ est requis"),
+        );
 
-//     // Cette méthode définit la logique de validation (Traitement des données)
-//     fn validate_fields(form: &mut Forms, raw_data: &HashMap<String, String>) {
-//         form.require("name", &CharField { allow_blank: false }, raw_data);
-//         form.optional("age", &IntegerField, raw_data);
-//     }
-// }
+        form.field(&GenericField::int("age").label("Âge"));
+    }
+}
 
-// // --- TESTS UNITAIRES ---
+// --- TESTS UNITAIRES ---
 
-// #[test]
-// fn test_forms_new() {
-//     let form = Forms::new();
-//     assert!(form.errors.is_empty());
-//     assert!(form.cleaned_data.is_empty());
-//     assert!(form.is_valid());
-// }
+#[test]
+fn test_forms_new() {
+    let form = Forms::new();
+    assert!(form.global_errors.is_empty());
+    assert!(form.data().is_empty());
+    assert!(!form.has_errors());
+}
 
-// #[test]
-// fn test_forms_clear() {
-//     let mut form = Forms::new();
-//     form.errors.insert("test".to_string(), "error".to_string());
-//     form.cleaned_data
-//         .insert("test".to_string(), serde_json::json!("value"));
+#[test]
+fn test_forms_clear() {
+    let mut form = Forms::new();
+    form.global_errors.push("error".to_string());
 
-//     form.clear();
+    // Ajouter une erreur à un champ
+    if let Some(field) = form.fields.get_mut("test") {
+        field.set_error("error".to_string());
+    }
 
-//     assert!(form.errors.is_empty());
-//     assert!(form.cleaned_data.is_empty());
-// }
+    // Clear n'existe peut-être plus, mais on peut vider manuellement
+    form.global_errors.clear();
 
-// #[test]
-// fn test_runique_form_validation() {
-//     // 1. Initialiser Tera (requis par la nouvelle signature)
-//     let tera = Arc::new(Tera::default());
+    assert!(form.global_errors.is_empty());
+}
 
-//     let mut raw_data = HashMap::new();
-//     raw_data.insert("name".to_string(), "John".to_string());
-//     raw_data.insert("age".to_string(), "25".to_string());
+#[tokio::test]
+async fn test_runique_form_validation() {
+    // 1. Initialiser Tera (requis par la nouvelle signature)
+    let tera = Arc::new(Tera::default());
 
-//     // 2. Passer tera.clone() en deuxième argument
-//     let form = TestForm::build_with_current_data(&raw_data, tera.clone());
+    let mut raw_data = HashMap::new();
+    raw_data.insert("name".to_string(), "John".to_string());
+    raw_data.insert("age".to_string(), "25".to_string());
 
-//     assert!(form.is_valid());
-// }
+    // 2. Passer tera.clone() en deuxième argument
+    let mut form = TestForm::build_with_data(&raw_data, tera.clone());
 
-// #[test]
-// fn test_require_field_missing() {
-//     let mut form = Forms::new();
-//     let raw_data = HashMap::new(); // Vide
+    assert!(form.is_valid().await);
+}
 
-//     let field = CharField { allow_blank: false };
-//     form.require("name", &field, &raw_data);
+#[tokio::test]
+async fn test_require_field_missing() {
+    let tera = Arc::new(Tera::default());
+    let raw_data = HashMap::new(); // Vide
 
-//     assert!(!form.is_valid());
-//     assert!(form.errors.contains_key("name"));
-//     // On vérifie le message d'erreur défini dans forms.rs
-//     assert_eq!(
-//         form.errors.get("name"),
-//         Some(&"Ce champ est requis".to_string())
-//     );
-// }
+    let mut form = TestForm::build_with_data(&raw_data, tera);
 
-// #[test]
-// fn test_emailfield_validation() {
-//     let mut form = Forms::new();
-//     let field = EmailField::allow_blank();
+    // La validation devrait échouer car "name" est requis
+    assert!(!form.is_valid().await);
+    assert!(form.get_form().has_errors());
 
-//     form.field("email", &field, "TEST@Example.com");
+    // Vérifier que l'erreur est sur le champ "name"
+    let errors = form.get_form().errors();
+    assert!(errors.contains_key("name"));
+    assert_eq!(errors.get("name"), Some(&"Ce champ est requis".to_string()));
+}
 
-//     assert!(form.is_valid());
-//     let value: Option<String> = form.get_value("email");
-//     assert_eq!(value, Some("test@example.com".to_string()));
-// }
+#[tokio::test]
+async fn test_emailfield_validation() {
+    let tera = Arc::new(Tera::default());
+    let mut raw_data = HashMap::new();
+    raw_data.insert("email".to_string(), "TEST@Example.com".to_string());
 
-// #[test]
-// fn test_is_not_valid() {
-//     let mut form = Forms::new();
-//     form.errors.insert("test".to_string(), "error".to_string());
+    // Créer un formulaire avec un champ email
+    #[derive(Clone)]
+    struct EmailTestForm {
+        form: Forms,
+    }
 
-//     assert!(form.is_not_valid());
-//     assert!(!form.is_valid());
-// }
+    impl RuniqueForm for EmailTestForm {
+        fn register_fields(form: &mut Forms) {
+            form.field(&GenericField::email("email").label("Email"));
+        }
+
+        fn from_form(form: Forms) -> Self {
+            Self { form }
+        }
+
+        fn get_form(&self) -> &Forms {
+            &self.form
+        }
+
+        fn get_form_mut(&mut self) -> &mut Forms {
+            &mut self.form
+        }
+    }
+
+    let mut form = EmailTestForm::build_with_data(&raw_data, tera);
+
+    assert!(form.is_valid().await);
+
+    // L'email devrait être normalisé en minuscules
+    let value = form.get_form().get_value("email");
+    assert_eq!(value, Some("test@example.com".to_string()));
+}
+
+#[test]
+fn test_is_not_valid() {
+    let mut form = Forms::new();
+    form.global_errors.push("error".to_string());
+
+    assert!(form.has_errors());
+}

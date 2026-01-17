@@ -54,7 +54,6 @@ pub(crate) fn is_excluded(field: &Field) -> bool {
         || name == "form"
         || name == "created_at"
         || name == "updated_at"
-        || name == "updated_at"
         || name == "is_active"
         || name == "deleted_at"
     {
@@ -90,13 +89,13 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
 
     // 1. Détection par nom (Priorité aux formats spéciaux)
     if field_name.contains("email") {
-        return quote! { new_email };
+        return quote! { email };
     }
     if field_name.contains("password") || field_name.contains("pwd") {
-        return quote! { new_password };
+        return quote! { password };
     }
     if field_name.contains("url") || field_name.contains("link") || field_name.contains("website") {
-        return quote! { new_url };
+        return quote! { url };
     }
 
     // 2. Détection par type
@@ -108,18 +107,19 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
             || field_name.contains("content")
             || field_name.contains("message")
         {
-            return quote! { new_textarea };
+            return quote! { textarea };
         }
-        return quote! { new_text };
+        return quote! { text };
     }
 
     if base_type.contains("i32") || base_type.contains("i64") || base_type.contains("u32") {
-        return quote! { new_int };
+        return quote! { int };
     }
 
     // Fallback standard
-    quote! { new_text }
+    quote! { text }
 }
+
 /// Formater le nom du champ en label
 pub(crate) fn format_field_label(field_name: &str) -> String {
     field_name

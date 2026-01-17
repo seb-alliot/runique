@@ -9,6 +9,8 @@ pub struct FieldConfig {
     pub value: String,
     pub placeholder: String,
     pub is_required: BoolChoice,
+    pub min_length: Option<LengthConstraint>,
+    pub max_length: Option<LengthConstraint>,
     pub error: Option<String>,
     pub readonly: Option<BoolChoice>,
     pub disabled: Option<BoolChoice>,
@@ -22,6 +24,7 @@ pub struct FieldConfig {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TextConfig {
     pub max_length: Option<LengthConstraint>,
+    pub min_length: Option<LengthConstraint>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
