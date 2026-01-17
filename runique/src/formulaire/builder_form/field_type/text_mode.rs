@@ -36,7 +36,7 @@ impl TextField {
     // Constructeur privé général basé sur le field générique => évite la duplication de code
     fn create(name: &str, type_field: &str, format: SpecialFormat) -> Self {
         Self {
-            base: FieldConfig::new(name, type_field, "base_text"),
+            base: FieldConfig::new(name, type_field, "base_string"),
             config: TextConfig::default(),
             format,
         }
