@@ -164,7 +164,8 @@ pub mod prelude {
     pub use std::sync::Arc;
 
     // === Tera ===
-    pub use crate::tera::{self, Context};
+    pub use crate::tera;
+    pub use crate::tera::{Context, Tera};
 
     // === Sessions ===
     pub use crate::tower_sessions::Session;
