@@ -21,40 +21,43 @@ The `Settings` struct centralizes all configuration for your Runique application
 
 ```rust
 pub struct Settings {
-    // Server
-    pub host: String,
-    pub port: u16,
-    pub workers: usize,
-
-    // Security
-    pub secret_key: String,
-    pub allowed_hosts: Vec<String>,
+    pub server: ServerSettings,
+    pub base_dir: String,
     pub debug: bool,
-
-    // Database
-    pub database_url: Option<String>,
-
-    // Static files
+    pub allowed_hosts: Vec<String>,
+    pub installed_apps: Vec<String>,
+    pub middleware: Vec<String>,
+    pub root_urlconf: String,
+    pub static_runique_path: String,
+    pub static_runique_url: String,
+    pub media_runique_path: String,
+    pub media_runique_url: String,
+    pub templates_runique: String,
+    pub templates_dir: Vec<String>,
+    pub staticfiles_dirs: String,
+    pub media_root: String,
     pub static_url: String,
-    pub static_root: PathBuf,
     pub media_url: String,
-    pub media_root: PathBuf,
+    pub staticfiles_storage: String,
+    pub language_code: String,
+    pub time_zone: String,
+    pub use_i18n: bool,
+    pub use_tz: bool,
+    pub sanitize_inputs: bool,
+    pub strict_csp: bool,
+    pub rate_limiting: bool,
+    pub enforce_https: bool,
+    pub auth_password_validators: Vec<String>,
+    pub password_hashers: Vec<String>,
+    pub default_auto_field: String,
+    pub logging_config: String,
+}
 
-    // Templates
-    pub templates_dir: PathBuf,
-
-    // Sessions
-    pub session_cookie_name: String,
-    pub session_cookie_secure: bool,
-    pub session_cookie_httponly: bool,
-    pub session_cookie_samesite: String,
-
-    // CSRF
-    pub csrf_cookie_name: String,
-    pub csrf_header_name: String,
-
-    // Placeholder for future features
-    pub rate_limiting: bool,  // ⚠️ Not implemented - See Rate Limiting section
+pub struct ServerSettings {
+    pub ip_server: String,
+    pub domain_server: String,
+    pub port: u16,
+    pub secret_key: String,
 }
 ```
 
@@ -66,10 +69,11 @@ use runique::prelude::*;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Automatically loads from .env
-    let settings = Settings::from_env();
+    let settings = Settings::default_values();
 
     RuniqueApp::new(settings).await?
         .routes(routes())
+        .with_default_middleware()
         .run()
         .await?;
 
@@ -85,14 +89,12 @@ Create a `.env` file at the root of your project:
 
 ```env
 # Server
-HOST=127.0.0.1
-PORT=8000
-WORKERS=4
+IP_SERVER=127.0.0.1
+PORT=3000
 
 # Security
 SECRET_KEY=your-very-long-and-random-secret-key
 ALLOWED_HOSTS=localhost,127.0.0.1,example.com
-DEBUG=true
 
 # Database (PostgreSQL)
 DB_ENGINE=postgres
@@ -133,35 +135,16 @@ RATE_LIMITING=false
 
 ```rust
 use runique::prelude::*;
-use std::path::PathBuf;
 
-let settings = Settings {
-    host: "0.0.0.0".to_string(),
-    port: 3000,
-    workers: 8,
-    secret_key: "my-secret-key".to_string(),
-    allowed_hosts: vec![
-        "example.com".to_string(),
-        "www.example.com".to_string(),
-    ],
-    debug: false,
-    database_url: Some("postgres://user:pass@localhost/db".to_string()),
-    static_url: "/static/".to_string(),
-    static_root: PathBuf::from("static"),
-    media_url: "/media/".to_string(),
-    media_root: PathBuf::from("media"),
-    templates_dir: PathBuf::from("templates"),
-    session_cookie_name: "sessionid".to_string(),
-    session_cookie_secure: true,
-    session_cookie_httponly: true,
-    session_cookie_samesite: "Strict".to_string(),
-    csrf_cookie_name: "csrftoken".to_string(),
-    csrf_header_name: "X-CSRFToken".to_string(),
-    rate_limiting: false,
-};
+let mut settings = Settings::default_values();
+
+// Modify after loading
+settings.server.port = 9000;
+settings.allowed_hosts.push("api.example.com".to_string());
 
 RuniqueApp::new(settings).await?
     .routes(routes())
+    .with_default_middleware()
     .run()
     .await?;
 ```
@@ -169,15 +152,15 @@ RuniqueApp::new(settings).await?
 ### Modifying Default Values
 
 ```rust
-let mut settings = Settings::from_env();
+let mut settings = Settings::default_values();
 
 // Modify after loading
-settings.port = 9000;
-settings.workers = 16;
+settings.server.port = 9000;
 settings.allowed_hosts.push("api.example.com".to_string());
 
 RuniqueApp::new(settings).await?
     .routes(routes())
+    .with_default_middleware()
     .run()
     .await?;
 ```
@@ -190,16 +173,14 @@ RuniqueApp::new(settings).await?
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `HOST` | String | `127.0.0.1` | Server listening address |
-| `PORT` | u16 | `8000` | Listening port |
-| `WORKERS` | usize | `4` | Number of Tokio workers |
+| `IP_SERVER` | String | `127.0.0.1` | Server listening address |
+| `PORT` | u16 | `3000` | Listening port |
 
 **Example:**
 
 ```env
-HOST=0.0.0.0
+IP_SERVER=0.0.0.0
 PORT=3000
-WORKERS=8
 ```
 
 ### Security
@@ -431,25 +412,11 @@ use runique::middleware::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::from_env();
+    let settings = Settings::default_values();
 
     RuniqueApp::new(settings).await?
-        // Security middleware
-        .middleware(CsrfMiddleware::new())
-        .middleware(SecurityHeadersMiddleware::new())
-        .middleware(AllowedHostsMiddleware)
-
-        // Session and messages middleware
-        .middleware(FlashMiddleware)
-        .middleware(MessageMiddleware)
-
-        // Sanitization middleware
-        .middleware(XssSanitizerMiddleware)
-
-        // Routes
+        .with_default_middleware()
         .routes(routes())
-
-        // Launch
         .run()
         .await?;
 
@@ -479,12 +446,10 @@ See [Security Guide](informations/documentation_english/CSP.md) for complete det
 
 ```env
 # .env.development
-HOST=127.0.0.1
-PORT=8000
-WORKERS=4
+IP_SERVER=127.0.0.1
+PORT=3000
 SECRET_KEY=dev-secret-key-change-in-production
 ALLOWED_HOSTS=localhost,127.0.0.1
-DEBUG=true
 
 DB_ENGINE=sqlite
 DB_NAME=dev.sqlite
@@ -505,12 +470,10 @@ SESSION_COOKIE_SAMESITE=Lax
 
 ```env
 # .env.production
-HOST=0.0.0.0
-PORT=8000
-WORKERS=16
+IP_SERVER=0.0.0.0
+PORT=3000
 SECRET_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0
 ALLOWED_HOSTS=example.com,www.example.com,api.example.com
-DEBUG=false
 
 DB_ENGINE=postgres
 DB_USER=produser
@@ -538,12 +501,10 @@ CSRF_HEADER_NAME=X-CSRFToken
 
 ```env
 # .env.docker
-HOST=0.0.0.0
-PORT=8000
-WORKERS=8
+IP_SERVER=0.0.0.0
+PORT=3000
 SECRET_KEY=${SECRET_KEY}
 ALLOWED_HOSTS=localhost,app
-DEBUG=false
 
 DB_ENGINE=postgres
 DB_USER=${POSTGRES_USER}
@@ -577,12 +538,10 @@ TEMPLATES_DIR=/app/templates/
 
 ```env
 # .env.example
-HOST=127.0.0.1
-PORT=8000
-WORKERS=4
+IP_SERVER=127.0.0.1
+PORT=3000
 SECRET_KEY=change-me-in-production
 ALLOWED_HOSTS=localhost,127.0.0.1
-DEBUG=true
 
 DB_ENGINE=postgres
 DB_USER=your_user
@@ -618,18 +577,15 @@ use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::from_env();
+    let settings = Settings::default_values();
 
     // Validations
-    assert!(settings.secret_key.len() >= 32, "SECRET_KEY too short");
+    assert!(settings.server.secret_key.len() >= 32, "SECRET_KEY too short");
     assert!(!settings.allowed_hosts.is_empty(), "ALLOWED_HOSTS empty");
-
-    if !settings.debug {
-        assert!(settings.session_cookie_secure, "COOKIE_SECURE must be true in production");
-    }
 
     RuniqueApp::new(settings).await?
         .routes(routes())
+        .with_default_middleware()
         .run()
         .await?;
 
@@ -659,11 +615,12 @@ async fn load_secret_key() -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut settings = Settings::from_env();
-    settings.secret_key = load_secret_key().await;
+    let mut settings = Settings::default_values();
+    settings.server.secret_key = load_secret_key().await;
 
     RuniqueApp::new(settings).await?
         .routes(routes())
+        .with_default_middleware()
         .run()
         .await?;
 
@@ -678,11 +635,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - [Getting Started](GETTING_STARTED.md)
 - [Security](SECURITY.md)
 - [Database](DATABASE.md)
-- [Middleware](MIDDLEWARE.md)
 
 Configure Runique securely and efficiently!
 
 ---
 
-**Version:** 1.0.86 (Corrected - January 2, 2026)
+**Version:** 1.0.87 (January 17, 2026)
 **License:** MIT

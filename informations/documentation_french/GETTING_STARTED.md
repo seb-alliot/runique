@@ -55,12 +55,13 @@ use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Charger la configuration depuis .env
-    let settings = Settings::from_env();
+    // Charger la configuration depuis .env ou valeurs par défaut
+    let settings = Settings::default_values();
 
     // Créer et lancer l'application
     RuniqueApp::new(settings).await?
         .routes(routes())
+        .with_default_middleware()  // Ajoute CSRF, CSP, Flash, etc.
         .run()
         .await?;
 
@@ -68,9 +69,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn routes() -> Router {
-    urlpatterns![
-        path!("", index),
-    ]
+    urlpatterns!(
+        "/" => get(index), name = "home"
+    )
 }
 
 async fn index() -> &'static str {
@@ -83,11 +84,10 @@ async fn index() -> &'static str {
 Créez un fichier `.env` à la racine :
 
 ```env
-HOST=127.0.0.1
-PORT=8000
+IP_SERVER=127.0.0.1
+PORT=3000
 SECRET_KEY=change-me-in-production-with-32-chars-minimum
 ALLOWED_HOSTS=localhost,127.0.0.1
-DEBUG=true
 ```
 
 ### 3. Lancement
@@ -110,11 +110,11 @@ Ouvrez [http://localhost:8000](http://localhost:8000) dans votre navigateur.
 use runique::prelude::*;
 
 fn routes() -> Router {
-    urlpatterns![
-        path!("", index),
-        path!("hello/<name>", hello),
-        path!("user/<id>", user_detail),
-    ]
+    urlpatterns!(
+        "/" => get(index), name = "home",
+        "/hello/{name}" => get(hello), name = "hello",
+        "/user/{id}" => get(user_detail), name = "user_detail"
+    )
 }
 
 async fn index() -> &'static str {
@@ -141,11 +141,11 @@ async fn user_detail(Path(id): Path<i32>) -> String {
 use runique::prelude::*;
 
 fn routes() -> Router {
-    urlpatterns![
-        path!("", index, "index"),
-        path!("posts/", list_posts, "post_list"),
-        path!("posts/<id>/", detail_post, "post_detail"),
-    ]
+    urlpatterns!(
+        "/" => get(index), name = "index",
+        "/posts" => get(list_posts), name = "post_list",
+        "/posts/{id}" => get(detail_post), name = "post_detail"
+    )
 }
 ```
 
@@ -175,16 +175,18 @@ mon_app/
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Mon App{% endblock %}</title>
+    {% include "csp" %}
 </head>
 <body>
     <header>
         <h1>Mon Application Runique</h1>
         <nav>
-            <a href="{% link 'index' %}">Accueil</a>
+            <a href="{{ link(link='home') }}">Accueil</a>
         </nav>
     </header>
 
     <main>
+        {% messages %}
         {% block content %}{% endblock %}
     </main>
 
@@ -214,9 +216,9 @@ mon_app/
 use runique::prelude::*;
 
 async fn index(template: Template) -> Response {
-    template.render("index.html", context! {
-        username: "Alice",
-        date: chrono::Utc::now().format("%d/%m/%Y").to_string(),
+    template.render("index.html", &context! {
+        "username" => "Alice",
+        "date" => chrono::Utc::now().format("%d/%m/%Y").to_string()
     })
 }
 ```
@@ -250,7 +252,6 @@ Créez `src/models.rs` :
 ```rust
 use runique::prelude::*;
 use sea_orm::entity::prelude::*;
-use runique::impl_objects;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "users")]
@@ -267,7 +268,7 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-// Active l'API Django-like
+// Active l'API Django-like avec .objects
 impl_objects!(Entity);
 ```
 
@@ -279,15 +280,16 @@ mod models;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::from_env();
+    let settings = Settings::default_values();
 
     // Connexion à la base de données
     let db_config = DatabaseConfig::from_env()?.build();
-    let db = db_config.connect().await?;
+    let db = Arc::new(db_config.connect().await?);
 
     RuniqueApp::new(settings).await?
         .with_database(db)
         .routes(routes())
+        .with_default_middleware()
         .run()
         .await?;
 
@@ -305,16 +307,16 @@ async fn list_users(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     template: Template,
 ) -> Response {
-    // API Django-like
-    let users = User::objects
-        .filter(users::Column::IsActive.eq(true))
+    // API Django-like avec .objects
+    let users_list = User::objects
+        .filter(users::Column::Username.contains("admin"))
         .order_by_asc(users::Column::Username)
         .all(&*db)
         .await
         .unwrap_or_default();
 
-    template.render("users.html", context! {
-        users: users,
+    template.render("users.html", &context! {
+        "users" => users_list
     })
 }
 ```
@@ -323,41 +325,49 @@ async fn list_users(
 
 ## Formulaires
 
-### 1. Définir un formulaire
+### 1. Avec `DeriveModelForm` (automatique)
 
-Créez `src/forms.rs` :
+Si vous avez un model SeaORM, vous pouvez générer automatiquement le formulaire :
 
 ```rust
 use runique::prelude::*;
-use runique::forms::prelude::*;
+use sea_orm::entity::prelude::*;
 
-#[runique_form]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ContactForm {
-    #[field(required = true)]
-    pub name: CharField,
-
-    #[field(required = true)]
-    pub email: EmailField,
-
-    #[field(required = true)]
-    pub subject: CharField,
-
-    #[field(widget = "textarea", required = true)]
-    pub message: CharField,
+// Votre model
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "contacts")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub name: String,
+    pub email: String,
+    pub subject: String,
+    pub message: String,
 }
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+// Génère automatiquement ContactForm avec tous les champs
+#[derive(DeriveModelForm)]
+pub struct Contact;
 ```
 
 ### 2. Affichage du formulaire
 
 ```rust
 use runique::prelude::*;
-use crate::forms::ContactForm;
+use crate::models::ContactForm;
 
-async fn contact_view(template: Template) -> Response {
-    let form = ContactForm::new();
-    template.render("contact.html", context! {
-        form: form,
+async fn contact_view(
+    Extension(tera): Extension<Arc<Tera>>,
+    template: Template,
+) -> Response {
+    let form = ContactForm::build(tera);
+    template.render("contact.html", &context! {
+        "form" => form
     })
 }
 ```
@@ -372,7 +382,7 @@ Template `templates/contact.html` :
 
 <form method="post">
     {% csrf %}
-    {{ form }}
+    {% form.form %}
     <button type="submit">Envoyer</button>
 </form>
 {% endblock %}
@@ -382,25 +392,35 @@ Template `templates/contact.html` :
 
 ```rust
 use runique::prelude::*;
-use crate::forms::ContactForm;
+use crate::models::ContactForm;
 
 async fn contact_submit(
-    Form(form): Form<ContactForm>,
+    ExtractForm(mut form): ExtractForm<ContactForm>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
     template: Template,
     mut message: Message,
 ) -> Response {
     // Validation
-    if !form.is_valid() {
-        return template.render("contact.html", context! {
-            form: form,
-            errors: form.errors(),
+    if !form.is_valid().await {
+        error!(message => "Veuillez corriger les erreurs");
+        return template.render("contact.html", &context! {
+            "form" => form
         });
     }
 
-    // Traitement (envoyer email, etc.)
-    success!(message, "Message envoyé avec succès !");
-
-    redirect("/")
+    // Sauvegarde en base de données
+    match form.save(&*db).await {
+        Ok(_) => {
+            success!(message => "Message envoyé avec succès !");
+            Redirect::to("/").into_response()
+        }
+        Err(e) => {
+            form.database_error(&e);
+            template.render("contact.html", &context! {
+                "form" => form
+            })
+        }
+    }
 }
 ```
 
@@ -412,27 +432,14 @@ async fn contact_submit(
 
 ```rust
 use runique::prelude::*;
-use runique::middleware::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let settings = Settings::from_env();
+    let settings = Settings::default_values();
 
     RuniqueApp::new(settings).await?
-        // Sécurité
-        .middleware(CsrfMiddleware::new())
-        .middleware(SecurityHeadersMiddleware::new())
-        .middleware(AllowedHostsMiddleware)
-        .middleware(XssSanitizerMiddleware)
-
-        // Fonctionnalités
-        .middleware(FlashMiddleware)
-        .middleware(MessageMiddleware)
-
-        // Routes
         .routes(routes())
-
-        // Lancement
+        .with_default_middleware()  // Ajoute automatiquement tous les middleware
         .run()
         .await?;
 
@@ -440,14 +447,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+La méthode `.with_default_middleware()` active automatiquement :
+- ✅ Protection CSRF
+- ✅ Headers de sécurité CSP
+- ✅ Gestion des messages flash
+- ✅ Validation des hosts autorisés
+- ✅ Sanitisation XSS
+- ✅ Gestion d'erreurs
+
 ### Protection CSRF
 
-Automatique avec `CsrfMiddleware` :
+Automatique avec `.with_default_middleware()` :
 
 ```html
 <form method="post">
     {% csrf %}
     <!-- Le token est vérifié automatiquement -->
+    <input type="text" name="username">
+    <button type="submit">Valider</button>
+</form>
+```
 </form>
 ```
 

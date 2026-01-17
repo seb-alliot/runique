@@ -89,6 +89,7 @@ DB_NAME=database.sqlite
 
 ```rust
 use runique::prelude::*;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -96,7 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Automatic detection from .env
     let db_config = DatabaseConfig::from_env()?.build();
-    let db = db_config.connect().await?;
+    let db = Arc::new(db_config.connect().await?);
 
     RuniqueApp::new(settings).await?
         .with_database(db)
@@ -112,6 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use runique::DatabaseConfig;
+use std::sync::Arc;
 use std::time::Duration;
 
 let db_config = DatabaseConfig::from_url("postgres://user:pass@localhost/mydb")?
@@ -122,7 +124,7 @@ let db_config = DatabaseConfig::from_url("postgres://user:pass@localhost/mydb")?
     .logging(true)
     .build();
 
-let db = db_config.connect().await?;
+let db = Arc::new(db_config.connect().await?);
 ```
 
 ### Connection Pool Configuration
@@ -163,6 +165,7 @@ let db_config = DatabaseConfig::from_url("postgres://localhost/mydb")?
 - `.max_connections(u32)` - Maximum number of connections in the pool
 - `.min_connections(u32)` - Minimum number of connections maintained
 - `.connect_timeout(Duration)` - Timeout to establish a connection
+- `.acquire_timeout(Duration)` - Timeout for acquiring a connection from the pool
 - `.pool_size(min: u32, max: u32)` - Configure min and max simultaneously
 - `.logging(bool)` - Enable/disable SQL logs
 
@@ -839,7 +842,7 @@ Develop efficiently with Runique!
 
 ---
 
-**Version:** 1.0.86 (Corrected - January 2, 2026)
+**Version:** 1.0.87 (January 17, 2026)
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*

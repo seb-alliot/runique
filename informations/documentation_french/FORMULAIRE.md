@@ -107,10 +107,8 @@ pub async fn show_contact(State(state): State<AppState>) -> Html<String> {
 
 pub async fn submit_contact(
     State(state): State<AppState>,
-    Form(raw_data): Form<HashMap<String, String>>,
+    ExtractForm(mut contact_form): ExtractForm<ContactForm>,
 ) -> Result<Redirect, Html<String>> {
-    let mut contact_form = ContactForm::build_with_data(&raw_data, state.tera.clone());
-    
     if !contact_form.is_valid().await {
         let html = state.tera
             .render("contact.html", &tera::context! { form => contact_form })
@@ -124,6 +122,12 @@ pub async fn submit_contact(
     Ok(Redirect::to("/success"))
 }
 ```
+
+**Note importante** : Utilisez `ExtractForm<T>` au lieu de `Form<HashMap<String, String>>` pour extraire directement le formulaire validé. L'extracteur `ExtractForm` :
+- Récupère automatiquement les données du formulaire
+- Reconstruit le formulaire avec les données
+- Valide le token CSRF automatiquement
+- Vous évite de manipuler `HashMap` manuellement
 
 ---
 
@@ -238,6 +242,28 @@ impl RuniqueForm for UserForm {
 }
 ```
 
+**Logique de détection automatique des champs** :
+
+La macro `DeriveModelForm` analyse les champs de votre model et détermine automatiquement le type de champ approprié :
+
+1. **Par nom du champ** (priorité haute) :
+   - Contient `email` → `GenericField::email()`
+   - Contient `password` ou `pwd` → `GenericField::password()`
+   - Contient `url`, `link` ou `website` → `GenericField::url()`
+
+2. **Par type Rust + nom** (pour String) :
+   - `String` avec nom contenant `description`, `bio`, `content` ou `message` → `GenericField::textarea()`
+   - `String` par défaut → `GenericField::text()`
+
+3. **Par type Rust** :
+   - `i32`, `i64`, `u32` → `GenericField::int()`
+
+4. **Champs exclus automatiquement** :
+   - `id` (ou tout champ avec `#[sea_orm(primary_key)]`)
+   - `csrf_token`, `_csrf_token`, `form`
+   - `created_at`, `updated_at` (gérés automatiquement)
+   - `is_active`, `deleted_at`
+
 #### c) Méthode `to_active_model()`
 
 Conversion automatique vers SeaORM `ActiveModel` :
@@ -256,6 +282,17 @@ impl UserForm {
     }
 }
 ```
+
+**Conversions automatiques par type** :
+
+La macro génère le code de conversion approprié selon le type du champ :
+
+- **String** : `Set(self.form.get_value("field").unwrap_or_default())`
+- **Option<String>** : `Set(self.form.get_value("field"))`
+- **i32, i64, u32** : Parse automatique avec fallback à 0
+- **f32, f64** : Parse automatique avec fallback à 0.0
+- **bool** : Accepte `"true"`, `"1"`, `"on"` comme valeurs vraies
+- **created_at, updated_at** : Automatiquement définis avec `chrono::Utc::now().naive_utc()`
 
 #### d) Méthode `save()`
 
@@ -330,6 +367,14 @@ GenericField::password("password")
 // Nombre entier
 GenericField::int("age")
     .required("L'âge est requis")
+
+// Nombre décimal (float)
+GenericField::float("price")
+    .required("Le prix est requis")
+
+// Booléen
+GenericField::boolean("accept_terms")
+    .required("Vous devez accepter les conditions")
 ```
 
 ### Méthodes de configuration (Builder Pattern)
@@ -343,6 +388,26 @@ Toutes les méthodes peuvent être chaînées :
 | `.required("message")` | Champ obligatoire | `.required("Ce champ est requis")` |
 | `.min_length(n, "msg")` | Longueur minimale | `.min_length(3, "Min 3 caractères")` |
 | `.max_length(n, "msg")` | Longueur maximale | `.max_length(50, "Max 50 caractères")` |
+| `.readonly(bool, "msg")` | Lecture seule | `.readonly(true, Some("Non modifiable"))` |
+| `.disabled(bool, "msg")` | Désactivé | `.disabled(true, Some("Champ désactivé"))` |
+| `.html_attribute("key", "value")` | Attribut HTML personnalisé | `.html_attribute("data-custom", "value")` |
+
+### Utilitaires pour les mots de passe
+
+Le champ `password` propose des méthodes de hachage intégrées :
+
+```rust
+// Créer un champ password
+let password_field = GenericField::password("password")
+    .required("Mot de passe requis")
+    .min_length(8, "Minimum 8 caractères");
+
+// Hacher un mot de passe (utilise bcrypt)
+let hashed = password_field.hash_password()?;
+
+// Vérifier un mot de passe
+let is_valid = GenericField::verify_password("plain_password", &hashed);
+```
 
 ---
 
@@ -355,10 +420,8 @@ Appelez `is_valid()` pour valider tous les champs :
 ```rust
 pub async fn create_post(
     State(state): State<AppState>,
-    Form(raw_data): Form<HashMap<String, String>>,
+    ExtractForm(mut post_form): ExtractForm<PostForm>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
-    let mut post_form = PostForm::build_with_data(&raw_data, state.tera.clone());
-    
     // Validation automatique de tous les champs
     if !post_form.is_valid().await {
         // Le formulaire contient des erreurs
@@ -728,8 +791,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings = Settings::from_env();
 
     RuniqueApp::new(settings).await?
-        .middleware(CsrfMiddleware::new())  // ✅ CSRF activé
         .routes(routes())
+        .with_default_middleware()  // ✅ CSRF activé
         .run()
         .await?;
 
@@ -744,7 +807,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     <!-- Token CSRF automatique -->
     {% csrf %}
 
-    {{ form }}
+    {% form.nom_form %}
 
     <button type="submit">Envoyer</button>
 </form>
@@ -849,11 +912,9 @@ pub async fn contact_view(
 
 pub async fn contact_submit(
     State(state): State<AppState>,
-    Form(raw_data): Form<HashMap<String, String>>,
+    ExtractForm(mut form): ExtractForm<ContactForm>,
     mut message: Message,
 ) -> Response {
-    let mut form = ContactForm::build_with_data(&raw_data, state.tera.clone());
-    
     if !form.is_valid().await {
         return Html(state.tera.render("contact.html", &tera::context! { form }).unwrap())
             .into_response();
@@ -905,12 +966,10 @@ pub async fn create_article_view(
 }
 
 pub async fn store_article(
-    Form(raw_data): Form<HashMap<String, String>>,
+    ExtractForm(mut form): ExtractForm<ArticleForm>,
     State(state): State<AppState>,
     mut message: Message,
 ) -> Response {
-    let mut form = ArticleForm::build_with_data(&raw_data, state.tera.clone());
-    
     if !form.is_valid().await {
         error!(message, "Le formulaire contient des erreurs");
         return Html(state.tera.render("article_form.html", &tera::context! { form }).unwrap())
@@ -1087,12 +1146,10 @@ pub async fn edit_article_view(
 
 pub async fn update_article(
     Path(id): Path<i32>,
-    Form(raw_data): Form<HashMap<String, String>>,
+    ExtractForm(mut form): ExtractForm<ArticleForm>,
     State(state): State<AppState>,
     mut message: Message,
 ) -> Response {
-    let mut form = ArticleForm::build_with_data(&raw_data, state.tera.clone());
-    
     if !form.is_valid().await {
         error!(message, "Le formulaire contient des erreurs");
         return Html(state.tera.render("article_form.html", &tera::context! {
@@ -1140,9 +1197,10 @@ pub async fn update_article(
 
 ```rust
 // ✅ CORRECT
-pub async fn submit(Form(raw_data): Form<HashMap<String, String>>) -> Response {
-    let mut form = MyForm::build_with_data(&raw_data, tera);
-    
+pub async fn submit(
+    ExtractForm(mut form): ExtractForm<MyForm>,
+    State(state): State<AppState>,
+) -> Response {
     if !form.is_valid().await {
         return template.render("form.html", context! { form });
     }
@@ -1151,9 +1209,10 @@ pub async fn submit(Form(raw_data): Form<HashMap<String, String>>) -> Response {
 }
 
 // ❌ INCORRECT
-pub async fn submit(Form(raw_data): Form<HashMap<String, String>>) -> Response {
-    let form = MyForm::build_with_data(&raw_data, tera);
-    
+pub async fn submit(
+    ExtractForm(form): ExtractForm<MyForm>,
+    State(state): State<AppState>,
+) -> Response {
     // Pas de validation !
     form.save(&db).await?; // Risque de données invalides
 }
@@ -1180,12 +1239,11 @@ match active_model.insert(&*db).await {
 
 ```rust
 pub async fn create_user(
-    Form(raw_data): Form<HashMap<String, String>>,
+    ExtractForm(mut form): ExtractForm<UserForm>,
     State(state): State<AppState>,
     mut message: Message,
+    template: Template,
 ) -> Response {
-    let mut form = UserForm::build_with_data(&raw_data, state.tera.clone());
-    
     if !form.is_valid().await {
         error!(message, "Le formulaire contient des erreurs");
         return template.render("form.html", context! { form });
@@ -1219,14 +1277,12 @@ pub async fn create_user(
 
 ```rust
 pub async fn create_user_with_profile(
-    Form(user_data): Form<HashMap<String, String>>,
-    Form(profile_data): Form<HashMap<String, String>>,
+    ExtractForm(user_form): ExtractForm<UserForm>,
+    ExtractForm(profile_form): ExtractForm<ProfileForm>,
     State(state): State<AppState>,
     mut message: Message,
+    template: Template,
 ) -> Response {
-    let mut user_form = UserForm::build_with_data(&user_data, state.tera.clone());
-    let mut profile_form = ProfileForm::build_with_data(&profile_data, state.tera.clone());
-    
     if !user_form.is_valid().await || !profile_form.is_valid().await {
         error!(message, "Le formulaire contient des erreurs");
         return template.render("form.html", context! {
@@ -1272,12 +1328,11 @@ pub async fn create_user_with_profile(
 use runique::prelude::*;
 
 pub async fn submit(
-    Form(raw_data): Form<HashMap<String, String>>,
+    ExtractForm(mut form): ExtractForm<ArticleForm>,
     State(state): State<AppState>,
     mut message: Message,
+    template: Template,
 ) -> Response {
-    let mut form = ArticleForm::build_with_data(&raw_data, state.tera.clone());
-    
     if !form.is_valid().await {
         error!(message, "Le formulaire contient des erreurs");
         return template.render("form.html", context! { form });
@@ -1357,8 +1412,8 @@ Créez des formulaires robustes avec Runique!
 
 ---
 
-**Version:** 1.0.86 (Corrigée - 2 Janvier 2026)
-**Dernière mise à jour:** Janvier 2026 
+**Version:** 1.0.87 (Mise à jour - 17 Janvier 2026)
+**Dernière mise à jour:** Janvier 2026  
 **Licence:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*
