@@ -55,7 +55,7 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
         #[derive(::runique::serde::Serialize, Debug, Clone)]
         pub struct #form_name {
             #[serde(flatten, skip_deserializing)]
-            pub form: ::runique::formulaire::builder_form::form_manager::Forms,
+            pub form: ::runique::formulaire::builder_form::formmanager::Forms,
         }
 
         // Implémentation manuelle de Deserialize
@@ -69,13 +69,13 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
 
                 // On retourne un formulaire vide qui sera reconstruit par build()
                 Ok(Self {
-                    form: ::runique::formulaire::builder_form::form_manager::Forms::new(),
+                    form: ::runique::formulaire::builder_form::formmanager::Forms::new(),
                 })
             }
         }
 
         impl std::ops::Deref for #form_name {
-            type Target = ::runique::formulaire::builder_form::form_manager::Forms;
+            type Target = ::runique::formulaire::builder_form::formmanager::Forms;
             fn deref(&self) -> &Self::Target {
                 &self.form
             }
@@ -88,19 +88,19 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
         }
 
         impl ::runique::formulaire::builder_form::trait_form::RuniqueForm for #form_name {
-            fn register_fields(form: &mut ::runique::formulaire::builder_form::form_manager::Forms) {
+            fn register_fields(form: &mut ::runique::formulaire::builder_form::formmanager::Forms) {
                 #(#register_fields)*
             }
 
-            fn from_form(form: ::runique::formulaire::builder_form::form_manager::Forms) -> Self {
+            fn from_form(form: ::runique::formulaire::builder_form::formmanager::Forms) -> Self {
                 Self { form }
             }
 
-            fn get_form(&self) -> &::runique::formulaire::builder_form::form_manager::Forms {
+            fn get_form(&self) -> &::runique::formulaire::builder_form::formmanager::Forms {
                 &self.form
             }
 
-            fn get_form_mut(&mut self) -> &mut ::runique::formulaire::builder_form::form_manager::Forms {
+            fn get_form_mut(&mut self) -> &mut ::runique::formulaire::builder_form::formmanager::Forms {
                 &mut self.form
             }
         }

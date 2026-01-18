@@ -1,5 +1,5 @@
 // --- Definitions communes pour les champs de formulaire ---
-use crate::formulaire::builder_form::form_manager::Forms;
+use crate::formulaire::builder_form::formmanager::{Forms, ValidationError};
 use sea_orm::DbErr;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tera::Tera;
 
 use dyn_clone::DynClone;
+
 pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
     // Getters
     fn name(&self) -> &str;
@@ -85,7 +86,18 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     fn is_valid(&mut self) -> Pin<Box<dyn Future<Output = bool> + Send + '_>> {
         Box::pin(async move {
-            let fields_valid = self.get_form_mut().is_valid().await;
+            let fields_valid = match self.get_form_mut().is_valid().await {
+                Ok(valid) => valid,
+                Err(ValidationError::StackOverflow) => {
+                    self.get_form_mut().global_errors.push(
+                        "Stack overflow détecté : récursion infinie dans la validation".to_string()
+                    );
+                    return false;
+                }
+                Err(_) => {
+                    return false;
+                }
+            };
 
             if !fields_valid {
                 return false;
@@ -130,7 +142,6 @@ pub trait RuniqueForm: Sized + Send + Sync {
             instance
         }
     }
-
 
     fn database_error(&mut self, err: &DbErr) {
         self.get_form_mut().database_error(err);

@@ -404,15 +404,15 @@ Automatically generates the HTML for a form or a specific field.
 <!-- Specific field -->
 <form method="post">
     {{ csrf_token(token=csrf_token) }}
-    
+
     <div class="form-group">
         {{ form | form(field='username' | static }}
     </div>
-    
+
     <div class="form-group">
         {{ form | form(field='password' | static }}
     </div>
-    
+
     <button type="submit">Log in</button>
 </form>
 ```
@@ -430,7 +430,7 @@ struct LoginForm {
 
 async fn login_page(template: Template) -> Response {
     let form = LoginForm::default();
-    
+
     template.render("login.html", context! {
         form: form,
         csrf_token: csrf_token,
@@ -779,7 +779,7 @@ Some variables are **automatically available** in all templates:
     <div class="form-group">
         {{ form | form(field='title') }}
     </div>
-    
+
     <div class="form-group">
         {{ form | form(field='content') }}
     </div>
@@ -956,8 +956,7 @@ Create powerful and secure templates with Runique!
 
 ---
 
-**Version:** 1.0.87 (January 17, 2026)
+**Version:** 0.1.86 (January 17, 2026)
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*
-

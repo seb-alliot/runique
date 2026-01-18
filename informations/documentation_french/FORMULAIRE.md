@@ -52,28 +52,28 @@ impl RuniqueForm for ContactForm {
                 .placeholder("Votre nom")
                 .required("Le nom est requis"),
         );
-        
+
         form.field(
             &GenericField::email("email")
                 .placeholder("votre@email.com")
                 .required("L'email est requis"),
         );
-        
+
         form.field(
             &GenericField::textarea("message")
                 .placeholder("Votre message...")
                 .required("Le message est requis"),
         );
     }
-    
+
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    
+
     fn get_form(&self) -> &Forms {
         &self.form
     }
-    
+
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
@@ -88,11 +88,11 @@ use std::collections::HashMap;
 
 pub async fn show_contact(State(state): State<AppState>) -> Html<String> {
     let contact_form = ContactForm::build(state.tera.clone());
-    
+
     let html = state.tera
         .render("contact.html", &tera::context! { form => contact_form })
         .unwrap();
-    
+
     Html(html)
 }
 
@@ -106,10 +106,10 @@ pub async fn submit_contact(
             .unwrap();
         return Err(Html(html));
     }
-    
+
     // Traiter le message
     // ...
-    
+
     Ok(Redirect::to("/success"))
 }
 ```
@@ -206,27 +206,27 @@ impl RuniqueForm for UserForm {
                 .label("Username")
                 .required("Ce champ est obligatoire")
         );
-        
+
         form.field(
             &GenericField::email("email")
                 .label("Email")
                 .required("Ce champ est obligatoire")
         );
-        
+
         form.field(
             &GenericField::textarea("bio")
                 .label("Bio")
         );
     }
-    
+
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    
+
     fn get_form(&self) -> &Forms {
         &self.form
     }
-    
+
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
@@ -263,7 +263,7 @@ Conversion automatique vers SeaORM `ActiveModel` :
 impl UserForm {
     pub fn to_active_model(&self) -> ActiveModel {
         use sea_orm::ActiveValue::Set;
-        
+
         ActiveModel {
             username: Set(self.form.get_value("username").unwrap_or_default()),
             email: Set(self.form.get_value("email").unwrap_or_default()),
@@ -421,7 +421,7 @@ pub async fn create_post(
             Html(state.tera.render("post_form.html", &context! { form => post_form }).unwrap())
         ));
     }
-    
+
     // Le formulaire est valide
     Ok(Redirect::to("/success"))
 }
@@ -442,24 +442,24 @@ Implémentez la méthode `clean()` pour des validations métier complexes :
 ```rust
 impl RuniqueForm for RegisterForm {
     // ... autres méthodes ...
-    
+
     fn clean(
         &mut self,
     ) -> Pin<Box<dyn Future<Output = Result<(), HashMap<String, String>>> + Send + '_>> {
         Box::pin(async move {
             let mut errors = HashMap::new();
-            
+
             // Vérifier que les mots de passe correspondent
             let password = self.form.get_value("password").unwrap_or_default();
             let password_confirm = self.form.get_value("password_confirm").unwrap_or_default();
-            
+
             if password != password_confirm {
                 errors.insert(
                     "password_confirm".to_string(),
                     "Les mots de passe ne correspondent pas".to_string()
                 );
             }
-            
+
             // Vérifier la force du mot de passe
             if password.len() >= 8 && !password.chars().any(|c| c.is_numeric()) {
                 errors.insert(
@@ -467,11 +467,11 @@ impl RuniqueForm for RegisterForm {
                     "Le mot de passe doit contenir au moins un chiffre".to_string()
                 );
             }
-            
+
             if !errors.is_empty() {
                 return Err(errors);
             }
-            
+
             Ok(())
         })
     }
@@ -485,14 +485,14 @@ impl RegisterForm {
     pub async fn validate_unique_email(&self, db: &DatabaseConnection) -> bool {
         use crate::models::users;
         use sea_orm::EntityTrait;
-        
+
         let email = self.form.get_value("email").unwrap_or_default();
-        
+
         let existing = users::Entity::find()
             .filter(users::Column::Email.eq(&email))
             .one(db)
             .await;
-        
+
         existing.is_err() || existing.unwrap().is_none()
     }
 }
@@ -505,7 +505,7 @@ pub async fn register(
     if !form.is_valid().await {
         return template.render("register.html", context! { form });
     }
-    
+
     // Validation asynchrone personnalisée
     if !form.validate_unique_email(&*db).await {
         form.get_form_mut()
@@ -513,10 +513,10 @@ pub async fn register(
             .get_mut("email")
             .unwrap()
             .set_error("Cet email est déjà utilisé".to_string());
-        
+
         return template.render("register.html", context! { form });
     }
-    
+
     // Sauvegarder...
 }
 ```
@@ -546,18 +546,18 @@ Runique supporte une syntaxe similaire à Django pour afficher les formulaires d
 ```html
 <form method="post">
     {% csrf %}
-    
+
     <div class="form-group">
         <label>Nom d'utilisateur</label>
         {% form.register_form.username %}
         <!-- Génère l'input avec tous ses attributs et erreurs -->
     </div>
-    
+
     <div class="form-group">
         <label>Email</label>
         {% form.register_form.email %}
     </div>
-    
+
     <button type="submit">S'inscrire</button>
 </form>
 ```
@@ -585,8 +585,8 @@ Pour un contrôle total sur le HTML :
     {% for field_name, field in form.fields %}
     <div class="form-group">
         <label for="{{ field.name }}">{{ field.label or field.name }}</label>
-        <input 
-            type="{{ field.field_type }}" 
+        <input
+            type="{{ field.field_type }}"
             id="{{ field.name }}"
             name="{{ field.name }}"
             value="{{ field.value }}"
@@ -594,13 +594,13 @@ Pour un contrôle total sur le HTML :
             class="{% if field.error %}is-invalid{% endif %}"
             {% if field.is_required.choice %}required{% endif %}
         />
-        
+
         {% if field.error %}
         <div class="invalid-feedback">{{ field.error }}</div>
         {% endif %}
     </div>
     {% endfor %}
-    
+
     {% if form.global_errors %}
     <div class="alert alert-danger">
         <ul class="mb-0">
@@ -610,7 +610,7 @@ Pour un contrôle total sur le HTML :
         </ul>
     </div>
     {% endif %}
-    
+
     <button type="submit" class="btn btn-primary">Valider</button>
 </form>
 ```
@@ -663,7 +663,7 @@ Runique supporte plusieurs balises Django-like qui sont automatiquement transfor
 if post_form.form.has_errors() {
     // Récupérer toutes les erreurs
     let all_errors = post_form.form.errors();
-    
+
     for (field_name, error_msg) in all_errors {
         println!("Erreur sur {}: {}", field_name, error_msg);
     }
@@ -701,7 +701,7 @@ pub async fn create_article(
     if !form.is_valid().await {
         return template.render("article_form.html", context! { form });
     }
-    
+
     // ✅ Sauvegarde en une ligne
     match form.save(&*db).await {
         Ok(article) => redirect(&format!("/article/{}", article.id)),
@@ -722,18 +722,18 @@ impl RegisterForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
         use sea_orm::{ActiveModelTrait, Set};
         use crate::models::users;
-        
+
         let username = self.form.get_value("username").unwrap_or_default();
         let email = self.form.get_value("email").unwrap_or_default();
         let password = self.form.get_value("password").unwrap_or_default();
-        
+
         let new_user = users::ActiveModel {
             username: Set(username),
             email: Set(email),
             password: Set(password),
             ..Default::default()
         };
-        
+
         new_user.insert(db).await
     }
 }
@@ -752,7 +752,7 @@ match register_form.save(&state.db).await {
     Err(db_err) => {
         // Parser l'erreur et l'assigner au bon champ automatiquement
         register_form.database_error(&db_err);
-        
+
         Err((
             StatusCode::BAD_REQUEST,
             Html(state.tera.render("register.html", &context! { form => register_form }).unwrap())
@@ -815,7 +815,7 @@ pub async fn submit_form(
 ) -> Response {
     // Si le token CSRF est invalide, une erreur 403 est retournée
     // AVANT que ce code soit exécuté
-    
+
     if !form.is_valid() {
         return template.render("contact.html", context! { form });
     }
@@ -858,19 +858,19 @@ impl RuniqueForm for ContactForm {
                 .required("Le nom est requis")
                 .min_length(2, "Au moins 2 caractères"),
         );
-        
+
         form.field(
             &GenericField::email("email")
                 .placeholder("votre@email.com")
                 .required("L'email est requis"),
         );
-        
+
         form.field(
             &GenericField::text("subject")
                 .placeholder("Sujet du message")
                 .required("Le sujet est requis"),
         );
-        
+
         form.field(
             &GenericField::textarea("message")
                 .placeholder("Votre message...")
@@ -878,15 +878,15 @@ impl RuniqueForm for ContactForm {
                 .max_length(1000, "Maximum 1000 caractères"),
         );
     }
-    
+
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    
+
     fn get_form(&self) -> &Forms {
         &self.form
     }
-    
+
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
@@ -897,7 +897,7 @@ pub async fn contact_view(
     State(state): State<AppState>,
 ) -> Html<String> {
     let form = ContactForm::build(state.tera.clone());
-    
+
     Html(state.tera.render("contact.html", &tera::context! { form }).unwrap())
 }
 
@@ -910,10 +910,10 @@ pub async fn contact_submit(
         return Html(state.tera.render("contact.html", &tera::context! { form }).unwrap())
             .into_response();
     }
-    
+
     // Traiter le message (envoyer email, sauvegarder, etc.)
     // ...
-    
+
     success!(message, "Message envoyé avec succès !");
     Redirect::to("/").into_response()
 }
@@ -966,7 +966,7 @@ pub async fn store_article(
         return Html(state.tera.render("article_form.html", &tera::context! { form }).unwrap())
             .into_response();
     }
-    
+
     // ✅ Sauvegarde automatique avec .save()
     match form.save(&*state.db).await {
         Ok(article) => {
@@ -1012,47 +1012,47 @@ impl RuniqueForm for RegisterForm {
                 .min_length(3, "Au moins 3 caractères")
                 .max_length(20, "Maximum 20 caractères"),
         );
-        
+
         form.field(
             &GenericField::email("email")
                 .placeholder("votre@email.com")
                 .required("L'email est requis"),
         );
-        
+
         form.field(
             &GenericField::password("password")
                 .required("Le mot de passe est requis")
                 .min_length(8, "Minimum 8 caractères"),
         );
-        
+
         form.field(
             &GenericField::password("password_confirm")
                 .required("Confirmez votre mot de passe"),
         );
     }
-    
+
     fn from_form(form: Forms) -> Self {
         Self { form }
     }
-    
+
     fn get_form(&self) -> &Forms {
         &self.form
     }
-    
+
     fn get_form_mut(&mut self) -> &mut Forms {
         &mut self.form
     }
-    
+
     // Validation personnalisée
     fn clean(
         &mut self,
     ) -> Pin<Box<dyn Future<Output = Result<(), HashMap<String, String>>> + Send + '_>> {
         Box::pin(async move {
             let mut errors = HashMap::new();
-            
+
             let password = self.form.get_value("password").unwrap_or_default();
             let password_confirm = self.form.get_value("password_confirm").unwrap_or_default();
-            
+
             // Vérifier que les mots de passe correspondent
             if password != password_confirm {
                 errors.insert(
@@ -1060,7 +1060,7 @@ impl RuniqueForm for RegisterForm {
                     "Les mots de passe ne correspondent pas".to_string()
                 );
             }
-            
+
             // Vérifier la complexité du mot de passe
             if !password.chars().any(|c| c.is_numeric()) {
                 errors.insert(
@@ -1068,18 +1068,18 @@ impl RuniqueForm for RegisterForm {
                     "Le mot de passe doit contenir au moins un chiffre".to_string()
                 );
             }
-            
+
             if !password.chars().any(|c| c.is_uppercase()) {
                 errors.insert(
                     "password".to_string(),
                     "Le mot de passe doit contenir au moins une majuscule".to_string()
                 );
             }
-            
+
             if !errors.is_empty() {
                 return Err(errors);
             }
-            
+
             Ok(())
         })
     }
@@ -1089,14 +1089,14 @@ impl RegisterForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
         use sea_orm::{ActiveModelTrait, Set};
         use crate::models::users;
-        
+
         let new_user = users::ActiveModel {
             username: Set(self.form.get_value("username").unwrap_or_default()),
             email: Set(self.form.get_value("email").unwrap_or_default()),
             password: Set(self.form.get_value("password").unwrap_or_default()),
             ..Default::default()
         };
-        
+
         new_user.insert(db).await
     }
 }
@@ -1114,10 +1114,10 @@ pub async fn edit_article_view(
         Ok(Some(a)) => a,
         _ => return (StatusCode::NOT_FOUND, "Article non trouvé").into_response(),
     };
-    
+
     // Créer le formulaire et le pré-remplir
     let mut form = ArticleForm::build(state.tera.clone());
-    
+
     if let Some(title_field) = form.form.fields.get_mut("title") {
         title_field.set_value(&article.title);
     }
@@ -1127,7 +1127,7 @@ pub async fn edit_article_view(
     if let Some(content_field) = form.form.fields.get_mut("content") {
         content_field.set_value(&article.content);
     }
-    
+
     Html(state.tera.render("article_form.html", &tera::context! {
         form,
         article_id: id,
@@ -1149,19 +1149,19 @@ pub async fn update_article(
             is_edit: true,
         }).unwrap()).into_response();
     }
-    
+
     // Récupérer l'article existant
     let existing = match Article::find_by_id(id).one(&*state.db).await {
         Ok(Some(a)) => a,
         _ => return (StatusCode::NOT_FOUND, "Article non trouvé").into_response(),
     };
-    
+
     // Créer ActiveModel pour la mise à jour
     let mut active_model: ActiveModel = existing.into();
     active_model.title = Set(form.form.get_value("title").unwrap_or_default());
     active_model.slug = Set(form.form.get_value("slug").unwrap_or_default());
     active_model.content = Set(form.form.get_value("content").unwrap_or_default());
-    
+
     match active_model.update(&*state.db).await {
         Ok(updated) => {
             success!(message, "Article mis à jour avec succès !");
@@ -1195,7 +1195,7 @@ pub async fn submit(
     if !form.is_valid().await {
         return template.render("form.html", context! { form });
     }
-    
+
     // Traiter les données validées
 }
 
@@ -1239,7 +1239,7 @@ pub async fn create_user(
         error!(message, "Le formulaire contient des erreurs");
         return template.render("form.html", context! { form });
     }
-    
+
     match form.save(&*state.db).await {
         Ok(user) => {
             success!(message, "Utilisateur créé !");
@@ -1281,22 +1281,22 @@ pub async fn create_user_with_profile(
             profile_form,
         });
     }
-    
+
     // Transaction pour garantir la cohérence
     let result = state.db.transaction::<_, (), DbErr>(|txn| {
         Box::pin(async move {
             // Créer l'utilisateur
             let user = user_form.to_active_model().insert(txn).await?;
-            
+
             // Créer le profil lié
             let mut profile = profile_form.to_active_model();
             profile.user_id = Set(user.id);
             profile.insert(txn).await?;
-            
+
             Ok(())
         })
     }).await;
-    
+
     match result {
         Ok(_) => {
             success!(message, "Compte créé avec succès !");
@@ -1328,17 +1328,17 @@ pub async fn submit(
         error!(message, "Le formulaire contient des erreurs");
         return template.render("form.html", context! { form });
     }
-    
+
     match form.save(&*state.db).await {
         Ok(article) => {
             success!(message, "Article créé avec succès !");
-            
+
             if article.published {
                 info!(message, "Votre article est maintenant visible publiquement");
             } else {
                 warning!(message, "Votre article est en brouillon");
             }
-            
+
             Redirect::to(&format!("/article/{}", article.id)).into_response()
         }
         Err(e) => {
@@ -1392,7 +1392,7 @@ field.set_error("message")                        // Ajoute une erreur
 
 ---
 
-### A voir aussi 
+### A voir aussi
 
 - [Guide de démarrage](informations/documentation_french/GETTING_STARTED.md)
 - [Templates](informations/documentation_french/TEMPLATES.md)
@@ -1403,8 +1403,8 @@ Créez des formulaires robustes avec Runique!
 
 ---
 
-**Version:** 1.0.87 (Mise à jour - 17 Janvier 2026)
-**Dernière mise à jour:** Janvier 2026  
+**Version:** 0.1.86 (Mise à jour - 17 Janvier 2026)
+**Dernière mise à jour:** Janvier 2026
 **Licence:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*
