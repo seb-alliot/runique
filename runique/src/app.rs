@@ -53,6 +53,8 @@ use crate::middleware::flash_message::flash_middleware;
 use crate::middleware::middleware_sanetiser::sanitize_middleware;
 use crate::response::render_404;
 use crate::settings::Settings;
+use std::collections::HashMap;
+use std::sync::RwLock;
 
 /// Main Runique application
 ///
@@ -82,6 +84,7 @@ pub struct RuniqueApp {
     addr: SocketAddr,
     tera: Arc<Tera>,
     db: Option<DatabaseConnection>,
+    url_registry: Arc<RwLock<HashMap<String, String>>>,
 }
 
 impl RuniqueApp {
@@ -212,13 +215,14 @@ impl RuniqueApp {
         }
 
         tera.add_raw_templates(all_templates)?;
-
+        let url_registry = Arc::new(RwLock::new(HashMap::new()));
         crate::tera_function::static_balise::register_all_asset_filters(
             &mut tera,
             config.static_url.clone(),
             config.media_url.clone(),
             config.static_runique_url.clone(),
             config.media_runique_url.clone(),
+            url_registry.clone(),
         );
 
         Self::load_internal_templates(&mut tera)?;
@@ -235,6 +239,7 @@ impl RuniqueApp {
             addr,
             tera,
             db: None,
+            url_registry,
         })
     }
 
@@ -495,6 +500,7 @@ impl RuniqueApp {
             self.tera.clone(),
             self.config.clone(),
             self.db.clone().expect("Database connection not set"),
+            self.url_registry.clone(),
         );
 
         // On consomme le router interne en lui donnant son état
@@ -667,6 +673,7 @@ impl RuniqueApp {
             addr: self.addr,
             tera: self.tera,
             db: self.db,
+            url_registry: self.url_registry,
         }
     }
 
@@ -705,6 +712,7 @@ impl RuniqueApp {
             addr: self.addr,
             tera: self.tera,
             db: self.db,
+            url_registry: self.url_registry,
         }
     }
 
@@ -742,6 +750,7 @@ impl RuniqueApp {
             addr: self.addr,
             tera: self.tera,
             db: self.db,
+            url_registry: self.url_registry,
         }
     }
 
@@ -795,14 +804,22 @@ impl RuniqueApp {
                 config.connect().await?
             }
         };
+        let moteur_db = db.get_database_backend();
+        let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
+        println!("   Connected to database: {:?} -> {} ", moteur_db, db_name);
         let session_layer = SessionManagerLayer::new(MemoryStore::default())
             .with_secure(!self.config.debug)
             .with_http_only(!self.config.debug)
             .with_expiry(Expiry::OnInactivity(Duration::seconds(86400)));
 
         // Clonage de l'état Tera pour l'injection
-        let app_state = AppState::new(self.tera.clone(), self.config.clone(), db.clone());
-
+        let app_state = AppState::new(
+            self.tera.clone(),
+            self.config.clone(),
+            db.clone(),
+            self.url_registry.clone(),
+        );
+        crate::macro_perso::router::register_name_url::flush_pending_urls(&app_state);
         // On construit le router final
         // .with_state() est déjà appliqué au début, mais on s'assure que
         // les extensions globales sont ajoutées ici.

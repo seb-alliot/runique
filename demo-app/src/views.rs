@@ -25,11 +25,7 @@ pub async fn index(template: Template) -> Response {
 }
 
 // Formulaire d'enregistrement utilisateur
-pub async fn inscription(
-    template: Template,
-    State(tera): State<Arc<Tera>>
-    )
-    -> Response {
+pub async fn inscription(template: Template, State(tera): State<Arc<Tera>>) -> Response {
     let inscription_form = InscriptionForm::build(tera.clone());
 
     let ctx = context! {
@@ -80,11 +76,7 @@ pub async fn soumissioninscription(
 }
 
 // Affichage d'un utilisateur
-pub async fn cherche_user(
-    template: Template,
-    State(tera): State<Arc<Tera>>
-    )
-    -> Response {
+pub async fn cherche_user(template: Template, State(tera): State<Arc<Tera>>) -> Response {
     let user = username_form::build(tera.clone());
 
     let ctx = context! {
@@ -137,10 +129,7 @@ pub async fn info_user(
 }
 
 // Formulaire avec des champs avancés
-pub async fn blog_form(
-    template: Template,
-    State(tera): State<Arc<Tera>>
-    ) -> Response {
+pub async fn blog_form(template: Template, State(tera): State<Arc<Tera>>) -> Response {
     let blog_form = blog_mod::build(tera.clone());
 
     let ctx = context! {
@@ -188,10 +177,7 @@ pub async fn soumission_blog_info(
 }
 
 // Test du formulaire avec des champs avancés
-pub async fn test_champs_form(
-    State(tera): State<Arc<Tera>>,
-    template: Template,
-) -> Response {
+pub async fn test_champs_form(State(tera): State<Arc<Tera>>, template: Template) -> Response {
     let test_new_form = test_new_form::build(tera.clone());
 
     let ctx = context! {
@@ -247,10 +233,7 @@ pub async fn about(template: Template, mut message: Message) -> Response {
 }
 
 // test d'un formulaire avec derive_form
-pub async fn affiche_form_generer(
-    State(tera): State<Arc<Tera>>,
-    template: Template,
-) -> Response {
+pub async fn affiche_form_generer(State(tera): State<Arc<Tera>>, template: Template) -> Response {
     let register_form = register_form::build(tera.clone());
 
     let ctx = context! {

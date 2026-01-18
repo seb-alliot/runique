@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_default_middleware()
         .run()
         .await?;
-    println!("module charger {:?}",std::module_path!());
+    println!("module charger {:?}", std::module_path!());
 
     Ok(())
 }

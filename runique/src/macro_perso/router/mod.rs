@@ -12,6 +12,9 @@ macro_rules! urlpatterns {
         let mut router = $crate::axum::Router::new();
 
         $(
+            // ✅ AJOUTE CETTE LIGNE - Enregistre le nom de la route
+            $crate::macro_perso::router::register_pending($name, $path);
+
             router = router.route($path, $handler);
         )*
         router
