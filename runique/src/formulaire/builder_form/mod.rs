@@ -1,4 +1,4 @@
-pub mod form_manager;
+pub mod formmanager;
 pub mod trait_form;
 
 pub mod generique_field;

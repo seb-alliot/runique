@@ -130,7 +130,7 @@ impl RuniqueApp {
         let mut tera = Tera::default();
         Self::load_internal_templates(&mut tera)?;
 
-        // 2. Traitement des templates utilisateurs 
+        // 2. Traitement des templates utilisateurs
         let mut all_templates = Vec::new();
         let balise_link =
             regex::Regex::new(r#"\{%\s*(?P<tag>static|media)\s*['"](?P<link>[^'"]+)['"]\s*%}"#)

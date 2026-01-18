@@ -842,7 +842,7 @@ Develop efficiently with Runique!
 
 ---
 
-**Version:** 1.0.87 (January 17, 2026)
+**Version:** 0.1.86 (January 17, 2026)
 **License:** MIT
 
 *Documentation created with ❤️ by Claude for Itsuki*

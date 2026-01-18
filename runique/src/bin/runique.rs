@@ -77,7 +77,7 @@ fn create_new_project(name: &str) -> Result<()> {
     let variable_css = include_bytes!("../composant-bin/css/variables.css").to_vec();
 
     // Images
-    let image = include_bytes!("../composant-bin/image/toshiro.jpg").to_vec();
+    let image = include_bytes!("../composant-bin/image/toshiro.avif").to_vec();
     let favicon = include_bytes!("../composant-bin/image/favicon.ico").to_vec();
     // Fichiers de configuration
     let cargo_toml = include_str!("../composant-bin/config/apiconfig")

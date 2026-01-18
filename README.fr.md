@@ -4,7 +4,7 @@
 
 Runique est un framework web moderne qui combine la sécurité et les performances de Rust avec l'ergonomie de Django. Il offre une expérience de développement familière aux développeurs Django tout en tirant parti de la puissance du système de types de Rust.
 
-[![Version](https://img.shields.io/badge/version-1.0.86-blue.svg)](https://crates.io/crates/runique)
+[![Version](https://img.shields.io/badge/version-0.1.86-blue.svg)](https://crates.io/crates/runique)
 [![docs.rs](https://img.shields.io/docsrs/runique)](https://docs.rs/runique)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
@@ -78,27 +78,27 @@ Runique est un framework web moderne qui combine la sécurité et les performanc
 
 # Configuration minimale (SQLite)
 [dependencies]
-runique = { version = "1.0.86", features = ["sqlite"] }
+runique = { version = "0.1.86", features = ["sqlite"] }
 
 # Avec PostgreSQL
 [dependencies]
-runique = { version = "1.0.86", features = ["postgres"] }
+runique = { version = "0.1.86", features = ["postgres"] }
 
 # Avec MySQL
 [dependencies]
-runique = { version = "1.0.86", features = ["mysql"] }
+runique = { version = "0.1.86", features = ["mysql"] }
 
 # Avec MariaDB
 [dependencies]
-runique = { version = "1.0.86", features = ["mariadb"] }
+runique = { version = "0.1.86", features = ["mariadb"] }
 
 # Avec plusieurs bases de données (PostgreSQL + SQLite)
 [dependencies]
-runique = { version = "1.0.86", features = ["postgres", "sqlite"] }
+runique = { version = "0.1.86", features = ["postgres", "sqlite"] }
 
 # Avec toutes les bases de données
 [dependencies]
-runique = { version = "1.0.86", features = ["all-databases"] }
+runique = { version = "0.1.86", features = ["all-databases"] }
 ```
 
 ### Features Cargo disponibles
@@ -119,23 +119,23 @@ runique = { version = "1.0.86", features = ["all-databases"] }
 ```toml
 # SQLite uniquement
 [dependencies]
-runique = { version = "1.0.86", features = ["sqlite"] }
+runique = { version = "0.1.86", features = ["sqlite"] }
 
 # PostgreSQL uniquement
 [dependencies]
-runique = { version = "1.0.86", features = ["postgres"] }
+runique = { version = "0.1.86", features = ["postgres"] }
 
 # PostgreSQL + MySQL
 [dependencies]
-runique = { version = "1.0.86", features = ["postgres", "mysql"] }
+runique = { version = "0.1.86", features = ["postgres", "mysql"] }
 
 # Toutes les bases de données
 [dependencies]
-runique = { version = "1.0.86", features = ["all-databases"] }
+runique = { version = "0.1.86", features = ["all-databases"] }
 
 # Sans ORM (framework minimal)
 [dependencies]
-runique = { version = "1.0.86", default-features = false }
+runique = { version = "0.1.86", default-features = false }
 ```
 
 ### Créer un nouveau projet avec le CLI
@@ -380,13 +380,13 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    
+
     #[sea_orm(unique)]
     pub username: String,
-    
+
     #[sea_orm(unique)]
     pub email: String,
-    
+
     pub password: String,
     pub age: i32,
     pub created_at: DateTime,
@@ -435,12 +435,12 @@ use crate::models::{users, Entity as User};
 // Afficher le formulaire (GET)
 pub async fn register_form(template: Template) -> Response {
     let form = UserForm::build(template.tera.clone());
-    
+
     let ctx = context! {
         "title", "Inscription utilisateur";
         "form", form
     };
-    
+
     template.render("profile/register_user.html", &ctx)
 }
 
@@ -456,37 +456,37 @@ pub async fn register(
         match form.save(&db).await {
             Ok(user) => {
                 success!(message, "Inscription réussie ! Bienvenue !");
-                
+
                 let url = reverse_with_parameters(
                     "user_profile",
                     &[("id", &user.id.to_string())]
                 ).unwrap();
-                
+
                 return Redirect::to(&url).into_response();
             }
             Err(err) => {
                 // Détection automatique des erreurs de base de données
                 let mut form = form;
                 form.get_form_mut().handle_database_error(&err);
-                
+
                 let ctx = context! {
                     "title", "Erreur d'inscription";
                     "form", form;
                     "messages", flash_now!(error, "Une erreur s'est produite")
                 };
-                
+
                 return template.render("profile/register_user.html", &ctx);
             }
         }
     }
-    
+
     // Erreurs de validation
     let ctx = context! {
         "title", "Erreur de validation";
         "form", form;
         "messages", flash_now!(error, "Veuillez corriger les erreurs")
     };
-    
+
     template.render("profile/register_user.html", &ctx)
 }
 
@@ -522,12 +522,12 @@ pub async fn user_list(
         .all(&db)
         .await
         .unwrap_or_default();
-    
+
     let ctx = context! {
         "title", "Liste des utilisateurs";
         "users", users
     };
-    
+
     template.render("profile/user_list.html", &ctx)
 }
 ```
@@ -547,32 +547,32 @@ pub async fn user_list(
 <body>
     <div class="container">
         <h1>{{ title }}</h1>
-        
+
         <!-- Messages flash -->
         {% messages %}
-        
+
         <!-- Formulaire avec protection CSRF automatique -->
         <form method="post" action="{% link 'register' %}">
             {% csrf %}
-            
+
             <!-- Rendu automatique du formulaire -->
             {% form.register_form %}
-            
+
             <!-- Ou rendre des champs spécifiques -->
             {% form.register_form.username %}
             {% form.register_form.email %}
             {% form.register_form.password %}
             {% form.register_form.age %}
-            
+
             <button type="submit">S'inscrire</button>
         </form>
-        
+
         <p>
-            Déjà inscrit ? 
+            Déjà inscrit ?
             <a href="{% link 'login' %}">Se connecter</a>
         </p>
     </div>
-    
+
     <!-- JavaScript conforme CSP -->
     <script {{ csp }}>
         console.log('Formulaire d\'inscription chargé');
@@ -593,25 +593,25 @@ pub fn routes() -> Router<Arc<Tera>> {
         // Routes publiques
         "/" => get(views::index), name = "index",
         "/about" => get(views::about), name = "about",
-        
+
         // Authentification
         "/register" => get(views::register_form)
-                      .post(views::register), 
+                      .post(views::register),
                       name = "register",
-        
+
         "/login" => get(views::login_form)
-                   .post(views::login), 
+                   .post(views::login),
                    name = "login",
-        
+
         "/logout" => post(views::logout), name = "logout",
-        
+
         // Routes protégées (avec middleware login_required)
         "/profile/{id}" => get(views::user_profile)
-                          .layer(middleware::from_fn(login_required)), 
+                          .layer(middleware::from_fn(login_required)),
                           name = "user_profile",
-        
+
         "/users" => get(views::user_list)
-                   .layer(middleware::from_fn(login_required)), 
+                   .layer(middleware::from_fn(login_required)),
                    name = "user_list"
     ]
 }
@@ -636,11 +636,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .server("127.0.0.1", 3000, "cle-secrete")
         .sanitize_inputs(true)
         .build();
-    
+
     // Connexion base de données
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
-    
+
     // Construire et lancer l'application
     RuniqueApp::new(settings).await?
         .with_database(db)
@@ -650,7 +650,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .routes(url::routes())
         .run()
         .await?;
-    
+
     Ok(())
 }
 ```
@@ -693,9 +693,9 @@ let user: Option<Model> = User::objects.get_optional(&db, 1).await?;
 
 // Récupérer ou 404 (réponse d'erreur automatique)
 let user = User::objects.get_or_404(
-    &db, 
-    1, 
-    &template, 
+    &db,
+    1,
+    &template,
     "Utilisateur introuvable"
 ).await?;
 
@@ -800,7 +800,7 @@ sea-orm-cli migrate status
 sea-orm-cli generate entity \
     --database-url "sqlite://app.db" \
     --output-dir src/models
-    
+
 # Pour PostgreSQL
 sea-orm-cli generate entity \
     --database-url "postgres://user:password@localhost/mydb" \
@@ -906,11 +906,11 @@ Le générateur de formulaires détecte automatiquement les types de champs selo
 // Afficher le formulaire (requête GET)
 pub async fn register_form(template: Template) -> Response {
     let form = UserForm::build(template.tera.clone());
-    
+
     let ctx = context! {
         "form", form
     };
-    
+
     template.render("register.html", &ctx)
 }
 
@@ -934,7 +934,7 @@ pub async fn register(
             }
         }
     }
-    
+
     // Re-rendre avec les erreurs de validation
 }
 ```
@@ -964,7 +964,7 @@ pub async fn register(
 impl UserForm {
     pub fn validate_custom(&mut self) -> bool {
         let form = self.get_form_mut();
-        
+
         // Accéder aux valeurs des champs
         if let Some(age) = form.get_value::<i64>("age") {
             if age < 18 {
@@ -972,7 +972,7 @@ impl UserForm {
                 return false;
             }
         }
-        
+
         self.is_valid()
     }
 }
@@ -992,7 +992,7 @@ match form.save(&db).await {
     Ok(user) => { /* Succès */ }
     Err(err) => {
         form.get_form_mut().handle_database_error(&err);
-        // Message d'erreur comme "Ce nom d'utilisateur est déjà utilisé" 
+        // Message d'erreur comme "Ce nom d'utilisateur est déjà utilisé"
         // automatiquement ajouté à form.errors
     }
 }
@@ -1074,7 +1074,7 @@ async fn mon_handler(template: Template) -> Response {
         "count", 42;
         "items", vec!["a", "b", "c"]
     };
-    
+
     template.render("mon_template.html", &ctx)
 }
 ```
@@ -1093,7 +1093,7 @@ async fn handler(template: Template) -> Response {
     // - debug (indicateur mode debug)
     // - csp_nonce (nonce CSP pour scripts inline)
     // - static_runique (URL statique interne de Runique)
-    
+
     let ctx = context! { "user", user };
     template.render("profile.html", &ctx)
 }
@@ -1122,11 +1122,11 @@ use runique::prelude::*;
 async fn create_user(mut message: Message) -> Response {
     // Envoyer un message de succès
     message.success("Utilisateur créé avec succès").await?;
-    
+
     // Ou envoyer plusieurs messages
     message.success("Utilisateur créé").await?;
     message.info("Email de vérification envoyé").await?;
-    
+
     Redirect::to("/users").into_response()
 }
 
@@ -1137,7 +1137,7 @@ async fn handle_form(mut message: Message, form: ExtractForm<UserForm>) -> Respo
         message.error("Données de formulaire invalides").await?;
         message.warning("Veuillez vérifier votre saisie").await?;
     }
-    
+
     Redirect::to("/form").into_response()
 }
 ```
@@ -1181,7 +1181,7 @@ async fn mon_handler(mut message: Message) -> Response {
     error!(message, "Une erreur s'est produite");
     info!(message, "Information importante");
     warning!(message, "Avertissement");
-    
+
     // Messages multiples
     success!(
         message,
@@ -1189,7 +1189,7 @@ async fn mon_handler(mut message: Message) -> Response {
         "Email envoyé",
         "Bienvenue !"
     );
-    
+
     Redirect::to("/").into_response()
 }
 
@@ -1485,7 +1485,7 @@ async fn dashboard(Extension(user): Extension<CurrentUser>) -> Response {
         "user_id", user.id;
         "username", &user.username
     };
-    
+
     template.render("dashboard.html", &ctx)
 }
 ```
@@ -1522,34 +1522,34 @@ let app = RuniqueApp::new(settings).await?
     .routes(routes)
     // Gestion des erreurs avec pages 404/500 personnalisées
     .layer(middleware::from_fn(error_handler_middleware))
-    
+
     // Support des messages flash
     .layer(middleware::from_fn(flash_middleware))
-    
+
     // Protection CSRF
     .layer(middleware::from_fn(csrf_middleware))
-    
+
     // Sanitisation des entrées (si activée dans settings)
     .layer(middleware::from_fn_with_state(
         settings.clone(),
         sanitize_middleware
     ))
-    
+
     // Validation ALLOWED_HOSTS
     .layer(middleware::from_fn(allowed_hosts_middleware))
-    
+
     // En-têtes de sécurité (CSP, HSTS, etc.)
     .layer(middleware::from_fn_with_state(
         CspConfig::strict(),
         security_headers_middleware
     ))
-    
+
     // Authentification
     .layer(middleware::from_fn(login_required))
-    
+
     // Auto-injection de CurrentUser
     .layer(middleware::from_fn(load_user_middleware))
-    
+
     .run()
     .await?;
 ```
@@ -1843,7 +1843,7 @@ Tous les champs settings disponibles :
 let settings = Settings::builder()
     // Serveur
     .server("0.0.0.0", 8000, "clé-secrète")
-    
+
     // Sécurité
     .debug(false)
     .allowed_hosts(vec!["example.com".to_string()])
@@ -1851,21 +1851,21 @@ let settings = Settings::builder()
     .strict_csp(true)
     .rate_limiting(true)
     .enforce_https(true)
-    
+
     // Chemins
     .templates_dir(vec!["templates".to_string()])
     .staticfiles_dirs("static")
     .media_root("media")
     .static_url("/static")
     .media_url("/media")
-    
+
     // Chemins internes Runique (généralement pas besoin de changer)
     .static_runique_path("chemin/vers/runique/static")
     .static_runique_url("/runique/static")
     .media_runique_path("chemin/vers/runique/media")
     .media_runique_url("/runique/media")
     .templates_runique("chemin/vers/runique/templates")
-    
+
     .build();
 
 // Champs additionnels disponibles dans la struct Settings :
@@ -2016,9 +2016,9 @@ Vous voulez ajouter votre projet ? [Contactez-moi](mailto:alliotsebastien04@gmai
 
 ---
 
-**Version actuelle :** 1.0.86  
-**Licence :** MIT  
-**Statut :** Développement actif  
-**Version Rust :** 1.75+  
+**Version actuelle :** 0.1.86
+**Licence :** MIT
+**Statut :** Développement actif
+**Version Rust :** 1.75+
 
 *Fait avec ❤️ et 🦀 par la communauté Runique*

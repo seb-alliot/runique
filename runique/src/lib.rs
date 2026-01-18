@@ -96,7 +96,7 @@ pub use serde_json::json;
 pub use tera::{Context, Tera};
 
 // Formulaires
-pub use formulaire::builder_form::form_manager::Forms;
+pub use formulaire::builder_form::formmanager::Forms;
 pub use formulaire::utils::extracteur::ExtractForm;
 pub use macro_perso::context_macro::ContextHelper;
 
@@ -114,7 +114,7 @@ pub mod prelude {
     pub use crate::{runique_form, DeriveModelForm};
 
     // === Formulaires ===
-    pub use crate::formulaire::builder_form::form_manager::Forms;
+    pub use crate::formulaire::builder_form::formmanager::Forms;
     pub use crate::formulaire::utils::extracteur::ExtractForm;
     pub use country::Country;
     pub use phonenumber::{country::Id as CountryId, parse, Mode};

@@ -8,10 +8,44 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
+use std::cell::Cell;
+use std::fmt;
+
+
+// Erreurs possibles lors de la validation du formulaire liée a la bdd
+#[derive(Debug, Clone)]
+pub enum ValidationError {
+    StackOverflow,
+    FieldValidation(HashMap<String, String>),
+    GlobalErrors(Vec<String>),
+}
+
+impl fmt::Display for ValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ValidationError::StackOverflow => {
+                write!(f, "Stack overflow détecté : récursion infinie dans la validation")
+            }
+            ValidationError::FieldValidation(errors) => {
+                write!(f, "Erreurs de validation : {:?}", errors)
+            }
+            ValidationError::GlobalErrors(errors) => {
+                write!(f, "Erreurs globales : {}", errors.join(", "))
+            }
+        }
+    }
+}
+
+impl std::error::Error for ValidationError {}
+
+thread_local! {
+    static VALIDATION_DEPTH: Cell<usize> = Cell::new(0);
+}
+
+
+
 #[derive(Clone)]
 pub struct Forms {
-    /// On stocke des Box de FormField.
-    /// En pratique, tout sera converti en GenericField pour la cohérence.
     pub fields: IndexMap<String, Box<dyn FormField>>,
     pub tera: Option<Arc<Tera>>,
     pub global_errors: Vec<String>,
@@ -118,7 +152,24 @@ impl Forms {
         }
     }
 
-    pub async fn is_valid(&mut self) -> bool {
+    /// Valide le formulaire avec protection contre les stack overflows
+    /// Retourne un Result pour permettre la propagation des erreurs
+    pub async fn is_valid(&mut self) -> Result<bool, ValidationError> {
+        const MAX_VALIDATION_DEPTH: usize = 20;
+
+        // Vérifier la profondeur de récursion
+        let current_depth = VALIDATION_DEPTH.with(|d| d.get());
+
+        if current_depth > MAX_VALIDATION_DEPTH {
+            // Reset le compteur pour éviter de bloquer les prochaines requêtes
+            VALIDATION_DEPTH.with(|d| d.set(0));
+            return Err(ValidationError::StackOverflow);
+        }
+
+        // Incrémenter le compteur
+        VALIDATION_DEPTH.with(|d| d.set(current_depth + 1));
+
+        // Validation normale des champs
         let mut is_all_valid = true;
         for field in self.fields.values_mut() {
             if field.is_required() && field.value().trim().is_empty() {
@@ -131,7 +182,22 @@ impl Forms {
                 is_all_valid = false;
             }
         }
-        is_all_valid && self.global_errors.is_empty()
+
+        let result = is_all_valid && self.global_errors.is_empty();
+
+        // Décrémenter le compteur avant de retourner
+        VALIDATION_DEPTH.with(|d| d.set(d.get().saturating_sub(1)));
+
+        // Si pas valide, retourner les erreurs appropriées
+        if !result {
+            if !self.global_errors.is_empty() {
+                return Err(ValidationError::GlobalErrors(self.global_errors.clone()));
+            } else {
+                return Err(ValidationError::FieldValidation(self.errors()));
+            }
+        }
+
+        Ok(true)
     }
 
     pub fn has_errors(&self) -> bool {
