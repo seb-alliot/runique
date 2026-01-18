@@ -8,14 +8,13 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     // Connexion à la base de données
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
 
     let settings = Settings::builder()
         .debug(true)
-        .static_url("/static/")      
+        .static_url("/static/")
         .staticfiles_dirs("static".to_string())
         .media_root("media".to_string())
         .templates_dir(vec!["templates".to_string()])

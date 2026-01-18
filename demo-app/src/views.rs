@@ -25,11 +25,7 @@ pub async fn index(template: Template) -> Response {
 }
 
 // Formulaire d'enregistrement utilisateur
-pub async fn inscription(
-    template: Template, 
-    Extension(tera): Extension<Arc<Tera>>
-    ) -> Response {
-        
+pub async fn inscription(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
     let inscription_form = InscriptionForm::build(tera.clone());
 
     let ctx = context! {
@@ -51,7 +47,7 @@ pub async fn soumissioninscription(
             Ok(created_user) => {
                 success!(message => "User profile created successfully!");
                 success!(message => format!("Bienvenue, {} ! Votre compte a été créé avec l'ID {}.", created_user.username, created_user.id));
-                
+
                 return Redirect::to("/").into_response();
             }
             Err(db_err) => {
@@ -132,9 +128,6 @@ pub async fn info_user(
     }
 }
 
-
-
-
 // Formulaire avec des champs avancés
 pub async fn blog_form(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
     let blog_form = blog_mod::build(tera.clone());
@@ -183,10 +176,6 @@ pub async fn soumission_blog_info(
     template.render("blog/blog.html", &ctx)
 }
 
-
-
-
-
 // Test du formulaire avec des champs avancés
 pub async fn test_champs_form(
     Extension(tera): Extension<Arc<Tera>>,
@@ -226,13 +215,6 @@ pub async fn soumission_champs_form(
     template.render("test_champs_form.html", &ctx)
 }
 
-
-
-
-
-
-
-
 // test de script en js pour CSRF
 pub async fn test_csrf(mut message: Message) -> Response {
     success!(message => "CSRF token validé avec succès !");
@@ -252,15 +234,6 @@ pub async fn about(template: Template, mut message: Message) -> Response {
     };
     template.render("about/about.html", &ctx)
 }
-
-
-
-
-
-
-
-
-
 
 // test d'un formulaire avec derive_form
 pub async fn affiche_form_generer(

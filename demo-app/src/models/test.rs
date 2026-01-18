@@ -16,7 +16,6 @@ pub struct Model {
     pub description: String, // Match TextAreaField / RichTextField
     pub password: String,    // Match PasswordField (stockage du hash)
     pub created_at: DateTime,
-
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

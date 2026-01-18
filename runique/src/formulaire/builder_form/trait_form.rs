@@ -90,7 +90,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
                 Ok(valid) => valid,
                 Err(ValidationError::StackOverflow) => {
                     self.get_form_mut().global_errors.push(
-                        "Stack overflow détecté : récursion infinie dans la validation".to_string()
+                        "Stack overflow détecté : récursion infinie dans la validation".to_string(),
                     );
                     return false;
                 }
