@@ -75,7 +75,7 @@ async fn test_runique_form_validation() {
     raw_data.insert("age".to_string(), "25".to_string());
 
     // 2. Passer tera.clone() en deuxième argument
-    let mut form = TestForm::build_with_data(&raw_data, tera.clone());
+    let mut form = TestForm::build_with_data(&raw_data, tera.clone()).await;
 
     assert!(form.is_valid().await);
 }
@@ -85,7 +85,7 @@ async fn test_require_field_missing() {
     let tera = Arc::new(Tera::default());
     let raw_data = HashMap::new(); // Vide
 
-    let mut form = TestForm::build_with_data(&raw_data, tera);
+    let mut form = TestForm::build_with_data(&raw_data, tera).await;
 
     // La validation devrait échouer car "name" est requis
     assert!(!form.is_valid().await);
@@ -127,7 +127,7 @@ async fn test_emailfield_validation() {
         }
     }
 
-    let mut form = EmailTestForm::build_with_data(&raw_data, tera);
+    let mut form = EmailTestForm::build_with_data(&raw_data, tera).await;
 
     assert!(form.is_valid().await);
 

@@ -13,7 +13,7 @@
         {% if messages %}
             {% messages %}
         {% endif %}
-
+        <h1>{{ title }}</h1>
         <form id="blog_form" method="post">
             {% csrf %}
 
@@ -32,22 +32,13 @@
                         {% form.blog_form.website %}
                     </div>
                     <div class="col-md-6 field-group">
-                        {% form.blog_form.content %}
-                    </div>
-                </div>
-            </section>
-
-            <section class="form-section">
-                <h2 class="section-title">Présentation</h2>
-                <div class="row">
-                    <div class="col-12 field-group">
                         {% form.blog_form.summary %}
                     </div>
                 </div>
             </section>
 
             <section class="form-section">
-                <h2 class="section-title">Contenu du Blog</h2>
+                <h2 class="section-title">Présentation</h2>
                 <div class="row">
                     <div class="col-12 field-group">
                         {% form.blog_form.content %}
