@@ -305,7 +305,49 @@ impl RuniqueApp {
         }
 
         // Champs de formulaire
-        // Champs de texte
+
+        tera.add_raw_template(
+            "base_boolean",
+            include_str!("../templates/field_html/base_boolean.html"),
+        )?;
+
+        tera.add_raw_template(
+            "base_checkbox",
+            include_str!("../templates/field_html/base_checkbox.html"),
+        )?;
+
+        tera.add_raw_template(
+            "base_color",
+            include_str!("../templates/field_html/base_color.html"),
+        )?;
+        tera.add_raw_template(
+            "base_datetime",
+            include_str!("../templates/field_html/base_datetime.html"),
+        )?;
+        tera.add_raw_template(
+            "base_file",
+            include_str!("../templates/field_html/base_file.html"),
+        )?;
+
+        tera.add_raw_template(
+            "base_number",
+            include_str!("../templates/field_html/base_number.html"),
+        )?;
+
+        tera.add_raw_template(
+            "base_radio",
+            include_str!("../templates/field_html/base_radio.html"),
+        )?;
+
+        tera.add_raw_template(
+            "base_select",
+            include_str!("../templates/field_html/base_select.html"),
+        )?;
+
+        tera.add_raw_template(
+            "base_special",
+            include_str!("../templates/field_html/base_special.html"),
+        )?;
         tera.add_raw_template(
             "base_string",
             include_str!("../templates/field_html/base_string.html"),

@@ -3,7 +3,6 @@ use crate::formulaire::builder_form::option_field::BoolChoice;
 use crate::formulaire::builder_form::trait_form::FormField;
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
@@ -15,29 +14,16 @@ pub struct BooleanField {
 impl BooleanField {
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig {
-                name: name.to_string(),
-                label: String::new(),
-                value: "false".to_string(),
-                placeholder: String::new(),
-                is_required: BoolChoice::default(),
-                error: None,
-                type_field: "checkbox".to_string(),
-                html_attributes: HashMap::new(),
-                template_name: "base_boolean".to_string(),
-                extra_context: HashMap::new(),
-            },
+            base: FieldConfig::new(name, "checkbox", "base_boolean"),
         }
     }
 
-    // Constructeur pour radio buttons
     pub fn radio(name: &str) -> Self {
         let mut field = Self::new(name);
         field.base.type_field = "radio".to_string();
         field
     }
 
-    // Builder methods
     pub fn required(mut self, msg: &str) -> Self {
         self.set_required(true, Some(msg));
         self
@@ -58,6 +44,7 @@ impl BooleanField {
         self
     }
 }
+
 
 impl FormField for BooleanField {
     fn name(&self) -> &str {
