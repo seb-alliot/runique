@@ -1,0 +1,51 @@
+<div class="form-field file-field">
+    {% if field.label %}
+    <label for="id_{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
+        {{ field.label }}
+        {% if field.is_required.choice %}
+            <span class="required-indicator" title="{{ field.is_required.message | default(value='Requis') }}"></span>
+        {% endif %}
+    </label>
+    {% endif %}
+
+    <input
+        type="file"
+        name="{{ field.name }}"
+        id="id_{{ field.name }}"
+        {% if field.is_required.choice %}required{% endif %}
+        {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+        class="file-input"
+    >
+
+    {# Informations sur les contraintes #}
+    <div class="file-constraints">
+        {% if allowed_extensions and allowed_extensions.extensions %}
+        <span class="file-hint">Extensions : {{ allowed_extensions.extensions | join(sep=", ") }}</span>
+        {% endif %}
+
+        {% if max_size_mb %}
+        <span class="file-hint">Taille max : {{ max_size_mb }} MB</span>
+        {% endif %}
+
+        {% if max_files %}
+        <span class="file-hint">Maximum {{ max_files }} fichiers</span>
+        {% endif %}
+
+        {% if is_image %}
+            {% if max_width and max_height %}
+            <span class="file-hint">Dimensions max : {{ max_width }}x{{ max_height }}px</span>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {# Preview pour les images #}
+    {% if is_image and field.value %}
+    <div class="image-preview">
+        <img src="{{ field.value | media }}" alt="Preview" style="max-width: 200px; max-height: 200px;">
+    </div>
+    {% endif %}
+
+    {% if field.error %}
+    <span class="field-error-message">{{ field.error }}</span>
+    {% endif %}
+</div>

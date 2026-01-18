@@ -30,7 +30,7 @@
 
 use anyhow::Result;
 use axum::http::StatusCode;
-use axum::{middleware, Extension, Router};
+use axum::{middleware, Router};
 use glob;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -45,6 +45,7 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 
 use sea_orm::DatabaseConnection;
 
+use crate::app_state::AppState;
 use crate::middleware::csp::{security_headers_middleware, CspConfig};
 use crate::middleware::csrf::csrf_middleware;
 use crate::middleware::error_handler::{error_handler_middleware, render_index};
@@ -76,10 +77,11 @@ use crate::settings::Settings;
 /// # }
 /// ```
 pub struct RuniqueApp {
-    router: Router<Arc<Tera>>,
+    router: Router<AppState>,
     config: Arc<Settings>,
     addr: SocketAddr,
     tera: Arc<Tera>,
+    db: Option<DatabaseConnection>,
 }
 
 impl RuniqueApp {
@@ -219,16 +221,20 @@ impl RuniqueApp {
             config.media_runique_url.clone(),
         );
 
-        crate::tera_function::url_balise::register_url(&mut tera);
+        Self::load_internal_templates(&mut tera)?;
 
+        // Crée l'Arc une fois toutes les modifications terminées
         let tera = Arc::new(tera);
-        let router = Router::new().with_state(tera.clone());
+
+        // Router avec AppState déjà en Arc
+        let router = Router::new();
 
         Ok(Self {
             router,
             config,
             addr,
             tera,
+            db: None,
         })
     }
 
@@ -297,7 +303,7 @@ impl RuniqueApp {
         // Champs de texte
         tera.add_raw_template(
             "base_string",
-            include_str!("../templates/field_html/string_html/base_string.html"),
+            include_str!("../templates/field_html/base_string.html"),
         )?;
 
         Ok(())
@@ -330,7 +336,7 @@ impl RuniqueApp {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn routes(mut self, routes: Router<Arc<Tera>>) -> Self {
+    pub fn routes(mut self, routes: Router<AppState>) -> Self {
         self.router = self.router.merge(routes);
         self
     }
@@ -363,8 +369,7 @@ impl RuniqueApp {
     /// # }
     /// ```
     pub fn with_database(mut self, db: DatabaseConnection) -> Self {
-        let shared_db = Arc::new(db);
-        self.router = self.router.layer(Extension(shared_db));
+        self.db = Some(db);
         self
     }
 
@@ -484,8 +489,21 @@ impl RuniqueApp {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn build(self) -> Router<Arc<Tera>> {
+    pub fn build(self) -> axum::Router {
+        // Retourne Router<()>, pas Router<AppState>
+        let app_state = AppState::new(
+            self.tera.clone(),
+            self.config.clone(),
+            self.db.clone().expect("Database connection not set"),
+        );
+
+        // On consomme le router interne en lui donnant son état
         self.router
+            .layer(axum::Extension(self.config.clone()))
+            .layer(axum::Extension(self.tera.clone()))
+            // C'est cet appel qui transforme Router<AppState> en Router<()>
+            // et qui satisfait les trait bounds pour Service
+            .with_state(app_state)
     }
 
     /// Adds flash message middleware
@@ -648,6 +666,7 @@ impl RuniqueApp {
             config: self.config,
             addr: self.addr,
             tera: self.tera,
+            db: self.db,
         }
     }
 
@@ -685,6 +704,7 @@ impl RuniqueApp {
             config: self.config,
             addr: self.addr,
             tera: self.tera,
+            db: self.db,
         }
     }
 
@@ -721,6 +741,7 @@ impl RuniqueApp {
             config: self.config,
             addr: self.addr,
             tera: self.tera,
+            db: self.db,
         }
     }
 
@@ -765,23 +786,32 @@ impl RuniqueApp {
         println!("🦀 Runique Framework v {}", crate::VERSION);
         println!("   Starting server at http://{}", self.addr);
 
+        let db = match self.db {
+            Some(conn) => conn,
+            None => {
+                // Optionnel: Connexion auto à SQLite si l'utilisateur a oublié .with_database()
+                let config =
+                    crate::database::DatabaseConfig::from_url("sqlite://runique.sqlite")?.build();
+                config.connect().await?
+            }
+        };
         let session_layer = SessionManagerLayer::new(MemoryStore::default())
             .with_secure(!self.config.debug)
             .with_http_only(!self.config.debug)
             .with_expiry(Expiry::OnInactivity(Duration::seconds(86400)));
 
         // Clonage de l'état Tera pour l'injection
-        let state = self.tera.clone();
+        let app_state = AppState::new(self.tera.clone(), self.config.clone(), db.clone());
 
         // On construit le router final
         // .with_state() est déjà appliqué au début, mais on s'assure que
         // les extensions globales sont ajoutées ici.
         let router = self
-            .router
-            .layer(Extension(self.config.clone()))
-            .layer(Extension(self.tera.clone())) // Pour compatibilité ancienne
+            .router // Pour compatibilité ancienne
+            .layer(axum::Extension(self.config.clone()))
+            .layer(axum::Extension(self.tera.clone()))
             .layer(session_layer)
-            .with_state(state);
+            .with_state(app_state);
 
         let listener = TcpListener::bind(&self.addr).await?;
 
@@ -853,7 +883,7 @@ pub async fn builder(settings: Settings) -> RuniqueAppBuilder {
 /// ```
 pub struct RuniqueAppBuilder {
     settings: Settings,
-    routes: Option<Router<Arc<Tera>>>,
+    routes: Option<Router<AppState>>,
 }
 
 impl RuniqueAppBuilder {
@@ -862,7 +892,7 @@ impl RuniqueAppBuilder {
     /// # Arguments
     ///
     /// * `routes` - Router containing application routes
-    pub fn routes(mut self, routes: Router<Arc<Tera>>) -> Self {
+    pub fn routes(mut self, routes: Router<AppState>) -> Self {
         self.routes = Some(routes);
         self
     }

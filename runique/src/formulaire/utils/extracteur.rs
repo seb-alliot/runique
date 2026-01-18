@@ -18,12 +18,13 @@ where
     S: Send + Sync,
     T: RuniqueForm,
     Arc<Tera>: FromRef<S>,
+    Arc<Settings>: FromRef<S>,
 {
     type Rejection = Response;
 
     async fn from_request(req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
         let tera = Arc::<Tera>::from_ref(state);
-        let config = Settings::default_values();
+        let config = Arc::<Settings>::from_ref(state);
 
         let content_type = req
             .headers()
@@ -39,7 +40,7 @@ where
                 .await
                 .map_err(|_| (StatusCode::BAD_REQUEST, "Multipart error").into_response())?;
 
-            let upload_dir = Path::new(&config.media_root);
+            let upload_dir = Path::new(&config.media_root); // ← Utilise config.media_root
             parsed = parse_multipart(multipart, upload_dir).await?;
         } else {
             let bytes = req

@@ -1,0 +1,32 @@
+<div class="form-field select-field">
+    {% if field.label %}
+    <label for="id_{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
+        {{ field.label }}
+        {% if field.is_required.choice %}
+            <span class="required-indicator" title="{{ field.is_required.message | default(value='Requis') }}"></span>
+        {% endif %}
+    </label>
+    {% endif %}
+
+    <select
+        name="{{ field.name }}"
+        id="id_{{ field.name }}"
+        {% if multiple %}multiple{% endif %}
+        {% if field.is_required.choice %}required{% endif %}
+        {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+    >
+        {% if field.placeholder %}
+        <option value="" disabled {% if not field.value %}selected{% endif %}>{{ field.placeholder }}</option>
+        {% endif %}
+
+        {% for choice in choices %}
+        <option value="{{ choice.value }}" {% if choice.selected or choice.value == field.value %}selected{% endif %}>
+            {{ choice.label }}
+        </option>
+        {% endfor %}
+    </select>
+
+    {% if field.error %}
+    <span class="field-error-message">{{ field.error }}</span>
+    {% endif %}
+</div>

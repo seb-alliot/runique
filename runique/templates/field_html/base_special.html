@@ -1,0 +1,41 @@
+<div class="form-field special-field">
+    {% if field.label %}
+    <label for="id_{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
+        {{ field.label }}
+        {% if field.is_required.choice %}
+            <span class="required-indicator" title="{{ field.is_required.message | default(value='Requis') }}"></span>
+        {% endif %}
+    </label>
+    {% endif %}
+
+    {% if field.type_field == "textarea" %}
+        <textarea
+            name="{{ field.name }}"
+            id="id_{{ field.name }}"
+            placeholder="{{ field.placeholder }}"
+            rows="{{ rows | default(value='10') }}"
+            {% if field.is_required.choice %}required{% endif %}
+            {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+            class="special-textarea"
+        >{{ field.value }}</textarea>
+    {% else %}
+        <input
+            type="text"
+            name="{{ field.name }}"
+            id="id_{{ field.name }}"
+            value="{{ field.value }}"
+            {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+            {% if field.is_required.choice %}required{% endif %}
+            {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+            class="special-input"
+        >
+    {% endif %}
+
+    {% if field_hint %}
+    <span class="field-helper-text">{{ field_hint }}</span>
+    {% endif %}
+
+    {% if field.error %}
+    <span class="field-error-message">{{ field.error }}</span>
+    {% endif %}
+</div>

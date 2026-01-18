@@ -1,10 +1,9 @@
 use crate::views;
-use runique::tera::Tera;
-use std::sync::Arc;
+use runique::app_state::AppState;
 
 use runique::{post, urlpatterns, view, Router};
 
-pub fn routes() -> Router<Arc<Tera>> {
+pub fn routes() -> Router<AppState> {
     urlpatterns! {
         // index
         "/" => view!{

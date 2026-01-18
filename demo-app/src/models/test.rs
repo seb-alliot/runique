@@ -10,11 +10,11 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
 
-    pub username: String,    // Match TextField
-    pub email: String,       // Match EmailField
-    pub website: String,     // Match URLField
-    pub description: String, // Match TextAreaField / RichTextField
-    pub password: String,    // Match PasswordField (stockage du hash)
+    pub username: String,
+    pub email: String,
+    pub website: String,
+    pub description: String,
+    pub password: String,
     pub created_at: DateTime,
 }
 

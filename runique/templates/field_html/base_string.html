@@ -2,7 +2,6 @@
     {% if field.label %}
         <label for="id_{{ field.name }}" class="form-label">
             {{ field.label }}
-            {# On vérifie si is_required existe et si choice est vrai #}
             {% if field.is_required and field.is_required.choice %}
                 <span class="text-danger"></span>
             {% endif %}
@@ -41,14 +40,12 @@
         >
     {% endif %}
 
-    {# Affichage de l'erreur #}
     {% if field.error %}
         <div class="invalid-feedback d-block">
             {{ field.error }}
         </div>
     {% endif %}
 
-    {# Affichage du message de raison si readonly est activé #}
     {% if field.readonly and field.readonly.choice and field.readonly.message %}
         <div class="form-text text-muted italic small">
             {{ field.readonly.message }}

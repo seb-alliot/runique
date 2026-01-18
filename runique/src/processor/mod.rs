@@ -8,6 +8,7 @@ use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode, re
 use std::sync::Arc;
 use tera::{Context, Tera};
 
+
 #[derive(Clone)]
 pub struct Template {
     tera: Arc<Tera>,

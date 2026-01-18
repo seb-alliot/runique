@@ -1,8 +1,43 @@
 # Runique
+# ⚠️ Important : Correction du numéro de version
 
+**Janvier 2026**
+
+Je dois présenter mes excuses à la communauté Runique pour une erreur de versioning.
+
+Lorsque j'ai démarré ce projet, j'ai mal compris le fonctionnement du Semantic Versioning (SemVer) dans Rust. J'ai incorrectement publié les versions en `1.0.x` alors qu'elles auraient dû être en `0.x.x`.
+
+**Ce que cela signifie :**
+
+Dans le Semantic Versioning :
+- `0.x.x` = Développement actif, l'API peut changer
+- `1.0.0+` = API stable, compatibilité garantie
+
+Runique est toujours en **développement actif** et aurait dû utiliser le versioning `0.x.x` depuis le début.
+
+**Ce qui change :**
+
+- ❌ Toutes les versions `1.0.x` seront **yankées** (marquées comme obsolètes)
+- ✅ La prochaine version sera `0.2.0` suivant le SemVer correct
+- ✅ Versions futures : `0.2.x`, `0.3.x`, etc.
+- ✅ La version `1.0.0` ne sortira que lorsque l'API sera stable
+
+**Action requise :**
+
+Si vous utilisez actuellement Runique, veuillez mettre à jour votre `Cargo.toml` :
+```toml
+[dependencies]
+runique = "0.2"  # Versioning correct
+```
+
+Je m'excuse pour toute confusion que cela a pu causer. Merci pour votre patience et votre soutien continu !
+
+— Itsuki
+
+---
 **Un framework web Rust inspiré de Django**
 
-[![Version](https://img.shields.io/badge/version-0.1.86-blue.svg)](https://crates.io/crates/runique)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://crates.io/crates/runique)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE-MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
 
