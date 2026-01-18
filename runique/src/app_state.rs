@@ -13,12 +13,17 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(tera: Arc<Tera>, settings: Arc<Settings>, db: DatabaseConnection) -> Self {
+    pub fn new(
+        tera: Arc<Tera>,
+        settings: Arc<Settings>,
+        db: DatabaseConnection,
+        url_registry: Arc<RwLock<HashMap<String, String>>>,
+    ) -> Self {
         Self {
             tera,
             settings,
             db,
-            url_registry: Arc::new(RwLock::new(HashMap::new())),
+            url_registry,
         }
     }
 }

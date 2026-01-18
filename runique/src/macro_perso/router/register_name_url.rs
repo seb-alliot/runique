@@ -36,3 +36,13 @@ pub fn reverse_with_parameters(
             .fold(path, |acc, (k, v)| acc.replace(&format!("{{{}}}", k), v)),
     )
 }
+
+/// Transfère toutes les URLs en attente vers l'AppState
+pub fn flush_pending_urls(state: &AppState) {
+    let mut pending = PENDING_URLS.lock().unwrap();
+    let mut map = state.url_registry.write().unwrap();
+
+    for (name, path) in pending.drain(..) {
+        map.insert(name, path);
+    }
+}

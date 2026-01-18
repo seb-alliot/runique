@@ -12,7 +12,12 @@ async fn setup_test_state() -> Arc<AppState> {
         .await
         .expect("Échec de la création de la DB de test");
 
-    Arc::new(AppState::new(tera, Arc::new(settings), db))
+    Arc::new(AppState::new(
+        tera,
+        Arc::new(settings),
+        db,
+        Arc::new(std::sync::RwLock::new(std::collections::HashMap::new())),
+    ))
 }
 
 #[tokio::test]
