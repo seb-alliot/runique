@@ -17,6 +17,7 @@
 
 // Modules internes
 pub mod app;
+pub mod app_state;
 #[cfg(feature = "orm")]
 pub mod database;
 pub mod error;
@@ -138,7 +139,7 @@ pub mod prelude {
     pub use crate::{context, error, flash_now, info, success, warning};
 
     // === Routing et URL reversing ===
-    pub use crate::{reverse, reverse_with_parameters};
+    pub use crate::{app_state::AppState, register_name_url, reverse, reverse_with_parameters};
 
     // === Axum - Router et Routing ===
     pub use axum::{

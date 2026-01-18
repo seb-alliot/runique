@@ -1,23 +1,38 @@
+use crate::app_state::AppState;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
-use std::sync::RwLock;
+use std::sync::Mutex;
 
-static NAME_URL: Lazy<RwLock<HashMap<String, String>>> = Lazy::new(|| RwLock::new(HashMap::new()));
+// --- 1. Stockage temporaire pour la macro ---
+// Ce buffer retient les URLs définies dans urlpatterns! le temps que l'App démarre.
+pub static PENDING_URLS: Lazy<Mutex<Vec<(String, String)>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
-pub fn register_name_url(name: impl Into<String>, path: impl Into<String>) {
-    let mut name_url_map = NAME_URL.write().unwrap();
-    name_url_map.insert(name.into(), path.into());
+/// Utilisé par la macro urlpatterns!
+pub fn register_pending(name: impl Into<String>, path: impl Into<String>) {
+    let mut pending = PENDING_URLS.lock().unwrap();
+    pending.push((name.into(), path.into()));
 }
 
-pub fn reverse(name: &str) -> Option<String> {
-    let name_url_map = NAME_URL.read().unwrap();
-    name_url_map.get(name).cloned()
+// --- 2. Fonctions utilisant l'AppState (Runtime) ---
+
+pub fn register_name_url(state: &AppState, name: impl Into<String>, path: impl Into<String>) {
+    let mut map = state.url_registry.write().unwrap();
+    map.insert(name.into(), path.into());
 }
 
-pub fn reverse_with_parameters(name: &str, parameters: &[(&str, &str)]) -> Option<String> {
-    let path = reverse(name)?;
+pub fn reverse(state: &AppState, name: &str) -> Option<String> {
+    let map = state.url_registry.read().unwrap();
+    map.get(name).cloned()
+}
 
-    Some(parameters.iter().fold(path, |acc, (key, value)| {
-        acc.replace(&format!("{{{}}}", key), value)
-    }))
+pub fn reverse_with_parameters(
+    state: &AppState,
+    name: &str,
+    parameters: &[(&str, &str)],
+) -> Option<String> {
+    let path = reverse(state, name)?;
+    Some(
+        parameters
+            .iter()
+            .fold(path, |acc, (k, v)| acc.replace(&format!("{{{}}}", k), v)),
+    )
 }

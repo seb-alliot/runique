@@ -1,9 +1,21 @@
+use crate::app_state::AppState;
 use std::collections::HashMap;
-use tera::{Result as TeraResult, Tera, Value};
+use std::sync::Arc;
+use tera::{Function, Result as TeraResult, Tera, Value};
 
 /// Enregistre la fonction `link()` dans Tera
-pub fn register_url(tera: &mut Tera) {
-    tera.register_function("link", link_function);
+pub struct LinkFunction {
+    state: Arc<AppState>,
+}
+
+impl Function for LinkFunction {
+    fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
+        link_function(args, &self.state)
+    }
+}
+
+pub fn register_url(tera: &mut Tera, state: Arc<AppState>) {
+    tera.register_function("link", LinkFunction { state });
 }
 
 /// Extrait les placeholders d'une URL
@@ -30,7 +42,7 @@ fn extract_placeholders(path: &str) -> Vec<String> {
     placeholders
 }
 
-pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
+pub fn link_function(args: &HashMap<String, Value>, state: &AppState) -> TeraResult<Value> {
     // 1. Récupérer le nom de la route
     let link_name = args
         .get("link")
@@ -38,7 +50,8 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
         .ok_or_else(|| tera::Error::msg("link() nécessite un argument 'link'"))?;
 
     // 2. Résoudre le pattern de la route
-    let pattern = crate::macro_perso::router::reverse(link_name).ok_or_else(|| {
+    let map = state.url_registry.read().unwrap();
+    let pattern = map.get(link_name).cloned().ok_or_else(|| {
         tera::Error::msg(format!(
             "Route '{}' introuvable.\n\nVérifiez que la route existe dans votre urlpatterns!",
             link_name
@@ -138,12 +151,12 @@ pub fn link_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
         .collect();
 
     // 9. Résoudre l'URL finale
-    let final_url = crate::macro_perso::router::reverse_with_parameters(link_name, &list_refs)
-        .ok_or_else(|| {
-            tera::Error::msg(format!(
-                "Impossible de construire l'URL pour '{}'",
-                link_name
-            ))
-        })?;
+    let final_url = {
+        let mut url = pattern.clone();
+        for (k, v) in list_refs {
+            url = url.replace(&format!("{{{}}}", k), v);
+        }
+        url
+    };
     Ok(Value::String(final_url))
 }

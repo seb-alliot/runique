@@ -25,7 +25,11 @@ pub async fn index(template: Template) -> Response {
 }
 
 // Formulaire d'enregistrement utilisateur
-pub async fn inscription(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
+pub async fn inscription(
+    template: Template,
+    State(tera): State<Arc<Tera>>
+    )
+    -> Response {
     let inscription_form = InscriptionForm::build(tera.clone());
 
     let ctx = context! {
@@ -37,7 +41,7 @@ pub async fn inscription(template: Template, Extension(tera): Extension<Arc<Tera
 
 // Soumission du formulaire d'enregistrement utilisateur
 pub async fn soumissioninscription(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
+    State(db): State<DatabaseConnection>,
     mut message: Message,
     template: Template,
     ExtractForm(mut inscription_form): ExtractForm<InscriptionForm>,
@@ -76,7 +80,11 @@ pub async fn soumissioninscription(
 }
 
 // Affichage d'un utilisateur
-pub async fn cherche_user(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
+pub async fn cherche_user(
+    template: Template,
+    State(tera): State<Arc<Tera>>
+    )
+    -> Response {
     let user = username_form::build(tera.clone());
 
     let ctx = context! {
@@ -88,7 +96,7 @@ pub async fn cherche_user(template: Template, Extension(tera): Extension<Arc<Ter
 
 // Soumission du formulaire de recherche utilisateur
 pub async fn info_user(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
+    State(db): State<DatabaseConnection>,
     template: Template,
     ExtractForm(user): ExtractForm<username_form>,
 ) -> Response {
@@ -129,7 +137,10 @@ pub async fn info_user(
 }
 
 // Formulaire avec des champs avancés
-pub async fn blog_form(template: Template, Extension(tera): Extension<Arc<Tera>>) -> Response {
+pub async fn blog_form(
+    template: Template,
+    State(tera): State<Arc<Tera>>
+    ) -> Response {
     let blog_form = blog_mod::build(tera.clone());
 
     let ctx = context! {
@@ -141,7 +152,7 @@ pub async fn blog_form(template: Template, Extension(tera): Extension<Arc<Tera>>
 
 // Soumission du formulaire avec des champs avancés
 pub async fn soumission_blog_info(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
+    State(db): State<DatabaseConnection>,
     mut message: Message,
     template: Template,
     ExtractForm(mut blog_form): ExtractForm<blog_mod>,
@@ -178,7 +189,7 @@ pub async fn soumission_blog_info(
 
 // Test du formulaire avec des champs avancés
 pub async fn test_champs_form(
-    Extension(tera): Extension<Arc<Tera>>,
+    State(tera): State<Arc<Tera>>,
     template: Template,
 ) -> Response {
     let test_new_form = test_new_form::build(tera.clone());
@@ -192,7 +203,7 @@ pub async fn test_champs_form(
 
 // Soumission du formulaire avec des champs avancés
 pub async fn soumission_champs_form(
-    Extension(_db): Extension<Arc<DatabaseConnection>>,
+    State(_db): State<DatabaseConnection>,
     template: Template,
     mut message: Message,
     ExtractForm(mut test_new_form): ExtractForm<test_new_form>,
@@ -237,7 +248,7 @@ pub async fn about(template: Template, mut message: Message) -> Response {
 
 // test d'un formulaire avec derive_form
 pub async fn affiche_form_generer(
-    Extension(tera): Extension<Arc<Tera>>,
+    State(tera): State<Arc<Tera>>,
     template: Template,
 ) -> Response {
     let register_form = register_form::build(tera.clone());
@@ -252,7 +263,7 @@ pub async fn affiche_form_generer(
 
 // POST - Traiter la soumission
 pub async fn soumission_form_generer(
-    Extension(db): Extension<Arc<DatabaseConnection>>,
+    State(db): State<DatabaseConnection>,
     template: Template,
     mut message: Message,
     ExtractForm(mut register_form): ExtractForm<register_form>,
