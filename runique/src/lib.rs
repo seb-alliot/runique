@@ -125,6 +125,7 @@ pub mod prelude {
     pub use crate::formulaire::builder_form::base_struct::*;
     pub use crate::formulaire::builder_form::option_field::*;
     pub use crate::formulaire::builder_form::trait_form::{FormField, RuniqueForm};
+    pub use argon2::{Argon2, password_hash::{SaltString, PasswordHasher, PasswordVerifier, rand_core::OsRng}};
 
     // Champs mis à jour
     pub use crate::formulaire::builder_form::field_type::number_mode::NumericField;

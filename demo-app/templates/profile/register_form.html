@@ -15,16 +15,7 @@
 
             <form id="username-form" method="post">
                 {% csrf %}
-                {% if register_form.errors %}
-                    <div class="field-error">
-                        {% for field_name, error_message in register_form.errors %}
-                            <p><strong>{{ field_name }}:</strong> {{ error_message }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                <div class="fields-container">
-                    {% form.register_form %}
-                </div>
+                {% form.register_form %}
                 <button type="submit">Register</button>
             </form>
         </div>

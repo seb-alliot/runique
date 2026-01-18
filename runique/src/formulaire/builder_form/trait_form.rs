@@ -8,7 +8,8 @@ use std::pin::Pin;
 use std::sync::Arc;
 use tera::Tera;
 
-pub trait FormField: Send + Sync + dyn_clone::DynClone {
+use dyn_clone::DynClone;
+pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
     // Getters
     fn name(&self) -> &str;
     fn label(&self) -> &str;
@@ -20,7 +21,6 @@ pub trait FormField: Send + Sync + dyn_clone::DynClone {
     fn is_required(&self) -> bool {
         false
     }
-
     // Setters
     fn set_name(&mut self, name: &str);
     fn set_label(&mut self, label: &str);
@@ -115,14 +115,22 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Self::from_form(form)
     }
 
-    fn build_with_data(raw_data: &HashMap<String, String>, tera: Arc<Tera>) -> Self {
-        let mut form = Forms::new();
-        form.set_tera(tera);
-        Self::register_fields(&mut form);
-        form.fill(raw_data);
-        form.is_valid();
-        Self::from_form(form)
+    fn build_with_data(
+        raw_data: &HashMap<String, String>,
+        tera: Arc<Tera>,
+    ) -> impl Future<Output = Self> + Send {
+        async move {
+            let mut form = Forms::new();
+            form.set_tera(tera.clone());
+            Self::register_fields(&mut form);
+            form.fill(raw_data);
+
+            let mut instance = Self::from_form(form);
+            instance.is_valid().await;
+            instance
+        }
     }
+
 
     fn database_error(&mut self, err: &DbErr) {
         self.get_form_mut().database_error(err);

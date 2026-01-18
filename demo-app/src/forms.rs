@@ -1,21 +1,13 @@
-use crate::models::users as users_mod;
 use runique::prelude::*;
-use runique::serde::{Serialize, Serializer};
+use runique::serde::{Serialize};
 use sea_orm::DbErr;
 use sea_orm::{ActiveModelTrait, Set};
 
 // --- USERNAME FORM ---
+#[derive(Serialize)]
+#[serde(transparent)]
 pub struct UsernameForm {
     pub form: Forms,
-}
-
-impl Serialize for UsernameForm {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.form.serialize(serializer)
-    }
 }
 
 impl RuniqueForm for UsernameForm {
@@ -87,7 +79,7 @@ impl RuniqueForm for PostForm {
 }
 
 // --- FORMULAIRE D'INSCRIPTION ---
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct RegisterForm {
     pub form: Forms,
@@ -98,16 +90,19 @@ impl RuniqueForm for RegisterForm {
         form.field(
             &TextField::text("username")
                 .placeholder("Entrez votre nom d'utilisateur")
-                .required("Le nom d'utilisateur est requis"),
+                .required("votre pseudo est necessaire")
         );
 
         form.field(
             &TextField::email("email")
                 .placeholder("Entrez votre email")
-                .required("L'email est requis"),
+                .required("votre email est necessaire"),
         );
 
-        form.field(&TextField::password("password").required("Sécurité requise"));
+        form.field(&TextField::password("password")
+        .placeholder("entrez un mot de passe")
+        .required("Le mot de passe est obligatoire"));
+  
     }
 
     fn from_form(form: Forms) -> Self {
@@ -122,18 +117,14 @@ impl RuniqueForm for RegisterForm {
 }
 
 impl RegisterForm {
-    pub async fn save(&self, db: &DatabaseConnection) -> Result<users_mod::Model, DbErr> {
-        let username = self.form.get_value("username").unwrap_or_default();
-        let email = self.form.get_value("email").unwrap_or_default();
-
-        // Optionnel : Tu peux utiliser field.hash_password() ici si tu récupères l'instance
-        let password = self.form.get_value("password").unwrap_or_default();
+    pub async fn save(&self, db: &DatabaseConnection) -> Result<crate::models::users::Model, DbErr> {
+        use crate::models::users as users_mod;
         let new_user = users_mod::ActiveModel {
-            username: Set(username),
-            email: Set(email),
-            password: Set(password),
+            username: Set(self.form.get_value("username").unwrap_or_default()),
+            email: Set(self.form.get_value("email").unwrap_or_default()),
+            password: Set(self.form.get_value("password").unwrap_or_default()),
             ..Default::default()
-        };
+            };
 
         new_user.insert(db).await
     }
@@ -141,8 +132,9 @@ impl RegisterForm {
 
 // --- FORMULAIRE BLOG ---
 #[derive(Serialize)]
-#[serde(transparent)]
+
 pub struct Blog {
+    #[serde(flatten)]
     pub form: Forms,
 }
 
@@ -179,12 +171,6 @@ impl RuniqueForm for Blog {
                 .required("Le contenu ne peut pas être vide"),
         );
 
-        form.field(
-            &TextField::password("password")
-                .placeholder("Entrez un mot de passe sécurisé")
-                .required("Le mot de passe est obligatoire")
-                .min_length(8, "Le mot de passe doit contenir au moins 8 caractères"),
-        );
     }
 
     fn from_form(form: Forms) -> Self {
@@ -205,7 +191,7 @@ impl Blog {
         let new_post = post_mod::ActiveModel {
             title: Set(self.form.get_value("title").unwrap_or_default()),
             email: Set(self.form.get_value("email").unwrap_or_default()),
-            website: Set(self.form.get_value("website").unwrap_or_default()),
+            website: Set(self.form.get_value("website")),
             content: Set(self.form.get_value("content").unwrap_or_default()),
             summary: Set(self.form.get_value("summary").unwrap_or_default()),
             ..Default::default()

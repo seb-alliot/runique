@@ -1,4 +1,3 @@
-// migration/src/m20251226_000001_create_users_table.rs
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -32,12 +31,17 @@ impl MigrationTrait for Migration {
                             .unique_key(),
                     )
                     .col(ColumnDef::new(Users::Password).string().not_null())
-                    .col(ColumnDef::new(Users::Age).integer().not_null())
                     .col(
                         ColumnDef::new(Users::CreatedAt)
                             .timestamp()
-                            .default(Expr::current_timestamp())
-                            .not_null(),
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        ColumnDef::new(Users::UpdatedAt)
+                            .timestamp()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
             )
@@ -58,6 +62,6 @@ enum Users {
     Username,
     Email,
     Password,
-    Age,
     CreatedAt,
+    UpdatedAt,
 }

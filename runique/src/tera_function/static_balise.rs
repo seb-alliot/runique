@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use tera::{to_value, Filter};
 use tera::{Result as TeraResult, Tera, Value};
 
 // Fonction générique interne pour éviter la répétition
@@ -20,21 +19,6 @@ fn generic_url_filter(
     }
 }
 
-pub struct CsrfTokenFilter;
-
-impl Filter for CsrfTokenFilter {
-    fn filter(&self, value: &Value, _args: &HashMap<String, Value>) -> TeraResult<Value> {
-        // 'value' est ce qui se trouve à gauche du pipe | (donc ton token brut)
-        let token = value.as_str().unwrap_or("");
-
-        let html = format!(
-            r#"<input type="hidden" name="csrf_token" value="{}">"#,
-            token
-        );
-
-        Ok(to_value(html)?)
-    }
-}
 
 pub fn register_all_asset_filters(
     tera: &mut Tera,
@@ -47,6 +31,5 @@ pub fn register_all_asset_filters(
     tera.register_filter("media", generic_url_filter(media_url));
     tera.register_filter("runique_static", generic_url_filter(runique_static_url));
     tera.register_filter("runique_media", generic_url_filter(runique_media_url));
-    tera.register_filter("csrf_token", CsrfTokenFilter);
     tera.register_filter("form", crate::tera_function::form::form_filter);
 }

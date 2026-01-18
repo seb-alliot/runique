@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct BooleanField {
     pub base: FieldConfig,
 }
