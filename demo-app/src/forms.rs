@@ -134,7 +134,6 @@ impl RegisterForm {
 #[derive(Serialize)]
 
 pub struct Blog {
-    #[serde(flatten)]
     pub form: Forms,
 }
 

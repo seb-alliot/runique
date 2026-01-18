@@ -2,6 +2,7 @@ use runique::impl_objects;
 use runique::prelude::*;
 use runique::sea_orm;
 use runique::sea_orm::entity::prelude::*;
+use runique::sea_orm::{NotSet, Set};
 use runique::serde::{Deserialize, Serialize};
 
 
@@ -26,11 +27,14 @@ pub enum Relation {}
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
+            id: NotSet,
+            title: NotSet,
+            email: NotSet,
+            website: NotSet,
+            summary: NotSet,
+            content: NotSet,
             created_at: Set(chrono::Utc::now().naive_utc()),
-            ..Default::default()
         }
     }
 }
-
-
 impl_objects!(Entity);
