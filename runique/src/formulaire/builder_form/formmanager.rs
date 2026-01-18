@@ -5,12 +5,11 @@ use indexmap::IndexMap;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 use serde_json::{json, Value};
+use std::cell::Cell;
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Arc;
 use tera::Tera;
-use std::cell::Cell;
-use std::fmt;
-
 
 // Erreurs possibles lors de la validation du formulaire liée a la bdd
 #[derive(Debug, Clone)]
@@ -24,7 +23,10 @@ impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValidationError::StackOverflow => {
-                write!(f, "Stack overflow détecté : récursion infinie dans la validation")
+                write!(
+                    f,
+                    "Stack overflow détecté : récursion infinie dans la validation"
+                )
             }
             ValidationError::FieldValidation(errors) => {
                 write!(f, "Erreurs de validation : {:?}", errors)
@@ -41,8 +43,6 @@ impl std::error::Error for ValidationError {}
 thread_local! {
     static VALIDATION_DEPTH: Cell<usize> = Cell::new(0);
 }
-
-
 
 #[derive(Clone)]
 pub struct Forms {

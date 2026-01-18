@@ -5,19 +5,18 @@ use runique::sea_orm::entity::prelude::*;
 use runique::sea_orm::{NotSet, Set};
 use runique::serde::{Deserialize, Serialize};
 
-
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "blog")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub title: String,
-    pub email: String,      // Email de l'auteur
+    pub email: String, // Email de l'auteur
     pub website: Option<String>,
     #[sea_orm(column_type = "Text")]
-    pub summary: String,    // Pour le TextArea
+    pub summary: String, // Pour le TextArea
     #[sea_orm(column_type = "Text")]
-    pub content: String,    // Pour le RichText
+    pub content: String, // Pour le RichText
     pub created_at: DateTime,
 }
 

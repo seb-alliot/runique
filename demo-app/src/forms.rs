@@ -1,5 +1,5 @@
 use runique::prelude::*;
-use runique::serde::{Serialize};
+use runique::serde::Serialize;
 use sea_orm::DbErr;
 use sea_orm::{ActiveModelTrait, Set};
 
@@ -90,7 +90,7 @@ impl RuniqueForm for RegisterForm {
         form.field(
             &TextField::text("username")
                 .placeholder("Entrez votre nom d'utilisateur")
-                .required("votre pseudo est necessaire")
+                .required("votre pseudo est necessaire"),
         );
 
         form.field(
@@ -99,10 +99,11 @@ impl RuniqueForm for RegisterForm {
                 .required("votre email est necessaire"),
         );
 
-        form.field(&TextField::password("password")
-        .placeholder("entrez un mot de passe")
-        .required("Le mot de passe est obligatoire"));
-  
+        form.field(
+            &TextField::password("password")
+                .placeholder("entrez un mot de passe")
+                .required("Le mot de passe est obligatoire"),
+        );
     }
 
     fn from_form(form: Forms) -> Self {
@@ -117,14 +118,17 @@ impl RuniqueForm for RegisterForm {
 }
 
 impl RegisterForm {
-    pub async fn save(&self, db: &DatabaseConnection) -> Result<crate::models::users::Model, DbErr> {
+    pub async fn save(
+        &self,
+        db: &DatabaseConnection,
+    ) -> Result<crate::models::users::Model, DbErr> {
         use crate::models::users as users_mod;
         let new_user = users_mod::ActiveModel {
             username: Set(self.form.get_value("username").unwrap_or_default()),
             email: Set(self.form.get_value("email").unwrap_or_default()),
             password: Set(self.form.get_value("password").unwrap_or_default()),
             ..Default::default()
-            };
+        };
 
         new_user.insert(db).await
     }
@@ -169,7 +173,6 @@ impl RuniqueForm for Blog {
                 .placeholder("Entrez le contenu de l'article ici")
                 .required("Le contenu ne peut pas être vide"),
         );
-
     }
 
     fn from_form(form: Forms) -> Self {

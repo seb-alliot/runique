@@ -1,9 +1,9 @@
 use std::vec;
 
 pub use sea_orm_migration::prelude::*;
-mod m20260118_003649_create_users_table;
 mod m20260118_003649_create_blog_table;
 mod m20260118_003649_create_users_booster_table;
+mod m20260118_003649_create_users_table;
 
 pub struct Migrator;
 
@@ -17,4 +17,3 @@ impl MigratorTrait for Migrator {
         ]
     }
 }
-

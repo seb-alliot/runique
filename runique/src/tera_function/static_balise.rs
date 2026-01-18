@@ -19,7 +19,6 @@ fn generic_url_filter(
     }
 }
 
-
 pub fn register_all_asset_filters(
     tera: &mut Tera,
     static_url: String,

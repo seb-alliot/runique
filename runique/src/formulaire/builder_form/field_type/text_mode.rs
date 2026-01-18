@@ -133,7 +133,7 @@ impl FormField for TextField {
     fn name(&self) -> &str {
         &self.base.name
     }
-    
+
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -252,7 +252,7 @@ impl FormField for TextField {
                 return false;
             }
         }
-        
+
         // Validation format spécial
         match &self.format {
             SpecialFormat::Email if !val.validate_email() => {
@@ -269,42 +269,47 @@ impl FormField for TextField {
             _ => {}
         }
         if let SpecialFormat::Password = &self.format {
-                if !val.starts_with("$argon2") {
-                    match self.hash_password() {
-                        Ok(hash_password) => {
-                            self.base.value = hash_password; 
-                        },
-                        Err(e) => {
-                            self.set_error(e);
-                            return false;
-                        }
+            if !val.starts_with("$argon2") {
+                match self.hash_password() {
+                    Ok(hash_password) => {
+                        self.base.value = hash_password;
+                    }
+                    Err(e) => {
+                        self.set_error(e);
+                        return false;
                     }
                 }
             }
+        }
         self.set_error("".into());
         true
     }
-    
+
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
-        
+
         // On prépare une version "sécurisée" de la base
         let mut base_data = self.base.clone();
         if let SpecialFormat::Password = &self.format {
             base_data.value = "".to_string();
         }
-        
+
         context.insert("field", &base_data);
         context.insert("input_type", &self.base.type_field);
-        
+
         // AJOUT IMPORTANT : On injecte la config pour readonly/disabled
         context.insert("readonly", &self.config.readonly);
         context.insert("disabled", &self.config.disabled);
 
-        if let Some(l) = &self.config.min_length { context.insert("min_length", &l.value); }
-        if let Some(l) = &self.config.max_length { context.insert("max_length", &l.value); }
-        
-        tera.render(&self.base.template_name, &context).map_err(|e| e.to_string())
+        if let Some(l) = &self.config.min_length {
+            context.insert("min_length", &l.value);
+        }
+        if let Some(l) = &self.config.max_length {
+            context.insert("max_length", &l.value);
+        }
+
+        tera.render(&self.base.template_name, &context)
+            .map_err(|e| e.to_string())
     }
 
     fn to_json_required(&self) -> Value {
