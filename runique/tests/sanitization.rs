@@ -6,7 +6,7 @@ use axum::{
     routing::post,
     Router,
 };
-use runique::{middleware::middleware_sanetiser::sanitize_middleware, Settings};
+use runique::{middleware_folder::middleware_sanetiser::sanitize_middleware, Settings};
 use std::sync::Arc;
 use tower::ServiceExt;
 

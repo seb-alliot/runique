@@ -1,0 +1,13 @@
+<div class="header">
+    <div class="header-content">
+        <h1>{{ title | default(value="Template Error") }}</h1>
+            {% if error_type %}
+                <div class="error-type">
+                    <span class="badge badge-error">{{ error_type }}</span>
+                    {% if environment.debug_mode %}
+                        <span class="badge badge-debug">Debug Mode</span>
+                    {% endif %}
+                </div>
+            {% endif %}
+    </div>
+</div>

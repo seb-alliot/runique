@@ -1,0 +1,14 @@
+<form id="{{ form.id }}"
+    {% csrf %}
+        name="{{ form.name }}"
+        method="POST"
+        {% if form.fields | any(attribute="is_file") %}
+            enctype="multipart/form-data"
+        {% endif %}>
+
+    {% for field in form.fields %}
+        {{ field.render() }}
+    {% endfor %}
+
+    <button type="submit">Envoyer</button>
+</form>

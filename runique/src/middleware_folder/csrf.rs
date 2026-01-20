@@ -1,4 +1,4 @@
-use crate::middleware::login_requiert::is_authenticated;
+use crate::middleware_folder::login_requiert::is_authenticated;
 use crate::settings::Settings;
 use crate::utils::{generate_token, generate_user_token, mask_csrf_token, unmask_csrf_token};
 use axum::http::Request;
@@ -39,11 +39,14 @@ pub async fn csrf_middleware(mut req: Request<Body>, next: Next) -> Response {
 
     // 2. Récupérer ou créer le token
     let session_token = match session.get::<String>(CSRF_TOKEN_KEY).await.ok().flatten() {
-        Some(t) => t,
+        Some(t) => {
+            println!("[CSRF MIDDLEWARE] Token trouvé en session.");
+            t
+        },
         None => {
+            println!("[CSRF MIDDLEWARE] Aucun token en session, génération d'un nouveau...");
             let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
 
-            // Détecter si utilisateur connecté
             let token = if is_authenticated(&session).await {
                 let user_id = session
                     .get::<i32>("user_id")
@@ -62,6 +65,8 @@ pub async fn csrf_middleware(mut req: Request<Body>, next: Next) -> Response {
     };
 
     if requires_csrf {
+        println!("[CSRF MIDDLEWARE] Vérification requise pour la méthode : {}", method);
+
         let content_type = req
             .headers()
             .get(axum::http::header::CONTENT_TYPE)
@@ -74,10 +79,15 @@ pub async fn csrf_middleware(mut req: Request<Body>, next: Next) -> Response {
             .and_then(|h| h.to_str().ok())
             .map(|s| s.to_string());
 
+        if let Some(ref t) = request_token_masked {
+            println!("[CSRF MIDDLEWARE] Token masqué trouvé dans le HEADER 'X-CSRF-Token'");
+        }
+
         // Pour form-urlencoded, lire le body si pas de header
         if request_token_masked.is_none()
             && content_type.contains("application/x-www-form-urlencoded")
         {
+            println!("[CSRF MIDDLEWARE] Pas de header, tentative d'extraction depuis le BODY (form-urlencoded)");
             let (parts, body) = req.into_parts();
             let bytes = match body.collect().await {
                 Ok(collected) => collected.to_bytes(),
@@ -96,11 +106,54 @@ pub async fn csrf_middleware(mut req: Request<Body>, next: Next) -> Response {
 
         let request_token = request_token_masked
             .as_deref()
-            .and_then(|masked| unmask_csrf_token(masked).ok());
+            .and_then(|masked| {
+                let unmasked = unmask_csrf_token(masked).ok();
+                if unmasked.is_none() {
+                    println!("[CSRF MIDDLEWARE] ÉCHEC du démasquage du token (unmask_csrf_token)");
+                }
+                unmasked
+            });
 
-        match request_token {
-            Some(rt) if constant_time_compare(&session_token, &rt) => {}
-            _ => return (StatusCode::FORBIDDEN, "Invalid CSRF Token").into_response(),
+        match &request_token {
+            Some(rt) if constant_time_compare(&session_token, rt) => {
+                println!("[CSRF MIDDLEWARE] ✅ Validation réussie (Session et Request correspondent)");
+            }
+            Some(_) => {
+                println!("[CSRF MIDDLEWARE] ❌ ÉCHEC : Les tokens existent mais ne correspondent pas.");
+            }
+            None => {
+                        let session_id = session.id().map(|id| id.to_string()).unwrap_or_else(|| "INCONNU".to_string());
+                        println!("[CSRF DEBUG] Aucun token en session.");
+                        println!("[CSRF DEBUG] Session ID actuel : {}", session_id);
+                        println!("[CSRF DEBUG] Statut session : {:?}", session);
+
+                        // Détecter si utilisateur connecté
+                        let token = if is_authenticated(&session).await {
+                            let user_id = session
+                                .get::<i32>("user_id")
+                                .await
+                                .ok()
+                                .flatten()
+                                .unwrap_or(0);
+                            println!("[CSRF DEBUG] Utilisateur authentifié (ID: {}), génération User-Token", user_id);
+                            generate_user_token(&config.server.secret_key, &user_id.to_string())
+                        } else {
+                            println!("[CSRF DEBUG] Utilisateur anonyme, génération Guest-Token");
+                            generate_token(&config.server.secret_key, &session_id)
+                        };
+
+                        let res_insert = session.insert(CSRF_TOKEN_KEY, token.clone()).await;
+                        if res_insert.is_err() {
+                            println!("[CSRF ERROR] ÉCHEC de l'insertion du token dans la session !");
+                        } else {
+                            println!("[CSRF DEBUG] Nouveau token inséré avec succès en session.");
+                        }
+                        token.to_string();
+                    }
+        }
+
+        if request_token.is_none() || !constant_time_compare(&session_token, request_token.as_ref().unwrap()) {
+            return (StatusCode::FORBIDDEN, "Invalid CSRF Token").into_response();
         }
     }
 
@@ -109,6 +162,7 @@ pub async fn csrf_middleware(mut req: Request<Body>, next: Next) -> Response {
     req.extensions_mut().insert(CsrfToken(masked.clone()));
 
     let mut response = next.run(req).await;
+    println!("[CSRF SENT] Token masqué envoyé vers le client : {}", &masked[..10]);
     if let Ok(hv) = HeaderValue::from_str(&masked) {
         response.headers_mut().insert("X-CSRF-Token", hv);
     }

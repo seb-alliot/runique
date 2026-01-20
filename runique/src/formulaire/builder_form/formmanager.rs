@@ -1,5 +1,6 @@
 use crate::formulaire::builder_form::generique_field::GenericField;
 use crate::formulaire::builder_form::trait_form::FormField;
+use crate::formulaire::builder_form::field_type::TextField;
 use crate::sea_orm;
 use indexmap::IndexMap;
 use serde::ser::{SerializeStruct, Serializer};
@@ -72,11 +73,12 @@ impl Serialize for Forms {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Forms", 5)?;
+        let mut state = serializer.serialize_struct("Forms", 6)?;
 
         state.serialize_field("data", &self.data())?;
         state.serialize_field("errors", &self.errors())?;
         state.serialize_field("global_errors", &self.global_errors)?;
+        println!("[FORMS] Sérialisation du formulaire avec {} champs", self.fields.len());
 
         let rendered_html = match self.render() {
             Ok(h) => h,
@@ -97,32 +99,50 @@ impl Serialize for Forms {
                 field_map.insert("placeholder".to_string(), json!(field.placeholder()));
                 field_map.insert("index".to_string(), json!(index));
 
-                if let Some(err) = field.error() {
-                    field_map.insert("error".to_string(), json!(err));
-                }
-
                 field_map.insert("is_required".to_string(), field.to_json_required());
                 field_map.insert("readonly".to_string(), field.to_json_readonly());
                 field_map.insert("disabled".to_string(), field.to_json_disabled());
                 field_map.insert("html_attributes".to_string(), field.to_json_attributes());
-
+                if let Some(err) = field.error() {
+                    field_map.insert("error".to_string(), json!(err));
+                }
                 (name.clone(), Value::Object(field_map))
             })
             .collect();
 
         state.serialize_field("fields", &fields_data)?;
+        println!("[FORMS] Sérialisation terminée avec succès manager ligne 116 {:?}", fields_data.keys());
+        println!("[FORMS] Data enregistrée manage ligne 117 : {:?}", fields_data);
         state.end()
     }
 }
 
 impl Forms {
+    pub fn set_csrf_token(&mut self, token: String) {
+        // Met à jour la valeur du champ 'csrf_token' qui a été créé dans Forms::new()
+        if let Some(field) = self.fields.get_mut("csrf_token") {
+            field.set_value(&token);
+            println!("[FORMS] Succès : Champ CSRF rempli avec {}", &token[..10]);
+        }{
+            println!("[FORMS] Erreur : Champ CSRF non trouvé lors de la mise à jour du token");
+        }
+    }
     pub fn new() -> Self {
+        let mut fields: IndexMap<String, Box<dyn FormField>> = IndexMap::new();
+
+        // Initialisation du champ caché
+        let csrf_field = TextField::create_csrf();
+        fields.insert("csrf_token".to_string(), Box::new(csrf_field) as Box<dyn FormField>);
+
+        println!("[FORMS] Nouveau formulaire créé avec champ 'csrf_token' (actuellement vide)");
+
         Self {
-            fields: IndexMap::new(),
+            fields,
             tera: None,
             global_errors: Vec::new(),
         }
     }
+
 
     /// La solution au "type annotations needed" :
     /// On force la conversion en GenericField ici même.

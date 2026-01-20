@@ -1,0 +1,13 @@
+<!-- ERROR MESSAGE SECTION -->
+    <h2 class="section-title">
+        <span>Error Message</span>
+    </h2>
+    <div class="error-message">{{ message }}</div>
+
+        {% if details %}
+            <div class="error-message" style="margin-top: 15px; border-left-color: #ffb86c;">
+                <strong style="color: #ffb86c;">Additional Details:</strong><br>
+                {{ details }}
+            </div>
+        {% endif %}
+    </div>

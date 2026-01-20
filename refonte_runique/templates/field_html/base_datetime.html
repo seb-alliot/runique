@@ -1,0 +1,40 @@
+<div class="form-field datetime-field">
+    {% if field.label %}
+    <label for="id_{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
+        {{ field.label }}
+        {% if field.is_required.choice %}
+            <span class="required-indicator" title="{{ field.is_required.message | default(value='Requis') }}"></span>
+        {% endif %}
+    </label>
+    {% endif %}
+
+    <input
+        type="{{ field.type_field }}"
+        name="{{ field.name }}"
+        id="id_{{ field.name }}"
+        value="{{ field.value }}"
+        {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+
+        {# Auto-adaptation des attributs min/max selon le type #}
+        {% if min_date %}min="{{ min_date }}"{% endif %}
+        {% if max_date %}max="{{ max_date }}"{% endif %}
+        {% if min_time %}min="{{ min_time }}"{% endif %}
+        {% if max_time %}max="{{ max_time }}"{% endif %}
+        {% if min_datetime %}min="{{ min_datetime }}"{% endif %}
+        {% if max_datetime %}max="{{ max_datetime }}"{% endif %}
+        {% if min_seconds %}min="{{ min_seconds }}"{% endif %}
+        {% if max_seconds %}max="{{ max_seconds }}"{% endif %}
+
+        {% if field.type_field == "number" %}step="1"{% endif %}
+        {% if field.is_required.choice %}required{% endif %}
+        {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+    >
+
+    {% if field.type_field == "number" and min_seconds %}
+    <span class="field-helper-text">Durée en secondes</span>
+    {% endif %}
+
+    {% if field.error %}
+    <span class="field-error-message">{{ field.error }}</span>
+    {% endif %}
+</div>

@@ -2,6 +2,7 @@ pub mod bool_mode;
 pub mod choice_mode;
 pub mod datetime_mode;
 pub mod file_mode;
+pub mod hidden_mode;
 pub mod number_mode;
 pub mod special_mode;
 pub mod text_mode;

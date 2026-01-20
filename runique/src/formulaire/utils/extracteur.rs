@@ -33,6 +33,14 @@ where
             .unwrap_or("")
             .to_string();
 
+        // On récupère le token CSRF depuis les extensions AVANT de créer le formulaire
+        // On importe CsrfToken depuis ton middleware
+        let csrf_ext = req.extensions().get::<crate::middleware_folder::csrf::CsrfToken>().cloned();
+        println!(
+            "[EXTRACTOR] Token CSRF récupéré depuis les extensions  extracteur ligne 39: {:?}",
+            csrf_ext.as_ref().map(|t| &t.0[..10])
+        );
+
         let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
 
         if content_type.starts_with("multipart/form-data") {
@@ -68,6 +76,13 @@ where
         let form_data_for_validation = convert_for_form(parsed);
 
         let mut form = T::build_with_data(&form_data_for_validation, tera.clone()).await;
+
+        // INJECTION AUTOMATIQUE
+        if let Some(token_struct) = csrf_ext {
+            // On injecte la String contenue dans la struct CsrfToken
+            form.get_form_mut().set_csrf_token(token_struct.0.clone());
+            println!("[EXTRACTOR] Token injecté automatiquement dans le formulaire");
+        }
 
         form.get_form_mut().set_tera(tera);
 

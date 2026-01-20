@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use runique::{middleware::csrf::csrf_middleware, Settings};
+use runique::{middleware_folder::csrf::csrf_middleware, Settings};
 use std::sync::Arc;
 use tower::ServiceExt;
 use tower_sessions::{MemoryStore, SessionManagerLayer};

@@ -7,7 +7,7 @@ use axum::{
     Router,
 };
 use runique::{
-    middleware::csp::{security_headers_middleware, CspConfig},
+    middleware_folder::csp::{security_headers_middleware, CspConfig},
     Settings,
 };
 use std::sync::Arc;

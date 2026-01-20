@@ -10,7 +10,6 @@
     {% messages %}
 
     <form method="post" action="/register">
-        {% csrf %}
         {% form.inscription_form %}
         <button type="submit">S'inscrire</button>
     </form>

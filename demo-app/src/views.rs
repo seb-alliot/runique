@@ -9,9 +9,10 @@ use crate::models::model_derive::ModelForm as InscriptionForm;
 use crate::models::users as users_mod;
 use crate::models::users::Entity as UserEntity;
 
+
 // Index.html
 pub async fn index(template: Template) -> Response {
-    let ctx = context! {
+    let ctx: runique::ContextHelper = context! {
         "title" => "Bienvenue sur Runique",
         "description" => "Un framework web moderne inspiré de Django",
         "status" => "Framework en cours de développement...",
@@ -77,6 +78,7 @@ pub async fn soumissioninscription(
 
 // Affichage d'un utilisateur
 pub async fn cherche_user(template: Template, State(tera): State<Arc<Tera>>) -> Response {
+
     let user = username_form::build(tera.clone());
 
     let ctx = context! {

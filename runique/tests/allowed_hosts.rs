@@ -6,7 +6,7 @@ use axum::{
     routing::get,
     Router,
 };
-use runique::{middleware::allowed_hosts::allowed_hosts_middleware, Settings};
+use runique::{middleware_folder::allowed_hosts::allowed_hosts_middleware, Settings};
 use std::sync::Arc;
 use tower::ServiceExt;
 

@@ -17,7 +17,6 @@
         class="file-input"
     >
 
-    {# Informations sur les contraintes #}
     <div class="file-constraints">
         {% if allowed_extensions and allowed_extensions.extensions %}
         <span class="file-hint">Extensions : {{ allowed_extensions.extensions | join(sep=", ") }}</span>
@@ -38,7 +37,6 @@
         {% endif %}
     </div>
 
-    {# Preview pour les images #}
     {% if is_image and field.value %}
     <div class="image-preview">
         <img src="{{ field.value | media }}" alt="Preview" style="max-width: 200px; max-height: 200px;">

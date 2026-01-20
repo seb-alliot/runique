@@ -29,6 +29,7 @@ pub enum SpecialFormat {
     Url,
     Password,
     RichText,
+    Csrf,
 }
 
 // Implémentation des méthodes pour TextField
@@ -40,6 +41,11 @@ impl TextField {
             config: TextConfig::default(),
             format,
         }
+    }
+    pub fn create_csrf() -> Self {
+        let mut field = Self::create("csrf_token", "hidden", SpecialFormat::Csrf);
+        field.base.template_name = "csrf".to_string();
+        field
     }
 
     pub fn min_length(mut self, min: usize, msg: &str) -> Self {

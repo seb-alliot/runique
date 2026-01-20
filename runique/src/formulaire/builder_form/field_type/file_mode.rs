@@ -549,6 +549,7 @@ impl FormField for MultipleFileField {
         context.insert("field", &self.base);
         context.insert("allowed_extensions", &self.allowed_extensions);
         context.insert("multiple", &true);
+        context.insert("is_file", &true);
 
         if let Some(size) = self.max_size_mb {
             context.insert("max_size_mb", &size);

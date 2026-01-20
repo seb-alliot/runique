@@ -45,7 +45,6 @@ impl BooleanField {
     }
 }
 
-
 impl FormField for BooleanField {
     fn name(&self) -> &str {
         &self.base.name

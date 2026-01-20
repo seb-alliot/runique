@@ -1,8 +1,8 @@
 // runique/src/processor/message_processor.rs
 
 use crate::context;
-use crate::middleware::flash_message::FlashMessage;
-use crate::middleware::flash_message::FlashMessageSession;
+use crate::middleware_folder::flash_message::FlashMessage;
+use crate::middleware_folder::flash_message::FlashMessageSession;
 use crate::settings::Settings;
 use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode, response::Response};
 use std::sync::Arc;
@@ -15,7 +15,7 @@ pub struct Template {
     context: Context,
 }
 
-use crate::middleware::csrf::CsrfToken;
+use crate::middleware_folder::csrf::CsrfToken;
 
 impl<S> FromRequestParts<S> for Template
 where
@@ -82,12 +82,13 @@ impl Template {
         self.context.extend(user_context.clone());
 
         // Appel à ton error_handler optimisé
-        crate::middleware::error_handler::render_template(
+        crate::middleware_folder::error_handler::render_template(
             &self.tera,
             template_name,
             &self.context,
             status,
             &self.config,
+            None, // Pas de token CSRF supplémentaire ici
         )
     }
 

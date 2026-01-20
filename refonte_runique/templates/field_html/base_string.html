@@ -1,0 +1,54 @@
+<div class="form-group mb-3" id="container_{{ field.name }}">
+    {% if field.label %}
+        <label for="id_{{ field.name }}" class="form-label">
+            {{ field.label }}
+            {% if field.is_required and field.is_required.choice %}
+                <span class="text-danger"></span>
+            {% endif %}
+        </label>
+    {% endif %}
+
+    {% if input_type == "richtext" or input_type == "textarea" %}
+        <textarea
+            id="id_{{ field.name }}"
+            name="{{ field.name }}"
+            placeholder="{{ field.placeholder }}"
+            class="form-control {% if field.error %}is-invalid{% endif %} {% if input_type == 'richtext' %}richtext-editor{% endif %}"
+            rows="{{ rows | default(value='10') }}"
+            {% if field.is_required and field.is_required.choice %}required{% endif %}
+            {% if field.disabled and field.disabled.choice %}disabled{% endif %}
+            {% if field.readonly and field.readonly.choice %}readonly{% endif %}
+            {% for attr, val in field.html_attributes %}{{ attr }}="{{ val }}" {% endfor %}
+        >{{ field.value }}</textarea>
+    {% else %}
+        <input
+            type="{{ input_type | default(value='text') }}"
+            id="id_{{ field.name }}"
+            name="{{ field.name }}"
+            {# Sécurité pour le mot de passe #}
+            {% if input_type != "password" %}value="{{ field.value }}"{% endif %}
+            placeholder="{{ field.placeholder }}"
+
+            {# Gestion de max_length (si passé directement dans le contexte) #}
+            {% if max_length %}maxlength="{{ max_length }}"{% endif %}
+
+            class="form-control {% if field.error %}is-invalid{% endif %}"
+            {% if field.is_required and field.is_required.choice %}required{% endif %}
+            {% if field.disabled and field.disabled.choice %}disabled{% endif %}
+            {% if field.readonly and field.readonly.choice %}readonly{% endif %}
+            {% for attr, val in field.html_attributes %}{{ attr }}="{{ val }}" {% endfor %}
+        >
+    {% endif %}
+
+    {% if field.error %}
+        <div class="invalid-feedback d-block">
+            {{ field.error }}
+        </div>
+    {% endif %}
+
+    {% if field.readonly and field.readonly.choice and field.readonly.message %}
+        <div class="form-text text-muted italic small">
+            {{ field.readonly.message }}
+        </div>
+    {% endif %}
+</div>

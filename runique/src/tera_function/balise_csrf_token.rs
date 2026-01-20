@@ -8,7 +8,7 @@ use axum::{
 use tower_sessions::session::Error as SessionError;
 use tower_sessions::Session;
 
-use crate::middleware::csrf::CsrfToken;
+use crate::middleware_folder::csrf::CsrfToken;
 
 /// Fonction Tera pour générer le champ CSRF
 pub struct CsrfTokenFunction;

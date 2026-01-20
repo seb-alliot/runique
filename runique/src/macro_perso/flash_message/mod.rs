@@ -82,15 +82,15 @@ macro_rules! flash_now {
     ($msg_type:ident => $content:expr) => {
         {
             let mut messages = vec![];
-            messages.push($crate::middleware::flash_message::FlashMessage::$msg_type($content));
+            messages.push($crate::middleware_folder::flash_message::FlashMessage::$msg_type($content));
             messages
         }
     };
     ($msg_type:ident => $first:expr, $($rest:expr),+ $(,)?) => {
         {
-            let mut messages = vec![$crate::middleware::flash_message::FlashMessage::$msg_type($first)];
+            let mut messages = vec![$crate::middleware_folder::flash_message::FlashMessage::$msg_type($first)];
             $(
-                messages.push($crate::middleware::flash_message::FlashMessage::$msg_type($rest));
+                messages.push($crate::middleware_folder::flash_message::FlashMessage::$msg_type($rest));
             )+
             messages
         }

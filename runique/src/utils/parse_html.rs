@@ -57,7 +57,7 @@ pub async fn parse_multipart(
 fn sanitize_filename(filename: &str) -> String {
     let ext = Path::new(filename)
         .extension()
-        .and_then(|e| e.to_str())
+        .and_then(|e: &std::ffi::OsStr| e.to_str())
         .unwrap_or("");
     let uuid = Uuid::new_v4().to_string();
     if ext.is_empty() {

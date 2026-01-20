@@ -20,7 +20,6 @@
         </div>
     {% endif %}
 
-
     {% block header %}
         <header>
             <img src='{% media "toshiro.avif" %}' alt="Logo">
@@ -53,10 +52,13 @@
         {% block footer %}
             <a href={% link "test_champs_form" %}>Test New Form</a>
             <a href={% link "view-user" %}>Recherche user</a>
-            <a href="{% link "user_profile" %}">S'inscrire</a>
+            {# <a href="{{ user_profile_url }}">S'inscrire</a> #}
             <a href={% link "about" %}>À propos</a>
             <a href="{% link "blog_info" %}">Blog</a>
             <p>&copy; 2025 My Web Application</p>
         {% endblock %}
     </footer>
 </body>
+{% block script %}
+    <script src='{% static "js/test_csrf.js" %}'></script>
+{% endblock %}
