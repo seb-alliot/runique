@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenue sur Runique</title>
+    <link rel="stylesheet" href="{{ "css/main.css" | runique_static }}">
+</head>
+<body class="page">
+    <div class="container">
+        <header>
+            <h1>🦀 Bienvenue sur Runique</h1>
+            <p class="subtitle">Projet de framework web en rust</p>
+        </header>
+
+        <main class="content">
+            <section class="features">
+                <h2>Caractéristiques</h2>
+                <ul>
+                    <li>✨ Inspiré de Django pour une expérience familière</li>
+                    <li>⚡ Construit sur Axum pour des performances optimales</li>
+                    <li>🛡️ Gestion d'erreur sophistiquée avec pages de debug</li>
+                    <li>📝 Support de Tera pour le templating</li>
+                    <li>🗄️ Intégration SeaORM optionnelle</li>
+                    <li>🔧 Configuration flexible et intuitive</li>
+                </ul>
+            </section>
+
+            <section class="info">
+                <h2>Commencer</h2>
+                    <ul>
+                        <li>cargo new my-app</li>
+                        <li>cd my-app</li>
+                        <li>cargo add runique</li>
+                    </ul>
+            </section>
+        </main>
+    </div>
+    <footer>
+        <p>Construit avec difficultées en Rust</p>
+    </footer>
+</body>
+</html>

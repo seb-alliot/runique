@@ -33,9 +33,10 @@
             {% block message %}
                 {% messages %}
             {% endblock %}
+
+
             <form id="username-form" method="post">
-                {% csrf %}
-                {% form.user.username %}
+                {% form.user %}
                 <button type="submit">Rechercher</button>
             </form>
         </div>

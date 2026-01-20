@@ -1,0 +1,23 @@
+[package]
+name = "derive_form"
+version = "0.1.2"
+edition = "2021"
+authors = ["Itsuki"]
+license = "MIT"
+description = "Procedural macros for Runique web framework - automatic form generation from models"
+repository = "https://github.com/seb-alliot/runique"
+homepage = "https://github.com/seb-alliot/runique"
+keywords = ["web", "forms", "macro", "derive"]
+categories = ["web-programming"]
+readme = "../../README.md"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+darling = "0.23.0"

@@ -6,6 +6,7 @@ use axum::{
     middleware::Next,
     response::{Html, IntoResponse, Response},
 };
+use crate::middleware_folder::csrf::CsrfToken;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
@@ -15,20 +16,25 @@ pub async fn error_handler_middleware(
     request: Request,
     next: Next,
 ) -> Response {
+    // 1. Extraire le token CSRF depuis les extensions de la requête
+    // On le récupère AVANT que 'next.run' ne consomme la requête
+    let csrf_token = request.extensions()
+        .get::<CsrfToken>()
+        .map(|t| t.0.clone());
+
     let response = next.run(request).await;
 
-    if response.status() == StatusCode::INTERNAL_SERVER_ERROR {
+    // 2. Intercepter les erreurs pour rendre les pages dédiées
+    if response.status() == StatusCode::INTERNAL_SERVER_ERROR && !config.debug {
         tracing::error!("Middleware intercepted 500 error");
-        if !config.debug {
-            return render_500(&tera, &config);
-        }
+        return render_500(&tera, &config, csrf_token);
     }
-    if response.status() == StatusCode::NOT_FOUND {
+
+    if response.status() == StatusCode::NOT_FOUND && !config.debug {
         tracing::warn!("Middleware intercepted 404 error");
-        if !config.debug {
-            return render_404(&tera, &config);
-        }
+        return render_404(&tera, &config, csrf_token);
     }
+
     response
 }
 
@@ -38,14 +44,24 @@ pub fn render_template(
     context: &Context,
     status: StatusCode,
     config: &Settings,
+    csrf_token: Option<String>,
 ) -> Response {
-    match tera.render(template, context) {
+    let mut context = context.clone();
+
+    // Injection automatique du token pour la balise {% csrf %}
+    if let Some(token) = csrf_token {
+        context.insert("csrf_token_value", &token);
+    }
+
+    context.insert("static_runique", &config.static_runique_url);
+
+    match tera.render(template, &context) {
         Ok(html) => (status, Html(html)).into_response(),
         Err(e) => {
             tracing::error!("Template rendering error for '{}': {}", template, e);
             if template == "errors/debug_error.html" {
                 tracing::error!("Error template itself failed to render");
-                return critical_error_html(&e.to_string(), tera, context, config);
+                return critical_error_html(&e.to_string(), tera, &context, config);
             }
             if config.debug {
                 render_debug_error(tera, template, &e, config)
@@ -61,16 +77,20 @@ fn render_production_error(tera: &Tera, error: &tera::Error, config: &Settings) 
 
     if is_not_found {
         tracing::warn!("Template not found in production mode");
-        render_404(tera, config)
+        render_404(tera, config, None)
     } else {
         tracing::error!("Template rendering error in production mode");
-        render_500(tera, config)
+        render_500(tera, config, None)
     }
 }
 
-pub fn render_404(tera: &Tera, config: &Settings) -> Response {
+pub fn render_404(tera: &Tera, config: &Settings, csrf_token: Option<String>) -> Response {
     let mut context = Context::new();
     context.insert("static_runique", &config.static_runique_url);
+
+    if let Some(token) = csrf_token {
+        context.insert("csrf_token_value", &token);
+    }
 
     match tera.render("404", &context) {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
@@ -81,9 +101,13 @@ pub fn render_404(tera: &Tera, config: &Settings) -> Response {
     }
 }
 
-pub fn render_500(tera: &Tera, config: &Settings) -> Response {
+pub fn render_500(tera: &Tera, config: &Settings, csrf_token: Option<String>) -> Response {
     let mut context = Context::new();
     context.insert("static_runique", &config.static_runique_url);
+
+    if let Some(token) = csrf_token {
+        context.insert("csrf_token_value", &token);
+    }
 
     match tera.render("500", &context) {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),

@@ -5,7 +5,7 @@ use axum::{
     routing::get,
     Router,
 };
-use runique::middleware::login_requiert::{login_required, redirect_if_authenticated};
+use runique::middleware_folder::login_requiert::{login_required, redirect_if_authenticated};
 use tower::ServiceExt;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 

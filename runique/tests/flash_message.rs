@@ -3,9 +3,9 @@ use axum::{
     body::Body, extract::Request, http::StatusCode, middleware::Next, response::IntoResponse,
     response::Response,
 };
-use runique::middleware::flash_message::FlashMessage;
-use runique::middleware::flash_message::FlashMessageSession;
-use runique::middleware::flash_middleware;
+use runique::middleware_folder::flash_message::FlashMessage;
+use runique::middleware_folder::flash_message::FlashMessageSession;
+use runique::middleware_folder::flash_middleware;
 use tower_sessions::session::Session;
 
 /// Clé de session pour stocker les messages flash

@@ -46,11 +46,11 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 use sea_orm::DatabaseConnection;
 
 use crate::app_state::AppState;
-use crate::middleware::csp::{security_headers_middleware, CspConfig};
-use crate::middleware::csrf::csrf_middleware;
-use crate::middleware::error_handler::{error_handler_middleware, render_index};
-use crate::middleware::flash_message::flash_middleware;
-use crate::middleware::middleware_sanetiser::sanitize_middleware;
+use crate::middleware_folder::csp::{security_headers_middleware, CspConfig};
+use crate::middleware_folder::csrf::csrf_middleware;
+use crate::middleware_folder::error_handler::{error_handler_middleware, render_index};
+use crate::middleware_folder::flash_message::flash_middleware;
+use crate::middleware_folder::middleware_sanetiser::sanitize_middleware;
 use crate::response::render_404;
 use crate::settings::Settings;
 use std::collections::HashMap;
@@ -676,7 +676,7 @@ impl RuniqueApp {
         self.config = Arc::new(config);
 
         self.router = self.router.layer(middleware::from_fn(
-            crate::middleware::allowed_hosts::allowed_hosts_middleware,
+            crate::middleware_folder::allowed_hosts::allowed_hosts_middleware,
         ));
         self
     }
@@ -706,7 +706,7 @@ impl RuniqueApp {
     pub fn with_csp(self, config: CspConfig) -> Self {
         let router = self.router.layer(middleware::from_fn_with_state(
             config,
-            crate::middleware::csp::csp_middleware,
+            crate::middleware_folder::csp::csp_middleware,
         ));
 
         Self {
@@ -783,7 +783,7 @@ impl RuniqueApp {
     pub fn with_csp_report_only(self, config: CspConfig) -> Self {
         let router = self.router.layer(middleware::from_fn_with_state(
             config,
-            crate::middleware::csp::csp_report_only_middleware,
+            crate::middleware_folder::csp::csp_report_only_middleware,
         ));
 
         Self {

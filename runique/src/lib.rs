@@ -23,7 +23,7 @@ pub mod database;
 pub mod error;
 pub mod formulaire;
 pub mod macro_perso;
-pub mod middleware;
+pub mod middleware_folder;
 pub mod orm;
 pub mod processor;
 pub mod response;
@@ -40,12 +40,12 @@ pub use tokio;
 pub use tower_sessions;
 
 // Middleware
-pub use middleware::csp::{security_headers_middleware, CspConfig};
-pub use middleware::csrf::csrf_middleware;
-pub use middleware::error_handler::{render_404, render_500};
-pub use middleware::flash_message::flash_middleware;
-pub use middleware::login_requiert::{login_required, redirect_if_authenticated};
-pub use middleware::middleware_sanetiser::sanitize_middleware;
+pub use middleware_folder::csp::{security_headers_middleware, CspConfig};
+pub use middleware_folder::csrf::csrf_middleware;
+pub use middleware_folder::error_handler::{render_404, render_500};
+pub use middleware_folder::flash_message::flash_middleware;
+pub use middleware_folder::login_requiert::{login_required, redirect_if_authenticated};
+pub use middleware_folder::middleware_sanetiser::sanitize_middleware;
 
 // Macros
 pub use derive_form::{runique_form, DeriveModelForm};
@@ -177,8 +177,8 @@ pub mod prelude {
     pub use crate::tower_sessions::Session;
 
     // === Middleware courants ===
-    pub use crate::middleware::csp::CspConfig;
-    pub use crate::middleware::login_requiert::{login_required, redirect_if_authenticated};
+    pub use crate::middleware_folder::csp::CspConfig;
+    pub use crate::middleware_folder::login_requiert::{login_required, redirect_if_authenticated};
 
     // === SeaORM ===
     pub use crate::sea_orm;
