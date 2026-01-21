@@ -1,8 +1,4 @@
-use runique::impl_objects;
 use runique::prelude::*;
-use runique::sea_orm;
-use runique::sea_orm::entity::prelude::*;
-use runique::serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "test_fields")]
@@ -15,7 +11,7 @@ pub struct Model {
     pub website: String,
     pub description: String,
     pub password: String,
-    pub created_at: DateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -24,10 +20,8 @@ pub enum Relation {}
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
-            created_at: Set(chrono::Utc::now().naive_utc()),
+            created_at: Set(chrono::Utc::now()),
             ..Default::default()
         }
     }
 }
-
-impl_objects!(Entity);

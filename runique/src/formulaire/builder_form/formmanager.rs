@@ -1,7 +1,6 @@
+use crate::formulaire::builder_form::field_type::TextField;
 use crate::formulaire::builder_form::generique_field::GenericField;
 use crate::formulaire::builder_form::trait_form::FormField;
-use crate::formulaire::builder_form::field_type::TextField;
-use crate::sea_orm;
 use indexmap::IndexMap;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
@@ -78,7 +77,6 @@ impl Serialize for Forms {
         state.serialize_field("data", &self.data())?;
         state.serialize_field("errors", &self.errors())?;
         state.serialize_field("global_errors", &self.global_errors)?;
-        println!("[FORMS] Sérialisation du formulaire avec {} champs", self.fields.len());
 
         let rendered_html = match self.render() {
             Ok(h) => h,
@@ -111,8 +109,6 @@ impl Serialize for Forms {
             .collect();
 
         state.serialize_field("fields", &fields_data)?;
-        println!("[FORMS] Sérialisation terminée avec succès manager ligne 116 {:?}", fields_data.keys());
-        println!("[FORMS] Data enregistrée manage ligne 117 : {:?}", fields_data);
         state.end()
     }
 }
@@ -122,8 +118,7 @@ impl Forms {
         // Met à jour la valeur du champ 'csrf_token' qui a été créé dans Forms::new()
         if let Some(field) = self.fields.get_mut("csrf_token") {
             field.set_value(&token);
-            println!("[FORMS] Succès : Champ CSRF rempli avec {}", &token[..10]);
-        }{
+        } else {
             println!("[FORMS] Erreur : Champ CSRF non trouvé lors de la mise à jour du token");
         }
     }
@@ -132,9 +127,10 @@ impl Forms {
 
         // Initialisation du champ caché
         let csrf_field = TextField::create_csrf();
-        fields.insert("csrf_token".to_string(), Box::new(csrf_field) as Box<dyn FormField>);
-
-        println!("[FORMS] Nouveau formulaire créé avec champ 'csrf_token' (actuellement vide)");
+        fields.insert(
+            "csrf_token".to_string(),
+            Box::new(csrf_field) as Box<dyn FormField>,
+        );
 
         Self {
             fields,
@@ -142,7 +138,6 @@ impl Forms {
             global_errors: Vec::new(),
         }
     }
-
 
     /// La solution au "type annotations needed" :
     /// On force la conversion en GenericField ici même.

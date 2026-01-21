@@ -1,5 +1,4 @@
 use runique::prelude::*;
-use sea_orm::entity::prelude::*;
 
 // Modèle SeaORM
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveModelForm)]
@@ -18,10 +17,10 @@ pub struct Model {
     pub is_active: bool,
 
     #[sea_orm(column_type = "Timestamp")]
-    pub created_at: DateTime,
+    pub created_at: DateTime<Utc>,
 
     #[sea_orm(column_type = "Timestamp")]
-    pub updated_at: DateTime,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

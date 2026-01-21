@@ -37,6 +37,24 @@ if (!window.rustiCsrfInitialized) {
         if (meta) meta.setAttribute('content', newToken);
     };
 
+    // Rafraîchir le token au chargement de la page (en cas de redémarrage serveur)
+    window.refreshTokenFromServer = async function() {
+        try {
+            console.log("[CSRF JS] Rafraîchissement du token depuis le serveur...");
+            const response = await fetch('/api/csrf-token');
+            if (response.ok) {
+                const data = await response.json();
+                window.updateTokenInDom(data.csrf_token);
+                console.log("[CSRF JS] ✓ Token rafraîchi depuis le serveur");
+            }
+        } catch (e) {
+            console.warn("[CSRF JS] ⚠️ Impossible de rafraîchir le token:", e);
+        }
+    };
+
+    // Rafraîchir au chargement
+    document.addEventListener('DOMContentLoaded', window.refreshTokenFromServer);
+
     const { fetch: originalFetch } = window;
 
     window.fetch = async (input, init = {}) => {
