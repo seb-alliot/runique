@@ -132,13 +132,50 @@ pub trait RuniqueForm: Sized + Send + Sync {
         tera: Arc<Tera>,
     ) -> impl Future<Output = Self> + Send {
         async move {
+            println!("[BUILD_WITH_DATA] === DÉBUT BUILD_WITH_DATA ===");
+            println!(
+                "[BUILD_WITH_DATA] Données reçues: {} champs",
+                raw_data.len()
+            );
+            for (key, val) in raw_data.iter() {
+                println!(
+                    "[BUILD_WITH_DATA]   - {}: {}",
+                    key,
+                    if val.len() > 50 { &val[..50] } else { val }
+                );
+            }
+
             let mut form = Forms::new();
+            println!("[BUILD_WITH_DATA] Forms::new() créé");
             form.set_tera(tera.clone());
+            println!("[BUILD_WITH_DATA] Tera assigné");
+
             Self::register_fields(&mut form);
+            println!(
+                "[BUILD_WITH_DATA] Champs enregistrés (total: {})",
+                form.fields.len()
+            );
+
             form.fill(raw_data);
+            println!("[BUILD_WITH_DATA] Données remplies");
 
             let mut instance = Self::from_form(form);
-            instance.is_valid().await;
+            println!("[BUILD_WITH_DATA] Instance créée, validation...");
+
+            let is_valid = instance.is_valid().await;
+            println!(
+                "[BUILD_WITH_DATA] Validation: {}",
+                if is_valid { "✓" } else { "❌" }
+            );
+
+            if !is_valid {
+                println!(
+                    "[BUILD_WITH_DATA] Erreurs: {:?}",
+                    instance.get_form().errors()
+                );
+            }
+
+            println!("[BUILD_WITH_DATA] === FIN BUILD_WITH_DATA ===");
             instance
         }
     }

@@ -23,10 +23,6 @@ exclude = [
 name = "runique"
 path = "src/lib.rs"
 
-[[bin]]
-name = "runique"
-path = "src/bin/runique.rs"
-
 [dependencies]
 # Framework web
 axum.workspace = true

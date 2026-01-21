@@ -1,196 +1,301 @@
 //! # Runique Framework
 //!
-//! Un framework web inspiré de Django pour Rust, construit sur Axum.
+//! Un framework web inspiré de Django pour Rust, avec ORM, templates, et sécurité intégrée.
 //!
-//! ## Exemple d'utilisation
+//! ## Utilisation de base
 //!
 //! ```rust,no_run
 //! use runique::prelude::*;
 //!
 //! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let settings = Settings::default_values();
-//!     RuniqueApp::new(settings).await?.run().await?;
-//!     Ok(())
+//! async fn main() {
+//!     let config = RuniqueConfig::from_env().unwrap();
+//!     let app = RuniqueApp::new(config)
+//!         .with_routes(Router::new().route("/", get(index)))
+//!         .build()
+//!         .await
+//!         .unwrap();
+//!
+//!     app.run("0.0.0.0:3000").await.unwrap();
+//! }
+//!
+//! async fn index() -> impl IntoResponse {
+//!     "Hello, Runique!"
 //! }
 //! ```
+//!
+//! ## Modules
+//!
+//! - [`config_runique`] - Configuration de l'application
+//! - [`data_base_runique`] - Gestion de la base de données et ORM
+//! - [`formulaire`] - Système de formulaires avec validation
+//! - [`gardefou`] - Middlewares de sécurité (CSRF, CSP, sanitization, etc.)
+//! - [`macro_runique`] - Macros utilitaires pour le routing et contexte
+//! - [`moteur_engine`] - Moteur principal de Runique
+//! - [`request_context`] - Gestion du contexte de requête et templates
+//! - [`runique_body`] - Builder d'application Runique
+//! - [`utils`] - Utilitaires divers
 
-// Modules internes
-pub mod app;
-pub mod app_state;
+// ============================================================================
+// DÉCLARATION DES MODULES
+// ============================================================================
+
+pub mod config_runique;
 #[cfg(feature = "orm")]
-pub mod database;
-pub mod error;
+pub mod data_base_runique;
 pub mod formulaire;
-pub mod macro_perso;
-pub mod middleware_folder;
-pub mod orm;
-pub mod processor;
-pub mod response;
-pub mod settings;
-pub mod tera_function;
+pub mod gardefou;
+#[macro_use]
+pub mod macro_runique;
+pub mod moteur_engine;
+pub mod request_context;
+pub mod runique_body;
 pub mod utils;
 
-// Ré-exports généraux
+// ============================================================================
+// RÉ-EXPORTS GÉNÉRAUX
+// ============================================================================
+
+// Frameworks et bibliothèques externes utilisés par Runique
 pub use axum;
 pub use serde;
 pub use serde_json;
 pub use tera;
 pub use tokio;
+pub use tower;
+pub use tower_http;
 pub use tower_sessions;
 
-// Middleware
-pub use middleware_folder::csp::{security_headers_middleware, CspConfig};
-pub use middleware_folder::csrf::csrf_middleware;
-pub use middleware_folder::error_handler::{render_404, render_500};
-pub use middleware_folder::flash_message::flash_middleware;
-pub use middleware_folder::login_requiert::{login_required, redirect_if_authenticated};
-pub use middleware_folder::middleware_sanetiser::sanitize_middleware;
-
-// Macros
-pub use derive_form::{runique_form, DeriveModelForm};
-
-// Processor
-pub use processor::{Message, Template};
-
-// Routing & URL reversing
-pub use macro_perso::router::{
-    register_name_url::register_name_url, reverse, reverse_with_parameters,
-};
-
-// ORM (SeaORM)
-#[cfg(feature = "orm")]
-pub use database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
 #[cfg(feature = "orm")]
 pub use sea_orm;
-#[cfg(feature = "orm")]
-pub use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Database, DatabaseConnection, EntityTrait, ModelTrait,
-    QueryFilter, Set,
-};
 
-// CSRF / HMAC
-pub use hmac::{Hmac, Mac};
-pub use sha2::Sha256;
+// Ré-export de derive_form
+pub use derive_form::DeriveModelForm;
 
-// Ré-exports principaux pour usage courant
-pub use app::RuniqueApp;
-pub use error::{ErrorContext, ErrorType};
-pub use settings::Settings;
+// Ré-export des macros pour qu'elles soient accessibles
+// Les macros #[macro_export] sont automatiquement disponibles à la racine
 
-// Axum - types courants
-pub use axum::{
-    debug_handler,
-    extract::{Form, Path, Query, State},
-    http::StatusCode,
-    response::{Html, IntoResponse, Redirect, Response},
-    routing::{delete, get, patch, post, put},
-    Extension, Form as AxumForm, Router,
-};
+// ============================================================================
+// MODULE PRELUDE - Imports simplifiés pour les utilisateurs
+// ============================================================================
 
-// Divers utilitaires
-pub use async_trait::async_trait;
-pub use once_cell::sync::Lazy;
-pub use serde::ser::{SerializeStruct, Serializer};
-pub use serde::{Deserialize, Serialize};
-pub use serde_json::json;
-pub use tera::{Context, Tera};
-
-// Formulaires
-pub use formulaire::builder_form::formmanager::Forms;
-pub use formulaire::utils::extracteur::ExtractForm;
-pub use macro_perso::context_macro::ContextHelper;
-
-// Version du framework
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-/// === Prelude simplifié et sûr ===
+/// Module prelude contenant tous les imports courants pour démarrer rapidement.
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::prelude::*;
+///
+/// // Tous les types essentiels sont maintenant disponibles
+/// ```
 pub mod prelude {
-    // === Core ===
-    pub use crate::app::RuniqueApp;
-    pub use crate::processor::{Message, Template};
-    pub use crate::settings::Settings;
+    // ========================================================================
+    // CORE - Composants principaux de Runique
+    // ========================================================================
 
-    // === Macros ===
-    pub use crate::{runique_form, DeriveModelForm};
+    /// Moteur principal de Runique
+    pub use crate::moteur_engine::RuniqueEngine;
 
-    // === Formulaires ===
-    pub use crate::formulaire::builder_form::formmanager::Forms;
-    pub use crate::formulaire::utils::extracteur::ExtractForm;
-    pub use country::Country;
-    pub use phonenumber::{country::Id as CountryId, parse, Mode};
+    /// Builder pour créer une application Runique
+    pub use crate::runique_body::RuniqueApp;
 
-    // === Champs standards ===
+    /// Configuration de l'application
+    pub use crate::config_runique::RuniqueConfig;
 
-    // Core logic
-    pub use crate::formulaire::builder_form::base_struct::*;
-    pub use crate::formulaire::builder_form::option_field::*;
-    pub use crate::formulaire::builder_form::trait_form::{FormField, RuniqueForm};
-    pub use argon2::{
-        password_hash::{rand_core::OsRng, PasswordHasher, PasswordVerifier, SaltString},
-        Argon2,
+    // ========================================================================
+    // CONTEXT & TEMPLATES - Gestion du contexte et moteur de templates
+    // ========================================================================
+
+    /// Contexte de template pour Tera
+    pub use crate::request_context::TemplateContext;
+
+    /// Contexte de requête Runique
+    pub use crate::request_context::RuniqueContext;
+
+    /// Gestionnaire de messages flash
+    pub use crate::request_context::FlashManager;
+
+    /// Contexte de requête
+    pub use crate::request_context::RequestContext;
+
+    /// Utilitaires Tera
+    pub use crate::request_context::tera_tool::*;
+
+    // ========================================================================
+    // MIDDLEWARES - Sécurité et gestion des requêtes
+    // ========================================================================
+
+    // --- CSP (Content Security Policy) ---
+    pub use crate::gardefou::composant_middleware::csp::{
+        csp_middleware, csp_report_only_middleware, security_headers_middleware, CspConfig,
+        NONCE_KEY,
     };
-    // Champs mis à jour
-    pub use crate::formulaire::builder_form::field_type::number_mode::NumericField;
-    pub use crate::formulaire::builder_form::field_type::text_mode::TextField;
+
+    // --- CSRF (Cross-Site Request Forgery) ---
+    pub use crate::gardefou::composant_middleware::csrf::{csrf_middleware, CsrfToken};
+
+    // --- Flash Messages ---
+    pub use crate::gardefou::composant_middleware::flash_message::flash_middleware;
+
+    // --- Sanitization ---
+    pub use crate::gardefou::composant_middleware::middleware_sanitiser::sanitize_middleware;
+
+    // --- Error Handlers ---
+    pub use crate::gardefou::composant_middleware::error_handler::{render_404, render_500};
+
+    // --- Authentication ---
+    pub use crate::gardefou::composant_middleware::login_requiert::{
+        login_required, redirect_if_authenticated,
+    };
+
+    // --- Allowed Hosts ---
+    pub use crate::gardefou::composant_middleware::allowed_hosts::AllowedHostsValidator;
+
+    // ========================================================================
+    // FORMULAIRES - Système de formulaires avec validation
+    // ========================================================================
+
+    /// Gestionnaire de formulaires
+    pub use crate::formulaire::builder_form::formmanager::Forms;
+
+    /// Structures de base pour les formulaires
+    pub use crate::formulaire::builder_form::base_struct::*;
+
+    /// Options pour les champs de formulaire
+    pub use crate::formulaire::builder_form::option_field::*;
+
+    /// Types de champs disponibles
+    pub use crate::formulaire::builder_form::field_type::*;
+
+    /// Champ générique
     pub use crate::formulaire::builder_form::generique_field::GenericField;
 
-    // === Messages flash ===
-    pub use crate::{context, error, flash_now, info, success, warning};
+    /// Traits pour les formulaires
+    pub use crate::formulaire::builder_form::trait_form::{FormField, RuniqueForm};
 
-    // === Routing et URL reversing ===
-    pub use crate::{app_state::AppState, register_name_url, reverse, reverse_with_parameters};
+    /// Extracteur de formulaire pour Axum
+    pub use crate::formulaire::utils::extracteur::ExtractForm;
 
-    // === Axum - Router et Routing ===
+    // Macro derive pour générer des formulaires depuis des modèles
+    pub use derive_form::DeriveModelForm;
+
+    // ========================================================================
+    // ROUTING & URL REVERSING - Gestion des routes et URLs
+    // ========================================================================
+
+    /// Enregistrer une URL nommée
+    pub use crate::macro_runique::router::register_name_url::register_name_url;
+
+    /// Inverser une URL par son nom
+    pub use crate::macro_runique::router::reverse;
+
+    /// Inverser une URL avec paramètres
+    pub use crate::macro_runique::router::reverse_with_parameters;
+
+    // ========================================================================
+    // MACROS - Macros de contexte et helpers
+    // ========================================================================
+
+    /// Macros pour le contexte
+    pub use crate::macro_runique::context_macro::*;
+
+    /// Macros pour SeaORM - impl_objects!, get_or_return!
+    /// Importées automatiquement via #[macro_use]
+
+    // Note : Les macros suivantes sont disponibles directement :
+    // - context! : Créer un contexte Tera facilement
+    // - success!, error!, info!, warning! : Envoyer des messages flash
+    // - flash_now! : Créer des messages flash immédiats
+    // - urlpatterns! : Définir des routes avec noms
+    // - view! : Créer des routes GET/POST
+    // - impl_objects! : Ajouter .objects à un modèle SeaORM
+    // - get_or_return! : Macro utilitaire pour gérer les Result
+
+    // ========================================================================
+    // UTILITIES - Utilitaires divers
+    // ========================================================================
+
+    /// Génération de tokens
+    pub use crate::utils::generate_token::*;
+
+    /// Parsing HTML
+    pub use crate::utils::parse_html::*;
+
+    // ========================================================================
+    // AXUM - Types et extracteurs Axum
+    // ========================================================================
+
     pub use axum::{
-        routing::{delete, get, patch, post, put},
-        Router,
+        extract::{Extension, Form, Path, Query, State},
+        http::{HeaderMap, HeaderValue, Method, StatusCode},
+        middleware,
+        response::{Html, IntoResponse, Redirect, Response},
+        routing::{any, delete, get, patch, post, put},
+        Json, Router,
     };
 
-    // === Axum - Response ===
-    pub use axum::response::{Html, IntoResponse, Redirect, Response};
+    // ========================================================================
+    // ORM - Base de données (feature "orm")
+    // ========================================================================
+    #[cfg(feature = "orm")]
+    pub use crate::data_base_runique::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
 
-    // === Axum - Extractors ===
-    pub use axum::extract::{Extension, Form, Path, Query, State};
-    pub use axum::Json;
+    #[cfg(feature = "orm")]
+    pub use crate::data_base_runique::composant_data_base::*;
 
-    // === Axum - HTTP ===
-    pub use axum::http::StatusCode;
+    #[cfg(feature = "orm")]
+    pub use sea_orm::{
+        self, entity::prelude::*, ActiveModelBehavior, ActiveModelTrait, ColumnTrait,
+        ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, ModelTrait, NotSet,
+        QueryFilter, QueryOrder, QuerySelect, Set,
+    };
 
-    // === Tokio / Async ===
-    pub use async_trait;
+    // ========================================================================
+    // SÉRIALISATION & FORMATS - JSON, TOML, etc.
+    // ========================================================================
+
+    pub use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    pub use serde_json::{from_str, json, to_string, Value};
+
+    // ========================================================================
+    // TEMPLATES - Tera
+    // ========================================================================
+
+    pub use tera::{Context, Tera};
+
+    // ========================================================================
+    // ASYNC & CONCURRENCY
+    // ========================================================================
+
+    pub use async_trait::async_trait;
+    pub use once_cell::sync::Lazy;
     pub use tokio;
 
-    // === Serde ===
-    pub use crate::serde::ser::{SerializeStruct, Serializer};
-    pub use crate::serde::{Deserialize, Serialize};
+    // ========================================================================
+    // TYPES STANDARDS COURANTS
+    // ========================================================================
 
-    // === Collections / Sync ===
     pub use std::collections::{HashMap, HashSet};
     pub use std::sync::Arc;
 
-    // === Tera ===
-    pub use crate::tera;
-    pub use crate::tera::{Context, Tera};
+    // ========================================================================
+    // SÉCURITÉ - HMAC, Hashing, etc.
+    // ========================================================================
 
-    // === Sessions ===
-    pub use crate::tower_sessions::Session;
-
-    // === Middleware courants ===
-    pub use crate::middleware_folder::csp::CspConfig;
-    pub use crate::middleware_folder::login_requiert::{login_required, redirect_if_authenticated};
-
-    // === SeaORM ===
-    pub use crate::sea_orm;
-
-    // === ORM (si feature orm activée) ===
-    #[cfg(feature = "orm")]
-    pub use crate::database::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
-    #[cfg(feature = "orm")]
-    pub use crate::orm::impl_objects;
-    #[cfg(feature = "orm")]
-    pub use sea_orm::{
-        ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
-        QueryOrder, QuerySelect, Set,
+    pub use argon2::{
+        password_hash::{rand_core::OsRng, SaltString},
+        Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     };
+    pub use hmac::{Hmac, Mac};
+    pub use sha2::Sha256;
+
+    // ========================================================================
+    // SESSIONS
+    // ========================================================================
+
+    pub use anyhow::{Context as AnyhowContext, Error, Result};
+    pub use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+    pub use regex::Regex;
+    pub use tower_sessions::{Session, SessionManagerLayer};
+    pub use uuid::Uuid;
 }

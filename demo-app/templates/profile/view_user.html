@@ -31,12 +31,17 @@
         <!-- Formulaire de recherche d'utilisateur -->
         <div class="form-container">
             {% block message %}
-                {% messages %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.level | lower }}">{{ message.content }}</div>
+                    {% endfor %}
+                {% endif %}
             {% endblock %}
 
 
             <form id="username-form" method="post">
                 {% form.user %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit">Rechercher</button>
             </form>
         </div>

@@ -1,9 +1,4 @@
-use runique::impl_objects;
 use runique::prelude::*;
-use runique::sea_orm;
-use runique::sea_orm::entity::prelude::*;
-use runique::sea_orm::{NotSet, Set};
-use runique::serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "blog")]
@@ -17,7 +12,7 @@ pub struct Model {
     pub summary: String, // Pour le TextArea
     #[sea_orm(column_type = "Text")]
     pub content: String, // Pour le RichText
-    pub created_at: DateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -32,8 +27,7 @@ impl ActiveModelBehavior for ActiveModel {
             website: NotSet,
             summary: NotSet,
             content: NotSet,
-            created_at: Set(chrono::Utc::now().naive_utc()),
+            created_at: Set(chrono::Utc::now()),
         }
     }
 }
-impl_objects!(Entity);

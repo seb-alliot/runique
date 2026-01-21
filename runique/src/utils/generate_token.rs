@@ -64,11 +64,6 @@ pub fn mask_csrf_token(token_hex: &str) -> String {
 
     let final_b64 = general_purpose::STANDARD.encode(&result);
 
-    // LOG DE SUIVI
-    println!("[CSRF UTILS] Masquage effectué :");
-    println!("  > Original (hex): {}", token_hex);
-    println!("  > Masqué (b64): {}", final_b64);
-
     final_b64
 }
 
@@ -76,14 +71,10 @@ pub fn unmask_csrf_token(masked_token_b64: &str) -> Result<String, &'static str>
     // Décoder le base64
     let decoded = general_purpose::STANDARD
         .decode(masked_token_b64)
-        .map_err(|_| {
-            println!("[CSRF UTILS] ❌ Erreur : Échec du décodage Base64");
-            "Invalid base64"
-        })?;
+        .map_err(|_| "Invalid base64")?;
 
     // Vérifier que la taille est paire (masque + token)
     if decoded.len() % 2 != 0 {
-        println!("[CSRF UTILS] ❌ Erreur : Longueur de token invalide ({})", decoded.len());
         return Err("Invalid token length");
     }
 
@@ -95,11 +86,6 @@ pub fn unmask_csrf_token(masked_token_b64: &str) -> Result<String, &'static str>
     // XOR inverse pour récupérer le token original
     let token_bytes: Vec<u8> = masked.iter().zip(mask.iter()).map(|(m, k)| m ^ k).collect();
     let unmasked_hex = hex::encode(token_bytes);
-
-    // LOG DE SUIVI
-    println!("[CSRF UTILS] Démasquage effectué :");
-    println!("  > Entrée (b64): {}", masked_token_b64);
-    println!("  > Sortie (hex): {}", unmasked_hex);
 
     Ok(unmasked_hex)
 }
