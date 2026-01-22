@@ -4,12 +4,14 @@ use std::sync::{Arc, RwLock};
 use tera::Tera;
 
 use crate::gardefou::composant_middleware::{
-    csrf::csrf_middleware, error_handler::error_handler_middleware,
+    csrf_middleware::csrf_middleware, error_handler::error_handler_middleware,
     flash_message::flash_middleware, middleware_sanitiser::sanitize_middleware,
 };
 
 use crate::config_runique::config_struct::RuniqueConfig;
-use crate::gardefou::composant_middleware::{csp::CspConfig, security_headers_middleware};
+use crate::gardefou::composant_middleware::{
+    csp_middleware::CspConfig, security_headers_middleware,
+};
 use crate::gardefou::middleware_struct::GardeFou;
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;

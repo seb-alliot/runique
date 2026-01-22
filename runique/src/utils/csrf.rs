@@ -21,7 +21,9 @@ impl CsrfToken {
     pub fn generate_with_context(ctx: CsrfContext, secret: &str) -> Self {
         let raw = match ctx {
             CsrfContext::Anonymous { session_id } => generation_token(secret, session_id),
-            CsrfContext::Authenticated { user_id } => generation_user_token(secret, &user_id.to_string()),
+            CsrfContext::Authenticated { user_id } => {
+                generation_user_token(secret, &user_id.to_string())
+            }
         };
         CsrfToken(raw)
     }
@@ -44,12 +46,12 @@ impl CsrfToken {
 }
 
 /// Génération HMAC-SHA256 pour utilisateur anonyme
-pub fn generation_token(secret_key: &str, session_id: &str) -> String {
-    let mut mac = HmacSha256::new_from_slice(secret_key.as_bytes())
-        .expect("HMAC can take key of any size");
+pub fn generation_token(secret_key: &str, option: &str) -> String {
+    let mut mac =
+        HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");
 
     mac.update(b"runique.middleware.csrf");
-    mac.update(session_id.as_bytes());
+    mac.update(option.as_bytes());
 
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -62,48 +64,67 @@ pub fn generation_token(secret_key: &str, session_id: &str) -> String {
 }
 
 /// Génération HMAC-SHA256 pour utilisateur connecté
-pub fn generation_user_token(secret_key: &str, user_id: &str) -> String {
-    let mut mac = HmacSha256::new_from_slice(secret_key.as_bytes())
-        .expect("HMAC can take key of any size");
+pub fn generation_user_token(secret_key: &str, option: &str) -> String {
+    let mut mac =
+        HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");
 
-    mac.update(b"runique.middleware.user_token");
-    mac.update(user_id.as_bytes());
+    mac.update(b"runique.middleware.csrf");
+    mac.update(option.as_bytes());
 
-    let timestamp = std::time::SystemTime::now()
+    let timestamp: String = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_nanos()
         .to_string();
     mac.update(timestamp.as_bytes());
 
-    hex::encode(mac.finalize().into_bytes())
+    let result = mac.finalize();
+    hex::encode(result.into_bytes())
 }
 
 /// Masquage pour protection BREACH
 pub fn mask_csrf_token(token_hex: &str) -> String {
     // Remplacer expect par une gestion d'erreur ou un fallback
-    let token_bytes = hex::decode(token_hex).unwrap_or_else(|_| {
-        eprintln!("Erreur critique: Tentative de masquer un token qui n'est pas en Hex: {}", token_hex);
-        vec![]
-    });
-
-    if token_bytes.is_empty() { return "".to_string(); }
+    let token_bytes = hex::decode(token_hex).expect("Invalid hex token");
 
     let mut rng = rand::rng();
-    let mask: Vec<u8> = (0..token_bytes.len()).map(|_| rng.random()).collect();
-    let masked: Vec<u8> = token_bytes.iter().zip(mask.iter()).map(|(t, m)| t ^ m).collect();
 
+    let mask: Vec<u8> = (0..token_bytes.len()).map(|_| rng.random()).collect();
+
+    // XOR du token avec le masque
+    let masked: Vec<u8> = token_bytes
+        .iter()
+        .zip(mask.iter())
+        .map(|(t, m)| t ^ m)
+        .collect();
+
+    // Concaténer masque + token_masqué
     let mut result = mask;
     result.extend(masked);
+
+    // Encoder en base64
     general_purpose::STANDARD.encode(&result)
 }
 
 /// Démasquage
 pub fn unmask_csrf_token(masked_token_b64: &str) -> Result<String, &'static str> {
-    let decoded = general_purpose::STANDARD.decode(masked_token_b64).map_err(|_| "Invalid base64")?;
-    if decoded.len() % 2 != 0 { return Err("Invalid token length"); }
+    let decoded = general_purpose::STANDARD
+        .decode(masked_token_b64)
+        .map_err(|_| "Invalid base64")?;
+
+    // Vérifier que la taille est paire (masque + token)
+    if decoded.len() % 2 != 0 {
+        return Err("Invalid token length");
+    }
+
     let token_len = decoded.len() / 2;
+
+    // Séparer masque et token masqué
     let (mask, masked) = decoded.split_at(token_len);
+
+    // XOR inverse pour récupérer le token original
     let token_bytes: Vec<u8> = masked.iter().zip(mask.iter()).map(|(m, k)| m ^ k).collect();
+
+    // Convertir en hex
     Ok(hex::encode(token_bytes))
 }

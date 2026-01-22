@@ -30,12 +30,12 @@ impl Function for CsrfTokenFunction {
     /// Génère le champ HTML pour le token CSRF
     /// `args` peut contenir un token spécifique à injecter (clé "token") ou "csrf_token" par défaut
     fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
-        let token_str = args.get("token")
+        let token_str = args
+            .get("token")
             .and_then(|v| v.as_str())
             .or_else(|| {
                 // fallback sur "csrf_token" si "token" n'est pas passé
-                args.get("csrf_token")
-                    .and_then(|v| v.as_str())
+                args.get("csrf_token").and_then(|v| v.as_str())
             })
             .unwrap_or(""); // si aucun token trouvé, mettre une chaîne vide pour éviter panic
 

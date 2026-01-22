@@ -98,7 +98,8 @@ where
 
         // INJECTION AUTOMATIQUE DU TOKEN CSRF
         if let Some(token_struct) = csrf_ext {
-            form.get_form_mut().set_csrf_token(token_struct.masked().0.clone());
+            form.get_form_mut()
+                .set_csrf_token(token_struct.masked().0.clone());
         }
 
         form.get_form_mut().set_tera(tera);

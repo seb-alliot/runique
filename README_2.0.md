@@ -42,7 +42,7 @@
 ### 💾 Installation et Setup
 
 #### Prérequis:
-- Rust 1.70+ (`rustup update`)
+- Rust 1.75+ (`rustup update`)
 - PostgreSQL 12+ (ou SQLite pour le dev)
 - Node.js pour les assets (optionnel)
 
@@ -50,7 +50,7 @@
 
 ```bash
 # Cloner le projet
-git clone https://github.com/yourusername/runique.git
+git clone https://github.com/seb-alliot/runique.git
 cd runique
 
 # Compiler
@@ -125,7 +125,7 @@ use runique::prelude::*;
 #[tokio::main]
 async fn main() {
     let config = RuniqueConfig::from_env().unwrap();
-    
+
     let app = RuniqueApp::new(config)
         .with_database()
         .await
@@ -134,7 +134,7 @@ async fn main() {
         .build()
         .await
         .unwrap();
-    
+
     app.run("127.0.0.1:3000").await.unwrap();
 }
 
@@ -144,21 +144,18 @@ fn routes() -> Router {
         .route("/users", post(create_user))
 }
 
-async fn index() -> impl IntoResponse {
+pub async fn index(mut template: TemplateContext){
     "Bienvenue sur Runique 2.0!"
 }
 
 async fn create_user(
-    ctx: RuniqueContext,
     template: TemplateContext,
 ) -> Response {
-    template.render("users/create.html", &context! {
-        "title" => "Créer un utilisateur"
-    })
+    template.context(context_update!{
+        "title" => "Créer un utilisateur",
+        success!(template.messages => format!("Bienvenue {}, votre compte a été créé !", user.username))
+        }).render("users/create.html")
 }
-```
-
----
 
 ### ⚙️ Configuration
 
@@ -195,21 +192,25 @@ println!("Secret: {}", config.secret_key);
 
 ```rust
 use runique::urlpatterns;
+use crate::views;
 
 pub fn routes() -> Router {
-    urlpatterns! {
-        "index" => "/" => get(index),
-        "user_list" => "/users" => get(user_list),
-        "user_detail" => "/users/<id>" => get(user_detail),
-        "user_create" => "/users" => post(create_user),
-        "user_edit" => "/users/<id>" => put(update_user),
-    }
+    let router = urlpatterns! {
+        "/" => views!( Get => views::index ), name="index",
+        "user_list" => views!( Get = > views::user_list), name="user",
+        "/users/<id>" => view!(Get => views::user_detail),name="user-detail",
+
+        "user_create" => views! (
+            Get => views::inscription_form,
+            Post => views::create_user), name="inscription",
+    };
+    router
 }
 
-async fn index(_ctx: RuniqueContext, template: TemplateContext) -> Response {
-    template.render("index.html", &context! {
+async fn index(template: TemplateContext) -> Response {
+    template.context(context_update!{
         "title" => "Accueil"
-    })
+    }).render("index.html")
 }
 ```
 
@@ -220,7 +221,6 @@ use axum::extract::Path;
 
 async fn user_detail(
     Path(id): Path<i32>,
-    ctx: RuniqueContext,
     template: TemplateContext,
 ) -> Response {
     // Utiliser `id`
@@ -228,6 +228,7 @@ async fn user_detail(
         "user_id" => id
     })
 }
+
 ```
 
 ---
@@ -244,10 +245,10 @@ use runique::formulaire::fields::*;
 pub struct RegisterForm {
     #[field(text, label = "Nom d'utilisateur")]
     pub username: String,
-    
+
     #[field(email, label = "Email")]
     pub email: String,
-    
+
     #[field(password, label = "Mot de passe")]
     pub password: String,
 }
@@ -270,7 +271,7 @@ async fn register_form(
     template: TemplateContext,
 ) -> Response {
     let form = RegisterForm::build(ctx.engine.tera.clone());
-    
+
     template.render("register.html", &context! {
         "form" => form,
         "title" => "Créer un compte"
@@ -279,7 +280,6 @@ async fn register_form(
 
 // Traiter la soumission
 async fn register_submit(
-    mut ctx: RuniqueContext,
     template: TemplateContext,
     ExtractForm(mut form): ExtractForm<RegisterForm>,
 ) -> Response {
@@ -295,7 +295,7 @@ async fn register_submit(
             }
         }
     }
-    
+
     template.render("register.html", &context! {
         "form" => form
     })
@@ -313,8 +313,8 @@ async fn register_submit(
                 {% if field.field_type == "textarea" %}
                     <textarea name="{{ field.name }}" id="{{ field.name }}">{{ field.value }}</textarea>
                 {% else %}
-                    <input type="{{ field.field_type }}" 
-                           name="{{ field.name }}" 
+                    <input type="{{ field.field_type }}"
+                           name="{{ field.name }}"
                            id="{{ field.name }}"
                            value="{{ field.value }}"
                            {% if field.is_required %}required{% endif %}>
@@ -322,10 +322,10 @@ async fn register_submit(
             </div>
         {% endif %}
     {% endfor %}
-    
+
     <!-- CSRF Token -->
     {{ csrf_token | csrf_field | safe }}
-    
+
     <button type="submit">Soumettre</button>
 </form>
 ```
@@ -340,17 +340,19 @@ Runique utilise **Tera** (similaire à Jinja2) comme moteur de templates.
 
 ```html
 <!-- Assets -->
-<link rel="stylesheet" href="{{ 'css/style.css' | static }}">
-<img src="{{ 'profile.jpg' | media }}" alt="Profile">
+ <link rel="stylesheet" href='{% static "css/main.css" %}'>
+
+<img src='{% media "media.avif" %}' alt="Logo">
 
 <!-- Génération d'URLs -->
-<a href="{{ 'user_detail' | link }}">Voir l'utilisateur</a>
+<a href={% link "detail_user" %}>Afficher un user</a>
 
 <!-- CSRF -->
-{{ csrf_token | csrf_field | safe }}
+{% csrf %}
 
 <!-- Formulaires -->
-{{ form | form }}
+{% form.name_form %}
+{% form.name_form.field }
 ```
 
 #### Héritage de templates:
@@ -512,7 +514,7 @@ let user = objects.get(1).one(&db).await?;
 // Token injecté dans TemplateContext
 
 // Dans les formulaires:
-{{ csrf_token | csrf_field | safe }}
+{% csrf %}
 
 // Validation automatique POST/PUT/PATCH/DELETE
 // Token depuis form field ou X-CSRF-Token header
@@ -578,10 +580,10 @@ let nonce = generate_csp_nonce();
 use runique::{success, info, warning, error, flash_now};
 
 // Redirection avec message
-success!(ctx.flash => "Utilisateur créé!");
-info!(ctx.flash => "Opération en cours...");
-warning!(ctx.flash => "Attention!");
-error!(ctx.flash => "Erreur!");
+success!(ctx.messages => "Utilisateur créé!");
+info!(ctx.messages => "Opération en cours...");
+warning!(ctx.messages => "Attention!");
+error!(ctx.messages => "Erreur!");
 
 // Message immédiat (dans la même requête)
 let messages = flash_now! {
@@ -593,13 +595,24 @@ let messages = flash_now! {
 #### Affichage dans templates:
 
 ```html
-{% for message in messages %}
-    <div class="alert alert-{{ message.level | lower }}">
-        {{ message.content }}
+    {% messages %}
+````
+
+```
+### La balise contient
+
+{% if messages %}
+    <div class="flash-messages">
+        {% for message in messages %}
+        <div class="message message-{{ message.level }}">
+            {{ message.content }}
+        </div>
+        {% endfor %}
     </div>
-{% endfor %}
+{% endif %}
 ```
 
+```
 #### Extracteur Message:
 
 ```rust
@@ -609,10 +622,10 @@ async fn my_handler(message: Message) -> Response {
     // Ajouter un message
     message.success("Tout va bien!").await?;
     message.error("Ça a échoué").await?;
-    
+
     // Récupérer tous les messages
     let all = message.get_all().await?;
-    
+
     // Récupérer et nettoyer
     let msgs = message.pop_all().await?;
 }
@@ -643,7 +656,7 @@ use demo_app::models::posts;
 async fn post_list(ctx: RuniqueContext, template: TemplateContext) -> Response {
     let db = ctx.engine.db.clone();
     let posts = posts::Entity::find().all(&*db).await.unwrap_or_default();
-    
+
     template.render("posts/list.html", &context! {
         "posts" => posts
     })
@@ -656,7 +669,7 @@ async fn post_detail(
     template: TemplateContext,
 ) -> Response {
     let db = ctx.engine.db.clone();
-    
+
     match posts::Entity::find_by_id(id).one(&*db).await {
         Ok(Some(post)) => {
             template.render("posts/detail.html", &context! {
@@ -685,7 +698,7 @@ async fn post_create(
             }
         }
     }
-    
+
     template.render("posts/form.html", &context! {
         "form" => form
     })
@@ -863,7 +876,7 @@ use runique::prelude::*;
 #[tokio::main]
 async fn main() {
     let config = RuniqueConfig::from_env().unwrap();
-    
+
     let app = RuniqueApp::new(config)
         .with_database()
         .await
@@ -872,7 +885,7 @@ async fn main() {
         .build()
         .await
         .unwrap();
-    
+
     app.run("127.0.0.1:3000").await.unwrap();
 }
 
@@ -967,10 +980,10 @@ use runique::formulaire::fields::*;
 pub struct RegisterForm {
     #[field(text, label = "Username")]
     pub username: String,
-    
+
     #[field(email, label = "Email")]
     pub email: String,
-    
+
     #[field(password, label = "Password")]
     pub password: String,
 }
@@ -993,7 +1006,7 @@ async fn register_form(
     template: TemplateContext,
 ) -> Response {
     let form = RegisterForm::build(ctx.engine.tera.clone());
-    
+
     template.render("register.html", &context! {
         "form" => form,
         "title" => "Create Account"
@@ -1018,7 +1031,7 @@ async fn register_submit(
             }
         }
     }
-    
+
     template.render("register.html", &context! {
         "form" => form
     })
@@ -1283,7 +1296,7 @@ use runique::request_context::Message;
 async fn my_handler(message: Message) -> Response {
     message.success("All good!").await?;
     message.error("Failed").await?;
-    
+
     let all = message.get_all().await?;
     let msgs = message.pop_all().await?;
 }
@@ -1311,7 +1324,7 @@ pub struct Model {
 async fn post_list(ctx: RuniqueContext, template: TemplateContext) -> Response {
     let db = ctx.engine.db.clone();
     let posts = posts::Entity::find().all(&*db).await.unwrap_or_default();
-    
+
     template.render("posts/list.html", &context! {
         "posts" => posts
     })
@@ -1323,7 +1336,7 @@ async fn post_detail(
     template: TemplateContext,
 ) -> Response {
     let db = ctx.engine.db.clone();
-    
+
     match posts::Entity::find_by_id(id).one(&*db).await {
         Ok(Some(post)) => {
             template.render("posts/detail.html", &context! {
@@ -1406,6 +1419,13 @@ Contributions welcome! Please read SECURITY.md before submitting.
 - 📖 [Documentation](https://docs.rs/runique)
 - 🐛 [Report Issues](https://github.com/yourusername/runique/issues)
 - 💬 [Discussions](https://github.com/yourusername/runique/discussions)
+
+
+![Security](https://img.shields.io/badge/Security-Prisme_Verified-orange?style=for-the-badge&logo=shield-lock)
+![Performance](https://img.shields.io/badge/Performance-Zero--Copy-green?style=for-the-badge&logo=rust)
+
+###  Extracteur est en cour de modification
+Son fonctionnement va evoluer , pour plus de details attendais la fin de son implementation, sa concernera aussi en partis les formulaires et le csrf token
 
 ---
 

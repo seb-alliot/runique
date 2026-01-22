@@ -8,19 +8,19 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 
 use crate::config_runique::config_struct::RuniqueConfig;
 use crate::gardefou::composant_middleware::{
-    csrf::csrf_middleware, error_handler::error_handler_middleware,
+    csrf_middleware::csrf_middleware, error_handler::error_handler_middleware,
     flash_message::flash_middleware, middleware_sanitiser::sanitize_middleware,
 };
 use crate::macro_runique::router::flush_pending_urls;
 use crate::moteur_engine::engine_struct::RuniqueEngine;
-use crate::runique_body::composant_app::template_engine::TemplateLoader;
+use crate::runique_start::composant_app::template_engine::TemplateLoader;
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
 
 /// Structure unique de l'application
 pub struct RuniqueApp {
     pub engine: Arc<RuniqueEngine>,
-    pub router: Router, 
+    pub router: Router,
 }
 
 impl RuniqueApp {
@@ -40,7 +40,7 @@ impl RuniqueApp {
         println!("   Serveur lancé sur http://{}", addr);
         let moteur_db = self.engine.db.get_database_backend();
         let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
-        println!("   Connected to database {:?} -> {} ", moteur_db , db_name);
+        println!("   Connected to database {:?} -> {} ", moteur_db, db_name);
         let listener = tokio::net::TcpListener::bind(&addr).await?;
 
         axum::serve(listener, self.router)
@@ -85,6 +85,38 @@ impl RuniqueAppBuilder {
         self
     }
 
+    fn static_runique(mut router: Router, config: &RuniqueConfig) -> Router {
+        // --- 1. DOSSIERS DU DÉVELOPPEUR (Projet) ---
+        // Le dev garde le contrôle via sa config (ex: /static)
+        router = router
+            .nest_service(
+                &config.static_files.static_url,
+                ServeDir::new(&config.static_files.staticfiles_dirs),
+            )
+            .nest_service(
+                &config.static_files.media_url,
+                ServeDir::new(&config.static_files.media_root),
+            );
+
+        // --- 2. DOSSIERS DU FRAMEWORK (Runique) ---
+        // Injection automatique des ressources internes
+        if !config.static_files.static_runique_url.is_empty() {
+            router = router.nest_service(
+                &config.static_files.static_runique_url,
+                ServeDir::new(&config.static_files.static_runique_path),
+            );
+        }
+
+        if !config.static_files.media_runique_url.is_empty() {
+            router = router.nest_service(
+                &config.static_files.media_runique_url,
+                ServeDir::new(&config.static_files.media_runique_path),
+            );
+        }
+
+        router
+    }
+
     pub fn with_static_files(mut self) -> Self {
         let config = &self.config;
 
@@ -99,20 +131,6 @@ impl RuniqueAppBuilder {
                 &config.static_files.media_url,
                 ServeDir::new(&config.static_files.media_root),
             );
-
-        // Ajouter les routes pour les fichiers statiques internes de Runique
-        if !config.static_files.static_runique_url.is_empty() {
-            self.router = self.router.nest_service(
-                &config.static_files.static_runique_url,
-                ServeDir::new(&config.static_files.static_runique_path),
-            );
-        }
-        if !config.static_files.media_runique_url.is_empty() {
-            self.router = self.router.nest_service(
-                &config.static_files.media_runique_url,
-                ServeDir::new(&config.static_files.media_runique_path),
-            );
-        }
 
         self
     }
@@ -148,7 +166,7 @@ impl RuniqueAppBuilder {
             .with_http_only(!config.debug)
             .with_expiry(Expiry::OnInactivity(Duration::seconds(86400)));
 
-        let final_router = self
+        let mut final_router = self
             .router
             .layer(middleware::from_fn_with_state(
                 engine.clone(),
@@ -171,7 +189,7 @@ impl RuniqueAppBuilder {
                     async { next.run(req).await }
                 },
             ));
-
+        final_router = Self::static_runique(final_router, &engine.config);
         Ok(RuniqueApp {
             engine,
             router: final_router,

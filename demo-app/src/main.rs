@@ -20,7 +20,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     RuniqueApp::builder(config)
         .routes(url::routes())
         .with_database(db)
-        .with_static_files()
         .build()
         .await?
         .run()
