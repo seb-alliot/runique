@@ -1,5 +1,5 @@
 use crate::config_runique::config_struct::RuniqueConfig;
-use crate::gardefou::composant_middleware::csrf::CsrfToken;
+use crate::utils::csrf::CsrfToken;
 use axum::{
     extract::{Extension, Request},
     http::StatusCode,

@@ -1,4 +1,4 @@
-use axum::{middleware, Extension, Router};
+use axum::{middleware, Router};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tera::Tera;
@@ -26,10 +26,8 @@ pub struct RuniqueEngine {
 }
 
 impl RuniqueEngine {
-    pub fn attach_middlewares(&self, router: Router) -> Router {
-        let engine = Arc::new(self.clone());
+    pub fn attach_middlewares(engine: Arc<Self>, router: Router) -> Router {
         router
-            .layer(Extension(engine.clone()))
             .layer(middleware::from_fn_with_state(
                 engine.clone(),
                 sanitize_middleware,
@@ -44,20 +42,5 @@ impl RuniqueEngine {
                 engine.clone(),
                 security_headers_middleware,
             ))
-    }
-}
-
-// Pour pouvoir utiliser self.clone() dans les middlewares
-impl Clone for RuniqueEngine {
-    fn clone(&self) -> Self {
-        Self {
-            config: self.config.clone(),
-            tera: Arc::clone(&self.tera),
-            #[cfg(feature = "orm")]
-            db: Arc::clone(&self.db),
-            garde: self.garde.clone(),
-            url_registry: Arc::clone(&self.url_registry),
-            csp: Arc::clone(&self.csp),
-        }
     }
 }

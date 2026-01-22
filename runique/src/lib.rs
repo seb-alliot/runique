@@ -115,9 +115,6 @@ pub mod prelude {
     /// Gestionnaire de messages flash
     pub use crate::request_context::FlashManager;
 
-    /// Contexte de requête
-    pub use crate::request_context::RequestContext;
-
     /// Utilitaires Tera
     pub use crate::request_context::tera_tool::*;
 
@@ -132,7 +129,8 @@ pub mod prelude {
     };
 
     // --- CSRF (Cross-Site Request Forgery) ---
-    pub use crate::gardefou::composant_middleware::csrf::{csrf_middleware, CsrfToken};
+    pub use crate::gardefou::composant_middleware::csrf::{csrf_middleware};
+    pub use crate::utils::csrf::{mask_csrf_token, unmask_csrf_token, CsrfToken};
 
     // --- Flash Messages ---
     pub use crate::gardefou::composant_middleware::flash_message::flash_middleware;
@@ -216,7 +214,7 @@ pub mod prelude {
     // ========================================================================
 
     /// Génération de tokens
-    pub use crate::utils::generate_token::*;
+    pub use crate::utils::csrf::*;
 
     /// Parsing HTML
     pub use crate::utils::parse_html::*;

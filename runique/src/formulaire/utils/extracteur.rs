@@ -57,7 +57,7 @@ where
         // On récupère le token CSRF depuis les extensions AVANT de créer le formulaire
         let csrf_ext = req
             .extensions()
-            .get::<crate::gardefou::composant_middleware::csrf::CsrfToken>()
+            .get::<crate::utils::csrf::CsrfToken>()
             .cloned();
 
         let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
@@ -98,7 +98,7 @@ where
 
         // INJECTION AUTOMATIQUE DU TOKEN CSRF
         if let Some(token_struct) = csrf_ext {
-            form.get_form_mut().set_csrf_token(token_struct.0.clone());
+            form.get_form_mut().set_csrf_token(token_struct.masked().0.clone());
         }
 
         form.get_form_mut().set_tera(tera);

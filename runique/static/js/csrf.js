@@ -1,90 +1,41 @@
 /**
- * Runique CSRF Manager avec Logs de suivi
+ * Runique CSRF Manager - v2.1
  */
 if (!window.rustiCsrfInitialized) {
     window.rustiCsrfInitialized = true;
-    console.log("[CSRF JS] Initialisation du gestionnaire...");
 
-    function initializeToken() {
-        const metaToken = document.querySelector('meta[name="csrf-token"]');
-        if (metaToken && metaToken.getAttribute('content') && metaToken.getAttribute('content') !== "...") {
-            console.log("[CSRF JS] Token trouvé dans la balise <meta>");
-            return metaToken.getAttribute('content');
-        }
-
-        const filledField = document.querySelector('input.runique-csrf-field[value]:not([value=""])');
-        if (filledField) {
-            console.log("[CSRF JS] Token trouvé dans un champ input");
-            return filledField.value;
-        }
-
-        console.warn("[CSRF JS] Aucun token trouvé au chargement !");
-        return window._rusti_csrf_token || null;
-    }
-
-    window._rusti_csrf_token = initializeToken();
-
-    window.updateTokenInDom = function(newToken) {
-        if (!newToken) return;
-        console.log("[CSRF JS] Mise à jour du token dans le DOM");
-        window._rusti_csrf_token = newToken;
-
-        document.querySelectorAll('input.runique-csrf-field').forEach(el => {
-            el.value = newToken;
-        });
+    // Récupération intelligente : cherche d'abord dans l'input injecté par l'extracteur
+    window.getCsrfToken = function() {
+        const input = document.querySelector('input[name="csrf_token"]');
+        if (input && input.value) return input.value;
 
         const meta = document.querySelector('meta[name="csrf-token"]');
-        if (meta) meta.setAttribute('content', newToken);
-    };
+        if (meta && meta.content) return meta.content;
 
-    // Rafraîchir le token au chargement de la page (en cas de redémarrage serveur)
-    window.refreshTokenFromServer = async function() {
-        try {
-            console.log("[CSRF JS] Rafraîchissement du token depuis le serveur...");
-            const response = await fetch('/api/csrf-token');
-            if (response.ok) {
-                const data = await response.json();
-                window.updateTokenInDom(data.csrf_token);
-                console.log("[CSRF JS] ✓ Token rafraîchi depuis le serveur");
-            }
-        } catch (e) {
-            console.warn("[CSRF JS] ⚠️ Impossible de rafraîchir le token:", e);
-        }
+        return window._rusti_csrf_token || null;
     };
-
-    // Rafraîchir au chargement
-    document.addEventListener('DOMContentLoaded', window.refreshTokenFromServer);
 
     const { fetch: originalFetch } = window;
-
     window.fetch = async (input, init = {}) => {
-        init = init || {};
-        init.headers = init.headers || {};
-
+        let headers = new Headers(init.headers || {});
         const method = (init.method || 'GET').toUpperCase();
 
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-            const token = window._rusti_csrf_token;
+            const token = window.getCsrfToken();
             if (token) {
-                console.log(`[CSRF JS] Injection du header pour ${method}`);
-                init.headers['X-CSRF-Token'] = token;
-            } else {
-                console.error(`[CSRF JS] Tentative de ${method} sans token disponible !`);
+                headers.set('X-CSRF-Token', token); // Force l'envoi du header attendu par csrf.rs
             }
         }
 
-        const response = await originalFetch(input, init);
+        const response = await originalFetch(input, { ...init, headers });
 
+        // Rotation automatique : capture le token de la ligne 92 de csrf.rs
         const newToken = response.headers.get('X-CSRF-Token');
         if (newToken) {
-            console.log("[CSRF JS] Rotation du token reçue du serveur");
-            window.updateTokenInDom(newToken);
+            window._rusti_csrf_token = newToken;
+            document.querySelectorAll('input[name="csrf_token"]').forEach(el => el.value = newToken);
         }
 
         return response;
     };
-
-    if (window._rusti_csrf_token) {
-        window.updateTokenInDom(window._rusti_csrf_token);
-    }
 }

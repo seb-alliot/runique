@@ -9,9 +9,8 @@ pub fn routes() -> Router {
         "/user" => view! { GET => views::inscription, POST => views::soumission_inscription }, name = "user_profile",
         "/view-user" => view! { GET => views::search_user_form }, name = "view-user-form",
         "/view-user" => view! { POST => views::info_user }, name = "view-user",
-        "/blog" => view! { GET => views::blog_form, POST => views::soumission_blog }, name = "blog_info",
+        "/blog" => view! { GET => views::blog_form }, name = "blog_info",
         "/test-csrf" => view! { POST => views::test_csrf }, name = "test_csrf",
-        "/api/csrf-token" => view! { GET => views::refresh_csrf_token }, name = "refresh_csrf_token"
     };
     router
 }

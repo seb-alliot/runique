@@ -20,7 +20,7 @@ use sea_orm::DatabaseConnection;
 /// Structure unique de l'application
 pub struct RuniqueApp {
     pub engine: Arc<RuniqueEngine>,
-    pub router: Router, // L'état est déjà consommé ici
+    pub router: Router, 
 }
 
 impl RuniqueApp {
@@ -38,9 +38,9 @@ impl RuniqueApp {
 
         println!("🦀 Runique Framework opérationnel");
         println!("   Serveur lancé sur http://{}", addr);
-        // let moteur_db = self.engine.db.get_database_backend();
+        let moteur_db = self.engine.db.get_database_backend();
         let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
-        println!("   Connected to database: {} ", db_name);
+        println!("   Connected to database {:?} -> {} ", moteur_db , db_name);
         let listener = tokio::net::TcpListener::bind(&addr).await?;
 
         axum::serve(listener, self.router)
@@ -142,7 +142,7 @@ impl RuniqueAppBuilder {
 
         let engine_ext = engine.clone();
 
-        // Créer le session layer avec configuration sécurisée (comme l'ancien code)
+        // Créer le session layer avec configuration sécurisée
         let session_layer = SessionManagerLayer::new(MemoryStore::default())
             .with_secure(!config.debug)
             .with_http_only(!config.debug)
