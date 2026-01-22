@@ -1,7 +1,7 @@
-use crate::utils::csrf::{CsrfToken, CsrfContext};
 use crate::gardefou::composant_middleware::is_authenticated;
 use crate::moteur_engine::engine_struct::RuniqueEngine;
 use crate::request_context::composant_request;
+use crate::utils::csrf::{CsrfContext, CsrfToken};
 use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode};
 use std::sync::Arc;
 use tower_sessions::Session;
@@ -50,17 +50,20 @@ where
                 // Génère un token lié à l'utilisateur connecté
                 CsrfToken::generate_with_context(
                     CsrfContext::Authenticated { user_id: 0 },
-                    &engine.config.server.secret_key
+                    &engine.config.server.secret_key,
                 )
             } else {
                 // Génère un token lié à la session anonyme
                 CsrfToken::generate_with_context(
                     CsrfContext::Anonymous { session_id },
-                    &engine.config.server.secret_key
+                    &engine.config.server.secret_key,
                 )
             }
         };
-        println!("CSRF Token Generated/Used extracteur ligne 44: {:?}", csrf_token);
+        println!(
+            "CSRF Token Generated/Used extracteur ligne 44: {:?}",
+            csrf_token
+        );
 
         // 4. Construction du contexte complet
         Ok(Self {

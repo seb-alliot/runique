@@ -81,18 +81,18 @@ macro_rules! warning {
 macro_rules! flash_now {
     ($msg_type:ident => $content:expr) => {
         {
-            let mut messages = vec![];
-            messages.push($crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($content));
-            messages
+            let mut template = vec![];
+            template.push($crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($content));
+            template
         }
     };
     ($msg_type:ident => $first:expr, $($rest:expr),+ $(,)?) => {
         {
-            let mut messages = vec![$crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($first)];
+            let mut template = vec![$crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($first)];
             $(
-                messages.push($crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($rest));
+                template.push($crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($rest));
             )+
-            messages
+            template
         }
     };
 }
@@ -102,31 +102,31 @@ mod tests {
     use tokio;
 
     struct MockMessage {
-        pub msgs: Vec<String>,
+        pub template: Vec<String>,
     }
 
     impl MockMessage {
         fn new() -> Self {
-            Self { msgs: vec![] }
+            Self { template: vec![] }
         }
 
         async fn success(&mut self, content: &str) -> Result<(), ()> {
-            self.msgs.push(format!("success: {}", content));
+            self.template.push(format!("success: {}", content));
             Ok(())
         }
 
         async fn error(&mut self, content: &str) -> Result<(), ()> {
-            self.msgs.push(format!("error: {}", content));
+            self.template.push(format!("error: {}", content));
             Ok(())
         }
 
         async fn info(&mut self, content: &str) -> Result<(), ()> {
-            self.msgs.push(format!("info: {}", content));
+            self.template.push(format!("info: {}", content));
             Ok(())
         }
 
         async fn warning(&mut self, content: &str) -> Result<(), ()> {
-            self.msgs.push(format!("warning: {}", content));
+            self.template.push(format!("warning: {}", content));
             Ok(())
         }
     }
@@ -136,7 +136,7 @@ mod tests {
         let mut msg = MockMessage::new();
         success!(msg => "Test message 1", "Test message 2");
         assert_eq!(
-            msg.msgs,
+            msg.template,
             vec!["success: Test message 1", "success: Test message 2"]
         );
     }
@@ -145,21 +145,24 @@ mod tests {
     async fn test_error_macro() {
         let mut msg = MockMessage::new();
         error!(msg => "Erreur 1", "Erreur 2");
-        assert_eq!(msg.msgs, vec!["error: Erreur 1", "error: Erreur 2"]);
+        assert_eq!(msg.template, vec!["error: Erreur 1", "error: Erreur 2"]);
     }
 
     #[tokio::test]
     async fn test_info_macro() {
         let mut msg = MockMessage::new();
         info!(msg => "Info 1", "Info 2");
-        assert_eq!(msg.msgs, vec!["info: Info 1", "info: Info 2"]);
+        assert_eq!(msg.template, vec!["info: Info 1", "info: Info 2"]);
     }
 
     #[tokio::test]
     async fn test_warning_macro() {
         let mut msg = MockMessage::new();
         warning!(msg => "Warning 1", "Warning 2");
-        assert_eq!(msg.msgs, vec!["warning: Warning 1", "warning: Warning 2"]);
+        assert_eq!(
+            msg.template,
+            vec!["warning: Warning 1", "warning: Warning 2"]
+        );
     }
 
     #[tokio::test]

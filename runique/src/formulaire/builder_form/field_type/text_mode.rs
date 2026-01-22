@@ -3,6 +3,7 @@ use crate::formulaire::builder_form::base_struct::TextConfig;
 pub use crate::formulaire::builder_form::generique_field::GenericField;
 use crate::formulaire::builder_form::option_field::{BoolChoice, LengthConstraint};
 use crate::formulaire::builder_form::trait_form::FormField;
+
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,

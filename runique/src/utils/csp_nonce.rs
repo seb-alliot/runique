@@ -6,7 +6,7 @@ use rand::Rng;
 #[derive(Debug, Clone)]
 pub struct CspNonce(String);
 
-impl CspNonce{
+impl CspNonce {
     pub fn generate() -> Self {
         let mut rng = rand::rng();
         let mut bytes = [0u8; 16]; // 16 bytes = 128 bits
@@ -23,7 +23,6 @@ impl CspNonce{
         engine.encode(data)
     }
 }
-
 
 // #[cfg(test)]
 // mod tests {

@@ -27,7 +27,6 @@ macro_rules! context {
     }};
 }
 
-
 #[macro_export]
 macro_rules! context_update {
     ($($key:expr => $value:expr),* $(,)?) => {

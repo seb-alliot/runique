@@ -49,7 +49,7 @@ pub mod gardefou;
 pub mod macro_runique;
 pub mod moteur_engine;
 pub mod request_context;
-pub mod runique_body;
+pub mod runique_start;
 pub mod utils;
 
 // ============================================================================
@@ -97,7 +97,7 @@ pub mod prelude {
     pub use crate::moteur_engine::RuniqueEngine;
 
     /// Builder pour créer une application Runique
-    pub use crate::runique_body::RuniqueApp;
+    pub use crate::runique_start::RuniqueApp;
 
     /// Configuration de l'application
     pub use crate::config_runique::RuniqueConfig;
@@ -107,7 +107,7 @@ pub mod prelude {
     // ========================================================================
 
     /// Contexte de template pour Tera
-    pub use crate::request_context::TemplateContext;
+    pub use crate::request_context::{AppError, TemplateContext};
 
     /// Contexte de requête Runique
     pub use crate::request_context::RuniqueContext;
@@ -123,13 +123,13 @@ pub mod prelude {
     // ========================================================================
 
     // --- CSP (Content Security Policy) ---
-    pub use crate::gardefou::composant_middleware::csp::{
+    pub use crate::gardefou::composant_middleware::csp_middleware::{
         csp_middleware, csp_report_only_middleware, security_headers_middleware, CspConfig,
         NONCE_KEY,
     };
 
     // --- CSRF (Cross-Site Request Forgery) ---
-    pub use crate::gardefou::composant_middleware::csrf::{csrf_middleware};
+    pub use crate::gardefou::composant_middleware::csrf_middleware::csrf_middleware;
     pub use crate::utils::csrf::{mask_csrf_token, unmask_csrf_token, CsrfToken};
 
     // --- Flash Messages ---
