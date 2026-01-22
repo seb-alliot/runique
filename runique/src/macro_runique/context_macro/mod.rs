@@ -26,3 +26,13 @@ macro_rules! context {
         ctx
     }};
 }
+
+
+#[macro_export]
+macro_rules! context_update {
+    ($($key:expr => $value:expr),* $(,)?) => {
+        vec![
+            $( ($key, serde_json::json!($value)) ),*
+        ]
+    };
+}

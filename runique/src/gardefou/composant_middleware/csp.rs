@@ -1,4 +1,5 @@
 use crate::moteur_engine::engine_struct::RuniqueEngine;
+use crate::utils::csp_nonce::CspNonce;
 use std::sync::Arc;
 
 use axum::{
@@ -86,19 +87,16 @@ impl CspConfig {
 
         if !self.script_src.is_empty() {
             let mut script_sources = self.script_src.clone();
-            if let Some(n) = nonce {
-                script_sources.push(format!("'nonce-{}'", n));
-                script_sources.retain(|s| s != "'unsafe-inline'");
-            }
+            script_sources.push(format!("'nonce-{}'", nonce.unwrap_or("")));
+            script_sources.retain(|s| s != "'unsafe-inline'");
             directives.push(format!("script-src {}", script_sources.join(" ")));
         }
 
         if !self.style_src.is_empty() {
             let mut style_sources = self.style_src.clone();
-            if let Some(n) = nonce {
-                style_sources.push(format!("'nonce-{}'", n));
-                style_sources.retain(|s| s != "'unsafe-inline'");
-            }
+            style_sources.push(format!("'nonce-{}'", nonce.unwrap_or("")));
+            style_sources.push(format!("'nonce-{}'", nonce.unwrap_or("")));
+            style_sources.retain(|s| s != "'unsafe-inline'");
             directives.push(format!("style-src {}", style_sources.join(" ")));
         }
 
@@ -134,7 +132,7 @@ pub async fn csp_middleware(
     req: Request<Body>,
     next: Next,
 ) -> Response {
-    let mut response = next.run(req).await;
+    let mut response: axum::http::Response<Body> = next.run(req).await;
 
     let csp_value = engine.csp.to_header_value(None);
     if let Ok(header) = HeaderValue::from_str(&csp_value) {
@@ -168,17 +166,24 @@ pub async fn csp_report_only_middleware(
 /// Middleware global de sécurité (CSP + headers divers)
 pub async fn security_headers_middleware(
     State(engine): State<Arc<RuniqueEngine>>,
-    req: Request<Body>,
+    mut req: Request<Body>,
     next: Next,
 ) -> Response {
+    // Générer un nonce unique pour cette requête
+    let nonce = CspNonce::generate();
+    // On le stocke temporairement dans les extensions de la requête
+    req.extensions_mut().insert(nonce.clone());
+
     let mut response = next.run(req).await;
     let headers = response.headers_mut();
 
-    let csp_value = engine.csp.to_header_value(None);
+    // Utiliser le nonce pour construire la CSP
+    let csp_value = engine.csp.to_header_value(Some(nonce.as_str()));
     if let Ok(header) = HeaderValue::from_str(&csp_value) {
         headers.insert(axum::http::header::CONTENT_SECURITY_POLICY, header);
     }
 
+    // Autres headers de sécurité
     headers.insert(
         axum::http::header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),

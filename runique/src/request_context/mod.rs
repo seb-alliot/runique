@@ -8,5 +8,4 @@ pub mod tera_tool;
 // --- Ré-exports pour simplifier l'accès depuis l'extérieur ---
 pub use composant_request::{FlashManager, RuniqueContext};
 pub use processor::{FlashMessageData, Message};
-pub use request_struct::RequestContext;
 pub use template_context::TemplateContext;

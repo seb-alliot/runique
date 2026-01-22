@@ -131,7 +131,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     pub async fn get_or_404(
         self,
         db: &DatabaseConnection,
-        ctx: &crate::request_context::request_struct::RequestContext,
+        ctx: &crate::request_context::template_context::TemplateContext,
         error_msg: &str,
     ) -> Result<E::Model, axum::response::Response> {
         match self.first(db).await {
