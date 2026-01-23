@@ -1,0 +1,135 @@
+/* =========================
+   FORMULAIRE INSCRIPTION
+   ========================= */
+body > main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    }
+
+form {
+    width: 100%;
+    max-width: min(80%, 400px);
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: var(--margin-top);
+}
+.form-label {
+    width: 100%;
+}
+h1 {
+    text-align: center;
+    color: var(--accent);
+    margin-top: var(--margin-top);
+}
+form,
+.invalid-feedback,
+.form-text,
+.form-control,
+.form-label {
+    text-align: center;
+}
+
+form button {
+    align-self: center;
+}
+
+/* Chaque div du formulaire */
+form > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+/* Labels */
+form label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Inputs */
+form input,
+form textarea,
+form select {
+    background: #0f172a;
+    border: 1px solid #1f2937;
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+/* Placeholder */
+form input::placeholder {
+    color: #475569;
+}
+
+/* Focus premium */
+form input:focus,
+form textarea:focus,
+form select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    background: #111827;
+}
+
+/* Champs invalides (si backend ajoute class error) */
+form .error input {
+    border-color: #ef4444;
+}
+
+/* Texte d’erreur */
+form .error-message {
+    font-size: 0.75rem;
+    color: #fca5a5;
+}
+
+/* =========================
+   BOUTON
+   ========================= */
+
+form button {
+    margin-top: 1rem;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    color: #fff;
+    border: none;
+    padding: 0.8rem 1rem;
+    border-radius: 1rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Hover élégant */
+form button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+    filter: brightness(1.05);
+}
+
+/* Active */
+form button:active {
+    transform: translateY(0);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 480px) {
+    form {
+        gap: 1rem;
+    }
+
+    form button {
+        font-size: 0.9rem;
+        padding: 0.7rem;
+    }
+}

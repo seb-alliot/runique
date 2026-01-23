@@ -1,0 +1,75 @@
+.form-group {
+    position: relative;
+    margin-bottom: 1.6rem;
+}
+
+/* Label */
+.form-label {
+    position: absolute;
+    left: 0.9rem;
+    top: 1rem;
+    color: #64748b;
+    font-size: 0.85rem;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    background: transparent;
+}
+
+/* Input */
+.form-control {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #1f2937;
+    border-radius: 0.9rem;
+    padding: 1.4rem 0.9rem 0.6rem;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+/* Quand le champ est focus */
+.form-group:focus-within .form-label {
+    top: 0.35rem;
+    font-size: 0.7rem;
+    color: var(--accent);
+}
+
+/* Quand le champ contient déjà une valeur */
+.form-group:has(.form-control:not(:placeholder-shown)) .form-label {
+    top: 0.35rem;
+    font-size: 0.7rem;
+    color: var(--accent);
+}
+
+form {
+    animation: formFade 0.6s ease forwards;
+}
+
+.form-group {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fieldFade 0.5s ease forwards;
+}
+
+.form-group:nth-child(1) { animation-delay: 0.1s; }
+.form-group:nth-child(2) { animation-delay: 0.2s; }
+.form-group:nth-child(3) { animation-delay: 0.3s; }
+.form-group:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes formFade {
+    from { opacity: 0; transform: translateY(15px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fieldFade {
+    to { opacity: 1; transform: translateY(0); }
+}
+.is-invalid {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239,68,68,0.15);
+}
+
+.invalid-feedback {
+    font-size: 0.75rem;
+    color: #fca5a5;
+    margin-top: 0.3rem;
+}

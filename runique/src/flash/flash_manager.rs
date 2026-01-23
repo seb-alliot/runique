@@ -52,9 +52,6 @@ impl Message {
 
         // Supprime après lecture pour effet “flash”
         let _ = self.session.remove::<Vec<FlashMessage>>(FLASH_KEY).await;
-        println!("DEBUG: messages récupérés = {:?}", messages);
         messages
     }
 }
-    
-

@@ -11,7 +11,7 @@ impl RuniqueForm for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
-                .placeholder("Entrez votre nom")
+                .label("Entrez votre nom")
                 .required("Le nom est requis"),
         );
     }
@@ -26,54 +26,6 @@ impl RuniqueForm for UsernameForm {
     }
 }
 
-// --- POST FORM ---
-#[derive(Serialize)]
-#[serde(transparent)]
-pub struct PostForm {
-    pub form: Forms,
-}
-
-impl RuniqueForm for PostForm {
-    fn register_fields(form: &mut Forms) {
-        // Titre : Utilisation de limites_caractere (min, max)
-        form.field(
-            &TextField::text("title")
-                .placeholder("Entrez le titre ici")
-                .required("Le titre est obligatoire")
-                .min_length(10, "Le titre doit contenir au moins 10 caractères"),
-        );
-
-        // Email
-        form.field(
-            &TextField::email("email")
-                .placeholder("Entrez l'email de l'auteur")
-                .required("L'email de l'auteur est obligatoire"),
-        );
-
-        // URL
-        form.field(&TextField::url("website").placeholder("Entrez le site web source"));
-
-        // Résumé (TextArea)
-        form.field(
-            &TextField::textarea("summary")
-                .placeholder("Entrez le résumé ici")
-                .required("Le résumé est obligatoire"),
-        );
-
-        // Contenu (RichText)
-        form.field(&TextField::richtext("content").required("Le contenu est obligatoire"));
-    }
-
-    fn from_form(form: Forms) -> Self {
-        Self { form }
-    }
-    fn get_form(&self) -> &Forms {
-        &self.form
-    }
-    fn get_form_mut(&mut self) -> &mut Forms {
-        &mut self.form
-    }
-}
 
 // --- FORMULAIRE D'INSCRIPTION ---
 #[derive(Serialize, Debug, Clone)]
@@ -86,19 +38,19 @@ impl RuniqueForm for RegisterForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
-                .placeholder("Entrez votre nom d'utilisateur")
+                .label("Entrez votre nom d'utilisateur")
                 .required("votre pseudo est necessaire"),
         );
 
         form.field(
             &TextField::email("email")
-                .placeholder("Entrez votre email")
+                .label("Entrez votre email")
                 .required("votre email est necessaire"),
         );
 
         form.field(
             &TextField::password("password")
-                .placeholder("entrez un mot de passe")
+                .label("Entrez un mot de passe")
                 .required("Le mot de passe est obligatoire"),
         );
     }
@@ -183,19 +135,21 @@ impl RuniqueForm for Blog {
     }
 }
 
-impl Blog {
-    pub async fn save(&self, db: &DatabaseConnection) -> Result<crate::models::blog::Model, DbErr> {
-        use crate::models::blog as post_mod;
-
-        let new_post = post_mod::ActiveModel {
+impl Blog{
+    pub async fn save(
+    &self,
+    db: &DatabaseConnection,
+    ) -> Result<crate::models::blog::Model, DbErr> {
+        use crate::models::blog as blog_mod;
+        let new_blog = blog_mod::ActiveModel {
             title: Set(self.form.get_value("title").unwrap_or_default()),
             email: Set(self.form.get_value("email").unwrap_or_default()),
             website: Set(self.form.get_value("website")),
-            content: Set(self.form.get_value("content").unwrap_or_default()),
             summary: Set(self.form.get_value("summary").unwrap_or_default()),
+            content: Set(self.form.get_value("content").unwrap_or_default()),
             ..Default::default()
         };
 
-        new_post.insert(db).await
+    new_blog.insert(db).await
     }
 }
