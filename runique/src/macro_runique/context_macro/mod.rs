@@ -29,9 +29,9 @@ macro_rules! context {
 
 #[macro_export]
 macro_rules! context_update {
-    ($($key:expr => $value:expr),* $(,)?) => {
-        vec![
-            $( ($key, serde_json::json!($value)) ),*
-        ]
-    };
+    ($template:expr => { $($key:expr => $value:expr),* $(,)? }) => {{
+        $(
+            $template.context.insert($key, &$value);
+        )*
+    }};
 }

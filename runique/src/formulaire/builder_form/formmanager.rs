@@ -166,6 +166,7 @@ impl Forms {
             }
         }
     }
+    
 
     /// Valide le formulaire avec protection contre les stack overflows
     /// Retourne un Result pour permettre la propagation des erreurs
@@ -264,6 +265,11 @@ impl Forms {
                 .push("Une contrainte d'unicité a été violée.".to_string());
         } else {
             self.global_errors.push(format!("Erreur DB: {}", err_msg));
+        }
+    }
+    pub fn add_value(&mut self, name: &str, value: &str) {
+        if let Some(field) = self.fields.get_mut(name) {
+            field.set_value(value);
         }
     }
 }

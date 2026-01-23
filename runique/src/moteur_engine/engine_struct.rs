@@ -5,7 +5,7 @@ use tera::Tera;
 
 use crate::gardefou::composant_middleware::{
     csrf_middleware::csrf_middleware, error_handler::error_handler_middleware,
-    flash_message::flash_middleware, middleware_sanitiser::sanitize_middleware,
+    middleware_sanitiser::sanitize_middleware,
 };
 
 use crate::config_runique::config_struct::RuniqueConfig;
@@ -38,7 +38,6 @@ impl RuniqueEngine {
                 engine.clone(),
                 csrf_middleware,
             ))
-            .layer(middleware::from_fn(flash_middleware))
             .layer(middleware::from_fn(error_handler_middleware))
             .layer(middleware::from_fn_with_state(
                 engine.clone(),

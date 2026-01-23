@@ -1,3 +1,4 @@
+use crate::flash::flash_manager;
 use crate::gardefou::composant_middleware::is_authenticated;
 use crate::moteur_engine::engine_struct::RuniqueEngine;
 use crate::request_context::composant_request;
@@ -14,7 +15,7 @@ use tower_sessions::Session;
 pub struct RuniqueContext {
     pub engine: Arc<RuniqueEngine>,
     pub tpl: composant_request::template_struct::TemplateEngine,
-    pub flash: composant_request::flash_struct::FlashManager,
+    pub flash: flash::Message,
 }
 
 impl<S> FromRequestParts<S> for RuniqueContext
@@ -72,7 +73,7 @@ where
                 engine.clone(),
                 csrf_token.masked().as_str().to_string(),
             ),
-            flash: composant_request::flash_struct::FlashManager(session.clone()), // flash messages
+            flash: flash_manager::Message(session.clone()), // flash messages
         })
     }
 }

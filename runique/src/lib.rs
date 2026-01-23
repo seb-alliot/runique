@@ -51,6 +51,7 @@ pub mod moteur_engine;
 pub mod request_context;
 pub mod runique_start;
 pub mod utils;
+pub mod flash;
 
 // ============================================================================
 // RÉ-EXPORTS GÉNÉRAUX
@@ -109,11 +110,8 @@ pub mod prelude {
     /// Contexte de template pour Tera
     pub use crate::request_context::{AppError, TemplateContext};
 
-    /// Contexte de requête Runique
-    pub use crate::request_context::RuniqueContext;
-
     /// Gestionnaire de messages flash
-    pub use crate::request_context::FlashManager;
+    pub use crate::flash::{FlashMessage, Message};
 
     /// Utilitaires Tera
     pub use crate::request_context::tera_tool::*;
@@ -131,9 +129,6 @@ pub mod prelude {
     // --- CSRF (Cross-Site Request Forgery) ---
     pub use crate::gardefou::composant_middleware::csrf_middleware::csrf_middleware;
     pub use crate::utils::csrf::{mask_csrf_token, unmask_csrf_token, CsrfToken};
-
-    // --- Flash Messages ---
-    pub use crate::gardefou::composant_middleware::flash_message::flash_middleware;
 
     // --- Sanitization ---
     pub use crate::gardefou::composant_middleware::middleware_sanitiser::sanitize_middleware;

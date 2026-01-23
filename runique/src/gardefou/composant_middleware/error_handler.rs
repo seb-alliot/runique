@@ -11,7 +11,7 @@ use tera::{Context, Tera};
 
 use crate::{
     config_runique::config_struct::RuniqueConfig,
-    request_context::context_error::{ErrorContext, RequestInfo},
+    request_context::context_error::ErrorContext,
     utils::csrf::CsrfToken,
 };
 
@@ -54,20 +54,23 @@ pub async fn error_handler_middleware(
     let status = response.status();
     // 2. Exécution du cycle de vie de la requête
     if status.is_server_error() || status == StatusCode::NOT_FOUND {
-        if config.debug {
-            let error_ctx = if status == StatusCode::NOT_FOUND {
-                ErrorContext::not_found(&path)
-            } else {
-                // TENTATIVE DE RÉCUPÉRATION DE L'ERREUR RÉELLE
-                // On cherche si un handler a attaché une erreur (souvent Arc<anyhow::Error> ou Arc<Box<dyn StdError>>)
-                if let Some(err) = response.extensions().get::<Arc<anyhow::Error>>() {
-                    ErrorContext::from_anyhow(err)
-                } else {
-                    ErrorContext::generic(status, "Une erreur interne est survenue")
-                }
-            };
+        // Dans error_handler_middleware, remplace cette partie :
 
-            let error_ctx = error_ctx.with_request_helper(&request_helper);
+        if config.debug {
+            // Essaie de récupérer le ErrorContext depuis les extensions
+            let error_ctx = response
+                .extensions()
+                .get::<Arc<ErrorContext>>()  // ← Change ici
+                .map(|ctx| (**ctx).clone())
+                .unwrap_or_else(|| {
+                    if status == StatusCode::NOT_FOUND {
+                        ErrorContext::not_found(&path)
+                    } else {
+                        ErrorContext::generic(status, "Une erreur interne est survenue")
+                    }
+                })
+                .with_request_helper(&request_helper);
+
             return render_debug_error_from_context(&tera, &config, error_ctx, csrf_token);
         } else {
             return match status {
@@ -88,18 +91,6 @@ pub struct RequestInfoHelper {
     pub headers: HashMap<String, String>,
 }
 
-impl ErrorContext {
-    /// Intègre les données du helper dans le ErrorContext
-    pub fn with_request_helper(mut self, helper: &RequestInfoHelper) -> Self {
-        self.request_info = Some(RequestInfo {
-            method: helper.method.clone(),
-            path: helper.path.clone(),
-            query: helper.query.clone(),
-            headers: helper.headers.clone(),
-        });
-        self
-    }
-}
 
 /// Rend la page 404 (Production)
 pub fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {

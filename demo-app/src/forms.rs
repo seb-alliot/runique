@@ -1,7 +1,7 @@
 use runique::prelude::*;
 
 // --- USERNAME FORM ---
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct UsernameForm {
     pub form: Forms,

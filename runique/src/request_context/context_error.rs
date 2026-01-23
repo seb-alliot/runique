@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use serde::Serialize;
 use std::collections::HashMap;
+use crate::gardefou::RequestInfoHelper;
 
 /// Contexte complet pour les erreurs avec toutes les informations de débogage
 #[derive(Debug, Serialize, Clone)]
@@ -64,7 +65,7 @@ pub struct EnvironmentInfo {
 
 impl ErrorContext {
     /// Crée un nouveau contexte d'erreur
-    fn new(error_type: ErrorType, status_code: StatusCode, title: &str, message: &str) -> Self {
+    pub fn new(error_type: ErrorType, status_code: StatusCode, title: &str, message: &str) -> Self {
         Self {
             status_code: status_code.as_u16(),
             error_type,
@@ -82,7 +83,24 @@ impl ErrorContext {
             },
         }
     }
+    pub fn with_request_helper(mut self, helper: &RequestInfoHelper) -> Self {
+        self.request_info = Some(RequestInfo {
+            method: helper.method.clone(),
+            path: helper.path.clone(),
+            query: helper.query.clone(),
+            headers: helper.headers.clone(),
+        });
+        self
+    }
 
+    fn extract_tera_line(error: &tera::Error) -> Option<usize> {
+        let msg = error.to_string();
+        // Cherche "line <num>"
+        let re = regex::Regex::new(r"line (\d+)").ok()?;
+        re.captures(&msg)
+            .and_then(|cap| cap.get(1))
+            .and_then(|m| m.as_str().parse::<usize>().ok())
+    }
     /// Crée un ErrorContext depuis une erreur Tera
     pub fn from_tera_error(error: &tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
         let mut ctx = Self::new(
@@ -95,11 +113,22 @@ impl ErrorContext {
         ctx.template_info = Some(TemplateInfo {
             name: template_name.to_string(),
             source: read_template_source(template_name),
-            line_number: None,
+            line_number: Self::extract_tera_line(error),
             available_templates: tera.get_template_names().map(|s| s.to_string()).collect(),
         });
 
         ctx.build_stack_trace(error);
+        ctx
+    }
+    /// Crée un ErrorContext pour une erreur de base de données
+    pub fn database(error: impl std::error::Error) -> Self {
+        let mut ctx = Self::new(
+            ErrorType::Database,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database Error",
+            &error.to_string(),
+        );
+        ctx.build_stack_trace(&error);
         ctx
     }
 
@@ -170,7 +199,7 @@ impl ErrorContext {
     }
 
     /// Construit la stack trace depuis une erreur
-    fn build_stack_trace(&mut self, error: &dyn std::error::Error) {
+    pub fn build_stack_trace(&mut self, error: &dyn std::error::Error) {
         let mut level = 0;
         let mut current: Option<&dyn std::error::Error> = Some(error);
 
@@ -215,3 +244,4 @@ fn rust_version() -> String {
         })
         .clone()
 }
+
