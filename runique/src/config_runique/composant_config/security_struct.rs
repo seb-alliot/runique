@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+
 pub struct SecurityConfig {
     pub sanitize_inputs: bool,
     pub strict_csp: bool,
@@ -9,17 +10,7 @@ pub struct SecurityConfig {
     pub allowed_hosts: Vec<String>,
 }
 
-impl Default for SecurityConfig {
-    fn default() -> Self {
-        Self {
-            sanitize_inputs: true,
-            strict_csp: true,
-            rate_limiting: true,
-            enforce_https: false,
-            allowed_hosts: vec!["localhost".to_string(), "127.0.0.1".to_string()],
-        }
-    }
-}
+
 impl SecurityConfig {
     pub fn from_env() -> Self {
         let sanitize_inputs = std::env::var("SANITIZE_INPUTS")

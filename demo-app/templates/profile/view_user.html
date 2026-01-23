@@ -3,7 +3,9 @@
 <div class="content">
     {% block content %}
         <link rel="stylesheet" href='{% static "css/search-user.css" %}'>
-
+    {% block messages %}
+    {% messages %}
+    {% endblock %}
     <div class="content">
         {% if title %}
             <h1>{{ title }}</h1>
@@ -30,18 +32,10 @@
 
         <!-- Formulaire de recherche d'utilisateur -->
         <div class="form-container">
-            {% block message %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.level | lower }}">{{ message.content }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endblock %}
-
+            <h2>Rechercher un utilisateur</h2>
 
             <form id="username-form" method="post">
                 {% form.user %}
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit">Rechercher</button>
             </form>
         </div>

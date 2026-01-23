@@ -20,6 +20,7 @@
         </div>
     {% endif %}
 
+
     {% block header %}
         <header>
             <img src='{% media "toshiro.avif" %}' alt="Logo">
@@ -27,7 +28,7 @@
     {% endblock %}
 
     <main>
-
+ 
         {% block inscription %}
         <div class="inscription-banner">
             <a href="{% link "user_profile" %}">Inscrivez-vous dès maintenant !</a>
@@ -46,6 +47,11 @@
             <p>{{ session }}</p>
         </div>
     </div>
+       {% block messages %}
+    <pre>{{ messages | json_encode | safe }}</pre>
+
+        {% messages %}
+    {% endblock %}
         {% endblock %}
     </main>
     <footer>

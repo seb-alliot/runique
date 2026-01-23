@@ -9,7 +9,26 @@ use axum::{
 };
 use std::sync::Arc;
 use tower_sessions::Session;
+use std::collections::HashMap;
+use tera::{Function, Result as TeraResult, Value};
 
+pub struct CsrfTokenFunction;
+
+impl Function for CsrfTokenFunction {
+    fn is_safe(&self) -> bool { true }
+    
+    fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
+        let token_str = args
+            .get("csrf_token")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        
+        Ok(Value::String(format!(
+            r#"<input type="hidden" name="csrf_token" value="{}">"#,
+            token_str
+        )))
+    }
+}
 const CSRF_TOKEN_KEY: &str = "csrf_token";
 
 pub async fn csrf_middleware(

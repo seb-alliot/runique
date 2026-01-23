@@ -9,7 +9,7 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 use crate::config_runique::config_struct::RuniqueConfig;
 use crate::gardefou::composant_middleware::{
     csrf_middleware::csrf_middleware, error_handler::error_handler_middleware,
-    flash_message::flash_middleware, middleware_sanitiser::sanitize_middleware,
+    middleware_sanitiser::sanitize_middleware,
 };
 use crate::macro_runique::router::flush_pending_urls;
 use crate::moteur_engine::engine_struct::RuniqueEngine;
@@ -176,9 +176,9 @@ impl RuniqueAppBuilder {
                 engine.clone(),
                 csrf_middleware,
             ))
-            .layer(middleware::from_fn(flash_middleware))
-            .layer(middleware::from_fn(error_handler_middleware))
             .layer(session_layer)
+            .layer(middleware::from_fn(error_handler_middleware))
+            
             .layer(axum::middleware::from_fn(
                 move |mut req: axum::http::Request<axum::body::Body>,
                       next: axum::middleware::Next| {

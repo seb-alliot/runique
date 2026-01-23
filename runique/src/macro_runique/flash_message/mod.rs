@@ -28,12 +28,12 @@
 #[macro_export]
 macro_rules! success {
     ($msg:expr => $content:expr) => {
-        $msg.success($content).await.unwrap()
+        let _ = $msg.success($content).await;
     };
     ($msg:expr => $first:expr, $($rest:expr),+ $(,)?) => {
-        $msg.success($first).await.unwrap();
+        let _ = $msg.success($first).await;
         $(
-            $msg.success($rest).await.unwrap();
+            let _ = $msg.success($rest).await;
         )+
     };
 }
@@ -41,12 +41,12 @@ macro_rules! success {
 #[macro_export]
 macro_rules! error {
     ($msg:expr => $content:expr) => {
-        $msg.error($content).await.unwrap()
+        let _ = $msg.error($content).await;
     };
     ($msg:expr => $first:expr, $($rest:expr),+ $(,)?) => {
-        $msg.error($first).await.unwrap();
+        let _ = $msg.error($first).await;
         $(
-            $msg.error($rest).await.unwrap();
+            let _ = $msg.error($rest).await;
         )+
     };
 }
@@ -54,12 +54,12 @@ macro_rules! error {
 #[macro_export]
 macro_rules! info {
     ($msg:expr => $content:expr) => {
-        $msg.info($content).await.unwrap()
+        let _ = $msg.info($content).await;
     };
     ($msg:expr => $first:expr, $($rest:expr),+ $(,)?) => {
-        $msg.info($first).await.unwrap();
+        let _ = $msg.info($first).await;
         $(
-            $msg.info($rest).await.unwrap();
+            let _ = $msg.info($rest).await;
         )+
     };
 }
@@ -67,12 +67,12 @@ macro_rules! info {
 #[macro_export]
 macro_rules! warning {
     ($msg:expr => $content:expr) => {
-        $msg.warning($content).await.unwrap()
+        let _ = $msg.warning($content).await;
     };
     ($msg:expr => $first:expr, $($rest:expr),+ $(,)?) => {
-        $msg.warning($first).await.unwrap();
+        let _ = $msg.warning($first).await;
         $(
-            $msg.warning($rest).await.unwrap();
+            let _ = $msg.warning($rest).await;
         )+
     };
 }
@@ -82,15 +82,15 @@ macro_rules! flash_now {
     ($msg_type:ident => $content:expr) => {
         {
             let mut template = vec![];
-            template.push($crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($content));
+            template.push($crate::flash::FlashMessage::$msg_type($content));
             template
         }
     };
     ($msg_type:ident => $first:expr, $($rest:expr),+ $(,)?) => {
         {
-            let mut template = vec![$crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($first)];
+            let mut template = vec![$crate::flash::FlashMessage::$msg_type($first)];
             $(
-                template.push($crate::gardefou::composant_middleware::flash_message::FlashMessage::$msg_type($rest));
+                template.push($crate::flash::FlashMessage::$msg_type($rest));
             )+
             template
         }

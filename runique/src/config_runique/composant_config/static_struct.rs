@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StaticConfig {
     // Runique internal
     pub base_dir: String,
@@ -19,30 +19,6 @@ pub struct StaticConfig {
     pub staticfiles_storage: String,
 }
 
-impl Default for StaticConfig {
-    fn default() -> Self {
-        let base_dir = ".".to_string();
-        let runique_root = env!("CARGO_MANIFEST_DIR");
-
-        let static_runique_path = format!("{}/static", runique_root);
-        let media_runique_path = format!("{}/media", runique_root);
-        let templates_runique = format!("{}/templates", runique_root);
-        Self {
-            base_dir,
-            static_runique_path: static_runique_path,
-            static_runique_url: "/runique/static".to_string(),
-            media_runique_path: media_runique_path,
-            media_runique_url: "/runique/media".to_string(),
-            templates_runique: templates_runique,
-            templates_dir: vec!["templates".to_string()],
-            staticfiles_dirs: "static".to_string(),
-            media_root: "media".to_string(),
-            static_url: "/static".to_string(),
-            media_url: "/media".to_string(),
-            staticfiles_storage: "default_storage".to_string(),
-        }
-    }
-}
 
 impl StaticConfig {
     pub fn from_env() -> Self {

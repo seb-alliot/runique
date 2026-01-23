@@ -1,23 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+
 pub struct ServerConfig {
     pub ip_server: String,
     pub domain_server: String,
     pub port: u16,
     pub secret_key: String,
-}
-
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self {
-            ip_server: "127.0.0.1".to_string(),
-            port: 8080,
-            secret_key: "change-me-in-production-very-secret".to_string(),
-            domain_server: "localhost".to_string(),
-        }
-    }
 }
 
 impl ServerConfig {
