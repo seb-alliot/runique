@@ -14,6 +14,8 @@ use tera::Tera;
 
 pub struct ExtractForm<T>(pub T);
 
+// Extrait des modifications à faire dans extracteur.rs
+
 impl<S, T> FromRequest<S> for ExtractForm<T>
 where
     S: Send + Sync,
@@ -22,16 +24,12 @@ where
     type Rejection = Response;
 
     async fn from_request(req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
-        // Extraire Tera et Config depuis les Extensions du request
         let tera = req
             .extensions()
             .get::<Arc<Tera>>()
             .cloned()
             .ok_or_else(|| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Tera not found in extensions",
-                )
+                (StatusCode::INTERNAL_SERVER_ERROR, "Tera not found in extensions")
                     .into_response()
             })?;
 
@@ -40,10 +38,7 @@ where
             .get::<Arc<RuniqueConfig>>()
             .cloned()
             .ok_or_else(|| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Config not found in extensions",
-                )
+                (StatusCode::INTERNAL_SERVER_ERROR, "Config not found in extensions")
                     .into_response()
             })?;
 
@@ -54,11 +49,15 @@ where
             .unwrap_or("")
             .to_string();
 
-        // On récupère le token CSRF depuis les extensions AVANT de créer le formulaire
-        let csrf_ext = req
+        // 🔑 Récupérer le token CSRF de session
+        let csrf_token = req
             .extensions()
             .get::<crate::utils::csrf::CsrfToken>()
-            .cloned();
+            .cloned()
+            .ok_or_else(|| {
+                (StatusCode::INTERNAL_SERVER_ERROR, "CSRF token not found")
+                    .into_response()
+            })?;
 
         let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
 
@@ -94,13 +93,12 @@ where
 
         let form_data_for_validation = convert_for_form(parsed);
 
-        let mut form = T::build_with_data(&form_data_for_validation, tera.clone()).await;
-
-        // INJECTION AUTOMATIQUE DU TOKEN CSRF
-        if let Some(token_struct) = csrf_ext {
-            form.get_form_mut()
-                .set_csrf_token(token_struct.masked().0.clone());
-        }
+        // 🔑 Passer le token CSRF au build
+        let mut form = T::build_with_data(
+            &form_data_for_validation,
+            tera.clone(),
+            csrf_token.as_str()  // ← Token de session (non masqué)
+        ).await;
 
         form.get_form_mut().set_tera(tera);
 
