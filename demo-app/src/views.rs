@@ -20,74 +20,93 @@ pub async fn index(mut template: TemplateContext) -> Result<Response, AppError> 
     template.render("index.html")
 }
 
-/// Formulaire d'inscription
-pub async fn inscription(mut template: TemplateContext) -> Result<Response, AppError> {
-    let form = model_derive::ModelForm::build(template.engine.tera.clone());
-    context_update!(template => {
-        "title" => "Inscription utilisateur",
-        "inscription_form" => &form,
-    });
+// /// Formulaire d'inscription
+// pub async fn inscription(mut template: TemplateContext) -> Result<Response, AppError> {
+//     let form = model_derive::ModelForm::build(template.engine.tera.clone(), template.csrf_token.masked().as_str());
+//     context_update!(template => {
+//         "title" => "Inscription utilisateur",
+//         "inscription_form" => &form,
+//     });
     
-    template.render("inscription_form.html")
-}
+//     template.render("inscription_form.html")
+// }
 
-/// Soumission du formulaire d'inscription
-pub async fn soumission_inscription(
-    mut template: TemplateContext,
-    ExtractForm(mut form): ExtractForm<model_derive::ModelForm>,
-) -> Result<Response, AppError> {
-    let db = template.engine.db.clone();
+// /// Soumission du formulaire d'inscription
+// pub async fn soumission_inscription(
+//     mut template: TemplateContext,
+//     ExtractForm(mut form): ExtractForm<model_derive::ModelForm>,
+// ) -> Result<Response, AppError> {
+//     let db = template.engine.db.clone();
     
-    if form.is_valid().await {
-        match form.save(&*db).await {
-            Ok(user) => {
-                success!(template.flash_manager => format!("Bienvenue {}, votre compte a été créé !", user.username));
-                return Ok(Redirect::to("/").into_response());
-            }
-            Err(err) => {
-                form.get_form_mut().database_error(&err);
-                context_update!(template => {
-                    "title" => "Erreur de base de données",
-                    "inscription_form" => &form,
-                    "messages" => &flash_now!(warning => "Veuillez corriger les erreurs ci-dessous"),
-                });
+//     if form.is_valid().await {
+//         match form.save(&*db).await {
+//             Ok(user) => {
+//                 success!(template.flash_manager => format!("Bienvenue {}, votre compte a été créé !", user.username));
+//                 return Ok(Redirect::to("/").into_response());
+//             }
+//             Err(err) => {
+//                 form.get_form_mut().database_error(&err);
+//                 context_update!(template => {
+//                     "title" => "Erreur de base de données",
+//                     "inscription_form" => &form,
+//                     "messages" => &flash_now!(warning => "Veuillez corriger les erreurs ci-dessous"),
+//                 });
                 
-                return template.render("inscription_form.html");
-            }
-        }
-    }
+//                 return template.render("inscription_form.html");
+//             }
+//         }
+//     }
 
-    context_update!(template => {
-        "title" => "Erreur de validation",
-        "inscription_form" => &form,
-        "messages" => &flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
-    });
+//     context_update!(template => {
+//         "title" => "Erreur de validation",
+//         "inscription_form" => &form,
+//         "messages" => &flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+//     });
     
-    template.render("inscription_form.html")
-}
+//     template.render("inscription_form.html")
+// }
 
 /// Formulaire de recherche d'utilisateur
 pub async fn search_user_form(mut template: TemplateContext) -> Result<Response, AppError> {
-    let mut form = UsernameForm::build(template.engine.tera.clone());
-    println!("****************************************");
-    println!("Création du formulaire de recherche d'utilisateur : {:?}", form);
-    println!("****************************************");
-    println!("valeur des field du formulaire : {:?}", form.get_form().fields);
-    println!("****************************************");
-    form.get_form_mut().add_value("csrf_token", &template.csrf_token.masked().as_str().to_string());
-    println!("Après ajout du token CSRF, valeur des field du formulaire : {:?}", form.get_form().fields);
+    let form = UsernameForm::build(template.engine.tera.clone(), template.csrf_token.as_str());
+    
+    // ✓ Injection AUTOMATIQUE du token (avec mes corrections)
+    // Plus besoin de le faire manuellement 
+    
     context_update!(template => {
         "title" => "Rechercher un utilisateur",
         "user" => &form,
     });
+    
     template.render("profile/view_user.html")
 }
 
 /// Exemple pour chercher un utilisateur
+/// Exemple pour chercher un utilisateur
 pub async fn info_user(
     mut template: TemplateContext,
-    ExtractForm(form): ExtractForm<UsernameForm>,
+    ExtractForm(mut form): ExtractForm<UsernameForm>, // ← Ajout de 'mut'
 ) -> Result<Response, AppError> {
+    println!("****************************************");
+    println!("Soumission du formulaire de recherche d'utilisateur : {:?}", form);
+    println!("****************************************");
+    
+    // 🔑 AJOUT CRUCIAL : Valider le formulaire (incluant CSRF)
+    if !form.is_valid().await {
+        println!("❌ Validation échouée");
+        println!("Erreurs : {:?}", form.get_form().errors());
+        
+        // Retourner le formulaire avec les erreurs
+        context_update!(template => {
+            "title" => "Rechercher un utilisateur",
+            "user" => &form,
+            "messages" => &flash_now!(error => "Erreur de validation"),
+        });
+        return template.render("profile/view_user.html");
+    }
+    
+    println!("✓ Validation réussie (CSRF OK)");
+    
     let username = form.get_form().get_value("username").unwrap_or_default();
     let db = template.engine.db.clone();
 
@@ -117,7 +136,7 @@ pub async fn info_user(
 
 /// Blog form
 pub async fn blog_form(mut template: TemplateContext) -> Result<Response, AppError> {
-    let form = BlogForm::build(template.engine.tera.clone());
+    let form = BlogForm::build(template.engine.tera.clone(), template.csrf_token.masked().as_str());
     
     context_update!(template => {
         "title" => "Créer un article de blog",
@@ -144,7 +163,7 @@ pub async fn about(mut template: TemplateContext) -> Result<Response, AppError> 
 }
 
 /// Teste Csrf
-pub async fn test_csrf(mut template: TemplateContext) -> Result<Response, AppError> {
+pub async fn test_csrf(template: TemplateContext) -> Result<Response, AppError> {
     success!(template.flash_manager => "CSRF token validé avec succès !");
     Ok(Redirect::to("/").into_response())
 }

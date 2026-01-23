@@ -72,6 +72,8 @@ pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
 
 dyn_clone::clone_trait_object!(FormField);
 
+// Extrait des modifications à faire dans trait_form.rs
+
 pub trait RuniqueForm: Sized + Send + Sync {
     fn register_fields(form: &mut Forms);
     fn from_form(form: Forms) -> Self;
@@ -120,8 +122,9 @@ pub trait RuniqueForm: Sized + Send + Sync {
         })
     }
 
-    fn build(tera: Arc<Tera>) -> Self {
-        let mut form = Forms::new();
+    // MODIFIÉ : Prend maintenant le token CSRF
+    fn build(tera: Arc<Tera>, csrf_token: &str) -> Self {
+        let mut form = Forms::new(csrf_token);  // 🔑 PASSAGE DU TOKEN
         form.set_tera(tera);
         Self::register_fields(&mut form);
         Self::from_form(form)
@@ -130,31 +133,20 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn build_with_data(
         raw_data: &HashMap<String, String>,
         tera: Arc<Tera>,
+        csrf_token: &str,  // 🔑 AJOUT DU PARAMÈTRE
     ) -> impl Future<Output = Self> + Send {
         async move {
             println!("[BUILD_WITH_DATA] === DÉBUT BUILD_WITH_DATA ===");
-            println!(
-                "[BUILD_WITH_DATA] Données reçues: {} champs",
-                raw_data.len()
-            );
-            for (key, val) in raw_data.iter() {
-                println!(
-                    "[BUILD_WITH_DATA]   - {}: {}",
-                    key,
-                    if val.len() > 50 { &val[..50] } else { val }
-                );
-            }
+            println!("[BUILD_WITH_DATA] Données reçues: {} champs", raw_data.len());
 
-            let mut form = Forms::new();
-            println!("[BUILD_WITH_DATA] Forms::new() créé");
+            let mut form = Forms::new(csrf_token);  // 🔑 PASSAGE DU TOKEN
+            println!("[BUILD_WITH_DATA] Forms::new() créé avec CSRF");
+            
             form.set_tera(tera.clone());
             println!("[BUILD_WITH_DATA] Tera assigné");
 
             Self::register_fields(&mut form);
-            println!(
-                "[BUILD_WITH_DATA] Champs enregistrés (total: {})",
-                form.fields.len()
-            );
+            println!("[BUILD_WITH_DATA] Champs enregistrés (total: {})", form.fields.len());
 
             form.fill(raw_data);
             println!("[BUILD_WITH_DATA] Données remplies");
@@ -163,16 +155,10 @@ pub trait RuniqueForm: Sized + Send + Sync {
             println!("[BUILD_WITH_DATA] Instance créée, validation...");
 
             let is_valid = instance.is_valid().await;
-            println!(
-                "[BUILD_WITH_DATA] Validation: {}",
-                if is_valid { "✓" } else { "❌" }
-            );
+            println!("[BUILD_WITH_DATA] Validation: {}", if is_valid { "✓" } else { "❌" });
 
             if !is_valid {
-                println!(
-                    "[BUILD_WITH_DATA] Erreurs: {:?}",
-                    instance.get_form().errors()
-                );
+                println!("[BUILD_WITH_DATA] Erreurs: {:?}", instance.get_form().errors());
             }
 
             println!("[BUILD_WITH_DATA] === FIN BUILD_WITH_DATA ===");

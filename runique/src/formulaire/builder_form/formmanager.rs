@@ -1,6 +1,7 @@
 use crate::formulaire::builder_form::field_type::TextField;
 use crate::formulaire::builder_form::generique_field::GenericField;
 use crate::formulaire::builder_form::trait_form::FormField;
+use crate::prelude::HiddenField;
 use indexmap::IndexMap;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
@@ -49,13 +50,11 @@ pub struct Forms {
     pub fields: IndexMap<String, Box<dyn FormField>>,
     pub tera: Option<Arc<Tera>>,
     pub global_errors: Vec<String>,
+    /// Token CSRF de session (pour validation)
+    pub session_csrf_token: Option<String>,
 }
 
-impl Default for Forms {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+
 
 impl std::fmt::Debug for Forms {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -114,19 +113,34 @@ impl Serialize for Forms {
 }
 
 impl Forms {
+    /// Définit le token CSRF de session pour validation
+    pub fn set_session_csrf_token(&mut self, token: String) {
+        self.session_csrf_token = Some(token.clone());
+        
+        // Mettre à jour le champ csrf_token avec la valeur attendue
+        if let Some(csrf_field) = self.fields.get_mut("csrf_token") {
+            // On utilise downcast pour accéder aux méthodes spécifiques de HiddenField
+            // Note: ceci nécessite que HiddenField implémente Any
+            // Pour l'instant, on stocke juste la valeur dans le formulaire
+        }
+    }
+    
     pub fn set_csrf_token(&mut self, token: String) {
-        // Met à jour la valeur du champ 'csrf_token' qui a été créé dans Forms::new()
+        // Met à jour la VALEUR du champ 'csrf_token' (ce qui sera affiché dans le form)
         if let Some(field) = self.fields.get_mut("csrf_token") {
             field.set_value(&token);
         } else {
             println!("[FORMS] Erreur : Champ CSRF non trouvé lors de la mise à jour du token");
         }
     }
-    pub fn new() -> Self {
+    
+    pub fn new(csrf_token: &str) -> Self {
         let mut fields: IndexMap<String, Box<dyn FormField>> = IndexMap::new();
 
-        // Initialisation du champ caché
-        let csrf_field = TextField::create_csrf();
+        // Créer le champ CSRF
+        let mut csrf_field = TextField::create_csrf();
+        csrf_field.set_value(csrf_token);  // 🔑 INJECTION AUTOMATIQUE
+        
         fields.insert(
             "csrf_token".to_string(),
             Box::new(csrf_field) as Box<dyn FormField>,
@@ -136,8 +150,20 @@ impl Forms {
             fields,
             tera: None,
             global_errors: Vec::new(),
+            session_csrf_token: None,
         }
     }
+    
+    // Méthode helper pour créer sans CSRF (pour les cas où ce n'est pas nécessaire)
+    pub fn new_without_csrf() -> Self {
+        Self {
+            fields: IndexMap::new(),
+            tera: None,
+            global_errors: Vec::new(),
+            session_csrf_token: None,
+        }
+    }
+
 
     /// La solution au "type annotations needed" :
     /// On force la conversion en GenericField ici même.
@@ -167,7 +193,6 @@ impl Forms {
         }
     }
     
-
     /// Valide le formulaire avec protection contre les stack overflows
     /// Retourne un Result pour permettre la propagation des erreurs
     pub async fn is_valid(&mut self) -> Result<bool, ValidationError> {
@@ -184,6 +209,25 @@ impl Forms {
 
         // Incrémenter le compteur
         VALIDATION_DEPTH.with(|d| d.set(current_depth + 1));
+
+        // VALIDATION SPÉCIALE POUR LE CSRF
+        if let Some(csrf_field) = self.fields.get_mut("csrf_token") {
+            let submitted_token = csrf_field.value().to_string();
+            
+            if let Some(session_token) = &self.session_csrf_token {
+                if submitted_token.trim().is_empty() {
+                    csrf_field.set_error("Token CSRF manquant".to_string());
+                    VALIDATION_DEPTH.with(|d| d.set(d.get().saturating_sub(1)));
+                    return Ok(false);
+                }
+                
+                if submitted_token != *session_token {
+                    csrf_field.set_error("Token CSRF invalide".to_string());
+                    VALIDATION_DEPTH.with(|d| d.set(d.get().saturating_sub(1)));
+                    return Ok(false);
+                }
+            }
+        }
 
         // Validation normale des champs
         let mut is_all_valid = true;
@@ -267,6 +311,7 @@ impl Forms {
             self.global_errors.push(format!("Erreur DB: {}", err_msg));
         }
     }
+    
     pub fn add_value(&mut self, name: &str, value: &str) {
         if let Some(field) = self.fields.get_mut(name) {
             field.set_value(value);

@@ -39,7 +39,7 @@ pub async fn csrf_middleware(
 ) -> Response {
     let secret = &engine.config.server.secret_key;
 
-    // 1Récupérer ou générer le token de session
+    // Récupérer ou générer le token de session
     let session_token: CsrfToken = match session
         .get::<CsrfToken>(CSRF_TOKEN_KEY)
         .await
@@ -79,38 +79,31 @@ pub async fn csrf_middleware(
         }
     };
 
-    //  Vérification CSRF si méthode sensible
+    // Vérification CSRF si méthode sensible
     let requires_csrf = matches!(
         req.method(),
         &Method::POST | &Method::PUT | &Method::DELETE | &Method::PATCH
     );
+    
     if requires_csrf {
-        // Récupérer le token envoyé par le client (header)
-        let request_token_masked = req
+        // 🔑 MODIFICATION : Vérifier le header (AJAX)
+        let header_token = req
             .headers()
             .get("X-CSRF-Token")
-            .and_then(|h| h.to_str().ok());
-        // println!("Verication csrf middleware.rs ligne 50 CSRF token: session_token={}, request_token_masked={:?}", session_token.as_str(), request_token_masked);
+            .and_then(|h| h.to_str().ok())
+            .and_then(|masked| CsrfToken::unmasked(masked).ok());
 
-        let request_token =
-            request_token_masked.and_then(|masked| CsrfToken::unmasked(masked).ok());
-        // println!("demaskage du csrf ligne 54 request token: {:?}", request_token.as_ref().map(|t| t.as_str()));
-
-        match request_token {
-            Some(req_t) if req_t.as_str() == session_token.as_str() => {}
-            Some(_req_t) => {
-                return (StatusCode::FORBIDDEN, "Invalid CSRF").into_response();
-            }
-            None => {
-                return (StatusCode::FORBIDDEN, "Missing CSRF").into_response();
+        // Si le token est dans le header, on le vérifie
+        if let Some(token) = header_token {
+            if token.as_str() != session_token.as_str() {
+                return (StatusCode::FORBIDDEN, "Invalid CSRF token (header)").into_response();
             }
         }
-    } else {
-        println!("Method does not require CSRF check");
+        // Sinon, on laisse ExtractForm vérifier le champ du formulaire
+        // (la validation se fera dans is_valid())
     }
 
-    // Injection du token masqué pour le frontend (template/AJAX)
-    // Injection vers le frontend
+    // Injection du token masqué pour le frontend
     let masked = session_token.masked();
     req.extensions_mut().insert(session_token.clone());
 
