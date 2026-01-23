@@ -8,13 +8,14 @@ pub struct Model {
     pub username: String,
     pub email: String,
     pub password: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+
+    pub created_at: Option<NaiveDateTime>,
+    pub updated_at: Option<NaiveDateTime>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
-impl ActiveModelBehavior for ActiveModel {} // ← Vide !
+impl ActiveModelBehavior for ActiveModel {}
 
 impl_objects!(Entity);

@@ -28,36 +28,32 @@
     {% endblock %}
 
     <main>
- 
-        {% block inscription %}
-        <div class="inscription-banner">
-        </div>
-        {% endblock %}
-
         {% block content %}
-    <div class="content">
-        <div>
-            <h1>{{ title }}</h1>
-            <p>{{ description }}</p>
-            <p>{{ status }}</p>
-            <p>{{ backend }}</p>
-            <p>{{ template }}</p>
-            <p>{{ tokio }}</p>
-            <p>{{ session }}</p>
+        <div class="content">
+            <div>
+                <h1>{{ title }}</h1>
+                <p>{{ description }}</p>
+                <p>{{ status }}</p>
+                <p>{{ backend }}</p>
+                <p>{{ template }}</p>
+                <p>{{ tokio }}</p>
+                <p>{{ session }}</p>
+            </div>
         </div>
-    </div>
-       {% block messages %}
-    <pre>{{ messages | json_encode | safe }}</pre>
 
-        {% messages %}
-    {% endblock %}
+        {% block messages %}
+            {% messages %}
         {% endblock %}
+    {% endblock %}
+
     </main>
     <footer>
         {% block footer %}
-            <a href={% link "about" %}>À propos</a>
+            <a href="{% link "inscription" %}">Inscrivez-vous !</a>
+            <a href="{% link "search-user" %}">Recherche utilisateur</a>
+            <a href="{% link "about" %}">À propos</a>
             <a href="{% link "blog_info" %}">Blog</a>
-            <p>&copy; 2025 My Web Application</p>
+            <p>&copy; 2026 My Web Application</p>
         {% endblock %}
     </footer>
 </body>

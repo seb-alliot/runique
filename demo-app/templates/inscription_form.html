@@ -1,17 +1,28 @@
 {% extends 'index.html' %}
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/test-field.css" %}'>
-    <link rel="stylesheet" href='{% static "css/register.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
 {% endblock %}
 {% block content %}
     <h1>{{ title }}</h1>
 
     {% messages %}
 
-    <form method="post" action="/register">
+    <form method="post" action="/inscription">
         {% form.inscription_form %}
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button type="submit">S'inscrire</button>
     </form>
+            {% if inscription_form.errors %}
+            <div class="alert alert-warning">
+                <div class="alert-message">
+                    <strong>Veuillez corriger les erreurs suivantes :</strong>
+                    <ul>
+                        {% for field, error in inscription_form.errors %}
+                            <li><strong>{{ field }} :</strong> {{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
 {% endblock %}

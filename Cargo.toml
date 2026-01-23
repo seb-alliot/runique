@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "runique",
-    "runique/derive_form",
     "demo-app",
     "demo-app/migration",
 ]

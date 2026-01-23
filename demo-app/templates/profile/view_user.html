@@ -1,5 +1,11 @@
 {% extends "index.html" %}
 
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+{% endblock %}
+
 <div class="content">
     {% block content %}
     {% block messages %}
@@ -8,25 +14,6 @@
     <div class="content">
         {% if title %}
             <h1>{{ title }}</h1>
-        {% endif %}
-
-        {% if db_error %}
-            <div class="alert alert-danger">
-                <span class="alert-message">{{ db_error }}</span>
-            </div>
-        {% endif %}
-
-        {% if user.errors %}
-            <div class="alert alert-warning">
-                <div class="alert-message">
-                    <strong>Veuillez corriger les erreurs suivantes :</strong>
-                    <ul>
-                        {% for field, error in user.errors %}
-                            <li><strong>{{ field }} :</strong> {{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
         {% endif %}
 
         <!-- Formulaire de recherche d'utilisateur -->

@@ -1,13 +1,21 @@
 /* =========================
     VARIABLES DE COULEURS
    ========================= */
+
+
 :root {
     --bg-main: #0f1216;
-    --bg-card: #161b22;
-    --bg-header: #11161c;
-    --bg-footer: #0d1117;
-    --accent: #4fa3ff;
-    --text-main: #e6edf3;
-    --text-muted: #9aa4af;
+    --bg-header: #111827;
+    --bg-card: #111827;
+    --bg-input: #1f2937;
+    --bg-footer: #0f1216;
+    --text-main: #f9fafb;
+    --text-muted: #9ca3af;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --border-color: #374151;
+    --error-color: #ef4444;
+    --success-color: #22c55e;
     --danger: #ff6b6b;
+    --margin-top: 2%;
 }
