@@ -1,4 +1,29 @@
-# 📝 Changelog - Runique Framework v0.1.86
+# 📝 Changelog - Runique Framework
+
+## 1.1.0 – Refonte architecture & formulaires
+
+### Highlights
+- Refonte majeure de l'architecture : modules `database/orm` → `db`, middleware auth renommé (`login_requiert` → `auth`), config/context/utils restructurés, préfixes d'import simplifiés via le prelude.
+- Nouveau système de formulaires complet : champs (boolean, choice, datetime, file, number, special, text), options, manager, utilitaires Prisme (csrf_gate, rules, sentinel), templates unifiés.
+- Middlewares sécurité améliorés : CSRF/CSP revus, helpers de réponse consolidés, allowed_hosts ajusté.
+- Documentation FR/EN réécrite et démo déplacée sous `demo-app/` avec assets et exemples mis à jour.
+
+### Breaking changes
+- Chemins d'import modifiés (ex. `runique::middleware::auth::*`, `runique::db::*`, prelude enrichi). Les anciens chemins `login_requiert`, `database/orm`, et formulaires legacy ne sont plus valides.
+- Modèles/chaînes Tera réorganisées (templates de formulaires et messages). Adaptez vos chemins si vous les référenciez directement.
+
+### Migration rapide
+1) Remplacer les imports par `use runique::prelude::*;` quand c'est possible.
+2) Mettre à jour les références middleware : `runique::middleware::auth::{login_required, redirect_if_authenticated, load_user_middleware, CurrentUser}`.
+3) Adapter les accès DB : `runique::db::{config, objects, query}` et les types du prelude.
+4) Pour les formulaires, utiliser les nouveaux champs/manager et les templates `templates/field_html/*`.
+
+### Tests & qualité
+- `cargo test --workspace` ✅
+- `cargo clippy --all -- -D warnings` ✅
+
+### Remarque versionning
+- Version précédente (1.0.86) conservée comme dernière stable 1.0.x. Cette release 1.1.0 reflète les changements d'architecture et de surface API.
 
 ## 🎯 Résumé de la session
 
