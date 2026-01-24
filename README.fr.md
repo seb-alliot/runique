@@ -1,8 +1,12 @@
 # 🚀 Runique - Framework Web Rust inspiré de Django
 
+> **⚠️ Note** : Cette documentation a été générée avec l'assistance de l'IA. Bien que des efforts aient été faits pour assurer l'exactitude, certains liens ou détails peuvent contenir des erreurs. Veuillez signaler les problèmes sur [GitHub](https://github.com/seb-alliot/runique/issues).
+
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange)]()
 [![Tests](https://img.shields.io/badge/tests-36%2F36%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Version](https://img.shields.io/badge/version-1.1.1-blue)]()
+[![Crates.io](https://img.shields.io/crates/v/runique)]()
 
 Un framework web Rust moderne et complet, inspiré par Django, pour construire des applications web robustes et performantes.
 
@@ -25,7 +29,7 @@ Un framework web Rust moderne et complet, inspiré par Django, pour construire d
 
 ## 🚀 Installation
 
-**Documentation complète** : [Guide d'installation](docs/fr/01-installation.md)
+**Documentation complète** : [Guide d'installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
 
 Démarrage rapide :
 
@@ -36,13 +40,13 @@ cargo build
 cargo test --all
 ```
 
-👉 **Lire** : [docs/fr/01-installation.md](docs/fr/01-installation.md) pour les détails complets
+👉 **Lire** : [docs/fr/01-installation.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md) pour les détails complets
 
 ---
 
 ## 🏗️ Architecture
 
-**Documentation complète** : [Guide d'architecture](docs/fr/02-architecture.md)
+**Documentation complète** : [Guide d'architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
 
 Vue d'ensemble de l'architecture Runique :
 
@@ -56,13 +60,13 @@ Runique Framework
 └── Utils             # Utilitaires et helpers
 ```
 
-👉 **Lire** : [docs/fr/02-architecture.md](docs/fr/02-architecture.md) pour la structure interne
+👉 **Lire** : [docs/fr/02-architecture.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md) pour la structure interne
 
 ---
 
 ## ⚙️ Configuration
 
-**Documentation complète** : [Guide de configuration](docs/fr/03-configuration.md)
+**Documentation complète** : [Guide de configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
 
 Configurer votre serveur et application :
 
@@ -74,13 +78,13 @@ let settings = Settings {
 };
 ```
 
-👉 **Lire** : [docs/fr/03-configuration.md](docs/fr/03-configuration.md) pour toutes les options
+👉 **Lire** : [docs/fr/03-configuration.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md) pour toutes les options
 
 ---
 
 ## 🛣️ Routage
 
-**Documentation complète** : [Guide de routage](docs/fr/04-routing.md)
+**Documentation complète** : [Guide de routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
 
 Définir vos routes avec la macro `urlpatterns!` :
 
@@ -94,13 +98,13 @@ pub fn routes() -> Vec<Route> {
 }
 ```
 
-👉 **Lire** : [docs/fr/04-routing.md](docs/fr/04-routing.md) pour les patterns et options
+👉 **Lire** : [docs/fr/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md) pour les patterns et options
 
 ---
 
 ## 📝 Formulaires
 
-**Documentation complète** : [Guide des formulaires](docs/fr/05-forms.md)
+**Documentation complète** : [Guide des formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
 
 Créer des formulaires facilement :
 
@@ -115,13 +119,13 @@ form.field(&TextField::email("email")
     .label("Email"));
 ```
 
-👉 **Lire** : [docs/fr/05-forms.md](docs/fr/05-forms.md) pour tous les types de champs
+👉 **Lire** : [docs/fr/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md) pour tous les types de champs
 
 ---
 
 ## 🎨 Templates
 
-**Documentation complète** : [Guide des templates](docs/fr/06-templates.md)
+**Documentation complète** : [Guide des templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md)
 
 Utiliser les templates Tera :
 
@@ -132,13 +136,13 @@ Utiliser les templates Tera :
 {% endfor %}
 ```
 
-👉 **Lire** : [docs/fr/06-templates.md](docs/fr/06-templates.md) pour la syntaxe complète
+👉 **Lire** : [docs/fr/06-templates.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md) pour la syntaxe complète
 
 ---
 
 ## 🗄️ ORM
 
-**Documentation complète** : [Guide ORM](docs/fr/07-orm.md)
+**Documentation complète** : [Guide ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md)
 
 Utiliser SeaORM avec pattern Django-like :
 
@@ -151,13 +155,13 @@ let users = User::objects
     .await?;
 ```
 
-👉 **Lire** : [docs/fr/07-orm.md](docs/fr/07-orm.md) pour les queries avancées
+👉 **Lire** : [docs/fr/07-orm.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md) pour les queries avancées
 
 ---
 
 ## 🔒 Middlewares
 
-**Documentation complète** : [Guide des middlewares](docs/fr/08-middleware.md)
+**Documentation complète** : [Guide des middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
 
 Middlewares de sécurité intégrés :
 
@@ -167,13 +171,13 @@ Middlewares de sécurité intégrés :
 - En-têtes de sécurité
 - Sanitizer XSS
 
-👉 **Lire** : [docs/fr/08-middleware.md](docs/fr/08-middleware.md) pour la configuration
+👉 **Lire** : [docs/fr/08-middleware.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md) pour la configuration
 
 ---
 
 ## 💬 Flash Messages
 
-**Documentation complète** : [Guide Flash Messages](docs/fr/09-flash-messages.md)
+**Documentation complète** : [Guide Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
 
 Messages temporaires pour l'utilisateur :
 
@@ -183,13 +187,13 @@ error!("Une erreur s'est produite");
 warning!("Attention !");
 ```
 
-👉 **Lire** : [docs/fr/09-flash-messages.md](docs/fr/09-flash-messages.md) pour les détails
+👉 **Lire** : [docs/fr/09-flash-messages.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md) pour les détails
 
 ---
 
 ## 🎓 Exemples
 
-**Documentation complète** : [Guide des exemples](docs/fr/10-examples.md)
+**Documentation complète** : [Guide des exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
 
 Exemples complets d'utilisation :
 
@@ -198,7 +202,7 @@ Exemples complets d'utilisation :
 - Upload de fichiers
 - API REST
 
-👉 **Lire** : [docs/fr/10-examples.md](docs/fr/10-examples.md) pour les exemples complets
+👉 **Lire** : [docs/fr/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md) pour les exemples complets
 
 ---
 
@@ -222,36 +226,36 @@ Résultats : **36/36 tests passent** ✅
 ## 📖 Documentation complète
 
 ### English (EN)
-- [Installation](docs/en/01-installation.md)
-- [Architecture](docs/en/02-architecture.md)
-- [Configuration](docs/en/03-configuration.md)
-- [Routage](docs/en/04-routing.md)
-- [Formulaires](docs/en/05-forms.md)
-- [Templates](docs/en/06-templates.md)
-- [ORM](docs/en/07-orm.md)
-- [Middlewares](docs/en/08-middleware.md)
-- [Flash Messages](docs/en/09-flash-messages.md)
-- [Exemples](docs/en/10-examples.md)
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
+- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
+- [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
+- [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
 
 ### Français (FR)
-- [Installation](docs/fr/01-installation.md)
-- [Architecture](docs/fr/02-architecture.md)
-- [Configuration](docs/fr/03-configuration.md)
-- [Routage](docs/fr/04-routing.md)
-- [Formulaires](docs/fr/05-forms.md)
-- [Templates](docs/fr/06-templates.md)
-- [ORM](docs/fr/07-orm.md)
-- [Middlewares](docs/fr/08-middleware.md)
-- [Flash Messages](docs/fr/09-flash-messages.md)
-- [Exemples](docs/fr/10-examples.md)
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
+- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md)
+- [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
+- [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
 
 ---
 
 ## 🎯 Démarrage rapide
 
-1. **Lire** [Installation](docs/fr/01-installation.md)
-2. **Comprendre** [Architecture](docs/fr/02-architecture.md)
-3. **Consulter** [Exemples](docs/fr/10-examples.md)
+1. **Lire** [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
+2. **Comprendre** [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
+3. **Consulter** [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
 4. **Coder** votre application
 
 ---
@@ -273,7 +277,7 @@ Voir [PROJECT_STATUS.md](PROJECT_STATUS.md) pour plus de détails.
 - 📊 [État complet](PROJECT_STATUS.md)
 - 🧪 [Rapports de tests](TEST_REPORT.md)
 - 📋 [Changelog](CHANGELOG.md)
-- 📖 [Guide de documentation](docs/README.md)
+- 📖 [Guide de documentation](README.md)
 
 ---
 
@@ -287,7 +291,6 @@ MIT License - voir [SECURITY.md](SECURITY.md)
 
 Le framework Runique est **stable, testé et documenté**, prêt pour une utilisation en production.
 
-**Score** : 4.6/5.0 ⭐
 
 **Démarrer maintenant** → [Installation](docs/fr/01-installation.md)
 

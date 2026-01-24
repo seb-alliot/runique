@@ -1,8 +1,12 @@
 # 🚀 Runique - Django-inspired Rust Web Framework
 
+> **⚠️ Note**: This documentation has been generated with AI assistance. While care has been taken to ensure accuracy, some links or details may contain errors. Please report issues on [GitHub](https://github.com/seb-alliot/runique/issues).
+
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange)]()
 [![Tests](https://img.shields.io/badge/tests-36%2F36%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Version](https://img.shields.io/badge/version-1.1.1-blue)]()
+[![Crates.io](https://img.shields.io/crates/v/runique)]()
 
 A modern and comprehensive Rust web framework inspired by Django, for building robust and performant web applications.
 
@@ -56,7 +60,7 @@ Runique Framework
 └── Utils             # Helpers and utilities
 ```
 
-👉 **Read** : [docs/en/02-architecture.md](docs/en/02-architecture.md) for internal structure
+👉 **Read** : [docs/en/02-architecture.md](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md) for internal structure
 
 ---
 
@@ -151,13 +155,13 @@ let users = User::objects
     .await?;
 ```
 
-👉 **Read** : [docs/en/07-orm.md](docs/en/07-orm.md) for advanced queries
+👉 **Read** : [docs/en/07-orm.md](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md) for advanced queries
 
 ---
 
 ## 🔒 Middleware
 
-**Full Documentation** : [Middleware Guide](docs/en/08-middleware.md)
+**Full Documentation** : [Middleware Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
 
 Integrated security middleware:
 
@@ -167,13 +171,13 @@ Integrated security middleware:
 - Security Headers
 - XSS Sanitizer
 
-👉 **Read** : [docs/en/08-middleware.md](docs/en/08-middleware.md) for configuration
+👉 **Read** : [docs/en/08-middleware.md](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md) for configuration
 
 ---
 
 ## 💬 Flash Messages
 
-**Full Documentation** : [Flash Messages Guide](docs/en/09-flash-messages.md)
+**Full Documentation** : [Flash Messages Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
 
 Temporary messages for users:
 
@@ -183,13 +187,13 @@ error!("An error occurred");
 warning!("Warning!");
 ```
 
-👉 **Read** : [docs/en/09-flash-messages.md](docs/en/09-flash-messages.md) for details
+👉 **Read** : [docs/en/09-flash-messages.md](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md) for details
 
 ---
 
 ## 🎓 Examples
 
-**Full Documentation** : [Examples Guide](docs/en/10-examples.md)
+**Full Documentation** : [Examples Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
 
 Complete usage examples:
 
@@ -198,7 +202,7 @@ Complete usage examples:
 - File upload
 - REST API
 
-👉 **Read** : [docs/en/10-examples.md](docs/en/10-examples.md) for complete examples
+👉 **Read** : [docs/en/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) for complete examples
 
 ---
 
