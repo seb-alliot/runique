@@ -25,3 +25,5 @@ impl ActiveModelBehavior for ActiveModel {
         }
     }
 }
+
+impl_objects!(Entity);

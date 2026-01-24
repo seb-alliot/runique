@@ -1,11 +1,13 @@
 #[macro_use]
 extern crate runique;
 
-use runique::prelude::*;
 mod forms;
 mod models;
+mod prelude;
 mod url;
 mod views;
+
+use prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

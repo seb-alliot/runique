@@ -93,12 +93,12 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
     // 1. Détection par nom (Module text_mode)
     if field_name_str.contains("email") {
         return quote! {
-            ::runique::formulaire::builder_form::field_type::text_mode::TextField::email(#field_name_str)
+            ::runique::forms::fields::TextField::email(#field_name_str)
         };
     }
     if field_name_str.contains("password") || field_name_str.contains("pwd") {
         return quote! {
-            ::runique::formulaire::builder_form::field_type::text_mode::TextField::password(#field_name_str)
+            ::runique::forms::fields::TextField::password(#field_name_str)
         };
     }
     if field_name_str.contains("url")
@@ -106,7 +106,7 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
         || field_name_str.contains("website")
     {
         return quote! {
-            ::runique::formulaire::builder_form::field_type::text_mode::TextField::url(#field_name_str)
+            ::runique::forms::fields::TextField::url(#field_name_str)
         };
     }
 
@@ -118,30 +118,30 @@ pub(crate) fn get_field_type(field: &Field) -> proc_macro2::TokenStream {
             || field_name_str.contains("message")
         {
             return quote! {
-                ::runique::formulaire::builder_form::field_type::text_mode::TextField::textarea(#field_name_str)
+                ::runique::forms::fields::TextField::textarea(#field_name_str)
             };
         }
         return quote! {
-            ::runique::formulaire::builder_form::field_type::text_mode::TextField::text(#field_name_str)
+            ::runique::forms::fields::TextField::text(#field_name_str)
         };
     }
 
     // Types numériques (Module number_mode)
     if base_type.contains("i32") || base_type.contains("i64") || base_type.contains("u32") {
         return quote! {
-            ::runique::formulaire::builder_form::field_type::number_mode::NumericField::integer(#field_name_str)
+            ::runique::forms::fields::NumericField::integer(#field_name_str)
         };
     }
 
     if base_type.contains("f32") || base_type.contains("f64") {
         return quote! {
-            ::runique::formulaire::builder_form::field_type::number_mode::NumericField::float(#field_name_str)
+            ::runique::forms::fields::NumericField::float(#field_name_str)
         };
     }
 
     // Fallback standard
     quote! {
-        ::runique::formulaire::builder_form::field_type::text_mode::TextField::text(#field_name_str)
+        ::runique::forms::fields::TextField::text(#field_name_str)
     }
 }
 
