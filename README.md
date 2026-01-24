@@ -46,7 +46,7 @@ cargo test --all
 
 ## 🏗️ Architecture
 
-**Full Documentation** : [Architecture Guide](docs/en/02-architecture.md)
+**Full Documentation** : [Architecture Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
 
 Overview of Runique's architecture:
 
@@ -66,7 +66,7 @@ Runique Framework
 
 ## ⚙️ Configuration
 
-**Full Documentation** : [Configuration Guide](docs/en/03-configuration.md)
+**Full Documentation** : [Configuration Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
 
 Configure your server and application:
 
@@ -78,13 +78,13 @@ let settings = Settings {
 };
 ```
 
-👉 **Read** : [docs/en/03-configuration.md](docs/en/03-configuration.md) for all options
+👉 **Read** : [docs/en/03-configuration.md](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md) for all options
 
 ---
 
 ## 🛣️ Routing
 
-**Full Documentation** : [Routing Guide](docs/en/04-routing.md)
+**Full Documentation** : [Routing Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
 
 Define your routes with `urlpatterns!` macro:
 
@@ -98,13 +98,13 @@ pub fn routes() -> Vec<Route> {
 }
 ```
 
-👉 **Read** : [docs/en/04-routing.md](docs/en/04-routing.md) for patterns and options
+👉 **Read** : [docs/en/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md) for patterns and options
 
 ---
 
 ## 📝 Forms
 
-**Full Documentation** : [Forms Guide](docs/en/05-forms.md)
+**Full Documentation** : [Forms Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
 
 Create forms easily:
 
@@ -119,13 +119,13 @@ form.field(&TextField::email("email")
     .label("Email"));
 ```
 
-👉 **Read** : [docs/en/05-forms.md](docs/en/05-forms.md) for all field types
+👉 **Read** : [docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) for all field types
 
 ---
 
 ## 🎨 Templates
 
-**Full Documentation** : [Templates Guide](docs/en/06-templates.md)
+**Full Documentation** : [Templates Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
 
 Use Tera templates:
 
@@ -136,13 +136,13 @@ Use Tera templates:
 {% endfor %}
 ```
 
-👉 **Read** : [docs/en/06-templates.md](docs/en/06-templates.md) for complete syntax
+👉 **Read** : [docs/en/06-templates.md](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md) for complete syntax
 
 ---
 
 ## 🗄️ ORM
 
-**Full Documentation** : [ORM Guide](docs/en/07-orm.md)
+**Full Documentation** : [ORM Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
 
 Use SeaORM with Django-like pattern:
 
@@ -226,28 +226,28 @@ Results: **36/36 tests passing** ✅
 ## 📖 Full Documentation
 
 ### English (EN)
-- [Installation](docs/en/01-installation.md)
-- [Architecture](docs/en/02-architecture.md)
-- [Configuration](docs/en/03-configuration.md)
-- [Routing](docs/en/04-routing.md)
-- [Forms](docs/en/05-forms.md)
-- [Templates](docs/en/06-templates.md)
-- [ORM](docs/en/07-orm.md)
-- [Middleware](docs/en/08-middleware.md)
-- [Flash Messages](docs/en/09-flash-messages.md)
-- [Examples](docs/en/10-examples.md)
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
+- [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
+- [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
+- [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
+- [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
 
 ### Français (FR)
-- [Installation](docs/fr/01-installation.md)
-- [Architecture](docs/fr/02-architecture.md)
-- [Configuration](docs/fr/03-configuration.md)
-- [Routage](docs/fr/04-routing.md)
-- [Formulaires](docs/fr/05-forms.md)
-- [Templates](docs/fr/06-templates.md)
-- [ORM](docs/fr/07-orm.md)
-- [Middlewares](docs/fr/08-middleware.md)
-- [Flash Messages](docs/fr/09-flash-messages.md)
-- [Exemples](docs/fr/10-examples.md)
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
+- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md)
+- [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
+- [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
 
 ---
 
