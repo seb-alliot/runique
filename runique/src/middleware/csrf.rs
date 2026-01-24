@@ -88,7 +88,6 @@ pub async fn csrf_middleware(
     );
 
     if requires_csrf {
-        // 🔑 MODIFICATION : Vérifier le header (AJAX)
         let header_token = req
             .headers()
             .get("X-CSRF-Token")
@@ -101,7 +100,7 @@ pub async fn csrf_middleware(
                 return (StatusCode::FORBIDDEN, "Invalid CSRF token (header)").into_response();
             }
         }
-        // Sinon, on laisse ExtractForm vérifier le champ du formulaire
+        // Sinon, on laisse Prisme vérifier le champ du formulaire
         // (la validation se fera dans is_valid())
     }
 

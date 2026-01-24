@@ -220,4 +220,9 @@ impl TemplateContext {
         }
         self.render(template_route)
     }
+
+    /// Crée un formulaire vide avec le token CSRF et le moteur Tera déjà injectés
+    pub fn form<T: crate::forms::field::RuniqueForm>(&self) -> T {
+        T::build(self.engine.tera.clone(), self.csrf_token.as_str())
+    }
 }

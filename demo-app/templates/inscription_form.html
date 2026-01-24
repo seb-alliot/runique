@@ -7,23 +7,15 @@
 {% block content %}
     <h1>{{ title }}</h1>
 
-    {% messages %}
+    {% block message %}
+        {% messages %}
+    {% endblock %}
+
+
 
     <form method="post" action="/inscription">
+        <!-- Les erreurs individuelles s'affichent automatiquement sous chaque champ -->
         {% form.inscription_form %}
         <button type="submit">S'inscrire</button>
     </form>
-{% if errors %}
-        <div class="alert alert-warning mt-3">
-            <div class="alert-message">
-                <strong>Veuillez corriger les erreurs suivantes :</strong>
-                <ul>
-                    {# Ici on itère sur la Map renvoyée par Rust #}
-                    {% for field_name, error_msg in errors %}
-                        <li><strong>{{ field_name }} :</strong> {{ error_msg }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    {% endif %}
 {% endblock %}

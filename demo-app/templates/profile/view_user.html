@@ -8,9 +8,7 @@
 
 <div class="content">
     {% block content %}
-    {% block messages %}
-    {% messages %}
-    {% endblock %}
+
     <div class="content">
         {% if title %}
             <h1>{{ title }}</h1>
@@ -19,7 +17,9 @@
         <!-- Formulaire de recherche d'utilisateur -->
         <div class="form-container">
             <h2>Rechercher un utilisateur</h2>
-
+                {% block messages %}
+                {% messages %}
+                {% endblock %}
             <form id="username-form" method="post">
                 {% form.user %}
                 <button type="submit">Rechercher</button>

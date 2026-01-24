@@ -43,16 +43,16 @@ pub struct RegisterForm {
 
 ## Using in Handlers
 
-### Automatic Extraction
+### Automatic Extraction (Prisme)
 
 ```rust
 use demo_app::forms::LoginForm;
-use runique::formulaire::ExtractForm;
+use runique::forms::Prisme;
 
 async fn login_form(
     template: TemplateContext,
 ) -> Response {
-    let form = LoginForm::new();
+    let form = template.form::<LoginForm>();
     template.render("login.html", &context! {
         "form" => form
     })
@@ -61,7 +61,7 @@ async fn login_form(
 async fn login_submit(
     mut ctx: RuniqueContext,
     template: TemplateContext,
-    ExtractForm(mut form): ExtractForm<LoginForm>,
+    Prisme(mut form): Prisme<LoginForm>,
 ) -> Response {
     // Automatic validation
     if !form.is_valid().await {
@@ -85,8 +85,53 @@ async fn login_submit(
 }
 ```
 
+### Guards (Sentinel) and roles
+
+`Prisme` runs three steps: `Sentinel` (access rules), CSRF check, then data extraction (`Aegis`). If no rule is provided, only CSRF+extraction run. To enforce login/role:
+
+```rust
+use runique::forms::utils::prisme::{GuardContext, GuardRules};
+
+pub async fn with_rules<B>(mut req: Request<B>, next: Next<B>) -> impl IntoResponse {
+    // Require login and either Admin or Editor
+    req.extensions_mut()
+        .insert(GuardRules::login_and_roles(["Admin", "Editor"]));
+
+    // Inject user context from your auth layer
+    req.extensions_mut().insert(GuardContext {
+        user_id: Some("123".into()),
+        roles: vec!["Admin".into()],
+    });
+
+    next.run(req).await
+}
+```
+
+If rules are missing, `Sentinel` is a no-op. CSRF remains enforced, and form extraction proceeds normally.
+
 ---
 
+## Form Rendering
+
+The CSRF token is **automatically included** in all forms created with the `#[derive(RuniqueForm)]` macro.
+
+### Full Form Rendering
+
+Use the `form` Tera filter to display the complete form with all fields and CSRF token:
+
+```html
+{% form.inscription_form %}
+```
+
+### Field-by-Field Rendering
+
+For full control over the layout, access fields individually using the `form` filter:
+
+```html
+{{ csrf(csrf_token=form.fields.csrf_token.value) | safe }}
+
+<input type="text" name="username" value="{{ form.inscription_form.username }}" />
+<input type="email" name="email" value="{{ form.inscription_form.email }}" />
 ## Custom Validation
 
 ```rust
@@ -128,12 +173,12 @@ impl UserForm {
 ```html
 <form method="post" action="/login">
     {% csrf_field %}
-    
+
     <div class="form-group">
         <label for="email">Email:</label>
-        <input 
-            type="email" 
-            name="email" 
+        <input
+            type="email"
+            name="email"
             id="email"
             value="{{ form.email }}"
             {% if form.has_error('email') %}class="error"{% endif %}
@@ -145,9 +190,9 @@ impl UserForm {
 
     <div class="form-group">
         <label for="password">Password:</label>
-        <input 
-            type="password" 
-            name="password" 
+        <input
+            type="password"
+            name="password"
             id="password"
         >
         {% if form.has_error('password') %}

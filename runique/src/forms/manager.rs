@@ -277,13 +277,101 @@ impl Forms {
 
     pub fn database_error(&mut self, db_err: &sea_orm::DbErr) {
         let err_msg = db_err.to_string();
-        // Logique simplifiée d'extraction (à enrichir selon les besoins)
-        if err_msg.contains("unique") || err_msg.contains("Duplicate") {
-            self.global_errors
-                .push("Une contrainte d'unicité a été violée.".to_string());
+
+        // Gestion des erreurs d'unicité avec extraction automatique du champ
+        if err_msg.contains("unique") || err_msg.contains("UNIQUE") || err_msg.contains("Duplicate")
+        {
+            let field_name = Self::extract_field_name(&err_msg);
+
+            if let Some(field) = field_name {
+                // Trouver le champ correspondant et lui attribuer l'erreur
+                if let Some(form_field) = self.fields.get_mut(&field) {
+                    let friendly_name = field.replace("_", " ");
+                    form_field.set_error(format!("Ce {} est déjà utilisé.", friendly_name));
+                } else {
+                    // Si le champ n'existe pas dans le formulaire, erreur globale
+                    self.global_errors
+                        .push(format!("La valeur du champ '{}' est déjà utilisée.", field));
+                }
+            } else {
+                // Erreur d'unicité mais impossible d'extraire le champ
+                self.global_errors
+                    .push("Une contrainte d'unicité a été violée.".to_string());
+            }
         } else {
+            // Autres erreurs de base de données
             self.global_errors.push(format!("Erreur DB: {}", err_msg));
         }
+    }
+
+    /// Extraire le nom du champ depuis différents formats d'erreur SQL
+    fn extract_field_name(err_msg: &str) -> Option<String> {
+        // PostgreSQL français: contrainte unique « users_username_key »
+        if let Some(start) = err_msg.find("contrainte unique « ") {
+            let remaining = &err_msg[start + 20..];
+            if let Some(end) = remaining.find(" »") {
+                let constraint_name = &remaining[..end];
+                if let Some(parts) = Self::parse_constraint_name(constraint_name) {
+                    return Some(parts);
+                }
+            }
+        }
+
+        // PostgreSQL anglais: unique constraint "users_username_key"
+        if let Some(start) = err_msg.find("unique constraint \"") {
+            let remaining = &err_msg[start + 19..];
+            if let Some(end) = remaining.find('"') {
+                let constraint_name = &remaining[..end];
+                if let Some(parts) = Self::parse_constraint_name(constraint_name) {
+                    return Some(parts);
+                }
+            }
+        }
+
+        // PostgreSQL: Key (username)=(value)
+        if let Some(start) = err_msg.find("Key (") {
+            if let Some(end) = err_msg[start..].find(')') {
+                let field = &err_msg[start + 5..start + end];
+                return Some(field.to_string());
+            }
+        }
+
+        // SQLite: UNIQUE constraint failed: users.username
+        if let Some(pos) = err_msg.find("failed: ") {
+            let remaining = &err_msg[pos + 8..];
+            if let Some(dot_pos) = remaining.find('.') {
+                let field = &remaining[dot_pos + 1..];
+                let field_clean = field.split_whitespace().next()?;
+                return Some(field_clean.to_string());
+            }
+        }
+
+        // MySQL: Duplicate entry 'value' for key 'users.username'
+        if let Some(pos) = err_msg.find("for key '") {
+            let remaining = &err_msg[pos + 9..];
+            if let Some(dot_pos) = remaining.find('.') {
+                let after_dot = &remaining[dot_pos + 1..];
+                if let Some(quote_pos) = after_dot.find('\'') {
+                    return Some(after_dot[..quote_pos].to_string());
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Parser le nom de contrainte pour extraire le nom du champ
+    fn parse_constraint_name(constraint: &str) -> Option<String> {
+        // Format typique: table_field_key ou table_field_idx
+        let parts: Vec<&str> = constraint.split('_').collect();
+
+        if parts.len() >= 3 {
+            // Enlever le premier élément (nom de table) et le dernier (key/idx)
+            let field_parts = &parts[1..parts.len() - 1];
+            return Some(field_parts.join("_"));
+        }
+
+        None
     }
 
     pub fn add_value(&mut self, name: &str, value: &str) {

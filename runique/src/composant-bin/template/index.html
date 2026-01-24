@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="...">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{{ title }}</title>
     {% block style %}
         <link rel="stylesheet" href='{% static "css/variables.css" %}'>
@@ -20,6 +20,7 @@
         </div>
     {% endif %}
 
+
     {% block header %}
         <header>
             <img src='{% media "toshiro.avif" %}' alt="Logo">
@@ -27,31 +28,32 @@
     {% endblock %}
 
     <main>
-
-
         {% block content %}
-    <div class="content">
-        <div>
-            <h1>{{ title }}</h1>
-            <p>{{ description }}</p>
-            <p>{{ status }}</p>
-            <p>{{ backend }}</p>
-            <p>{{ template }}</p>
-            <p>{{ tokio }}</p>
-            <p>{{ session }}</p>
+        <div class="content">
+            <div>
+                <h1>{{ title }}</h1>
+                <p>{{ description }}</p>
+                <p>{{ status }}</p>
+                <p>{{ backend }}</p>
+                <p>{{ template }}</p>
+                <p>{{ tokio }}</p>
+                <p>{{ session }}</p>
+            </div>
         </div>
-    </div>
-        {% endblock %}
-        {% messages %}
-    </main>
 
+        {% block messages %}
+            {% messages %}
+        {% endblock %}
+    {% endblock %}
+
+    </main>
     <footer>
         {% block footer %}
-            <a href={% link "view-user" %}>Recherche user</a>
-            <a href="{% link "user_profile" %}">S'inscrire</a>
-            <a href={% link "about" %}>À propos</a>
-            <p>&copy; 2025 My Web Application</p>
+            <a href="{% link "inscription" %}">Inscrivez-vous !</a>
+            <a href="{% link "search-user" %}">Recherche utilisateur</a>
+            <a href="{% link "about" %}">À propos</a>
+            <a href="{% link "blog_info" %}">Blog</a>
+            <p>&copy; 2026 My Web Application</p>
         {% endblock %}
     </footer>
-
 </body>

@@ -3,9 +3,8 @@ use crate::forms::{Blog as BlogForm, RegisterForm, UsernameForm};
 // use crate::models::model_derive;
 use crate::models::users::{self, Entity as UserEntity};
 
-use runique::forms::ExtractForm;
+use runique::forms::Prisme;
 use runique::prelude::*;
-use runique::{error, flash_now, info, success, warning};
 
 /// Page d'accueil
 pub async fn index(mut template: TemplateContext) -> Result<Response, AppError> {
@@ -24,10 +23,7 @@ pub async fn index(mut template: TemplateContext) -> Result<Response, AppError> 
 
 // /// Formulaire d'inscription
 pub async fn inscription(mut template: TemplateContext) -> Result<Response, AppError> {
-    let form = RegisterForm::build(
-        template.engine.tera.clone(),
-        template.csrf_token.masked().as_str(),
-    );
+    let form = template.form::<RegisterForm>();
     context_update!(template => {
         "title" => "Inscription utilisateur",
         "inscription_form" => &form,
@@ -39,7 +35,7 @@ pub async fn inscription(mut template: TemplateContext) -> Result<Response, AppE
 /// Soumission du formulaire d'inscription
 pub async fn soumission_inscription(
     mut template: TemplateContext,
-    ExtractForm(mut form): ExtractForm<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>,
 ) -> Result<Response, AppError> {
     let db = template.engine.db.clone();
 
@@ -49,7 +45,10 @@ pub async fn soumission_inscription(
                 success!(template.flash_manager => format!("Bienvenue {}, votre compte a été créé !", user.username));
                 return Ok(Redirect::to("/").into_response());
             }
-            Err(_err) => {
+            Err(err) => {
+                // Extraire automatiquement l'erreur d'unicité et l'assigner au bon champ
+                form.get_form_mut().database_error(&err);
+
                 context_update!(template => {
                     "title" => "Erreur de base de données",
                     "inscription_form" => &form,
@@ -71,7 +70,7 @@ pub async fn soumission_inscription(
 
 // / Formulaire de recherche d'utilisateur
 pub async fn search_user_form(mut template: TemplateContext) -> Result<Response, AppError> {
-    let form = UsernameForm::build(template.engine.tera.clone(), template.csrf_token.as_str());
+    let form = template.form::<UsernameForm>();
 
     context_update!(template => {
         "title" => "Rechercher un utilisateur",
@@ -84,7 +83,7 @@ pub async fn search_user_form(mut template: TemplateContext) -> Result<Response,
 /// Exemple pour chercher un utilisateur
 pub async fn info_user(
     mut template: TemplateContext,
-    ExtractForm(mut form): ExtractForm<UsernameForm>,
+    Prisme(mut form): Prisme<UsernameForm>,
 ) -> Result<Response, AppError> {
     if !form.is_valid().await {
         // Retourner le formulaire avec les erreurs
@@ -111,13 +110,18 @@ pub async fn info_user(
                 "username" => &user.username,
                 "email" => &user.email,
                 "user" => &user,
-                "messages" => &flash_now!(warning => &user.username),
+                "messages" => &flash_now!(success => "Voici les infos que tu voulais !"),
             });
 
             template.render("profile/view_user.html")
         }
         None => {
-            warning!(template.flash_manager  => format!("Utilisateur '{}' non trouvé.", username));
+            context_update!(template => {
+                "title" => "Vue utilisateur",
+                "user" => &form,
+                "messages" => &flash_now!(warning => "Tu n'existe pas dans ma bdd !! Une honte je te le dis, inscris toi de suite !! "),
+            });
+
             template.render("profile/view_user.html")
         }
     }
@@ -141,7 +145,7 @@ pub async fn blog_form(mut template: TemplateContext) -> Result<Response, AppErr
 /// Blag save
 pub async fn blog_save(
     mut template: TemplateContext,
-    ExtractForm(mut blog_save): ExtractForm<BlogForm>,
+    Prisme(mut blog_save): Prisme<BlogForm>,
 ) -> Result<Response, AppError> {
     if blog_save.is_valid().await {
         match blog_save.save(&*template.engine.db).await {

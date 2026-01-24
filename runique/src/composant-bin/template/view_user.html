@@ -1,41 +1,29 @@
 {% extends "index.html" %}
 
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+{% endblock %}
+
 <div class="content">
     {% block content %}
-        <link rel="stylesheet" href='{% static "css/search-user.css" %}'>
-
+    {% block messages %}
+    {% messages %}
+    {% endblock %}
     <div class="content">
         {% if title %}
             <h1>{{ title }}</h1>
         {% endif %}
 
-        {% if db_error %}
-            <div class="alert alert-danger">
-                <span class="alert-message">{{ db_error }}</span>
-            </div>
-        {% endif %}
-
-        {% if form.errors %}
-            <div class="alert alert-warning">
-                <div class="alert-message">
-                    <strong>Veuillez corriger les erreurs suivantes :</strong>
-                    <ul>
-                        {% for field, error in form.errors %}
-                            <li><strong>{{ field }} :</strong> {{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        {% endif %}
-
         <!-- Formulaire de recherche d'utilisateur -->
         <div class="form-container">
-            {% block message %}
-                {% messages %}
-            {% endblock %}
+            <h2>Rechercher un utilisateur</h2>
+
             <form id="username-form" method="post">
-                {% csrf %}
-                {% form.user.username %}
+                {% form.user %}
                 <button type="submit">Rechercher</button>
             </form>
         </div>
@@ -63,6 +51,18 @@
                     <span class="result-label">Âge :</span>
                     <span class="result-value">{{ age }} ans</span>
                 </div>
+                {% endif %}
+            </div>
+    {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block footer %}
+    <a href={% link "index" %}>Revenir à l'accueil</a>
+    <p>&copy; 2025 My Web Application</p>
+{% endblock %}
                 {% endif %}
             </div>
     {% endif %}
