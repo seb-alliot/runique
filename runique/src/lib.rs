@@ -216,7 +216,7 @@ pub mod prelude {
     // ========================================================================
     pub use crate::app::{RuniqueApp, RuniqueAppBuilder};
     pub use crate::config::app::RuniqueConfig;
-    pub use crate::context::{AppError, TemplateContext};
+    pub use crate::context::{AppError, AppResult, TemplateContext};
     pub use crate::engine::RuniqueEngine;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{

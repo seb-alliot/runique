@@ -23,6 +23,9 @@ pub struct AppError {
     context: ErrorContext,
 }
 
+/// Type alias pour les résultats avec AppError boxé (optimisation Clippy)
+pub type AppResult<T> = Result<T, Box<AppError>>;
+
 impl AppError {
     /// Créer depuis une erreur Tera
     pub fn from_tera(error: tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
@@ -86,6 +89,20 @@ impl From<DbErr> for AppError {
     }
 }
 
+// Conversion automatique depuis anyhow::Error vers Box<AppError>
+impl From<anyhow::Error> for Box<AppError> {
+    fn from(error: anyhow::Error) -> Self {
+        Box::new(AppError::from_anyhow(error))
+    }
+}
+
+// Conversion automatique depuis DbErr vers Box<AppError>
+impl From<DbErr> for Box<AppError> {
+    fn from(error: DbErr) -> Self {
+        Box::new(AppError::from_db(error))
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = StatusCode::from_u16(self.context.status_code)
@@ -95,6 +112,12 @@ impl IntoResponse for AppError {
         // Injecte le ErrorContext complet dans les extensions
         res.extensions_mut().insert(Arc::new(self.context));
         res
+    }
+}
+
+impl IntoResponse for Box<AppError> {
+    fn into_response(self) -> Response {
+        (*self).into_response()
     }
 }
 
@@ -185,12 +208,16 @@ impl Clone for TemplateContext {
 
 impl TemplateContext {
     /// Rendu d'un template Tera avec capture complète des erreurs
-    pub fn render(&self, template_route: &str) -> Result<Response, AppError> {
+    pub fn render(&self, template_route: &str) -> AppResult<Response> {
         match self.engine.tera.render(template_route, &self.context) {
             Ok(html) => Ok(Html(html).into_response()),
             Err(e) => {
                 // Utilise le builder dédié qui capture toutes les infos Tera
-                Err(AppError::from_tera(e, template_route, &self.engine.tera))
+                Err(Box::new(AppError::from_tera(
+                    e,
+                    template_route,
+                    &self.engine.tera,
+                )))
             }
         }
     }
@@ -214,7 +241,7 @@ impl TemplateContext {
         &mut self,
         template_route: &str,
         data: Vec<(&str, serde_json::Value)>,
-    ) -> Result<Response, AppError> {
+    ) -> AppResult<Response> {
         for (key, value) in data {
             self.context.insert(key, &value);
         }

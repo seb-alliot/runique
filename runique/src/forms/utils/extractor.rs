@@ -47,7 +47,7 @@ where
                 .into_response()
         })?;
 
-    sentinel(&req, &config)?;
+    sentinel(&req, &config).map_err(|boxed| *boxed)?;
 
     let csrf_session = req
         .extensions()

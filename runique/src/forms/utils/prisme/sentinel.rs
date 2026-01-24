@@ -4,7 +4,7 @@ use axum::{body::Body, http::Request, response::Response};
 
 /// Sentinel : point d'entrée pour les règles d'accès (login, rôle, feature flags).
 /// Les règles peuvent être injectées dans les extensions via `GuardRules` et le contexte via `GuardContext`.
-pub fn sentinel(req: &Request<Body>, _config: &RuniqueConfig) -> Result<(), Response> {
+pub fn sentinel(req: &Request<Body>, _config: &RuniqueConfig) -> Result<(), Box<Response>> {
     let rules = req.extensions().get::<GuardRules>();
     if let Some(rules) = rules {
         let ctx = req.extensions().get::<GuardContext>();

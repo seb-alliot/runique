@@ -41,7 +41,7 @@ impl fmt::Display for ValidationError {
 impl std::error::Error for ValidationError {}
 
 thread_local! {
-    static VALIDATION_DEPTH: Cell<usize> = Cell::new(0);
+    static VALIDATION_DEPTH: Cell<usize> = const { Cell::new(0) };
 }
 
 #[derive(Clone)]
