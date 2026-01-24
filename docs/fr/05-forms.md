@@ -43,16 +43,16 @@ pub struct RegisterForm {
 
 ## Utiliser dans un Handler
 
-### Extraction automatique
+### Extraction automatique (Prisme)
 
 ```rust
 use demo_app::forms::LoginForm;
-use runique::formulaire::ExtractForm;
+use runique::forms::Prisme;
 
 async fn login_form(
     template: TemplateContext,
 ) -> Response {
-    let form = LoginForm::new();
+    let form = template.form::<LoginForm>();
     template.render("login.html", &context! {
         "form" => form
     })
@@ -61,7 +61,7 @@ async fn login_form(
 async fn login_submit(
     mut ctx: RuniqueContext,
     template: TemplateContext,
-    ExtractForm(mut form): ExtractForm<LoginForm>,
+    Prisme(mut form): Prisme<LoginForm>,
 ) -> Response {
     // Validation automatique
     if !form.is_valid().await {
@@ -85,6 +85,54 @@ async fn login_submit(
 }
 ```
 
+### Garde (Sentinel) et rôles
+
+`Prisme` exécute trois étapes : `Sentinel` (règles d’accès), vérification CSRF, puis extraction (`Aegis`). Sans règle fournie, seul CSRF + extraction s’exécutent. Pour imposer login/rôle :
+
+```rust
+use runique::forms::utils::prisme::{GuardContext, GuardRules};
+
+pub async fn with_rules<B>(mut req: Request<B>, next: Next<B>) -> impl IntoResponse {
+    // Login requis + rôle Admin ou Editor
+    req.extensions_mut()
+        .insert(GuardRules::login_and_roles(["Admin", "Editor"]));
+
+    // Contexte utilisateur injecté depuis votre couche d’authentification
+    req.extensions_mut().insert(GuardContext {
+        user_id: Some("123".into()),
+        roles: vec!["Admin".into()],
+    });
+
+    next.run(req).await
+}
+```
+
+Si aucune règle n’est fournie, `Sentinel` est un no-op. Le CSRF reste appliqué et l’extraction du formulaire continue normalement.
+
+---
+
+## Rendu des formulaires
+
+Le token CSRF est **toujours inclus automatiquement** dans tous les formulaires créés avec la macro `#[derive(RuniqueForm)]`.
+
+### Rendu complet du formulaire
+
+Utilisez le filtre Tera `form` pour afficher le formulaire complet avec tous les champs et le token CSRF :
+
+```html
+{% form.inscription_form %}
+```
+
+### Rendu champ-par-champ
+
+Pour un contrôle total sur le layout, accédez aux champs individuellement via le filtre `form` :
+
+```html
+{{ csrf(csrf_token=form.fields.csrf_token.value) | safe }}
+
+<input type="text" name="username" value="{{ form.inscription_form.username }}" />
+<input type="email" name="email" value="{{ form.inscription_form.email }}" />
+```
 ---
 
 ## Validation Personnalisée
@@ -128,12 +176,12 @@ impl UserForm {
 ```html
 <form method="post" action="/login">
     {% csrf_field %}
-    
+
     <div class="form-group">
         <label for="email">Email:</label>
-        <input 
-            type="email" 
-            name="email" 
+        <input
+            type="email"
+            name="email"
             id="email"
             value="{{ form.email }}"
             {% if form.has_error('email') %}class="error"{% endif %}
@@ -145,9 +193,9 @@ impl UserForm {
 
     <div class="form-group">
         <label for="password">Mot de passe:</label>
-        <input 
-            type="password" 
-            name="password" 
+        <input
+            type="password"
+            name="password"
             id="password"
         >
         {% if form.has_error('password') %}

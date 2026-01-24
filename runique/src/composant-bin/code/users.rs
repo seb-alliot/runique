@@ -13,8 +13,8 @@ pub struct Model {
     pub username: String,
     pub email: String,
     pub password: String,
-    pub age: i32,
-    pub created_at: DateTime,
+    pub created_at: Option<NaiveDateTime>,
+    pub updated_at: Option<NaiveDateTime>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

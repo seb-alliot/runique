@@ -50,7 +50,8 @@ fn create_new_project(name: &str) -> Result<()> {
     println!("🦀 Création du projet '{}'...", name);
 
     // === CONFIGURATION ===
-    let runique_version = "1.0.86";
+    // Utilise la version du binaire pour garder le template synchronisé avec le crate
+    let runique_version = env!("CARGO_PKG_VERSION");
 
     // === CHARGEMENT DES TEMPLATES ===
 
@@ -58,9 +59,13 @@ fn create_new_project(name: &str) -> Result<()> {
     let view_rs_content = include_bytes!("../composant-bin/code/views.rs").to_vec();
     let formulaire = include_bytes!("../composant-bin/code/forms.rs").to_vec();
     let user_exemple = include_bytes!("../composant-bin/code/users.rs").to_vec();
+    let blog_model = include_bytes!("../composant-bin/code/blog.rs").to_vec();
+    let test_model = include_bytes!("../composant-bin/code/test.rs").to_vec();
+    let model_derive = include_bytes!("../composant-bin/code/model_derive.rs").to_vec();
     let mod_rs_content = include_bytes!("../composant-bin/code/mod.rs").to_vec();
     let url_rs = include_bytes!("../composant-bin/code/url.rs").to_vec();
     let main_rs = include_bytes!("../composant-bin/code/main.rs").to_vec();
+    let prelude_rs = include_bytes!("../composant-bin/code/prelude.rs").to_vec();
 
     // Templates HTML
     let index_html = include_bytes!("../composant-bin/template/index.html").to_vec();
@@ -68,6 +73,11 @@ fn create_new_project(name: &str) -> Result<()> {
     let view_user_html = include_bytes!("../composant-bin/template/view_user.html").to_vec();
     let register_user_html =
         include_bytes!("../composant-bin/template/register_user.html").to_vec();
+    let inscription_form_html =
+        include_bytes!("../composant-bin/template/inscription_form.html").to_vec();
+    let blog_html = include_bytes!("../composant-bin/template/blog/blog.html").to_vec();
+    let test_champs_html =
+        include_bytes!("../composant-bin/template/test_champs_form.html").to_vec();
 
     // CSS
     let main_css = include_bytes!("../composant-bin/css/main.css").to_vec();
@@ -75,6 +85,11 @@ fn create_new_project(name: &str) -> Result<()> {
     let register_form_css = include_bytes!("../composant-bin/css/register-form.css").to_vec();
     let search_user_css = include_bytes!("../composant-bin/css/search-user.css").to_vec();
     let variable_css = include_bytes!("../composant-bin/css/variables.css").to_vec();
+    let test_form_css = include_bytes!("../composant-bin/css/test_form.css").to_vec();
+    let inscription_css =
+        include_bytes!("../composant-bin/css/inscription/inscription.css").to_vec();
+    let inscription_label_css =
+        include_bytes!("../composant-bin/css/inscription/inscription-label.css").to_vec();
 
     // Images
     let image = include_bytes!("../composant-bin/image/toshiro.avif").to_vec();
@@ -94,6 +109,7 @@ fn create_new_project(name: &str) -> Result<()> {
     fs::create_dir_all(project_dir)?;
     fs::create_dir_all(project_dir.join("src/models"))?;
     fs::create_dir_all(project_dir.join("src/static/css"))?;
+    fs::create_dir_all(project_dir.join("src/static/css/inscription"))?;
     fs::create_dir_all(project_dir.join("src/static/js"))?;
     fs::create_dir_all(project_dir.join("src/static/images"))?;
     fs::create_dir_all(project_dir.join("src/media"))?;
@@ -101,6 +117,7 @@ fn create_new_project(name: &str) -> Result<()> {
     fs::create_dir_all(project_dir.join("templates"))?;
     fs::create_dir_all(project_dir.join("templates/profile"))?;
     fs::create_dir_all(project_dir.join("templates/about"))?;
+    fs::create_dir_all(project_dir.join("templates/blog"))?;
 
     // === ÉCRITURE DES FICHIERS ===
 
@@ -113,11 +130,15 @@ fn create_new_project(name: &str) -> Result<()> {
 
     // Code Rust sources
     fs::write(project_dir.join("src/main.rs"), main_rs)?;
+    fs::write(project_dir.join("src/prelude.rs"), prelude_rs)?;
     fs::write(project_dir.join("src/forms.rs"), formulaire)?;
     fs::write(project_dir.join("src/url.rs"), url_rs)?;
     fs::write(project_dir.join("src/views.rs"), view_rs_content)?;
     fs::write(project_dir.join("src/models/mod.rs"), mod_rs_content)?;
     fs::write(project_dir.join("src/models/users.rs"), user_exemple)?;
+    fs::write(project_dir.join("src/models/blog.rs"), blog_model)?;
+    fs::write(project_dir.join("src/models/test.rs"), test_model)?;
+    fs::write(project_dir.join("src/models/model_derive.rs"), model_derive)?;
 
     // Templates HTML
     fs::write(project_dir.join("templates/index.html"), index_html)?;
@@ -127,8 +148,17 @@ fn create_new_project(name: &str) -> Result<()> {
         view_user_html,
     )?;
     fs::write(
+        project_dir.join("templates/inscription_form.html"),
+        inscription_form_html,
+    )?;
+    fs::write(
         project_dir.join("templates/profile/register_user.html"),
         register_user_html,
+    )?;
+    fs::write(project_dir.join("templates/blog/blog.html"), blog_html)?;
+    fs::write(
+        project_dir.join("templates/test_champs_form.html"),
+        test_champs_html,
     )?;
 
     // CSS
@@ -146,9 +176,21 @@ fn create_new_project(name: &str) -> Result<()> {
         project_dir.join("src/static/css/variables.css"),
         variable_css,
     )?;
+    fs::write(
+        project_dir.join("src/static/css/test_form.css"),
+        test_form_css,
+    )?;
+    fs::write(
+        project_dir.join("src/static/css/inscription/inscription.css"),
+        inscription_css,
+    )?;
+    fs::write(
+        project_dir.join("src/static/css/inscription/inscription-label.css"),
+        inscription_label_css,
+    )?;
 
     // Images
-    fs::write(project_dir.join("src/media/toshiro.jpg"), image)?;
+    fs::write(project_dir.join("src/media/toshiro.avif"), image)?;
     fs::write(project_dir.join("src/media/favicon/favicon.ico"), favicon)?;
 
     // === MESSAGE DE SUCCÈS ===
@@ -158,30 +200,40 @@ fn create_new_project(name: &str) -> Result<()> {
     println!("   ├── src/");
     println!("   │   ├── models/");
     println!("   │   │   ├── mod.rs");
-    println!("   │   │   └── users.rs");
+    println!("   │   │   ├── users.rs");
+    println!("   │   │   ├── blog.rs");
+    println!("   │   │   ├── test.rs");
+    println!("   │   │   └── model_derive.rs");
     println!("   │   ├── static/");
     println!("   │   │   ├── css/");
     println!("   │   │   |   ├── variables.css");
     println!("   │   │   |   ├── main.css");
     println!("   │   │   |   ├── register-form.css");
     println!("   │   │   |   ├── search-user.css");
-    println!("   │   │   |   └── about.css");
+    println!("   │   │   |   ├── test_form.css");
+    println!("   │   │   |   ├── inscription/inscription.css");
+    println!("   │   │   |   └── inscription/inscription-label.css");
     println!("   │   │   ├── js/");
     println!("   │   │   └── images/");
     println!("   │   ├── media/");
     println!("   │   │   ├── favicon/");
     println!("   │   │   │   └── favicon.ico");
-    println!("   │   │   └── toshiro.jpg");
+    println!("   │   │   └── toshiro.avif");
     println!("   │   ├── forms.rs");
+    println!("   │   ├── prelude.rs");
     println!("   │   ├── main.rs");
     println!("   │   ├── url.rs");
     println!("   │   └── views.rs");
     println!("   ├── templates/");
     println!("   │   ├── about/");
     println!("   │   │   └── about.html");
+    println!("   │   ├── blog/");
+    println!("   │   │   └── blog.html");
     println!("   │   ├── profile/");
     println!("   │   │   ├── register_user.html");
     println!("   │   │   └── view_user.html");
+    println!("   │   ├── inscription_form.html");
+    println!("   │   ├── test_champs_form.html");
     println!("   │   └── index.html");
     println!("   ├── .env");
     println!("   ├── .gitignore");
