@@ -1,5 +1,6 @@
 use runique::prelude::*;
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "test_fields")]
 pub struct Model {
@@ -14,6 +15,7 @@ pub struct Model {
     pub created_at: DateTime<Utc>,
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
