@@ -14,16 +14,16 @@ A modern and comprehensive Rust web framework inspired by Django, for building r
 
 ## 📚 Table of Contents
 
-- 🚀 [Installation](#-installation)
-- 🏗️ [Architecture](#-architecture)
-- ⚙️ [Configuration](#-configuration)
-- 🛣️ [Routing](#-routing)
-- 📝 [Forms](#-forms)
-- 🎨 [Templates](#-templates)
-- 🗄️ [ORM](#-orm)
-- 🔒 [Middleware](#-middleware)
-- 💬 [Flash Messages](#-flash-messages)
-- 🎓 [Examples](#-examples)
+- 🚀 [Installation](#installation)
+- 🏗️ [Architecture](#architecture)
+- ⚙️ [Configuration](#configuration)
+- 🛣️ [Routing](#routing)
+- 📝 [Forms](#forms)
+- 🎨 [Templates](#templates)
+- 🗄️ [ORM](#orm)
+- 🔒 [Middleware](#middleware)
+- 💬 [Flash Messages](#flash-messages)
+- 🎓 [Examples](#examples)
 
 ---
 
