@@ -6,7 +6,7 @@
 //! # Examples
 //!
 //! ```no_run
-//! use runique::DatabaseConfig;
+//! use runique::prelude::DatabaseConfig;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // From environment variables
@@ -33,7 +33,7 @@ use std::time::Duration;
 /// # Examples
 ///
 /// ```no_run
-/// use runique::DatabaseConfig;
+/// use runique::prelude::DatabaseConfig;
 /// use std::time::Duration;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -83,7 +83,7 @@ pub struct DatabaseConfig {
 /// # Examples
 ///
 /// ```
-/// use runique::DatabaseEngine;
+/// use runique::prelude::DatabaseEngine;
 ///
 /// let engine = DatabaseEngine::detect_from_url("postgres://localhost/db")?;
 /// assert_eq!(engine, DatabaseEngine::PostgreSQL);
@@ -111,7 +111,7 @@ impl DatabaseEngine {
     /// # Examples
     ///
     /// ```
-    /// use runique::DatabaseEngine;
+    /// use runique::prelude::DatabaseEngine;
     ///
     /// let engine = DatabaseEngine::detect_from_url("sqlite://db.sqlite")?;
     /// assert_eq!(engine, DatabaseEngine::SQLite);
@@ -143,7 +143,7 @@ impl DatabaseEngine {
     /// # Examples
     ///
     /// ```
-    /// use runique::DatabaseEngine;
+    /// use runique::prelude::DatabaseEngine;
     ///
     /// assert_eq!(DatabaseEngine::PostgreSQL.name(), "PostgreSQL");
     /// assert_eq!(DatabaseEngine::SQLite.name(), "SQLite");
@@ -171,7 +171,7 @@ impl DatabaseConfig {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// // SQLite
@@ -223,7 +223,7 @@ impl DatabaseConfig {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// // .env file:
@@ -293,7 +293,7 @@ impl DatabaseConfig {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let config = DatabaseConfig::from_env()?.build();
@@ -418,7 +418,7 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
 /// # Examples
 ///
 /// ```no_run
-/// use runique::DatabaseConfig;
+/// use runique::prelude::DatabaseConfig;
 /// use std::time::Duration;
 ///
 /// # fn example() -> Result<(), String> {
@@ -441,7 +441,7 @@ impl DatabaseConfigBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     ///
     /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
     ///     .max_connections(100)
@@ -458,7 +458,7 @@ impl DatabaseConfigBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     ///
     /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
     ///     .min_connections(5)
@@ -475,7 +475,7 @@ impl DatabaseConfigBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     /// use std::time::Duration;
     ///
     /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
@@ -493,7 +493,7 @@ impl DatabaseConfigBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     ///
     /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
     ///     .pool_size(10, 50)
@@ -511,7 +511,7 @@ impl DatabaseConfigBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     ///
     /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
     ///     .logging(false)
@@ -528,7 +528,7 @@ impl DatabaseConfigBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// use runique::DatabaseConfig;
+    /// use runique::prelude::DatabaseConfig;
     ///
     /// let config = DatabaseConfig::from_url("sqlite://db.sqlite")?
     ///     .build();

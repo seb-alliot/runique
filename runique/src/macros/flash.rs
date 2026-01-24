@@ -9,6 +9,7 @@
 //!
 //! ```rust
 //! use runique::prelude::*;
+//! use runique::{info, success};
 //!
 //! async fn create_user(mut message: Message) -> Response {
 //!     // Un seul message

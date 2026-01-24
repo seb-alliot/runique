@@ -126,16 +126,12 @@ impl AllowedHostsValidator {
 /// Middleware Axum pour valider les hosts autorisés
 ///
 /// ```rust,no_run
-/// # use runique::Settings;
-/// # use runique::app::RuniqueApp;
-/// # use axum::Router;
+/// # use runique::prelude::*;
 /// # async fn doc() -> Result<(), Box<dyn std::error::Error>> {
-/// let settings = Settings::default_values();
+/// let settings = RuniqueConfig::from_env();
 /// let routes = Router::new();
 ///
-/// // On attend le build, mais pas l'objet final lui-même
 /// let app = RuniqueApp::builder(settings)
-///     .await
 ///     .routes(routes)
 ///     .build()
 ///     .await?;
