@@ -19,7 +19,6 @@ pub struct StaticConfig {
     pub staticfiles_storage: String,
 }
 
-
 impl StaticConfig {
     pub fn from_env() -> Self {
         let base_dir = std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string());

@@ -178,7 +178,6 @@ impl RuniqueAppBuilder {
             ))
             .layer(session_layer)
             .layer(middleware::from_fn(error_handler_middleware))
-            
             .layer(axum::middleware::from_fn(
                 move |mut req: axum::http::Request<axum::body::Body>,
                       next: axum::middleware::Next| {

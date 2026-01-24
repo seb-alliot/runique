@@ -2,8 +2,6 @@ use crate::moteur_engine::engine_struct::RuniqueEngine;
 use axum::Router;
 use std::sync::Arc;
 
-
-
 pub struct RuniqueRouter {
     pub core: Router<Arc<RuniqueEngine>>,
 }

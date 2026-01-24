@@ -47,11 +47,11 @@ pub mod formulaire;
 pub mod gardefou;
 #[macro_use]
 pub mod macro_runique;
+pub mod flash;
 pub mod moteur_engine;
 pub mod request_context;
 pub mod runique_start;
 pub mod utils;
-pub mod flash;
 
 // ============================================================================
 // RÉ-EXPORTS GÉNÉRAUX

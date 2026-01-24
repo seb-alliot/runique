@@ -10,8 +10,7 @@ use std::sync::Arc;
 use tera::{Context, Tera};
 
 use crate::{
-    config_runique::config_struct::RuniqueConfig,
-    request_context::context_error::ErrorContext,
+    config_runique::config_struct::RuniqueConfig, request_context::context_error::ErrorContext,
     utils::csrf::CsrfToken,
 };
 
@@ -60,7 +59,7 @@ pub async fn error_handler_middleware(
             // Essaie de récupérer le ErrorContext depuis les extensions
             let error_ctx = response
                 .extensions()
-                .get::<Arc<ErrorContext>>()  // ← Change ici
+                .get::<Arc<ErrorContext>>() // ← Change ici
                 .map(|ctx| (**ctx).clone())
                 .unwrap_or_else(|| {
                     if status == StatusCode::NOT_FOUND {
@@ -90,7 +89,6 @@ pub struct RequestInfoHelper {
     pub query: Option<String>,
     pub headers: HashMap<String, String>,
 }
-
 
 /// Rend la page 404 (Production)
 pub fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {

@@ -1,14 +1,5 @@
-use crate::moteur_engine::engine_struct::RuniqueEngine;
 use crate::flash::{FlashMessage, Message};
-use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
-use axum::{
-    extract::FromRequestParts,
-    http::{request::Parts, StatusCode},
-    response::{Html, IntoResponse, Response},
-};
-use std::sync::Arc;
-use tera::Context;
-use tower_sessions::Session;
+use crate::moteur_engine::engine_struct::RuniqueEngine;
 /// Contexte centralisé pour un handler Axum / template Tera
 /// Contient :
 /// - Engine (config, Tera, etc.)
@@ -16,9 +7,17 @@ use tower_sessions::Session;
 /// - Token CSRF
 /// - Nonce CSP
 /// - Helpers pour rendre les templates et injecter dynamiquement des variables
-
 use crate::request_context::context_error::ErrorContext;
+use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
+use axum::{
+    extract::FromRequestParts,
+    http::{request::Parts, StatusCode},
+    response::{Html, IntoResponse, Response},
+};
 use sea_orm::DbErr;
+use std::sync::Arc;
+use tera::Context;
+use tower_sessions::Session;
 
 pub struct AppError {
     context: ErrorContext,
@@ -49,10 +48,7 @@ impl AppError {
     /// Créer une erreur interne générique
     pub fn internal(message: impl Into<String>) -> Self {
         Self {
-            context: ErrorContext::generic(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &message.into(),
-            ),
+            context: ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, &message.into()),
         }
     }
 
@@ -94,7 +90,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = StatusCode::from_u16(self.context.status_code)
             .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-        
+
         let mut res = status.into_response();
         // Injecte le ErrorContext complet dans les extensions
         res.extensions_mut().insert(Arc::new(self.context));
@@ -105,8 +101,8 @@ impl IntoResponse for AppError {
 pub struct TemplateContext {
     pub engine: Arc<RuniqueEngine>,
     pub session: Session,
-    pub flash_manager: Message,      
-    pub messages: Vec<FlashMessage>,  
+    pub flash_manager: Message,
+    pub messages: Vec<FlashMessage>,
     pub csrf_token: CsrfToken,
     pub csp_nonce: String,
     pub context: Context,
@@ -146,7 +142,9 @@ where
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let flash_manager = Message { session: session.clone() };
+        let flash_manager = Message {
+            session: session.clone(),
+        };
 
         // Récupère les messages pour le template
         let messages: Vec<FlashMessage> = flash_manager.get_all().await;
@@ -158,7 +156,6 @@ where
         context.insert("csp_nonce", &csp_nonce);
         context.insert("static_runique", &engine.config.static_files);
         context.insert("messages", &messages);
-
 
         Ok(Self {
             engine: engine.clone(),

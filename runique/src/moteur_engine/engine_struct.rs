@@ -4,9 +4,8 @@ use std::sync::{Arc, RwLock};
 use tera::Tera;
 
 use crate::gardefou::composant_middleware::{
-    csrf_middleware::csrf_middleware, error_handler::error_handler_middleware,
-    middleware_sanitiser::sanitize_middleware,
-    dev_cache::dev_no_cache_middleware,
+    csrf_middleware::csrf_middleware, dev_cache::dev_no_cache_middleware,
+    error_handler::error_handler_middleware, middleware_sanitiser::sanitize_middleware,
 };
 
 use crate::config_runique::config_struct::RuniqueConfig;

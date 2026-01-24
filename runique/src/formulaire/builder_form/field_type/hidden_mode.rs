@@ -73,7 +73,7 @@ impl FormField for HiddenField {
     fn set_value(&mut self, value: &str) {
         self.value = value.to_string();
     }
-    
+
     fn set_error(&mut self, message: String) {
         self.error_message = if message.is_empty() {
             None
@@ -81,7 +81,7 @@ impl FormField for HiddenField {
             Some(message)
         };
     }
-    
+
     fn set_readonly(&mut self, _readonly: bool, _msg: Option<&str>) {}
     fn set_disabled(&mut self, _disabled: bool, _msg: Option<&str>) {}
     fn set_required(&mut self, _required: bool, _msg: Option<&str>) {}
@@ -95,14 +95,14 @@ impl FormField for HiddenField {
                     self.set_error("Token CSRF manquant".to_string());
                     return false;
                 }
-                
+
                 if self.value != *expected {
                     self.set_error("Token CSRF invalide".to_string());
                     return false;
                 }
             }
         }
-        
+
         self.set_error(String::new());
         true
     }

@@ -7,22 +7,24 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use std::sync::Arc;
-use tower_sessions::Session;
 use std::collections::HashMap;
+use std::sync::Arc;
 use tera::{Function, Result as TeraResult, Value};
+use tower_sessions::Session;
 
 pub struct CsrfTokenFunction;
 
 impl Function for CsrfTokenFunction {
-    fn is_safe(&self) -> bool { true }
-    
+    fn is_safe(&self) -> bool {
+        true
+    }
+
     fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
         let token_str = args
             .get("csrf_token")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        
+
         Ok(Value::String(format!(
             r#"<input type="hidden" name="csrf_token" value="{}">"#,
             token_str
@@ -84,7 +86,7 @@ pub async fn csrf_middleware(
         req.method(),
         &Method::POST | &Method::PUT | &Method::DELETE | &Method::PATCH
     );
-    
+
     if requires_csrf {
         // 🔑 MODIFICATION : Vérifier le header (AJAX)
         let header_token = req

@@ -41,7 +41,7 @@
 }
 
 form {
-    animation: formFade 0.6s ease forwards;
+    animation: formFade 1s ease forwards;
 }
 
 .form-group {

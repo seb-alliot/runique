@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub const FLASH_KEY: &str = "flash_messages";
 
@@ -61,6 +61,3 @@ impl FlashMessage {
         }
     }
 }
-
-
-

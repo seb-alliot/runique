@@ -26,7 +26,6 @@ impl RuniqueForm for UsernameForm {
     }
 }
 
-
 // --- FORMULAIRE D'INSCRIPTION ---
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
@@ -135,11 +134,8 @@ impl RuniqueForm for Blog {
     }
 }
 
-impl Blog{
-    pub async fn save(
-    &self,
-    db: &DatabaseConnection,
-    ) -> Result<crate::models::blog::Model, DbErr> {
+impl Blog {
+    pub async fn save(&self, db: &DatabaseConnection) -> Result<crate::models::blog::Model, DbErr> {
         use crate::models::blog as blog_mod;
         let new_blog = blog_mod::ActiveModel {
             title: Set(self.form.get_value("title").unwrap_or_default()),
@@ -150,6 +146,6 @@ impl Blog{
             ..Default::default()
         };
 
-    new_blog.insert(db).await
+        new_blog.insert(db).await
     }
 }

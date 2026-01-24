@@ -10,7 +10,6 @@ pub struct SecurityConfig {
     pub allowed_hosts: Vec<String>,
 }
 
-
 impl SecurityConfig {
     pub fn from_env() -> Self {
         let sanitize_inputs = std::env::var("SANITIZE_INPUTS")
