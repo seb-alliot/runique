@@ -6,6 +6,12 @@ pub struct RuniqueRouter {
     pub core: Router<Arc<RuniqueEngine>>,
 }
 
+impl Default for RuniqueRouter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RuniqueRouter {
     pub fn new() -> Self {
         Self {

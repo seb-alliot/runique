@@ -7,7 +7,7 @@ use runique::forms::Prisme;
 use runique::prelude::*;
 
 /// Page d'accueil
-pub async fn index(mut template: TemplateContext) -> Result<Response, AppError> {
+pub async fn index(mut template: TemplateContext) -> AppResult<Response> {
     context_update!(template => {
         "title" => "Bienvenue sur Runique",
         "description" => "Un framework web moderne inspiré de Django",
@@ -22,7 +22,7 @@ pub async fn index(mut template: TemplateContext) -> Result<Response, AppError> 
 }
 
 // /// Formulaire d'inscription
-pub async fn inscription(mut template: TemplateContext) -> Result<Response, AppError> {
+pub async fn inscription(mut template: TemplateContext) -> AppResult<Response> {
     let form = template.form::<RegisterForm>();
     context_update!(template => {
         "title" => "Inscription utilisateur",
@@ -36,7 +36,7 @@ pub async fn inscription(mut template: TemplateContext) -> Result<Response, AppE
 pub async fn soumission_inscription(
     mut template: TemplateContext,
     Prisme(mut form): Prisme<RegisterForm>,
-) -> Result<Response, AppError> {
+) -> AppResult<Response> {
     let db = template.engine.db.clone();
 
     if form.is_valid().await {
@@ -69,7 +69,7 @@ pub async fn soumission_inscription(
 }
 
 // / Formulaire de recherche d'utilisateur
-pub async fn search_user_form(mut template: TemplateContext) -> Result<Response, AppError> {
+pub async fn search_user_form(mut template: TemplateContext) -> AppResult<Response> {
     let form = template.form::<UsernameForm>();
 
     context_update!(template => {
@@ -84,7 +84,7 @@ pub async fn search_user_form(mut template: TemplateContext) -> Result<Response,
 pub async fn info_user(
     mut template: TemplateContext,
     Prisme(mut form): Prisme<UsernameForm>,
-) -> Result<Response, AppError> {
+) -> AppResult<Response> {
     if !form.is_valid().await {
         // Retourner le formulaire avec les erreurs
         context_update!(template => {
@@ -128,7 +128,7 @@ pub async fn info_user(
 }
 
 /// Blog form
-pub async fn blog_form(mut template: TemplateContext) -> Result<Response, AppError> {
+pub async fn blog_form(mut template: TemplateContext) -> AppResult<Response> {
     let form = BlogForm::build(
         template.engine.tera.clone(),
         template.csrf_token.masked().as_str(),
@@ -146,7 +146,7 @@ pub async fn blog_form(mut template: TemplateContext) -> Result<Response, AppErr
 pub async fn blog_save(
     mut template: TemplateContext,
     Prisme(mut blog_save): Prisme<BlogForm>,
-) -> Result<Response, AppError> {
+) -> AppResult<Response> {
     if blog_save.is_valid().await {
         match blog_save.save(&*template.engine.db).await {
             Ok(_post) => {
@@ -170,7 +170,7 @@ pub async fn blog_save(
 }
 
 /// Page "À propos"
-pub async fn about(mut template: TemplateContext) -> Result<Response, AppError> {
+pub async fn about(mut template: TemplateContext) -> AppResult<Response> {
     success!(template.flash_manager => "Ceci est un message de succès.");
     info!(template.flash_manager => "Ceci est un message d'information.");
     warning!(template.flash_manager => "Ceci est un message d'avertissement.");
@@ -189,7 +189,7 @@ pub async fn about(mut template: TemplateContext) -> Result<Response, AppError> 
 }
 
 /// Teste Csrf
-pub async fn test_csrf(template: TemplateContext) -> Result<Response, AppError> {
+pub async fn test_csrf(template: TemplateContext) -> AppResult<Response> {
     success!(template.flash_manager => "CSRF token validé avec succès !");
     Ok(Redirect::to("/").into_response())
 }

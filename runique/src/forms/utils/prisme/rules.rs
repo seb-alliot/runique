@@ -80,7 +80,7 @@ impl GuardRules {
 }
 
 /// Évalue les règles par rapport au contexte utilisateur. Retourne Ok si tout passe, sinon Response.
-pub fn evaluate_rules(rules: &GuardRules, ctx: Option<&GuardContext>) -> Result<(), Response> {
+pub fn evaluate_rules(rules: &GuardRules, ctx: Option<&GuardContext>) -> Result<(), Box<Response>> {
     // Si aucune règle n'est définie, on laisse passer.
     if !rules.login_required && rules.roles.is_empty() {
         return Ok(());
@@ -90,13 +90,17 @@ pub fn evaluate_rules(rules: &GuardRules, ctx: Option<&GuardContext>) -> Result<
     let ctx = ctx.unwrap_or(&default_ctx);
 
     if rules.login_required && !ctx.is_authenticated() {
-        return Err((StatusCode::UNAUTHORIZED, "Authentication required").into_response());
+        return Err(Box::new(
+            (StatusCode::UNAUTHORIZED, "Authentication required").into_response(),
+        ));
     }
 
     if !rules.roles.is_empty() {
         let has_any = rules.roles.iter().any(|role| ctx.has_role(role));
         if !has_any {
-            return Err((StatusCode::FORBIDDEN, "Insufficient role").into_response());
+            return Err(Box::new(
+                (StatusCode::FORBIDDEN, "Insufficient role").into_response(),
+            ));
         }
     }
 
