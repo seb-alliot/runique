@@ -13,16 +13,17 @@
         {% form.inscription_form %}
         <button type="submit">S'inscrire</button>
     </form>
-            {% if inscription_form.errors %}
-            <div class="alert alert-warning">
-                <div class="alert-message">
-                    <strong>Veuillez corriger les erreurs suivantes :</strong>
-                    <ul>
-                        {% for field, error in inscription_form.errors %}
-                            <li><strong>{{ field }} :</strong> {{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
+{% if errors %}
+        <div class="alert alert-warning mt-3">
+            <div class="alert-message">
+                <strong>Veuillez corriger les erreurs suivantes :</strong>
+                <ul>
+                    {# Ici on itère sur la Map renvoyée par Rust #}
+                    {% for field_name, error_msg in errors %}
+                        <li><strong>{{ field_name }} :</strong> {{ error_msg }}</li>
+                    {% endfor %}
+                </ul>
             </div>
-        {% endif %}
+        </div>
+    {% endif %}
 {% endblock %}

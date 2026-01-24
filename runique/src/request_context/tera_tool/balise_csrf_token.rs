@@ -4,4 +4,3 @@ use crate::gardefou::composant_middleware::csrf_middleware::CsrfTokenFunction;
 pub fn register_csrf_token(tera: &mut tera::Tera) {
     tera.register_function("csrf_token", CsrfTokenFunction);
 }
-

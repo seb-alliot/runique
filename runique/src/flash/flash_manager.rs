@@ -16,7 +16,8 @@ where
     type Rejection = StatusCode;
 
     async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
-        let session = parts.extensions
+        let session = parts
+            .extensions
             .get::<Session>()
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -27,7 +28,8 @@ where
 
 impl Message {
     async fn push(&self, msg: FlashMessage) {
-        let mut messages = self.session
+        let mut messages = self
+            .session
             .get::<Vec<FlashMessage>>(FLASH_KEY)
             .await
             .ok()
@@ -38,12 +40,21 @@ impl Message {
         let _ = self.session.insert(FLASH_KEY, messages).await;
     }
 
-    pub async fn success(&self, msg: impl Into<String>) { self.push(FlashMessage::success(msg)).await }
-    pub async fn error(&self, msg: impl Into<String>) { self.push(FlashMessage::error(msg)).await }
-    pub async fn info(&self, msg: impl Into<String>) { self.push(FlashMessage::info(msg)).await }
-    pub async fn warning(&self, msg: impl Into<String>) { self.push(FlashMessage::warning(msg)).await }
+    pub async fn success(&self, msg: impl Into<String>) {
+        self.push(FlashMessage::success(msg)).await
+    }
+    pub async fn error(&self, msg: impl Into<String>) {
+        self.push(FlashMessage::error(msg)).await
+    }
+    pub async fn info(&self, msg: impl Into<String>) {
+        self.push(FlashMessage::info(msg)).await
+    }
+    pub async fn warning(&self, msg: impl Into<String>) {
+        self.push(FlashMessage::warning(msg)).await
+    }
     pub async fn get_all(&self) -> Vec<FlashMessage> {
-        let messages = self.session
+        let messages = self
+            .session
             .get::<Vec<FlashMessage>>(FLASH_KEY)
             .await
             .ok()

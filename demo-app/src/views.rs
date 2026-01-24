@@ -1,8 +1,7 @@
-use crate::forms::{Blog as BlogForm, UsernameForm, RegisterForm};
+use crate::forms::{Blog as BlogForm, RegisterForm, UsernameForm};
 
 // use crate::models::model_derive;
 use crate::models::users::{self, Entity as UserEntity};
-
 
 use runique::prelude::*;
 use runique::{error, flash_now, info, success, warning};
@@ -24,7 +23,10 @@ pub async fn index(mut template: TemplateContext) -> Result<Response, AppError> 
 
 // /// Formulaire d'inscription
 pub async fn inscription(mut template: TemplateContext) -> Result<Response, AppError> {
-    let form = RegisterForm::build(template.engine.tera.clone(), template.csrf_token.masked().as_str());
+    let form = RegisterForm::build(
+        template.engine.tera.clone(),
+        template.csrf_token.masked().as_str(),
+    );
     context_update!(template => {
         "title" => "Inscription utilisateur",
         "inscription_form" => &form,
@@ -46,8 +48,7 @@ pub async fn soumission_inscription(
                 success!(template.flash_manager => format!("Bienvenue {}, votre compte a été créé !", user.username));
                 return Ok(Redirect::to("/").into_response());
             }
-            Err(err) => {
-                form.database_error(&err);
+            Err(_err) => {
                 context_update!(template => {
                     "title" => "Erreur de base de données",
                     "inscription_form" => &form,
@@ -67,7 +68,6 @@ pub async fn soumission_inscription(
     template.render("inscription_form.html")
 }
 
-
 // / Formulaire de recherche d'utilisateur
 pub async fn search_user_form(mut template: TemplateContext) -> Result<Response, AppError> {
     let form = UsernameForm::build(template.engine.tera.clone(), template.csrf_token.as_str());
@@ -80,15 +80,12 @@ pub async fn search_user_form(mut template: TemplateContext) -> Result<Response,
     template.render("profile/view_user.html")
 }
 
-
 /// Exemple pour chercher un utilisateur
 pub async fn info_user(
     mut template: TemplateContext,
     ExtractForm(mut form): ExtractForm<UsernameForm>,
 ) -> Result<Response, AppError> {
-
     if !form.is_valid().await {
-
         // Retourner le formulaire avec les erreurs
         context_update!(template => {
             "title" => "Rechercher un utilisateur",
@@ -125,10 +122,12 @@ pub async fn info_user(
     }
 }
 
-
 /// Blog form
 pub async fn blog_form(mut template: TemplateContext) -> Result<Response, AppError> {
-    let form = BlogForm::build(template.engine.tera.clone(), template.csrf_token.masked().as_str());
+    let form = BlogForm::build(
+        template.engine.tera.clone(),
+        template.csrf_token.masked().as_str(),
+    );
 
     context_update!(template => {
         "title" => "Créer un article de blog",
@@ -137,7 +136,6 @@ pub async fn blog_form(mut template: TemplateContext) -> Result<Response, AppErr
 
     template.render("blog/blog.html")
 }
-
 
 /// Blag save
 pub async fn blog_save(
@@ -166,14 +164,16 @@ pub async fn blog_save(
     Ok(Redirect::to("/").into_response())
 }
 
-
 /// Page "À propos"
 pub async fn about(mut template: TemplateContext) -> Result<Response, AppError> {
     success!(template.flash_manager => "Ceci est un message de succès.");
     info!(template.flash_manager => "Ceci est un message d'information.");
     warning!(template.flash_manager => "Ceci est un message d'avertissement.");
     error!(template.flash_manager => "Ceci est un message d'erreur.");
-    println!("Flash messages ajoutés à la session.{:?}", template.flash_manager);
+    println!(
+        "Flash messages ajoutés à la session.{:?}",
+        template.flash_manager
+    );
 
     context_update!(template => {
         "title" => "À propos du Framework Runique",
@@ -182,7 +182,6 @@ pub async fn about(mut template: TemplateContext) -> Result<Response, AppError> 
 
     template.render("about/about.html")
 }
-
 
 /// Teste Csrf
 pub async fn test_csrf(template: TemplateContext) -> Result<Response, AppError> {

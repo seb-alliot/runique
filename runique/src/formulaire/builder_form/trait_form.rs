@@ -124,7 +124,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     // MODIFIÉ : Prend maintenant le token CSRF
     fn build(tera: Arc<Tera>, csrf_token: &str) -> Self {
-        let mut form = Forms::new(csrf_token);  // 🔑 PASSAGE DU TOKEN
+        let mut form = Forms::new(csrf_token); // 🔑 PASSAGE DU TOKEN
         form.set_tera(tera);
         Self::register_fields(&mut form);
         Self::from_form(form)
@@ -133,35 +133,23 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn build_with_data(
         raw_data: &HashMap<String, String>,
         tera: Arc<Tera>,
-        csrf_token: &str,  // 🔑 AJOUT DU PARAMÈTRE
+        csrf_token: &str, // 🔑 AJOUT DU PARAMÈTRE
     ) -> impl Future<Output = Self> + Send {
         async move {
-            println!("[BUILD_WITH_DATA] === DÉBUT BUILD_WITH_DATA ===");
-            println!("[BUILD_WITH_DATA] Données reçues: {} champs", raw_data.len());
+            let mut form = Forms::new(csrf_token); // 🔑 PASSAGE DU TOKEN
 
-            let mut form = Forms::new(csrf_token);  // 🔑 PASSAGE DU TOKEN
-            println!("[BUILD_WITH_DATA] Forms::new() créé avec CSRF");
-            
             form.set_tera(tera.clone());
-            println!("[BUILD_WITH_DATA] Tera assigné");
 
             Self::register_fields(&mut form);
-            println!("[BUILD_WITH_DATA] Champs enregistrés (total: {})", form.fields.len());
 
             form.fill(raw_data);
-            println!("[BUILD_WITH_DATA] Données remplies");
 
             let mut instance = Self::from_form(form);
-            println!("[BUILD_WITH_DATA] Instance créée, validation...");
 
             let is_valid = instance.is_valid().await;
-            println!("[BUILD_WITH_DATA] Validation: {}", if is_valid { "✓" } else { "❌" });
 
-            if !is_valid {
-                println!("[BUILD_WITH_DATA] Erreurs: {:?}", instance.get_form().errors());
-            }
+            if !is_valid {}
 
-            println!("[BUILD_WITH_DATA] === FIN BUILD_WITH_DATA ===");
             instance
         }
     }

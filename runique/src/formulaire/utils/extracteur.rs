@@ -14,8 +14,6 @@ use tera::Tera;
 
 pub struct ExtractForm<T>(pub T);
 
-// Extrait des modifications à faire dans extracteur.rs
-
 impl<S, T> FromRequest<S> for ExtractForm<T>
 where
     S: Send + Sync,
@@ -29,7 +27,10 @@ where
             .get::<Arc<Tera>>()
             .cloned()
             .ok_or_else(|| {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Tera not found in extensions")
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Tera not found in extensions",
+                )
                     .into_response()
             })?;
 
@@ -38,7 +39,10 @@ where
             .get::<Arc<RuniqueConfig>>()
             .cloned()
             .ok_or_else(|| {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Config not found in extensions")
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Config not found in extensions",
+                )
                     .into_response()
             })?;
 
@@ -49,14 +53,13 @@ where
             .unwrap_or("")
             .to_string();
 
-        // 🔑 Récupérer le token CSRF de session
+        // Récupérer le token CSRF de session
         let csrf_token = req
             .extensions()
             .get::<crate::utils::csrf::CsrfToken>()
             .cloned()
             .ok_or_else(|| {
-                (StatusCode::INTERNAL_SERVER_ERROR, "CSRF token not found")
-                    .into_response()
+                (StatusCode::INTERNAL_SERVER_ERROR, "CSRF token not found").into_response()
             })?;
 
         let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
@@ -93,12 +96,13 @@ where
 
         let form_data_for_validation = convert_for_form(parsed);
 
-        // 🔑 Passer le token CSRF au build
+        // Passer le token CSRF au build
         let mut form = T::build_with_data(
             &form_data_for_validation,
             tera.clone(),
-            csrf_token.as_str()  // ← Token de session (non masqué)
-        ).await;
+            csrf_token.as_str(), // ← Token de session (non masqué)
+        )
+        .await;
 
         form.get_form_mut().set_tera(tera);
 

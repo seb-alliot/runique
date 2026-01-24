@@ -1,7 +1,7 @@
+use crate::gardefou::RequestInfoHelper;
 use axum::http::StatusCode;
 use serde::Serialize;
 use std::collections::HashMap;
-use crate::gardefou::RequestInfoHelper;
 
 /// Contexte complet pour les erreurs avec toutes les informations de débogage
 #[derive(Debug, Serialize, Clone)]
@@ -244,4 +244,3 @@ fn rust_version() -> String {
         })
         .clone()
 }
-
