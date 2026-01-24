@@ -1,8 +1,6 @@
 [workspace]
 members = [
     "runique",
-    "demo-app",
-    "demo-app/migration",
 ]
 resolver = "2"
 
