@@ -14,16 +14,16 @@ A modern and comprehensive Rust web framework inspired by Django, for building r
 
 ## 📚 Table of Contents
 
-- 🚀 [Installation](#installation)
-- 🏗️ [Architecture](#architecture)
-- ⚙️ [Configuration](#configuration)
-- 🛣️ [Routing](#routing)
-- 📝 [Forms](#forms)
-- 🎨 [Templates](#templates)
-- 🗄️ [ORM](#orm)
-- 🔒 [Middleware](#middleware)
-- 💬 [Flash Messages](#flash-messages)
-- 🎓 [Examples](#examples)
+- 🚀 [Installation](#-installation)
+- 🏗️ [Architecture](#️-architecture)
+- ⚙️ [Configuration](#️-configuration)
+- 🛣️ [Routing](#️-routing)
+- 📝 [Forms](#-forms)
+- 🎨 [Templates](#-templates)
+- 🗄️ [ORM](#️-orm)
+- 🔒 [Middleware](#-middleware)
+- 💬 [Flash Messages](#-flash-messages)
+- 🎓 [Examples](#-examples)
 
 ---
 
@@ -290,8 +290,6 @@ MIT License - see [SECURITY.md](SECURITY.md)
 ## 🚀 Production Ready
 
 The Runique framework is **stable, tested and documented**, ready for production use.
-
-**Score** : 4.6/5.0 ⭐
 
 **Start now** → [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
 
