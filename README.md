@@ -25,7 +25,7 @@ A modern and comprehensive Rust web framework inspired by Django, for building r
 
 ## 🚀 Installation
 
-**Full Documentation** : [Installation Guide](docs/en/01-installation.md)
+**Full Documentation** : [Installation Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
 
 Quick start:
 
@@ -36,7 +36,7 @@ cargo build
 cargo test --all
 ```
 
-👉 **Read** : [docs/en/01-installation.md](docs/en/01-installation.md) for complete details
+👉 **Read** : [docs/en/01-installation.md](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md) for complete details
 
 ---
 
@@ -249,9 +249,9 @@ Results: **36/36 tests passing** ✅
 
 ## 🎯 Quick Start
 
-1. **Read** [Installation](docs/en/01-installation.md)
-2. **Understand** [Architecture](docs/en/02-architecture.md)
-3. **Check** [Examples](docs/en/10-examples.md)
+1. **Read** [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
+2. **Understand** [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+3. **Check** [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
 4. **Start coding** your application
 
 ---
@@ -273,7 +273,7 @@ See [PROJECT_STATUS.md](PROJECT_STATUS.md) for more details.
 - 📊 [Full Status](PROJECT_STATUS.md)
 - 🧪 [Test Reports](TEST_REPORT.md)
 - 📋 [Changelog](CHANGELOG.md)
-- 📖 [Documentation Guide](docs/README.md)
+- 📖 [Documentation Guide](https://github.com/seb-alliot/runique/blob/main/docs/README.md)
 
 ---
 
@@ -289,7 +289,7 @@ The Runique framework is **stable, tested and documented**, ready for production
 
 **Score** : 4.6/5.0 ⭐
 
-**Start now** → [Installation](docs/en/01-installation.md)
+**Start now** → [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
 
 ---
 

@@ -66,9 +66,9 @@ cargo build --release
 
 ## 📚 Documentation
 
-- [Installation](../docs/en/01-installation.md)
-- [Architecture](../docs/en/02-architecture.md)
-- [Guide complet](../docs/en/README.md)
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+- [Guide complet](https://github.com/seb-alliot/runique/blob/main/docs/README.md)
 
 ## 🚀 Démarrage
 
@@ -96,4 +96,4 @@ async fn main() {
 
 ---
 
-**Pour en savoir plus** : [Documentation complète](../docs/en/README.md)
+**Pour en savoir plus** : [Documentation complète](https://github.com/seb-alliot/runique/blob/main/docs/README.md)
