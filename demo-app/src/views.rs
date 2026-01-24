@@ -3,6 +3,7 @@ use crate::forms::{Blog as BlogForm, RegisterForm, UsernameForm};
 // use crate::models::model_derive;
 use crate::models::users::{self, Entity as UserEntity};
 
+use runique::forms::ExtractForm;
 use runique::prelude::*;
 use runique::{error, flash_now, info, success, warning};
 

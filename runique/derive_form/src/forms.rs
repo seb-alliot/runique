@@ -36,7 +36,7 @@ pub(crate) fn runique_form_impl(_attr: TokenStream, item: TokenStream) -> TokenS
         #input
 
         impl std::ops::Deref for #name {
-            type Target = ::runique::formulaire::formsrunique::Forms;
+            type Target = ::runique::forms::manager::Forms;
             fn deref(&self) -> &Self::Target { &self.#form_field }
         }
 
