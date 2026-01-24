@@ -60,7 +60,7 @@ pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Er
 /// # use axum::{Router, routing::get};
 /// # async fn dashboard() -> &'static str { "Dashboard" }
 /// # async fn profile() -> &'static str { "Profile" }
-/// use runique::middleware::login_requiert::login_required;
+/// use runique::middleware::auth::login_required;
 ///
 /// // Utilisation de Router<()> pour aider l'inférence de type
 /// let protected_routes: Router = Router::new()
@@ -87,7 +87,7 @@ pub async fn login_required(session: Session, request: Request, next: Next) -> R
 /// # use axum::{Router, routing::get};
 /// # async fn login_page() -> &'static str { "Login" }
 /// # async fn register_page() -> &'static str { "Register" }
-/// use runique::middleware::login_requiert::redirect_if_authenticated;
+/// use runique::middleware::auth::redirect_if_authenticated;
 ///
 /// let public_routes: Router = Router::new()
 ///     .route("/login", get(login_page))
@@ -111,7 +111,7 @@ pub async fn redirect_if_authenticated(session: Session, request: Request, next:
 /// ```rust
 /// # use axum::{Router, routing::get};
 /// # async fn dashboard() -> &'static str { "Dashboard" }
-/// use runique::middleware::login_requiert::{load_user_middleware, CurrentUser};
+/// use runique::middleware::auth::{load_user_middleware, CurrentUser};
 ///
 /// let app: Router = Router::new()
 ///     .route("/dashboard", get(dashboard))
@@ -147,7 +147,7 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
 /// # Exemple d'implémentation complète
 /// ```rust,no_run
 /// # use tower_sessions::Session;
-/// # use runique::middleware::login_requiert::get_user_id;
+/// # use runique::middleware::auth::get_user_id;
 /// pub async fn has_permission(session: &Session, permission: &str) -> bool {
 ///     if let Some(user_id) = get_user_id(session).await {
 ///         // Récupérer les permissions depuis la DB
