@@ -30,7 +30,7 @@ Un framework web Rust moderne et complet, inspiré par Django, pour construire d
 Démarrage rapide :
 
 ```bash
-git clone <repo>
+git clone <https://github.com/seb-alliot/runique>
 cd runique
 cargo build
 cargo test --all

@@ -40,7 +40,7 @@ pub async fn soumission_inscription(
     let db = template.engine.db.clone();
 
     if form.is_valid().await {
-        match form.save(&*db).await {
+        match form.save(&db).await {
             Ok(user) => {
                 success!(template.flash_manager => format!("Bienvenue {}, votre compte a été créé !", user.username));
                 return Ok(Redirect::to("/").into_response());
@@ -148,7 +148,7 @@ pub async fn blog_save(
     Prisme(mut blog_save): Prisme<BlogForm>,
 ) -> AppResult<Response> {
     if blog_save.is_valid().await {
-        match blog_save.save(&*template.engine.db).await {
+        match blog_save.save(&template.engine.db).await {
             Ok(_post) => {
                 success!(template.flash_manager => "Article de blog sauvegardé avec succès !");
                 return Ok(Redirect::to("/").into_response());
