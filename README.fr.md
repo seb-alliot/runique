@@ -292,7 +292,7 @@ MIT License - voir [SECURITY.md](SECURITY.md)
 Le framework Runique est **stable, testé et documenté**, prêt pour une utilisation en production.
 
 
-**Démarrer maintenant** → [Installation](docs/fr/01-installation.md)
+**Démarrer maintenant** → [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
 
 ---
 
