@@ -12,7 +12,7 @@ async fn index(template: TemplateContext) -> Response {
     let mut context = Context::new();
     context.insert("title", "Accueil");
     context.insert("items", &vec!["Produit 1", "Produit 2"]);
-    
+
     template.render("index.html", &context)
 }
 ```
@@ -24,11 +24,12 @@ async fn index(template: TemplateContext) -> Response {
 Syntaxe simplifiée:
 
 ```rust
-template.render("index.html", &context! {
-    "title" => "Accueil",
-    "items" => vec!["A", "B", "C"],
-    "user" => user_data
-})
+context_update!(template => {
+        "title" => "Erreur de base de données",
+        "inscription_form" => &form,
+    });
+
+    return template.render("inscription_form.html");
 ```
 
 ---
@@ -38,8 +39,10 @@ template.render("index.html", &context! {
 ### static - Assets statiques
 
 ```html
-<link rel="stylesheet" href="{{ 'css/main.css' | static }}">
-<script src="{{ 'js/app.js' | static }}"></script>
+<link rel="stylesheet" href='{% static "css/main.css" %}'>
+
+<script src="{% static "js/main.js" %}"></script>
+
 ```
 
 Génère: `/static/css/main.css`
@@ -47,7 +50,7 @@ Génère: `/static/css/main.css`
 ### media - Fichiers médias
 
 ```html
-<img src="{{ user.avatar | media }}" alt="Avatar">
+<img src='{% media "media.avif" %}' alt="Logo">
 ```
 
 Génère: `/media/avatars/profile.jpg`
@@ -56,25 +59,26 @@ Génère: `/media/avatars/profile.jpg`
 
 ```html
 <form method="post">
-    {{ '' | csrf_field }}
+    {% csrf %}
     <!-- Génère automatiquement: -->
     <!-- <input type="hidden" name="csrf_token" value="..."> -->
 </form>
+Non necessaire normalement car pris en charge nativement par les formulaires
 ```
 
 ### form - Champs de formulaire
 
 ```html
-{{ form | form }}
-<!-- Ou renderer un champ spécifique: -->
-{{ form.email | form_field }}
+{% form.inscription_form %}
+<!-- Ou rendre un champ spécifique: -->
+{% form.inscription_form.email %}
 ```
 
 ### link - Liens d'URL
 
 ```html
-<a href="{{ 'index' | link }}">Accueil</a>
-<a href="{{ 'profile' | link('user_id=5') }}">Profile</a>
+<a href={% link "index" %}>Accueil</a>
+<a href={% link "index", id="{{ id }}", name="{{ name }}"  %}>Accueil</a>
 ```
 
 ---
@@ -135,7 +139,7 @@ Génère: `/media/avatars/profile.jpg`
 <html>
 <head>
     <title>{% block title %}Mon Site{% endblock %}</title>
-    <link rel="stylesheet" href="{{ 'css/main.css' | static }}">
+    <link rel="stylesheet" href='{% static "css/main.css" %}'>
 </head>
 <body>
     <header>
@@ -197,37 +201,30 @@ Génère: `/media/avatars/profile.jpg`
 {% endif %}
 
 <!-- Erreurs de formulaire -->
-{% if form.has_error('email') %}
-    <span class="error">{{ form.get_error('email') }}</span>
-{% endif %}
-```
+    <form method="post" action="/inscription">
+        {% form.inscription_form %}
+        <button type="submit">S'inscrire</button>
+    </form>
+    => les erreurs sont déjà rendu nativement par les fields
 
----
+    Sinon
 
-## Structure Complète
-
-```
-templates/
-├── base.html              # Template parent
-├── index.html             # Accueil
-├── errors/
-│   ├── 404.html
-│   └── 500.html
-├── auth/
-│   ├── login.html
-│   └── register.html
-├── blog/
-│   ├── list.html
-│   ├── detail.html
-│   └── form.html
-└── includes/
-    ├── header.html
-    ├── footer.html
-    └── navigation.html
+    <!-- Affichage des erreurs globales avant le formulaire -->
+    {% if inscription_form.errors %}
+        <div class="alert alert-warning mt-3">
+            <div class="alert-message">
+                <ul>
+                    {% for field_name, error_msg in inscription_form.errors %}
+                        <li><strong>{{ field_name }} :</strong> {{ error_msg }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
 ```
 
 ---
 
 ## Prochaines étapes
 
-← [**Formulaires**](./05-forms.md) | [**ORM & Base de Données**](./07-orm.md) →
+← [**Formulaires**](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md) | [**ORM & Base de Données**](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md) →

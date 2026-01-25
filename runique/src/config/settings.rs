@@ -61,7 +61,6 @@ impl Default for AppSettings {
 
 impl AppSettings {
     pub fn from_env() -> Self {
-        // Here you can implement reading from environment variables if needed
         Self::default()
     }
 }

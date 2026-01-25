@@ -2,7 +2,7 @@
 
 ## RuniqueConfig
 
-Toute la configuration se fait via `.env` et est chargée dans une struct `RuniqueConfig`.
+Toute la configuration est facilitée via `.env` et est chargée dans une struct `RuniqueConfig`.
 
 ### Charger la configuration
 
@@ -31,9 +31,29 @@ println!("DB: {}", config.database_url);
 
 **Exemple:**
 ```env
-IP_SERVER=0.0.0.0
-PORT=8000
-DEBUG=false
+# Server Configuration
+IP_SERVER=127.0.0.1
+PORT=3000
+
+DEBUG=true
+# Database Configuration (SQLite par défaut)
+
+# Secret key for csrf management
+SECRETE_KEY=your_secret_key_here
+
+# A completer pour toute bdd autre que SQLite
+DB_ENGINE=postgres
+DB_USER=postgres
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=runique
+
+# En option pas obligatoire hormis usage personnel
+DATABASE_URL=postgresql://monuser:monmotdepasse@localhost:5432/mabase
+
+# Allowed hosts for production
+ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
 ```
 
 ### Base de Données
@@ -116,7 +136,7 @@ DEBUG=true
 DATABASE_URL=postgres://postgres:password@localhost:5432/runique
 DB_ENGINE=postgres
 DB_USER=postgres
-DB_PASSWORD=Studietudiant1.
+DB_PASSWORD=password
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=runique
@@ -210,27 +230,28 @@ openssl rand -base64 32
 ```rust
 use runique::config_runique::RuniqueConfig;
 
-async fn my_handler(ctx: RuniqueContext) -> Response {
-    let config = &ctx.engine.config;
-    
+async fn my_handler(template: TemplateContext) -> Response {
+    let config = &template.engine.config;
+
     println!("Debug mode: {}", config.debug);
-    println!("Database: {}", config.database_url);
-    println!("Secret key: {}", config.secret_key);
-    println!("Allowed hosts: {:?}", config.allowed_hosts);
+    println!("Port: {}", config.server.port);
+    println!("IP: {}", config.server.ip_server);
+    println!("Allowed hosts: {:?}", config.security.allowed_hosts);
+    println!("Secret key: {}", config.security.secrete_key);
 }
 ```
 
 ### Configuration conditionnelle
 
 ```rust
-if ctx.engine.config.debug {
+if template.engine.config.debug {
     // Mode debug: logs détaillés, templates rechargés
 } else {
     // Mode production: cache templates, pas de logs sensibles
 }
 
-if ctx.engine.config.allowed_hosts.contains("*") {
-    // ⚠️ Attention: tous les hosts sont autorisés
+if template.engine.config.security.allowed_hosts.contains("*") {
+    // ⚠️ Attention: tous les hosts sont autorisés (danger en production!)
 }
 ```
 
@@ -252,6 +273,233 @@ let config = RuniqueConfig::from_env()
 
 ---
 
+## Configuration Programmatique (Hors .env)
+
+En plus de la configuration via le fichier `.env`, le builder `RuniqueApp` offre des méthodes pour personnaliser directement votre application sans toucher aux variables d'environnement.
+
+### Méthodes du Builder
+
+#### 📦 Base de données
+
+```rust
+use sea_orm::Database;
+
+let db = Database::connect("postgresql://localhost/mydb").await?;
+
+let app = RuniqueApp::builder(config)
+    .with_database(db)
+    .routes(router)
+    .build()
+    .await?;
+```
+
+#### 🔄 Routes
+
+```rust
+let router = Router::new()
+    .route("/", get(home))
+    .route("/about", get(about));
+
+let app = RuniqueApp::builder(config)
+    .routes(router)  // Définir les routes
+    .build()
+    .await?;
+```
+
+#### ⏱️ Durée de session
+
+```rust
+use tower_sessions::cookie::time::Duration;
+
+let app = RuniqueApp::builder(config)
+    .with_session_duration(Duration::hours(2))  // Par défaut: 24h
+    .routes(router)
+    .build()
+    .await?;
+```
+
+**Exemples de durées:**
+```rust
+Duration::hours(2)      // 2 heures
+Duration::days(7)       // 7 jours
+Duration::minutes(30)   // 30 minutes
+Duration::seconds(3600) // 1 heure
+```
+
+#### 💾 Session store personnalisé
+
+Par défaut, Runique utilise `MemoryStore`. Pour la production, utilisez Redis, PostgreSQL, ou autre:
+
+```rust
+use tower_sessions::RedisStore;
+
+let redis_pool = /* votre pool Redis */;
+let session_store = RedisStore::new(redis_pool);
+
+let app = RuniqueApp::builder(config)
+    .with_session_store(session_store)  // ⚠️ Retourne RuniqueAppBuilderWithStore
+    .with_session_duration(Duration::hours(12))
+    .routes(router)
+    .build()
+    .await?;
+```
+
+**Note:** `with_session_store()` retourne un type différent (`RuniqueAppBuilderWithStore<Store>`), mais vous pouvez continuer à chaîner les méthodes normalement.
+
+#### 🛡️ Middlewares
+
+La protection CSRF est toujours activée (et non désactivable) pour garantir le bon fonctionnement des formulaires. Vous pouvez toutefois ajuster d'autres middlewares :
+
+```rust
+let app = RuniqueApp::builder(config)
+    .with_sanitize(false)      // Désactiver sanitization (par défaut: true)
+    .with_error_handler(false) // Désactiver error handler (par défaut: true)
+    .routes(router)
+    .build()
+    .await?;
+```
+
+**Cas d'usage:**
+- `with_sanitize(false)` - Validation custom des inputs
+- `with_error_handler(false)` - Gestion d'erreurs personnalisée
+
+#### 📁 Fichiers statiques
+
+```rust
+let app = RuniqueApp::builder(config)
+    .with_static_files()  // Active le service de fichiers statiques
+    .routes(router)
+    .build()
+    .await?;
+```
+
+### Exemples complets
+
+#### Configuration minimale (développement)
+
+```rust
+use runique::{RuniqueApp, config_runique::RuniqueConfig};
+use axum::{Router, routing::get};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = RuniqueConfig::from_env()?;
+    let db = Database::connect(&config.database_url).await?;
+
+    let router = Router::new()
+        .route("/", get(home));
+
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(router)
+        .build()
+        .await?;
+
+    app.run().await
+}
+```
+
+#### Configuration production avec Redis
+
+```rust
+use tower_sessions::cookie::time::Duration;
+use tower_sessions::RedisStore;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = RuniqueConfig::from_env()?;
+    let db = Database::connect(&config.database_url).await?;
+
+    // Session store Redis pour production
+    let redis_url = std::env::var("REDIS_URL")?;
+    let redis_pool = redis::Client::open(redis_url)?;
+    let session_store = RedisStore::new(redis_pool);
+
+    let router = Router::new()
+        .route("/", get(home))
+        .route("/login", post(login));
+
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .with_session_store(session_store)
+        .with_session_duration(Duration::hours(6))  // Session 6h
+        .routes(router)
+        .with_static_files()
+        .build()
+        .await?;
+
+    app.run().await
+}
+```
+
+#### Configuration de test
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_app_config() {
+        let config = RuniqueConfig::from_env().unwrap();
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+
+        let app = RuniqueApp::builder(config)
+            .with_database(db)
+            .with_session_duration(Duration::minutes(5))  // Sessions courtes
+            .with_error_handler(false)  // Erreurs explicites en test
+            .routes(test_router())
+            .build()
+            .await
+            .unwrap();
+
+        // Tests...
+    }
+}
+```
+
+### Ordre d'appel recommandé
+
+```rust
+RuniqueApp::builder(config)
+    // 1. Database
+    .with_database(db)
+
+    // 2. Session (optionnel)
+    .with_session_store(store)  // ⚠️ Si utilisé, doit être avant les autres méthodes
+    .with_session_duration(Duration::hours(2))
+
+    // 3. Middlewares (optionnel)
+    // CSRF est toujours activé par défaut (non désactivable)
+    .with_sanitize(true)
+    .with_error_handler(true)
+
+    // 4. Routes (requis)
+    .routes(router)
+
+    // 5. Fichiers statiques (optionnel)
+    .with_static_files()
+
+    // 6. Build (requis)
+    .build()
+    .await?
+```
+
+### Valeurs par défaut
+
+Si vous ne configurez rien, voici les valeurs par défaut:
+
+| Configuration | Défaut |
+|--------------|--------|
+| **Session duration** | 24 heures |
+| **Session store** | `MemoryStore` |
+| **CSRF protection** | ✅ Activé (non désactivable) |
+| **Sanitize** | ✅ Activé |
+| **Error handler** | ✅ Activé |
+| **Static files** | ❌ Désactivé (appeler `.with_static_files()`) |
+
+---
+
 ## Prochaines étapes
 
-→ [**Routage**](./04-routing.md)
+→ [**Routage**](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)

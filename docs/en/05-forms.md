@@ -2,7 +2,7 @@
 
 ## Define a Form
 
-Using `RuniqueForm` derivation:
+Use `#[derive(RuniqueForm)]` to automatically create a form with validation:
 
 ```rust
 use runique::derive_form::RuniqueForm;
@@ -15,9 +15,6 @@ pub struct LoginForm {
 
     #[field(label = "Password", required, input_type = "password")]
     pub password: String,
-
-    #[field(label = "Remember me?", input_type = "checkbox")]
-    pub remember: Option<bool>,
 }
 
 #[derive(RuniqueForm, Debug, Clone, Serialize, Deserialize)]
@@ -28,176 +25,98 @@ pub struct RegisterForm {
     #[field(label = "Email", required, input_type = "email")]
     pub email: String,
 
-    #[field(label = "Password", required, min_length = 8)]
+    #[field(label = "Password", required, min_length = 8, input_type = "password")]
     pub password: String,
 
-    #[field(label = "Confirm password", required)]
+    #[field(label = "Confirm", required, input_type = "password")]
     pub confirm_password: String,
-
-    #[field(label = "I accept terms", required, input_type = "checkbox")]
-    pub accept_terms: bool,
 }
 ```
 
 ---
 
-## Using in Handlers
+## Use in a Handler
 
-### Automatic Extraction (Prisme)
+### Display an empty form
 
 ```rust
 use demo_app::forms::LoginForm;
-use runique::forms::Prisme;
+use runique::context::request::TemplateContext;
 
-async fn login_form(
-    template: TemplateContext,
-) -> Response {
-    let form = template.form::<LoginForm>();
-    template.render("login.html", &context! {
-        "form" => form
-    })
+async fn login_form(mut template: TemplateContext) -> Response {
+    template.context.insert("form", LoginForm::new());
+    template.render("login.html")
 }
+```
+
+### Process a submission (Prisme)
+
+```rust
+use runique::forms::Prisme;
+use runique::flash::Message;
 
 async fn login_submit(
-    mut ctx: RuniqueContext,
-    template: TemplateContext,
+    mut template: TemplateContext,
+    Message(mut messages): Message,
     Prisme(mut form): Prisme<LoginForm>,
 ) -> Response {
     // Automatic validation
     if !form.is_valid().await {
-        return template.render("login.html", &context! {
-            "form" => form,
-            "has_errors" => true
-        });
+        template.context.insert("form", form);
+        template.context.insert("has_errors", true);
+        return template.render("login.html");
     }
 
     // Authenticate user
-    if let Ok(Some(user)) = authenticate(&form.email, &form.password).await {
-        success!(ctx.flash => "Welcome!");
-        ctx.session.insert("user_id", user.id).unwrap();
+    if let Some(user) = authenticate(&form.email, &form.password).await {
+        messages.success("Welcome!");
         return Redirect::to("/dashboard").into_response();
     }
 
-    error!(ctx.flash => "Invalid email or password");
-    template.render("login.html", &context! {
-        "form" => form
-    })
+    messages.error("Email or password incorrect");
+    template.context.insert("form", form);
+    template.render("login.html")
 }
 ```
-
-### Guards (Sentinel) and roles
-
-`Prisme` runs three steps: `Sentinel` (access rules), CSRF check, then data extraction (`Aegis`). If no rule is provided, only CSRF+extraction run. To enforce login/role:
-
-```rust
-use runique::forms::utils::prisme::{GuardContext, GuardRules};
-
-pub async fn with_rules<B>(mut req: Request<B>, next: Next<B>) -> impl IntoResponse {
-    // Require login and either Admin or Editor
-    req.extensions_mut()
-        .insert(GuardRules::login_and_roles(["Admin", "Editor"]));
-
-    // Inject user context from your auth layer
-    req.extensions_mut().insert(GuardContext {
-        user_id: Some("123".into()),
-        roles: vec!["Admin".into()],
-    });
-
-    next.run(req).await
-}
-```
-
-If rules are missing, `Sentinel` is a no-op. CSRF remains enforced, and form extraction proceeds normally.
 
 ---
 
 ## Form Rendering
 
-The CSRF token is **automatically included** in all forms created with the `#[derive(RuniqueForm)]` macro.
+The CSRF token is **always automatically included** in all forms.
 
-### Full Form Rendering
-
-Use the `form` Tera filter to display the complete form with all fields and CSRF token:
+### Display flash messages
 
 ```html
-{% form.inscription_form %}
+{% block messages %}
+    {% messages %}
+{% endblock %}
 ```
 
-### Field-by-Field Rendering
-
-For full control over the layout, access fields individually using the `form` filter:
-
-```html
-{{ csrf(csrf_token=form.fields.csrf_token.value) | safe }}
-
-<input type="text" name="username" value="{{ form.inscription_form.username }}" />
-<input type="email" name="email" value="{{ form.inscription_form.email }}" />
-## Custom Validation
-
-```rust
-#[derive(RuniqueForm, Debug, Clone)]
-pub struct UserForm {
-    pub username: String,
-    pub email: String,
-}
-
-impl UserForm {
-    pub async fn is_valid(&mut self) -> bool {
-        let mut is_valid = true;
-
-        // Length validation
-        if self.username.len() < 3 {
-            self.add_error("username", "Min 3 characters");
-            is_valid = false;
-        }
-
-        // Uniqueness validation
-        if let Ok(Some(_)) = User::find_by_email(&self.email).await {
-            self.add_error("email", "Email already used");
-            is_valid = false;
-        }
-
-        is_valid
-    }
-
-    pub async fn save(&self, db: &DatabaseConnection) -> Result<User> {
-        User::create(self.username.clone(), self.email.clone()).save(db).await
-    }
-}
-```
-
----
-
-## Render in Templates
+### Complete form rendering
 
 ```html
 <form method="post" action="/login">
-    {% csrf_field %}
+    {% csrf %}
+    {% form.login_form %}
+    <button type="submit">Login</button>
+</form>
+```
+
+### Field-by-field rendering
+
+```html
+<form method="post" action="/login">
+    {% csrf %}
 
     <div class="form-group">
-        <label for="email">Email:</label>
-        <input
-            type="email"
-            name="email"
-            id="email"
-            value="{{ form.email }}"
-            {% if form.has_error('email') %}class="error"{% endif %}
-        >
-        {% if form.has_error('email') %}
-            <span class="error">{{ form.get_error('email') }}</span>
-        {% endif %}
+        <label for="email">Email</label>
+        {% form.login_form.email %}
     </div>
 
     <div class="form-group">
-        <label for="password">Password:</label>
-        <input
-            type="password"
-            name="password"
-            id="password"
-        >
-        {% if form.has_error('password') %}
-            <span class="error">{{ form.get_error('password') }}</span>
-        {% endif %}
+        <label for="password">Password</label>
+        {% form.login_form.password %}
     </div>
 
     <button type="submit">Login</button>
@@ -206,19 +125,112 @@ impl UserForm {
 
 ---
 
-## Form Extraction
+## Custom Validation (Hook `clean`)
+
+Override `is_valid()` to add business logic validations:
 
 ```rust
-#[derive(Deserialize, RuniqueForm)]
+#[derive(RuniqueForm, Debug, Clone, Serialize, Deserialize)]
+pub struct RegisterForm {
+    #[field(label = "Username", required, min_length = 3)]
+    pub username: String,
+
+    #[field(label = "Email", required, input_type = "email")]
+    pub email: String,
+
+    #[field(label = "Password", required, min_length = 8)]
+    pub password: String,
+
+    #[field(label = "Confirm", required, input_type = "password")]
+    pub confirm_password: String,
+}
+
+impl RegisterForm {
+    pub async fn is_valid(&mut self) -> bool {
+        let mut valid = true;
+
+        // Field validation (min_length, required, etc.)
+        // is automatic via the RuniqueForm trait
+
+        // Custom business logic
+        if self.password != self.confirm_password {
+            self.add_error("confirm_password", "Passwords do not match");
+            valid = false;
+        }
+
+        // Check email uniqueness
+        if let Ok(Some(_)) = User::find_by_email(&self.email).await {
+            self.add_error("email", "Email already used");
+            valid = false;
+        }
+
+        valid
+    }
+}
+```
+
+---
+
+## Complete Example: Registration Form
+
+```html
+{% extends 'index.html' %}
+
+{% block content %}
+    <h1>Register</h1>
+
+    <!-- Flash messages -->
+    {% block messages %}
+        {% messages %}
+    {% endblock %}
+
+    <!-- Form -->
+    <form method="post" action="/register">
+        {% csrf %}
+
+        <div class="form-group">
+            <label for="username">Username:</label>
+            {% form.register_form.username %}
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email:</label>
+            {% form.register_form.email %}
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            {% form.register_form.password %}
+        </div>
+
+        <div class="form-group">
+            <label for="confirm_password">Confirm:</label>
+            {% form.register_form.confirm_password %}
+        </div>
+
+        <button type="submit">Register</button>
+    </form>
+{% endblock %}
+```
+
+---
+
+## Search and Filters
+
+```rust
+#[derive(RuniqueForm, Debug, Clone, Serialize, Deserialize)]
 pub struct SearchForm {
+    #[field(label = "Search", required)]
     pub query: String,
+
+    #[field(label = "Category")]
     pub category: Option<String>,
 }
 
 async fn search(
-    ExtractForm(form): ExtractForm<SearchForm>,
-) -> Response {
-    let results = search_items(&form.query).await;
+    Prisme(form): Prisme<SearchForm>,
+) -> Json<serde_json::Value> {
+    let results = search_items(&form.query, form.category).await;
     Json(json!({ "results" => results }))
 }
 ```

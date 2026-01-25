@@ -2,16 +2,39 @@
 
 ## SeaORM + Objects Manager
 
-Runique uses **SeaORM** for ORM, with a Django-like wrapper:
+Runique uses **SeaORM** with a Django-like manager via the `impl_objects!` macro:
 
 ```rust
 use demo_app::models::users;
-use runique::data_base_runique::Objects;
+use runique::impl_objects; // adds <Entity>::objects
+
+// Add the manager once on your entity
+impl_objects!(users::Entity);
 
 // Get all users
-let all_users = users::Entity::find()
+let all_users = users::Entity::objects
+    .all()
     .all(&*db)
     .await?;
+
+// With filter
+let active_users = users::Entity::objects
+    .filter(users::Column::Active.eq(true))
+    .all(&*db)
+    .await?;
+
+// Single result
+let user = users::Entity::objects
+    .filter(users::Column::Id.eq(user_id))
+    .first(&*db)
+    .await?;
+```
+
+### Without macro (plain SeaORM)
+
+```rust
+// All records
+let all_users = users::Entity::find().all(&*db).await?;
 
 // With filter
 let active_users = users::Entity::find()
@@ -19,12 +42,18 @@ let active_users = users::Entity::find()
     .all(&*db)
     .await?;
 
-// Single result
-let user = users::Entity::find()
-    .filter(users::Column::Id.eq(user_id))
+// Single result by ID
+let user = users::Entity::find_by_id(user_id)
     .one(&*db)
     .await?;
 ```
+
+### Available helpers
+- `all()` : entrypoint to chain `filter`, `order_by_asc/desc`, `limit`, `offset`.
+- `filter(...)` / `exclude(...)` : add conditions.
+- `first(db)` / `count(db)` : execute the query (client-side count).
+- `get(db, id)` / `get_optional(db, id)` : direct primary key access.
+- `get_or_404(db, ctx, msg)` : returns 404/500 with Tera rendering when missing.
 
 ---
 
@@ -33,15 +62,15 @@ let user = users::Entity::find()
 ### SELECT - Retrieve
 
 ```rust
-use runique::data_base_runique::Objects;
-
 // All records
-let users: Vec<users::Model> = users::Entity::find()
+let users: Vec<users::Model> = users::Entity::objects
+    .all()
     .all(&*db)
     .await?;
 
 // With limit and offset
-let users = users::Entity::find()
+let users = users::Entity::objects
+    .all()
     .limit(10)
     .offset(0)
     .all(&*db)
@@ -49,13 +78,15 @@ let users = users::Entity::find()
 
 // With sorting
 use sea_orm::Order;
-let users = users::Entity::find()
+let users = users::Entity::objects
+    .all()
     .order_by_asc(users::Column::Name)
     .all(&*db)
     .await?;
 
 // Multiple columns
-let users = users::Entity::find()
+let users = users::Entity::objects
+    .all()
     .order_by_asc(users::Column::CreatedAt)
     .order_by_desc(users::Column::Id)
     .all(&*db)
@@ -65,7 +96,7 @@ let users = users::Entity::find()
 ### COUNT - Count
 
 ```rust
-let count = users::Entity::find()
+let count = users::Entity::objects
     .filter(users::Column::Active.eq(true))
     .count(&*db)
     .await?;
@@ -79,25 +110,25 @@ println!("Active users: {}", count);
 use sea_orm::ColumnTrait;
 
 // Equality
-let user = users::Entity::find()
+let user = users::Entity::objects
     .filter(users::Column::Email.eq("test@example.com"))
-    .one(&*db)
+    .first(&*db)
     .await?;
 
 // Comparisons
-let users = users::Entity::find()
+let users = users::Entity::objects
     .filter(users::Column::Age.gt(18))
     .all(&*db)
     .await?;
 
-let users = users::Entity::find()
+let users = users::Entity::objects
     .filter(users::Column::Name.like("%john%"))
     .all(&*db)
     .await?;
 
 // Multiple conditions
 use sea_orm::sea_query::Expr;
-let users = users::Entity::find()
+let users = users::Entity::objects
     .filter(users::Column::Active.eq(true))
     .filter(users::Column::Age.gte(18))
     .all(&*db)
@@ -105,7 +136,7 @@ let users = users::Entity::find()
 
 // OR
 use sea_orm::sea_query::IntoCondition;
-let users = users::Entity::find()
+let users = users::Entity::objects
     .filter(
         users::Column::Email.eq("a@test.com")
             .or(users::Column::Email.eq("b@test.com"))
@@ -201,9 +232,7 @@ transaction.commit().await?;
 
 ```rust
 // User has many Posts
-let user = users::Entity::find_by_id(1)
-    .one(&*db)
-    .await?;
+let user = users::Entity::objects.get_optional(&*db, 1).await?;
 
 if let Some(user) = user {
     let posts = user.find_related(posts::Entity)
@@ -215,9 +244,7 @@ if let Some(user) = user {
 ### Many-to-Many
 
 ```rust
-let user = users::Entity::find_by_id(1)
-    .one(&*db)
-    .await?;
+let user = users::Entity::objects.get_optional(&*db, 1).await?;
 
 if let Some(user) = user {
     let roles = user.find_related(roles::Entity)
@@ -235,31 +262,54 @@ use demo_app::models::users;
 use runique::prelude::*;
 use axum::extract::Path;
 
-// CRUD Handler
-async fn list_users(
-    ctx: RuniqueContext,
-) -> Response {
-    let db = ctx.engine.db.clone();
-    
+// CRUD Handler - with macro (Entity::objects)
+async fn list_users() -> Response {
+    let db = /* access db from app state */;
+
     match users::Entity::find()
         .all(&*db)
         .await
     {
-        Ok(users) => {
-            Json(json!({"users": users}))
-        }
-        Err(e) => {
-            error_response(format!("Database error: {}", e))
-        }
+        Ok(users) => Json(json!({"users": users})),
+        Err(e) => error_response(format!("Database error: {}", e)),
     }
 }
 
+// CRUD Handler - without macro (plain SeaORM)
+async fn list_users_raw() -> Response {
+    let db = /* access db from app state */;
+
+    match users::Entity::find()
+        .all(&*db)
+        .await
+    {
+        Ok(users) => Json(json!({"users": users})),
+        Err(e) => error_response(format!("Database error: {}", e)),
+    }
+}
+
+// With find_by_id
 async fn get_user(
     Path(id): Path<i32>,
-    ctx: RuniqueContext,
 ) -> Response {
-    let db = ctx.engine.db.clone();
-    
+    let db = /* access db from app state */;
+
+    match users::Entity::find_by_id(id)
+        .one(&*db)
+        .await
+    {
+        Ok(Some(user)) => Json(json!({"user": user})),
+        Ok(None) => StatusCode::NOT_FOUND.into_response(),
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    }
+}
+
+// Without macro (find_by_id)
+async fn get_user_raw(
+    Path(id): Path<i32>,
+) -> Response {
+    let db = /* access db from app state */;
+
     match users::Entity::find_by_id(id)
         .one(&*db)
         .await
@@ -271,10 +321,10 @@ async fn get_user(
 }
 
 async fn create_user(
-    mut ctx: RuniqueContext,
+    Message(mut messages): Message,
     Json(payload): Json<CreateUserRequest>,
 ) -> Response {
-    let db = ctx.engine.db.clone();
+    let db = /* access db from app state */;
 
     let user = users::ActiveModel {
         email: Set(payload.email),
@@ -284,11 +334,11 @@ async fn create_user(
 
     match user.insert(&*db).await {
         Ok(created) => {
-            success!(ctx.flash => "User created!");
-            (StatusCode::CREATED, Json(json!({"user": created})))
+            messages.success("User created!");
+            (StatusCode::CREATED, Json(json!({"user": created}))).into_response()
         }
         Err(e) => {
-            error!(ctx.flash => format!("Error: {}", e));
+            messages.error(format!("Error: {}", e));
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
@@ -296,20 +346,42 @@ async fn create_user(
 
 async fn delete_user(
     Path(id): Path<i32>,
-    mut ctx: RuniqueContext,
+    Message(mut messages): Message,
 ) -> Response {
-    let db = ctx.engine.db.clone();
+    let db = /* access db from app state */;
 
     match users::Entity::delete_by_id(id)
         .exec(&*db)
         .await
     {
         Ok(result) if result.rows_affected > 0 => {
-            success!(ctx.flash => "User deleted");
+            messages.success("User deleted");
             Redirect::to("/users").into_response()
         }
         _ => {
-            error!(ctx.flash => "Deletion error");
+            messages.error("Deletion error");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+}
+
+// Without macro (same delete_by_id, plain SeaORM)
+async fn delete_user_raw(
+    Path(id): Path<i32>,
+    Message(mut messages): Message,
+) -> Response {
+    let db = /* access db from app state */;
+
+    match users::Entity::delete_by_id(id)
+        .exec(&*db)
+        .await
+    {
+        Ok(result) if result.rows_affected > 0 => {
+            messages.success("User deleted");
+            Redirect::to("/users").into_response()
+        }
+        _ => {
+            messages.error("Deletion error");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
@@ -320,4 +392,4 @@ async fn delete_user(
 
 ## Next Steps
 
-← [**Templates**](./06-templates.md) | [**Middleware & Security**](./08-middleware.md) →
+← [**Templates**](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md) | [**Middleware & Security**](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md) →

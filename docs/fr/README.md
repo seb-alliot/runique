@@ -186,6 +186,6 @@ Exemples de code complets et projets.
 
 ---
 
-**Besoin d'aide ?** Consultez [Exemples](10-examples.md) ou relisez la section pertinente.
+**Besoin d'aide ?** Consultez [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md) ou relisez la section pertinente.
 
 Bon codage ! 🚀

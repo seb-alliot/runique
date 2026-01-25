@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Runique 2.0 est organisée en **modules fonctionnels** basés sur la responsabilité:
+Runique 1.1.11 est organisée en **modules fonctionnels** basés sur la responsabilité:
 
 ```
 runique/src/
@@ -68,44 +68,52 @@ pub struct RuniqueEngine {
 - `RuniqueContext` - Disponible dans les handlers
 - Injection d'extensions Axum
 
-### 2. RuniqueContext
+### 2. TemplateContext
 
-**Contexte de requête** injecté dans chaque handler.
+**Contexte de template** injecté dans chaque handler pour le rendu.
 
 ```rust
-pub struct RuniqueContext {
-    pub engine: Arc<RuniqueEngine>,
-    pub flash: FlashManager,
+pub struct TemplateContext {
+    pub context: Context,
+    // Access to Tera for rendering
 }
 
 // Extracteur FromRequestParts
-pub async fn my_handler(ctx: RuniqueContext) -> Response {
-    ctx.engine.db.clone()      // Arc<DatabaseConnection>
-    ctx.engine.tera.clone()    // Arc<Tera>
+pub async fn my_handler(
+    mut template: TemplateContext,
+) -> Response {
+    template.context.insert("title", "Bienvenu sur Runique");
+    template.render("vue.html")
 }
 ```
 
 ### 3. TemplateContext
 
-**Contexte pour templates** avec auto-injection de `debug` et `csrf_token`.
+**Contexte pour templates** avec auto-injection de la session, CSRF token et CSP nonce.
 
 ```rust
 pub struct TemplateContext {
     pub engine: Arc<RuniqueEngine>,
-    pub flash: FlashManager,
-    pub csrf_token: String,
+    pub session: Session,
+    pub notices: Message,
+    pub messages: Vec<FlashMessage>,
+    pub csrf_token: CsrfToken,
+    pub csp_nonce: String,
+    pub context: Context,
 }
 
 // Render automatique
-template.render("page.html", &context! {
-    "title" => "Page"
-    // csrf_token et debug injectés automatiquement
-})
+    context_update!(template => {
+        "title" => "Votre titre ici ",
+        "form" => &form,
+    });
+    template.render("vue.html")
+
 ```
 
-### 4. ExtractForm<T>
+### 4. Prisme<T> - Extracteur de Formulaire
 
-**Extracteur Axum** pour les formulaires.
+**Extracteur Axum** pour les formulaires avec validation et injection CSRF automatiques.
 
 ```rust
 // Automatiquement:
@@ -115,35 +123,23 @@ template.render("page.html", &context! {
 // 4. Remplit les données
 
 pub async fn handler(
-    ExtractForm(form): ExtractForm<MyForm>
-) -> Response { }
+    mut template: TemplateContext,
+    Prisme(mut form): Prisme<RegisterForm>,
+) -> AppResult<Response> {
+    let db = template.engine.db.clone();
+    if form.is_valid().await {
+        // Traiter le formulaire
+        match form.save(&db).await {
+            Ok(_) => { /* succès */ },
+            Err(e) => { /* erreur */ }
+        }
+    }
+    Ok(template.render("form.html"))
+}
 ```
 
 ---
 
-## Flux de Requête
-
-```
-HTTP Request
-    ↓
-[Middleware Stack - REVERSE ORDER]
-    ├→ extension_injection (injecte Tera, Config, Engine, Session)
-    ├→ error_handler_middleware
-    ├→ flash_middleware
-    ├→ csrf_middleware (validation + token generation)
-    ├→ sanitize_middleware
-    ├→ session_layer (from tower_sessions)
-    ↓
-[Handler]
-    ├→ RuniqueContext injected
-    ├→ TemplateContext injected
-    ├→ ExtractForm available
-    ↓
-[Rendering]
-    ├→ template.render() auto-injects csrf_token, debug
-    ↓
-Response HTTP
-```
 
 **Important:** Middleware declared first = Executed last!
 
@@ -169,7 +165,7 @@ struct AppState {
 ```rust
 // Copie par requête
 pub async fn handler(
-    ExtractForm(form): ExtractForm<MyForm>
+    Prisme(form): Prisme<MyForm>
 ) -> Response {
     // Chaque requête = formulaire isolé
     // Zero concurrence
@@ -197,12 +193,13 @@ Système de formulaires:
 - RuniqueForm derive macro
 - Field types (text, email, textarea, etc.)
 - Validation
-- ExtractForm extractor
+- Prisme extractor
 
-### gardefou/
+### middleware/
 Middleware de sécurité:
 - CSRF protection
 - ALLOWED_HOSTS validation
+- Nonce
 - Login required middleware
 - Redirect if authenticated
 
@@ -240,6 +237,15 @@ Utilitaires divers:
 - Response helpers (json, html, redirect)
 - HTML parsing
 
+⚠️  le nonce est ajouter manuellement dans le builder de votre application via
+
+```rust
+
+.layer(middleware::from_fn_with_state(
+    engine.clone(),
+    security_headers_middleware,
+))
+```
 ---
 
 ## Injection de Dépendances
@@ -256,10 +262,8 @@ extension_injection
 
 // Utilisé dans handlers:
 pub async fn handler(
-    ctx: RuniqueContext,           // Extrait automatiquement
-    template: TemplateContext,     // Extrait automatiquement
-    session: Session,              // From tower_sessions
-) -> Response { }
+    template: TemplateContext,
+) -> AppResult<Response> { }
 ```
 
 ---
@@ -270,22 +274,26 @@ pub async fn handler(
 
 ```rust
 #[tokio::main]
-async fn main() {
-    // 1. Charger config
-    let config = RuniqueConfig::from_env()?;
-    
-    // 2. Créer RuniqueEngine
-    let engine = RuniqueEngine::new(config).await?;
-    
-    // 3. Builder l'app
-    let app = RuniqueApp::new(config)
-        .with_database().await?          // Arc<DatabaseConnection>
-        .with_routes(routes())            // Router
-        .build().await?                   // Assemble middleware
-        
-    // 4. Lancer le serveur
-    app.run("127.0.0.1:3000").await?;
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Configuration de l'application
+    let config = RuniqueConfig::from_env();
+
+    // Connexion à la base de données
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db = db_config.connect().await?;
+
+    // Créer et lancer l'application
+    RuniqueApp::builder(config)
+        .routes(url::routes())
+        .with_database(db)
+        .build()
+        .await?
+        .run()
+        .await?;
+
+    Ok(())
 }
+
 ```
 
 ### Request Handling
@@ -304,26 +312,27 @@ async fn main() {
 
 1. **Cloner les Arc:**
    ```rust
-   let db = ctx.engine.db.clone();
+       let db = template.engine.db.clone();
    ```
 
 2. **Formulaires = copies:**
    ```rust
-   let form = MyForm::build(ctx.engine.tera.clone());
+       let form = template.form::<Form>();
+
    // Pas de state partagé
    ```
 
 3. **Templates auto-context:**
    ```rust
-   template.render("page.html", &context! {
-       "data" => value
-       // csrf_token et debug ajoutés automatiquement
-   })
+   template.context.insert("data", value);
+   template.render("page.html")
+   // csrf_token auto-injecté dans le contexte
    ```
 
 4. **Flash messages:**
    ```rust
-   success!(ctx.flash => "Message");
+   Message(mut messages): Message,
+   messages.success(format!("Bienvenue {}, votre compte a été créé !", user.username));
    ```
 
 5. **Middleware order:**
@@ -338,4 +347,4 @@ async fn main() {
 
 ## Prochaines étapes
 
-→ [**Configuration**](./03-configuration.md)
+→ [**Configuration**](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)

@@ -84,43 +84,37 @@ fn routes() -> Router {
 
 // Handlers
 async fn list_blogs(
-    ctx: RuniqueContext,
-    template: TemplateContext,
+    mut template: TemplateContext,
 ) -> Response {
-    let db = ctx.engine.db.clone();
-    
+    let db = /* access db from app state */;
+
     let blogs = Blog::Entity::find()
         .order_by_desc(Blog::Column::CreatedAt)
         .all(&*db)
         .await
         .unwrap_or_default();
 
-    template.render("blog/list.html", &context! {
-        "blogs" => blogs
-    })
+    template.context.insert("blogs", blogs);
+    template.render("blog/list.html")
 }
 
-async fn blog_form(template: TemplateContext) -> Response {
-    template.render("blog/form.html", &context! {
-        "form" => BlogForm::new()
-    })
+async fn blog_form(mut template: TemplateContext) -> Response {
+    template.context.insert("form", BlogForm::new());
+    template.render("blog/form.html")
 }
 
 async fn create_blog(
-    mut ctx: RuniqueContext,
-    template: TemplateContext,
-    ExtractForm(mut form): ExtractForm<BlogForm>,
+    mut template: TemplateContext,
+    Message(mut messages): Message,
+    Prisme(mut form): Prisme<BlogForm>,
 ) -> Response {
     if !form.is_valid().await {
-        return template.render("blog/form.html", &context! {
-            "form" => form
-        });
+        template.context.insert("form", form);
+        return template.render("blog/form.html");
     }
 
-    let db = ctx.engine.db.clone();
-    let user_id = ctx.session.get::<i32>("user_id")
-        .unwrap_or_default()
-        .unwrap_or(1); // Demo
+    let db = /* access db from app state */;
+    let user_id = 1; // Demo
 
     let blog = blog::ActiveModel {
         title: Set(form.title.clone()),
@@ -131,33 +125,30 @@ async fn create_blog(
 
     match blog.insert(&*db).await {
         Ok(blog) => {
-            success!(ctx.flash => "Post created!");
+            messages.success("Blog created!");
             Redirect::to(&format!("/blogs/{}", blog.id)).into_response()
         }
         Err(e) => {
-            error!(ctx.flash => format!("Error: {}", e));
-            template.render("blog/form.html", &context! {
-                "form" => form
-            })
+            messages.error(format!("Error: {}", e));
+            template.context.insert("form", form);
+            template.render("blog/form.html")
         }
     }
 }
 
 async fn detail_blog(
     Path(id): Path<i32>,
-    ctx: RuniqueContext,
-    template: TemplateContext,
+    mut template: TemplateContext,
 ) -> Response {
-    let db = ctx.engine.db.clone();
+    let db = /* access db from app state */;
 
     match blog::Entity::find_by_id(id)
         .one(&*db)
         .await
     {
         Ok(Some(blog)) => {
-            template.render("blog/detail.html", &context! {
-                "blog" => blog
-            })
+            template.context.insert("blog", blog);
+            template.render("blog/detail.html")
         }
         Ok(None) => StatusCode::NOT_FOUND.into_response(),
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -166,11 +157,11 @@ async fn detail_blog(
 
 async fn update_blog(
     Path(id): Path<i32>,
-    mut ctx: RuniqueContext,
-    template: TemplateContext,
-    ExtractForm(mut form): ExtractForm<BlogForm>,
+    mut template: TemplateContext,
+    Message(mut messages): Message,
+    Prisme(mut form): Prisme<BlogForm>,
 ) -> Response {
-    let db = ctx.engine.db.clone();
+    let db = /* access db from app state */;
 
     let blog = match blog::Entity::find_by_id(id)
         .one(&*db)
@@ -186,31 +177,30 @@ async fn update_blog(
 
     match active.update(&*db).await {
         Ok(_) => {
-            success!(ctx.flash => "Post updated!");
+            messages.success("Blog updated!");
             Redirect::to(&format!("/blogs/{}", id)).into_response()
         }
         Err(e) => {
-            error!(ctx.flash => format!("Error: {}", e));
-            template.render("blog/form.html", &context! {
-                "form" => form
-            })
+            messages.error(format!("Error: {}", e));
+            template.context.insert("form", form);
+            template.render("blog/form.html")
         }
     }
 }
 
 async fn delete_blog(
     Path(id): Path<i32>,
-    mut ctx: RuniqueContext,
+    Message(mut messages): Message,
 ) -> Response {
-    let db = ctx.engine.db.clone();
+    let db = /* access db from app state */;
 
     match blog::Entity::delete_by_id(id).exec(&*db).await {
         Ok(_) => {
-            success!(ctx.flash => "Post deleted");
+            messages.success("Blog deleted");
             Redirect::to("/blogs").into_response()
         }
         Err(_) => {
-            error!(ctx.flash => "Deletion error");
+            messages.error("Error deleting blog");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
@@ -224,24 +214,22 @@ async fn delete_blog(
 ### Login Handler
 
 ```rust
-async fn login_form(template: TemplateContext) -> Response {
-    template.render("auth/login.html", &context! {
-        "form" => LoginForm::new()
-    })
+async fn login_form(mut template: TemplateContext) -> Response {
+    template.context.insert("form", LoginForm::new());
+    template.render("auth/login.html")
 }
 
 async fn login_submit(
-    mut ctx: RuniqueContext,
-    template: TemplateContext,
-    ExtractForm(mut form): ExtractForm<LoginForm>,
+    mut template: TemplateContext,
+    Message(mut messages): Message,
+    Prisme(mut form): Prisme<LoginForm>,
 ) -> Response {
     if !form.is_valid().await {
-        return template.render("auth/login.html", &context! {
-            "form" => form
-        });
+        template.context.insert("form", form);
+        return template.render("auth/login.html");
     }
 
-    let db = ctx.engine.db.clone();
+    let db = /* access db from app state */;
 
     // Find user
     let user = users::Entity::find()
@@ -253,26 +241,25 @@ async fn login_submit(
     if let Some(user) = user {
         // Verify password
         if verify_password(&form.password, &user.password_hash) {
-            // Create session
-            ctx.session.insert("user_id", user.id).unwrap();
-            ctx.session.insert("username", &user.username).unwrap();
+            // Create session - TODO: add session layer extraction
+            // session.insert("user_id", user.id);
+            // session.insert("username", &user.username);
 
-            success!(ctx.flash => "Welcome!");
+            messages.success("Welcome!");
             return Redirect::to("/dashboard").into_response();
         }
     }
 
-    error!(ctx.flash => "Invalid email or password");
-    template.render("auth/login.html", &context! {
-        "form" => form
-    })
+    messages.error("Email or password incorrect");
+    template.context.insert("form", form);
+    template.render("auth/login.html")
 }
 
 async fn logout(
-    mut ctx: RuniqueContext,
+    Message(mut messages): Message,
 ) -> Response {
-    ctx.session.flush().await.ok();
-    success!(ctx.flash => "Logged out");
+    // TODO: flush session from session layer
+    messages.success("Logout successful");
     Redirect::to("/").into_response()
 }
 ```
@@ -291,10 +278,8 @@ pub struct UserResponse {
     pub email: String,
 }
 
-async fn api_users(
-    ctx: RuniqueContext,
-) -> Json<Vec<UserResponse>> {
-    let db = ctx.engine.db.clone();
+async fn api_users() -> Json<Vec<UserResponse>> {
+    let db = /* access db from app state */;
 
     let users: Vec<UserResponse> = users::Entity::find()
         .all(&*db)
@@ -312,10 +297,9 @@ async fn api_users(
 }
 
 async fn api_create_user(
-    mut ctx: RuniqueContext,
     Json(payload): Json<CreateUserRequest>,
 ) -> (StatusCode, Json<UserResponse>) {
-    let db = ctx.engine.db.clone();
+    let db = /* access db from app state */;
 
     let user = users::ActiveModel {
         username: Set(payload.username),
@@ -389,10 +373,9 @@ pub struct PaginationQuery {
 
 async fn list_with_pagination(
     Query(query): Query<PaginationQuery>,
-    ctx: RuniqueContext,
-    template: TemplateContext,
+    mut template: TemplateContext,
 ) -> Response {
-    let db = ctx.engine.db.clone();
+    let db = /* access db from app state */;
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(10).min(100);
     let offset = (page - 1) * limit;
@@ -411,13 +394,12 @@ async fn list_with_pagination(
 
     let total_pages = (total + limit - 1) / limit;
 
-    template.render("users/list.html", &context! {
-        "users" => users,
-        "page" => page,
-        "total_pages" => total_pages,
-        "has_next" => page < total_pages,
-        "has_prev" => page > 1
-    })
+    template.context.insert("users", users);
+    template.context.insert("page", page);
+    template.context.insert("total_pages", total_pages);
+    template.context.insert("has_next", page < total_pages);
+    template.context.insert("has_prev", page > 1);
+    template.render("users/list.html")
 }
 ```
 
@@ -434,9 +416,9 @@ Template:
     {% if has_prev %}
         <a href="?page={{ page - 1 }}">← Previous</a>
     {% endif %}
-    
+
     <span>Page {{ page }}/{{ total_pages }}</span>
-    
+
     {% if has_next %}
         <a href="?page={{ page + 1 }}">Next →</a>
     {% endif %}
@@ -509,14 +491,14 @@ impl RegistrationForm {
 
 ## More Resources
 
-- [Installation](./01-installation.md)
-- [Architecture](./02-architecture.md)
-- [Configuration](./03-configuration.md)
-- [Routing](./04-routing.md)
-- [Forms](./05-forms.md)
-- [Templates](./06-templates.md)
-- [ORM](./07-orm.md)
-- [Middleware](./08-middleware.md)
-- [Flash Messages](./09-flash-messages.md)
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
+- [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
+- [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
+- [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
 
-← [**Flash Messages**](./09-flash-messages.md) | [**Back to README**](../../README.md) →
+← [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md) | [**Back to README**](https://github.com/seb-alliot/runique/blob/main/README.md) →

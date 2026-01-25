@@ -60,7 +60,7 @@ Remplace le contenu de `migration/Cargo.toml` par :
 ```toml
 [package]
 name = "migration"
-version = "0.1.0"
+version = "1.1.11"
 edition = "2021"
 
 [dependencies]
