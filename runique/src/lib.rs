@@ -4,7 +4,7 @@
 //!
 //! Organisation des modules alignée sur la hiérarchie `src/` actuelle tout en
 //! conservant des alias de compatibilité (`config_runique`, `formulaire`,
-//! `gardefou`, etc.).
+//! middleware, etc.).
 //!
 //! ## Modules principaux
 //!

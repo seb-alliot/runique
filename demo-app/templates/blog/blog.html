@@ -2,14 +2,13 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/test-field.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
 {% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="form-container">
-        <h1 class="main-title">Configuration du Profil</h1>
-
         {% if messages %}
             {% messages %}
         {% endif %}
@@ -17,7 +16,6 @@
         <form id="blog_form" method="post">
 
             <section class="form-section">
-                <h2 class="section-title">Informations de compte</h2>
                 <div class="row">
                     <div class="col-md-6 field-group">
                         {% form.blog_form.title %}

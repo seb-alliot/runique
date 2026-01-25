@@ -108,114 +108,53 @@ impl TemplateLoader {
 
     /// Charge les templates HTML embarqués dans le binaire de Runique
     fn load_internal_templates(tera: &mut Tera) -> Result<(), Box<dyn Error>> {
-        // Templates principales
-        tera.add_raw_template(
-            "base_index",
-            include_str!("../../templates/runique_index/base_index.html"),
-        )?;
-        tera.add_raw_template(
-            "message",
-            include_str!("../../templates/message/message.html"),
-        )?;
-        tera.add_raw_template("404", include_str!("../../templates/errors/404.html"))?;
-        tera.add_raw_template("500", include_str!("../../templates/errors/500.html"))?;
-        tera.add_raw_template(
-            "debug",
-            include_str!("../../templates/errors/debug_error.html"),
-        )?;
-        // Templates de sécurité
-        tera.add_raw_template("csrf", include_str!("../../templates/csrf/csrf.html"))?;
-        tera.add_raw_template("csp", include_str!("../../templates/csp/csp.html"))?;
+        // Templates principaux + sécurité
+        const SIMPLE_TEMPLATES: [(&str, &str); 7] = [
+            ("base_index", include_str!("../../templates/runique_index/base_index.html")),
+            ("message", include_str!("../../templates/message/message.html")),
+            ("404", include_str!("../../templates/errors/404.html")),
+            ("500", include_str!("../../templates/errors/500.html")),
+            ("debug", include_str!("../../templates/errors/debug_error.html")),
+            ("csrf", include_str!("../../templates/csrf/csrf.html")),
+            ("csp", include_str!("../../templates/csp/csp.html")),
+        ];
 
         // Corps des pages d'erreurs détaillées
         const ERROR_CORPS: [(&str, &str); 8] = [
-            (
-                "errors/corps-error/header-error.html",
-                include_str!("../../templates/errors/corps-error/header-error.html"),
-            ),
-            (
-                "errors/corps-error/message-error.html",
-                include_str!("../../templates/errors/corps-error/message-error.html"),
-            ),
-            (
-                "errors/corps-error/template-info.html",
-                include_str!("../../templates/errors/corps-error/template-info.html"),
-            ),
-            (
-                "errors/corps-error/stack-trace-error.html",
-                include_str!("../../templates/errors/corps-error/stack-trace-error.html"),
-            ),
-            (
-                "errors/corps-error/request-info.html",
-                include_str!("../../templates/errors/corps-error/request-info.html"),
-            ),
-            (
-                "errors/corps-error/environment-info.html",
-                include_str!("../../templates/errors/corps-error/environment-info.html"),
-            ),
-            (
-                "errors/corps-error/status-code-info.html",
-                include_str!("../../templates/errors/corps-error/status-code-info.html"),
-            ),
-            (
-                "errors/corps-error/footer-error.html",
-                include_str!("../../templates/errors/corps-error/footer-error.html"),
-            ),
+            ("errors/corps-error/header-error.html", include_str!("../../templates/errors/corps-error/header-error.html")),
+            ("errors/corps-error/message-error.html", include_str!("../../templates/errors/corps-error/message-error.html")),
+            ("errors/corps-error/template-info.html", include_str!("../../templates/errors/corps-error/template-info.html")),
+            ("errors/corps-error/stack-trace-error.html", include_str!("../../templates/errors/corps-error/stack-trace-error.html")),
+            ("errors/corps-error/request-info.html", include_str!("../../templates/errors/corps-error/request-info.html")),
+            ("errors/corps-error/environment-info.html", include_str!("../../templates/errors/corps-error/environment-info.html")),
+            ("errors/corps-error/status-code-info.html", include_str!("../../templates/errors/corps-error/status-code-info.html")),
+            ("errors/corps-error/footer-error.html", include_str!("../../templates/errors/corps-error/footer-error.html")),
         ];
 
-        for (name, content) in ERROR_CORPS {
+        // Champs de formulaire
+        const FIELD_TEMPLATES: [(&str, &str); 10] = [
+            ("base_boolean", include_str!("../../templates/field_html/base_boolean.html")),
+            ("base_checkbox", include_str!("../../templates/field_html/base_checkbox.html")),
+            ("base_color", include_str!("../../templates/field_html/base_color.html")),
+            ("base_datetime", include_str!("../../templates/field_html/base_datetime.html")),
+            ("base_file", include_str!("../../templates/field_html/base_file.html")),
+            ("base_number", include_str!("../../templates/field_html/base_number.html")),
+            ("base_radio", include_str!("../../templates/field_html/base_radio.html")),
+            ("base_select", include_str!("../../templates/field_html/base_select.html")),
+            ("base_special", include_str!("../../templates/field_html/base_special.html")),
+            ("base_string", include_str!("../../templates/field_html/base_string.html")),
+        ];
+
+        // Enregistrement centralisé
+        for (name, content) in SIMPLE_TEMPLATES
+            .iter()
+            .chain(ERROR_CORPS.iter())
+            .chain(FIELD_TEMPLATES.iter())
+        {
             tera.add_raw_template(name, content)?;
         }
 
-        // Champs de formulaire
-
-        tera.add_raw_template(
-            "base_boolean",
-            include_str!("../../templates/field_html/base_boolean.html"),
-        )?;
-
-        tera.add_raw_template(
-            "base_checkbox",
-            include_str!("../../templates/field_html/base_checkbox.html"),
-        )?;
-
-        tera.add_raw_template(
-            "base_color",
-            include_str!("../../templates/field_html/base_color.html"),
-        )?;
-        tera.add_raw_template(
-            "base_datetime",
-            include_str!("../../templates/field_html/base_datetime.html"),
-        )?;
-        tera.add_raw_template(
-            "base_file",
-            include_str!("../../templates/field_html/base_file.html"),
-        )?;
-
-        tera.add_raw_template(
-            "base_number",
-            include_str!("../../templates/field_html/base_number.html"),
-        )?;
-
-        tera.add_raw_template(
-            "base_radio",
-            include_str!("../../templates/field_html/base_radio.html"),
-        )?;
-
-        tera.add_raw_template(
-            "base_select",
-            include_str!("../../templates/field_html/base_select.html"),
-        )?;
-
-        tera.add_raw_template(
-            "base_special",
-            include_str!("../../templates/field_html/base_special.html"),
-        )?;
-        tera.add_raw_template(
-            "base_string",
-            include_str!("../../templates/field_html/base_string.html"),
-        )?;
-
         Ok(())
     }
+
 }
