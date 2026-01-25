@@ -116,7 +116,7 @@ pub async fn info_user(
             template.render("profile/view_user.html")
         }
         None => {
-            warning!(template.flash_manager  => format!("Utilisateur '{}' non trouvé.", username));
+            warning!(template.notices  => format!("Utilisateur '{}' non trouvé.", username));
             template.render("profile/view_user.html")
         }
     }

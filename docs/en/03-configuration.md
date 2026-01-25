@@ -1,366 +1,504 @@
 # ⚙️ Configuration
 
-## RuniqueConfig Structure
+## RuniqueConfig
 
-Main configuration object loaded from `.env`:
+All configuration is handled via `.env` and loaded into the `RuniqueConfig` struct.
+
+### Load configuration
 
 ```rust
-pub struct RuniqueConfig {
-    pub app_name: String,
-    pub secret_key: String,
-    pub debug: bool,
-    pub allowed_hosts: Vec<String>,
-    pub database_url: String,
-    pub max_connections: u32,
-    pub session_expiry: u64,
-}
+use runique::config_runique::RuniqueConfig;
+
+let config = RuniqueConfig::from_env()?;
+
+// Access variables
+println!("Debug: {}", config.debug);
+println!("Port: {}", config.port);
+println!("DB: {}", config.database_url);
 ```
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file in your project root:
+### Server
 
-```bash
-# Application
-APP_NAME=Runique App
-SECRET_KEY=your-secret-key-here-min-32-chars
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `IP_SERVER` | 127.0.0.1 | Listening IP |
+| `PORT` | 3000 | Server port |
+| `DEBUG` | true | Debug mode (templates, logs, etc.) |
+
+**Example:**
+```env
+# Server Configuration
+IP_SERVER=127.0.0.1
+PORT=3000
+
+DEBUG=true
+# Database Configuration (SQLite by default)
+
+# Secret key for csrf management
+SECRETE_KEY=your_secret_key_here
+
+# Required for any DB other than SQLite
+DB_ENGINE=postgres
+DB_USER=postgres
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=runique
+
+# Optional convenience shortcut
+DATABASE_URL=postgresql://myuser:mypassword@localhost:5432/mydb
+
+# Allowed hosts for production
+ALLOWED_HOSTS=example.com,www.example.com,.api.example.com,localhost,127.0.0.1
+```
+
+### Database
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | - | Full connection string |
+| `DB_ENGINE` | postgres | postgres, sqlite, mysql |
+| `DB_USER` | postgres | DB user |
+| `DB_PASSWORD` | - | DB password |
+| `DB_HOST` | localhost | DB host |
+| `DB_PORT` | 5432 | DB port |
+| `DB_NAME` | runique | Database name |
+
+**PostgreSQL:**
+```env
+DATABASE_URL=postgres://user:password@localhost:5432/dbname
+DB_ENGINE=postgres
+DB_USER=postgres
+DB_PASSWORD=secret
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=runique
+```
+
+**SQLite (dev):**
+```env
+DATABASE_URL=sqlite:runique.db?mode=rwc
+```
+
+### Templates & Assets
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TEMPLATES_DIR` | templates | Templates directory |
+| `STATICFILES_DIRS` | static | Static assets directory |
+| `MEDIA_ROOT` | media | Media (uploads) directory |
+
+**Example:**
+```env
+TEMPLATES_DIR=templates
+STATICFILES_DIRS=static:demo-app/static
+MEDIA_ROOT=uploads
+```
+
+### Security
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SECRETE_KEY` | - | CSRF secret key (⚠️ CHANGE IN PROD!) |
+| `ALLOWED_HOSTS` | * | Allowed hosts (comma-separated) |
+
+**Example:**
+```env
+SECRETE_KEY=your_secret_key_change_this_in_production
+ALLOWED_HOSTS=localhost,127.0.0.1,example.com,.api.example.com
+```
+
+**ALLOWED_HOSTS patterns:**
+- `localhost` - Exact match
+- `*` - Wildcard all hosts (DANGER in production!)
+- `.example.com` - Matches example.com and *.example.com
+
+---
+
+## Complete .env File
+
+```env
+# ============================================================================
+# SERVER CONFIGURATION
+# ============================================================================
+IP_SERVER=127.0.0.1
+PORT=3000
 DEBUG=true
 
-# Security
-ALLOWED_HOSTS=localhost,127.0.0.1,yourdomain.com
-
-# Database
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
+# PostgreSQL (Recommended for production)
 DATABASE_URL=postgres://postgres:password@localhost:5432/runique
-MAX_CONNECTIONS=5
+DB_ENGINE=postgres
+DB_USER=postgres
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=runique
 
-# Session
-SESSION_EXPIRY_HOURS=24
-```
+# SQLite (Development only)
+# DATABASE_URL=sqlite:runique.db?mode=rwc
 
----
+# ============================================================================
+# TEMPLATES & STATIC FILES
+# ============================================================================
+TEMPLATES_DIR=templates
+STATICFILES_DIRS=static
+MEDIA_ROOT=media
 
-## Configuration Table
+# ============================================================================
+# SECURITY
+# ============================================================================
+# IMPORTANT: Generate a new key for production!
+# python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+SECRETE_KEY=your_secret_key_here_change_in_production
 
-| Variable | Type | Default | Purpose |
-|----------|------|---------|---------|
-| `APP_NAME` | String | "Runique App" | Application name |
-| `SECRET_KEY` | String | (required) | Encryption key for sessions/tokens (min 32 chars) |
-| `DEBUG` | bool | false | Enable debug mode |
-| `ALLOWED_HOSTS` | CSV | localhost | Allowed host headers |
-| `DATABASE_URL` | String | (required) | Database connection string |
-| `MAX_CONNECTIONS` | u32 | 5 | Database pool size |
-| `SESSION_EXPIRY_HOURS` | u64 | 24 | Session timeout in hours |
-
----
-
-## Loading Configuration
-
-### Automatic Loading
-
-```rust
-use runique::config_runique::RuniqueConfig;
-
-// Loads from .env or environment variables
-let config = RuniqueConfig::from_env();
-```
-
-### Manual Loading
-
-```rust
-use dotenv::dotenv;
-
-fn main() {
-    dotenv().ok();  // Load .env file
-    
-    let config = RuniqueConfig::from_env();
-    
-    if config.debug {
-        println!("🔍 Debug mode enabled");
-    }
-}
-```
-
----
-
-## Complete .env Example
-
-```bash
-# ============================================
-# RUNIQUE CONFIGURATION
-# ============================================
-
-# Application Settings
-APP_NAME=My Runique App
-DEBUG=true
-
-# SECURITY - Generate with: openssl rand -base64 32
-SECRET_KEY=your-secret-key-here-minimum-32-characters
-
-# Allowed hosts (comma-separated)
-ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
-
-# ============================================
-# DATABASE
-# ============================================
-
-# PostgreSQL
-DATABASE_URL=postgres://postgres:password@localhost:5432/runique
-MAX_CONNECTIONS=10
-
-# Or SQLite
-# DATABASE_URL=sqlite:./data.db
-
-# ============================================
-# SESSION
-# ============================================
-
-SESSION_EXPIRY_HOURS=24
-
-# ============================================
-# SMTP (Optional)
-# ============================================
-
-# SMTP_HOST=smtp.gmail.com
-# SMTP_PORT=587
-# SMTP_USER=your-email@gmail.com
-# SMTP_PASSWORD=your-app-password
+# Format: comma-separated (no spaces)
+# .example.com matches example.com and *.example.com
+ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
 ---
 
 ## Advanced Configuration
 
-### Accessing Config in Code
+### Production Mode
+
+```env
+DEBUG=false
+PORT=443
+IP_SERVER=0.0.0.0
+
+# HTTPS
+SECRETE_KEY=<generated dynamically>
+
+# Strict hosts
+ALLOWED_HOSTS=example.com,www.example.com,.api.example.com
+
+# Externalized DB
+DATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique
+```
+
+### Development Mode
+
+```env
+DEBUG=true
+PORT=3000
+IP_SERVER=127.0.0.1
+
+SECRETE_KEY=any_dev_key
+ALLOWED_HOSTS=*
+
+DATABASE_URL=sqlite:runique.db?mode=rwc
+```
+
+### Testing Mode
+
+```env
+DEBUG=true
+SECRETE_KEY=test_key
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# In-memory database (SQLite)
+DATABASE_URL=sqlite::memory:
+```
+
+---
+
+## Generate a secret key
+
+```bash
+# Python
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# Rust
+cargo run --example generate_secret
+
+# OpenSSL
+openssl rand -base64 32
+```
+
+---
+
+## Access configuration in code
 
 ```rust
 use runique::config_runique::RuniqueConfig;
 
-async fn handler(ctx: RuniqueContext) -> Response {
+async fn my_handler(ctx: RuniqueContext) -> Response {
     let config = &ctx.engine.config;
-    
-    if config.debug {
-        println!("App: {}", config.app_name);
-        println!("Hosts: {:?}", config.allowed_hosts);
-    }
+
+    println!("Debug mode: {}", config.debug);
+    println!("Database: {}", config.database_url);
+    println!("Secret key: {}", config.secret_key);
+    println!("Allowed hosts: {:?}", config.allowed_hosts);
 }
 ```
 
-### Dynamic Configuration
+### Conditional configuration
 
 ```rust
-// Load custom config
-pub struct CustomConfig {
-    pub base_config: RuniqueConfig,
-    pub custom_value: String,
+if template.config.debug {
+    // Debug mode: detailed logs, template reload
+} else {
+    // Production: template cache, no sensitive logs
 }
 
-impl CustomConfig {
-    pub fn from_env() -> Self {
-        let base_config = RuniqueConfig::from_env();
-        let custom_value = std::env::var("CUSTOM_VALUE")
-            .unwrap_or_else(|_| "default".to_string());
-        
-        CustomConfig {
-            base_config,
-            custom_value,
-        }
-    }
-}
-```
-
-### Validation
-
-```rust
-impl RuniqueConfig {
-    pub fn validate(&self) -> Result<(), String> {
-        // Validate secret key length
-        if self.secret_key.len() < 32 {
-            return Err("SECRET_KEY must be at least 32 characters".to_string());
-        }
-        
-        // Validate database URL format
-        if !self.database_url.starts_with("postgres://") 
-            && !self.database_url.starts_with("sqlite:") {
-            return Err("DATABASE_URL invalid format".to_string());
-        }
-        
-        // Validate max connections
-        if self.max_connections == 0 || self.max_connections > 100 {
-            return Err("MAX_CONNECTIONS must be between 1 and 100".to_string());
-        }
-        
-        Ok(())
-    }
+if template.config.debug.allowed_hosts.contains("*") {
+    // ⚠️ Warning: all hosts are allowed
 }
 ```
 
 ---
 
-## Generating Secret Key
+## Configuration validation
 
-### Using OpenSSL
-
-```bash
-openssl rand -base64 32
-```
-
-Output:
-```
-aBcDeFgHiJkLmNoPqRsTuVwXyZ1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p
-```
-
-Copy this into your `.env`:
-```bash
-SECRET_KEY=aBcDeFgHiJkLmNoPqRsTuVwXyZ1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p
-```
-
-### Using Rust
+Configuration is validated at startup:
 
 ```rust
-use rand::Rng;
+let config = RuniqueConfig::from_env()
+    .expect("Invalid configuration");
 
-fn generate_secret_key() -> String {
-    let mut rng = rand::thread_rng();
-    let random_bytes: Vec<u8> = (0..32)
-        .map(|_| rng.gen())
-        .collect();
-    
-    base64::encode(&random_bytes)
-}
+// Returns Err() if:
+// - DATABASE_URL missing
+// - SECRETE_KEY missing
+// - Invalid variables
 ```
 
 ---
 
-## Database Configuration
+## Programmatic Configuration (Outside .env)
 
-### PostgreSQL
+Beyond the `.env` file, the `RuniqueApp` builder offers methods to customize your app directly in code.
 
-```bash
-# .env
-DATABASE_URL=postgres://username:password@localhost:5432/database_name
-MAX_CONNECTIONS=10
-```
+### Builder methods
 
-**Connection String Format**:
-```
-postgres://[user[:password]@][host][:port][/database][?key=value...]
-```
-
-**Example with credentials**:
-```bash
-DATABASE_URL=postgres://appuser:secure_password@db.example.com:5432/my_app_db
-```
-
-### SQLite
-
-```bash
-# .env
-DATABASE_URL=sqlite:./data.db
-MAX_CONNECTIONS=1
-```
-
----
-
-## Environment-Specific Configs
-
-### Development
-
-```bash
-DEBUG=true
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=postgres://postgres:password@localhost:5432/runique_dev
-SESSION_EXPIRY_HOURS=24
-```
-
-### Production
-
-```bash
-DEBUG=false
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
-DATABASE_URL=postgres://appuser:securepass@prod-db:5432/runique
-MAX_CONNECTIONS=50
-SESSION_EXPIRY_HOURS=1
-```
-
-### Testing
-
-```bash
-DEBUG=true
-ALLOWED_HOSTS=localhost
-DATABASE_URL=sqlite:memory:
-SESSION_EXPIRY_HOURS=1
-```
-
----
-
-## Configuration in Code
+#### 📦 Database
 
 ```rust
-use runique::prelude::*;
+use sea_orm::Database;
 
-pub async fn run_server(config: RuniqueConfig) -> Result<()> {
-    // Validate config
-    config.validate()?;
-    
-    // Setup logging
-    if config.debug {
-        println!("🚀 Starting {} in debug mode", config.app_name);
-    }
-    
-    // Create database connection
+let db = Database::connect("postgresql://localhost/mydb").await?;
+
+let app = RuniqueApp::builder(config)
+    .with_database(db)
+    .routes(router)
+    .build()
+    .await?;
+```
+
+#### 🔄 Routes
+
+```rust
+let router = Router::new()
+    .route("/", get(home))
+    .route("/about", get(about));
+
+let app = RuniqueApp::builder(config)
+    .routes(router)  // Set routes
+    .build()
+    .await?;
+```
+
+#### ⏱️ Session duration
+
+```rust
+use tower_sessions::cookie::time::Duration;
+
+let app = RuniqueApp::builder(config)
+    .with_session_duration(Duration::hours(2))  // Default: 24h
+    .routes(router)
+    .build()
+    .await?;
+```
+
+**Duration examples:**
+```rust
+Duration::hours(2)      // 2 hours
+Duration::days(7)       // 7 days
+Duration::minutes(30)   // 30 minutes
+Duration::seconds(3600) // 1 hour
+```
+
+#### 💾 Custom session store
+
+By default, Runique uses `MemoryStore`. For production, use Redis, PostgreSQL, or another store:
+
+```rust
+use tower_sessions::RedisStore;
+
+let redis_pool = /* your Redis pool */;
+let session_store = RedisStore::new(redis_pool);
+
+let app = RuniqueApp::builder(config)
+    .with_session_store(session_store)  // ⚠️ Returns RuniqueAppBuilderWithStore
+    .with_session_duration(Duration::hours(12))
+    .routes(router)
+    .build()
+    .await?;
+```
+
+**Note:** `with_session_store()` returns a different type (`RuniqueAppBuilderWithStore<Store>`), but you can keep chaining methods normally.
+
+#### 🛡️ Middlewares
+
+CSRF protection is always enabled (not toggleable) to keep forms working. You can still tweak other middlewares:
+
+```rust
+let app = RuniqueApp::builder(config)
+    .with_sanitize(false)      // Disable sanitization (default: true)
+    .with_error_handler(false) // Disable error handler (default: true)
+    .routes(router)
+    .build()
+    .await?;
+```
+
+**Use cases:**
+- `with_sanitize(false)` - Custom input validation
+- `with_error_handler(false)` - Custom error handling
+
+#### 📁 Static files
+
+```rust
+let app = RuniqueApp::builder(config)
+    .with_static_files()  // Enable static files service
+    .routes(router)
+    .build()
+    .await?;
+```
+
+### Full examples
+
+#### Minimal setup (development)
+
+```rust
+use runique::{RuniqueApp, config_runique::RuniqueConfig};
+use axum::{Router, routing::get};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = RuniqueConfig::from_env()?;
     let db = Database::connect(&config.database_url).await?;
-    
-    // Setup engine
-    let engine = Arc::new(RuniqueEngine {
-        db: Arc::new(db),
-        config,
-    });
-    
-    // Start server
-    let app = build_app(engine);
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
-    
-    axum::serve(listener, app).await?;
-    
-    Ok(())
+
+    let router = Router::new()
+        .route("/", get(home));
+
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .routes(router)
+        .build()
+        .await?;
+
+    app.run().await
 }
 ```
 
+#### Production setup with Redis
+
+```rust
+use tower_sessions::cookie::time::Duration;
+use tower_sessions::RedisStore;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = RuniqueConfig::from_env()?;
+    let db = Database::connect(&config.database_url).await?;
+
+    // Redis session store for production
+    let redis_url = std::env::var("REDIS_URL")?;
+    let redis_pool = redis::Client::open(redis_url)?;
+    let session_store = RedisStore::new(redis_pool);
+
+    let router = Router::new()
+        .route("/", get(home))
+        .route("/login", post(login));
+
+    let app = RuniqueApp::builder(config)
+        .with_database(db)
+        .with_session_store(session_store)
+        .with_session_duration(Duration::hours(6))  // 6h sessions
+        .routes(router)
+        .with_static_files()
+        .build()
+        .await?;
+
+    app.run().await
+}
+```
+
+#### Test configuration
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_app_config() {
+        let config = RuniqueConfig::from_env().unwrap();
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+
+        let app = RuniqueApp::builder(config)
+            .with_database(db)
+            .with_session_duration(Duration::minutes(5))  // Short sessions
+            .with_error_handler(false)  // Explicit errors in tests
+            .routes(test_router())
+            .build()
+            .await
+            .unwrap();
+
+        // Tests...
+    }
+}
+```
+
+### Recommended call order
+
+```rust
+RuniqueApp::builder(config)
+    // 1. Database
+    .with_database(db)
+
+    // 2. Session (optional)
+    .with_session_store(store)  // ⚠️ If used, call before other builder methods
+    .with_session_duration(Duration::hours(2))
+
+    // 3. Middlewares (optional)
+    // CSRF is always on by default (not toggleable)
+    .with_sanitize(true)
+    .with_error_handler(true)
+
+    // 4. Routes (required)
+    .routes(router)
+
+    // 5. Static files (optional)
+    .with_static_files()
+
+    // 6. Build (required)
+    .build()
+    .await?
+```
+
+### Default values
+
+If you configure nothing, defaults are:
+
+| Configuration | Default |
+|--------------|---------|
+| **Session duration** | 24 hours |
+| **Session store** | `MemoryStore` |
+| **CSRF protection** | ✅ Enabled (not toggleable) |
+| **Sanitize** | ✅ Enabled |
+| **Error handler** | ✅ Enabled |
+| **Static files** | ❌ Disabled (call `.with_static_files()`) |
+
 ---
 
-## Gotchas & Tips
+## Next steps
 
-### 1. Secret Key Length
-Must be at least 32 characters. Generate with `openssl rand -base64 32`
-
-### 2. DATABASE_URL Format
-- PostgreSQL: `postgres://user:pass@host:port/db`
-- SQLite: `sqlite:./path/to/file.db` or `sqlite::memory:`
-
-### 3. Allowed Hosts
-Comma-separated list without spaces:
-```bash
-ALLOWED_HOSTS=localhost,127.0.0.1,yourdomain.com
-```
-
-### 4. Session Expiry
-Set to 0 for no expiry (not recommended):
-```bash
-SESSION_EXPIRY_HOURS=24
-```
-
-### 5. .env in Git
-Add to `.gitignore`:
-```bash
-.env
-.env.local
-.env.*.local
-```
-
----
-
-## Next Steps
-
-← [**Installation**](./01-installation.md) | [**Routing**](./04-routing.md) →
+→ [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)

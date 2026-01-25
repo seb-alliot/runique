@@ -21,7 +21,7 @@ postgres --version # PostgreSQL 12+
 ### 1. Cloner le repository
 
 ```bash
-git clone https://github.com/yourusername/runique.git
+git clone https://github.com/seb-alliot/runique.git
 cd runique
 ```
 
@@ -65,7 +65,18 @@ psql -U postgres
 CREATE DATABASE runique;
 ```
 
-### 4. Compiler le projet
+### 4. Configurer la base de données (REQUIS)
+
+Lancer les migrations:
+```bash
+cd demo-app/migration
+cargo run
+cd ..
+```
+
+**Note:** La base de données est obligatoire - le framework ne peut pas fonctionner sans.
+
+### 5. Compiler le projet
 
 ```bash
 cargo build
@@ -74,7 +85,7 @@ cargo build
 cargo build --release
 ```
 
-### 5. Lancer le serveur
+### 6. Lancer le serveur
 
 ```bash
 cargo run -p demo-app
@@ -84,7 +95,7 @@ cargo run -p demo-app
 ```
 🦀 Runique Framework opérationnel
    Serveur lancé sur http://127.0.0.1:3000
-   Connected to database: runique
+   Connected to sqlite: runique
 ```
 
 Accédez à **http://127.0.0.1:3000** 🎉
@@ -99,7 +110,8 @@ Pour utiliser SQLite en développement:
 
 ```toml
 [dependencies]
-runique = { path = "../runique", features = ["orm", "sqlite"] }
+runique = { version = "1.1.11", features = ["orm", "sqlite"] }
+
 ```
 
 ### 2. Mettre à jour `.env`
@@ -159,13 +171,32 @@ GRANT ALL PRIVILEGES ON SCHEMA public TO runique_user;
 ### 3. Configurer `.env`
 
 ```env
-DATABASE_URL=postgres://runique_user:secure_password@localhost:5432/runique
-DB_USER=runique_user
-DB_PASSWORD=secure_password
+
+IP_SERVER=127.0.0.1
+PORT=3000
+SECRET_KEY=votre-cle-secrete-a-changer-en-production
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Mode Debug (désactiver en production)
+DEBUG=true
+
+# Configuration base de données (exemple PostgreSQL)
+DB_ENGINE=postgres
+DB_USER=monuser
+DB_PASSWORD=monmotdepasse
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=runique
+DB_NAME=mabase
+
+# Ou SQLite (par défaut)
+DB_ENGINE=sqlite
+DB_NAME=app.db
+
 ```
+
+
+
+
 
 ### 4. Vérifier la connexion
 
@@ -186,22 +217,7 @@ ls -la
 
 ### Exécuter les migrations
 
-Les migrations s'exécutent automatiquement au démarrage de l'app.
-
-Pour manuellement:
-```bash
-sea-orm-cli migrate up --database-url "$DATABASE_URL"
-```
-
-### Créer une nouvelle migration
-
-```bash
-sea-orm-cli migrate generate create_new_table
-```
-
-Cela créera un fichier en `demo-app/migration/src/m*.rs`.
-
----
+Les migrations ne sont pas automatique, suivez la procédure expliqué dans le readme fournis apres cargo new votre_projet
 
 ## Troubleshooting
 
@@ -229,7 +245,8 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 
 Vérifier que la feature est activée dans `Cargo.toml`:
 ```toml
-runique = { path = "../runique", features = ["orm", "sqlite"] }
+runique = { version = "1.1.11", features = ["orm", "postgres"] }
+
 ```
 
 ### ❌ Erreur de compilation "sea_orm"
@@ -276,7 +293,7 @@ pre-commit run --all-files
 
 ✅ Installation complète! Maintenant:
 
-1. Lire la [**Architecture**](./02-architecture.md)
-2. Créer votre premier [**Routing**](./04-routing.md)
-3. Définir vos [**Formulaires**](./05-forms.md)
-4. Consulter les [**Exemples**](./10-examples.md)
+1. Lire la [**Architecture**](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
+2. Créer votre premier [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
+3. Définir vos [**Formulaires**](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+4. Consulter les [**Exemples**](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)

@@ -42,7 +42,7 @@ pub async fn soumission_inscription(
     if form.is_valid().await {
         match form.save(&db).await {
             Ok(user) => {
-                success!(template.flash_manager => format!("Bienvenue {}, votre compte a été créé !", user.username));
+                success!(template.notices => format!("Bienvenue {}, votre compte a été créé !", user.username));
                 return Ok(Redirect::to("/").into_response());
             }
             Err(err) => {
@@ -150,7 +150,7 @@ pub async fn blog_save(
     if blog_save.is_valid().await {
         match blog_save.save(&template.engine.db).await {
             Ok(_post) => {
-                success!(template.flash_manager => "Article de blog sauvegardé avec succès !");
+                success!(template.notices => "Article de blog sauvegardé avec succès !");
                 return Ok(Redirect::to("/").into_response());
             }
             Err(err) => {
@@ -165,19 +165,19 @@ pub async fn blog_save(
             }
         }
     }
-    success!(template.flash_manager => "Article de blog sauvegardé avec succès !");
+    success!(template.notices => "Article de blog sauvegardé avec succès !");
     Ok(Redirect::to("/").into_response())
 }
 
 /// Page "À propos"
 pub async fn about(mut template: TemplateContext) -> AppResult<Response> {
-    success!(template.flash_manager => "Ceci est un message de succès.");
-    info!(template.flash_manager => "Ceci est un message d'information.");
-    warning!(template.flash_manager => "Ceci est un message d'avertissement.");
-    error!(template.flash_manager => "Ceci est un message d'erreur.");
+    success!(template.notices => "Ceci est un message de succès.");
+    info!(template.notices => "Ceci est un message d'information.");
+    warning!(template.notices => "Ceci est un message d'avertissement.");
+    error!(template.notices => "Ceci est un message d'erreur.");
     println!(
         "Flash messages ajoutés à la session.{:?}",
-        template.flash_manager
+        template.notices
     );
 
     context_update!(template => {
@@ -190,6 +190,6 @@ pub async fn about(mut template: TemplateContext) -> AppResult<Response> {
 
 /// Teste Csrf
 pub async fn test_csrf(template: TemplateContext) -> AppResult<Response> {
-    success!(template.flash_manager => "CSRF token validé avec succès !");
+    success!(template.notices => "CSRF token validé avec succès !");
     Ok(Redirect::to("/").into_response())
 }

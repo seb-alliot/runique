@@ -7,12 +7,11 @@ Suite de tests complète couvrant toutes les fonctionnalités principales du fra
 ```
 tests/
 ├── common.rs              # Utilities et helpers partagés
-├── macros_test.rs         # Tests des macros (context!, success!, etc.)
-├── forms_test.rs          # Tests du système de formulaires
-├── orm_test.rs            # Tests de l'ORM (Objects, QueryBuilder)
+├── forms_test.rs          # Tests du système de formulaires (Prisme extractor)
+├── orm_test.rs            # Tests de l'ORM (Objects manager, impl_objects!)
 ├── config_test.rs         # Tests de configuration
-├── flash_messages_test.rs # Tests des messages flash
-├── routes_test.rs         # Tests du routage (urlpatterns!, view!)
+├── flash_messages_test.rs # Tests des messages flash (Message extractor)
+├── routes_test.rs         # Tests du routage (Axum Router)
 ├── middleware_test.rs     # Tests des middlewares (CSRF, CSP, etc.)
 ├── prelude_test.rs        # Tests que tous les types sont dans le prelude
 └── README.md              # Ce fichier
@@ -47,11 +46,24 @@ cargo test -- --show-output
 
 ## 📋 Couverture des Tests
 
-### ✅ Macros (`macros_test.rs`)
-- [x] `context!` macro
-- [x] `success!`, `error!`, `warning!`, `info!` macros
-- [x] `flash_now!` macro
-- [x] Tests avec multiples messages
+### ✅ Formulaires (`forms_test.rs`)
+- [x] Prisme extractor
+- [x] RuniqueForm derive macro
+- [x] Validation des champs
+- [x] Génération HTML des formulaires
+- [x] CSRF token validation
+
+### ✅ ORM (`orm_test.rs`)
+- [x] impl_objects! macro
+- [x] Objects manager (.all(), .filter(), etc.)
+- [x] SeaORM integration
+- [x] Relations
+
+### ✅ Flash Messages (`flash_messages_test.rs`)
+- [x] Message extractor
+- [x] success(), error(), info(), warning() methods
+- [x] message.level (Success/Error/Info/Warning)
+- [x] {% messages %} template tag
 
 ### ✅ Formulaires (`forms_test.rs`)
 - [x] `TextField` - text, email, password, textarea, richtext, url

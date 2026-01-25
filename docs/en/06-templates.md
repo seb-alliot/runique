@@ -12,7 +12,7 @@ async fn index(template: TemplateContext) -> Response {
     let mut context = Context::new();
     context.insert("title", "Home");
     context.insert("items", &vec!["Product 1", "Product 2"]);
-    
+
     template.render("index.html", &context)
 }
 ```
@@ -24,11 +24,13 @@ async fn index(template: TemplateContext) -> Response {
 Simplified syntax:
 
 ```rust
-template.render("index.html", &context! {
-    "title" => "Home",
-    "items" => vec!["A", "B", "C"],
-    "user" => user_data
-})
+context_update!(template => {
+        "title" => "Database error",
+        "inscription_form" => &form,
+    });
+
+    return template.render("inscription_form.html");
+
 ```
 
 ---
@@ -38,8 +40,10 @@ template.render("index.html", &context! {
 ### static - Static Assets
 
 ```html
-<link rel="stylesheet" href="{{ 'css/main.css' | static }}">
-<script src="{{ 'js/app.js' | static }}"></script>
+<link rel="stylesheet" href='{% static "css/main.css" %}'>
+
+<script src="{% static "js/main.js" %}"></script>
+
 ```
 
 Generates: `/static/css/main.css`
@@ -47,7 +51,7 @@ Generates: `/static/css/main.css`
 ### media - Media Files
 
 ```html
-<img src="{{ user.avatar | media }}" alt="Avatar">
+<img src='{% media "media.avif" %}' alt="Logo">
 ```
 
 Generates: `/media/avatars/profile.jpg`
@@ -56,25 +60,31 @@ Generates: `/media/avatars/profile.jpg`
 
 ```html
 <form method="post">
-    {{ '' | csrf_field }}
+    {% csrf %}
     <!-- Automatically generates: -->
     <!-- <input type="hidden" name="csrf_token" value="..."> -->
 </form>
+Not normally required because it is natively handled by forms
+
 ```
+
+**Note:** `{% csrf %}` is rewritten by the loader to include the CSRF fragment, so templates can keep this tag without extra setup.
 
 ### form - Form Fields
 
 ```html
-{{ form | form }}
-<!-- Or render specific field: -->
-{{ form.email | form_field }}
+{% form.signup_form %}
+<!-- Or render a specific field: -->
+{% form.signup_form.email %}
+
 ```
 
 ### link - URL Links
 
 ```html
-<a href="{{ 'index' | link }}">Home</a>
-<a href="{{ 'profile' | link('user_id=5') }}">Profile</a>
+<a href={% link "index" %}>Home</a>
+<a href={% link "index", id="{{ id }}", name="{{ name }}"  %}>Home</a>
+
 ```
 
 ---
@@ -101,6 +111,7 @@ Generates: `/media/avatars/profile.jpg`
     <li>{{ item }}</li>
     {% if loop.last %}</ul>{% endif %}
 {% endfor %}
+
 ```
 
 ### Conditions
@@ -111,7 +122,7 @@ Generates: `/media/avatars/profile.jpg`
 {% elif guest %}
     <p>Welcome, visitor!</p>
 {% else %}
-    <p>Please login</p>
+    <p>Please log in</p>
 {% endif %}
 
 <!-- Tests -->
@@ -122,6 +133,7 @@ Generates: `/media/avatars/profile.jpg`
 {% if posts | length > 0 %}
     ...
 {% endif %}
+
 ```
 
 ---
@@ -135,7 +147,7 @@ Generates: `/media/avatars/profile.jpg`
 <html>
 <head>
     <title>{% block title %}My Site{% endblock %}</title>
-    <link rel="stylesheet" href="{{ 'css/main.css' | static }}">
+    <link rel="stylesheet" href='{% static "css/main.css" %}'>
 </head>
 <body>
     <header>
@@ -197,9 +209,27 @@ Generates: `/media/avatars/profile.jpg`
 {% endif %}
 
 <!-- Form errors -->
-{% if form.has_error('email') %}
-    <span class="error">{{ form.get_error('email') }}</span>
+<form method="post" action="/signup">
+    {% form.signup_form %}
+    <button type="submit">Sign up</button>
+</form>
+=> errors are already natively rendered by the fields
+
+Otherwise
+
+<!-- Display global errors before the form -->
+{% if signup_form.errors %}
+    <div class="alert alert-warning mt-3">
+        <div class="alert-message">
+            <ul>
+                {% for field_name, error_msg in signup_form.errors %}
+                    <li><strong>{{ field_name }}:</strong> {{ error_msg }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 {% endif %}
+
 ```
 
 ---
@@ -230,4 +260,4 @@ templates/
 
 ## Next Steps
 
-← [**Forms**](./05-forms.md) | [**ORM & Database**](./07-orm.md) →
+← [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) | [**ORM & Database**](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md) →

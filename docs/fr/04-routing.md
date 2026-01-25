@@ -5,20 +5,24 @@
 Définir les routes de l'application:
 
 ```rust
-use runique::urlpatterns;
-use axum::routing::{get, post, put, delete};
+use crate::views;
+use runique::prelude::*;
+use runique::{urlpatterns, view}; // Macros explicites et obligatoire pour cette synthax
 
 pub fn routes() -> Router {
-    urlpatterns! {
-        "index" => "/" => get(index),
-        "user_list" => "/users" => get(user_list),
-        "user_detail" => "/users/<id>" => get(user_detail),
-        "user_create" => "/users" => post(create_user),
-        "user_update" => "/users/<id>" => put(update_user),
-        "user_delete" => "/users/<id>" => delete(delete_user),
-        "search" => "/search" => post(search),
-    }
+    let router = urlpatterns! {
+        "/" => view!{ GET => views::index }, name = "index",
+        "/inscription" => view! {
+            GET => views::inscription,
+            POST => views::soumission_inscription },
+            name = "inscription",
+         "/users/<id>" => view!{
+            Get => view::recherche_user get},
+            name = "user_detail",
+    };
+    router
 }
+
 ```
 
 ---
@@ -33,8 +37,8 @@ use axum::extract::Path;
 // Simple
 async fn user_detail(
     Path(id): Path<i32>,
-    ctx: RuniqueContext,
-) -> Response { }
+    mut template: TemplateContext,
+) -> AppResult<Response> { }
 
 // Multiple
 #[derive(Deserialize)]
@@ -92,10 +96,13 @@ use runique::formulaire::ExtractForm;
 use demo_app::forms::LoginForm;
 
 async fn login(
-    ExtractForm(form): ExtractForm<LoginForm>,
-) -> Response {
+    Prisme(mut form): Prisme<RegisterForm>,
+) -> AppResult<Response> {
+    let db = template.engine.db.clone();
     if form.is_valid().await {
+        match form.save(&*db).await {
         // Traiter
+        }
     }
 }
 ```
@@ -108,13 +115,13 @@ async fn login(
 
 ```rust
 async fn index(
-    ctx: RuniqueContext,
     template: TemplateContext,
 ) -> Response {
-    template.render("index.html", &context! {
+    context_update!(template => {
         "title" => "Accueil",
         "items" => vec![1, 2, 3]
-    })
+    });
+    template.render("index.html")
 }
 ```
 
@@ -137,8 +144,10 @@ async fn api_list() -> Json<serde_json::Value> {
 ```rust
 use axum::response::Redirect;
 
-async fn login_submit() -> Response {
-    success!(ctx.flash => "Connecté!");
+async fn login_submit(
+    Message(mut messages): Message,
+) -> Response {
+    messages.success("Connecté!");
     Redirect::to("/dashboard").into_response()
 }
 ```
@@ -174,76 +183,97 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use serde_json::json;
+use crate::views;
+use runique::{urlpatterns, view}; // Macros explicites
 
 pub fn routes() -> Router {
-    Router::new()
-        .route("/", get(index))
-        .route("/users", get(user_list).post(create_user))
-        .route("/users/:id", get(user_detail).put(update_user).delete(delete_user))
+    urlpatterns! {
+        "/" => view!{
+            GET => views::index
+            },
+            name = "index",
+
+        "/users" => view!{
+            GET => views::user_list,
+            POST => views::create_user
+            },
+            name = "users",
+
+        "/users/:id" => view!{
+            GET => views::user_detail,
+            POST => views::update_user
+            },
+            name = "user_detail",
+
+        // Pour delete, route séparée :
+        "/users/:id/delete" => view!{
+            POST => views::delete_user
+            },
+            name = "user_delete",
+    }
 }
 
 async fn index(template: TemplateContext) -> Response {
-    template.render("index.html", &context! {
+    context_update!(template => {
         "title" => "Accueil"
-    })
+    });
+    template.render("index.html")
 }
 
 async fn user_list(
-    ctx: RuniqueContext,
-    template: TemplateContext,
-) -> Response {
-    let db = ctx.engine.db.clone();
-    
-    match users::Entity::find().all(&*db).await {
-        Ok(users) => {
-            template.render("users/list.html", &context! {
-                "users" => users
-            })
-        }
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-    }
+    mut template: TemplateContext,
+) -> AppResult<Response> {
+    let users = UserEntity::find()
+        .all(&template.engine.db)
+        .await?;
+
+    context_update!(template => {
+        "users" => users
+    });
+
+    template.render("users/list.html")
 }
 
 async fn user_detail(
     Path(id): Path<i32>,
-    ctx: RuniqueContext,
-    template: TemplateContext,
-) -> Response {
-    let db = ctx.engine.db.clone();
-    
-    match users::Entity::find_by_id(id).one(&*db).await {
-        Ok(Some(user)) => {
-            template.render("users/detail.html", &context! {
+    mut template: TemplateContext,
+) -> AppResult<Response> {
+    let user = UserEntity::find_by_id(id)
+        .one(&template.engine.db)
+        .await?;
+
+    match user {
+        Some(user) => {
+            context_update!(template => {
                 "user" => user
-            })
+            });
+            template.render("users/detail.html")
         }
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        None => Ok(StatusCode::NOT_FOUND.into_response()),
     }
 }
 
 async fn create_user(
-    mut ctx: RuniqueContext,
-    template: TemplateContext,
-    ExtractForm(form): ExtractForm<UserForm>,
-) -> Response {
+    mut template: TemplateContext,
+    Prisme(mut form): Prisme<UserForm>,
+) -> AppResult<Response> {
     if form.is_valid().await {
-        let db = ctx.engine.db.clone();
-        match form.save(&*db).await {
+        match form.save(&template.engine.db).await {
             Ok(_) => {
-                success!(ctx.flash => "Utilisateur créé!");
-                return Redirect::to("/users").into_response();
+                success!(template.notices => "Utilisateur créé !");
+                return Ok(Redirect::to("/users").into_response());
             }
             Err(e) => {
-                error!(ctx.flash => format!("Erreur: {}", e));
+                form.get_form_mut().database_error(&e);
             }
         }
     }
-    
-    template.render("users/form.html", &context! {
+
+    context_update!(template => {
         "form" => form
-    })
+    });
+
+    template.render("users/form.html")
 }
 ```
 
@@ -251,4 +281,4 @@ async fn create_user(
 
 ## Prochaines étapes
 
-→ [**Formulaires**](./05-forms.md)
+→ [**Formulaires**](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)

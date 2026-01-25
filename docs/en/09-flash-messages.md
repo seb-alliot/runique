@@ -2,39 +2,40 @@
 
 ## Message System
 
-Runique provides a message system for user notifications:
+Runique provides a message system for user notifications. Messages are automatically injected into `TemplateContext` under the `messages` key.
 
 ```rust
-use runique::macro_runique::flash_message::*;
+use runique::prelude::*;
+use runique::flash::Message;
 ```
 
 ---
 
 ## Available Macros
 
-### success! - Success Message
+### success! - Success message
 
 ```rust
-success!(ctx.flash => "Record created successfully!");
+success!(message => "Record created successfully!");
 ```
 
-### error! - Error Message
+### error! - Error message
 
 ```rust
-error!(ctx.flash => "An error occurred");
-error!(ctx.flash => format!("Error: {}", e));
+error!(message => "An error occurred");
+error!(message => format!("Error: {}", e));
 ```
 
-### info! - Informational Message
+### info! - Informational message
 
 ```rust
-info!(ctx.flash => "Please check your email");
+info!(message => "Please check your email");
 ```
 
-### warning! - Warning
+### warning! - Warning message
 
 ```rust
-warning!(ctx.flash => "This action cannot be undone");
+warning!(message => "This action cannot be undone");
 ```
 
 ---
@@ -43,127 +44,100 @@ warning!(ctx.flash => "This action cannot be undone");
 
 ```rust
 use runique::prelude::*;
+use runique::flash::Message;
 use axum::response::Redirect;
 
 async fn create_post(
-    mut ctx: RuniqueContext,
-    ExtractForm(form): ExtractForm<PostForm>,
+    message: Message,
+    mut template: TemplateContext,
+    Prisme(form): Prisme<PostForm>,
 ) -> Response {
     if !form.is_valid().await {
-        error!(ctx.flash => "Invalid form");
-        return template.render("post/form.html", &context!{
-            "form" => form
-        });
+        error!(message => "Invalid form");
+        template.context.insert("form", &form);
+        return template.render("post/form.html").unwrap();
     }
 
-    match form.save(&*ctx.engine.db.clone()).await {
+    match form.save(&*template.engine.db.clone()).await {
         Ok(post) => {
-            success!(ctx.flash => format!(
-                "Post '{}' created!",
+            success!(message => format!(
+                "Article '{}' created!",
                 post.title
             ));
             Redirect::to(&format!("/posts/{}", post.id)).into_response()
         }
         Err(e) => {
-            error!(ctx.flash => format!("Error: {}", e));
-            template.render("post/form.html", &context!{
-                "form" => form
-            })
+            error!(message => format!("Error: {}", e));
+            template.context.insert("form", &form);
+            template.render("post/form.html").unwrap()
         }
     }
 }
 
 async fn delete_user(
     Path(id): Path<i32>,
-    mut ctx: RuniqueContext,
+    message: Message,
+    template: TemplateContext,
 ) -> Response {
-    let db = ctx.engine.db.clone();
+    let db = template.engine.db.clone();
 
     match users::Entity::delete_by_id(id).exec(&*db).await {
         Ok(_) => {
-            success!(ctx.flash => "User deleted");
+            success!(message => "User deleted");
             Redirect::to("/users").into_response()
         }
         Err(_) => {
-            error!(ctx.flash => "Cannot delete user");
+            error!(message => "Unable to delete user");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
-}
 ```
 
 ---
 
 ## Display in Templates
 
-### Loop Through All Messages
+**Note:** Messages are automatically injected into `TemplateContext` under the `messages` variable. No need to pass them manually to the template.
+
+### Automatic tag
 
 ```html
-<div class="messages-container">
-    {% for message in messages %}
-        <div class="alert alert-{{ message.type }}">
-            {{ message.content }}
-            <button class="close" data-dismiss="alert">&times;</button>
-        </div>
-    {% endfor %}
-</div>
+<!-- The {% messages %} tag automatically displays all messages -->
+{% messages %}
 ```
 
-### By Type
-
+**Built-in template used:**
 ```html
 {% if messages %}
-    {% for msg in messages %}
-        {% if msg.type == 'success' %}
-            <div class="alert alert-success">{{ msg.content }}</div>
-        {% elif msg.type == 'error' %}
-            <div class="alert alert-danger">{{ msg.content }}</div>
-        {% elif msg.type == 'warning' %}
-            <div class="alert alert-warning">{{ msg.content }}</div>
-        {% elif msg.type == 'info' %}
-            <div class="alert alert-info">{{ msg.content }}</div>
-        {% endif %}
-    {% endfor %}
+    <div class="flash-messages">
+        {% for message in messages %}
+        <div class="message message-{{ message.level }}">
+            {{ message.content }}
+        </div>
+        {% endfor %}
+    </div>
 {% endif %}
 ```
 
-### Reusable Component
-
-```html
-{% macro render_messages(messages) %}
-    {% if messages %}
-        <div class="messages">
-            {% for msg in messages %}
-                <div class="alert alert-{{ msg.type }} alert-dismissible fade show">
-                    {{ msg.content }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-{% endmacro %}
-
-<!-- In base.html: -->
-{{ render_messages(messages) }}
-```
+**Customization:** To customize the display, you can create your own `message.html` template in your templates folder or manually loop over `messages` with your own styles.
 
 ---
 
-## Consumption (Dissociation)
+## Consumption (Flash Effect)
 
-Messages are automatically consumed on render:
+Messages are automatically consumed when `TemplateContext` is created (flash effect - single read):
 
 ```rust
-async fn page(ctx: RuniqueContext) -> Response {
-    // Messages appear ONCE
-    template.render("page.html", &context! {
-        "messages" => ctx.processor.get_all()
-    })
+async fn page(template: TemplateContext) -> Response {
+    // Messages are already in template.messages
+    // They display ONCE then disappear
+    template.render("page.html").unwrap()
 }
 
-async fn another_page() -> Response {
-    // After redirect, messages gone
-    // (unless re-created)
+async fn other_page(template: TemplateContext) -> Response {
+    // After redirect, old messages have disappeared
+    // (already consumed during first render)
+    template.render("other.html").unwrap()
 }
 ```
 
@@ -173,8 +147,10 @@ async fn another_page() -> Response {
 
 ```rust
 use runique::prelude::*;
-use axum::extract::Path;
+use runique::flash::Message;
+use axum::extract::{Path, Json};
 use axum::response::Redirect;
+use sea_orm::Set;
 
 #[derive(Deserialize)]
 pub struct UpdateUserRequest {
@@ -184,11 +160,11 @@ pub struct UpdateUserRequest {
 
 async fn update_user(
     Path(id): Path<i32>,
-    mut ctx: RuniqueContext,
+    message: Message,
+    mut template: TemplateContext,
     Json(payload): Json<UpdateUserRequest>,
-    template: TemplateContext,
 ) -> Response {
-    let db = ctx.engine.db.clone();
+    let db = template.engine.db.clone();
 
     // Find user
     let user = match users::Entity::find_by_id(id)
@@ -197,11 +173,11 @@ async fn update_user(
     {
         Ok(Some(u)) => u,
         Ok(None) => {
-            error!(ctx.flash => "User not found");
+            error!(message => "User not found");
             return StatusCode::NOT_FOUND.into_response();
         }
         Err(e) => {
-            error!(ctx.flash => format!("DB Error: {}", e));
+            error!(message => format!("DB Error: {}", e));
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     };
@@ -213,37 +189,31 @@ async fn update_user(
 
     match active_user.update(&*db).await {
         Ok(updated) => {
-            success!(ctx.flash => format!(
+            success!(message => format!(
                 "{}'s profile updated!",
                 updated.username
             ));
-            
-            template.render("users/profile.html", &context! {
-                "user" => updated,
-                "messages" => ctx.processor.get_all()
-            })
+
+            template.context.insert("user", &updated);
+            template.render("users/profile.html").unwrap()
         }
         Err(e) => {
-            error!(ctx.flash => "Update error");
-            warning!(ctx.flash => format!("Details: {}", e));
-            
-            template.render("users/profile.html", &context! {
-                "user" => user,
-                "messages" => ctx.processor.get_all()
-            })
+            error!(message => "Error updating profile");
+            warning!(message => format!("Details: {}", e));
+
+            template.context.insert("user", &user);
+            template.render("users/profile.html").unwrap()
         }
     }
 }
 
 async fn list_posts(
-    mut ctx: RuniqueContext,
+    message: Message,
     template: TemplateContext,
 ) -> Response {
-    info!(ctx.flash => "Welcome to posts list");
-    
-    template.render("posts/list.html", &context! {
-        "messages" => ctx.processor.get_all()
-    })
+    info!(message => "Welcome to the articles list");
+    // Messages are already automatically in template.messages
+    template.render("posts/list.html").unwrap()
 }
 ```
 
@@ -251,4 +221,4 @@ async fn list_posts(
 
 ## Next Steps
 
-← [**Middleware & Security**](./08-middleware.md) | [**Practical Examples**](./10-examples.md) →
+← [**Middleware & Security**](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md) | [**Practical Examples**](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) →

@@ -2,447 +2,340 @@
 
 ## Overview
 
-Runique 2.0 follows a **modular, layered architecture** inspired by Django and modern Rust frameworks:
+Runique 1.1.11 is organized into **functional modules** based on responsibility:
 
 ```
-┌─────────────────────────────────────┐
-│        HTTP Handlers (Routes)       │
-├─────────────────────────────────────┤
-│     RuniqueContext (Per-Request)    │
-├─────────────────────────────────────┤
-│    Middleware Layer (Session, CSRF) │
-├─────────────────────────────────────┤
-│    RuniqueEngine (Application State)│
-├─────────────────────────────────────┤
-│     Templates, ORM, Config          │
-├─────────────────────────────────────┤
-│      SeaORM + Database              │
-└─────────────────────────────────────┘
+runique/src/
+├── config_runique/          # ⚙️ Configuration & Settings
+│   ├── config_struct.rs
+│   └── mod.rs
+├── data_base_runique/       # 🗄️ ORM & Database
+│   ├── config.rs
+│   ├── orm_wrapper.rs
+│   └── mod.rs
+├── formulaire/              # 📋 Form System
+│   ├── builder_form/
+│   ├── utils/
+│   └── mod.rs
+├── gardefou/                # 🛡️ Middleware (Security)
+│   ├── composant_middleware/
+│   ├── utils_gardefou/
+│   └── mod.rs
+├── macro_runique/           # 🎯 Utility Macros
+│   ├── context_macro/
+│   ├── flash_message/
+│   ├── router/
+│   └── mod.rs
+├── moteur_engine/           # ⚡ Main Engine
+│   ├── engine_struct.rs
+│   └── mod.rs
+├── request_context/         # 📨 Request Context
+│   ├── composant_request/
+│   ├── tera_tool/
+│   ├── request_struct.rs
+│   ├── template_context.rs
+│   ├── processor.rs
+│   └── mod.rs
+├── runique_body/            # 🏭 App Builder
+│   ├── composant_app/
+│   └── mod.rs
+├── utils/                   # 🛠️ Utilities
+│   ├── generate_token.rs
+│   ├── parse_html.rs
+│   ├── csp_nonce.rs
+│   └── response_helpers.rs
+├── lib.rs
+└── prelude.rs
 ```
 
 ---
 
 ## Key Concepts
 
-### RuniqueEngine
+### 1. RuniqueEngine
 
-Global application state container:
+**Main application state** (replaces the old `AppState`).
 
 ```rust
 pub struct RuniqueEngine {
     pub db: Arc<DatabaseConnection>,
-    pub config: RuniqueConfig,
+    pub tera: Arc<Tera>,
+    pub config: Arc<RuniqueConfig>,
 }
 ```
 
-**Usage**: Access via `RuniqueContext` in handlers
+**Used by:**
+- `RuniqueContext` - Available in handlers
+- Axum extension injection
+
+### 2. TemplateContext
+
+**Template context** injected into each handler for rendering.
+
 ```rust
-async fn handler(ctx: RuniqueContext) -> Response {
-    let db = ctx.engine.db.clone();
-    // Query database
+pub struct TemplateContext {
+    pub context: Context,
+    // Access to Tera for rendering
 }
-```
 
----
-
-### RuniqueContext
-
-Per-request context injected by middleware:
-
-```rust
-pub struct RuniqueContext {
-    pub engine: Arc<RuniqueEngine>,
-    pub session: Session,
-    pub flash: FlashMessageProcessor,
-}
-```
-
-**Features**:
-- Access to application state
-- Session management
-- Flash message handling
-- Template context building
-
-**Usage**:
-```rust
-async fn handler(mut ctx: RuniqueContext) -> Response {
-    ctx.session.insert("key", "value")?;
-    success!(ctx.flash => "Success!");
-}
-```
-
----
-
-### TemplateContext
-
-Template rendering helper:
-
-```rust
-impl TemplateContext {
-    pub fn render(
-        &self,
-        template_name: &str,
-        context: &Context,
-    ) -> Response
-}
-```
-
-**Usage**:
-```rust
-async fn index(template: TemplateContext) -> Response {
-    template.render("index.html", &context! {
-        "title" => "Home"
-    })
-}
-```
-
----
-
-### ExtractForm<T>
-
-Form extraction and validation:
-
-```rust
-async fn handler(
-    ExtractForm(form): ExtractForm<LoginForm>,
+// FromRequestParts extractor
+pub async fn my_handler(
+    mut template: TemplateContext,
 ) -> Response {
+    template.context.insert("title", "Welcome to Runique");
+    template.render("view.html")
+}
+```
+
+### 3. TemplateContext
+
+**Template context** with auto-injection of `debug` and `csrf_token`.
+
+```rust
+pub struct TemplateContext {
+    pub engine: Arc<RuniqueEngine>,
+    pub flash: FlashManager,
+    pub csrf_token: String,
+}
+
+// Automatic rendering
+    context_update!(template => {
+        "title" => "Your title here",
+        "form" => &form,
+    });
+    template.render("view.html")
+
+```
+
+### 4. ExtractForm<T>
+
+**Axum extractor** for forms.
+
+```rust
+// Automatically:
+// 1. Parse the body
+// 2. Create a MyForm instance
+// 3. Inject the CSRF token
+// 4. Fill in the data
+
+pub async fn handler(
+    mut template: TemplateContext,
+    Prisme(mut form): Prisme<RegisterForm>,
+) -> AppResult<Response> {
+    let db = template.engine.db.clone();
     if form.is_valid().await {
-        // Process valid form
+        Ok()...
     }
 }
 ```
 
 ---
 
-## Module Structure
 
+**Important:** Middleware declared first = Executed last!
+
+---
+
+## Global State vs Instance
+
+### ❌ Old design (problematic)
+
+```rust
+// Shared form in state
+struct AppState {
+    form: MyForm,  // ⚠️ Race condition!
+}
+
+// Request 1 fills the form
+// Request 2 fills the form
+// Request 3 reads the form → ??? Conflicts!
 ```
-runique/
-├── config_runique/          # Configuration
-│   ├── mod.rs
-│   └── config_struct.rs
-├── data_base_runique/       # Database layer
-│   ├── mod.rs
-│   ├── config.rs
-│   └── orm_wrapper.rs
-├── formulaire/              # Form system
-│   ├── mod.rs
-│   ├── builder_form/
-│   └── utils/
-├── gardefou/                # Middleware
-│   ├── mod.rs
-│   ├── middleware_struct.rs
-│   └── composant_middleware/
-├── macro_runique/           # Macros
-│   ├── mod.rs
-│   ├── flash_message/
-│   ├── router/
-│   └── sea/
-├── moteur_engine/           # Template engine
-│   ├── mod.rs
-│   └── engine_struct.rs
-├── request_context/         # Request handling
-│   ├── mod.rs
-│   ├── request_struct.rs
-│   ├── template_context.rs
-│   ├── processor.rs
-│   └── tera_tool/
-├── runique_body/            # Application builder
-│   ├── mod.rs
-│   └── composant_app/
-└── utils/                   # Utilities
-    ├── mod.rs
-    ├── generate_token.rs
-    ├── parse_html.rs
-    ├── csp_nonce.rs
-    └── response_helpers.rs
+
+### ✅ New design (correct)
+
+```rust
+// Copy per request
+pub async fn handler(
+    ExtractForm(form): ExtractForm<MyForm>
+) -> AppResult<Response> {
+    // Each request = isolated form
+    // Zero concurrency
+}
 ```
 
 ---
 
-## Request Lifecycle
+## Detailed Modules
 
-### 1. Request Arrives
+### config_runique/
+Configuration management:
+- Load from `.env`
+- Settings validation
+- Builder pattern
 
-HTTP request received by Axum router
+### data_base_runique/
+ORM abstraction:
+- SeaORM wrapper
+- Objects manager (django-like)
+- Database connection management
 
-### 2. Middleware Stack (Reverse Order)
+### formulaire/
+Form system:
+- RuniqueForm derive macro
+- Field types (text, email, textarea, etc.)
+- Validation
+- Prisme extractor
 
-Middleware executes in **reverse** of declaration:
+### middleware/
+Security middleware:
+- CSRF protection
+- ALLOWED_HOSTS validation
+- Nonce
+- Login required middleware
+- Redirect if authenticated
 
-```
-Request
-  ↓
-Session Layer      (1. First to execute)
-  ↓
-CSRF Validation    (2. Second)
-  ↓
-Flash Messages     (3. Third)
-  ↓
-Error Handler      (4. Fourth)
-  ↓
-Extension Inject   (5. Fifth - extracts RuniqueContext)
-  ↓
-Handler
-```
+### macro_runique/
+Utility macros:
+- `context!` - Create template context
+- `success!`, `error!`, `warning!`, `info!` - Flash messages
+- `urlpatterns!` - Define routes
 
-### 3. Handler Extraction
+### moteur_engine/
+Main engine:
+- RuniqueEngine struct
+- Initialization
+- Extension injection
 
-Axum extracts dependencies:
-- `RuniqueContext` - Injected by middleware
-- `TemplateContext` - Built from RuniqueEngine
-- `ExtractForm<T>` - Parse form from request
-- `Path<T>`, `Query<T>` - Extract parameters
+### request_context/
+Request context:
+- RuniqueContext extractor
+- TemplateContext extractor
+- Message extractor
+- Tera tool filters
 
-### 4. Handler Processing
+### runique_body/
+Application builder:
+- RuniqueApp struct
+- `.with_database()`
+- `.with_routes()`
+- `.build()`
+- `.run()`
+
+### utils/
+Miscellaneous utilities:
+- CSRF token generation
+- CSP nonce generation
+- Response helpers (json, html, redirect)
+- HTML parsing
+
+⚠️  The nonce is manually added to your application builder via:
 
 ```rust
-async fn handler(
-    mut ctx: RuniqueContext,           // From middleware
-    template: TemplateContext,         // From engine
-    ExtractForm(form): ExtractForm<T>, // Parse form
-) -> Response {
-    // 1. Validate form
-    if !form.is_valid().await { }
-    
-    // 2. Access database
-    let db = ctx.engine.db.clone();
-    
-    // 3. Process business logic
-    // 4. Set flash message
-    // 5. Return response
-}
+
+.layer(middleware::from_fn_with_state(
+    engine.clone(),
+    security_headers_middleware,
+))
 ```
-
-### 5. Response
-
-HTML, JSON, Redirect, or other response type
-
-### 6. Cleanup
-
-- Flash messages persisted to session
-- Response sent to client
-
 ---
 
 ## Dependency Injection
 
-### Method 1: Via RuniqueContext
+Via **Axum Extensions**:
 
 ```rust
-async fn handler(ctx: RuniqueContext) -> Response {
-    let engine = &ctx.engine;
-    let config = &engine.config;
-}
-```
+// Registered in middleware:
+extension_injection
+    .layer(Extension(engine))
+    .layer(Extension(tera))
+    .layer(Extension(config))
+    .layer(Extension(session))
 
-### Method 2: Via Extension
-
-```rust
-async fn handler(Extension(engine): Extension<Arc<RuniqueEngine>>) -> Response {
-    // Direct access to engine
-}
-```
-
-### Method 3: Via Custom Extractor
-
-```rust
-pub struct CurrentUser(pub User);
-
-#[async_trait]
-impl FromRequest for CurrentUser {
-    async fn from_request(req: &mut Request) -> Result<Self> {
-        let session: Session = req.extract().await?;
-        let user_id = session.get("user_id")?;
-        // Fetch from database
-    }
-}
-
-async fn handler(user: CurrentUser) -> Response {
-    // user.0 contains User
-}
+// Used in handlers:
+pub async fn handler(
+    template: TemplateContext,
+) -> AppResult<Response> { }
 ```
 
 ---
 
-## Data Flow Patterns
+## Lifecycle
 
-### Pattern 1: Read + Render
+### App Startup
 
-```
-Handler
-  ↓
-Load from DB (via engine.db)
-  ↓
-Build context
-  ↓
-template.render()
-  ↓
-HTML Response
-```
+```rust
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Application configuration
+    let config = RuniqueConfig::from_env();
 
-### Pattern 2: Form Submit + Redirect
+    // Database connection
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db = db_config.connect().await?;
 
-```
-Handler
-  ↓
-Extract form
-  ↓
-Validate
-  ↓
-Save to DB
-  ↓
-Set flash message
-  ↓
-Redirect
-```
+    // Create and launch the application
+    RuniqueApp::builder(config)
+        .routes(url::routes())
+        .with_database(db)
+        .build()
+        .await?
+        .run()
+        .await?;
 
-### Pattern 3: API Endpoint
+    Ok(())
+}
 
 ```
-Handler
-  ↓
-Query/Insert/Update/Delete
-  ↓
-Return JSON
-  ↓
-JSON Response (with status code)
+
+### Request Handling
+
 ```
-
----
-
-## Security Layers
-
-### Layer 1: CSRF Protection
-- Token in forms (automatic via `csrf_field` filter)
-- Validation middleware (automatic for POST/PUT/PATCH/DELETE)
-
-### Layer 2: Session Security
-- HTTP-only cookies
-- Secure flag (production)
-- 24-hour expiry
-
-### Layer 3: Input Validation
-- Form validation (RuniqueForm)
-- Database constraints
-
-### Layer 4: Host Validation
-- ALLOWED_HOSTS check
-- Prevents Host header injection
-
-### Layer 5: Output Encoding
-- Template escaping (Tera default)
-- CSP nonce generation
+1. Middleware (reverse order)
+2. Handler called with extractors
+3. Handler returns response
+4. Middleware (forward order)
+5. HTTP response sent
+```
 
 ---
 
 ## Best Practices
 
-### 1. Clone Arc<DatabaseConnection>
+1. **Clone Arcs:**
+   ```rust
+       let db = template.engine.db.clone();
+   ```
 
-```rust
-let db = ctx.engine.db.clone();  // Cheap clone of Arc pointer
-// Then use &*db in queries
-```
+2. **Forms = copies:**
+   ```rust
+       let form = template.form::<Form>();
 
-### 2. Use Extractors for Validation
+   // No shared state
+   ```
 
-```rust
-#[derive(Deserialize)]
-pub struct UserQuery {
-    #[validate(length(min = 1, max = 50))]
-    pub username: String,
-}
+3. **Templates auto-context:**
+   ```rust
+   template.context.insert("data", value);
+   template.render("page.html")
+   // csrf_token auto-injected into context
+   ```
 
-async fn search(Query(q): Query<UserQuery>) -> Response { }
-```
+4. **Flash messages:**
+   ```rust
+   Message(mut messages): Message,
+   messages.success(format!("Welcome {}, your account has been created!", user.username));
+   ```
 
-### 3. Flash Messages on Redirects
-
-```rust
-success!(ctx.flash => "Saved!");
-Redirect::to("/dashboard").into_response()
-```
-
-### 4. Handle Errors Gracefully
-
-```rust
-match operation.await {
-    Ok(result) => handle_success(result),
-    Err(e) => {
-        error!(ctx.flash => format!("Error: {}", e));
-        // Return error response
-    }
-}
-```
-
-### 5. Use Type System
-
-```rust
-// Good: Type-safe form extraction
-ExtractForm(form): ExtractForm<LoginForm>
-
-// Avoid: Loose form data
-Form(loose_data): Form<HashMap<String, String>>
-```
-
----
-
-## Performance Considerations
-
-### 1. Connection Pooling
-SeaORM manages connection pool automatically
-
-### 2. Arc<DatabaseConnection>
-Cheap Arc clones instead of expensive connections
-
-### 3. Template Caching
-Tera caches compiled templates automatically
-
-### 4. Session In-Memory Store
-MemoryStore for development/testing, upgrade for production
-
----
-
-## Extending Runique
-
-### Custom Middleware
-
-```rust
-use axum::middleware::Next;
-
-pub async fn custom_middleware(
-    request: Request,
-    next: Next,
-) -> Response {
-    // Before handler
-    let response = next.run(request).await;
-    // After handler
-    response
-}
-```
-
-### Custom Extractors
-
-```rust
-#[async_trait]
-impl FromRequest for CustomData {
-    async fn from_request(req: &mut Request) -> Result<Self> {
-        // Extract custom data
-    }
-}
-```
-
-### Custom Template Filters
-
-```rust
-engine.register_filter("custom_filter", |value, _args| {
-    Ok(Value::String("result".to_string()))
-});
-```
+5. **Middleware order:**
+   ```rust
+   // Declared first = Executed last!
+   .layer(a)  // Executed 3rd
+   .layer(b)  // Executed 2nd
+   .layer(c)  // Executed 1st (entry point)
+   ```
 
 ---
 
 ## Next Steps
 
-← [**Configuration**](./03-configuration.md) | [**Routing**](./04-routing.md) →
+→ [**Configuration**](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)

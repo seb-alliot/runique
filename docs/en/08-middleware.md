@@ -2,35 +2,27 @@
 
 ## Middleware Stack
 
-Middleware executes in **REVERSE** order of declaration:
+Middleware executes in **REVERSE** order of declaration. Runique automatically configures the stack via the builder:
 
 ```rust
 use runique::prelude::*;
-use tower_sessions::SessionManagerLayer;
 
-pub fn middleware_stack(db: Arc<DatabaseConnection>) -> Router {
-    Router::new()
-        // ⚠️ Declaration REVERSE:
-        // 5. Extension injection (last)
-        .layer(Extension(RuniqueEngine {
-            db: db.clone(),
-            config: RuniqueConfig::from_env(),
-        }))
-        
-        // 4. Error handler
-        .layer(axum::middleware::from_fn(error_handler))
-        
-        // 3. Flash messages
-        .layer(axum::middleware::from_fn(flash_messages_layer))
-        
-        // 2. CSRF protection
-        .layer(axum::middleware::from_fn(csrf_middleware))
-        
-        // 1. Sessions (first)
-        .layer(SessionManagerLayer::new(tower_sessions::MemoryStore::new()))
-}
+// The builder automatically configures the middleware stack
+let app = RuniqueAppBuilder::new(config)
+    .with_routes(routes)
+    .with_error_handler(true)      // Optional
+    .with_sanitize(true)           // Optional
+    .build()
+    .await?;
 
-// Execution = Session → CSRF → Flash → Error → Extension
+// Stack applied automatically (reverse order):
+// 1. RequestExtensions injection (Tera, Config, Engine)
+// 2. Static files (runique internal)
+// 3. Error handler (if enabled)
+// 4. Sessions (with MemoryStore by default)
+// 5. CSRF protection
+// 6. Sanitize (if enabled)
+// 7. User routes
 ```
 
 ---
@@ -39,123 +31,92 @@ pub fn middleware_stack(db: Arc<DatabaseConnection>) -> Router {
 
 ### Automatic for POST/PUT/PATCH/DELETE
 
-```rust
-// In config_runique/mod.rs
-pub async fn csrf_middleware(
-    session: Session,
-    request: Request,
-    next: Next,
-) -> Result<Response> {
-    if matches!(request.method(), &Method::POST | &Method::PUT | &Method::PATCH | &Method::DELETE) {
-        let token_header = request
-            .headers()
-            .get("X-CSRF-Token")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
+The CSRF middleware is automatically configured by `RuniqueAppBuilder`. It generates and verifies tokens for all POST/PUT/PATCH/DELETE requests.
 
-        let token_form = request
-            .form_data()
-            .and_then(|f| f.get("csrf_token"))
-            .map(|s| s.to_string());
-
-        let token = token_header.or(token_form).ok_or("Missing CSRF token")?;
-
-        let session_token = session.get::<String>("csrf_token")?;
-        
-        if !verify_csrf_token(&token, &session_token) {
-            return Err(StatusCode::FORBIDDEN);
-        }
-    }
-
-    Ok(next.run(request).await)
-}
-```
+**How it works:**
+- Token generated with user context (user_id if authenticated, otherwise session_id)
+- Double Submit Cookie pattern with token masking
+- Automatic verification via `X-CSRF-Token` header or form field
+- Integration with `Prisme` for form validation
 
 ### In Forms
 
 ```html
 <form method="post">
-    {{ '' | csrf_field }}
-    <!-- Generates: -->
+    {% csrf %}
+    <!-- Generates automatically: -->
     <!-- <input type="hidden" name="csrf_token" value="masked_token"> -->
 </form>
 ```
 
+**Note:** The token is automatically masked (Double Submit Cookie pattern) and verified by the middleware + `Prisme`.
+
 ### AJAX Endpoints
 
 ```javascript
-// Get fresh token
-fetch('/api/csrf-token')
-    .then(r => r.json())
-    .then(data => {
-        fetch('/api/users', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-Token': data.csrf_token,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({username: "john"})
-        })
-    });
+// The token is automatically sent in the response header
+fetch('/api/users', {
+    method: 'POST',
+    headers: {
+        'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value,
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({username: "john"})
+});
 ```
 
 ---
 
 ## ALLOWED_HOSTS
 
-Protection against Host Header Injection:
+Protection against Host Header Injection (inspired by Django):
 
 ```rust
-// .env
-ALLOWED_HOSTS=localhost,127.0.0.1,example.com
+use runique::middleware::AllowedHostsValidator;
 
-// runique/src/config_runique/config_struct.rs
-impl RuniqueConfig {
-    pub fn validate_host(&self, host: &str) -> bool {
-        self.allowed_hosts.iter().any(|h| h == host)
+// Configuration in RuniqueConfig
+let validator = AllowedHostsValidator::from_settings(&config);
+
+// The validator supports:
+// - Exact match: "example.com"
+// - Full wildcard: "*" (dangerous in production!)
+// - Subdomain wildcard: ".example.com" matches "api.example.com", etc.
+
+impl AllowedHostsValidator {
+    pub fn is_host_allowed(&self, host: &str) -> bool {
+        if self.debug { return true; }
+
+        let host = host.split(':').next().unwrap_or(host);
+
+        self.allowed_hosts.iter().any(|allowed| {
+            if allowed == "*" {
+                true
+            } else if allowed.starts_with('.') {
+                // Subdomains
+                host == &allowed[1..] ||
+                (host.ends_with(allowed) && host.as_bytes()[host.len() - allowed.len()] == b'.')
+            } else {
+                allowed == host
+            }
+        })
     }
-}
-
-// Middleware
-pub async fn validate_host_middleware(
-    headers: HeaderMap,
-    next: Next,
-) -> Result<Response> {
-    let host = headers
-        .get("host")
-        .and_then(|h| h.to_str().ok())
-        .ok_or("Missing Host header")?;
-
-    if !CONFIG.validate_host(host) {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    Ok(next.run(request).await)
 }
 ```
 
----
-
-## Sessions
-
-### Configuration
-
+**Usage:**
 ```rust
-use tower_sessions::{SessionManagerLayer, MemoryStore};
-use tower_sessions::session::Config;
+// Automatic validation in requests
+match validator.validate(&headers) {
+    Ok(_) => { /* OK */ }, Expiry};
 use time::Duration;
 
-let session_config = Config::default()
-    .with_table_name("sessions")
-    .with_cookie_name("RUNIQUE_SID")
-    .with_cookie_path("/")
-    .with_cookie_same_site(SameSite::Lax)
-    .with_secure(!DEBUG)        // HTTPS in production
-    .with_http_only(!DEBUG);    // No JS access
+// The builder automatically configures sessions
+let session_layer = SessionManagerLayer::new(MemoryStore::default())
+    .with_secure(!config.debug)          // HTTPS in production
+    .with_http_only(!config.debug)        // No JS access
+    .with_expiry(Expiry::OnInactivity(Duration::hours(2)));
 
-let session_layer = SessionManagerLayer::new(
-    MemoryStore::new()
-).with_config(session_config);
+// Applied automatically in RuniqueAppBuilder
 ```
 
 ### Using Sessions
@@ -163,16 +124,38 @@ let session_layer = SessionManagerLayer::new(
 ```rust
 use tower_sessions::Session;
 
+// Method 1: Direct Session extraction
 async fn login(
     session: Session,
     Form(credentials): Form<LoginForm>,
 ) -> Response {
+    // Note: authenticate() is an example - this function will be provided in a future version
     if let Ok(Some(user)) = authenticate(&credentials).await {
-        session.insert("user_id", user.id).unwrap();
-        session.insert("username", &user.username).unwrap();
-        
+        session.insert("user_id", user.id).await.ok();
+        session.insert("username", &user.username).await.ok();
+
         Redirect::to("/dashboard").into_response()
     } else {
+        Redirect::to("/login?error=1").into_response()
+    }
+}
+
+async fn dashboard(session: Session) -> Response {
+    let user_id: Option<i32> = session.get("user_id").await.ok().flatten();
+    match user_id {
+        Some(id) => format!("User ID: {}", id).into_response(),
+        None => Redirect::to("/login").into_response()
+    }
+}
+
+// Method 2: Access via TemplateContext (session is included)
+async fn profile(template: TemplateContext) -> Response {
+    let user_id: Option<i32> = template.session.get("user_id").await.ok().flatten();
+
+    template.context.insert("user_id", &user_id);
+    template.render("profile.html").unwrap()
+}
+e {
         // Error
     }
 }
@@ -193,21 +176,14 @@ async fn logout(session: Session) -> Response {
 
 ---
 
-## CSP - Content Security Policy
+## CSP - Content Seccsp_nonce::CspNonce;
 
-### Nonce Generation
-
-```rust
-use runique::utils::generate_csp_nonce;
-
+// The nonce is automatically generated and injected into TemplateContext
 async fn index(
     template: TemplateContext,
 ) -> Response {
-    let nonce = generate_csp_nonce();
-    
-    template.render("index.html", &context! {
-        "csp_nonce" => nonce
-    })
+    // template.csp_nonce is already available
+    template.render("index.html").unwrap()
 }
 ```
 
@@ -229,20 +205,22 @@ async fn index(
 </html>
 ```
 
-### HTTP Headers
+### CSP Configuration
 
 ```rust
-use axum::http::header::{HeaderMap, HeaderValue};
+use runique::middleware::CspConfig;
 
-async fn csp_middleware(request: Request, next: Next) -> Response {
-    let mut response = next.run(request).await;
-    let nonce = generate_csp_nonce();
+// Predefined profiles
+let strict_csp = CspConfig::strict();      // Strict with nonces
+let permissive = CspConfig::permissive();  // More lenient
+let default = CspConfig::default();        // Balanced
 
-    response.headers_mut().insert(
-        "Content-Security-Policy",
-        HeaderValue::from_str(&format!(
-            "script-src 'nonce-{}' 'strict-dynamic'; style-src 'nonce-{}'",
-            nonce, nonce
+// Generate the header
+let nonce = CspNonce::generate();
+let header_value = csp_config.to_header_value(Some(nonce.as_str()));
+
+// Example of generated header:
+// "default-src 'self'; script-src 'self' 'nonce-ABC123'; style-src 'self' 'nonce-ABC123'"           nonce, nonce
         )).unwrap()
     );
 
@@ -280,10 +258,10 @@ pub struct CurrentUser {
 impl FromRequest for CurrentUser {
     async fn from_request(request: &mut Request) -> Result<Self> {
         let session: Session = request.extract().await?;
-        
+
         let user_id: i32 = session.get("user_id")?
             .ok_or("Not authenticated")?;
-        
+
         let username = session.get("username")?
             .ok_or("Not authenticated")?;
 
@@ -293,7 +271,7 @@ impl FromRequest for CurrentUser {
 
 // Usage:
 async fn dashboard(user: CurrentUser) -> Response {
-    format!("Welcome, {}!", user.username)
+    format!("Welcome, {}!", user.username).into_response()
 }
 ```
 
@@ -301,4 +279,4 @@ async fn dashboard(user: CurrentUser) -> Response {
 
 ## Next Steps
 
-← [**ORM & Database**](./07-orm.md) | [**Flash Messages**](./09-flash-messages.md) →
+← [**ORM & Database**](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md) | [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md) →

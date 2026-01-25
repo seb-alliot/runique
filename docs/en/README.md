@@ -173,7 +173,7 @@ Complete code examples and projects.
 ## 🌍 Language
 
 - 📖 **English** (vous êtes ici)
-- 🇫🇷 **[Français](../fr/README.md)**
+- 🇫🇷 **[Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/README.md)**
 
 ---
 
@@ -186,6 +186,6 @@ Complete code examples and projects.
 
 ---
 
-**Need help?** Check [Examples](10-examples.md) or review relevant section.
+**Need help?** Check [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) or review relevant section.
 
 Happy coding! 🚀

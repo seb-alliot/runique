@@ -86,15 +86,15 @@ let settings = Settings {
 
 **Full Documentation** : [Routing Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
 
-Define your routes with `urlpatterns!` macro:
+Define your routes with Axum's `Router`:
 
 ```rust
-#[urlpatterns]
-pub fn routes() -> Vec<Route> {
-    vec![
-        Route::get("/", views::home),
-        Route::post("/api/users", views::create_user),
-    ]
+use axum::routing::{get, post};
+
+fn routes() -> Router {
+    Router::new()
+        .route("/", get(views::home))
+        .route("/api/users", post(views::create_user))
 }
 ```
 
@@ -106,24 +106,32 @@ pub fn routes() -> Vec<Route> {
 
 **Full Documentation** : [Forms Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
 
-Create forms easily:
+Create forms easily with `#[derive(RuniqueForm)]`:
 
 ```rust
-let mut form = Forms::new("csrf_token");
+#[derive(RuniqueForm)]
+pub struct UserForm {
+    #[field(label = "Username", required, min_length = 3)]
+    pub username: String,
 
-form.field(&TextField::text("username")
-    .label("Username")
-    .required("Required"));
+    #[field(label = "Email", required, input_type = "email")]
+    pub email: String,
+}
 
-form.field(&TextField::email("email")
-    .label("Email"));
+// Handle form submission
+async fn register(
+    Prisme(mut form): Prisme<UserForm>,
+    mut template: TemplateContext,
+) -> Response {
+    if form.is_valid().await {
+        // Process form
+    }
+    template.context.insert("form", form);
+    template.render("register.html")
+}
 ```
 
-👉 **Read** : [docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) for all field types
-
----
-
-## 🎨 Templates
+👉 **Read** : [docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) for all field types## 🎨 Templates
 
 **Full Documentation** : [Templates Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
 

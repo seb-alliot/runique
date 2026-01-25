@@ -69,27 +69,59 @@ L'application sera accessible sur `http://localhost:8000`
 ### Créer un formulaire
 
 ```rust
-let mut form = Forms::new("csrf_token");
-form.field(&TextField::text("username").label("Pseudo"));
-form.field(&TextField::email("email").label("Email"));
+#[derive(RuniqueForm)]
+pub struct UserForm {
+    #[field(label = "Pseudo", required, min_length = 3)]
+    pub username: String,
+
+    #[field(label = "Email", required, input_type = "email")]
+    pub email: String,
+}
+
+// Dans le handler
+async fn handle_form(
+    Prisme(mut form): Prisme<UserForm>,
+    mut template: TemplateContext,
+) -> Response {
+    if form.is_valid().await {
+        // Traiter le formulaire
+    }
+    template.context.insert("form", form);
+    template.render("form.html")
+}
 ```
 
 ### Utiliser l'ORM
 
 ```rust
+use impl_objects;
+
+// Auto-génère un Objects manager avec all(), filter(), etc.
 impl_objects!(User);
-let users = User::objects.all(&db).await?;
+
+async fn get_users(db: &DbConn) -> Result<Vec<Model>, Error> {
+    User::objects.all(&db).await
+}
+
+async fn filter_users(db: &DbConn) -> Result<Vec<Model>, Error> {
+    User::objects
+        .filter(Column::Email.eq("test@test.com"))
+        .all(&db)
+        .await
+}
 ```
 
 ### Créer une route
 
 ```rust
-#[urlpatterns]
-pub fn routes() -> Vec<Route> {
-    vec![
-        Route::get("/", views::home),
-        Route::post("/register", views::register),
-    ]
+use axum::Router;
+use axum::routing::{get, post};
+
+fn routes() -> Router {
+    Router::new()
+        .route("/", get(home))
+        .route("/register", post(register))
+        .route("/profile/:id", get(profile))
 }
 ```
 

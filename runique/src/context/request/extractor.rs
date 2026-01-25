@@ -1,7 +1,7 @@
 use crate::context::request::{template, TemplateEngine};
 use crate::engine::RuniqueEngine;
 use crate::flash::Message;
-use crate::middleware::is_authenticated;
+use crate::middleware::auth::{get_user_id, is_authenticated};
 use crate::utils::csrf::{CsrfContext, CsrfToken};
 use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode};
 use std::sync::Arc;
@@ -43,28 +43,34 @@ where
         // On regarde d'abord si un token est déjà présent dans les extensions
         // Injecté par ton middleware CSRF
         let csrf_token: CsrfToken = if let Some(token) = parts.extensions.get::<CsrfToken>() {
-            token.clone() // clone du token existant
+            token.clone()
         } else {
             // Génération d'un token selon que l'utilisateur est connecté ou non
-            let session_id = "default_session_id"; // à remplacer par l'ID réel de session si disponible
             if is_authenticated(session).await {
-                // Génère un token lié à l'utilisateur connecté
-                CsrfToken::generate_with_context(
-                    CsrfContext::Authenticated { user_id: 0 },
-                    &engine.config.server.secret_key,
-                )
+                // Récupère l'ID réel de l'utilisateur connecté
+                if let Some(user_id) = get_user_id(session).await {
+                    // Génère un token lié à l'utilisateur connecté
+                    CsrfToken::generate_with_context(
+                        CsrfContext::Authenticated { user_id },
+                        &engine.config.server.secret_key,
+                    )
+                } else {
+                    // Fallback : token anonyme si impossible de récupérer l'ID
+                    let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
+                    CsrfToken::generate_with_context(
+                        CsrfContext::Anonymous { session_id: &session_id },
+                        &engine.config.server.secret_key,
+                    )
+                }
             } else {
                 // Génère un token lié à la session anonyme
+                let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
                 CsrfToken::generate_with_context(
-                    CsrfContext::Anonymous { session_id },
+                    CsrfContext::Anonymous { session_id: &session_id },
                     &engine.config.server.secret_key,
                 )
             }
         };
-        println!(
-            "CSRF Token Generated/Used extracteur ligne 44: {:?}",
-            csrf_token
-        );
 
         // 4. Construction du contexte complet
         Ok(Self {

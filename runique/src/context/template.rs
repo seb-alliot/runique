@@ -124,7 +124,7 @@ impl IntoResponse for Box<AppError> {
 pub struct TemplateContext {
     pub engine: Arc<RuniqueEngine>,
     pub session: Session,
-    pub flash_manager: Message,
+    pub notices: Message,
     pub messages: Vec<FlashMessage>,
     pub csrf_token: CsrfToken,
     pub csp_nonce: String,
@@ -165,12 +165,12 @@ where
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let flash_manager = Message {
+        let notices = Message {
             session: session.clone(),
         };
 
         // Récupère les messages pour le template
-        let messages: Vec<FlashMessage> = flash_manager.get_all().await;
+        let messages: Vec<FlashMessage> = notices.get_all().await;
 
         //  Initialiser le contexto Tera com as variáveis globais
         let mut context = Context::new();
@@ -183,7 +183,7 @@ where
         Ok(Self {
             engine: engine.clone(),
             session,
-            flash_manager,
+            notices,
             messages,
             csrf_token,
             csp_nonce,
@@ -197,7 +197,7 @@ impl Clone for TemplateContext {
         Self {
             engine: self.engine.clone(),
             session: self.session.clone(),
-            flash_manager: self.flash_manager.clone(),
+            notices: self.notices.clone(),
             messages: self.messages.clone(),
             csrf_token: self.csrf_token.clone(),
             csp_nonce: self.csp_nonce.clone(),
