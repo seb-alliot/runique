@@ -58,7 +58,9 @@ where
                     // Fallback : token anonyme si impossible de récupérer l'ID
                     let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
                     CsrfToken::generate_with_context(
-                        CsrfContext::Anonymous { session_id: &session_id },
+                        CsrfContext::Anonymous {
+                            session_id: &session_id,
+                        },
                         &engine.config.server.secret_key,
                     )
                 }
@@ -66,7 +68,9 @@ where
                 // Génère un token lié à la session anonyme
                 let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
                 CsrfToken::generate_with_context(
-                    CsrfContext::Anonymous { session_id: &session_id },
+                    CsrfContext::Anonymous {
+                        session_id: &session_id,
+                    },
                     &engine.config.server.secret_key,
                 )
             }

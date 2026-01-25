@@ -1,12 +1,12 @@
 // runique/src/middleware/auth.rs
 
+use crate::context::RequestExtensions;
 use axum::{
     extract::Request,
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
 };
 use tower_sessions::Session;
-use crate::context::RequestExtensions;
 
 /// Clé de session pour stocker l'ID utilisateur
 pub const SESSION_USER_ID_KEY: &str = "user_id";
@@ -135,8 +135,7 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
         };
 
         // Injection via la structure centralisée
-        let extensions = RequestExtensions::new()
-            .with_current_user(current_user);
+        let extensions = RequestExtensions::new().with_current_user(current_user);
 
         extensions.inject_request(&mut request);
     }

@@ -1,6 +1,6 @@
+use crate::context::RequestExtensions;
 use crate::engine::RuniqueEngine;
 use crate::utils::csp_nonce::CspNonce;
-use crate::context::RequestExtensions;
 use std::sync::Arc;
 
 use axum::{
@@ -174,8 +174,7 @@ pub async fn security_headers_middleware(
     let nonce = CspNonce::generate();
 
     // Injection via la structure centralisée
-    let extensions = RequestExtensions::new()
-        .with_csp_nonce(nonce.clone());
+    let extensions = RequestExtensions::new().with_csp_nonce(nonce.clone());
 
     extensions.inject_request(&mut req);
 
