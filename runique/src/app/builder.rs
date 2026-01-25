@@ -228,20 +228,18 @@ impl RuniqueAppBuilder {
             final_router = final_router.layer(middleware::from_fn(error_handler_middleware));
         }
 
-        final_router = final_router
-            .layer(axum::middleware::from_fn(
-                move |mut req: axum::http::Request<axum::body::Body>,
-                      next: axum::middleware::Next| {
-                    // Injection centralisée de toutes les données
-                    let extensions = RequestExtensions::new()
-                        .with_tera(tera.clone())
-                        .with_config(config.clone())
-                        .with_engine(engine_ext.clone());
+        final_router = final_router.layer(axum::middleware::from_fn(
+            move |mut req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+                // Injection centralisée de toutes les données
+                let extensions = RequestExtensions::new()
+                    .with_tera(tera.clone())
+                    .with_config(config.clone())
+                    .with_engine(engine_ext.clone());
 
-                    extensions.inject_request(&mut req);
-                    async { next.run(req).await }
-                },
-            ));
+                extensions.inject_request(&mut req);
+                async { next.run(req).await }
+            },
+        ));
         final_router = Self::static_runique(final_router, &engine.config);
         Ok(RuniqueApp {
             engine,
@@ -341,19 +339,17 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
             final_router = final_router.layer(middleware::from_fn(error_handler_middleware));
         }
 
-        final_router = final_router
-            .layer(axum::middleware::from_fn(
-                move |mut req: axum::http::Request<axum::body::Body>,
-                      next: axum::middleware::Next| {
-                    let extensions = RequestExtensions::new()
-                        .with_tera(tera.clone())
-                        .with_config(config.clone())
-                        .with_engine(engine_ext.clone());
+        final_router = final_router.layer(axum::middleware::from_fn(
+            move |mut req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
+                let extensions = RequestExtensions::new()
+                    .with_tera(tera.clone())
+                    .with_config(config.clone())
+                    .with_engine(engine_ext.clone());
 
-                    extensions.inject_request(&mut req);
-                    async { next.run(req).await }
-                },
-            ));
+                extensions.inject_request(&mut req);
+                async { next.run(req).await }
+            },
+        ));
         final_router = RuniqueAppBuilder::static_runique(final_router, &engine.config);
 
         Ok(RuniqueApp {

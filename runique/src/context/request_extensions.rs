@@ -1,12 +1,12 @@
+use crate::config::RuniqueConfig;
+use crate::engine::RuniqueEngine;
+use crate::middleware::auth::CurrentUser;
+use crate::utils::csp_nonce::CspNonce;
+use crate::utils::csrf::CsrfToken;
+use axum::body::Body;
 /// Module centralisé pour injecter toutes les données dans les extensions Axum
 use axum::http::request::Parts;
-use axum::body::Body;
 use axum::http::Request;
-use crate::engine::RuniqueEngine;
-use crate::utils::csrf::CsrfToken;
-use crate::utils::csp_nonce::CspNonce;
-use crate::middleware::auth::CurrentUser;
-use crate::config::RuniqueConfig;
 use std::sync::Arc;
 use tera::Tera;
 

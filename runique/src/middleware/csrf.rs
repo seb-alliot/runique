@@ -1,6 +1,6 @@
+use crate::context::RequestExtensions;
 use crate::engine::RuniqueEngine;
 use crate::utils::csrf::{CsrfContext, CsrfToken};
-use crate::context::RequestExtensions;
 use axum::{
     body::Body,
     extract::State,
@@ -107,8 +107,7 @@ pub async fn csrf_middleware(
 
     // Injection du token masqué pour le frontend via la structure centralisée
     let masked = session_token.masked();
-    let extensions = RequestExtensions::new()
-        .with_csrf_token(session_token.clone());
+    let extensions = RequestExtensions::new().with_csrf_token(session_token.clone());
 
     extensions.inject_request(&mut req);
 
