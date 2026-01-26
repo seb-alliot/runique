@@ -62,7 +62,7 @@ pub async fn soumission_inscription(
     context_update!(template => {
         "title" => "Erreur de validation",
         "inscription_form" => &form,
-        "messages" => &flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
     });
 
     template.render("inscription_form.html")
@@ -90,7 +90,7 @@ pub async fn info_user(
         context_update!(template => {
             "title" => "Rechercher un utilisateur",
             "user" => &form,
-            "messages" => &flash_now!(error => "Erreur de validation"),
+            "messages" => flash_now!(error => "Erreur de validation"),
         });
         return template.render("profile/view_user.html");
     }
@@ -110,7 +110,7 @@ pub async fn info_user(
                 "username" => &user.username,
                 "email" => &user.email,
                 "user" => &user,
-                "messages" => &flash_now!(success => "Voici les infos que tu voulais !"),
+                "messages" => flash_now!(success => "Voici les infos que tu voulais !"),
             });
 
             template.render("profile/view_user.html")
@@ -119,7 +119,7 @@ pub async fn info_user(
             context_update!(template => {
                 "title" => "Vue utilisateur",
                 "user" => &form,
-                "messages" => &flash_now!(warning => "Tu n'existe pas dans ma bdd !! Une honte je te le dis, inscris toi de suite !! "),
+                "messages" => flash_now!(warning => "Tu n'existe pas dans ma bdd !! Une honte je te le dis, inscris toi de suite !! "),
             });
 
             template.render("profile/view_user.html")
@@ -158,7 +158,7 @@ pub async fn blog_save(
                 context_update!(template => {
                     "title" => "Erreur de base de données",
                     "blog_form" => &blog_save,
-                    "messages" => &flash_now!(warning => "Veuillez corriger les erreurs ci-dessous"),
+                    "messages" => flash_now!(warning => "Veuillez corriger les erreurs ci-dessous"),
                 });
 
                 return template.render("blog/blog.html");
@@ -175,10 +175,6 @@ pub async fn about(mut template: TemplateContext) -> AppResult<Response> {
     info!(template.notices => "Ceci est un message d'information.");
     warning!(template.notices => "Ceci est un message d'avertissement.");
     error!(template.notices => "Ceci est un message d'erreur.");
-    println!(
-        "Flash messages ajoutés à la session.{:?}",
-        template.notices
-    );
 
     context_update!(template => {
         "title" => "À propos du Framework Runique",

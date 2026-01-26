@@ -89,12 +89,42 @@ let settings = Settings {
 Définir vos routes avec la macro `urlpatterns!` :
 
 ```rust
-#[urlpatterns]
-pub fn routes() -> Vec<Route> {
-    vec![
-        Route::get("/", views::home),
-        Route::post("/api/users", views::create_user),
-    ]
+use crate::views;
+use runique::prelude::*;
+use runique::{urlpatterns, view}; // Macros explicites
+
+pub fn routes() -> Router {
+    let router = urlpatterns! {
+        "/" => view!{ GET => views::index }, name = "index",
+
+        "/about" => view! { GET => views::about }, name = "about",
+        "/inscription" => view! { GET => views::inscription, POST => views::soumission_inscription }, name = "inscription",
+    };
+    router
+}
+
+
+pub async fn inscription(mut template: TemplateContext) -> AppResult<Response> {
+    let form = template.form::<RegisterForm>();
+    context_update!(template => {
+        "title" => "Inscription user",
+        "inscription_form" => &form,
+    });
+
+    template.render("inscription_form.html")
+}
+
+// Handle form submission
+async fn soumission_inscription(
+    Prisme(mut form): Prisme<UserForm>,
+    mut template: TemplateContext,
+) -> AppResult<Response> {
+    if form.is_valid().await {
+    }
+    context_update!(template => {
+        "form" => form,
+    });
+    template.render("register.html")
 }
 ```
 

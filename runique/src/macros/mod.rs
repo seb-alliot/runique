@@ -9,5 +9,5 @@ pub mod router;
 pub use helper::*;
 
 pub use register_name_url::{
-    flush_pending_urls, register_name_url, register_pending, reverse, reverse_with_parameters,
+    add_urls, register_name_url, register_pending, reverse, reverse_with_parameters,
 };

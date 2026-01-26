@@ -10,8 +10,11 @@ use crate::app::templates::TemplateLoader;
 use crate::config::RuniqueConfig;
 use crate::context::RequestExtensions;
 use crate::engine::RuniqueEngine;
-use crate::macros::router::flush_pending_urls;
-use crate::middleware::{csrf_middleware, error_handler_middleware, sanitize_middleware};
+use crate::macros::router::add_urls;
+use crate::middleware::session::SessionConfig;
+use crate::middleware::{
+    csrf_middleware, error_handler_middleware, sanitize_middleware, MiddlewareConfig,
+};
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
 
@@ -59,13 +62,11 @@ pub struct RuniqueAppBuilder {
     url_registry: Arc<RwLock<HashMap<String, String>>>,
     #[cfg(feature = "orm")]
     db: Option<DatabaseConnection>,
-    // Configuration optionnelle
-    session_duration: Duration,
-    enable_sanitize: bool,
-    enable_error_handler: bool,
+    middleware_config: MiddlewareConfig,
+    session_config: SessionConfig,
 }
 
-/// Builder avec session store personnalisé
+// Builder avec session store personnalisé
 pub struct RuniqueAppBuilderWithStore<Store: SessionStore + Clone> {
     base: RuniqueAppBuilder,
     session_store: Store,
@@ -73,16 +74,20 @@ pub struct RuniqueAppBuilderWithStore<Store: SessionStore + Clone> {
 
 impl RuniqueAppBuilder {
     pub fn new(config: RuniqueConfig) -> Self {
+        let debug = config.debug;
+        let middleware_config = if debug {
+            MiddlewareConfig::development()
+        } else {
+            MiddlewareConfig::production()
+        };
         Self {
             config,
             router: Router::new(),
             url_registry: Arc::new(RwLock::new(HashMap::new())),
             #[cfg(feature = "orm")]
             db: None,
-            // Valeurs par défaut
-            session_duration: Duration::seconds(86400), // 24h par défaut
-            enable_sanitize: true,
-            enable_error_handler: true,
+            middleware_config,
+            session_config: SessionConfig::default(),
         }
     }
 
@@ -96,10 +101,29 @@ impl RuniqueAppBuilder {
         self.router = router;
         self
     }
-
+    pub fn with_csp(mut self, enable: bool) -> Self {
+        self.middleware_config = self.middleware_config.with_csp(enable);
+        self
+    }
+    pub fn with_allowed_hosts(mut self, enable: bool) -> Self {
+        self.middleware_config = self.middleware_config.with_allowed_hosts(enable);
+        self
+    }
+    pub fn with_cache(mut self, enable: bool) -> Self {
+        self.middleware_config = self.middleware_config.with_cache(enable);
+        self
+    }
+    pub fn with_sanitize(mut self, enable: bool) -> Self {
+        self.middleware_config = self.middleware_config.with_sanitizer(enable);
+        self
+    }
+    pub fn with_error_handler(mut self, enable: bool) -> Self {
+        self.middleware_config = self.middleware_config.with_error_handler(enable);
+        self
+    }
     /// Configure la durée de session (par défaut: 24h)
     pub fn with_session_duration(mut self, duration: Duration) -> Self {
-        self.session_duration = duration;
+        self.session_config = self.session_config.with_duration(duration);
         self
     }
 
@@ -112,18 +136,6 @@ impl RuniqueAppBuilder {
             base: self,
             session_store: store,
         }
-    }
-
-    /// Active/désactive le sanitize middleware (par défaut: activé)
-    pub fn with_sanitize(mut self, enable: bool) -> Self {
-        self.enable_sanitize = enable;
-        self
-    }
-
-    /// Active/désactive l'error handler middleware (par défaut: activé)
-    pub fn with_error_handler(mut self, enable: bool) -> Self {
-        self.enable_error_handler = enable;
-        self
     }
 
     fn static_runique(mut router: Router, config: &RuniqueConfig) -> Router {
@@ -181,6 +193,7 @@ impl RuniqueAppBuilder {
         let url_registry = self.url_registry.clone();
         let tera = TemplateLoader::init(&self.config, url_registry)?;
         let tera = Arc::new(tera);
+        let middleware_config = self.middleware_config.clone();
 
         // 2. Config Arc
         let config = Arc::new(self.config);
@@ -191,20 +204,20 @@ impl RuniqueAppBuilder {
             tera: tera.clone(),
             #[cfg(feature = "orm")]
             db: Arc::new(self.db.expect("Database connection required")),
-            garde: Default::default(),
+            middleware_config: middleware_config.clone(),
             url_registry: self.url_registry.clone(),
             csp: Arc::new(Default::default()),
         });
 
         // 3b. Transférer les URLs en attente depuis la macro vers l'engine
-        flush_pending_urls(&engine);
+        add_urls(&engine);
 
         let engine_ext = engine.clone();
 
         let mut final_router = self.router;
 
         // Appliquer les middlewares conditionnellement
-        if self.enable_sanitize {
+        if middleware_config.enable_sanitizer {
             final_router = final_router.layer(middleware::from_fn_with_state(
                 engine.clone(),
                 sanitize_middleware,
@@ -221,10 +234,10 @@ impl RuniqueAppBuilder {
             SessionManagerLayer::new(MemoryStore::default())
                 .with_secure(!config.debug)
                 .with_http_only(!config.debug)
-                .with_expiry(Expiry::OnInactivity(self.session_duration)),
+                .with_expiry(Expiry::OnInactivity(self.session_config.duration)),
         );
 
-        if self.enable_error_handler {
+        if middleware_config.enable_error_handler {
             final_router = final_router.layer(middleware::from_fn(error_handler_middleware));
         }
 
@@ -256,17 +269,17 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
     }
 
     pub fn with_session_duration(mut self, duration: Duration) -> Self {
-        self.base.session_duration = duration;
+        self.base.session_config = self.base.session_config.with_duration(duration);
         self
     }
 
     pub fn with_sanitize(mut self, enable: bool) -> Self {
-        self.base.enable_sanitize = enable;
+        self.base.middleware_config = self.base.middleware_config.with_sanitizer(enable);
         self
     }
 
     pub fn with_error_handler(mut self, enable: bool) -> Self {
-        self.base.enable_error_handler = enable;
+        self.base.middleware_config = self.base.middleware_config.with_error_handler(enable);
         self
     }
 
@@ -305,17 +318,17 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
             tera: tera.clone(),
             #[cfg(feature = "orm")]
             db: Arc::new(base.db.expect("Database connection required")),
-            garde: Default::default(),
+            middleware_config: base.middleware_config.clone(),
             url_registry: base.url_registry.clone(),
             csp: Arc::new(Default::default()),
         });
 
-        flush_pending_urls(&engine);
-        let engine_ext = engine.clone();
+        add_urls(&engine);
+        let engine_ext: Arc<RuniqueEngine> = engine.clone();
 
         let mut final_router = base.router;
 
-        if base.enable_sanitize {
+        if base.middleware_config.enable_sanitizer {
             final_router = final_router.layer(middleware::from_fn_with_state(
                 engine.clone(),
                 sanitize_middleware,
@@ -332,10 +345,10 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
             SessionManagerLayer::new(self.session_store)
                 .with_secure(!config.debug)
                 .with_http_only(!config.debug)
-                .with_expiry(Expiry::OnInactivity(base.session_duration)),
+                .with_expiry(Expiry::OnInactivity(base.session_config.duration)),
         );
 
-        if base.enable_error_handler {
+        if base.middleware_config.enable_error_handler {
             final_router = final_router.layer(middleware::from_fn(error_handler_middleware));
         }
 

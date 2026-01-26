@@ -109,24 +109,40 @@ fn routes() -> Router {
 Create forms easily with `#[derive(RuniqueForm)]`:
 
 ```rust
-#[derive(RuniqueForm)]
-pub struct UserForm {
-    #[field(label = "Username", required, min_length = 3)]
-    pub username: String,
+use crate::views;
+use runique::prelude::*;
+use runique::{urlpatterns, view}; // Macros must be here
 
-    #[field(label = "Email", required, input_type = "email")]
-    pub email: String,
+pub fn routes() -> Router {
+    let router = urlpatterns! {
+        "/" => view!{ GET => views::index }, name = "index",
+
+        "/about" => view! { GET => views::about }, name = "about",
+        "/inscription" => view! { GET => views::inscription, POST => views::submit_inscription }, name = "inscription",
+    };
+    router
+}
+
+pub async fn inscription(mut template: TemplateContext) -> AppResult<Response> {
+    let form = template.form::<RegisterForm>();
+    context_update!(template => {
+        "title" => "Inscription user",
+        "inscription_form" => &form,
+    });
+
+    template.render("inscription_form.html")
 }
 
 // Handle form submission
-async fn register(
+async fn submit_inscription(
     Prisme(mut form): Prisme<UserForm>,
     mut template: TemplateContext,
-) -> Response {
+) -> AppResult<Response> {
     if form.is_valid().await {
-        // Process form
     }
-    template.context.insert("form", form);
+    context_update!(template => {
+        "form" => form,
+    });
     template.render("register.html")
 }
 ```
