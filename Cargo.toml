@@ -55,7 +55,9 @@ dyn-clone = "1.0.20"
 
 # Logging
 tracing = "0.1"
+tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2.0.18"
 
 # Async
 async-trait = "0.1"

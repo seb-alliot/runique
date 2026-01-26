@@ -2,6 +2,7 @@ use crate::engine::RuniqueEngine;
 use axum::Router;
 use std::sync::Arc;
 
+#[derive(Debug, Clone)]
 pub struct RuniqueRouter {
     pub core: Router<Arc<RuniqueEngine>>,
 }

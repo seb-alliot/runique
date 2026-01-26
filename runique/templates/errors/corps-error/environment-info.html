@@ -8,23 +8,37 @@
     <div class="info-grid">
         <div class="info-item">
             <div class="info-label">Debug Mode</div>
-                    <div class="info-value">
-                        {% if environment.debug_mode %}
-                            Enabled
-                        {% else %}
-                            Disabled
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="info-item">
-                    <div class="info-label">Rust Version</div>
-                    <div class="info-value">{{ environment.rust_version }}</div>
-                </div>
-
-                <div class="info-item">
-                    <div class="info-label">App Version</div>
-                    <div class="info-value">{{ environment.app_version }}</div>
-                </div>
+            <div class="info-value">
+                {% if environment.debug_mode %}
+                    Enabled
+                {% else %}
+                    Disabled
+                {% endif %}
             </div>
         </div>
+
+        <div class="info-item">
+            <div class="info-label">Rust Version</div>
+            <div class="info-value">{{ environment.rust_version | default(value="N/A") }}</div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">App Version</div>
+            <div class="info-value">{{ environment.app_version | default(value="N/A") }}</div>
+        </div>
+
+        {% if status_code %}
+        <div class="info-item">
+            <div class="info-label">HTTP Status Code</div>
+            <div class="info-value">{{ status_code }}</div>
+        </div>
+        {% endif %}
+
+        {% if error_type %}
+        <div class="info-item">
+            <div class="info-label">Error Type</div>
+            <div class="info-value">{{ error_type | capitalize }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>

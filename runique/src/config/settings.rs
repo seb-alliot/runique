@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-
+/// Vision globale des paramètres de l'application
+/// Contiendra tous les paramètres globaux de l'application
+/// pour le moent , chaque module gère ses propres paramètres
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
     pub installed_apps: Vec<String>,
@@ -18,41 +20,15 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            installed_apps: vec![
-                "runique_admin".to_string(),
-                "runique_auth".to_string(),
-                "runique_contenttypes".to_string(),
-                "runique_sessions".to_string(),
-                "runique_messages".to_string(),
-                "runique_staticfiles".to_string(),
-            ],
-            middleware: vec![
-                "runique.middleware.security.SecurityMiddleware".to_string(),
-                "runique.contrib.sessions.middleware.SessionMiddleware".to_string(),
-                "runique.middleware.common.CommonMiddleware".to_string(),
-                "runique.middleware.csrf.CsrfViewMiddleware".to_string(),
-                "runique.contrib.auth.middleware.AuthenticationMiddleware".to_string(),
-                "runique.contrib.messages.middleware.MessageMiddleware".to_string(),
-            ],
+            installed_apps: vec![],
+            middleware: vec![],
             root_urlconf: "project.urls".to_string(),
             language_code: "en-us".to_string(),
             time_zone: "UTC".to_string(),
             use_i18n: true,
             use_tz: true,
-            auth_password_validators: vec![
-                "runique.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-                    .to_string(),
-                "runique.contrib.auth.password_validation.MinimumLengthValidator".to_string(),
-                "runique.contrib.auth.password_validation.CommonPasswordValidator".to_string(),
-                "runique.contrib.auth.password_validation.NumericPasswordValidator".to_string(),
-            ],
-            password_hashers: vec![
-                "runique.contrib.auth.hashers.Argon2PasswordHasher".to_string(),
-                "runique.contrib.auth.hashers.BCryptSHA256PasswordHasher".to_string(),
-                "runique.contrib.auth.hashers.BCryptPasswordHasher".to_string(),
-                "runique.contrib.auth.hashers.PBKDF2PasswordHasher".to_string(),
-                "runique.contrib.auth.hashers.PBKDF2SHA1PasswordHasher".to_string(),
-            ],
+            auth_password_validators: vec![],
+            password_hashers: vec![],
             default_auto_field: "runique.db.models.AutoField".to_string(),
             logging_config: "runique.utils.log.default_logging_config".to_string(),
         }

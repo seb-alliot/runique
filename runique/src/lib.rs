@@ -45,6 +45,7 @@ pub mod flash;
 pub mod forms;
 #[macro_use]
 pub mod macros;
+pub mod errors;
 pub mod middleware;
 pub mod utils;
 

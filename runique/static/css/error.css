@@ -161,7 +161,10 @@ html, body {
     color: #6272a4;
     flex-shrink: 0;
 }
-
+.details {
+    margin-top: 15px;
+    border-left-color: #ffb86c;
+}
 /* Scrollbar customization */
 ::-webkit-scrollbar {
     width: 10px;

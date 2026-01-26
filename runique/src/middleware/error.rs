@@ -8,76 +8,13 @@ use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::{Context, Tera};
+use tracing::{error, info, instrument};
+use tracing_futures::Instrument;
 
+use crate::errors::track_error::RuniqueError;
 use crate::{config::RuniqueConfig, context::error::ErrorContext, utils::csrf::CsrfToken};
 
-/// Middleware d’erreur centralisé avec Stack Trace et Debug contextuel
-pub async fn error_handler_middleware(
-    Extension(tera): Extension<Arc<Tera>>,
-    Extension(config): Extension<Arc<RuniqueConfig>>,
-    request: Request<axum::body::Body>,
-    next: Next,
-) -> Response {
-    // 1. Capture des informations de la requête avant exécution
-    let csrf_token: Option<String> = request.extensions().get::<CsrfToken>().map(|t| t.0.clone());
-
-    let method = request.method().to_string();
-    let path = request.uri().path().to_string();
-    let query = request.uri().query().map(|q| q.to_string());
-
-    // Capture sécurisée des headers (on exclut les données sensibles)
-    let mut headers = HashMap::new();
-    for (name, value) in request.headers() {
-        let name_str = name.as_str().to_lowercase();
-        if !name_str.contains("cookie")
-            && !name_str.contains("authorization")
-            && !name_str.contains("token")
-        {
-            headers.insert(
-                name.to_string(),
-                value.to_str().unwrap_or("[Non-ASCII Header]").to_string(),
-            );
-        }
-    }
-
-    let request_helper = RequestInfoHelper {
-        method,
-        path: path.clone(),
-        query,
-        headers,
-    };
-    let response = next.run(request).await;
-    let status = response.status();
-    // 2. Exécution du cycle de vie de la requête
-    if status.is_server_error() || status == StatusCode::NOT_FOUND {
-        if config.debug {
-            // Essaie de récupérer le ErrorContext depuis les extensions
-            let error_ctx = response
-                .extensions()
-                .get::<Arc<ErrorContext>>() // ← Change ici
-                .map(|ctx| (**ctx).clone())
-                .unwrap_or_else(|| {
-                    if status == StatusCode::NOT_FOUND {
-                        ErrorContext::not_found(&path)
-                    } else {
-                        ErrorContext::generic(status, "Une erreur interne est survenue")
-                    }
-                })
-                .with_request_helper(&request_helper);
-
-            return render_debug_error_from_context(&tera, &config, error_ctx, csrf_token);
-        } else {
-            return match status {
-                StatusCode::NOT_FOUND => render_404(&tera, &config, csrf_token),
-                _ => render_500(&tera, &config, csrf_token),
-            };
-        }
-    }
-
-    response
-}
-
-/// Helper pour transporter les infos de requête vers ErrorContext
+/// Transport des infos requête pour debug contextuel
 pub struct RequestInfoHelper {
     pub method: String,
     pub path: String,
@@ -85,8 +22,94 @@ pub struct RequestInfoHelper {
     pub headers: HashMap<String, String>,
 }
 
-/// Rend la page 404 (Production)
-pub fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
+/// Middleware principal Runique avec tracing + debug
+#[instrument(name = "RuniqueRequest", skip(tera, config, next))]
+pub async fn error_handler_middleware(
+    Extension(tera): Extension<Arc<Tera>>,
+    Extension(config): Extension<Arc<RuniqueConfig>>,
+    request: Request<axum::body::Body>,
+    next: Next,
+) -> Response {
+    // --- 1️⃣ Collecte des infos requête ---
+    let csrf_token: Option<String> = request.extensions().get::<CsrfToken>().map(|t| t.0.clone());
+    let request_helper = RequestInfoHelper {
+        method: request.method().to_string(),
+        path: request.uri().path().to_string(),
+        query: request.uri().query().map(|q| q.to_string()),
+        headers: request
+            .headers()
+            .iter()
+            .filter(|(k, _)| {
+                let key = k.as_str().to_lowercase();
+                !key.contains("authorization") && !key.contains("cookie") && !key.contains("token")
+            })
+            .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+            .collect(),
+    };
+
+    // --- 2️⃣ Exécute la requête dans le span tracing ---
+    let span = tracing::Span::current();
+    let response = next.run(request).instrument(span.clone()).await;
+
+    let status = response.status();
+
+    // --- 3️⃣ Gestion des erreurs ---
+    if status.is_server_error() || status == StatusCode::NOT_FOUND {
+        // Récupère l'erreur attachée à la réponse si elle existe
+        let error_ctx_opt = response
+            .extensions()
+            .get::<Arc<RuniqueError>>()
+            .map(|err| (**err).clone());
+
+        let error_ctx = error_ctx_opt.unwrap_or_else(|| {
+            if status == StatusCode::NOT_FOUND {
+                RuniqueError::NotFound
+            } else {
+                RuniqueError::Internal
+            }
+        });
+
+        // --- 4️⃣ Logging intelligent ---
+        match &error_ctx {
+            RuniqueError::Internal
+            | RuniqueError::Database(_)
+            | RuniqueError::Io(_)
+            | RuniqueError::Template(_)
+            | RuniqueError::Custom { .. } => {
+                error!(method = %request_helper.method, path = %request_helper.path, ?error_ctx, "Critical error occurred");
+            }
+            RuniqueError::Validation(_) | RuniqueError::Forbidden | RuniqueError::NotFound => {
+                info!(method = %request_helper.method, path = %request_helper.path, ?error_ctx, "Handled error");
+            }
+        }
+
+        // --- 5️⃣ Crée un contexte enrichi pour templates ---
+        if config.debug {
+            let ctx = ErrorContext::from_runique_error(
+                &error_ctx,
+                Some(&request_helper.path),
+                Some(&request_helper),
+                None,        // nom du template si applicable
+                Some(&tera), // tera pour template_info si template error
+            );
+
+            return render_debug_error_from_context(&tera, &config, ctx, csrf_token);
+        } else {
+            // Production : 404 ou 500 simple
+            return match error_ctx {
+                RuniqueError::NotFound => render_404(&tera, &config, csrf_token),
+                _ => render_500(&tera, &config, csrf_token),
+            };
+        }
+    }
+
+    // --- 6️⃣ Pas d'erreur : retourne la réponse normale ---
+    response
+}
+
+/// --- Render Helpers ---
+
+fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
     let mut context = Context::new();
     inject_global_vars(&mut context, config, csrf_token);
 
@@ -96,8 +119,7 @@ pub fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String
     }
 }
 
-/// Rend la page 500 (Production)
-pub fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
+fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
     let mut context = Context::new();
     inject_global_vars(&mut context, config, csrf_token);
 
@@ -107,7 +129,6 @@ pub fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String
     }
 }
 
-/// Rend la page de debug riche (Développement)
 fn render_debug_error_from_context(
     tera: &Tera,
     config: &RuniqueConfig,
@@ -132,7 +153,7 @@ fn render_debug_error_from_context(
     }
 }
 
-/// Injecte les variables communes à tous les templates d'erreur
+/// Injecte variables globales pour templates
 fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token: Option<String>) {
     context.insert("static_runique", &config.static_files.static_runique_url);
     context.insert("timestamp", &Utc::now().to_rfc3339());
@@ -141,7 +162,7 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
     }
 }
 
-// --- FALLBACKS ---
+/// --- FALLBACKS ---
 
 fn fallback_404_html() -> Response {
     let html = r#"<!DOCTYPE html><html><head><title>404</title></head><body><h1>404 - Not Found</h1></body></html>"#;

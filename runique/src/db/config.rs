@@ -22,9 +22,9 @@
 
 use dotenvy::dotenv;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::Duration;
-
 /// Advanced database configuration
 ///
 /// Contains all parameters needed to establish and manage a database
@@ -46,7 +46,7 @@ use std::time::Duration;
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     /// Database connection URL
     pub url: String,
@@ -89,7 +89,7 @@ pub struct DatabaseConfig {
 /// assert_eq!(engine, DatabaseEngine::PostgreSQL);
 /// # Ok::<(), String>(())
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseEngine {
     /// PostgreSQL database
     PostgreSQL,

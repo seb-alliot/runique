@@ -6,7 +6,7 @@
 
 ## Version
 
-**Current**: 1.1.1
+**Current**: 1.1.11
 **Last Release**: 24 janvier 2026
 **License**: MIT
 

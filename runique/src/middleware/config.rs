@@ -1,7 +1,10 @@
 /// Configuration centralisée de tous les middlewares Runique
 ///
 /// Note: Le CSRF est TOUJOURS activé (imposé par le framework pour la sécurité)
-#[derive(Debug, Clone)]
+///
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiddlewareConfig {
     // Sécurité
     pub enable_csp: bool,           // CSP + security headers (avec nonce)
