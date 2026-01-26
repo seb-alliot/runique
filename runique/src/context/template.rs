@@ -1,3 +1,4 @@
+use crate::app::templates::TemplateLoader;
 use crate::context::error::ErrorContext;
 use crate::engine::RuniqueEngine;
 use crate::flash::Message;
@@ -90,14 +91,17 @@ where
             .get::<Arc<RuniqueEngine>>()
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
         let csrf_token = ex
             .get::<CsrfToken>()
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
         let session = ex
             .get::<Session>()
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
         let nonce = ex.get::<CspNonce>().map(|n| n.as_str()).unwrap_or_default();
 
         let notices = Message {
@@ -123,11 +127,52 @@ where
 }
 
 impl TemplateContext {
+    pub fn new(engine: Arc<RuniqueEngine>, session: Session, csrf_token: CsrfToken) -> Self {
+        let mut context = tera::Context::new();
+        // mod reload pour les templates en debug
+        // Le backend ne peux être reloadé ici car il est partagé entre les requêtes
+        context.insert("debug", &engine.config.debug);
+        context.insert("static_runique", &engine.config.static_files.static_url);
+        context.insert("csrf_token", &csrf_token.masked().as_str());
+
+        Self {
+            engine,
+            session: session.clone(),
+            notices: Message { session },
+            csrf_token,
+            context,
+        }
+    }
     /// Rendu générique unique pour éviter la duplication
     pub fn render(&mut self, template: &str) -> AppResult<Response> {
-        self.engine
-            .tera
-            .render(template, &self.context)
+        let html_result = if self.engine.config.debug {
+            // En mode debug, on réinitialise Tera complètement via ton Loader
+            // Cela applique les Regex sur {% messages %}, {% form.xxx %}, etc.
+            match TemplateLoader::init(&self.engine.config, self.engine.url_registry.clone()) {
+                Ok(mut dev_tera) => {
+                    dev_tera.autoescape_on(vec!["html", "xml"]);
+
+                    let res = dev_tera.render(template, &self.context);
+                    if let Err(ref e) = res {
+                        println!("[Erreur rendu Runique (Debug)]: {:?}", e);
+                    }
+                    res
+                }
+                Err(e) => {
+                    println!("[Erreur Initialisation Loader (Debug)]: {:?}", e);
+                    return Err(AppError::map_tera(
+                        tera::Error::msg(e.to_string()),
+                        template,
+                        &self.engine.tera,
+                    ));
+                }
+            }
+        } else {
+            // Mode Production : utilise l'instance déjà transformée
+            self.engine.tera.render(template, &self.context)
+        };
+
+        html_result
             .map(|html| Html(html).into_response())
             .map_err(|e| AppError::map_tera(e, template, &self.engine.tera))
     }

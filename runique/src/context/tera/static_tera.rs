@@ -1,4 +1,7 @@
-use crate::context::tera::{form, url};
+use crate::context::tera::csp;
+use crate::context::tera::form;
+use crate::context::tera::url::LinkFunction;
+use crate::middleware::CsrfTokenFunction;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tera::{Result as TeraResult, Tera, Value};
@@ -49,6 +52,7 @@ pub fn register_all_asset_filters(
     tera.register_filter("runique_media", generic_url_filter(runique_media_url));
     tera.register_filter("form", form::form_filter);
     tera.register_filter("csrf_field", csrf_field_filter);
-
-    url::register_link_function(tera, url_registry);
+    tera.register_function("csrf_token", CsrfTokenFunction);
+    tera.register_function("nonce", csp::nonce_function);
+    tera.register_function("link", LinkFunction { url_registry });
 }
