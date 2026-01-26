@@ -37,32 +37,25 @@ pub async fn soumission_inscription(
     mut template: TemplateContext,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
-    let db = template.engine.db.clone();
-
+    // 1. Validation logique et CSRF (le signal intégré)
     if form.is_valid().await {
-        match form.save(&db).await {
-            Ok(user) => {
-                success!(template.notices => format!("Bienvenue {}, votre compte a été créé !", user.username));
-                return Ok(Redirect::to("/").into_response());
-            }
-            Err(err) => {
-                // Extraire automatiquement l'erreur d'unicité et l'assigner au bon champ
-                form.get_form_mut().database_error(&err);
+        // 2. Tentative de sauvegarde avec l'opérateur ?
+        // Si save() renvoie une DbErr, elle est convertie en AppError et retournée
+        let user = form.save(&template.engine.db).await.map_err(|err| {
+            // Avant de propager l'erreur, on peut injecter le message dans le prisme
+            form.get_form_mut().database_error(&err);
+            AppError::from(err)
+        })?;
 
-                context_update!(template => {
-                    "title" => "Erreur de base de données",
-                    "inscription_form" => &form,
-                });
-
-                return template.render("inscription_form.html");
-            }
-        }
+        success!(template.notices => format!("Bienvenue {}, votre compte est créé !", user.username));
+        return Ok(Redirect::to("/").into_response());
     }
 
+    // 3. Cas d'erreur de validation
     context_update!(template => {
-        "title" => "Erreur de validation",
+        "title" => "Erreur",
         "inscription_form" => &form,
-        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
     });
 
     template.render("inscription_form.html")
@@ -165,8 +158,12 @@ pub async fn blog_save(
             }
         }
     }
-    success!(template.notices => "Article de blog sauvegardé avec succès !");
-    Ok(Redirect::to("/").into_response())
+    context_update!(template => {
+        "title" => "Erreur de validation",
+        "blog_form" => &blog_save,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+    });
+    return template.render("blog/blog.html");
 }
 
 /// Page "À propos"

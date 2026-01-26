@@ -160,6 +160,7 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
     if let Some(token) = csrf_token {
         context.insert("csrf_token", &token);
     }
+    context.insert("debug", &config.debug);
 }
 
 /// --- FALLBACKS ---

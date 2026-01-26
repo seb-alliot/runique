@@ -1,13 +1,6 @@
 use crate::context::error::ErrorContext;
-/// Contexte centralisé pour un handler Axum / template Tera
-/// Contient :
-/// - Engine (config, Tera, etc.)
-/// - Flash messages
-/// - Token CSRF
-/// - Nonce CSP
-/// - Helpers pour rendre les templates et injecter dynamiquement des variables
 use crate::engine::RuniqueEngine;
-use crate::flash::{FlashMessage, Message};
+use crate::flash::Message;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
     extract::FromRequestParts,
@@ -19,97 +12,48 @@ use std::sync::Arc;
 use tera::Context;
 use tower_sessions::Session;
 
+// --- GESTION DES ERREURS ---
+
 pub struct AppError {
-    context: ErrorContext,
+    pub context: ErrorContext,
 }
 
-/// Type alias pour les résultats avec AppError boxé (optimisation Clippy)
 pub type AppResult<T> = Result<T, Box<AppError>>;
 
 impl AppError {
-    /// Créer depuis une erreur Tera
-    pub fn from_tera(error: tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
-        Self {
-            context: ErrorContext::from_tera_error(&error, template_name, tera),
-        }
+    pub fn new(context: ErrorContext) -> Self {
+        Self { context }
     }
 
-    /// Créer depuis anyhow
-    pub fn from_anyhow(error: anyhow::Error) -> Self {
-        Self {
-            context: ErrorContext::from_anyhow(&error),
-        }
-    }
-
-    /// Créer depuis une erreur de base de données
-    pub fn from_db(error: DbErr) -> Self {
-        Self {
-            context: ErrorContext::database(error),
-        }
-    }
-
-    /// Créer une erreur interne générique
-    pub fn internal(message: impl Into<String>) -> Self {
-        Self {
-            context: ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, &message.into()),
-        }
-    }
-
-    /// Créer une erreur de validation
-    pub fn validation(message: impl Into<String>) -> Self {
-        Self {
-            context: ErrorContext::new(
-                crate::context::error::ErrorType::Validation,
-                StatusCode::BAD_REQUEST,
-                "Validation Error",
-                &message.into(),
-            ),
-        }
-    }
-
-    /// Créer une 404
-    pub fn not_found(path: &str) -> Self {
-        Self {
-            context: ErrorContext::not_found(path),
-        }
+    // Helper générique pour mapper les erreurs connues
+    pub fn map_tera(e: tera::Error, route: &str, tera: &tera::Tera) -> Box<Self> {
+        Box::new(Self {
+            context: ErrorContext::from_tera_error(&e, route, tera),
+        })
     }
 }
 
-// Conversion automatique depuis anyhow::Error
-impl From<anyhow::Error> for AppError {
-    fn from(error: anyhow::Error) -> Self {
-        Self::from_anyhow(error)
-    }
+// Factorisation des conversions avec une macro interne simple
+macro_rules! impl_from_error {
+    ($($err:ty => $method:ident),*) => {
+        $(
+            impl From<$err> for AppError {
+                fn from(err: $err) -> Self { Self { context: ErrorContext::$method(&err) } }
+            }
+            impl From<$err> for Box<AppError> {
+                fn from(err: $err) -> Self { Box::new(AppError::from(err)) }
+            }
+        )*
+    };
 }
 
-// Conversion automatique depuis DbErr (SeaORM)
-impl From<DbErr> for AppError {
-    fn from(error: DbErr) -> Self {
-        Self::from_db(error)
-    }
-}
-
-// Conversion automatique depuis anyhow::Error vers Box<AppError>
-impl From<anyhow::Error> for Box<AppError> {
-    fn from(error: anyhow::Error) -> Self {
-        Box::new(AppError::from_anyhow(error))
-    }
-}
-
-// Conversion automatique depuis DbErr vers Box<AppError>
-impl From<DbErr> for Box<AppError> {
-    fn from(error: DbErr) -> Self {
-        Box::new(AppError::from_db(error))
-    }
-}
+impl_from_error!(anyhow::Error => from_anyhow, DbErr => database);
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = StatusCode::from_u16(self.context.status_code)
             .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-
         let mut res = status.into_response();
-        // Injecte le ErrorContext complet dans les extensions
         res.extensions_mut().insert(Arc::new(self.context));
         res
     }
@@ -121,13 +65,14 @@ impl IntoResponse for Box<AppError> {
     }
 }
 
+// --- CONTEXTE DE TEMPLATE ---
+
+#[derive(Clone)]
 pub struct TemplateContext {
     pub engine: Arc<RuniqueEngine>,
     pub session: Session,
     pub notices: Message,
-    pub messages: Vec<FlashMessage>,
     pub csrf_token: CsrfToken,
-    pub csp_nonce: String,
     pub context: Context,
 }
 
@@ -138,117 +83,73 @@ where
     type Rejection = StatusCode;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        //  Récupération de l'Engine depuis les extensions
-        let engine = parts
-            .extensions
-            .get::<Arc<RuniqueEngine>>()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+        let ex = &parts.extensions;
 
-        //  Récupération du token CSRF depuis les extensions
-        let csrf_token: CsrfToken = parts
-            .extensions
+        // Extraction rapide
+        let engine = ex
+            .get::<Arc<RuniqueEngine>>()
+            .cloned()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+        let csrf_token = ex
             .get::<CsrfToken>()
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        //  Récupération du nonce CSP depuis les extensions
-        let csp_nonce: String = parts
-            .extensions
-            .get::<CspNonce>()
-            .map(|n| n.as_str().to_string())
-            .unwrap_or_default();
-
-        //  Récupération de la session et création du FlashManager
-        let session = parts
-            .extensions
+        let session = ex
             .get::<Session>()
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+        let nonce = ex.get::<CspNonce>().map(|n| n.as_str()).unwrap_or_default();
 
         let notices = Message {
             session: session.clone(),
         };
+        let messages = notices.get_all().await;
 
-        // Récupère les messages pour le template
-        let messages: Vec<FlashMessage> = notices.get_all().await;
-
-        //  Initialiser le contexto Tera com as variáveis globais
         let mut context = Context::new();
         context.insert("debug", &engine.config.debug);
         context.insert("csrf_token", &csrf_token.masked().as_str());
-        context.insert("csp_nonce", &csp_nonce);
+        context.insert("csp_nonce", nonce);
         context.insert("static_runique", &engine.config.static_files);
         context.insert("messages", &messages);
 
         Ok(Self {
-            engine: engine.clone(),
+            engine,
             session,
             notices,
-            messages,
             csrf_token,
-            csp_nonce,
             context,
         })
     }
 }
 
-impl Clone for TemplateContext {
-    fn clone(&self) -> Self {
-        Self {
-            engine: self.engine.clone(),
-            session: self.session.clone(),
-            notices: self.notices.clone(),
-            messages: self.messages.clone(),
-            csrf_token: self.csrf_token.clone(),
-            csp_nonce: self.csp_nonce.clone(),
-            context: self.context.clone(),
-        }
-    }
-}
-
 impl TemplateContext {
-    /// Rendu d'un template Tera avec capture complète des erreurs
-    pub fn render(&self, template_route: &str) -> AppResult<Response> {
-        match self.engine.tera.render(template_route, &self.context) {
-            Ok(html) => Ok(Html(html).into_response()),
-            Err(e) => {
-                // Utilise le builder dédié qui capture toutes les infos Tera
-                Err(Box::new(AppError::from_tera(
-                    e,
-                    template_route,
-                    &self.engine.tera,
-                )))
-            }
-        }
+    /// Rendu générique unique pour éviter la duplication
+    pub fn render(&mut self, template: &str) -> AppResult<Response> {
+        self.engine
+            .tera
+            .render(template, &self.context)
+            .map(|html| Html(html).into_response())
+            .map_err(|e| AppError::map_tera(e, template, &self.engine.tera))
     }
 
-    /// Helper pour insérer des données dans le contexte (renommé pour être plus idiomatique)
-    pub fn insert(&mut self, key: &str, value: &impl serde::Serialize) -> &mut Self {
-        self.context.insert(key, value);
+    /// Insertion fluide avec pattern builder
+    pub fn insert(mut self, key: &str, value: impl serde::Serialize) -> Self {
+        self.context.insert(key, &value);
         self
     }
 
-    /// Helper chainable pour plusieurs insertions
-    pub fn with_data(mut self, data: Vec<(&str, serde_json::Value)>) -> Self {
-        for (key, value) in data {
-            self.context.insert(key, &value);
-        }
-        self
-    }
-
-    /// Rendu direct avec les données injectées
+    /// Rendu immédiat avec données additionnelles
     pub fn render_with(
-        &mut self,
-        template_route: &str,
+        mut self,
+        template: &str,
         data: Vec<(&str, serde_json::Value)>,
     ) -> AppResult<Response> {
-        for (key, value) in data {
-            self.context.insert(key, &value);
+        for (k, v) in data {
+            self.context.insert(k, &v);
         }
-        self.render(template_route)
+        self.render(template)
     }
 
-    /// Crée un formulaire vide avec le token CSRF et le moteur Tera déjà injectés
     pub fn form<T: crate::forms::field::RuniqueForm>(&self) -> T {
         T::build(self.engine.tera.clone(), self.csrf_token.as_str())
     }
