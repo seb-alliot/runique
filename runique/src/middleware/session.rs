@@ -8,7 +8,7 @@ pub enum SessionBackend {
 }
 
 pub struct SessionConfig {
-    pub backend: SessionBackend,
+    pub session: SessionBackend,
     pub duration: Duration,
 }
 
@@ -22,7 +22,7 @@ impl SessionConfig {
 impl Default for SessionConfig {
     fn default() -> Self {
         Self {
-            backend: SessionBackend::Memory,
+            session: SessionBackend::Memory,
             duration: Duration::seconds(86400),
         }
     }
