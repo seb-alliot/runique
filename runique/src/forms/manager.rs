@@ -72,6 +72,7 @@ impl Serialize for Forms {
         state.serialize_field("data", &self.data())?;
         state.serialize_field("errors", &self.errors())?;
         state.serialize_field("global_errors", &self.global_errors)?;
+        state.serialize_field("cleaned_data", &self.data())?;
 
         let rendered_html = match self.render() {
             Ok(h) => h,
