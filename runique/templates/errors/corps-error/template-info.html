@@ -1,45 +1,47 @@
 <!-- TEMPLATE INFORMATION -->
 {% if template_info %}
-    <div class="section">
-        <h2 class="section-title">
-            <span>📄</span>
-            <span>Template Information</span>
-        </h2>
+<div class="section">
+    <h2 class="section-title">
+        <span>📄</span>
+        <span>Template Information</span>
+    </h2>
 
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="info-label">Template Name</div>
-                <div class="info-value">{{ template_info.name }}</div>
-            </div>
-
-            {% if template_info.line_number %}
-            <div class="info-item">
-                <div class="info-label">Line Number</div>
-                <div class="info-value">{{ template_info.line_number }}</div>
-            </div>
-            {% endif %}
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">Template Name</div>
+            <div class="info-value">{{ template_info.name }}</div>
         </div>
 
-        {% if template_info.source %}
-        <h3 style="color: #8be9fd; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">
-            Template Source Code
-        </h3>
-        <div class="template-source">
-            <pre>{{ template_info.source }}</pre>
-        </div>
-        {% endif %}
-
-        {% if template_info.available_templates %}
-        <h3 style="color: #8be9fd; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">
-            Available Templates ({{ template_info.available_templates | length }})
-        </h3>
-        <div class="template-list">
-            <ul>
-            {% for tmpl in template_info.available_templates %}
-                <li>{{ tmpl }}</li>
-            {% endfor %}
-            </ul>
+        {% if template_info.line_number %}
+        <div class="info-item">
+            <div class="info-label">Line Number</div>
+            <div class="info-value">{{ template_info.line_number }}</div>
         </div>
         {% endif %}
     </div>
+
+    {% if template_info.source %}
+    <h3 style="color: #8be9fd; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">
+        Template Source Code
+    </h3>
+    <div class="template-source">
+        <pre>{{ template_info.source }}</pre>
+    </div>
+    {% endif %}
+
+    {% if template_info.available_templates and template_info.available_templates | length > 0 %}
+    <h3 style="color: #8be9fd; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">
+        Available Templates ({{ template_info.available_templates | length }})
+    </h3>
+    <div class="template-list">
+        <ul>
+        {% for tmpl in template_info.available_templates %}
+            <li>{{ tmpl }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+        <p>No other templates available</p>
+    {% endif %}
+</div>
 {% endif %}

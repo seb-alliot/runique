@@ -71,7 +71,9 @@ dyn-clone.workspace = true
 
 # Logging
 tracing.workspace = true
+tracing-futures.workspace = true
 tracing-subscriber.workspace = true
+thiserror.workspace = true
 
 # Async
 async-trait.workspace = true

@@ -1,7 +1,7 @@
-pub mod base;
 pub mod builder;
+pub mod template_intern;
 pub mod templates;
 
-pub use base::*;
 pub use builder::*;
+pub use template_intern::*;
 pub use templates::*;

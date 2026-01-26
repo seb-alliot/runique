@@ -1,31 +1,24 @@
 // Liste des templates internes chargés par load_internal_templates
-const INTERNAL_TEMPLATES: &[&str] = &[
-    "base_index",
-    "message",
-    "404",
-    "500",
-    "debug",
-    "csrf",
-    "csp",
-    "errors/corps-error/header-error.html",
-    "errors/corps-error/message-error.html",
-    "errors/corps-error/template-info.html",
-    "errors/corps-error/stack-trace-error.html",
-    "errors/corps-error/request-info.html",
-    "errors/corps-error/environment-info.html",
-    "errors/corps-error/status-code-info.html",
-    "errors/corps-error/footer-error.html",
-    "base_boolean",
-    "base_checkbox",
-    "base_color",
-    "base_datetime",
-    "base_file",
-    "base_number",
-    "base_radio",
-    "base_select",
-    "base_special",
-    "base_string",
-];
+use crate::app::template_intern::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+
+use std::sync::OnceLock;
+
+static INTERNAL_TEMPLATES: OnceLock<Vec<&'static str>> = OnceLock::new();
+
+fn get_internal_templates() -> &'static [&'static str] {
+    INTERNAL_TEMPLATES
+        .get_or_init(|| {
+            SIMPLE_TEMPLATES
+                .iter()
+                .chain(ERROR_CORPS.iter())
+                .chain(FIELD_TEMPLATES.iter())
+                .map(|(name, _)| *name)
+                .collect::<Vec<&'static str>>()
+        })
+        .as_slice()
+}
+
+use crate::errors::track_error::RuniqueError;
 use crate::middleware::RequestInfoHelper;
 use axum::http::StatusCode;
 use serde::Serialize;
@@ -144,7 +137,7 @@ impl ErrorContext {
             line_number: Self::extract_tera_line(error),
             available_templates: tera
                 .get_template_names()
-                .filter(|s| !INTERNAL_TEMPLATES.contains(s))
+                .filter(|s| !get_internal_templates().contains(s))
                 .map(|s| s.to_string())
                 .collect(),
         });
@@ -275,4 +268,71 @@ fn rust_version() -> String {
             "N/A".to_string()
         })
         .clone()
+}
+
+impl ErrorContext {
+    /// Crée un ErrorContext à partir d'un RuniqueError en remplissant toutes les infos
+    pub fn from_runique_error(
+        err: &RuniqueError,
+        path: Option<&str>,
+        request_helper: Option<&RequestInfoHelper>,
+        template_name: Option<&str>,
+        tera: Option<&tera::Tera>,
+    ) -> Self {
+        // Crée le contexte de base selon le type d'erreur
+        let mut ctx = match err {
+            RuniqueError::Internal => Self::generic(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Une erreur interne est survenue",
+            ),
+            RuniqueError::Forbidden => Self::generic(StatusCode::FORBIDDEN, "Accès interdit"),
+            RuniqueError::NotFound => {
+                let path = path.unwrap_or("/");
+                Self::not_found(path)
+            }
+            RuniqueError::Validation(msg) => Self::generic(StatusCode::BAD_REQUEST, msg),
+            RuniqueError::Database(msg) => {
+                // Transforme en DbErr si tu utilises SeaORM
+                Self::database(sea_orm::DbErr::Custom(msg.clone()))
+            }
+            RuniqueError::Io(msg) => Self::generic(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("IO Error: {}", msg),
+            ),
+            RuniqueError::Template(msg) => {
+                // Contexte générique si pas de Tera fourni
+                Self::generic(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Template Error: {}", msg),
+                )
+            }
+            RuniqueError::Custom { message, source: _ } => {
+                Self::generic(StatusCode::INTERNAL_SERVER_ERROR, message)
+            }
+        };
+
+        //  Ajoute les infos de requête si disponibles
+        if let Some(helper) = request_helper {
+            ctx = ctx.with_request_helper(helper);
+        }
+
+        // Construire la stack trace
+        ctx.build_stack_trace(err);
+
+        // Si erreur template et qu'on a Tera + nom de template, ajoute template_info
+        if let (RuniqueError::Template(_), Some(tera), Some(name)) = (err, tera, template_name) {
+            ctx.template_info = Some(TemplateInfo {
+                name: name.to_string(),
+                source: read_template_source(name),
+                line_number: ErrorContext::extract_tera_line(&tera.get_template(name).unwrap_err()),
+                available_templates: tera
+                    .get_template_names()
+                    .filter(|s| !get_internal_templates().contains(s))
+                    .map(|s| s.to_string())
+                    .collect(),
+            });
+        }
+
+        ctx
+    }
 }

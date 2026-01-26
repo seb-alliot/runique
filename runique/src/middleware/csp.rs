@@ -10,10 +10,10 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-
+use serde::{Deserialize, Serialize};
 pub const NONCE_KEY: &str = "csp_nonce";
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CspConfig {
     pub default_src: Vec<String>,
     pub script_src: Vec<String>,
