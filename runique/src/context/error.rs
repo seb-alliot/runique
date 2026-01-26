@@ -240,8 +240,8 @@ impl ErrorContext {
     }
 }
 
-/// Lit le source d'un template
-fn read_template_source(template_name: &str) -> Option<String> {
+/// Lit la source du template
+pub fn read_template_source(template_name: &str) -> Option<String> {
     let template_path = format!("templates/{}", template_name);
     std::fs::read_to_string(&template_path).ok()
 }

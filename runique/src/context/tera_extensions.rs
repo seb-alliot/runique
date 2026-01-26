@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 use tera::Tera;
 
 // On pointe vers le dossier tera_tool de ton arborescence
-use crate::context::tera::{csp, csrf, register_all_asset_filters};
+pub use crate::context::tera::register_all_asset_filters;
 
 pub fn register_extensions(
     tera: &mut Tera,
@@ -19,10 +19,4 @@ pub fn register_extensions(
         static_url.clone(),
         url_registry,
     );
-
-    // Enregistrement CSRF
-    csrf::register_csrf_token(tera);
-
-    // Enregistrement CSP
-    tera.register_function("nonce", csp::nonce_function);
 }

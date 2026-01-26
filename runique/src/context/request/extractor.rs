@@ -1,4 +1,4 @@
-use crate::context::request::{template, TemplateEngine};
+use crate::context::TemplateContext;
 use crate::engine::RuniqueEngine;
 use crate::flash::Message;
 use crate::middleware::auth::{get_user_id, is_authenticated};
@@ -14,7 +14,7 @@ use tower_sessions::Session;
 // — Le gestionnaire de flash messages (`Message`)
 pub struct RuniqueContext {
     pub engine: Arc<RuniqueEngine>,
-    pub tpl: template::TemplateEngine,
+    pub tpl: TemplateContext,
     pub flash: Message,
 }
 
@@ -79,10 +79,10 @@ where
         // 4. Construction du contexte complet
         Ok(Self {
             engine: engine.clone(),
-            tpl: TemplateEngine::new(engine.clone(), csrf_token.masked().as_str().to_string()),
+            tpl: TemplateContext::new(engine.clone(), session.clone(), csrf_token.clone()),
             flash: Message {
                 session: session.clone(),
-            }, // flash messages
+            },
         })
     }
 }

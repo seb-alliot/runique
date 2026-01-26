@@ -253,7 +253,7 @@ pub mod prelude {
     // CONTEXTE & TEMPLATE
     // ========================================================================
     pub use crate::context::error::*;
-    pub use crate::context::request::{RuniqueContext, TemplateEngine};
+    pub use crate::context::request::RuniqueContext;
     pub use crate::context::tera::*;
 
     // ========================================================================
