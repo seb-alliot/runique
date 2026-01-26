@@ -1,26 +1,23 @@
 // runique/src/middleware/allowed_hosts.rs
 
-use crate::config::RuniqueConfig;
+use crate::engine::RuniqueEngine;
 use axum::{
-    extract::Request,
-    http::{header, HeaderMap, StatusCode},
+    body::Body,
+    extract::State,
+    http::{header, HeaderMap, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-/// Middleware de validation des hosts autorisés
-///
-/// Protège contre les attaques de type Host Header Injection
-/// Inspiré de Django's ALLOWED_HOSTS
-#[derive(Debug, Clone)]
-pub struct AllowedHostsValidator {
-    allowed_hosts: Vec<String>,
-    debug: bool,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct HostPolicy {
+    pub allowed_hosts: Vec<String>,
+    pub debug: bool, // Ajouté pour la cohérence avec is_host_allowed
 }
 
-impl AllowedHostsValidator {
-    /// Crée un nouveau validateur de hosts
+impl HostPolicy {
     pub fn new(allowed_hosts: Vec<String>, debug: bool) -> Self {
         Self {
             allowed_hosts,
@@ -28,94 +25,72 @@ impl AllowedHostsValidator {
         }
     }
 
-    /// Crée le validateur depuis les Settings
-    pub fn from_settings(settings: &RuniqueConfig) -> Self {
-        Self::new(vec![settings.server.domain_server.clone()], settings.debug)
+    pub fn from_env() -> Self {
+        let hosts = std::env::var("RUNIQUE_POLICY_ALLOWED_HOSTS")
+            .unwrap_or_else(|_| "localhost:3000".to_string())
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        // On synchronise le mode debug avec l'interrupteur global
+        let debug = std::env::var("RUNIQUE_ENABLE_DEBUG_ERRORS")
+            .map(|v| v.parse().unwrap_or(false))
+            .unwrap_or(false);
+
+        Self {
+            allowed_hosts: hosts,
+            debug,
+        }
     }
 
-    /// Vérifie si un host est autorisé
-    ///
-    /// Supporte:
-    /// - Correspondance exacte: "exemple.com"
-    /// - Wildcard tous: "*"
-    /// - Wildcard sous-domaines: ".exemple.com" match "api.exemple.com", "www.exemple.com", etc.
     pub fn is_host_allowed(&self, host: &str) -> bool {
-        // En mode debug, on est plus permissif
         if self.debug {
             return true;
-        }
+        } //
 
-        // Nettoie le host (retire le port si présent)
         let host = host.split(':').next().unwrap_or(host);
 
-        // Vérifie si le host est dans la liste
         self.allowed_hosts.iter().any(|allowed| {
             if allowed == "*" {
-                // Wildcard complet (dangereux en production!)
                 true
             } else if allowed.starts_with('.') {
-                // Wildcard sous-domaines: ".exemple.com"
-                // Match: api.exemple.com, www.exemple.com, etc.
-                // Match aussi: exemple.com (sans le point)
-                // Ne match PAS: malicious-exemple.com (bug de sécurité corrigé)
                 if host == &allowed[1..] {
                     true
                 } else if host.ends_with(allowed) {
-                    // Vérifie que le caractère à l'index où commence la correspondance est un point
-                    // pour éviter que "malicious-exemple.com" match ".exemple.com"
                     let match_start = host.len() - allowed.len();
-                    // match_start doit être > 0 (pas au début) et le caractère à cet index doit être '.'
                     match_start > 0 && host.as_bytes()[match_start] == b'.'
                 } else {
                     false
                 }
             } else {
-                // Correspondance exacte
                 allowed == host
             }
         })
     }
 
-    /// Valide le host depuis les headers HTTP
     pub fn validate(&self, headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
-        // Récupère l'en-tête Host
         let host = match headers.get(header::HOST) {
-            Some(h) => match h.to_str() {
-                Ok(s) => s,
-                Err(_) => {
-                    return Err((
-                        StatusCode::BAD_REQUEST,
-                        self.make_error_message("<invalid host header>"),
-                    ));
-                }
-            },
+            Some(h) => h.to_str().unwrap_or("<invalid host header>"),
             None => {
                 return Err((
                     StatusCode::BAD_REQUEST,
                     self.make_error_message("<no host>"),
-                ));
+                ))
             }
         };
 
-        // Vérifie si le host est autorisé
         if !self.is_host_allowed(host) {
-            eprintln!(
-                "⚠️  Host non autorisé: '{}'. Hosts autorisés: {:?}",
-                host, self.allowed_hosts
-            );
             return Err((StatusCode::BAD_REQUEST, self.make_error_message(host)));
         }
-
         Ok(())
     }
 
-    /// Génère le message d'erreur approprié
     fn make_error_message(&self, host: &str) -> String {
         if self.debug {
             format!(
-                "Invalid HTTP_HOST header: '{}'\n\
-                You may need to add '{}' to ALLOWED_HOSTS.",
-                host, host
+                "Invalid Host: '{}'. Add it to RUNIQUE_POLICY_ALLOWED_HOSTS.",
+                host
             )
         } else {
             "Bad Request".to_string()
@@ -123,34 +98,16 @@ impl AllowedHostsValidator {
     }
 }
 
-/// Middleware Axum pour valider les hosts autorisés
-///
-/// ```rust,no_run
-/// # use runique::prelude::*;
-/// # async fn doc() -> Result<(), Box<dyn std::error::Error>> {
-/// let settings = RuniqueConfig::from_env();
-/// let routes = Router::new();
-///
-/// let app = RuniqueApp::builder(settings)
-///     .routes(routes)
-///     .build()
-///     .await?;
-/// # Ok(())
-/// # }
-/// ```
 pub async fn allowed_hosts_middleware(
-    settings: axum::extract::Extension<Arc<RuniqueConfig>>,
-    request: Request,
+    State(engine): State<Arc<RuniqueEngine>>, // Utilise maintenant ton Engine central
+    request: Request<Body>,
     next: Next,
 ) -> Response {
-    let validator = AllowedHostsValidator::from_settings(&settings);
-
-    // Valide le host
-    if let Err((status, message)) = validator.validate(request.headers()) {
+    // On utilise les "meubles" déjà chargés dans l'engine au démarrage
+    if let Err((status, message)) = engine.security_hosts.validate(request.headers()) {
         return (status, message).into_response();
     }
 
-    // Continue vers le prochain middleware
     next.run(request).await
 }
 
@@ -160,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_exact_match() {
-        let validator = AllowedHostsValidator::new(vec!["exemple.com".to_string()], false);
+        let validator = HostPolicy::new(vec!["exemple.com".to_string()], false);
 
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(!validator.is_host_allowed("www.exemple.com"));
@@ -169,8 +126,7 @@ mod tests {
 
     #[test]
     fn test_wildcard_subdomain() {
-        let validator = AllowedHostsValidator::new(vec![".exemple.com".to_string()], false);
-
+        let validator = HostPolicy::new(vec![".exemple.com".to_string()], false);
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(validator.is_host_allowed("www.exemple.com"));
         assert!(validator.is_host_allowed("api.exemple.com"));
@@ -180,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_wildcard_all() {
-        let validator = AllowedHostsValidator::new(vec!["*".to_string()], false);
+        let validator = HostPolicy::new(vec!["*".to_string()], false);
 
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(validator.is_host_allowed("n-importe-quoi.com"));
@@ -188,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_multiple_hosts() {
-        let validator = AllowedHostsValidator::new(
+        let validator = HostPolicy::new(
             vec![
                 "exemple.com".to_string(),
                 "www.exemple.com".to_string(),
@@ -206,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_host_with_port() {
-        let validator = AllowedHostsValidator::new(vec!["exemple.com".to_string()], false);
+        let validator = HostPolicy::new(vec!["exemple.com".to_string()], false);
 
         assert!(validator.is_host_allowed("exemple.com:8080"));
         assert!(validator.is_host_allowed("exemple.com:443"));
@@ -214,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_debug_mode_allows_all() {
-        let validator = AllowedHostsValidator::new(
+        let validator = HostPolicy::new(
             vec!["exemple.com".to_string()],
             true, // debug = true
         );
@@ -226,7 +182,7 @@ mod tests {
     #[test]
     fn test_wildcard_subdomain_security() {
         // Test pour éviter que "malicious-exemple.com" match ".exemple.com"
-        let validator = AllowedHostsValidator::new(vec![".exemple.com".to_string()], false);
+        let validator = HostPolicy::new(vec![".exemple.com".to_string()], false);
 
         // Doit matcher
         assert!(validator.is_host_allowed("exemple.com"));

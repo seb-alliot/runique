@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 pub const NONCE_KEY: &str = "csp_nonce";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CspConfig {
+pub struct SecurityPolicy {
     pub default_src: Vec<String>,
     pub script_src: Vec<String>,
     pub style_src: Vec<String>,
@@ -27,7 +27,7 @@ pub struct CspConfig {
     pub use_nonce: bool,
 }
 
-impl Default for CspConfig {
+impl Default for SecurityPolicy {
     fn default() -> Self {
         Self {
             default_src: vec!["'self'".into()],
@@ -44,7 +44,42 @@ impl Default for CspConfig {
     }
 }
 
-impl CspConfig {
+impl SecurityPolicy {
+    pub fn from_env() -> Self {
+        let mut config = Self::default();
+        let get_list = |key: &str| -> Option<Vec<String>> {
+            std::env::var(key).ok().map(|v| {
+                v.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect()
+            })
+        };
+
+        // On utilise les nouveaux noms explicites
+        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_DEFAULT") {
+            config.default_src = list;
+        }
+        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_SCRIPTS") {
+            config.script_src = list;
+        }
+        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_STYLES") {
+            config.style_src = list;
+        }
+        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_IMAGES") {
+            config.img_src = list;
+        }
+        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_FONTS") {
+            config.font_src = list;
+        }
+
+        config.use_nonce = std::env::var("RUNIQUE_POLICY_CSP_STRICT_NONCE")
+            .map(|v| v.parse().unwrap_or(true))
+            .unwrap_or(true);
+
+        config
+    }
+
     pub fn strict() -> Self {
         Self {
             default_src: vec!["'self'".into()],
@@ -135,7 +170,7 @@ pub async fn csp_middleware(
 ) -> Response {
     let mut response: axum::http::Response<Body> = next.run(req).await;
 
-    let csp_value = engine.csp.to_header_value(None);
+    let csp_value = engine.security_csp.to_header_value(None);
     if let Ok(header) = HeaderValue::from_str(&csp_value) {
         response
             .headers_mut()
@@ -153,7 +188,7 @@ pub async fn csp_report_only_middleware(
 ) -> Response {
     let mut response = next.run(req).await;
 
-    let csp_value = engine.csp.to_header_value(None);
+    let csp_value = engine.security_csp.to_header_value(None);
     if let Ok(header) = HeaderValue::from_str(&csp_value) {
         response.headers_mut().insert(
             axum::http::header::CONTENT_SECURITY_POLICY_REPORT_ONLY,
@@ -182,7 +217,7 @@ pub async fn security_headers_middleware(
     let headers = response.headers_mut();
 
     // Utiliser le nonce pour construire la CSP
-    let csp_value = engine.csp.to_header_value(Some(nonce.as_str()));
+    let csp_value = engine.security_csp.to_header_value(Some(nonce.as_str()));
     if let Ok(header) = HeaderValue::from_str(&csp_value) {
         headers.insert(axum::http::header::CONTENT_SECURITY_POLICY, header);
     }

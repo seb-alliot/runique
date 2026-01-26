@@ -1,4 +1,4 @@
-use axum::{middleware, Router};
+use axum::Router;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tokio::signal;
@@ -12,7 +12,8 @@ use crate::context::RequestExtensions;
 use crate::engine::RuniqueEngine;
 use crate::macros::router::add_urls;
 use crate::middleware::session::SessionConfig;
-use crate::middleware::{csrf_middleware, error_handler_middleware, MiddlewareConfig};
+// Import des composants de sécurité et config
+use crate::middleware::{HostPolicy, MiddlewareConfig, SecurityPolicy};
 
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
@@ -35,9 +36,14 @@ impl RuniqueApp {
 
         println!("🦀 Runique Framework is operational");
         println!("   Server launched on http://{}", addr);
-        let moteur_db = self.engine.db.get_database_backend();
-        let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
-        println!("   Connected to database {:?} -> {} ", moteur_db, db_name);
+
+        #[cfg(feature = "orm")]
+        {
+            let moteur_db = self.engine.db.get_database_backend();
+            let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
+            println!("   Connected to database {:?} -> {} ", moteur_db, db_name);
+        }
+
         let listener = tokio::net::TcpListener::bind(&addr).await?;
 
         axum::serve(listener, self.router)
@@ -57,7 +63,7 @@ pub struct RuniqueAppBuilder {
     url_registry: Arc<RwLock<HashMap<String, String>>>,
     #[cfg(feature = "orm")]
     db: Option<DatabaseConnection>,
-    middleware_config: MiddlewareConfig,
+    features: MiddlewareConfig,
     session_config: SessionConfig,
 }
 
@@ -68,7 +74,7 @@ pub struct RuniqueAppBuilderWithStore<Store: SessionStore + Clone> {
 
 impl RuniqueAppBuilder {
     pub fn new(config: RuniqueConfig) -> Self {
-        let middleware_config = if config.debug {
+        let features = if config.debug {
             MiddlewareConfig::development()
         } else {
             MiddlewareConfig::production()
@@ -80,7 +86,7 @@ impl RuniqueAppBuilder {
             url_registry: Arc::new(RwLock::new(HashMap::new())),
             #[cfg(feature = "orm")]
             db: None,
-            middleware_config,
+            features,
             session_config: SessionConfig::default(),
         }
     }
@@ -102,7 +108,7 @@ impl RuniqueAppBuilder {
     }
 
     pub fn with_error_handler(mut self, enable: bool) -> Self {
-        self.middleware_config = self.middleware_config.with_error_handler(enable);
+        self.features.enable_debug_errors = enable;
         self
     }
 
@@ -134,38 +140,32 @@ impl RuniqueAppBuilder {
             );
         }
 
-        if !config.static_files.media_runique_url.is_empty() {
-            router = router.nest_service(
-                &config.static_files.media_runique_url,
-                ServeDir::new(&config.static_files.media_runique_path),
-            );
-        }
-
         router
     }
 
     fn build_pipeline<S: SessionStore + Clone + Send + Sync + 'static>(
-        mut router: Router,
+        router: Router,
+        config: Arc<RuniqueConfig>,
+        session_layer: SessionManagerLayer<S>,
         engine: Arc<RuniqueEngine>,
         tera: Arc<tera::Tera>,
-        config: Arc<RuniqueConfig>,
-        middleware_config: MiddlewareConfig,
-        session_layer: SessionManagerLayer<S>,
     ) -> Router {
+        let mut app_router = router;
+
+        // ═══════════════════════════════════════════════════════════════
+        // Superposition des middlewares => extremement important
+        // ═══════════════════════════════════════════════════════════════
+
+        // ÉTAPE 1 (Dernier exécuté) - Middlewares de sécurité
+        app_router = RuniqueEngine::attach_middlewares(engine.clone(), app_router);
+
+        // ÉTAPE 2 - Session
+        app_router = app_router.layer(session_layer);
+        
+        // ÉTAPE 3 (Premier exécuté) - Injection Extensions
+        // DOIT être EN DERNIER dans le code = PREMIER exécuté
         let engine_ext = engine.clone();
-
-        router = router.layer(middleware::from_fn_with_state(
-            engine.clone(),
-            csrf_middleware,
-        ));
-
-        router = router.layer(session_layer);
-
-        if middleware_config.enable_error_handler {
-            router = router.layer(middleware::from_fn(error_handler_middleware));
-        }
-
-        router = router.layer(axum::middleware::from_fn(
+        app_router = app_router.layer(axum::middleware::from_fn(
             move |mut req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
                 let extensions = RequestExtensions::new()
                     .with_tera(tera.clone())
@@ -177,7 +177,8 @@ impl RuniqueAppBuilder {
             },
         ));
 
-        Self::static_runique(router, &engine.config)
+        // Statiques - En dehors de la pile
+        Self::static_runique(app_router, &engine.config)
     }
 
     pub async fn build(self) -> Result<RuniqueApp, Box<dyn std::error::Error>> {
@@ -185,7 +186,6 @@ impl RuniqueAppBuilder {
             &self.config,
             self.url_registry.clone(),
         )?);
-
         let config = Arc::new(self.config);
 
         let engine = Arc::new(RuniqueEngine {
@@ -193,9 +193,10 @@ impl RuniqueAppBuilder {
             tera: tera.clone(),
             #[cfg(feature = "orm")]
             db: Arc::new(self.db.expect("Database required")),
-            middleware_config: self.middleware_config.clone(),
+            features: self.features.clone(),
             url_registry: self.url_registry.clone(),
-            csp: Arc::new(Default::default()),
+            security_csp: Arc::new(SecurityPolicy::from_env()),
+            security_hosts: Arc::new(HostPolicy::from_env()),
         });
 
         add_urls(&engine);
@@ -205,14 +206,7 @@ impl RuniqueAppBuilder {
             .with_http_only(!config.debug)
             .with_expiry(Expiry::OnInactivity(self.session_config.duration));
 
-        let router = Self::build_pipeline(
-            self.router,
-            engine.clone(),
-            tera,
-            config,
-            self.middleware_config,
-            session_layer,
-        );
+        let router = Self::build_pipeline(self.router, config, session_layer, engine.clone(), tera);
 
         Ok(RuniqueApp { engine, router })
     }
@@ -224,19 +218,12 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
         self
     }
 
-    pub fn with_session_duration(mut self, duration: Duration) -> Self {
-        self.base.session_config = self.base.session_config.with_duration(duration);
-        self
-    }
-
     pub async fn build(self) -> Result<RuniqueApp, Box<dyn std::error::Error>> {
         let base = self.base;
-
         let tera = Arc::new(TemplateLoader::init(
             &base.config,
             base.url_registry.clone(),
         )?);
-
         let config = Arc::new(base.config);
 
         let engine = Arc::new(RuniqueEngine {
@@ -244,9 +231,10 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
             tera: tera.clone(),
             #[cfg(feature = "orm")]
             db: Arc::new(base.db.expect("Database required")),
-            middleware_config: base.middleware_config.clone(),
+            features: base.features.clone(),
             url_registry: base.url_registry.clone(),
-            csp: Arc::new(Default::default()),
+            security_csp: Arc::new(SecurityPolicy::from_env()),
+            security_hosts: Arc::new(HostPolicy::from_env()),
         });
 
         add_urls(&engine);
@@ -258,11 +246,10 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
 
         let router = RuniqueAppBuilder::build_pipeline(
             base.router,
+            config,
+            session_layer,
             engine.clone(),
             tera,
-            config,
-            base.middleware_config,
-            session_layer,
         );
 
         Ok(RuniqueApp { engine, router })

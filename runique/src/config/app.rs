@@ -2,11 +2,13 @@ use crate::config::{
     security::SecurityConfig, server::ServerConfig, settings::AppSettings,
     static_files::StaticConfig,
 };
+use crate::middleware::MiddlewareConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuniqueConfig {
     pub server: ServerConfig,
+    pub middleware: MiddlewareConfig,
     pub security: SecurityConfig,
     pub static_files: StaticConfig,
     pub app: AppSettings,
@@ -21,6 +23,7 @@ impl RuniqueConfig {
         // 2. Assembler les composants en essayant de lire l'environnement
         Self {
             server: ServerConfig::from_env(),
+            middleware: MiddlewareConfig::from_env(),
             security: SecurityConfig::from_env(),
             static_files: StaticConfig::from_env(),
             app: AppSettings::from_env(),
