@@ -12,9 +12,7 @@ use crate::context::RequestExtensions;
 use crate::engine::RuniqueEngine;
 use crate::macros::router::add_urls;
 use crate::middleware::session::SessionConfig;
-use crate::middleware::{
-    csrf_middleware, error_handler_middleware, sanitize_middleware, MiddlewareConfig,
-};
+use crate::middleware::{csrf_middleware, error_handler_middleware, MiddlewareConfig};
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
 
@@ -216,14 +214,6 @@ impl RuniqueAppBuilder {
 
         let mut final_router = self.router;
 
-        // Appliquer les middlewares conditionnellement
-        if middleware_config.enable_sanitizer {
-            final_router = final_router.layer(middleware::from_fn_with_state(
-                engine.clone(),
-                sanitize_middleware,
-            ));
-        }
-
         final_router = final_router.layer(middleware::from_fn_with_state(
             engine.clone(),
             csrf_middleware,
@@ -327,13 +317,6 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
         let engine_ext: Arc<RuniqueEngine> = engine.clone();
 
         let mut final_router = base.router;
-
-        if base.middleware_config.enable_sanitizer {
-            final_router = final_router.layer(middleware::from_fn_with_state(
-                engine.clone(),
-                sanitize_middleware,
-            ));
-        }
 
         final_router = final_router.layer(middleware::from_fn_with_state(
             engine.clone(),

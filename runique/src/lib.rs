@@ -126,11 +126,9 @@ pub mod gardefou {
         pub use crate::middleware::auth::*;
         pub use crate::middleware::cache::*;
         pub use crate::middleware::config::*;
-        pub use crate::middleware::config_middleware::*;
         pub use crate::middleware::csp::*;
         pub use crate::middleware::csrf::*;
         pub use crate::middleware::error::*;
-        pub use crate::middleware::sanitizer::*;
     }
 
     pub use composant_middleware::*;
@@ -261,7 +259,7 @@ pub mod prelude {
     // MIDDLEWARE
     // ========================================================================
     pub use crate::middleware::{
-        allowed_hosts::*, auth::*, cache::*, config::*, csp::*, csrf::*, error::*, sanitizer::*,
+        allowed_hosts::*, auth::*, cache::*, config::*, csp::*, csrf::*, error::*,
     };
 
     // ========================================================================

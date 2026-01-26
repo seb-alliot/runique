@@ -9,7 +9,7 @@
 ### Vérifier les versions:
 
 ```bash
-rustc --version    # Rust 1.70+5+
+rustc --version    # Rust 1.75+
 cargo --version    # Cargo 1.75+
 postgres --version # PostgreSQL 12+
 ```

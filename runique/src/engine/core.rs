@@ -6,7 +6,7 @@ use tera::Tera;
 use crate::config::RuniqueConfig;
 use crate::middleware::MiddlewareConfig;
 use crate::middleware::{
-    csrf_middleware, dev_no_cache_middleware, error_handler_middleware, sanitize_middleware,
+    csrf_middleware, dev_no_cache_middleware, error_handler_middleware,
     security_headers_middleware, CspConfig,
 };
 #[cfg(feature = "orm")]
@@ -27,12 +27,7 @@ impl RuniqueEngine {
     pub fn attach_middlewares(engine: Arc<Self>, router: Router) -> Router {
         let config = &engine.middleware_config;
         let mut router = router;
-        if config.enable_sanitizer {
-            router = router.layer(middleware::from_fn_with_state(
-                engine.clone(),
-                sanitize_middleware,
-            ));
-        }
+
         // CSRF toujours activé (voir doc MiddlewareConfig)
         router = router.layer(middleware::from_fn_with_state(
             engine.clone(),

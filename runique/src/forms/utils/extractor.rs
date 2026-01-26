@@ -1,6 +1,8 @@
 use crate::config::RuniqueConfig;
 use crate::forms::field::RuniqueForm;
 use crate::forms::utils::prisme::{aegis, csrf_gate, sentinel};
+use crate::formulaire::{auto_sanitize, is_sensitive_field};
+
 use axum::{
     body::Body,
     extract::FromRequest,
@@ -71,11 +73,20 @@ where
     if let Some(prisme) = csrf_gate::<T>(&parsed, csrf_session.as_str(), tera.clone()).await? {
         return Ok(prisme);
     }
+    // On récupère le flag depuis la config injectée par le builder
+    let mut form_data = convert_for_form(parsed);
 
-    let form_data_for_validation = convert_for_form(parsed);
+    if config.security.sanitize_inputs {
+        for (key, value) in form_data.iter_mut() {
+            // On ne sanitize pas les champs sensibles (mots de passe)
+            if !is_sensitive_field(key) {
+                *value = auto_sanitize(value);
+            }
+        }
+    }
 
     let mut form = T::build_with_data(
-        &form_data_for_validation,
+        &form_data, // Maintenant potentiellement nettoyé
         tera.clone(),
         csrf_session.as_str(),
     )
