@@ -2,15 +2,15 @@
 
 ## Prérequis
 
-- **Rust 1.70+** - [Installer rustup](https://rustup.rs/)
+- **Rust 1.75+** - [Installer rustup](https://rustup.rs/)
 - **PostgreSQL 12+** (ou SQLite pour dev)
 - **Git**
 
 ### Vérifier les versions:
 
 ```bash
-rustc --version    # Rust 1.70+
-cargo --version    # Cargo 1.70+
+rustc --version    # Rust 1.70+5+
+cargo --version    # Cargo 1.75+
 postgres --version # PostgreSQL 12+
 ```
 
@@ -241,7 +241,7 @@ psql -U postgres -d runique -c "\dp"
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 ```
 
-### ❌ "SQLite driver not enabled"
+###  "SQLite driver est normalement activé de base modifier la base de donnée prise en charge par sea-orm dans votre cargo"
 
 Vérifier que la feature est activée dans `Cargo.toml`:
 ```toml

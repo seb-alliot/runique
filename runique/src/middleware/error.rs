@@ -50,8 +50,6 @@ pub async fn error_handler_middleware(
     let status = response.status();
     // 2. Exécution du cycle de vie de la requête
     if status.is_server_error() || status == StatusCode::NOT_FOUND {
-        // Dans error_handler_middleware, remplace cette partie :
-
         if config.debug {
             // Essaie de récupérer le ErrorContext depuis les extensions
             let error_ctx = response
@@ -143,7 +141,7 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
     }
 }
 
-// --- FALLBACKS (Sécurité ultime si Tera crash) ---
+// --- FALLBACKS ---
 
 fn fallback_404_html() -> Response {
     let html = r#"<!DOCTYPE html><html><head><title>404</title></head><body><h1>404 - Not Found</h1></body></html>"#;

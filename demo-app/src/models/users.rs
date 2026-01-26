@@ -1,4 +1,5 @@
 use runique::prelude::*;
+// DeriveModelForm  a jouter quand la macro sera modifiée
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "users")]

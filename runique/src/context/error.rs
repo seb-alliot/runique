@@ -1,3 +1,31 @@
+// Liste des templates internes chargés par load_internal_templates
+const INTERNAL_TEMPLATES: &[&str] = &[
+    "base_index",
+    "message",
+    "404",
+    "500",
+    "debug",
+    "csrf",
+    "csp",
+    "errors/corps-error/header-error.html",
+    "errors/corps-error/message-error.html",
+    "errors/corps-error/template-info.html",
+    "errors/corps-error/stack-trace-error.html",
+    "errors/corps-error/request-info.html",
+    "errors/corps-error/environment-info.html",
+    "errors/corps-error/status-code-info.html",
+    "errors/corps-error/footer-error.html",
+    "base_boolean",
+    "base_checkbox",
+    "base_color",
+    "base_datetime",
+    "base_file",
+    "base_number",
+    "base_radio",
+    "base_select",
+    "base_special",
+    "base_string",
+];
 use crate::middleware::RequestInfoHelper;
 use axum::http::StatusCode;
 use serde::Serialize;
@@ -114,7 +142,11 @@ impl ErrorContext {
             name: template_name.to_string(),
             source: read_template_source(template_name),
             line_number: Self::extract_tera_line(error),
-            available_templates: tera.get_template_names().map(|s| s.to_string()).collect(),
+            available_templates: tera
+                .get_template_names()
+                .filter(|s| !INTERNAL_TEMPLATES.contains(s))
+                .map(|s| s.to_string())
+                .collect(),
         });
 
         ctx.build_stack_trace(error);

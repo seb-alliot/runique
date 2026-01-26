@@ -145,28 +145,14 @@ pub async fn handler(
 
 ---
 
-## État Global vs Instance
-
-### ❌ Ancien design (problématique)
-
-```rust
-// Formulaire partagé en state
-struct AppState {
-    form: MyForm,  // ⚠️ Race condition!
-}
-
-// Request 1 remplit le form
-// Request 2 remplit le form
-// Request 3 lit le form → ??? Conflits!
-```
-
 ### ✅ Nouveau design (correct)
 
 ```rust
 // Copie par requête
 pub async fn handler(
+    mut template: TemplateContext,
     Prisme(form): Prisme<MyForm>
-) -> Response {
+) -> AppResult<Response> {
     // Chaque requête = formulaire isolé
     // Zero concurrence
 }
@@ -190,7 +176,6 @@ Abstraction ORM:
 
 ### formulaire/
 Système de formulaires:
-- RuniqueForm derive macro
 - Field types (text, email, textarea, etc.)
 - Validation
 - Prisme extractor
@@ -201,13 +186,48 @@ Middleware de sécurité:
 - ALLOWED_HOSTS validation
 - Nonce
 - Login required middleware
-- Redirect if authenticated
+- ...
 
 ### macro_runique/
 Macros utilitaires:
 - `context!` - Créer contexte template
-- `success!`, `error!`, `warning!`, `info!` - Flash messages
+
+```rust
+pub async fn handler(mut template: TemplateContext)AppResult<Response> {
+    let form = template.form::<RegisterForm>();
+    context_update!(template => {
+        "title" => "Inscription utilisateur",
+           })}
+```
+
+- `success!`, `error!`, `warning!`, `info!` - Flash messages pour les redirection
+
+```rust
+success!(template.notices => "Ceci est un message de succès.");
+info!(template.notices => "Ceci est un message d'information.")
+warning!(template.notices => "Ceci est un message d'avertissement.");
+error!(template.notices => "Ceci est un message d'erreur.");
+```
+
+- Celle ci est faite pour les message de redirection , avec des class css specifique personnalisable
+
+```rust
+flash_now!(warning => "Veuillez corriger les erreurs ci-dessous")
+```
+- Celle ci est prevue pour des messages immediat sur un rendu classique hors redirection
+
 - `urlpatterns!` - Définir routes
+```rust
+pub fn routes() -> Router {
+    let router = urlpatterns! {
+        "/" => view!{ GET => views::index }, name = "index",
+
+        "/about" => view! { GET => views::about }, name = "about",
+        "/inscription" => view! { GET => views::inscription, POST => views::soumission_inscription }, name = "inscription",
+    };
+    router
+}
+```
 
 ### moteur_engine/
 Moteur principal:
@@ -284,16 +304,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Créer et lancer l'application
     RuniqueApp::builder(config)
-        .routes(url::routes())
+        .routes(router)
         .with_database(db)
+        .with_static_files()
+        .with_csp(true)
+        .with_allowed_hosts(true)
+        .with_sanitizer(true)
         .build()
-        .await?
-        .run()
         .await?;
 
     Ok(())
 }
-
+RuniqueApp::builder(config)
+    .routes(router)
+    .with_static_files()
+    .build()
+    .await?
+    .run()
+    .await?;
 ```
 
 ### Request Handling

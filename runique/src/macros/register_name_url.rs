@@ -43,7 +43,7 @@ pub fn reverse_with_parameters(
 }
 
 /// Transfère toutes les URLs en attente vers l'engine
-pub fn flush_pending_urls(engine: &Arc<RuniqueEngine>) {
+pub fn add_urls(engine: &Arc<RuniqueEngine>) {
     let mut pending = PENDING_URLS.lock().unwrap();
     let mut map = engine.url_registry.write().unwrap();
 
