@@ -57,7 +57,7 @@ pub async fn csrf_middleware(
             t
         }
         None => {
-            let token = if crate::middleware::is_authenticated(&session).await {
+            let token = if crate::middleware::auth::is_authenticated(&session).await {
                 let user_id: i32 = session
                     .get::<i32>("user_id")
                     .await

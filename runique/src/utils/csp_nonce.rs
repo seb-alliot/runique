@@ -24,24 +24,29 @@ impl CspNonce {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn test_nonce_generation() {
-//         let nonce1 = generate_csp_nonce();
-//         let nonce2 = generate_csp_nonce();
+    fn nonce_attr() -> String {
+        let nonce = CspNonce::generate();
+        format!("nonce=\"{}\"", nonce.as_str())
+    }
 
-//         assert!(!nonce1.is_empty());
-//         assert!(!nonce2.is_empty());
-//         assert_ne!(nonce1, nonce2); // Doivent être différents
-//     }
+    #[test]
+    fn test_nonce_generation() {
+        let nonce1 = CspNonce::generate();
+        let nonce2 = CspNonce::generate();
 
-//     #[test]
-//     fn test_nonce_attr() {
-//         let attr = nonce_attr();
-//         assert!(attr.starts_with("nonce="));
-//         assert!(attr.contains('"'));
-//     }
-// }
+        assert!(!nonce1.as_str().is_empty());
+        assert!(!nonce2.as_str().is_empty());
+        assert_ne!(nonce1.as_str(), nonce2.as_str()); 
+    }
+
+    #[test]
+    fn test_nonce_attr() {
+        let attr = nonce_attr();
+        assert!(attr.starts_with("nonce="));
+        assert!(attr.contains('"'));
+    }
+}
