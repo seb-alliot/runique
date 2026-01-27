@@ -161,7 +161,7 @@ impl RuniqueAppBuilder {
 
         // ÉTAPE 2 - Session
         app_router = app_router.layer(session_layer);
-        
+
         // ÉTAPE 3 (Premier exécuté) - Injection Extensions
         // DOIT être EN DERNIER dans le code = PREMIER exécuté
         let engine_ext: Arc<RuniqueEngine> = engine.clone();
