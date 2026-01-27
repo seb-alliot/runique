@@ -164,7 +164,7 @@ impl RuniqueAppBuilder {
         
         // ÉTAPE 3 (Premier exécuté) - Injection Extensions
         // DOIT être EN DERNIER dans le code = PREMIER exécuté
-        let engine_ext = engine.clone();
+        let engine_ext: Arc<RuniqueEngine> = engine.clone();
         app_router = app_router.layer(axum::middleware::from_fn(
             move |mut req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
                 let extensions = RequestExtensions::new()
