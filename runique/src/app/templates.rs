@@ -1,5 +1,5 @@
-use crate::app::template_intern::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 use crate::config::RuniqueConfig;
+use crate::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 use crate::context::tera::static_tera;
 use regex::{Captures, Regex};
 use std::collections::HashMap;

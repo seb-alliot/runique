@@ -1,8 +1,8 @@
+use crate::constante::FLASH_KEY;
+use crate::flash::flash_struct::FlashMessage;
 use axum::extract::FromRequestParts;
 use axum::http::{request::Parts, StatusCode};
 use tower_sessions::Session;
-
-use super::{FlashMessage, FLASH_KEY};
 
 #[derive(Clone, Debug)]
 pub struct Message {

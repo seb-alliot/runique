@@ -1,5 +1,7 @@
 // runique/src/middleware/auth.rs
 
+use crate::config::AppSettings;
+use crate::constante::{SESSION_USER_ID_KEY, SESSION_USER_USERNAME_KEY};
 use crate::context::RequestExtensions;
 use axum::{
     extract::Request,
@@ -7,9 +9,6 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use tower_sessions::Session;
-use crate::constante::{SESSION_USER_USERNAME_KEY, SESSION_USER_ID_KEY};
-use crate::config::settings;
-
 
 /// Vérifie si l'utilisateur est authentifié
 pub async fn is_authenticated(session: &Session) -> bool {
@@ -74,8 +73,8 @@ pub async fn login_required(session: Session, request: Request, next: Next) -> R
         next.run(request).await
     } else {
         // Rediriger vers la page de login
-        let login_url = settings::AppSettings::default().logging_config.clone();
-        Redirect::to(&login_url.to_string()).into_response()
+        let redirect_anonymous = AppSettings::default().redirect_anonymous;
+        Redirect::to(&redirect_anonymous).into_response()
     }
 }
 
@@ -97,8 +96,8 @@ pub async fn login_required(session: Session, request: Request, next: Next) -> R
 pub async fn redirect_if_authenticated(session: Session, request: Request, next: Next) -> Response {
     // Si déjà connecté, rediriger vers dashboard
     if is_authenticated(&session).await {
-        let redirect_url = "/dashboard"; // Configurable ?
-        Redirect::to(redirect_url).into_response()
+        let redirect_url = AppSettings::default().user_connected;
+        Redirect::to(&redirect_url).into_response()
     } else {
         next.run(request).await
     }

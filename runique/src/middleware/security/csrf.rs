@@ -1,3 +1,4 @@
+use crate::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
 use crate::context::RequestExtensions;
 use crate::engine::RuniqueEngine;
 use crate::utils::csrf::{CsrfContext, CsrfToken};
@@ -12,7 +13,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tera::{Function, Result as TeraResult, Value};
 use tower_sessions::Session;
-use crate::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
 
 pub struct CsrfTokenFunction;
 

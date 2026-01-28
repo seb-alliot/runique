@@ -1,5 +1,5 @@
 use crate::config::RuniqueConfig;
-use crate::forms::utils::prisme::rules::{evaluate_rules, GuardContext, GuardRules};
+use crate::forms::prisme::rules::{evaluate_rules, GuardContext, GuardRules};
 use axum::{body::Body, http::Request, response::Response};
 
 /// Sentinel : point d'entrée pour les règles d'accès (login, rôle, feature flags).

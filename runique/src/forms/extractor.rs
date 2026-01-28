@@ -1,6 +1,6 @@
 use crate::config::RuniqueConfig;
 use crate::forms::field::RuniqueForm;
-use crate::forms::utils::prisme::{aegis, csrf_gate, sentinel};
+use crate::forms::prisme::{aegis, csrf_gate, sentinel};
 use crate::formulaire::{auto_sanitize, is_sensitive_field};
 
 use axum::{

@@ -40,7 +40,7 @@ mod tests {
 
         assert!(!nonce1.as_str().is_empty());
         assert!(!nonce2.as_str().is_empty());
-        assert_ne!(nonce1.as_str(), nonce2.as_str()); 
+        assert_ne!(nonce1.as_str(), nonce2.as_str());
     }
 
     #[test]
