@@ -1,5 +1,5 @@
+use crate::forms::extractor::Prisme;
 use crate::forms::field::RuniqueForm;
-use crate::forms::utils::extractor::Prisme;
 use axum::response::Response;
 use std::collections::HashMap;
 use std::sync::Arc;

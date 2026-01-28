@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-pub const FLASH_KEY: &str = "flash_messages";
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MessageLevel {
     Success,

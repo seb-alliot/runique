@@ -51,7 +51,10 @@ impl HostPolicy {
         fn normalize_host(host: &str) -> &str {
             if host.starts_with('[') {
                 // IPv6, garder jusqu'à ]
-                host.split(']').next().map(|h| &host[..h.len()+1]).unwrap_or(host)
+                host.split(']')
+                    .next()
+                    .map(|h| &host[..h.len() + 1])
+                    .unwrap_or(host)
             } else {
                 host.split(':').next().unwrap_or(host)
             }

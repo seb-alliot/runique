@@ -45,10 +45,10 @@ pub mod flash;
 pub mod forms;
 #[macro_use]
 pub mod macros;
+mod constante;
 pub mod errors;
 pub mod middleware;
 pub mod utils;
-mod constante;
 
 // ---------------------------------------------------------------------------
 // Alias de compatibilité pour l’ancien nommage
@@ -115,15 +115,15 @@ pub mod formulaire {
     }
 
     pub mod utils {
-        pub use crate::forms::utils::*;
+        pub use crate::utils::*;
     }
 
     pub use builder_form::*;
     pub use utils::*;
 }
 
-pub mod gardefou {
-    pub mod composant_middleware {
+pub mod middleware_runique {
+    pub mod middleware {
         pub use crate::middleware::allowed_hosts::*;
         pub use crate::middleware::auth::*;
         pub use crate::middleware::cache::*;
@@ -133,7 +133,7 @@ pub mod gardefou {
         pub use crate::middleware::errors::*;
     }
 
-    pub use composant_middleware::*;
+    pub use middleware::*;
 }
 
 pub mod macro_runique {
@@ -181,7 +181,7 @@ pub mod runique_start {
 
     pub use crate::app::*;
 }
-
+pub use forms::Prisme;
 // ---------------------------------------------------------------------------
 // Ré-export des dépendances principales
 // ---------------------------------------------------------------------------
@@ -234,6 +234,7 @@ pub mod prelude {
         },
         generic::{FieldKind, GenericField},
         manager::Forms,
+        Prisme,
     };
     pub use derive_form::DeriveModelForm;
 

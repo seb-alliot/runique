@@ -1,5 +1,5 @@
 // Liste des templates internes chargés par load_internal_templates
-use crate::app::template_intern::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+use crate::constante::template::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 
 use std::sync::OnceLock;
 
