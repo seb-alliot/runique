@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 use tera::Tera;
+use crate::constante::CSRF_TOKEN_KEY;
 
 // Erreurs possibles lors de la validation du formulaire liée a la bdd
 #[derive(Debug, Clone)]
@@ -118,7 +119,7 @@ impl Forms {
         csrf_field.set_value(csrf_token);
 
         fields.insert(
-            "csrf_token".to_string(),
+            CSRF_TOKEN_KEY.to_string(),
             Box::new(csrf_field) as Box<dyn FormField>,
         );
 
@@ -186,7 +187,7 @@ impl Forms {
         VALIDATION_DEPTH.with(|d| d.set(current_depth + 1));
 
         // VALIDATION SPÉCIALE POUR LE CSRF
-        if let Some(csrf_field) = self.fields.get_mut("csrf_token") {
+        if let Some(csrf_field) = self.fields.get_mut(CSRF_TOKEN_KEY) {
             let submitted_token = csrf_field.value().to_string();
 
             if let Some(session_token) = &self.session_csrf_token {

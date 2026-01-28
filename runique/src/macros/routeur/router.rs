@@ -1,4 +1,4 @@
-pub use crate::macros::register_name_url::{
+pub use crate::macros::routeur::register_url::{
     add_urls, register_name_url, register_pending, reverse, reverse_with_parameters,
 };
 
@@ -10,7 +10,7 @@ macro_rules! urlpatterns {
         let mut router = $crate::axum::Router::new();
 
         $(
-            $crate::macros::register_name_url::register_pending($name, $path);
+            $crate::macros::routeur::register_url::register_pending($name, $path);
 
             router = router.route($path, $handler);
         )*
