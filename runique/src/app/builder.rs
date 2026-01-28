@@ -10,7 +10,7 @@ use crate::app::templates::TemplateLoader;
 use crate::config::RuniqueConfig;
 use crate::context::RequestExtensions;
 use crate::engine::RuniqueEngine;
-use crate::macros::router::add_urls;
+use crate::macros::add_urls;
 use crate::middleware::session::SessionConfig;
 // Import des composants de sécurité et config
 use crate::middleware::{HostPolicy, MiddlewareConfig, SecurityPolicy};

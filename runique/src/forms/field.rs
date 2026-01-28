@@ -124,7 +124,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     // MODIFIÉ : Prend maintenant le token CSRF
     fn build(tera: Arc<Tera>, csrf_token: &str) -> Self {
-        let mut form = Forms::new(csrf_token); // 🔑 PASSAGE DU TOKEN
+        let mut form = Forms::new(csrf_token); // PASSAGE DU TOKEN
         form.set_tera(tera);
         Self::register_fields(&mut form);
         Self::from_form(form)
@@ -133,9 +133,9 @@ pub trait RuniqueForm: Sized + Send + Sync {
     async fn build_with_data(
         raw_data: &HashMap<String, String>,
         tera: Arc<Tera>,
-        csrf_token: &str, // 🔑 AJOUT DU PARAMÈTRE
+        csrf_token: &str, //  AJOUT DU PARAMÈTRE
     ) -> Self {
-        let mut form = Forms::new(csrf_token); // 🔑 PASSAGE DU TOKEN
+        let mut form = Forms::new(csrf_token); // PASSAGE DU TOKEN
 
         form.set_tera(tera.clone());
 
