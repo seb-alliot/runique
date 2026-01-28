@@ -11,7 +11,6 @@ use axum::{
     response::Response,
 };
 use serde::{Deserialize, Serialize};
-pub const NONCE_KEY: &str = "csp_nonce";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SecurityPolicy {

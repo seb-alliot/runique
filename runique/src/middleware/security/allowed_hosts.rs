@@ -48,8 +48,15 @@ impl HostPolicy {
         if self.debug {
             return true;
         } //
-
-        let host = host.split(':').next().unwrap_or(host);
+        fn normalize_host(host: &str) -> &str {
+            if host.starts_with('[') {
+                // IPv6, garder jusqu'à ]
+                host.split(']').next().map(|h| &host[..h.len()+1]).unwrap_or(host)
+            } else {
+                host.split(':').next().unwrap_or(host)
+            }
+        }
+        let host = normalize_host(host);
 
         self.allowed_hosts.iter().any(|allowed| {
             if allowed == "*" {

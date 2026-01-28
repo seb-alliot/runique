@@ -48,6 +48,7 @@ pub mod macros;
 pub mod errors;
 pub mod middleware;
 pub mod utils;
+mod constante;
 
 // ---------------------------------------------------------------------------
 // Alias de compatibilité pour l’ancien nommage
@@ -246,7 +247,6 @@ pub mod prelude {
     // ========================================================================
     pub use crate::utils::csp_nonce::*;
     pub use crate::utils::csrf::*;
-    pub use crate::utils::response_helpers::*;
 
     // ========================================================================
     // CONTEXTE & TEMPLATE
