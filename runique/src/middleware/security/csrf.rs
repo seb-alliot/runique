@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tera::{Function, Result as TeraResult, Value};
 use tower_sessions::Session;
+use crate::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
 
 pub struct CsrfTokenFunction;
 
@@ -22,7 +23,7 @@ impl Function for CsrfTokenFunction {
 
     fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
         let token_str = args
-            .get("csrf_token")
+            .get(CSRF_TOKEN_KEY)
             .and_then(|v| v.as_str())
             .unwrap_or("");
 
@@ -32,7 +33,6 @@ impl Function for CsrfTokenFunction {
         )))
     }
 }
-const CSRF_TOKEN_KEY: &str = "csrf_token";
 
 pub async fn csrf_middleware(
     State(engine): State<Arc<RuniqueEngine>>,
@@ -59,7 +59,7 @@ pub async fn csrf_middleware(
         None => {
             let token = if crate::middleware::auth::is_authenticated(&session).await {
                 let user_id: i32 = session
-                    .get::<i32>("user_id")
+                    .get::<i32>(SESSION_USER_ID_KEY)
                     .await
                     .ok()
                     .flatten()

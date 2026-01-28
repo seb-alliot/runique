@@ -7,10 +7,9 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use tower_sessions::Session;
+use crate::constante::{SESSION_USER_USERNAME_KEY, SESSION_USER_ID_KEY};
+use crate::config::settings;
 
-/// Clé de session pour stocker l'ID utilisateur
-pub const SESSION_USER_ID_KEY: &str = "user_id";
-pub const SESSION_USER_USERNAME_KEY: &str = "username";
 
 /// Vérifie si l'utilisateur est authentifié
 pub async fn is_authenticated(session: &Session) -> bool {
@@ -75,8 +74,8 @@ pub async fn login_required(session: Session, request: Request, next: Next) -> R
         next.run(request).await
     } else {
         // Rediriger vers la page de login
-        let login_url = "/login"; // Configurable via settings ?
-        Redirect::to(login_url).into_response()
+        let login_url = settings::AppSettings::default().logging_config.clone();
+        Redirect::to(&login_url.to_string()).into_response()
     }
 }
 

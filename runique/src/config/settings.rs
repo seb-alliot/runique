@@ -19,6 +19,7 @@ pub struct AppSettings {
 
 impl Default for AppSettings {
     fn default() -> Self {
+        let login_redirect = std::env::var("REDIRECT_ANONYMOUS").unwrap_or("/".to_string());
         Self {
             installed_apps: vec![],
             middleware: vec![],
@@ -30,7 +31,7 @@ impl Default for AppSettings {
             auth_password_validators: vec![],
             password_hashers: vec![],
             default_auto_field: "runique.db.models.AutoField".to_string(),
-            logging_config: "runique.utils.log.default_logging_config".to_string(),
+            logging_config: login_redirect
         }
     }
 }
