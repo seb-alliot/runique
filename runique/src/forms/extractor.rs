@@ -3,13 +3,14 @@ use crate::forms::field::RuniqueForm;
 use crate::forms::prisme::{aegis, csrf_gate, sentinel};
 use crate::formulaire::{auto_sanitize, is_sensitive_field};
 
+use crate::aliases::StrMap;
+use crate::aliases::StrVecMap;
 use axum::{
     body::Body,
     extract::FromRequest,
     http::{Request, StatusCode},
     response::{IntoResponse, Response},
 };
-use std::collections::HashMap;
 
 /// Prisme : pipeline Sentinel -> CSRF -> Aegis (extraction)
 pub struct Prisme<T>(pub T);
@@ -72,7 +73,7 @@ where
         for (key, value) in form_data.iter_mut() {
             // On ne sanitize pas les champs sensibles (mots de passe)
             if !is_sensitive_field(key) {
-                *value = auto_sanitize(value);
+                *value = auto_sanitize(value.as_str());
             }
         }
     }
@@ -101,7 +102,7 @@ where
     }
 }
 
-fn convert_for_form(parsed: HashMap<String, Vec<String>>) -> HashMap<String, String> {
+fn convert_for_form(parsed: StrVecMap) -> StrMap {
     parsed
         .into_iter()
         .filter_map(|(k, mut v)| v.pop().map(|val| (k, val)))

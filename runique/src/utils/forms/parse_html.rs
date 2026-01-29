@@ -1,3 +1,4 @@
+use crate::aliases::StrVecMap;
 use axum::extract::Multipart;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -10,12 +11,12 @@ use uuid::Uuid;
 pub async fn parse_multipart(
     mut multipart: Multipart,
     upload_dir: &Path,
-) -> Result<HashMap<String, Vec<String>>, Response> {
+) -> Result<StrVecMap, Response> {
     tokio::fs::create_dir_all(upload_dir)
         .await
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Upload dir error").into_response())?;
 
-    let mut data: HashMap<String, Vec<String>> = HashMap::new();
+    let mut data: StrVecMap = HashMap::new();
 
     while let Ok(Some(mut field)) = multipart.next_field().await {
         let name = match field.name() {

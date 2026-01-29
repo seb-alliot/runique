@@ -9,6 +9,9 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
 
+use crate::aliases::FieldsMap;
+use crate::aliases::JsonMap;
+use crate::aliases::StrMap;
 use crate::aliases::{ATera, OATera};
 use crate::constante::CSRF_TOKEN_KEY;
 
@@ -16,7 +19,7 @@ use crate::constante::CSRF_TOKEN_KEY;
 #[derive(Debug, Clone)]
 pub enum ValidationError {
     StackOverflow,
-    FieldValidation(HashMap<String, String>),
+    FieldValidation(StrMap),
     GlobalErrors(Vec<String>),
 }
 
@@ -47,7 +50,7 @@ thread_local! {
 
 #[derive(Clone)]
 pub struct Forms {
-    pub fields: IndexMap<String, Box<dyn FormField>>,
+    pub fields: FieldsMap,
     pub tera: OATera,
     pub global_errors: Vec<String>,
     pub session_csrf_token: Option<String>,
@@ -112,7 +115,7 @@ impl Serialize for Forms {
 
 impl Forms {
     pub fn new(csrf_token: &str) -> Self {
-        let mut fields: IndexMap<String, Box<dyn FormField>> = IndexMap::new();
+        let mut fields: FieldsMap = IndexMap::new();
 
         // Créer le champ CSRF
         let mut csrf_field = TextField::create_csrf();
@@ -161,7 +164,7 @@ impl Forms {
         self.tera = Some(tera);
     }
 
-    pub fn fill(&mut self, data: &HashMap<String, String>) {
+    pub fn fill(&mut self, data: &StrMap) {
         for field in self.fields.values_mut() {
             if let Some(value) = data.get(field.name()) {
                 field.set_value(value);
@@ -240,15 +243,15 @@ impl Forms {
         !self.global_errors.is_empty() || self.fields.values().any(|f| f.error().is_some())
     }
 
-    pub fn data(&self) -> HashMap<String, Value> {
+    pub fn data(&self) -> JsonMap {
         self.fields
             .iter()
             .map(|(name, field)| (name.clone(), field.to_json_value()))
             .collect()
     }
 
-    pub fn errors(&self) -> HashMap<String, String> {
-        let mut errs: HashMap<String, String> = self
+    pub fn errors(&self) -> StrMap {
+        let mut errs: StrMap = self
             .fields
             .iter()
             .filter_map(|(name, field)| field.error().map(|err| (name.clone(), err.clone())))

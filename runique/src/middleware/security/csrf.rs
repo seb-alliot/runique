@@ -1,3 +1,4 @@
+use crate::aliases::JsonMap;
 use crate::aliases::{AEngine, TResult};
 use crate::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
 use crate::context::RequestExtensions;
@@ -9,7 +10,6 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use std::collections::HashMap;
 use tera::{Function, Value};
 use tower_sessions::Session;
 
@@ -20,7 +20,7 @@ impl Function for CsrfTokenFunction {
         true
     }
 
-    fn call(&self, args: &HashMap<String, Value>) -> TResult {
+    fn call(&self, args: &JsonMap) -> TResult {
         let token_str = args
             .get(CSRF_TOKEN_KEY)
             .and_then(|v| v.as_str())

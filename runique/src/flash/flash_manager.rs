@@ -1,3 +1,4 @@
+use crate::aliases::Messages;
 use crate::constante::FLASH_KEY;
 use crate::flash::flash_struct::FlashMessage;
 use axum::extract::FromRequestParts;
@@ -30,7 +31,7 @@ impl Message {
     async fn push(&self, msg: FlashMessage) {
         let mut messages = self
             .session
-            .get::<Vec<FlashMessage>>(FLASH_KEY)
+            .get::<Messages>(FLASH_KEY)
             .await
             .ok()
             .flatten()
@@ -52,17 +53,17 @@ impl Message {
     pub async fn warning(&self, msg: impl Into<String>) {
         self.push(FlashMessage::warning(msg)).await
     }
-    pub async fn get_all(&self) -> Vec<FlashMessage> {
+    pub async fn get_all(&self) -> Messages {
         let messages = self
             .session
-            .get::<Vec<FlashMessage>>(FLASH_KEY)
+            .get::<Messages>(FLASH_KEY)
             .await
             .ok()
             .flatten()
             .unwrap_or_default();
 
         // Supprime après lecture pour effet “flash”
-        let _ = self.session.remove::<Vec<FlashMessage>>(FLASH_KEY).await;
+        let _ = self.session.remove::<Messages>(FLASH_KEY).await;
         messages
     }
 }

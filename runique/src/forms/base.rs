@@ -1,3 +1,4 @@
+use crate::aliases::StrMap;
 use crate::forms::options::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -11,9 +12,9 @@ pub struct FieldConfig {
     pub is_required: BoolChoice,
     pub error: Option<String>,
     pub type_field: String,
-    pub html_attributes: HashMap<String, String>,
+    pub html_attributes: StrMap,
     pub template_name: String,
-    pub extra_context: HashMap<String, String>,
+    pub extra_context: StrMap,
 }
 
 impl FieldConfig {

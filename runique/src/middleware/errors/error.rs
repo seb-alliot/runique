@@ -6,12 +6,12 @@ use axum::{
     response::{Html, IntoResponse, Response},
 };
 use chrono::Utc;
-use std::collections::HashMap;
 use std::sync::Arc;
 use tera::{Context, Tera};
 use tracing::{error, info, instrument};
 use tracing_futures::Instrument;
 
+use crate::aliases::StrMap;
 use crate::errors::track_error::RuniqueError;
 use crate::{config::RuniqueConfig, context::error::ErrorContext, utils::csrf::CsrfToken};
 
@@ -20,7 +20,7 @@ pub struct RequestInfoHelper {
     pub method: String,
     pub path: String,
     pub query: Option<String>,
-    pub headers: HashMap<String, String>,
+    pub headers: StrMap,
 }
 
 /// Middleware principal Runique avec tracing + debug

@@ -1,13 +1,13 @@
+use crate::aliases::JsonMap;
 use crate::aliases::{ARlockmap, TResult};
 use crate::context::tera::csp::nonce_function;
 use crate::context::tera::form::form_filter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
-use std::collections::HashMap;
 use tera::{Tera, Value};
 
 // Filtre pour générer un champ CSRF hidden
-fn csrf_filter(value: &Value, _: &HashMap<String, Value>) -> TResult {
+fn csrf_filter(value: &Value, _: &JsonMap) -> TResult {
     let token = value
         .as_str()
         .ok_or_else(|| tera::Error::msg("csrf_field filter requires a string token value"))?;
@@ -21,8 +21,8 @@ fn csrf_filter(value: &Value, _: &HashMap<String, Value>) -> TResult {
 }
 
 // Fonction générique interne pour éviter la répétition
-fn register_filter(base_url: String) -> impl Fn(&Value, &HashMap<String, Value>) -> TResult {
-    move |value: &Value, _: &HashMap<String, Value>| {
+fn register_filter(base_url: String) -> impl Fn(&Value, &JsonMap) -> TResult {
+    move |value: &Value, _: &JsonMap| {
         let file = value.as_str()
             .ok_or_else(|| tera::Error::msg(format!("Erreur Runique : Le filtre static/media a reçu une valeur invalide ({:?}) au lieu d'un chemin de fichier.", value)))?;
 

@@ -1,3 +1,5 @@
+use crate::aliases::StrMap;
+use crate::aliases::StrVecMap;
 use crate::config::RuniqueConfig;
 use crate::utils::parse_html::parse_multipart;
 use axum::{
@@ -16,11 +18,11 @@ pub async fn aegis<S>(
     state: &S,
     config: Arc<RuniqueConfig>,
     content_type: &str,
-) -> Result<HashMap<String, Vec<String>>, Response>
+) -> Result<StrVecMap, Response>
 where
     S: Send + Sync,
 {
-    let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
+    let mut parsed: StrVecMap = HashMap::new();
 
     if content_type.starts_with("multipart/form-data") {
         let multipart = Multipart::from_request(req, state)
@@ -38,13 +40,13 @@ where
             .to_bytes();
 
         if content_type.starts_with("application/x-www-form-urlencoded") {
-            parsed = serde_urlencoded::from_bytes::<HashMap<String, String>>(&bytes)
+            parsed = serde_urlencoded::from_bytes::<StrMap>(&bytes)
                 .unwrap_or_default()
                 .into_iter()
                 .map(|(k, v)| (k, vec![v]))
                 .collect();
         } else if content_type.starts_with("application/json") {
-            parsed = serde_json::from_slice::<HashMap<String, String>>(&bytes)
+            parsed = serde_json::from_slice::<StrMap>(&bytes)
                 .unwrap_or_default()
                 .into_iter()
                 .map(|(k, v)| (k, vec![v]))

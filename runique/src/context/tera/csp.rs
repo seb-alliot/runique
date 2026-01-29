@@ -1,7 +1,7 @@
 // runique/src/tera_function/nonce_balise.rs
 
+use crate::aliases::JsonMap;
 use crate::constante::NONCE_KEY;
-use std::collections::HashMap;
 use tera::Result as TeraResult;
 use tera::Value;
 
@@ -20,7 +20,7 @@ use tera::Value;
 ///     console.log('Hello');
 /// </script>
 /// ```
-pub fn nonce_function(args: &HashMap<String, Value>) -> TeraResult<Value> {
+pub fn nonce_function(args: &JsonMap) -> TeraResult<Value> {
     if let Some(nonce_value) = args.get(NONCE_KEY) {
         if let Some(nonce) = nonce_value.as_str() {
             return Ok(Value::String(nonce.to_string()));

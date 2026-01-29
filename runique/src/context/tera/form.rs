@@ -1,9 +1,9 @@
 // Dans src/tera_function/form_filter.rs
+use crate::aliases::JsonMap;
 use crate::aliases::TResult;
-use std::collections::HashMap;
 use tera::Value;
 
-pub fn form_filter(value: &Value, args: &HashMap<String, Value>) -> TResult {
+pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
     if let Some(field_name) = args.get("field").and_then(|v| v.as_str()) {
         // Essaie d'abord dans "fields"
         if let Some(fields) = value.get("fields").and_then(|f| f.as_object()) {
