@@ -12,9 +12,16 @@ use std::result::Result;
 use std::sync::Arc;
 use std::sync::RwLock;
 use tera::{Result as TeraResult, Tera, Value};
-use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
+use tower_sessions::{SessionManagerLayer, SessionStore};
 
-// --- ALIASES GÉNÉRIQUES ---
+// Import pour les nouveaux aliases collections
+use crate::flash::FlashMessage;
+use crate::forms::field::FormField;
+use indexmap::IndexMap;
+
+// ============================================================================
+// ALIASES ARC<T> - TYPES PARTAGÉS THREAD-SAFE
+// ============================================================================
 
 /// Tera
 pub type ATera = Arc<Tera>;
@@ -39,8 +46,14 @@ pub type OAEngine = Option<AEngine>;
 
 /// Runique Config
 pub type ARuniqueConfig = Arc<RuniqueConfig>;
-
 pub type OARuniqueConfig = Option<ARuniqueConfig>;
+
+/// Session Store (pour SessionBackend::Custom)
+pub type ASessionStore = Arc<dyn SessionStore + Send + Sync>;
+
+// ============================================================================
+// ALIASES OPTION<T> - TYPES OPTIONNELS
+// ============================================================================
 
 /// Current User
 pub type OCurrentUser = Option<CurrentUser>;
@@ -51,12 +64,52 @@ pub type OCsrfToken = Option<CsrfToken>;
 /// CSP Nonce
 pub type OCspNonce = Option<CspNonce>;
 
-/// Url Registry
+// ============================================================================
+// COLLECTIONS ALIASES - TYPES COLLECTIONS STANDARD
+// ============================================================================
+// Convention : UN alias par type concret (évite la répétition)
+// Les noms décrivent la structure, pas l'usage spécifique
+
+// --- Core Collections ---
+/// String-to-String map (headers, form data, attributes, errors, etc.)
+pub type StrMap = HashMap<String, String>;
+
+/// String-to-Vec<String> map (raw multipart/urlencoded form data)
+pub type StrVecMap = HashMap<String, Vec<String>>;
+
+/// String-to-JSON map (Tera args, serialized form data)
+pub type JsonMap = HashMap<String, Value>;
+
+/// Ordered form fields collection
+pub type FieldsMap = IndexMap<String, Box<dyn FormField>>;
+
+/// Flash messages list
+pub type Messages = Vec<FlashMessage>;
+
+// --- URL Registry ---
+/// Url Registry (déjà existant - conservé pour compatibilité)
 pub type ARlockmap = Arc<RwLock<HashMap<String, String>>>;
 
-/// alias session
+/// Pending URL registrations (name, path)
+pub type PendingUrls = Vec<(String, String)>;
+
+// ============================================================================
+// SESSION ALIASES
+// ============================================================================
+
+/// Alias session
 pub type Session<S> = SessionManagerLayer<S>;
 
-/// --- ALIAS APP RESULT ---
+// ============================================================================
+// RESULT ALIASES - TYPES DE RETOUR
+// ============================================================================
+
+/// Application Result Type
 pub type AppResult<T> = Result<T, Box<AppError>>;
+
+/// Tera Result Type
 pub type TResult = TeraResult<Value>;
+
+/// Database Result Type (optionnel, pour SeaORM)
+#[cfg(feature = "orm")]
+pub type DbResult<T> = Result<T, sea_orm::DbErr>;
