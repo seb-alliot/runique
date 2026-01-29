@@ -10,10 +10,15 @@
     {% block message %}
         {% messages %}
     {% endblock %}
+    <div id="form">
+        <form method="post" action="/inscription">
+            <!-- Les erreurs individuelles s'affichent automatiquement sous chaque champ -->
+            {% form.inscription_form %}
+            <button type="submit">S'inscrire</button>
+        </form>
 
-    <form method="post" action="/inscription">
-        <!-- Les erreurs individuelles s'affichent automatiquement sous chaque champ -->
-        {% form.inscription_form %}
-        <button type="submit">S'inscrire</button>
-    </form>
+        <div class="text-center mt-3">
+            <a href="/">← Retour à l'accueil</a>
+        </div>
+    </div>
 {% endblock %}
