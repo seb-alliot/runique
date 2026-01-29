@@ -9,10 +9,10 @@ body > main {
     }
 
 form {
-    width: 55%;
+    width: 35%;
     margin-left: auto;
     margin-right: auto;
-    margin-top: var(--margin-top);
+    margin-block: var(--margin-top);
     padding: 2rem;
     border: solid #003d9f;
     border-radius: 10px;
@@ -140,7 +140,11 @@ form button:active, .text-center:active {
     color: #fff;
     text-decoration: none;
 }
-
+#form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 /* =========================
    RESPONSIVE
    ========================= */
@@ -155,4 +159,3 @@ form button:active, .text-center:active {
         padding: 0.7rem;
     }
 }
-
