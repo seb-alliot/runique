@@ -1,5 +1,5 @@
 use crate::app::templates::TemplateLoader;
-use crate::context::error::ErrorContext;
+use crate::errors::error::ErrorContext;
 use crate::flash::Message;
 use crate::impl_from_error;
 use crate::utils::aliases::{AEngine, AppResult};

@@ -11,8 +11,11 @@ use tera::{Context, Tera};
 use tracing::{error, info, instrument};
 use tracing_futures::Instrument;
 
-use crate::errors::track_error::RuniqueError;
-use crate::{config::RuniqueConfig, context::error::ErrorContext, utils::csrf::CsrfToken};
+use crate::{
+    config::RuniqueConfig,
+    errors::error::{ErrorContext, RuniqueError},
+    utils::csrf::CsrfToken,
+};
 
 /// Transport des infos requête pour debug contextuel
 pub struct RequestInfoHelper {

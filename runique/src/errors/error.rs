@@ -1,28 +1,101 @@
-// Liste des templates internes chargés par load_internal_templates
-use crate::utils::constante::template::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
-
-use std::sync::OnceLock;
-
-static INTERNAL_TEMPLATES: OnceLock<Vec<&'static str>> = OnceLock::new();
-
-fn get_internal_templates() -> &'static [&'static str] {
-    INTERNAL_TEMPLATES
-        .get_or_init(|| {
-            SIMPLE_TEMPLATES
-                .iter()
-                .chain(ERROR_CORPS.iter())
-                .chain(FIELD_TEMPLATES.iter())
-                .map(|(name, _)| *name)
-                .collect::<Vec<&'static str>>()
-        })
-        .as_slice()
-}
-
-use crate::errors::track_error::RuniqueError;
 use crate::middleware::RequestInfoHelper;
 use crate::utils::aliases::StrMap;
-use axum::http::StatusCode;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use serde::Serialize;
+use thiserror::Error;
+use tracing::{error, info};
+
+// Type Result global pour Runique
+pub type RuniqueResult<T> = Result<T, RuniqueError>;
+
+// Erreurs applicatives centralisées
+#[derive(Debug, Error)]
+pub enum RuniqueError {
+    #[error("Erreur interne")]
+    Internal,
+    #[error("Accès interdit")]
+    Forbidden,
+    #[error("Ressource introuvable")]
+    NotFound,
+    #[error("Erreur de validation: {0}")]
+    Validation(String),
+    #[error("Erreur base de données: {0}")]
+    Database(String),
+    #[error("Erreur IO: {0}")]
+    Io(String),
+    #[error("Erreur template: {0}")]
+    Template(String),
+    #[error("{message}")]
+    Custom {
+        message: String,
+        source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    },
+}
+
+impl Clone for RuniqueError {
+    fn clone(&self) -> Self {
+        match self {
+            RuniqueError::Internal => RuniqueError::Internal,
+            RuniqueError::Forbidden => RuniqueError::Forbidden,
+            RuniqueError::NotFound => RuniqueError::NotFound,
+            RuniqueError::Validation(msg) => RuniqueError::Validation(msg.clone()),
+            RuniqueError::Database(msg) => RuniqueError::Database(msg.clone()),
+            RuniqueError::Io(msg) => RuniqueError::Io(msg.clone()),
+            RuniqueError::Template(msg) => RuniqueError::Template(msg.clone()),
+            RuniqueError::Custom { message, source: _ } => RuniqueError::Custom {
+                message: message.clone(),
+                source: None,
+            },
+        }
+    }
+}
+
+impl From<std::io::Error> for RuniqueError {
+    fn from(err: std::io::Error) -> Self {
+        RuniqueError::Io(err.to_string())
+    }
+}
+
+impl RuniqueError {
+    pub fn log(&self) {
+        match self {
+            RuniqueError::Internal => error!("Erreur interne"),
+            RuniqueError::Forbidden => info!("Accès interdit"),
+            RuniqueError::NotFound => info!("Ressource introuvable"),
+            RuniqueError::Validation(msg) => info!("Erreur de validation: {}", msg),
+            RuniqueError::Database(msg) => error!("Erreur base de données: {}", msg),
+            RuniqueError::Io(msg) => error!("Erreur IO: {}", msg),
+            RuniqueError::Template(msg) => error!("Erreur template: {}", msg),
+            RuniqueError::Custom { message, source } => {
+                error!("Erreur custom: {}", message);
+                if let Some(source) = source.as_ref() {
+                    error!("Source: {}", source);
+                }
+            }
+        }
+    }
+}
+
+impl IntoResponse for RuniqueError {
+    fn into_response(self) -> Response {
+        self.log();
+        let (status, message) = match &self {
+            RuniqueError::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
+            RuniqueError::Forbidden => (StatusCode::FORBIDDEN, self.to_string()),
+            RuniqueError::Validation(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Erreur interne".to_string(),
+            ),
+        };
+        (status, message).into_response()
+    }
+}
+
+// ----------- CONTEXTE ERREUR (fusionné depuis context/error.rs) -----------
 
 /// Contexte complet pour les erreurs avec toutes les informations de débogage
 #[derive(Debug, Serialize, Clone)]
@@ -39,7 +112,6 @@ pub struct ErrorContext {
     pub environment: EnvironmentInfo,
 }
 
-/// Type d'erreur
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ErrorType {
@@ -50,7 +122,6 @@ pub enum ErrorType {
     Validation,
 }
 
-/// Informations sur le template
 #[derive(Debug, Serialize, Clone)]
 pub struct TemplateInfo {
     pub name: String,
@@ -59,7 +130,6 @@ pub struct TemplateInfo {
     pub available_templates: Vec<String>,
 }
 
-/// Informations sur la requête HTTP
 #[derive(Debug, Serialize, Clone)]
 pub struct RequestInfo {
     pub method: String,
@@ -68,7 +138,6 @@ pub struct RequestInfo {
     pub headers: StrMap,
 }
 
-/// Frame de la stack trace
 #[derive(Debug, Serialize, Clone)]
 pub struct StackFrame {
     pub level: usize,
@@ -76,7 +145,6 @@ pub struct StackFrame {
     pub location: Option<String>,
 }
 
-/// Informations sur l'environnement
 #[derive(Debug, Serialize, Clone)]
 pub struct EnvironmentInfo {
     pub debug_mode: bool,
@@ -85,7 +153,6 @@ pub struct EnvironmentInfo {
 }
 
 impl ErrorContext {
-    /// Crée un nouveau contexte d'erreur
     pub fn new(error_type: ErrorType, status_code: StatusCode, title: &str, message: &str) -> Self {
         Self {
             status_code: status_code.as_u16(),
@@ -104,6 +171,7 @@ impl ErrorContext {
             },
         }
     }
+
     pub fn with_request_helper(mut self, helper: &RequestInfoHelper) -> Self {
         self.request_info = Some(RequestInfo {
             method: helper.method.clone(),
@@ -116,13 +184,12 @@ impl ErrorContext {
 
     fn extract_tera_line(error: &tera::Error) -> Option<usize> {
         let msg = error.to_string();
-        // Cherche "line <num>"
         let re = regex::Regex::new(r"line (\d+)").ok()?;
         re.captures(&msg)
             .and_then(|cap| cap.get(1))
             .and_then(|m| m.as_str().parse::<usize>().ok())
     }
-    /// Crée un ErrorContext depuis une erreur Tera
+
     pub fn from_tera_error(error: &tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
         let mut ctx = Self::new(
             ErrorType::Template,
@@ -130,22 +197,16 @@ impl ErrorContext {
             "Template Rendering Error",
             &error.to_string(),
         );
-
         ctx.template_info = Some(TemplateInfo {
             name: template_name.to_string(),
             source: read_template_source(template_name),
             line_number: Self::extract_tera_line(error),
-            available_templates: tera
-                .get_template_names()
-                .filter(|s| !get_internal_templates().contains(s))
-                .map(|s| s.to_string())
-                .collect(),
+            available_templates: tera.get_template_names().map(|s| s.to_string()).collect(),
         });
-
         ctx.build_stack_trace(error);
         ctx
     }
-    /// Crée un ErrorContext pour une erreur de base de données
+
     pub fn database(error: impl std::error::Error) -> Self {
         let mut ctx = Self::new(
             ErrorType::Database,
@@ -157,7 +218,6 @@ impl ErrorContext {
         ctx
     }
 
-    /// Crée un ErrorContext pour une erreur 404
     pub fn not_found(path: &str) -> Self {
         Self::new(
             ErrorType::NotFound,
@@ -167,7 +227,6 @@ impl ErrorContext {
         )
     }
 
-    /// Crée un ErrorContext générique
     pub fn generic(status: StatusCode, message: &str) -> Self {
         Self::new(
             ErrorType::Internal,
@@ -177,7 +236,6 @@ impl ErrorContext {
         )
     }
 
-    /// Crée un ErrorContext depuis une erreur anyhow
     pub fn from_anyhow(error: &anyhow::Error) -> Self {
         let mut ctx = Self::new(
             ErrorType::Internal,
@@ -185,7 +243,6 @@ impl ErrorContext {
             "Application Error",
             &error.to_string(),
         );
-
         for (i, cause) in error.chain().enumerate() {
             ctx.stack_trace.push(StackFrame {
                 level: i,
@@ -196,7 +253,6 @@ impl ErrorContext {
         ctx
     }
 
-    /// Ajoute les informations de requête
     pub fn with_request(mut self, request: &axum::extract::Request) -> Self {
         self.request_info = Some(RequestInfo {
             method: request.method().to_string(),
@@ -217,17 +273,14 @@ impl ErrorContext {
         self
     }
 
-    /// Ajoute des détails supplémentaires
     pub fn with_details(mut self, details: &str) -> Self {
         self.details = Some(details.to_string());
         self
     }
 
-    /// Construit la stack trace depuis une erreur
     pub fn build_stack_trace(&mut self, error: &dyn std::error::Error) {
         let mut level = 0;
         let mut current: Option<&dyn std::error::Error> = Some(error);
-
         while let Some(err) = current {
             self.stack_trace.push(StackFrame {
                 level,
@@ -238,21 +291,63 @@ impl ErrorContext {
             level += 1;
         }
     }
+
+    pub fn from_runique_error(
+        err: &RuniqueError,
+        path: Option<&str>,
+        request_helper: Option<&RequestInfoHelper>,
+        template_name: Option<&str>,
+        tera: Option<&tera::Tera>,
+    ) -> Self {
+        let mut ctx = match err {
+            RuniqueError::Internal => Self::generic(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Une erreur interne est survenue",
+            ),
+            RuniqueError::Forbidden => Self::generic(StatusCode::FORBIDDEN, "Accès interdit"),
+            RuniqueError::NotFound => {
+                let path = path.unwrap_or("/");
+                Self::not_found(path)
+            }
+            RuniqueError::Validation(msg) => Self::generic(StatusCode::BAD_REQUEST, msg),
+            RuniqueError::Database(msg) => Self::database(sea_orm::DbErr::Custom(msg.clone())),
+            RuniqueError::Io(msg) => Self::generic(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("IO Error: {}", msg),
+            ),
+            RuniqueError::Template(msg) => Self::generic(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Template Error: {}", msg),
+            ),
+            RuniqueError::Custom { message, source: _ } => {
+                Self::generic(StatusCode::INTERNAL_SERVER_ERROR, message)
+            }
+        };
+        if let Some(helper) = request_helper {
+            ctx = ctx.with_request_helper(helper);
+        }
+        ctx.build_stack_trace(err);
+        if let (RuniqueError::Template(_), Some(tera), Some(name)) = (err, tera, template_name) {
+            ctx.template_info = Some(TemplateInfo {
+                name: name.to_string(),
+                source: read_template_source(name),
+                line_number: ErrorContext::extract_tera_line(&tera.get_template(name).unwrap_err()),
+                available_templates: tera.get_template_names().map(|s| s.to_string()).collect(),
+            });
+        }
+        ctx
+    }
 }
 
-/// Lit la source du template
 pub fn read_template_source(template_name: &str) -> Option<String> {
     let template_path = format!("templates/{}", template_name);
     std::fs::read_to_string(&template_path).ok()
 }
 
-/// Récupère la version de Rust
 fn rust_version() -> String {
     use std::process::Command;
     use std::sync::OnceLock;
-
     static RUST_VERSION: OnceLock<String> = OnceLock::new();
-
     RUST_VERSION
         .get_or_init(|| {
             if let Ok(output) = Command::new("rustc").arg("--version").output() {
@@ -268,71 +363,4 @@ fn rust_version() -> String {
             "N/A".to_string()
         })
         .clone()
-}
-
-impl ErrorContext {
-    /// Crée un ErrorContext à partir d'un RuniqueError en remplissant toutes les infos
-    pub fn from_runique_error(
-        err: &RuniqueError,
-        path: Option<&str>,
-        request_helper: Option<&RequestInfoHelper>,
-        template_name: Option<&str>,
-        tera: Option<&tera::Tera>,
-    ) -> Self {
-        // Crée le contexte de base selon le type d'erreur
-        let mut ctx = match err {
-            RuniqueError::Internal => Self::generic(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Une erreur interne est survenue",
-            ),
-            RuniqueError::Forbidden => Self::generic(StatusCode::FORBIDDEN, "Accès interdit"),
-            RuniqueError::NotFound => {
-                let path = path.unwrap_or("/");
-                Self::not_found(path)
-            }
-            RuniqueError::Validation(msg) => Self::generic(StatusCode::BAD_REQUEST, msg),
-            RuniqueError::Database(msg) => {
-                // Transforme en DbErr si tu utilises SeaORM
-                Self::database(sea_orm::DbErr::Custom(msg.clone()))
-            }
-            RuniqueError::Io(msg) => Self::generic(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("IO Error: {}", msg),
-            ),
-            RuniqueError::Template(msg) => {
-                // Contexte générique si pas de Tera fourni
-                Self::generic(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("Template Error: {}", msg),
-                )
-            }
-            RuniqueError::Custom { message, source: _ } => {
-                Self::generic(StatusCode::INTERNAL_SERVER_ERROR, message)
-            }
-        };
-
-        //  Ajoute les infos de requête si disponibles
-        if let Some(helper) = request_helper {
-            ctx = ctx.with_request_helper(helper);
-        }
-
-        // Construire la stack trace
-        ctx.build_stack_trace(err);
-
-        // Si erreur template et qu'on a Tera + nom de template, ajoute template_info
-        if let (RuniqueError::Template(_), Some(tera), Some(name)) = (err, tera, template_name) {
-            ctx.template_info = Some(TemplateInfo {
-                name: name.to_string(),
-                source: read_template_source(name),
-                line_number: ErrorContext::extract_tera_line(&tera.get_template(name).unwrap_err()),
-                available_templates: tera
-                    .get_template_names()
-                    .filter(|s| !get_internal_templates().contains(s))
-                    .map(|s| s.to_string())
-                    .collect(),
-            });
-        }
-
-        ctx
-    }
 }
