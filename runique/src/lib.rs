@@ -151,7 +151,7 @@ pub mod moteur_engine {
 
 pub mod request_context {
     pub mod context_error {
-        pub use crate::errors::track_error::*;
+        pub use crate::errors::error::*;
     }
     pub mod template_context {
         pub use crate::context::template::*;
@@ -253,7 +253,7 @@ pub mod prelude {
     // ========================================================================
     // CONTEXTE & TEMPLATE
     // ========================================================================
-    pub use crate::context::error::*;
+    // pub use crate::context::error::*;
     pub use crate::context::request::RuniqueContext;
     pub use crate::context::tera::*;
 
