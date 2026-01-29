@@ -1,4 +1,4 @@
-use crate::aliases::{ARuniqueConfig, ATera};
+use crate::utils::aliases::{ARuniqueConfig, ATera, StrMap};
 use axum::{
     extract::Extension,
     http::{Request, StatusCode},
@@ -11,7 +11,6 @@ use tera::{Context, Tera};
 use tracing::{error, info, instrument};
 use tracing_futures::Instrument;
 
-use crate::aliases::StrMap;
 use crate::errors::track_error::RuniqueError;
 use crate::{config::RuniqueConfig, context::error::ErrorContext, utils::csrf::CsrfToken};
 
@@ -108,7 +107,7 @@ pub async fn error_handler_middleware(
     response
 }
 
-/// --- Render Helpers ---
+// --- Render Helpers ---
 
 fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
     let mut context = Context::new();
@@ -164,7 +163,7 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
     context.insert("debug", &config.debug);
 }
 
-/// --- FALLBACKS ---
+// --- FALLBACKS ---
 
 fn fallback_404_html() -> Response {
     let html = r#"<!DOCTYPE html><html><head><title>404</title></head><body><h1>404 - Not Found</h1></body></html>"#;

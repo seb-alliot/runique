@@ -1,8 +1,8 @@
 // runique/src/middleware/auth.rs
 
 use crate::config::AppSettings;
-use crate::constante::{SESSION_USER_ID_KEY, SESSION_USER_USERNAME_KEY};
 use crate::context::RequestExtensions;
+use crate::utils::constante::{SESSION_USER_ID_KEY, SESSION_USER_USERNAME_KEY};
 use axum::{
     extract::Request,
     middleware::Next,

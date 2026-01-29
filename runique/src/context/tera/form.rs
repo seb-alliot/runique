@@ -1,6 +1,6 @@
 // Dans src/tera_function/form_filter.rs
-use crate::aliases::JsonMap;
-use crate::aliases::TResult;
+use crate::utils::aliases::JsonMap;
+use crate::utils::aliases::TResult;
 use tera::Value;
 
 pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {

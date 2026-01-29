@@ -1,9 +1,8 @@
-use crate::aliases::JsonMap;
-use crate::aliases::{ARlockmap, TResult};
 use crate::context::tera::csp::nonce_function;
 use crate::context::tera::form::form_filter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
+use crate::utils::aliases::{ARlockmap, JsonMap, TResult};
 use tera::{Tera, Value};
 
 // Filtre pour générer un champ CSRF hidden

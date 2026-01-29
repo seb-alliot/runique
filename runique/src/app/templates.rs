@@ -1,7 +1,7 @@
-use crate::aliases::*;
 use crate::config::RuniqueConfig;
-use crate::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 use crate::context::tera::static_tera;
+use crate::utils::aliases::ARlockmap;
+use crate::utils::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 use regex::{Captures, Regex};
 use std::path::Path;
 use tera::Tera;

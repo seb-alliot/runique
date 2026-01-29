@@ -1,6 +1,5 @@
-use crate::aliases::StrMap;
-use crate::aliases::StrVecMap;
 use crate::config::RuniqueConfig;
+use crate::utils::aliases::{StrMap, StrVecMap};
 use crate::utils::parse_html::parse_multipart;
 use axum::{
     body::Body,

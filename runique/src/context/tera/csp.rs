@@ -1,7 +1,7 @@
 // runique/src/tera_function/nonce_balise.rs
 
-use crate::aliases::JsonMap;
-use crate::constante::NONCE_KEY;
+use crate::utils::aliases::JsonMap;
+use crate::utils::constante::NONCE_KEY;
 use tera::Result as TeraResult;
 use tera::Value;
 

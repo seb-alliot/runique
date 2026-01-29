@@ -1,19 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum AutoFieldType {
-    AutoField,    // correspond à i32
+    #[default]
+    AutoField, // correspond à i32
     BigAutoField, // correspond à i64
 }
 
-impl Default for AutoFieldType {
-    fn default() -> Self {
-        AutoFieldType::AutoField
-    }
-}
-
 impl AutoFieldType {
-    pub fn from_str(field_str: &str) -> Self {
+    pub fn parse(field_str: &str) -> Self {
         match field_str {
             "runique.db.models.BigAutoField" => AutoFieldType::BigAutoField,
             _ => AutoFieldType::AutoField,
@@ -29,7 +24,7 @@ impl AutoFieldType {
     }
     pub fn from_env() -> Self {
         std::env::var("DEFAULT_AUTO_FIELD")
-            .map(|s| Self::from_str(&s))
+            .map(|s| Self::parse(&s))
             .unwrap_or_default()
     }
 }

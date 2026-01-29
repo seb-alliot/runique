@@ -34,7 +34,7 @@ impl Default for AppSettings {
             middleware: vec![],
             root_urlconf: format!("{}.urls", project_name),
             language_code: language_app,
-            time_zone: time_zone,
+            time_zone,
             use_i18n: true,
             use_tz: true,
             auth_password_validators: vec![],

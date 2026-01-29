@@ -1,8 +1,7 @@
-use crate::aliases::StrMap;
-use crate::aliases::StrVecMap;
-use crate::constante::CSRF_TOKEN_KEY;
 use crate::forms::extractor::Prisme;
 use crate::forms::field::RuniqueForm;
+use crate::utils::aliases::{StrMap, StrVecMap};
+use crate::utils::constante::CSRF_TOKEN_KEY;
 use axum::response::Response;
 use std::collections::HashMap;
 use std::sync::Arc;

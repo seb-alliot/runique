@@ -3,7 +3,6 @@ use tokio::signal;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
 
-use crate::aliases::*;
 use crate::app::templates::TemplateLoader;
 use crate::config::RuniqueConfig;
 use crate::context::RequestExtensions;
@@ -11,6 +10,9 @@ use crate::engine::RuniqueEngine;
 use crate::macros::add_urls;
 use crate::middleware::session::SessionConfig;
 use crate::middleware::{HostPolicy, MiddlewareConfig, SecurityPolicy};
+use crate::utils::aliases::{
+    new, new_registry, new_serve, AEngine, ARlockmap, ARuniqueConfig, ATera, Bdd, Session,
+};
 
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;

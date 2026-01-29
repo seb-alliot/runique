@@ -1,3 +1,3 @@
-pub mod auth;
+pub mod auth_session;
 
-pub use auth::*;
+pub use auth_session::*;
