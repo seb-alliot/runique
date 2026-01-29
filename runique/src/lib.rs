@@ -45,11 +45,11 @@ pub mod flash;
 pub mod forms;
 #[macro_use]
 pub mod macros;
+pub mod aliases;
 mod constante;
 pub mod errors;
 pub mod middleware;
 pub mod utils;
-
 // ---------------------------------------------------------------------------
 // Alias de compatibilité pour l’ancien nommage
 // ---------------------------------------------------------------------------
@@ -136,7 +136,10 @@ pub mod middleware_runique {
 
 pub mod macro_runique {
     pub use crate::macros::*;
-    pub use crate::macros::{context::{context,flash} ,routeur::*};
+    pub use crate::macros::{
+        context::{context, flash},
+        routeur::*,
+    };
 }
 
 pub mod moteur_engine {
@@ -213,9 +216,10 @@ pub mod prelude {
     // ========================================================================
     // MODULES PRINCIPAUX
     // ========================================================================
+    pub use crate::aliases::{AEngine, AppResult};
     pub use crate::app::{RuniqueApp, RuniqueAppBuilder};
     pub use crate::config::app::RuniqueConfig;
-    pub use crate::context::{AppError, AppResult, TemplateContext};
+    pub use crate::context::{AppError, TemplateContext};
     pub use crate::engine::RuniqueEngine;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{

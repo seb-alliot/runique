@@ -1,25 +1,22 @@
 use axum::Router;
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 use tokio::signal;
-use tower_http::services::ServeDir;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
 
+use crate::aliases::*;
 use crate::app::templates::TemplateLoader;
 use crate::config::RuniqueConfig;
 use crate::context::RequestExtensions;
 use crate::engine::RuniqueEngine;
 use crate::macros::add_urls;
 use crate::middleware::session::SessionConfig;
-// Import des composants de sécurité et config
 use crate::middleware::{HostPolicy, MiddlewareConfig, SecurityPolicy};
 
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
 
 pub struct RuniqueApp {
-    pub engine: Arc<RuniqueEngine>,
+    pub engine: AEngine,
     pub router: Router,
 }
 
@@ -60,9 +57,9 @@ impl RuniqueApp {
 pub struct RuniqueAppBuilder {
     config: RuniqueConfig,
     router: Router,
-    url_registry: Arc<RwLock<HashMap<String, String>>>,
+    url_registry: ARlockmap,
     #[cfg(feature = "orm")]
-    db: Option<DatabaseConnection>,
+    db: Bdd,
     features: MiddlewareConfig,
     session_config: SessionConfig,
 }
@@ -83,7 +80,7 @@ impl RuniqueAppBuilder {
         Self {
             config,
             router: Router::new(),
-            url_registry: Arc::new(RwLock::new(HashMap::new())),
+            url_registry: new_registry(),
             #[cfg(feature = "orm")]
             db: None,
             features,
@@ -126,17 +123,17 @@ impl RuniqueAppBuilder {
         router = router
             .nest_service(
                 &config.static_files.static_url,
-                ServeDir::new(&config.static_files.staticfiles_dirs),
+                new_serve(&config.static_files.staticfiles_dirs),
             )
             .nest_service(
                 &config.static_files.media_url,
-                ServeDir::new(&config.static_files.media_root),
+                new_serve(&config.static_files.media_root),
             );
 
         if !config.static_files.static_runique_url.is_empty() {
             router = router.nest_service(
                 &config.static_files.static_runique_url,
-                ServeDir::new(&config.static_files.static_runique_path),
+                new_serve(&config.static_files.static_runique_path),
             );
         }
 
@@ -145,10 +142,10 @@ impl RuniqueAppBuilder {
 
     fn build_pipeline<S: SessionStore + Clone + Send + Sync + 'static>(
         router: Router,
-        config: Arc<RuniqueConfig>,
-        session_layer: SessionManagerLayer<S>,
-        engine: Arc<RuniqueEngine>,
-        tera: Arc<tera::Tera>,
+        config: ARuniqueConfig,
+        session_layer: Session<S>,
+        engine: AEngine,
+        tera: ATera,
     ) -> Router {
         let mut app_router = router;
 
@@ -164,7 +161,7 @@ impl RuniqueAppBuilder {
 
         // ÉTAPE 3 (Premier exécuté) - Injection Extensions
         // DOIT être EN DERNIER dans le code = PREMIER exécuté
-        let engine_ext: Arc<RuniqueEngine> = engine.clone();
+        let engine_ext: AEngine = engine.clone();
         app_router = app_router.layer(axum::middleware::from_fn(
             move |mut req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
                 let extensions = RequestExtensions::new()
@@ -182,26 +179,26 @@ impl RuniqueAppBuilder {
     }
 
     pub async fn build(self) -> Result<RuniqueApp, Box<dyn std::error::Error>> {
-        let tera = Arc::new(TemplateLoader::init(
+        let tera = new(TemplateLoader::init(
             &self.config,
             self.url_registry.clone(),
         )?);
-        let config = Arc::new(self.config);
+        let config = new(self.config);
 
-        let engine = Arc::new(RuniqueEngine {
+        let engine = new(RuniqueEngine {
             config: (*config).clone(),
             tera: tera.clone(),
             #[cfg(feature = "orm")]
-            db: Arc::new(self.db.expect("Database required")),
+            db: new(self.db.expect("Database required")),
             features: self.features.clone(),
             url_registry: self.url_registry.clone(),
-            security_csp: Arc::new(SecurityPolicy::from_env()),
-            security_hosts: Arc::new(HostPolicy::from_env()),
+            security_csp: new(SecurityPolicy::from_env()),
+            security_hosts: new(HostPolicy::from_env()),
         });
 
         add_urls(&engine);
 
-        let session_layer = SessionManagerLayer::new(MemoryStore::default())
+        let session_layer = Session::new(MemoryStore::default())
             .with_secure(!config.debug)
             .with_http_only(!config.debug)
             .with_expiry(Expiry::OnInactivity(self.session_config.duration));
@@ -220,21 +217,21 @@ impl<Store: SessionStore + Clone> RuniqueAppBuilderWithStore<Store> {
 
     pub async fn build(self) -> Result<RuniqueApp, Box<dyn std::error::Error>> {
         let base = self.base;
-        let tera = Arc::new(TemplateLoader::init(
+        let tera = new(TemplateLoader::init(
             &base.config,
             base.url_registry.clone(),
         )?);
-        let config = Arc::new(base.config);
+        let config = new(base.config);
 
-        let engine = Arc::new(RuniqueEngine {
+        let engine = new(RuniqueEngine {
             config: (*config).clone(),
             tera: tera.clone(),
             #[cfg(feature = "orm")]
-            db: Arc::new(base.db.expect("Database required")),
+            db: new(base.db.expect("Database required")),
             features: base.features.clone(),
             url_registry: base.url_registry.clone(),
-            security_csp: Arc::new(SecurityPolicy::from_env()),
-            security_hosts: Arc::new(HostPolicy::from_env()),
+            security_csp: new(SecurityPolicy::from_env()),
+            security_hosts: new(HostPolicy::from_env()),
         });
 
         add_urls(&engine);

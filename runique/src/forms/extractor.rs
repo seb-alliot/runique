@@ -1,4 +1,4 @@
-use crate::config::RuniqueConfig;
+use crate::aliases::{ARuniqueConfig, ATera};
 use crate::forms::field::RuniqueForm;
 use crate::forms::prisme::{aegis, csrf_gate, sentinel};
 use crate::formulaire::{auto_sanitize, is_sensitive_field};
@@ -10,13 +10,9 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use std::collections::HashMap;
-use std::sync::Arc;
-use tera::Tera;
 
 /// Prisme : pipeline Sentinel -> CSRF -> Aegis (extraction)
 pub struct Prisme<T>(pub T);
-/// Alias rétro-compatibilité
-pub type ExtractForm<T> = Prisme<T>;
 
 /// Fonction pipeline réutilisable : Sentinel -> CSRF -> Aegis
 pub async fn prisme<S, T>(req: Request<Body>, state: &S) -> Result<Prisme<T>, Response>
@@ -25,21 +21,17 @@ where
     T: RuniqueForm,
 {
     // Sentinel : dépendances + règles d'accès
-    let tera = req
-        .extensions()
-        .get::<Arc<Tera>>()
-        .cloned()
-        .ok_or_else(|| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Tera not found in extensions",
-            )
-                .into_response()
-        })?;
+    let tera = req.extensions().get::<ATera>().cloned().ok_or_else(|| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Tera not found in extensions",
+        )
+            .into_response()
+    })?;
 
     let config = req
         .extensions()
-        .get::<Arc<RuniqueConfig>>()
+        .get::<ARuniqueConfig>()
         .cloned()
         .ok_or_else(|| {
             (

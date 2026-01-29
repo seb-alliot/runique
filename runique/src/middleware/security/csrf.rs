@@ -1,6 +1,6 @@
+use crate::aliases::{AEngine, TResult};
 use crate::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
 use crate::context::RequestExtensions;
-use crate::engine::RuniqueEngine;
 use crate::utils::csrf::{CsrfContext, CsrfToken};
 use axum::{
     body::Body,
@@ -10,8 +10,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use std::collections::HashMap;
-use std::sync::Arc;
-use tera::{Function, Result as TeraResult, Value};
+use tera::{Function, Value};
 use tower_sessions::Session;
 
 pub struct CsrfTokenFunction;
@@ -21,7 +20,7 @@ impl Function for CsrfTokenFunction {
         true
     }
 
-    fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
+    fn call(&self, args: &HashMap<String, Value>) -> TResult {
         let token_str = args
             .get(CSRF_TOKEN_KEY)
             .and_then(|v| v.as_str())
@@ -35,7 +34,7 @@ impl Function for CsrfTokenFunction {
 }
 
 pub async fn csrf_middleware(
-    State(engine): State<Arc<RuniqueEngine>>,
+    State(engine): State<AEngine>,
     session: Session,
     mut req: Request<Body>,
     next: Next,

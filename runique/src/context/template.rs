@@ -1,7 +1,8 @@
+use crate::aliases::{AEngine, AppResult};
 use crate::app::templates::TemplateLoader;
 use crate::context::error::ErrorContext;
-use crate::engine::RuniqueEngine;
 use crate::flash::Message;
+use crate::impl_from_error;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
     extract::FromRequestParts,
@@ -12,14 +13,11 @@ use sea_orm::DbErr;
 use std::sync::Arc;
 use tera::Context;
 use tower_sessions::Session;
-
 // --- GESTION DES ERREURS ---
 
 pub struct AppError {
     pub context: ErrorContext,
 }
-
-pub type AppResult<T> = Result<T, Box<AppError>>;
 
 impl AppError {
     pub fn new(context: ErrorContext) -> Self {
@@ -32,20 +30,6 @@ impl AppError {
             context: ErrorContext::from_tera_error(&e, route, tera),
         })
     }
-}
-
-// Factorisation des conversions avec une macro interne simple
-macro_rules! impl_from_error {
-    ($($err:ty => $method:ident),*) => {
-        $(
-            impl From<$err> for AppError {
-                fn from(err: $err) -> Self { Self { context: ErrorContext::$method(&err) } }
-            }
-            impl From<$err> for Box<AppError> {
-                fn from(err: $err) -> Self { Box::new(AppError::from(err)) }
-            }
-        )*
-    };
 }
 
 impl_from_error!(anyhow::Error => from_anyhow, DbErr => database);
@@ -70,7 +54,7 @@ impl IntoResponse for Box<AppError> {
 
 #[derive(Clone)]
 pub struct TemplateContext {
-    pub engine: Arc<RuniqueEngine>,
+    pub engine: AEngine,
     pub session: Session,
     pub notices: Message,
     pub csrf_token: CsrfToken,
@@ -88,7 +72,7 @@ where
 
         // Extraction rapide
         let engine = ex
-            .get::<Arc<RuniqueEngine>>()
+            .get::<AEngine>()
             .cloned()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -127,7 +111,7 @@ where
 }
 
 impl TemplateContext {
-    pub fn new(engine: Arc<RuniqueEngine>, session: Session, csrf_token: CsrfToken) -> Self {
+    pub fn new(engine: AEngine, session: Session, csrf_token: CsrfToken) -> Self {
         let mut context = tera::Context::new();
         // mod reload pour les templates en debug
         // Le backend ne peux être reloadé ici car il est partagé entre les requêtes

@@ -1,10 +1,9 @@
+use crate::aliases::AEngine;
 use crate::context::TemplateContext;
-use crate::engine::RuniqueEngine;
 use crate::flash::Message;
 use crate::middleware::auth::{get_user_id, is_authenticated};
 use crate::utils::csrf::{CsrfContext, CsrfToken};
 use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode};
-use std::sync::Arc;
 use tower_sessions::Session;
 
 /// Contexte principal pour un handler Runique
@@ -13,7 +12,7 @@ use tower_sessions::Session;
 // — Le moteur de template (`TemplateEngine`)
 // — Le gestionnaire de flash messages (`Message`)
 pub struct RuniqueContext {
-    pub engine: Arc<RuniqueEngine>,
+    pub engine: AEngine,
     pub tpl: TemplateContext,
     pub flash: Message,
 }
@@ -30,7 +29,7 @@ where
         // Injecté via un middleware lors du setup de l'application
         let engine = parts
             .extensions
-            .get::<Arc<RuniqueEngine>>()
+            .get::<AEngine>()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 2. Récupération de la session Tower

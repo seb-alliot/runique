@@ -15,7 +15,6 @@
         {% endif %}
 
         <!-- Formulaire de recherche d'utilisateur -->
-        <div class="form-container">
             <h2>Rechercher un utilisateur</h2>
                 {% block messages %}
                 {% messages %}
@@ -24,10 +23,8 @@
                 {% form.user %}
                 <button type="submit">Rechercher</button>
             </form>
-        </div>
 
         <!-- Affichage des informations de l'utilisateur -->
-        <div class="form-container">
             {% if username or email or age %}
             <div class="result-card">
                 <h3>Informations Utilisateur</h3>
@@ -52,7 +49,6 @@
                 {% endif %}
             </div>
     {% endif %}
-        </div>
     </div>
 </div>
 

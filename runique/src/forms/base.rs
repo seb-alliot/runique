@@ -48,23 +48,23 @@ pub enum NumericConfig {
         max: Option<i64>,
     },
     Float {
-        value: Option<Fouchette>,
+        value: Option<Range>,
     },
     Decimal {
-        value: Option<Fouchette>,
+        value: Option<Range>,
     },
     Percent {
-        value: Fouchette,
+        value: Range,
     },
     Range {
-        value: Fouchette,
+        value: Range,
         default: f64,
         step: f64,
     },
 }
 
 #[derive(Clone, Serialize, Debug)]
-pub struct Fouchette {
+pub struct Range {
     pub min: f64,
     pub max: f64,
 }

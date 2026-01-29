@@ -8,8 +8,8 @@ use serde_json::{json, Value};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::Arc;
-use tera::Tera;
+
+use crate::aliases::{ATera, OATera};
 use crate::constante::CSRF_TOKEN_KEY;
 
 // Erreurs possibles lors de la validation du formulaire liée a la bdd
@@ -48,7 +48,7 @@ thread_local! {
 #[derive(Clone)]
 pub struct Forms {
     pub fields: IndexMap<String, Box<dyn FormField>>,
-    pub tera: Option<Arc<Tera>>,
+    pub tera: OATera,
     pub global_errors: Vec<String>,
     pub session_csrf_token: Option<String>,
 }
@@ -157,7 +157,7 @@ impl Forms {
         self
     }
 
-    pub fn set_tera(&mut self, tera: Arc<Tera>) {
+    pub fn set_tera(&mut self, tera: ATera) {
         self.tera = Some(tera);
     }
 

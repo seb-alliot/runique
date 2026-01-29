@@ -1,5 +1,3 @@
-use crate::config::RuniqueConfig;
-use crate::engine::RuniqueEngine;
 use crate::middleware::auth::CurrentUser;
 use crate::utils::csp_nonce::CspNonce;
 use crate::utils::csrf::CsrfToken;
@@ -7,17 +5,17 @@ use axum::body::Body;
 /// Module centralisé pour injecter toutes les données dans les extensions Axum
 use axum::http::request::Parts;
 use axum::http::Request;
-use std::sync::Arc;
-use tera::Tera;
+
+use crate::aliases::*;
 
 /// Structure contenant toutes les données à injecter dans les extensions
 pub struct RequestExtensions {
-    pub engine: Option<Arc<RuniqueEngine>>,
-    pub tera: Option<Arc<Tera>>,
-    pub config: Option<Arc<RuniqueConfig>>,
-    pub csrf_token: Option<CsrfToken>,
-    pub csp_nonce: Option<CspNonce>,
-    pub current_user: Option<CurrentUser>,
+    pub engine: OAEngine,
+    pub tera: OATera,
+    pub config: OARuniqueConfig,
+    pub csrf_token: OCsrfToken,
+    pub csp_nonce: OCspNonce,
+    pub current_user: OCurrentUser,
 }
 
 impl RequestExtensions {
@@ -81,19 +79,19 @@ impl RequestExtensions {
     }
 
     /// Builder pattern - Engine
-    pub fn with_engine(mut self, engine: Arc<RuniqueEngine>) -> Self {
+    pub fn with_engine(mut self, engine: AEngine) -> Self {
         self.engine = Some(engine);
         self
     }
 
     /// Builder pattern - Tera
-    pub fn with_tera(mut self, tera: Arc<Tera>) -> Self {
+    pub fn with_tera(mut self, tera: ATera) -> Self {
         self.tera = Some(tera);
         self
     }
 
     /// Builder pattern - Config
-    pub fn with_config(mut self, config: Arc<RuniqueConfig>) -> Self {
+    pub fn with_config(mut self, config: ARuniqueConfig) -> Self {
         self.config = Some(config);
         self
     }

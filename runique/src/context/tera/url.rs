@@ -1,22 +1,18 @@
+use crate::aliases::{ARlockmap, TResult};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-
-use tera::{Function, Result as TeraResult, Value};
+use tera::{Function, Value};
 
 pub struct LinkFunction {
-    pub url_registry: Arc<RwLock<HashMap<String, String>>>,
+    pub url_registry: ARlockmap,
 }
 
 impl Function for LinkFunction {
-    fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
+    fn call(&self, args: &HashMap<String, Value>) -> TResult {
         link_function(args, &self.url_registry)
     }
 }
 
-fn link_function(
-    args: &HashMap<String, Value>,
-    url_registry: &Arc<RwLock<HashMap<String, String>>>,
-) -> TeraResult<Value> {
+fn link_function(args: &HashMap<String, Value>, url_registry: &ARlockmap) -> TResult {
     let link_name = args
         .get("link")
         .and_then(|v| v.as_str())

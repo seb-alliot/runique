@@ -1,10 +1,10 @@
+use crate::constante::CSRF_TOKEN_KEY;
 use crate::forms::extractor::Prisme;
 use crate::forms::field::RuniqueForm;
 use axum::response::Response;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
-use crate::constante::CSRF_TOKEN_KEY;
 
 /// CSRF gate : vérification du token dans les données parsées.
 /// Retourne Some(Prisme) si invalid/missing (formulaire vide avec erreur), None sinon.

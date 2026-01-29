@@ -1,6 +1,6 @@
+use crate::aliases::{new, new_registry, ADb, ARlockmap, ASecurityCsp, ASecurityHosts, ATera};
 use axum::{middleware, Router};
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use tera::Tera;
 
 use crate::config::RuniqueConfig;
@@ -16,17 +16,17 @@ use sea_orm::DatabaseConnection;
 /// Machine centrale de l'application
 pub struct RuniqueEngine {
     pub config: RuniqueConfig,
-    pub tera: Arc<Tera>,
+    pub tera: ATera,
     #[cfg(feature = "orm")]
-    pub db: Arc<DatabaseConnection>,
-    pub url_registry: Arc<RwLock<HashMap<String, String>>>,
+    pub db: ADb,
+    pub url_registry: ARlockmap,
 
     // Les interrupteurs (La Porte)
     pub features: MiddlewareConfig,
 
     // Les politiques (Les Meubles)
-    pub security_csp: Arc<SecurityPolicy>,
-    pub security_hosts: Arc<HostPolicy>,
+    pub security_csp: ASecurityCsp,
+    pub security_hosts: ASecurityHosts,
 }
 
 impl RuniqueEngine {
@@ -39,12 +39,12 @@ impl RuniqueEngine {
 
         Self {
             config,
-            tera: Arc::new(tera),
-            db: Arc::new(db),
-            url_registry: Arc::new(RwLock::new(HashMap::new())),
+            tera: new(tera),
+            db: new(db),
+            url_registry: new_registry(),
             features,
-            security_csp: Arc::new(security_csp),
-            security_hosts: Arc::new(security_hosts),
+            security_csp: new(security_csp),
+            security_hosts: new(security_hosts),
         }
     }
 
