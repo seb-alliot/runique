@@ -10,7 +10,9 @@ use std::collections::HashMap;
 use std::fmt;
 
 use crate::utils::aliases::{ATera, FieldsMap, JsonMap, OATera, StrMap};
-use crate::utils::constante::CSRF_TOKEN_KEY;
+use crate::utils::constante::{
+    CONSTRAINT_REGEX, CSRF_TOKEN_KEY, FAILED_REGEX, FOR_KEY_REGEX, KEY_REGEX,
+};
 
 // Erreurs possibles lors de la validation du formulaire liée a la bdd
 #[derive(Debug, Clone)]
@@ -127,7 +129,7 @@ impl Forms {
             fields,
             tera: None,
             global_errors: Vec::new(),
-            session_csrf_token: None,
+            session_csrf_token: Some(csrf_token.to_string()),
         }
     }
 
@@ -168,44 +170,47 @@ impl Forms {
             }
         }
     }
-
+    pub fn finalize(&mut self) -> Result<(), String> {
+        for (name, field) in self.fields.iter_mut() {
+            if let Err(e) = field.finalize() {
+                return Err(format!(
+                    "Erreur lors de la finalisation du champ '{}': {}",
+                    name, e
+                ));
+            }
+        }
+        Ok(())
+    }
     /// Valide le formulaire avec protection contre les stack overflows
     /// Retourne un Result pour permettre la propagation des erreurs
-    pub async fn is_valid(&mut self) -> Result<bool, ValidationError> {
-        const MAX_VALIDATION_DEPTH: usize = 20;
+    pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
+        self.is_valid_with_depth(0)
+    }
 
-        // Vérifier la profondeur de récursion
-        let current_depth = VALIDATION_DEPTH.with(|d| d.get());
+    // Implémentation interne avec compteur
+    fn is_valid_with_depth(&mut self, depth: usize) -> Result<bool, ValidationError> {
+        const MAX_DEPTH: usize = 20;
 
-        if current_depth > MAX_VALIDATION_DEPTH {
-            // Reset le compteur pour éviter de bloquer les prochaines requêtes
-            VALIDATION_DEPTH.with(|d| d.set(0));
+        if depth > MAX_DEPTH {
             return Err(ValidationError::StackOverflow);
         }
 
-        // Incrémenter le compteur
-        VALIDATION_DEPTH.with(|d| d.set(current_depth + 1));
-
-        // VALIDATION SPÉCIALE POUR LE CSRF
+        // Validation CSRF
         if let Some(csrf_field) = self.fields.get_mut(CSRF_TOKEN_KEY) {
             let submitted_token = csrf_field.value().to_string();
-
             if let Some(session_token) = &self.session_csrf_token {
                 if submitted_token.trim().is_empty() {
                     csrf_field.set_error("Token CSRF manquant".to_string());
-                    VALIDATION_DEPTH.with(|d| d.set(d.get().saturating_sub(1)));
                     return Ok(false);
                 }
-
                 if submitted_token != *session_token {
                     csrf_field.set_error("Token CSRF invalide".to_string());
-                    VALIDATION_DEPTH.with(|d| d.set(d.get().saturating_sub(1)));
                     return Ok(false);
                 }
             }
         }
 
-        // Validation normale des champs
+        // Validation normale
         let mut is_all_valid = true;
         for field in self.fields.values_mut() {
             if field.required() && field.value().trim().is_empty() {
@@ -214,6 +219,7 @@ impl Forms {
                 continue;
             }
 
+            // Si validate() peut être récursif, passe depth + 1
             if !field.validate() {
                 is_all_valid = false;
             }
@@ -221,10 +227,6 @@ impl Forms {
 
         let result = is_all_valid && self.global_errors.is_empty();
 
-        // Décrémenter le compteur avant de retourner
-        VALIDATION_DEPTH.with(|d| d.set(d.get().saturating_sub(1)));
-
-        // Si pas valide, retourner les erreurs appropriées
         if !result {
             if !self.global_errors.is_empty() {
                 return Err(ValidationError::GlobalErrors(self.global_errors.clone()));
@@ -308,55 +310,25 @@ impl Forms {
 
     /// Extraire le nom du champ depuis différents formats d'erreur SQL
     fn extract_field_name(err_msg: &str) -> Option<String> {
-        // PostgreSQL français: contrainte unique « users_username_key »
-        if let Some(start) = err_msg.find("contrainte unique « ") {
-            let remaining = &err_msg[start + 20..];
-            if let Some(end) = remaining.find(" »") {
-                let constraint_name = &remaining[..end];
-                if let Some(parts) = Self::parse_constraint_name(constraint_name) {
-                    return Some(parts);
-                }
-            }
+        // 1. PostgreSQL: constraint name
+        if let Some(cap) = CONSTRAINT_REGEX.captures(err_msg).ok()? {
+            let constraint = cap.get(1)?.as_str();
+            return Self::parse_constraint_name(constraint);
         }
 
-        // PostgreSQL anglais: unique constraint "users_username_key"
-        if let Some(start) = err_msg.find("unique constraint \"") {
-            let remaining = &err_msg[start + 19..];
-            if let Some(end) = remaining.find('"') {
-                let constraint_name = &remaining[..end];
-                if let Some(parts) = Self::parse_constraint_name(constraint_name) {
-                    return Some(parts);
-                }
-            }
+        // 2. PostgreSQL: Key (field)=(value)
+        if let Some(cap) = KEY_REGEX.captures(err_msg).ok()? {
+            return Some(cap.get(1)?.as_str().to_string());
         }
 
-        // PostgreSQL: Key (username)=(value)
-        if let Some(start) = err_msg.find("Key (") {
-            if let Some(end) = err_msg[start..].find(')') {
-                let field = &err_msg[start + 5..start + end];
-                return Some(field.to_string());
-            }
+        // 3. SQLite: UNIQUE constraint failed: table.field
+        if let Some(cap) = FAILED_REGEX.captures(err_msg).ok()? {
+            return Some(cap.get(1)?.as_str().to_string());
         }
 
-        // SQLite: UNIQUE constraint failed: users.username
-        if let Some(pos) = err_msg.find("failed: ") {
-            let remaining = &err_msg[pos + 8..];
-            if let Some(dot_pos) = remaining.find('.') {
-                let field = &remaining[dot_pos + 1..];
-                let field_clean = field.split_whitespace().next()?;
-                return Some(field_clean.to_string());
-            }
-        }
-
-        // MySQL: Duplicate entry 'value' for key 'users.username'
-        if let Some(pos) = err_msg.find("for key '") {
-            let remaining = &err_msg[pos + 9..];
-            if let Some(dot_pos) = remaining.find('.') {
-                let after_dot = &remaining[dot_pos + 1..];
-                if let Some(quote_pos) = after_dot.find('\'') {
-                    return Some(after_dot[..quote_pos].to_string());
-                }
-            }
+        // 4. MySQL: for key 'table.field'
+        if let Some(cap) = FOR_KEY_REGEX.captures(err_msg).ok()? {
+            return Some(cap.get(1)?.as_str().to_string());
         }
 
         None
@@ -364,11 +336,10 @@ impl Forms {
 
     /// Parser le nom de contrainte pour extraire le nom du champ
     fn parse_constraint_name(constraint: &str) -> Option<String> {
-        // Format typique: table_field_key ou table_field_idx
         let parts: Vec<&str> = constraint.split('_').collect();
 
         if parts.len() >= 3 {
-            // Enlever le premier élément (nom de table) et le dernier (key/idx)
+            // Format: table_field_key ou table_field_idx
             let field_parts = &parts[1..parts.len() - 1];
             return Some(field_parts.join("_"));
         }

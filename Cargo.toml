@@ -69,6 +69,7 @@ validator = { version = "0.20", features = ["derive", "phone", "url"] }
 argon2 = "0.5"
 password-hash = "0.6.0-rc.3"
 rand = "0.9"
+ammonia = "4.1.2"
 
 # CLI
 clap = { version = "4.5.55", features = ["derive"] }
