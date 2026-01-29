@@ -56,44 +56,48 @@ fn create_new_project(name: &str) -> Result<()> {
     // === CHARGEMENT DES TEMPLATES ===
 
     // Code Rust
-    let view_rs_content = include_bytes!("../composant-bin/code/views.rs").to_vec();
-    let formulaire = include_bytes!("../composant-bin/code/forms.rs").to_vec();
-    let user_exemple = include_bytes!("../composant-bin/code/users.rs").to_vec();
-    let blog_model = include_bytes!("../composant-bin/code/blog.rs").to_vec();
-    let test_model = include_bytes!("../composant-bin/code/test.rs").to_vec();
-    let model_derive = include_bytes!("../composant-bin/code/model_derive.rs").to_vec();
-    let mod_rs_content = include_bytes!("../composant-bin/code/mod.rs").to_vec();
-    let url_rs = include_bytes!("../composant-bin/code/url.rs").to_vec();
-    let main_rs = include_bytes!("../composant-bin/code/main.rs").to_vec();
-    let prelude_rs = include_bytes!("../composant-bin/code/prelude.rs").to_vec();
+    let view_rs_content = include_bytes!("../../../demo-app/src/views.rs").to_vec();
+    let formulaire = include_bytes!("../../../demo-app/src/forms.rs").to_vec();
+    let user_exemple = include_bytes!("../../../demo-app/src/models/users.rs").to_vec();
+    let blog_model = include_bytes!("../../../demo-app/src/models/blog.rs").to_vec();
+    let test_model = include_bytes!("../../../demo-app/src/models/test.rs").to_vec();
+    let model_derive = include_bytes!("../../../demo-app/src/models/model_derive.rs").to_vec();
+    let mod_rs_content = include_bytes!("../../../demo-app/src/models/mod.rs").to_vec();
+    let url_rs = include_bytes!("../../../demo-app/src/url.rs").to_vec();
+    let main_rs = include_bytes!("../../../demo-app/src/main.rs").to_vec();
+    let prelude_rs = include_bytes!("../../../demo-app/src/prelude.rs").to_vec();
 
     // Templates HTML
-    let index_html = include_bytes!("../composant-bin/template/index.html").to_vec();
-    let about_html = include_bytes!("../composant-bin/template/about.html").to_vec();
-    let view_user_html = include_bytes!("../composant-bin/template/view_user.html").to_vec();
+    let index_html = include_bytes!("../../../demo-app/templates/index.html").to_vec();
+    let about_html = include_bytes!("../../../demo-app/templates/about/about.html").to_vec();
+    let view_user_html =
+        include_bytes!("../../../demo-app/templates/profile/view_user.html").to_vec();
     let register_user_html =
-        include_bytes!("../composant-bin/template/register_user.html").to_vec();
+        include_bytes!("../../../demo-app/templates/profile/register_form.html").to_vec();
     let inscription_form_html =
-        include_bytes!("../composant-bin/template/inscription_form.html").to_vec();
-    let blog_html = include_bytes!("../composant-bin/template/blog/blog.html").to_vec();
+        include_bytes!("../../../demo-app/templates/inscription_form.html").to_vec();
+    let blog_html = include_bytes!("../../../demo-app/templates/blog/blog.html").to_vec();
     let test_champs_html =
-        include_bytes!("../composant-bin/template/test_champs_form.html").to_vec();
+        include_bytes!("../../../demo-app/templates/test_champs_form.html").to_vec();
 
     // CSS
-    let main_css = include_bytes!("../composant-bin/css/main.css").to_vec();
-    let about_css = include_bytes!("../composant-bin/css/about.css").to_vec();
-    let register_form_css = include_bytes!("../composant-bin/css/register-form.css").to_vec();
-    let search_user_css = include_bytes!("../composant-bin/css/search-user.css").to_vec();
-    let variable_css = include_bytes!("../composant-bin/css/variables.css").to_vec();
-    let test_form_css = include_bytes!("../composant-bin/css/test_form.css").to_vec();
+    let main_css = include_bytes!("../../../demo-app/static/css/main.css").to_vec();
+    let about_css = include_bytes!("../../../demo-app/static/css/about.css").to_vec();
+    let register_form_css =
+        include_bytes!("../../../demo-app/static/css/inscription/inscription.css").to_vec();
+    let register_form_label_css =
+        include_bytes!("../../../demo-app/static/css/inscription/inscription-label.css").to_vec();
+    let search_user_css = include_bytes!("../../../demo-app/static/css/search-user.css").to_vec();
+    let variable_css = include_bytes!("../../../demo-app/static/css/variables.css").to_vec();
+    let test_form_css = include_bytes!("../../../demo-app/static/css/test_form.css").to_vec();
     let inscription_css =
-        include_bytes!("../composant-bin/css/inscription/inscription.css").to_vec();
+        include_bytes!("../../../demo-app/static/css/inscription/inscription.css").to_vec();
     let inscription_label_css =
-        include_bytes!("../composant-bin/css/inscription/inscription-label.css").to_vec();
+        include_bytes!("../../../demo-app/static/css/inscription/inscription-label.css").to_vec();
 
     // Images
-    let image = include_bytes!("../composant-bin/image/toshiro.avif").to_vec();
-    let favicon = include_bytes!("../composant-bin/image/favicon.ico").to_vec();
+    let image = include_bytes!("../../../demo-app/media/toshiro.avif").to_vec();
+    let favicon = include_bytes!("../../../demo-app/media/favicon/favicon.ico").to_vec();
     // Fichiers de configuration
     let cargo_toml = include_str!("../composant-bin/config/apiconfig")
         .replace("{{PROJECT_NAME}}", name)
@@ -167,6 +171,10 @@ fn create_new_project(name: &str) -> Result<()> {
     fs::write(
         project_dir.join("src/static/css/register-form.css"),
         register_form_css,
+    )?;
+    fs::write(
+        project_dir.join("src/static/css/inscription/inscription.css"),
+        register_form_label_css,
     )?;
     fs::write(
         project_dir.join("src/static/css/search-user.css"),

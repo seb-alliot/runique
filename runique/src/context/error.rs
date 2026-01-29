@@ -1,5 +1,5 @@
 // Liste des templates internes chargés par load_internal_templates
-use crate::constante::template::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+use crate::utils::constante::template::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 
 use std::sync::OnceLock;
 
@@ -20,9 +20,9 @@ fn get_internal_templates() -> &'static [&'static str] {
 
 use crate::errors::track_error::RuniqueError;
 use crate::middleware::RequestInfoHelper;
+use crate::utils::aliases::StrMap;
 use axum::http::StatusCode;
 use serde::Serialize;
-use crate::aliases::StrMap;
 
 /// Contexte complet pour les erreurs avec toutes les informations de débogage
 #[derive(Debug, Serialize, Clone)]

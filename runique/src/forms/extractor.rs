@@ -1,10 +1,8 @@
-use crate::aliases::{ARuniqueConfig, ATera};
 use crate::forms::field::RuniqueForm;
 use crate::forms::prisme::{aegis, csrf_gate, sentinel};
 use crate::formulaire::{auto_sanitize, is_sensitive_field};
+use crate::utils::aliases::{ARuniqueConfig, ATera, StrMap, StrVecMap};
 
-use crate::aliases::StrMap;
-use crate::aliases::StrVecMap;
 use axum::{
     body::Body,
     extract::FromRequest,

@@ -1,6 +1,6 @@
-use crate::aliases::Messages;
-use crate::constante::FLASH_KEY;
 use crate::flash::flash_struct::FlashMessage;
+use crate::utils::aliases::Messages;
+use crate::utils::constante::FLASH_KEY;
 use axum::extract::FromRequestParts;
 use axum::http::{request::Parts, StatusCode};
 use tower_sessions::Session;

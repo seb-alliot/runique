@@ -9,11 +9,8 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::aliases::FieldsMap;
-use crate::aliases::JsonMap;
-use crate::aliases::StrMap;
-use crate::aliases::{ATera, OATera};
-use crate::constante::CSRF_TOKEN_KEY;
+use crate::utils::aliases::{ATera, FieldsMap, JsonMap, OATera, StrMap};
+use crate::utils::constante::CSRF_TOKEN_KEY;
 
 // Erreurs possibles lors de la validation du formulaire liée a la bdd
 #[derive(Debug, Clone)]

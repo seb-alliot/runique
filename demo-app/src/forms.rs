@@ -106,8 +106,7 @@ impl RuniqueForm for Blog {
         );
 
         // Site Web (URL)
-        form.field(&TextField::url("website")
-                .label("Entrez le site web source"));
+        form.field(&TextField::url("website").label("Entrez le site web source"));
 
         // Résumé (TextArea)
         form.field(

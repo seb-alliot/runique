@@ -45,8 +45,7 @@ pub mod flash;
 pub mod forms;
 #[macro_use]
 pub mod macros;
-pub mod aliases;
-mod constante;
+
 pub mod errors;
 pub mod middleware;
 pub mod utils;
@@ -137,7 +136,7 @@ pub mod middleware_runique {
 pub mod macro_runique {
     pub use crate::macros::*;
     pub use crate::macros::{
-        context::{context, flash},
+        context::{context_simplifier, flash},
         routeur::*,
     };
 }
@@ -216,7 +215,6 @@ pub mod prelude {
     // ========================================================================
     // MODULES PRINCIPAUX
     // ========================================================================
-    pub use crate::aliases::{AEngine, AppResult};
     pub use crate::app::{RuniqueApp, RuniqueAppBuilder};
     pub use crate::config::app::RuniqueConfig;
     pub use crate::context::{AppError, TemplateContext};
@@ -238,6 +236,7 @@ pub mod prelude {
         manager::Forms,
         Prisme,
     };
+    pub use crate::utils::aliases::*;
     pub use derive_form::DeriveModelForm;
 
     // ========================================================================

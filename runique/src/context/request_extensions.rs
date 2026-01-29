@@ -6,7 +6,10 @@ use axum::body::Body;
 use axum::http::request::Parts;
 use axum::http::Request;
 
-use crate::aliases::*;
+use crate::utils::aliases::{
+    AEngine, ARuniqueConfig, ATera, OAEngine, OARuniqueConfig, OATera, OCspNonce, OCsrfToken,
+    OCurrentUser,
+};
 
 /// Structure contenant toutes les données à injecter dans les extensions
 pub struct RequestExtensions {

@@ -162,7 +162,7 @@ pub async fn blog_save(
         "blog_form" => &blog_save,
         "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
     });
-    return template.render("blog/blog.html");
+    template.render("blog/blog.html")
 }
 
 /// Page "À propos"

@@ -1,4 +1,4 @@
-use crate::aliases::ARlockmap;
+use crate::utils::aliases::ARlockmap;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tower_http::services::ServeDir;

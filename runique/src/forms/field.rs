@@ -4,8 +4,7 @@ use async_trait::async_trait;
 use sea_orm::DbErr;
 use serde_json::Value;
 
-use crate::aliases::ATera;
-use crate::aliases::StrMap;
+use crate::utils::aliases::{ATera, StrMap};
 use dyn_clone::DynClone;
 
 pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
