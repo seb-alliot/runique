@@ -33,6 +33,10 @@ pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
     // Validation
     fn validate(&mut self) -> bool;
 
+    fn finalize(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
     // Rendu
     fn render(&self, tera: &ATera) -> Result<String, String>;
 
@@ -83,7 +87,9 @@ pub trait RuniqueForm: Sized + Send + Sync {
     }
 
     async fn is_valid(&mut self) -> bool {
-        let fields_valid = match self.get_form_mut().is_valid().await {
+        // 1. Validation individuelle des champs (incluant CSRF)
+        // Ici, le mot de passe est encore en CLAIR (format texte).
+        let fields_valid = match self.get_form_mut().is_valid() {
             Ok(valid) => valid,
             Err(ValidationError::StackOverflow) => {
                 self.get_form_mut().global_errors.push(
@@ -91,17 +97,25 @@ pub trait RuniqueForm: Sized + Send + Sync {
                 );
                 return false;
             }
-            Err(_) => {
-                return false;
-            }
+            Err(_) => return false,
         };
 
         if !fields_valid {
             return false;
         }
 
+        // 2. Validation métier croisée (CLEAN)
+        // C'est ICI que le dev peut comparer mdp1 == mdp2 en clair.
         match self.clean().await {
-            Ok(_) => true,
+            Ok(_) => {
+                // 3. FINALISATION (Hachage)
+                // Si tout est valide, on transforme les données (ex: Argon2)
+                if let Err(e) = self.get_form_mut().finalize() {
+                    self.get_form_mut().global_errors.push(e);
+                    return false;
+                }
+                true
+            }
             Err(business_errors) => {
                 let form = self.get_form_mut();
                 for (name, msg) in business_errors {

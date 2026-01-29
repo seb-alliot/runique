@@ -1,6 +1,5 @@
 use crate::forms::field::RuniqueForm;
 use crate::forms::prisme::{aegis, csrf_gate, sentinel};
-use crate::formulaire::{auto_sanitize, is_sensitive_field};
 use crate::utils::aliases::{ARuniqueConfig, ATera, StrMap, StrVecMap};
 
 use axum::{
@@ -65,16 +64,7 @@ where
         return Ok(prisme);
     }
     // On récupère le flag depuis la config injectée par le builder
-    let mut form_data = convert_for_form(parsed);
-
-    if config.security.sanitize_inputs {
-        for (key, value) in form_data.iter_mut() {
-            // On ne sanitize pas les champs sensibles (mots de passe)
-            if !is_sensitive_field(key) {
-                *value = auto_sanitize(value.as_str());
-            }
-        }
-    }
+    let form_data = convert_for_form(parsed);
 
     let mut form = T::build_with_data(
         &form_data, // Maintenant potentiellement nettoyé

@@ -215,8 +215,14 @@ impl FormField for TextField {
     }
 
     fn validate(&mut self) -> bool {
-        let val = self.base.value.trim().to_string();
+        // Trim initial
+        let mut val = self.base.value.trim().to_string();
 
+        if let SpecialFormat::RichText = self.format {
+            val = crate::utils::sanitizer::auto_sanitize_field(&self.base.name, &val);
+        }
+
+        // Validation du champ requis
         if self.base.is_required.choice && val.is_empty() {
             let msg = self
                 .base
@@ -249,7 +255,6 @@ impl FormField for TextField {
         if let Some(limits) = &self.config.max_length {
             let count = val.chars().count();
             if count > limits.value {
-                // <-- Changement ici (limits.value)
                 let msg = limits
                     .message
                     .clone()
@@ -266,7 +271,7 @@ impl FormField for TextField {
                 return false;
             }
             SpecialFormat::Email => {
-                self.base.value = val.to_lowercase();
+                val = val.to_lowercase();
             }
             SpecialFormat::Url if !val.validate_url() => {
                 self.set_error("Veuillez entrer une URL valide".into());
@@ -274,23 +279,27 @@ impl FormField for TextField {
             }
             _ => {}
         }
-        if let SpecialFormat::Password = &self.format {
-            if !val.starts_with("$argon2") {
-                match self.hash_password() {
-                    Ok(hash_password) => {
-                        self.base.value = hash_password;
-                    }
-                    Err(e) => {
-                        self.set_error(e);
-                        return false;
-                    }
-                }
-            }
-        }
+
+        // Mise à jour la valeur nettoyée
+        self.base.value = val;
+
+        // Réinitialise l'erreur
         self.set_error("".into());
         true
     }
 
+    fn finalize(&mut self) -> Result<(), String> {
+        if let SpecialFormat::Password = &self.format {
+            // On ne hache que si ce n'est pas déjà fait
+            if !self.base.value.is_empty() && !self.base.value.starts_with("$argon2") {
+                match self.hash_password() {
+                    Ok(h) => self.base.value = h,
+                    Err(e) => return Err(e),
+                }
+            }
+        }
+        Ok(())
+    }
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
 

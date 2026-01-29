@@ -34,7 +34,7 @@ tower-sessions.workspace = true
 urlencoding.workspace = true
 byte.workspace = true
 http-body-util.workspace = true
-
+ammonia.workspace = true
 # gestion password
 argon2.workspace = true
 password-hash.workspace = true

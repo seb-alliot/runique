@@ -55,7 +55,7 @@ REPLACEMENTS = [
 # Fichiers à ignorer
 IGNORE_FILES = [
     "src/utils/aliases/definition.rs",  # Fichier de définition des aliases
-    "lib.rs",                 # Géré manuellement
+    "src/lib.rs",                 # Géré manuellement
 ]
 
 # =============================================================================
