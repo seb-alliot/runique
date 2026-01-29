@@ -1,8 +1,9 @@
 // Dans src/tera_function/form_filter.rs
+use crate::aliases::TResult;
 use std::collections::HashMap;
 use tera::Value;
 
-pub fn form_filter(value: &Value, args: &HashMap<String, Value>) -> tera::Result<Value> {
+pub fn form_filter(value: &Value, args: &HashMap<String, Value>) -> TResult {
     if let Some(field_name) = args.get("field").and_then(|v| v.as_str()) {
         // Essaie d'abord dans "fields"
         if let Some(fields) = value.get("fields").and_then(|f| f.as_object()) {
@@ -11,7 +12,7 @@ pub fn form_filter(value: &Value, args: &HashMap<String, Value>) -> tera::Result
             }
         }
 
-        // Essaie dans "form.fields" (pour Blog { form: Forms })
+        // Essaie dans "form.fields"
         if let Some(form) = value.get("form") {
             if let Some(fields) = form.get("fields").and_then(|f| f.as_object()) {
                 if let Some(field_obj) = fields.get(field_name) {

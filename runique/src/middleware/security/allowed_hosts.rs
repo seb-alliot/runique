@@ -1,6 +1,6 @@
 // runique/src/middleware/allowed_hosts.rs
 
-use crate::engine::RuniqueEngine;
+use crate::aliases::AEngine;
 use axum::{
     body::Body,
     extract::State,
@@ -9,7 +9,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct HostPolicy {
@@ -109,7 +108,7 @@ impl HostPolicy {
 }
 
 pub async fn allowed_hosts_middleware(
-    State(engine): State<Arc<RuniqueEngine>>, // Utilise maintenant ton Engine central
+    State(engine): State<AEngine>, // Utilise maintenant ton Engine central
     request: Request<Body>,
     next: Next,
 ) -> Response {

@@ -16,7 +16,7 @@ pub struct StaticConfig {
     pub media_root: String,
     pub static_url: String,
     pub media_url: String,
-    pub staticfiles_storage: String,
+    pub staticfiles: String,
 }
 
 impl StaticConfig {
@@ -40,8 +40,8 @@ impl StaticConfig {
         let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
         let static_url = std::env::var("STATIC_URL").unwrap_or_else(|_| "/static".to_string());
         let media_url = std::env::var("MEDIA_URL").unwrap_or_else(|_| "/media".to_string());
-        let staticfiles_storage =
-            std::env::var("STATICFILES_STORAGE").unwrap_or_else(|_| "default_storage".to_string());
+        let staticfiles =
+            std::env::var("STATICFILES").unwrap_or_else(|_| "default_storage".to_string());
         Self {
             base_dir,
             static_runique_path,
@@ -54,7 +54,7 @@ impl StaticConfig {
             media_root,
             static_url,
             media_url,
-            staticfiles_storage,
+            staticfiles,
         }
     }
 }

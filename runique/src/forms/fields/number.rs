@@ -53,7 +53,7 @@ impl NumericField {
             name,
             "number",
             NumericConfig::Percent {
-                value: Fouchette {
+                value: Range {
                     min: 0.0,
                     max: 100.0,
                 },
@@ -66,7 +66,7 @@ impl NumericField {
             name,
             "range",
             NumericConfig::Range {
-                value: Fouchette { min, max },
+                value: Range { min, max },
                 default,
                 step: 1.0,
             },
@@ -83,7 +83,7 @@ impl NumericField {
                 if let Some(f) = value {
                     f.min = val;
                 } else {
-                    *value = Some(Fouchette {
+                    *value = Some(Range {
                         min: val,
                         max: f64::MAX,
                     });
@@ -108,7 +108,7 @@ impl NumericField {
                 if let Some(f) = value {
                     f.max = val;
                 } else {
-                    *value = Some(Fouchette {
+                    *value = Some(Range {
                         min: f64::MIN,
                         max: val,
                     });

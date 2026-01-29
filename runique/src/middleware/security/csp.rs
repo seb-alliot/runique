@@ -1,7 +1,6 @@
+use crate::aliases::AEngine;
 use crate::context::RequestExtensions;
-use crate::engine::RuniqueEngine;
 use crate::utils::csp_nonce::CspNonce;
-use std::sync::Arc;
 
 use axum::{
     body::Body,
@@ -163,7 +162,7 @@ impl SecurityPolicy {
 
 /// Middleware CSP standard
 pub async fn csp_middleware(
-    State(engine): State<Arc<RuniqueEngine>>,
+    State(engine): State<AEngine>,
     req: Request<Body>,
     next: Next,
 ) -> Response {
@@ -181,7 +180,7 @@ pub async fn csp_middleware(
 
 /// Middleware CSP report-only
 pub async fn csp_report_only_middleware(
-    State(engine): State<Arc<RuniqueEngine>>,
+    State(engine): State<AEngine>,
     req: Request<Body>,
     next: Next,
 ) -> Response {
@@ -200,7 +199,7 @@ pub async fn csp_report_only_middleware(
 
 /// Middleware global de sécurité (CSP + headers divers)
 pub async fn security_headers_middleware(
-    State(engine): State<Arc<RuniqueEngine>>,
+    State(engine): State<AEngine>,
     mut req: Request<Body>,
     next: Next,
 ) -> Response {

@@ -71,4 +71,4 @@ password-hash = "0.6.0-rc.3"
 rand = "0.9"
 
 # CLI
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5.55", features = ["derive"] }

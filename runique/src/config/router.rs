@@ -1,10 +1,9 @@
-use crate::engine::RuniqueEngine;
+use crate::aliases::AEngine;
 use axum::Router;
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct RuniqueRouter {
-    pub core: Router<Arc<RuniqueEngine>>,
+    pub core: Router<AEngine>,
 }
 
 impl Default for RuniqueRouter {
@@ -20,17 +19,13 @@ impl RuniqueRouter {
         }
     }
 
-    pub fn add_route(
-        mut self,
-        path: &str,
-        method: axum::routing::MethodRouter<Arc<RuniqueEngine>>,
-    ) -> Self {
+    pub fn add_route(mut self, path: &str, method: axum::routing::MethodRouter<AEngine>) -> Self {
         self.core = self.core.route(path, method);
         self
     }
 
     /// Permet de fusionner un autre groupe de routes (Nest)
-    pub fn nest(mut self, path: &str, router: Router<Arc<RuniqueEngine>>) -> Self {
+    pub fn nest(mut self, path: &str, router: Router<AEngine>) -> Self {
         self.core = self.core.nest(path, router);
         self
     }

@@ -1,4 +1,4 @@
-use crate::engine::RuniqueEngine;
+use crate::aliases::AEngine;
 use axum::{
     body::Body,
     extract::{Request, State},
@@ -6,10 +6,9 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use std::sync::Arc;
 
 pub async fn dev_no_cache_middleware(
-    State(engine): State<Arc<RuniqueEngine>>,
+    State(engine): State<AEngine>,
     req: Request<Body>,
     next: Next,
 ) -> Response {

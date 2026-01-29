@@ -339,9 +339,9 @@ impl DatabaseConfig {
                 Ok(conn)
             }
             Err(e) => {
-                tracing::error!("❌ Database connection failed");
-                tracing::error!("Engine: {}", self.engine.name());
-                tracing::error!("URL: {}", mask_password(&self.url));
+                tracing::error!("|_ Database connection failed");
+                tracing::error!("|_ Engine: {}", self.engine.name());
+                tracing::error!("|_ URL: {}", mask_password(&self.url));
                 Err(e)
             }
         }
@@ -357,7 +357,7 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
     match engine {
         DatabaseEngine::PostgreSQL => {
             #[cfg(not(feature = "postgres"))]
-            return Err("❌ PostgreSQL driver not enabled.\n\n\
+            return Err("PostgreSQL driver not enabled.\n\n\
                 To fix this, add the 'postgres' feature to runique in your Cargo.toml:\n\n\
                 [dependencies]\n\
                 runique = { version = \"0.1\", features = [\"postgres\"] }\n\n\
@@ -370,7 +370,7 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
         }
         DatabaseEngine::MySQL => {
             #[cfg(not(feature = "mysql"))]
-            return Err("❌ MySQL driver not enabled.\n\n\
+            return Err("MySQL driver not enabled.\n\n\
                 To fix this, add the 'mysql' feature to runique in your Cargo.toml:\n\n\
                 [dependencies]\n\
                 runique = { version = \"0.1\", features = [\"mysql\"] }\n\n\
@@ -383,7 +383,7 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
         }
         DatabaseEngine::MariaDB => {
             #[cfg(not(feature = "mariadb"))]
-            return Err("❌ MariaDB driver not enabled.\n\n\
+            return Err("MariaDB driver not enabled.\n\n\
                 To fix this, add the 'mariadb' feature to runique in your Cargo.toml:\n\n\
                 [dependencies]\n\
                 runique = { version = \"0.1\", features = [\"mariadb\"] }\n\n\
@@ -397,13 +397,15 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
         }
         DatabaseEngine::SQLite => {
             #[cfg(not(feature = "sqlite"))]
-            return Err("❌ SQLite driver not enabled.\n\n\
-                To fix this, add the 'sqlite' feature to runique in your Cargo.toml:\n\n\
+            return Err(
+                "To fix this, add the 'sqlite' feature to runique in your Cargo.toml:\n\n\
                 [dependencies]\n\
-                runique = { version = \"0.1\", features = [\"sqlite\"] }\n\n\
-                Or use the default features (SQLite is enabled by default):\n\
-                runique = \"0.1\""
-                .to_string());
+                runique = { version = \"1.xx\", features = [\"sqlite\"] }
+                Note: Sqlite uses the Sqlite driver.\n\n\
+                Or enable all databases:\n\
+                runique = { version = \"0.1\", features = [\"all-databases\"]"
+                    .to_string(),
+            );
 
             #[cfg(feature = "sqlite")]
             Ok(())

@@ -1,10 +1,9 @@
+use crate::aliases::*;
 use crate::config::RuniqueConfig;
 use crate::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 use crate::context::tera::static_tera;
 use regex::{Captures, Regex};
-use std::collections::HashMap;
 use std::path::Path;
-use std::sync::{Arc, RwLock};
 use tera::Tera;
 
 pub struct TemplateLoader;
@@ -13,7 +12,7 @@ impl TemplateLoader {
     /// Initialise Tera et traite tous les templates (internes + utilisateurs)
     pub fn init(
         config: &RuniqueConfig,
-        url_registry: Arc<RwLock<HashMap<String, String>>>,
+        url_registry: ARlockmap,
     ) -> Result<Tera, Box<dyn std::error::Error>> {
         let mut tera = Tera::default();
 
@@ -21,13 +20,13 @@ impl TemplateLoader {
         Self::load_internal_templates(&mut tera)?;
 
         // 1b. Enregistrer les filtres personnalisés (static, media, form, etc.)
-        static_tera::register_all_asset_filters(
+        static_tera::register_asset_filters(
             &mut tera,
             config.static_files.static_url.clone(),
             config.static_files.media_url.clone(),
             config.static_files.static_runique_url.clone(),
             config.static_files.media_runique_url.clone(),
-            url_registry,
+            url_registry.clone(),
         );
 
         // 2. Préparation des Regex de transformation

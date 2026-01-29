@@ -4,9 +4,8 @@ use async_trait::async_trait;
 use sea_orm::DbErr;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::sync::Arc;
-use tera::Tera;
 
+use crate::aliases::ATera;
 use dyn_clone::DynClone;
 
 pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
@@ -36,7 +35,7 @@ pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
     fn validate(&mut self) -> bool;
 
     // Rendu
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String>;
+    fn render(&self, tera: &ATera) -> Result<String, String>;
 
     // Conversion JSON
     fn to_json_value(&self) -> Value {
@@ -123,7 +122,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
     }
 
     // MODIFIÉ : Prend maintenant le token CSRF
-    fn build(tera: Arc<Tera>, csrf_token: &str) -> Self {
+    fn build(tera: ATera, csrf_token: &str) -> Self {
         let mut form = Forms::new(csrf_token); // PASSAGE DU TOKEN
         form.set_tera(tera);
         Self::register_fields(&mut form);
@@ -132,7 +131,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     async fn build_with_data(
         raw_data: &HashMap<String, String>,
-        tera: Arc<Tera>,
+        tera: ATera,
         csrf_token: &str, //  AJOUT DU PARAMÈTRE
     ) -> Self {
         let mut form = Forms::new(csrf_token); // PASSAGE DU TOKEN

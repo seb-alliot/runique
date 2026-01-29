@@ -24,7 +24,8 @@ macro_rules! impl_objects {
             /// impl_objects!(Entity);  // Ajoute User::objects
             /// ```
             #[allow(non_upper_case_globals)]
-            pub const objects: $crate::macros::bdd::objects::Objects<Self> = $crate::macros::bdd::objects::Objects::new();
+            pub const objects: $crate::macros::bdd::objects::Objects<Self> =
+                $crate::macros::bdd::objects::Objects::new();
         }
     };
 }

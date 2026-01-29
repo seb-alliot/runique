@@ -1,3 +1,4 @@
+use crate::aliases::{ARuniqueConfig, ATera};
 use axum::{
     extract::Extension,
     http::{Request, StatusCode},
@@ -25,12 +26,12 @@ pub struct RequestInfoHelper {
 /// Middleware principal Runique avec tracing + debug
 #[instrument(name = "RuniqueRequest", skip(tera, config, next))]
 pub async fn error_handler_middleware(
-    Extension(tera): Extension<Arc<Tera>>,
-    Extension(config): Extension<Arc<RuniqueConfig>>,
+    Extension(tera): Extension<ATera>,
+    Extension(config): Extension<ARuniqueConfig>,
     request: Request<axum::body::Body>,
     next: Next,
 ) -> Response {
-    // --- 1️⃣ Collecte des infos requête ---
+    // ---  Collecte des infos requête ---
     let csrf_token: Option<String> = request.extensions().get::<CsrfToken>().map(|t| t.0.clone());
     let request_helper = RequestInfoHelper {
         method: request.method().to_string(),
@@ -47,13 +48,13 @@ pub async fn error_handler_middleware(
             .collect(),
     };
 
-    // --- 2️⃣ Exécute la requête dans le span tracing ---
+    // ---  Exécute la requête dans le span tracing ---
     let span = tracing::Span::current();
     let response = next.run(request).instrument(span.clone()).await;
 
     let status = response.status();
 
-    // --- 3️⃣ Gestion des erreurs ---
+    // ---  Gestion des erreurs ---
     if status.is_server_error() || status == StatusCode::NOT_FOUND {
         // Récupère l'erreur attachée à la réponse si elle existe
         let error_ctx_opt = response
@@ -69,7 +70,7 @@ pub async fn error_handler_middleware(
             }
         });
 
-        // --- 4️⃣ Logging intelligent ---
+        // ---  Logging intelligent ---
         match &error_ctx {
             RuniqueError::Internal
             | RuniqueError::Database(_)
@@ -83,7 +84,7 @@ pub async fn error_handler_middleware(
             }
         }
 
-        // --- 5️⃣ Crée un contexte enrichi pour templates ---
+        // ---  Crée un contexte enrichi pour templates ---
         if config.debug {
             let ctx = ErrorContext::from_runique_error(
                 &error_ctx,
@@ -103,7 +104,7 @@ pub async fn error_handler_middleware(
         }
     }
 
-    // --- 6️⃣ Pas d'erreur : retourne la réponse normale ---
+    // ---  Pas d'erreur : retourne la réponse normale ---
     response
 }
 

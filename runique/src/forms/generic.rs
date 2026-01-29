@@ -2,8 +2,8 @@ use crate::forms::field::FormField;
 use crate::forms::fields::{NumericField, TextField};
 use serde::Serialize;
 use serde_json::Value;
-use std::sync::Arc;
-use tera::Tera;
+
+use crate::aliases::ATera;
 
 #[derive(Clone, Debug, Serialize)]
 pub enum FieldKind {
@@ -102,7 +102,7 @@ impl FormField for GenericField {
         }
     }
 
-    fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
+    fn render(&self, tera: &ATera) -> Result<String, String> {
         match &self.kind {
             FieldKind::Text(f) => f.render(tera),
             FieldKind::Numeric(f) => f.render(tera),
