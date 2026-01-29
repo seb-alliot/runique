@@ -1,5 +1,5 @@
+use crate::aliases::JsonMap;
 use crate::aliases::{ARlockmap, TResult};
-use std::collections::HashMap;
 use tera::{Function, Value};
 
 pub struct LinkFunction {
@@ -7,12 +7,12 @@ pub struct LinkFunction {
 }
 
 impl Function for LinkFunction {
-    fn call(&self, args: &HashMap<String, Value>) -> TResult {
+    fn call(&self, args: &JsonMap) -> TResult {
         link_function(args, &self.url_registry)
     }
 }
 
-fn link_function(args: &HashMap<String, Value>, url_registry: &ARlockmap) -> TResult {
+fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
     let link_name = args
         .get("link")
         .and_then(|v| v.as_str())

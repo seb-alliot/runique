@@ -22,7 +22,7 @@ use crate::errors::track_error::RuniqueError;
 use crate::middleware::RequestInfoHelper;
 use axum::http::StatusCode;
 use serde::Serialize;
-use std::collections::HashMap;
+use crate::aliases::StrMap;
 
 /// Contexte complet pour les erreurs avec toutes les informations de débogage
 #[derive(Debug, Serialize, Clone)]
@@ -65,7 +65,7 @@ pub struct RequestInfo {
     pub method: String,
     pub path: String,
     pub query: Option<String>,
-    pub headers: HashMap<String, String>,
+    pub headers: StrMap,
 }
 
 /// Frame de la stack trace

@@ -3,9 +3,9 @@ use crate::forms::manager::{Forms, ValidationError};
 use async_trait::async_trait;
 use sea_orm::DbErr;
 use serde_json::Value;
-use std::collections::HashMap;
 
 use crate::aliases::ATera;
+use crate::aliases::StrMap;
 use dyn_clone::DynClone;
 
 pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
@@ -79,7 +79,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn get_form(&self) -> &Forms;
     fn get_form_mut(&mut self) -> &mut Forms;
 
-    async fn clean(&mut self) -> Result<(), HashMap<String, String>> {
+    async fn clean(&mut self) -> Result<(), StrMap> {
         Ok(())
     }
 
@@ -130,7 +130,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
     }
 
     async fn build_with_data(
-        raw_data: &HashMap<String, String>,
+        raw_data: &StrMap,
         tera: ATera,
         csrf_token: &str, //  AJOUT DU PARAMÈTRE
     ) -> Self {

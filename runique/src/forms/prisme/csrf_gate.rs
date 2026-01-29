@@ -1,3 +1,5 @@
+use crate::aliases::StrMap;
+use crate::aliases::StrVecMap;
 use crate::constante::CSRF_TOKEN_KEY;
 use crate::forms::extractor::Prisme;
 use crate::forms::field::RuniqueForm;
@@ -9,7 +11,7 @@ use tera::Tera;
 /// CSRF gate : vérification du token dans les données parsées.
 /// Retourne Some(Prisme) si invalid/missing (formulaire vide avec erreur), None sinon.
 pub async fn csrf_gate<T: RuniqueForm>(
-    parsed: &HashMap<String, Vec<String>>,
+    parsed: &StrVecMap,
     csrf_session: &str,
     tera: Arc<Tera>,
 ) -> Result<Option<Prisme<T>>, Response> {
@@ -19,7 +21,7 @@ pub async fn csrf_gate<T: RuniqueForm>(
         .map(|s| s.as_str());
 
     if csrf_submitted != Some(csrf_session) {
-        let empty: HashMap<String, String> = HashMap::new();
+        let empty: StrMap = HashMap::new();
         let mut form = T::build_with_data(&empty, tera.clone(), csrf_session).await;
         form.get_form_mut().set_tera(tera);
         if let Some(csrf_field) = form.get_form_mut().fields.get_mut(CSRF_TOKEN_KEY) {

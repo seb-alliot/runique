@@ -14,10 +14,10 @@ use std::sync::RwLock;
 use tera::{Result as TeraResult, Tera, Value};
 use tower_sessions::{SessionManagerLayer, SessionStore};
 
-// Import pour les nouveaux aliases collections
+// Import pour les nouveaux aliause crate::alia
+use indexmap::IndexMap;
 use crate::flash::FlashMessage;
 use crate::forms::field::FormField;
-use indexmap::IndexMap;
 
 // ============================================================================
 // ALIASES ARC<T> - TYPES PARTAGÉS THREAD-SAFE
