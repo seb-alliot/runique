@@ -9,7 +9,7 @@ body > main {
     }
 
 form {
-    width: 70%;
+    width: 55%;
     margin-left: auto;
     margin-right: auto;
     margin-top: var(--margin-top);
@@ -122,11 +122,13 @@ form button:hover, .text-center:hover  {
 }
 
 /* Active */
-form button:active {
+form button:active, .text-center:active {
     transform: translateY(0);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
 }
-
+.text-center:hover  {
+    box-shadow: none;
+}
 .text-center {
     width: 20vw;
     display: flex;
