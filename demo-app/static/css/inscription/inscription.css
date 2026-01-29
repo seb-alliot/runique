@@ -9,7 +9,7 @@ body > main {
     }
 
 form {
-    width: 80%;
+    width: 70%;
     margin-left: auto;
     margin-right: auto;
     margin-top: var(--margin-top);
@@ -33,7 +33,11 @@ form,
 .form-label {
     text-align: center;
 }
-
+.form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 form button {
     align-self: center;
 }
@@ -53,6 +57,7 @@ form label {
 }
 
 /* Inputs */
+
 form input,
 form textarea,
 form select {
@@ -95,7 +100,7 @@ form .error-message {
    BOUTON
    ========================= */
 
-form button {
+form button, .text-center a {
     margin-top: 1rem;
     background: linear-gradient(135deg, var(--accent), #6366f1);
     color: #fff;
@@ -110,7 +115,7 @@ form button {
 }
 
 /* Hover élégant */
-form button:hover {
+form button:hover, .text-center:hover  {
     transform: translateY(-1px);
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
     filter: brightness(1.05);
@@ -120,6 +125,18 @@ form button:hover {
 form button:active {
     transform: translateY(0);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+}
+
+.text-center {
+    width: 20vw;
+    display: flex;
+    justify-content: center;
+    margin: var(--margin-top);
+
+}
+.text-center a {
+    color: #fff;
+    text-decoration: none;
 }
 
 /* =========================
