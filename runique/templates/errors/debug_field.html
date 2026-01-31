@@ -8,3 +8,183 @@
             </ul>
             <hr>
         </div>
+
+
+
+
+decoupe cet html en ne gardant strictement que les class css , le inline tu le supprime <!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Debug Mode</title>
+    <style>
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- En-tête de l'erreur -->
+        <div class="header">
+            <div class="error-type badge-error">{{ error_type }}</div>
+            <h1>{{ title }}</h1>
+            <div class="message-box">
+                <strong>Message principal:</strong><br>
+                {{ message }}
+            </div>
+            {% if stack_trace and stack_trace | length > 0 %}
+            <div class="message-box" style="margin-top: 1rem; border-color: #ffa94d;">
+                <strong>⚠️ Cause racine:</strong><br>
+                {{ stack_trace | first | get(key="message") }}
+            </div>
+            {% endif %}
+            {% if details %}
+            <div class="message-box" style="margin-top: 1rem; border-color: #4c6ef5;">
+                <strong>Détails supplémentaires:</strong><br>
+                {{ details }}
+            </div>
+            {% endif %}
+            <div class="timestamp">🕐 {{ timestamp }}</div>
+        </div>
+
+        <!-- Informations sur la requête -->
+        {% if request_info %}
+        <div class="section">
+            <h2>📡 Informations de la requête</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="label">Méthode HTTP</div>
+                    <div class="value">{{ request_info.method }}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Chemin</div>
+                    <div class="value">{{ request_info.path }}</div>
+                </div>
+                {% if request_info.query %}
+                <div class="info-card" style="grid-column: 1 / -1;">
+                    <div class="label">Paramètres de requête</div>
+                    <div class="value">{{ request_info.query }}</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if request_info.headers %}
+            <h3>En-têtes HTTP</h3>
+            <table class="headers-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Valeur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key, value in request_info.headers %}
+                    <tr>
+                        <td><code>{{ key }}</code></td>
+                        <td>{{ value }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Informations sur le template (si erreur template) -->
+        {% if template_info %}
+        <div class="section">
+            <h2>📄 Informations du template</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="label">Nom du template</div>
+                    <div class="value">{{ template_info.name }}</div>
+                </div>
+                {% if template_info.line_number %}
+                <div class="info-card">
+                    <div class="label">Ligne de l'erreur</div>
+                    <div class="value">{{ template_info.line_number }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if template_info.source %}
+            <h3>Code source du template</h3>
+            <div class="code-block">{% for line in template_info.source | split(pat="\n") %}{% if template_info.line_number and loop.index == template_info.line_number %}<span class="highlight"><span class="line-number">{{ loop.index }}</span>{{ line }}</span>
+{% else %}<span class="line-number">{{ loop.index }}</span>{{ line }}
+{% endif %}{% endfor %}</div>
+            {% endif %}
+
+            {% if template_info.available_templates %}
+            <h3>Templates disponibles</h3>
+            <div class="template-list">
+                {% for tmpl in template_info.available_templates %}
+                <span class="template-tag {% if tmpl == template_info.name %}current{% endif %}">{{ tmpl }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Stack trace -->
+        {% if stack_trace and stack_trace | length > 0 %}
+        <div class="section">
+            <h2>🔍 Trace d'erreur détaillée</h2>
+            <div class="stack-trace">
+                {% for frame in stack_trace %}
+                <div class="stack-frame" {% if loop.first %}style="border-left-color: #ff6b6b; background: #2f1f1f;"{% endif %}>
+                    <span class="level">{{ frame.level }}</span>
+                    <strong style="{% if loop.first %}color: #ff6b6b;{% else %}color: #ffa94d;{% endif %}">
+                        {{ frame.message }}
+                    </strong>
+                    {% if frame.location %}
+                    <div style="margin-top: 0.5rem; opacity: 0.7; font-size: 0.9rem;">
+                        📍 {{ frame.location }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if stack_trace | length > 1 %}
+            <div style="margin-top: 1rem; padding: 1rem; background: #1a1a1a; border-radius: 0.25rem; border-left: 3px solid #4c6ef5;">
+                <strong style="color: #4c6ef5;">💡 Conseil:</strong> 
+                L'erreur la plus haute (niveau 0) est généralement la cause racine. 
+                Les erreurs suivantes montrent comment l'erreur s'est propagée dans le code.
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Informations environnement -->
+        <div class="section">
+            <h2>⚙️ Environnement</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="label">Mode debug</div>
+                    <div class="value">
+                        {% if environment.debug_mode %}
+                        <span class="badge badge-warning">Activé</span>
+                        {% else %}
+                        <span class="badge badge-success">Désactivé</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Version Rust</div>
+                    <div class="value">{{ environment.rust_version }}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Version App</div>
+                    <div class="value">{{ environment.app_version }}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Code de statut</div>
+                    <div class="value">
+                        <span class="badge badge-error">{{ status_code }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

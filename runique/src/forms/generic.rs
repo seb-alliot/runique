@@ -1,4 +1,6 @@
 use crate::forms::field::FormField;
+use crate::forms::fields::boolean::BooleanField;
+use crate::forms::fields::file::FileField;
 use crate::forms::fields::{NumericField, TextField};
 use serde::Serialize;
 use serde_json::Value;
@@ -9,7 +11,9 @@ use crate::utils::aliases::ATera;
 pub enum FieldKind {
     Text(TextField),
     Numeric(NumericField),
-    Boolean,
+    Boolean(BooleanField),
+    #[serde(skip)]
+    File(FileField),
 }
 
 #[derive(Clone, Serialize, Debug)]
@@ -22,6 +26,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.name(),
             FieldKind::Numeric(f) => f.name(),
+            FieldKind::File(f) => f.name(),
             _ => "",
         }
     }
@@ -30,6 +35,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.label(),
             FieldKind::Numeric(f) => f.label(),
+            FieldKind::File(f) => f.label(),
             _ => "",
         }
     }
@@ -38,6 +44,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.value(),
             FieldKind::Numeric(f) => f.value(),
+            FieldKind::File(f) => f.value(),
             _ => "",
         }
     }
@@ -46,6 +53,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.placeholder(),
             FieldKind::Numeric(f) => f.placeholder(),
+            FieldKind::File(f) => f.placeholder(),
             _ => "",
         }
     }
@@ -54,6 +62,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.required(),
             FieldKind::Numeric(f) => f.required(),
+            FieldKind::File(f) => f.required(),
             _ => false,
         }
     }
@@ -62,6 +71,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.error(),
             FieldKind::Numeric(f) => f.error(),
+            FieldKind::File(f) => f.error(),
             _ => None,
         }
     }
@@ -72,6 +82,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_value(value),
             FieldKind::Numeric(f) => f.set_value(value),
+            FieldKind::File(f) => f.set_value(value),
             _ => {}
         }
     }
@@ -80,6 +91,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_error(error),
             FieldKind::Numeric(f) => f.set_error(error),
+            FieldKind::File(f) => f.set_error(error),
             _ => {}
         }
     }
@@ -88,6 +100,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_placeholder(placeholder),
             FieldKind::Numeric(f) => f.set_placeholder(placeholder),
+            FieldKind::File(f) => f.set_placeholder(placeholder),
             _ => {}
         }
     }
@@ -98,6 +111,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.validate(),
             FieldKind::Numeric(f) => f.validate(),
+            FieldKind::File(f) => f.validate(),
             _ => true,
         }
     }
@@ -106,6 +120,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.render(tera),
             FieldKind::Numeric(f) => f.render(tera),
+            FieldKind::File(f) => f.render(tera),
             _ => Err("Type de champ non supporté pour le rendu".into()),
         }
     }
@@ -113,6 +128,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_name(name),
             FieldKind::Numeric(f) => f.set_name(name),
+            FieldKind::File(f) => f.set_name(name),
             _ => {}
         }
     }
@@ -120,6 +136,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_html_attribute(key, value),
             FieldKind::Numeric(f) => f.set_html_attribute(key, value),
+            FieldKind::File(f) => f.set_html_attribute(key, value),
             _ => {}
         }
     }
@@ -127,6 +144,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.field_type(),
             FieldKind::Numeric(f) => f.field_type(),
+            FieldKind::File(f) => f.field_type(),
             _ => "",
         }
     }
@@ -137,6 +155,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.to_json_value(),
             FieldKind::Numeric(f) => f.to_json_value(),
+            FieldKind::File(f) => f.to_json_value(),
             _ => serde_json::json!(null),
         }
     }
@@ -144,6 +163,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.to_json_required(),
             FieldKind::Numeric(f) => f.to_json_required(),
+            FieldKind::File(f) => f.to_json_required(),
             _ => serde_json::json!(false),
         }
     }
@@ -151,6 +171,7 @@ impl FormField for GenericField {
         match &self.kind {
             FieldKind::Text(f) => f.to_json_attributes(),
             FieldKind::Numeric(f) => f.to_json_attributes(),
+            FieldKind::File(f) => f.to_json_attributes(),
             _ => serde_json::json!({}),
         }
     }
@@ -159,6 +180,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_readonly(_readonly, _msg),
             FieldKind::Numeric(f) => f.set_readonly(_readonly, _msg),
+            FieldKind::File(f) => f.set_readonly(_readonly, _msg),
             _ => {}
         }
     }
@@ -166,6 +188,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_disabled(_disabled, _msg),
             FieldKind::Numeric(f) => f.set_disabled(_disabled, _msg),
+            FieldKind::File(f) => f.set_disabled(_disabled, _msg),
             _ => {}
         }
     }
@@ -174,6 +197,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_required(required, msg),
             FieldKind::Numeric(f) => f.set_required(required, msg),
+            FieldKind::File(f) => f.set_required(required, msg),
             _ => {}
         }
     }
@@ -182,6 +206,7 @@ impl FormField for GenericField {
         match &mut self.kind {
             FieldKind::Text(f) => f.set_label(label),
             FieldKind::Numeric(f) => f.set_label(label),
+            FieldKind::File(f) => f.set_label(label),
             _ => {}
         }
     }
@@ -202,6 +227,14 @@ impl From<NumericField> for GenericField {
     fn from(f: NumericField) -> Self {
         Self {
             kind: FieldKind::Numeric(f),
+        }
+    }
+}
+
+impl From<FileField> for GenericField {
+    fn from(f: FileField) -> Self {
+        Self {
+            kind: FieldKind::File(f),
         }
     }
 }

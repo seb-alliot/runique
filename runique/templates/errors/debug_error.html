@@ -11,14 +11,10 @@
         {% include "errors/corps-error/header-error.html" %}
     </header>
     <div class="container">
-        <div class="section">
-            {% include "errors/corps-error/message-error.html" %}
             {% include "errors/corps-error/stack-trace-error.html" %}
             {% include "errors/corps-error/template-info.html" %}
             {% include "errors/corps-error/request-info.html" %}
-            {% include "errors/corps-error/environment-info.html" %}
-            {% include "errors/corps-error/status-code-info.html" %}
-        </div>
+            {% include "errors/corps-error/environment-info.html" %}  
         <footer>
             {% include "errors/corps-error/footer-error.html" %}
         </footer>

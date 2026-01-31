@@ -1,24 +1,29 @@
-<!-- STACK TRACE -->
-<div class="section">
-    <h2 class="section-title">
-        <span>📚</span>
-        <span>Stack Trace</span>
-    </h2>
-
-    {% if stack_trace and stack_trace | length > 0 %}
-    <div class="stack-trace">
-        {% for frame in stack_trace %}
-            <div class="stack-item">
-                <strong>Level {{ frame.level }}:</strong> {{ frame.message }}
-                {% if frame.location %}
-                    <div style="color: #6272a4; margin-top: 4px; font-size: 12px;">
+        <!-- Stack trace -->
+        {% if stack_trace and stack_trace | length > 0 %}
+        <div class="section">
+            <h2>🔍 Trace d'erreur détaillée</h2>
+            <div class="stack-trace">
+                {% for frame in stack_trace %}
+                <div class="stack-frame" {% if loop.first %}style="border-left-color: #ff6b6b; background: #2f1f1f;"{% endif %}>
+                    <span class="level">{{ frame.level }}</span>
+                    <strong style="{% if loop.first %}color: #ff6b6b;{% else %}color: #ffa94d;{% endif %}">
+                        {{ frame.message }}
+                    </strong>
+                    {% if frame.location %}
+                    <div style="margin-top: 0.5rem; opacity: 0.7; font-size: 0.9rem;">
                         📍 {{ frame.location }}
                     </div>
-                {% endif %}
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
-        {% endfor %}
-    </div>
-    {% else %}
-        <div class="stack-item">No stack trace available</div>
-    {% endif %}
-</div>
+            
+            {% if stack_trace | length > 1 %}
+            <div style="margin-top: 1rem; padding: 1rem; background: #1a1a1a; border-radius: 0.25rem; border-left: 3px solid #4c6ef5;">
+                <strong style="color: #4c6ef5;">💡 Conseil:</strong> 
+                L'erreur la plus haute (niveau 0) est généralement la cause racine. 
+                Les erreurs suivantes montrent comment l'erreur s'est propagée dans le code.
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}

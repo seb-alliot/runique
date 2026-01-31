@@ -1,0 +1,46 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+{% endblock %}
+
+{% block content %}
+
+    <div class="content">
+        {% if title %}
+            <h1>{{ title }}</h1>
+        {% endif %}
+    
+    <h2>Uploader une image</h2>
+        <div>
+            <div>
+                <span>Extensions autorisées : {{ allowed_extensions.extensions | join(sep=", ") }}</span>
+            </div>
+            <div>
+                <span>Taille max : {{ max_size_mb }} MB</span>
+            </div>
+            <div>
+                <span>Maximum {{ max_files }} fichiers</span>
+            </div>
+            <div>
+                <span>Dimensions max : {{ max_width }}x{{ max_height }}px</span>
+            </div>
+        </div>
+
+        <!-- Formulaire de recherche d'utilisateur -->
+        {% block messages %}
+            {% messages %}
+        {% endblock %}
+        <form id="image_form" method="post" enctype="multipart/form-data">
+            {% form.image_form.image %}
+            <button type="submit">uploader le fichier</button>
+        </form>
+    </div>
+
+{% endblock %}
+{% block footer %}
+    <a href={% link "index" %}>Revenir à l'accueil</a>
+    <p>&copy; 2025 My Web Application</p>
+{% endblock %}

@@ -5,8 +5,26 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
+use std::sync::Arc;
+use std::sync::OnceLock;
 use thiserror::Error;
 use tracing::{error, info};
+
+use crate::utils::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+
+static INTERNAL_TEMPLATES: OnceLock<Vec<&'static str>> = OnceLock::new();
+fn get_internal_templates() -> &'static [&'static str] {
+    INTERNAL_TEMPLATES
+        .get_or_init(|| {
+            SIMPLE_TEMPLATES
+                .iter()
+                .chain(ERROR_CORPS.iter())
+                .chain(FIELD_TEMPLATES.iter())
+                .map(|(name, _)| *name)
+                .collect::<Vec<&'static str>>()
+        })
+        .as_slice()
+}
 
 // Type Result global pour Runique
 pub type RuniqueResult<T> = Result<T, RuniqueError>;
@@ -77,21 +95,59 @@ impl RuniqueError {
             }
         }
     }
+
+    /// Convertit l'erreur en ErrorContext pour un rendu riche
+    pub fn to_error_context(&self) -> ErrorContext {
+        let (status, error_type, title) = match self {
+            RuniqueError::NotFound => {
+                (StatusCode::NOT_FOUND, ErrorType::NotFound, "Page Not Found")
+            }
+            RuniqueError::Forbidden => (
+                StatusCode::FORBIDDEN,
+                ErrorType::Internal,
+                "Access Forbidden",
+            ),
+            RuniqueError::Validation(_) => (
+                StatusCode::BAD_REQUEST,
+                ErrorType::Validation,
+                "Validation Error",
+            ),
+            RuniqueError::Database(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorType::Database,
+                "Database Error",
+            ),
+            RuniqueError::Template(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorType::Template,
+                "Template Error",
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorType::Internal,
+                "Internal Server Error",
+            ),
+        };
+
+        let mut ctx = ErrorContext::new(error_type, status, title, &self.to_string());
+        ctx.build_stack_trace(self);
+        ctx
+    }
 }
 
 impl IntoResponse for RuniqueError {
     fn into_response(self) -> Response {
         self.log();
-        let (status, message) = match &self {
-            RuniqueError::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
-            RuniqueError::Forbidden => (StatusCode::FORBIDDEN, self.to_string()),
-            RuniqueError::Validation(_) => (StatusCode::BAD_REQUEST, self.to_string()),
-            _ => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Erreur interne".to_string(),
-            ),
-        };
-        (status, message).into_response()
+
+        // Créer un ErrorContext riche au lieu d'un simple message
+        let error_context = self.to_error_context();
+        let status = StatusCode::from_u16(error_context.status_code)
+            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+
+        // Attacher l'ErrorContext à la réponse pour que le middleware puisse le récupérer
+        let mut response = status.into_response();
+        response.extensions_mut().insert(Arc::new(self));
+        response
     }
 }
 
@@ -201,7 +257,11 @@ impl ErrorContext {
             name: template_name.to_string(),
             source: read_template_source(template_name),
             line_number: Self::extract_tera_line(error),
-            available_templates: tera.get_template_names().map(|s| s.to_string()).collect(),
+            available_templates: tera
+                .get_template_names()
+                .filter(|name| !get_internal_templates().contains(name))
+                .map(|s| s.to_string())
+                .collect(),
         });
         ctx.build_stack_trace(error);
         ctx
@@ -323,10 +383,13 @@ impl ErrorContext {
                 Self::generic(StatusCode::INTERNAL_SERVER_ERROR, message)
             }
         };
+
         if let Some(helper) = request_helper {
             ctx = ctx.with_request_helper(helper);
         }
+
         ctx.build_stack_trace(err);
+
         if let (RuniqueError::Template(_), Some(tera), Some(name)) = (err, tera, template_name) {
             ctx.template_info = Some(TemplateInfo {
                 name: name.to_string(),

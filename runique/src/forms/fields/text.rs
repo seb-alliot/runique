@@ -219,7 +219,7 @@ impl FormField for TextField {
         let mut val = self.base.value.trim().to_string();
 
         if let SpecialFormat::RichText = self.format {
-            val = crate::utils::sanitizer::auto_sanitize_field(&self.base.name, &val);
+            val = crate::utils::sanitizer::sanitize(&self.base.name, &val);
         }
 
         // Validation du champ requis

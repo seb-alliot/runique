@@ -1,17 +1,5 @@
-<!-- FOOTER -->
-<div class="timestamp section">
-    🕐 Error occurred at: {{ timestamp | default(value="N/A") }}
-</div>
-
-{% if details %}
-<div class="section" style="margin-top: 10px; border-top: 1px solid #44475a; padding-top: 10px;">
-    <strong>Additional Details:</strong>
-    <pre>{{ details }}</pre>
-</div>
-{% endif %}
-
-{% if csrf_token %}
-<div class="section" style="margin-top: 10px;">
-    <strong>CSRF Token:</strong> {{ csrf_token }}
-</div>
-{% endif %}
+<footer class="error-footer">
+    <div class="error-footer-content">
+        <!-- réservé : build, trace-id, commit, etc. -->
+    </div>
+</footer>

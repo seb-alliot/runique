@@ -1,24 +1,26 @@
-<div class="header">
-    <div class="header-content">
-        <h1>{{ title | default(value="Template Error") }}</h1>
-
-        {% if error_type %}
-        <div class="error-type">
-            <span class="badge badge-error">{{ error_type }}</span>
-
-            {% if environment.debug_mode %}
-                <span class="badge badge-debug">Debug Mode</span>
-            {% endif %}
-        </div>
-        {% endif %}
-        
-        {% if template_info and template_info.name %}
-            <div class="template-badge">
-                Template: {{ template_info.name }}
-                {% if template_info.line_number %}
-                    (Line {{ template_info.line_number }})
-                {% endif %}
+        <div class="header">
+            <div class="error-type badge-error">{{ error_type }}</div>
+            <h1>{{ title }}</h1>
+            <div class="message-box">
+                <strong>Message principal:</strong><br>
+                {{ message }}
             </div>
-        {% endif %}
-    </div>
-</div>
+            {% if stack_trace and stack_trace | length > 0 %}
+            <div class="message-box" style="margin-top: 1rem; border-color: #ffa94d;">
+                <strong>⚠️ Cause racine:</strong><br>
+                {{ stack_trace | first | get(key="message") }}
+            </div>
+            {% endif %}
+            {% if details %}
+            <div class="message-box" style="margin-top: 1rem; border-color: #4c6ef5;">
+                <strong>Détails supplémentaires:</strong><br>
+                {{ details }}
+            </div>
+            {% endif %}
+            <div class="timestamp">🕐 {{ timestamp }}</div>
+            <div class="info-card info-card-status">
+            <div class="label">Code de statut</div>
+            <div class="value">
+                <span class="badge badge-error">{{ status_code }}</span>
+            </div>
+        </div>
