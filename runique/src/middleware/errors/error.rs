@@ -13,7 +13,7 @@ use tracing_futures::Instrument;
 
 use crate::{
     config::RuniqueConfig,
-    errors::error::{ErrorContext, RuniqueError},
+    errors::error::{ErrorContext, ErrorType, RuniqueError},
     utils::csrf::CsrfToken,
 };
 
@@ -58,49 +58,80 @@ pub async fn error_handler_middleware(
 
     // ---  Gestion des erreurs ---
     if status.is_server_error() || status == StatusCode::NOT_FOUND {
-        // Récupère l'erreur attachée à la réponse si elle existe
-        let error_ctx_opt = response
+        // ✅ Essaie de récupérer SOIT un ErrorContext (venant de AppError)
+        //    SOIT un RuniqueError (venant de handlers qui retournent RuniqueError)
+        let error_context_from_app = response.extensions().get::<Arc<ErrorContext>>().cloned();
+
+        let error_runique = response
             .extensions()
             .get::<Arc<RuniqueError>>()
             .map(|err| (**err).clone());
 
-        let error_ctx = error_ctx_opt.unwrap_or_else(|| {
-            if status == StatusCode::NOT_FOUND {
-                RuniqueError::NotFound
-            } else {
+        let error_ctx = if let Some(ctx) = error_context_from_app {
+            // ✅ On a déjà un ErrorContext complet (venant de AppError)
+            info!(
+                method = %request_helper.method,
+                path = %request_helper.path,
+                error_type = ?ctx.error_type,
+                "Error with full context"
+            );
+
+            // Enrichir avec les infos de requête si pas déjà présent
+            let mut ctx = (*ctx).clone();
+            if ctx.request_info.is_none() {
+                ctx = ctx.with_request_helper(&request_helper);
+            }
+            ctx
+        } else if let Some(err) = error_runique {
+            // ✅ On a un RuniqueError (ancien système)
+            match &err {
                 RuniqueError::Internal
+                | RuniqueError::Database(_)
+                | RuniqueError::Io(_)
+                | RuniqueError::Template(_)
+                | RuniqueError::Custom { .. } => {
+                    error!(
+                        method = %request_helper.method,
+                        path = %request_helper.path,
+                        error = %err,
+                        "Critical error occurred"
+                    );
+                }
+                RuniqueError::Validation(_) | RuniqueError::Forbidden | RuniqueError::NotFound => {
+                    info!(
+                        method = %request_helper.method,
+                        path = %request_helper.path,
+                        error = %err,
+                        "Handled error"
+                    );
+                }
             }
-        });
 
-        // ---  Logging intelligent ---
-        match &error_ctx {
-            RuniqueError::Internal
-            | RuniqueError::Database(_)
-            | RuniqueError::Io(_)
-            | RuniqueError::Template(_)
-            | RuniqueError::Custom { .. } => {
-                error!(method = %request_helper.method, path = %request_helper.path, ?error_ctx, "Critical error occurred");
-            }
-            RuniqueError::Validation(_) | RuniqueError::Forbidden | RuniqueError::NotFound => {
-                info!(method = %request_helper.method, path = %request_helper.path, ?error_ctx, "Handled error");
-            }
-        }
-
-        // ---  Crée un contexte enrichi pour templates ---
-        if config.debug {
-            let ctx = ErrorContext::from_runique_error(
-                &error_ctx,
+            // Créer un contexte enrichi depuis RuniqueError
+            ErrorContext::from_runique_error(
+                &err,
                 Some(&request_helper.path),
                 Some(&request_helper),
                 None,        // nom du template si applicable
                 Some(&tera), // tera pour template_info si template error
-            );
-
-            return render_debug_error_from_context(&tera, &config, ctx, csrf_token);
+            )
         } else {
-            // Production : 404 ou 500 simple
-            return match error_ctx {
-                RuniqueError::NotFound => render_404(&tera, &config, csrf_token),
+            // ✅ Pas d'erreur explicite, créer un contexte basique
+            if status == StatusCode::NOT_FOUND {
+                ErrorContext::not_found(&request_helper.path).with_request_helper(&request_helper)
+            } else {
+                ErrorContext::generic(status, "Une erreur est survenue")
+                    .with_request_helper(&request_helper)
+            }
+        };
+
+        // ---  Rendu selon mode debug ou production ---
+        if config.debug {
+            return render_debug_error_from_context(&tera, &config, error_ctx, csrf_token);
+        } else {
+            // Production : 404 ou 500 simple selon le type d'erreur
+            return match error_ctx.error_type {
+                ErrorType::NotFound => render_404(&tera, &config, csrf_token),
                 _ => render_500(&tera, &config, csrf_token),
             };
         }
@@ -118,7 +149,10 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
 
     match tera.render("404", &context) {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
-        Err(_) => fallback_404_html(),
+        Err(e) => {
+            error!("Failed to render 404 template: {}", e);
+            fallback_404_html()
+        }
     }
 }
 
@@ -128,7 +162,10 @@ fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
 
     match tera.render("500", &context) {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
-        Err(_) => fallback_500_html(),
+        Err(e) => {
+            error!("Failed to render 500 template: {}", e);
+            fallback_500_html()
+        }
     }
 }
 
@@ -140,7 +177,10 @@ fn render_debug_error_from_context(
 ) -> Response {
     let mut context = match Context::from_serialize(&error_ctx) {
         Ok(ctx) => ctx,
-        Err(e) => return critical_error_html(&format!("Serialization Error: {}", e)),
+        Err(e) => {
+            error!("Failed to serialize error context: {}", e);
+            return critical_error_html(&format!("Serialization Error: {}", e));
+        }
     };
 
     inject_global_vars(&mut context, config, csrf_token);
@@ -152,7 +192,10 @@ fn render_debug_error_from_context(
             Html(html),
         )
             .into_response(),
-        Err(e) => critical_error_html(&format!("Tera Rendering Error: {}", e)),
+        Err(e) => {
+            error!("Failed to render debug template: {}", e);
+            critical_error_html(&format!("Tera Rendering Error: {}", e))
+        }
     }
 }
 
@@ -169,23 +212,177 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
 // --- FALLBACKS ---
 
 fn fallback_404_html() -> Response {
-    let html = r#"<!DOCTYPE html><html><head><title>404</title></head><body><h1>404 - Not Found</h1></body></html>"#;
+    let html = r#"<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page non trouvée</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 6rem;
+            margin: 0;
+            font-weight: 700;
+        }
+        p {
+            font-size: 1.5rem;
+            margin: 1rem 0;
+        }
+        a {
+            color: #fff;
+            text-decoration: none;
+            border: 2px solid #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+        a:hover {
+            background: #fff;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>404</h1>
+        <p>Page non trouvée</p>
+        <a href="/">Retour à l'accueil</a>
+    </div>
+</body>
+</html>"#;
     (StatusCode::NOT_FOUND, Html(html)).into_response()
 }
 
 fn fallback_500_html() -> Response {
-    let html = r#"<!DOCTYPE html><html><head><title>500</title></head><body><h1>500 - Server Error</h1></body></html>"#;
+    let html = r#"<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - Erreur serveur</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 6rem;
+            margin: 0;
+            font-weight: 700;
+        }
+        p {
+            font-size: 1.5rem;
+            margin: 1rem 0;
+        }
+        a {
+            color: #fff;
+            text-decoration: none;
+            border: 2px solid #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+        a:hover {
+            background: #fff;
+            color: #f5576c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>500</h1>
+        <p>Erreur serveur interne</p>
+        <p style="font-size: 1rem;">Nos équipes ont été notifiées et travaillent sur le problème.</p>
+        <a href="/">Retour à l'accueil</a>
+    </div>
+</body>
+</html>"#;
     (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
 }
 
 fn critical_error_html(error: &str) -> Response {
     let html = format!(
-        r#"<!DOCTYPE html><html><head><title>Critical Error</title></head>
-        <body style="font-family:sans-serif;padding:2rem;background:#fff5f5;">
-        <h1 style="color:#c53030;">Critical Error</h1>
-        <p>The error reporting system itself failed.</p>
-        <pre style="background:#fff;padding:1rem;border:1px solid #feb2b2;">{}</pre>
-        </body></html>"#,
+        r#"<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erreur critique</title>
+    <style>
+        body {{
+            font-family: 'Courier New', monospace;
+            padding: 2rem;
+            background: #1a1a1a;
+            color: #00ff00;
+            margin: 0;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #000;
+            border: 2px solid #00ff00;
+            padding: 2rem;
+            border-radius: 0.5rem;
+        }}
+        h1 {{
+            color: #ff0000;
+            margin: 0 0 1rem 0;
+            font-size: 2rem;
+            text-shadow: 0 0 10px #ff0000;
+        }}
+        p {{
+            margin: 1rem 0;
+            line-height: 1.6;
+        }}
+        pre {{
+            background: #0a0a0a;
+            padding: 1rem;
+            border: 1px solid #00ff00;
+            border-radius: 0.25rem;
+            overflow-x: auto;
+            color: #ff6b6b;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚠️ CRITICAL ERROR ⚠️</h1>
+        <p>Le système de gestion d'erreurs a lui-même rencontré une erreur.</p>
+        <p>Cette situation ne devrait jamais se produire. Veuillez contacter l'administrateur système.</p>
+        <pre>{}</pre>
+    </div>
+</body>
+</html>"#,
         html_escape(error)
     );
     (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()

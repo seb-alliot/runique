@@ -6,7 +6,7 @@
 - **PostgreSQL 12+** (ou SQLite pour dev)
 - **Git**
 
-### Vérifier les versions:
+### Vérifier les versions
 
 ```bash
 rustc --version    # Rust 1.75+
@@ -68,6 +68,7 @@ CREATE DATABASE runique;
 ### 4. Configurer la base de données (REQUIS)
 
 Lancer les migrations:
+
 ```bash
 cd demo-app/migration
 cargo run
@@ -92,13 +93,14 @@ cargo run -p demo-app
 ```
 
 **Output attendu:**
-```
+
+```rust
 🦀 Runique Framework opérationnel
    Serveur lancé sur http://127.0.0.1:3000
    Connected to sqlite: runique
 ```
 
-Accédez à **http://127.0.0.1:3000** 🎉
+Accédez à **<http://127.0.0.1:3000>** 🎉
 
 ---
 
@@ -136,18 +138,21 @@ SQLite créera le fichier `runique.db` automatiquement.
 ### 1. Installer PostgreSQL
 
 **macOS:**
+
 ```bash
 brew install postgresql
 brew services start postgresql
 ```
 
 **Linux (Debian/Ubuntu):**
+
 ```bash
 sudo apt-get install postgresql postgresql-contrib
 sudo systemctl start postgresql
 ```
 
 **Windows:**
+
 - [Télécharger l'installer](https://www.postgresql.org/download/windows/)
 - Suivre l'assistant d'installation
 
@@ -194,10 +199,6 @@ DB_NAME=app.db
 
 ```
 
-
-
-
-
 ### 4. Vérifier la connexion
 
 ```bash
@@ -241,9 +242,10 @@ psql -U postgres -d runique -c "\dp"
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 ```
 
-###  "SQLite driver est normalement activé de base modifier la base de donnée prise en charge par sea-orm dans votre cargo"
+### "SQLite driver est normalement activé de base modifier la base de donnée prise en charge par sea-orm dans votre cargo"
 
 Vérifier que la feature est activée dans `Cargo.toml`:
+
 ```toml
 runique = { version = "1.1.11", features = ["orm", "postgres"] }
 

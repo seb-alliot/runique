@@ -12,6 +12,7 @@ Documentation complète et détaillée du framework Runique.
 ## 📖 10 sections de documentation
 
 ### 1. Installation
+
 Installer et configurer Runique pour la première fois.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
@@ -19,6 +20,7 @@ Installer et configurer Runique pour la première fois.
 ---
 
 ### 2. Architecture
+
 Comprendre l'architecture et la structure interne du framework.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
@@ -26,6 +28,7 @@ Comprendre l'architecture et la structure interne du framework.
 ---
 
 ### 3. Configuration
+
 Configurer votre application (serveur, BD, sécurité).
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
@@ -33,6 +36,7 @@ Configurer votre application (serveur, BD, sécurité).
 ---
 
 ### 4. Routage
+
 Définir les routes et les URL patterns.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
@@ -40,6 +44,7 @@ Définir les routes et les URL patterns.
 ---
 
 ### 5. Formulaires
+
 Créer et gérer les formulaires avec validation.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
@@ -47,6 +52,7 @@ Créer et gérer les formulaires avec validation.
 ---
 
 ### 6. Templates
+
 Utiliser les templates Tera pour les vues.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md)
@@ -54,6 +60,7 @@ Utiliser les templates Tera pour les vues.
 ---
 
 ### 7. ORM
+
 Travailler avec la base de données via SeaORM.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md)
@@ -61,6 +68,7 @@ Travailler avec la base de données via SeaORM.
 ---
 
 ### 8. Middlewares
+
 Intégrer les middlewares de sécurité.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
@@ -68,6 +76,7 @@ Intégrer les middlewares de sécurité.
 ---
 
 ### 9. Flash Messages
+
 Utiliser les messages flash pour les retours utilisateur.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
@@ -75,6 +84,7 @@ Utiliser les messages flash pour les retours utilisateur.
 ---
 
 ### 10. Exemples
+
 Voir des exemples de code complets et de projets.
 
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
@@ -84,17 +94,20 @@ Voir des exemples de code complets et de projets.
 ## 🎯 Guide de navigation
 
 ### Je suis nouveau sur Runique
+
 1. Lire [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
 2. Lire [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
 3. Vérifier [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
 
 ### Je veux apprendre X
+
 - Formulaires ? → [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
 - Routage ? → [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
 - BD ? → [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
 - Sécurité ? → [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
 
 ### Je veux un exemple complet
+
 → [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
 
 ---
@@ -102,7 +115,9 @@ Voir des exemples de code complets et de projets.
 ## 📊 Structure des documents
 
 Chaque document contient :
+
 - 📖 Explications détaillées
+
 - 💻 Exemples de code
 - 🎯 Bonnes pratiques
 - ⚠️ Pièges à éviter
@@ -113,6 +128,7 @@ Chaque document contient :
 ## 🚀 Démarrage rapide
 
 ### Installation
+
 ```bash
 git clone <repo>
 cd runique
@@ -121,6 +137,7 @@ cargo test
 ```
 
 ### Première app
+
 ```rust
 use runique::prelude::*;
 
@@ -136,6 +153,7 @@ async fn main() {
 ```
 
 ### Formulaires
+
 ```rust
 #[derive(RuniqueForm)]
 pub struct MyForm {
@@ -161,10 +179,12 @@ async fn handle_form(
 ## 🌐 Choix de la langue
 
 ### English (EN)
+
 Cliquez sur le lien pour accéder à la documentation en anglais :
 [📖 English Documentation](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)
 
 ### Français (FR)
+
 Cliquez sur le lien pour accéder à la documentation en français :
 [📖 Documentation Française](https://github.com/seb-alliot/runique/blob/main/docs/fr/README.md)
 
@@ -173,23 +193,28 @@ Cliquez sur le lien pour accéder à la documentation en français :
 ## 📋 Contenu par catégorie
 
 ### Mise en route
+
 - [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
 - [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
 - [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
 
 ### Développement
+
 - [Routage](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
 - [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
 - [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
 
 ### Données
+
 - [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
 
 ### Sécurité & Expérience
+
 - [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
 - [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
 
 ### Apprentissage pratique
+
 - [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
 
 ---

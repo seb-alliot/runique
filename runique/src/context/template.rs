@@ -13,6 +13,8 @@ use sea_orm::DbErr;
 use std::sync::Arc;
 use tera::Context;
 use tower_sessions::Session;
+use tracing::error;
+
 // --- GESTION DES ERREURS ---
 
 pub struct AppError {
@@ -26,6 +28,13 @@ impl AppError {
 
     // Helper générique pour mapper les erreurs connues
     pub fn map_tera(e: tera::Error, route: &str, tera: &tera::Tera) -> Box<Self> {
+        // Log l'erreur détaillée dans la console
+        error!(
+            template = route,
+            error = ?e,
+            "Template rendering error"
+        );
+
         Box::new(Self {
             context: ErrorContext::from_tera_error(&e, route, tera),
         })
@@ -38,7 +47,17 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = StatusCode::from_u16(self.context.status_code)
             .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+
+        // ✅ Log l'erreur en détail
+        error!(
+            status = status.as_u16(),
+            error_type = ?self.context.error_type,
+            message = %self.context.message,
+            "AppError occurred"
+        );
+
         let mut res = status.into_response();
+        // ✅ Insère l'ErrorContext pour que le middleware puisse le récupérer
         res.extensions_mut().insert(Arc::new(self.context));
         res
     }
@@ -127,6 +146,7 @@ impl TemplateContext {
             context,
         }
     }
+
     /// Rendu générique unique pour éviter la duplication
     pub fn render(&mut self, template: &str) -> AppResult<Response> {
         let html_result = if self.engine.config.debug {
@@ -138,12 +158,32 @@ impl TemplateContext {
 
                     let res = dev_tera.render(template, &self.context);
                     if let Err(ref e) = res {
-                        println!("[Erreur rendu Runique (Debug)]: {:?}", e);
+                        // ✅ Log détaillé de l'erreur Tera avec toutes les sources
+                        error!(
+                            template = template,
+                            error_kind = ?e.kind,
+                            error_message = %e,
+                            "Tera rendering failed in debug mode"
+                        );
+
+                        // Log la chaîne complète des erreurs (source)
+                        // Utilise la méthode source() du trait std::error::Error
+                        use std::error::Error as StdError;
+                        if let Some(source) = e.source() {
+                            error!(
+                                source_error = %source,
+                                "Tera error source"
+                            );
+                        }
                     }
                     res
                 }
                 Err(e) => {
-                    println!("[Erreur Initialisation Loader (Debug)]: {:?}", e);
+                    error!(
+                        template = template,
+                        error = %e,
+                        "Failed to initialize TemplateLoader in debug mode"
+                    );
                     return Err(AppError::map_tera(
                         tera::Error::msg(e.to_string()),
                         template,

@@ -1,4 +1,6 @@
+use runique::config::StaticConfig;
 use runique::prelude::*;
+use serde::Serialize;
 
 // --- USERNAME FORM ---
 #[derive(Serialize, Debug, Clone)]
@@ -11,7 +13,7 @@ impl RuniqueForm for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
-                .label("Entrez votre nom")
+                .label("Entrez votre nom d'utilisateur")
                 .required("Le nom est requis"),
         );
     }
@@ -147,5 +149,34 @@ impl Blog {
         };
 
         new_blog.insert(db).await
+    }
+}
+
+#[derive(Serialize)]
+
+pub struct Image {
+    pub form: Forms,
+}
+
+impl RuniqueForm for Image {
+    fn register_fields(form: &mut Forms) {
+        let config = StaticConfig::from_env();
+        form.field(
+            &FileField::image("image")
+                .label("Choisissez une image à uploader")
+                .upload_to(&config)
+                .max_size_mb(5)
+                .allowed_extensions(vec!["png", "jpg", "jpeg", "gif"]),
+        );
+    }
+
+    fn from_form(form: Forms) -> Self {
+        Self { form }
+    }
+    fn get_form(&self) -> &Forms {
+        &self.form
+    }
+    fn get_form_mut(&mut self) -> &mut Forms {
+        &mut self.form
     }
 }

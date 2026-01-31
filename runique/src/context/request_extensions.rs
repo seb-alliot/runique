@@ -80,7 +80,10 @@ impl RequestExtensions {
             extensions.insert(current_user.clone());
         }
     }
-
+    pub fn with_csrf_token(mut self, csrf_token: CsrfToken) -> Self {
+        self.csrf_token = Some(csrf_token);
+        self
+    }
     /// Builder pattern - Engine
     pub fn with_engine(mut self, engine: AEngine) -> Self {
         self.engine = Some(engine);
@@ -96,12 +99,6 @@ impl RequestExtensions {
     /// Builder pattern - Config
     pub fn with_config(mut self, config: ARuniqueConfig) -> Self {
         self.config = Some(config);
-        self
-    }
-
-    /// Builder pattern - CSRF Token
-    pub fn with_csrf_token(mut self, csrf_token: CsrfToken) -> Self {
-        self.csrf_token = Some(csrf_token);
         self
     }
 

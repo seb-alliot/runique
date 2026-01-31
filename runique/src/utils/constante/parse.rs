@@ -54,6 +54,6 @@ pub static ALLOWED_TAGS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 /// Policy HTML : attributs autorisés par balise
 pub static ALLOWED_ATTRS: Lazy<HashMap<&'static str, HashSet<&'static str>>> = Lazy::new(|| {
     let mut map = HashMap::new();
-    map.insert("a", HashSet::from(["href", "title"]));
+    map.insert("a", HashSet::from(["href", "title", "target"]));
     map
 });

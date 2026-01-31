@@ -52,6 +52,8 @@ phonenumber = "0.3.9"
 country = "0.5.0"
 postal-code = "0.3.0"
 dyn-clone = "1.0.20"
+image = "0.25.9"
+tempfile = "3.24.0"
 
 # Logging
 tracing = "0.1"

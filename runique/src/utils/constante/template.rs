@@ -24,10 +24,6 @@ pub const ERROR_CORPS: &[(&str, &str)] = &[
         include_str!("../../../templates/errors/corps-error/header-error.html"),
     ),
     (
-        "errors/corps-error/message-error.html",
-        include_str!("../../../templates/errors/corps-error/message-error.html"),
-    ),
-    (
         "errors/corps-error/template-info.html",
         include_str!("../../../templates/errors/corps-error/template-info.html"),
     ),
@@ -42,10 +38,6 @@ pub const ERROR_CORPS: &[(&str, &str)] = &[
     (
         "errors/corps-error/environment-info.html",
         include_str!("../../../templates/errors/corps-error/environment-info.html"),
-    ),
-    (
-        "errors/corps-error/status-code-info.html",
-        include_str!("../../../templates/errors/corps-error/status-code-info.html"),
     ),
     (
         "errors/corps-error/footer-error.html",

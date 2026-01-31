@@ -27,7 +27,6 @@ impl CsrfToken {
         };
         CsrfToken(raw)
     }
-
     /// Masque le token pour l’injection
     pub fn masked(&self) -> Self {
         CsrfToken(mask_csrf_token(&self.0))

@@ -1,4 +1,4 @@
-use crate::forms::{Blog as BlogForm, RegisterForm, UsernameForm};
+use crate::forms::{Blog as BlogForm, Image, RegisterForm, UsernameForm};
 
 // use crate::models::model_derive;
 use crate::models::users::{self, Entity as UserEntity};
@@ -184,4 +184,35 @@ pub async fn about(mut template: TemplateContext) -> AppResult<Response> {
 pub async fn test_csrf(template: TemplateContext) -> AppResult<Response> {
     success!(template.notices => "CSRF token validé avec succès !");
     Ok(Redirect::to("/").into_response())
+}
+
+/// Formulaire de test pour upload une image
+pub async fn upload_image_form(mut template: TemplateContext) -> AppResult<Response> {
+    let form = template.form::<Image>();
+
+    context_update!(template => {
+        "title" => "Uploader un fichier",
+        "image_form" => &form,
+    });
+
+    template.render("forms/upload_image.html")
+}
+
+/// Soumission du formulaire d'upload d'image
+pub async fn upload_image_submit(
+    mut template: TemplateContext,
+    Prisme(mut form): Prisme<Image>,
+) -> AppResult<Response> {
+    if form.is_valid().await {
+        success!(template.notices => "Fichier uploadé avec succès !");
+        return Ok(Redirect::to("/").into_response());
+    }
+
+    context_update!(template => {
+        "title" => "Erreur de validation",
+        "image_form" => &form,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+    });
+
+    template.render("forms/upload_image.html")
 }

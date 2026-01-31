@@ -12,6 +12,7 @@ pub fn routes() -> Router {
         "/view-user" => view! { POST => views::info_user }, name = "search-user",
         "/blog" => view! { GET => views::blog_form, POST => views::blog_save }, name = "blog_info",
         "/test-csrf" => view! { POST => views::test_csrf }, name = "test_csrf",
+        "/upload-image" => view! { GET => views::upload_image_form, POST => views::upload_image_submit }, name = "upload_image",
     };
     router
 }

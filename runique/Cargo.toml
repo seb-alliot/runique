@@ -68,6 +68,8 @@ phonenumber.workspace = true
 country.workspace = true
 postal-code.workspace = true
 dyn-clone.workspace = true
+image.workspace = true
+tempfile.workspace = true
 
 # Logging
 tracing.workspace = true
