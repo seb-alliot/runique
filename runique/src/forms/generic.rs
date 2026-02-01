@@ -237,6 +237,13 @@ impl From<NumericField> for GenericField {
         }
     }
 }
+impl From<BooleanField> for GenericField {
+    fn from(f: BooleanField) -> Self {
+        Self {
+            kind: FieldKind::Boolean(f),
+        }
+    }
+}
 
 impl From<FileField> for GenericField {
     fn from(f: FileField) -> Self {
