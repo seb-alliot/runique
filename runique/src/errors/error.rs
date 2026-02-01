@@ -161,6 +161,8 @@ pub struct ErrorContext {
     pub timestamp: String,
     pub title: String,
     pub message: String,
+    /// Représentation `{:?}` de l'erreur racine (format debug complet)
+    pub debug_repr: Option<String>,
     pub details: Option<String>,
     pub template_info: Option<TemplateInfo>,
     pub request_info: Option<RequestInfo>,
@@ -198,6 +200,8 @@ pub struct RequestInfo {
 pub struct StackFrame {
     pub level: usize,
     pub message: String,
+    /// Représentation `{:?}` de cette erreur dans la chaîne
+    pub debug_repr: Option<String>,
     pub location: Option<String>,
 }
 
@@ -216,6 +220,7 @@ impl ErrorContext {
             timestamp: chrono::Utc::now().to_rfc3339(),
             title: title.to_string(),
             message: message.to_string(),
+            debug_repr: None,
             details: None,
             template_info: None,
             request_info: None,
@@ -303,10 +308,14 @@ impl ErrorContext {
             "Application Error",
             &error.to_string(),
         );
+        // Capture le {:?} complet de l'erreur anyhow (inclut la chaîne + backtrace)
+        ctx.debug_repr = Some(format!("{:?}", error));
+
         for (i, cause) in error.chain().enumerate() {
             ctx.stack_trace.push(StackFrame {
                 level: i,
                 message: cause.to_string(),
+                debug_repr: Some(format!("{:?}", cause)),
                 location: None,
             });
         }
@@ -339,12 +348,16 @@ impl ErrorContext {
     }
 
     pub fn build_stack_trace(&mut self, error: &dyn std::error::Error) {
+        // Capture le {:?} de l'erreur racine sur l'ErrorContext
+        self.debug_repr = Some(format!("{:?}", error));
+
         let mut level = 0;
         let mut current: Option<&dyn std::error::Error> = Some(error);
         while let Some(err) = current {
             self.stack_trace.push(StackFrame {
                 level,
                 message: err.to_string(),
+                debug_repr: Some(format!("{:?}", err)),
                 location: None,
             });
             current = err.source();

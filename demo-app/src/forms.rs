@@ -166,6 +166,8 @@ impl RuniqueForm for Image {
                 .label("Choisissez une image à uploader")
                 .upload_to(&config)
                 .max_size_mb(5)
+                .max_files(3)
+                .max_dimensions(1920, 1080)
                 .allowed_extensions(vec!["png", "jpg", "jpeg", "gif"]),
         );
     }

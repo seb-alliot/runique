@@ -144,7 +144,7 @@ pub struct FileField {
 }
 
 impl FileField {
-    fn create(name: &str, type_field: &str, format: FileFieldType) -> Self {
+    pub fn create(name: &str, type_field: &str, format: FileFieldType) -> Self {
         let extensions = match format {
             FileFieldType::Image => AllowedExtensions::images(),
             FileFieldType::Document => AllowedExtensions::documents(),
@@ -161,7 +161,6 @@ impl FileField {
             max_width: None,
             max_height: None,
         };
-
         field
     }
 
@@ -339,6 +338,7 @@ impl FormField for FileField {
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
+
         let is_image = matches!(self.field_type, FileFieldType::Image);
 
         context.insert("field", &self.base);
@@ -393,7 +393,27 @@ impl FormField for FileField {
         json!(self.base.html_attributes)
     }
 
-    // Assure-toi d'avoir ces signatures pour compiler le trait FormField
+    fn to_json_meta(&self) -> Value {
+        let mut meta = serde_json::Map::new();
+        meta.insert(
+            "allowed_extensions".to_string(),
+            json!(self.allowed_extensions.extensions),
+        );
+        if let Some(size) = self.upload_config.max_size_mb {
+            meta.insert("max_size_mb".to_string(), json!(size));
+        }
+        if let Some(count) = self.max_files {
+            meta.insert("max_files".to_string(), json!(count));
+            meta.insert("multiple".to_string(), json!(count > 1));
+        }
+        if let Some(w) = self.max_width {
+            meta.insert("max_width".to_string(), json!(w));
+        }
+        if let Some(h) = self.max_height {
+            meta.insert("max_height".to_string(), json!(h));
+        }
+        Value::Object(meta)
+    }
     fn name(&self) -> &str {
         &self.base.name
     }

@@ -69,6 +69,12 @@ pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
     fn to_json_attributes(&self) -> serde_json::Value {
         serde_json::json!({})
     }
+
+    /// Métadonnées spécifiques au type de champ (ex: extensions, tailles pour FileField).
+    /// Default retourne un objet vide — à override uniquement si le champ a des métadonnées.
+    fn to_json_meta(&self) -> serde_json::Value {
+        serde_json::json!({})
+    }
 }
 
 dyn_clone::clone_trait_object!(FormField);
