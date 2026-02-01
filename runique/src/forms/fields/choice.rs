@@ -77,7 +77,9 @@ impl FormField for ChoiceField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -233,7 +235,9 @@ impl FormField for RadioField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -384,7 +388,9 @@ impl FormField for CheckboxField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }

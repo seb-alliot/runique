@@ -9,6 +9,8 @@ mod views;
 
 use prelude::*;
 
+mod form_test;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Configuration de l'application

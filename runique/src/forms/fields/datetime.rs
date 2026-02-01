@@ -59,7 +59,9 @@ impl FormField for DateField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -260,7 +262,9 @@ impl FormField for TimeField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -461,7 +465,9 @@ impl FormField for DateTimeField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -662,7 +668,9 @@ impl FormField for DurationField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }

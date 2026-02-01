@@ -1,0 +1,94 @@
+/* Reset & base */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, sans-serif;
+    color: #2c3e50;
+    padding: 2rem;
+}
+::placeholder {
+    color: #adb5bd;
+    opacity: 1;
+    font-size: 16px;
+}
+/* Titres */
+h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #1a252f;
+}
+
+/* Sections */
+.section {
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section h2 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+    border-bottom: 1px solid #eeeeee;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Grille */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+/* Champs */
+.field-box {
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.field-box .tag {
+    font-size: 0.65rem;
+    color: #ffffff;
+    background: #6c757d;
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+}
+
+/* Actions */
+.actions {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.actions button {
+    padding: 0.6rem 2rem;
+    font-size: 1rem;
+    background: #1a252f;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.actions button:hover {
+    background: #2c3e50;
+}
+
+.field-helper-text {
+    display: none;
+}
+
+::placeholder {
+    font-size: 14px;
+    margin-top: 1%;
+}

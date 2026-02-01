@@ -43,6 +43,9 @@ impl FormField for HiddenField {
     fn name(&self) -> &str {
         &self.name
     }
+    fn template_name(&self) -> &str {
+        &self.template_name
+    }
 
     fn label(&self) -> &str {
         "" // champ caché, pas de label

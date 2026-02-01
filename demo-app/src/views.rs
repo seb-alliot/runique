@@ -1,3 +1,4 @@
+use crate::form_test::TestAllFieldsForm;
 use crate::forms::{Blog as BlogForm, Image, RegisterForm, UsernameForm};
 
 // use crate::models::model_derive;
@@ -215,4 +216,16 @@ pub async fn upload_image_submit(
     });
 
     template.render("forms/upload_image.html")
+}
+
+/// Test des field disponible dans runique
+pub async fn test_fields(mut template: TemplateContext) -> AppResult<Response> {
+    let form = template.form::<TestAllFieldsForm>();
+    context_update!(template => {
+        "description" => "Page de test des champs de formulaire Runique",
+        "title" => "Test des champs de formulaire Runique",
+        "test_form" => &form,
+    });
+
+    template.render("forms/field_test.html")
 }

@@ -44,7 +44,9 @@ impl FormField for ColorField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -206,7 +208,9 @@ impl FormField for SlugField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -377,7 +381,9 @@ impl FormField for UUIDField {
     fn label(&self) -> &str {
         &self.base.label
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn value(&self) -> &str {
         &self.base.value
     }
@@ -528,7 +534,9 @@ impl FormField for JSONField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
@@ -701,7 +709,9 @@ impl FormField for IPAddressField {
     fn label(&self) -> &str {
         &self.base.label
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn value(&self) -> &str {
         &self.base.value
     }
