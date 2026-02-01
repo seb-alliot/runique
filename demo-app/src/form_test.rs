@@ -66,8 +66,8 @@ impl RuniqueForm for TestAllFieldsForm {
         );
 
         // ── Boolean ──
-        form.add(BooleanField::new("f_checkbox").label("Je teste le checkbox"));
-        form.add(BooleanField::radio("f_radio_single").label("Je teste le radio single"));
+        form.field(&BooleanField::new("f_checkbox").label("Je teste le checkbox"));
+        form.field(&BooleanField::radio("f_radio_single").label("Je teste le radio single"));
 
         // ── Choice ──
         let choices = vec![
