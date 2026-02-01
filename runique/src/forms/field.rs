@@ -29,7 +29,7 @@ pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
     fn set_disabled(&mut self, _disabled: bool, _msg: Option<&str>) {}
     fn set_required(&mut self, required: bool, msg: Option<&str>);
     fn set_html_attribute(&mut self, key: &str, value: &str);
-
+    fn template_name(&self) -> &str;
     // Validation
     fn validate(&mut self) -> bool;
 

@@ -14,10 +14,8 @@ body {
     flex-direction: column;
 }
 
-.container {
-    width: 85%;
-    margin: 0 auto;
-    padding: 2rem;
+.container , header{
+    width: 80%;
 }
 
 .header {
@@ -26,7 +24,6 @@ body {
     border-radius: 0.5rem;
     margin-bottom: 2rem;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    width: 80vw;
 }
 
 .header h1 {
@@ -203,7 +200,6 @@ body {
 
 .badge-error {
     background: rgba(255, 107, 107, 0.2);
-    color: #ff6b6b;
 }
 
 .template-list {

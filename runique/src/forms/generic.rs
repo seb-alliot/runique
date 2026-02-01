@@ -148,7 +148,14 @@ impl FormField for GenericField {
             _ => "",
         }
     }
-
+    fn template_name(&self) -> &str {
+        match &self.kind {
+            FieldKind::Text(f) => f.template_name(),
+            FieldKind::Numeric(f) => f.template_name(),
+            FieldKind::Boolean(f) => f.template_name(),
+            FieldKind::File(f) => f.template_name(),
+        }
+    }
     // --- Sérialisation JSON ---
 
     fn to_json_value(&self) -> Value {

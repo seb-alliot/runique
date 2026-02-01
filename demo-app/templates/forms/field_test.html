@@ -1,0 +1,165 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+    <link rel="stylesheet" href='{% static "css/field_test.css" %}'>
+{% endblock %}
+{% block content %}
+
+<body>
+    <h1>🦀 Test — Tous les champs Runique</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf %}
+
+        {# ─── TEXT ──────────────────────────────────────────── #}
+        <div class="section">
+            <h2>Text <span class="tag">base_string</span></h2>
+            <div class="grid">
+                <div class="field-box">
+                    {% form.test_form.f_text %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_email %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_url %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_password %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_textarea %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_richtext %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_readonly %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_disabled %}
+                </div>
+            </div>
+        </div>
+
+        {# ─── NUMERIC ────────────────────────────────────────── #}
+        <div class="section">
+            <h2>Numeric <span class="tag">base_number</span></h2>
+            <div class="grid">
+                <div class="field-box">
+                    {% form.test_form.f_integer %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_float %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_decimal %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_percent %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_range %}
+                </div>
+            </div>
+        </div>
+
+        {# ─── BOOLEAN ────────────────────────────────────────── #}
+        <div class="section">
+            <h2>Boolean <span class="tag">base_boolean</span></h2>
+            <div class="grid">
+                <div class="field-box">
+                    {% form.test_form.f_checkbox %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_radio_single %}
+                </div>
+            </div>
+        </div>
+
+        {# ─── CHOICE ─────────────────────────────────────────── #}
+        <div class="section">
+            <h2>Choice <span class="tag">base_select / base_radio / base_checkbox</span></h2>
+            <div class="grid">
+                <div class="field-box">
+                    {% form.test_form.f_select %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_select_multiple %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_radio_group %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_checkbox_group %}
+                </div>
+            </div>
+        </div>
+
+        {# ─── DATETIME ───────────────────────────────────────── #}
+        <div class="section">
+            <h2>Datetime <span class="tag">base_datetime</span></h2>
+            <div class="grid">
+                <div class="field-box">
+                    {% form.test_form.f_date %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_time %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_datetime %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_duration %}
+                </div>
+            </div>
+        </div>
+
+        {# ─── FILE ───────────────────────────────────────────── #}
+        <div class="section">
+            <h2>File <span class="tag">base_file</span></h2>
+            <div class="grid">
+                <div class="field-box">
+                    {% form.test_form.f_file_image %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_file_document %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_file_any %}
+                </div>
+            </div>
+        </div>
+
+        {# ─── SPECIAL ────────────────────────────────────────── #}
+        <div class="section">
+            <h2>Special <span class="tag">base_special / base_color</span></h2>
+            <div class="grid">
+                <div class="field-box">
+                    {% form.test_form.f_color %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_slug %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_uuid %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_json %}
+                </div>
+                <div class="field-box">
+                    {% form.test_form.f_ip %}
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit">Soumettre</button>
+        </div>
+    </form>
+</body>
+</html>
+{% endblock %}

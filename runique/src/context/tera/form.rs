@@ -5,27 +5,23 @@ use tera::Value;
 
 pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
     if let Some(field_name) = args.get("field").and_then(|v| v.as_str()) {
-        // Essaie d'abord dans "fields"
-        if let Some(fields) = value.get("fields").and_then(|f| f.as_object()) {
-            if let Some(field_obj) = fields.get(field_name) {
-                return Ok(field_obj.clone());
-            }
+        // Cherche d'abord dans rendered_fields (HTML déjà rendu par Tera en Rust)
+        if let Some(rendered) = value
+            .get("rendered_fields")
+            .and_then(|rf| rf.get(field_name))
+            .and_then(|v| v.as_str())
+        {
+            return Ok(Value::String(rendered.to_string()));
         }
 
-        // Essaie dans "form.fields"
+        // Même chose via form.rendered_fields
         if let Some(form) = value.get("form") {
-            if let Some(fields) = form.get("fields").and_then(|f| f.as_object()) {
-                if let Some(field_obj) = fields.get(field_name) {
-                    return Ok(field_obj.clone());
-                }
-            }
-
-            // Essaie dans "form.cleaned_data"
-            if let Some(cleaned_data) = form.get("cleaned_data").and_then(|f| f.as_object()) {
-                if let Some(field_value) = cleaned_data.get(field_name) {
-                    // Retourne la valeur du champ depuis cleaned_data
-                    return Ok(field_value.clone());
-                }
+            if let Some(rendered) = form
+                .get("rendered_fields")
+                .and_then(|rf| rf.get(field_name))
+                .and_then(|v| v.as_str())
+            {
+                return Ok(Value::String(rendered.to_string()));
             }
         }
 

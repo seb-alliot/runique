@@ -57,9 +57,14 @@ impl TemplateLoader {
                     content = content.replace("{{ csp }}", r#"{% include "csp" %}"#);
 
                     // Traitement Formulaires (Champs isolés)
-                    content = form_field_regex.replace_all(&content, |caps: &Captures| {
-                        format!(r#"{{% set field = {} | form(field='{}') %}}{{% set input_type = field.field_type %}}{{% include "base_string" %}}"#, &caps[1], &caps[2])
-                    }).to_string();
+                    content = form_field_regex
+                        .replace_all(&content, |caps: &Captures| {
+                            format!(
+                                r#"{{{{ {} | form(field='{}') | safe }}}}"#,
+                                &caps[1], &caps[2]
+                            )
+                        })
+                        .to_string();
 
                     // Traitement Formulaires (Full form)
                     content = form_full_regex

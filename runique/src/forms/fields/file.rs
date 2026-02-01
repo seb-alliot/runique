@@ -222,6 +222,9 @@ impl FileField {
 }
 
 impl FormField for FileField {
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 

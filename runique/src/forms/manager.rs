@@ -70,7 +70,7 @@ impl Serialize for Forms {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Forms", 6)?;
+        let mut state = serializer.serialize_struct("Forms", 7)?;
 
         state.serialize_field("data", &self.data())?;
         state.serialize_field("errors", &self.errors())?;
@@ -82,6 +82,18 @@ impl Serialize for Forms {
             Err(e) => format!("<p style='color:red'>Erreur de rendu : {}</p>", e),
         };
         state.serialize_field("html", &rendered_html)?;
+        let rendered_fields: HashMap<String, String> = self
+            .fields
+            .iter()
+            .filter_map(|(name, field)| {
+                let tera_instance = self.tera.as_ref()?;
+                field
+                    .render(tera_instance)
+                    .ok()
+                    .map(|html| (name.clone(), html))
+            })
+            .collect();
+        state.serialize_field("rendered_fields", &rendered_fields)?;
 
         let fields_data: HashMap<String, serde_json::Value> = self
             .fields
@@ -92,6 +104,7 @@ impl Serialize for Forms {
                 field_map.insert("name".to_string(), json!(name));
                 field_map.insert("label".to_string(), json!(field.label()));
                 field_map.insert("field_type".to_string(), json!(field.field_type()));
+                field_map.insert("template_name".to_string(), json!(field.template_name()));
                 field_map.insert("value".to_string(), json!(field.value()));
                 field_map.insert("placeholder".to_string(), json!(field.placeholder()));
                 field_map.insert("index".to_string(), json!(index));

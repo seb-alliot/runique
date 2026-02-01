@@ -49,7 +49,9 @@ impl FormField for BooleanField {
     fn name(&self) -> &str {
         &self.base.name
     }
-
+    fn template_name(&self) -> &str {
+        &self.base.template_name
+    }
     fn label(&self) -> &str {
         &self.base.label
     }
