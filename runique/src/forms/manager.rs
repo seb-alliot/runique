@@ -100,6 +100,7 @@ impl Serialize for Forms {
                 field_map.insert("readonly".to_string(), field.to_json_readonly());
                 field_map.insert("disabled".to_string(), field.to_json_disabled());
                 field_map.insert("html_attributes".to_string(), field.to_json_attributes());
+                field_map.insert("meta".to_string(), field.to_json_meta());
                 if let Some(err) = field.error() {
                     field_map.insert("error".to_string(), json!(err));
                 }

@@ -212,6 +212,7 @@ pub use derive_form::DeriveModelForm;
 // Prelude simplifié
 // ---------------------------------------------------------------------------
 pub mod prelude {
+
     // ========================================================================
     // MODULES PRINCIPAUX
     // ========================================================================
@@ -292,7 +293,7 @@ pub mod prelude {
     // SÉRIALISATION & DONNÉES
     // ========================================================================
     pub use serde::{Deserialize, Deserializer, Serialize, Serializer};
-    pub use serde_json::{from_str, json, to_string, Value};
+    pub use serde_json;
 
     // ========================================================================
     // TEMPLATE ENGINE

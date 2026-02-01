@@ -1,3 +1,4 @@
+<p>J'affiche bien base_file.html</p>
 <div>
     <label for="id_{{ field.name }}">{{ field.label }}</label>
 
@@ -6,8 +7,27 @@
         name="{{ field.name }}"
         id="id_{{ field.name }}"
         {% if field.is_required.choice %}required{% endif %}
+        {% if multiple %}multiple{% endif %}
+        {% if allowed_extensions %}accept=".{{ allowed_extensions.extensions | join(sep=",.") }}"{% endif %}
         {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
     >
+
+    {% if allowed_extensions or max_size_mb or max_files or max_width or max_height %}
+    <div style="font-size: 0.85rem; color: #6c757d; margin-top: 0.3rem;">
+        {% if allowed_extensions %}
+            Extensions : {{ allowed_extensions.extensions | join(sep=", ") }}
+        {% endif %}
+        {% if max_size_mb %}
+            · Max {{ max_size_mb }} MB
+        {% endif %}
+        {% if max_files %}
+            · Max {{ max_files }} fichier(s)
+        {% endif %}
+        {% if max_width and max_height %}
+            · Dimensions max : {{ max_width }}x{{ max_height }}px
+        {% endif %}
+    </div>
+    {% endif %}
 
     {% if field.error %}
     <span>{{ field.error }}</span>

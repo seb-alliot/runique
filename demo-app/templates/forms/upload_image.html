@@ -12,22 +12,8 @@
         {% if title %}
             <h1>{{ title }}</h1>
         {% endif %}
-    
+
     <h2>Uploader une image</h2>
-        <div>
-            <div>
-                <span>Extensions autorisées : {{ allowed_extensions.extensions | join(sep=", ") }}</span>
-            </div>
-            <div>
-                <span>Taille max : {{ max_size_mb }} MB</span>
-            </div>
-            <div>
-                <span>Maximum {{ max_files }} fichiers</span>
-            </div>
-            <div>
-                <span>Dimensions max : {{ max_width }}x{{ max_height }}px</span>
-            </div>
-        </div>
 
         <!-- Formulaire de recherche d'utilisateur -->
         {% block messages %}
