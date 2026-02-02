@@ -30,12 +30,13 @@ tower.workspace = true
 tower-http.workspace = true
 tower-sessions.workspace = true
 
-# Sécurity
+# Security
 urlencoding.workspace = true
 byte.workspace = true
 http-body-util.workspace = true
 ammonia.workspace = true
-# gestion password
+
+# Password management
 argon2.workspace = true
 password-hash.workspace = true
 rand.workspace = true
@@ -46,25 +47,25 @@ tokio.workspace = true
 # Sérialisation
 serde.workspace = true
 serde_json.workspace = true
+serde_urlencoded.workspace = true
 
 # Templates
 tera.workspace = true
-glob = "0.3"
+glob.workspace = true
 indexmap.workspace = true
+
 # ORM
 sea-orm = { workspace = true, optional = true }
-sea-orm-cli.workspace = true
 
-# Utilitaires
+# Utilities
 dotenvy.workspace = true
 chrono.workspace = true
 anyhow.workspace = true
 regex.workspace = true
-serde_urlencoded.workspace = true
 fancy-regex.workspace = true
 uuid.workspace = true
 futures-util.workspace = true
-phonenumber.workspace = true
+phone_number.workspace = true
 country.workspace = true
 postal-code.workspace = true
 dyn-clone.workspace = true
@@ -81,19 +82,19 @@ thiserror.workspace = true
 async-trait.workspace = true
 once_cell.workspace = true
 
-# Validation et sécurité
-validator = { version = "0.20", features = ["derive"] }
+# Validation
+validator.workspace = true
 
 # CSRF
-hmac = "0.12"
-sha2 = "0.10"
-hex = "0.4"
+hmac.workspace = true
+sha2.workspace = true
+hex.workspace = true
 base64.workspace = true
 
-# macro externe
-derive_form = { path = "derive_form", version = "1.1.0" }
+# Procedural macros
+derive_form = { path = "derive_form" }
 
-# cli
+# CLI
 clap.workspace = true
 
 [features]
