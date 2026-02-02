@@ -17,6 +17,8 @@
                 value="{{ choice.value }}"
                 {% if choice.selected %}checked{% endif %}
                 {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+            {% if readonly.choice %}readonly{% endif %}
+            {% if disabled.choice %}disabled{% endif %}
             >
             <span class="checkbox-label">{{ choice.label }}</span>
         </label>

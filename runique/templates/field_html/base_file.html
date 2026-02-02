@@ -8,6 +8,8 @@
         {% if multiple %}multiple{% endif %}
         {% if allowed_extensions %}accept=".{{ allowed_extensions.extensions | join(sep=",.") }}"{% endif %}
         {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+        {% if readonly.choice %}readonly{% endif %}
+        {% if disabled.choice %}disabled{% endif %}
     >
 
     {% if allowed_extensions or max_size_mb or max_files or max_width or max_height %}

@@ -1,5 +1,6 @@
 pub mod bdd;
 pub mod context;
+pub mod forms;
 pub mod routeur;
 
 pub use routeur::register_url::{

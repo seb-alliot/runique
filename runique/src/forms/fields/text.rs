@@ -1,14 +1,12 @@
-use crate::forms::base::{FieldConfig, TextConfig};
-use crate::forms::field::FormField;
+use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField, TextConfig};
 pub use crate::forms::generic::GenericField;
-use crate::forms::options::{BoolChoice, LengthConstraint};
+use crate::forms::options::LengthConstraint;
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
 use serde::Serialize;
-use serde_json::{json, Value};
 use std::sync::Arc;
 use tera::{Context, Tera};
 use validator::{ValidateEmail, ValidateUrl};
@@ -30,6 +28,15 @@ pub enum SpecialFormat {
     Password,
     RichText,
     Csrf,
+}
+impl CommonFieldConfig for TextField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
 }
 
 // Implémentation des méthodes pour TextField
@@ -120,7 +127,7 @@ impl TextField {
     }
 
     pub fn placeholder(mut self, p: &str) -> Self {
-        self.base.placeholder = p.to_string();
+        self.set_placeholder(p);
         self
     }
 
@@ -136,86 +143,6 @@ impl TextField {
 }
 
 impl FormField for TextField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
-    fn set_readonly(&mut self, readonly: bool, msg: Option<&str>) {
-        self.config.readonly = Some(BoolChoice {
-            choice: readonly,
-            message: msg.map(|s| s.to_string()),
-        });
-    }
-
-    fn set_disabled(&mut self, disabled: bool, msg: Option<&str>) {
-        self.config.disabled = Some(BoolChoice {
-            choice: disabled,
-            message: msg.map(|s| s.to_string()),
-        });
-    }
-
     fn validate(&mut self) -> bool {
         // Trim initial
         let mut val = self.base.value.trim().to_string();
@@ -315,8 +242,8 @@ impl FormField for TextField {
         context.insert("input_type", &self.base.type_field);
 
         // AJOUT IMPORTANT : On injecte la config pour readonly/disabled
-        context.insert("readonly", &self.config.readonly);
-        context.insert("disabled", &self.config.disabled);
+        context.insert("readonly", &self.to_json_readonly());
+        context.insert("disabled", &self.to_json_disabled());
 
         if let Some(l) = &self.config.min_length {
             context.insert("min_length", &l.value);
@@ -327,33 +254,5 @@ impl FormField for TextField {
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_readonly(&self) -> Value {
-        if let Some(readonly) = &self.config.readonly {
-            json!(readonly)
-        } else {
-            json!({"choice": false, "message": null})
-        }
-    }
-
-    fn to_json_disabled(&self) -> Value {
-        if let Some(disabled) = &self.config.disabled {
-            json!(disabled)
-        } else {
-            json!({"choice": false, "message": null})
-        }
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
-    }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
     }
 }

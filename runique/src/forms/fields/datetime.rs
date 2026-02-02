@@ -1,9 +1,7 @@
-use crate::forms::base::FieldConfig;
-use crate::forms::field::FormField;
-use crate::forms::options::BoolChoice;
+use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::json;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
@@ -24,12 +22,17 @@ impl DateField {
         }
     }
 
+    pub fn placeholder(mut self, p: &str) -> Self {
+        self.set_placeholder(p);
+        self
+    }
+
     pub fn min(mut self, date: NaiveDate, msg: &str) -> Self {
         self.min_date = Some(date);
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("min_message".to_string(), msg.to_string());
+                .insert("min_message".to_string(), json!(msg));
         }
         self
     }
@@ -39,7 +42,7 @@ impl DateField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("max_message".to_string(), msg.to_string());
+                .insert("max_message".to_string(), json!(msg));
         }
         self
     }
@@ -55,74 +58,17 @@ impl DateField {
     }
 }
 
+impl CommonFieldConfig for DateField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
 impl FormField for DateField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -158,8 +104,8 @@ impl FormField for DateField {
                     .extra_context
                     .get("min_message")
                     .cloned()
-                    .unwrap_or_else(|| format!("Date minimale: {}", min));
-                self.set_error(msg);
+                    .unwrap_or_else(|| json!(format!("Date minimale: {}", min)));
+                self.set_error(msg.to_string());
                 return false;
             }
         }
@@ -172,8 +118,8 @@ impl FormField for DateField {
                     .extra_context
                     .get("max_message")
                     .cloned()
-                    .unwrap_or_else(|| format!("Date maximale: {}", max));
-                self.set_error(msg);
+                    .unwrap_or_else(|| json!(format!("Date maximale: {}", max)));
+                self.set_error(msg.to_string());
                 return false;
             }
         }
@@ -195,18 +141,6 @@ impl FormField for DateField {
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }
 
@@ -232,7 +166,7 @@ impl TimeField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("min_message".to_string(), msg.to_string());
+                .insert("min_message".to_string(), json!(msg));
         }
         self
     }
@@ -242,7 +176,7 @@ impl TimeField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("max_message".to_string(), msg.to_string());
+                .insert("max_message".to_string(), json!(msg));
         }
         self
     }
@@ -258,74 +192,16 @@ impl TimeField {
     }
 }
 
+impl CommonFieldConfig for TimeField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
 impl FormField for TimeField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -361,8 +237,8 @@ impl FormField for TimeField {
                     .extra_context
                     .get("min_message")
                     .cloned()
-                    .unwrap_or_else(|| format!("Temps minimal: {}", min));
-                self.set_error(msg);
+                    .unwrap_or_else(|| json!(format!("Temps minimal: {}", min)));
+                self.set_error(msg.to_string());
                 return false;
             }
         }
@@ -375,8 +251,8 @@ impl FormField for TimeField {
                     .extra_context
                     .get("max_message")
                     .cloned()
-                    .unwrap_or_else(|| format!("Temps maximal: {}", max));
-                self.set_error(msg);
+                    .unwrap_or_else(|| json!(format!("Temps maximal: {}", max)));
+                self.set_error(msg.to_string());
                 return false;
             }
         }
@@ -398,18 +274,6 @@ impl FormField for TimeField {
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }
 
@@ -435,7 +299,7 @@ impl DateTimeField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("min_message".to_string(), msg.to_string());
+                .insert("min_message".to_string(), json!(msg));
         }
         self
     }
@@ -445,7 +309,7 @@ impl DateTimeField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("max_message".to_string(), msg.to_string());
+                .insert("max_message".to_string(), json!(msg));
         }
         self
     }
@@ -460,75 +324,17 @@ impl DateTimeField {
         self
     }
 }
+impl CommonFieldConfig for DateTimeField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
 
 impl FormField for DateTimeField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -564,8 +370,8 @@ impl FormField for DateTimeField {
                     .extra_context
                     .get("min_message")
                     .cloned()
-                    .unwrap_or_else(|| format!("Date/temps minimal: {}", min));
-                self.set_error(msg);
+                    .unwrap_or_else(|| json!(format!("Date/temps minimal: {}", min)));
+                self.set_error(json!(msg).to_string());
                 return false;
             }
         }
@@ -578,8 +384,8 @@ impl FormField for DateTimeField {
                     .extra_context
                     .get("max_message")
                     .cloned()
-                    .unwrap_or_else(|| format!("Date/temps maximal: {}", max));
-                self.set_error(msg);
+                    .unwrap_or_else(|| json!(format!("Date/temps maximal: {}", max)));
+                self.set_error(json!(msg).to_string());
                 return false;
             }
         }
@@ -601,18 +407,6 @@ impl FormField for DateTimeField {
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }
 
@@ -638,7 +432,7 @@ impl DurationField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("min_message".to_string(), msg.to_string());
+                .insert("min_message".to_string(), json!(msg));
         }
         self
     }
@@ -648,7 +442,7 @@ impl DurationField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("max_message".to_string(), msg.to_string());
+                .insert("max_message".to_string(), json!(msg));
         }
         self
     }
@@ -664,74 +458,17 @@ impl DurationField {
     }
 }
 
+impl CommonFieldConfig for DurationField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
 impl FormField for DurationField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -741,7 +478,7 @@ impl FormField for DurationField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| json!("Ce champ est obligatoire").to_string());
             self.set_error(msg);
             return false;
         }
@@ -754,7 +491,7 @@ impl FormField for DurationField {
         let seconds = match val.parse::<u64>() {
             Ok(s) => s,
             Err(_) => {
-                self.set_error("Durée invalide (nombre de secondes attendu)".into());
+                self.set_error(json!("Durée invalide (nombre de secondes attendu)").to_string());
                 return false;
             }
         };
@@ -767,8 +504,8 @@ impl FormField for DurationField {
                     .extra_context
                     .get("min_message")
                     .cloned()
-                    .unwrap_or_else(|| format!("Durée minimale: {} secondes", min));
-                self.set_error(msg);
+                    .unwrap_or_else(|| json!(format!("Durée minimale: {} secondes", min)));
+                self.set_error(msg.to_string());
                 return false;
             }
         }
@@ -781,8 +518,8 @@ impl FormField for DurationField {
                     .extra_context
                     .get("max_message")
                     .cloned()
-                    .unwrap_or_else(|| format!("Durée maximale: {} secondes", max));
-                self.set_error(msg);
+                    .unwrap_or_else(|| json!(format!("Durée maximale: {} secondes", max)));
+                self.set_error(msg.to_string());
                 return false;
             }
         }
@@ -794,6 +531,8 @@ impl FormField for DurationField {
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
         context.insert("field", &self.base);
+        context.insert("readonly", &self.to_json_readonly());
+        context.insert("disabled", &self.to_json_disabled());
 
         if let Some(min) = &self.min_seconds {
             context.insert("min_seconds", min);
@@ -804,21 +543,5 @@ impl FormField for DurationField {
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        self.base
-            .value
-            .parse::<u64>()
-            .map(|v| json!(v))
-            .unwrap_or(json!(null))
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }

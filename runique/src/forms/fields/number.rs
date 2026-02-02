@@ -1,8 +1,6 @@
 use crate::forms::base::*;
-use crate::forms::field::FormField;
-use crate::forms::options::BoolChoice;
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::json;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
@@ -12,6 +10,16 @@ pub struct NumericField {
     pub config: NumericConfig,
     pub min_digits: Option<usize>,
     pub max_digits: Option<usize>,
+}
+
+impl CommonFieldConfig for NumericField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
 }
 
 impl NumericField {
@@ -38,6 +46,11 @@ impl NumericField {
                 max: None,
             },
         )
+    }
+
+    pub fn placeholder(mut self, p: &str) -> Self {
+        self.set_placeholder(p);
+        self
     }
 
     pub fn float(name: &str) -> Self {
@@ -96,7 +109,7 @@ impl NumericField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("min_message".to_string(), msg.to_string());
+                .insert("min_message".to_string(), json!(msg));
         }
         self
     }
@@ -121,7 +134,7 @@ impl NumericField {
         if !msg.is_empty() {
             self.base
                 .extra_context
-                .insert("max_message".to_string(), msg.to_string());
+                .insert("max_message".to_string(), json!(msg));
         }
         self
     }
@@ -141,61 +154,6 @@ impl NumericField {
 
 // --- Implémentation du Trait ---
 impl FormField for NumericField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_error(&mut self, error: String) {
-        self.base.error = if error.is_empty() { None } else { Some(error) };
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
         if self.base.is_required.choice && val.is_empty() {
@@ -296,32 +254,10 @@ impl FormField for NumericField {
         let mut context = Context::new();
         context.insert("field", &self.base);
         context.insert("config", &self.config);
+        context.insert("readonly", &self.to_json_readonly());
+        context.insert("disabled", &self.to_json_disabled());
+
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        match &self.config {
-            NumericConfig::Integer { .. } => self
-                .base
-                .value
-                .parse::<i64>()
-                .map(|v| json!(v))
-                .unwrap_or(json!(null)),
-            _ => self
-                .base
-                .value
-                .replace(',', ".")
-                .parse::<f64>()
-                .map(|v| json!(v))
-                .unwrap_or(json!(null)),
-        }
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }

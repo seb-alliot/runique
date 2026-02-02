@@ -1,6 +1,4 @@
-use crate::forms::base::FieldConfig;
-use crate::forms::field::FormField;
-use crate::forms::options::BoolChoice;
+use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -73,78 +71,17 @@ impl ChoiceField {
     }
 }
 
+impl CommonFieldConfig for ChoiceField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
 impl FormField for ChoiceField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-        // Mettre à jour les options sélectionnées
-        for choice in &mut self.choices {
-            choice.selected = choice.value == value;
-        }
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -177,21 +114,11 @@ impl FormField for ChoiceField {
         context.insert("field", &self.base);
         context.insert("choices", &self.choices);
         context.insert("multiple", &self.multiple);
+        context.insert("readonly", &self.to_json_readonly());
+        context.insert("disabled", &self.to_json_disabled());
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }
 
@@ -231,75 +158,17 @@ impl RadioField {
     }
 }
 
+impl CommonFieldConfig for RadioField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
 impl FormField for RadioField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-        for choice in &mut self.choices {
-            choice.selected = choice.value == value;
-        }
-    }
-
-    fn set_placeholder(&mut self, _p: &str) {}
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -330,7 +199,7 @@ impl FormField for RadioField {
         let mut context = Context::new();
         context.insert("field", &self.base);
         context.insert("choices", &self.choices);
-
+        context.insert("meta", &self.to_json_meta());
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
     }
@@ -383,46 +252,17 @@ impl CheckboxField {
         self
     }
 }
+impl CommonFieldConfig for CheckboxField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
 
 impl FormField for CheckboxField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
     fn set_value(&mut self, value: &str) {
         // Format attendu: "value1,value2,value3"
         self.base.value = value.to_string();
@@ -431,29 +271,6 @@ impl FormField for CheckboxField {
         for choice in &mut self.choices {
             choice.selected = selected_values.contains(&choice.value.as_str());
         }
-    }
-
-    fn set_placeholder(&mut self, _p: &str) {}
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
     }
 
     fn validate(&mut self) -> bool {
@@ -489,27 +306,9 @@ impl FormField for CheckboxField {
         let mut context = Context::new();
         context.insert("field", &self.base);
         context.insert("choices", &self.choices);
+        context.insert("meta", &self.to_json_meta());
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        let values: Vec<&str> = self
-            .base
-            .value
-            .split(',')
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty())
-            .collect();
-        json!(values)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }

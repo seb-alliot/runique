@@ -38,7 +38,8 @@
             max="{{ config.Range.value.max }}"
             step="{{ config.Range.step }}"
         {% endif %}
-
+        {% if readonly.choice %}readonly{% endif %}
+        {% if disabled.choice %}disabled{% endif %}
         {% if field.is_required.choice %}required{% endif %}
         {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
     >

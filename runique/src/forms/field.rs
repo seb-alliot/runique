@@ -1,81 +1,10 @@
 // --- Definitions communes pour les champs de formulaire ---
+pub use crate::forms::base::FormField;
 use crate::forms::manager::{Forms, ValidationError};
 use async_trait::async_trait;
 use sea_orm::DbErr;
-use serde_json::Value;
 
 use crate::utils::aliases::{ATera, StrMap};
-use dyn_clone::DynClone;
-
-pub trait FormField: DynClone + std::fmt::Debug + Send + Sync {
-    // Getters
-    fn name(&self) -> &str;
-    fn label(&self) -> &str;
-    fn value(&self) -> &str;
-    fn placeholder(&self) -> &str;
-    fn field_type(&self) -> &str;
-    fn error(&self) -> Option<&String>;
-
-    fn required(&self) -> bool {
-        false
-    }
-    // Setters
-    fn set_name(&mut self, name: &str);
-    fn set_label(&mut self, label: &str);
-    fn set_placeholder(&mut self, placeholder: &str);
-    fn set_value(&mut self, value: &str);
-    fn set_error(&mut self, message: String);
-    fn set_readonly(&mut self, _readonly: bool, _msg: Option<&str>) {}
-    fn set_disabled(&mut self, _disabled: bool, _msg: Option<&str>) {}
-    fn set_required(&mut self, required: bool, msg: Option<&str>);
-    fn set_html_attribute(&mut self, key: &str, value: &str);
-    fn template_name(&self) -> &str;
-    // Validation
-    fn validate(&mut self) -> bool;
-
-    fn finalize(&mut self) -> Result<(), String> {
-        Ok(())
-    }
-
-    // Rendu
-    fn render(&self, tera: &ATera) -> Result<String, String>;
-
-    // Conversion JSON
-    fn to_json_value(&self) -> Value {
-        Value::String(self.value().to_string())
-    }
-
-    fn to_json_required(&self) -> serde_json::Value {
-        serde_json::json!({
-            "choice": self.required(),
-            "message": null
-        })
-    }
-
-    fn to_json_readonly(&self) -> serde_json::Value {
-        serde_json::json!({
-            "choice": false,
-            "message": null
-        })
-    }
-
-    fn to_json_disabled(&self) -> serde_json::Value {
-        serde_json::json!({
-            "choice": false,
-            "message": null
-        })
-    }
-
-    fn to_json_attributes(&self) -> serde_json::Value {
-        serde_json::json!({})
-    }
-
-    /// Métadonnées spécifiques au type de champ (ex: extensions, tailles pour FileField).
-    /// Default retourne un objet vide — à override uniquement si le champ a des métadonnées.
-    fn to_json_meta(&self) -> serde_json::Value {
-        serde_json::json!({})
-    }
-}
 
 dyn_clone::clone_trait_object!(FormField);
 

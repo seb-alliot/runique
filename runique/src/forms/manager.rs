@@ -1,4 +1,4 @@
-use crate::forms::field::FormField;
+use crate::forms::base::FormField;
 use crate::forms::fields::TextField;
 use crate::forms::generic::GenericField;
 use indexmap::IndexMap;
