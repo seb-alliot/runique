@@ -1,11 +1,11 @@
-use crate::forms::field::FormField;
+use crate::delegate_to_kind;
+use crate::forms::base::{CommonFieldConfig, FormField};
 use crate::forms::fields::boolean::BooleanField;
 use crate::forms::fields::file::FileField;
 use crate::forms::fields::{NumericField, TextField};
+use crate::utils::aliases::ATera;
 use serde::Serialize;
 use serde_json::Value;
-
-use crate::utils::aliases::ATera;
 
 #[derive(Clone, Debug, Serialize)]
 pub enum FieldKind {
@@ -20,208 +20,119 @@ pub enum FieldKind {
 pub struct GenericField {
     pub kind: FieldKind,
 }
+impl CommonFieldConfig for GenericField {
+    fn get_field_config(&self) -> &crate::forms::base::FieldConfig {
+        delegate_to_kind!(self, get_field_config)
+    }
 
+    fn get_field_config_mut(&mut self) -> &mut crate::forms::base::FieldConfig {
+        delegate_to_kind!(mut self, get_field_config_mut)
+    }
+}
 impl FormField for GenericField {
+    // --- Getters ---
+
     fn name(&self) -> &str {
-        match &self.kind {
-            FieldKind::Text(f) => f.name(),
-            FieldKind::Numeric(f) => f.name(),
-            FieldKind::File(f) => f.name(),
-            _ => "",
-        }
+        delegate_to_kind!(self, name)
     }
 
     fn label(&self) -> &str {
-        match &self.kind {
-            FieldKind::Text(f) => f.label(),
-            FieldKind::Numeric(f) => f.label(),
-            FieldKind::File(f) => f.label(),
-            _ => "",
-        }
+        delegate_to_kind!(self, label)
     }
 
     fn value(&self) -> &str {
-        match &self.kind {
-            FieldKind::Text(f) => f.value(),
-            FieldKind::Numeric(f) => f.value(),
-            FieldKind::File(f) => f.value(),
-            _ => "",
-        }
+        delegate_to_kind!(self, value)
     }
 
     fn placeholder(&self) -> &str {
-        match &self.kind {
-            FieldKind::Text(f) => f.placeholder(),
-            FieldKind::Numeric(f) => f.placeholder(),
-            FieldKind::File(f) => f.placeholder(),
-            _ => "",
-        }
+        delegate_to_kind!(self, placeholder)
+    }
+
+    fn field_type(&self) -> &str {
+        delegate_to_kind!(self, field_type)
+    }
+
+    fn template_name(&self) -> &str {
+        delegate_to_kind!(self, template_name)
     }
 
     fn required(&self) -> bool {
-        match &self.kind {
-            FieldKind::Text(f) => f.required(),
-            FieldKind::Numeric(f) => f.required(),
-            FieldKind::File(f) => f.required(),
-            _ => false,
-        }
+        delegate_to_kind!(self, required)
     }
 
     fn error(&self) -> Option<&String> {
-        match &self.kind {
-            FieldKind::Text(f) => f.error(),
-            FieldKind::Numeric(f) => f.error(),
-            FieldKind::File(f) => f.error(),
-            _ => None,
-        }
+        delegate_to_kind!(self, error)
     }
 
-    // --- Délégation des modificateurs (Setters) ---
+    // --- Setters ---
+
+    fn set_name(&mut self, name: &str) {
+        delegate_to_kind!(mut self, set_name, name)
+    }
+
+    fn set_label(&mut self, label: &str) {
+        delegate_to_kind!(mut self, set_label, label)
+    }
 
     fn set_value(&mut self, value: &str) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_value(value),
-            FieldKind::Numeric(f) => f.set_value(value),
-            FieldKind::File(f) => f.set_value(value),
-            _ => {}
-        }
-    }
-
-    fn set_error(&mut self, error: String) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_error(error),
-            FieldKind::Numeric(f) => f.set_error(error),
-            FieldKind::File(f) => f.set_error(error),
-            _ => {}
-        }
+        delegate_to_kind!(mut self, set_value, value)
     }
 
     fn set_placeholder(&mut self, placeholder: &str) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_placeholder(placeholder),
-            FieldKind::Numeric(f) => f.set_placeholder(placeholder),
-            FieldKind::File(f) => f.set_placeholder(placeholder),
-            _ => {}
-        }
+        delegate_to_kind!(mut self, set_placeholder, placeholder)
+    }
+
+    fn set_error(&mut self, error: String) {
+        delegate_to_kind!(mut self, set_error, error)
+    }
+
+    fn set_html_attribute(&mut self, key: &str, value: &str) {
+        delegate_to_kind!(mut self, set_html_attribute, key, value)
+    }
+
+    fn set_required(&mut self, required: bool, msg: Option<&str>) {
+        delegate_to_kind!(mut self, set_required, required, msg)
+    }
+
+    fn set_readonly(&mut self, readonly: bool, msg: Option<&str>) {
+        delegate_to_kind!(mut self, set_readonly, readonly, msg)
+    }
+
+    fn set_disabled(&mut self, disabled: bool, msg: Option<&str>) {
+        delegate_to_kind!(mut self, set_disabled, disabled, msg)
     }
 
     // --- Logique métier ---
 
     fn validate(&mut self) -> bool {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.validate(),
-            FieldKind::Numeric(f) => f.validate(),
-            FieldKind::File(f) => f.validate(),
-            _ => true,
-        }
+        delegate_to_kind!(mut self, validate)
     }
 
     fn render(&self, tera: &ATera) -> Result<String, String> {
-        match &self.kind {
-            FieldKind::Text(f) => f.render(tera),
-            FieldKind::Numeric(f) => f.render(tera),
-            FieldKind::File(f) => f.render(tera),
-            _ => Err("Type de champ non supporté pour le rendu".into()),
-        }
+        delegate_to_kind!(self, render, tera)
     }
-    fn set_name(&mut self, name: &str) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_name(name),
-            FieldKind::Numeric(f) => f.set_name(name),
-            FieldKind::File(f) => f.set_name(name),
-            _ => {}
-        }
-    }
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_html_attribute(key, value),
-            FieldKind::Numeric(f) => f.set_html_attribute(key, value),
-            FieldKind::File(f) => f.set_html_attribute(key, value),
-            _ => {}
-        }
-    }
-    fn field_type(&self) -> &str {
-        match &self.kind {
-            FieldKind::Text(f) => f.field_type(),
-            FieldKind::Numeric(f) => f.field_type(),
-            FieldKind::File(f) => f.field_type(),
-            _ => "",
-        }
-    }
-    fn template_name(&self) -> &str {
-        match &self.kind {
-            FieldKind::Text(f) => f.template_name(),
-            FieldKind::Numeric(f) => f.template_name(),
-            FieldKind::Boolean(f) => f.template_name(),
-            FieldKind::File(f) => f.template_name(),
-        }
-    }
+
     // --- Sérialisation JSON ---
 
     fn to_json_value(&self) -> Value {
-        match &self.kind {
-            FieldKind::Text(f) => f.to_json_value(),
-            FieldKind::Numeric(f) => f.to_json_value(),
-            FieldKind::File(f) => f.to_json_value(),
-            _ => serde_json::json!(null),
-        }
+        delegate_to_kind!(self, to_json_value)
     }
+
     fn to_json_required(&self) -> Value {
-        match &self.kind {
-            FieldKind::Text(f) => f.to_json_required(),
-            FieldKind::Numeric(f) => f.to_json_required(),
-            FieldKind::File(f) => f.to_json_required(),
-            _ => serde_json::json!(false),
-        }
+        delegate_to_kind!(self, to_json_required)
     }
+
     fn to_json_attributes(&self) -> Value {
-        match &self.kind {
-            FieldKind::Text(f) => f.to_json_attributes(),
-            FieldKind::Numeric(f) => f.to_json_attributes(),
-            FieldKind::File(f) => f.to_json_attributes(),
-            _ => serde_json::json!({}),
-        }
+        delegate_to_kind!(self, to_json_attributes)
     }
 
-    fn set_readonly(&mut self, _readonly: bool, _msg: Option<&str>) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_readonly(_readonly, _msg),
-            FieldKind::Numeric(f) => f.set_readonly(_readonly, _msg),
-            FieldKind::File(f) => f.set_readonly(_readonly, _msg),
-            _ => {}
-        }
+    fn to_json_meta(&self) -> Value {
+        delegate_to_kind!(self, to_json_meta)
     }
-    fn set_disabled(&mut self, _disabled: bool, _msg: Option<&str>) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_disabled(_disabled, _msg),
-            FieldKind::Numeric(f) => f.set_disabled(_disabled, _msg),
-            FieldKind::File(f) => f.set_disabled(_disabled, _msg),
-            _ => {}
-        }
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_required(required, msg),
-            FieldKind::Numeric(f) => f.set_required(required, msg),
-            FieldKind::File(f) => f.set_required(required, msg),
-            _ => {}
-        }
-    }
-
-    fn set_label(&mut self, label: &str) {
-        match &mut self.kind {
-            FieldKind::Text(f) => f.set_label(label),
-            FieldKind::Numeric(f) => f.set_label(label),
-            FieldKind::File(f) => f.set_label(label),
-            _ => {}
-        }
-    }
-    // Ajoute ici les autres méthodes du trait FormField (readonly, disabled, etc.)
-    // en suivant toujours le même schéma : match &self.kind { ... }
 }
 
-// Helper pour faciliter l'emballage
+// --- Helpers From ---
+
 impl From<TextField> for GenericField {
     fn from(f: TextField) -> Self {
         Self {
@@ -237,6 +148,7 @@ impl From<NumericField> for GenericField {
         }
     }
 }
+
 impl From<BooleanField> for GenericField {
     fn from(f: BooleanField) -> Self {
         Self {

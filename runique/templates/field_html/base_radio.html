@@ -18,10 +18,13 @@
                 {% if choice.selected or choice.value == field.value %}checked{% endif %}
                 {% if field.is_required.choice %}required{% endif %}
                 {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+                {% if readonly.choice %}readonly{% endif %}
+                {% if disabled.choice %}disabled{% endif %}
             >
             <span class="radio-label">{{ choice.label }}</span>
         </label>
         {% endfor %}
+
     </fieldset>
     {% endif %}
 

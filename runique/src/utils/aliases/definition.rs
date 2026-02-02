@@ -16,7 +16,7 @@ use tower_sessions::{SessionManagerLayer, SessionStore};
 
 // Import pour les nouveaux aliause crate::alia
 use crate::flash::FlashMessage;
-use crate::forms::field::FormField;
+use crate::forms::base::FormField;
 use indexmap::IndexMap;
 
 // ============================================================================

@@ -1,8 +1,6 @@
-use crate::forms::base::FieldConfig;
-use crate::forms::field::FormField;
-use crate::forms::options::BoolChoice;
+use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::json;
 use std::net::IpAddr;
 use std::sync::Arc;
 use tera::{Context, Tera};
@@ -40,74 +38,17 @@ impl ColorField {
     }
 }
 
+impl CommonFieldConfig for ColorField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
 impl FormField for ColorField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -154,18 +95,6 @@ impl FormField for ColorField {
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
     }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
-    }
 }
 
 /// SlugField - Champ pour slugs URL-friendly
@@ -173,6 +102,16 @@ impl FormField for ColorField {
 pub struct SlugField {
     pub base: FieldConfig,
     pub allow_unicode: bool,
+}
+
+impl CommonFieldConfig for SlugField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
 }
 
 impl SlugField {
@@ -187,91 +126,18 @@ impl SlugField {
         self.allow_unicode = true;
         self
     }
+    pub fn placeholder(mut self, p: &str) -> Self {
+        self.set_placeholder(p);
+        self
+    }
 
     pub fn label(mut self, label: &str) -> Self {
-        self.base.label = label.to_string();
-        self
-    }
-
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
-        self
-    }
-
-    pub fn placeholder(mut self, p: &str) -> Self {
-        self.base.placeholder = p.to_string();
+        self.set_label(label);
         self
     }
 }
 
 impl FormField for SlugField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -330,18 +196,6 @@ impl FormField for SlugField {
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
     }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
-    }
 }
 
 /// UUIDField - Champ pour identifiants UUID
@@ -368,79 +222,22 @@ impl UUIDField {
     }
 
     pub fn placeholder(mut self, p: &str) -> Self {
-        self.base.placeholder = p.to_string();
+        self.set_placeholder(p);
         self
     }
 }
 
+impl CommonFieldConfig for UUIDField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
 impl FormField for UUIDField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -480,18 +277,6 @@ impl FormField for UUIDField {
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
     }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
-    }
 }
 
 /// JSONField - Textarea avec validation JSON
@@ -525,79 +310,22 @@ impl JSONField {
     pub fn rows(mut self, rows: usize) -> Self {
         self.base
             .extra_context
-            .insert("rows".to_string(), rows.to_string());
+            .insert("rows".to_string(), json!(rows));
         self
     }
 }
 
+impl CommonFieldConfig for JSONField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
 impl FormField for JSONField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -628,31 +356,19 @@ impl FormField for JSONField {
         let mut context = Context::new();
         context.insert("field", &self.base);
         context.insert("field_hint", &"Format JSON valide requis");
-
+        context.insert("readonly", &self.to_json_readonly());
+        context.insert("disabled", &self.to_json_disabled());
         // Nombre de lignes
         let rows = self
             .base
             .extra_context
             .get("rows")
-            .and_then(|r| r.parse::<usize>().ok())
+            .and_then(|r| r.as_u64().map(|v| v as usize))
             .unwrap_or(10);
         context.insert("rows", &rows);
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        // Retourner le JSON parsé si valide, sinon la string
-        serde_json::from_str(&self.base.value).unwrap_or_else(|_| json!(self.base.value))
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }
 
@@ -701,74 +417,17 @@ impl IPAddressField {
     }
 }
 
+impl CommonFieldConfig for IPAddressField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
+}
+
 impl FormField for IPAddressField {
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
-    }
-
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -822,17 +481,5 @@ impl FormField for IPAddressField {
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
-    }
-
-    fn to_json_value(&self) -> Value {
-        json!(self.base.value)
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
     }
 }

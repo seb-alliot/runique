@@ -14,6 +14,8 @@
         {% if multiple %}multiple{% endif %}
         {% if field.is_required.choice %}required{% endif %}
         {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
+        {% if readonly.choice %}readonly{% endif %}
+        {% if disabled.choice %}disabled{% endif %}
     >
         {% if field.placeholder %}
         <option value="" disabled {% if not field.value %}selected{% endif %}>{{ field.placeholder }}</option>

@@ -1,4 +1,4 @@
-use crate::forms::field::FormField;
+use crate::forms::base::{CommonFieldConfig, FormField};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -39,57 +39,17 @@ impl HiddenField {
     }
 }
 
+impl CommonFieldConfig for HiddenField {
+    fn get_field_config(&self) -> &crate::forms::base::FieldConfig {
+        panic!("HiddenField does not have a FieldConfig");
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut crate::forms::base::FieldConfig {
+        panic!("HiddenField does not have a FieldConfig");
+    }
+}
+
 impl FormField for HiddenField {
-    fn name(&self) -> &str {
-        &self.name
-    }
-    fn template_name(&self) -> &str {
-        &self.template_name
-    }
-
-    fn label(&self) -> &str {
-        "" // champ caché, pas de label
-    }
-
-    fn value(&self) -> &str {
-        &self.value
-    }
-
-    fn placeholder(&self) -> &str {
-        ""
-    }
-
-    fn field_type(&self) -> &str {
-        &self.input_type
-    }
-
-    fn error(&self) -> Option<&String> {
-        self.error_message.as_ref()
-    }
-
-    fn set_name(&mut self, name: &str) {
-        self.name = name.to_string();
-    }
-
-    fn set_label(&mut self, _label: &str) {}
-    fn set_placeholder(&mut self, _placeholder: &str) {}
-    fn set_value(&mut self, value: &str) {
-        self.value = value.to_string();
-    }
-
-    fn set_error(&mut self, message: String) {
-        self.error_message = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-
-    fn set_readonly(&mut self, _readonly: bool, _msg: Option<&str>) {}
-    fn set_disabled(&mut self, _disabled: bool, _msg: Option<&str>) {}
-    fn set_required(&mut self, _required: bool, _msg: Option<&str>) {}
-    fn set_html_attribute(&mut self, _key: &str, _value: &str) {}
-
     fn validate(&mut self) -> bool {
         // Pour un champ CSRF, vérifier que la valeur correspond à celle attendue
         if self.name == "csrf_token" {
@@ -120,7 +80,6 @@ impl FormField for HiddenField {
                 "input_type": self.input_type
             }),
         );
-        println!("Rendering HiddenField with context: {:?}", context);
 
         tera.render(&self.template_name, &context)
             .map_err(|e| e.to_string())

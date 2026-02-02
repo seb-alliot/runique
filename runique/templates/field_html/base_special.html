@@ -26,6 +26,8 @@
             value="{{ field.value }}"
             {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
             {% if field.is_required.choice %}required{% endif %}
+            {% if readonly.choice %}readonly{% endif %}
+            {% if disabled.choice %}disabled{% endif %}
             {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
             class="special-input"
         >

@@ -1,9 +1,9 @@
-use crate::forms::field::FormField;
-use crate::forms::options::BoolChoice;
-use crate::{config::StaticConfig, forms::base::FieldConfig};
+use crate::{
+    config::StaticConfig,
+    forms::base::{CommonFieldConfig, FieldConfig, FormField},
+};
 use image::ImageReader;
 use serde::Serialize;
-use serde_json::{json, Value};
 use std::path::Path;
 use std::sync::Arc;
 use tera::{Context, Tera};
@@ -78,11 +78,13 @@ impl AllowedExtensions {
     }
 }
 
+pub type UploadPathFn = Option<Arc<dyn Fn(&str) -> String + Send + Sync>>;
+
 /// Configuration d’upload de fichier
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Default)]
 pub struct FileUploadConfig {
     #[serde(skip_serializing)]
-    pub upload_to: Option<Arc<dyn Fn(&str) -> String + Send + Sync>>,
+    pub upload_to: UploadPathFn,
     pub max_size_mb: Option<u64>,
 }
 
@@ -94,13 +96,13 @@ impl std::fmt::Debug for FileUploadConfig {
             .finish()
     }
 }
+impl CommonFieldConfig for FileField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
 
-impl Default for FileUploadConfig {
-    fn default() -> Self {
-        Self {
-            upload_to: None,
-            max_size_mb: None,
-        }
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
     }
 }
 
@@ -152,7 +154,7 @@ impl FileField {
             FileFieldType::None => AllowedExtensions::new(vec![]),
         };
 
-        let field = Self {
+        Self {
             base: FieldConfig::new(name, type_field, "base_file"),
             field_type: format,
             allowed_extensions: extensions,
@@ -160,8 +162,7 @@ impl FileField {
             max_files: None,
             max_width: None,
             max_height: None,
-        };
-        field
+        }
     }
 
     // --- Nouveaux Constructeurs publics (comme TextField) ---
@@ -222,9 +223,6 @@ impl FileField {
 }
 
 impl FormField for FileField {
-    fn template_name(&self) -> &str {
-        &self.base.template_name
-    }
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
@@ -363,109 +361,9 @@ impl FormField for FileField {
         if let Some(h) = self.max_height {
             context.insert("max_height", &h);
         }
-
+        context.insert("readonly", &self.to_json_readonly());
+        context.insert("disabled", &self.to_json_disabled());
         tera.render(&self.base.template_name, &context)
             .map_err(|e| format!("Erreur Tera (FileField): {}", e))
-    }
-
-    // AJOUT : Méthodes JSON manquantes pour satisfaire le trait FormField
-    fn to_json_readonly(&self) -> Value {
-        // Les FileFields n'ont souvent pas de config.readonly propre,
-        // on retourne une structure par défaut ou on l'ajoute à la struct FileField si nécessaire
-        json!({"choice": false, "message": null})
-    }
-
-    fn to_json_disabled(&self) -> Value {
-        json!({"choice": false, "message": null})
-    }
-
-    // Méthodes déjà présentes mais pour rappel de cohérence
-    fn to_json_value(&self) -> Value {
-        json!(self
-            .base
-            .value
-            .split(',')
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>())
-    }
-
-    fn to_json_required(&self) -> Value {
-        json!(self.base.is_required)
-    }
-    fn to_json_attributes(&self) -> Value {
-        json!(self.base.html_attributes)
-    }
-
-    fn to_json_meta(&self) -> Value {
-        let mut meta = serde_json::Map::new();
-        meta.insert(
-            "allowed_extensions".to_string(),
-            json!(self.allowed_extensions.extensions),
-        );
-        if let Some(size) = self.upload_config.max_size_mb {
-            meta.insert("max_size_mb".to_string(), json!(size));
-        }
-        if let Some(count) = self.max_files {
-            meta.insert("max_files".to_string(), json!(count));
-            meta.insert("multiple".to_string(), json!(count > 1));
-        }
-        if let Some(w) = self.max_width {
-            meta.insert("max_width".to_string(), json!(w));
-        }
-        if let Some(h) = self.max_height {
-            meta.insert("max_height".to_string(), json!(h));
-        }
-        Value::Object(meta)
-    }
-    fn name(&self) -> &str {
-        &self.base.name
-    }
-    fn label(&self) -> &str {
-        &self.base.label
-    }
-    fn value(&self) -> &str {
-        &self.base.value
-    }
-    fn placeholder(&self) -> &str {
-        &self.base.placeholder
-    }
-    fn field_type(&self) -> &str {
-        &self.base.type_field
-    }
-    fn required(&self) -> bool {
-        self.base.is_required.choice
-    }
-    fn error(&self) -> Option<&String> {
-        self.base.error.as_ref()
-    }
-    fn set_name(&mut self, name: &str) {
-        self.base.name = name.to_string();
-    }
-    fn set_label(&mut self, label: &str) {
-        self.base.label = label.to_string();
-    }
-    fn set_value(&mut self, value: &str) {
-        self.base.value = value.to_string();
-    }
-    fn set_placeholder(&mut self, p: &str) {
-        self.base.placeholder = p.to_string();
-    }
-    fn set_error(&mut self, message: String) {
-        self.base.error = if message.is_empty() {
-            None
-        } else {
-            Some(message)
-        };
-    }
-    fn set_required(&mut self, required: bool, msg: Option<&str>) {
-        self.base.is_required = BoolChoice {
-            choice: required,
-            message: msg.map(|s| s.to_string()),
-        };
-    }
-    fn set_html_attribute(&mut self, key: &str, value: &str) {
-        self.base
-            .html_attributes
-            .insert(key.to_string(), value.to_string());
     }
 }

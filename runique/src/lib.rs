@@ -43,7 +43,7 @@ pub mod db;
 pub mod engine;
 pub mod flash;
 pub mod forms;
-#[macro_use]
+
 pub mod macros;
 
 pub mod errors;
@@ -134,9 +134,11 @@ pub mod middleware_runique {
 }
 
 pub mod macro_runique {
+    pub use crate::delegate_to_kind;
     pub use crate::macros::*;
     pub use crate::macros::{
         context::{context_simplifier, flash},
+        forms::*,
         routeur::*,
     };
 }

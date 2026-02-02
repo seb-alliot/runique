@@ -26,7 +26,8 @@
             maxlength="7"
             pattern="^#[0-9A-Fa-f]{6}$"
             class="color-text-input"
-            readonly
+            {% if readonly.choice %}readonly{% endif %}
+            {% if disabled.choice %}disabled{% endif %}
         >
     </div>
 
