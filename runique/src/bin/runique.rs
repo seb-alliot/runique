@@ -60,7 +60,7 @@ fn create_new_project(name: &str) -> Result<()> {
     let formulaire = include_bytes!("../../../demo-app/src/forms.rs").to_vec();
     let user_exemple = include_bytes!("../../../demo-app/src/models/users.rs").to_vec();
     let blog_model = include_bytes!("../../../demo-app/src/models/blog.rs").to_vec();
-    let test_model = include_bytes!("../../../demo-app/src/models/test.rs").to_vec();
+    let test_model = include_bytes!("../../../demo-app/src/models/test_all_field.rs").to_vec();
     let model_derive = include_bytes!("../../../demo-app/src/models/model_derive.rs").to_vec();
     let mod_rs_content = include_bytes!("../../../demo-app/src/models/mod.rs").to_vec();
     let url_rs = include_bytes!("../../../demo-app/src/url.rs").to_vec();
