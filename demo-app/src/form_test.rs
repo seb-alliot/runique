@@ -76,34 +76,38 @@ impl RuniqueForm for TestAllFieldsForm {
             ChoiceOption::new("opt_c", "Option C"),
         ];
 
-        form.add(
-            ChoiceField::new("f_select")
+        form.field(
+            &ChoiceField::new("f_select")
                 .label("Select")
                 .choices(choices.clone()),
         );
-        form.add(
-            ChoiceField::new("f_select_multiple")
+        form.field(
+            &ChoiceField::new("f_select_multiple")
                 .label("Select multiple")
                 .multiple()
                 .choices(choices.clone()),
         );
-        form.add(
-            RadioField::new("f_radio_group")
+        form.field(
+            &RadioField::new("f_radio_group")
                 .label("Radio group")
                 .choices(choices.clone()),
         );
-        form.add(
-            CheckboxField::new("f_checkbox_group")
+        form.field(
+            &RadioField::new("f_radio_group")
+                .label("Radio group")
+                .choices(choices.clone()),
+        );
+        form.field(
+            &CheckboxField::new("f_checkbox_group")
                 .label("Checkbox group")
                 .choices(choices.clone()),
         );
 
         // ── Datetime ──
-        form.add(DateField::new("f_date").label("Date"));
-        form.add(TimeField::new("f_time").label("Heure"));
-        form.add(DateTimeField::new("f_datetime").label("Date + Heure"));
-        form.add(DurationField::new("f_duration").label("Durée (secondes)"));
-
+        form.field(&DateField::new("f_date").label("Date"));
+        form.field(&TimeField::new("f_time").label("Heure"));
+        form.field(&DateTimeField::new("f_datetime").label("Date + Heure"));
+        form.field(&DurationField::new("f_duration").label("Durée (secondes)"));
         // ── File ──
         form.field(
             &FileField::image("f_file_image")
@@ -122,28 +126,28 @@ impl RuniqueForm for TestAllFieldsForm {
         );
 
         // ── Special ──
-        form.add(
-            ColorField::new("f_color")
+        form.field(
+            &ColorField::new("f_color")
                 .label("Couleur")
                 .default_color("#3498db"),
         );
-        form.add(
-            SlugField::new("f_slug")
+        form.field(
+            &SlugField::new("f_slug")
                 .label("Slug")
                 .placeholder("mon-slug-url"),
         );
-        form.add(
-            UUIDField::new("f_uuid")
+        form.field(
+            &UUIDField::new("f_uuid")
                 .label("UUID")
                 .placeholder("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"),
         );
-        form.add(
-            JSONField::new("f_json")
+        form.field(
+            &JSONField::new("f_json")
                 .label("JSON")
                 .placeholder(r#"{"clé": "valeur"}"#),
         );
-        form.add(
-            IPAddressField::new("f_ip")
+        form.field(
+            &IPAddressField::new("f_ip")
                 .label("Adresse IP")
                 .placeholder("192.168.1.1"),
         );

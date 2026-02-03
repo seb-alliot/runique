@@ -164,19 +164,15 @@ impl Forms {
         T: FormField + Clone + Into<GenericField> + 'static,
     {
         let generic_instance: GenericField = field_template.clone().into();
-        self.add(generic_instance);
-    }
-
-    pub fn add<T: FormField + 'static>(&mut self, field: T) -> &mut Self {
-        let name = field.name().to_string();
-        self.fields.insert(name, Box::new(field));
-        self
+        self.fields.insert(
+            generic_instance.name().to_string(),
+            Box::new(generic_instance),
+        );
     }
 
     pub fn set_tera(&mut self, tera: ATera) {
         self.tera = Some(tera);
     }
-
     pub fn fill(&mut self, data: &StrMap) {
         for field in self.fields.values_mut() {
             if let Some(value) = data.get(field.name()) {

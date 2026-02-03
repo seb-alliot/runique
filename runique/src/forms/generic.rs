@@ -1,25 +1,37 @@
+use crate::define_enum_kind;
 use crate::delegate_to_kind;
 use crate::forms::base::{CommonFieldConfig, FormField};
-use crate::forms::fields::boolean::BooleanField;
-use crate::forms::fields::file::FileField;
-use crate::forms::fields::{NumericField, TextField};
+use crate::forms::fields::*;
 use crate::utils::aliases::ATera;
 use serde::Serialize;
 use serde_json::Value;
 
-#[derive(Clone, Debug, Serialize)]
-pub enum FieldKind {
-    Text(TextField),
-    Numeric(NumericField),
-    Boolean(BooleanField),
+define_enum_kind!(
+    Text => TextField,
+    Numeric => NumericField,
     #[serde(skip)]
-    File(FileField),
-}
+    File => FileField,
+    Boolean => BooleanField,
+    Choice => ChoiceField,
+    Radio => RadioField,
+    Checkbox => CheckboxField,
+    Date => DateField,
+    Time => TimeField,
+    DateTime => DateTimeField,
+    Duration => DurationField,
+    Color => ColorField,
+    Slug => SlugField,
+    UUID => UUIDField,
+    JSON => JSONField,
+    IPAddress => IPAddressField,
+    Hidden => HiddenField,
+);
 
 #[derive(Clone, Serialize, Debug)]
 pub struct GenericField {
     pub kind: FieldKind,
 }
+
 impl CommonFieldConfig for GenericField {
     fn get_field_config(&self) -> &crate::forms::base::FieldConfig {
         delegate_to_kind!(self, get_field_config)
@@ -29,6 +41,7 @@ impl CommonFieldConfig for GenericField {
         delegate_to_kind!(mut self, get_field_config_mut)
     }
 }
+
 impl FormField for GenericField {
     // --- Getters ---
 
@@ -128,39 +141,5 @@ impl FormField for GenericField {
 
     fn to_json_meta(&self) -> Value {
         delegate_to_kind!(self, to_json_meta)
-    }
-}
-
-// --- Helpers From ---
-
-impl From<TextField> for GenericField {
-    fn from(f: TextField) -> Self {
-        Self {
-            kind: FieldKind::Text(f),
-        }
-    }
-}
-
-impl From<NumericField> for GenericField {
-    fn from(f: NumericField) -> Self {
-        Self {
-            kind: FieldKind::Numeric(f),
-        }
-    }
-}
-
-impl From<BooleanField> for GenericField {
-    fn from(f: BooleanField) -> Self {
-        Self {
-            kind: FieldKind::Boolean(f),
-        }
-    }
-}
-
-impl From<FileField> for GenericField {
-    fn from(f: FileField) -> Self {
-        Self {
-            kind: FieldKind::File(f),
-        }
     }
 }

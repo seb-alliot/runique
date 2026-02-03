@@ -58,7 +58,7 @@ pub async fn error_handler_middleware(
 
     // ---  Gestion des erreurs ---
     if status.is_server_error() || status == StatusCode::NOT_FOUND {
-        // ✅ Essaie de récupérer SOIT un ErrorContext (venant de AppError)
+        //  Essaie de récupérer SOIT un ErrorContext (venant de AppError)
         //    SOIT un RuniqueError (venant de handlers qui retournent RuniqueError)
         let error_context_from_app = response.extensions().get::<Arc<ErrorContext>>().cloned();
 
@@ -68,7 +68,6 @@ pub async fn error_handler_middleware(
             .map(|err| (**err).clone());
 
         let error_ctx = if let Some(ctx) = error_context_from_app {
-            // ✅ On a déjà un ErrorContext complet (venant de AppError)
             info!(
                 method = %request_helper.method,
                 path = %request_helper.path,
@@ -83,7 +82,7 @@ pub async fn error_handler_middleware(
             }
             ctx
         } else if let Some(err) = error_runique {
-            // ✅ On a un RuniqueError (ancien système)
+            //  On a un RuniqueError (ancien système)
             match &err {
                 RuniqueError::Internal
                 | RuniqueError::Database(_)
@@ -116,7 +115,7 @@ pub async fn error_handler_middleware(
                 Some(&tera), // tera pour template_info si template error
             )
         } else {
-            // ✅ Pas d'erreur explicite, créer un contexte basique
+            //  Pas d'erreur explicite, créer un contexte basique
             if status == StatusCode::NOT_FOUND {
                 ErrorContext::not_found(&request_helper.path).with_request_helper(&request_helper)
             } else {
