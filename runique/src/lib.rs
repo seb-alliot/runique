@@ -157,17 +157,15 @@ pub mod request_context {
     pub mod template_context {
         pub use crate::context::template::*;
     }
-    pub mod tera_tool {
+    pub mod tera {
         pub use crate::context::tera::*;
     }
     pub mod composant_request {
         pub use crate::context::request::*;
     }
 
-    pub use composant_request::*;
     pub use context_error::*;
-    pub use template_context::*;
-    pub use tera_tool::*;
+    pub use tera::*;
 }
 
 pub mod runique_start {
