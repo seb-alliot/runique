@@ -134,7 +134,6 @@ pub mod middleware_runique {
 }
 
 pub mod macro_runique {
-    pub use crate::delegate_to_kind;
     pub use crate::macros::*;
     pub use crate::macros::{
         context::{context_simplifier, flash},
@@ -220,7 +219,7 @@ pub mod prelude {
     // ========================================================================
     pub use crate::app::{RuniqueApp, RuniqueAppBuilder};
     pub use crate::config::app::RuniqueConfig;
-    pub use crate::context::{AppError, TemplateContext};
+    pub use crate::context::{AppError, Request};
     pub use crate::engine::RuniqueEngine;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{

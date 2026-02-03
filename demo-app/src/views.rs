@@ -7,7 +7,7 @@ use crate::models::users::{self, Entity as UserEntity};
 use runique::prelude::*;
 
 /// Page d'accueil
-pub async fn index(mut template: TemplateContext) -> AppResult<Response> {
+pub async fn index(mut template: Request) -> AppResult<Response> {
     context_update!(template => {
         "title" => "Bienvenue sur Runique",
         "description" => "Un framework web moderne inspiré de Django",
@@ -22,7 +22,7 @@ pub async fn index(mut template: TemplateContext) -> AppResult<Response> {
 }
 
 // /// Formulaire d'inscription
-pub async fn inscription(mut template: TemplateContext) -> AppResult<Response> {
+pub async fn inscription(mut template: Request) -> AppResult<Response> {
     let form = template.form::<RegisterForm>();
     context_update!(template => {
         "title" => "Inscription utilisateur",
@@ -34,7 +34,7 @@ pub async fn inscription(mut template: TemplateContext) -> AppResult<Response> {
 
 /// Soumission du formulaire d'inscription
 pub async fn soumission_inscription(
-    mut template: TemplateContext,
+    mut template: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
     // 1. Validation logique et CSRF (le signal intégré)
@@ -62,7 +62,7 @@ pub async fn soumission_inscription(
 }
 
 // / Formulaire de recherche d'utilisateur
-pub async fn search_user_form(mut template: TemplateContext) -> AppResult<Response> {
+pub async fn search_user_form(mut template: Request) -> AppResult<Response> {
     let form = template.form::<UsernameForm>();
 
     context_update!(template => {
@@ -75,7 +75,7 @@ pub async fn search_user_form(mut template: TemplateContext) -> AppResult<Respon
 
 /// Exemple pour chercher un utilisateur
 pub async fn info_user(
-    mut template: TemplateContext,
+    mut template: Request,
     Prisme(mut form): Prisme<UsernameForm>,
 ) -> AppResult<Response> {
     if !form.is_valid().await {
@@ -121,7 +121,7 @@ pub async fn info_user(
 }
 
 /// Blog form
-pub async fn blog_form(mut template: TemplateContext) -> AppResult<Response> {
+pub async fn blog_form(mut template: Request) -> AppResult<Response> {
     let form = BlogForm::build(
         template.engine.tera.clone(),
         template.csrf_token.masked().as_str(),
@@ -137,7 +137,7 @@ pub async fn blog_form(mut template: TemplateContext) -> AppResult<Response> {
 
 /// Blag save
 pub async fn blog_save(
-    mut template: TemplateContext,
+    mut template: Request,
     Prisme(mut blog_save): Prisme<BlogForm>,
 ) -> AppResult<Response> {
     if blog_save.is_valid().await {
@@ -167,7 +167,7 @@ pub async fn blog_save(
 }
 
 /// Page "À propos"
-pub async fn about(mut template: TemplateContext) -> AppResult<Response> {
+pub async fn about(mut template: Request) -> AppResult<Response> {
     success!(template.notices => "Ceci est un message de succès.");
     info!(template.notices => "Ceci est un message d'information.");
     warning!(template.notices => "Ceci est un message d'avertissement.");
@@ -182,13 +182,13 @@ pub async fn about(mut template: TemplateContext) -> AppResult<Response> {
 }
 
 /// Teste Csrf
-pub async fn test_csrf(template: TemplateContext) -> AppResult<Response> {
+pub async fn test_csrf(template: Request) -> AppResult<Response> {
     success!(template.notices => "CSRF token validé avec succès !");
     Ok(Redirect::to("/").into_response())
 }
 
 /// Formulaire de test pour upload une image
-pub async fn upload_image_form(mut template: TemplateContext) -> AppResult<Response> {
+pub async fn upload_image_form(mut template: Request) -> AppResult<Response> {
     let form = template.form::<Image>();
 
     context_update!(template => {
@@ -201,7 +201,7 @@ pub async fn upload_image_form(mut template: TemplateContext) -> AppResult<Respo
 
 /// Soumission du formulaire d'upload d'image
 pub async fn upload_image_submit(
-    mut template: TemplateContext,
+    mut template: Request,
     Prisme(mut form): Prisme<Image>,
 ) -> AppResult<Response> {
     if form.is_valid().await {
@@ -219,7 +219,7 @@ pub async fn upload_image_submit(
 }
 
 /// Test des field disponible dans runique
-pub async fn test_fields(mut template: TemplateContext) -> AppResult<Response> {
+pub async fn test_fields(mut template: Request) -> AppResult<Response> {
     let form = template.form::<TestAllFieldsForm>();
     context_update!(template => {
         "description" => "Page de test des champs de formulaire Runique",

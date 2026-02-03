@@ -56,7 +56,7 @@
 /// tokio::runtime::Runtime::new().unwrap().block_on(sqlite_objects_example());
 /// ```
 use super::query::RuniqueQueryBuilder;
-use crate::context::template::TemplateContext;
+use crate::context::template::Request;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
@@ -126,7 +126,7 @@ impl<E: EntityTrait> Objects<E> {
         &self,
         db: &DatabaseConnection,
         id: impl Into<<E::PrimaryKey as sea_orm::PrimaryKeyTrait>::ValueType>,
-        ctx: &TemplateContext,
+        ctx: &Request,
         error_msg: &str,
     ) -> Result<E::Model, Response> {
         match self.get_optional(db, id).await {

@@ -188,7 +188,7 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     }
 
     // ========================================================================
-    // MÉTHODES SANS IMPLÉMENTATION (doivent être implémentées par chaque champ)
+    // MÉTHODES SANS IMPLÉMENTATION => implémentées individuellement
     // ========================================================================
 
     /// Validation spécifique au type de champ

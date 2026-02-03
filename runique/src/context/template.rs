@@ -6,7 +6,7 @@ use crate::utils::aliases::{AEngine, AppResult};
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
     extract::FromRequestParts,
-    http::{request::Parts, StatusCode},
+    http::{method::Method, request::Parts, StatusCode},
     response::{Html, IntoResponse, Response},
 };
 use sea_orm::DbErr;
@@ -48,7 +48,7 @@ impl IntoResponse for AppError {
         let status = StatusCode::from_u16(self.context.status_code)
             .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 
-        // ✅ Log l'erreur en détail
+        //  Log l'erreur en détail
         error!(
             status = status.as_u16(),
             error_type = ?self.context.error_type,
@@ -57,7 +57,7 @@ impl IntoResponse for AppError {
         );
 
         let mut res = status.into_response();
-        // ✅ Insère l'ErrorContext pour que le middleware puisse le récupérer
+        //  Insère l'ErrorContext pour que le middleware puisse le récupérer
         res.extensions_mut().insert(Arc::new(self.context));
         res
     }
@@ -72,15 +72,16 @@ impl IntoResponse for Box<AppError> {
 // --- CONTEXTE DE TEMPLATE ---
 
 #[derive(Clone)]
-pub struct TemplateContext {
+pub struct Request {
     pub engine: AEngine,
     pub session: Session,
     pub notices: Message,
     pub csrf_token: CsrfToken,
     pub context: Context,
+    pub method: Method,
 }
 
-impl<S> FromRequestParts<S> for TemplateContext
+impl<S> FromRequestParts<S> for Request
 where
     S: Send + Sync,
 {
@@ -125,12 +126,13 @@ where
             notices,
             csrf_token,
             context,
+            method: parts.method.clone(),
         })
     }
 }
 
-impl TemplateContext {
-    pub fn new(engine: AEngine, session: Session, csrf_token: CsrfToken) -> Self {
+impl Request {
+    pub fn new(engine: AEngine, session: Session, csrf_token: CsrfToken, method: Method) -> Self {
         let mut context = tera::Context::new();
         // mod reload pour les templates en debug
         // Le backend ne peux être reloadé ici car il est partagé entre les requêtes
@@ -144,13 +146,29 @@ impl TemplateContext {
             notices: Message { session },
             csrf_token,
             context,
+            method,
         }
     }
 
+    pub fn is_get(&self) -> bool {
+        self.method == Method::GET
+    }
+
+    pub fn is_post(&self) -> bool {
+        self.method == Method::POST
+    }
+
+    pub fn is_put(&self) -> bool {
+        self.method == Method::PUT
+    }
+
+    pub fn is_delete(&self) -> bool {
+        self.method == Method::DELETE
+    }
     /// Rendu générique unique pour éviter la duplication
     pub fn render(&mut self, template: &str) -> AppResult<Response> {
         let html_result = if self.engine.config.debug {
-            // En mode debug, on réinitialise Tera complètement via ton Loader
+            // En mode debug, on réinitialise Tera complètement le Loader
             // Cela applique les Regex sur {% messages %}, {% form.xxx %}, etc.
             match TemplateLoader::init(&self.engine.config, self.engine.url_registry.clone()) {
                 Ok(mut dev_tera) => {
@@ -158,7 +176,7 @@ impl TemplateContext {
 
                     let res = dev_tera.render(template, &self.context);
                     if let Err(ref e) = res {
-                        // ✅ Log détaillé de l'erreur Tera avec toutes les sources
+                        // Log détaillé de l'erreur Tera avec toutes les sources
                         error!(
                             template = template,
                             error_kind = ?e.kind,
