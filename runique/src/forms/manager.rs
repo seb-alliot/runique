@@ -172,7 +172,7 @@ impl Forms {
         Ok(result)
     }
 
-    pub fn add_js(&mut self, file: &str) {
+    pub fn add_js_file(&mut self, file: &str) {
         // Validation stricte
         if !file.ends_with(".js") {
             panic!("add_js() accepte uniquement .js, reçu: '{}'", file);
@@ -192,7 +192,11 @@ impl Forms {
             Box::new(generic_instance),
         );
     }
-
+    pub fn add_js(&mut self, files: &[&str]) {
+        for file in files {
+            self.add_js_file(file);
+        }
+    }
     pub fn set_tera(&mut self, tera: ATera) {
         self.tera = Some(tera);
     }
