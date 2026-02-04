@@ -53,6 +53,7 @@ pub struct Forms {
     pub tera: OATera,
     pub global_errors: Vec<String>,
     pub session_csrf_token: Option<String>,
+    pub js_files: Vec<String>,
 }
 
 impl std::fmt::Debug for Forms {
@@ -76,11 +77,13 @@ impl Serialize for Forms {
         state.serialize_field("errors", &self.errors())?;
         state.serialize_field("global_errors", &self.global_errors)?;
         state.serialize_field("cleaned_data", &self.data())?;
+        state.serialize_field("js_files", &self.js_files)?;
 
         let rendered_html = match self.render() {
             Ok(h) => h,
             Err(e) => format!("<p style='color:red'>Erreur de rendu : {}</p>", e),
         };
+
         state.serialize_field("html", &rendered_html)?;
         let rendered_fields: HashMap<String, String> = self
             .fields
@@ -144,19 +147,39 @@ impl Forms {
             tera: None,
             global_errors: Vec::new(),
             session_csrf_token: Some(csrf_token.to_string()),
+            js_files: Vec::new(),
         }
     }
 
-    // Méthode helper pour créer sans CSRF (pour les cas où ce n'est pas nécessaire)
-    pub fn new_without_csrf() -> Self {
-        Self {
-            fields: IndexMap::new(),
-            tera: None,
-            global_errors: Vec::new(),
-            session_csrf_token: None,
+    fn render_js(&self, tera: &ATera) -> Result<String, String> {
+        if self.js_files.is_empty() {
+            return Ok(String::new());
         }
+
+        let template_name = "js_files";
+
+        if !tera.get_template_names().any(|name| name == template_name) {
+            return Err(format!("Template manquant: {}", template_name));
+        }
+
+        let mut context = tera::Context::new();
+        context.insert("js_files", &self.js_files);
+
+        let result = tera
+            .render(template_name, &context)
+            .map_err(|e| format!("Erreur rendu JS: {}", e))?;
+
+        Ok(result)
     }
 
+    pub fn add_js(&mut self, file: &str) {
+        // Validation stricte
+        if !file.ends_with(".js") {
+            panic!("add_js() accepte uniquement .js, reçu: '{}'", file);
+        }
+        // Stockage simple
+        self.js_files.push(file.to_string());
+    }
     /// La solution au "type annotations needed" :
     /// On force la conversion en GenericField ici même.
     pub fn field<T>(&mut self, field_template: &T)
@@ -173,6 +196,7 @@ impl Forms {
     pub fn set_tera(&mut self, tera: ATera) {
         self.tera = Some(tera);
     }
+
     pub fn fill(&mut self, data: &StrMap) {
         for field in self.fields.values_mut() {
             if let Some(value) = data.get(field.name()) {
@@ -276,12 +300,20 @@ impl Forms {
         let mut html = Vec::new();
         let tera_instance = self.tera.as_ref().ok_or("Tera non configuré")?;
 
+        let js_html = self.render_js(tera_instance)?;
+
+        if !js_html.is_empty() {
+            html.push(js_html);
+        }
+
+        // 1. Render tous les fields
         for field in self.fields.values() {
             match field.render(tera_instance) {
                 Ok(rendered) => html.push(rendered),
                 Err(e) => return Err(format!("Erreur rendu '{}': {}", field.name(), e)),
             }
         }
+
         Ok(html.join("\n"))
     }
 

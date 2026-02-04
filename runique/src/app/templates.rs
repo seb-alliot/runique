@@ -15,10 +15,6 @@ impl TemplateLoader {
         url_registry: ARlockmap,
     ) -> Result<Tera, Box<dyn std::error::Error>> {
         let mut tera = Tera::default();
-
-        // 1. Chargement des templates internes du framework
-        Self::load_internal_templates(&mut tera)?;
-
         // 1b. Enregistrer les filtres personnalisés (static, media, form, etc.)
         static_tera::register_asset_filters(
             &mut tera,
@@ -28,16 +24,21 @@ impl TemplateLoader {
             config.static_files.media_runique_url.clone(),
             url_registry.clone(),
         );
+        // 1. Chargement des templates internes du framework
+        Self::load_internal_templates(&mut tera)?;
 
         // 2. Préparation des Regex de transformation
         let balise_link =
             Regex::new(r#"\{%\s*(?P<tag>static|media)\s*['"](?P<link>[^'"]+)['"]\s*%}"#).unwrap();
+
         let link_regex = Regex::new(
             r#"\{%\s*link\s*['"](?P<name>[^'"]+)['"]\s*(?:,\s*)?(?P<params>[^%]*?)\s*%}"#,
         )
         .unwrap();
+
         let form_field_regex =
             Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\s*%}"#).unwrap();
+
         let form_full_regex = Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)\s*%}"#).unwrap();
 
         let mut all_templates = Vec::new();
