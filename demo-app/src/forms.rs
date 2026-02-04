@@ -170,7 +170,7 @@ impl RuniqueForm for Image {
                 .max_dimensions(1920, 1080)
                 .allowed_extensions(vec!["png", "jpg", "jpeg", "gif"]),
         );
-        form.add_js("js/test_csrf.js");
+        form.add_js(&["js/test_csrf.js"]);
     }
 
     fn from_form(form: Forms) -> Self {
