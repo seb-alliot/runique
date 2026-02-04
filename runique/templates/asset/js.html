@@ -1,0 +1,5 @@
+{% if js_files %}
+    {% for js_file in js_files %}
+        <script src="{{ js_file | static }}" defer></script>
+    {% endfor %}
+{% endif %}

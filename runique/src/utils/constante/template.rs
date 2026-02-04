@@ -16,6 +16,7 @@ pub const SIMPLE_TEMPLATES: &[(&str, &str)] = &[
     ),
     ("csrf", include_str!("../../../templates/csrf/csrf.html")),
     ("csp", include_str!("../../../templates/csp/csp.html")),
+    ("js_files", include_str!("../../../templates/asset/js.html")),
 ];
 
 pub const ERROR_CORPS: &[(&str, &str)] = &[
