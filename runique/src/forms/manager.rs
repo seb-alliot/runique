@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
+use tracing::{debug, trace, warn};
 
 use crate::utils::aliases::{ATera, FieldsMap, JsonMap, OATera, StrMap};
 use crate::utils::constante::{
@@ -172,14 +173,6 @@ impl Forms {
         Ok(result)
     }
 
-    pub fn add_js_file(&mut self, file: &str) {
-        // Validation stricte
-        if !file.ends_with(".js") {
-            panic!("add_js() accepte uniquement .js, reçu: '{}'", file);
-        }
-        // Stockage simple
-        self.js_files.push(file.to_string());
-    }
     /// La solution au "type annotations needed" :
     /// On force la conversion en GenericField ici même.
     pub fn field<T>(&mut self, field_template: &T)
@@ -192,11 +185,41 @@ impl Forms {
             Box::new(generic_instance),
         );
     }
+
+    // helper pour ajouter un a plusieurs fichiers JS d'un coup
     pub fn add_js(&mut self, files: &[&str]) {
+        debug!(files_count = files.len(), "add files JS to form");
+
         for file in files {
-            self.add_js_file(file);
+            // Validation
+            if let Some(reason) = Self::validate_js_path(file) {
+                warn!(file = %file, reason = reason, "Skipping JS file");
+                continue;
+            }
+
+            // OK
+            self.js_files.push(file.to_string());
+            trace!(file = %file, "Added JS file to form");
         }
     }
+
+    /// Valide un chemin JS, retourne Some(reason) si invalide
+    fn validate_js_path(file: &str) -> Option<&'static str> {
+        if !file.ends_with(".js") {
+            return Some("File does not have .js extension");
+        }
+
+        if file.starts_with('/') || file.starts_with('\\') {
+            return Some("Absolute paths are not allowed");
+        }
+
+        if file.contains("../") {
+            return Some("Path traversal (../) is not allowed");
+        }
+
+        None // Valide
+    }
+
     pub fn set_tera(&mut self, tera: ATera) {
         self.tera = Some(tera);
     }
@@ -231,21 +254,6 @@ impl Forms {
 
         if depth > MAX_DEPTH {
             return Err(ValidationError::StackOverflow);
-        }
-
-        // Validation CSRF
-        if let Some(csrf_field) = self.fields.get_mut(CSRF_TOKEN_KEY) {
-            let submitted_token = csrf_field.value().to_string();
-            if let Some(session_token) = &self.session_csrf_token {
-                if submitted_token.trim().is_empty() {
-                    csrf_field.set_error("Token CSRF manquant".to_string());
-                    return Ok(false);
-                }
-                if submitted_token != *session_token {
-                    csrf_field.set_error("Token CSRF invalide".to_string());
-                    return Ok(false);
-                }
-            }
         }
 
         // Validation normale
