@@ -1,4 +1,5 @@
 use crate::context::RequestExtensions;
+use crate::middleware::auth::is_authenticated;
 use crate::utils::aliases::{AEngine, JsonMap, TResult};
 use crate::utils::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
 use crate::utils::csrf::{CsrfContext, CsrfToken};
@@ -48,14 +49,11 @@ pub async fn csrf_middleware(
         .flatten()
     {
         Some(t) => {
-            session
-                .insert(CSRF_TOKEN_KEY, &t)
-                .await
-                .expect("Failed to re-insert CSRF token into session");
+            session.insert(CSRF_TOKEN_KEY, &t).await.expect("...");
             t
         }
         None => {
-            let token = if crate::middleware::auth::is_authenticated(&session).await {
+            let token = if is_authenticated(&session).await {
                 let user_id: i32 = session
                     .get::<i32>(SESSION_USER_ID_KEY)
                     .await
@@ -72,41 +70,43 @@ pub async fn csrf_middleware(
                     secret,
                 )
             };
-            session
-                .insert(CSRF_TOKEN_KEY, &token)
-                .await
-                .expect("Failed to insert CSRF token into session");
+            session.insert(CSRF_TOKEN_KEY, &token).await.expect("...");
             token
         }
     };
 
-    // Vérification CSRF si méthode sensible
+    // Vérification CSRF **UNIQUEMENT pour les requêtes AJAX avec header**
     let requires_csrf = matches!(
         req.method(),
         &Method::POST | &Method::PUT | &Method::DELETE | &Method::PATCH
     );
 
     if requires_csrf {
-        let header_token = req
-            .headers()
-            .get("X-CSRF-Token")
-            .and_then(|h| h.to_str().ok())
-            .and_then(|masked| CsrfToken::unmasked(masked).ok());
+        let has_header = req.headers().contains_key("X-CSRF-Token");
 
-        // Si le token est dans le header, on le vérifie
-        if let Some(token) = header_token {
-            if token.as_str() != session_token.as_str() {
-                return (StatusCode::FORBIDDEN, "Invalid CSRF token (header)").into_response();
+        // Si header présent, on valide (requête AJAX)
+        if has_header {
+            let header_token = req
+                .headers()
+                .get("X-CSRF-Token")
+                .and_then(|h| h.to_str().ok())
+                .and_then(|masked| CsrfToken::unmasked(masked).ok());
+
+            match header_token {
+                Some(token) if token.as_str() == session_token.as_str() => {
+                    // OK, continue
+                }
+                _ => {
+                    return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
+                }
             }
         }
-        // Sinon, on laisse Prisme vérifier le champ du formulaire
-        // (la validation se fera dans is_valid())
+        // Sinon, on laisse Prisme valider le champ de formulaire
     }
 
-    // Injection du token masqué pour le frontend via la structure centralisée
+    // Injection du token pour le frontend
     let masked = session_token.masked();
     let extensions = RequestExtensions::new().with_csrf_token(session_token.clone());
-
     extensions.inject_request(&mut req);
 
     let mut res = next.run(req).await;
