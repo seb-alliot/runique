@@ -282,4 +282,4 @@ pub async fn handler(request: Request) -> AppResult<Response> {
 
 ## Prochaines étapes
 
-→ [**Configuration**](03-configuration.md)
+← [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md) | [**Configuration**](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md) →

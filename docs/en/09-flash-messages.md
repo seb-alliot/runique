@@ -1,112 +1,160 @@
+Voici la traduction complète en anglais de ton chapitre **Flash Messages** :
+
 # 💬 Flash Messages
 
 ## Message System
 
-Runique provides a message system for user notifications. Messages are automatically injected into `TemplateContext` under the `messages` key.
+Runique provides a flash message system for user notifications. There are **two types** of messages:
+
+1. **Redirect messages** (`success!`, `error!`, `info!`, `warning!`) — stored in the session, displayed after a redirect
+2. **Immediate messages** (`flash_now!`) — displayed on the current request without going through the session
+
+---
+
+## Redirect Macros
+
+These macros store messages in the session via `request.notices`. They are displayed **after the next redirect** (Post/Redirect/Get pattern).
+
+### `success!` — Success Message
 
 ```rust
-use runique::prelude::*;
-use runique::flash::Message;
+success!(request.notices => "User created successfully!");
+success!(request.notices => format!("Welcome {}!", username));
+
+// Multiple messages at once
+success!(request.notices => "Created", "Email sent", "Welcome!");
+```
+
+### `error!` — Error Message
+
+```rust
+error!(request.notices => "An error occurred");
+error!(request.notices => format!("Error: {}", e));
+```
+
+### `info!` — Informational Message
+
+```rust
+info!(request.notices => "Please verify your email");
+```
+
+### `warning!` — Warning
+
+```rust
+warning!(request.notices => "This action cannot be undone");
+```
+
+> 💡 Each macro calls `.success()`, `.error()`, `.info()`, or `.warning()` on `request.notices` (of type `Message`).
+
+---
+
+## `flash_now!` Macro — Immediate Messages
+
+`flash_now!` creates a `Vec<FlashMessage>` for **immediate display** in the current request. Ideal for cases where there is no redirect (e.g., re-displaying a form after validation errors).
+
+```rust
+// Single message
+let msgs = flash_now!(error => "Please correct the errors");
+
+// Multiple messages
+let msgs = flash_now!(warning => "Field A is invalid", "Field B is missing");
+```
+
+### Available Types
+
+| Type      | Generated CSS Class |
+| --------- | ------------------- |
+| `success` | `message-success`   |
+| `error`   | `message-error`     |
+| `info`    | `message-info`      |
+| `warning` | `message-warning`   |
+
+### Injecting into the Context
+
+`flash_now!` returns a vector to manually inject into the context:
+
+```rust
+context_update!(request => {
+    "title" => "Validation Error",
+    "form" => &form,
+    "messages" => flash_now!(error => "Please correct the errors"),
+});
 ```
 
 ---
 
-## Available Macros
+## Usage in Handlers
 
-### success! - Success message
-
-```rust
-success!(message => "Record created successfully!");
-```
-
-### error! - Error message
+### Pattern with Redirect (Flash Messages)
 
 ```rust
-error!(message => "An error occurred");
-error!(message => format!("Error: {}", e));
-```
+pub async fn submit_registration(
+    mut request: Request,
+    Prisme(mut form): Prisme<RegisterForm>,
+) -> AppResult<Response> {
+    if request.is_post() {
+        if form.is_valid().await {
+            let user = form.save(&request.engine.db).await.map_err(|err| {
+                form.get_form_mut().database_error(&err);
+                AppError::from(err)
+            })?;
 
-### info! - Informational message
-
-```rust
-info!(message => "Please check your email");
-```
-
-### warning! - Warning message
-
-```rust
-warning!(message => "This action cannot be undone");
-```
-
----
-
-## Using in Handlers
-
-```rust
-use runique::prelude::*;
-use runique::flash::Message;
-use axum::response::Redirect;
-
-async fn create_post(
-    message: Message,
-    mut template: TemplateContext,
-    Prisme(form): Prisme<PostForm>,
-) -> Response {
-    if !form.is_valid().await {
-        error!(message => "Invalid form");
-        template.context.insert("form", &form);
-        return template.render("post/form.html").unwrap();
-    }
-
-    match form.save(&*template.engine.db.clone()).await {
-        Ok(post) => {
-            success!(message => format!(
-                "Article '{}' created!",
-                post.title
+            // ✅ Flash message → displayed after redirect
+            success!(request.notices => format!(
+                "Welcome {}, your account has been created!",
+                user.username
             ));
-            Redirect::to(&format!("/posts/{}", post.id)).into_response()
+            return Ok(Redirect::to("/").into_response());
         }
-        Err(e) => {
-            error!(message => format!("Error: {}", e));
-            template.context.insert("form", &form);
-            template.render("post/form.html").unwrap()
-        }
+
+        // ❌ Validation failed → immediate message (no redirect)
+        context_update!(request => {
+            "title" => "Validation Error",
+            "registration_form" => &form,
+            "messages" => flash_now!(error => "Please correct the errors"),
+        });
+        return request.render("registration_form.html");
     }
+
+    // GET → display the form
+    context_update!(request => {
+        "title" => "Registration",
+        "registration_form" => &form,
+    });
+    request.render("registration_form.html")
 }
+```
 
-async fn delete_user(
-    Path(id): Path<i32>,
-    message: Message,
-    template: TemplateContext,
-) -> Response {
-    let db = template.engine.db.clone();
+### Multiple Message Types
 
-    match users::Entity::delete_by_id(id).exec(&*db).await {
-        Ok(_) => {
-            success!(message => "User deleted");
-            Redirect::to("/users").into_response()
-        }
-        Err(_) => {
-            error!(message => "Unable to delete user");
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    }
+```rust
+pub async fn about(mut request: Request) -> AppResult<Response> {
+    success!(request.notices => "This is a success message.");
+    info!(request.notices => "This is an informational message.");
+    warning!(request.notices => "This is a warning message.");
+    error!(request.notices => "This is an error message.");
+
+    context_update!(request => {
+        "title" => "About",
+    });
+    request.render("about/about.html")
+}
 ```
 
 ---
 
 ## Display in Templates
 
-**Note:** Messages are automatically injected into `TemplateContext` under the `messages` variable. No need to pass them manually to the template.
+### Automatic Tag `{% messages %}`
 
-### Automatic tag
+The `{% messages %}` tag automatically displays all messages:
 
 ```html
-<!-- The {% messages %} tag automatically displays all messages -->
 {% messages %}
 ```
 
-**Built-in template used:**
+It includes the internal template `message/message_include.html` which generates:
+
 ```html
 {% if messages %}
     <div class="flash-messages">
@@ -119,102 +167,99 @@ async fn delete_user(
 {% endif %}
 ```
 
-**Customization:** To customize the display, you can create your own `message.html` template in your templates folder or manually loop over `messages` with your own styles.
+### Recommended Placement
 
----
+Place `{% messages %}` in your base template, just before the main content:
 
-## Consumption (Flash Effect)
+```html
+<!-- base.html -->
+<body>
+    <header>...</header>
 
-Messages are automatically consumed when `TemplateContext` is created (flash effect - single read):
+    {% messages %}
 
-```rust
-async fn page(template: TemplateContext) -> Response {
-    // Messages are already in template.messages
-    // They display ONCE then disappear
-    template.render("page.html").unwrap()
-}
+    <main>
+        {% block content %}{% endblock %}
+    </main>
 
-async fn other_page(template: TemplateContext) -> Response {
-    // After redirect, old messages have disappeared
-    // (already consumed during first render)
-    template.render("other.html").unwrap()
-}
+    <footer>...</footer>
+</body>
+```
+
+### Customizing Display
+
+To customize the output, loop manually over `messages`:
+
+```html
+{% if messages %}
+    {% for msg in messages %}
+        <div class="alert alert-{{ msg.level }}" role="alert">
+            <strong>
+                {% if msg.level == "success" %}✅
+                {% elif msg.level == "error" %}❌
+                {% elif msg.level == "warning" %}⚠️
+                {% elif msg.level == "info" %}ℹ️
+                {% endif %}
+            </strong>
+            {{ msg.content }}
+        </div>
+    {% endfor %}
+{% endif %}
 ```
 
 ---
 
-## Complete Pattern
+## Flash Behavior (Single Read)
+
+Flash messages stored in the session are **automatically consumed** when displayed:
+
+```
+1. POST /registration
+   → success!("Welcome!")
+   → Redirect::to("/")
+
+2. GET /
+   → Messages are read from the session
+   → Displayed in the template
+   → Removed from the session
+
+3. GET / (reload)
+   → No more messages (already consumed)
+```
+
+---
+
+## Flash vs `flash_now`
+
+|                       | `success!` / `error!` / etc. | `flash_now!`                             |
+| --------------------- | ---------------------------- | ---------------------------------------- |
+| **Storage**           | Session                      | Memory (Vec)                             |
+| **Display**           | After redirect               | Current request                          |
+| **Lifetime**          | Until next read              | Single request                           |
+| **Typical Use**       | Post/Redirect/Get            | Form re-display                          |
+| **Context Injection** | Automatic                    | Manual (`"messages" => flash_now!(...)`) |
+
+---
+
+## When to Use Which?
+
+### ✅ Use Flash Macros (Session)
 
 ```rust
-use runique::prelude::*;
-use runique::flash::Message;
-use axum::extract::{Path, Json};
-use axum::response::Redirect;
-use sea_orm::Set;
+// After a successful action with redirect
+success!(request.notices => "Saved!");
+return Ok(Redirect::to("/").into_response());
+```
 
-#[derive(Deserialize)]
-pub struct UpdateUserRequest {
-    pub username: String,
-    pub email: String,
-}
+### ✅ Use `flash_now!` (Immediate)
 
-async fn update_user(
-    Path(id): Path<i32>,
-    message: Message,
-    mut template: TemplateContext,
-    Json(payload): Json<UpdateUserRequest>,
-) -> Response {
-    let db = template.engine.db.clone();
-
-    // Find user
-    let user = match users::Entity::find_by_id(id)
-        .one(&*db)
-        .await
-    {
-        Ok(Some(u)) => u,
-        Ok(None) => {
-            error!(message => "User not found");
-            return StatusCode::NOT_FOUND.into_response();
-        }
-        Err(e) => {
-            error!(message => format!("DB Error: {}", e));
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
-    };
-
-    // Update
-    let mut active_user = user.into_active_model();
-    active_user.username = Set(payload.username.clone());
-    active_user.email = Set(payload.email.clone());
-
-    match active_user.update(&*db).await {
-        Ok(updated) => {
-            success!(message => format!(
-                "{}'s profile updated!",
-                updated.username
-            ));
-
-            template.context.insert("user", &updated);
-            template.render("users/profile.html").unwrap()
-        }
-        Err(e) => {
-            error!(message => "Error updating profile");
-            warning!(message => format!("Details: {}", e));
-
-            template.context.insert("user", &user);
-            template.render("users/profile.html").unwrap()
-        }
-    }
-}
-
-async fn list_posts(
-    message: Message,
-    template: TemplateContext,
-) -> Response {
-    info!(message => "Welcome to the articles list");
-    // Messages are already automatically in template.messages
-    template.render("posts/list.html").unwrap()
-}
+```rust
+// Validation error → re-display page without redirect
+context_update!(request => {
+    "form" => &form,
+    "messages" => flash_now!(error => "Invalid form"),
+});
+return request.render("form.html");
 ```
 
 ---

@@ -459,4 +459,4 @@ context_update!(request => {
 
 ## Prochaines étapes
 
-← [**Formulaires**](05-forms.md) | [**ORM & Base de Données**](07-orm.md) →
+← [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md) | [**ORM & Database**](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md) →

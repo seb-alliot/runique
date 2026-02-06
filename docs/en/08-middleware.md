@@ -1,279 +1,285 @@
+Voici la traduction complète en anglais de ton chapitre sur le **Middleware & Security** :
+
 # 🛡️ Middleware & Security
 
-## Middleware Stack
+## Overview
 
-Middleware executes in **REVERSE** order of declaration. Runique automatically configures the stack via the builder:
+Runique integrates configurable security middlewares. The **Smart Builder** automatically applies them in the optimal order using a slot system.
 
-```rust
-use runique::prelude::*;
+---
 
-// The builder automatically configures the middleware stack
-let app = RuniqueAppBuilder::new(config)
-    .with_routes(routes)
-    .with_error_handler(true)      // Optional
-    .with_sanitize(true)           // Optional
-    .build()
-    .await?;
+## Middleware Stack (Execution Order)
 
-// Stack applied automatically (reverse order):
-// 1. RequestExtensions injection (Tera, Config, Engine)
-// 2. Static files (runique internal)
-// 3. Error handler (if enabled)
-// 4. Sessions (with MemoryStore by default)
-// 5. CSRF protection
-// 6. Sanitize (if enabled)
-// 7. User routes
 ```
+Incoming Request
+    ↓
+1. Extensions (slot 0)      → Inject Engine, Tera, Config
+2. ErrorHandler (slot 10)   → Capture and render errors
+3. Custom (slot 20+)        → Your custom middlewares
+4. CSP (slot 30)             → Content Security Policy & headers
+5. Cache (slot 40)           → No-cache in development
+6. Session (slot 50)         → Session management (MemoryStore by default)
+7. CSRF (slot 60)            → Cross-Site Request Forgery protection
+8. Host (slot 70)            → Allowed hosts validation
+    ↓
+Handler (your code)
+    ↓
+Outgoing Response (middlewares in reverse order)
+```
+
+> 💡 With Axum, the last `.layer()` is executed first on the request. The Smart Builder handles this order automatically via slots.
 
 ---
 
 ## CSRF Protection
 
-### Automatic for POST/PUT/PATCH/DELETE
+### How it works
 
-The CSRF middleware is automatically configured by `RuniqueAppBuilder`. It generates and verifies tokens for all POST/PUT/PATCH/DELETE requests.
+* Token **generated automatically** per session
+* **Double Submit Cookie** pattern (cookie + hidden input)
+* Checked on POST, PUT, PATCH, DELETE requests
+* Ignored on GET, HEAD, OPTIONS requests
 
-**How it works:**
-- Token generated with user context (user_id if authenticated, otherwise session_id)
-- Double Submit Cookie pattern with token masking
-- Automatic verification via `X-CSRF-Token` header or form field
-- Integration with `Prisme` for form validation
+### In Runique Forms
 
-### In Forms
+When using `{% form.xxx %}`, the CSRF token is **included automatically**. No need to add it manually.
+
+### In Manual HTML Forms
 
 ```html
-<form method="post">
+<form method="post" action="/submit">
     {% csrf %}
-    <!-- Generates automatically: -->
-    <!-- <input type="hidden" name="csrf_token" value="masked_token"> -->
+    <input type="text" name="data">
+    <button type="submit">Submit</button>
 </form>
 ```
 
-**Note:** The token is automatically masked (Double Submit Cookie pattern) and verified by the middleware + `Prisme`.
-
-### AJAX Endpoints
+### For AJAX Requests
 
 ```javascript
-// The token is automatically sent in the response header
-fetch('/api/users', {
+const csrfToken = document.querySelector('[name="csrf_token"]').value;
+
+fetch('/api/endpoint', {
     method: 'POST',
     headers: {
-        'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
     },
-    body: JSON.stringify({username: "john"})
+    body: JSON.stringify(data)
 });
 ```
 
 ---
 
-## ALLOWED_HOSTS
+## Content Security Policy (CSP)
 
-Protection against Host Header Injection (inspired by Django):
+### How it works
 
-```rust
-use runique::middleware::AllowedHostsValidator;
+* **Nonce** generated automatically per request
+* Injected into the Tera context as `csp_nonce`
+* CSP headers added to every response
 
-// Configuration in RuniqueConfig
-let validator = AllowedHostsValidator::from_settings(&config);
-
-// The validator supports:
-// - Exact match: "example.com"
-// - Full wildcard: "*" (dangerous in production!)
-// - Subdomain wildcard: ".example.com" matches "api.example.com", etc.
-
-impl AllowedHostsValidator {
-    pub fn is_host_allowed(&self, host: &str) -> bool {
-        if self.debug { return true; }
-
-        let host = host.split(':').next().unwrap_or(host);
-
-        self.allowed_hosts.iter().any(|allowed| {
-            if allowed == "*" {
-                true
-            } else if allowed.starts_with('.') {
-                // Subdomains
-                host == &allowed[1..] ||
-                (host.ends_with(allowed) && host.as_bytes()[host.len() - allowed.len()] == b'.')
-            } else {
-                allowed == host
-            }
-        })
-    }
-}
-```
-
-**Usage:**
-```rust
-// Automatic validation in requests
-match validator.validate(&headers) {
-    Ok(_) => { /* OK */ }, Expiry};
-use time::Duration;
-
-// The builder automatically configures sessions
-let session_layer = SessionManagerLayer::new(MemoryStore::default())
-    .with_secure(!config.debug)          // HTTPS in production
-    .with_http_only(!config.debug)        // No JS access
-    .with_expiry(Expiry::OnInactivity(Duration::hours(2)));
-
-// Applied automatically in RuniqueAppBuilder
-```
-
-### Using Sessions
-
-```rust
-use tower_sessions::Session;
-
-// Method 1: Direct Session extraction
-async fn login(
-    session: Session,
-    Form(credentials): Form<LoginForm>,
-) -> Response {
-    // Note: authenticate() is an example - this function will be provided in a future version
-    if let Ok(Some(user)) = authenticate(&credentials).await {
-        session.insert("user_id", user.id).await.ok();
-        session.insert("username", &user.username).await.ok();
-
-        Redirect::to("/dashboard").into_response()
-    } else {
-        Redirect::to("/login?error=1").into_response()
-    }
-}
-
-async fn dashboard(session: Session) -> Response {
-    let user_id: Option<i32> = session.get("user_id").await.ok().flatten();
-    match user_id {
-        Some(id) => format!("User ID: {}", id).into_response(),
-        None => Redirect::to("/login").into_response()
-    }
-}
-
-// Method 2: Access via TemplateContext (session is included)
-async fn profile(template: TemplateContext) -> Response {
-    let user_id: Option<i32> = template.session.get("user_id").await.ok().flatten();
-
-    template.context.insert("user_id", &user_id);
-    template.render("profile.html").unwrap()
-}
-e {
-        // Error
-    }
-}
-
-async fn dashboard(
-    session: Session,
-) -> Response {
-    let user_id: i32 = session.get("user_id").unwrap().unwrap();
-    // ...
-}
-
-// Logout
-async fn logout(session: Session) -> Response {
-    session.flush().await.ok();
-    Redirect::to("/").into_response()
-}
-```
-
----
-
-## CSP - Content Seccsp_nonce::CspNonce;
-
-// The nonce is automatically generated and injected into TemplateContext
-async fn index(
-    template: TemplateContext,
-) -> Response {
-    // template.csp_nonce is already available
-    template.render("index.html").unwrap()
-}
-```
-
-### In Templates
+### Usage in Templates
 
 ```html
-<!DOCTYPE html>
-<html>
-<head>
-    <style nonce="{{ csp_nonce }}">
-        body { color: #333; }
-    </style>
-</head>
-<body>
-    <script nonce="{{ csp_nonce }}">
-        console.log("Secure script");
-    </script>
-</body>
-</html>
+<!-- Secure inline scripts -->
+<script {% csp_nonce %}>
+    console.log("Script with CSP nonce");
+</script>
+
+<!-- Or using the variable directly -->
+<script nonce="{{ csp_nonce }}">
+    console.log("Alternative usage");
+</script>
 ```
 
-### CSP Configuration
+### CSP Profiles
+
+| Profile                   | Description                     |
+| ------------------------- | ------------------------------- |
+| `CspConfig::strict()`     | Strict policy (production)      |
+| `CspConfig::permissive()` | Permissive policy (development) |
+| `CspConfig::default()`    | Default profile                 |
+
+---
+
+## Allowed Hosts Validation
+
+### How it works
+
+* Compares the request `Host` header against `ALLOWED_HOSTS`
+* Blocks requests with unauthorized hosts (HTTP 400)
+* Protects against Host Header Injection attacks
+
+### `.env` Configuration
+
+```env
+# Allowed hosts (comma-separated)
+ALLOWED_HOSTS=localhost,127.0.0.1,example.com
+
+# Supported patterns:
+# localhost       → exact match
+# .example.com    → matches example.com AND *.example.com
+# *               → ALL hosts (⚠️ DANGEROUS in production!)
+```
+
+### Debug Mode
+
+With `DEBUG=true`, host validation is **disabled by default** for easier development.
+
+---
+
+## Cache-Control
+
+### Development Mode (`DEBUG=true`)
+
+No-cache headers are added to force reload:
+
+```
+Cache-Control: no-cache, no-store, must-revalidate
+Pragma: no-cache
+```
+
+### Production Mode (`DEBUG=false`)
+
+Cache headers are enabled for performance.
+
+---
+
+## Security Headers
+
+Runique automatically injects standard security headers:
+
+| Header                    | Value                             | Protection             |
+| ------------------------- | --------------------------------- | ---------------------- |
+| `X-Content-Type-Options`  | `nosniff`                         | Prevent MIME sniffing  |
+| `X-Frame-Options`         | `DENY`                            | Prevent clickjacking   |
+| `X-XSS-Protection`        | `1; mode=block`                   | Browser XSS protection |
+| `Referrer-Policy`         | `strict-origin-when-cross-origin` | Limit referrers        |
+| `Content-Security-Policy` | Dynamic (with nonce)              | CSP                    |
+
+---
+
+## Sessions
+
+### Default Store
+
+Runique uses `MemoryStore` by default (data in memory, lost on restart).
+
+### Configuration
 
 ```rust
-use runique::middleware::CspConfig;
+// Custom session duration
+let app = RuniqueApp::builder(config)
+    .with_session_duration(time::Duration::hours(2))
+    .build()
+    .await?;
+```
 
-// Predefined profiles
-let strict_csp = CspConfig::strict();      // Strict with nonces
-let permissive = CspConfig::permissive();  // More lenient
-let default = CspConfig::default();        // Balanced
+### Session Durations
 
-// Generate the header
-let nonce = CspNonce::generate();
-let header_value = csp_config.to_header_value(Some(nonce.as_str()));
+| Duration                | Usage                     |
+| ----------------------- | ------------------------- |
+| `Duration::minutes(30)` | Short sessions (security) |
+| `Duration::hours(2)`    | Standard usage            |
+| `Duration::hours(24)`   | Runique default           |
+| `Duration::days(7)`     | "Remember me"             |
 
-// Example of generated header:
-// "default-src 'self'; script-src 'self' 'nonce-ABC123'; style-src 'self' 'nonce-ABC123'"           nonce, nonce
-        )).unwrap()
-    );
+### Custom Store (Production)
 
-    response
+```rust
+use tower_sessions::MemoryStore;
+
+let app = RuniqueApp::builder(config)
+    .with_session_store(MemoryStore::default())
+    .build()
+    .await?;
+```
+
+### Accessing Session in Handlers
+
+```rust
+pub async fn dashboard(request: Request) -> AppResult<Response> {
+    // Read a session value
+    let user_id: Option<i32> = request.session
+        .get("user_id")
+        .await
+        .ok()
+        .flatten();
+
+    // Write a value
+    let _ = request.session.insert("last_visit", "2026-02-06").await;
+
+    // ...
 }
 ```
 
 ---
 
-## Custom Authentication
+## Builder Configuration
+
+### Classic Builder
 
 ```rust
-// Authentication middleware
-pub async fn auth_middleware(
-    session: Session,
-    request: Request,
-    next: Next,
-) -> Result<Response> {
-    let user_id: Option<i32> = session.get("user_id").ok().flatten();
-
-    if user_id.is_none() && !is_public_route(request.uri()) {
-        return Err(Redirect::to("/login").into_response());
-    }
-
-    Ok(next.run(request).await)
-}
-
-// Custom extractor
-pub struct CurrentUser {
-    pub id: i32,
-    pub username: String,
-}
-
-#[async_trait]
-impl FromRequest for CurrentUser {
-    async fn from_request(request: &mut Request) -> Result<Self> {
-        let session: Session = request.extract().await?;
-
-        let user_id: i32 = session.get("user_id")?
-            .ok_or("Not authenticated")?;
-
-        let username = session.get("username")?
-            .ok_or("Not authenticated")?;
-
-        Ok(CurrentUser { id: user_id, username })
-    }
-}
-
-// Usage:
-async fn dashboard(user: CurrentUser) -> Response {
-    format!("Welcome, {}!", user.username).into_response()
-}
+let app = RuniqueApp::builder(config)
+    .routes(url::routes())
+    .with_database(db)
+    .with_error_handler(true)   // Capture errors
+    .with_csp(true)             // CSP & security headers
+    .with_allowed_hosts(true)   // Host validation
+    .with_cache(true)           // No-cache in dev
+    .with_static_files()        // Static files service
+    .build()
+    .await?;
 ```
+
+### Smart Builder (New)
+
+```rust
+use runique::app::RuniqueAppBuilder as IntelligentBuilder;
+
+let app = IntelligentBuilder::new(config)
+    .routes(url::routes())
+    .with_database(db)
+    .statics()                  // Enable static files
+    .build()
+    .await?;
+```
+
+The Smart Builder:
+
+* **Automatically** applies middlewares in the correct order (slots)
+* Uses the **debug profile** for default values (permissive in dev, strict in prod)
+* Allows **customization** via `middleware(|m| { ... })`
+
+### Customizing Middlewares
+
+```rust
+let app = IntelligentBuilder::new(config)
+    .routes(url::routes())
+    .with_database(db)
+    .middleware(|m| {
+        m.disable_csp();              // Disable CSP
+        m.disable_host_validation();  // Disable host validation
+    })
+    .build()
+    .await?;
+```
+
+---
+
+## Security-Related Environment Variables
+
+| Variable                         | Default      | Description                            |
+| -------------------------------- | ------------ | -------------------------------------- |
+| `SECRETE_KEY`                    | *(required)* | Secret key for CSRF                    |
+| `ALLOWED_HOSTS`                  | `*`          | Allowed hosts                          |
+| `DEBUG`                          | `true`       | Debug mode (affects CSP, cache, hosts) |
+| `RUNIQUE_ENABLE_CSP`             | *(auto)*     | Force CSP on/off                       |
+| `RUNIQUE_ENABLE_HOST_VALIDATION` | *(auto)*     | Force host validation                  |
+| `RUNIQUE_ENABLE_CACHE`           | *(auto)*     | Force cache control                    |
+
+> In debug mode, security middlewares are permissive by default. `RUNIQUE_ENABLE_*` variables allow forcing specific behavior regardless of debug mode.
 
 ---
 

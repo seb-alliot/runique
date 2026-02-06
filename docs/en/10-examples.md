@@ -1,504 +1,535 @@
+Voici la traduction complète en anglais de ton chapitre **Practical Examples** :
+
 # 📚 Practical Examples
 
-## 1️⃣ Complete Blog CRUD
+## 1️⃣ Minimal Application
 
-### Model
+### Structure
+
+```
+my_app/
+├── Cargo.toml
+├── .env
+├── src/
+│   ├── main.rs
+│   ├── url.rs
+│   └── views.rs
+├── templates/
+│   └── index.html
+└── static/
+    └── css/
+        └── main.css
+```
+
+### main.rs
 
 ```rust
-// demo-app/src/models/blog.rs
-use sea_orm::prelude::*;
+#[macro_use]
+extern crate runique;
 
-#[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel)]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub title: String,
-    pub content: String,
-    pub author_id: i32,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+mod url;
+mod views;
+
+use runique::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = RuniqueConfig::from_env();
+
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db = db_config.connect().await?;
+
+    RuniqueApp::builder(config)
+        .routes(url::routes())
+        .with_database(db)
+        .with_static_files()
+        .build()
+        .await?
+        .run()
+        .await?;
+
+    Ok(())
 }
+```
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
-pub enum Column {
-    Id,
-    Title,
-    Content,
-    AuthorId,
-    CreatedAt,
-    UpdatedAt,
-}
+### url.rs
 
-#[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
-pub enum PrimaryKey {
-    Id,
-}
+```rust
+use crate::views;
+use runique::prelude::*;
+use runique::{urlpatterns, view};
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::users::Entity",
-        from = "Column::AuthorId",
-        to = "super::users::Column::Id",
-        ondelete = "Cascade"
-    )]
-    Users,
-}
-
-impl Related<super::users::Entity> for Entity {
-    fn to() -> RelationTwoMany {
-        Relation::Users.def()
+pub fn routes() -> Router {
+    urlpatterns! {
+        "/" => view!{ GET => views::index }, name = "index",
+        "/about" => view!{ GET => views::about }, name = "about",
     }
 }
 ```
 
-### Form
+### views.rs
 
 ```rust
-// demo-app/src/forms.rs
-use runique::derive_form::RuniqueForm;
-use serde::{Deserialize, Serialize};
+use runique::prelude::*;
 
-#[derive(RuniqueForm, Debug, Clone, Serialize, Deserialize)]
-pub struct BlogForm {
-    #[field(label = "Title", required, min_length = 5, max_length = 200)]
-    pub title: String,
+pub async fn index(mut request: Request) -> AppResult<Response> {
+    context_update!(request => {
+        "title" => "Home",
+        "message" => "Welcome to my Runique app!",
+    });
+    request.render("index.html")
+}
 
-    #[field(label = "Content", required, input_type = "textarea", min_length = 20)]
-    pub content: String,
+pub async fn about(mut request: Request) -> AppResult<Response> {
+    context_update!(request => {
+        "title" => "About",
+    });
+    request.render("about.html")
 }
 ```
 
-### Routes
-
-```rust
-// demo-app/src/main.rs
-use axum::routing::{get, post, put, delete};
-
-fn routes() -> Router {
-    Router::new()
-        .route("/blogs", get(list_blogs).post(create_blog))
-        .route("/blogs/:id", get(detail_blog).put(update_blog).delete(delete_blog))
-        .route("/blogs/new", get(blog_form))
-}
-
-// Handlers
-async fn list_blogs(
-    mut template: TemplateContext,
-) -> Response {
-    let db = /* access db from app state */;
-
-    let blogs = Blog::Entity::find()
-        .order_by_desc(Blog::Column::CreatedAt)
-        .all(&*db)
-        .await
-        .unwrap_or_default();
-
-    template.context.insert("blogs", blogs);
-    template.render("blog/list.html")
-}
-
-async fn blog_form(mut template: TemplateContext) -> Response {
-    template.context.insert("form", BlogForm::new());
-    template.render("blog/form.html")
-}
-
-async fn create_blog(
-    mut template: TemplateContext,
-    Message(mut messages): Message,
-    Prisme(mut form): Prisme<BlogForm>,
-) -> Response {
-    if !form.is_valid().await {
-        template.context.insert("form", form);
-        return template.render("blog/form.html");
-    }
-
-    let db = /* access db from app state */;
-    let user_id = 1; // Demo
-
-    let blog = blog::ActiveModel {
-        title: Set(form.title.clone()),
-        content: Set(form.content.clone()),
-        author_id: Set(user_id),
-        ..Default::default()
-    };
-
-    match blog.insert(&*db).await {
-        Ok(blog) => {
-            messages.success("Blog created!");
-            Redirect::to(&format!("/blogs/{}", blog.id)).into_response()
-        }
-        Err(e) => {
-            messages.error(format!("Error: {}", e));
-            template.context.insert("form", form);
-            template.render("blog/form.html")
-        }
-    }
-}
-
-async fn detail_blog(
-    Path(id): Path<i32>,
-    mut template: TemplateContext,
-) -> Response {
-    let db = /* access db from app state */;
-
-    match blog::Entity::find_by_id(id)
-        .one(&*db)
-        .await
-    {
-        Ok(Some(blog)) => {
-            template.context.insert("blog", blog);
-            template.render("blog/detail.html")
-        }
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-    }
-}
-
-async fn update_blog(
-    Path(id): Path<i32>,
-    mut template: TemplateContext,
-    Message(mut messages): Message,
-    Prisme(mut form): Prisme<BlogForm>,
-) -> Response {
-    let db = /* access db from app state */;
-
-    let blog = match blog::Entity::find_by_id(id)
-        .one(&*db)
-        .await
-    {
-        Ok(Some(b)) => b,
-        _ => return StatusCode::NOT_FOUND.into_response(),
-    };
-
-    let mut active = blog.into_active_model();
-    active.title = Set(form.title.clone());
-    active.content = Set(form.content.clone());
-
-    match active.update(&*db).await {
-        Ok(_) => {
-            messages.success("Blog updated!");
-            Redirect::to(&format!("/blogs/{}", id)).into_response()
-        }
-        Err(e) => {
-            messages.error(format!("Error: {}", e));
-            template.context.insert("form", form);
-            template.render("blog/form.html")
-        }
-    }
-}
-
-async fn delete_blog(
-    Path(id): Path<i32>,
-    Message(mut messages): Message,
-) -> Response {
-    let db = /* access db from app state */;
-
-    match blog::Entity::delete_by_id(id).exec(&*db).await {
-        Ok(_) => {
-            messages.success("Blog deleted");
-            Redirect::to("/blogs").into_response()
-        }
-        Err(_) => {
-            messages.error("Error deleting blog");
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    }
-}
-```
-
----
-
-## 2️⃣ Authentication
-
-### Login Handler
-
-```rust
-async fn login_form(mut template: TemplateContext) -> Response {
-    template.context.insert("form", LoginForm::new());
-    template.render("auth/login.html")
-}
-
-async fn login_submit(
-    mut template: TemplateContext,
-    Message(mut messages): Message,
-    Prisme(mut form): Prisme<LoginForm>,
-) -> Response {
-    if !form.is_valid().await {
-        template.context.insert("form", form);
-        return template.render("auth/login.html");
-    }
-
-    let db = /* access db from app state */;
-
-    // Find user
-    let user = users::Entity::find()
-        .filter(users::Column::Email.eq(&form.email))
-        .one(&*db)
-        .await
-        .unwrap_or(None);
-
-    if let Some(user) = user {
-        // Verify password
-        if verify_password(&form.password, &user.password_hash) {
-            // Create session - TODO: add session layer extraction
-            // session.insert("user_id", user.id);
-            // session.insert("username", &user.username);
-
-            messages.success("Welcome!");
-            return Redirect::to("/dashboard").into_response();
-        }
-    }
-
-    messages.error("Email or password incorrect");
-    template.context.insert("form", form);
-    template.render("auth/login.html")
-}
-
-async fn logout(
-    Message(mut messages): Message,
-) -> Response {
-    // TODO: flush session from session layer
-    messages.success("Logout successful");
-    Redirect::to("/").into_response()
-}
-```
-
----
-
-## 3️⃣ REST API + AJAX
-
-### JSON Endpoint
-
-```rust
-#[derive(Serialize)]
-pub struct UserResponse {
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-}
-
-async fn api_users() -> Json<Vec<UserResponse>> {
-    let db = /* access db from app state */;
-
-    let users: Vec<UserResponse> = users::Entity::find()
-        .all(&*db)
-        .await
-        .unwrap_or_default()
-        .into_iter()
-        .map(|u| UserResponse {
-            id: u.id,
-            username: u.username,
-            email: u.email,
-        })
-        .collect();
-
-    Json(users)
-}
-
-async fn api_create_user(
-    Json(payload): Json<CreateUserRequest>,
-) -> (StatusCode, Json<UserResponse>) {
-    let db = /* access db from app state */;
-
-    let user = users::ActiveModel {
-        username: Set(payload.username),
-        email: Set(payload.email),
-        ..Default::default()
-    };
-
-    match user.insert(&*db).await {
-        Ok(user) => (
-            StatusCode::CREATED,
-            Json(UserResponse {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-            })
-        ),
-        Err(_) => (
-            StatusCode::BAD_REQUEST,
-            Json(UserResponse {
-                id: 0,
-                username: String::new(),
-                email: String::new(),
-            })
-        )
-    }
-}
-```
-
-### Frontend AJAX
+### templates/index.html
 
 ```html
-<script>
-async function createUser() {
-    const data = {
-        username: document.getElementById('username').value,
-        email: document.getElementById('email').value
-    };
-
-    try {
-        const response = await fetch('/api/users', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value
-            },
-            body: JSON.stringify(data)
-        });
-
-        if (response.ok) {
-            const user = await response.json();
-            console.log('User created:', user);
-            location.reload();
-        }
-    } catch (e) {
-        console.error('Error:', e);
-    }
-}
-</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href='{% static "css/main.css" %}'>
+</head>
+<body>
+    {% messages %}
+    <h1>{{ title }}</h1>
+    <p>{{ message }}</p>
+    <a href='{% link "about" %}'>About</a>
+</body>
+</html>
 ```
 
 ---
 
-## 4️⃣ Pagination
+## 2️⃣ CRUD with Forms
+
+### Registration Form
 
 ```rust
-#[derive(Deserialize)]
-pub struct PaginationQuery {
-    page: Option<u32>,
-    limit: Option<u32>,
+// src/forms.rs
+use runique::prelude::*;
+
+#[runique_form]
+pub struct RegisterForm {
+    pub form: Forms,
 }
 
-async fn list_with_pagination(
-    Query(query): Query<PaginationQuery>,
-    mut template: TemplateContext,
-) -> Response {
-    let db = /* access db from app state */;
-    let page = query.page.unwrap_or(1).max(1);
-    let limit = query.limit.unwrap_or(10).min(100);
-    let offset = (page - 1) * limit;
+impl FormTrait for RegisterForm {
+    fn new() -> Self {
+        let mut form = Forms::new();
+        form.add_field("username", FieldBuilder::text()
+            .label("Username")
+            .required()
+            .min_length(3)
+            .max_length(50)
+            .build());
+        form.add_field("email", FieldBuilder::email()
+            .label("Email")
+            .required()
+            .build());
+        form.add_field("password", FieldBuilder::password()
+            .label("Password")
+            .required()
+            .min_length(8)
+            .build());
+        Self { form }
+    }
 
-    let total = users::Entity::find()
-        .count(&*db)
-        .await
-        .unwrap_or(0) as u32;
+    fn get_form(&self) -> &Forms { &self.form }
+    fn get_form_mut(&mut self) -> &mut Forms { &mut self.form }
+    fn get_name(&self) -> &str { "register_form" }
+}
+
+impl RegisterForm {
+    pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
+        use sea_orm::Set;
+        let model = users::ActiveModel {
+            username: Set(self.form.get_value("username").unwrap_or_default()),
+            email: Set(self.form.get_value("email").unwrap_or_default()),
+            password: Set(self.form.get_value("password").unwrap_or_default()),
+            ..Default::default()
+        };
+        model.insert(db).await
+    }
+}
+```
+
+### Registration Handler
+
+```rust
+// src/views.rs
+pub async fn register(
+    mut request: Request,
+    Prisme(mut form): Prisme<RegisterForm>,
+) -> AppResult<Response> {
+    let template = "registration_form.html";
+
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "Register",
+            "registration_form" => &form,
+        });
+        return request.render(template);
+    }
+
+    if request.is_post() {
+        if form.is_valid().await {
+            let user = form.save(&request.engine.db).await.map_err(|err| {
+                form.get_form_mut().database_error(&err);
+                AppError::from(err)
+            })?;
+
+            success!(request.notices => format!("Welcome {}!", user.username));
+            return Ok(Redirect::to("/").into_response());
+        }
+
+        context_update!(request => {
+            "title" => "Validation Error",
+            "registration_form" => &form,
+            "messages" => flash_now!(error => "Please correct the errors"),
+        });
+        return request.render(template);
+    }
+
+    request.render(template)
+}
+```
+
+### Registration Template
+
+```html
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+    {% messages %}
+
+    <form method="post" action='{% link "register" %}'>
+        {% form.registration_form %}
+        <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+{% endblock %}
+```
+
+---
+
+## 3️⃣ Search and Display an Entity
+
+### Username Form
+
+```rust
+#[runique_form]
+pub struct UsernameForm {
+    pub form: Forms,
+}
+
+impl FormTrait for UsernameForm {
+    fn new() -> Self {
+        let mut form = Forms::new();
+        form.add_field("username", FieldBuilder::text()
+            .label("Username")
+            .required()
+            .placeholder("Search a user")
+            .build());
+        Self { form }
+    }
+
+    fn get_form(&self) -> &Forms { &self.form }
+    fn get_form_mut(&mut self) -> &mut Forms { &mut self.form }
+    fn get_name(&self) -> &str { "username_form" }
+}
+```
+
+### Search Handler
+
+```rust
+pub async fn view_user(
+    mut request: Request,
+    Prisme(mut form): Prisme<UsernameForm>,
+) -> AppResult<Response> {
+    let template = "profile/view_user.html";
+
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "Search a user",
+            "user" => &form,
+        });
+        return request.render(template);
+    }
+
+    if request.is_post() {
+        if !form.is_valid().await {
+            context_update!(request => {
+                "title" => "Search a user",
+                "user" => &form,
+                "messages" => flash_now!(error => "Validation error"),
+            });
+            return request.render(template);
+        }
+
+        let username = form.get_form().get_value("username").unwrap_or_default();
+        let db = request.engine.db.clone();
+
+        let user_opt = UserEntity::objects
+            .filter(users::Column::Username.eq(&username))
+            .first(&db)
+            .await?;
+
+        match user_opt {
+            Some(user) => {
+                context_update!(request => {
+                    "title" => "User view",
+                    "username" => &user.username,
+                    "email" => &user.email,
+                    "found_user" => &user,  // ⚠️ Do NOT name "user" → collision with the form
+                    "user" => &form,         // Form must keep the name "user" for {% form.user %}
+                    "messages" => flash_now!(success => "User found!"),
+                });
+            }
+            None => {
+                context_update!(request => {
+                    "title" => "User view",
+                    "user" => &form,
+                    "messages" => flash_now!(warning => "User not found"),
+                });
+            }
+        }
+
+        return request.render(template);
+    }
+
+    request.render(template)
+}
+```
+
+---
+
+## 4️⃣ File Upload
+
+### Image Form
+
+```rust
+#[runique_form]
+pub struct ImageForm {
+    pub form: Forms,
+}
+
+impl FormTrait for ImageForm {
+    fn new() -> Self {
+        let mut form = Forms::new();
+        form.add_field("image", FieldBuilder::image()
+            .label("Image")
+            .required()
+            .max_size_mb(5)
+            .max_files(1)
+            .max_dimensions(1920, 1080)
+            .allowed_extensions(vec!["jpg", "png", "webp", "avif"])
+            .build());
+        Self { form }
+    }
+
+    fn get_form(&self) -> &Forms { &self.form }
+    fn get_form_mut(&mut self) -> &mut Forms { &mut self.form }
+    fn get_name(&self) -> &str { "image_form" }
+}
+```
+
+### Upload Handler
+
+```rust
+pub async fn upload_image(
+    mut request: Request,
+    Prisme(mut form): Prisme<ImageForm>,
+) -> AppResult<Response> {
+    let template = "forms/upload_image.html";
+
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "Upload a file",
+            "image_form" => &form,
+        });
+        return request.render(template);
+    }
+
+    if request.is_post() {
+        if form.is_valid().await {
+            success!(request.notices => "File uploaded successfully!");
+            return Ok(Redirect::to("/").into_response());
+        }
+
+        context_update!(request => {
+            "title" => "Error",
+            "image_form" => &form,
+            "messages" => flash_now!(error => "Please correct the errors"),
+        });
+        return request.render(template);
+    }
+
+    request.render(template)
+}
+```
+
+### Upload Template
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+    {% messages %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% form.image_form %}
+        <button type="submit">Upload</button>
+    </form>
+{% endblock %}
+```
+
+---
+
+## 5️⃣ Page Demonstrating All Message Types
+
+```rust
+pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
+    // Flash messages (displayed after redirect)
+    success!(request.notices => "This is a success message.");
+    info!(request.notices => "This is an info message.");
+    warning!(request.notices => "This is a warning message.");
+    error!(request.notices => "This is an error message.");
+
+    context_update!(request => {
+        "title" => "Message Demo",
+    });
+    request.render("demo.html")
+}
+```
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+    {% messages %}
+    <p>The messages above come from the flash session.</p>
+{% endblock %}
+```
+
+---
+
+## 6️⃣ REST API
+
+### API Routes
+
+```rust
+pub fn routes() -> Router {
+    urlpatterns! {
+        "/api/users" => view!{api_create_user },
+         name = "api_users",
+    }
+}
+```
+
+### JSON API Handler
+
+```rust
+use axum::Json;
+use serde_json::json;
+
+pub async fn api_list_users(request: Request) -> AppResult<Response> {
 
     let users = users::Entity::find()
-        .limit(limit as u64)
-        .offset(offset as u64)
-        .all(&*db)
-        .await
-        .unwrap_or_default();
+        .all(&*&request.engine.db)
+        .await?;
 
-    let total_pages = (total + limit - 1) / limit;
-
-    template.context.insert("users", users);
-    template.context.insert("page", page);
-    template.context.insert("total_pages", total_pages);
-    template.context.insert("has_next", page < total_pages);
-    template.context.insert("has_prev", page > 1);
-    template.render("users/list.html")
+    Ok(Json(json!({
+        "status": "success",
+        "count": users.len(),
+        "data": users
+    })).into_response())
 }
 ```
 
-Template:
+---
+
+## 7️⃣ Full Base Template
+
 ```html
-{% for user in users %}
-    <tr>
-        <td>{{ user.username }}</td>
-        <td>{{ user.email }}</td>
-    </tr>
-{% endfor %}
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My App{% endblock %}</title>
 
-<nav>
-    {% if has_prev %}
-        <a href="?page={{ page - 1 }}">← Previous</a>
-    {% endif %}
+    <!-- App CSS -->
+    <link rel="stylesheet" href='{% static "css/main.css" %}'>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <nav>
+            <a href='{% link "index" %}'>🏠 Home</a>
+            <a href='{% link "about" %}'>ℹ️ About</a>
+            <a href='{% link "register" %}'>📝 Register</a>
+            <a href='{% link "blog" %}'>📰 Blog</a>
+        </nav>
+    </header>
 
-    <span>Page {{ page }}/{{ total_pages }}</span>
+    <!-- Automatic flash messages -->
+    {% messages %}
 
-    {% if has_next %}
-        <a href="?page={{ page + 1 }}">Next →</a>
-    {% endif %}
-</nav>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2026 — Powered by Runique 🦀</p>
+    </footer>
+
+    <!-- Scripts with CSP nonce -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
 ```
 
 ---
 
-## 5️⃣ Advanced Validation
+## Pattern Summary
 
-```rust
-#[derive(RuniqueForm)]
-pub struct RegistrationForm {
-    pub username: String,
-    pub email: String,
-    pub password: String,
-    pub confirm_password: String,
-}
-
-impl RegistrationForm {
-    pub async fn is_valid(&mut self) -> bool {
-        let mut valid = true;
-
-        // Length validation
-        if self.username.len() < 3 || self.username.len() > 50 {
-            self.add_error("username", "3-50 characters");
-            valid = false;
-        }
-
-        // Email format check
-        if !self.email.contains('@') {
-            self.add_error("email", "Invalid email");
-            valid = false;
-        }
-
-        // Password strength check
-        if self.password.len() < 8 {
-            self.add_error("password", "Min 8 characters");
-            valid = false;
-        }
-
-        if !self.password.chars().any(|c| c.is_uppercase()) {
-            self.add_error("password", "Need uppercase");
-            valid = false;
-        }
-
-        // Password confirmation
-        if self.password != self.confirm_password {
-            self.add_error("confirm_password", "Passwords don't match");
-            valid = false;
-        }
-
-        // Check uniqueness
-        let db = get_db_connection();
-        if let Ok(Some(_)) = users::Entity::find()
-            .filter(users::Column::Email.eq(&self.email))
-            .one(&*db)
-            .await
-        {
-            self.add_error("email", "Email already used");
-            valid = false;
-        }
-
-        valid
-    }
-}
-```
+| Pattern                                    | When to Use                        |
+| ------------------------------------------ | ---------------------------------- |
+| `request.render("template.html")`          | Standard HTML render               |
+| `Redirect::to("/").into_response()`        | After a successful POST            |
+| `context_update!(request => {...})`        | Inject variables into the template |
+| `success!(request.notices => "...")`       | Flash message before redirect      |
+| `flash_now!(error => "...")`               | Immediate message (no redirect)    |
+| `form.is_valid().await`                    | Validate a Prisme form             |
+| `form.save(&db).await`                     | Save to database                   |
+| `form.get_form_mut().database_error(&err)` | Display DB error in the form       |
 
 ---
 
-## More Resources
+## Further Reading
 
-- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
-- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
-- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
-- [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
-- [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
-- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
-- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
-- [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
-- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
+* [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
+* [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+* [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
+* [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
+* [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+* [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
+* [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
+* [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
+* [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
 
 ← [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md) | [**Back to README**](https://github.com/seb-alliot/runique/blob/main/README.md) →

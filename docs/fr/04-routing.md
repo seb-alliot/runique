@@ -9,26 +9,15 @@ use crate::views;
 use runique::prelude::*;
 use runique::{urlpatterns, view};
 
+
 pub fn routes() -> Router {
     urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
+        "/" => view!{ views::index }, name = "index",
+        "/users" => view! { views::user_list }, name = "users",
+        "/users/:id" => view!{ views::user_detail }, name = "user_detail",
 
-        "/about" => view!{ GET => views::about }, name = "about",
-
-        "/inscription" => view!{
-            GET => views::soumission_inscription,
-            POST => views::soumission_inscription
-        }, name = "inscription",
-
-        "/view-user" => view!{
-            GET => views::info_user,
-            POST => views::info_user
-        }, name = "view_user",
-
-        "/blog" => view!{
-            GET => views::blog_save,
-            POST => views::blog_save
-        }, name = "blog",
+        // For delete, separate route:
+        "/users/:id/delete" => view!{views::delete_user }, name = "user_delete",
     }
 }
 ```
@@ -39,8 +28,8 @@ Les noms permettent la résolution d'URL dans les templates via `{% link "nom" %
 
 ```rust
 urlpatterns! {
-    "/" => view!{ GET => views::index }, name = "index",
-    "/users/:id" => view!{ GET => views::user_detail }, name = "user_detail",
+    "/" => view!{ views::index }, name = "index",
+    "/users/:id" => view!{ views::user_detail }, name = "user_detail",
 }
 ```
 
@@ -53,8 +42,8 @@ urlpatterns! {
 
 ```rust
 urlpatterns! {
-    "/" => view!{ GET => views::index },
-    "/about" => view!{ GET => views::about },
+    "/" => view!{ views::index },
+    "/about" => view!{ views::about },
 }
 ```
 
@@ -62,27 +51,13 @@ urlpatterns! {
 
 ## Macro view!
 
-### Handler multi-méthodes
-
-Associe différents handlers à différentes méthodes HTTP :
-
-```rust
-view!{
-    GET => views::show_form,
-    POST => views::submit_form
-}
-```
-
 ### Handler unique pour toutes les méthodes
 
-Un même handler gère GET et POST (pattern recommandé avec `request.is_get()` / `request.is_post()`) :
+Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé avec `request.is_get()` / `request.is_post()`) :
 
 ```rust
 // Dans les routes
-"/inscription" => view!{
-    GET => views::inscription,
-    POST => views::inscription
-}, name = "inscription",
+"/inscription" => view!{ views::inscription }, name = "inscription",
 ```
 
 ```rust
@@ -264,39 +239,15 @@ use runique::prelude::*;
 use runique::{urlpatterns, view};
 
 pub fn routes() -> Router {
-    urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
+    let router = urlpatterns! {
+        "/" => view!{ views::index }, name = "index",
 
-        "/about" => view!{ GET => views::about }, name = "about",
-
-        "/inscription" => view!{
-            GET => views::soumission_inscription,
-            POST => views::soumission_inscription
-        }, name = "inscription",
-
-        "/view-user" => view!{
-            GET => views::info_user,
-            POST => views::info_user
-        }, name = "view_user",
-
-        "/blog" => view!{
-            GET => views::blog_save,
-            POST => views::blog_save
-        }, name = "blog",
-
-        "/upload-image" => view!{
-            GET => views::upload_image_submit,
-            POST => views::upload_image_submit
-        }, name = "upload_image",
-
-        "/test-fields" => view!{
-            GET => views::test_fields,
-            POST => views::test_fields
-        }, name = "test_fields",
-
-        "/test-csrf" => view!{ POST => views::test_csrf }, name = "test_csrf",
-    }
+        "/about" => view! { views::about }, name = "about",
+        "/inscription" => view! { views::soumission_inscription }, name = "inscription",
+    };
+    router
 }
+
 ```
 
 ```rust
@@ -377,4 +328,4 @@ Voir le [guide ORM](07-orm.md) pour plus de détails.
 
 ## Prochaines étapes
 
-→ [**Formulaires**](05-forms.md)
+← [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md) | [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md) →
