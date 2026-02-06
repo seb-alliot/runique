@@ -29,7 +29,7 @@ impl HostPolicy {
             .unwrap_or_else(|_| "localhost:3000".to_string())
             .split(',')
             .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
+            .filter(|s: &String| !s.is_empty())
             .collect();
 
         // On synchronise le mode debug avec l'interrupteur global

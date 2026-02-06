@@ -162,7 +162,6 @@ impl MiddlewareStaging {
                 "RUNIQUE_ENABLE_HOST_VALIDATION",
                 defaults.enable_host_validation,
             ),
-            sanitize_inputs: get_env_or("RUNIQUE_ENABLE_SANITIZER", defaults.sanitize_inputs),
             enable_debug_errors: get_env_or(
                 "RUNIQUE_ENABLE_DEBUG_ERRORS",
                 defaults.enable_debug_errors,
