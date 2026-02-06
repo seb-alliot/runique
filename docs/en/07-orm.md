@@ -1,4 +1,3 @@
-Voici la traduction complète en anglais de ton chapitre sur l’ORM et la base de données :
 
 # 🗄️ ORM & Database
 

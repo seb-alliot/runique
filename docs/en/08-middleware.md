@@ -1,4 +1,3 @@
-Voici la traduction complète en anglais de ton chapitre sur le **Middleware & Security** :
 
 # 🛡️ Middleware & Security
 
