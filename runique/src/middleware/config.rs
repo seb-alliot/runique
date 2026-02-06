@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 pub struct MiddlewareConfig {
     pub enable_csp: bool,
     pub enable_host_validation: bool,
-    pub sanitize_inputs: bool,
     pub enable_debug_errors: bool,
     pub enable_cache: bool,
 }
@@ -19,7 +18,6 @@ impl Default for MiddlewareConfig {
             // Par défaut: tous les middlewares de sécurité activés
             enable_csp: true,
             enable_host_validation: true,
-            sanitize_inputs: true,
             enable_debug_errors: true,
             enable_cache: true,
         }
@@ -37,7 +35,6 @@ impl MiddlewareConfig {
         Self {
             enable_csp: get_bool("RUNIQUE_ENABLE_CSP", true),
             enable_host_validation: get_bool("RUNIQUE_ENABLE_HOST_VALIDATION", true),
-            sanitize_inputs: get_bool("RUNIQUE_ENABLE_SANITIZER", true),
             enable_debug_errors: get_bool("RUNIQUE_ENABLE_DEBUG_ERRORS", true),
             enable_cache: get_bool("RUNIQUE_ENABLE_CACHE", true),
         }
@@ -48,7 +45,6 @@ impl MiddlewareConfig {
         Self {
             enable_csp: true,
             enable_host_validation: true,
-            sanitize_inputs: true,
             enable_debug_errors: true,
             enable_cache: true,
         }
@@ -59,7 +55,6 @@ impl MiddlewareConfig {
         Self {
             enable_csp: false,             // CSP désactivé pour faciliter le dev
             enable_host_validation: false, // Désactivé en dev (AllowedHostsValidator.debug=true anyway)
-            sanitize_inputs: true,         // Garder quand même
             enable_debug_errors: true,     // Pages de debug activées
             enable_cache: false,           // Pas de cache en dev
         }
@@ -70,7 +65,6 @@ impl MiddlewareConfig {
         Self {
             enable_csp: false,            // Pas de CSP pour API
             enable_host_validation: true, // Important pour API (protection SSRF)
-            sanitize_inputs: true,        // Important pour API
             enable_debug_errors: true,
             enable_cache: true,
         }
@@ -85,11 +79,6 @@ impl MiddlewareConfig {
 
     pub fn with_csp(mut self, enable: bool) -> Self {
         self.enable_csp = enable;
-        self
-    }
-
-    pub fn with_sanitizer(mut self, enable: bool) -> Self {
-        self.sanitize_inputs = enable;
         self
     }
 
