@@ -333,6 +333,86 @@ impl Forms {
         self.fields.get(name).map(|field| field.value().to_string())
     }
 
+    // ========================================================================
+    // HELPERS DE CONVERSION TYPÉE
+    // ========================================================================
+
+    /// Retourne la valeur comme `String`, ou `String::new()` si le champ n'existe pas.
+    pub fn get_string(&self, name: &str) -> String {
+        self.get_value(name).unwrap_or_default()
+    }
+
+    /// Retourne la valeur comme `Option<String>`.
+    /// `None` si le champ n'existe pas **ou** si la valeur est vide.
+    pub fn get_option(&self, name: &str) -> Option<String> {
+        self.get_value(name).filter(|v| !v.trim().is_empty())
+    }
+
+    /// Retourne la valeur comme `i32` (0 par défaut).
+    pub fn get_i32(&self, name: &str) -> i32 {
+        self.get_string(name).parse().unwrap_or(0)
+    }
+
+    /// Retourne la valeur comme `i64` (0 par défaut).
+    pub fn get_i64(&self, name: &str) -> i64 {
+        self.get_string(name).parse().unwrap_or(0)
+    }
+
+    /// Retourne la valeur comme `u32` (0 par défaut).
+    pub fn get_u32(&self, name: &str) -> u32 {
+        self.get_string(name).parse().unwrap_or(0)
+    }
+
+    /// Retourne la valeur comme `u64` (0 par défaut).
+    pub fn get_u64(&self, name: &str) -> u64 {
+        self.get_string(name).parse().unwrap_or(0)
+    }
+
+    /// Retourne la valeur comme `f32` (0.0 par défaut).
+    pub fn get_f32(&self, name: &str) -> f32 {
+        self.get_string(name)
+            .replace(',', ".")
+            .parse()
+            .unwrap_or(0.0)
+    }
+
+    /// Retourne la valeur comme `f64` (0.0 par défaut).
+    pub fn get_f64(&self, name: &str) -> f64 {
+        self.get_string(name)
+            .replace(',', ".")
+            .parse()
+            .unwrap_or(0.0)
+    }
+
+    /// Retourne la valeur comme `bool`.
+    /// `true` si la valeur est `"true"`, `"1"` ou `"on"`.
+    pub fn get_bool(&self, name: &str) -> bool {
+        let val = self.get_string(name);
+        matches!(val.as_str(), "true" | "1" | "on")
+    }
+
+    /// Retourne la valeur comme `Option<i32>`. `None` si vide.
+    pub fn get_option_i32(&self, name: &str) -> Option<i32> {
+        self.get_option(name)?.parse().ok()
+    }
+
+    /// Retourne la valeur comme `Option<i64>`. `None` si vide.
+    pub fn get_option_i64(&self, name: &str) -> Option<i64> {
+        self.get_option(name)?.parse().ok()
+    }
+
+    /// Retourne la valeur comme `Option<f64>`. `None` si vide.
+    pub fn get_option_f64(&self, name: &str) -> Option<f64> {
+        self.get_option(name)
+            .and_then(|v| v.replace(',', ".").parse().ok())
+    }
+
+    /// Retourne la valeur comme `Option<bool>`. `None` si vide.
+    pub fn get_option_bool(&self, name: &str) -> Option<bool> {
+        self.get_option(name)
+            .map(|v| matches!(v.as_str(), "true" | "1" | "on"))
+    }
+
     pub fn database_error(&mut self, db_err: &sea_orm::DbErr) {
         let err_msg = db_err.to_string();
 

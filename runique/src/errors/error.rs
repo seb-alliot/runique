@@ -11,6 +11,10 @@ use thiserror::Error;
 use tracing::{error, info};
 
 use crate::utils::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+// ═══════════════════════════════════════════════════════════════
+// ERREURS DE BUILD (refonte app builder)
+// ═══════════════════════════════════════════════════════════════
+use crate::app::error_build::BuildError;
 
 static INTERNAL_TEMPLATES: OnceLock<Vec<&'static str>> = OnceLock::new();
 fn get_internal_templates() -> &'static [&'static str] {
@@ -32,6 +36,8 @@ pub type RuniqueResult<T> = Result<T, RuniqueError>;
 // Erreurs applicatives centralisées
 #[derive(Debug, Error)]
 pub enum RuniqueError {
+    #[error("Erreur de build: {0}")]
+    Build(BuildError),
     #[error("Erreur interne")]
     Internal,
     #[error("Accès interdit")]
@@ -56,6 +62,7 @@ pub enum RuniqueError {
 impl Clone for RuniqueError {
     fn clone(&self) -> Self {
         match self {
+            RuniqueError::Build(e) => RuniqueError::Build(e.clone()),
             RuniqueError::Internal => RuniqueError::Internal,
             RuniqueError::Forbidden => RuniqueError::Forbidden,
             RuniqueError::NotFound => RuniqueError::NotFound,
@@ -77,9 +84,15 @@ impl From<std::io::Error> for RuniqueError {
     }
 }
 
+impl From<BuildError> for RuniqueError {
+    fn from(err: BuildError) -> Self {
+        RuniqueError::Build(err)
+    }
+}
 impl RuniqueError {
     pub fn log(&self) {
         match self {
+            RuniqueError::Build(e) => error!("Erreur de build: {}", e),
             RuniqueError::Internal => error!("Erreur interne"),
             RuniqueError::Forbidden => info!("Accès interdit"),
             RuniqueError::NotFound => info!("Ressource introuvable"),
@@ -373,6 +386,10 @@ impl ErrorContext {
         tera: Option<&tera::Tera>,
     ) -> Self {
         let mut ctx = match err {
+            RuniqueError::Build(e) => Self::generic(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Build Error: {}", e),
+            ),
             RuniqueError::Internal => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Une erreur interne est survenue",

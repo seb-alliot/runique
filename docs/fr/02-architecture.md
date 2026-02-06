@@ -2,48 +2,35 @@
 
 ## Vue d'ensemble
 
-Runique 1.1.11 est organisée en **modules fonctionnels** basés sur la responsabilité:
+Runique est organisée en **modules fonctionnels** basés sur la responsabilité :
 
 ```
 runique/src/
-├── config_runique/          # ⚙️ Configuration & Settings
-│   ├── config_struct.rs
-│   └── mod.rs
-├── data_base_runique/       # 🗄️ ORM & Database
-│   ├── config.rs
-│   ├── orm_wrapper.rs
-│   └── mod.rs
-├── formulaire/              # 📋 Form System
-│   ├── builder_form/
-│   ├── utils/
-│   └── mod.rs
-├── gardefou/                # 🛡️ Middleware (Sécurité)
-│   ├── composant_middleware/
-│   ├── utils_gardefou/
-│   └── mod.rs
-├── macro_runique/           # 🎯 Macros Utilitaires
-│   ├── context_macro/
-│   ├── flash_message/
-│   ├── router/
-│   └── mod.rs
-├── moteur_engine/           # ⚡ Main Engine
-│   ├── engine_struct.rs
-│   └── mod.rs
-├── request_context/         # 📨 Request Context
-│   ├── composant_request/
-│   ├── tera_tool/
-│   ├── request_struct.rs
-│   ├── template_context.rs
-│   ├── processor.rs
-│   └── mod.rs
-├── runique_body/            # 🏭 App Builder
-│   ├── composant_app/
-│   └── mod.rs
-├── utils/                   # 🛠️ Utilities
-│   ├── generate_token.rs
-│   ├── parse_html.rs
-│   ├── csp_nonce.rs
-│   └── response_helpers.rs
+├── app/                    # 🏭 App Builder, Templates & Builder Intelligent
+│   ├── builder.rs          # 🧠 RuniqueAppBuilder avec slots
+│   ├── error_build.rs      # Erreurs de build
+│   ├── templates.rs        # TemplateLoader (Tera)
+│   └── staging/            # Staging structs
+│       ├── core_staging.rs
+│   │   ├── middleware_staging.rs
+│   │   └── static_staging.rs
+│   └── error_build.rs      # BuildError & CheckReport
+├── config/                 # ⚙️ Configuration & Settings
+├── context/                # 📨 Request Context & Tera tools
+│   ├── request.rs          # Struct Request (extracteur)
+│   └── tera/               # Filtres et fonctions Tera
+├── db/                     # 🗄️ ORM & Database
+├── engine/                 # ⚡ RuniqueEngine
+├── errors/                 # 🚨 Gestion des erreurs
+├── flash/                  # 💬 Messages flash
+├── forms/                  # 📋 Système de formulaires
+├── macros/                 # 🎯 Macros utilitaires
+│   ├── context_macro/      # context!, context_update!
+│   ├── flash_message/      # success!, error!, info!, warning!, flash_now!
+│   └── router/             # urlpatterns!, view!, impl_objects!
+├── middleware/              # 🛡️ Middleware (Sécurité)
+│   └── security/           # CSRF, CSP, Host, Cache, Error Handler
+├── utils/                  # 🛠️ Utilitaires
 ├── lib.rs
 └── prelude.rs
 ```
@@ -54,7 +41,7 @@ runique/src/
 
 ### 1. RuniqueEngine
 
-**État principal** de l'application (remplace l'ancien `AppState`).
+**État principal** partagé de l'application :
 
 ```rust
 pub struct RuniqueEngine {
@@ -64,315 +51,235 @@ pub struct RuniqueEngine {
 }
 ```
 
-**Utilisé par:**
-- `RuniqueContext` - Disponible dans les handlers
-- Injection d'extensions Axum
+Injecté comme Extension Axum, accessible dans chaque handler via `request.engine`.
 
-### 2. TemplateContext
+### 2. Request — L'extracteur principal
 
-**Contexte de template** injecté dans chaque handler pour le rendu.
+`Request` est l'extracteur central de Runique. Il remplace l'ancien `TemplateContext` et contient tout le nécessaire :
 
 ```rust
-pub struct TemplateContext {
-    pub context: Context,
-    // Access to Tera for rendering
-}
-
-// Extracteur FromRequestParts
-pub async fn my_handler(
-    mut template: TemplateContext,
-) -> Response {
-    template.context.insert("title", "Bienvenu sur Runique");
-    template.render("vue.html")
+pub struct Request {
+    pub engine: AEngine,       // Arc<RuniqueEngine>
+    pub session: Session,      // Session tower-sessions
+    pub notices: Message,      // Flash messages
+    pub csrf_token: CsrfToken, // Token CSRF
+    pub context: Context,      // Contexte Tera
+    pub method: Method,        // Méthode HTTP
 }
 ```
 
-### 3. TemplateContext
-
-**Contexte pour templates** avec auto-injection de la session, CSRF token et CSP nonce.
+**Usage dans un handler :**
 
 ```rust
-pub struct TemplateContext {
-    pub engine: Arc<RuniqueEngine>,
-    pub session: Session,
-    pub notices: Message,
-    pub messages: Vec<FlashMessage>,
-    pub csrf_token: CsrfToken,
-    pub csp_nonce: String,
-    pub context: Context,
-}
-
-// Render automatique
-    context_update!(template => {
-        "title" => "Votre titre ici ",
-        "form" => &form,
+pub async fn index(mut request: Request) -> AppResult<Response> {
+    context_update!(request => {
+        "title" => "Accueil",
     });
-    template.render("vue.html")
-
+    request.render("index.html")
+}
 ```
 
-### 4. Prisme<T> - Extracteur de Formulaire
+**Méthodes :**
+- `request.render("template.html")` — Rendu avec le contexte courant
+- `request.is_get()` / `request.is_post()` — Vérification de la méthode HTTP
 
-**Extracteur Axum** pour les formulaires avec validation et injection CSRF automatiques.
+### 3. Prisme<T> — Extracteur de formulaire
 
 ```rust
-// Automatiquement:
-// 1. Parse le body
-// 2. Crée une instance de MyForm
-// 3. Injecte le CSRF token
-// 4. Remplit les données
-
 pub async fn handler(
-    mut template: TemplateContext,
+    mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
-    let db = template.engine.db.clone();
-    if form.is_valid().await {
-        // Traiter le formulaire
-        match form.save(&db).await {
-            Ok(_) => { /* succès */ },
-            Err(e) => { /* erreur */ }
-        }
+    if request.is_post() && form.is_valid().await {
+        let user = form.save(&request.engine.db).await?;
+        success!(request.notices => "Utilisateur créé !");
+        return Ok(Redirect::to("/").into_response());
     }
-    Ok(template.render("form.html"))
+
+    context_update!(request => {
+        "form" => &form,
+    });
+    request.render("form.html")
+}
+```
+
+Automatiquement :
+1. Parse le body de la requête
+2. Crée une instance du formulaire
+3. Injecte le token CSRF
+4. Remplit les données soumises
+
+---
+
+## Macros Rust
+
+Runique fournit un ensemble de macros pour simplifier le développement :
+
+### Macros de contexte
+
+| Macro | Description | Exemple |
+|-------|-------------|---------|
+| `context!` | Créer un contexte Tera | `context!("title" => "Page")` |
+| `context_update!` | Ajouter au contexte d'une Request | `context_update!(request => { "key" => value })` |
+
+### Macros flash messages
+
+| Macro | Description | Exemple |
+|-------|-------------|---------|
+| `success!` | Message de succès (session) | `success!(request.notices => "OK !")` |
+| `error!` | Message d'erreur (session) | `error!(request.notices => "Erreur")` |
+| `info!` | Message info (session) | `info!(request.notices => "Info")` |
+| `warning!` | Avertissement (session) | `warning!(request.notices => "Attention")` |
+| `flash_now!` | Message immédiat (sans session) | `flash_now!(error => "Erreurs")` |
+
+### Macros de routage
+
+| Macro | Description | Exemple |
+|-------|-------------|---------|
+| `urlpatterns!` | Définir des routes avec noms | `urlpatterns!("/" => view!{...}, name = "index")` |
+| `view!` | Handler pour toutes méthodes HTTP | `view!{ GET => handler, POST => handler2 }` |
+| `impl_objects!` | Manager Django-like pour SeaORM | `impl_objects!(Entity)` |
+
+### Macros d'erreur
+
+| Macro | Description |
+|-------|-------------|
+| `impl_from_error!` | Génère `From<Error>` pour `AppError` |
+
+---
+
+## Tags et filtres Tera
+
+### Tags Django-like (syntaxe sucrée)
+
+| Tag | Transformé en | Description |
+|-----|---------------|-------------|
+| `{% static "..." %}` | `{{ "..." \| static }}` | URL d'un fichier statique |
+| `{% media "..." %}` | `{{ "..." \| media }}` | URL d'un fichier média |
+| `{% csrf %}` | `{% include "csrf/..." %}` | Champ CSRF caché |
+| `{% messages %}` | `{% include "message/..." %}` | Affichage messages flash |
+| `{% csp_nonce %}` | `{% include "csp/..." %}` | Attribut nonce CSP |
+| `{% link "name" %}` | `{{ link(link='name') }}` | URL d'une route nommée |
+| `{% form.xxx %}` | `{{ xxx \| form \| safe }}` | Rendu formulaire complet |
+| `{% form.xxx.field %}` | `{{ xxx \| form(field='field') \| safe }}` | Rendu d'un champ |
+
+### Filtres Tera
+
+| Filtre | Description |
+|--------|-------------|
+| `static` | Préfixe URL statique de l'app |
+| `media` | Préfixe URL média de l'app |
+| `runique_static` | Assets statiques internes au framework |
+| `runique_media` | Médias internes au framework |
+| `form` | Rendu de formulaire complet ou par champ |
+| `csrf_field` | Génère un input hidden CSRF |
+
+### Fonctions Tera
+
+| Fonction | Description |
+|----------|-------------|
+| `csrf()` | Génère un champ CSRF depuis le contexte |
+| `nonce()` | Retourne le nonce CSP |
+| `link(link='...')` | Résolution d'URL nommée |
+
+---
+
+## Stack Middleware
+
+Runique applique les middlewares dans un **ordre optimal** via le système de slots :
+
+```
+Requête entrante
+    ↓
+1. Extensions (slot 0)     → Injection Tera, Config, Engine
+2. ErrorHandler (slot 10)  → Capture et rendu des erreurs
+3. Custom (slot 20+)       → Middlewares personnalisés
+4. CSP (slot 30)           → Content Security Policy & headers
+5. Cache (slot 40)         → No-cache en développement
+6. Session (slot 50)       → Gestion des sessions
+7. CSRF (slot 60)          → Protection CSRF
+8. Host (slot 70)          → Validation Allowed Hosts
+    ↓
+Handler (votre code)
+    ↓
+Réponse sortante (middlewares en sens inverse)
+```
+
+> 💡 **Important** : Avec Axum, le dernier `.layer()` appliqué est le premier exécuté. Le Builder Intelligent gère cet ordre automatiquement.
+
+---
+
+## Injection de dépendances
+
+Via les **Extensions Axum**, injectées automatiquement par le middleware Extensions :
+
+```rust
+// Enregistré automatiquement par le builder :
+// Extension(engine)  → Arc<RuniqueEngine>
+// Extension(tera)    → Arc<Tera>
+// Extension(config)  → Arc<RuniqueConfig>
+
+// Accessible dans les handlers via Request :
+pub async fn handler(request: Request) -> AppResult<Response> {
+    let db = request.engine.db.clone();
+    let config = &request.engine.config;
+    // ...
 }
 ```
 
 ---
 
-
-**Important:** Middleware declared first = Executed last!
-
----
-
-### ✅ Nouveau design (correct)
-
-```rust
-// Copie par requête
-pub async fn handler(
-    mut template: TemplateContext,
-    Prisme(form): Prisme<MyForm>
-) -> AppResult<Response> {
-    // Chaque requête = formulaire isolé
-    // Zero concurrence
-}
-```
-
----
-
-## Modules Détaillés
-
-### config_runique/
-Gestion de la configuration:
-- Charger depuis `.env`
-- Validation des settings
-- Builder pattern
-
-### data_base_runique/
-Abstraction ORM:
-- SeaORM wrapper
-- Objects manager (django-like)
-- Database connection management
-
-### formulaire/
-Système de formulaires:
-- Field types (text, email, textarea, etc.)
-- Validation
-- Prisme extractor
-
-### middleware/
-Middleware de sécurité:
-- CSRF protection
-- ALLOWED_HOSTS validation
-- Nonce
-- Login required middleware
-- ...
-
-### macro_runique/
-Macros utilitaires:
-- `context!` - Créer contexte template
-
-```rust
-pub async fn handler(mut template: TemplateContext)AppResult<Response> {
-    let form = template.form::<RegisterForm>();
-    context_update!(template => {
-        "title" => "Inscription utilisateur",
-           })}
-```
-
-- `success!`, `error!`, `warning!`, `info!` - Flash messages pour les redirection
-
-```rust
-success!(template.notices => "Ceci est un message de succès.");
-info!(template.notices => "Ceci est un message d'information.")
-warning!(template.notices => "Ceci est un message d'avertissement.");
-error!(template.notices => "Ceci est un message d'erreur.");
-```
-
-- Celle ci est faite pour les message de redirection , avec des class css specifique personnalisable
-
-```rust
-flash_now!(warning => "Veuillez corriger les erreurs ci-dessous")
-```
-- Celle ci est prevue pour des messages immediat sur un rendu classique hors redirection
-
-- `urlpatterns!` - Définir routes
-```rust
-pub fn routes() -> Router {
-    let router = urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
-
-        "/about" => view! { GET => views::about }, name = "about",
-        "/inscription" => view! { GET => views::inscription, POST => views::soumission_inscription }, name = "inscription",
-    };
-    router
-}
-```
-
-### moteur_engine/
-Moteur principal:
-- RuniqueEngine struct
-- Initialization
-- Extension injection
-
-### request_context/
-Contexte de requête:
-- RuniqueContext extractor
-- TemplateContext extractor
-- Message extractor
-- Tera tool filters
-
-### runique_body/
-Application builder:
-- RuniqueApp struct
-- `.with_database()`
-- `.with_routes()`
-- `.build()`
-- `.run()`
-
-### utils/
-Utilitaires divers:
-- CSRF token generation
-- CSP nonce generation
-- Response helpers (json, html, redirect)
-- HTML parsing
-
-⚠️  le nonce est ajouter manuellement dans le builder de votre application via
-
-```rust
-
-.layer(middleware::from_fn_with_state(
-    engine.clone(),
-    security_headers_middleware,
-))
-```
----
-
-## Injection de Dépendances
-
-Via **Axum Extensions**:
-
-```rust
-// Enregistré dans middleware:
-extension_injection
-    .layer(Extension(engine))
-    .layer(Extension(tera))
-    .layer(Extension(config))
-    .layer(Extension(session))
-
-// Utilisé dans handlers:
-pub async fn handler(
-    template: TemplateContext,
-) -> AppResult<Response> { }
-```
-
----
-
-## Lifecycle
-
-### App Startup
-
-```rust
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Configuration de l'application
-    let config = RuniqueConfig::from_env();
-
-    // Connexion à la base de données
-    let db_config = DatabaseConfig::from_env()?.build();
-    let db = db_config.connect().await?;
-
-    // Créer et lancer l'application
-    RuniqueApp::builder(config)
-        .routes(router)
-        .with_database(db)
-        .with_static_files()
-        .with_csp(true)
-        .with_allowed_hosts(true)
-        .with_sanitizer(true)
-        .build()
-        .await?;
-
-    Ok(())
-}
-RuniqueApp::builder(config)
-    .routes(router)
-    .with_static_files()
-    .build()
-    .await?
-    .run()
-    .await?;
-```
-
-### Request Handling
+## Lifecycle d'une requête
 
 ```
-1. Middleware (reverse order)
-2. Handler called with extractors
-3. Handler returns response
-4. Middleware (forward order)
-5. HTTP response sent
+1. Requête HTTP arrive
+2. Middlewares traversés (order des slots)
+3. Extensions injectées (Engine, Tera, Config)
+4. Session chargée, CSRF vérifié
+5. Handler appelé avec extracteurs (Request, Prisme<T>)
+6. Handler retourne AppResult<Response>
+7. Middlewares traversés en sens inverse
+8. Réponse HTTP envoyée
 ```
 
 ---
 
 ## Bonnes Pratiques
 
-1. **Cloner les Arc:**
+1. **Cloner les Arc :**
    ```rust
-       let db = template.engine.db.clone();
+   let db = request.engine.db.clone();
    ```
 
-2. **Formulaires = copies:**
+2. **Formulaires = copies par requête :**
    ```rust
-       let form = template.form::<Form>();
-
-   // Pas de state partagé
+   Prisme(mut form): Prisme<MyForm>
+   // Chaque requête = formulaire isolé, zéro concurrence
    ```
 
-3. **Templates auto-context:**
+3. **context_update! pour le contexte :**
    ```rust
-   template.context.insert("data", value);
-   template.render("page.html")
-   // csrf_token auto-injecté dans le contexte
+   context_update!(request => {
+       "title" => "Ma page",
+       "data" => &my_data,
+   });
    ```
 
-4. **Flash messages:**
+4. **Flash messages pour les redirections :**
    ```rust
-   Message(mut messages): Message,
-   messages.success(format!("Bienvenue {}, votre compte a été créé !", user.username));
+   success!(request.notices => "Action réussie !");
+   return Ok(Redirect::to("/").into_response());
    ```
 
-5. **Middleware order:**
+5. **flash_now! pour les rendus directs :**
    ```rust
-   // Declared first = Executed last!
-   .layer(a)  // Executed 3rd
-   .layer(b)  // Executed 2nd
-   .layer(c)  // Executed 1st (entry point)
+   context_update!(request => {
+       "messages" => flash_now!(error => "Erreur de validation"),
+   });
    ```
 
 ---
 
 ## Prochaines étapes
 
-→ [**Configuration**](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
+→ [**Configuration**](03-configuration.md)

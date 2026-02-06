@@ -24,8 +24,8 @@ impl ColorField {
         self
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 
@@ -216,8 +216,8 @@ impl UUIDField {
         self
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 
@@ -297,8 +297,8 @@ impl JSONField {
         self
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 
@@ -406,8 +406,8 @@ impl IPAddressField {
         self
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 

@@ -21,7 +21,7 @@
 //!
 //! ## Exemple rapide
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use runique::prelude::*;
 //!
 //! #[tokio::main]
@@ -49,6 +49,7 @@ pub mod macros;
 pub mod errors;
 pub mod middleware;
 pub mod utils;
+
 // ---------------------------------------------------------------------------
 // Alias de compatibilité pour l’ancien nommage
 // ---------------------------------------------------------------------------

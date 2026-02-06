@@ -49,7 +49,9 @@ pub async fn csrf_middleware(
         .flatten()
     {
         Some(t) => {
-            session.insert(CSRF_TOKEN_KEY, &t).await.expect("...");
+            if session.insert(CSRF_TOKEN_KEY, &t).await.is_err() {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
+            }
             t
         }
         None => {
@@ -70,7 +72,9 @@ pub async fn csrf_middleware(
                     secret,
                 )
             };
-            session.insert(CSRF_TOKEN_KEY, &token).await.expect("...");
+            if session.insert(CSRF_TOKEN_KEY, &token).await.is_err() {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
+            }
             token
         }
     };

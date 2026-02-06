@@ -152,6 +152,7 @@ form button:active, .text-center:active {
 @media (max-width: 480px) {
     form {
         gap: 1rem;
+        width: 80%;
     }
 
     form button {

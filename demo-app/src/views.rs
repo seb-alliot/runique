@@ -94,7 +94,8 @@ pub async fn info_user(
                     "title" => "Vue utilisateur",
                     "username" => &user.username,
                     "email" => &user.email,
-                    "user" => &user,
+                    "found_user" => &user,
+                    "user" => &form,
                     "messages" => flash_now!(success => "Voici les infos que tu voulais !"),
                 });
             }

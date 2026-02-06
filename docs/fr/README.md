@@ -60,10 +60,12 @@ Routage des URL et traitement des requêtes.
 Création et gestion de formulaires.
 
 **Sujets couverts:**
-- Création de formulaires
-- Types de champs
-- Validation
-- Protection CSRF
+- Extracteur Prisme
+- Trait FormTrait et #[runique_form]
+- DeriveModelForm (génération automatique)
+- Types de champs (FieldBuilder)
+- Validation et sauvegarde
+- Rendu dans les templates
 
 👉 **Aller à** : [Guide des formulaires](05-forms.md)
 
@@ -73,10 +75,12 @@ Création et gestion de formulaires.
 Travailler avec les templates Tera.
 
 **Sujets couverts:**
-- Syntaxe des templates
-- Variables et boucles
-- Filtres
+- Tags Django-like ({% static %}, {% form.xxx %}, {% link %}, {% csrf %}, {% messages %}, {% csp_nonce %})
+- Filtres Tera (static, media, form, csrf_field)
+- Fonctions Tera (csrf(), nonce(), link())
+- Macro context_update!
 - Héritage de templates
+- Variables auto-injectées
 
 👉 **Aller à** : [Guide des templates](06-templates.md)
 
@@ -99,10 +103,13 @@ Opérations de base de données avec SeaORM.
 Sécurité et middlewares de requête.
 
 **Sujets couverts:**
-- Protection CSRF
-- En-têtes CSP
-- En-têtes de sécurité
-- Middleware personnalisé
+- Stack middleware avec système de slots
+- Protection CSRF (Double Submit Cookie)
+- Content Security Policy (CSP) avec nonce
+- Validation Allowed Hosts
+- Headers de sécurité
+- Configuration des sessions
+- Builder Intelligent vs Builder classique
 
 👉 **Aller à** : [Guide des middlewares](08-middleware.md)
 
@@ -112,10 +119,11 @@ Sécurité et middlewares de requête.
 Retours utilisateur et notifications.
 
 **Sujets couverts:**
-- Messages de succès
-- Messages d'erreur
-- Messages d'avertissement
-- Gestion des messages
+- Macros de redirection : success!, error!, info!, warning!
+- Macro immédiate : flash_now!
+- Affichage avec {% messages %}
+- Pattern flash vs flash_now
+- Comportement de consommation (une seule lecture)
 
 👉 **Aller à** : [Guide Flash Messages](09-flash-messages.md)
 
@@ -142,11 +150,11 @@ Exemples de code complets et projets.
 | Apprentissage | [Architecture](02-architecture.md) | Structure, conception, fonctionnement |
 | Config | [Configuration](03-configuration.md) | Paramètres, environnement, sécurité |
 | Routes | [Routage](04-routing.md) | Modèles URL, gestionnaires, paramètres |
-| Formulaires | [Formulaires](05-forms.md) | Champs, validation, CSRF |
-| Vues | [Templates](06-templates.md) | Syntaxe, variables, héritage |
-| Données | [ORM](07-orm.md) | Modèles, requêtes, relations |
-| Sécurité | [Middlewares](08-middleware.md) | Protection, en-têtes, politiques |
-| Retours | [Flash Messages](09-flash-messages.md) | Notifications, messages |
+| Formulaires | [Formulaires](05-forms.md) | Prisme, FieldBuilder, DeriveModelForm |
+| Vues | [Templates](06-templates.md) | Tags Django-like, filtres, fonctions Tera |
+| Données | [ORM](07-orm.md) | Modèles, requêtes, impl_objects! |
+| Sécurité | [Middlewares](08-middleware.md) | Slots, CSRF, CSP, sessions |
+| Retours | [Flash Messages](09-flash-messages.md) | success!, flash_now!, {% messages %} |
 | Code | [Exemples](10-examples.md) | Projets complets |
 
 ---
