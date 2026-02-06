@@ -310,30 +310,8 @@ impl FormField for FileField {
                 }
             }
         }
-        match &self.field_type {
-            FileFieldType::Document | FileFieldType::Any | FileFieldType::None => {
-                // Pas de validation supplémentaire pour les documents ou tout type
-            }
-            FileFieldType::Image => {
-                // 4. Validation des images
-                let files: Vec<&str> = val
-                    .split(',')
-                    .map(|s| s.trim())
-                    .filter(|s| !s.is_empty())
-                    .collect();
-                for filename in files {
-                    if !is_valid_path(filename) {
-                        self.set_error(format!(
-                            "Le fichier '{}' n'est pas une image valide",
-                            filename
-                        ));
-                        return false;
-                    }
-                }
-            }
-        }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 

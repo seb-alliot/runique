@@ -881,26 +881,25 @@ fn test_ip_field_ipv4_only_accepts_ipv4() {
 
 // ============================================================================
 // HIDDENFIELD (CSRF)
-// Note: HiddenField n'a pas de FieldConfig (panic si on appelle set_error).
-// La validation CSRF se fait via le pipeline Prisme, pas via validate().
-// On teste ici uniquement la construction et les setters.
+// Depuis le refactoring, HiddenField utilise un vrai FieldConfig (base).
+// La validation via validate() fonctionne normalement.
 // ============================================================================
 
 #[test]
 fn test_hidden_field_csrf_construction() {
     let field = HiddenField::new_csrf();
-    assert_eq!(field.name, "csrf_token");
-    assert_eq!(field.input_type, "hidden");
-    assert_eq!(field.template_name, "csrf");
+    assert_eq!(field.name(), "csrf_token");
+    assert_eq!(field.field_type(), "hidden");
+    assert_eq!(field.template_name(), "csrf");
     assert!(field.expected_value.is_none());
-    assert!(field.error_message.is_none());
+    assert!(field.error().is_none());
 }
 
 #[test]
 fn test_hidden_field_csrf_set_value() {
     let mut field = HiddenField::new_csrf();
     field.set_value("abc123");
-    assert_eq!(field.value, "abc123");
+    assert_eq!(field.value(), "abc123");
 }
 
 #[test]
@@ -908,6 +907,40 @@ fn test_hidden_field_csrf_expected_value() {
     let mut field = HiddenField::new_csrf();
     field.set_expected_value("token_secret");
     assert_eq!(field.expected_value.as_deref(), Some("token_secret"));
+}
+
+#[test]
+fn test_hidden_field_csrf_validate_matching() {
+    let mut field = HiddenField::new_csrf();
+    field.set_value("token_ok");
+    field.set_expected_value("token_ok");
+    assert!(field.validate());
+    assert!(field.error().is_none());
+}
+
+#[test]
+fn test_hidden_field_csrf_validate_mismatch() {
+    let mut field = HiddenField::new_csrf();
+    field.set_value("mauvais");
+    field.set_expected_value("attendu");
+    assert!(!field.validate());
+    assert_eq!(field.error().unwrap(), "Token CSRF invalide");
+}
+
+#[test]
+fn test_hidden_field_csrf_validate_empty() {
+    let mut field = HiddenField::new_csrf();
+    field.set_value("");
+    field.set_expected_value("attendu");
+    assert!(!field.validate());
+    assert_eq!(field.error().unwrap(), "Token CSRF manquant");
+}
+
+#[test]
+fn test_hidden_field_generic() {
+    let field = HiddenField::new("user_id").label("ID");
+    assert_eq!(field.name(), "user_id");
+    assert_eq!(field.field_type(), "hidden");
 }
 
 // ============================================================================

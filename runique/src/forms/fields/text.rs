@@ -212,8 +212,7 @@ impl FormField for TextField {
         // Mise à jour la valeur nettoyée
         self.base.value = val;
 
-        // Réinitialise l'erreur
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 

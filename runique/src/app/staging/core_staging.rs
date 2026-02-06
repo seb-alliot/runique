@@ -45,28 +45,38 @@ impl CoreStaging {
         }
     }
 
+    // ═══════════════════════════════════════════════════
+    // Configuration de la base de données
+    // ═══════════════════════════════════════════════════
+
     /// Enregistre une connexion à la base de données déjà établie
     ///
     /// Le dev gère la connexion lui-même :
     /// ```rust,ignore
-    /// let db = DatabaseConfig::from_env()?.build().connect().await?;
-    /// builder.with_database(db)
+    /// .core(|c| {
+    ///     let db = DatabaseConfig::from_env()?.build().connect().await?;
+    ///     c.with_database(db)
+    /// })
     /// ```
     #[cfg(feature = "orm")]
-    pub fn set_database(&mut self, db: DatabaseConnection) {
+    pub fn with_database(mut self, db: DatabaseConnection) -> Self {
         self.db = Some(db);
+        self
     }
 
     /// Enregistre une configuration DB — la connexion sera établie pendant le build.
     ///
     /// Le staging valide le driver et connecte automatiquement :
     /// ```rust,ignore
-    /// let config = DatabaseConfig::from_env()?.build();
-    /// builder.with_database_config(config)
+    /// .core(|c| {
+    ///     let config = DatabaseConfig::from_env()?.build();
+    ///     c.with_database_config(config)
+    /// })
     /// ```
     #[cfg(feature = "orm")]
-    pub fn set_database_config(&mut self, config: DatabaseConfig) {
+    pub fn with_database_config(mut self, config: DatabaseConfig) -> Self {
         self.db_config = Some(config);
+        self
     }
 
     /// Valide que tous les composants obligatoires sont présents.

@@ -66,7 +66,7 @@ impl FormField for BooleanField {
             return false;
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 

@@ -84,7 +84,7 @@ impl FormField for ColorField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
@@ -184,7 +184,7 @@ impl FormField for SlugField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
@@ -262,7 +262,7 @@ impl FormField for UUIDField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
@@ -348,7 +348,7 @@ impl FormField for JSONField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
@@ -462,7 +462,7 @@ impl FormField for IPAddressField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 

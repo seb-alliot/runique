@@ -154,6 +154,11 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         };
     }
 
+    /// Réinitialise l'erreur du champ (équivalent explicite de set_error(""))
+    fn clear_error(&mut self) {
+        self.get_field_config_mut().error = None;
+    }
+
     fn set_required(&mut self, required: bool, msg: Option<&str>) {
         self.get_field_config_mut().is_required = BoolChoice {
             choice: required,
