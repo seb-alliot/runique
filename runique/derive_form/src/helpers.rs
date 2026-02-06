@@ -184,42 +184,45 @@ pub(crate) fn generate_conversion(field: &Field) -> proc_macro2::TokenStream {
     // Option<T>
     if is_optional_field(field) {
         return quote! {
-            #field_name: Set(self.form.get_value(#field_name_str)),
+            #field_name: Set(self.form.get_option(#field_name_str)),
         };
     }
 
     let base_type = ty_str.replace("Option<", "").replace(">", "");
 
     // Types numériques
-    if base_type.contains("i32")
-        || base_type.contains("i64")
-        || base_type.contains("u32")
-        || base_type.contains("u64")
-    {
+    if base_type.contains("i32") {
         quote! {
-            #field_name: Set({
-                let val = self.form.get_value(#field_name_str).unwrap_or_default();
-                val.parse().unwrap_or(0)
-            }),
+            #field_name: Set(self.form.get_i32(#field_name_str)),
         }
-    } else if base_type.contains("f32") || base_type.contains("f64") {
+    } else if base_type.contains("i64") {
         quote! {
-            #field_name: Set({
-                let val = self.form.get_value(#field_name_str).unwrap_or_default();
-                val.parse().unwrap_or(0.0)
-            }),
+            #field_name: Set(self.form.get_i64(#field_name_str)),
+        }
+    } else if base_type.contains("u32") {
+        quote! {
+            #field_name: Set(self.form.get_u32(#field_name_str)),
+        }
+    } else if base_type.contains("u64") {
+        quote! {
+            #field_name: Set(self.form.get_u64(#field_name_str)),
+        }
+    } else if base_type.contains("f32") {
+        quote! {
+            #field_name: Set(self.form.get_f32(#field_name_str)),
+        }
+    } else if base_type.contains("f64") {
+        quote! {
+            #field_name: Set(self.form.get_f64(#field_name_str)),
         }
     } else if base_type.contains("bool") {
         quote! {
-            #field_name: Set({
-                let val = self.form.get_value(#field_name_str).unwrap_or_default();
-                val == "true" || val == "1" || val == "on"
-            }),
+            #field_name: Set(self.form.get_bool(#field_name_str)),
         }
     } else {
         // String par défaut
         quote! {
-            #field_name: Set(self.form.get_value(#field_name_str).unwrap_or_default()),
+            #field_name: Set(self.form.get_string(#field_name_str)),
         }
     }
 }

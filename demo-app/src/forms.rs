@@ -14,18 +14,10 @@ impl RuniqueForm for UsernameForm {
         form.field(
             &TextField::text("username")
                 .label("Entrez votre nom d'utilisateur")
-                .required("Le nom est requis"),
+                .required(),
         );
     }
-    fn from_form(form: Forms) -> Self {
-        Self { form }
-    }
-    fn get_form(&self) -> &Forms {
-        &self.form
-    }
-    fn get_form_mut(&mut self) -> &mut Forms {
-        &mut self.form
-    }
+    impl_form_access!();
 }
 
 // --- FORMULAIRE D'INSCRIPTION ---
@@ -40,31 +32,23 @@ impl RuniqueForm for RegisterForm {
         form.field(
             &TextField::text("username")
                 .label("Entrez votre nom d'utilisateur")
-                .required("votre pseudo est necessaire"),
+                .required(),
         );
 
         form.field(
             &TextField::email("email")
                 .label("Entrez votre email")
-                .required("votre email est necessaire"),
+                .required(),
         );
 
         form.field(
             &TextField::password("password")
                 .label("Entrez un mot de passe")
-                .required("Le mot de passe est obligatoire"),
+                .required(),
         );
     }
 
-    fn from_form(form: Forms) -> Self {
-        Self { form }
-    }
-    fn get_form(&self) -> &Forms {
-        &self.form
-    }
-    fn get_form_mut(&mut self) -> &mut Forms {
-        &mut self.form
-    }
+    impl_form_access!();
 }
 
 impl RegisterForm {
@@ -74,9 +58,9 @@ impl RegisterForm {
     ) -> Result<crate::models::users::Model, DbErr> {
         use crate::models::users as users_mod;
         let new_user = users_mod::ActiveModel {
-            username: Set(self.form.get_value("username").unwrap_or_default()),
-            email: Set(self.form.get_value("email").unwrap_or_default()),
-            password: Set(self.form.get_value("password").unwrap_or_default()),
+            username: Set(self.form.get_string("username")),
+            email: Set(self.form.get_string("email")),
+            password: Set(self.form.get_string("password")),
             ..Default::default()
         };
 
@@ -97,14 +81,14 @@ impl RuniqueForm for Blog {
         form.field(
             &TextField::text("title")
                 .label("Entrez un titre accrocheur")
-                .required("Le titre est obligatoire"),
+                .required(),
         );
 
         // Email de l'auteur
         form.field(
             &TextField::email("email")
                 .label("Entrez l'email de l'auteur")
-                .required("L'email est requis"),
+                .required(),
         );
 
         // Site Web (URL)
@@ -114,37 +98,29 @@ impl RuniqueForm for Blog {
         form.field(
             &TextField::textarea("summary")
                 .label("Un court résumé...")
-                .required("Veuillez fournir un résumé"),
+                .required(),
         );
 
         // Contenu (TextArea ou RichText si implémenté dans GenericField)
         form.field(
             &TextField::richtext("content")
                 .label("Entrez le contenu de l'article ici")
-                .required("Le contenu ne peut pas être vide"),
+                .required(),
         );
     }
 
-    fn from_form(form: Forms) -> Self {
-        Self { form }
-    }
-    fn get_form(&self) -> &Forms {
-        &self.form
-    }
-    fn get_form_mut(&mut self) -> &mut Forms {
-        &mut self.form
-    }
+    impl_form_access!();
 }
 
 impl Blog {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<crate::models::blog::Model, DbErr> {
         use crate::models::blog as blog_mod;
         let new_blog = blog_mod::ActiveModel {
-            title: Set(self.form.get_value("title").unwrap_or_default()),
-            email: Set(self.form.get_value("email").unwrap_or_default()),
-            website: Set(self.form.get_value("website")),
-            summary: Set(self.form.get_value("summary").unwrap_or_default()),
-            content: Set(self.form.get_value("content").unwrap_or_default()),
+            title: Set(self.form.get_string("title")),
+            email: Set(self.form.get_string("email")),
+            website: Set(self.form.get_option("website")),
+            summary: Set(self.form.get_string("summary")),
+            content: Set(self.form.get_string("content")),
             ..Default::default()
         };
 
@@ -173,13 +149,5 @@ impl RuniqueForm for Image {
         form.add_js(&["js/test_csrf.js"]);
     }
 
-    fn from_form(form: Forms) -> Self {
-        Self { form }
-    }
-    fn get_form(&self) -> &Forms {
-        &self.form
-    }
-    fn get_form_mut(&mut self) -> &mut Forms {
-        &mut self.form
-    }
+    impl_form_access!();
 }

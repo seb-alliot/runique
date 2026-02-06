@@ -171,7 +171,7 @@ use runique::prelude::*;
 use runique::database::config::DatabaseConfig;
 
 // New
-use runique::prelude::DatabaseConfig;  
+use runique::prelude::DatabaseConfig;
 // or
 use runique::db::config::DatabaseConfig;
 ```
@@ -184,7 +184,7 @@ form.add_field("username", TextField { ... })
 // New
 let field = TextField::text("username")
     .label("Username")
-    .required("This field is required");
+    .required();
 form.field(&field);
 ```
 

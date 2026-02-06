@@ -31,8 +31,8 @@ impl BooleanField {
         field
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 

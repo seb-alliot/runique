@@ -52,8 +52,8 @@ impl DateField {
         self
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 }
@@ -186,8 +186,8 @@ impl TimeField {
         self
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 }
@@ -319,8 +319,8 @@ impl DateTimeField {
         self
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 }
@@ -452,8 +452,8 @@ impl DurationField {
         self
     }
 
-    pub fn required(mut self, msg: &str) -> Self {
-        self.set_required(true, Some(msg));
+    pub fn required(mut self) -> Self {
+        self.set_required(true, None);
         self
     }
 }

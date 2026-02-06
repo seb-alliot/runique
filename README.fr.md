@@ -143,7 +143,7 @@ let mut form = Forms::new("csrf_token");
 
 form.field(&TextField::text("username")
     .label("Nom d'utilisateur")
-    .required("Obligatoire"));
+    .required());
 
 form.field(&TextField::email("email")
     .label("Email"));

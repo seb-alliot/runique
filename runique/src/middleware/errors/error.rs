@@ -88,7 +88,8 @@ pub async fn error_handler_middleware(
                 | RuniqueError::Database(_)
                 | RuniqueError::Io(_)
                 | RuniqueError::Template(_)
-                | RuniqueError::Custom { .. } => {
+                | RuniqueError::Custom { .. }
+                | RuniqueError::Build(_) => {
                     error!(
                         method = %request_helper.method,
                         path = %request_helper.path,

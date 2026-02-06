@@ -31,7 +31,7 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
             let required_clause = if is_optional {
                 quote! {}
             } else {
-                quote! { .required("Ce champ est obligatoire") }
+                quote! { .required() }
             };
 
             quote! {
