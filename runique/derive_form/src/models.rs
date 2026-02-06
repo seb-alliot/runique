@@ -69,7 +69,7 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
 
                 // On retourne un formulaire vide qui sera reconstruit par build()
                 Ok(Self {
-                    form: ::runique::forms::manager::Forms::new(),
+                    form: ::runique::forms::manager::Forms::empty(),
                 })
             }
         }

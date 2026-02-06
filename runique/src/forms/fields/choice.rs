@@ -105,7 +105,7 @@ impl FormField for ChoiceField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
@@ -191,7 +191,7 @@ impl FormField for RadioField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 

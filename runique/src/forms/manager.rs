@@ -48,6 +48,9 @@ thread_local! {
     static VALIDATION_DEPTH: Cell<usize> = const { Cell::new(0) };
 }
 
+/// Profondeur maximale d'appels récursifs à is_valid()
+const MAX_VALIDATION_DEPTH: usize = 20;
+
 #[derive(Clone)]
 pub struct Forms {
     pub fields: FieldsMap,
@@ -152,6 +155,18 @@ impl Forms {
         }
     }
 
+    /// Crée un formulaire vide (sans token CSRF).
+    /// Utilisé par la désérialisation — le formulaire sera reconstruit par `build()`.
+    pub fn empty() -> Self {
+        Self {
+            fields: IndexMap::new(),
+            tera: None,
+            global_errors: Vec::new(),
+            session_csrf_token: None,
+            js_files: Vec::new(),
+        }
+    }
+
     fn render_js(&self, tera: &ATera) -> Result<String, String> {
         if self.js_files.is_empty() {
             return Ok(String::new());
@@ -242,21 +257,24 @@ impl Forms {
         }
         Ok(())
     }
-    /// Valide le formulaire avec protection contre les stack overflows
+    /// Valide le formulaire avec protection contre les appels récursifs
     /// Retourne un Result pour permettre la propagation des erreurs
     pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
-        self.is_valid_with_depth(0)
+        // Protection contre les appels récursifs (ex: si clean() rappelle is_valid())
+        VALIDATION_DEPTH.with(|depth| {
+            let current = depth.get();
+            if current > MAX_VALIDATION_DEPTH {
+                return Err(ValidationError::StackOverflow);
+            }
+            depth.set(current + 1);
+            let result = self.validate_fields();
+            depth.set(current); // Restaure la profondeur
+            result
+        })
     }
 
-    // Implémentation interne avec compteur
-    fn is_valid_with_depth(&mut self, depth: usize) -> Result<bool, ValidationError> {
-        const MAX_DEPTH: usize = 20;
-
-        if depth > MAX_DEPTH {
-            return Err(ValidationError::StackOverflow);
-        }
-
-        // Validation normale
+    /// Validation interne des champs
+    fn validate_fields(&mut self) -> Result<bool, ValidationError> {
         let mut is_all_valid = true;
         for field in self.fields.values_mut() {
             if field.required() && field.value().trim().is_empty() {
@@ -265,7 +283,6 @@ impl Forms {
                 continue;
             }
 
-            // Si validate() peut être récursif, passe depth + 1
             if !field.validate() {
                 is_all_valid = false;
             }

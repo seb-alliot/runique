@@ -1,31 +1,29 @@
-use crate::forms::base::{CommonFieldConfig, FormField};
+use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use serde::Serialize;
-use serde_json::json;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
 #[derive(Clone, Serialize, Debug)]
 pub struct HiddenField {
-    pub name: String,
-    pub value: String,
-    pub input_type: String,
-    pub template_name: String,
+    pub base: FieldConfig,
     /// Token de session attendu (pour validation CSRF)
     pub expected_value: Option<String>,
-    /// Message d'erreur
-    pub error_message: Option<String>,
 }
 
 impl HiddenField {
     /// Constructeur spécifique pour un champ caché CSRF
     pub fn new_csrf() -> Self {
         Self {
-            name: "csrf_token".to_string(),
-            value: String::new(),
-            input_type: "hidden".to_string(),
-            template_name: "csrf".to_string(),
+            base: FieldConfig::new("csrf_token", "hidden", "csrf"),
             expected_value: None,
-            error_message: None,
+        }
+    }
+
+    /// Constructeur générique pour un champ caché
+    pub fn new(name: &str) -> Self {
+        Self {
+            base: FieldConfig::new(name, "hidden", "base_hidden"),
+            expected_value: None,
         }
     }
 
@@ -34,54 +32,48 @@ impl HiddenField {
         self.expected_value = Some(expected.to_string());
     }
 
-    pub fn set_value(&mut self, token: &str) {
-        self.value = token.to_string();
+    pub fn label(mut self, label: &str) -> Self {
+        self.base.label = label.to_string();
+        self
     }
 }
 
 impl CommonFieldConfig for HiddenField {
-    fn get_field_config(&self) -> &crate::forms::base::FieldConfig {
-        panic!("HiddenField does not have a FieldConfig");
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
     }
 
-    fn get_field_config_mut(&mut self) -> &mut crate::forms::base::FieldConfig {
-        panic!("HiddenField does not have a FieldConfig");
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
     }
 }
 
 impl FormField for HiddenField {
     fn validate(&mut self) -> bool {
         // Pour un champ CSRF, vérifier que la valeur correspond à celle attendue
-        if self.name == "csrf_token" {
+        if self.base.name == "csrf_token" {
             if let Some(expected) = &self.expected_value {
-                if self.value.trim().is_empty() {
+                if self.base.value.trim().is_empty() {
                     self.set_error("Token CSRF manquant".to_string());
                     return false;
                 }
 
-                if self.value != *expected {
+                if self.base.value != *expected {
                     self.set_error("Token CSRF invalide".to_string());
                     return false;
                 }
             }
         }
 
-        self.set_error(String::new());
+        self.clear_error();
         true
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
-        context.insert(
-            "field",
-            &json!({
-                "name": self.name,
-                "value": self.value,
-                "input_type": self.input_type
-            }),
-        );
+        context.insert("field", &self.base);
 
-        tera.render(&self.template_name, &context)
+        tera.render(&self.base.template_name, &context)
             .map_err(|e| e.to_string())
     }
 }

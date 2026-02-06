@@ -246,7 +246,7 @@ impl FormField for NumericField {
                 }
             }
         }
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 

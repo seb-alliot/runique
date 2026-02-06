@@ -38,13 +38,21 @@ use sea_orm::DatabaseConnection;
 //
 //   // Ordre libre — le framework réordonne automatiquement
 //   RuniqueApp::builder(config)
-//       .statics()
+//       .core(|c| c.with_database(db))
 //       .routes(router)
-//       .with_database(db)
+//       .static_files(|s| s.disable())
 //       .middleware(|m| {
 //           m.with_csp(true)
 //            .add_custom(my_auth_middleware)
 //       })
+//       .build().await?
+//
+//   // Ou avec les raccourcis (cas simples) :
+//   RuniqueApp::builder(config)
+//       .with_database(db)
+//       .routes(router)
+//       .statics()
+//       .middleware(|m| m.with_csp(true))
 //       .build().await?
 //
 // ═══════════════════════════════════════════════════════════════
@@ -81,7 +89,27 @@ impl RuniqueAppBuilder {
     // Peu importe l'ordre d'appel par le développeur.
     // ═══════════════════════════════════════════════════════════
 
-    /// Ajoute une connexion à la base de données déjà établie
+    // ═══════════════════════════════════════════════════════════
+    // CORE — Base de données et composants fondamentaux
+    // ═══════════════════════════════════════════════════════════
+
+    /// Configure le core via une closure.
+    ///
+    /// Même principe que `.middleware()` : le dev configure
+    /// dans l'ordre qu'il veut, le staging valide au build.
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// .core(|c| c.with_database(db))
+    /// // ou
+    /// .core(|c| c.with_database_config(db_config))
+    /// ```
+    pub fn core(mut self, f: impl FnOnce(CoreStaging) -> CoreStaging) -> Self {
+        self.core = f(self.core);
+        self
+    }
+
+    /// Raccourci : ajoute une connexion DB déjà établie sans passer par `.core()`
     ///
     /// ```rust,ignore
     /// let db = DatabaseConfig::from_env()?.build().connect().await?;
@@ -89,12 +117,11 @@ impl RuniqueAppBuilder {
     /// ```
     #[cfg(feature = "orm")]
     pub fn with_database(mut self, db: DatabaseConnection) -> Self {
-        self.core.set_database(db);
+        self.core = self.core.with_database(db);
         self
     }
 
-    /// Ajoute une configuration DB — le builder connectera automatiquement
-    /// pendant le `build()`, après validation du driver.
+    /// Raccourci : ajoute une configuration DB — connexion auto pendant `build()`
     ///
     /// ```rust,ignore
     /// let db_config = DatabaseConfig::from_env()?.build();
@@ -102,15 +129,23 @@ impl RuniqueAppBuilder {
     /// ```
     #[cfg(feature = "orm")]
     pub fn with_database_config(mut self, config: DatabaseConfig) -> Self {
-        self.core.set_database_config(config);
+        self.core = self.core.with_database_config(config);
         self
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // ROUTES
+    // ═══════════════════════════════════════════════════════════
 
     /// Définit les routes de l'application
     pub fn routes(mut self, router: Router) -> Self {
         self.router = Some(router);
         self
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // MIDDLEWARE — Réorganisation automatique par slots
+    // ═══════════════════════════════════════════════════════════
 
     /// Configure les middlewares via une closure.
     ///
@@ -136,25 +171,43 @@ impl RuniqueAppBuilder {
 
     /// Raccourci : configure la durée de session sans passer par `.middleware()`
     pub fn with_session_duration(mut self, duration: Duration) -> Self {
-        self.middleware.session_duration = duration;
+        self.middleware = self.middleware.with_session_duration(duration);
         self
     }
 
     /// Raccourci : active/désactive les pages d'erreur de debug
     pub fn with_error_handler(mut self, enable: bool) -> Self {
-        self.middleware.features.enable_debug_errors = enable;
+        self.middleware = self.middleware.with_debug_errors(enable);
         self
     }
 
-    /// Active le service de fichiers statiques (activé par défaut)
+    // ═══════════════════════════════════════════════════════════
+    // FICHIERS STATIQUES
+    // ═══════════════════════════════════════════════════════════
+
+    /// Configure les fichiers statiques via une closure.
+    ///
+    /// Même principe que `.middleware()` et `.core()` :
+    /// configuration flexible, validation au build.
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// .static_files(|s| s.disable())
+    /// ```
+    pub fn static_files(mut self, f: impl FnOnce(StaticStaging) -> StaticStaging) -> Self {
+        self.statics = f(self.statics);
+        self
+    }
+
+    /// Raccourci : active le service de fichiers statiques (activé par défaut)
     pub fn statics(mut self) -> Self {
-        self.statics.enabled = true;
+        self.statics = self.statics.enable();
         self
     }
 
-    /// Désactive le service de fichiers statiques
+    /// Raccourci : désactive le service de fichiers statiques
     pub fn no_statics(mut self) -> Self {
-        self.statics.enabled = false;
+        self.statics = self.statics.disable();
         self
     }
 

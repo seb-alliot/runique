@@ -22,6 +22,47 @@ impl StaticStaging {
         Self { enabled: true }
     }
 
+    // ═══════════════════════════════════════════════════
+    // Configuration des fichiers statiques
+    // ═══════════════════════════════════════════════════
+
+    /// Active le service de fichiers statiques
+    ///
+    /// ```rust,ignore
+    /// .static_files(|s| s.enable())
+    /// ```
+    pub fn enable(mut self) -> Self {
+        self.enabled = true;
+        self
+    }
+
+    /// Désactive le service de fichiers statiques
+    ///
+    /// Utile pour les API pures ou quand un CDN/reverse-proxy
+    /// gère les fichiers statiques.
+    ///
+    /// ```rust,ignore
+    /// .static_files(|s| s.disable())
+    /// ```
+    pub fn disable(mut self) -> Self {
+        self.enabled = false;
+        self
+    }
+
+    /// Active ou désactive le service de fichiers statiques
+    ///
+    /// ```rust,ignore
+    /// .static_files(|s| s.enabled(false))
+    /// ```
+    pub fn enabled(mut self, enable: bool) -> Self {
+        self.enabled = enable;
+        self
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Validation
+    // ═══════════════════════════════════════════════════
+
     /// Valide la configuration des fichiers statiques
     pub fn validate(&self) -> Result<(), BuildError> {
         // Pour l'instant, rien à valider :

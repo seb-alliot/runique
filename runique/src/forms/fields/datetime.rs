@@ -124,7 +124,7 @@ impl FormField for DateField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
@@ -257,7 +257,7 @@ impl FormField for TimeField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
@@ -390,7 +390,7 @@ impl FormField for DateTimeField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
@@ -524,7 +524,7 @@ impl FormField for DurationField {
             }
         }
 
-        self.set_error("".into());
+        self.clear_error();
         true
     }
 
