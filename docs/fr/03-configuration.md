@@ -438,4 +438,4 @@ let app = IntelligentBuilder::new(config)
 
 ## Prochaines étapes
 
-→ [**Routage**](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
+← [**Architecture**](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md) | [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md) →

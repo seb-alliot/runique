@@ -264,4 +264,4 @@ return request.render("form.html");
 
 ## Prochaines étapes
 
-← [**Middleware & Sécurité**](08-middleware.md) | [**Exemples Pratiques**](10-examples.md) →
+← [**Middleware & Security**](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md) | [**Practical Examples**](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md) →

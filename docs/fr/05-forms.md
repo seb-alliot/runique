@@ -799,4 +799,4 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 
 ## Prochaines étapes
 
-← [**Routage**](04-routing.md) | [**Templates**](06-templates.md) →
+← [**Routing**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/06-templates.md) →

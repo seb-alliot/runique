@@ -431,10 +431,8 @@ pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
 ```rust
 pub fn routes() -> Router {
     urlpatterns! {
-        "/api/users" => view!{
-            GET => api_list_users,
-            POST => api_create_user
-        }, name = "api_users",
+        "/api/users" => view!{ api_list_users }
+        , name = "api_users",
     }
 }
 ```
@@ -446,10 +444,9 @@ use axum::Json;
 use serde_json::json;
 
 pub async fn api_list_users(request: Request) -> AppResult<Response> {
-    let db = request.engine.db.clone();
 
     let users = users::Entity::find()
-        .all(&*db)
+        .all(&*&request.engine.db)
         .await?;
 
     Ok(Json(json!({
@@ -523,14 +520,15 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 
 ## Pour aller plus loin
 
-- [Installation](01-installation.md)
-- [Architecture](02-architecture.md)
-- [Configuration](03-configuration.md)
-- [Routage](04-routing.md)
-- [Formulaires](05-forms.md)
-- [Templates](06-templates.md)
-- [ORM](07-orm.md)
-- [Middleware](08-middleware.md)
-- [Flash Messages](09-flash-messages.md)
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
+- [Routing](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
+- [Forms](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md)
+- [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
 
-← [**Flash Messages**](09-flash-messages.md) | [**Retour au README**](README.md) →
+← [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md) | [**Back to README**](https://github.com/seb-alliot/runique/blob/main/README.md) →
+

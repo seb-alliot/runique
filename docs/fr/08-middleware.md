@@ -281,4 +281,4 @@ let app = IntelligentBuilder::new(config)
 
 ## Prochaines étapes
 
-← [**ORM & Base de Données**](07-orm.md) | [**Flash Messages**](09-flash-messages.md) →
+← [**ORM & Database**](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md) | [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md) →

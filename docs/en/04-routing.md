@@ -1,26 +1,87 @@
+
+---
+
 # 🛣️ Routing
 
 ## urlpatterns! Macro
 
-Define application routes:
+Define application routes with names for URL resolution:
 
 ```rust
 use crate::views;
 use runique::prelude::*;
-use runique::{urlpatterns, view}; // Explicit macros and required for this syntax
+use runique::{urlpatterns, view};
 
 pub fn routes() -> Router {
-    let router = urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
-        "/inscription" => view! {
-            GET => views::inscription,
-            POST => views::soumission_inscription },
-            name = "inscription",
-         "/users/<id>" => view!{
-            GET => views::user_detail },
-            name = "user_detail",
-    };
-    router
+    urlpatterns! {
+        "/" => view!{ views::index }, name = "index",
+        "/users" => view! { views::user_list }, name = "users",
+        "/users/:id" => view!{ views::user_detail }, name = "user_detail",
+
+        // For delete, separate route:
+        "/users/:id/delete" => view!{ views::delete_user }, name = "user_delete",
+    }
+}
+```
+
+### With Names (recommended)
+
+Names allow URL resolution in templates using `{% link "name" %}`:
+
+```rust
+urlpatterns! {
+    "/" => view!{ views::index }, name = "index",
+    "/users/:id" => view!{ views::user_detail }, name = "user_detail",
+}
+```
+
+```html
+<a href='{% link "index" %}'>Home</a>
+<a href='{% link "user_detail" id="42" %}'>Profile</a>
+```
+
+### Without Names
+
+```rust
+urlpatterns! {
+    "/" => view!{ views::index },
+    "/about" => view!{ views::about },
+}
+```
+
+---
+
+## view! Macro
+
+### Single handler for all methods
+
+A single handler handles GET, POST, PUT, and DELETE (recommended pattern with `request.is_get()` / `request.is_post()`):
+
+```rust
+// In routes
+"/register" => view!{ views::register }, name = "register",
+```
+
+```rust
+// In handler
+pub async fn register(
+    mut request: Request,
+    Prisme(mut form): Prisme<RegisterForm>,
+) -> AppResult<Response> {
+    if request.is_get() {
+        // Display empty form
+        context_update!(request => { "form" => &form });
+        return request.render("form.html");
+    }
+
+    if request.is_post() {
+        // Process submission
+        if form.is_valid().await {
+            // ...
+        }
+    }
+
+    request.render("form.html")
 }
 ```
 
@@ -28,7 +89,7 @@ pub fn routes() -> Router {
 
 ## Parameter Extractors
 
-### Path - URL Parameters
+### Path — URL Parameters
 
 ```rust
 use axum::extract::Path;
@@ -36,26 +97,30 @@ use axum::extract::Path;
 // Simple
 async fn user_detail(
     Path(id): Path<i32>,
-    mut template: TemplateContext,
-) -> AppResult<Response> { }
+    mut request: Request,
+) -> AppResult<Response> {
+    // id = 42 for /users/42
+}
 
 // Multiple
 #[derive(Deserialize)]
-pub struct UserSearchPath {
+pub struct UserPostPath {
     user_id: i32,
     post_id: i32,
 }
 
 async fn user_post(
-    Path(UserSearchPath { user_id, post_id }): Path<UserSearchPath>,
-) -> Response { }
+    Path(params): Path<UserPostPath>,
+    mut request: Request,
+) -> AppResult<Response> {
+    // params.user_id, params.post_id
+}
 ```
 
-### Query - Query Parameters
+### Query — Query Parameters
 
 ```rust
 use axum::extract::Query;
-use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct PaginationQuery {
@@ -65,17 +130,34 @@ pub struct PaginationQuery {
 
 async fn list(
     Query(query): Query<PaginationQuery>,
-) -> Response {
+    mut request: Request,
+) -> AppResult<Response> {
     let page = query.page.unwrap_or(1);
     let limit = query.limit.unwrap_or(10);
+    // ...
 }
 ```
 
-### Body - POST Content
+### Prisme — Forms
+
+```rust
+use runique::prelude::*;
+
+async fn register(
+    mut request: Request,
+    Prisme(mut form): Prisme<RegisterForm>,
+) -> AppResult<Response> {
+    if form.is_valid().await {
+        form.save(&request.engine.db).await?;
+    }
+    // ...
+}
+```
+
+### JSON — POST Body
 
 ```rust
 use axum::Json;
-use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct CreateUserRequest {
@@ -83,26 +165,10 @@ pub struct CreateUserRequest {
     email: String,
 }
 
-async fn create(
+async fn create_api(
     Json(payload): Json<CreateUserRequest>,
-) -> Response { }
-```
-
-### Forms - Prisme Extractor
-
-```rust
-use runique::formulaire::Prisme;
-use demo_app::forms::LoginForm;
-
-async fn login(
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
-    let db = template.engine.db.clone();
-    if form.is_valid().await {
-        match form.save(&*db).await {
-        // Process
-        }
-    }
+) -> impl IntoResponse {
+    // payload.username, payload.email
 }
 ```
 
@@ -110,17 +176,25 @@ async fn login(
 
 ## Returning Responses
 
-### HTML Template
+### HTML Template (most common)
 
 ```rust
-async fn index(
-    template: TemplateContext,
-) -> Response {
-    context_update!(template => {
+async fn index(mut request: Request) -> AppResult<Response> {
+    context_update!(request => {
         "title" => "Home",
-        "items" => vec![1, 2, 3]
     });
-    template.render("index.html")
+    request.render("index.html")
+}
+```
+
+### Redirect
+
+```rust
+use axum::response::Redirect;
+
+async fn after_submit(request: Request) -> AppResult<Response> {
+    success!(request.notices => "Saved!");
+    Ok(Redirect::to("/").into_response())
 }
 ```
 
@@ -133,21 +207,8 @@ use serde_json::json;
 async fn api_list() -> Json<serde_json::Value> {
     Json(json!({
         "status": "success",
-        "data": vec![1, 2, 3]
+        "data": [1, 2, 3]
     }))
-}
-```
-
-### Redirect
-
-```rust
-use axum::response::Redirect;
-
-async fn login_submit(
-    Message(mut messages): Message,
-) -> Response {
-    messages.success("Connected!");
-    Redirect::to("/dashboard").into_response()
 }
 ```
 
@@ -171,113 +232,101 @@ async fn created(Json(data): Json<Data>) -> (StatusCode, Json<Data>) {
 
 ---
 
-## Complete Structure
+## Complete App Structure
 
 ```rust
-use runique::prelude::*;
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::Redirect,
-    routing::{get, post},
-    Json, Router,
-};
+// src/url.rs
 use crate::views;
-use runique::{urlpatterns, view}; // Explicit macros
+use runique::prelude::*;
+use runique::{urlpatterns, view};
 
 pub fn routes() -> Router {
-    urlpatterns! {
-        "/" => view!{
-            GET => views::index
-            },
-            name = "index",
+    let router = urlpatterns! {
+        "/" => view!{ views::index }, name = "index",
+        "/about" => view! { views::about }, name = "about",
+        "/register" => view! { views::register_submit }, name = "register",
+    };
+    router
+}
+```
 
-        "/users" => view!{
-            GET => views::user_list,
-            POST => views::create_user
-            },
-            name = "users",
+```rust
+// src/views.rs
+use runique::prelude::*;
 
-        "/users/:id" => view!{
-            GET => views::user_detail,
-            POST => views::update_user
-            },
-            name = "user_detail",
+pub async fn index(mut request: Request) -> AppResult<Response> {
+    context_update!(request => {
+        "title" => "Home",
+    });
+    request.render("index.html")
+}
 
-        // For delete, separate route:
-        "/users/:id/delete" => view!{
-            POST => views::delete_user
-            },
-            name = "user_delete",
+pub async fn about(mut request: Request) -> AppResult<Response> {
+    success!(request.notices => "Welcome!");
+
+    context_update!(request => {
+        "title" => "About",
+    });
+    request.render("about/about.html")
+}
+
+pub async fn register_submit(
+    mut request: Request,
+    Prisme(mut form): Prisme<RegisterForm>,
+) -> AppResult<Response> {
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "Register",
+            "register_form" => &form,
+        });
+        return request.render("register_form.html");
     }
-}
 
-async fn index(template: TemplateContext) -> Response {
-    context_update!(template => {
-        "title" => "Home"
-    });
-    template.render("index.html")
-}
-
-async fn user_list(
-    mut template: TemplateContext,
-) -> AppResult<Response> {
-    let users = UserEntity::find()
-        .all(&template.engine.db)
-        .await?;
-
-    context_update!(template => {
-        "users" => users
-    });
-
-    template.render("users/list.html")
-}
-
-async fn user_detail(
-    Path(id): Path<i32>,
-    mut template: TemplateContext,
-) -> AppResult<Response> {
-    let user = UserEntity::find_by_id(id)
-        .one(&template.engine.db)
-        .await?;
-
-    match user {
-        Some(user) => {
-            context_update!(template => {
-                "user" => user
-            });
-            template.render("users/detail.html")
+    if request.is_post() {
+        if form.is_valid().await {
+            let user = form.save(&request.engine.db).await.map_err(|err| {
+                form.get_form_mut().database_error(&err);
+                AppError::from(err)
+            })?;
+            success!(request.notices => format!("Welcome {}!", user.username));
+            return Ok(Redirect::to("/").into_response());
         }
-        None => Ok(StatusCode::NOT_FOUND.into_response()),
-    }
-}
 
-async fn create_user(
-    mut template: TemplateContext,
-    Prisme(mut form): Prisme<UserForm>,
-) -> AppResult<Response> {
-    if form.is_valid().await {
-        match form.save(&template.engine.db).await {
-            Ok(_) => {
-                success!(template.notices => "User created!");
-                return Ok(Redirect::to("/users").into_response());
-            }
-            Err(e) => {
-                form.get_form_mut().database_error(&e);
-            }
-        }
+        context_update!(request => {
+            "title" => "Error",
+            "register_form" => &form,
+            "messages" => flash_now!(error => "Please correct the errors"),
+        });
+        return request.render("register_form.html");
     }
 
-    context_update!(template => {
-        "form" => form
-    });
-
-    template.render("users/form.html")
+    request.render("register_form.html")
 }
 ```
 
 ---
 
+## impl_objects! Macro (bonus)
+
+For routes performing ORM queries, `impl_objects!` adds a Django-like manager:
+
+```rust
+use runique::impl_objects;
+
+impl_objects!(users::Entity);
+
+// Then in handlers:
+let user = users::Entity::objects
+    .filter(users::Column::Username.eq("john"))
+    .first(&db)
+    .await?;
+```
+
+See the [ORM guide](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md) for more details.
+
+---
+
 ## Next Steps
 
-→ [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+← [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md) | [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) →
+

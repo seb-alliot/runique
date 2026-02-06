@@ -1,3 +1,5 @@
+Voici la traduction complète en anglais de ton chapitre sur l’ORM et la base de données :
+
 # 🗄️ ORM & Database
 
 ## SeaORM + Objects Manager
@@ -8,16 +10,16 @@ Runique uses **SeaORM** with a Django-like manager via the `impl_objects!` macro
 use demo_app::models::users;
 use runique::impl_objects; // adds <Entity>::objects
 
-// Add the manager once on your entity
+// Add the manager once in your model
 impl_objects!(users::Entity);
 
-// Get all users
+// Retrieve all users
 let all_users = users::Entity::objects
     .all()
     .all(&*db)
     .await?;
 
-// With filter
+// With a filter
 let active_users = users::Entity::objects
     .filter(users::Column::Active.eq(true))
     .all(&*db)
@@ -30,7 +32,7 @@ let user = users::Entity::objects
     .await?;
 ```
 
-### Without macro (plain SeaORM)
+### Without Macro (Native SeaORM)
 
 ```rust
 // All records
@@ -48,12 +50,13 @@ let user = users::Entity::find_by_id(user_id)
     .await?;
 ```
 
-### Available helpers
-- `all()` : entrypoint to chain `filter`, `order_by_asc/desc`, `limit`, `offset`.
-- `filter(...)` / `exclude(...)` : add conditions.
-- `first(db)` / `count(db)` : execute the query (client-side count).
-- `get(db, id)` / `get_optional(db, id)` : direct primary key access.
-- `get_or_404(db, ctx, msg)` : returns 404/500 with Tera rendering when missing.
+### Available Helpers
+
+* `all()`: entry point to chain `filter`, `order_by_asc/desc`, `limit`, `offset`.
+* `filter(...)` / `exclude(...)`: add conditions.
+* `first(db)` / `count(db)`: executes the query (alias for `one` / quick client-side count).
+* `get(db, id)` / `get_optional(db, id)`: direct access by primary key.
+* `get_or_404(db, ctx, msg)`: returns a 404/500 response with Tera rendering if missing.
 
 ---
 
@@ -76,7 +79,7 @@ let users = users::Entity::objects
     .all(&*db)
     .await?;
 
-// With sorting
+// With ordering
 use sea_orm::Order;
 let users = users::Entity::objects
     .all()
@@ -93,7 +96,7 @@ let users = users::Entity::objects
     .await?;
 ```
 
-### COUNT - Count
+### COUNT - Count records
 
 ```rust
 let count = users::Entity::objects
@@ -134,7 +137,7 @@ let users = users::Entity::objects
     .all(&*db)
     .await?;
 
-// OR
+// OR condition
 use sea_orm::sea_query::IntoCondition;
 let users = users::Entity::objects
     .filter(
@@ -180,7 +183,7 @@ user.email = Set("newemail@example.com".to_string());
 user.username = Set("newname".to_string());
 
 let updated = user.update(&*db).await?;
-println!("Modified: {:?}", updated);
+println!("Updated: {:?}", updated);
 ```
 
 ---
@@ -262,7 +265,8 @@ use demo_app::models::users;
 use runique::prelude::*;
 use axum::extract::Path;
 
-// CRUD Handler - with macro (Entity::objects)
+// CRUD Handler
+// Using macro (Entity::objects)
 async fn list_users() -> Response {
     let db = /* access db from app state */;
 
@@ -275,7 +279,7 @@ async fn list_users() -> Response {
     }
 }
 
-// CRUD Handler - without macro (plain SeaORM)
+// Without macro (native SeaORM)
 async fn list_users_raw() -> Response {
     let db = /* access db from app state */;
 
@@ -288,7 +292,7 @@ async fn list_users_raw() -> Response {
     }
 }
 
-// With find_by_id
+// Using find_by_id
 async fn get_user(
     Path(id): Path<i32>,
 ) -> Response {
@@ -359,29 +363,7 @@ async fn delete_user(
             Redirect::to("/users").into_response()
         }
         _ => {
-            messages.error("Deletion error");
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    }
-}
-
-// Without macro (same delete_by_id, plain SeaORM)
-async fn delete_user_raw(
-    Path(id): Path<i32>,
-    Message(mut messages): Message,
-) -> Response {
-    let db = /* access db from app state */;
-
-    match users::Entity::delete_by_id(id)
-        .exec(&*db)
-        .await
-    {
-        Ok(result) if result.rows_affected > 0 => {
-            messages.success("User deleted");
-            Redirect::to("/users").into_response()
-        }
-        _ => {
-            messages.error("Deletion error");
+            messages.error("Deletion failed");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }

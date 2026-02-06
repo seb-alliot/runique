@@ -195,7 +195,7 @@ DB_NAME=mabase
 
 # Ou SQLite (par défaut)
 DB_ENGINE=sqlite
-DB_NAME=app.db
+DATABASE_URL="sqlite://mabase.db?mode=rwc"
 
 ```
 
