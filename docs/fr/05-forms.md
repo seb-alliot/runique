@@ -14,7 +14,7 @@ Voici un sommaire structuré pour ton document « Formulaires » avec tous l
     - [Pipeline de validation `is_valid()`](#pipeline-de-validation-is_valid)
     - [Helpers de conversion typée](#helpers-de-conversion-typee)
       - [Conversions directes](#conversions-directes)
-      - [Conversions Option (None si vide)](#conversions-option)
+      - [Conversions Option](#conversions-option)
       - [Utilisation dans save()](#utilisation-dans-save)
   - [Types de champs](#types-de-champs)
     - [TextField — Champs texte](#textfield)
@@ -68,6 +68,8 @@ Les formulaires sont extraits automatiquement des requêtes via l’extracteur *
 
 ---
 
+[↑](#vue-densemble)
+
 <a id="extracteur-prisme"></a>
 ## Extracteur Prisme
 
@@ -97,6 +99,8 @@ pub async fn inscription(
 > **💡** Le développeur écrit simplement `Prisme(mut form)` — tout le pipeline sécurité est transparent.
 
 ---
+
+[↑](#vue-densemble)
 
 <a id="approche-manuelle-trait-runiqueform"></a>
 ## Approche manuelle : trait RuniqueForm
@@ -148,6 +152,8 @@ fn get_form_mut(&mut self) -> &mut Forms {
 
 </details>
 
+[↑](#vue-densemble)
+
 <a id="methodes-du-trait-runiqueform"></a>
 ### Méthodes du trait RuniqueForm
 
@@ -161,6 +167,8 @@ fn get_form_mut(&mut self) -> &mut Forms {
 | `database_error(&err)`              | Injecte une erreur DB sur le bon champ                          |
 | `build(tera, csrf_token)`           | Construit un formulaire vide                                    |
 | `build_with_data(data, tera, csrf)` | Construit, remplit et valide                                    |
+
+[↑](#vue-densemble)
 
 <a id="pipeline-de-validation-is_valid"></a>
 ### Pipeline de validation `is_valid()`
@@ -197,6 +205,8 @@ impl RuniqueForm for RegisterForm {
 
 ---
 
+[↑](#vue-densemble)
+
 <a id="helpers-de-conversion-typee"></a>
 ## Helpers de conversion typée
 
@@ -215,9 +225,10 @@ form.get_f32("ratio")            // -> f32 (gère , → .)
 form.get_f64("price")            // -> f64 (gère , → .)
 form.get_bool("active")          // -> bool (true/1/on → true)
 ```
+[↑](#vue-densemble)
 
 <a id="conversions-option"></a>
-### Conversions Option (None si vide)
+### Conversions Option
 
 ```rust
 form.get_option("bio")           // -> Option<String> (None si vide)
@@ -226,6 +237,8 @@ form.get_option_i64("score")     // -> Option<i64>
 form.get_option_f64("note")      // -> Option<f64> (gère , → .)
 form.get_option_bool("news")     // -> Option<bool>
 ```
+
+[↑](#vue-densemble)
 
 <a id="utilisation-dans-save"></a>
 ### Utilisation dans save()
@@ -251,6 +264,8 @@ impl RegisterForm {
 ---
 
 ---
+
+[↑](#vue-densemble)
 
 <a id="types-de-champs"></a>
 ## Types de champs
@@ -320,6 +335,8 @@ let ok = TextField::verify_password("mdp_clair", "$argon2...");
 
 > Le hachage automatique détecte si la valeur commence déjà par `$argon2` pour éviter un double hachage.
 
+[↑](#vue-densemble)
+
 <a id="numericfield"></a>
 ### NumericField — Champs numériques
 
@@ -357,6 +374,8 @@ form.field(
 
 **Options :** `.min(val, msg)`, `.max(val, msg)`, `.step(val)`, `.digits(min, max)`, `.label(l)`, `.placeholder(p)`
 
+[↑](#vue-densemble)
+
 <a id="booleanfield"></a>
 ### BooleanField — Cases à cocher / Radio simple
 
@@ -374,6 +393,8 @@ form.field(&BooleanField::radio("newsletter").label("Newsletter"));
 // Pré-coché
 form.field(&BooleanField::new("remember_me").label("Se souvenir").checked());
 ```
+
+[↑](#vue-densemble)
 
 <a id="choicefield"></a>
 ### ChoiceField — Select / Dropdown
@@ -406,6 +427,8 @@ form.field(
 
 > La validation vérifie automatiquement que la valeur soumise fait partie des choix déclarés.
 
+[↑](#vue-densemble)
+
 <a id="radiofield"></a>
 ### RadioField — Boutons radio
 
@@ -421,6 +444,8 @@ form.field(
         .required(),
 );
 ```
+
+[↑](#vue-densemble)
 
 <a id="checkboxfield"></a>
 ### CheckboxField — Checkboxes multiples
@@ -460,6 +485,8 @@ form.field(&TimeField::new("meeting_time").label("Heure du RDV"));
 form.field(&DateTimeField::new("event_start").label("Début de l'événement"));
 ```
 
+[↑](#vue-densemble)
+
 <a id="durationfield"></a>
 ### DurationField — Durée
 
@@ -471,6 +498,8 @@ form.field(
         .max_seconds(3600, "Maximum 1 heure"),
 );
 ```
+
+[↑](#vue-densemble)
 
 <a id="filefield"></a>
 ### FileField — Upload de fichiers
@@ -508,6 +537,8 @@ form.field(
 
 > **Sécurité** : les fichiers `.svg` sont **toujours refusés** par défaut (risque XSS). La validation d'image utilise le crate `image` pour vérifier le format réel du fichier.
 
+[↑](#vue-densemble)
+
 <a id="js-associes"></a>
 ### Fichiers JS associés
 
@@ -520,6 +551,8 @@ fn register_fields(form: &mut Forms) {
 
 Les fichiers JS sont inclus automatiquement dans le rendu HTML du formulaire.
 
+[↑](#vue-densemble)
+
 <a id="colorfield"></a>
 ### ColorField — Sélecteur de couleur
 
@@ -530,6 +563,8 @@ form.field(
         .default_color("#3498db"),  // Valide le format #RGB ou #RRGGBB
 );
 ```
+
+[↑](#vue-densemble)
 
 <a id="slugfield"></a>
 ### SlugField — Slug URL-friendly
@@ -545,6 +580,8 @@ form.field(
 
 > Validation : lettres, chiffres, tirets, underscores uniquement. Ne peut pas commencer ou finir par un tiret.
 
+[↑](#vue-densemble)
+
 <a id="uuidfield"></a>
 ### UUIDField
 
@@ -555,6 +592,8 @@ form.field(
         .placeholder("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"),
 );
 ```
+
+[↑](#vue-densemble)
 
 <a id="jsonfield"></a>
 ### JSONField — Textarea avec validation JSON
@@ -567,6 +606,8 @@ form.field(
         .rows(10),  // Nombre de lignes du textarea
 );
 ```
+
+[↑](#vue-densemble)
 
 <a id="ipaddressfield"></a>
 ### IPAddressField — Adresse IP
@@ -583,6 +624,8 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 ```
 
 ---
+
+[↑](#vue-densemble)
 
 <a id="recapitulatif-types-champs"></a>
 ## Récapitulatif des types de champs
@@ -607,6 +650,8 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 | `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()` | IPv4/IPv6 via `std::net::IpAddr` |
 
 ---
+
+[↑](#vue-densemble)
 
 <a id="approche-automatique-deriveform"></a>
 ## Approche automatique : DeriveModelForm
@@ -635,6 +680,8 @@ pub struct Model {
 pub struct Model;
 ```
 
+[↑](#vue-densemble)
+
 <a id="champs-auto-exclus"></a>
 ### Champs auto-exclus
 
@@ -645,6 +692,8 @@ pub struct Model;
 - `created_at`, `updated_at`  
 - `is_active`, `deleted_at`  
 - Tout champ marqué `#[sea_orm(primary_key)]`
+
+[↑](#vue-densemble)
 
 <a id="detection-automatique-types"></a>
 ### Détection automatique des types
@@ -666,6 +715,8 @@ pub struct Model;
 | `Option<T>` | Champ **non required** | `get_option()` |
 | Non-`Option<T>` | Champ **required** | Type correspondant |
 
+[↑](#vue-densemble)
+
 <a id="attributs-personnalisation"></a>
 ### Attributs de personnalisation
 
@@ -676,6 +727,8 @@ pub struct Model;
 ```
 
 ---
+
+[↑](#vue-densemble)
 
 <a id="erreurs-base-donnees"></a>
 ## Erreurs de base de données
@@ -702,6 +755,8 @@ Si le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est
 
 ---
 
+[↑](#vue-densemble)
+
 <a id="rendu-templates"></a>
 ## Rendu dans les templates
 
@@ -716,6 +771,8 @@ Si le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est
 ```
 
 Rend automatiquement : tous les champs, les labels, les erreurs de validation, le token CSRF et les scripts JS.
+
+[↑](#vue-densemble)
 
 <a id="champ-par-champ"></a>
 ### Champ par champ
@@ -732,6 +789,8 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 </form>
 ```
 
+[↑](#vue-densemble)
+
 <a id="erreurs-globales"></a>
 ### Erreurs globales
 
@@ -744,6 +803,8 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
     </div>
 {% endif %}
 ```
+
+[↑](#vue-densemble)
 
 <a id="donnees-json"></a>
 ### Données de champ en JSON
@@ -804,6 +865,8 @@ impl RegisterForm {
 }
 ```
 
+[↑](#vue-densemble)
+
 <a id="handler-get-post"></a>
 ### Handler GET/POST
 
@@ -849,6 +912,8 @@ pub async fn inscription(
 
 ---
 
+[↑](#vue-densemble)
+
 <a id="pieges-courants"></a>
 ## ⚠️ Pièges courants
 
@@ -868,6 +933,8 @@ context_update!(request => {
 });
 ```
 
+[↑](#vue-densemble)
+
 <a id="mut-sur-form"></a>
 ### 2. Oublier le `mut` sur form
 
@@ -878,6 +945,8 @@ Prisme(form): Prisme<MyForm>
 // ✅ Correct
 Prisme(mut form): Prisme<MyForm>
 ```
+
+[↑](#vue-densemble)
 
 <a id="comparer-mot-de-passe"></a>
 ### 3. Comparer des mots de passe après `is_valid()`
@@ -897,6 +966,8 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 ```
 
 ---
+
+[↑](#vue-densemble)
 
 <a id="prochaines-etapes"></a>
 ## Prochaines étapes
