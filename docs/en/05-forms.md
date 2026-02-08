@@ -1,6 +1,41 @@
 
 # 📋 Forms
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Prisme Extractor](#prisme-extractor)
+- [Manual Approach: `RuniqueForm` Trait](#manual-approach-runiqueform-trait)
+  - [Basic Structure](#basic-structure)
+  - [Methods of the `RuniqueForm` Trait](#methods-of-the-runiqueform-trait)
+  - [Validation Pipeline `is_valid()`](#validation-pipeline-is_valid)
+- [Typed Conversion Helpers](#typed-conversion-helpers)
+  - [Direct Conversions](#direct-conversions)
+  - [Option Conversions](#option-conversions)
+  - [Usage in `save()`](#usage-in-save)
+- [Field Types](#field-types)
+  - [TextField](#textfield)
+  - [NumericField](#numericfield)
+  - [BooleanField](#booleanfield)
+  - [ChoiceField](#choicefield)
+  - [RadioField](#radiofield)
+  - [CheckboxField](#checkboxfield)
+  - [DateField, TimeField, DateTimeField](#datefield-timefield-datetimefield)
+  - [DurationField](#durationfield)
+  - [FileField](#filefield)
+  - [ColorField](#colorfield)
+  - [SlugField](#slugfield)
+  - [UUIDField](#uuidfield)
+  - [JSONField](#jsonfield)
+  - [IPAddressField](#ipaddressfield)
+- [Automatic Approach: `DeriveModelForm`](#automatic-approach-derivemodelform)
+- [Database Errors](#database-errors)
+- [Template Rendering](#template-rendering)
+- [Complete Example: Registration with Save](#complete-example-registration-with-save)
+- [Common Pitfalls](#common-pitfalls)
+- [Next Steps](#next-steps)
+
+
 <a id="vue-densemble"></a>
 ## Overview
 
