@@ -1,5 +1,60 @@
 
-# 📋 Formulaires
+Voici un sommaire structuré pour ton document « Formulaires » avec tous les ancres existantes :
+
+---
+
+# Sommaire
+
+- [📋 Formulaires](#vue-densemble)
+  - [Vue d'ensemble](#vue-densemble)
+  - [Extracteur Prisme](#extracteur-prisme)
+  - [Approche manuelle : trait RuniqueForm](#approche-manuelle-trait-runiqueform)
+    - [Structure de base](#structure-de-base)
+    - [Méthodes du trait RuniqueForm](#methodes-du-trait-runiqueform)
+    - [Pipeline de validation `is_valid()`](#pipeline-de-validation-is_valid)
+    - [Helpers de conversion typée](#helpers-de-conversion-typee)
+      - [Conversions directes](#conversions-directes)
+      - [Conversions Option (None si vide)](#conversions-option)
+      - [Utilisation dans save()](#utilisation-dans-save)
+  - [Types de champs](#types-de-champs)
+    - [TextField — Champs texte](#textfield)
+    - [NumericField — Champs numériques](#numericfield)
+    - [BooleanField — Cases à cocher / Radio simple](#booleanfield)
+    - [ChoiceField — Select / Dropdown](#choicefield)
+    - [RadioField — Boutons radio](#radiofield)
+    - [CheckboxField — Checkboxes multiples](#checkboxfield)
+    - [DateField, TimeField, DateTimeField — Date / Heure](#date-time-duration-fields)
+    - [DurationField — Durée](#durationfield)
+    - [FileField — Upload de fichiers](#filefield)
+    - [Fichiers JS associés](#js-associes)
+    - [ColorField — Sélecteur de couleur](#colorfield)
+    - [SlugField — Slug URL-friendly](#slugfield)
+    - [UUIDField](#uuidfield)
+    - [JSONField — Textarea avec validation JSON](#jsonfield)
+    - [IPAddressField — Adresse IP](#ipaddressfield)
+  - [Récapitulatif des types de champs](#recapitulatif-types-champs)
+  - [Approche automatique : DeriveModelForm](#approche-automatique-deriveform)
+    - [Champs auto-exclus](#champs-auto-exclus)
+    - [Détection automatique des types](#detection-automatique-types)
+    - [Attributs de personnalisation](#attributs-personnalisation)
+  - [Erreurs de base de données](#erreurs-base-donnees)
+  - [Rendu dans les templates](#rendu-templates)
+    - [Formulaire complet](#formulaire-complet)
+    - [Champ par champ](#champ-par-champ)
+    - [Erreurs globales](#erreurs-globales)
+    - [Données de champ en JSON](#donnees-json)
+  - [Exemple complet : inscription avec sauvegarde](#exemple-complet-inscription)
+    - [Handler GET/POST](#handler-get-post)
+  - [⚠️ Pièges courants](#pieges-courants)
+    - [1. Collision de noms de variables template](#collision-noms-variables)
+    - [2. Oublier le `mut` sur form](#mut-sur-form)
+    - [3. Comparer des mots de passe après `is_valid()`](#comparer-mot-de-passe)
+  - [Prochaines étapes](#prochaines-etapes)
+
+---
+
+Si tu veux, je peux aussi générer une **version Markdown cliquable complète** avec indentation et liens directs pour un vrai sommaire interactif. Veux‑tu que je fasse ça ?
+
 
 <a id="vue-densemble"></a>
 ## Vue d'ensemble
