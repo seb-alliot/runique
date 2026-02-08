@@ -49,9 +49,6 @@
 12. [Next Steps](#next-steps)
 
 
-
-
-<a id="vue-densemble"></a>
 ## Overview
 
 Runique provides a powerful form system inspired by Django. There are **two approaches**:
@@ -63,7 +60,6 @@ Forms are automatically extracted from requests via the **Prisme** extractor, ha
 
 ---
 
-<a id="extracteur-prisme"></a>
 ## Prisme Extractor
 
 `Prisme<T>` is an Axum extractor that orchestrates a full pipeline behind the scenes:
@@ -93,11 +89,7 @@ pub async fn registration(
 
 ---
 
-<a id="approche-manuelle-trait-runiqueform"></a>
-
 ## Manual Approach: `RuniqueForm` Trait
-
-<a id="structure-de-base"></a>
 
 ### Basic Structure
 
@@ -126,7 +118,7 @@ impl RuniqueForm for UsernameForm {
 }
 ```
 
-> **💡 `impl_form_access!()`** automatically generates `from_form()`, `get_form()`, and `get_form_mut()`. If your field is not named `form`, pass the field name as an argument: `impl_form_access!(formulaire);`
+> **💡 `impl_form_access!()`** automatically generates `from_form()`, `get_form()`, and `get_form_mut()`. If your field is not named `form`, pass the field name as an argument: `impl_form_access!(form_field_name);`
 
 <details>
 <summary>Equivalent without macro (for reference)</summary>
@@ -145,8 +137,6 @@ fn get_form_mut(&mut self) -> &mut Forms {
 
 </details>
 
-<a id="methodes-du-trait-runiqueform"></a>
-
 ### Methods of the `RuniqueForm` Trait
 
 | Method                              | Purpose                                                                    |
@@ -159,8 +149,6 @@ fn get_form_mut(&mut self) -> &mut Forms {
 | `database_error(&err)`              | Injects a DB error on the correct field                                    |
 | `build(tera, csrf_token)`           | Builds an empty form                                                       |
 | `build_with_data(data, tera, csrf)` | Builds, fills, and validates                                               |
-
-<a id="pipeline-de-validation-is_valid"></a>
 
 ### Validation Pipeline `is_valid()`
 
@@ -196,13 +184,9 @@ impl RuniqueForm for RegisterForm {
 
 ---
 
-<a id="helpers-de-conversion-typee"></a>
-
 ## Typed Conversion Helpers
 
 Form values are stored as `String`. Instead of parsing manually, use the typed helpers on `Forms`:
-
-<a id="conversions-directes"></a>
 
 ### Direct Conversions
 
@@ -217,8 +201,6 @@ form.get_f64("price")           // -> f64 (handles , → .)
 form.get_bool("active")         // -> bool (true/1/on → true)
 ```
 
-<a id="conversions-option"></a>
-
 ### Option Conversions (None if empty)
 
 ```rust
@@ -228,8 +210,6 @@ form.get_option_i64("score")    // -> Option<i64>
 form.get_option_f64("note")     // -> Option<f64> (handles , → .)
 form.get_option_bool("news")    // -> Option<bool>
 ```
-
-<a id="utilisation-dans-save"></a>
 
 ### Usage in `save()`
 
@@ -320,9 +300,7 @@ let ok = TextField::verify_password("plain_pw", "$argon2...");
 > Automatic hashing detects if the value already starts with `$argon2` to avoid double hashing.
 
 ---
-Parfait ! Voici la **traduction complète de tout le reste du fichier**, en conservant exactement toutes les phrases, blocs de code et ancres Markdown. Tu peux remplacer directement ton document par celui-ci :
 
-````md
 ### NumericField — Numeric Fields
 
 5 variants via the `NumericConfig` enum:
@@ -557,7 +535,10 @@ form.field(
 );
 ```
 
-> Validation: letters, numbers, dashes, and underscores only. Cannot start or end with a dash.
+> Validation: letters
+
+
+, numbers, dashes, and underscores only. Cannot start or end with a dash.
 
 ---
 
@@ -603,24 +584,24 @@ form.field(&IPAddressField::new("ipv6").label("IPv6 Address").ipv6_only());
 
 ## Summary of Field Types
 
-| Struct | Constructors | Special Validation |
-|--------|-------------|------------------|
-| `TextField` | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization |
-| `NumericField` | `integer()`, `float()`, `decimal()`, `percent()`, `range()` | Min/max bounds, decimal precision |
-| `BooleanField` | `new()`, `radio()` | Required = must be checked |
-| `ChoiceField` | `new()` + `.multiple()` | Value must be among declared choices |
-| `RadioField` | `new()` | Value must be among declared choices |
-| `CheckboxField` | `new()` | All values must be among declared choices |
-| `DateField` | `new()` | Format `YYYY-MM-DD`, min/max bounds |
-| `TimeField` | `new()` | Format `HH:MM`, min/max bounds |
-| `DateTimeField` | `new()` | Format `YYYY-MM-DDTHH:MM`, min/max bounds |
-| `DurationField` | `new()` | Seconds, min/max bounds |
-| `FileField` | `image()`, `document()`, `any()` | Extensions, size, dimensions, anti-SVG |
-| `ColorField` | `new()` | Format `#RRGGBB` or `#RGB` |
-| `SlugField` | `new()` | ASCII/unicode, no dash at start/end |
-| `UUIDField` | `new()` | Valid UUID format |
-| `JSONField` | `new()` | Valid JSON via `serde_json` |
-| `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()` | IPv4/IPv6 via `std::net::IpAddr` |
+| Struct           | Constructors                                                           | Special Validation                                  |
+| ---------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
+| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization |
+| `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`            | Min/max bounds, decimal precision                   |
+| `BooleanField`   | `new()`, `radio()`                                                     | Required = must be checked                          |
+| `ChoiceField`    | `new()` + `.multiple()`                                                | Value must be among declared choices                |
+| `RadioField`     | `new()`                                                                | Value must be among declared choices                |
+| `CheckboxField`  | `new()`                                                                | All values must be among declared choices           |
+| `DateField`      | `new()`                                                                | Format `YYYY-MM-DD`, min/max bounds                 |
+| `TimeField`      | `new()`                                                                | Format `HH:MM`, min/max bounds                      |
+| `DateTimeField`  | `new()`                                                                | Format `YYYY-MM-DDTHH:MM`, min/max bounds           |
+| `DurationField`  | `new()`                                                                | Seconds, min/max bounds                             |
+| `FileField`      | `image()`, `document()`, `any()`                                       | Extensions, size, dimensions, anti-SVG              |
+| `ColorField`     | `new()`                                                                | Format `#RRGGBB` or `#RGB`                          |
+| `SlugField`      | `new()`                                                                | ASCII/unicode, no dash at start/end                 |
+| `UUIDField`      | `new()`                                                                | Valid UUID format                                   |
+| `JSONField`      | `new()`                                                                | Valid JSON via `serde_json`                         |
+| `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()`                              | IPv4/IPv6 via `std::net::IpAddr`                    |
 
 ---
 
@@ -653,30 +634,31 @@ pub struct Model;
 ### Auto-excluded Fields
 
 `DeriveModelForm` automatically excludes:
-- `id` (primary key)
-- `csrf_token`
-- `created_at`, `updated_at`
-- `is_active`, `deleted_at`
-- Any field marked `#[sea_orm(primary_key)]`
+
+* `id` (primary key)
+* `csrf_token`
+* `created_at`, `updated_at`
+* `is_active`, `deleted_at`
+* Any field marked `#[sea_orm(primary_key)]`
 
 ### Automatic Type Detection
 
-| Rule | Generated field type | Helper in `to_active_model()` |
-|------|--------------------|-------------------------------|
-| Name contains `email` | `TextField::email()` | `get_string()` |
-| Name contains `password` / `pwd` | `TextField::password()` | `get_string()` |
-| Name contains `url` / `link` / `website` | `TextField::url()` | `get_string()` |
-| `String` + name `description` / `bio` / `content` / `message` | `TextField::textarea()` | `get_string()` |
-| `String` (other) | `TextField::text()` | `get_string()` |
-| `i32` | `NumericField::integer()` | `get_i32()` |
-| `i64` | `NumericField::integer()` | `get_i64()` |
-| `u32` | `NumericField::integer()` | `get_u32()` |
-| `u64` | `NumericField::integer()` | `get_u64()` |
-| `f32` | `NumericField::float()` | `get_f32()` |
-| `f64` | `NumericField::float()` | `get_f64()` |
-| `bool` | `BooleanField::new()` | `get_bool()` |
-| `Option<T>` | Non-required field | `get_option()` |
-| Non-`Option<T>` | Required field | Corresponding type |
+| Rule                                                          | Generated field type      | Helper in `to_active_model()` |
+| ------------------------------------------------------------- | ------------------------- | ----------------------------- |
+| Name contains `email`                                         | `TextField::email()`      | `get_string()`                |
+| Name contains `password` / `pwd`                              | `TextField::password()`   | `get_string()`                |
+| Name contains `url` / `link` / `website`                      | `TextField::url()`        | `get_string()`                |
+| `String` + name `description` / `bio` / `content` / `message` | `TextField::textarea()`   | `get_string()`                |
+| `String` (other)                                              | `TextField::text()`       | `get_string()`                |
+| `i32`                                                         | `NumericField::integer()` | `get_i32()`                   |
+| `i64`                                                         | `NumericField::integer()` | `get_i64()`                   |
+| `u32`                                                         | `NumericField::integer()` | `get_u32()`                   |
+| `u64`                                                         | `NumericField::integer()` | `get_u64()`                   |
+| `f32`                                                         | `NumericField::float()`   | `get_f32()`                   |
+| `f64`                                                         | `NumericField::float()`   | `get_f64()`                   |
+| `bool`                                                        | `BooleanField::new()`     | `get_bool()`                  |
+| `Option<T>`                                                   | Non-required field        | `get_option()`                |
+| Non-`Option<T>`                                               | Required field            | Corresponding type            |
 
 ### Customization Attributes
 
@@ -703,9 +685,10 @@ match form.save(&request.engine.db).await {
 ```
 
 **Supported error formats:**
-- **PostgreSQL**: `UNIQUE constraint`, `Key (field)=(value)`
-- **SQLite**: `UNIQUE constraint failed: table.field`
-- **MySQL**: `Duplicate entry ... for key 'table.field'`
+
+* **PostgreSQL**: `UNIQUE constraint`, `Key (field)=(value)`
+* **SQLite**: `UNIQUE constraint failed: table.field`
+* **MySQL**: `Duplicate entry ... for key 'table.field'`
 
 If the field is identified, the error appears on that field (e.g., “This email is already in use”). Otherwise, it is added to the global errors.
 
@@ -903,5 +886,7 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 ## Next Steps
 
 ← [**Routing**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/06-templates.md) →
-````
+
+```
+
 
