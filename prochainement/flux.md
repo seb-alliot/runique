@@ -28,8 +28,6 @@ admin/
  ├── handlers.rs    ← handlers génériques
  └── templates/     ← templates admin (form.html, list.html)
 
----
-
 ## Déclaration des formulaires
 
 Dans `src/admin.rs` :
@@ -45,7 +43,6 @@ Le parser extrait automatiquement ces paires pour générer les routes admin.
 
 ## Flux d’une requête `/admin/{form}`
 
-```
 Dev -> admin.rs declaration
        │
        ▼
@@ -71,23 +68,6 @@ Signals du modèle (before_save / after_save)
        │
        ▼
 Render / Redirect
-```
-
-### Étapes détaillées
-
-1. Le router reçoit la requête.
-2. Le handler générique `admin_form_handler::<T>` est appelé.
-3. `Prisme<T>` instancie le formulaire typé.
-4. Selon la méthode HTTP :
-
-   * `GET` → rend le formulaire vide ou liste
-   * `POST` → appelle `form.is_valid()` puis `form.save()`
-   * `PUT` / `DELETE` → logique correspondante
-5. Les **signals du modèle** s’exécutent :
-
-   * `before_save` → calculs inter-tables
-   * `after_save` → notifications/audit
-6. Le handler renvoie la réponse HTTP (render ou redirect).
 
 ---
 
@@ -122,7 +102,7 @@ impl UserModel {
 
 ---
 
-## Exemple minimal d’intégration
+## Intégration dans RuniqueApp
 
 ```rust
 RuniqueApp::builder(config)
@@ -132,17 +112,10 @@ RuniqueApp::builder(config)
     .build().await?;
 ```
 
----
+### `with_admin` — détails
 
-## Notes
-
-* La logique métier complexe doit rester **dans les formulaires ou modèles**.
-* Les templates admin sont séparés dans `admin/templates/`.
-* Les formulaires doivent implémenter `RuniqueForm` et éventuellement `AdminRunnable`.
-
----
-
-## Version de l’admin
+* `prefix` : préfixe pour toutes les routes admin (défaut : `/admin`)
+* `enable_dev_tools` : active le démon de surveillance pour feedback temps réel
 
 ```rust
 pub fn with_admin(
@@ -164,33 +137,75 @@ pub fn with_admin(
 }
 ```
 
----
+Flux :
 
-## CLI pour SeaORM — Créer un superuser
+Builder
+   │
+   ├── Nest routes → /admin/*
+   ├── Middleware admin → contrôle permissions
+   └── Démon dev → hot reload & diagnostics
+
+## CLI pour créer un superuser
 
 ```rust
-// src/bin/create-superuser.rs
-use sea_orm::{Database, EntityTrait, ActiveValue::Set};
-use runique::models::user::{ActiveModel, Entity as User};
+use clap::Parser;
+use sea_orm::{Database, DatabaseConnection, EntityTrait, ActiveValue::Set};
+use runique::models::user::{self, ActiveModel, Entity as User};
+use bcrypt::{hash, DEFAULT_COST};
+use std::env;
+
+#[derive(Parser)]
+#[command(name = "runique createsuperuser")]
+struct Args {
+    #[arg(short, long, default_value = "admin")]
+    username: String,
+
+    #[arg(short, long)]
+    email: Option<String>,
+
+    #[arg(short, long)]
+    password: Option<String>,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let db_url = std::env::var("DATABASE_URL")?;
-    let db = Database::connect(db_url).await?;
+    let args = Args::parse();
+
+    let db_url = env::var("DATABASE_URL")?;
+    let db: DatabaseConnection = Database::connect(db_url).await?;
+
+    let password = if let Some(pw) = args.password {
+        pw
+    } else {
+        rpassword::prompt_password("Mot de passe pour le superuser : ")?
+    };
+
+    let hashed = hash(&password, DEFAULT_COST)?;
 
     let admin = ActiveModel {
-        username: Set("admin".to_string()),
-        password_hash: Set("HASH_PLACEHOLDER".to_string()), // remplacer par Argon2 ou fonction de hashage des formulaires
+        username: Set(args.username.clone()),
+        email: Set(args.email.unwrap_or_default()),
+        password_hash: Set(hashed),
         is_superuser: Set(true),
+        is_staff: Set(true),
+        is_active: Set(true),
         ..Default::default()
     };
 
-    admin.insert(&db).await?;
-    println!("Superuser 'admin' créé !");
+    match admin.insert(&db).await {
+        Ok(_) => println!("Superuser '{}' créé avec succès !", args.username),
+        Err(e) => eprintln!("Erreur : {}", e),
+    }
 
     Ok(())
 }
 ```
+
+* **Arguments CLI** :
+
+  * `--username` / `-u` : nom du superuser
+  * `--email` / `-e` : email (optionnel)
+  * `--password` / `-p` : mot de passe (sinon prompt interactif)
 
 ---
 
@@ -199,5 +214,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 * **Nom de table user** : obligatoire pour la cohérence
 * **Nom du formulaire** : utilisé pour générer la route `/admin/{form}`
 * **Pas de doublon de formulaire pour un même modèle**
-* **Tous les champs du modèle doivent être couverts par le formulaire** (sauf id, created_at, updated_at)
-* **Logic métier inter-table** → via signals, jamais dans le handler
+* **Tous les champs du modèle doivent être couverts par le formulaire** (sauf `id`, `created_at`, `updated_at`)
+* **Logique métier inter-table** → via signals, jamais dans le handler
+
+---
+
+Si tu veux, je peux maintenant te créer **un schéma graphique unique** combinant **flow des requêtes /admin + signals + CLI** à insérer directement dans ce README pour que tout soit visuel et lisible.
