@@ -7,6 +7,7 @@ use crate::middleware::{
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, middleware, Router};
+use tower_http::compression::CompressionLayer;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
 
@@ -41,14 +42,16 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
 //
 // RÉSULTAT sur une requête entrante :
 //   → Extensions(0) → ErrorHandler(10) → Custom(20+)
-//   → CSP(30) → Cache(40) → Session(50) → CSRF(60)
+//   → Compression(28) → CSP(30) → Cache(40) → Session(50) → CSRF(60)
 //   → Host(70) → Handler
 //
 // Reproduit l'ordre prouvé de l'ancien builder :
+//   Compression traite le body EN PREMIER (pour une sortie propre)
 //   ErrorHandler enveloppe TOUT → attrape toutes les erreurs
-//   ErrorHandler extrait Extension(tera/config) → injectées par Extensions ✅
-//   Session exécutée AVANT CSRF → CSRF peut lire la session ✅
-//   Host = dernier rempart avant le handler
+//   ErrorHandler extrait Extension(tera/config) → injectées par Extensions
+//   CSP + SecurityHeaders ajoutent headers (après compression du body)
+//   Session exécutée AVANT CSRF → CSRF peut lire la session
+//   Host = dernier rempart avant handler
 //
 // ═══════════════════════════════════════════════════════════════
 
@@ -56,17 +59,18 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
 // Slots built-in — Ordre d'exécution garanti sur la requête
 // ─────────────────────────────────────────────────────────────
 
-const SLOT_EXTENSIONS: u16 = 0; // Injection Engine/Tera/Config (outermost)
-const SLOT_ERROR_HANDLER: u16 = 10; // Attrape les erreurs de TOUTE la pile
-const SLOT_SECURITY_HEADERS: u16 = 30; // CSP + security headers
-const SLOT_CACHE: u16 = 40; // Headers cache
-const SLOT_SESSION: u16 = 50; // Avant CSRF (CSRF en dépend)
-const SLOT_CSRF: u16 = 60; // Après Session (lit/écrit en session)
-const SLOT_HOST_VALIDATION: u16 = 70; // Dernier rempart avant handler
+const SLOT_EXTENSIONS: u8 = 0; // Injection Engine/Tera/Config (outermost)
+const SLOT_COMPRESSION: u8 = 5; // Compression avant CSP (compresse body tôt)
+const SLOT_ERROR_HANDLER: u8 = 10; // Attrape les erreurs de TOUTE la pile
+const SLOT_SECURITY_HEADERS: u8 = 30; // CSP + security headers
+const SLOT_CACHE: u8 = 40; // Headers cache
+const SLOT_SESSION: u8 = 50; // Avant CSRF (CSRF en dépend)
+const SLOT_CSRF: u8 = 60; // Après Session (lit/écrit en session)
+const SLOT_HOST_VALIDATION: u8 = 70; // Dernier rempart avant handler
 
 // Les middlewares custom du dev démarrent ICI
 // Placés entre ErrorHandler et CSP → enveloppés par ErrorHandler
-const SLOT_CUSTOM_BASE: u16 = 20;
+const SLOT_CUSTOM_BASE: u8 = 20;
 
 // ─────────────────────────────────────────────────────────────
 // MiddlewareEntry — Un middleware avec son slot de priorité
@@ -76,7 +80,7 @@ struct MiddlewareEntry {
     /// Slot = position dans la pile.
     /// Bas (0) = externe, premier exécuté.
     /// Haut (100+) = interne, proche du handler.
-    slot: u16,
+    slot: u8,
 
     /// Nom lisible pour le debug et les logs
     #[allow(dead_code)]
@@ -113,6 +117,9 @@ pub struct MiddlewareStaging {
 
     /// Middlewares custom du développeur (ordre d'ajout préservé)
     pub(crate) custom_middlewares: Vec<CustomMiddleware>,
+
+    /// Compression middleware (toujours activé, configurable via features)
+    pub(crate) compression_layer: CompressionLayer,
 }
 
 impl MiddlewareStaging {
@@ -129,6 +136,7 @@ impl MiddlewareStaging {
             session_duration: Duration::seconds(86400), // 24h par défaut
             session_applicator: None,
             custom_middlewares: Vec::new(),
+            compression_layer: CompressionLayer::new(), // Compression activée par défaut
         }
     }
 
@@ -174,6 +182,7 @@ impl MiddlewareStaging {
             session_duration: Duration::seconds(86400),
             session_applicator: None,
             custom_middlewares: Vec::new(),
+            compression_layer: CompressionLayer::new(),
         }
     }
 
@@ -337,6 +346,15 @@ impl MiddlewareStaging {
                 }),
             });
         }
+        // Slot 75 : Compression — juste avant le handler
+        {
+            let layer = self.compression_layer;
+            entries.push(MiddlewareEntry {
+                slot: SLOT_COMPRESSION,
+                name: "Compression",
+                apply: Box::new(move |r| r.layer(layer)),
+            });
+        }
 
         // Slot 70 : Host validation — dernier rempart avant handler
         if self.features.enable_host_validation {
@@ -436,7 +454,7 @@ impl MiddlewareStaging {
 
         for (i, custom_mw) in self.custom_middlewares.into_iter().enumerate() {
             entries.push(MiddlewareEntry {
-                slot: SLOT_CUSTOM_BASE + i as u16,
+                slot: SLOT_CUSTOM_BASE + i as u8,
                 name: "Custom",
                 apply: custom_mw,
             });
