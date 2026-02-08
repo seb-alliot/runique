@@ -23,7 +23,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
     async fn is_valid(&mut self) -> bool {
         // 1. Validation individuelle des champs (incluant CSRF)
-        // Ici, le mot de passe est encore en CLAIR (format texte).
+        // Mot de passe est encore a cette étape.
         let fields_valid = match self.get_form_mut().is_valid() {
             Ok(valid) => valid,
             Err(ValidationError::StackOverflow) => {
@@ -39,12 +39,12 @@ pub trait RuniqueForm: Sized + Send + Sync {
             return false;
         }
 
-        // 2. Validation métier croisée (CLEAN)
-        // C'est ICI que le dev peut comparer mdp1 == mdp2 en clair.
+        // 2. Validation métier croisée
         match self.clean().await {
             Ok(_) => {
-                // 3. FINALISATION (Hachage)
+                // 3. FINALISATION 
                 // Si tout est valide, on transforme les données (ex: Argon2)
+                // et autre validation d'un dev
                 if let Err(e) = self.get_form_mut().finalize() {
                     self.get_form_mut().global_errors.push(e);
                     return false;
@@ -69,9 +69,8 @@ pub trait RuniqueForm: Sized + Send + Sync {
         self.get_form_mut().database_error(err);
     }
 
-    // MODIFIÉ : Prend maintenant le token CSRF
     fn build(tera: ATera, csrf_token: &str) -> Self {
-        let mut form = Forms::new(csrf_token); // PASSAGE DU TOKEN
+        let mut form = Forms::new(csrf_token);
         form.set_tera(tera);
         Self::register_fields(&mut form);
         Self::from_form(form)
@@ -80,9 +79,9 @@ pub trait RuniqueForm: Sized + Send + Sync {
     async fn build_with_data(
         raw_data: &StrMap,
         tera: ATera,
-        csrf_token: &str, //  AJOUT DU PARAMÈTRE
+        csrf_token: &str, 
     ) -> Self {
-        let mut form = Forms::new(csrf_token); // PASSAGE DU TOKEN
+        let mut form = Forms::new(csrf_token); 
 
         form.set_tera(tera.clone());
 

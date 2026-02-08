@@ -1,24 +1,27 @@
+
 # 📋 Formulaires
 
+<a id="vue-densemble"></a>
 ## Vue d'ensemble
 
-Runique fournit un système de formulaires puissant inspiré de Django. Il existe **deux approches** :
+Runique fournit un système de formulaires puissant, inspiré de Django. Il existe **deux approches** :
 
-1. **Manuelle** — Définir les champs via le trait `RuniqueForm`
-2. **Automatique** — Dériver un formulaire depuis un modèle SeaORM avec `#[derive(DeriveModelForm)]`
+1. **Manuelle** — Définir les champs via le trait `RuniqueForm`.
+2. **Automatique** — Dériver un formulaire depuis un modèle SeaORM avec `#[derive(DeriveModelForm)]`.
 
-Les formulaires sont extraits automatiquement des requêtes via l'extracteur **Prisme**, gèrent la validation (y compris via le crate `validator` pour les emails/URLs), le CSRF, le hachage Argon2 des mots de passe, et peuvent être sauvegardés directement en base de données.
+Les formulaires sont extraits automatiquement des requêtes via l’extracteur **Prisme**, gèrent la validation (y compris via le crate `validator` pour les emails/URLs), le CSRF, le hachage Argon2 des mots de passe, et peuvent être sauvegardés directement en base de données.
 
 ---
 
+<a id="extracteur-prisme"></a>
 ## Extracteur Prisme
 
 `Prisme<T>` est un extracteur Axum qui orchestre un pipeline complet en coulisses :
 
-1. **Sentinel** — Vérifie les règles d'accès (login, rôles) via `GuardRules`
-2. **Aegis** — Extraction unique du body (multipart, urlencoded, json) normalisée en `HashMap`
-3. **CSRF Gate** — Vérifie le token CSRF dans les données parsées
-4. **Construction** — Crée le formulaire `T`, remplit les champs, lance la validation
+1. **Sentinel** — Vérifie les règles d’accès (login, rôles) via `GuardRules`.
+2. **Aegis** — Extraction unique du body (multipart, urlencoded, json) normalisée en `HashMap`.
+3. **CSRF Gate** — Vérifie le token CSRF dans les données parsées.
+4. **Construction** — Crée le formulaire `T`, remplit les champs et lance la validation.
 
 ```rust
 use runique::prelude::*;
@@ -29,19 +32,21 @@ pub async fn inscription(
 ) -> AppResult<Response> {
     if request.is_post() {
         if form.is_valid().await {
-            // Formulaire valide → traiter
+            // Formulaire valide → traitement
         }
     }
     // ...
 }
 ```
 
-> **💡** Le développeur écrit juste `Prisme(mut form)` — tout le pipeline sécurité est transparent.
+> **💡** Le développeur écrit simplement `Prisme(mut form)` — tout le pipeline sécurité est transparent.
 
 ---
 
+<a id="approche-manuelle-trait-runiqueform"></a>
 ## Approche manuelle : trait RuniqueForm
 
+<a id="structure-de-base"></a>
 ### Structure de base
 
 Chaque formulaire contient un champ `form: Forms` et implémente le trait `RuniqueForm` :
@@ -69,7 +74,7 @@ impl RuniqueForm for UsernameForm {
 }
 ```
 
-> **💡 `impl_form_access!()`** génère automatiquement `from_form()`, `get_form()` et `get_form_mut()`. Si votre champ ne s'appelle pas `form`, passez le nom en argument : `impl_form_access!(formulaire);`
+> **💡 `impl_form_access!()`** génère automatiquement `from_form()`, `get_form()` et `get_form_mut()`. Si votre champ ne s'appelle pas `form`, passez le nom en argument : `impl_form_access!(formulaire)`.
 
 <details>
 <summary>Équivalent sans macro (pour référence)</summary>
@@ -85,21 +90,24 @@ fn get_form_mut(&mut self) -> &mut Forms {
     &mut self.form
 }
 ```
+
 </details>
 
+<a id="methodes-du-trait-runiqueform"></a>
 ### Méthodes du trait RuniqueForm
 
-| Méthode | Rôle |
-|---------|------|
-| `register_fields(form)` | Déclare les champs du formulaire |
-| `from_form(form)` | Construit l'instance depuis un `Forms` |
-| `get_form()` / `get_form_mut()` | Accesseurs vers le `Forms` interne |
-| `clean()` | Logique métier croisée (ex: `mdp1 == mdp2`) — **optionnel** |
-| `is_valid()` | Pipeline complet : validation champs → `clean()` → `finalize()` |
-| `database_error(&err)` | Injecte une erreur DB sur le bon champ |
-| `build(tera, csrf_token)` | Construit un formulaire vide |
-| `build_with_data(data, tera, csrf)` | Construit, remplit et valide |
+| Méthode                             | Rôle                                                            |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `register_fields(form)`             | Déclare les champs du formulaire                                |
+| `from_form(form)`                   | Construit l'instance depuis un `Forms`                          |
+| `get_form()` / `get_form_mut()`     | Accesseurs vers le `Forms` interne                              |
+| `clean()`                           | Logique métier croisée (ex: `mdp1 == mdp2`) — **optionnel**     |
+| `is_valid()`                        | Pipeline complet : validation champs → `clean()` → `finalize()` |
+| `database_error(&err)`              | Injecte une erreur DB sur le bon champ                          |
+| `build(tera, csrf_token)`           | Construit un formulaire vide                                    |
+| `build_with_data(data, tera, csrf)` | Construit, remplit et valide                                    |
 
+<a id="pipeline-de-validation-is_valid"></a>
 ### Pipeline de validation `is_valid()`
 
 L'appel `form.is_valid().await` déclenche **3 étapes dans l'ordre** :
@@ -134,10 +142,12 @@ impl RuniqueForm for RegisterForm {
 
 ---
 
+<a id="helpers-de-conversion-typee"></a>
 ## Helpers de conversion typée
 
 Les valeurs de formulaire sont stockées en `String`. Plutôt que de parser manuellement, utilisez les helpers typés sur `Forms` :
 
+<a id="conversions-directes"></a>
 ### Conversions directes
 
 ```rust
@@ -151,6 +161,7 @@ form.get_f64("price")            // -> f64 (gère , → .)
 form.get_bool("active")          // -> bool (true/1/on → true)
 ```
 
+<a id="conversions-option"></a>
 ### Conversions Option (None si vide)
 
 ```rust
@@ -161,6 +172,7 @@ form.get_option_f64("note")      // -> Option<f64> (gère , → .)
 form.get_option_bool("news")     // -> Option<bool>
 ```
 
+<a id="utilisation-dans-save"></a>
 ### Utilisation dans save()
 
 ```rust
@@ -183,8 +195,12 @@ impl RegisterForm {
 
 ---
 
+---
+
+<a id="types-de-champs"></a>
 ## Types de champs
 
+<a id="textfield"></a>
 ### TextField — Champs texte
 
 Le `TextField` gère 6 formats spéciaux via l'enum `SpecialFormat` :
@@ -249,6 +265,7 @@ let ok = TextField::verify_password("mdp_clair", "$argon2...");
 
 > Le hachage automatique détecte si la valeur commence déjà par `$argon2` pour éviter un double hachage.
 
+<a id="numericfield"></a>
 ### NumericField — Champs numériques
 
 5 variantes via l'enum `NumericConfig` :
@@ -283,8 +300,9 @@ form.field(
 );
 ```
 
-**Options : `.min(val, msg)`, `.max(val, msg)`, `.step(val)`, `.digits(min, max)`, `.label(l)`, `.placeholder(p)`**
+**Options :** `.min(val, msg)`, `.max(val, msg)`, `.step(val)`, `.digits(min, max)`, `.label(l)`, `.placeholder(p)`
 
+<a id="booleanfield"></a>
 ### BooleanField — Cases à cocher / Radio simple
 
 ```rust
@@ -302,6 +320,7 @@ form.field(&BooleanField::radio("newsletter").label("Newsletter"));
 form.field(&BooleanField::new("remember_me").label("Se souvenir").checked());
 ```
 
+<a id="choicefield"></a>
 ### ChoiceField — Select / Dropdown
 
 ```rust
@@ -332,6 +351,7 @@ form.field(
 
 > La validation vérifie automatiquement que la valeur soumise fait partie des choix déclarés.
 
+<a id="radiofield"></a>
 ### RadioField — Boutons radio
 
 ```rust
@@ -347,6 +367,7 @@ form.field(
 );
 ```
 
+<a id="checkboxfield"></a>
 ### CheckboxField — Checkboxes multiples
 
 ```rust
@@ -363,6 +384,7 @@ form.field(
 
 > Les valeurs soumises sont au format `"val1,val2,val3"`. La validation vérifie que chaque valeur existe dans les choix.
 
+<a id="date-time-duration-fields"></a>
 ### DateField, TimeField, DateTimeField — Date / Heure
 
 ```rust
@@ -383,6 +405,7 @@ form.field(&TimeField::new("meeting_time").label("Heure du RDV"));
 form.field(&DateTimeField::new("event_start").label("Début de l'événement"));
 ```
 
+<a id="durationfield"></a>
 ### DurationField — Durée
 
 ```rust
@@ -394,6 +417,7 @@ form.field(
 );
 ```
 
+<a id="filefield"></a>
 ### FileField — Upload de fichiers
 
 ```rust
@@ -429,9 +453,8 @@ form.field(
 
 > **Sécurité** : les fichiers `.svg` sont **toujours refusés** par défaut (risque XSS). La validation d'image utilise le crate `image` pour vérifier le format réel du fichier.
 
+<a id="js-associes"></a>
 ### Fichiers JS associés
-
-Vous pouvez ajouter des fichiers JavaScript spécifiques à un formulaire :
 
 ```rust
 fn register_fields(form: &mut Forms) {
@@ -442,6 +465,7 @@ fn register_fields(form: &mut Forms) {
 
 Les fichiers JS sont inclus automatiquement dans le rendu HTML du formulaire.
 
+<a id="colorfield"></a>
 ### ColorField — Sélecteur de couleur
 
 ```rust
@@ -452,6 +476,7 @@ form.field(
 );
 ```
 
+<a id="slugfield"></a>
 ### SlugField — Slug URL-friendly
 
 ```rust
@@ -465,6 +490,7 @@ form.field(
 
 > Validation : lettres, chiffres, tirets, underscores uniquement. Ne peut pas commencer ou finir par un tiret.
 
+<a id="uuidfield"></a>
 ### UUIDField
 
 ```rust
@@ -475,6 +501,7 @@ form.field(
 );
 ```
 
+<a id="jsonfield"></a>
 ### JSONField — Textarea avec validation JSON
 
 ```rust
@@ -486,6 +513,7 @@ form.field(
 );
 ```
 
+<a id="ipaddressfield"></a>
 ### IPAddressField — Adresse IP
 
 ```rust
@@ -501,6 +529,7 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 
 ---
 
+<a id="recapitulatif-types-champs"></a>
 ## Récapitulatif des types de champs
 
 | Struct | Constructeurs | Validation spéciale |
@@ -524,6 +553,7 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 
 ---
 
+<a id="approche-automatique-deriveform"></a>
 ## Approche automatique : DeriveModelForm
 
 Pour les cas simples, dérivez directement un formulaire depuis un modèle SeaORM :
@@ -550,15 +580,18 @@ pub struct Model {
 pub struct Model;
 ```
 
+<a id="champs-auto-exclus"></a>
 ### Champs auto-exclus
 
 `DeriveModelForm` exclut automatiquement :
-- `id` (clé primaire)
-- `csrf_token`
-- `created_at`, `updated_at`
-- `is_active`, `deleted_at`
+
+- `id` (clé primaire)  
+- `csrf_token`  
+- `created_at`, `updated_at`  
+- `is_active`, `deleted_at`  
 - Tout champ marqué `#[sea_orm(primary_key)]`
 
+<a id="detection-automatique-types"></a>
 ### Détection automatique des types
 
 | Règle | Type de champ généré | Helper dans `to_active_model()` |
@@ -578,6 +611,7 @@ pub struct Model;
 | `Option<T>` | Champ **non required** | `get_option()` |
 | Non-`Option<T>` | Champ **required** | Type correspondant |
 
+<a id="attributs-personnalisation"></a>
 ### Attributs de personnalisation
 
 ```rust
@@ -588,6 +622,7 @@ pub struct Model;
 
 ---
 
+<a id="erreurs-base-donnees"></a>
 ## Erreurs de base de données
 
 La méthode `database_error()` analyse automatiquement les erreurs DB pour remonter l'erreur au bon champ :
@@ -603,17 +638,19 @@ match form.save(&request.engine.db).await {
 ```
 
 **Formats d'erreur supportés :**
-- **PostgreSQL** : `UNIQUE constraint`, `Key (field)=(value)`
-- **SQLite** : `UNIQUE constraint failed: table.field`
-- **MySQL** : `Duplicate entry ... for key 'table.field'`
 
-Si le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est déjà utilisé »).
-Sinon, elle est ajoutée aux erreurs globales.
+- **PostgreSQL** : `UNIQUE constraint`, `Key (field)=(value)`  
+- **SQLite** : `UNIQUE constraint failed: table.field`  
+- **MySQL** : `Duplicate entry ... for key 'table.field'`  
+
+Si le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est déjà utilisé »). Sinon, elle est ajoutée aux erreurs globales.
 
 ---
 
+<a id="rendu-templates"></a>
 ## Rendu dans les templates
 
+<a id="formulaire-complet"></a>
 ### Formulaire complet
 
 ```html
@@ -625,11 +662,12 @@ Sinon, elle est ajoutée aux erreurs globales.
 
 Rend automatiquement : tous les champs, les labels, les erreurs de validation, le token CSRF et les scripts JS.
 
+<a id="champ-par-champ"></a>
 ### Champ par champ
 
 ```html
 <form method="post">
-    {% csrf %}
+    {% csrf %} <!-- inclus dans le formulaire, non nécessaire manuellement -->
     <div class="row">
         <div class="col-6">{% form.inscription_form.username %}</div>
         <div class="col-6">{% form.inscription_form.email %}</div>
@@ -639,6 +677,7 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 </form>
 ```
 
+<a id="erreurs-globales"></a>
 ### Erreurs globales
 
 ```html
@@ -651,12 +690,14 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 {% endif %}
 ```
 
+<a id="donnees-json"></a>
 ### Données de champ en JSON
 
 Les formulaires sérialisent automatiquement `data`, `errors`, `global_errors`, `html`, `rendered_fields`, `fields` et `js_files`.
 
 ---
 
+<a id="exemple-complet-inscription"></a>
 ## Exemple complet : inscription avec sauvegarde
 
 ```rust
@@ -708,6 +749,7 @@ impl RegisterForm {
 }
 ```
 
+<a id="handler-get-post"></a>
 ### Handler GET/POST
 
 ```rust
@@ -752,8 +794,10 @@ pub async fn inscription(
 
 ---
 
+<a id="pieges-courants"></a>
 ## ⚠️ Pièges courants
 
+<a id="collision-noms-variables"></a>
 ### 1. Collision de noms de variables template
 
 Si votre template utilise `{% form.user %}`, la variable `user` dans le contexte **doit** être un formulaire, pas un Model SeaORM :
@@ -769,6 +813,7 @@ context_update!(request => {
 });
 ```
 
+<a id="mut-sur-form"></a>
 ### 2. Oublier le `mut` sur form
 
 ```rust
@@ -779,6 +824,7 @@ Prisme(form): Prisme<MyForm>
 Prisme(mut form): Prisme<MyForm>
 ```
 
+<a id="comparer-mot-de-passe"></a>
 ### 3. Comparer des mots de passe après `is_valid()`
 
 ```rust
@@ -797,6 +843,8 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 
 ---
 
+<a id="prochaines-etapes"></a>
 ## Prochaines étapes
 
 ← [**Routing**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/06-templates.md) →
+

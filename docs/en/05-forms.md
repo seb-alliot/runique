@@ -1,30 +1,32 @@
 
 # 📋 Forms
 
+<a id="vue-densemble"></a>
 ## Overview
 
 Runique provides a powerful form system inspired by Django. There are **two approaches**:
 
 1. **Manual** — Define fields via the `RuniqueForm` trait
-2. **Automatic** — Derive a form from a SeaORM model with `#[derive(DeriveModelForm)]`
+2. **Automatic** — Derive a form from a SeaORM model using `#[derive(DeriveModelForm)]`
 
-Forms are automatically extracted from requests via the **Prisme** extractor, handle validation (including using the `validator` crate for emails/URLs), CSRF protection, Argon2 password hashing, and can be saved directly to the database.
+Forms are automatically extracted from requests via the **Prisme** extractor, handle validation (including email/URL validation via the `validator` crate), CSRF protection, Argon2 password hashing, and can be saved directly to the database.
 
 ---
 
+<a id="extracteur-prisme"></a>
 ## Prisme Extractor
 
 `Prisme<T>` is an Axum extractor that orchestrates a full pipeline behind the scenes:
 
 1. **Sentinel** — Checks access rules (login, roles) via `GuardRules`
 2. **Aegis** — Single extraction of the body (multipart, urlencoded, json) normalized into a `HashMap`
-3. **CSRF Gate** — Verifies the CSRF token in the parsed data
-4. **Construction** — Builds the form `T`, fills the fields, and runs validation
+3. **CSRF Gate** — Validates the CSRF token in the parsed data
+4. **Construction** — Creates the `T` form, fills fields, triggers validation
 
 ```rust
 use runique::prelude::*;
 
-pub async fn register(
+pub async fn registration(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
@@ -35,13 +37,17 @@ pub async fn register(
     }
     // ...
 }
-```
+````
 
-> **💡** The developer only writes `Prisme(mut form)` — the full security pipeline is transparent.
+> **💡** The developer just writes `Prisme(mut form)` — the entire security pipeline is transparent.
 
 ---
 
+<a id="approche-manuelle-trait-runiqueform"></a>
+
 ## Manual Approach: `RuniqueForm` Trait
+
+<a id="structure-de-base"></a>
 
 ### Basic Structure
 
@@ -70,10 +76,9 @@ impl RuniqueForm for UsernameForm {
 }
 ```
 
-> **💡 `impl_form_access!()`** automatically generates `from_form()`, `get_form()`, and `get_form_mut()`. If your field is not called `form`, pass the name as an argument: `impl_form_access!(my_form);`
+> **💡 `impl_form_access!()`** automatically generates `from_form()`, `get_form()`, and `get_form_mut()`. If your field is not named `form`, pass the field name as an argument: `impl_form_access!(formulaire);`
 
 <details>
-
 <summary>Equivalent without macro (for reference)</summary>
 
 ```rust
@@ -90,25 +95,29 @@ fn get_form_mut(&mut self) -> &mut Forms {
 
 </details>
 
-### `RuniqueForm` Trait Methods
+<a id="methodes-du-trait-runiqueform"></a>
 
-| Method                              | Purpose                                                     |
-| ----------------------------------- | ----------------------------------------------------------- |
-| `register_fields(form)`             | Declares the form fields                                    |
-| `from_form(form)`                   | Constructs the instance from a `Forms`                      |
-| `get_form()` / `get_form_mut()`     | Accessors to the internal `Forms`                           |
-| `clean()`                           | Custom business logic (e.g., `pwd1 == pwd2`) — **optional** |
-| `is_valid()`                        | Full pipeline: field validation → `clean()` → `finalize()`  |
-| `database_error(&err)`              | Injects a DB error into the correct field                   |
-| `build(tera, csrf_token)`           | Builds an empty form                                        |
-| `build_with_data(data, tera, csrf)` | Builds, fills, and validates the form                       |
+### Methods of the `RuniqueForm` Trait
 
-### `is_valid()` Validation Pipeline
+| Method                              | Purpose                                                                    |
+| ----------------------------------- | -------------------------------------------------------------------------- |
+| `register_fields(form)`             | Declares the form fields                                                   |
+| `from_form(form)`                   | Constructs the instance from a `Forms`                                     |
+| `get_form()` / `get_form_mut()`     | Accessors to the internal `Forms`                                          |
+| `clean()`                           | Cross-field business logic (e.g., `password1 == password2`) — **optional** |
+| `is_valid()`                        | Full pipeline: field validation → `clean()` → `finalize()`                 |
+| `database_error(&err)`              | Injects a DB error on the correct field                                    |
+| `build(tera, csrf_token)`           | Builds an empty form                                                       |
+| `build_with_data(data, tera, csrf)` | Builds, fills, and validates                                               |
+
+<a id="pipeline-de-validation-is_valid"></a>
+
+### Validation Pipeline `is_valid()`
 
 Calling `form.is_valid().await` triggers **3 steps in order**:
 
-1. **Field validation** — Each field executes `validate()`: required, length, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`, etc.)
-2. **`clean()`** — Custom business logic (passwords are still plain text at this stage, allowing comparison `pwd1 == pwd2`)
+1. **Field validation** — Each field runs its `validate()`: required, length, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`, etc.)
+2. **`clean()`** — Custom business logic (passwords are still in plaintext at this stage, allowing comparison `password1 == password2`)
 3. **`finalize()`** — Final transformations (automatic Argon2 hashing of `Password` fields)
 
 ```rust
@@ -117,10 +126,10 @@ impl RuniqueForm for RegisterForm {
     // ...
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let pwd1 = self.form.get_string("password");
-        let pwd2 = self.form.get_string("password_confirm");
+        let password1 = self.form.get_string("password");
+        let password2 = self.form.get_string("password_confirm");
 
-        if pwd1 != pwd2 {
+        if password1 != password2 {
             let mut errors = StrMap::new();
             errors.insert(
                 "password_confirm".to_string(),
@@ -133,36 +142,44 @@ impl RuniqueForm for RegisterForm {
 }
 ```
 
-> **⚠️ Important**: After `is_valid()`, `Password` fields are **automatically Argon2 hashed**. Use `clean()` for any plain-text password comparison.
+> **⚠️ Important**: After `is_valid()`, `Password` fields are **automatically hashed using Argon2**. Use `clean()` for any plaintext password comparison.
 
 ---
 
+<a id="helpers-de-conversion-typee"></a>
+
 ## Typed Conversion Helpers
 
-Form values are stored as `String`. Instead of manually parsing, use typed helpers on `Forms`:
+Form values are stored as `String`. Instead of parsing manually, use the typed helpers on `Forms`:
+
+<a id="conversions-directes"></a>
 
 ### Direct Conversions
 
 ```rust
 form.get_string("username")     // -> String ("" if empty)
-form.get_i32("age")             // -> i32 (0 default)
-form.get_i64("count")           // -> i64 (0 default)
-form.get_u32("quantity")        // -> u32 (0 default)
-form.get_u64("id")              // -> u64 (0 default)
+form.get_i32("age")             // -> i32 (0 by default)
+form.get_i64("count")           // -> i64 (0 by default)
+form.get_u32("quantity")        // -> u32 (0 by default)
+form.get_u64("id")              // -> u64 (0 by default)
 form.get_f32("ratio")           // -> f32 (handles , → .)
 form.get_f64("price")           // -> f64 (handles , → .)
 form.get_bool("active")         // -> bool (true/1/on → true)
 ```
 
+<a id="conversions-option"></a>
+
 ### Option Conversions (None if empty)
 
 ```rust
-form.get_option("bio")          // -> Option<String>
+form.get_option("bio")          // -> Option<String> (None if empty)
 form.get_option_i32("age")      // -> Option<i32>
 form.get_option_i64("score")    // -> Option<i64>
 form.get_option_f64("note")     // -> Option<f64> (handles , → .)
 form.get_option_bool("news")    // -> Option<bool>
 ```
+
+<a id="utilisation-dans-save"></a>
 
 ### Usage in `save()`
 
@@ -221,39 +238,41 @@ form.field(&TextField::richtext("content").label("Content"));
 
 ```rust
 TextField::text("name")
-    .label("My Field")               // Display label
-    .placeholder("Enter...")         // Placeholder
-    .required()                       // Required (default message)
-    .min_length(3, "Too short")      // Min length with message
-    .max_length(100, "Too long")     // Max length with message
-    .readonly("Read-only")           // Read-only
-    .disabled("Disabled")            // Disabled
+    .label("My field")              // Displayed label
+    .placeholder("Enter...")        // Placeholder
+    .required()                     // Required (default message)
+    .min_length(3, "Too short")     // Minimum length with message
+    .max_length(100, "Too long")    // Maximum length with message
+    .readonly("Read-only")          // Read-only
+    .disabled("Disabled")           // Disabled
 ```
 
-**Automatic behaviors by format:**
+**Automatic behavior by format:**
 
-| Format     | Validation                 | Transformation                                              |
-| ---------- | -------------------------- | ----------------------------------------------------------- |
-| `Email`    | `validator::ValidateEmail` | Lowercased                                                  |
-| `Url`      | `validator::ValidateUrl`   | —                                                           |
-| `Password` | Standard                   | Argon2 hashing in `finalize()`, value cleared on `render()` |
-| `RichText` | Standard                   | XSS sanitization (`sanitize()`) before validation           |
-| `Csrf`     | Session token              | —                                                           |
+| Format     | Validation                 | Transformation                                           |
+| ---------- | -------------------------- | -------------------------------------------------------- |
+| `Email`    | `validator::ValidateEmail` | Lowercased                                               |
+| `Url`      | `validator::ValidateUrl`   | —                                                        |
+| `Password` | Standard                   | Argon2 hash in `finalize()`, value cleared in `render()` |
+| `RichText` | Standard                   | XSS sanitization (`sanitize()`) before validation        |
+| `Csrf`     | Session token              | —                                                        |
 
-**Password Utilities:**
+**Password utilities:**
 
 ```rust
 // Hash manually
 let hash = field.hash_password()?;
 
 // Verify a password
-let ok = TextField::verify_password("plain_pwd", "$argon2...");
+let ok = TextField::verify_password("plain_pw", "$argon2...");
 ```
 
 > Automatic hashing detects if the value already starts with `$argon2` to avoid double hashing.
 
 ---
+Parfait ! Voici la **traduction complète de tout le reste du fichier**, en conservant exactement toutes les phrases, blocs de code et ancres Markdown. Tu peux remplacer directement ton document par celui-ci :
 
+````md
 ### NumericField — Numeric Fields
 
 5 variants via the `NumericConfig` enum:
@@ -267,14 +286,14 @@ form.field(
         .max(150.0, "Max 150"),
 );
 
-// Floating point
+// Floating point number
 form.field(&NumericField::float("price").label("Price"));
 
 // Decimal with precision
 form.field(
     &NumericField::decimal("amount")
         .label("Amount")
-        .digits(2, 4),  // min 2, max 4 decimal places
+        .digits(2, 4),  // min 2, max 4 digits after the decimal
 );
 
 // Percentage (0–100 by default)
@@ -292,7 +311,7 @@ form.field(
 
 ---
 
-### BooleanField — Checkboxes / Simple Radios
+### BooleanField — Checkboxes / Simple Radio
 
 ```rust
 // Simple checkbox
@@ -330,7 +349,7 @@ form.field(
         .required(),
 );
 
-// Multi-select
+// Multiple select
 form.field(
     &ChoiceField::new("languages")
         .label("Languages")
@@ -339,7 +358,7 @@ form.field(
 );
 ```
 
-> Validation automatically checks that the submitted value is among declared choices.
+> Validation automatically checks that submitted values are among the declared choices.
 
 ---
 
@@ -358,6 +377,8 @@ form.field(
 );
 ```
 
+---
+
 ### CheckboxField — Multiple Checkboxes
 
 ```rust
@@ -365,14 +386,14 @@ form.field(
     &CheckboxField::new("hobbies")
         .label("Hobbies")
         .choices(vec![
-            ChoiceOption::new("sport", "Sports"),
+            ChoiceOption::new("sport", "Sport"),
             ChoiceOption::new("music", "Music"),
             ChoiceOption::new("reading", "Reading"),
         ]),
 );
 ```
 
-> Submitted values are formatted as `"val1,val2,val3"`. Validation ensures each value exists in the choices.
+> Submitted values are in the format `"val1,val2,val3"`. Validation checks that each value exists among the choices.
 
 ---
 
@@ -384,16 +405,16 @@ use chrono::NaiveDate;
 // Date (format: YYYY-MM-DD)
 form.field(
     &DateField::new("birthday")
-        .label("Birthdate")
+        .label("Birth date")
         .min(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap(), "Too old")
         .max(NaiveDate::from_ymd_opt(2010, 12, 31).unwrap(), "Too recent"),
 );
 
 // Time (format: HH:MM)
-form.field(&TimeField::new("meeting_time").label("Meeting Time"));
+form.field(&TimeField::new("meeting_time").label("Meeting time"));
 
 // Date + Time (format: YYYY-MM-DDTHH:MM)
-form.field(&DateTimeField::new("event_start").label("Event Start"));
+form.field(&DateTimeField::new("event_start").label("Event start"));
 ```
 
 ---
@@ -411,7 +432,7 @@ form.field(
 
 ---
 
-### FileField — File Upload
+### FileField — File Uploads
 
 ```rust
 use runique::config::StaticConfig;
@@ -421,7 +442,7 @@ let config = StaticConfig::from_env();
 // Image with full constraints
 form.field(
     &FileField::image("avatar")
-        .label("Profile Picture")
+        .label("Profile picture")
         .upload_to(&config)
         .max_size_mb(5)
         .max_files(1)
@@ -432,7 +453,7 @@ form.field(
 // Document
 form.field(
     &FileField::document("cv")
-        .label("Resume")
+        .label("CV")
         .max_size_mb(10),
 );
 
@@ -444,13 +465,13 @@ form.field(
 );
 ```
 
-> **Security**: `.svg` files are **always rejected** by default (XSS risk). Image validation uses the `image` crate to check the real file format.
+> **Security:** `.svg` files are **always rejected** by default (XSS risk). Image validation uses the `image` crate to check the real file format.
 
 ---
 
 ### Associated JS Files
 
-You can add JS files specific to a form:
+You can attach JavaScript files specific to a form:
 
 ```rust
 fn register_fields(form: &mut Forms) {
@@ -459,7 +480,7 @@ fn register_fields(form: &mut Forms) {
 }
 ```
 
-JS files are automatically included in the HTML rendering of the form.
+JS files are automatically included in the HTML form rendering.
 
 ---
 
@@ -468,10 +489,12 @@ JS files are automatically included in the HTML rendering of the form.
 ```rust
 form.field(
     &ColorField::new("theme_color")
-        .label("Theme Color")
-        .default_color("#3498db"),  // Validates #RGB or #RRGGBB
+        .label("Theme color")
+        .default_color("#3498db"),  // Validates #RGB or #RRGGBB format
 );
 ```
+
+---
 
 ### SlugField — URL-friendly Slug
 
@@ -484,7 +507,7 @@ form.field(
 );
 ```
 
-> Validation: letters, numbers, dashes, underscores only. Cannot start or end with a dash.
+> Validation: letters, numbers, dashes, and underscores only. Cannot start or end with a dash.
 
 ---
 
@@ -498,6 +521,8 @@ form.field(
 );
 ```
 
+---
+
 ### JSONField — Textarea with JSON Validation
 
 ```rust
@@ -508,6 +533,8 @@ form.field(
         .rows(10),  // Number of textarea rows
 );
 ```
+
+---
 
 ### IPAddressField — IP Address
 
@@ -524,26 +551,26 @@ form.field(&IPAddressField::new("ipv6").label("IPv6 Address").ipv6_only());
 
 ---
 
-## Field Type Summary
+## Summary of Field Types
 
-| Struct           | Constructors                                                           | Special Validation                                  |
-| ---------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
-| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization |
-| `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`            | Min/max bounds, decimal precision                   |
-| `BooleanField`   | `new()`, `radio()`                                                     | Required = must be checked                          |
-| `ChoiceField`    | `new()` + `.multiple()`                                                | Value must be among declared choices                |
-| `RadioField`     | `new()`                                                                | Value must be among declared choices                |
-| `CheckboxField`  | `new()`                                                                | All values must exist in choices                    |
-| `DateField`      | `new()`                                                                | Format `YYYY-MM-DD`, min/max bounds                 |
-| `TimeField`      | `new()`                                                                | Format `HH:MM`, min/max bounds                      |
-| `DateTimeField`  | `new()`                                                                | Format `YYYY-MM-DDTHH:MM`, min/max bounds           |
-| `DurationField`  | `new()`                                                                | Seconds, min/max bounds                             |
-| `FileField`      | `image()`, `document()`, `any()`                                       | Extensions, size, dimensions, anti-SVG              |
-| `ColorField`     | `new()`                                                                | Format `#RRGGBB` or `#RGB`                          |
-| `SlugField`      | `new()`                                                                | ASCII/unicode, no dash at start/end                 |
-| `UUIDField`      | `new()`                                                                | Valid UUID format                                   |
-| `JSONField`      | `new()`                                                                | Valid JSON via `serde_json`                         |
-| `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()`                              | IPv4/IPv6 via `std::net::IpAddr`                    |
+| Struct | Constructors | Special Validation |
+|--------|-------------|------------------|
+| `TextField` | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization |
+| `NumericField` | `integer()`, `float()`, `decimal()`, `percent()`, `range()` | Min/max bounds, decimal precision |
+| `BooleanField` | `new()`, `radio()` | Required = must be checked |
+| `ChoiceField` | `new()` + `.multiple()` | Value must be among declared choices |
+| `RadioField` | `new()` | Value must be among declared choices |
+| `CheckboxField` | `new()` | All values must be among declared choices |
+| `DateField` | `new()` | Format `YYYY-MM-DD`, min/max bounds |
+| `TimeField` | `new()` | Format `HH:MM`, min/max bounds |
+| `DateTimeField` | `new()` | Format `YYYY-MM-DDTHH:MM`, min/max bounds |
+| `DurationField` | `new()` | Seconds, min/max bounds |
+| `FileField` | `image()`, `document()`, `any()` | Extensions, size, dimensions, anti-SVG |
+| `ColorField` | `new()` | Format `#RRGGBB` or `#RGB` |
+| `SlugField` | `new()` | ASCII/unicode, no dash at start/end |
+| `UUIDField` | `new()` | Valid UUID format |
+| `JSONField` | `new()` | Valid JSON via `serde_json` |
+| `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()` | IPv4/IPv6 via `std::net::IpAddr` |
 
 ---
 
@@ -576,20 +603,16 @@ pub struct Model;
 ### Auto-excluded Fields
 
 `DeriveModelForm` automatically excludes:
-
-* `id` (primary key)
-* `csrf_token`
-* `created_at`, `updated_at`
-* `is_active`, `deleted_at`
-* Any field marked `#[sea_orm(primary_key)]`
+- `id` (primary key)
+- `csrf_token`
+- `created_at`, `updated_at`
+- `is_active`, `deleted_at`
+- Any field marked `#[sea_orm(primary_key)]`
 
 ### Automatic Type Detection
 
-| Rule | Generated Field Type | Helper in `to_active_model()` |
-|------|----------------
-
-
----|------------------------------|
+| Rule | Generated field type | Helper in `to_active_model()` |
+|------|--------------------|-------------------------------|
 | Name contains `email` | `TextField::email()` | `get_string()` |
 | Name contains `password` / `pwd` | `TextField::password()` | `get_string()` |
 | Name contains `url` / `link` / `website` | `TextField::url()` | `get_string()` |
@@ -617,25 +640,24 @@ pub struct Model;
 
 ## Database Errors
 
-The `database_error()` method automatically parses DB errors to attach the error to the correct field:
+The `database_error()` method automatically parses DB errors to attach them to the correct field:
 
 ```rust
 match form.save(&request.engine.db).await {
     Ok(_) => { /* success */ }
     Err(err) => {
         form.database_error(&err);
-        // The error is set on the affected field
+        // Error is attached to the relevant field
     }
 }
 ```
 
 **Supported error formats:**
+- **PostgreSQL**: `UNIQUE constraint`, `Key (field)=(value)`
+- **SQLite**: `UNIQUE constraint failed: table.field`
+- **MySQL**: `Duplicate entry ... for key 'table.field'`
 
-* **PostgreSQL**: `UNIQUE constraint`, `Key (field)=(value)`
-* **SQLite**: `UNIQUE constraint failed: table.field`
-* **MySQL**: `Duplicate entry ... for key 'table.field'`
-
-If the field is identified, the error appears on that field (e.g., "This email is already in use"). Otherwise, it is added to global errors.
+If the field is identified, the error appears on that field (e.g., “This email is already in use”). Otherwise, it is added to the global errors.
 
 ---
 
@@ -645,23 +667,23 @@ If the field is identified, the error appears on that field (e.g., "This email i
 
 ```html
 <form method="post">
-    {% form.register_form %}
+    {% form.registration_form %}
     <button type="submit">Register</button>
 </form>
 ```
 
-Automatically renders all fields, labels, validation errors, CSRF token, and JS scripts.
+Automatically renders: all fields, labels, validation errors, CSRF token, and JS scripts.
 
 ### Field by Field
 
 ```html
 <form method="post">
-    {% csrf %}
+    {% csrf %} <!-- Tag exists but is not necessary, included in form -->
     <div class="row">
-        <div class="col-6">{% form.register_form.username %}</div>
-        <div class="col-6">{% form.register_form.email %}</div>
+        <div class="col-6">{% form.registration_form.username %}</div>
+        <div class="col-6">{% form.registration_form.email %}</div>
     </div>
-    {% form.register_form.password %}
+    {% form.registration_form.password %}
     <button type="submit">Register</button>
 </form>
 ```
@@ -669,9 +691,9 @@ Automatically renders all fields, labels, validation errors, CSRF token, and JS 
 ### Global Errors
 
 ```html
-{% if register_form.global_errors %}
+{% if registration_form.global_errors %}
     <div class="alert alert-danger">
-        {% for msg in register_form.global_errors %}
+        {% for msg in registration_form.global_errors %}
             <p>{{ msg }}</p>
         {% endfor %}
     </div>
@@ -726,7 +748,7 @@ impl RegisterForm {
         let model = users::ActiveModel {
             username: Set(self.form.get_string("username")),
             email: Set(self.form.get_string("email")),
-            // Password is already Argon2 hashed after is_valid()
+            // Password is already hashed with Argon2 after is_valid()
             password: Set(self.form.get_string("password")),
             ..Default::default()
         };
@@ -738,7 +760,7 @@ impl RegisterForm {
 ### GET/POST Handler
 
 ```rust
-pub async fn register(
+pub async fn registration(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
@@ -746,8 +768,8 @@ pub async fn register(
 
     if request.is_get() {
         context_update!(request => {
-            "title" => "Register",
-            "register_form" => &form,
+            "title" => "Registration",
+            "registration_form" => &form,
         });
         return request.render(template);
     }
@@ -767,8 +789,8 @@ pub async fn register(
 
         context_update!(request => {
             "title" => "Error",
-            "register_form" => &form,
-            "messages" => flash_now!(error => "Please fix the errors"),
+            "registration_form" => &form,
+            "messages" => flash_now!(error => "Please correct the errors"),
         });
         return request.render(template);
     }
@@ -783,7 +805,7 @@ pub async fn register(
 
 ### 1. Template variable name collision
 
-If your template uses `{% form.user %}`, the variable `user` in the context **must** be a form, not a SeaORM model:
+If your template uses `{% form.user %}`, the `user` variable in context **must** be a form, not a SeaORM Model:
 
 ```rust
 // ❌ ERROR — db_user is a Model, not a form
@@ -796,6 +818,8 @@ context_update!(request => {
 });
 ```
 
+---
+
 ### 2. Forgetting `mut` on form
 
 ```rust
@@ -806,18 +830,20 @@ Prisme(form): Prisme<MyForm>
 Prisme(mut form): Prisme<MyForm>
 ```
 
+---
+
 ### 3. Comparing passwords after `is_valid()`
 
 ```rust
 // ❌ After is_valid(), passwords are hashed!
-let pwd = form.get_form().get_string("password");
-// pwd == "$argon2id$v=19$m=..." 😱
+let password = form.get_form().get_string("password");
+// password == "$argon2id$v=19$m=..." 😱
 
 // ✅ Compare in clean(), BEFORE finalization
 async fn clean(&mut self) -> Result<(), StrMap> {
-    let pwd1 = self.form.get_string("password");
-    let pwd2 = self.form.get_string("password_confirm");
-    if pwd1 != pwd2 { /* error */ }
+    let password1 = self.form.get_string("password");
+    let password2 = self.form.get_string("password_confirm");
+    if password1 != password2 { /* error */ }
     Ok(())
 }
 ```
@@ -826,5 +852,6 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 
 ## Next Steps
 
-← [**Routing**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/en/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/en/06-templates.md) →
+← [**Routing**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/06-templates.md) →
+````
 
