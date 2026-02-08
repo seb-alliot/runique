@@ -10,7 +10,7 @@
     - [Validation Pipeline is_valid()](#validation-pipeline-is_valid)
     - [Typed Conversion Helpers](#typed-conversion-helpers)
       - [Direct Conversions](#direct-conversions)
-      - [Option Conversions (None if empty)](#option-conversions)
+      - [Option Conversions](#option-conversions)
       - [Usage in save()](#usage-in-save)
   - [Field Types](#field-types)
     - [TextField — Text inputs](#textfield)
@@ -93,8 +93,9 @@ pub async fn register(
 > **💡** The developer simply writes `Prisme(mut form)` — the entire security pipeline is transparent.
 
 ---
+[↑](#overview)
 
-<a id="manual-approach-runiqueform-trait"></a>
+<a id="manual-approach-runiqueform-trait"></a> 
 
 ## Manual Approach: RuniqueForm Trait
 
@@ -147,6 +148,7 @@ fn get_form_mut(&mut self) -> &mut Forms {
 ```
 
 </details>
+[↑](#overview)
 
 <a id="runiqueform-trait-methods"></a>
 
@@ -164,6 +166,8 @@ fn get_form_mut(&mut self) -> &mut Forms {
 | `build_with_data(data, tera, csrf)` | Builds, populates, and validates |
 
 <a id="validation-pipeline-is_valid"></a>
+
+[↑](#overview)
 
 ### Validation Pipeline `is_valid()`
 
@@ -200,6 +204,8 @@ impl RuniqueForm for RegisterForm {
 
 ---
 
+[↑](#overview)
+
 <a id="typed-conversion-helpers"></a>
 
 ## Typed Conversion Helpers
@@ -222,9 +228,11 @@ form.get_bool("active")          // -> bool (true/1/on → true)
 
 ```
 
+[↑](#overview)
+
 <a id="option-conversions"></a>
 
-### Option Conversions (None if empty)
+### Option Conversions
 
 ```rust
 form.get_option("bio")           // -> Option<String> (None if empty)
@@ -234,6 +242,8 @@ form.get_option_f64("rating")    // -> Option<f64> (handles comma → dot)
 form.get_option_bool("news")     // -> Option<bool>
 
 ```
+
+[↑](#overview)
 
 <a id="usage-in-save"></a>
 
@@ -259,6 +269,7 @@ impl RegisterForm {
 > **💡** Float helpers (`get_f32`, `get_f64`, `get_option_f64`) automatically convert commas to dots (`19,99` → `19.99`) for French/European locales.
 
 ---
+[↑](#overview)
 
 <a id="field-types"></a>
 
@@ -333,6 +344,8 @@ let ok = TextField::verify_password("plain_pwd", "$argon2...");
 
 > Automatic hashing detects if the value already starts with `$argon2` to avoid double hashing.
 
+[↑](#overview)
+
 <a id="numericfield"></a>
 
 ### NumericField — Numeric inputs
@@ -372,6 +385,8 @@ form.field(
 
 **Options:** `.min(val, msg)`, `.max(val, msg)`, `.step(val)`, `.digits(min, max)`, `.label(l)`, `.placeholder(p)`
 
+[↑](#overview)
+
 <a id="booleanfield"></a>
 
 ### BooleanField — Checkboxes / Simple Radio
@@ -391,6 +406,8 @@ form.field(&BooleanField::radio("newsletter").label("Newsletter"));
 form.field(&BooleanField::new("remember_me").label("Remember me").checked());
 
 ```
+
+[↑](#overview)
 
 <a id="choicefield"></a>
 
@@ -425,6 +442,8 @@ form.field(
 
 > Validation automatically verifies that the submitted value is part of the declared choices.
 
+[↑](#overview)
+
 <a id="radiofield"></a>
 
 ### RadioField — Radio Buttons
@@ -442,6 +461,8 @@ form.field(
 );
 
 ```
+
+[↑](#overview)
 
 <a id="checkboxfield"></a>
 
@@ -461,6 +482,8 @@ form.field(
 ```
 
 > Submitted values are in the format `"val1,val2,val3"`. Validation checks that each value exists in the choices.
+
+[↑](#overview)
 
 <a id="date-time-duration-fields"></a>
 
@@ -485,6 +508,8 @@ form.field(&DateTimeField::new("event_start").label("Event Start"));
 
 ```
 
+[↑](#overview)
+
 <a id="durationfield"></a>
 
 ### DurationField — Duration
@@ -498,6 +523,8 @@ form.field(
 );
 
 ```
+
+[↑](#overview)
 
 <a id="filefield"></a>
 
@@ -537,6 +564,8 @@ form.field(
 
 > **Security**: `.svg` files are **always rejected** by default (XSS risk). Image validation uses the `image` crate to verify the actual file format.
 
+[↑](#overview)
+
 <a id="associated-js"></a>
 
 ### Associated JS Files
@@ -551,6 +580,8 @@ fn register_fields(form: &mut Forms) {
 
 JS files are automatically included in the HTML rendering of the form.
 
+[↑](#overview)
+
 <a id="colorfield"></a>
 
 ### ColorField — Color Picker
@@ -563,6 +594,8 @@ form.field(
 );
 
 ```
+
+[↑](#overview)
 
 <a id="slugfield"></a>
 
@@ -579,6 +612,8 @@ form.field(
 ```
 
 > Validation: letters, numbers, hyphens, underscores only. Cannot start or end with a hyphen.
+
+[↑](#overview)
 
 <a id="uuidfield"></a>
 
@@ -607,6 +642,8 @@ form.field(
 
 ```
 
+[↑](#overview)
+
 <a id="ipaddressfield"></a>
 
 ### IPAddressField — IP Address
@@ -624,6 +661,8 @@ form.field(&IPAddressField::new("ipv6").label("IPv6 Address").ipv6_only());
 ```
 
 ---
+
+[↑](#overview)
 
 <a id="field-types-recap"></a>
 
@@ -649,6 +688,8 @@ form.field(&IPAddressField::new("ipv6").label("IPv6 Address").ipv6_only());
 | `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()` | IPv4/IPv6 via `std::net::IpAddr` |
 
 ---
+
+[↑](#overview)
 
 <a id="automatic-approach-deriveform"></a>
 
@@ -679,6 +720,8 @@ pub struct Model;
 
 ```
 
+[↑](#overview)
+
 <a id="auto-excluded-fields"></a>
 
 ### Auto-excluded Fields
@@ -690,6 +733,8 @@ pub struct Model;
 * `created_at`, `updated_at`
 * `is_active`, `deleted_at`
 * Any field marked with `#[sea_orm(primary_key)]`
+
+[↑](#overview)
 
 <a id="automatic-type-detection"></a>
 
@@ -712,6 +757,8 @@ pub struct Model;
 | `Option<T>` | **Not required** field | `get_option()` |
 | Non-`Option<T>` | **Required** field | Matching type |
 
+[↑](#overview)
+
 <a id="customization-attributes"></a>
 
 ### Customization Attributes
@@ -724,6 +771,8 @@ pub struct Model;
 ```
 
 ---
+
+[↑](#overview)
 
 <a id="database-errors"></a>
 
@@ -752,6 +801,8 @@ If the field is identified, the error appears on that field (e.g., "This email i
 
 ---
 
+[↑](#overview)
+
 <a id="rendering-templates"></a>
 
 ## Rendering in Templates
@@ -770,6 +821,8 @@ If the field is identified, the error appears on that field (e.g., "This email i
 
 Automatically renders: all fields, labels, validation errors, the CSRF token, and JS scripts.
 
+[↑](#overview)
+
 <a id="field-by-field"></a>
 
 ### Field by Field
@@ -787,6 +840,8 @@ Automatically renders: all fields, labels, validation errors, the CSRF token, an
 
 ```
 
+[↑](#overview)
+
 <a id="global-errors"></a>
 
 ### Global Errors
@@ -802,6 +857,8 @@ Automatically renders: all fields, labels, validation errors, the CSRF token, an
 
 ```
 
+[↑](#overview)
+
 <a id="json-data"></a>
 
 ### Field Data in JSON
@@ -809,6 +866,8 @@ Automatically renders: all fields, labels, validation errors, the CSRF token, an
 Forms automatically serialize `data`, `errors`, `global_errors`, `html`, `rendered_fields`, `fields`, and `js_files`.
 
 ---
+
+[↑](#overview)
 
 <a id="full-example-registration"></a>
 
@@ -864,6 +923,8 @@ impl RegisterForm {
 
 ```
 
+[↑](#overview)
+
 <a id="get-post-handler"></a>
 
 ### GET/POST Handler
@@ -911,6 +972,8 @@ pub async fn register(
 
 ---
 
+[↑](#overview)
+
 <a id="common-pitfalls"></a>
 
 ## ⚠️ Common Pitfalls
@@ -933,6 +996,8 @@ context_update!(request => {
 
 ```
 
+[↑](#overview)
+
 <a id="forgetting-mut"></a>
 
 ### 2. Forgetting `mut` on Form
@@ -945,6 +1010,8 @@ Prisme(form): Prisme<MyForm>
 Prisme(mut form): Prisme<MyForm>
 
 ```
+
+[↑](#overview)
 
 <a id="comparing-passwords"></a>
 
@@ -966,6 +1033,8 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 ```
 
 ---
+
+[↑](#overview)
 
 <a id="next-steps"></a>
 
