@@ -48,7 +48,6 @@
     3. [Comparing passwords after `is_valid()`](#comparing-passwords-after-is_valid)
 12. [Next Steps](#next-steps)
 
-
 ## Overview
 
 Runique provides a powerful form system inspired by Django. There are **two approaches**:
