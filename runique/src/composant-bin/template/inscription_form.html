@@ -1,0 +1,24 @@
+{% extends 'index.html' %}
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+{% endblock %}
+{% block content %}
+    <h1>{{ title }}</h1>
+
+    {% block message %}
+        {% messages %}
+    {% endblock %}
+    <div id="form">
+        <form method="post" action="/inscription">
+            <!-- Les erreurs individuelles s'affichent automatiquement sous chaque champ -->
+            {% form.inscription_form %}
+            <button type="submit">S'inscrire</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="/">← Retour à l'accueil</a>
+        </div>
+    </div>
+{% endblock %}

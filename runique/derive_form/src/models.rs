@@ -106,6 +106,20 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
         }
 
         impl #form_name {
+            /// Construit le formulaire avec ou sans CSRF
+            pub fn build(csrf_token: Option<&str>) -> Self {
+                let mut form = match csrf_token {
+                    Some(token) => ::runique::forms::manager::Forms::new(token),
+                    None => ::runique::forms::manager::Forms::empty(),
+                };
+
+                // Enregistre les champs générés par la macro
+                Self::register_fields(&mut form);
+
+                Self { form }
+            }
+        
+
             pub fn to_active_model(&self) -> ActiveModel {
                 use ::runique::sea_orm::ActiveValue::Set;
                 ActiveModel {

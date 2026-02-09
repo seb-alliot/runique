@@ -1,13 +1,11 @@
 #[macro_use]
 extern crate runique;
-
+use runique::prelude::*;
 mod forms;
 mod models;
-mod prelude;
 mod url;
 mod views;
 
-use prelude::*;
 use runique::app::builder::RuniqueAppBuilder as builder;
 
 mod form_test;
@@ -17,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     // Configuration de l'application
-    let config = RuniqueConfig::from_env();
+    let config: RuniqueConfig = RuniqueConfig::from_env();
 
     // Connexion à la base de données
     let db_config = DatabaseConfig::from_env()?.build();
