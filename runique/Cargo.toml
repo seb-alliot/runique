@@ -92,7 +92,7 @@ hex.workspace = true
 base64.workspace = true
 
 # Procedural macros
-derive_form = "1.1.13"
+derive_form = "1.1.2"
 
 # CLI
 clap.workspace = true
