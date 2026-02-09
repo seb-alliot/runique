@@ -65,14 +65,17 @@ fn create_new_project(name: &str) -> Result<()> {
     // Templates HTML
     let index_html = include_bytes!("../composant-bin/template/index.html").to_vec();
     let about_html = include_bytes!("../composant-bin/template/about.html").to_vec();
-    let inscription_html = include_bytes!("../composant-bin/template/inscription_form.html").to_vec();
+    let inscription_html =
+        include_bytes!("../composant-bin/template/inscription_form.html").to_vec();
 
     // CSS
     let main_css = include_bytes!("../composant-bin/css/main.css").to_vec();
     let about_css = include_bytes!("../composant-bin/css/about.css").to_vec();
     let variable_css = include_bytes!("../composant-bin/css/variables.css").to_vec();
-    let inscription_css = include_bytes!("../composant-bin/css/inscription/inscription.css").to_vec();
-    let inscription_label_css = include_bytes!("../composant-bin/css/inscription/inscription-label.css").to_vec();
+    let inscription_css =
+        include_bytes!("../composant-bin/css/inscription/inscription.css").to_vec();
+    let inscription_label_css =
+        include_bytes!("../composant-bin/css/inscription/inscription-label.css").to_vec();
 
     // Images
     let image = include_bytes!("../composant-bin/image/toshiro.avif").to_vec();
@@ -83,7 +86,7 @@ fn create_new_project(name: &str) -> Result<()> {
         .replace("{{PROJECT_NAME}}", name)
         .replace("{{RUNIQUE_VERSION}}", runique_version)
         .into_bytes();
-    
+
     let env_file = include_bytes!("../composant-bin/config/secret").to_vec();
     let gitignore = include_bytes!("../composant-bin/config/ignore").to_vec();
     let readme_va = include_bytes!("../composant-bin/readme/README.md").to_vec();
@@ -116,14 +119,23 @@ fn create_new_project(name: &str) -> Result<()> {
     // HTML
     fs::write(project_dir.join("templates/index.html"), index_html)?;
     fs::write(project_dir.join("templates/about/about.html"), about_html)?;
-    fs::write(project_dir.join("templates/inscription_form.html"), inscription_html)?;
+    fs::write(
+        project_dir.join("templates/inscription_form.html"),
+        inscription_html,
+    )?;
 
     // CSS
     fs::write(project_dir.join("static/css/main.css"), main_css)?;
     fs::write(project_dir.join("static/css/about.css"), about_css)?;
     fs::write(project_dir.join("static/css/variables.css"), variable_css)?;
-    fs::write(project_dir.join("static/css/inscription/inscription.css"), inscription_css)?;
-    fs::write(project_dir.join("static/css/inscription/inscription-label.css"), inscription_label_css)?;
+    fs::write(
+        project_dir.join("static/css/inscription/inscription.css"),
+        inscription_css,
+    )?;
+    fs::write(
+        project_dir.join("static/css/inscription/inscription-label.css"),
+        inscription_label_css,
+    )?;
 
     // Media
     fs::write(project_dir.join("media/toshiro.avif"), image)?;
