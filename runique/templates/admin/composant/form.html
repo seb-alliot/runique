@@ -1,0 +1,8 @@
+
+
+{% for forms in form_admin %}
+    <form method="{{ methode }}" id="id_{{ forms }}">
+        {% form.forms %}
+        <input type="submit" value="id_{{ forms }}" />
+    </form>
+{% endfor %}
