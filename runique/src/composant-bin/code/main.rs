@@ -8,8 +8,6 @@ mod views;
 
 use runique::app::builder::RuniqueAppBuilder as builder;
 
-mod form_test;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();

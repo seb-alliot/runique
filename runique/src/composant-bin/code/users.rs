@@ -1,7 +1,7 @@
 use runique::prelude::*;
-// DeriveModelForm  a jouter quand la macro sera modifiée
+// DeriveModelForm  ajouter quand la macro sera modifiée
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize, DeriveModelForm)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key)]
