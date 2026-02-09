@@ -218,5 +218,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 * **Logique métier inter-table** → via signals, jamais dans le handler
 
 ---
-
-Si tu veux, je peux maintenant te créer **un schéma graphique unique** combinant **flow des requêtes /admin + signals + CLI** à insérer directement dans ce README pour que tout soit visuel et lisible.
