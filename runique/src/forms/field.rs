@@ -42,7 +42,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
         // 2. Validation métier croisée
         match self.clean().await {
             Ok(_) => {
-                // 3. FINALISATION 
+                // 3. FINALISATION
                 // Si tout est valide, on transforme les données (ex: Argon2)
                 // et autre validation d'un dev
                 if let Err(e) = self.get_form_mut().finalize() {
@@ -76,12 +76,8 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Self::from_form(form)
     }
 
-    async fn build_with_data(
-        raw_data: &StrMap,
-        tera: ATera,
-        csrf_token: &str, 
-    ) -> Self {
-        let mut form = Forms::new(csrf_token); 
+    async fn build_with_data(raw_data: &StrMap, tera: ATera, csrf_token: &str) -> Self {
+        let mut form = Forms::new(csrf_token);
 
         form.set_tera(tera.clone());
 
