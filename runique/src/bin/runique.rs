@@ -68,17 +68,14 @@ fn runique_start(main_path: &str, admin_path: &str, output: &str) -> Result<()> 
         );
     }
 
-    println!("🔍 Analyse de {}...", main_path);
-
     let main_source = fs::read_to_string(main_file)?;
 
     if !has_admin(&main_source) {
-        println!("  Aucun AdminPanel détecté dans {}", main_path);
-        println!("  Ajoutez .with_admin(...) dans votre builder pour activer l'AdminPanel.");
+        println!("  Add .with_admin(...) in your builder to enable the AdminPanel.");
         return Ok(());
     }
 
-    println!("Admin détecté → démarrage du daemon");
+    println!("Admin detected → starting the daemon");
     // Lancer le daemon en thread séparé
     let admin_path = admin_path.to_string();
     let output = output.to_string();
@@ -89,7 +86,6 @@ fn runique_start(main_path: &str, admin_path: &str, output: &str) -> Result<()> 
     });
 
     // Lancer le serveur applicatif après le daemon
-    println!("\n🚀 Lancement du serveur applicatif (cargo run)...\n");
     use std::process::Command;
     let status = Command::new("cargo")
         .arg("run")
@@ -122,7 +118,6 @@ fn start_admin_daemon(admin_path: &str, output: &str) -> Result<()> {
             admin_path
         );
     }
-    println!("   (Ctrl+C pour arrêter)\n");
 
     watch(admin_file, output_path).map_err(|e| anyhow::anyhow!("Erreur daemon: {}", e))?;
 
@@ -133,24 +128,24 @@ fn start_admin_daemon(admin_path: &str, output: &str) -> Result<()> {
 
 fn create_new_project(name: &str) -> Result<()> {
     if name.is_empty() {
-        anyhow::bail!("Le nom du projet ne peut pas être vide");
+        anyhow::bail!("The project name cannot be empty");
     }
     if !name
         .chars()
         .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
     {
-        anyhow::bail!("Le nom doit contenir uniquement des lettres, chiffres, _ ou -");
+        anyhow::bail!("The project name must contain only letters, numbers, _ or -");
     }
     if name.starts_with('-') {
-        anyhow::bail!("Le nom ne peut pas commencer par -");
+        anyhow::bail!("The project name cannot start with -");
     }
 
     let project_dir = Path::new(name);
     if project_dir.exists() {
-        anyhow::bail!("Le dossier '{}' existe déjà", name);
+        anyhow::bail!("The folder '{}' already exists", name);
     }
 
-    println!("🦀 Création du projet '{}'...", name);
+    println!("🦀 Creating project '{}'...", name);
 
     let runique_version = env!("CARGO_PKG_VERSION");
 
@@ -228,8 +223,8 @@ fn create_new_project(name: &str) -> Result<()> {
     fs::write(project_dir.join("media/toshiro.avif"), image)?;
     fs::write(project_dir.join("media/favicon/favicon.ico"), favicon)?;
 
-    println!("  Projet '{}' créé avec succès !", name);
-    println!("\n  Pour démarrer :");
+    println!("  Project '{}' created successfully!", name);
+    println!("\n  To get started:");
     println!("  cd {}", name);
     println!("  cargo run");
 

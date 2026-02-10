@@ -1,14 +1,11 @@
 use crate::admin::resource::AdminResource;
 
-/// Catalogue de toutes les ressources administrables de l'application
 #[derive(Debug, Default)]
 pub struct AdminRegistry {
-    /// Liste ordonnée des ressources (ordre de déclaration dans src/admin.rs)
     pub resources: Vec<AdminResource>,
 }
 
 impl AdminRegistry {
-    /// Crée un registre vide
     pub fn new() -> Self {
         Self {
             resources: Vec::new(),
@@ -44,7 +41,7 @@ impl AdminRegistry {
         self.resources.is_empty()
     }
 
-    /// Retourne les clés de toutes les ressources (pour navigation)
+    /// Retourne les clés de toutes les ressources
     pub fn keys(&self) -> Vec<&str> {
         self.resources.iter().map(|r| r.key).collect()
     }

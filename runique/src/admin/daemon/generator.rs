@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// Generator — Génération de target/runique/admin/generated.rs
-// ═══════════════════════════════════════════════════════════════
-//
 // Prend les ResourceDef parsés et génère du code Rust valide :
 //   - admin_registry() → construit l'AdminRegistry
 //   - handlers CRUD type-safe par ressource
@@ -9,7 +5,6 @@
 //
 // Stratégie : génération par template string plutôt que quote,
 // car la sortie est un fichier .rs standalone (pas un proc-macro).
-// ═══════════════════════════════════════════════════════════════
 
 use chrono::Local;
 use std::fmt::Write;
@@ -21,13 +16,13 @@ use crate::admin::daemon::parser::ResourceDef;
 /// Génère target/runique/admin/generated.rs depuis les ResourceDef
 pub fn generate(resources: &[ResourceDef], output_dir: &Path) -> Result<(), String> {
     fs::create_dir_all(output_dir)
-        .map_err(|e| format!("Impossible de créer {}: {}", output_dir.display(), e))?;
+        .map_err(|e| format!("Unable to create {}: {}", output_dir.display(), e))?;
 
     let code = generate_code(resources)?;
 
     let output_path = output_dir.join("generated.rs");
     fs::write(&output_path, &code)
-        .map_err(|e| format!("Impossible d'écrire {}: {}", output_path.display(), e))?;
+        .map_err(|e| format!("Unable to write {}: {}", output_path.display(), e))?;
 
     Ok(())
 }
@@ -44,10 +39,6 @@ fn generate_code(resources: &[ResourceDef]) -> Result<String, String> {
 
     Ok(out)
 }
-
-// ───────────────────────────────────────────────
-// Header
-// ───────────────────────────────────────────────
 
 fn write_header(out: &mut String, resources: &[ResourceDef]) {
     let now = Local::now().format("%Y-%m-%d %H:%M:%S");
@@ -79,10 +70,6 @@ fn write_header(out: &mut String, resources: &[ResourceDef]) {
     let _ = writeln!(out);
 }
 
-// ───────────────────────────────────────────────
-// Imports
-// ───────────────────────────────────────────────
-
 fn write_imports(out: &mut String, resources: &[ResourceDef]) {
     let _ = writeln!(out, "use axum::{{");
     let _ = writeln!(out, "    extract::{{Path, Extension}},");
@@ -113,17 +100,13 @@ fn write_imports(out: &mut String, resources: &[ResourceDef]) {
 fn model_import_path(model_type: &str) -> String {
     let parts: Vec<&str> = model_type.split("::").collect();
     if parts.len() >= 2 {
-        // "users::Model" → "models::users" (on importe le module, pas le type)
+        // "users::Model" → "models::users"
         let module_parts = &parts[..parts.len() - 1];
         format!("models::{}", module_parts.join("::"))
     } else {
         format!("models::{}", model_type.to_lowercase())
     }
 }
-
-// ───────────────────────────────────────────────
-// Fonction admin_registry()
-// ───────────────────────────────────────────────
 
 fn write_registry_fn(out: &mut String, resources: &[ResourceDef]) {
     let _ = writeln!(
@@ -159,15 +142,11 @@ fn write_registry_fn(out: &mut String, resources: &[ResourceDef]) {
     let _ = writeln!(out);
 }
 
-// ───────────────────────────────────────────────
-// Handlers CRUD par ressource
-// ───────────────────────────────────────────────
-
 fn write_handlers(out: &mut String, resources: &[ResourceDef]) {
     for r in resources {
         let key = &r.key;
-        let model = &r.model_type; // "users::Model"
-        let form = &r.form_type; // "RegisterForm"
+        let model = &r.model_type;
+        let form = &r.form_type;
         let perms: Vec<String> = r.permissions.iter().map(|p| format!("\"{}\"", p)).collect();
         let perms_str = perms.join(", ");
 
@@ -285,10 +264,6 @@ fn write_handlers(out: &mut String, resources: &[ResourceDef]) {
         let _ = writeln!(out);
     }
 }
-
-// ───────────────────────────────────────────────
-// Router Axum câblé
-// ───────────────────────────────────────────────
 
 fn write_router_fn(out: &mut String, resources: &[ResourceDef]) {
     let _ = writeln!(

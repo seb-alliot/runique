@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// Parser — Analyse de src/admin.rs
-// ═══════════════════════════════════════════════════════════════
-//
 // Lit le fichier admin.rs du projet développeur et extrait
 // les déclarations de ressources du macro admin!{}.
 //
@@ -17,15 +13,10 @@
 //           permissions: ["admin", "editor"]
 //       }
 //   }
-//
-// Stratégie : syn::File pour localiser le macro admin!,
-// puis parsing manuel du TokenStream interne.
-// ═══════════════════════════════════════════════════════════════
 
 use proc_macro2::TokenStream;
 use syn::{parse_file, visit::Visit, Macro};
 
-/// Définition d'une ressource extraite du macro admin!
 #[derive(Debug, Clone)]
 pub struct ResourceDef {
     /// Clé de la ressource (ex: "users")
@@ -52,7 +43,7 @@ pub struct ParsedAdmin {
 
 /// Parse le contenu de src/admin.rs et retourne les ressources déclarées
 pub fn parse_admin_file(source: &str) -> Result<ParsedAdmin, String> {
-    let syntax = parse_file(source).map_err(|e| format!("Erreur de syntaxe Rust: {}", e))?;
+    let syntax = parse_file(source).map_err(|e| format!("Rust syntax error: {}", e))?;
 
     let mut visitor = AdminMacroVisitor::new();
     visitor.visit_file(&syntax);
@@ -65,10 +56,6 @@ pub fn parse_admin_file(source: &str) -> Result<ParsedAdmin, String> {
         resources: visitor.resources,
     })
 }
-
-// ───────────────────────────────────────────────
-// Visitor syn — localise le macro admin!
-// ───────────────────────────────────────────────
 
 struct AdminMacroVisitor {
     pub resources: Vec<ResourceDef>,
@@ -105,10 +92,6 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
     }
 }
 
-// ───────────────────────────────────────────────
-// Parser du TokenStream interne de admin!{}
-// ───────────────────────────────────────────────
-//
 // Syntaxe attendue :
 //   key: path::Model => FormType {
 //       title: "...",
@@ -125,7 +108,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
         // 1. key (ident)
         let key = match iter.next() {
             Some(TokenTree::Ident(id)) => id.to_string(),
-            Some(other) => return Err(format!("Attendu nom de ressource, trouvé: {}", other)),
+            Some(other) => return Err(format!("Expected resource name, found: {}", other)),
             None => break,
         };
 
@@ -142,15 +125,15 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
         // 5. form_type (ident simple)
         let form_type = match iter.next() {
             Some(TokenTree::Ident(id)) => id.to_string(),
-            Some(other) => return Err(format!("Attendu nom de Form, trouvé: {}", other)),
-            None => return Err("Attendu nom de Form, fin de fichier".to_string()),
+            Some(other) => return Err(format!("Expected Form name, found: {}", other)),
+            None => return Err("Expected Form name, end of file".to_string()),
         };
 
         // 6. { title: "...", permissions: [...] }
         let (title, permissions) = match iter.next() {
             Some(TokenTree::Group(group)) => parse_resource_body(group.stream())?,
-            Some(other) => return Err(format!("Attendu '{{', trouvé: {}", other)),
-            None => return Err("Attendu '{{', fin de fichier".to_string()),
+            Some(other) => return Err(format!("Expected '{{', found: {}", other)),
+            None => return Err("Expected '{{', end of file".to_string()),
         };
 
         resources.push(ResourceDef {
@@ -167,10 +150,6 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
 
     Ok(resources)
 }
-
-// ───────────────────────────────────────────────
-// Parser du corps d'une ressource { title, permissions }
-// ───────────────────────────────────────────────
 
 fn parse_resource_body(tokens: TokenStream) -> Result<(String, Vec<String>), String> {
     use proc_macro2::TokenTree;
@@ -197,26 +176,22 @@ fn parse_resource_body(tokens: TokenStream) -> Result<(String, Vec<String>), Str
                 permissions = parse_permissions_array(&mut iter)?;
             }
             other => {
-                // Champ inconnu → on skip jusqu'à la prochaine virgule
+                // Unknown field → skip until next comma
                 skip_until_punct(&mut iter, ',');
-                eprintln!("⚠️  Champ inconnu dans admin!{{}}: '{}'", other);
+                eprintln!("  Unknown field in admin!{{}}: '{}'", other);
             }
         }
     }
 
     if title.is_empty() {
-        return Err("Champ 'title' manquant dans la déclaration admin!{}".to_string());
+        return Err("Missing 'title' field in admin!{} declaration".to_string());
     }
     if permissions.is_empty() {
-        return Err("Champ 'permissions' manquant dans la déclaration admin!{}".to_string());
+        return Err("Missing 'permissions' field in admin!{} declaration".to_string());
     }
 
     Ok((title, permissions))
 }
-
-// ───────────────────────────────────────────────
-// Helpers de parsing
-// ───────────────────────────────────────────────
 
 type TokenIter = std::iter::Peekable<proc_macro2::token_stream::IntoIter>;
 
@@ -249,7 +224,7 @@ fn parse_path(iter: &mut TokenIter) -> Result<String, String> {
     }
 
     if path.is_empty() {
-        Err("Attendu chemin de type (ex: users::Model)".to_string())
+        Err("Expected type path (e.g., users::Model)".to_string())
     } else {
         Ok(path)
     }
@@ -266,11 +241,11 @@ fn parse_string_literal(iter: &mut TokenIter) -> Result<String, String> {
             if s.starts_with('"') && s.ends_with('"') {
                 Ok(s[1..s.len() - 1].to_string())
             } else {
-                Err(format!("Attendu chaîne littérale, trouvé: {}", s))
+                Err(format!("Expected string literal, found: {}", s))
             }
         }
-        Some(other) => Err(format!("Attendu chaîne littérale, trouvé: {}", other)),
-        None => Err("Attendu chaîne littérale, fin de fichier".to_string()),
+        Some(other) => Err(format!("Expected string literal, found: {}", other)),
+        None => Err("Expected string literal, end of file".to_string()),
     }
 }
 
@@ -297,13 +272,13 @@ fn parse_permissions_array(iter: &mut TokenIter) -> Result<Vec<String>, String> 
             }
 
             if roles.is_empty() {
-                Err("Au moins un rôle requis dans permissions: [...]".to_string())
+                Err("At least one role required in permissions: [...]".to_string())
             } else {
                 Ok(roles)
             }
         }
-        Some(other) => Err(format!("Attendu [...] pour permissions, trouvé: {}", other)),
-        None => Err("Attendu [...] pour permissions, fin de fichier".to_string()),
+        Some(other) => Err(format!("Expected [...] for permissions, found: {}", other)),
+        None => Err("Expected [...] for permissions, end of file".to_string()),
     }
 }
 
@@ -313,8 +288,8 @@ fn expect_punct(iter: &mut TokenIter, expected: char) -> Result<(), String> {
 
     match iter.next() {
         Some(TokenTree::Punct(p)) if p.as_char() == expected => Ok(()),
-        Some(other) => Err(format!("Attendu '{}', trouvé: {}", expected, other)),
-        None => Err(format!("Attendu '{}', fin de fichier", expected)),
+        Some(other) => Err(format!("Expected '{}', found: {}", expected, other)),
+        None => Err(format!("Expected '{}', end of file", expected)),
     }
 }
 

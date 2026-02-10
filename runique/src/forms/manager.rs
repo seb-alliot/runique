@@ -85,7 +85,7 @@ impl Serialize for Forms {
 
         let rendered_html = match self.render() {
             Ok(h) => h,
-            Err(e) => format!("<p style='color:red'>Erreur de rendu : {}</p>", e),
+            Err(e) => format!("<p style='color:red'>Render error: {}</p>", e),
         };
 
         state.serialize_field("html", &rendered_html)?;

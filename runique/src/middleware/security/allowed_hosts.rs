@@ -108,11 +108,11 @@ impl HostPolicy {
 }
 
 pub async fn allowed_hosts_middleware(
-    State(engine): State<AEngine>, // Utilise maintenant ton Engine central
+    State(engine): State<AEngine>, // Now uses your central Engine
     request: Request<Body>,
     next: Next,
 ) -> Response {
-    // On utilise les "meubles" déjà chargés dans l'engine au démarrage
+    // We use the "components" already loaded in the engine at startup
     if let Err((status, message)) = engine.security_hosts.validate(request.headers()) {
         return (status, message).into_response();
     }
