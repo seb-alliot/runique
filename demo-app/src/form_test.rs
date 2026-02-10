@@ -6,14 +6,11 @@ use runique::forms::fields::*;
 use runique::forms::manager::Forms;
 use serde::Serialize;
 
-// ─── Déclaration de la forme ─────────────────────────────────────────────
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct TestAllFieldsForm {
     pub form: Forms,
 }
-
-// ─── Implémentation du trait ─────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl RuniqueForm for TestAllFieldsForm {

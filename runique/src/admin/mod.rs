@@ -12,3 +12,4 @@ pub use resource::{
     AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
 };
 pub use router::build_admin_router;
+pub use router::AdminState;

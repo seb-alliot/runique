@@ -18,7 +18,7 @@ pub struct AdminConfig {
     /// Préfixe des routes admin (défaut : "/admin")
     pub prefix: String,
 
-    /// Active le daemon de hot reload (recommandé en développement)
+    /// Active le daemon de hot reload (obligatoire pour le développement)
     ///
     /// Le daemon surveille `src/admin.rs` et régénère les handlers
     /// automatiquement à chaque modification.
@@ -42,7 +42,7 @@ impl AdminConfig {
         }
     }
 
-    /// Définit le préfixe des routes admin
+    /// Donner la possibilité de choisir un préfixe pour la route admin
     ///
     /// ```rust,ignore
     /// AdminConfig::new().prefix("/backoffice")

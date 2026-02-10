@@ -36,7 +36,7 @@
 //   }
 
 /// Permissions granulaires par opération CRUD
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ResourcePermissions {
     /// Rôles autorisés pour lister les entrées (GET /admin/users)
     pub list: Vec<String>,
@@ -87,7 +87,7 @@ impl ResourcePermissions {
 }
 
 /// Opérations CRUD disponibles sur une ressource admin
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum CrudOperation {
     List,
     View,
@@ -101,7 +101,7 @@ pub enum CrudOperation {
 // ───────────────────────────────────────────────
 
 /// Filtre les colonnes affichées dans la vue liste
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub enum ColumnFilter {
     /// Affiche toutes les colonnes du Model (défaut)
     #[default]
@@ -119,7 +119,7 @@ pub enum ColumnFilter {
 // ───────────────────────────────────────────────
 
 /// Configuration de l'affichage d'une ressource dans l'interface admin
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct DisplayConfig {
     /// Icône affichée dans la navigation (nom d'icône, ex: "user", "file")
     pub icon: Option<String>,
@@ -179,7 +179,7 @@ impl Default for DisplayConfig {
 // AdminResource est la métadonnée pure (JSON-serializable).
 
 /// Métadonnées d'une ressource administrable
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct AdminResource {
     /// Clé unique de la ressource (ex: "users", "blog")
     ///

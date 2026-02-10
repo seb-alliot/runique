@@ -91,7 +91,7 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = &[
 
 pub const ADMIN_TEMPLATES: &[(&str, &str)] = &[
     (
-        "base_admin",
+        "admin_base.html", // nom exact attendu par {% extends "admin_base.html" %}
         include_str!("../../../templates/admin/admin_base.html"),
     ),
     (

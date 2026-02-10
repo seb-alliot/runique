@@ -9,13 +9,8 @@ macro_rules! admin {
             }
         )*
     ) => {
-        /// Construit l'AdminRegistry depuis les déclarations admin!{}
-        ///
-        /// Appelé par AdminStaging lors du build() pour enregistrer
-        /// les ressources sans passer par le code généré.
         pub fn admin_config() -> $crate::admin::AdminRegistry {
             let mut registry = $crate::admin::AdminRegistry::new();
-
             $(
                 registry.register(
                     $crate::admin::AdminResource::new(
@@ -27,8 +22,18 @@ macro_rules! admin {
                     )
                 );
             )*
-
             registry
         }
+
+        // Vérification compile-time — justifie les `use` du dev
+        // Si un type est introuvable → erreur de compilation explicite
+        $(
+            const _: () = {
+                fn _check_types() {
+                    fn _model(_: &$($model)::+) {}
+                    fn _form(_: &$form) {}
+                }
+            };
+        )*
     };
 }
