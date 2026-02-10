@@ -88,3 +88,26 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = &[
         include_str!("../../../templates/field_html/base_string.html"),
     ),
 ];
+
+pub const ADMIN_TEMPLATES: &[(&str, &str)] = &[
+    (
+        "base_admin",
+        include_str!("../../../templates/admin/admin_base.html"),
+    ),
+    (
+        "admin/login",
+        include_str!("../../../templates/admin/composant/admin_login.html"),
+    ),
+    (
+        "admin/dashboard",
+        include_str!("../../../templates/admin/composant/admin_dashboard.html"),
+    ),
+    (
+        "admin/list",
+        include_str!("../../../templates/admin/composant/admin_list.html"),
+    ),
+    (
+        "admin/form",
+        include_str!("../../../templates/admin/composant/admin_form.html"),
+    ),
+];

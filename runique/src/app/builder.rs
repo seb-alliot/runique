@@ -10,7 +10,8 @@ use crate::middleware::{HostPolicy, SecurityPolicy};
 use crate::utils::aliases::{new, new_serve};
 
 use super::error_build::BuildError;
-use super::staging::{CoreStaging, MiddlewareStaging, StaticStaging};
+use super::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
+use crate::admin::build_admin_router;
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;
@@ -63,6 +64,7 @@ pub struct RuniqueAppBuilder {
     middleware: MiddlewareStaging,
     statics: StaticStaging,
     router: Option<Router>,
+    admin: AdminStaging,
 }
 
 impl RuniqueAppBuilder {
@@ -79,6 +81,7 @@ impl RuniqueAppBuilder {
             middleware,
             statics: StaticStaging::new(),
             router: None,
+            admin: AdminStaging::new(),
         }
     }
 
@@ -86,7 +89,7 @@ impl RuniqueAppBuilder {
     // PHASE 1 : COLLECTE FLEXIBLE (ordre libre)
     //
     // Chaque méthode stocke la donnée sans l'exécuter.
-    // Peu importe l'ordre d'appel par le développeur.
+    // Peu importe l'ordre d'appel par un dév.
     // ═══════════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════════
@@ -212,6 +215,24 @@ impl RuniqueAppBuilder {
     }
 
     // ═══════════════════════════════════════════════════════════
+    // ADMIN PANEL
+    // ═══════════════════════════════════════════════════════════
+
+    /// Configure et active l'AdminPanel via une closure.
+    ///
+    /// ```rust,ignore
+    /// .with_admin(|a| a
+    ///     .prefix("/admin")
+    ///     .hot_reload(cfg!(debug_assertions))
+    ///     .site_title("Mon Admin")
+    /// )
+    /// ```
+    pub fn with_admin(mut self, f: impl FnOnce(AdminStaging) -> AdminStaging) -> Self {
+        self.admin = f(self.admin.enable());
+        self
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // PHASE 2 : VALIDATION + CONSTRUCTION (pipeline strict)
     //
     // Comme Prisme (formulaires) :
@@ -309,6 +330,16 @@ impl RuniqueAppBuilder {
             router
         };
 
+        // ═══════════════════════════════════════
+        // ÉTAPE 6 : ADMIN PANEL (conditionnel)
+        // ═══════════════════════════════════════
+        let router = if self.admin.enabled {
+            let admin_router = build_admin_router(&self.admin.registry, &self.admin.config);
+            router.merge(admin_router)
+        } else {
+            router
+        };
+
         Ok(RuniqueApp { engine, router })
     }
 
@@ -322,6 +353,7 @@ impl RuniqueAppBuilder {
         self.core.validate()?;
         self.middleware.validate()?;
         self.statics.validate()?;
+        self.admin.validate()?;
 
         // Validation croisée (dépendances entre composants)
         self.cross_validate()?;
@@ -341,7 +373,10 @@ impl RuniqueAppBuilder {
 
     /// Vérifie que tous les composants sont prêts
     fn all_ready(&self) -> bool {
-        self.core.is_ready() && self.middleware.is_ready() && self.statics.is_ready()
+        self.core.is_ready()
+            && self.middleware.is_ready()
+            && self.statics.is_ready()
+            && self.admin.is_ready()
     }
 
     // ═══════════════════════════════════════════════════════════

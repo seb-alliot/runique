@@ -1,0 +1,58 @@
+/* ═══════════════════════════════════════════════════════════════
+   AdminPanel — Responsive
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Tablette / mobile — sidebar en overlay */
+@media (max-width: 900px) {
+    .admin-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        transform: translateX(-100%);
+        transition: transform var(--transition), width var(--transition);
+        z-index: 200;
+    }
+
+    .admin-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .admin-sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 199;
+    }
+
+    .admin-sidebar-overlay.active {
+        display: block;
+    }
+
+    .form-grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+    .admin-content { padding: 1rem; }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-topbar { padding: 0 1rem; }
+    .topbar-breadcrumb { display: none; }
+
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+
+    .pagination {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 400px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .table-actions { flex-wrap: wrap; }
+}

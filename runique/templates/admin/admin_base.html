@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}{{ admin_title | default(value="Administration") }}{% endblock %} — {{ site_title | default(value="Runique Admin") }}</title>
+    <link rel="stylesheet" href="{{ "css/admin/variables.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/layout.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/components.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/buttons.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/forms.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/responsive.css" | runique_static }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="admin-layout">
+
+    <aside class="admin-sidebar" id="adminSidebar">
+
+        <div class="sidebar-header">
+            <div class="sidebar-logo">R</div>
+            <span class="sidebar-title">{{ site_title | default(value="Runique Admin") }}</span>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <a href="/admin" class="nav-item {% if current_page == 'dashboard' %}active{% endif %}">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <span class="nav-label">Tableau de bord</span>
+            </a>
+
+            {% if resources %}
+                <div class="nav-divider"></div>
+                <div class="nav-section-label">Ressources</div>
+
+                {% for resource in resources %}
+                <a href="/admin/{{ resource.key }}/list"
+                   class="nav-item {% if current_resource == resource.key %}active{% endif %}">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    <span class="nav-label">{{ resource.title }}</span>
+                </a>
+                {% endfor %}
+            {% endif %}
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <div style="display:flex; align-items:center; justify-content:center; padding: 0 0.75rem;">
+                <button class="sidebar-toggle" id="sidebarToggle" title="Réduire le menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+    </aside>
+
+    <div class="admin-sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="admin-main">
+
+        <header class="admin-topbar">
+
+            <button class="btn btn-ghost btn-icon" id="mobileBurger" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+
+            <div class="topbar-breadcrumb">
+                <a href="/admin">Admin</a>
+                {% block breadcrumb %}{% endblock %}
+            </div>
+
+            <a href="/admin/logout" class="topbar-user" title="Déconnexion">
+                <div class="user-avatar">
+                    {{ current_user.username | slice(end=1) | upper }}
+                </div>
+                <span>{{ current_user.username }}</span>
+            </a>
+
+        </header>
+
+        <main class="admin-content">
+
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.level | lower }}">
+                    {{ message.text }}
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            {% block content %}{% endblock %}
+
+        </main>
+
+    </div>
+
+</div>
+
+<script src="{{ "js/csrf.js" | runique_static }}" defer></script>
+<script src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

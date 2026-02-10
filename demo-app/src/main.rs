@@ -1,13 +1,13 @@
 #[macro_use]
 extern crate runique;
 use runique::prelude::*;
+mod admin;
 mod forms;
 mod models;
 mod url;
 mod views;
 
 use runique::app::builder::RuniqueAppBuilder as builder;
-
 mod form_test;
 
 #[tokio::main]
@@ -29,10 +29,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Le framework valide tout, puis réorganise
     // les middlewares automatiquement par slots.
     // ═══════════════════════════════════════════════════
+
     builder::new(config)
         .routes(url::routes())
         .with_database(db)
         .statics()
+        .with_admin(|a| {
+            a.prefix("/admin")
+                .hot_reload(cfg!(debug_assertions))
+                .site_title("Admininistration")
+        })
         .build()
         .await
         .map_err(|e| -> Box<dyn std::error::Error> { Box::new(e) })?

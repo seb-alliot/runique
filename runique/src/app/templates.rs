@@ -1,7 +1,7 @@
 use crate::config::RuniqueConfig;
 use crate::context::tera::static_tera;
 use crate::utils::aliases::ARlockmap;
-use crate::utils::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+use crate::utils::constante::{ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 use regex::{Captures, Regex};
 use std::path::Path;
 use tera::Tera;
@@ -117,6 +117,7 @@ impl TemplateLoader {
             .iter()
             .chain(ERROR_CORPS.iter())
             .chain(FIELD_TEMPLATES.iter())
+            .chain(ADMIN_TEMPLATES.iter())
         {
             tera.add_raw_template(name, content)?;
         }

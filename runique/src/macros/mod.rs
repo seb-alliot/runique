@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod bdd;
 pub mod context;
 pub mod forms;

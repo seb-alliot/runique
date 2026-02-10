@@ -1,0 +1,88 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-sep">/</span>
+    <span>Tableau de bord</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tableau de bord</h1>
+        <p class="page-subtitle">Vue d'ensemble de l'application</p>
+    </div>
+</div>
+
+<div class="stats-grid">
+    {% for resource in resources %}
+    <a href="/admin/{{ resource.key }}/list" class="stat-card" style="text-decoration:none">
+        <div class="stat-label">{{ resource.title }}</div>
+        <div class="stat-value">{{ resource.count | default(value="—") }}</div>
+        <div class="stat-meta">Voir la liste →</div>
+    </a>
+    {% endfor %}
+
+    {% if not resources %}
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-body">
+            <div class="empty-state">
+                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 17H7A5 5 0 0 1 7 7h2"/>
+                    <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                <p class="empty-state-title">Aucune ressource enregistrée</p>
+                <p class="empty-state-desc">
+                    Déclarez vos ressources dans <code>src/admin.rs</code> avec le macro <code>admin!{}</code>
+                    puis lancez <code>runique start</code>.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Ressources rapides -->
+{% if resources %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Ressources</h2>
+    </div>
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Ressource</th>
+                    <th>Clé</th>
+                    <th>Permissions</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for resource in resources %}
+                <tr>
+                    <td><strong>{{ resource.title }}</strong></td>
+                    <td><span class="id-badge">{{ resource.key }}</span></td>
+                    <td>
+                        {% for perm in resource.permissions.list %}
+                        <span class="badge badge-blue">{{ perm }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">Liste</a>
+                            <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">Créer</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
