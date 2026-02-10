@@ -107,7 +107,7 @@ admin! {
 admin! {
     key: Model => Form {
         // Affichage
-        title: "Nom affiché",           // Requis
+        title: "Nom affiché",            // Requis
         icon: "icon-name",               // Optionnel
 
         // Sécurité

@@ -1,0 +1,151 @@
+{% extends "admin_base.html" %}
+
+{% block title %}{{ resource.title }}{% endblock %}
+
+{% block breadcrumb %}
+    <span class="breadcrumb-sep">/</span>
+    <a href="/admin/{{ resource.key }}/list">{{ resource.title }}</a>
+    <span class="breadcrumb-sep">/</span>
+    <span>Liste</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ resource.title }}</h1>
+        <p class="page-subtitle">{{ total | default(value=0) }} entrée(s) au total</p>
+    </div>
+    <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nouveau
+    </a>
+</div>
+
+<div class="card">
+
+    <div class="card-header">
+        <div class="search-bar">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+                class="form-input"
+                type="search"
+                name="q"
+                placeholder="Rechercher..."
+                value="{{ search_query | default(value='') }}"
+                style="min-width:240px"
+                onchange="this.form && this.form.submit()"
+            >
+        </div>
+    </div>
+
+    <div class="admin-table-wrapper">
+
+        {% if rows %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    {% for col in columns %}
+                    <th>{{ col }}</th>
+                    {% endfor %}
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    {% for cell in row.cells %}
+                    <td>
+                        {% if loop.index == 1 %}
+                        <span class="id-badge">{{ cell }}</span>
+                        {% else %}
+                        {{ cell }}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td>
+                        <div class="table-actions">
+                            <a href="/admin/{{ resource.key }}/{{ row.id }}"
+                               class="btn btn-ghost btn-icon btn-sm"
+                               title="Modifier">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </a>
+                            <form method="POST" action="/admin/{{ resource.key }}/{{ row.id }}/delete"
+                                  onsubmit="return confirm('Supprimer cette entrée ?')"
+                                  style="display:inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-ghost btn-icon btn-sm" title="Supprimer">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"
+                                         style="color: var(--danger)">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6l-1 14H6L5 6"/>
+                                        <path d="M10 11v6M14 11v6"/>
+                                        <path d="M9 6V4h6v2"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            <span class="pagination-info">
+                Page {{ current_page }} sur {{ total_pages }}
+                ({{ total }} résultat(s))
+            </span>
+            <div class="pagination-controls">
+                <a href="?page={{ current_page | minus(value=1) }}"
+                   class="page-btn {% if current_page <= 1 %}disabled{% endif %}"
+                   title="Précédent">‹</a>
+
+                {% for p in range(start=1, end=total_pages + 1) %}
+                <a href="?page={{ p }}"
+                   class="page-btn {% if p == current_page %}active{% endif %}">
+                    {{ p }}
+                </a>
+                {% endfor %}
+
+                <a href="?page={{ current_page | plus(value=1) }}"
+                   class="page-btn {% if current_page >= total_pages %}disabled{% endif %}"
+                   title="Suivant">›</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                <polyline points="13 2 13 9 20 9"/>
+            </svg>
+            <p class="empty-state-title">Aucune entrée</p>
+            <p class="empty-state-desc">
+                {% if search_query %}
+                    Aucun résultat pour "{{ search_query }}"
+                {% else %}
+                    Commencez par créer une nouvelle entrée.
+                {% endif %}
+            </p>
+            {% if not search_query %}
+            <a href="/admin/{{ resource.key }}/create" class="btn btn-primary" style="margin-top:0.5rem">
+                Créer la première entrée
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div><!-- .admin-table-wrapper -->
+
+
+{% endblock %}

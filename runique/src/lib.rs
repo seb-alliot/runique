@@ -46,6 +46,7 @@ pub mod forms;
 
 pub mod macros;
 
+pub mod admin;
 pub mod errors;
 pub mod middleware;
 pub mod utils;
@@ -331,4 +332,15 @@ pub mod prelude {
     pub use regex::Regex;
     pub use tower_sessions::{Session, SessionManagerLayer};
     pub use uuid::Uuid;
+
+    // ========================================================================
+    // Admin
+    // ========================================================================
+    pub use crate::admin::config::config_admin::AdminConfig;
+    pub use crate::admin::daemon::{generate, parse_admin_file, watch};
+    pub use crate::admin::registry::AdminRegistry;
+    pub use crate::admin::resource::{
+        AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
+    };
+    pub use crate::admin::router::build_admin_router;
 }

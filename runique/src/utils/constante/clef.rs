@@ -10,3 +10,6 @@ pub const NONCE_KEY: &str = "csp_nonce";
 /// Clé de session pour stocker l'ID utilisateur
 pub const SESSION_USER_ID_KEY: &str = "user_id";
 pub const SESSION_USER_USERNAME_KEY: &str = "username";
+pub const SESSION_USER_IS_STAFF_KEY: &str = "is_staff";
+pub const SESSION_USER_IS_SUPERUSER_KEY: &str = "is_superuser";
+pub const SESSION_USER_ROLES_KEY: &str = "roles";

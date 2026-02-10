@@ -14,7 +14,7 @@ use crate::middleware::{
 
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
-
+#[derive(Debug)]
 /// Machine centrale de l'application
 pub struct RuniqueEngine {
     pub config: RuniqueConfig,
