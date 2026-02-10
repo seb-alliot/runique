@@ -307,35 +307,39 @@ impl RuniqueAppBuilder {
         add_urls(&engine);
 
         // ═══════════════════════════════════════
-        // ÉTAPE 4 : MIDDLEWARE STAGING
+        // ═══════════════════════════════════════
+        // ÉTAPE 4b : ADMIN PANEL — mergé AVANT la stack middleware
         //
-        // Le staging réorganise TOUT automatiquement par slots :
-        //   - Extensions, Session, Host, CSRF, CSP, etc.
-        //   - Les customs du dev en position len+1
-        //
-        // Le dev a pu écrire CSRF avant Session ?
-        //   → Le tri par slots inverse automatiquement.
+        // .layer() en Axum ne couvre que les routes déjà présentes
+        // sur le router au moment de l'appel.
+        // Merger après = routes admin sans Session/CSRF/Extensions.
         // ═══════════════════════════════════════
 
         let router = router.unwrap_or_default();
-        let router = middleware.apply_to_router(router, config, engine.clone(), tera);
 
-        // ═══════════════════════════════════════
-        // ÉTAPE 5 : FICHIERS STATIQUES (conditionnel)
-        // ═══════════════════════════════════════
-
-        let router = if statics_enabled {
-            Self::attach_static_files(router, &engine.config)
+        let router = if self.admin.enabled {
+            let admin_router = build_admin_router(self.admin.registry, self.admin.config);
+            router.merge(admin_router)
         } else {
             router
         };
 
         // ═══════════════════════════════════════
-        // ÉTAPE 6 : ADMIN PANEL (conditionnel)
+        // ÉTAPE 5 : MIDDLEWARE STAGING
+        //
+        // Appliqué sur toutes les routes (dev + admin).
+        // Le staging réorganise automatiquement par slots :
+        //   Extensions → Session → CSRF → CSP → Host
         // ═══════════════════════════════════════
-        let router = if self.admin.enabled {
-            let admin_router = build_admin_router(&self.admin.registry, &self.admin.config);
-            router.merge(admin_router)
+
+        let router = middleware.apply_to_router(router, config, engine.clone(), tera);
+
+        // ═══════════════════════════════════════
+        // ÉTAPE 6 : FICHIERS STATIQUES (conditionnel)
+        // ═══════════════════════════════════════
+
+        let router = if statics_enabled {
+            Self::attach_static_files(router, &engine.config)
         } else {
             router
         };
