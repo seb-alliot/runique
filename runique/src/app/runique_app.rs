@@ -20,14 +20,18 @@ impl RuniqueApp {
             self.engine.config.server.ip_server, self.engine.config.server.port
         );
 
-        println!("🚀 Runique Framework is operational");
-        println!("   Server launched on http://{}", addr);
+        println!("   Runique Framework is operational");
+        println!("      └──>  Server launched on http://{}", addr);
 
         #[cfg(feature = "orm")]
         {
             let moteur_db = self.engine.db.get_database_backend();
             let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
-            println!("   Connected to database {:?} -> {}", moteur_db, db_name);
+            println!(
+                "          └──>  Connected to database {:?} -> {}",
+                moteur_db, db_name
+            );
+            println!("              └──>  (Ctrl+C to stop)\n");
         }
 
         let listener = tokio::net::TcpListener::bind(&addr).await?;

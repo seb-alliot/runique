@@ -15,9 +15,9 @@ use tower_sessions::Session;
 // CurrentUser — Utilisateur authentifié
 // ═══════════════════════════════════════════════════════════════
 //
-// Chargé depuis la session via `load_user_middleware`.
-// Injecté dans les extensions de la requête pour être
-// accessible dans tous les handlers.
+// Loaded from the session via `load_user_middleware`.
+// Injected into the request extensions to be
+// accessible in all handlers.
 //
 // Les champs is_staff / is_superuser / roles sont stockés
 // en session lors du login (via login_user_full) et relus

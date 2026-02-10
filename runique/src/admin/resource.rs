@@ -1,10 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// AdminResource — Déclaration d'une ressource administrable
-// ═══════════════════════════════════════════════════════════════
-//
-// Une ressource associe un Model SeaORM à un Form Runique/Prisme,
-// avec des métadonnées d'affichage et des permissions granulaires.
-//
 // Créée par le daemon lors du parsing de `src/admin.rs` :
 //
 //   admin! {
@@ -13,13 +6,7 @@
 //           permissions: ["admin"]
 //       }
 //   }
-//
-// ═══════════════════════════════════════════════════════════════
 
-// ───────────────────────────────────────────────
-// ResourcePermissions — Contrôle CRUD granulaire
-// ───────────────────────────────────────────────
-//
 // Chaque opération CRUD peut avoir ses propres rôles autorisés.
 // Permet une sécurité fine sans sacrifier la lisibilité.
 //
@@ -38,26 +25,20 @@
 /// Permissions granulaires par opération CRUD
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ResourcePermissions {
-    /// Rôles autorisés pour lister les entrées (GET /admin/users)
+    // Rôles autorisés pour chaque opération
     pub list: Vec<String>,
 
-    /// Rôles autorisés pour voir une entrée (GET /admin/users/:id)
     pub view: Vec<String>,
 
-    /// Rôles autorisés pour créer une entrée (POST /admin/users)
     pub create: Vec<String>,
 
-    /// Rôles autorisés pour modifier une entrée (PUT /admin/users/:id)
     pub edit: Vec<String>,
 
-    /// Rôles autorisés pour supprimer une entrée (DELETE /admin/users/:id)
     pub delete: Vec<String>,
 }
 
 impl ResourcePermissions {
-    /// Crée des permissions uniformes — tous les rôles s'appliquent à toutes les opérations
-    ///
-    /// Cas d'usage : `permissions: ["admin"]` dans le macro admin!
+    /// Crée des permissions uniformes a toutes les actions
     pub fn uniform(roles: Vec<String>) -> Self {
         Self {
             list: roles.clone(),
@@ -96,10 +77,6 @@ pub enum CrudOperation {
     Delete,
 }
 
-// ───────────────────────────────────────────────
-// ColumnFilter — Contrôle des colonnes affichées
-// ───────────────────────────────────────────────
-
 /// Filtre les colonnes affichées dans la vue liste
 #[derive(Debug, Clone, Default, serde::Serialize)]
 pub enum ColumnFilter {
@@ -113,10 +90,6 @@ pub enum ColumnFilter {
     /// Affiche toutes les colonnes sauf celles spécifiées
     Exclude(Vec<String>),
 }
-
-// ───────────────────────────────────────────────
-// DisplayConfig — Configuration d'affichage
-// ───────────────────────────────────────────────
 
 /// Configuration de l'affichage d'une ressource dans l'interface admin
 #[derive(Debug, Clone, serde::Serialize)]
@@ -167,33 +140,19 @@ impl Default for DisplayConfig {
     }
 }
 
-// ───────────────────────────────────────────────
-// AdminResource — La ressource complète
-// ───────────────────────────────────────────────
+// Créée par le daemon lors du parsing de src/admin.rs.
 //
-// Contient toutes les métadonnées d'une ressource administrable.
-// Créée automatiquement par le daemon lors du parsing de src/admin.rs.
-//
-// Note : Pas de générique <Model, Form> ici — c'est le rôle du code
 // généré dans target/runique/admin/generated.rs d'être type-safe.
-// AdminResource est la métadonnée pure (JSON-serializable).
 
 /// Métadonnées d'une ressource administrable
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct AdminResource {
-    /// Clé unique de la ressource (ex: "users", "blog")
-    ///
     /// Utilisée pour les routes : /admin/{key}/list
     pub key: &'static str,
 
-    /// Chemin complet du Model SeaORM (pour diagnostics et génération)
-    ///
-    /// Ex: "crate::models::users::Model"
+    /// On récupere les chemins pour model et form
     pub model_path: &'static str,
 
-    /// Chemin complet du Form Runique (pour diagnostics et génération)
-    ///
-    /// Ex: "crate::forms::RegisterForm"
     pub form_path: &'static str,
 
     /// Titre affiché dans l'interface admin

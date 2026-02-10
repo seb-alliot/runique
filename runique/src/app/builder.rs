@@ -37,7 +37,6 @@ use sea_orm::DatabaseConnection;
 //
 // USAGE :
 //
-//   // Ordre libre — le framework réordonne automatiquement
 //   RuniqueApp::builder(config)
 //       .core(|c| c.with_database(db))
 //       .routes(router)
@@ -48,7 +47,6 @@ use sea_orm::DatabaseConnection;
 //       })
 //       .build().await?
 //
-//   // Ou avec les raccourcis (cas simples) :
 //   RuniqueApp::builder(config)
 //       .with_database(db)
 //       .routes(router)
@@ -71,7 +69,7 @@ impl RuniqueAppBuilder {
     /// Crée un nouveau builder intelligent avec la configuration donnée
     ///
     /// Le `MiddlewareConfig` est récupéré directement depuis `RuniqueConfig`
-    /// (chargé via `.env` ou `from_env()`). Le staging l'utilise comme base
+    /// (loaded via `.env` or `from_env()`). The staging uses it as a base
     /// et le dev peut le surcharger ensuite via `.middleware(|m| ...)`.
     pub fn new(config: RuniqueConfig) -> Self {
         let middleware = MiddlewareStaging::from_config(&config);
@@ -85,16 +83,12 @@ impl RuniqueAppBuilder {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // PHASE 1 : COLLECTE FLEXIBLE (ordre libre)
+    // PHASE 1 : COLLECTE FLEXIBLE
     //
     // Chaque méthode stocke la donnée sans l'exécuter.
     // Peu importe l'ordre d'appel par un dév.
-    // ═══════════════════════════════════════════════════════════
 
-    // ═══════════════════════════════════════════════════════════
     // CORE — Base de données et composants fondamentaux
-    // ═══════════════════════════════════════════════════════════
 
     /// Configure le core via une closure.
     ///
@@ -104,7 +98,6 @@ impl RuniqueAppBuilder {
     /// # Exemple
     /// ```rust,ignore
     /// .core(|c| c.with_database(db))
-    /// // ou
     /// .core(|c| c.with_database_config(db_config))
     /// ```
     pub fn core(mut self, f: impl FnOnce(CoreStaging) -> CoreStaging) -> Self {
@@ -136,9 +129,7 @@ impl RuniqueAppBuilder {
         self
     }
 
-    // ═══════════════════════════════════════════════════════════
     // ROUTES
-    // ═══════════════════════════════════════════════════════════
 
     /// Définit les routes de l'application
     pub fn routes(mut self, router: Router) -> Self {
@@ -146,9 +137,7 @@ impl RuniqueAppBuilder {
         self
     }
 
-    // ═══════════════════════════════════════════════════════════
     // MIDDLEWARE — Réorganisation automatique par slots
-    // ═══════════════════════════════════════════════════════════
 
     /// Configure les middlewares via une closure.
     ///
@@ -184,9 +173,7 @@ impl RuniqueAppBuilder {
         self
     }
 
-    // ═══════════════════════════════════════════════════════════
     // FICHIERS STATIQUES
-    // ═══════════════════════════════════════════════════════════
 
     /// Configure les fichiers statiques via une closure.
     ///

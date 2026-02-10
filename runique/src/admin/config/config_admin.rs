@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// AdminConfig — Configuration globale du panneau d'administration
-// ═══════════════════════════════════════════════════════════════
-//
 // Centralise toutes les options de configuration de l'AdminPanel :
 // - Préfixe des routes (/admin par défaut)
 // - Hot reload (daemon actif en développement)
@@ -10,7 +6,6 @@
 //
 // Configuré via AdminStaging dans le builder :
 //   .with_admin(|a| a.prefix("/admin").hot_reload(true))
-// ═══════════════════════════════════════════════════════════════
 
 /// Configuration globale de l'AdminPanel
 #[derive(Debug, Clone)]
@@ -56,7 +51,7 @@ impl AdminConfig {
     ///
     /// Exemple idiomatique :
     /// ```rust,ignore
-    /// .hot_reload(cfg!(debug_assertions)) // active en développement
+    /// .hot_reload(cfg!(debug_assertions)) // active en développement si with_admin
     /// ```
     pub fn hot_reload(mut self, enabled: bool) -> Self {
         self.hot_reload = enabled;

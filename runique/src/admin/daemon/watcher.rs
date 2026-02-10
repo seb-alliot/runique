@@ -27,14 +27,13 @@ pub fn watch(admin_path: &Path, output_dir: &Path) -> Result<(), String> {
     let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
 
     let mut watcher = RecommendedWatcher::new(tx, Config::default())
-        .map_err(|e| format!("Impossible de créer le watcher: {}", e))?;
+        .map_err(|e| format!("Unable to create watcher: {}", e))?;
 
     watcher
         .watch(admin_path, RecursiveMode::NonRecursive)
-        .map_err(|e| format!("Impossible de surveiller {}: {}", admin_path.display(), e))?;
+        .map_err(|e| format!("Unable to watch {}: {}", admin_path.display(), e))?;
 
     // Génération initiale au démarrage
-    println!("⚡ Génération initiale...");
     run_generation(admin_path, output_dir);
 
     // Debounce : évite plusieurs régénérations pour un seul save
@@ -48,12 +47,12 @@ pub fn watch(admin_path: &Path, output_dir: &Path) -> Result<(), String> {
                     let now = Instant::now();
                     if now.duration_since(last_event) > debounce {
                         last_event = now;
-                        println!("\n📝 Modification détectée → régénération...");
+                        println!("\n📝 Modification detected → regeneration...");
                         run_generation(admin_path, output_dir);
                     }
                 }
             }
-            Err(e) => eprintln!("⚠️  Erreur watcher: {}", e),
+            Err(e) => eprintln!("⚠️  Watcher error: {}", e),
         }
     }
 
@@ -70,31 +69,27 @@ fn run_generation(admin_path: &Path, output_dir: &Path) {
     let source = match fs::read_to_string(admin_path) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("❌ Lecture impossible: {}", e);
+            eprintln!("❌ Unable to read: {}", e);
             return;
         }
     };
 
     match parse_admin_file(&source) {
         Err(e) => {
-            eprintln!("❌ Erreur de parsing: {}", e);
+            eprintln!("❌ Parsing error: {}", e);
         }
         Ok(parsed) => {
             if parsed.resources.is_empty() {
-                println!("⚠️  Aucune ressource dans admin!{{}} — rien à générer");
+                println!("⚠️  No resource in admin!{{}} — nothing to generate");
                 return;
             }
 
             match generate(&parsed.resources, output_dir) {
                 Ok(()) => {
-                    println!("✅ {} ressource(s) générée(s):", parsed.resources.len());
-                    for r in &parsed.resources {
-                        println!("   • {} ({} → {})", r.key, r.model_type, r.form_type);
-                    }
-                    println!("   → {}/generated.rs", output_dir.display());
+                    println!("Daemon operational");
                 }
                 Err(e) => {
-                    eprintln!("❌ Erreur de génération: {}", e);
+                    eprintln!("❌ Generation error: {}", e);
                 }
             }
         }

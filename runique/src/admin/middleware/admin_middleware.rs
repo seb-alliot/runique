@@ -1,14 +1,16 @@
 use axum::{
     extract::Request,
-    http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
 };
 use tower_sessions::Session;
 
-use crate::middleware::auth::{is_authenticated, CurrentUser};
 use crate::utils::constante::SESSION_USER_IS_STAFF_KEY;
 use crate::utils::constante::SESSION_USER_IS_SUPERUSER_KEY;
+use crate::{
+    flash_now,
+    middleware::auth::{is_authenticated, CurrentUser},
+};
 
 /// Middleware : accès admin requis (is_staff OU is_superuser)
 ///
@@ -42,7 +44,8 @@ pub async fn admin_required(session: Session, request: Request, next: Next) -> R
         .unwrap_or(false);
 
     if !is_staff && !is_superuser {
-        return (StatusCode::FORBIDDEN, "Accès réservé aux administrateurs").into_response();
+        flash_now!(error => "Droits insuffisants pour accéder à l'administration");
+        return Redirect::to("/admin/login").into_response();
     }
 
     next.run(request).await
@@ -61,7 +64,6 @@ pub async fn admin_required(session: Session, request: Request, next: Next) -> R
 ///     if !check_permission(&user, &["admin"]) {
 ///         return (StatusCode::FORBIDDEN, "Droits insuffisants").into_response();
 ///     }
-///     // ... logique suppression
 /// }
 /// ```
 pub fn check_permission(user: &CurrentUser, required_roles: &[&str]) -> bool {
