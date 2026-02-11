@@ -62,6 +62,7 @@ indexmap.workspace = true
 
 # ORM
 sea-orm = { workspace = true, optional = true }
+sea-orm-migration = { workspace = true, optional = true }
 
 # Utilities
 dotenvy.workspace = true
@@ -102,10 +103,11 @@ derive_form = "1.1.20"
 
 # CLI
 clap.workspace = true
+rpassword.workspace = true
 
 [features]
-default = ["orm"]
-orm = ["dep:sea-orm"]
+default = ["orm", "all-databases"]
+orm = ["dep:sea-orm", "dep:sea-orm-migration"]
 sqlite = ["orm", "sea-orm/sqlx-sqlite", "sea-orm/runtime-tokio-rustls"]
 postgres = ["orm", "sea-orm/sqlx-postgres", "sea-orm/runtime-tokio-rustls"]
 mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]

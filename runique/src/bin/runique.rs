@@ -36,9 +36,12 @@ enum Commands {
         #[arg(long, default_value = "target/runique/admin")]
         output: String,
     },
+    /// Créer un superuser admin
+    CreateSuperuser,
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_target(false)
         .compact()
@@ -53,6 +56,7 @@ fn main() -> Result<()> {
             admin,
             output,
         } => runique_start(&main, &admin, &output)?,
+        Commands::CreateSuperuser => runique::admin::create_superuser().await?,
     }
 
     Ok(())

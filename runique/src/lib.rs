@@ -49,6 +49,7 @@ pub mod macros;
 pub mod admin;
 pub mod errors;
 pub mod middleware;
+pub mod migration;
 pub mod utils;
 
 // ---------------------------------------------------------------------------
@@ -257,7 +258,6 @@ pub mod prelude {
     // ========================================================================
     // pub use crate::context::error::*;
     pub use crate::context::request::RuniqueContext;
-    pub use crate::context::tera::*;
 
     // ========================================================================
     // MIDDLEWARE

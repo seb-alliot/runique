@@ -28,7 +28,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             a.with_registry(admin::admin_config())
                 .prefix("/admin")
                 .hot_reload(cfg!(debug_assertions))
-                .site_title("Admininistration")
+                .site_title("Administration")
+                .auth(RuniqueAdminAuth::new())
         })
         .build()
         .await

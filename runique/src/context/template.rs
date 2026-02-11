@@ -119,7 +119,10 @@ where
         context.insert("csp_nonce", nonce);
         context.insert("static_runique", &engine.config.static_files);
         context.insert("messages", &messages);
-
+        // Injecter current_user si disponible
+        if let Some(current_user) = ex.get::<crate::middleware::auth::CurrentUser>() {
+            context.insert("current_user", current_user);
+        }
         Ok(Self {
             engine,
             session,

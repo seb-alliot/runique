@@ -1,0 +1,4 @@
+sea-orm-cli migrate up        => migration
+sea-orm-cli migrate down      => rollback une migration
+sea-orm-cli migrate fresh     => drop tout + reapplique
+sea-orm-cli migrate status    => voir l'état des migrations
