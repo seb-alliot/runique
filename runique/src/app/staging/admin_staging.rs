@@ -1,33 +1,14 @@
 // ═══════════════════════════════════════════════════════════════
 // AdminStaging — Configuration de l'AdminPanel dans le builder
 // ═══════════════════════════════════════════════════════════════
-//
-// Même pattern que CoreStaging, MiddlewareStaging, StaticStaging.
-// Collecte flexible → validation → construction dans build().
-//
-// Usage :
-//   RuniqueApp::builder(config)
-//       .routes(url::routes())
-//       .with_database(db)
-//       .with_admin(|a| a
-//           .prefix("/admin")
-//           .hot_reload(cfg!(debug_assertions))
-//           .site_title("Mon Admin")
-//       )
-//       .build().await?
-// ═══════════════════════════════════════════════════════════════
 
 use crate::admin::{AdminConfig, AdminRegistry};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
+use crate::middleware::auth::AdminAuth;
 
 pub struct AdminStaging {
-    /// Configuration admin (préfixe, hot_reload, titre...)
     pub(crate) config: AdminConfig,
-
-    /// Registre des ressources (rempli par le code généré)
     pub(crate) registry: AdminRegistry,
-
-    /// AdminPanel activé ou non
     pub(crate) enabled: bool,
 }
 
@@ -40,42 +21,57 @@ impl AdminStaging {
         }
     }
 
-    /// Définit le préfixe des routes admin (défaut : "/admin")
     pub fn prefix(mut self, prefix: &str) -> Self {
         self.config = self.config.prefix(prefix);
         self
     }
 
-    /// Active ou désactive le hot reload du daemon
-    ///
-    /// ```rust,ignore
-    /// .with_admin(|a| a.hot_reload(cfg!(debug_assertions)))
-    /// ```
     pub fn hot_reload(mut self, enabled: bool) -> Self {
         self.config = self.config.hot_reload(enabled);
         self
     }
 
-    /// Définit le titre affiché dans l'interface admin
     pub fn site_title(mut self, title: &str) -> Self {
         self.config = self.config.site_title(title);
         self
     }
 
-    /// Désactive complètement l'AdminPanel
+    /// Branche le handler d'authentification admin
+    ///
+    /// ## Avec le User built-in (zéro config) :
+    /// ```rust,ignore
+    /// use runique::middleware::auth::RuniqueAdminAuth;
+    ///
+    /// .with_admin(|a| a
+    ///     .site_title("Mon Admin")
+    ///     .auth(RuniqueAdminAuth::new())
+    /// )
+    /// ```
+    ///
+    /// ## Avec un modèle custom :
+    /// ```rust,ignore
+    /// use runique::middleware::auth::{DefaultAdminAuth, UserEntity};
+    ///
+    /// impl UserEntity for users::Entity { ... }
+    ///
+    /// .with_admin(|a| a.auth(DefaultAdminAuth::<users::Entity>::new()))
+    /// ```
+    pub fn auth<A: AdminAuth>(mut self, handler: A) -> Self {
+        self.config = self.config.auth(handler);
+        self
+    }
+
     pub fn disable(mut self) -> Self {
         self.enabled = false;
         self.config = self.config.disable();
         self
     }
 
-    /// Active l'AdminPanel (appelé automatiquement par `.with_admin()`)
     pub(crate) fn enable(mut self) -> Self {
         self.enabled = true;
         self
     }
 
-    /// Injecte un registre de ressources (appelé par le code généré)
     pub fn with_registry(mut self, registry: AdminRegistry) -> Self {
         self.registry = registry;
         self
@@ -98,6 +94,16 @@ impl AdminStaging {
             );
         }
 
+        if self.config.auth.is_none() {
+            report.add(
+                CheckError::new("AdminPanel", "Aucun handler d'authentification configuré")
+                    .with_suggestion(
+                        "Ajoutez .auth(RuniqueAdminAuth::new()) pour utiliser le User built-in, \
+                     ou implémentez UserEntity sur votre propre modèle",
+                    ),
+            );
+        }
+
         if report.has_errors() {
             return Err(BuildError::check(report));
         }
@@ -107,7 +113,7 @@ impl AdminStaging {
 
     pub fn is_ready(&self) -> bool {
         if !self.enabled {
-            return true; // Désactivé = pas bloquant
+            return true;
         }
         !self.config.prefix.is_empty()
     }

@@ -1,70 +1,92 @@
-// Centralise toutes les options de configuration de l'AdminPanel :
-// - Préfixe des routes (/admin par défaut)
-// - Hot reload (daemon actif en développement)
-// - Titre du site admin (affiché dans l'interface)
-// - Activation/désactivation complète de l'admin
-//
-// Configuré via AdminStaging dans le builder :
-//   .with_admin(|a| a.prefix("/admin").hot_reload(true))
+// ═══════════════════════════════════════════════════════════════
+// AdminConfig — Configuration du panneau d'administration
+// ═══════════════════════════════════════════════════════════════
 
-/// Configuration globale de l'AdminPanel
-#[derive(Debug, Clone)]
+use std::sync::Arc;
+
+use crate::middleware::auth::AdminAuth;
+
 pub struct AdminConfig {
     /// Préfixe des routes admin (défaut : "/admin")
     pub prefix: String,
 
-    /// Active le daemon de hot reload (obligatoire pour le développement)
-    ///
-    /// Le daemon surveille `src/admin.rs` et régénère les handlers
-    /// automatiquement à chaque modification.
+    /// Active le daemon de hot reload en développement
     pub hot_reload: bool,
 
-    /// Titre affiché dans l'interface d'administration
+    /// Titre affiché dans l'interface admin
     pub site_title: String,
 
     /// Active ou désactive entièrement l'AdminPanel
     pub enabled: bool,
+
+    /// Handler de vérification du login admin
+    ///
+    /// Voir `crate::middleware::auth::AdminAuth`.
+    pub auth: Option<Arc<dyn AdminAuth>>,
+}
+
+impl Clone for AdminConfig {
+    fn clone(&self) -> Self {
+        Self {
+            prefix: self.prefix.clone(),
+            hot_reload: self.hot_reload,
+            site_title: self.site_title.clone(),
+            enabled: self.enabled,
+            auth: self.auth.clone(),
+        }
+    }
+}
+
+impl std::fmt::Debug for AdminConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AdminConfig")
+            .field("prefix", &self.prefix)
+            .field("hot_reload", &self.hot_reload)
+            .field("site_title", &self.site_title)
+            .field("enabled", &self.enabled)
+            .field("auth", &self.auth.as_ref().map(|_| "<AdminAuth>"))
+            .finish()
+    }
 }
 
 impl AdminConfig {
-    /// Crée une configuration par défaut
     pub fn new() -> Self {
         Self {
             prefix: "/admin".to_string(),
             hot_reload: false,
             site_title: "Administration".to_string(),
             enabled: true,
+            auth: None,
         }
     }
 
-    /// Donner la possibilité de choisir un préfixe pour la route admin
-    ///
-    /// ```rust,ignore
-    /// AdminConfig::new().prefix("/backoffice")
-    /// ```
     pub fn prefix(mut self, prefix: &str) -> Self {
         self.prefix = prefix.to_string();
         self
     }
 
-    /// Active ou désactive le hot reload du daemon
-    ///
-    /// Exemple idiomatique :
-    /// ```rust,ignore
-    /// .hot_reload(cfg!(debug_assertions)) // active en développement si with_admin
-    /// ```
     pub fn hot_reload(mut self, enabled: bool) -> Self {
         self.hot_reload = enabled;
         self
     }
 
-    /// Définit le titre affiché dans l'interface admin
     pub fn site_title(mut self, title: &str) -> Self {
         self.site_title = title.to_string();
         self
     }
 
-    /// Désactive complètement l'AdminPanel
+    /// Branche le handler d'authentification admin
+    ///
+    /// ```rust,ignore
+    /// AdminConfig::new().auth(RuniqueAdminAuth::new())
+    ///
+    /// AdminConfig::new().auth(DefaultAdminAuth::<users::Entity>::new())
+    /// ```
+    pub fn auth<A: AdminAuth>(mut self, handler: A) -> Self {
+        self.auth = Some(Arc::new(handler));
+        self
+    }
+
     pub fn disable(mut self) -> Self {
         self.enabled = false;
         self

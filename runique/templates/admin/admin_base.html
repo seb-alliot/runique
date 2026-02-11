@@ -87,7 +87,7 @@
 
             <a href="/admin/logout" class="topbar-user" title="Déconnexion">
                 <div class="user-avatar">
-                    {{ current_user.username | slice(end=1) | upper }}
+                    {{ current_user.username }}
                 </div>
                 <span>{{ current_user.username }}</span>
             </a>

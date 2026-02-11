@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// Watcher — Surveillance de src/admin.rs
-// ═══════════════════════════════════════════════════════════════
-//
 // Surveille src/admin.rs avec notify et déclenche la génération
 // à chaque modification.
 //
@@ -69,27 +65,27 @@ fn run_generation(admin_path: &Path, output_dir: &Path) {
     let source = match fs::read_to_string(admin_path) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("❌ Unable to read: {}", e);
+            eprintln!(" Unable to read: {}", e);
             return;
         }
     };
 
     match parse_admin_file(&source) {
         Err(e) => {
-            eprintln!("❌ Parsing error: {}", e);
+            eprintln!(" Parsing error: {}", e);
         }
         Ok(parsed) => {
             if parsed.resources.is_empty() {
-                println!("⚠️  No resource in admin!{{}} — nothing to generate");
+                println!("  No resource in admin!{{}} — nothing to generate");
                 return;
             }
 
             match generate(&parsed.resources, output_dir) {
                 Ok(()) => {
-                    println!("Daemon operational");
+                    println!("  Daemon operational");
                 }
                 Err(e) => {
-                    eprintln!("❌ Generation error: {}", e);
+                    eprintln!(" Generation error: {}", e);
                 }
             }
         }

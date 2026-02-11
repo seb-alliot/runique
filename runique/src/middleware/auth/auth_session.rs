@@ -24,11 +24,10 @@ use tower_sessions::Session;
 // à chaque requête.
 // ═══════════════════════════════════════════════════════════════
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct CurrentUser {
     pub id: i32,
     pub username: String,
-
     /// Accès au panneau d'administration (lecture / opérations limitées)
     pub is_staff: bool,
 

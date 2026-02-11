@@ -1,3 +1,5 @@
+pub use cli_admin::create_superuser;
+pub mod cli_admin;
 pub mod config;
 pub mod daemon;
 pub mod middleware;
