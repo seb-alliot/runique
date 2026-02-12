@@ -35,8 +35,8 @@ indexmap = { version = "2.13.0", features = ["serde"] }
 glob = "0.3"
 
 # ORM
-sea-orm = { version = "2.0.0-rc.18" }
-sea-orm-migration = { version = "1.1.19" }
+sea-orm = "=2.0.0-rc.32"
+sea-orm-migration = { version = "=2.0.0-rc.32" }
 # Utilitaires
 dotenvy = "0.15"
 chrono = { version = "0.4.43", features = ["serde"] }

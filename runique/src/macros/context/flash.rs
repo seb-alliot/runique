@@ -82,8 +82,7 @@ macro_rules! warning {
 macro_rules! flash_now {
     ($msg_type:ident => $content:expr) => {
         {
-            let mut template = vec![];
-            template.push($crate::flash::FlashMessage::$msg_type($content));
+            let template = vec![$crate::flash::FlashMessage::$msg_type($content)];
             template
         }
     };
