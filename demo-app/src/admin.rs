@@ -1,3 +1,7 @@
+#[path = "../target/runique/admin/generated.rs"]
+#[allow(warnings)]
+pub mod generated;
+
 use crate::forms::RegisterForm;
 use crate::models::users;
 

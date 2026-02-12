@@ -71,27 +71,22 @@ fn write_header(out: &mut String, resources: &[ResourceDef]) {
 }
 
 fn write_imports(out: &mut String, resources: &[ResourceDef]) {
-    let _ = writeln!(out, "use axum::{{");
-    let _ = writeln!(out, "    extract::{{Path, Extension}},");
-    let _ = writeln!(out, "    http::StatusCode,");
-    let _ = writeln!(out, "    response::{{Html, IntoResponse, Response}},");
-    let _ = writeln!(out, "    routing::{{get, post}},");
-    let _ = writeln!(out, "    Router,");
-    let _ = writeln!(out, "}};");
+    // Prelude contient tout : Router, Request, Response, AppResult, AppError, Redirect, etc.
+    let _ = writeln!(out, "use runique::prelude::*;");
     let _ = writeln!(
         out,
-        "use runique::admin::{{AdminRegistry, AdminResource, ResourcePermissions}};"
+        "use runique::admin::{{AdminRegistry, AdminResource, AdminState}};"
     );
-    let _ = writeln!(out, "use runique::middleware::auth::CurrentUser;");
-    let _ = writeln!(out, "use runique::utils::aliases::ADb;");
+    let _ = writeln!(out, "use runique::errors::error::ErrorContext;");
+    let _ = writeln!(out, "use serde_json::{{json, Value}};");
+    let _ = writeln!(out, "use std::sync::Arc;");
     let _ = writeln!(out);
 
     // Imports des models et forms
     for r in resources {
-        // Transforme "users::Model" → "crate::models::users"
-        // et "RegisterForm" → "crate::forms::RegisterForm"
         let model_import = model_import_path(&r.model_type);
         let _ = writeln!(out, "use crate::{};", model_import);
+        let _ = writeln!(out, "use crate::forms::{};", r.form_type);
     }
     let _ = writeln!(out);
 }
@@ -155,148 +150,327 @@ fn write_handlers(out: &mut String, resources: &[ResourceDef]) {
         let _ = writeln!(out, "// ─────────────────────────────────────────────");
         let _ = writeln!(out);
 
-        // LIST
-        let _ = writeln!(out, "pub async fn admin_{key}_list(");
-        let _ = writeln!(out, "    Extension(user): Extension<CurrentUser>,");
-        let _ = writeln!(out, "    Extension(db): Extension<ADb>,");
-        let _ = writeln!(out, ") -> Response {{");
-        let _ = writeln!(out, "    if !user.can_admin(&[{perms_str}]) {{");
-        let _ = writeln!(
-            out,
-            "        return (StatusCode::FORBIDDEN, \"Accès refusé\").into_response();"
-        );
-        let _ = writeln!(out, "    }}");
-        let _ = writeln!(out, "    // TODO: récupérer les entrées depuis la DB");
-        let _ = writeln!(
-            out,
-            "    Html(format!(\"<h1>Liste {key}</h1>\")).into_response()"
-        );
-        let _ = writeln!(out, "}}");
-        let _ = writeln!(out);
-
-        // CREATE GET
-        let _ = writeln!(out, "pub async fn admin_{key}_create_get(");
-        let _ = writeln!(out, "    Extension(user): Extension<CurrentUser>,");
-        let _ = writeln!(out, ") -> Response {{");
-        let _ = writeln!(out, "    if !user.can_admin(&[{perms_str}]) {{");
-        let _ = writeln!(
-            out,
-            "        return (StatusCode::FORBIDDEN, \"Accès refusé\").into_response();"
-        );
-        let _ = writeln!(out, "    }}");
-        let _ = writeln!(
-            out,
-            "    Html(format!(\"<h1>Créer {key}</h1>\")).into_response()"
-        );
-        let _ = writeln!(out, "}}");
-        let _ = writeln!(out);
-
-        // CREATE POST
-        let _ = writeln!(out, "pub async fn admin_{key}_create_post(");
-        let _ = writeln!(out, "    Extension(user): Extension<CurrentUser>,");
-        let _ = writeln!(out, "    Extension(db): Extension<ADb>,");
-        let _ = writeln!(out, ") -> Response {{");
-        let _ = writeln!(out, "    if !user.can_admin(&[{perms_str}]) {{");
-        let _ = writeln!(
-            out,
-            "        return (StatusCode::FORBIDDEN, \"Accès refusé\").into_response();"
-        );
-        let _ = writeln!(out, "    }}");
-        let _ = writeln!(out, "    // TODO: traiter le formulaire {form}");
-        let _ = writeln!(out, "    (StatusCode::CREATED, \"Créé\").into_response()");
-        let _ = writeln!(out, "}}");
-        let _ = writeln!(out);
-
-        // DETAIL GET
-        let _ = writeln!(out, "pub async fn admin_{key}_detail(");
-        let _ = writeln!(out, "    Extension(user): Extension<CurrentUser>,");
-        let _ = writeln!(out, "    Extension(db): Extension<ADb>,");
-        let _ = writeln!(out, "    Path(id): Path<i32>,");
-        let _ = writeln!(out, ") -> Response {{");
-        let _ = writeln!(out, "    if !user.can_admin(&[{perms_str}]) {{");
-        let _ = writeln!(
-            out,
-            "        return (StatusCode::FORBIDDEN, \"Accès refusé\").into_response();"
-        );
-        let _ = writeln!(out, "    }}");
-        let _ = writeln!(
-            out,
-            "    Html(format!(\"<h1>{key} #{{id}}</h1>\")).into_response()"
-        );
-        let _ = writeln!(out, "}}");
-        let _ = writeln!(out);
-
-        // EDIT POST
-        let _ = writeln!(out, "pub async fn admin_{key}_edit(");
-        let _ = writeln!(out, "    Extension(user): Extension<CurrentUser>,");
-        let _ = writeln!(out, "    Extension(db): Extension<ADb>,");
-        let _ = writeln!(out, "    Path(id): Path<i32>,");
-        let _ = writeln!(out, ") -> Response {{");
-        let _ = writeln!(out, "    if !user.can_admin(&[{perms_str}]) {{");
-        let _ = writeln!(
-            out,
-            "        return (StatusCode::FORBIDDEN, \"Accès refusé\").into_response();"
-        );
-        let _ = writeln!(out, "    }}");
-        let _ = writeln!(out, "    // TODO: traiter l'édition {form}");
-        let _ = writeln!(
-            out,
-            "    Html(format!(\"<h1>Éditer {key} #{{id}}</h1>\")).into_response()"
-        );
-        let _ = writeln!(out, "}}");
-        let _ = writeln!(out);
-
-        // DELETE POST
-        let _ = writeln!(out, "pub async fn admin_{key}_delete(");
-        let _ = writeln!(out, "    Extension(user): Extension<CurrentUser>,");
-        let _ = writeln!(out, "    Extension(db): Extension<ADb>,");
-        let _ = writeln!(out, "    Path(id): Path<i32>,");
-        let _ = writeln!(out, ") -> Response {{");
-        let _ = writeln!(out, "    if !user.can_admin(&[{perms_str}]) {{");
-        let _ = writeln!(
-            out,
-            "        return (StatusCode::FORBIDDEN, \"Accès refusé\").into_response();"
-        );
-        let _ = writeln!(out, "    }}");
-        let _ = writeln!(out, "    // TODO: supprimer l'entrée #{key} id={{id}}");
-        let _ = writeln!(out, "    (StatusCode::OK, \"Supprimé\").into_response()");
-        let _ = writeln!(out, "}}");
-        let _ = writeln!(out);
+        write_list_handler(out, key, model, &perms_str);
+        write_create_get_handler(out, key, form, &perms_str);
+        write_create_post_handler(out, key, model, form, &perms_str);
+        write_detail_handler(out, key, model, &perms_str);
+        write_edit_handler(out, key, model, form, &perms_str);
+        write_delete_handler(out, key, model, &perms_str);
     }
+}
+
+fn write_list_handler(out: &mut String, key: &str, model: &str, _perms_str: &str) {
+    let _ = writeln!(out, "pub async fn admin_{key}_list(");
+    let _ = writeln!(out, "    mut req: Request,");
+    let _ = writeln!(out, "    Extension(admin): Extension<Arc<AdminState>>,");
+    let _ = writeln!(out, ") -> AppResult<Response> {{");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Trouver la resource");
+    let _ = writeln!(out, "    let resource = admin.registry.resources.iter()");
+    let _ = writeln!(out, "        .find(|r| r.key == \"{key}\")");
+    let _ = writeln!(out, "        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found(\"Resource not found\"))))?;");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Récupérer toutes les entrées");
+    let _ = writeln!(
+        out,
+        "    let entries = <{model} as runique::prelude::ModelTrait>::Entity::find()"
+    );
+    let _ = writeln!(out, "        .all(&*req.engine.db)");
+    let _ = writeln!(out, "        .await?;");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Convertir en JSON");
+    let _ = writeln!(out, "    let rows: Vec<Value> = entries.iter()");
+    let _ = writeln!(
+        out,
+        "        .map(|entry| serde_json::to_value(entry).unwrap_or(json!({{}})))"
+    );
+    let _ = writeln!(out, "        .collect();");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Extraire les colonnes");
+    let _ = writeln!(
+        out,
+        "    let columns = if let Some(first) = rows.first() {{"
+    );
+    let _ = writeln!(out, "        first.as_object()");
+    let _ = writeln!(out, "            .map(|obj| obj.keys().cloned().collect())");
+    let _ = writeln!(out, "            .unwrap_or_default()");
+    let _ = writeln!(out, "    }} else {{");
+    let _ = writeln!(out, "        Vec::new()");
+    let _ = writeln!(out, "    }};");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    context_update!(req => {{");
+    let _ = writeln!(out, "        \"resource\" => resource,");
+    let _ = writeln!(out, "        \"rows\" => rows,");
+    let _ = writeln!(out, "        \"columns\" => columns,");
+    let _ = writeln!(out, "        \"total\" => entries.len(),");
+    let _ = writeln!(out, "        \"current_page\" => 1,");
+    let _ = writeln!(out, "        \"total_pages\" => 1,");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    req.render(\"admin/list\")");
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+}
+
+fn write_create_get_handler(out: &mut String, key: &str, form: &str, _perms_str: &str) {
+    let _ = writeln!(out, "pub async fn admin_{key}_create_get(");
+    let _ = writeln!(out, "    mut req: Request,");
+    let _ = writeln!(out, "    Extension(admin): Extension<Arc<AdminState>>,");
+    let _ = writeln!(out, "    Prisme(mut form): Prisme<{form}>,");
+    let _ = writeln!(out, ") -> AppResult<Response> {{");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Trouver la ressource");
+    let _ = writeln!(out, "    let resource = admin.registry.resources.iter()");
+    let _ = writeln!(out, "        .find(|r| r.key == \"{key}\")");
+    let _ = writeln!(out, "        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found(\"Resource not found\"))))?;");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Sérialiser le form en JSON pour Tera");
+    let _ = writeln!(out, "    let form_json = serde_json::to_value(&form.form)");
+    let _ = writeln!(
+        out,
+        "        .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;"
+    );
+    let _ = writeln!(
+        out,
+        "    let form_fields = form_json.get(\"fields\").cloned().unwrap_or(json!({{}}));"
+    );
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    context_update!(req => {{");
+    let _ = writeln!(out, "        \"resource\" => resource,");
+    let _ = writeln!(out, "        \"form_fields\" => form_fields,");
+    let _ = writeln!(out, "        \"is_edit\" => false,");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    req.render(\"admin/form\")");
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+}
+
+fn write_create_post_handler(
+    out: &mut String,
+    key: &str,
+    _model: &str,
+    form: &str,
+    _perms_str: &str,
+) {
+    let _ = writeln!(out, "pub async fn admin_{key}_create_post(");
+    let _ = writeln!(out, "    mut req: Request,");
+    let _ = writeln!(out, "    Extension(admin): Extension<Arc<AdminState>>,");
+    let _ = writeln!(out, "    Prisme(mut form): Prisme<{form}>,");
+    let _ = writeln!(out, ") -> AppResult<Response> {{");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    if form.is_valid().await {{");
+    let _ = writeln!(
+        out,
+        "        form.save(&*req.engine.db).await.map_err(|err| {{"
+    );
+    let _ = writeln!(out, "            form.get_form_mut().database_error(&err);");
+    let _ = writeln!(out, "            AppError::from(err)");
+    let _ = writeln!(out, "        }})?;");
+    let _ = writeln!(
+        out,
+        "        success!(req.notices => \"Entrée créée avec succès !\");"
+    );
+    let _ = writeln!(out, "        return Ok(Redirect::to(&format!(\"/{{}}/{key}/list\", admin.config.prefix)).into_response());");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Validation échouée → réafficher le formulaire");
+    let _ = writeln!(
+        out,
+        "    let form_json = serde_json::to_value(&form.form)
+        .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;"
+    );
+    let _ = writeln!(
+        out,
+        "    let form_fields = form_json.get(\"fields\").cloned().unwrap_or(json!({{}}));"
+    );
+    let _ = writeln!(out, "    context_update!(req => {{");
+    let _ = writeln!(out, "        \"form_fields\" => form_fields,");
+    let _ = writeln!(out, "        \"is_edit\" => false,");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    req.render(\"admin/form\")");
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+}
+
+fn write_detail_handler(out: &mut String, key: &str, model: &str, _perms_str: &str) {
+    let _ = writeln!(out, "pub async fn admin_{key}_detail(");
+    let _ = writeln!(out, "    mut req: Request,");
+    let _ = writeln!(out, "    Extension(admin): Extension<Arc<AdminState>>,");
+    let _ = writeln!(out, "    Path(id): Path<i32>,");
+    let _ = writeln!(out, ") -> AppResult<Response> {{");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Trouver la resource");
+    let _ = writeln!(out, "    let resource = admin.registry.resources.iter()");
+    let _ = writeln!(out, "        .find(|r| r.key == \"{key}\")");
+    let _ = writeln!(out, "        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found(\"Resource not found\"))))?;");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Récupérer l'entrée par ID");
+    let _ = writeln!(
+        out,
+        "    let entry = <{model} as runique::prelude::ModelTrait>::Entity::find_by_id(id)"
+    );
+    let _ = writeln!(out, "        .one(&*req.engine.db)");
+    let _ = writeln!(out, "        .await?");
+    let _ = writeln!(out, "        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found(\"Entry not found\"))))?;");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Convertir en JSON");
+    let _ = writeln!(out, "    let object = serde_json::to_value(&entry)");
+    let _ = writeln!(
+        out,
+        "        .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;"
+    );
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    context_update!(req => {{");
+    let _ = writeln!(out, "        \"resource\" => resource,");
+    let _ = writeln!(out, "        \"object\" => object,");
+    let _ = writeln!(out, "        \"object_id\" => id,");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    req.render(\"admin/detail\")");
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+}
+
+fn write_edit_handler(out: &mut String, key: &str, model: &str, form: &str, _perms_str: &str) {
+    let _ = writeln!(out, "pub async fn admin_{key}_edit(");
+    let _ = writeln!(out, "    mut req: Request,");
+    let _ = writeln!(out, "    Extension(admin): Extension<Arc<AdminState>>,");
+    let _ = writeln!(out, "    Path(id): Path<i32>,");
+    let _ = writeln!(out, "    Prisme(mut form): Prisme<{form}>,");
+    let _ = writeln!(out, ") -> AppResult<Response> {{");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Récupérer l'entrée existante");
+    let _ = writeln!(
+        out,
+        "    let mut entry = <{model} as runique::prelude::ModelTrait>::Entity::find_by_id(id)"
+    );
+    let _ = writeln!(out, "        .one(&*req.engine.db)");
+    let _ = writeln!(out, "        .await?");
+    let _ = writeln!(out, "        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found(\"Entry not found\"))))?;");
+    let _ = writeln!(out);
+    let _ = writeln!(
+        out,
+        "    // Pré-remplir le form avec les valeurs actuelles si pas déjà rempli"
+    );
+    let _ = writeln!(out, "    if form.form.fields.is_empty() {{");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    if form.is_valid().await {{");
+    let _ = writeln!(out, "        // Mettre à jour l'entrée en DB");
+    let _ = writeln!(
+        out,
+        "        form.save(&*req.engine.db).await.map_err(|err| {{"
+    );
+    let _ = writeln!(out, "            form.get_form_mut().database_error(&err);");
+    let _ = writeln!(out, "            AppError::from(err)");
+    let _ = writeln!(out, "        }})?;");
+    let _ = writeln!(
+        out,
+        "        success!(req.notices => \"Entrée mise à jour avec succès !\");"
+    );
+    let _ = writeln!(out, "        return Ok(Redirect::to(&format!(\"/{{}}/{key}/list\", admin.config.prefix)).into_response());");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Validation échouée → réafficher le formulaire");
+    let _ = writeln!(
+        out,
+        "    let form_json = serde_json::to_value(&form.form)
+    .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;"
+    );
+    let _ = writeln!(
+        out,
+        "    let form_fields = form_json.get(\"fields\").cloned().unwrap_or(json!({{}}));"
+    );
+    let _ = writeln!(out, "    context_update!(req => {{");
+    let _ = writeln!(out, "        \"form_fields\" => form_fields,");
+    let _ = writeln!(out, "        \"is_edit\" => true,");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    req.render(\"admin/form\")");
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+}
+
+fn write_delete_handler(out: &mut String, key: &str, model: &str, _perms_str: &str) {
+    let _ = writeln!(out, "pub async fn admin_{key}_delete(");
+    let _ = writeln!(out, "    req: Request,");
+    let _ = writeln!(out, "    Extension(admin): Extension<Arc<AdminState>>,");
+    let _ = writeln!(out, "    Path(id): Path<i32>,");
+    let _ = writeln!(out, ") -> AppResult<Response> {{");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Récupérer l'entrée");
+    let _ = writeln!(
+        out,
+        "    let entry = <{model} as runique::prelude::ModelTrait>::Entity::find_by_id(id)"
+    );
+    let _ = writeln!(out, "        .one(&*req.engine.db)");
+    let _ = writeln!(out, "        .await?");
+    let _ = writeln!(out, "        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found(\"Entry not found\"))))?;");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    // Supprimer");
+    let _ = writeln!(out, "    entry.delete(&*req.engine.db).await?;");
+    let _ = writeln!(out);
+    let _ = writeln!(
+        out,
+        "    Ok(Redirect::to(&format!(\"/{{}}/{key}/list\", admin.config.prefix)).into_response())"
+    );
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
 }
 
 fn write_router_fn(out: &mut String, resources: &[ResourceDef]) {
     let _ = writeln!(
         out,
-        "/// Router admin généré — câble tous les handlers type-safe"
+        "/// Enregistre les routes CRUD générées sur le router donné"
     );
     let _ = writeln!(
         out,
-        "pub fn generated_admin_router(prefix: &str) -> Router {{"
+        "pub fn register_crud_routes(router: Router, prefix: &str) -> Router {{"
     );
-    let _ = writeln!(out, "    let mut router = Router::new();");
+    let _ = writeln!(out, "    let mut r = router;");
     let _ = writeln!(out);
 
     for r in resources {
         let key = &r.key;
-        let _ = writeln!(out, "    // {key}");
-        let _ = writeln!(out, "    router = router");
+        let _ = writeln!(out, "    // Routes pour {key}");
+        let _ = writeln!(out, "    r = r");
         let _ = writeln!(
             out,
-            "        .route(\"/{key}/list\", get(admin_{key}_list))"
+            "        .route(&format!(\"{{}}/{key}/list\", prefix), get(admin_{key}_list))"
         );
-        let _ = writeln!(out, "        .route(\"/{key}/create\", get(admin_{key}_create_get).post(admin_{key}_create_post))");
+        let _ = writeln!(out, "        .route(&format!(\"{{}}/{key}/create\", prefix), get(admin_{key}_create_get).post(admin_{key}_create_post))");
         let _ = writeln!(
             out,
-            "        .route(\"/{key}/{{id}}\", get(admin_{key}_detail).post(admin_{key}_edit))"
+            "        .route(&format!(\"{{}}/{key}/{{{{id}}}}\", prefix), get(admin_{key}_detail).post(admin_{key}_edit))"
         );
         let _ = writeln!(
             out,
-            "        .route(\"/{key}/{{id}}/delete\", post(admin_{key}_delete));"
+            "        .route(&format!(\"{{}}/{key}/{{{{id}}}}/delete\", prefix), post(admin_{key}_delete));"
         );
         let _ = writeln!(out);
     }
 
-    let _ = writeln!(out, "    Router::new().nest(prefix, router)");
+    let _ = writeln!(out, "    r");
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+
+    // Générer aussi une fonction qui construit le router complet
+    let _ = writeln!(
+        out,
+        "/// Construit un Router admin complet avec toutes les routes CRUD"
+    );
+    let _ = writeln!(
+        out,
+        "pub fn build_generated_router(prefix: &str, admin_state: Arc<AdminState>) -> Router {{"
+    );
+    let _ = writeln!(out, "    // Routes CRUD générées");
+    let _ = writeln!(
+        out,
+        "    let crud_router = register_crud_routes(Router::new(), prefix);"
+    );
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    crud_router.layer(Extension(admin_state))");
     let _ = writeln!(out, "}}");
 }

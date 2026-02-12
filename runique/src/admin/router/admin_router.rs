@@ -186,11 +186,11 @@ async fn admin_list(
         .insert("current_page", "list")
         .insert("current_resource", &resource_key)
         .insert("resource", resource)
-        .insert("rows", &Vec::<serde_json::Value>::new())
-        .insert("columns", &Vec::<String>::new())
-        .insert("total", &0)
-        .insert("current_page", &1)
-        .insert("total_pages", &1);
+        .insert("rows", Vec::<serde_json::Value>::new())
+        .insert("columns", Vec::<String>::new())
+        .insert("total", 0)
+        .insert("current_page", 1)
+        .insert("total_pages", 1);
 
     req.render("admin/list")
 }
@@ -209,11 +209,15 @@ async fn admin_create_get(
 
     req = req
         .insert("site_title", &admin.config.site_title)
-        .insert("current_page", "create")
+        .insert("current_page", "list")
         .insert("current_resource", &resource_key)
         .insert("resource", resource)
-        .insert("form_fields", &Vec::<serde_json::Value>::new())
-        .insert("is_edit", &false);
+        .insert("rows", Vec::<serde_json::Value>::new())
+        .insert("columns", Vec::<String>::new())
+        .insert("total", 0)
+        .insert("current_page", 1)
+        .insert("total_pages", 1)
+        .insert("is_edit", false);
 
     req.render("admin/form")
 }
@@ -243,9 +247,9 @@ async fn admin_detail(
         .insert("current_page", "edit")
         .insert("current_resource", &resource_key)
         .insert("resource", resource)
-        .insert("form_fields", &Vec::<serde_json::Value>::new())
-        .insert("is_edit", &true)
-        .insert("object_id", &id);
+        .insert("form_fields", Vec::<serde_json::Value>::new())
+        .insert("is_edit", true)
+        .insert("object_id", id);
 
     req.render("admin/form")
 }
@@ -260,7 +264,7 @@ async fn admin_edit(
 
 async fn admin_delete(
     Extension(admin): Extension<Arc<AdminState>>,
-    Path((resource_key, id)): Path<(String, i32)>,
+    Path((resource_key, __id)): Path<(String, i32)>,
 ) -> Response {
     // TODO: Delete dans la DB
     Redirect::to(&format!("{}/{}/list", admin.config.prefix, resource_key)).into_response()

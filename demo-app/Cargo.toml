@@ -14,3 +14,5 @@ serde ="1"
 
 chrono = "0.4"
 tracing-subscriber.workspace = true
+sea-orm = "=2.0.0-rc.32"
+sea-orm-migration = "=2.0.0-rc.32"

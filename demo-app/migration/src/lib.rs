@@ -8,7 +8,9 @@ pub struct Migrator;
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        let mut migrations = runique::migration::builtin_migrations();
+        let mut migrations: Vec<Box<dyn MigrationTrait>> = runique::migration::builtin_migrations()
+            .into_iter()
+            .collect();
 
         migrations.extend(vec![
             Box::new(m20260118_003649_create_blog_table::Migration) as Box<dyn MigrationTrait>,
