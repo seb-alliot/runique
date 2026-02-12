@@ -26,7 +26,10 @@
 
         <nav class="sidebar-nav">
 
-            <a href="/admin" class="nav-item {% if current_page == 'dashboard' %}active{% endif %}">
+            <a href="/admin" class="nav-item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
+                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                     <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>

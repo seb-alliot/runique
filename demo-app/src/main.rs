@@ -14,7 +14,6 @@ use runique::app::builder::RuniqueAppBuilder as builder;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 

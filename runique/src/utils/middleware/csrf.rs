@@ -16,6 +16,7 @@ pub enum CsrfContext<'a> {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CsrfToken(pub String);
 
+
 impl CsrfToken {
     /// Génération selon le contexte
     pub fn generate_with_context(ctx: CsrfContext, secret: &str) -> Self {

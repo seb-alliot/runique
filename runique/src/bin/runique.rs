@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::fs;
 use std::path::Path;
+use runique::utils::init_logging;
 
 #[derive(Parser)]
 #[command(name = "runique")]
@@ -38,10 +39,7 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_target(false)
-        .compact()
-        .init();
+    init_logging();
 
     let cli = Cli::parse();
 

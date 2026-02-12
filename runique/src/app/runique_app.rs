@@ -31,7 +31,7 @@ impl RuniqueApp {
                 "          └──>  Connected to database {:?} -> {}",
                 moteur_db, db_name
             );
-            println!("              └──>  (Ctrl+C to stop)\n");
+            println!("              └──> ctrl + c to stop");
         }
 
         let listener = tokio::net::TcpListener::bind(&addr).await?;

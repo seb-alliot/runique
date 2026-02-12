@@ -35,8 +35,6 @@ pub struct AdminState {
 struct AdminLoginData {
     username: String,
     password: String,
-    #[allow(dead_code)]
-    csrf_token: Option<String>,
 }
 
 pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
@@ -67,11 +65,8 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
 
     // Routes CRUD générées (protégées aussi)
     let generated_router = if let Some(router) = admin_staging.route_admin {
-        println!("✅ Routes admin générées chargées");
-        println!("🔍 Routes admin chargées : {:?}", router);
         router
     } else {
-        println!(" Aucune route admin générée - route_admin est None");
         Router::new()
     };
 
@@ -80,7 +75,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .merge(
             protected_router
                 .merge(generated_router)
-                .layer(middleware::from_fn(admin_required)), // ← IMPORTANT !
+                .layer(middleware::from_fn(admin_required)), // ← Contrôle d'accé a l'admin
         )
         .layer(middleware::from_fn(load_user_middleware))
         .layer(Extension(admin_state))
@@ -220,6 +215,7 @@ async fn admin_create_get(
         .insert("current_page", 1)
         .insert("total_pages", 1)
         .insert("is_edit", false);
+        
 
     req.render("admin/form")
 }

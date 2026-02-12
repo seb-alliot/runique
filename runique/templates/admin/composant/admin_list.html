@@ -101,23 +101,23 @@
         {% if total_pages > 1 %}
         <div class="pagination">
             <span class="pagination-info">
-                Page {{ current_page }} sur {{ total_pages }}
+                Page {% if current_page %} {{ current_page }} sur {{ total_pages }} {% endif %}
                 ({{ total }} résultat(s))
             </span>
             <div class="pagination-controls">
-                <a href="?page={{ current_page | minus(value=1) }}"
-                   class="page-btn {% if current_page <= 1 %}disabled{% endif %}"
+                <a href="?page={% if current_page %}{{ current_page | minus(value=1) }}{% else %}1{% endif %}"
+                   class="page-btn{% if current_page %} {% if current_page <= 1 %}disabled{% endif %} {% endif %}"
                    title="Précédent">‹</a>
 
                 {% for p in range(start=1, end=total_pages + 1) %}
                 <a href="?page={{ p }}"
-                   class="page-btn {% if p == current_page %}active{% endif %}">
+                   class="page-btn {% if current_page %} {% if p == current_page %}active{% endif %}" {% endif %}">
                     {{ p }}
                 </a>
                 {% endfor %}
 
-                <a href="?page={{ current_page | plus(value=1) }}"
-                   class="page-btn {% if current_page >= total_pages %}disabled{% endif %}"
+                <a href="?page={% if current_page %}{{ current_page | plus(value=1) }} {% else %}2{% endif %}"
+                   class="page-btn {% if current_page %}{% if current_page >= total_pages %}disabled{% endif %} {% endif %}"
                    title="Suivant">›</a>
             </div>
         </div>
@@ -147,5 +147,6 @@
 
     </div><!-- .admin-table-wrapper -->
 
+{% if current_page %}{% set current_page = current_page | default(value="list") %}{% endif %}
 
 {% endblock %}

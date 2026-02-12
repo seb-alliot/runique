@@ -9,55 +9,55 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(RuniqueUsers::Table)
+                    .table(Users::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(RuniqueUsers::Id)
+                        ColumnDef::new(Users::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(RuniqueUsers::Username)
+                        ColumnDef::new(Users::Username)
                             .string()
                             .not_null()
                             .unique_key(),
                     )
                     .col(
-                        ColumnDef::new(RuniqueUsers::Email)
+                        ColumnDef::new(Users::Email)
                             .string()
                             .not_null()
                             .unique_key(),
                     )
-                    .col(ColumnDef::new(RuniqueUsers::Password).string().not_null())
+                    .col(ColumnDef::new(Users::Password).string().not_null())
                     .col(
-                        ColumnDef::new(RuniqueUsers::IsActive)
+                        ColumnDef::new(Users::IsActive)
                             .boolean()
                             .not_null()
                             .default(true),
                     )
                     .col(
-                        ColumnDef::new(RuniqueUsers::IsStaff)
+                        ColumnDef::new(Users::IsStaff)
                             .boolean()
                             .not_null()
                             .default(false),
                     )
                     .col(
-                        ColumnDef::new(RuniqueUsers::IsSuperuser)
+                        ColumnDef::new(Users::IsSuperuser)
                             .boolean()
                             .not_null()
                             .default(false),
                     )
-                    .col(ColumnDef::new(RuniqueUsers::Roles).text().null())
+                    .col(ColumnDef::new(Users::Roles).text().null())
                     .col(
-                        ColumnDef::new(RuniqueUsers::CreatedAt)
+                        ColumnDef::new(Users::CreatedAt)
                             .timestamp()
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
                     .col(
-                        ColumnDef::new(RuniqueUsers::UpdatedAt)
+                        ColumnDef::new(Users::UpdatedAt)
                             .timestamp()
                             .not_null()
                             .default(Expr::current_timestamp()),
@@ -69,13 +69,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(RuniqueUsers::Table).to_owned())
+            .drop_table(Table::drop().table(Users::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum RuniqueUsers {
+enum Users {
     Table,
     Id,
     Username,
