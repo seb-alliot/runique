@@ -134,7 +134,6 @@ fn generate_handlers_file(resources: &[ResourceDef], dir: &Path) -> Result<(), S
         out,
         "// ═══════════════════════════════════════════════════════════════"
     );
-    let _ = writeln!(out, "#![allow(unused_imports, dead_code)]");
     let _ = writeln!(out);
 
     // Imports communs

@@ -1,14 +1,14 @@
 {% extends "admin_base.html" %}
 
 {% block title %}
-    {% if is_edit %}Modifier{% else %}Créer{% endif %} — {{ resource.title }}
+    {% if is_edit %}Modifier{% else %}Créer{% endif %} — {% if resource.title %} {{ resource.title }}{% endif %}
 {% endblock %}
 
 {% block breadcrumb %}
     <span class="breadcrumb-sep">/</span>
-    <a href="/admin/{{ resource.key }}/list">{{ resource.title }}</a>
+    <a href="/admin/{% if resource.key %}{{ resource.key }} {% endif %}/list">{% if resource.title %} {{ resource.title }}{% endif %}</a>
     <span class="breadcrumb-sep">/</span>
-    <span>{% if is_edit %}Modifier #{{ object_id }}{% else %}Créer{% endif %}</span>
+    <span>{% if is_edit %}Modifier #{% if object_id %}{{ object_id }}{% endif %} {% else %}Créer{% endif %}</span>
 {% endblock %}
 
 {% block content %}
@@ -16,13 +16,13 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">
-            {% if is_edit %}Modifier {{ resource.title }}{% else %}Créer {{ resource.title }}{% endif %}
+            {% if is_edit %}Modifier {% if resource.title %} {{ resource.title }}{% endif %}{% else %}Créer {% if resource.title %} {{ resource.title }}{% endif %}{% endif %}
         </h1>
         {% if is_edit %}
-        <p class="page-subtitle">ID : <span class="id-badge">{{ object_id }}</span></p>
+        <p class="page-subtitle">ID : <span class="id-badge">{% if object_id %}{{ object_id }}{% endif %}</span></p>
         {% endif %}
     </div>
-    <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">
+    <a href="/admin/{% if resource.key %}{{ resource.key }} {% endif %}/list" class="btn btn-secondary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
             <polyline points="15 18 9 12 15 6"/>
         </svg>
@@ -37,26 +37,25 @@
     <div class="card-body">
 
         <form method="POST"
-              action="{% if is_edit %}/admin/{{ resource.key }}/{{ object_id }}{% else %}/admin/{{ resource.key }}/create{% endif %}"
+              action="{% if is_edit %}/admin/{% if resource.key %}{{ resource.key }} {% endif %}/{% if object_id %}{{ object_id }}{% endif %}{% else %}/admin/{% if resource.key %}{{ resource.key }} {% endif %}/create{% endif %}"
               enctype="multipart/form-data">
 
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <div class="form-grid">
-
-                {% for field in form_fields %}
+            {% if form_fields %}
                 <div class="form-group {% if field.full_width %}form-grid-2{% endif %}">
 
                     <label class="form-label {% if field.required %}required{% endif %}"
-                           for="{{ field.name }}">
-                        {{ field.label }}
+                           for="{% if field.name %}{{ field.name }} {% endif %}">
+                        {% if field.label %}{{ field.label }}{% endif %}
                     </label>
-
+                    {% if field.widget %}
                     {% if field.widget == "textarea" %}
                         <textarea
                             class="form-textarea {% if field.error %}error{% endif %}"
-                            id="{{ field.name }}"
-                            name="{{ field.name }}"
+                            id="{% if field.name %}{{ field.name }} {% endif %}"
+                            name="{% if field.name %}{{ field.name }} {% endif %}"
                             {% if field.required %}required{% endif %}
                             rows="4"
                         >{{ field.value | default(value='') }}</textarea>
@@ -64,8 +63,8 @@
                     {% elif field.widget == "select" %}
                         <select
                             class="form-select {% if field.error %}error{% endif %}"
-                            id="{{ field.name }}"
-                            name="{{ field.name }}"
+                            id="{% if field.name %}{{ field.name }} {% endif %}"
+                            name="{% if field.name %}{{ field.name }} {% endif %}"
                             {% if field.required %}required{% endif %}
                         >
                             <option value="">— Choisir —</option>
@@ -81,20 +80,20 @@
                         <label class="form-check">
                             <input
                                 type="checkbox"
-                                id="{{ field.name }}"
-                                name="{{ field.name }}"
+                                id="{% if field.name %}{{ field.name }} {% endif %}"
+                                name="{% if field.name %}{% if field.name %}{{ field.name }} {% endif %} {% endif %}"
                                 value="true"
                                 {% if field.value %}checked{% endif %}
                             >
-                            {{ field.label }}
+                            {% if field.label %}{{ field.label }}{% endif %}
                         </label>
 
                     {% elif field.widget == "password" %}
                         <input
                             class="form-input {% if field.error %}error{% endif %}"
                             type="password"
-                            id="{{ field.name }}"
-                            name="{{ field.name }}"
+                            id="{% if field.name %}{{ field.name }} {% endif %}"
+                            name="{% if field.name %}{{ field.name }} {% endif %}"
                             autocomplete="new-password"
                             {% if field.required and not is_edit %}required{% endif %}
                         >
@@ -106,8 +105,8 @@
                         <input
                             class="form-input {% if field.error %}error{% endif %}"
                             type="email"
-                            id="{{ field.name }}"
-                            name="{{ field.name }}"
+                            id="{% if field.name %}{{ field.name }} {% endif %}"
+                            name="{% if field.name %}{{ field.name }} {% endif %}"
                             value="{{ field.value | default(value='') }}"
                             {% if field.required %}required{% endif %}
                         >
@@ -116,8 +115,8 @@
                         <input
                             class="form-input {% if field.error %}error{% endif %}"
                             type="number"
-                            id="{{ field.name }}"
-                            name="{{ field.name }}"
+                            id="{% if field.name %}{{ field.name }} {% endif %}"
+                            name="{% if field.name %}{{ field.name }} {% endif %}"
                             value="{{ field.value | default(value='') }}"
                             {% if field.required %}required{% endif %}
                         >
@@ -126,8 +125,8 @@
                         <input
                             class="form-input {% if field.error %}error{% endif %}"
                             type="datetime-local"
-                            id="{{ field.name }}"
-                            name="{{ field.name }}"
+                            id="{% if field.name %}{{ field.name }} {% endif %}"
+                            name="{% if field.name %}{{ field.name }} {% endif %}"
                             value="{{ field.value | default(value='') }}"
                             {% if field.required %}required{% endif %}
                         >
@@ -136,8 +135,8 @@
                         <input
                             class="form-input {% if field.error %}error{% endif %}"
                             type="file"
-                            id="{{ field.name }}"
-                            name="{{ field.name }}"
+                            id="{% if field.name %}{{ field.name }} {% endif %}"
+                            name="{% if field.name %}{{ field.name }} {% endif %}"
                             {% if field.required and not is_edit %}required{% endif %}
                         >
                         {% if field.value and is_edit %}
@@ -145,22 +144,24 @@
                         {% endif %}
 
                     {% elif field.widget == "hidden" %}
-                        <input type="hidden" name="{{ field.name }}" value="{{ field.value | default(value='') }}">
+                        <input type="hidden" name="{% if field.name %}{{ field.name }} {% endif %}" value="{{ field.value | default(value='') }}">
 
                     {% else %}
                         <!-- text par défaut -->
                         <input
                             class="form-input {% if field.error %}error{% endif %}"
                             type="text"
-                            id="{{ field.name }}"
-                            name="{{ field.name }}"
+                            id="{% if field.name %}{{ field.name }} {% endif %}"
+                            name="{% if field.name %}{{ field.name }} {% endif %}"
                             value="{{ field.value | default(value='') }}"
                             {% if field.required %}required{% endif %}
                         >
                     {% endif %}
-
-                    {% if field.hint and field.widget != "password" %}
-                    <span class="form-hint">{{ field.hint }}</span>
+                    {% endif %}
+                    {% if field.hint and field.widget %}
+                        {% if field.hint and field.widget != "password" %}
+                        <span class="form-hint">{{ field.hint }}</span>
+                        {% endif %}
                     {% endif %}
 
                     {% if field.error %}
@@ -175,7 +176,8 @@
                     {% endif %}
 
                 </div>
-                {% endfor %}
+            {% endif %}
+
 
                 {% if not form_fields %}
                 <p style="color: var(--text-muted); font-size: 0.88rem;">
@@ -186,7 +188,7 @@
             </div><!-- .form-grid -->
 
             <div class="form-actions">
-                <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">Annuler</a>
+                <a href="/admin/{% if resource.key %}{{ resource.key }} {% endif %}/list" class="btn btn-secondary">Annuler</a>
                 <button type="submit" class="btn btn-primary">
                     {% if is_edit %}Enregistrer les modifications{% else %}Créer{% endif %}
                 </button>
@@ -203,7 +205,7 @@
         <div class="delete-zone-title">Zone dangereuse</div>
         Supprimer définitivement cette entrée. Cette action est irréversible.
     </div>
-    <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/delete"
+    <form method="POST" action="/admin/{% if resource.key %}{{ resource.key }} {% endif %}/{% if object_id %}{{ object_id }}{% endif %}/delete"
           onsubmit="return confirm('Supprimer définitivement cette entrée ?')">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button type="submit" class="btn btn-danger">
@@ -217,6 +219,7 @@
         </button>
     </form>
 </div>
+
 {% endif %}
 
 {% endblock %}

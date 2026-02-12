@@ -1,22 +1,17 @@
 // src/bin/createsuperuser.rs
 use crate::forms::fields::text::TextField;
+use crate::forms::base::FormField;
 use crate::middleware::auth::builtin_user::{ActiveModel, BuiltinUserEntity, UserEntity};
 use anyhow::Result;
 use rpassword::read_password;
-use sea_orm::{ActiveModelTrait, Database, Set}; // pour hash_password
+use sea_orm::{ActiveModelTrait, Set};
 
 pub async fn create_superuser() -> Result<()> {
-    // Réduit le niveau de log SQL SeaORM
-    std::env::set_var("RUST_LOG", "sea_orm=warn");
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .try_init();
     dotenvy::dotenv().ok();
     // Connexion à la base de données
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL doit être défini dans .env");
-    let db = Database::connect(&database_url).await?;
-
+    let db = sea_orm::Database::connect(&database_url).await?;
     println!("Création d'un superuser Runique");
 
     // Nom d'utilisateur
@@ -71,28 +66,40 @@ pub async fn create_superuser() -> Result<()> {
             println!("Les mots de passe ne correspondent pas. Réessayez.");
             continue;
         }
-        if pass1.len() < 6 {
-            println!("Le mot de passe doit faire au moins 6 caractères.");
+        if pass1.len() < 10 {
+            println!("Le mot de passe doit faire au moins 10 caractères.");
             continue;
         }
         break pass1;
     };
 
-    // Hash du mot de passe via TextField
-    let mut tf = TextField::password("Mot de passe");
-    tf.base.value = password;
-    let hashed_password = tf.hash_password().map_err(|e| anyhow::anyhow!(e))?;
+    // Hash du mot de passe via le système de validation de TextField (DRY DRY DRY)
+    let mut password_field = TextField::password("Mot de passe")
+        .required()
+        .min_length(10, "Le mot de passe doit faire au moins 10 caractères.");
 
-    // Création du superuser
-    let new_user = ActiveModel {
-        username: Set(username),
-        email: Set(email),
-        password: Set(hashed_password),
-        is_active: Set(true),
-        is_staff: Set(true),
-        is_superuser: Set(true),
-        ..Default::default()
-    };
+    password_field.base.value = password.clone();
+
+    if !password_field.validate() {
+        println!("{}", password_field.base.error.as_deref().unwrap_or("Mot de passe invalide"));
+        return Ok(());
+    }
+
+    if let Err(e) = password_field.finalize() {
+        println!("Erreur lors de la validation du mot de passe : {}", e);
+        return Ok(());
+    }
+    let hashed_password = password_field.base.value.clone();
+        // Création du superuser
+        let new_user = ActiveModel {
+            username: Set(username),
+            email: Set(email),
+            password: Set(hashed_password),
+            is_active: Set(true),
+            is_staff: Set(true),
+            is_superuser: Set(true),
+            ..Default::default()
+        };
 
     new_user.insert(&db).await?;
 

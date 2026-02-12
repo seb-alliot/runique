@@ -84,5 +84,6 @@
     </div>
 </div>
 {% endif %}
+{% if current_page %}{% set current_page = current_page | default(value="list") %}{% endif %}
 
 {% endblock %}

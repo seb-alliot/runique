@@ -309,7 +309,7 @@ impl DatabaseConfig {
     /// - Returns an error if the driver is not enabled (missing Cargo feature)
     /// - Returns an error if the connection fails
     pub async fn connect(&self) -> Result<DatabaseConnection, DbErr> {
-        tracing::info!("🔌 Connecting to {} database...", self.engine.name());
+        tracing::info!("  Connecting to {} database...", self.engine.name());
 
         // Vérification que le driver est activé
         verify_database_driver(&self.engine).map_err(DbErr::Custom)?;
@@ -331,7 +331,7 @@ impl DatabaseConfig {
             .idle_timeout(self.idle_timeout)
             .max_lifetime(self.max_lifetime)
             .sqlx_logging(self.sqlx_logging)
-            .sqlx_logging_level(tracing::log::LevelFilter::Info);
+            .sqlx_logging_level(tracing::log::LevelFilter::Off);
 
         match Database::connect(opt).await {
             Ok(conn) => {
@@ -339,9 +339,9 @@ impl DatabaseConfig {
                 Ok(conn)
             }
             Err(e) => {
-                tracing::error!("|_ Database connection failed");
-                tracing::error!("|_ Engine: {}", self.engine.name());
-                tracing::error!("|_ URL: {}", mask_password(&self.url));
+                tracing::error!("└──> Database connection failed");
+                tracing::error!("   └──> Engine: {}", self.engine.name());
+                tracing::error!("       └──> URL: {}", mask_password(&self.url));
                 Err(e)
             }
         }

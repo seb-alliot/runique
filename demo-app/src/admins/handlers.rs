@@ -2,20 +2,19 @@
 // AUTO-GÉNÉRÉ par Runique daemon — NE PAS MODIFIER MANUELLEMENT
 // Ressources : users
 // ═══════════════════════════════════════════════════════════════
-#![allow(unused_imports, dead_code)]
 
 use runique::prelude::*;
 use runique::utils::aliases::StrMap;
 use std::sync::Arc;
 
-use crate::forms::RegisterForm;
 use crate::models::users;
+use crate::forms::RegisterForm;
 
 // ───────────── Handler users_list ─────────────
 pub async fn users_list(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
     if req.is_get() {
         let entries = <users::Model as ModelTrait>::Entity::find()
@@ -38,9 +37,7 @@ pub async fn users_list(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée créée avec succès !");
-            return Ok(
-                Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response(),
-            );
+            return Ok(Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
@@ -58,7 +55,7 @@ pub async fn users_list(
 pub async fn users_create(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
     if req.is_get() {
         context_update!(req => {
@@ -76,9 +73,7 @@ pub async fn users_create(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée créée avec succès !");
-            return Ok(
-                Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response(),
-            );
+            return Ok(Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
@@ -98,7 +93,7 @@ pub async fn users_edit(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
     Path(id): Path<i32>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
     let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
@@ -109,17 +104,17 @@ pub async fn users_edit(
         // Convertir Model → StrMap via JSON pour pré-remplir le form
         let entry_json = serde_json::to_value(&entry)
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
-
+        
         let mut form_data = StrMap::new();
         if let Some(obj) = entry_json.as_object() {
             for (k, v) in obj {
                 form_data.insert(k.clone(), v.to_string().trim_matches('"').to_string());
             }
         }
-
+        
         // Remplir le form existant avec les données de l'entry
         form.get_form_mut().fill(&form_data);
-
+        
         context_update!(req => {
             "resource_key" => "users",
             "form_fields" => &form,
@@ -137,9 +132,7 @@ pub async fn users_edit(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée mise à jour avec succès !");
-            return Ok(
-                Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response(),
-            );
+            return Ok(Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
@@ -160,7 +153,7 @@ pub async fn users_edit(
 pub async fn users_detail(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Path(id): Path<i32>,
+    Path(id): Path<i32>
 ) -> AppResult<Response> {
     let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
@@ -180,7 +173,7 @@ pub async fn users_detail(
 pub async fn users_delete(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Path(id): Path<i32>,
+    Path(id): Path<i32>
 ) -> AppResult<Response> {
     if req.is_post() {
         let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
@@ -206,3 +199,4 @@ pub async fn users_delete(
 
     req.render("admin/delete_confirm")
 }
+
