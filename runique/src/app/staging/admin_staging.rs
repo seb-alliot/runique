@@ -5,11 +5,13 @@
 use crate::admin::{AdminConfig, AdminRegistry};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::middleware::auth::AdminAuth;
+use axum::Router;
 
 pub struct AdminStaging {
-    pub(crate) config: AdminConfig,
-    pub(crate) registry: AdminRegistry,
-    pub(crate) enabled: bool,
+    pub config: AdminConfig,
+    pub registry: AdminRegistry,
+    pub enabled: bool,
+    pub route_admin: Option<Router>,
 }
 
 impl AdminStaging {
@@ -18,11 +20,12 @@ impl AdminStaging {
             config: AdminConfig::new(),
             registry: AdminRegistry::new(),
             enabled: false,
+            route_admin: None,
         }
     }
 
-    pub fn prefix(mut self, prefix: &str) -> Self {
-        self.config = self.config.prefix(prefix);
+    pub fn routes(mut self, router: Router) -> Self {
+        self.route_admin = Some(router);
         self
     }
 
@@ -67,7 +70,7 @@ impl AdminStaging {
         self
     }
 
-    pub(crate) fn enable(mut self) -> Self {
+    pub fn enable(mut self) -> Self {
         self.enabled = true;
         self
     }

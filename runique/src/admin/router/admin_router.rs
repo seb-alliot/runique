@@ -18,6 +18,7 @@ use tower_sessions::Session;
 use crate::admin::config::AdminConfig;
 use crate::admin::middleware::admin_required;
 use crate::admin::registry::AdminRegistry;
+use crate::app::staging::AdminStaging;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::middleware::auth::{load_user_middleware, login_user_full};
@@ -38,47 +39,48 @@ struct AdminLoginData {
     csrf_token: Option<String>,
 }
 
-pub fn build_admin_router(registry: AdminRegistry, config: AdminConfig) -> Router {
-    let prefix = config.prefix.trim_end_matches('/').to_string();
+pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
+    let prefix = admin_staging
+        .config
+        .prefix
+        .trim_end_matches('/')
+        .to_string();
+    let registry = admin_staging.registry;
+    let config = admin_staging.config;
 
     let admin_state = Arc::new(AdminState {
         registry: Arc::new(registry),
         config: Arc::new(config.clone()),
     });
 
-    // Routes publiques (login)
+    // Routes publiques (login uniquement)
     let public_router = urlpatterns! {
         &format!("{}/login", prefix) => get(admin_login_get).post(admin_login_post), name = "admin:login",
     };
 
-    // Routes protégées (dashboard, logout)
+    // Routes protégées (dashboard + logout)
     let protected_router = urlpatterns! {
         &format!("{}/", prefix) => get(admin_dashboard), name = "admin:dashboard",
         &prefix => get(admin_dashboard_redirect), name = "admin:dashboard_redirect",
         &format!("{}/logout", prefix) => post(admin_logout), name = "admin:logout",
     };
 
-    // Routes CRUD dynamiques avec pattern {resource}
-    let crud_router = Router::new()
-        .route(&format!("{}/{{resource}}/list", prefix), get(admin_list))
-        .route(
-            &format!("{}/{{resource}}/create", prefix),
-            get(admin_create_get).post(admin_create_post),
-        )
-        .route(
-            &format!("{}/{{resource}}/{{id}}", prefix),
-            get(admin_detail).post(admin_edit),
-        )
-        .route(
-            &format!("{}/{{resource}}/{{id}}/delete", prefix),
-            post(admin_delete),
-        );
+    // Routes CRUD générées (protégées aussi)
+    let generated_router = if let Some(router) = admin_staging.route_admin {
+        println!("✅ Routes admin générées chargées");
+        println!("🔍 Routes admin chargées : {:?}", router);
+        router
+    } else {
+        println!(" Aucune route admin générée - route_admin est None");
+        Router::new()
+    };
 
+    // Assemblage : public + (protected + generated avec middleware)
     public_router
         .merge(
             protected_router
-                .merge(crud_router)
-                .layer(middleware::from_fn(admin_required)),
+                .merge(generated_router)
+                .layer(middleware::from_fn(admin_required)), // ← IMPORTANT !
         )
         .layer(middleware::from_fn(load_user_middleware))
         .layer(Extension(admin_state))
@@ -247,7 +249,6 @@ async fn admin_detail(
         .insert("current_page", "edit")
         .insert("current_resource", &resource_key)
         .insert("resource", resource)
-        .insert("form_fields", Vec::<serde_json::Value>::new())
         .insert("is_edit", true)
         .insert("object_id", id);
 

@@ -3,6 +3,7 @@ extern crate runique;
 use runique::prelude::*;
 
 mod admin;
+mod admins;
 mod form_test;
 mod forms;
 mod models;
@@ -26,10 +27,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .statics()
         .with_admin(|a| {
             a.with_registry(admin::admin_config())
-                .prefix("/admin")
                 .hot_reload(cfg!(debug_assertions))
                 .site_title("Administration")
                 .auth(RuniqueAdminAuth::new())
+                .routes(admins::admin("/admin"))
         })
         .build()
         .await

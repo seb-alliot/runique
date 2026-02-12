@@ -1,10 +1,11 @@
+// ═══════════════════════════════════════════════════════════════
 // Surveille src/admin.rs avec notify et déclenche la génération
 // à chaque modification.
 //
 // Flux :
 //   Modification détectée
 //     → parse src/admin.rs
-//     → génère target/runique/admin/generated.rs
+//     → génère src/admin/generated.rs
 //     → affiche le résultat (✅ ou ❌)
 // ═══════════════════════════════════════════════════════════════
 
@@ -19,10 +20,10 @@ use crate::admin::daemon::{generate, parse_admin_file};
 /// Démarre la surveillance de admin_path et régénère à chaque modification
 ///
 /// Bloquant — tourne jusqu'à Ctrl+C.
-pub fn watch(admin_path: &Path, output_dir: &Path) -> Result<(), String> {
+pub fn watch(admin_path: &Path) -> Result<(), String> {
     let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
 
-    let mut watcher = RecommendedWatcher::new(tx, Config::default())
+    let mut watcher: RecommendedWatcher = RecommendedWatcher::new(tx, Config::default())
         .map_err(|e| format!("Unable to create watcher: {}", e))?;
 
     watcher
@@ -30,7 +31,7 @@ pub fn watch(admin_path: &Path, output_dir: &Path) -> Result<(), String> {
         .map_err(|e| format!("Unable to watch {}: {}", admin_path.display(), e))?;
 
     // Génération initiale au démarrage
-    run_generation(admin_path, output_dir);
+    run_generation(admin_path);
 
     // Debounce : évite plusieurs régénérations pour un seul save
     let mut last_event = Instant::now() - Duration::from_secs(10);
@@ -44,7 +45,7 @@ pub fn watch(admin_path: &Path, output_dir: &Path) -> Result<(), String> {
                     if now.duration_since(last_event) > debounce {
                         last_event = now;
                         println!("\n📝 Modification detected → regeneration...");
-                        run_generation(admin_path, output_dir);
+                        run_generation(admin_path);
                     }
                 }
             }
@@ -61,31 +62,31 @@ fn is_write_event(event: &Event) -> bool {
 }
 
 /// Parse + génère — affiche le résultat
-fn run_generation(admin_path: &Path, output_dir: &Path) {
+fn run_generation(admin_path: &Path) {
     let source = match fs::read_to_string(admin_path) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!(" Unable to read: {}", e);
+            eprintln!("❌ Unable to read: {}", e);
             return;
         }
     };
 
     match parse_admin_file(&source) {
         Err(e) => {
-            eprintln!(" Parsing error: {}", e);
+            eprintln!("❌ Parsing error: {}", e);
         }
         Ok(parsed) => {
             if parsed.resources.is_empty() {
-                println!("  No resource in admin!{{}} — nothing to generate");
+                println!("⚠️  No resource in admin!{{}} — nothing to generate");
                 return;
             }
 
-            match generate(&parsed.resources, output_dir) {
+            match generate(&parsed.resources) {
                 Ok(()) => {
-                    println!("  Daemon operational");
+                    println!("✅ Daemon operational → src/admin/generated.rs");
                 }
                 Err(e) => {
-                    eprintln!(" Generation error: {}", e);
+                    eprintln!("❌ Generation error: {}", e);
                 }
             }
         }

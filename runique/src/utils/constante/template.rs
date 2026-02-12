@@ -110,4 +110,12 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = &[
         "admin/form",
         include_str!("../../../templates/admin/composant/admin_form.html"),
     ),
+    (
+        "admin/detail",
+        include_str!("../../../templates/admin/composant/admin_detail.html"),
+    ),
+    (
+        "admin/delete_confirm",
+        include_str!("../../../templates/admin/composant/admin_delete.html"),
+    ),
 ];
