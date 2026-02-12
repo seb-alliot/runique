@@ -153,24 +153,6 @@ pub mod moteur_engine {
     pub use engine_struct::*;
 }
 
-pub mod request_context {
-    pub mod context_error {
-        pub use crate::errors::error::*;
-    }
-    pub mod template_context {
-        pub use crate::context::template::*;
-    }
-    pub mod tera {
-        pub use crate::context::tera::*;
-    }
-    pub mod composant_request {
-        pub use crate::context::request::*;
-    }
-
-    pub use context_error::*;
-    pub use tera::*;
-}
-
 pub mod runique_start {
     pub mod composant_app {
         pub mod builder_util {
@@ -214,7 +196,11 @@ pub use derive_form::DeriveModelForm;
 // Prelude simplifié
 // ---------------------------------------------------------------------------
 pub mod prelude {
-
+    // ========================================================================
+    // ERREURS
+    // ========================================================================
+    pub use crate::errors::ErrorContext;
+    pub use crate::errors::RuniqueError;
     // ========================================================================
     // MODULES PRINCIPAUX
     // ========================================================================
@@ -342,5 +328,5 @@ pub mod prelude {
     pub use crate::admin::resource::{
         AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
     };
-    pub use crate::admin::router::build_admin_router;
+    pub use crate::admin::router::{build_admin_router, AdminState};
 }

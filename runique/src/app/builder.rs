@@ -305,7 +305,7 @@ impl RuniqueAppBuilder {
         let router = router.unwrap_or_default();
 
         let router = if self.admin.enabled {
-            let admin_router = build_admin_router(self.admin.registry, self.admin.config);
+            let admin_router = build_admin_router(self.admin);
             router.merge(admin_router)
         } else {
             router

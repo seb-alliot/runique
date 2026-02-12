@@ -1,0 +1,27 @@
+{% extends "admin_base.html" %}
+
+{% block title %}{{ entry }} - Détail{% endblock %}
+
+{% block content %}
+<div class="detail-page">
+    <div class="page-header">
+        <h1>Détail : {{ resource_key }}</h1>
+        <div class="actions">
+            <a href="/{{ admin.config.prefix }}/{{ resource_key }}/list" class="btn btn-secondary">← Retour à la liste</a>
+            <a href="/{{ admin.config.prefix }}/{{ resource_key }}/{{ object_id }}/edit" class="btn btn-primary">✏️ Modifier</a>
+            <form method="post" action="/{{ admin.config.prefix }}/{{ resource_key }}/{{ object_id }}/delete" style="display: inline;">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette entrée ?')">🗑️ Supprimer</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="detail-content">
+        <dl class="details-list">
+            {% for key, value in entry %}
+            <dt>{{ key }}</dt>
+            <dd>{{ value }}</dd>
+            {% endfor %}
+        </dl>
+    </div>
+</div>
+{% endblock %}

@@ -31,10 +31,6 @@ enum Commands {
         /// Chemin vers src/admin.rs (défaut: ./src/admin.rs)
         #[arg(long, default_value = "src/admin.rs")]
         admin: String,
-
-        /// Dossier de sortie du daemon (défaut: target/runique/admin)
-        #[arg(long, default_value = "target/runique/admin")]
-        output: String,
     },
     /// Créer un superuser admin
     CreateSuperuser,
@@ -51,18 +47,14 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::New { name } => create_new_project(&name)?,
-        Commands::Start {
-            main,
-            admin,
-            output,
-        } => runique_start(&main, &admin, &output)?,
+        Commands::Start { main, admin } => runique_start(&main, &admin)?,
         Commands::CreateSuperuser => runique::admin::create_superuser().await?,
     }
 
     Ok(())
 }
 
-fn runique_start(main_path: &str, admin_path: &str, output: &str) -> Result<()> {
+fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
     let main_file = Path::new(main_path);
 
     if !main_file.exists() {
@@ -82,9 +74,8 @@ fn runique_start(main_path: &str, admin_path: &str, output: &str) -> Result<()> 
     println!("Admin detected → starting the daemon");
     // Lancer le daemon en thread séparé
     let admin_path = admin_path.to_string();
-    let output = output.to_string();
     std::thread::spawn(move || {
-        if let Err(e) = start_admin_daemon(&admin_path, &output) {
+        if let Err(e) = start_admin_daemon(&admin_path) {
             eprintln!("[Daemon] Erreur: {}", e);
         }
     });
@@ -110,11 +101,10 @@ fn has_admin(source: &str) -> bool {
 
 // Daemon AdminPanel
 
-fn start_admin_daemon(admin_path: &str, output: &str) -> Result<()> {
+fn start_admin_daemon(admin_path: &str) -> Result<()> {
     use runique::admin::daemon::watch;
 
     let admin_file = Path::new(admin_path);
-    let output_path = Path::new(output);
 
     if !admin_file.exists() {
         anyhow::bail!(
@@ -123,13 +113,12 @@ fn start_admin_daemon(admin_path: &str, output: &str) -> Result<()> {
         );
     }
 
-    watch(admin_file, output_path).map_err(|e| anyhow::anyhow!("Erreur daemon: {}", e))?;
+    watch(admin_file).map_err(|e| anyhow::anyhow!("Erreur daemon: {}", e))?;
 
     Ok(())
 }
 
 // runique new — Création de projet
-
 fn create_new_project(name: &str) -> Result<()> {
     if name.is_empty() {
         anyhow::bail!("The project name cannot be empty");
