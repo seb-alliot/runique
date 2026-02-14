@@ -14,7 +14,6 @@ use runique::app::builder::RuniqueAppBuilder as builder;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
     let db_config = DatabaseConfig::from_env()?.build();

@@ -73,3 +73,26 @@
     padding: 0;
     justify-content: center;
 }
+
+.logout-form {
+    margin: 0;
+}
+
+.logout-button {
+    border: none;
+    outline: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+button.topbar-user {
+    border: none;
+    outline: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+/* optionnel mais souvent utile si tu gardes parfois <a> */
+a.topbar-user {
+    text-decoration: none;
+}

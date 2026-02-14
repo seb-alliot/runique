@@ -70,7 +70,7 @@ impl RuniqueEngine {
             csrf_middleware,
         ));
 
-        // 3. Cache (piloté par le .env)
+        // 3. Cache (activé via .env)
         if !f.enable_cache {
             router = router.layer(middleware::from_fn_with_state(
                 engine.clone(),

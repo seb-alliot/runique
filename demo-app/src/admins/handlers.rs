@@ -21,13 +21,21 @@ pub async fn users_list(
             .all(&*req.engine.db)
             .await?;
 
+        let resource = admin
+            .registry
+            .resources
+            .iter()
+            .find(|r| r.key == "users")
+            .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
         context_update!(req => {
             "resource_key" => "users",
+            "resource" => resource,
             "form_fields" => &form,
             "entries" => &entries,
             "total" => entries.len()
         });
-        return req.render("admin/list");
+        return req.render("list");
     }
 
     if req.is_post() {
@@ -37,18 +45,26 @@ pub async fn users_list(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée créée avec succès !");
-            return Ok(Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
+            let resource = admin
+                .registry
+                .resources
+                .iter()
+                .find(|r| r.key == "users")
+                .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
             context_update!(req => {
                 "resource_key" => "users",
+                "resource" => resource,
                 "form_fields" => &form,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs")
             });
-            return req.render("admin/list");
+            return req.render("list");
         }
     }
 
-    req.render("admin/list")
+    req.render("list")
 }
 
 // ───────────── Handler users_create ─────────────
@@ -57,13 +73,21 @@ pub async fn users_create(
     Extension(admin): Extension<Arc<AdminState>>,
     Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
+    let resource = admin
+        .registry
+        .resources
+        .iter()
+        .find(|r| r.key == "users")
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
     if req.is_get() {
         context_update!(req => {
             "resource_key" => "users",
+            "resource" => resource,
             "form_fields" => &form,
             "is_edit" => false
         });
-        return req.render("admin/form");
+        return req.render("form");
     }
 
     if req.is_post() {
@@ -73,19 +97,21 @@ pub async fn users_create(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée créée avec succès !");
-            return Ok(Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
+                "current_resource" => "users",
+                "resource" => resource,
                 "form_fields" => &form,
                 "is_edit" => false,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs")
             });
-            return req.render("admin/form");
+            return req.render("form");
         }
     }
 
-    req.render("admin/form")
+    req.render("form")
 }
 
 // ───────────── Handler users_edit ─────────────
@@ -100,29 +126,36 @@ pub async fn users_edit(
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
 
+    let resource = admin
+        .registry
+        .resources
+        .iter()
+        .find(|r| r.key == "users")
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
     if req.is_get() {
         // Convertir Model → StrMap via JSON pour pré-remplir le form
         let entry_json = serde_json::to_value(&entry)
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
-        
+
         let mut form_data = StrMap::new();
         if let Some(obj) = entry_json.as_object() {
             for (k, v) in obj {
                 form_data.insert(k.clone(), v.to_string().trim_matches('"').to_string());
             }
         }
-        
-        // Remplir le form existant avec les données de l'entry
         form.get_form_mut().fill(&form_data);
-        
+
         context_update!(req => {
             "resource_key" => "users",
+            "current_resource" => "users",
+            "resource" => resource,
             "form_fields" => &form,
             "is_edit" => true,
             "object_id" => id,
             "entry" => &entry
         });
-        return req.render("admin/form");
+        return req.render("form");
     }
 
     if req.is_post() {
@@ -132,21 +165,23 @@ pub async fn users_edit(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée mise à jour avec succès !");
-            return Ok(Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
+                "current_resource" => "users",
+                "resource" => resource,
                 "form_fields" => &form,
                 "is_edit" => true,
                 "object_id" => id,
                 "entry" => &entry,
                 "messages" => flash_now!(error => "Veuillez corriger les erreurs")
             });
-            return req.render("admin/form");
+            return req.render("form");
         }
     }
 
-    req.render("admin/form")
+    req.render("form")
 }
 
 // ───────────── Handler users_detail ─────────────
@@ -160,13 +195,21 @@ pub async fn users_detail(
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
 
+    let resource = admin
+        .registry
+        .resources
+        .iter()
+        .find(|r| r.key == "users")
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
     context_update!(req => {
         "resource_key" => "users",
+        "current_resource" => "users",
+        "resource" => resource,
         "entry" => &entry,
-        "object_id" => id
+        "is_edit" => false
     });
-
-    req.render("admin/detail")
+    req.render("detail")
 }
 
 // ───────────── Handler users_delete ─────────────
@@ -183,7 +226,7 @@ pub async fn users_delete(
 
         entry.delete(&*req.engine.db).await?;
         success!(req.notices => "Entrée supprimée avec succès !");
-        return Ok(Redirect::to(&format!("/{}/users/list", admin.config.prefix)).into_response());
+        return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
     }
 
     let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
@@ -191,12 +234,21 @@ pub async fn users_delete(
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
 
+    let resource = admin
+        .registry
+        .resources
+        .iter()
+        .find(|r| r.key == "users")
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
     context_update!(req => {
         "resource_key" => "users",
+        "current_resource" => "users",
+        "resource" => resource,
         "entry" => &entry,
-        "object_id" => id
+        "object_id" => id,
+        "is_edit" => false
     });
-
-    req.render("admin/delete_confirm")
+    req.render("delete")
 }
 
