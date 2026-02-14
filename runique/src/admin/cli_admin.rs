@@ -1,6 +1,6 @@
 // src/bin/createsuperuser.rs
-use crate::forms::fields::text::TextField;
 use crate::forms::base::FormField;
+use crate::forms::fields::text::TextField;
 use crate::middleware::auth::builtin_user::{ActiveModel, BuiltinUserEntity, UserEntity};
 use anyhow::Result;
 use rpassword::read_password;
@@ -81,7 +81,14 @@ pub async fn create_superuser() -> Result<()> {
     password_field.base.value = password.clone();
 
     if !password_field.validate() {
-        println!("{}", password_field.base.error.as_deref().unwrap_or("Mot de passe invalide"));
+        println!(
+            "{}",
+            password_field
+                .base
+                .error
+                .as_deref()
+                .unwrap_or("Mot de passe invalide")
+        );
         return Ok(());
     }
 
@@ -90,16 +97,16 @@ pub async fn create_superuser() -> Result<()> {
         return Ok(());
     }
     let hashed_password = password_field.base.value.clone();
-        // Création du superuser
-        let new_user = ActiveModel {
-            username: Set(username),
-            email: Set(email),
-            password: Set(hashed_password),
-            is_active: Set(true),
-            is_staff: Set(true),
-            is_superuser: Set(true),
-            ..Default::default()
-        };
+    // Création du superuser
+    let new_user = ActiveModel {
+        username: Set(username),
+        email: Set(email),
+        password: Set(hashed_password),
+        is_active: Set(true),
+        is_staff: Set(true),
+        is_superuser: Set(true),
+        ..Default::default()
+    };
 
     new_user.insert(&db).await?;
 

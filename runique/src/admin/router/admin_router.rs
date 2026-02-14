@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Form, Path},
+    extract::Form,
     http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect, Response},
@@ -15,15 +15,14 @@ use axum::{
 use serde::Deserialize;
 use tower_sessions::Session;
 
-use crate::admin::config::AdminConfig;
 use crate::admin::middleware::admin_required;
 use crate::admin::registry::AdminRegistry;
 use crate::app::staging::AdminStaging;
-use crate::context::template::{AppError, Request};
-use crate::errors::error::ErrorContext;
+use crate::context::template::Request;
 use crate::middleware::auth::{load_user_middleware, login_user_full};
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
+use crate::{admin::config::AdminConfig, flash_now};
 
 #[derive(Clone)]
 pub struct AdminState {
@@ -75,7 +74,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .merge(
             protected_router
                 .merge(generated_router)
-                .layer(middleware::from_fn(admin_required)), // ← Contrôle d'accé a l'admin
+                .layer(middleware::from_fn(admin_required)),
         )
         .layer(middleware::from_fn(load_user_middleware))
         .layer(Extension(admin_state))
@@ -95,7 +94,7 @@ async fn admin_dashboard(
         .insert("current_page", "dashboard")
         .insert("current_resource", &Option::<String>::None);
 
-    req.render("admin/dashboard")
+    req.render("dashboard")
 }
 
 async fn admin_login_get(
@@ -103,7 +102,7 @@ async fn admin_login_get(
     Extension(admin): Extension<Arc<AdminState>>,
 ) -> AppResult<Response> {
     req = req.insert("site_title", &admin.config.site_title);
-    req.render("admin/login")
+    req.render("login")
 }
 
 async fn admin_login_post(
@@ -158,111 +157,10 @@ async fn admin_login_post(
 }
 
 async fn admin_logout(session: Session, Extension(admin): Extension<Arc<AdminState>>) -> Response {
-    let _ = session.flush().await;
+    let _ = session
+        .insert("flash_messages", "Déconnexion réussie.")
+        .await;
+    let _ = session.delete().await;
+    flash_now!( success => "Déconnexion réussie.");
     Redirect::to(&format!("{}/login", admin.config.prefix)).into_response()
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Handlers CRUD
-// ═══════════════════════════════════════════════════════════════
-
-async fn admin_list(
-    mut req: Request,
-    Extension(admin): Extension<Arc<AdminState>>,
-    Path(resource_key): Path<String>,
-) -> AppResult<Response> {
-    let resource = admin
-        .registry
-        .resources
-        .iter()
-        .find(|r| r.key == resource_key)
-        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
-
-    req = req
-        .insert("site_title", &admin.config.site_title)
-        .insert("current_page", "list")
-        .insert("current_resource", &resource_key)
-        .insert("resource", resource)
-        .insert("rows", Vec::<serde_json::Value>::new())
-        .insert("columns", Vec::<String>::new())
-        .insert("total", 0)
-        .insert("current_page", 1)
-        .insert("total_pages", 1);
-
-    req.render("admin/list")
-}
-
-async fn admin_create_get(
-    mut req: Request,
-    Extension(admin): Extension<Arc<AdminState>>,
-    Path(resource_key): Path<String>,
-) -> AppResult<Response> {
-    let resource = admin
-        .registry
-        .resources
-        .iter()
-        .find(|r| r.key == resource_key)
-        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
-
-    req = req
-        .insert("site_title", &admin.config.site_title)
-        .insert("current_page", "list")
-        .insert("current_resource", &resource_key)
-        .insert("resource", resource)
-        .insert("rows", Vec::<serde_json::Value>::new())
-        .insert("columns", Vec::<String>::new())
-        .insert("total", 0)
-        .insert("current_page", 1)
-        .insert("total_pages", 1)
-        .insert("is_edit", false);
-        
-
-    req.render("admin/form")
-}
-
-async fn admin_create_post(
-    Extension(admin): Extension<Arc<AdminState>>,
-    Path(resource_key): Path<String>,
-) -> Response {
-    // TODO: Insert dans la DB
-    Redirect::to(&format!("{}/{}/list", admin.config.prefix, resource_key)).into_response()
-}
-
-async fn admin_detail(
-    mut req: Request,
-    Extension(admin): Extension<Arc<AdminState>>,
-    Path((resource_key, id)): Path<(String, i32)>,
-) -> AppResult<Response> {
-    let resource = admin
-        .registry
-        .resources
-        .iter()
-        .find(|r| r.key == resource_key)
-        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
-
-    req = req
-        .insert("site_title", &admin.config.site_title)
-        .insert("current_page", "edit")
-        .insert("current_resource", &resource_key)
-        .insert("resource", resource)
-        .insert("is_edit", true)
-        .insert("object_id", id);
-
-    req.render("admin/form")
-}
-
-async fn admin_edit(
-    Extension(admin): Extension<Arc<AdminState>>,
-    Path((resource_key, id)): Path<(String, i32)>,
-) -> Response {
-    // TODO: Update dans la DB
-    Redirect::to(&format!("{}/{}/{}", admin.config.prefix, resource_key, id)).into_response()
-}
-
-async fn admin_delete(
-    Extension(admin): Extension<Arc<AdminState>>,
-    Path((resource_key, __id)): Path<(String, i32)>,
-) -> Response {
-    // TODO: Delete dans la DB
-    Redirect::to(&format!("{}/{}/list", admin.config.prefix, resource_key)).into_response()
 }

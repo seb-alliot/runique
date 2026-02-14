@@ -8,15 +8,15 @@
 </head>
 <body>
     <header>
-        {% include "errors/corps-error/header-error.html" %}
+        {% include "header-error" %}
     </header>
     <div class="container">
-            {% include "errors/corps-error/stack-trace-error.html" %}
-            {% include "errors/corps-error/template-info.html" %}
-            {% include "errors/corps-error/request-info.html" %}
-            {% include "errors/corps-error/environment-info.html" %}  
+            {% include "trace-error" %}
+            {% include "template-info" %}
+            {% include "request-info" %}
+            {% include "zone-info" %}
         <footer>
-            {% include "errors/corps-error/footer-error.html" %}
+            {% include "footer-error" %}
         </footer>
     </div>
 </body>

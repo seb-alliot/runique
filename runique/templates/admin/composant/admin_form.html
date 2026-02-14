@@ -1,225 +1,101 @@
 {% extends "admin_base.html" %}
 
 {% block title %}
-    {% if is_edit %}Modifier{% else %}Créer{% endif %} — {% if resource.title %} {{ resource.title }}{% endif %}
+  {% if is_edit is defined and is_edit %}
+    {% if resource is defined and resource.title is defined %}
+      Modifier — {{ resource.title }}
+    {% else %}
+      Modifier — Élément
+    {% endif %}
+  {% else %}
+    {% if resource is defined and resource.title is defined %}
+      Créer — {{ resource.title }}
+    {% else %}
+      Créer — Élément
+    {% endif %}
+  {% endif %}
 {% endblock %}
 
 {% block breadcrumb %}
-    <span class="breadcrumb-sep">/</span>
-    <a href="/admin/{% if resource.key %}{{ resource.key }} {% endif %}/list">{% if resource.title %} {{ resource.title }}{% endif %}</a>
-    <span class="breadcrumb-sep">/</span>
-    <span>{% if is_edit %}Modifier #{% if object_id %}{{ object_id }}{% endif %} {% else %}Créer{% endif %}</span>
+  <span class="breadcrumb-sep">/</span>
+
+  {% if resource is defined and resource.key is defined %}
+    {% if resource.title is defined %}
+      <a href="/admin/{{ resource.key }}/list">{{ resource.title }}</a>
+    {% else %}
+      <a href="/admin/{{ resource.key }}/list">Élément</a>
+    {% endif %}
+  {% else %}
+    <span>Admin</span>
+  {% endif %}
+
+  <span class="breadcrumb-sep">/</span>
+
+  {% if is_edit is defined and is_edit %}
+    <span>Modifier</span>
+  {% else %}
+    <span>Créer</span>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
 
-<div class="page-header">
-    <div>
-        <h1 class="page-title">
-            {% if is_edit %}Modifier {% if resource.title %} {{ resource.title }}{% endif %}{% else %}Créer {% if resource.title %} {{ resource.title }}{% endif %}{% endif %}
-        </h1>
-        {% if is_edit %}
-        <p class="page-subtitle">ID : <span class="id-badge">{% if object_id %}{{ object_id }}{% endif %}</span></p>
-        {% endif %}
-    </div>
-    <a href="/admin/{% if resource.key %}{{ resource.key }} {% endif %}/list" class="btn btn-secondary">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-            <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        Retour à la liste
-    </a>
-</div>
+  <header class="page-header">
+    <h1>
+      {% if is_edit is defined and is_edit %}
+        Modifier
+      {% else %}
+        Créer
+      {% endif %}
 
-<div class="card">
+      {% if resource is defined and resource.title is defined %}
+        {{ resource.title }}
+      {% else %}
+        Élément
+      {% endif %}
+    </h1>
+  </header>
+
+  <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Informations</h2>
+      <h2>Informations</h2>
     </div>
+
     <div class="card-body">
-
+      {% if resource is defined and resource.key is defined %}
         <form method="POST"
-              action="{% if is_edit %}/admin/{% if resource.key %}{{ resource.key }} {% endif %}/{% if object_id %}{{ object_id }}{% endif %}{% else %}/admin/{% if resource.key %}{{ resource.key }} {% endif %}/create{% endif %}"
-              enctype="multipart/form-data">
+              enctype="multipart/form-data"
+              action="/admin/{{ resource.key }}{% if is_edit is defined and is_edit %}{% if object_id is defined %}/{{ object_id }}{% endif %}{% else %}/create{% endif %}">
 
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-            <div class="form-grid">
-            {% if form_fields %}
-                <div class="form-group {% if field.full_width %}form-grid-2{% endif %}">
-
-                    <label class="form-label {% if field.required %}required{% endif %}"
-                           for="{% if field.name %}{{ field.name }} {% endif %}">
-                        {% if field.label %}{{ field.label }}{% endif %}
-                    </label>
-                    {% if field.widget %}
-                    {% if field.widget == "textarea" %}
-                        <textarea
-                            class="form-textarea {% if field.error %}error{% endif %}"
-                            id="{% if field.name %}{{ field.name }} {% endif %}"
-                            name="{% if field.name %}{{ field.name }} {% endif %}"
-                            {% if field.required %}required{% endif %}
-                            rows="4"
-                        >{{ field.value | default(value='') }}</textarea>
-
-                    {% elif field.widget == "select" %}
-                        <select
-                            class="form-select {% if field.error %}error{% endif %}"
-                            id="{% if field.name %}{{ field.name }} {% endif %}"
-                            name="{% if field.name %}{{ field.name }} {% endif %}"
-                            {% if field.required %}required{% endif %}
-                        >
-                            <option value="">— Choisir —</option>
-                            {% for choice in field.choices %}
-                            <option value="{{ choice.value }}"
-                                {% if choice.value == field.value %}selected{% endif %}>
-                                {{ choice.label }}
-                            </option>
-                            {% endfor %}
-                        </select>
-
-                    {% elif field.widget == "checkbox" %}
-                        <label class="form-check">
-                            <input
-                                type="checkbox"
-                                id="{% if field.name %}{{ field.name }} {% endif %}"
-                                name="{% if field.name %}{% if field.name %}{{ field.name }} {% endif %} {% endif %}"
-                                value="true"
-                                {% if field.value %}checked{% endif %}
-                            >
-                            {% if field.label %}{{ field.label }}{% endif %}
-                        </label>
-
-                    {% elif field.widget == "password" %}
-                        <input
-                            class="form-input {% if field.error %}error{% endif %}"
-                            type="password"
-                            id="{% if field.name %}{{ field.name }} {% endif %}"
-                            name="{% if field.name %}{{ field.name }} {% endif %}"
-                            autocomplete="new-password"
-                            {% if field.required and not is_edit %}required{% endif %}
-                        >
-                        {% if is_edit %}
-                        <span class="form-hint">Laissez vide pour conserver le mot de passe actuel.</span>
-                        {% endif %}
-
-                    {% elif field.widget == "email" %}
-                        <input
-                            class="form-input {% if field.error %}error{% endif %}"
-                            type="email"
-                            id="{% if field.name %}{{ field.name }} {% endif %}"
-                            name="{% if field.name %}{{ field.name }} {% endif %}"
-                            value="{{ field.value | default(value='') }}"
-                            {% if field.required %}required{% endif %}
-                        >
-
-                    {% elif field.widget == "number" %}
-                        <input
-                            class="form-input {% if field.error %}error{% endif %}"
-                            type="number"
-                            id="{% if field.name %}{{ field.name }} {% endif %}"
-                            name="{% if field.name %}{{ field.name }} {% endif %}"
-                            value="{{ field.value | default(value='') }}"
-                            {% if field.required %}required{% endif %}
-                        >
-
-                    {% elif field.widget == "datetime" %}
-                        <input
-                            class="form-input {% if field.error %}error{% endif %}"
-                            type="datetime-local"
-                            id="{% if field.name %}{{ field.name }} {% endif %}"
-                            name="{% if field.name %}{{ field.name }} {% endif %}"
-                            value="{{ field.value | default(value='') }}"
-                            {% if field.required %}required{% endif %}
-                        >
-
-                    {% elif field.widget == "file" %}
-                        <input
-                            class="form-input {% if field.error %}error{% endif %}"
-                            type="file"
-                            id="{% if field.name %}{{ field.name }} {% endif %}"
-                            name="{% if field.name %}{{ field.name }} {% endif %}"
-                            {% if field.required and not is_edit %}required{% endif %}
-                        >
-                        {% if field.value and is_edit %}
-                        <span class="form-hint">Fichier actuel : {{ field.value }}</span>
-                        {% endif %}
-
-                    {% elif field.widget == "hidden" %}
-                        <input type="hidden" name="{% if field.name %}{{ field.name }} {% endif %}" value="{{ field.value | default(value='') }}">
-
-                    {% else %}
-                        <!-- text par défaut -->
-                        <input
-                            class="form-input {% if field.error %}error{% endif %}"
-                            type="text"
-                            id="{% if field.name %}{{ field.name }} {% endif %}"
-                            name="{% if field.name %}{{ field.name }} {% endif %}"
-                            value="{{ field.value | default(value='') }}"
-                            {% if field.required %}required{% endif %}
-                        >
-                    {% endif %}
-                    {% endif %}
-                    {% if field.hint and field.widget %}
-                        {% if field.hint and field.widget != "password" %}
-                        <span class="form-hint">{{ field.hint }}</span>
-                        {% endif %}
-                    {% endif %}
-
-                    {% if field.error %}
-                    <span class="form-error">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
-                        {{ field.error }}
-                    </span>
-                    {% endif %}
-
-                </div>
+          <div class="form-grid">
+            {% if form_fields is defined %}
+              {% if form_fields.html is defined and form_fields.html %}
+                {{ form_fields.html | safe }}
+              {% else %}
+                <p>Aucun champ disponible pour le moment.</p>
+              {% endif %}
+            {% else %}
+              <p>Aucun champ disponible pour le moment.</p>
             {% endif %}
+          </div>
 
-
-                {% if not form_fields %}
-                <p style="color: var(--text-muted); font-size: 0.88rem;">
-                    Aucun champ configuré. Vérifiez la définition du Form associé à cette ressource.
-                </p>
-                {% endif %}
-
-            </div><!-- .form-grid -->
-
-            <div class="form-actions">
-                <a href="/admin/{% if resource.key %}{{ resource.key }} {% endif %}/list" class="btn btn-secondary">Annuler</a>
-                <button type="submit" class="btn btn-primary">
-                    {% if is_edit %}Enregistrer les modifications{% else %}Créer{% endif %}
-                </button>
-            </div>
-
+          <div class="form-actions">
+            <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">Annuler</a>
+            <button type="submit" class="btn btn-primary">
+              {% if is_edit is defined and is_edit %}
+                Enregistrer
+              {% else %}
+                Créer
+              {% endif %}
+            </button>
+          </div>
         </form>
-
+      {% else %}
+        <div class="alert alert-danger">
+          Ressource invalide : impossible d’afficher le formulaire.
+        </div>
+      {% endif %}
     </div>
-</div>
-
-{% if is_edit %}
-<div class="delete-zone">
-    <div class="delete-zone-text">
-        <div class="delete-zone-title">Zone dangereuse</div>
-        Supprimer définitivement cette entrée. Cette action est irréversible.
-    </div>
-    <form method="POST" action="/admin/{% if resource.key %}{{ resource.key }} {% endif %}/{% if object_id %}{{ object_id }}{% endif %}/delete"
-          onsubmit="return confirm('Supprimer définitivement cette entrée ?')">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button type="submit" class="btn btn-danger">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4h6v2"/>
-            </svg>
-            Supprimer
-        </button>
-    </form>
-</div>
-
-{% endif %}
+  </div>
 
 {% endblock %}

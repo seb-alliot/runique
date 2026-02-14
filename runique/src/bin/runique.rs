@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use runique::utils::init_logging;
 use std::fs;
 use std::path::Path;
-use runique::utils::init_logging;
 
 #[derive(Parser)]
 #[command(name = "runique")]
