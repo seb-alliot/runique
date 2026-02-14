@@ -1,189 +1,71 @@
 {% extends "admin_base.html" %}
 
-{% block title %}
-  {% if resource is defined %}
-    {% if resource.title is defined %}
-      Liste — {{ resource.title }}
-    {% else %}
-      <p>[DEBUG] resource.title non défini (title)</p>
-      Liste — Utilisateurs
-    {% endif %}
-  {% else %}
-    <p>[DEBUG] resource non défini (title)</p>
-    Liste — Utilisateurs
-  {% endif %}
-{% endblock %}
-
+{% block title %}Liste — {{ resource.title | default(value="Éléments") }}{% endblock %}
 
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
-  <span>Administration</span>
+  <a href="/admin">Administration</a>
   <span class="breadcrumb-sep">/</span>
-
-  {% if resource is defined %}
-    {% if resource.title is defined %}
-      <span>{{ resource.title }}</span>
-    {% else %}
-      <p>[DEBUG] resource.title non défini (breadcrumb)</p>
-      <span>Utilisateurs</span>
-    {% endif %}
-  {% else %}
-    <p>[DEBUG] resource non défini (breadcrumb)</p>
-    <span>Utilisateurs</span>
-  {% endif %}
+  <span>{{ resource.title | default(value="Éléments") }}</span>
 {% endblock %}
-
 
 {% block content %}
 
 <div class="page-header">
+  <h1>Liste des {{ resource.title | default(value="éléments") }}</h1>
 
-  <h1>
-    {% if resource is defined %}
-      {% if resource.title is defined %}
-        Liste des {{ resource.title }}
-      {% else %}
-        <p>[DEBUG] resource.title non défini (header)</p>
-        Liste des éléments
-      {% endif %}
-    {% else %}
-      <p>[DEBUG] resource non défini (header)</p>
-      Liste des éléments
-    {% endif %}
-  </h1>
+  <p>Total : {{ total | default(value=0) }}</p>
 
-  <p>
-    {% if total is defined %}
-      {{ "Total : " ~ total }}
-    {% else %}
-      <p>[DEBUG] total non défini</p>
-      Total : 0
-    {% endif %}
-  </p>
-
-  {% if resource is defined %}
-    {% if resource.key is defined %}
-      <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
-        + Créer un nouvel élément
-      </a>
-    {% else %}
-      <p>[DEBUG] resource.key non défini (create button)</p>
-    {% endif %}
-  {% else %}
-    <p>[DEBUG] resource non défini (create button)</p>
-  {% endif %}
-
+  <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
+    + Créer un nouvel élément
+  </a>
 </div>
 
+{% if entries is defined and entries | length > 0 %}
 
-{% if messages %}
-    <div class="alert alert-danger">
-      {{ messages }}
-    </div>
-  {% else %}
-    <p>[DEBUG] messages défini mais messages.error absent</p>
-{% endif %}
-
-
-{% if entries is defined %}
-  {% if entries | length > 0 %}
-
-    <table class="table table-striped">
-      <thead>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Données</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
         <tr>
-          <th>ID</th>
-          <th>Nom / Email</th>
-          <th>Actions</th>
+          <td>{{ entry.id | default(value="—") }}</td>
+
+          <td>
+            {# Affiche le nom ou une représentation générique #}
+            {{ entry.name | default(value=entry.email) | default(value="Sans nom") }}
+          </td>
+
+          <td>
+            <a href="/admin/{{ resource.key }}/{{ entry.id }}" class="btn btn-sm btn-info">Détail</a>
+            <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-warning">Modifier</a>
+
+            <form method="POST"
+                  action="/admin/{{ resource.key }}/{{ entry.id }}/delete"
+                  style="display:inline;">
+              <button type="submit"
+                      class="btn btn-sm btn-danger"
+                      onclick="return confirm('Vraiment supprimer ?');">
+                Supprimer
+              </button>
+            </form>
+          </td>
         </tr>
-      </thead>
+      {% endfor %}
+    </tbody>
+  </table>
 
-      <tbody>
-        {% for entry in entries %}
-
-          <tr>
-
-            <td>
-              {% if entry.id is defined %}
-                {{ entry.id }}
-              {% else %}
-                <p>[DEBUG] entry.id non défini</p>
-              {% endif %}
-            </td>
-
-            <td>
-              {% if entry.name is defined %}
-                {{ entry.name }}
-              {% else %}
-                <p>[DEBUG] entry.name non défini</p>
-              {% endif %}
-
-              {% if entry.email is defined %}
-                <small>({{ entry.email }})</small>
-              {% else %}
-                <p>[DEBUG] entry.email non défini</p>
-              {% endif %}
-            </td>
-
-            <td>
-
-              {% if resource is defined %}
-                {% if resource.key is defined %}
-                  {% if entry.id is defined %}
-
-                    <a href="/admin/{{ resource.key }}/{{ entry.id }}" class="btn btn-sm btn-info">
-                      Détail
-                    </a>
-
-                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-warning">
-                      Modifier
-                    </a>
-
-                    <form method="POST"
-                          action="/admin/{{ resource.key }}/{{ entry.id }}/delete"
-                          style="display:inline;">
-                      <button type="submit"
-                              class="btn btn-sm btn-danger"
-                              onclick="return confirm('Vraiment supprimer ?');">
-                        Supprimer
-                      </button>
-                    </form>
-
-                  {% else %}
-                    <p>[DEBUG] entry.id non défini (actions)</p>
-                  {% endif %}
-                {% else %}
-                  <p>[DEBUG] resource.key non défini (actions)</p>
-                {% endif %}
-              {% else %}
-                <p>[DEBUG] resource non défini (actions)</p>
-              {% endif %}
-
-            </td>
-
-          </tr>
-
-        {% else %}
-          <tr>
-            <td colspan="3">
-              <p>[DEBUG] boucle entries vide</p>
-              Aucune entrée pour le moment.
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-  {% else %}
-    <p>[DEBUG] entries défini mais vide</p>
-    <div class="alert alert-info">
-      Aucune entrée pour le moment.
-    </div>
-  {% endif %}
 {% else %}
-  <p>[DEBUG] entries non défini</p>
+
   <div class="alert alert-info">
     Aucune entrée pour le moment.
   </div>
+
 {% endif %}
 
 {% endblock %}

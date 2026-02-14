@@ -142,4 +142,7 @@ impl FormField for GenericField {
     fn to_json_meta(&self) -> Value {
         delegate_to_kind!(self, to_json_meta)
     }
+    fn finalize(&mut self) -> Result<(), String> {
+        delegate_to_kind!(mut self, finalize)
+    }
 }

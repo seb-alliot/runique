@@ -25,7 +25,7 @@ impl HostPolicy {
     }
 
     pub fn from_env() -> Self {
-        let hosts = std::env::var("RUNIQUE_POLICY_ALLOWED_HOSTS")
+        let hosts = std::env::var("ALLOWED_HOSTS")
             .unwrap_or_else(|_| "localhost:3000".to_string())
             .split(',')
             .map(|s| s.trim().to_string())
@@ -33,7 +33,7 @@ impl HostPolicy {
             .collect();
 
         // On synchronise le mode debug avec l'interrupteur global
-        let debug = std::env::var("RUNIQUE_ENABLE_DEBUG_ERRORS")
+        let debug = std::env::var("DEBUG")
             .map(|v| v.parse().unwrap_or(false))
             .unwrap_or(false);
 
@@ -46,10 +46,10 @@ impl HostPolicy {
     pub fn is_host_allowed(&self, host: &str) -> bool {
         if self.debug {
             return true;
-        } //
+        }
+
         fn normalize_host(host: &str) -> &str {
             if host.starts_with('[') {
-                // IPv6, garder jusqu'à ]
                 host.split(']')
                     .next()
                     .map(|h| &host[..h.len() + 1])
@@ -58,22 +58,25 @@ impl HostPolicy {
                 host.split(':').next().unwrap_or(host)
             }
         }
+
         let host = normalize_host(host);
 
-        self.allowed_hosts.iter().any(|allowed| {
+        self.allowed_hosts.iter().any(|allowed_raw| {
+            let allowed = allowed_raw.trim();
+
             if allowed == "*" {
-                true
-            } else if allowed.starts_with('.') {
-                if host == &allowed[1..] {
-                    true
-                } else if host.ends_with(allowed) {
-                    let match_start = host.len() - allowed.len();
-                    match_start > 0 && host.as_bytes()[match_start] == b'.'
-                } else {
-                    false
-                }
+                return true;
+            }
+
+            //  normalisation côté allowed aussi
+            let allowed_host = normalize_host(allowed);
+
+            if let Some(suffix) = allowed_host.strip_prefix('.') {
+                host == suffix
+                    || (host.ends_with(allowed_host)
+                        && host.as_bytes()[host.len() - allowed_host.len()] == b'.')
             } else {
-                allowed == host
+                allowed_host == host
             }
         })
     }

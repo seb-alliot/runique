@@ -37,6 +37,7 @@ pub async fn soumission_inscription(
                 form.get_form_mut().database_error(&err);
                 AppError::from(err)
             })?;
+            println!("Nouvel utilisateur créé donné dans views.rs : {:?}", user);
 
             success!(request.notices => format!("Bienvenue {}, votre compte est créé !", user.username));
             return Ok(Redirect::to("/").into_response());
