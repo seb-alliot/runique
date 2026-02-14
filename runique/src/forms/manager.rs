@@ -155,18 +155,6 @@ impl Forms {
         }
     }
 
-    /// Crée un formulaire vide (sans token CSRF).
-    /// Utilisé par la désérialisation — le formulaire sera reconstruit par `build()`.
-    pub fn empty() -> Self {
-        Self {
-            fields: IndexMap::new(),
-            tera: None,
-            global_errors: Vec::new(),
-            session_csrf_token: None,
-            js_files: Vec::new(),
-        }
-    }
-
     fn render_js(&self, tera: &ATera) -> Result<String, String> {
         if self.js_files.is_empty() {
             return Ok(String::new());
@@ -276,13 +264,13 @@ impl Forms {
     /// Validation interne des champs
     fn validate_fields(&mut self) -> Result<bool, ValidationError> {
         let mut is_all_valid = true;
+
         for field in self.fields.values_mut() {
             if field.required() && field.value().trim().is_empty() {
                 field.set_error("Ce champ est obligatoire".to_string());
                 is_all_valid = false;
                 continue;
             }
-
             if !field.validate() {
                 is_all_valid = false;
             }
@@ -297,6 +285,10 @@ impl Forms {
                 return Err(ValidationError::FieldValidation(self.errors()));
             }
         }
+
+        // Ici seulement, tout est valide -> on finalize (hash password, etc.)
+        self.finalize()
+            .map_err(|e| ValidationError::GlobalErrors(vec![e]))?;
 
         Ok(true)
     }
