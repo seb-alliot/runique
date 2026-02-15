@@ -102,7 +102,7 @@ impl AdminStaging {
                 CheckError::new("AdminPanel", "Aucun handler d'authentification configuré")
                     .with_suggestion(
                         "Ajoutez .auth(RuniqueAdminAuth::new()) pour utiliser le User built-in, \
-                     ou implémentez UserEntity sur votre propre modèle",
+                    ou implémentez UserEntity sur votre propre modèle",
                     ),
             );
         }

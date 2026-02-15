@@ -51,7 +51,7 @@ MEDIA_ROOT=media
 
 # Security
 SECRETE_KEY=your_secret_key_change_in_production
-ALLOWED_HOSTS=localhost,127.0.0.1
+RUNIQUE_ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
 ### 3. Créer la base de données
@@ -112,7 +112,7 @@ Pour utiliser SQLite en développement:
 
 ```toml
 [dependencies]
-runique = { version = "1.1.11", features = ["orm", "sqlite"] }
+runique = { version = "1.1.20", features = ["orm", "sqlite"] }
 
 ```
 
@@ -247,7 +247,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 Vérifier que la feature est activée dans `Cargo.toml`:
 
 ```toml
-runique = { version = "1.1.11", features = ["orm", "postgres"] }
+runique = { version = "1.1.20", features = ["orm", "postgres"] }
 
 ```
 

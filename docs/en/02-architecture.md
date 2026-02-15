@@ -7,31 +7,31 @@
 Runique is organized into **functional modules** based on responsibility:
 
 runique/src/
-├── app/                    # 🏭 App Builder, Templates & Smart Builder
-│   ├── builder.rs          # 🧠 RuniqueAppBuilder with slots
-│   ├── error_build.rs      # Build errors
-│   ├── templates.rs        # TemplateLoader (Tera)
-│   └── staging/            # Staging structs
+├── app/                    #  App Builder, Templates & Smart Builder
+│   ├── builder.rs          #  RuniqueAppBuilder with slots
+│   ├── error_build.rs      #  Build errors
+│   ├── templates.rs        #  TemplateLoader (Tera)
+│   └── staging/            #  Staging structs
 │       ├── core_staging.rs
 │       │   ├── middleware_staging.rs
 │       │   └── static_staging.rs
-│       └── error_build.rs  # BuildError & CheckReport
-├── config/                 # ⚙️ Configuration & Settings
-├── context/                # 📨 Request Context & Tera tools
-│   ├── request.rs          # Request struct (extractor)
-│   └── tera/               # Tera filters and functions
-├── db/                     # 🗄️ ORM & Database
-├── engine/                 # ⚡ RuniqueEngine
-├── errors/                 # 🚨 Error handling
-├── flash/                  # 💬 Flash messages
-├── forms/                  # 📋 Form system
-├── macros/                 # 🎯 Utility macros
-│   ├── context_macro/      # context!, context_update!
-│   ├── flash_message/      # success!, error!, info!, warning!, flash_now!
-│   └── router/             # urlpatterns!, view!, impl_objects!
-├── middleware/             # 🛡️ Middleware (Security)
-│   └── security/           # CSRF, CSP, Host, Cache, Error Handler
-├── utils/                  # 🛠️ Utilities
+│       └── error_build.rs  #  BuildError & CheckReport
+├── config/                 #  Configuration & Settings
+├── context/                #  Request Context & Tera tools
+│   ├── request.rs          #  Request struct (extractor)
+│   └── tera/               #  Tera filters and functions
+├── db/                     #  ORM & Database
+├── engine/                 #  RuniqueEngine
+├── errors/                 #  Error handling
+├── flash/                  #  Flash messages
+├── forms/                  #  Form system
+├── macros/                 #  Utility macros
+│   ├── context_macro/      #  context!, context_update!
+│   ├── flash_message/      #  success!, error!, info!, warning!, flash_now!
+│   └── router/             #  urlpatterns!, view!, impl_objects!
+├── middleware/             #  Middleware (Security)
+│   └── security/           #  CSRF, CSP, Host, Cache, Error Handler
+├── utils/                  #  Utilities
 ├── lib.rs
 └── prelude.rs
 

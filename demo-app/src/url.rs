@@ -1,6 +1,6 @@
 use crate::views;
 use runique::prelude::*;
-use runique::{urlpatterns, view}; // Macros explicites
+use runique::{urlpatterns, view}; // <= Macros explicites
 
 pub fn routes() -> Router {
     let router = urlpatterns! {

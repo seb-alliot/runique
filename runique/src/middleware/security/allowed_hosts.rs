@@ -25,7 +25,7 @@ impl HostPolicy {
     }
 
     pub fn from_env() -> Self {
-        let hosts = std::env::var("ALLOWED_HOSTS")
+        let hosts = std::env::var("RUNIQUE_ALLOWED_HOSTS")
             .unwrap_or_else(|_| "localhost:3000".to_string())
             .split(',')
             .map(|s| s.trim().to_string())

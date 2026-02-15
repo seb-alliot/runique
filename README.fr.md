@@ -95,36 +95,49 @@ use runique::{urlpatterns, view}; // Macros explicites
 
 pub fn routes() -> Router {
     let router = urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
+        "/" => view!{ views::index }, name = "index",
 
-        "/about" => view! { GET => views::about }, name = "about",
-        "/inscription" => view! { GET => views::inscription, POST => views::soumission_inscription }, name = "inscription",
+        "/about" => view! { views::about }, name = "about",
+        "/inscription" => view! { views::inscription }, name = "inscription",
     };
     router
 }
 
-
-pub async fn inscription(mut template: TemplateContext) -> AppResult<Response> {
-    let form = template.form::<RegisterForm>();
-    context_update!(template => {
-        "title" => "Inscription user",
-        "inscription_form" => &form,
-    });
-
-    template.render("inscription_form.html")
-}
-
-// Handle form submission
-async fn soumission_inscription(
-    Prisme(mut form): Prisme<UserForm>,
-    mut template: TemplateContext,
+pub async fn inscription(
+    mut request: Request,
+    Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
-    if form.is_valid().await {
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "Inscription utilisateur",
+            "inscription_form" => &form,
+        });
+        return request.render("inscription_form.html");
     }
-    context_update!(template => {
-        "form" => form,
-    });
-    template.render("register.html")
+
+    if request.is_post() {
+        if form.is_valid().await {
+            let user = form.save(&request.engine.db).await.map_err(|err| {
+                form.get_form_mut().database_error(&err);
+                AppError::from(err)
+            })?;
+            println!("Nouvel utilisateur créé donné dans views.rs : {:?}", user);
+
+            success!(request.notices => format!("Bienvenue {}, votre compte est créé !", user.username));
+            return Ok(Redirect::to("/").into_response());
+        }
+
+        // Validation échouée
+        context_update!(request => {
+            "title" => "Erreur de validation",
+            "inscription_form" => &form,
+            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+        });
+        return request.render("inscription_form.html");
+    }
+
+    // Cas fallback
+    request.render("inscription_form.html")
 }
 ```
 
@@ -313,7 +326,7 @@ Voir [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/PROJECT
 
 ## 📝 Licence
 
-MIT License - voir [SECURITY.md](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
+MIT License[LICENCE](https://github.com/seb-alliot/runique/blob/main/LICENCE) voir [SECURITY.md](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 
 ---
 
