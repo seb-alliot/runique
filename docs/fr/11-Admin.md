@@ -1,14 +1,5 @@
 
 ---
-* architecture
-* workflow daemon
-* permissions basées sur `users`
-* **section claire sur ce qui est déclarable dans la macro**
-* limites explicites et assumées
-
-Tu peux la **copier-coller telle quelle**.
-
----
 
 ##  Vue d’administration (bêta)
 
