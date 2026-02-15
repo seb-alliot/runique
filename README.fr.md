@@ -27,6 +27,7 @@ Un framework web Rust moderne et complet, inspiré par Django, pour construire d
 - 🔒 [Middlewares](#-middlewares)
 - 💬 [Flash Messages](#-flash-messages)
 - 🎓 [Exemples](#-exemples)
+- 🧭 [Admin-beta](#-admin)
 
 ---
 
@@ -271,6 +272,33 @@ Exemples complets d'utilisation :
 
 ---
 
+## 🧭 Admin-beta
+
+Bien sûr 🙂
+Voici la **version française**, concise et adaptée au **README principal** :
+
+---
+
+## 🧭 Vue d’administration (bêta)
+
+Runique intègre une **vue d’administration en version bêta**, basée sur une macro déclarative `admin!` et un système de génération automatique.
+
+Les ressources administrables sont déclarées dans `src/admin.rs`.
+À partir de cette déclaration, Runique génère automatiquement une interface CRUD complète (routes, handlers, formulaires) sous forme de **code Rust standard**, lisible et auditable.
+
+Cette approche met l’accent sur :
+
+* la **sécurité de typage** (vérification à la compilation des modèles et formulaires)
+* la **transparence** (pas de logique cachée, pas de macro procédurale)
+* le **contrôle développeur** sur le code généré
+
+Le daemon (`runique start`) permet une régénération automatique, tandis qu’un workflow `cargo run` peut être utilisé lorsque des modifications manuelles sont nécessaires.
+
+> ⚠️ La vue admin est actuellement en **bêta** et pose volontairement des bases simples, déclaratives et sûres. Des évolutions sont prévues (permissions plus fines, meilleur feedback, protections supplémentaires).
+
+---
+
+
 ## 🧪 Tests
 
 ```bash
@@ -301,6 +329,7 @@ Résultats : **36/36 tests passent** ✅
 - [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
 - [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
 - [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
+- [Admin-beta](https://github.com/seb-alliot/runique/blob/main/docs/en/11-Admin.md)
 
 ### Français (FR)
 - [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
@@ -313,7 +342,7 @@ Résultats : **36/36 tests passent** ✅
 - [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
 - [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
 - [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
-
+- [Admin-beta](https://github.com/seb-alliot/runique/blob/main/docs/fr/11-Admin.md)
 ---
 
 ## 🎯 Démarrage rapide

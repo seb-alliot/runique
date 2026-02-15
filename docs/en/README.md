@@ -135,6 +135,30 @@ Complete code examples and projects.
 
 ---
 
+### 11 [Admin](11-Admin.md)
+
+---
+
+##  Administration view (beta)
+
+Runique includes a **beta administration view** built around a declarative `admin!` macro and a code-generation daemon.
+
+Administrative resources are declared in `src/admin.rs`.
+From this declaration, Runique automatically generates a full CRUD admin interface (routes, handlers, forms) as **plain Rust code**, keeping the system transparent and auditable.
+
+The admin workflow favors:
+
+* **type safety** (compile-time validation of models and forms)
+* **explicitness** (no hidden logic, no procedural macros)
+* **developer control** over the generated code
+
+A watcher (`runique start`) regenerates the admin code on each change, while a `cargo run` workflow can be used when manual edits are required.
+
+> ⚠️ The admin view is currently in **beta** and focuses on a simple, declarative, and safe foundation. More advanced features (permissions granularity, feedback, protections) are planned.
+
+---
+
+---
 ## 🎯 Quick Navigation
 
 | Section | File | Topics |
@@ -149,6 +173,7 @@ Complete code examples and projects.
 | Security | [Middleware](08-middleware.md) | Protection, headers, policies |
 | Feedback | [Flash Messages](09-flash-messages.md) | Notifications, messages |
 | Code | [Examples](10-examples.md) | Complete projects |
+| Code | [Admin](11-Admin.md) | Admin beta |
 
 ---
 
@@ -173,7 +198,7 @@ Complete code examples and projects.
 
 ## 🌍 Language
 
-- 📖 **English** (vous êtes ici)
+- 📖 **[English](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)**
 - 🇫🇷 **[Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/README.md)**
 
 ---
