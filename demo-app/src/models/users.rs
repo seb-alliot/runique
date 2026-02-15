@@ -27,6 +27,7 @@ impl Model {
     /// Retourne les rôles désérialisés depuis le JSON
     ///
     /// Retourne un Vec vide si le champ est NULL ou invalide.
+    #[allow(dead_code)]
     pub fn get_roles(&self) -> Vec<String> {
         self.roles
             .as_deref()
@@ -35,6 +36,7 @@ impl Model {
     }
 
     /// Vérifie si le compte peut accéder à l'admin
+    #[allow(dead_code)]
     pub fn can_access_admin(&self) -> bool {
         self.is_active && (self.is_staff || self.is_superuser)
     }

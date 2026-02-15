@@ -1,6 +1,9 @@
 # 🚀 Runique - Framework Web Rust inspiré de Django
 
-> **⚠️ Note** : Cette documentation a été générée avec l'assistance de l'IA. Bien que des efforts aient été faits pour assurer l'exactitude, certains liens ou détails peuvent contenir des erreurs. Veuillez signaler les problèmes sur [GitHub](https://github.com/seb-alliot/runique/issues).
+> **⚠️ Note** :
+Cette documentation a été générée avec l'assistance de l'IA.
+Bien que des efforts aient été faits pour assurer l'exactitude, certains liens ou détails peuvent contenir des erreurs.
+Veuillez signaler les problèmes sur [GitHub](https://github.com/seb-alliot/runique/issues).
 
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)]()
 [![Tests](https://img.shields.io/badge/tests-36%2F36%20passing-brightgreen)]()
