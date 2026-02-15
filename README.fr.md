@@ -92,15 +92,13 @@ let settings = Settings {
 Définir vos routes avec la macro `urlpatterns!` :
 
 ```rust
-use crate::views;
 use runique::prelude::*;
-use runique::{urlpatterns, view}; // Macros explicites
+use runique::{urlpatterns, view}; // <= Macros explicites
 
 pub fn routes() -> Router {
     let router = urlpatterns! {
         "/" => view!{ views::index }, name = "index",
 
-        "/about" => view! { views::about }, name = "about",
         "/inscription" => view! { views::inscription }, name = "inscription",
     };
     router
@@ -155,14 +153,35 @@ pub async fn inscription(
 Créer des formulaires facilement :
 
 ```rust
-let mut form = Forms::new("csrf_token");
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct RegisterForm {
+    pub form: Forms,
+}
 
-form.field(&TextField::text("username")
-    .label("Nom d'utilisateur")
-    .required());
+impl RuniqueForm for RegisterForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &TextField::text("username")
+                .label("Entrez votre nom d'utilisateur")
+                .required(),
+        );
 
-form.field(&TextField::email("email")
-    .label("Email"));
+        form.field(
+            &TextField::email("email")
+                .label("Entrez votre email")
+                .required(),
+        );
+
+        form.field(
+            &TextField::password("password")
+                .label("Entrez un mot de passe")
+                .required(),
+        );
+    }
+
+    impl_form_access!();
+}
 ```
 
 👉 **Lire** : [docs/fr/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md) pour tous les types de champs
