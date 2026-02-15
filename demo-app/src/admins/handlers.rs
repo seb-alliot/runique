@@ -1,35 +1,27 @@
-// ═══════════════════════════════════════════════════════════════
-// AUTO-GÉNÉRÉ par Runique daemon — NE PAS MODIFIER MANUELLEMENT
-// Ressources : users
-// ═══════════════════════════════════════════════════════════════
-
 use runique::prelude::*;
 use runique::utils::aliases::StrMap;
 use std::sync::Arc;
 
-use crate::forms::RegisterForm;
 use crate::models::users;
-
-// Helper pour réduire la duplication
-fn get_resource<'a>(admin: &'a AdminState, key: &str) -> AppResult<&'a AdminResource> {
-    admin
-        .registry
-        .get(key)
-        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))
-}
+use crate::forms::RegisterForm;
 
 // ───────────── Handler users_list ─────────────
 pub async fn users_list(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
-    let resource = get_resource(&admin, "users")?;
-
     if req.is_get() {
         let entries = <users::Model as ModelTrait>::Entity::find()
             .all(&*req.engine.db)
             .await?;
+
+        let resource = admin
+            .registry
+            .resources
+            .iter()
+            .find(|r| r.key == "users")
+            .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
         context_update!(req => {
             "resource_key" => "users",
@@ -48,12 +40,15 @@ pub async fn users_list(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée créée avec succès !");
-            return Ok(Redirect::to(&format!(
-                "{}/users/list",
-                admin.config.prefix.trim_end_matches('/')
-            ))
-            .into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
+            let resource = admin
+                .registry
+                .resources
+                .iter()
+                .find(|r| r.key == "users")
+                .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
             context_update!(req => {
                 "resource_key" => "users",
                 "resource" => resource,
@@ -71,9 +66,14 @@ pub async fn users_list(
 pub async fn users_create(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
-    let resource = get_resource(&admin, "users")?;
+    let resource = admin
+        .registry
+        .resources
+        .iter()
+        .find(|r| r.key == "users")
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
     if req.is_get() {
         context_update!(req => {
@@ -92,14 +92,11 @@ pub async fn users_create(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée créée avec succès !");
-            return Ok(Redirect::to(&format!(
-                "{}/users/list",
-                admin.config.prefix.trim_end_matches('/')
-            ))
-            .into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
+                "current_resource" => "users",
                 "resource" => resource,
                 "form_fields" => &form,
                 "is_edit" => false,
@@ -117,17 +114,22 @@ pub async fn users_edit(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
     Path(id): Path<i32>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
-    let resource = get_resource(&admin, "users")?;
-
     let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
 
+    let resource = admin
+        .registry
+        .resources
+        .iter()
+        .find(|r| r.key == "users")
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
     if req.is_get() {
-        // Pré-remplir le form
+        // Convertir Model → StrMap via JSON pour pré-remplir le form
         let entry_json = serde_json::to_value(&entry)
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
 
@@ -141,6 +143,7 @@ pub async fn users_edit(
 
         context_update!(req => {
             "resource_key" => "users",
+            "current_resource" => "users",
             "resource" => resource,
             "form_fields" => &form,
             "is_edit" => true,
@@ -157,14 +160,11 @@ pub async fn users_edit(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée mise à jour avec succès !");
-            return Ok(Redirect::to(&format!(
-                "{}/users/list",
-                admin.config.prefix.trim_end_matches('/')
-            ))
-            .into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
+                "current_resource" => "users",
                 "resource" => resource,
                 "form_fields" => &form,
                 "is_edit" => true,
@@ -183,19 +183,26 @@ pub async fn users_edit(
 pub async fn users_detail(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Path(id): Path<i32>,
+    Path(id): Path<i32>
 ) -> AppResult<Response> {
-    let resource = get_resource(&admin, "users")?;
-
     let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
 
+    let resource = admin
+        .registry
+        .resources
+        .iter()
+        .find(|r| r.key == "users")
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
     context_update!(req => {
         "resource_key" => "users",
+        "current_resource" => "users",
         "resource" => resource,
-        "entry" => &entry
+        "entry" => &entry,
+        "is_edit" => false
     });
     req.render("detail")
 }
@@ -204,10 +211,8 @@ pub async fn users_detail(
 pub async fn users_delete(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Path(id): Path<i32>,
+    Path(id): Path<i32>
 ) -> AppResult<Response> {
-    let resource = get_resource(&admin, "users")?;
-
     if req.is_post() {
         let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
             .one(&*req.engine.db)
@@ -216,11 +221,7 @@ pub async fn users_delete(
 
         entry.delete(&*req.engine.db).await?;
         success!(req.notices => "Entrée supprimée avec succès !");
-        return Ok(Redirect::to(&format!(
-            "{}/users/list",
-            admin.config.prefix.trim_end_matches('/')
-        ))
-        .into_response());
+        return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
     }
 
     let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
@@ -228,11 +229,21 @@ pub async fn users_delete(
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
 
+    let resource = admin
+        .registry
+        .resources
+        .iter()
+        .find(|r| r.key == "users")
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
     context_update!(req => {
         "resource_key" => "users",
+        "current_resource" => "users",
         "resource" => resource,
         "entry" => &entry,
-        "object_id" => id
+        "object_id" => id,
+        "is_edit" => false
     });
     req.render("delete")
 }
+

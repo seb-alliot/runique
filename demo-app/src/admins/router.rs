@@ -1,11 +1,6 @@
-// ═══════════════════════════════════════════════════════════════
-// AUTO-GÉNÉRÉ par Runique daemon — NE PAS MODIFIER MANUELLEMENT
-// Ressources : users
-// ═══════════════════════════════════════════════════════════════
-
-use crate::admins::handlers;
 use runique::prelude::*;
 use runique::{urlpatterns, view};
+use crate::admins::handlers;
 
 pub fn admin(prefix: &str) -> Router {
     urlpatterns! {

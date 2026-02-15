@@ -7,6 +7,7 @@ use crate::middleware::{
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, middleware, Router};
+use tower_http::compression::CompressionLayer;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
 
@@ -46,8 +47,8 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
 //
 // Reproduit l'ordre prouvé de l'ancien builder :
 //   ErrorHandler enveloppe TOUT → attrape toutes les erreurs
-//   ErrorHandler extrait Extension(tera/config) → injectées par Extensions ✅
-//   Session exécutée AVANT CSRF → CSRF peut lire la session ✅
+//   ErrorHandler extrait Extension(tera/config) → injectées par Extensions
+//   Session exécutée AVANT CSRF → CSRF peut lire la session
 //   Host = dernier rempart avant le handler
 //
 // ═══════════════════════════════════════════════════════════════
@@ -57,6 +58,7 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
 // ─────────────────────────────────────────────────────────────
 
 const SLOT_EXTENSIONS: u16 = 0; // Injection Engine/Tera/Config (outermost)
+const SLOT_COMPRESSION: u16 = 5; // Compression (externe, avant tout autre middleware)
 const SLOT_ERROR_HANDLER: u16 = 10; // Attrape les erreurs de TOUTE la pile
 const SLOT_SECURITY_HEADERS: u16 = 30; // CSP + security headers
 const SLOT_CACHE: u16 = 40; // Headers cache
@@ -337,7 +339,14 @@ impl MiddlewareStaging {
                 }),
             });
         }
-
+        // Slot 5 : Compression — avant tout autre middleware
+        {
+            entries.push(MiddlewareEntry {
+                slot: SLOT_COMPRESSION,
+                name: "Compression",
+                apply: Box::new(|r| r.layer(CompressionLayer::new())),
+            });
+        }
         // Slot 70 : Host validation — dernier rempart avant handler
         if self.features.enable_host_validation {
             let eng = engine.clone();
@@ -455,8 +464,8 @@ impl MiddlewareStaging {
         //   → CSP(30) → Cache(40) → Session(50) → CSRF(60)
         //   → Host(70) → Handler
         //
-        // ErrorHandler enveloppe tout → attrape toutes les erreurs ✅
-        // Session avant CSRF → CSRF peut lire la session         ✅
+        // ErrorHandler enveloppe tout → attrape toutes les erreurs
+        // Session avant CSRF → CSRF peut lire la session
         // ═══════════════════════════════════════
 
         entries.sort_by(|a, b| b.slot.cmp(&a.slot));

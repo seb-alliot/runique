@@ -93,8 +93,8 @@ use axum::routing::{get, post};
 
 fn routes() -> Router {
     Router::new()
-        .route("/", get(views::home))
-        .route("/api/users", post(views::create_user))
+        .route("/", (views::home))
+        .route("/api/users", (views::create_user))
 }
 ```
 
@@ -111,40 +111,58 @@ Create forms easily with `#[derive(RuniqueForm)]`:
 ```rust
 use crate::views;
 use runique::prelude::*;
-use runique::{urlpatterns, view}; // Macros must be here
+use runique::{urlpatterns, view}; // <= Macros must be here
 
 pub fn routes() -> Router {
     let router = urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
+        "/" => view!{ views::index }, name = "index",
 
-        "/about" => view! { GET => views::about }, name = "about",
-        "/inscription" => view! { GET => views::inscription, POST => views::submit_inscription }, name = "inscription",
+        "/about" => view! { views::about }, name = "about",
+        "/inscription" => view! { views::inscription }, name = "inscription",
     };
     router
 }
 
-pub async fn inscription(mut template: TemplateContext) -> AppResult<Response> {
-    let form = template.form::<RegisterForm>();
-    context_update!(template => {
-        "title" => "Inscription user",
-        "inscription_form" => &form,
-    });
-
-    template.render("inscription_form.html")
-}
-
-// Handle form submission
-async fn submit_inscription(
-    Prisme(mut form): Prisme<UserForm>,
-    mut template: TemplateContext,
+pub async fn registration(
+    mut request: Request,
+    Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
-    if form.is_valid().await {
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "User Registration",
+            "registration_form" => &form,
+        });
+        return request.render("registration_form.html");
     }
-    context_update!(template => {
-        "form" => form,
-    });
-    template.render("register.html")
+
+    if request.is_post() {
+        if form.is_valid().await {
+            let user = form.save(&request.engine.db).await.map_err(|err| {
+                form.get_form_mut().database_error(&err);
+                AppError::from(err)
+            })?;
+            println!("New user created in views.rs: {:?}", user);
+
+            success!(
+                request.notices =>
+                format!("Welcome {}, your account has been created!", user.username)
+            );
+            return Ok(Redirect::to("/").into_response());
+        }
+
+        // Validation failed
+        context_update!(request => {
+            "title" => "Validation Error",
+            "registration_form" => &form,
+            "messages" => flash_now!(error => "Please correct the errors"),
+        });
+        return request.render("registration_form.html");
+    }
+
+    // Fallback case
+    request.render("registration_form.html")
 }
+
 ```
 
 👉 **Read** : [docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) for all field types## 🎨 Templates
@@ -307,7 +325,7 @@ See [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/PROJECT_
 
 ## 📝 License
 
-MIT License - see [SECURITY.md](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
+MIT License[LICENCE](https://github.com/seb-alliot/runique/blob/main/LICENCE) - see [SECURITY.md](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 
 ---
 

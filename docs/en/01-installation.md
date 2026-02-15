@@ -53,7 +53,7 @@ MEDIA_ROOT=media
 
 # Security
 SECRET_KEY=your_secret_key_change_in_production
-ALLOWED_HOSTS=localhost,127.0.0.1
+RUNIQUE_ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
 ### 3. Create the Database
@@ -114,7 +114,7 @@ To use SQLite in development:
 
 ```toml
 [dependencies]
-runique = { version = "1.1.11", features = ["orm", "sqlite"] }
+runique = { version = "1.1.20", features = ["orm", "sqlite"] }
 ```
 
 ### 2. Update `.env`
@@ -248,7 +248,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 Check that the feature is enabled in `Cargo.toml`:
 
 ```toml
-runique = { version = "1.1.11", features = ["orm", "postgres"] }
+runique = { version = "1.1.20", features = ["orm", "postgres"] }
 ```
 
 ### ❌ Compilation Error "sea_orm"

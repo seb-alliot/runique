@@ -18,7 +18,7 @@ homepage = "https://github.com/seb-alliot/runique"
 # Framework web
 axum = { version = "0.8.7", features = ["macros", "form" ,"multipart"] }
 tower = { version = "0.5.3", features = ["util"] }
-tower-http = { version = "0.6", features = ["fs", "util", "trace", "timeout"] }
+tower-http = { version = "0.6.8", features = ["fs", "util", "trace", "timeout","compression-full"] }
 tower-sessions = "0.15.0"
 
 # Runtime async
