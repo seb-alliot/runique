@@ -153,7 +153,7 @@ cargo clippy --all -- -D warnings
 
 ## 🔄 Version History
 
-### 1.1.1 (Current)
+### 1.1.20 (Current)
 - Documentation links fixed for crates.io compatibility
 - README updated with GitHub absolute URLs
 
@@ -183,7 +183,7 @@ cargo clippy --all -- -D warnings
 
 - **Repository**: https://github.com/seb-alliot/runique
 - **Crates.io**: https://crates.io/crates/runique
-- **Docs.rs**: https://docs.rs/runique/1.1.1
+- **Docs.rs**: https://docs.rs/runique/latest/runique/
 - **License**: [MIT](https://github.com/seb-alliot/runique/blob/main/LICENCE)
 
 ## 📞 Support
@@ -192,5 +192,5 @@ For issues, feature requests, or contributions, please visit the GitHub reposito
 
 ---
 
-**Last Updated**: 24 janvier 2026
+**Last Updated**: 15 fevrier 2026
 **Status**: Production Ready ✅

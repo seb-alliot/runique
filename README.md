@@ -8,7 +8,7 @@
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)]()
 [![Tests](https://img.shields.io/badge/tests-36%2F36%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-[![Version](https://img.shields.io/badge/version-1.1.20-blue)]()
+[![Version](https://img.shields.io/badge/version-1.1.25-blue)]()
 [![Crates.io](https://img.shields.io/crates/v/runique)]()
 
 A modern and comprehensive Rust web framework inspired by Django, for building robust and performant web applications.
