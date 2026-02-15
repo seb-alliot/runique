@@ -92,13 +92,18 @@ let settings = Settings {
 Define your routes with Axum's `Router`:
 
 ```rust
-use axum::routing::{get, post};
+use runique::prelude::*;
+use runique::{urlpatterns, view}; // <= Macros explicites
 
-fn routes() -> Router {
-    Router::new()
-        .route("/", (views::home))
-        .route("/api/users", (views::create_user))
+pub fn routes() -> Router {
+    let router = urlpatterns! {
+        "/" => view!{ views::index }, name = "index",
+
+        "/inscription" => view! { views::inscription }, name = "inscription",
+    };
+    router
 }
+
 ```
 
 👉 **Read** : [docs/en/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md) for patterns and options
@@ -112,60 +117,35 @@ fn routes() -> Router {
 Create forms easily with `#[derive(RuniqueForm)]`:
 
 ```rust
-use crate::views;
-use runique::prelude::*;
-use runique::{urlpatterns, view}; // <= Macros must be here
-
-pub fn routes() -> Router {
-    let router = urlpatterns! {
-        "/" => view!{ views::index }, name = "index",
-
-        "/about" => view! { views::about }, name = "about",
-        "/inscription" => view! { views::inscription }, name = "inscription",
-    };
-    router
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct RegisterForm {
+    pub form: Forms,
 }
 
-pub async fn registration(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "User Registration",
-            "registration_form" => &form,
-        });
-        return request.render("registration_form.html");
+impl RuniqueForm for RegisterForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &TextField::text("username")
+                .label("Entrez votre nom d'utilisateur")
+                .required(),
+        );
+
+        form.field(
+            &TextField::email("email")
+                .label("Entrez votre email")
+                .required(),
+        );
+
+        form.field(
+            &TextField::password("password")
+                .label("Entrez un mot de passe")
+                .required(),
+        );
     }
 
-    if request.is_post() {
-        if form.is_valid().await {
-            let user = form.save(&request.engine.db).await.map_err(|err| {
-                form.get_form_mut().database_error(&err);
-                AppError::from(err)
-            })?;
-            println!("New user created in views.rs: {:?}", user);
-
-            success!(
-                request.notices =>
-                format!("Welcome {}, your account has been created!", user.username)
-            );
-            return Ok(Redirect::to("/").into_response());
-        }
-
-        // Validation failed
-        context_update!(request => {
-            "title" => "Validation Error",
-            "registration_form" => &form,
-            "messages" => flash_now!(error => "Please correct the errors"),
-        });
-        return request.render("registration_form.html");
-    }
-
-    // Fallback case
-    request.render("registration_form.html")
+    impl_form_access!();
 }
-
 ```
 
 👉 **Read** : [docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) for all field types## 🎨 Templates
