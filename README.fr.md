@@ -27,7 +27,7 @@ Un framework web Rust moderne et complet, inspiré par Django, pour construire d
 - 🔒 [Middlewares](#-middlewares)
 - 💬 [Flash Messages](#-flash-messages)
 - 🎓 [Exemples](#-exemples)
-- 🧭 [Admin-beta](#-admin)
+- 🧭 [Admin-beta](#-admin-beta)
 
 ---
 
@@ -273,13 +273,7 @@ Exemples complets d'utilisation :
 ---
 
 ## 🧭 Admin-beta
-
-Bien sûr 🙂
-Voici la **version française**, concise et adaptée au **README principal** :
-
 ---
-
-## 🧭 Vue d’administration (bêta)
 
 Runique intègre une **vue d’administration en version bêta**, basée sur une macro déclarative `admin!` et un système de génération automatique.
 

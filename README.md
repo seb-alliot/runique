@@ -27,7 +27,7 @@ A modern and comprehensive Rust web framework inspired by Django, for building r
 - 🔒 [Middleware](#-middleware)
 - 💬 [Flash Messages](#-flash-messages)
 - 🎓 [Examples](#-examples)
-- 🧭 [Admin-beta](#-admin)
+- 🧭 [Admin-beta](#-admin-beta)
 
 ---
 
