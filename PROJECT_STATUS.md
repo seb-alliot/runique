@@ -1,4 +1,6 @@
+
 # 📊 Runique Framework - Project Status
+The dependencies listed here may change as development progresses.
 
 ## Overview
 
@@ -6,7 +8,7 @@
 
 ## Version
 
-**Current**: 1.1.11
+**Current**: 1.1.20
 **Last Release**: 24 janvier 2026
 **License**: MIT
 
@@ -182,7 +184,7 @@ cargo clippy --all -- -D warnings
 - **Repository**: https://github.com/seb-alliot/runique
 - **Crates.io**: https://crates.io/crates/runique
 - **Docs.rs**: https://docs.rs/runique/1.1.1
-- **License**: [MIT](LICENSE-MIT.md)
+- **License**: [MIT](https://github.com/seb-alliot/runique/blob/main/LICENCE)
 
 ## 📞 Support
 

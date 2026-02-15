@@ -6,6 +6,7 @@
 
 Runique is organized into **functional modules** based on responsibility:
 
+```
 runique/src/
 ├── app/                    #  App Builder, Templates & Smart Builder
 │   ├── builder.rs          #  RuniqueAppBuilder with slots
@@ -34,6 +35,7 @@ runique/src/
 ├── utils/                  #  Utilities
 ├── lib.rs
 └── prelude.rs
+```
 
 ---
 
