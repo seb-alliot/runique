@@ -1,5 +1,5 @@
-Parfait — voici **la section README complète, réécrite proprement**, en **français**, **uniquement pour la vue admin**, en intégrant **toutes les améliorations** que nous avons validées :
 
+---
 * architecture
 * workflow daemon
 * permissions basées sur `users`
