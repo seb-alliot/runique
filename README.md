@@ -317,7 +317,7 @@ See [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/PROJECT_
 
 - 📁 [Project Structure](https://github.com/seb-alliot/runique/blob/main/INDEX.md)
 - 📊 [Full Status](https://github.com/seb-alliot/runique/blob/main/PROJECT_STATUS.md)
-- 🧪 [Test Reports](Thttps://github.com/seb-alliot/runique/blob/main/TEST_REPORT.md)
+- 🧪 [Test Reports](https://github.com/seb-alliot/runique/blob/main/TEST_REPORT.md)
 - 📋 [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
 - 📖 [Documentation Guide](https://github.com/seb-alliot/runique/blob/main/docs/README.md)
 
