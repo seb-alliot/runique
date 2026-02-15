@@ -232,11 +232,10 @@ Complete usage examples:
 
 ---
 ---
-## Admin-beta
 
+## 🧭 Admin-beta
 
-## 🧭 Administration view (beta)
-
+---
 Runique includes a **beta administration view** built around a declarative `admin!` macro and a code-generation daemon.
 
 Administrative resources are declared in `src/admin.rs`.
@@ -253,6 +252,7 @@ A watcher (`runique start`) regenerates the admin code on each change, while a `
 > The admin view is currently in **beta** and focuses on a simple, declarative, and safe foundation. More advanced features (permissions granularity, feedback, protections) are planned.
 
 ---
+**Full Documentation** : [Examples Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/11-Admin.md)
 
 
 

@@ -291,7 +291,7 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 > ⚠️ La vue admin est actuellement en **bêta** et pose volontairement des bases simples, déclaratives et sûres. Des évolutions sont prévues (permissions plus fines, meilleur feedback, protections supplémentaires).
 
 ---
-
+**Full Documentation** : [Examples Guide](https://github.com/seb-alliot/runique/blob/main/docs/fr/11-Admin.md)
 
 ## 🧪 Tests
 
