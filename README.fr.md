@@ -8,12 +8,12 @@ Veuillez signaler les problèmes sur [GitHub](https://github.com/seb-alliot/runi
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)]()
 [![Tests](https://img.shields.io/badge/tests-36%2F36%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-[![Version](https://img.shields.io/badge/version-1.1.20-blue)]()
+[![Version](https://img.shields.io/badge/version-1.1.25-blue)]()
 [![Crates.io](https://img.shields.io/crates/v/runique)]()
 
 Un framework web Rust moderne et complet, inspiré par Django, pour construire des applications web robustes et performantes.
 
-🌍 **Langues** : [English](README.md) | [🇫🇷 Français](#-installation)
+🌍 **Langues** : [English](README.md) | [🇫🇷 Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
 
 ## 📚 Table des matières
 
