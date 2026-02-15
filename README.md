@@ -5,7 +5,7 @@
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)]()
 [![Tests](https://img.shields.io/badge/tests-36%2F36%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-[![Version](https://img.shields.io/badge/version-1.1.13-blue)]()
+[![Version](https://img.shields.io/badge/version-1.1.20-blue)]()
 [![Crates.io](https://img.shields.io/crates/v/runique)]()
 
 A modern and comprehensive Rust web framework inspired by Django, for building robust and performant web applications.
@@ -325,7 +325,7 @@ See [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/PROJECT_
 
 ## 📝 License
 
-MIT License[LICENCE](https://github.com/seb-alliot/runique/blob/main/LICENCE) - see [SECURITY.md](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
+MIT License [LICENCE](https://github.com/seb-alliot/runique/blob/main/LICENCE) - see [SECURITY.md](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 
 ---
 
@@ -337,4 +337,4 @@ The Runique framework is **stable, tested and documented**, ready for production
 
 ---
 
-🌍 **Available in**: [English](#) | [🇫🇷 Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
+🌍 **Available in**: [English](https://github.com/seb-alliot/runique/blob/main/README.md) | [🇫🇷 Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
