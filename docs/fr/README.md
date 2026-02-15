@@ -141,6 +141,28 @@ Exemples de code complets et projets.
 👉 **Aller à** : [Guide des exemples](10-examples.md)
 
 ---
+### 11. Admin
+
+---
+
+##  Vue d’administration (bêta)
+
+Runique intègre une **vue d’administration en version bêta**, basée sur une macro déclarative `admin!` et un système de génération automatique.
+
+Les ressources administrables sont déclarées dans `src/admin.rs`.
+À partir de cette déclaration, Runique génère automatiquement une interface CRUD complète (routes, handlers, formulaires) sous forme de **code Rust standard**, lisible et auditable.
+
+Cette approche met l’accent sur :
+
+* la **sécurité de typage** (vérification à la compilation des modèles et formulaires)
+* la **transparence** (pas de logique cachée, pas de macro procédurale)
+* le **contrôle développeur** sur le code généré
+
+Le daemon (`runique start`) permet une régénération automatique, tandis qu’un workflow `cargo run` peut être utilisé lorsque des modifications manuelles sont nécessaires.
+
+>  La vue admin est actuellement en **bêta** et pose volontairement des bases simples, déclaratives et sûres. Des évolutions sont prévues (permissions plus fines, meilleur feedback, protections supplémentaires).
+
+---
 
 ## 🎯 Navigation rapide
 
@@ -156,7 +178,7 @@ Exemples de code complets et projets.
 | Sécurité | [Middlewares](08-middleware.md) | Slots, CSRF, CSP, sessions |
 | Retours | [Flash Messages](09-flash-messages.md) | success!, flash_now!, {% messages %} |
 | Code | [Exemples](10-examples.md) | Projets complets |
-
+| Code | [Admin](11-Admin.md) | Admin beta |
 ---
 
 ## 🚀 Par où commencer ?

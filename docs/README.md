@@ -90,6 +90,28 @@ Voir des exemples de code complets et de projets.
 **Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
 
 ---
+### 11. Admin
+
+---
+
+##  Vue d’administration (bêta)
+
+Runique intègre une **vue d’administration en version bêta**, basée sur une macro déclarative `admin!` et un système de génération automatique.
+
+Les ressources administrables sont déclarées dans `src/admin.rs`.
+À partir de cette déclaration, Runique génère automatiquement une interface CRUD complète (routes, handlers, formulaires) sous forme de **code Rust standard**, lisible et auditable.
+
+Cette approche met l’accent sur :
+
+* la **sécurité de typage** (vérification à la compilation des modèles et formulaires)
+* la **transparence** (pas de logique cachée, pas de macro procédurale)
+* le **contrôle développeur** sur le code généré
+
+Le daemon (`runique start`) permet une régénération automatique, tandis qu’un workflow `cargo run` peut être utilisé lorsque des modifications manuelles sont nécessaires.
+
+> ⚠️ La vue admin est actuellement en **bêta** et pose volontairement des bases simples, déclaratives et sûres. Des évolutions sont prévues (permissions plus fines, meilleur feedback, protections supplémentaires).
+
+---
 
 ## 🎯 Guide de navigation
 

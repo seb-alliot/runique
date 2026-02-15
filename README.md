@@ -27,6 +27,7 @@ A modern and comprehensive Rust web framework inspired by Django, for building r
 - 🔒 [Middleware](#-middleware)
 - 💬 [Flash Messages](#-flash-messages)
 - 🎓 [Examples](#-examples)
+- 🧭 [Admin-beta](#-admin)
 
 ---
 
@@ -230,6 +231,30 @@ Complete usage examples:
 👉 **Read** : [docs/en/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) for complete examples
 
 ---
+---
+## Admin-beta
+
+
+## 🧭 Administration view (beta)
+
+Runique includes a **beta administration view** built around a declarative `admin!` macro and a code-generation daemon.
+
+Administrative resources are declared in `src/admin.rs`.
+From this declaration, Runique automatically generates a full CRUD admin interface (routes, handlers, forms) as **plain Rust code**, keeping the system transparent and auditable.
+
+The admin workflow favors:
+
+* **type safety** (compile-time validation of models and forms)
+* **explicitness** (no hidden logic, no procedural macros)
+* **developer control** over the generated code
+
+A watcher (`runique start`) regenerates the admin code on each change, while a `cargo run` workflow can be used when manual edits are required.
+
+> The admin view is currently in **beta** and focuses on a simple, declarative, and safe foundation. More advanced features (permissions granularity, feedback, protections) are planned.
+
+---
+
+
 
 ## 🧪 Tests
 
@@ -261,6 +286,7 @@ Results: **36/36 tests passing** ✅
 - [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
 - [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
 - [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
+- [Admin-beta](https://github.com/seb-alliot/runique/blob/main/docs/en/11-Admin.md)
 
 ### Français (FR)
 - [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
@@ -273,7 +299,7 @@ Results: **36/36 tests passing** ✅
 - [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
 - [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
 - [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
-
+- [Admin-beta](https://github.com/seb-alliot/runique/blob/main/docs/fr/11-Admin.md)
 ---
 
 ## 🎯 Quick Start
