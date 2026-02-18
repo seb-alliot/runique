@@ -2,6 +2,7 @@ pub mod admin;
 pub mod bdd;
 pub mod context;
 pub mod forms;
+pub mod migration;
 pub mod routeur;
 pub mod template;
 

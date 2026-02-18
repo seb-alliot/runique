@@ -2,8 +2,8 @@ use runique::prelude::*;
 use runique::utils::aliases::StrMap;
 use std::sync::Arc;
 
-use crate::forms::RegisterForm;
-use crate::models::users;
+use crate::formulaire::user;
+use crate::formulaire::RegisterForm;
 
 // ───────────── Handler users_list ─────────────
 pub async fn users_list(
@@ -12,7 +12,7 @@ pub async fn users_list(
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
     if req.is_get() {
-        let entries = <users::Model as ModelTrait>::Entity::find()
+        let entries = <user::Model as ModelTrait>::Entity::find()
             .all(&*req.engine.db)
             .await?;
 
@@ -128,7 +128,7 @@ pub async fn users_edit(
     Path(id): Path<i32>,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
-    let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
+    let entry = <user::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
@@ -201,7 +201,7 @@ pub async fn users_detail(
     Extension(admin): Extension<Arc<AdminState>>,
     Path(id): Path<i32>,
 ) -> AppResult<Response> {
-    let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
+    let entry = <user::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
@@ -230,7 +230,7 @@ pub async fn users_delete(
     Path(id): Path<i32>,
 ) -> AppResult<Response> {
     if req.is_post() {
-        let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
+        let entry = <user::Model as ModelTrait>::Entity::find_by_id(id)
             .one(&*req.engine.db)
             .await?
             .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
@@ -244,7 +244,7 @@ pub async fn users_delete(
         .into_response());
     }
 
-    let entry = <users::Model as ModelTrait>::Entity::find_by_id(id)
+    let entry = <user::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;

@@ -1,8 +1,8 @@
-use crate::forms::RegisterForm;
-use crate::models::users;
+use crate::formulaire::user;
+use crate::formulaire::RegisterForm;
 
 admin! {
-    users: users::Model => RegisterForm {
+    users: user::Model => RegisterForm {
         title: "Utilisateurs",
         permissions: ["admin"]
     }

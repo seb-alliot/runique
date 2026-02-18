@@ -43,13 +43,13 @@ pub mod db;
 pub mod engine;
 pub mod flash;
 pub mod forms;
-
 pub mod macros;
+pub mod migration;
 
 pub mod admin;
 pub mod errors;
 pub mod middleware;
-pub mod migration;
+
 pub mod utils;
 
 // ---------------------------------------------------------------------------
@@ -155,9 +155,6 @@ pub mod moteur_engine {
 
 pub mod runique_start {
     pub mod composant_app {
-        pub mod builder_util {
-            pub use crate::app::builder::*;
-        }
         pub mod template_engine {
             pub use crate::app::templates::*;
         }
@@ -268,6 +265,7 @@ pub mod prelude {
     // ========================================================================
     // ORM (optionnel)
     // ========================================================================
+    // pub use crate::migration::user_runique;
     #[cfg(feature = "orm")]
     pub use crate::db::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
     #[cfg(feature = "orm")]
@@ -276,6 +274,7 @@ pub mod prelude {
         ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, ModelTrait, NotSet,
         QueryFilter, QueryOrder, QuerySelect, Set,
     };
+    pub use sea_orm_migration::sea_query;
 
     // ========================================================================
     // SÉRIALISATION & DONNÉES

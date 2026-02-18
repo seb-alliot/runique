@@ -8,7 +8,7 @@ The dependencies listed here may change as development progresses.
 
 ## Version
 
-**Current**: 1.1.20
+**Current**: 1.1.25
 **Last Release**: 24 janvier 2026
 **License**: MIT
 
@@ -153,7 +153,7 @@ cargo clippy --all -- -D warnings
 
 ## 🔄 Version History
 
-### 1.1.20 (Current)
+### 1.1.25 (Current)
 - Documentation links fixed for crates.io compatibility
 - README updated with GitHub absolute URLs
 

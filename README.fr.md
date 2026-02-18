@@ -1,5 +1,10 @@
 # 🚀 Runique - Framework Web Rust inspiré de Django
 
+Runique est un mélange de Rust et Unique, donnant Runique — un nom qui évoque naturellement les runes et leur image de puissance.
+Cette évocation fait écho à Rust, un langage reconnu pour sa rigueur imposée, sa structure stricte et ses garanties fortes.
+C’est dans cet esprit que Runique s’inspire de cette symbolique pour nommer certaines fonctionnalités : une puissance maîtrisée, encadrée par des règles claires.
+
+
 > **⚠️ Note** :
 Cette documentation a été générée avec l'assistance de l'IA.
 Bien que des efforts aient été faits pour assurer l'exactitude, certains liens ou détails peuvent contenir des erreurs.
@@ -93,6 +98,7 @@ let settings = Settings {
 Définir vos routes avec la macro `urlpatterns!` :
 
 ```rust
+use crate::views;
 use runique::prelude::*;
 use runique::{urlpatterns, view}; // <= Macros explicites
 

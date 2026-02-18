@@ -7,60 +7,55 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="form-container">
-        {% if messages %}
-            {% messages %}
-        {% endif %}
-        <h1>{{ title }}</h1>
-        <form id="blog_form" method="post">
+    <div class="container">
+        <div class="form-container">
+            {% if messages %}
+                {% messages %}
+            {% endif %}
+            <h1>{{ title }}</h1>
+            <form id="blog_form" method="post">
 
-            <section class="form-section">
-                <div class="row">
-                    <div class="col-md-6 field-group">
-                        {% form.blog_form.title %}
+                <section class="form-section">
+                    <div class="row">
+                        <div class="col-md-6 field-group">
+                            {% form.blog_form.title %}
+                        </div>
+                        <div class="col-md-6 field-group">
+                            {% form.blog_form.email %}
+                        </div>
                     </div>
-                    <div class="col-md-6 field-group">
-                        {% form.blog_form.email %}
+                    <div class="row">
+                        <div class="col-md-6 field-group">
+                            {% form.blog_form.website %}
+                        </div>
+                        <div class="col-md-6 field-group">
+                            {% form.blog_form.summary %}
+                        </div>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 field-group">
-                        {% form.blog_form.website %}
-                    </div>
-                    <div class="col-md-6 field-group">
-                        {% form.blog_form.summary %}
-                    </div>
-                </div>
-            </section>
+                </section>
 
-            <section class="form-section">
-                <h2 class="section-title">Présentation</h2>
-                <div class="row">
-                    <div class="col-12 field-group">
-                        {% form.blog_form.content %}
+                <section class="form-section">
+                    <h2 class="section-title">Présentation</h2>
+                    <div class="row">
+                        <div class="col-12 field-group">
+                            {% form.blog_form.content %}
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <div class="mt-4">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-primary btn-submit">
-                    Enregistrer le profil
-                </button>
+                <div class="mt-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-primary btn-submit">
+                        Enregistrer le profil
+                    </button>
+                </div>
+
+            </form>
+
+            <div class="text-center mt-3">
+                <a href="/">← Retour à l'accueil</a>
             </div>
 
-        </form>
-
-        <div class="text-center mt-3">
-            <a href="/">← Retour à l'accueil</a>
         </div>
-
     </div>
-</div>
-{% endblock %}
-
-{% block footer %}
-    <a href="{% link 'index' %}">Home</a>
-    <p>&copy; 2026 Runique Framework</p>
 {% endblock %}

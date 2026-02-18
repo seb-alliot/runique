@@ -1,0 +1,167 @@
+{
+  "forms": {
+    "required": "This field is required",
+    "too_short": "Too short (min {})",
+    "too_long": "Too long (max {})",
+    "email_invalid": "Invalid email address format",
+    "url_invalid": "Please enter a valid URL",
+    "hash_error": "Hashing error: {}",
+    "number_invalid": "Invalid number",
+    "number_required": "Required",
+    "integer_required": "Must be an integer",
+    "decimal_required": "Must be decimal format",
+    "min_value": "Min {} required",
+    "max_value": "Max {} exceeded",
+    "precision_max": "Max {} decimal places",
+    "precision_min": "Min {} decimal places",
+    "color_invalid": "Invalid color (format: #RRGGBB or #RGB)",
+    "color_no_hash": "Color must start with #",
+    "color_bad_hex": "Contains non-hexadecimal characters",
+    "slug_invalid": "Invalid slug",
+    "slug_no_dash": "Slug must not start or end with dash",
+    "uuid_invalid": "Invalid UUID format (expected: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
+    "json_invalid": "Invalid JSON: {}",
+    "ipv4_only": "Only IPv4 addresses accepted",
+    "ipv6_only": "Only IPv6 addresses accepted",
+    "ip_invalid": "Invalid IP address",
+    "date_invalid": "Invalid date format",
+    "date_too_old": "Too old",
+    "date_too_far": "Too far",
+    "time_invalid": "Invalid time format",
+    "file_required": "Please select at least one file",
+    "file_extension_blocked": "not allowed",
+    "finalize_error": "Error finalizing field '{}': {}",
+    "template_missing": "Missing template: {}",
+    "render_js_error": "JS render error: {}",
+    "tera_not_configured": "Tera not configured",
+    "validation_overflow": "Stack overflow detected: infinite recursion in validation"
+  },
+  "csrf": {
+    "missing": "CSRF token missing",
+    "invalid": "Invalid CSRF token",
+    "invalid_or_missing": "Invalid or missing CSRF token",
+    "forbidden": "Invalid CSRF token",
+    "session_write_error": "Session write error"
+  },
+  "error": {
+    "build": "Build error: {}",
+    "internal": "Internal error",
+    "forbidden": "Access forbidden",
+    "not_found": "Resource not found",
+    "validation": "Validation error: {}",
+    "database": "Database error: {}",
+    "io": "IO error: {}",
+    "template": "Template error: {}",
+    "custom": "Custom error: {}",
+    "title": {
+      "not_found": "Page Not Found",
+      "forbidden": "Access Forbidden",
+      "validation": "Validation Error",
+      "database": "Database Error",
+      "template": "Template Rendering Error",
+      "internal": "Internal Server Error"
+    },
+    "path_not_found": "The requested path '{}' was not found",
+    "internal_occurred": "An internal error occurred",
+    "context_occurred": "AppError occurred"
+  },
+  "build": {
+    "validation_failed": "Build validation failed: {}",
+    "check_failed": "Build failed with {} check error(s)",
+    "template_failed": "Template loading failed: {}",
+    "db_missing": "Database connection required when 'orm' feature is enabled",
+    "component_not_ready": "Component '{}' is not ready"
+  },
+  "middleware": {
+    "host_invalid": "Invalid host: '{}' (Allowed: {})"
+  },
+  "admin": {
+    "session_error": "Session opening error.",
+    "invalid_credentials": "Invalid credentials or insufficient rights.",
+    "logout_success": "Logout successful.",
+    "no_auth_handler": "No auth handler configured. Call .auth(MyAuth) on AdminConfig.",
+    "insufficient_rights": "Insufficient rights to access admin",
+    "login_title": "Login — {}",
+    "login_subtitle": "Sign in to access the admin panel",
+    "username": "Username",
+    "password": "Password",
+    "login_button": "Sign in"
+  },
+  "html": {
+    "404_title": "404",
+    "404_text": "Page not found",
+    "500_title": "500",
+    "500_text": "Internal server error",
+    "500_notice": "Our teams have been notified and are working on it.",
+    "back_home": "Back to home",
+    "critical_error_title": "Critical Error",
+    "critical_error_text": "The error handling system itself encountered an error.",
+    "critical_error_contact": "This should never happen. Please contact the system administrator."
+  },
+  "debug": {
+    "stack_trace_title": "Detailed error trace",
+    "stack_trace_tip": "The highest error (level 0) is usually the root cause. Following errors show how the error propagated through the code."
+  },
+  "flash": {
+    "welcome": "Welcome {}, your account has been created!",
+    "fix_errors": "Please correct the errors",
+    "success_demo": "This is a success message.",
+    "info_demo": "This is an info message.",
+    "warning_demo": "This is a warning message.",
+    "error_demo": "This is an error message."
+  },
+  "log": {
+    "db_connecting": "Connecting to {} database...",
+    "db_connected": "Database connected successfully ({})",
+    "db_failed": "Database connection failed",
+    "db_engine": "Engine: {}",
+    "template_render_error": "Template rendering error",
+    "error_handler": "Critical error occurred",
+    "error_handled": "Handled error",
+    "files_count": "add files JS to form",
+    "js_file_skip": "Skipping JS file",
+    "already_initialized": "Logger already initialized"
+  },
+  "cli": {
+    "creating_project": "Creating project '{}'...",
+    "admin_detected": "Admin detected → starting the daemon",
+    "add_admin_hint": "Add .with_admin(...) in your builder to enable the AdminPanel.",
+    "daemon_error": "[Daemon] Error: {}",
+    "cargo_run_failed": "Application server failed to start correctly (cargo run)",
+    "file_not_found": "File not found: {}\\nMake sure you're at the root of your Runique project.",
+    "admin_not_found": "Admin file not found: {}\\nCreate src/admin.rs with admin!{{}} macro.",
+    "name_empty": "The project name cannot be empty",
+    "name_invalid": "The project name must contain only letters, numbers, _ or -",
+    "name_dash": "The project name cannot start with -",
+    "folder_exists": "The folder '{}' already exists",
+    "cargo_run_expect": "Failed to launch cargo run"
+  },
+  "daemon": {
+    "modification_detected": "Modification detected → regeneration...",
+    "unable_read": "Unable to read: {}",
+    "parse_error": "Parsing error: {}",
+    "no_resource": "No resource in admin!{{}} — nothing to generate",
+    "operational": "Daemon operational → src/admin/generated.rs",
+    "generation_error": "Generation error: {}",
+    "watcher_error": "Watcher error: {}",
+    "unable_create": "Unable to create watcher: {}",
+    "unable_watch": "Unable to watch {}: {}"
+  },
+  "macro": {
+    "named_fields_only": "Named fields structs only",
+    "structs_only": "Works only on structs",
+    "forms_field_required": "Struct '{}' must have a 'Forms' field",
+    "field_no_name": "Field without name",
+    "model_form_named_only": "DeriveModelForm: structs with named fields only",
+    "model_form_structs_only": "DeriveModelForm: structs only"
+  },
+  "parser": {
+    "string_expected": "Expected string literal, found: {}",
+    "string_eof": "Expected string literal, end of file",
+    "array_expected": "Expected [...] for permissions, found: {}",
+    "array_eof": "Expected [...] for permissions, end of file",
+    "role_required": "At least one role required in permissions: [...]",
+    "punct_expected": "Expected '{}', found: {}",
+    "punct_eof": "Expected '{}', end of file"
+  }
+}

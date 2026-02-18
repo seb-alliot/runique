@@ -93,6 +93,7 @@ let settings = Settings {
 Define your routes with Axum's `Router`:
 
 ```rust
+use crate::views;
 use runique::prelude::*;
 use runique::{urlpatterns, view}; // <= Macros explicites
 

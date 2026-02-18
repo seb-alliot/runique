@@ -5,4 +5,4 @@
    - If manual modifications are required, use `cargo run` instead.
    - This applies to the entire folder and all files it contains.
    - To modify its content, update the source configuration or resources instead.
-═════════════════════════════════════════════════════════════════════════════ -->
+═══════════════════════════════════════════════════════════════════════════════ -->

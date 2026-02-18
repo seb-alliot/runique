@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use runique::migration::{makemigrations, migrate};
 use runique::utils::init_logging;
 use std::fs;
 use std::path::Path;
@@ -35,6 +36,38 @@ enum Commands {
     },
     /// Créer un superuser admin
     CreateSuperuser,
+    Migration {
+        #[command(subcommand)]
+        action: MigrateAction,
+    },
+    Makemigrations {
+        #[arg(long, default_value = "src/entities")]
+        entities: String,
+        #[arg(long, default_value = "migration/src")]
+        migrations: String,
+        #[arg(long, default_value = "false")]
+        force: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum MigrateAction {
+    Up {
+        #[arg(long, default_value = "migration/src")]
+        migrations: String,
+    },
+    Down {
+        #[arg(long, default_value = "migration/src")]
+        migrations: String,
+        #[arg(long, num_args = 1..)]
+        files: Vec<String>,
+        #[arg(long)]
+        batch: Option<String>,
+    },
+    Status {
+        #[arg(long, default_value = "migration/src")]
+        migrations: String,
+    },
 }
 
 #[tokio::main]
@@ -47,6 +80,28 @@ async fn main() -> Result<()> {
         Commands::New { name } => create_new_project(&name)?,
         Commands::Start { main, admin } => runique_start(&main, &admin)?,
         Commands::CreateSuperuser => runique::admin::create_superuser().await?,
+        Commands::Migration { action } => match action {
+            MigrateAction::Up { migrations } => {
+                migrate::up(&migrations).await?;
+            }
+            MigrateAction::Down {
+                migrations,
+                files,
+                batch,
+            } => {
+                migrate::down(&migrations, files, batch).await?;
+            }
+            MigrateAction::Status { migrations } => {
+                migrate::status(&migrations).await?;
+            }
+        },
+        Commands::Makemigrations {
+            entities,
+            migrations,
+            force,
+        } => {
+            makemigrations::run(&entities, &migrations, force).await?;
+        }
     }
 
     Ok(())

@@ -1,0 +1,167 @@
+{
+  "forms": {
+    "required": "Ce champ est obligatoire",
+    "too_short": "Trop court (min {})",
+    "too_long": "Trop long (max {})",
+    "email_invalid": "Format d'adresse email invalide",
+    "url_invalid": "Veuillez entrer une URL valide",
+    "hash_error": "Erreur de hachage : {}",
+    "number_invalid": "Nombre invalide",
+    "number_required": "Requis",
+    "integer_required": "Doit être un entier",
+    "decimal_required": "Doit être au format décimal",
+    "min_value": "Min {} requis",
+    "max_value": "Max {} dépassé",
+    "precision_max": "Précision max {} chiffres après virgule",
+    "precision_min": "Précision min {} chiffres après virgule",
+    "color_invalid": "Couleur invalide (format: #RRGGBB ou #RGB)",
+    "color_no_hash": "La couleur doit commencer par #",
+    "color_bad_hex": "Contient des caractères non hexadécimaux",
+    "slug_invalid": "Slug invalide",
+    "slug_no_dash": "Le slug ne doit pas commencer ou finir par un tiret",
+    "uuid_invalid": "Format UUID invalide (attendu: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
+    "json_invalid": "JSON invalide : {}",
+    "ipv4_only": "Seules les adresses IPv4 sont acceptées",
+    "ipv6_only": "Seules les adresses IPv6 sont acceptées",
+    "ip_invalid": "Adresse IP invalide",
+    "date_invalid": "Format de date invalide",
+    "date_too_old": "Trop ancien",
+    "date_too_far": "Trop loin",
+    "time_invalid": "Format de temps invalide",
+    "file_required": "Veuillez sélectionner au moins un fichier",
+    "file_extension_blocked": "non autorisé",
+    "finalize_error": "Erreur lors de la finalisation du champ '{}': {}",
+    "template_missing": "Template manquant: {}",
+    "render_js_error": "Erreur rendu JS: {}",
+    "tera_not_configured": "Tera non configuré",
+    "validation_overflow": "Stack overflow détecté : récursion infinie dans la validation"
+  },
+  "csrf": {
+    "missing": "Token CSRF manquant",
+    "invalid": "Token CSRF invalide",
+    "invalid_or_missing": "Token CSRF invalide ou manquant",
+    "forbidden": "Token CSRF invalide",
+    "session_write_error": "Erreur d'écriture de session"
+  },
+  "error": {
+    "build": "Erreur de build: {}",
+    "internal": "Erreur interne",
+    "forbidden": "Accès interdit",
+    "not_found": "Ressource introuvable",
+    "validation": "Erreur de validation: {}",
+    "database": "Erreur base de données: {}",
+    "io": "Erreur IO: {}",
+    "template": "Erreur template: {}",
+    "custom": "Erreur custom: {}",
+    "title": {
+      "not_found": "Page non trouvée",
+      "forbidden": "Accès interdit",
+      "validation": "Erreur de validation",
+      "database": "Erreur base de données",
+      "template": "Erreur de rendu de template",
+      "internal": "Erreur serveur interne"
+    },
+    "path_not_found": "Le chemin demandé '{}' n'a pas été trouvé",
+    "internal_occurred": "Une erreur interne est survenue",
+    "context_occurred": "Erreur AppError survenue"
+  },
+  "build": {
+    "validation_failed": "Échec de la validation du build : {}",
+    "check_failed": "Échec du build avec {} erreur(s) de vérification",
+    "template_failed": "Échec du chargement du template : {}",
+    "db_missing": "Connexion à la base de données requise lorsque la feature 'orm' est activée",
+    "component_not_ready": "Le composant '{}' n'est pas prêt"
+  },
+  "middleware": {
+    "host_invalid": "Hôte invalide: '{}' (Hosts autorisés: {})"
+  },
+  "admin": {
+    "session_error": "Erreur lors de l'ouverture de session.",
+    "invalid_credentials": "Identifiants incorrects ou droits insuffisants.",
+    "logout_success": "Déconnexion réussie.",
+    "no_auth_handler": "Aucun handler d'authentification configuré. Appelez .auth(MyAuth) sur AdminConfig.",
+    "insufficient_rights": "Droits insuffisants pour accéder à l'administration",
+    "login_title": "Connexion — {}",
+    "login_subtitle": "Connectez-vous pour accéder au panneau d'administration",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "login_button": "Se connecter"
+  },
+  "html": {
+    "404_title": "404",
+    "404_text": "Page non trouvée",
+    "500_title": "500",
+    "500_text": "Erreur serveur interne",
+    "500_notice": "Nos équipes ont été notifiées et travaillent sur le problème.",
+    "back_home": "Retour à l'accueil",
+    "critical_error_title": "Erreur critique",
+    "critical_error_text": "Le système de gestion d'erreurs a lui-même rencontré une erreur.",
+    "critical_error_contact": "Cette situation ne devrait jamais se produire. Veuillez contacter l'administrateur système."
+  },
+  "debug": {
+    "stack_trace_title": "Trace d'erreur détaillée",
+    "stack_trace_tip": "L'erreur la plus haute (niveau 0) est généralement la cause racine. Les erreurs suivantes montrent comment l'erreur s'est propagée dans le code."
+  },
+  "flash": {
+    "welcome": "Bienvenue {}, votre compte est créé !",
+    "fix_errors": "Veuillez corriger les erreurs",
+    "success_demo": "Ceci est un message de succès.",
+    "info_demo": "Ceci est un message d'information.",
+    "warning_demo": "Ceci est un message d'avertissement.",
+    "error_demo": "Ceci est un message d'erreur."
+  },
+  "log": {
+    "db_connecting": "Connexion à la base de données {}...",
+    "db_connected": "Base de données connectée avec succès ({})",
+    "db_failed": "Échec de la connexion à la base de données",
+    "db_engine": "Moteur : {}",
+    "template_render_error": "Erreur de rendu du template",
+    "error_handler": "Erreur critique survenue",
+    "error_handled": "Erreur traitée",
+    "files_count": "ajout de fichiers JS au formulaire",
+    "js_file_skip": "Fichier JS ignoré",
+    "already_initialized": "Logger déjà initialisé"
+  },
+  "cli": {
+    "creating_project": "Création du projet '{}'...",
+    "admin_detected": "Admin détecté → démarrage du daemon",
+    "add_admin_hint": "Ajoutez .with_admin(...) dans votre builder pour activer le panneau admin.",
+    "daemon_error": "[Daemon] Erreur : {}",
+    "cargo_run_failed": "Le serveur applicatif n'a pas démarré correctement (cargo run)",
+    "file_not_found": "Fichier non trouvé : {}\\nAssurez-vous d'être à la racine de votre projet Runique.",
+    "admin_not_found": "Fichier admin non trouvé : {}\\nCréez src/admin.rs avec la macro admin!{{}}.",
+    "name_empty": "Le nom du projet ne peut pas être vide",
+    "name_invalid": "Le nom du projet ne doit contenir que des lettres, chiffres, _ ou -",
+    "name_dash": "Le nom du projet ne peut pas commencer par -",
+    "folder_exists": "Le dossier '{}' existe déjà",
+    "cargo_run_expect": "Échec du lancement de cargo run"
+  },
+  "daemon": {
+    "modification_detected": "Modification détectée → régénération...",
+    "unable_read": "Impossible de lire : {}",
+    "parse_error": "Erreur d'analyse : {}",
+    "no_resource": "Aucune ressource dans admin!{{}} — rien à générer",
+    "operational": "Daemon opérationnel → src/admin/generated.rs",
+    "generation_error": "Erreur de génération : {}",
+    "watcher_error": "Erreur du watcher : {}",
+    "unable_create": "Impossible de créer le watcher : {}",
+    "unable_watch": "Impossible de surveiller {} : {}"
+  },
+  "macro": {
+    "named_fields_only": "Structs à champs nommés uniquement",
+    "structs_only": "Fonctionne uniquement sur des structs",
+    "forms_field_required": "Struct '{}' doit avoir un champ 'Forms'",
+    "field_no_name": "Champ sans nom",
+    "model_form_named_only": "DeriveModelForm : structs avec champs nommés uniquement",
+    "model_form_structs_only": "DeriveModelForm : structs uniquement"
+  },
+  "parser": {
+    "string_expected": "Chaîne littérale attendue, trouvé : {}",
+    "string_eof": "Chaîne littérale attendue, fin de fichier",
+    "array_expected": "Tableau [...] attendu pour les permissions, trouvé : {}",
+    "array_eof": "Tableau [...] attendu pour les permissions, fin de fichier",
+    "role_required": "Au moins un rôle requis dans permissions: [...]",
+    "punct_expected": "'{}' attendu, trouvé : {}",
+    "punct_eof": "'{}' attendu, fin de fichier"
+  }
+}
