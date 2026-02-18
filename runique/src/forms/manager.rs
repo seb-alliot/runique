@@ -417,7 +417,75 @@ impl Forms {
         self.get_option(name)
             .map(|v| matches!(v.as_str(), "true" | "1" | "on"))
     }
+    // ── Date / Time ─────────────────────────────────────────────────────────────
 
+    /// Retourne la valeur comme `NaiveDate` (format `YYYY-MM-DD`).
+    /// Retourne `NaiveDate::default()` si le champ est vide ou invalide.
+    pub fn get_naive_date(&self, name: &str) -> chrono::NaiveDate {
+        self.get_option(name)
+            .and_then(|v| chrono::NaiveDate::parse_from_str(&v, "%Y-%m-%d").ok())
+            .unwrap_or_default()
+    }
+
+    /// Retourne la valeur comme `Option<NaiveDate>`. `None` si vide ou invalide.
+    pub fn get_option_naive_date(&self, name: &str) -> Option<chrono::NaiveDate> {
+        chrono::NaiveDate::parse_from_str(&self.get_option(name)?, "%Y-%m-%d").ok()
+    }
+
+    /// Retourne la valeur comme `NaiveTime` (format `HH:MM`).
+    /// Retourne `NaiveTime::default()` si le champ est vide ou invalide.
+    pub fn get_naive_time(&self, name: &str) -> chrono::NaiveTime {
+        self.get_option(name)
+            .and_then(|v| chrono::NaiveTime::parse_from_str(&v, "%H:%M").ok())
+            .unwrap_or_default()
+    }
+
+    /// Retourne la valeur comme `Option<NaiveTime>`. `None` si vide ou invalide.
+    pub fn get_option_naive_time(&self, name: &str) -> Option<chrono::NaiveTime> {
+        chrono::NaiveTime::parse_from_str(&self.get_option(name)?, "%H:%M").ok()
+    }
+
+    /// Retourne la valeur comme `NaiveDateTime` (format `YYYY-MM-DDTHH:MM`).
+    /// Retourne `NaiveDateTime::default()` si le champ est vide ou invalide.
+    pub fn get_naive_datetime(&self, name: &str) -> chrono::NaiveDateTime {
+        self.get_option(name)
+            .and_then(|v| chrono::NaiveDateTime::parse_from_str(&v, "%Y-%m-%dT%H:%M").ok())
+            .unwrap_or_default()
+    }
+
+    /// Retourne la valeur comme `Option<NaiveDateTime>`. `None` si vide ou invalide.
+    pub fn get_option_naive_datetime(&self, name: &str) -> Option<chrono::NaiveDateTime> {
+        chrono::NaiveDateTime::parse_from_str(&self.get_option(name)?, "%Y-%m-%dT%H:%M").ok()
+    }
+
+    /// Retourne la valeur comme `DateTime<Utc>`. `Utc::now()` si vide ou invalide.
+    pub fn get_datetime_utc(&self, name: &str) -> chrono::DateTime<chrono::Utc> {
+        self.get_option(name)
+            .and_then(|v| chrono::DateTime::parse_from_rfc3339(&v).ok())
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .unwrap_or_else(chrono::Utc::now)
+    }
+
+    /// Retourne la valeur comme `Option<DateTime<Utc>>`. `None` si vide ou invalide.
+    pub fn get_option_datetime_utc(&self, name: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+        chrono::DateTime::parse_from_rfc3339(&self.get_option(name)?)
+            .ok()
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+    }
+
+    // ── UUID ─────────────────────────────────────────────────────────────────────
+
+    /// Retourne la valeur comme `Uuid`. `Uuid::nil()` si vide ou invalide.
+    pub fn get_uuid(&self, name: &str) -> uuid::Uuid {
+        self.get_option(name)
+            .and_then(|v| uuid::Uuid::parse_str(&v).ok())
+            .unwrap_or(uuid::Uuid::nil())
+    }
+
+    /// Retourne la valeur comme `Option<Uuid>`. `None` si vide ou invalide.
+    pub fn get_option_uuid(&self, name: &str) -> Option<uuid::Uuid> {
+        uuid::Uuid::parse_str(&self.get_option(name)?).ok()
+    }
     pub fn database_error(&mut self, db_err: &sea_orm::DbErr) {
         let err_msg = db_err.to_string();
 

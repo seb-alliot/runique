@@ -2,7 +2,7 @@ use serde_json::Value;
 use std::borrow::Cow;
 use std::fmt::Display;
 
-/// Langues supportées par Runique
+/// Languages supported by Runique
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Lang {
     Fr,
@@ -11,7 +11,7 @@ pub enum Lang {
 }
 
 impl Lang {
-    /// Retourne le code de la langue (pour les noms de fichiers)
+    /// Returns the language code (for file names)
     const fn code(&self) -> &'static str {
         match self {
             Lang::Fr => "fr",
@@ -19,7 +19,7 @@ impl Lang {
         }
     }
 
-    /// Charge le JSON de traduction pour cette langue
+    /// Loads the translation JSON for this language
     fn load_json(&self) -> &'static Value {
         use once_cell::sync::Lazy;
 
@@ -39,7 +39,7 @@ impl Lang {
         }
     }
 
-    /// Récupère un message traduit par sa clé (ex: "forms.required")
+    /// Retrieves a translated message by its key (e.g., "forms.required")
     pub fn get(&self, key: &str) -> Cow<'static, str> {
         let json = self.load_json();
         let parts: Vec<&str> = key.split('.').collect();
@@ -48,7 +48,7 @@ impl Lang {
         for part in parts {
             match current.get(part) {
                 Some(val) => current = val,
-                None => return Cow::Owned(key.to_string()), // Fallback: retourne la clé
+                None => return Cow::Owned(key.to_string()), // Fallback: returns the key
             }
         }
 
@@ -58,7 +58,7 @@ impl Lang {
         }
     }
 
-    /// Récupère un message avec des paramètres (remplace {} par les args)
+    /// Retrieves a message with parameters (replaces {} with args)
     pub fn format<T: Display>(&self, key: &str, args: &[T]) -> String {
         let template = self.get(key);
         let mut result = template.to_string();

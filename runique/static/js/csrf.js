@@ -4,7 +4,7 @@
 if (!window.rustiCsrfInitialized) {
     window.rustiCsrfInitialized = true;
 
-    // Récupération intelligente : cherche d'abord dans l'input injecté par l'extracteur
+    // Smart retrieval: first looks in the input injected by the extractor
     window.getCsrfToken = function() {
         const input = document.querySelector('input[name="csrf_token"]');
         if (input && input.value) return input.value;
@@ -23,13 +23,13 @@ if (!window.rustiCsrfInitialized) {
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
             const token = window.getCsrfToken();
             if (token) {
-                headers.set('X-CSRF-Token', token); // Force l'envoi du header attendu par csrf.rs
+                headers.set('X-CSRF-Token', token); // Forces sending the header expected by csrf.rs
             }
         }
 
         const response = await originalFetch(input, { ...init, headers });
 
-        // Rotation automatique : capture le token de la ligne 92 de csrf.rs
+        // Automatic rotation: captures the token from line 92 of csrf.rs
         const newToken = response.headers.get('X-CSRF-Token');
         if (newToken) {
             window._rusti_csrf_token = newToken;

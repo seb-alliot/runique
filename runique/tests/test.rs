@@ -1156,12 +1156,12 @@ fn test_generate_alter_file_add_column() {
         ignored: false,
     });
     let output = generate_alter_file(&c);
-    // up() contient add_column
+    // up() contains add_column
     let up_section = extract_up(&output);
     assert!(up_section.contains("add_column"));
     assert!(up_section.contains("Alias::new(\"is_active\")"));
     assert!(up_section.contains("boolean()"));
-    // down() contient drop_column
+    // down() contains drop_column
     let down_section = extract_down(&output);
     assert!(down_section.contains("drop_column"));
     assert!(down_section.contains("Alias::new(\"is_active\")"));
@@ -1175,7 +1175,7 @@ fn test_generate_alter_file_drop_column() {
     let up_section = extract_up(&output);
     assert!(up_section.contains("drop_column"));
     assert!(up_section.contains("Alias::new(\"old_field\")"));
-    // down() recrée la colonne
+    // down() recreates the column
     let down_section = extract_down(&output);
     assert!(down_section.contains("add_column"));
     assert!(down_section.contains("Alias::new(\"old_field\")"));
@@ -1270,7 +1270,7 @@ fn test_generate_alter_file_nullable_change_uses_modify() {
 
 #[test]
 fn test_generate_alter_file_valid_rust_structure() {
-    // Vérifie que le fichier généré contient les éléments structurels attendus
+    // Checks that the generated file contains the expected structural elements
     let c = empty_changes();
     let output = generate_alter_file(&c);
     assert!(output.contains("use sea_orm_migration::prelude::*;"));
@@ -1280,7 +1280,7 @@ fn test_generate_alter_file_valid_rust_structure() {
     assert!(output.contains("Ok(())"));
 }
 
-// ── helpers pour extraire up/down ────────────────────────────────────────────
+// ── helpers to extract up/down ──────────────────────────────────────────────
 
 fn extract_up(src: &str) -> &str {
     let start = src.find("async fn up").unwrap_or(0);

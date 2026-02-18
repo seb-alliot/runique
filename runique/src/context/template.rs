@@ -15,7 +15,7 @@ use tera::Context;
 use tower_sessions::Session;
 use tracing::error;
 
-// --- GESTION DES ERREURS ---
+// --- ERROR HANDLING ---
 
 pub struct AppError {
     pub context: ErrorContext,
@@ -26,9 +26,9 @@ impl AppError {
         Self { context }
     }
 
-    // Helper générique pour mapper les erreurs connues
+    // Generic helper to map known errors
     pub fn map_tera(e: tera::Error, route: &str, tera: &tera::Tera) -> Box<Self> {
-        // Log l'erreur détaillée dans la console
+        // Log the detailed error in the console
         error!(
             template = route,
             error = ?e,
@@ -48,7 +48,7 @@ impl IntoResponse for AppError {
         let status = StatusCode::from_u16(self.context.status_code)
             .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 
-        //  Log l'erreur en détail
+        //  Log the error in detail
         error!(
             status = status.as_u16(),
             error_type = ?self.context.error_type,
@@ -57,7 +57,7 @@ impl IntoResponse for AppError {
         );
 
         let mut res = status.into_response();
-        //  Insère l'ErrorContext pour que le middleware puisse le récupérer
+        //  Insert ErrorContext so that the middleware can retrieve it
         res.extensions_mut().insert(Arc::new(self.context));
         res
     }
@@ -69,7 +69,7 @@ impl IntoResponse for Box<AppError> {
     }
 }
 
-// --- CONTEXTE DE TEMPLATE ---
+// --- TEMPLATE CONTEXT ---
 
 #[derive(Clone)]
 pub struct Request {
@@ -90,7 +90,7 @@ where
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let ex = &parts.extensions;
 
-        // Extraction rapide
+        // Fast extraction
         let engine = ex
             .get::<AEngine>()
             .cloned()
@@ -119,7 +119,7 @@ where
         context.insert("csp_nonce", nonce);
         context.insert("static_runique", &engine.config.static_files);
         context.insert("messages", &messages);
-        // Injecter current_user si disponible
+        // Inject current_user if available
         if let Some(current_user) = ex.get::<crate::middleware::auth::CurrentUser>() {
             context.insert("current_user", current_user);
         }
@@ -137,8 +137,8 @@ where
 impl Request {
     pub fn new(engine: AEngine, session: Session, csrf_token: CsrfToken, method: Method) -> Self {
         let mut context = tera::Context::new();
-        // mod reload pour les templates en debug
-        // Le backend ne peux être reloadé ici car il est partagé entre les requêtes
+        // mod reload for templates in debug mode
+        // The backend cannot be reloaded here because it is shared between requests
         context.insert("debug", &engine.config.debug);
         context.insert("static_runique", &engine.config.static_files.static_url);
         context.insert("csrf_token", &csrf_token.masked().as_str());
@@ -168,18 +168,18 @@ impl Request {
     pub fn is_delete(&self) -> bool {
         self.method == Method::DELETE
     }
-    /// Rendu générique unique pour éviter la duplication
+    /// Unique generic rendering to avoid duplication
     pub fn render(&mut self, template: &str) -> AppResult<Response> {
         let html_result = if self.engine.config.debug {
-            // En mode debug, on réinitialise Tera complètement le Loader
-            // Cela applique les Regex sur {% messages %}, {% form.xxx %}, etc.
+            // In debug mode, Tera is fully reinitialized with the Loader
+            // This applies Regex on {% messages %}, {% form.xxx %}, etc.
             match TemplateLoader::init(&self.engine.config, self.engine.url_registry.clone()) {
                 Ok(mut dev_tera) => {
                     dev_tera.autoescape_on(vec!["html", "xml"]);
 
                     let res = dev_tera.render(template, &self.context);
                     if let Err(ref e) = res {
-                        // Log détaillé de l'erreur Tera avec toutes les sources
+                        // Detailed log of the Tera error with all sources
                         error!(
                             template = template,
                             error_kind = ?e.kind,
@@ -187,8 +187,8 @@ impl Request {
                             "Tera rendering failed in debug mode"
                         );
 
-                        // Log la chaîne complète des erreurs (source)
-                        // Utilise la méthode source() du trait std::error::Error
+                        // Log the full error chain (source)
+                        // Uses the source() method from the std::error::Error trait
                         use std::error::Error as StdError;
                         if let Some(source) = e.source() {
                             error!(
@@ -213,7 +213,7 @@ impl Request {
                 }
             }
         } else {
-            // Mode Production : utilise l'instance déjà transformée
+            // Production mode: uses the already transformed instance
             self.engine.tera.render(template, &self.context)
         };
 
@@ -222,13 +222,13 @@ impl Request {
             .map_err(|e| AppError::map_tera(e, template, &self.engine.tera))
     }
 
-    /// Insertion fluide avec pattern builder
+    /// Fluent insertion with builder pattern
     pub fn insert(mut self, key: &str, value: impl serde::Serialize) -> Self {
         self.context.insert(key, &value);
         self
     }
 
-    /// Rendu immédiat avec données additionnelles
+    /// Immediate rendering with additional data
     pub fn render_with(
         mut self,
         template: &str,

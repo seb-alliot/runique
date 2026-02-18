@@ -6,7 +6,7 @@ const chevron  = toggle.querySelector('svg');
 
 const COLLAPSED_KEY = 'runique_admin_sidebar_collapsed';
 
-// Restaure l'état sauvegardé
+// Restore saved state
 if (localStorage.getItem(COLLAPSED_KEY) === '1') {
     sidebar.classList.add('collapsed');
     chevron.style.transform = 'rotate(180deg)';
@@ -19,7 +19,7 @@ toggle.addEventListener('click', () => {
     localStorage.setItem(COLLAPSED_KEY, isCollapsed ? '1' : '0');
 });
 
-// Burger / overlay mobile
+// Burger / mobile overlay
 function isMobile() { return window.innerWidth <= 900; }
 
 function updateBurgerVisibility() {
