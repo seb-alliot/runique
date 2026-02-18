@@ -17,7 +17,7 @@ pub use crate::middleware::auth::user_trait::RuniqueUser;
 // ─── Modèle SeaORM ───────────────────────────────────────────────────────────
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
-#[sea_orm(table_name = "users")]
+#[sea_orm(table_name = "eihwaz_users")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,

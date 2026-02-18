@@ -4,6 +4,7 @@ pub mod constante;
 pub mod forms;
 pub mod init_error;
 pub mod middleware;
+pub mod trad;
 
 pub use aliases::*;
 pub use config::*;

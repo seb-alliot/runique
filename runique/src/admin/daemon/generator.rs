@@ -123,7 +123,7 @@ fn generate_handlers_file(resources: &[ResourceDef], dir: &Path) -> Result<(), S
     for r in resources {
         let model_path = model_import_path(&r.model_type);
         let _ = writeln!(out, "use crate::{};", model_path);
-        let _ = writeln!(out, "use crate::forms::{};", r.form_type);
+        let _ = writeln!(out, "use crate::formulaire::{};", r.form_type);
     }
     let _ = writeln!(out);
     // Générer tous les handlers
@@ -138,14 +138,14 @@ fn generate_handlers_file(resources: &[ResourceDef], dir: &Path) -> Result<(), S
         .map_err(|e| format!("Impossible d'écrire handlers.rs: {}", e))
 }
 
-/// Convertit "users::Model" → "models::users"
+/// Convertit "users::Model" → "formulaire::users"
 fn model_import_path(model_type: &str) -> String {
     let parts: Vec<&str> = model_type.split("::").collect();
     if parts.len() >= 2 {
         let module_parts = &parts[..parts.len() - 1];
-        format!("models::{}", module_parts.join("::"))
+        format!("formulaire::{}", module_parts.join("::"))
     } else {
-        format!("models::{}", model_type.to_lowercase())
+        format!("formulaire::{}", model_type.to_lowercase())
     }
 }
 

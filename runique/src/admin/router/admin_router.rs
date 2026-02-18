@@ -138,9 +138,7 @@ async fn admin_login_post(
                 req = req
                     .insert("site_title", &admin.config.site_title)
                     .insert("error", "Erreur lors de l'ouverture de session.");
-                return req
-                    .render("admin/login")
-                    .unwrap_or_else(|e| e.into_response());
+                return req.render("login").unwrap_or_else(|e| e.into_response());
             }
 
             Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
@@ -150,8 +148,7 @@ async fn admin_login_post(
             req = req
                 .insert("site_title", &admin.config.site_title)
                 .insert("error", "Identifiants incorrects ou droits insuffisants.");
-            req.render("admin/login")
-                .unwrap_or_else(|e| e.into_response())
+            req.render("login").unwrap_or_else(|e| e.into_response())
         }
     }
 }

@@ -1,6 +1,6 @@
+use crate::entities::users::Entity as UserEntity;
 use crate::form_test::TestAllFieldsForm;
-use crate::forms::{Blog as BlogForm, Image, RegisterForm, UsernameForm};
-use crate::models::users::{self, Entity as UserEntity};
+use crate::formulaire::*;
 use runique::prelude::*;
 
 /// Page d'accueil
@@ -85,7 +85,7 @@ pub async fn info_user(
         let db = request.engine.db.clone();
 
         let user_opt = UserEntity::objects
-            .filter(users::Column::Username.eq(&username))
+            .filter(crate::formulaire::user::Column::Username.eq(&username))
             .first(&db)
             .await?;
 
@@ -185,7 +185,7 @@ pub async fn test_csrf(request: Request) -> AppResult<Response> {
 /// Upload image
 pub async fn upload_image_submit(
     mut request: Request,
-    Prisme(mut form): Prisme<Image>,
+    Prisme(mut form): Prisme<ImageForm>,
 ) -> AppResult<Response> {
     let template = "forms/upload_image.html";
 

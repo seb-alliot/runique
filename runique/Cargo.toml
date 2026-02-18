@@ -63,6 +63,7 @@ indexmap.workspace = true
 # ORM
 sea-orm = { workspace = true, optional = true }
 sea-orm-migration = { workspace = true, optional = true }
+sea-query.workspace = true
 
 # Utilities
 dotenvy.workspace = true

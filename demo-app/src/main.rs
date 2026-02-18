@@ -4,9 +4,9 @@ use runique::prelude::*;
 
 mod admin;
 mod admins;
+mod entities;
 mod form_test;
-mod forms;
-mod models;
+mod formulaire;
 mod url;
 mod views;
 
@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
     let db_config = DatabaseConfig::from_env()?.build();
-    let db = db_config.connect().await?;
+    let db: DatabaseConnection = db_config.connect().await?;
 
     builder::new(config)
         .routes(url::routes())

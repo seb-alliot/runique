@@ -286,10 +286,6 @@ impl Forms {
             }
         }
 
-        // Ici seulement, tout est valide -> on finalize (hash password, etc.)
-        self.finalize()
-            .map_err(|e| ValidationError::GlobalErrors(vec![e]))?;
-
         Ok(true)
     }
 
