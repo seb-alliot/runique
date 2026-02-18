@@ -1,56 +1,57 @@
-# 🧪 Tests du Framework Runique
-
-Suite de tests complète couvrant toutes les fonctionnalités principales du framework Runique.
-
-## 📁 Structure des Tests
-
-```
 tests/
-├── common.rs              # Utilities et helpers partagés
-├── forms_test.rs          # Tests du système de formulaires (Prisme extractor)
-├── orm_test.rs            # Tests de l'ORM (Objects manager, impl_objects!)
-├── config_test.rs         # Tests de configuration
-├── flash_messages_test.rs # Tests des messages flash (Message extractor)
-├── routes_test.rs         # Tests du routage (Axum Router)
-├── middleware_test.rs     # Tests des middlewares (CSRF, CSP, etc.)
-├── prelude_test.rs        # Tests que tous les types sont dans le prelude
-└── README.md              # Ce fichier
+# 🧪 Runique Framework Tests
+
+Comprehensive test suite covering all main features of the Runique framework.
+
+## 📁 Test Structure
+
 ```
 
-## 🧪 Exécuter les Tests
+├── common.rs              # Shared utilities and helpers
+├── forms_test.rs          # Form system tests (Prisme extractor)
+├── orm_test.rs            # ORM tests (Objects manager, impl_objects!)
+├── config_test.rs         # Configuration tests
+├── flash_messages_test.rs # Flash message tests (Message extractor)
+├── routes_test.rs         # Routing tests (Axum Router)
+├── middleware_test.rs     # Middleware tests (CSRF, CSP, etc.)
+├── prelude_test.rs        # Tests that all types are in the prelude
+└── README.md              # This file
+```
 
-### Tous les tests
+## 🧪 Running the Tests
+
+### All tests
 ```bash
 cargo test
 ```
 
-### Un fichier de test spécifique
+### A specific test file
 ```bash
 cargo test --test forms_test
 cargo test --test macros_test
 cargo test --test orm_test
 ```
 
-### Un test spécifique
+### A specific test
 ```bash
 cargo test test_text_field_creation
 cargo test test_forms_new
 cargo test test_context_macro_empty
 ```
 
-### Avec output
+### With output
 ```bash
 cargo test -- --nocapture
 cargo test -- --show-output
 ```
 
-## 📋 Couverture des Tests
+## 📋 Test Coverage
 
-### ✅ Formulaires (`forms_test.rs`)
+### ✅ Forms (`forms_test.rs`)
 - [x] Prisme extractor
 - [x] RuniqueForm derive macro
-- [x] Validation des champs
-- [x] Génération HTML des formulaires
+- [x] Field validation
+- [x] HTML generation for forms
 - [x] CSRF token validation
 
 ### ✅ ORM (`orm_test.rs`)
@@ -65,17 +66,17 @@ cargo test -- --show-output
 - [x] message.level (Success/Error/Info/Warning)
 - [x] {% messages %} template tag
 
-### ✅ Formulaires (`forms_test.rs`)
+### ✅ Forms (`forms_test.rs`)
 - [x] `TextField` - text, email, password, textarea, richtext, url
 - [x] `NumericField` - integer, decimal
 - [x] `BooleanField`
 - [x] Validations - required, min_length, max_length
 - [x] `Forms` manager - new, add_field, fill_data
-- [x] Chaîning de méthodes
+- [x] Method chaining
 
 ### ✅ ORM (`orm_test.rs`)
 - [x] `Objects<E>` manager
-- [x] Méthodes chainables (filter, exclude, limit, offset, etc.)
+- [x] Chainable methods (filter, exclude, limit, offset, etc.)
 - [x] RuniqueQueryBuilder
 - [x] Django-style queries
 
@@ -83,20 +84,20 @@ cargo test -- --show-output
 - [x] `RuniqueConfig`
 - [x] `ServerConfig`
 - [x] `SecurityConfig`
-- [x] Chargement depuis `.env`
+- [x] Loading from `.env`
 
-### ✅ Messages Flash (`flash_messages_test.rs`)
+### ✅ Flash Messages (`flash_messages_test.rs`)
 - [x] `MessageLevel` (Success, Error, Warning, Info)
 - [x] `FlashMessage`
 - [x] `Message` type
-- [x] Création et gestion
+- [x] Creation and management
 
-### ✅ Routage (`routes_test.rs`)
+### ✅ Routing (`routes_test.rs`)
 - [x] `urlpatterns!` macro
 - [x] `view!` macro
-- [x] Méthodes HTTP (GET, POST, PUT, DELETE, PATCH, OPTIONS)
-- [x] `register_name_url` pour URL naming
-- [x] `reverse` et `reverse_with_parameters`
+- [x] HTTP methods (GET, POST, PUT, DELETE, PATCH, OPTIONS)
+- [x] `register_name_url` for URL naming
+- [x] `reverse` and `reverse_with_parameters`
 
 ### ✅ Middlewares (`middleware_test.rs`)
 - [x] CSRF middleware
@@ -106,64 +107,64 @@ cargo test -- --show-output
 - [x] AllowedHosts middleware
 
 ### ✅ Prelude (`prelude_test.rs`)
-- [x] Types de formulaires disponibles
-- [x] Types de contexte disponibles
-- [x] Types de messages flash disponibles
-- [x] Types ORM disponibles
-- [x] Types de sérialisation
-- [x] Types de concurrence
+- [x] Available form types
+- [x] Available context types
+- [x] Available flash message types
+- [x] Available ORM types
+- [x] Serialization types
+- [x] Concurrency types
 
-## 🧩 Utilities Communes
+## 🧩 Common Utilities
 
-Le fichier `common.rs` fournit des helpers réutilisables:
+The `common.rs` file provides reusable helpers:
 
 ```rust
-// Créer un formulaire de test simple
+// Create a simple test form
 let form = create_test_form("csrf_token");
 
-// Créer un formulaire complexe avec plusieurs champs
+// Create a complex form with multiple fields
 let form = create_complex_form("csrf_token");
 
-// Remplir un formulaire avec des données
+// Fill a form with data
 fill_form(&mut form, &[("field", "value")]);
 ```
 
-## 🔧 Ajouter Nouveaux Tests
+## 🔧 Adding New Tests
 
-### Template pour un nouveau test
+### Template for a new test
 ```rust
 #[test]
 fn test_my_feature() {
-    // Arrange - Préparer les données
+    // Arrange - Prepare data
 
-    // Act - Exécuter le code à tester
+    // Act - Execute the code to test
 
-    // Assert - Vérifier les résultats
+    // Assert - Check the results
     assert!(true);
 }
 ```
 
-### Tests asynchrones
+### Asynchronous tests
 ```rust
 #[tokio::test]
 async fn test_async_feature() -> Result<(), Box<dyn std::error::Error>> {
-    // Code asynchrone ici
+    // Async code here
     Ok(())
 }
 ```
 
-## ℹ️ Notes Importantes
+## ℹ️ Important Notes
 
-1. **Tests d'intégration avec DB**: Pour tester l'ORM avec une vraie DB, utiliser SQLite en mémoire:
+1. **Integration tests with DB**: To test the ORM with a real DB, use in-memory SQLite:
    ```rust
    let db = sea_orm::Database::connect("sqlite::memory:").await?;
    ```
 
-2. **Tests de handlers Web**: Utiliser `axum-test` ou similaire pour tester les handlers Axum
+2. **Web handler tests**: Use `axum-test` or similar to test Axum handlers
 
-3. **Tests de templates**: Utiliser `tera` directement pour tester le rendu
+3. **Template tests**: Use `tera` directly to test rendering
 
-4. **Mocking**: Pour les dépendances externes, considérer `mockito` ou `wiremock`
+4. **Mocking**: For external dependencies, consider `mockito` or `wiremock`
 
 ## 📚 Resources
 
@@ -171,10 +172,10 @@ async fn test_async_feature() -> Result<(), Box<dyn std::error::Error>> {
 - [Tokio Testing](https://tokio.rs/tokio/tutorial/select#testing)
 - [Axum Examples](https://github.com/tokio-rs/axum/tree/main/examples)
 
-## 🎯 Objectifs Futurs
+## 🎯 Future Goals
 
-- [ ] Tests d'intégration complets avec DB SQLite
-- [ ] Tests des handlers web avec `axum-test`
-- [ ] Tests de rendu Tera
-- [ ] Benchmarks de performance
-- [ ] Tests de couverture (coverage reporting)
+- [ ] Full integration tests with SQLite DB
+- [ ] Web handler tests with `axum-test`
+- [ ] Tera rendering tests
+- [ ] Performance benchmarks
+- [ ] Coverage reporting tests

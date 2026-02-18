@@ -1,10 +1,10 @@
-//! Tests d'intégration pour le framework Runique
-//! Teste les principales fonctionnalités du framework :
-//! - Tous les types de champs (17 types)
-//! - Validation (required, format, limites)
+//! Integration tests for the Runique framework
+//! Tests the main features of the framework:
+//! - All field types (17 types)
+//! - Validation (required, format, limits)
 //! - Builder pattern (label, placeholder, etc.)
-//! - Formulaires (Forms)
-//! - Champs spéciaux (CSRF, HiddenField)
+//! - Forms
+//! - Special fields (CSRF, HiddenField)
 
 use runique::forms::field::FormField;
 use runique::forms::fields::choice::{CheckboxField, ChoiceOption, RadioField};
@@ -13,7 +13,7 @@ use runique::forms::fields::special::{IPAddressField, UUIDField};
 use runique::prelude::*;
 
 // ============================================================================
-// TEXTFIELD — Constructeurs
+// TEXTFIELD — Constructors
 // ============================================================================
 
 #[test]
@@ -114,7 +114,7 @@ fn test_email_validation_valid() {
     let mut field = TextField::email("email");
     field.set_value("test@example.com");
     assert!(field.validate());
-    // L'email doit être converti en minuscules
+    // The email must be converted to lowercase
     assert_eq!(field.value(), "test@example.com");
 }
 
@@ -225,7 +225,7 @@ fn test_numeric_float_valid() {
 
 #[test]
 fn test_numeric_comma_to_dot() {
-    // Le moteur remplace , par . pour normalisation
+    // The engine replaces , with . for normalization
     let mut field = NumericField::float("price");
     field.set_value("19,99");
     assert!(field.validate());
@@ -381,7 +381,7 @@ fn test_radio_field_required_empty() {
 }
 
 // ============================================================================
-// CHECKBOXFIELD (multi-sélection)
+// CHECKBOXFIELD (multi-selection)
 // ============================================================================
 
 #[test]
@@ -434,7 +434,7 @@ fn test_checkbox_set_value_marks_selected() {
         .add_choice("python", "Python")
         .add_choice("go", "Go");
     field.set_value("rust,go");
-    // Vérifie que les choix sont marqués
+    // Checks that the choices are marked
     assert!(field.choices[0].selected); // rust
     assert!(!field.choices[1].selected); // python
     assert!(field.choices[2].selected); // go
@@ -881,8 +881,8 @@ fn test_ip_field_ipv4_only_accepts_ipv4() {
 
 // ============================================================================
 // HIDDENFIELD (CSRF)
-// Depuis le refactoring, HiddenField utilise un vrai FieldConfig (base).
-// La validation via validate() fonctionne normalement.
+// Since the refactor, HiddenField uses a real FieldConfig (base).
+// Validation via validate() works as expected.
 // ============================================================================
 
 #[test]
@@ -944,7 +944,7 @@ fn test_hidden_field_generic() {
 }
 
 // ============================================================================
-// FORMS — Gestionnaire de formulaires
+// FORMS — Form manager
 // ============================================================================
 
 #[test]
