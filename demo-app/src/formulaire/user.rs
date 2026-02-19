@@ -1,3 +1,4 @@
+use crate::entities::users::eihwaz_users_schema;
 use runique::prelude::*;
 use serde::Serialize;
 
@@ -9,13 +10,10 @@ pub struct Model {
     pub username: String,
     pub email: String,
     pub password: String,
-
     pub is_active: bool,
     pub is_staff: bool,
     pub is_superuser: bool,
-
     pub roles: Option<String>,
-
     pub created_at: Option<NaiveDateTime>,
     pub updated_at: Option<NaiveDateTime>,
 }
@@ -28,7 +26,6 @@ impl Model {
             .and_then(|r| serde_json::from_str(r).ok())
             .unwrap_or_default()
     }
-
     #[allow(dead_code)]
     pub fn can_access_admin(&self) -> bool {
         self.is_active && (self.is_staff || self.is_superuser)
@@ -37,7 +34,6 @@ impl Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
-
 impl ActiveModelBehavior for ActiveModel {}
 impl_objects!(Entity);
 
@@ -48,27 +44,20 @@ pub struct RegisterForm {
     pub form: Forms,
 }
 
-impl RuniqueForm for RegisterForm {
-    fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::text("username")
-                .label("Entrez votre nom d'utilisateur")
-                .required(),
-        );
-
-        form.field(
-            &TextField::email("email")
-                .label("Entrez votre email")
-                .required(),
-        );
-
-        form.field(
-            &TextField::password("password")
-                .label("Entrez un mot de passe")
-                .required(),
-        );
+impl ModelForm for RegisterForm {
+    fn schema() -> ModelSchema {
+        eihwaz_users_schema()
     }
 
+    fn fields() -> Option<&'static [&'static str]> {
+        Some(&["username", "email", "password"])
+    }
+}
+
+impl RuniqueForm for RegisterForm {
+    fn register_fields(form: &mut Forms) {
+        Self::model_register_fields(form);
+    }
     impl_form_access!();
 }
 
@@ -84,7 +73,6 @@ impl RegisterForm {
             password: Set(self.form.get_string("password")),
             ..Default::default()
         };
-
         new_user.insert(db).await
     }
 }

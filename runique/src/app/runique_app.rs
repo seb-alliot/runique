@@ -20,7 +20,7 @@ impl RuniqueApp {
             self.engine.config.server.ip_server, self.engine.config.server.port
         );
 
-        println!("   Runique Framework is operational");
+        println!("   Runique is operational");
         println!("      └──>  Server launched on http://{}", addr);
 
         #[cfg(feature = "orm")]

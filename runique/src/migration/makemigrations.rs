@@ -44,10 +44,11 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
 
 // ── lib.rs updater ───────────────────────────────────────────────────────────
 
-pub fn update_migration_lib(migrations_path: &str, table_name: &str) -> Result<()> {
+/// `module_name` must be in SeaORM format: `m{timestamp}_create_{table}_table`
+pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<()> {
     let lib = lib_path(migrations_path);
-    let mod_line = format!("mod {};", table_name);
-    let box_line = format!("            Box::new({}::Migration),", table_name);
+    let mod_line = format!("mod {};", module_name);
+    let box_line = format!("            Box::new({}::Migration),", module_name);
 
     if !Path::new(&lib).exists() {
         let content = format!(
@@ -87,13 +88,14 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
     println!(" Found {} schema(s).", schemas.len());
 
     fs::create_dir_all(applied_dir(migrations_path))?;
+    fs::create_dir_all(snapshot_dir(migrations_path))?;
 
     let mut all_changes: Vec<Changes> = Vec::new();
 
     for schema in &schemas {
-        let create_path = create_file_path(migrations_path, &schema.table_name);
-        let changes = if Path::new(&create_path).exists() {
-            let previous = parse_create_file(&create_path)?;
+        let snap_path = snapshot_file_path(migrations_path, &schema.table_name);
+        let changes = if Path::new(&snap_path).exists() {
+            let previous = parse_create_file(&snap_path)?;
             diff_schemas(&previous, schema)
         } else {
             Changes {
@@ -173,18 +175,27 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
             .iter()
             .find(|s| s.table_name == change.table_name)
             .unwrap();
-        let create_content = generate_create_file(schema);
-        let create_path = create_file_path(migrations_path, &change.table_name);
 
-        fs::write(&create_path, &create_content)
-            .with_context(|| format!("Failed to write: {}", create_path))?;
+        // Snapshot always updated
+        let snap_path = snapshot_file_path(migrations_path, &change.table_name);
+        fs::write(&snap_path, generate_create_file(schema))
+            .with_context(|| format!("Failed to write snapshot: {}", snap_path))?;
 
         if change.is_new_table {
-            println!(" Generated: {}", create_path);
-            update_migration_lib(migrations_path, &change.table_name)?;
-        } else {
-            println!(" Updated: {}", create_path);
+            // Timestamped SeaORM file — immutable, executed by sea-orm-cli
+            let module_name = seaorm_create_module_name(&timestamp, &change.table_name);
+            let seaorm_path =
+                seaorm_create_file_path(migrations_path, &timestamp, &change.table_name);
 
+            fs::write(&seaorm_path, generate_create_file(schema))
+                .with_context(|| format!("Failed to write: {}", seaorm_path))?;
+
+            println!(" Generated: {}", seaorm_path);
+            update_migration_lib(migrations_path, &module_name)?;
+        } else {
+            println!(" Updated snapshot: {}", snap_path);
+
+            // ALTER file in applied/<table>/
             let table_dir = table_applied_dir(migrations_path, &change.table_name);
             fs::create_dir_all(&table_dir)?;
 
@@ -192,26 +203,25 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
             fs::write(&alter_path, generate_alter_file(change))
                 .with_context(|| format!("Failed to write: {}", alter_path))?;
             println!(" Generated: {}", alter_path);
+
+            // Batch up/down per table in applied/by_time/<table>/
+            let up_dir = batch_up_dir(migrations_path, &change.table_name);
+            let down_dir = batch_down_dir(migrations_path, &change.table_name);
+            fs::create_dir_all(&up_dir)?;
+            fs::create_dir_all(&down_dir)?;
+
+            let up_path = batch_up_path(migrations_path, &change.table_name, &timestamp);
+            fs::write(&up_path, generate_batch_up_file(&[change], &timestamp))
+                .with_context(|| format!("Failed to write batch up: {}", up_path))?;
+            println!(" Generated batch up:   {}", up_path);
+
+            let down_path = batch_down_path(migrations_path, &change.table_name, &timestamp);
+            fs::write(&down_path, generate_batch_down_file(&[change], &timestamp))
+                .with_context(|| format!("Failed to write batch down: {}", down_path))?;
+            println!(" Generated batch down: {}", down_path);
         }
     }
 
-    // ── batch files ──────────────────────────────────────────────────────────
-    let altered: Vec<&Changes> = all_changes.iter().filter(|c| !c.is_new_table).collect();
-    if !altered.is_empty() {
-        fs::create_dir_all(batch_up_dir(migrations_path))?;
-        fs::create_dir_all(batch_down_dir(migrations_path))?;
-
-        let up_path = batch_up_path(migrations_path, &timestamp);
-        fs::write(&up_path, generate_batch_up_file(&altered, &timestamp))
-            .with_context(|| format!("Failed to write batch up: {}", up_path))?;
-        println!(" Generated batch up: {}", up_path);
-
-        let down_path = batch_down_path(migrations_path, &timestamp);
-        fs::write(&down_path, generate_batch_down_file(&altered, &timestamp))
-            .with_context(|| format!("Failed to write batch down: {}", down_path))?;
-        println!(" Generated batch down: {}", down_path);
-    }
-
-    println!("\nRun 'sea-orm-builder migrate up' to apply.");
+    println!("\nRun 'sea-orm-cli migrate up' to apply.");
     Ok(())
 }

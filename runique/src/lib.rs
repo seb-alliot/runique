@@ -112,6 +112,9 @@ pub mod formulaire {
         pub mod trait_form {
             pub use crate::forms::field::*;
         }
+        pub mod model_form {
+            pub use crate::forms::model_form::*;
+        }
     }
 
     pub mod utils {
@@ -221,8 +224,10 @@ pub mod prelude {
         },
         generic::{FieldKind, GenericField},
         manager::Forms,
+        model_form::ModelForm,
         Prisme,
     };
+    pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
     pub use derive_form::DeriveModelForm;
 
