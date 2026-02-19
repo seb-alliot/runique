@@ -1,19 +1,37 @@
-/// Chemin du fichier CREATE principal (état courant de la table)
-pub fn create_file_path(migrations_path: &str, table_name: &str) -> String {
-    format!("{}/{}.rs", migrations_path, table_name)
+/// snapshots/ directory (current state of the table, used for diff only)
+pub fn snapshot_dir(migrations_path: &str) -> String {
+    format!("{}/snapshots", migrations_path)
 }
 
-/// Répertoire applied/ racine
+/// Path to the snapshot file of a table
+pub fn snapshot_file_path(migrations_path: &str, table_name: &str) -> String {
+    format!("{}/snapshots/{}.rs", migrations_path, table_name)
+}
+
+/// SeaORM module name for a CREATE (used in lib.rs and as file name)
+pub fn seaorm_create_module_name(timestamp: &str, table_name: &str) -> String {
+    format!("m{}_create_{}_table", timestamp, table_name)
+}
+
+/// Path to the SeaORM migration file for a CREATE
+pub fn seaorm_create_file_path(migrations_path: &str, timestamp: &str, table_name: &str) -> String {
+    format!(
+        "{}/m{}_create_{}_table.rs",
+        migrations_path, timestamp, table_name
+    )
+}
+
+/// Root applied/ directory
 pub fn applied_dir(migrations_path: &str) -> String {
     format!("{}/applied", migrations_path)
 }
 
-/// Répertoire applied/<table>/
+/// applied/<table>/ directory
 pub fn table_applied_dir(migrations_path: &str, table_name: &str) -> String {
     format!("{}/applied/{}", migrations_path, table_name)
 }
 
-/// Chemin du fichier ALTER individuel
+/// Path to the individual ALTER file
 pub fn alter_file_path(migrations_path: &str, table_name: &str, timestamp: &str) -> String {
     format!(
         "{}/applied/{}/{}_alter_{}_table.rs",
@@ -21,24 +39,40 @@ pub fn alter_file_path(migrations_path: &str, table_name: &str, timestamp: &str)
     )
 }
 
-/// Répertoire applied/by_time/up/
-pub fn batch_up_dir(migrations_path: &str) -> String {
-    format!("{}/applied/by_time/up", migrations_path)
+/// Root applied/by_time/ directory (for listing)
+pub fn by_time_dir(migrations_path: &str) -> String {
+    format!("{}/applied/by_time", migrations_path)
 }
 
-/// Répertoire applied/by_time/down/
-pub fn batch_down_dir(migrations_path: &str) -> String {
-    format!("{}/applied/by_time/down", migrations_path)
+/// applied/by_time/<table>/ directory
+pub fn by_time_table_dir(migrations_path: &str, table_name: &str) -> String {
+    format!("{}/applied/by_time/{}", migrations_path, table_name)
 }
 
-/// Chemin du fichier batch up agrégé
-pub fn batch_up_path(migrations_path: &str, timestamp: &str) -> String {
-    format!("{}/applied/by_time/up/{}.rs", migrations_path, timestamp)
+/// applied/by_time/<table>/up/ directory
+pub fn batch_up_dir(migrations_path: &str, table_name: &str) -> String {
+    format!("{}/applied/by_time/{}/up", migrations_path, table_name)
 }
 
-/// Chemin du fichier batch down agrégé
-pub fn batch_down_path(migrations_path: &str, timestamp: &str) -> String {
-    format!("{}/applied/by_time/down/{}.rs", migrations_path, timestamp)
+/// applied/by_time/<table>/down/ directory
+pub fn batch_down_dir(migrations_path: &str, table_name: &str) -> String {
+    format!("{}/applied/by_time/{}/down", migrations_path, table_name)
+}
+
+/// Chemin du fichier batch up d'une table
+pub fn batch_up_path(migrations_path: &str, table_name: &str, timestamp: &str) -> String {
+    format!(
+        "{}/applied/by_time/{}/up/{}.rs",
+        migrations_path, table_name, timestamp
+    )
+}
+
+/// Chemin du fichier batch down d'une table
+pub fn batch_down_path(migrations_path: &str, table_name: &str, timestamp: &str) -> String {
+    format!(
+        "{}/applied/by_time/{}/down/{}.rs",
+        migrations_path, table_name, timestamp
+    )
 }
 
 /// Chemin du lib.rs du migrator
@@ -54,31 +88,77 @@ mod tests {
     const TABLE: &str = "eihwaz_users";
     const TS: &str = "20250218_143000";
 
-    // ── create_file_path ────────────────────────────────────────────────────
+    // ── snapshot_dir ────────────────────────────────────────────────────────
 
     #[test]
-    fn create_file_path_standard() {
+    fn snapshot_dir_standard() {
+        assert_eq!(snapshot_dir(BASE), "/project/migration/src/snapshots");
+    }
+
+    #[test]
+    fn snapshot_dir_relative() {
+        assert_eq!(snapshot_dir("migrations"), "migrations/snapshots");
+    }
+
+    // ── snapshot_file_path ──────────────────────────────────────────────────
+
+    #[test]
+    fn snapshot_file_path_standard() {
         assert_eq!(
-            create_file_path(BASE, TABLE),
-            "/project/migration/src/eihwaz_users.rs"
+            snapshot_file_path(BASE, TABLE),
+            "/project/migration/src/snapshots/eihwaz_users.rs"
         );
     }
 
     #[test]
-    fn create_file_path_simple_table() {
+    fn snapshot_file_path_simple_table() {
         assert_eq!(
-            create_file_path("migrations", "posts"),
-            "migrations/posts.rs"
+            snapshot_file_path("migrations", "posts"),
+            "migrations/snapshots/posts.rs"
+        );
+    }
+
+    // ── seaorm_create_module_name ────────────────────────────────────────────
+
+    #[test]
+    fn seaorm_create_module_name_format() {
+        assert_eq!(
+            seaorm_create_module_name(TS, TABLE),
+            "m20250218_143000_create_eihwaz_users_table"
         );
     }
 
     #[test]
-    fn create_file_path_trailing_slash() {
-        // Le caller ne doit pas passer de slash final — comportement documenté
+    fn seaorm_create_module_name_simple() {
         assert_eq!(
-            create_file_path("migrations/", "posts"),
-            "migrations//posts.rs"
+            seaorm_create_module_name("20260118_003649", "users"),
+            "m20260118_003649_create_users_table"
         );
+    }
+
+    // ── seaorm_create_file_path ──────────────────────────────────────────────
+
+    #[test]
+    fn seaorm_create_file_path_standard() {
+        assert_eq!(
+            seaorm_create_file_path(BASE, TS, TABLE),
+            "/project/migration/src/m20250218_143000_create_eihwaz_users_table.rs"
+        );
+    }
+
+    #[test]
+    fn seaorm_create_file_path_simple() {
+        assert_eq!(
+            seaorm_create_file_path("migrations", "20260118_003649", "users"),
+            "migrations/m20260118_003649_create_users_table.rs"
+        );
+    }
+
+    #[test]
+    fn seaorm_create_module_name_matches_file_stem() {
+        let module = seaorm_create_module_name(TS, TABLE);
+        let file = seaorm_create_file_path(BASE, TS, TABLE);
+        assert!(file.ends_with(&format!("{}.rs", module)));
     }
 
     // ── applied_dir ─────────────────────────────────────────────────────────
@@ -124,7 +204,6 @@ mod tests {
     #[test]
     fn alter_file_path_embeds_table_name_twice() {
         let path = alter_file_path("m", "products", "20250101_120000");
-        // Le table_name apparaît dans le répertoire ET dans le nom de fichier
         assert!(path.contains("/applied/products/"));
         assert!(path.contains("_alter_products_table.rs"));
     }
@@ -135,56 +214,88 @@ mod tests {
         assert!(path.starts_with("m/applied/users/20251231_235959_alter_users_table.rs"));
     }
 
-    // ── batch_up_path / batch_down_path ─────────────────────────────────────
+    // ── by_time_dir / by_time_table_dir ─────────────────────────────────────
 
     #[test]
-    fn batch_up_path_format() {
+    fn by_time_dir_standard() {
+        assert_eq!(by_time_dir(BASE), "/project/migration/src/applied/by_time");
+    }
+
+    #[test]
+    fn by_time_table_dir_standard() {
         assert_eq!(
-            batch_up_path(BASE, TS),
-            "/project/migration/src/applied/by_time/up/20250218_143000.rs"
+            by_time_table_dir(BASE, TABLE),
+            "/project/migration/src/applied/by_time/eihwaz_users"
         );
-    }
-
-    #[test]
-    fn batch_down_path_format() {
-        assert_eq!(
-            batch_down_path(BASE, TS),
-            "/project/migration/src/applied/by_time/down/20250218_143000.rs"
-        );
-    }
-
-    #[test]
-    fn batch_up_and_down_share_timestamp() {
-        let up = batch_up_path("m", TS);
-        let down = batch_down_path("m", TS);
-        // Même timestamp, seul up/down diffère
-        assert!(up.contains("/by_time/up/"));
-        assert!(down.contains("/by_time/down/"));
-        assert!(up.ends_with(&format!("{}.rs", TS)));
-        assert!(down.ends_with(&format!("{}.rs", TS)));
-    }
-
-    #[test]
-    fn batch_up_and_down_differ_only_by_direction() {
-        let up = batch_up_path("migrations", TS);
-        let down = batch_down_path("migrations", TS);
-        assert_ne!(up, down);
-        assert_eq!(up.replace("/by_time/up/", "/by_time/down/"), down);
     }
 
     // ── batch_up_dir / batch_down_dir ────────────────────────────────────────
 
     #[test]
     fn batch_up_dir_format() {
-        assert_eq!(batch_up_dir("migrations"), "migrations/applied/by_time/up");
+        assert_eq!(
+            batch_up_dir("migrations", TABLE),
+            "migrations/applied/by_time/eihwaz_users/up"
+        );
     }
 
     #[test]
     fn batch_down_dir_format() {
         assert_eq!(
-            batch_down_dir("migrations"),
-            "migrations/applied/by_time/down"
+            batch_down_dir("migrations", TABLE),
+            "migrations/applied/by_time/eihwaz_users/down"
         );
+    }
+
+    // ── batch_up_path / batch_down_path ─────────────────────────────────────
+
+    #[test]
+    fn batch_up_path_format() {
+        assert_eq!(
+            batch_up_path(BASE, TABLE, TS),
+            "/project/migration/src/applied/by_time/eihwaz_users/up/20250218_143000.rs"
+        );
+    }
+
+    #[test]
+    fn batch_down_path_format() {
+        assert_eq!(
+            batch_down_path(BASE, TABLE, TS),
+            "/project/migration/src/applied/by_time/eihwaz_users/down/20250218_143000.rs"
+        );
+    }
+
+    #[test]
+    fn batch_up_and_down_same_table_same_timestamp() {
+        let up = batch_up_path("m", TABLE, TS);
+        let down = batch_down_path("m", TABLE, TS);
+        assert!(up.contains(&format!("/by_time/{}/up/", TABLE)));
+        assert!(down.contains(&format!("/by_time/{}/down/", TABLE)));
+        assert!(up.ends_with(&format!("{}.rs", TS)));
+        assert!(down.ends_with(&format!("{}.rs", TS)));
+    }
+
+    #[test]
+    fn batch_up_and_down_differ_only_by_direction() {
+        let up = batch_up_path("migrations", TABLE, TS);
+        let down = batch_down_path("migrations", TABLE, TS);
+        assert_ne!(up, down);
+        assert_eq!(
+            up.replace(
+                &format!("/by_time/{}/up/", TABLE),
+                &format!("/by_time/{}/down/", TABLE)
+            ),
+            down
+        );
+    }
+
+    #[test]
+    fn different_tables_are_isolated() {
+        let users_up = batch_up_path("m", "users", TS);
+        let blog_up = batch_up_path("m", "blog", TS);
+        assert_ne!(users_up, blog_up);
+        assert!(users_up.contains("/by_time/users/up/"));
+        assert!(blog_up.contains("/by_time/blog/up/"));
     }
 
     // ── lib_path ─────────────────────────────────────────────────────────────
@@ -202,6 +313,13 @@ mod tests {
     // ── cohérence globale ────────────────────────────────────────────────────
 
     #[test]
+    fn snapshot_is_inside_snapshot_dir() {
+        let dir = snapshot_dir(BASE);
+        let file = snapshot_file_path(BASE, TABLE);
+        assert!(file.starts_with(&dir));
+    }
+
+    #[test]
     fn alter_path_is_inside_table_applied_dir() {
         let dir = table_applied_dir(BASE, TABLE);
         let alter = alter_file_path(BASE, TABLE, TS);
@@ -210,16 +328,23 @@ mod tests {
 
     #[test]
     fn batch_up_path_is_inside_batch_up_dir() {
-        let dir = batch_up_dir(BASE);
-        let path = batch_up_path(BASE, TS);
+        let dir = batch_up_dir(BASE, TABLE);
+        let path = batch_up_path(BASE, TABLE, TS);
         assert!(path.starts_with(&dir));
     }
 
     #[test]
     fn batch_down_path_is_inside_batch_down_dir() {
-        let dir = batch_down_dir(BASE);
-        let path = batch_down_path(BASE, TS);
+        let dir = batch_down_dir(BASE, TABLE);
+        let path = batch_down_path(BASE, TABLE, TS);
         assert!(path.starts_with(&dir));
+    }
+
+    #[test]
+    fn batch_table_dir_is_inside_by_time_dir() {
+        let root = by_time_dir(BASE);
+        let table = by_time_table_dir(BASE, TABLE);
+        assert!(table.starts_with(&root));
     }
 
     #[test]

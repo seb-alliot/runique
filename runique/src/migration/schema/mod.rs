@@ -1,8 +1,8 @@
+use crate::forms::base::FormField;
 use crate::migration::{
     column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef, index::IndexDef,
     primary_key::PrimaryKeyDef, relation::RelationDef,
 };
-
 /// The root struct — single source of truth for the model
 #[derive(Debug, Clone)]
 pub struct ModelSchema {
@@ -129,6 +129,55 @@ impl ModelSchema {
         }
 
         table.to_owned()
+    }
+
+    /// Remplit un Forms avec les champs générés depuis le schema.
+    /// - `fields` : whitelist (seuls ces champs sont inclus, dans cet ordre)
+    /// - `exclude` : blacklist (ces champs sont exclus)
+    /// Si `fields` est fourni, `exclude` est ignoré.
+    pub fn fill_form(
+        &self,
+        form: &mut crate::forms::manager::Forms,
+        fields: Option<&[&str]>,
+        exclude: Option<&[&str]>,
+    ) {
+        // Colonnes auto-exclues systématiquement : PK
+        let pk_name = self.primary_key.as_ref().map(|pk| pk.name.as_str());
+
+        if let Some(field_names) = fields {
+            // Whitelist : on respecte l'ordre donné par le dev
+            for &field_name in field_names {
+                let col = self.columns.iter().find(|c| c.name == field_name);
+                match col {
+                    None => panic!(
+                        "ModelForm '{}' : le champ '{}' n'existe pas dans le schema",
+                        self.model_name, field_name
+                    ),
+                    Some(col) => {
+                        if let Some(generic) = col.to_form_field() {
+                            form.field_generic(generic);
+                        }
+                    }
+                }
+            }
+        } else {
+            // Pas de whitelist : tous les champs sauf exclus
+            let excluded: &[&str] = exclude.unwrap_or(&[]);
+
+            for col in &self.columns {
+                // Sauter la PK
+                if pk_name == Some(col.name.as_str()) {
+                    continue;
+                }
+                // Sauter les exclus
+                if excluded.contains(&col.name.as_str()) {
+                    continue;
+                }
+                if let Some(generic) = col.to_form_field() {
+                    form.field_generic(generic);
+                }
+            }
+        }
     }
 
     /// Diff between two ModelSchema — returns the changes to apply

@@ -4,6 +4,7 @@ pub mod field;
 pub mod fields;
 pub mod generic;
 pub mod manager;
+pub mod model_form;
 pub mod options;
 pub mod prisme;
 
@@ -13,5 +14,6 @@ pub use field::*;
 pub use fields::*;
 pub use generic::*;
 pub use manager::*;
+pub use model_form::*;
 pub use options::*;
 pub use prisme::*;
