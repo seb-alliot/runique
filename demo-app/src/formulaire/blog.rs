@@ -48,7 +48,8 @@ impl RuniqueForm for BlogForm {
         form.field(
             &TextField::text("title")
                 .label("Entrez un titre accrocheur")
-                .required(),
+                .required()
+                .min_length(10, "Le titre doit contenir au moins 10 caractères"),
         );
 
         // Email de l'auteur

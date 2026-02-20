@@ -211,6 +211,7 @@ pub mod prelude {
     pub use crate::engine::RuniqueEngine;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
+        field,
         field::{FormField, RuniqueForm},
         fields::{
             boolean::BooleanField,
@@ -229,7 +230,7 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
-    pub use derive_form::DeriveModelForm;
+    pub use derive_form::{model_form, DeriveModelForm};
 
     // ========================================================================
     // CONFIGURATION

@@ -1,6 +1,6 @@
-use crate::entities::users::Entity as UserEntity;
 use crate::form_test::TestAllFieldsForm;
 use crate::formulaire::*;
+use runique::prelude::user::Entity as UserEntity;
 use runique::prelude::*;
 
 /// Page d'accueil
@@ -37,8 +37,6 @@ pub async fn soumission_inscription(
                 form.get_form_mut().database_error(&err);
                 AppError::from(err)
             })?;
-            println!("Nouvel utilisateur créé donné dans views.rs : {:?}", user);
-
             success!(request.notices => format!("Bienvenue {}, votre compte est créé !", user.username));
             return Ok(Redirect::to("/").into_response());
         }
@@ -85,7 +83,7 @@ pub async fn info_user(
         let db = request.engine.db.clone();
 
         let user_opt = UserEntity::objects
-            .filter(crate::formulaire::user::Column::Username.eq(&username))
+            .filter(crate::user::Column::Username.eq(&username))
             .first(&db)
             .await?;
 

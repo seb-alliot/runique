@@ -24,13 +24,13 @@ name = "runique"
 path = "src/lib.rs"
 
 [dependencies]
-# Framework web
+# Web framework
 axum.workspace = true
 tower.workspace = true
 tower-http.workspace = true
 tower-sessions.workspace = true
 
-# Daemon admin
+# Admin daemon
 notify.workspace = true
 syn.workspace = true
 quote.workspace = true
@@ -47,10 +47,10 @@ argon2.workspace = true
 password-hash.workspace = true
 rand.workspace = true
 
-# Runtime async
+# Async runtime
 tokio.workspace = true
 
-# Sérialisation
+# Serialization
 serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
@@ -100,7 +100,7 @@ hex.workspace = true
 base64.workspace = true
 
 # Procedural macros
-derive_form = "1.1.20"
+derive_form = { path = "derive_form" }
 
 # CLI
 clap.workspace = true

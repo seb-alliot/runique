@@ -9,7 +9,6 @@ pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![
     ("csrf", "csrf/csrf.html"),
     ("csp", "csp/csp.html"),
     ("js_files", "asset/js.html"),
-    ("base_template", "base_template.html"),
 ];
 
 pub const ERROR_CORPS: &[(&str, &str)] = tpls![

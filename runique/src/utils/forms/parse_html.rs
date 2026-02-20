@@ -24,7 +24,7 @@ pub async fn parse_multipart(
             None => continue,
         };
 
-        // --- Cas fichier ---
+        // --- File case ---
         if let Some(filename) = field.file_name().map(|s| s.to_string()) {
             let safe = sanitize_filename(&filename);
             let path = upload_dir.join(&safe);
@@ -45,7 +45,7 @@ pub async fn parse_multipart(
 
             data.entry(name).or_default().push(safe);
         }
-        // --- Cas champ texte ---
+        // --- Text field case ---
         else {
             let text = field.text().await.unwrap_or_default();
             data.entry(name).or_default().push(text);

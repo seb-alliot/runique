@@ -9,8 +9,8 @@ impl MigrationTrait for Migration {
         manager
             .alter_table(
                 Table::alter()
-                    .table(Alias::new("users_booster"))
-                    .add_column(ColumnDef::new(Alias::new("updated_at")).date_time().null())
+                    .table(Alias::new("eihwaz_users"))
+                    .drop_column(Alias::new("roles"))
                     .to_owned(),
             )
             .await?;
@@ -21,8 +21,8 @@ impl MigrationTrait for Migration {
         manager
             .alter_table(
                 Table::alter()
-                    .table(Alias::new("users_booster"))
-                    .drop_column(Alias::new("updated_at"))
+                    .table(Alias::new("eihwaz_users"))
+                    .add_column(ColumnDef::new(Alias::new("roles")).string().not_null())
                     .to_owned(),
             )
             .await?;

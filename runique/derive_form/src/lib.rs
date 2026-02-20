@@ -16,3 +16,11 @@ pub fn runique_form(attr: TokenStream, item: TokenStream) -> TokenStream {
 pub fn derive_model_form(input: TokenStream) -> TokenStream {
     models::derive_model_form_impl(input)
 }
+
+mod schema_form;
+
+/// Macro #[derive(ModelSchemaForm)]
+#[proc_macro_attribute]
+pub fn model_form(attr: TokenStream, item: TokenStream) -> TokenStream {
+    schema_form::model_schema(attr, item)
+}

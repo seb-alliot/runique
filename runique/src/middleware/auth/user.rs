@@ -11,6 +11,7 @@
 
 use sea_orm::{entity::prelude::*, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 
+use crate::impl_objects;
 pub use crate::middleware::auth::default_auth::UserEntity;
 pub use crate::middleware::auth::user_trait::RuniqueUser;
 
@@ -33,7 +34,7 @@ pub struct Model {
     pub created_at: Option<chrono::NaiveDateTime>,
     pub updated_at: Option<chrono::NaiveDateTime>,
 }
-
+impl_objects!(Entity);
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 

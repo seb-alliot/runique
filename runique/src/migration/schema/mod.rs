@@ -1,4 +1,3 @@
-use crate::forms::base::FormField;
 use crate::migration::{
     column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef, index::IndexDef,
     primary_key::PrimaryKeyDef, relation::RelationDef,
@@ -94,7 +93,7 @@ impl ModelSchema {
     pub fn build(self) -> Result<ModelSchema, String> {
         if self.primary_key.is_none() {
             return Err(format!(
-                "ModelSchema '{}' : clé primaire manquante",
+                "ModelSchema '{}' : missing primary key",
                 self.model_name
             ));
         }
@@ -131,26 +130,28 @@ impl ModelSchema {
         table.to_owned()
     }
 
-    /// Remplit un Forms avec les champs générés depuis le schema.
-    /// - `fields` : whitelist (seuls ces champs sont inclus, dans cet ordre)
-    /// - `exclude` : blacklist (ces champs sont exclus)
-    /// Si `fields` est fourni, `exclude` est ignoré.
+    /// Fills a Forms with fields generated from the schema.
+    /// - `fields`: whitelist (only these fields are included, in this order)
+    /// - `exclude`: blacklist (these fields are excluded)
+    ///
+    /// If `fields` is provided, `exclude` is ignored.
+    /// The PK is always excluded.
     pub fn fill_form(
         &self,
         form: &mut crate::forms::manager::Forms,
         fields: Option<&[&str]>,
         exclude: Option<&[&str]>,
     ) {
-        // Colonnes auto-exclues systématiquement : PK
+        // Columns always auto-excluded: PK
         let pk_name = self.primary_key.as_ref().map(|pk| pk.name.as_str());
 
         if let Some(field_names) = fields {
-            // Whitelist : on respecte l'ordre donné par le dev
+            // Whitelist: respect the order given by the developer
             for &field_name in field_names {
                 let col = self.columns.iter().find(|c| c.name == field_name);
                 match col {
                     None => panic!(
-                        "ModelForm '{}' : le champ '{}' n'existe pas dans le schema",
+                        "ModelForm '{}' : field '{}' does not exist in the schema",
                         self.model_name, field_name
                     ),
                     Some(col) => {
@@ -161,15 +162,15 @@ impl ModelSchema {
                 }
             }
         } else {
-            // Pas de whitelist : tous les champs sauf exclus
+            // No whitelist: all fields except excluded
             let excluded: &[&str] = exclude.unwrap_or(&[]);
 
             for col in &self.columns {
-                // Sauter la PK
+                // Skip PK
                 if pk_name == Some(col.name.as_str()) {
                     continue;
                 }
-                // Sauter les exclus
+                // Skip excluded
                 if excluded.contains(&col.name.as_str()) {
                     continue;
                 }
@@ -200,6 +201,93 @@ impl ModelSchema {
         }
 
         diff
+    }
+
+    fn col_to_rust_type(col: &ColumnDef) -> String {
+        use sea_query::ColumnType::*;
+        let base = match &col.col_type {
+            String(_) | Text | Char(_) => "String".to_string(),
+            Integer | TinyInteger | SmallInteger => "i32".to_string(),
+            BigInteger => "i64".to_string(),
+            Unsigned => "u32".to_string(),
+            BigUnsigned => "u64".to_string(),
+            Float => "f32".to_string(),
+            Double => "f64".to_string(),
+            Boolean => "bool".to_string(),
+            Date => "chrono::NaiveDate".to_string(),
+            Time => "chrono::NaiveTime".to_string(),
+            DateTime | Timestamp | TimestampWithTimeZone => "chrono::NaiveDateTime".to_string(),
+            Uuid => "Uuid".to_string(),
+            Json | JsonBinary => "serde_json::Value".to_string(),
+            Decimal(_) => "rust_decimal::Decimal".to_string(),
+            Enum { .. } => "String".to_string(),
+            _ => "String".to_string(),
+        };
+
+        if col.nullable {
+            format!("Option<{}>", base)
+        } else {
+            base
+        }
+    }
+
+    pub fn to_model(&self) -> String {
+        let mut out = String::new();
+        let table_name = &self.table_name;
+
+        // Imports
+        out.push_str("use sea_orm::entity::prelude::*;\n");
+        out.push_str("use serde::{Serialize, Deserialize};\n");
+        out.push_str("use runique::impl_objects;\n\n");
+
+        // Struct Model
+        out.push_str(
+            "#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]\n",
+        );
+        out.push_str(&format!("#[sea_orm(table_name = \"{}\")]\n", table_name));
+        out.push_str("pub struct Model {\n");
+
+        // Primary key
+        if let Some(ref pk) = self.primary_key {
+            out.push_str("    #[sea_orm(primary_key)]\n");
+            out.push_str(&format!(
+                "    pub {}: {},\n",
+                pk.name,
+                Self::pk_to_rust_type(pk)
+            ));
+        }
+
+        // Columns
+        for col in &self.columns {
+            if col.ignored {
+                continue;
+            }
+            let rust_type = Self::col_to_rust_type(col);
+            out.push_str(&format!("    pub {}: {},\n", col.name, rust_type));
+        }
+
+        out.push_str("}\n\n");
+
+        // Relation
+        out.push_str("#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]\n");
+        out.push_str("pub enum Relation {}\n\n");
+
+        // ActiveModelBehavior
+        out.push_str("impl ActiveModelBehavior for ActiveModel {}\n\n");
+
+        // impl_objects
+        out.push_str("impl_objects!(Entity);\n");
+
+        out
+    }
+    fn pk_to_rust_type(pk: &PrimaryKeyDef) -> &'static str {
+        use sea_query::ColumnType::*;
+        match &pk.col_type {
+            Integer => "i32",
+            BigInteger => "i64",
+            Uuid => "Uuid",
+            _ => "i32",
+        }
     }
 }
 

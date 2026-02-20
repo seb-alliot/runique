@@ -118,7 +118,7 @@ pub(crate) fn derive_model_form_impl(input: TokenStream) -> TokenStream {
 
                 Self { form }
             }
-        
+
 
             pub fn to_active_model(&self) -> ActiveModel {
                 use ::runique::sea_orm::ActiveValue::Set;
