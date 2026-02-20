@@ -17,6 +17,7 @@ pub struct TextField {
     pub base: FieldConfig,
     pub config: TextConfig,
     pub format: SpecialFormat,
+    pub hash_password: bool, // true par défaut
 }
 
 // Formats spéciaux pour les champs texte
@@ -47,7 +48,13 @@ impl TextField {
             base: FieldConfig::new(name, type_field, "base_string"),
             config: TextConfig::default(),
             format,
+            hash_password: true,
         }
+    }
+    /// Désactive le hashage automatique du mot de passe (helper)
+    pub fn no_hash(mut self) -> Self {
+        self.hash_password = false;
+        self
     }
     pub fn create_csrf() -> Self {
         let mut field = Self::create("csrf_token", "hidden", SpecialFormat::Csrf);
@@ -55,7 +62,7 @@ impl TextField {
         field
     }
 
-    pub fn min_length(mut self, min: usize, msg: &str) -> Self {
+    pub fn min_length(mut self, min: u32, msg: &str) -> Self {
         self.config.min_length = Some(LengthConstraint {
             value: min,
             message: (!msg.is_empty()).then(|| msg.to_string()),
@@ -63,7 +70,7 @@ impl TextField {
         self
     }
 
-    pub fn max_length(mut self, max: usize, msg: &str) -> Self {
+    pub fn max_length(mut self, max: u32, msg: &str) -> Self {
         self.config.max_length = Some(LengthConstraint {
             value: max,
             message: (!msg.is_empty()).then(|| msg.to_string()),
@@ -169,7 +176,7 @@ impl FormField for TextField {
 
         // Validation longueur min
         if let Some(limits) = &self.config.min_length {
-            let count = val.chars().count();
+            let count: u32 = val.chars().count() as u32;
             if count < limits.value {
                 let msg = limits
                     .message
@@ -182,7 +189,7 @@ impl FormField for TextField {
 
         // Validation longueur max
         if let Some(limits) = &self.config.max_length {
-            let count = val.chars().count();
+            let count: u32 = val.chars().count() as u32;
             if count > limits.value {
                 let msg = limits
                     .message
@@ -218,8 +225,11 @@ impl FormField for TextField {
 
     fn finalize(&mut self) -> Result<(), String> {
         if let SpecialFormat::Password = &self.format {
-            // On ne hache que si ce n'est pas déjà fait
-            if !self.base.value.is_empty() && !self.base.value.starts_with("$argon2") {
+            // On ne hache que si ce n'est pas déjà fait et si hash_password est activé
+            if self.hash_password
+                && !self.base.value.is_empty()
+                && !self.base.value.starts_with("$argon2")
+            {
                 match self.hash_password() {
                     Ok(h) => self.base.value = h,
                     Err(e) => return Err(e),

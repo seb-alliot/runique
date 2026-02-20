@@ -230,7 +230,7 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
-    pub use derive_form::{model_form, DeriveModelForm};
+    pub use derive_form::{form, DeriveModelForm};
 
     // ========================================================================
     // CONFIGURATION

@@ -84,7 +84,7 @@ fn extract_value(attr_str: &str, key: &str) -> Option<String> {
     let start = attr_str.find(&pattern)? + pattern.len();
     let rest = attr_str[start..].trim();
     let end = rest
-        .find(|c: char| c == ',' || c == ']' || c == ')')
+        .find(|c| [',', ']', ')'].contains(&c))
         .unwrap_or(rest.len());
     Some(rest[..end].trim().to_string())
 }

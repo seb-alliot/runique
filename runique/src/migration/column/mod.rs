@@ -15,6 +15,12 @@ pub struct ColumnDef {
     pub auto_now: bool,        // created_at: value at creation
     pub auto_now_update: bool, // updated_at: value at each update
     pub enum_variants: Vec<String>,
+    pub max_length: Option<u32>,
+    pub min_length: Option<u32>,
+    pub max_value: Option<i64>,
+    pub min_value: Option<i64>,
+    pub max_float: Option<f64>,
+    pub min_float: Option<f64>,
 }
 
 impl ColumnDef {
@@ -31,17 +37,95 @@ impl ColumnDef {
             auto_now: false,
             auto_now_update: false,
             enum_variants: Vec::new(),
+            max_length: None,
+            min_length: None,
+            max_value: None,
+            min_value: None,
+            max_float: None,
+            min_float: None,
         }
     }
 
+    // __ size of size
+    pub fn tiny_integer(mut self) -> Self {
+        self.col_type = ColumnType::TinyInteger;
+        self
+    }
+
+    pub fn small_integer(mut self) -> Self {
+        self.col_type = ColumnType::SmallInteger;
+        self
+    }
+
+    pub fn unsigned(mut self) -> Self {
+        self.col_type = ColumnType::Unsigned;
+        self
+    }
+
+    pub fn big_unsigned(mut self) -> Self {
+        self.col_type = ColumnType::BigUnsigned;
+        self
+    }
+
     // ── Types ───────────────────────────────────────────────────────────────
+    /// Binary field with default length of 255 bytes.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use runique::migration::column::ColumnDef;
+    /// // Default: BINARY(255)
+    /// ColumnDef::new("token").binary();
+    ///
+    /// // Override: BINARY(64)
+    /// ColumnDef::new("hash").binary_len(64);
+    /// ```
+    pub fn binary(mut self) -> Self {
+        self.col_type = ColumnType::Binary(255);
+        self
+    }
+
+    /// Binary field with custom length.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use crate::runique::migration::column::ColumnDef;
+    /// ColumnDef::new("short_id").binary_len(16);
+    /// ColumnDef::new("sha256_hash").binary_len(32);
+    /// ColumnDef::new("sha512_hash").binary_len(64);
+    /// ```
+    pub fn binary_len(mut self, len: u32) -> Self {
+        self.col_type = ColumnType::Binary(len);
+        self
+    }
+
+    pub fn var_binary(mut self, len: u32) -> Self {
+        self.col_type = ColumnType::VarBinary(sea_query::StringLen::N(len));
+        self
+    }
+
+    pub fn blob(mut self) -> Self {
+        self.col_type = ColumnType::Blob;
+        self
+    }
+
+    pub fn char(mut self) -> Self {
+        self.col_type = ColumnType::Char(None);
+        self
+    }
+
+    pub fn char_len(mut self, len: u32) -> Self {
+        self.col_type = ColumnType::Char(Some(len));
+        self
+    }
 
     pub fn string(mut self) -> Self {
         self.col_type = ColumnType::String(sea_query::StringLen::None);
         self
     }
 
-    pub fn string_len(mut self, len: u32) -> Self {
+    pub fn varchar(mut self, len: u32) -> Self {
         self.col_type = ColumnType::String(sea_query::StringLen::N(len));
         self
     }
@@ -142,6 +226,35 @@ impl ColumnDef {
     }
 
     // ── Modifiers ───────────────────────────────────────────────────────────
+    pub fn max_len(mut self, len: u32) -> Self {
+        self.max_length = Some(len);
+        self
+    }
+
+    pub fn min_len(mut self, len: u32) -> Self {
+        self.min_length = Some(len);
+        self
+    }
+
+    pub fn max_i64(mut self, val: i64) -> Self {
+        self.max_value = Some(val);
+        self
+    }
+
+    pub fn min_i64(mut self, val: i64) -> Self {
+        self.min_value = Some(val);
+        self
+    }
+
+    pub fn max_f64(mut self, val: f64) -> Self {
+        self.max_float = Some(val);
+        self
+    }
+
+    pub fn min_f64(mut self, val: f64) -> Self {
+        self.min_float = Some(val);
+        self
+    }
 
     pub fn required(mut self) -> Self {
         self.nullable = false;
@@ -213,6 +326,27 @@ impl ColumnDef {
 
         col
     }
+
+    //__ variant of postgres
+    pub fn inet(mut self) -> Self {
+        self.col_type = ColumnType::Inet;
+        self
+    }
+
+    pub fn cidr(mut self) -> Self {
+        self.col_type = ColumnType::Cidr;
+        self
+    }
+
+    pub fn mac_address(mut self) -> Self {
+        self.col_type = ColumnType::MacAddr;
+        self
+    }
+
+    pub fn interval(mut self) -> Self {
+        self.col_type = ColumnType::Interval(None, None);
+        self
+    }
     // ── Form integration ─────────────────────────────────────────────────────────
 
     /// Convertit la colonne en GenericField.
@@ -240,19 +374,46 @@ impl ColumnDef {
         let mut field: GenericField = match &self.col_type {
             ColumnType::String(_) => {
                 if name == "email" || name.ends_with("_email") {
-                    TextField::email(name).into()
+                    let mut tf = TextField::email(name);
+                    if let Some(max_model) = self.max_length {
+                        let current = tf.config.max_length.as_ref().map(|c| c.value);
+                        let effective = match current {
+                            Some(f) => max_model.min(f),
+                            None => max_model,
+                        };
+                        tf = tf.max_length(effective, "Trop long");
+                    }
+                    tf.into()
                 } else if name == "password"
                     || name.ends_with("_password")
                     || name.ends_with("_pwd")
                 {
-                    TextField::password(name).into()
+                    let mut tf = TextField::password(name);
+                    if let Some(max_model) = self.max_length {
+                        let current = tf.config.max_length.as_ref().map(|c| c.value);
+                        let effective = match current {
+                            Some(f) => max_model.min(f),
+                            None => max_model,
+                        };
+                        tf = tf.max_length(effective, "Trop long");
+                    }
+                    tf.into()
                 } else if name == "url"
                     || name.ends_with("_url")
-                    || name.ends_with("_link")
                     || name == "website"
                     || name.ends_with("_website")
+                    || name.contains("http")
                 {
-                    TextField::url(name).into()
+                    let mut tf = TextField::url(name);
+                    if let Some(max_model) = self.max_length {
+                        let current = tf.config.max_length.as_ref().map(|c| c.value);
+                        let effective = match current {
+                            Some(f) => max_model.min(f),
+                            None => max_model,
+                        };
+                        tf = tf.max_length(effective, "Trop long");
+                    }
+                    tf.into()
                 } else if name == "slug" || name.ends_with("_slug") {
                     SlugField::new(name).into()
                 } else if name == "color"
@@ -264,21 +425,39 @@ impl ColumnDef {
                 } else if name == "ip" || name.ends_with("_ip") || name.contains("ip_address") {
                     IPAddressField::new(name).into()
                 } else {
-                    TextField::text(name).into()
+                    let mut tf = TextField::text(name);
+                    if let Some(max_model) = self.max_length {
+                        let current = tf.config.max_length.as_ref().map(|c| c.value);
+                        let effective = match current {
+                            Some(f) => max_model.min(f),
+                            None => max_model,
+                        };
+                        tf = tf.max_length(effective, "Trop long");
+                    }
+                    tf.into()
                 }
             }
             ColumnType::Text => {
-                if name.contains("description")
+                let mut tf = if name.contains("description")
                     || name.contains("bio")
                     || name.contains("content")
                     || name.contains("message")
                     || name.contains("summary")
                     || name.contains("richtext")
                 {
-                    TextField::richtext(name).into()
+                    TextField::richtext(name)
                 } else {
-                    TextField::textarea(name).into()
+                    TextField::textarea(name)
+                };
+                if let Some(max_model) = self.max_length {
+                    let current = tf.config.max_length.as_ref().map(|c| c.value);
+                    let effective = match current {
+                        Some(f) => max_model.min(f),
+                        None => max_model,
+                    };
+                    tf = tf.max_length(effective, "Trop long");
                 }
+                tf.into()
             }
             ColumnType::Integer
             | ColumnType::BigInteger

@@ -328,21 +328,79 @@ fn extract_alias_value(s: &str) -> Option<String> {
 }
 
 fn seaorm_sql_type(line: &str) -> &str {
-    if line.contains(".text()") {
+    // Binaires
+    if line.contains(".blob()")
+        || line.contains(".binary(")
+        || line.contains(".binary_len(")
+        || line.contains(".var_binary(")
+    {
+        "BYTEA"
+    }
+    // Textes
+    else if line.contains(".text()") {
         "TEXT"
+    } else if line.contains(".char()") || line.contains(".char_len(") {
+        "CHAR"
+    }
+    // Entiers (ordre spécifique au générique)
+    else if line.contains(".tiny_integer()") || line.contains(".small_integer()") {
+        "SMALLINT"
+    } else if line.contains(".big_unsigned()") {
+        "BIGINT"
+    } else if line.contains(".unsigned()") {
+        "INTEGER"
     } else if line.contains(".big_integer()") {
         "BIGINT"
     } else if line.contains(".integer()") {
         "INTEGER"
-    } else if line.contains(".boolean()") {
+    }
+    // Numériques
+    else if line.contains(".float()") {
+        "REAL"
+    } else if line.contains(".double()") {
+        "DOUBLE PRECISION"
+    } else if line.contains(".decimal(") || line.contains(".decimal_len(") {
+        "DECIMAL"
+    }
+    // Booléen
+    else if line.contains(".boolean()") {
         "BOOLEAN"
-    } else if line.contains(".date_time()") {
+    }
+    // Date/Heure
+    else if line.contains(".timestamp_tz()") || line.contains(".timestamp_with_time_zone()") {
+        "TIMESTAMP WITH TIME ZONE"
+    } else if line.contains(".timestamp()")
+        || line.contains(".date_time()")
+        || line.contains(".datetime()")
+    {
         "TIMESTAMP"
-    } else if line.contains(".uuid()") {
+    } else if line.contains(".date()") {
+        "DATE"
+    } else if line.contains(".time()") {
+        "TIME"
+    }
+    // UUID
+    else if line.contains(".uuid()") {
         "UUID"
+    }
+    // JSON
+    else if line.contains(".json_binary()") {
+        "JSONB"
     } else if line.contains(".json()") {
         "JSON"
-    } else {
+    }
+    // PostgreSQL spécifiques
+    else if line.contains(".inet()") {
+        "INET"
+    } else if line.contains(".cidr()") {
+        "CIDR"
+    } else if line.contains(".mac_address()") {
+        "MACADDR"
+    } else if line.contains(".interval()") {
+        "INTERVAL"
+    }
+    // Fallback
+    else {
         "VARCHAR(255)"
     }
 }

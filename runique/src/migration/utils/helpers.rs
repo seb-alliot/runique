@@ -4,58 +4,218 @@ use syn::{Expr, ExprCall, ExprLit, ExprMethodCall, Lit};
 // Type mapping
 // ============================================================
 
+/// Retourne le nom de la méthode associée à un type de colonne.
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::helpers::col_type_to_method;
+/// assert_eq!(col_type_to_method("Text"), "text()");
+/// assert_eq!(col_type_to_method("TinyInteger"), "tiny_integer()");
+/// assert_eq!(col_type_to_method("Inconnu"), "string()");
+/// ```
 pub fn col_type_to_method(col_type: &str) -> &str {
     match col_type {
         "Text" => "text()",
+        "TinyInteger" => "tiny_integer()",
+        "SmallInteger" => "small_integer()",
         "Integer" => "integer()",
         "BigInteger" => "big_integer()",
+        "Unsigned" => "unsigned()",
+        "BigUnsigned" => "big_unsigned()",
+        "Float" => "float()",
+        "Double" => "double()",
+        "Decimal" => "decimal()",
         "Boolean" => "boolean()",
         "DateTime" => "date_time()",
+        "Timestamp" => "timestamp()",
+        "TimestampWithTimeZone" => "timestamp_tz()",
+        "Date" => "date()",
+        "Time" => "time()",
         "Uuid" => "uuid()",
         "Json" => "json()",
+        "JsonBinary" => "json_binary()",
+        "Binary" => "binary()",
+        "VarBinary" => "var_binary()",
+        "Blob" => "blob()",
+        "Char" => "char()",
+        "Inet" => "inet()",
+        "Cidr" => "cidr()",
+        "MacAddr" => "mac_address()",
+        "Interval" => "interval()",
+        "Enum" => "enum_type()",
         _ => "string()",
     }
 }
 
 pub fn detect_col_type_builder(methods: &[String]) -> String {
-    if methods.contains(&"text".to_string()) {
+    // Binaires
+    if methods.contains(&"blob".to_string()) {
+        "Blob".to_string()
+    } else if methods.contains(&"binary".to_string()) || methods.contains(&"binary_len".to_string())
+    {
+        "Binary".to_string()
+    } else if methods.contains(&"var_binary".to_string()) {
+        "VarBinary".to_string()
+    }
+    // Textes
+    else if methods.contains(&"text".to_string()) {
         "Text".to_string()
+    } else if methods.contains(&"char".to_string()) || methods.contains(&"char_len".to_string()) {
+        "Char".to_string()
+    } else if methods.contains(&"varchar".to_string())
+        || methods.contains(&"string_len".to_string())
+    {
+        "String".to_string()
+    }
+    // Entiers
+    else if methods.contains(&"tiny_integer".to_string()) {
+        "TinyInteger".to_string()
+    } else if methods.contains(&"small_integer".to_string()) {
+        "SmallInteger".to_string()
+    } else if methods.contains(&"big_unsigned".to_string()) {
+        "BigUnsigned".to_string()
+    } else if methods.contains(&"unsigned".to_string()) {
+        "Unsigned".to_string()
     } else if methods.contains(&"big_integer".to_string()) {
         "BigInteger".to_string()
     } else if methods.contains(&"integer".to_string()) {
         "Integer".to_string()
-    } else if methods.contains(&"boolean".to_string()) {
+    }
+    // Numériques
+    else if methods.contains(&"float".to_string()) {
+        "Float".to_string()
+    } else if methods.contains(&"double".to_string()) {
+        "Double".to_string()
+    } else if methods.contains(&"decimal".to_string())
+        || methods.contains(&"decimal_len".to_string())
+    {
+        "Decimal".to_string()
+    }
+    // Booléen
+    else if methods.contains(&"boolean".to_string()) {
         "Boolean".to_string()
+    }
+    // Date/Heure
+    else if methods.contains(&"timestamp_tz".to_string()) {
+        "TimestampWithTimeZone".to_string()
+    } else if methods.contains(&"timestamp".to_string()) {
+        "Timestamp".to_string()
     } else if methods.contains(&"datetime".to_string())
         || methods.contains(&"auto_now".to_string())
         || methods.contains(&"auto_now_update".to_string())
     {
         "DateTime".to_string()
-    } else if methods.contains(&"uuid".to_string()) {
+    } else if methods.contains(&"date".to_string()) {
+        "Date".to_string()
+    } else if methods.contains(&"time".to_string()) {
+        "Time".to_string()
+    }
+    // UUID
+    else if methods.contains(&"uuid".to_string()) {
         "Uuid".to_string()
+    }
+    // JSON
+    else if methods.contains(&"json_binary".to_string()) {
+        "JsonBinary".to_string()
     } else if methods.contains(&"json".to_string()) {
         "Json".to_string()
-    } else {
+    }
+    // Fallback
+    else {
         "String".to_string()
     }
 }
 
 pub fn detect_col_type_seaorm(methods: &[String]) -> String {
-    if methods.contains(&"text".to_string()) {
+    // Binaires
+    if methods.contains(&"blob".to_string()) {
+        "Blob".to_string()
+    } else if methods.contains(&"binary".to_string()) || methods.contains(&"binary_len".to_string())
+    {
+        "Binary".to_string()
+    } else if methods.contains(&"var_binary".to_string()) {
+        "VarBinary".to_string()
+    }
+    // Textes
+    else if methods.contains(&"text".to_string()) {
         "Text".to_string()
+    } else if methods.contains(&"char".to_string()) || methods.contains(&"char_len".to_string()) {
+        "Char".to_string()
+    }
+    // Entiers (ordre : du plus spécifique au plus général)
+    else if methods.contains(&"tiny_integer".to_string()) {
+        "TinyInteger".to_string()
+    } else if methods.contains(&"small_integer".to_string()) {
+        "SmallInteger".to_string()
+    } else if methods.contains(&"big_unsigned".to_string()) {
+        "BigUnsigned".to_string()
+    } else if methods.contains(&"unsigned".to_string()) {
+        "Unsigned".to_string()
     } else if methods.contains(&"big_integer".to_string()) {
         "BigInteger".to_string()
     } else if methods.contains(&"integer".to_string()) {
         "Integer".to_string()
-    } else if methods.contains(&"boolean".to_string()) {
+    }
+    // Numériques
+    else if methods.contains(&"float".to_string()) {
+        "Float".to_string()
+    } else if methods.contains(&"double".to_string()) {
+        "Double".to_string()
+    } else if methods.contains(&"decimal".to_string())
+        || methods.contains(&"decimal_len".to_string())
+    {
+        "Decimal".to_string()
+    }
+    // Booléen
+    else if methods.contains(&"boolean".to_string()) {
         "Boolean".to_string()
-    } else if methods.contains(&"date_time".to_string()) {
+    }
+    // Date/Heure
+    else if methods.contains(&"timestamp_tz".to_string())
+        || methods.contains(&"timestamp_with_time_zone".to_string())
+    {
+        "TimestampWithTimeZone".to_string()
+    } else if methods.contains(&"timestamp".to_string()) {
+        "Timestamp".to_string()
+    } else if methods.contains(&"date_time".to_string())
+        || methods.contains(&"auto_now".to_string())
+        || methods.contains(&"auto_now_update".to_string())
+    {
         "DateTime".to_string()
-    } else if methods.contains(&"uuid".to_string()) {
+    } else if methods.contains(&"date".to_string()) {
+        "Date".to_string()
+    } else if methods.contains(&"time".to_string()) {
+        "Time".to_string()
+    }
+    // UUID
+    else if methods.contains(&"uuid".to_string()) {
         "Uuid".to_string()
+    }
+    // JSON
+    else if methods.contains(&"json_binary".to_string()) {
+        "JsonBinary".to_string()
     } else if methods.contains(&"json".to_string()) {
         "Json".to_string()
-    } else {
+    }
+    // PostgreSQL spécifiques
+    else if methods.contains(&"inet".to_string()) {
+        "Inet".to_string()
+    } else if methods.contains(&"cidr".to_string()) {
+        "Cidr".to_string()
+    } else if methods.contains(&"mac_address".to_string()) {
+        "MacAddr".to_string()
+    } else if methods.contains(&"interval".to_string()) {
+        "Interval".to_string()
+    }
+    // Enum
+    else if methods.contains(&"enum_type".to_string())
+        || methods.contains(&"enumeration".to_string())
+    {
+        "Enum".to_string()
+    }
+    // Fallback
+    else {
         "String".to_string()
     }
 }
@@ -64,6 +224,15 @@ pub fn detect_col_type_seaorm(methods: &[String]) -> String {
 // String helpers
 // ============================================================
 
+/// Convertit une chaîne PascalCase en snake_case.
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::helpers::to_snake_case;
+/// assert_eq!(to_snake_case("PascalCase"), "pascal_case");
+/// assert_eq!(to_snake_case("Test"), "test");
+/// ```
 pub fn to_snake_case(s: &str) -> String {
     let mut result = String::new();
     for (i, ch) in s.chars().enumerate() {

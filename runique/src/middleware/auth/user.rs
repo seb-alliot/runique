@@ -41,7 +41,6 @@ pub enum Relation {}
 impl ActiveModelBehavior for ActiveModel {}
 
 // ─── Méthodes utilitaires ────────────────────────────────────────────────────
-
 impl Model {
     pub fn get_roles(&self) -> Vec<String> {
         self.roles

@@ -9,6 +9,14 @@ use std::collections::HashSet;
 /// - Removes ALL HTML tags
 /// - Neutralizes dangerous protocols
 /// - Usable everywhere without concern
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::utils::forms::sanitizer::sanitize_strict;
+/// assert_eq!(sanitize_strict("<b>test</b>"), "test");
+/// assert_eq!(sanitize_strict("javascript:alert('xss')"), "alert('xss')");
+/// ```
 pub fn sanitize_strict(input: &str) -> String {
     if input.is_empty() {
         return String::new();
@@ -33,6 +41,17 @@ pub fn sanitize_strict(input: &str) -> String {
 /// - Strict allow-list
 /// - No JS possible
 /// - No SVG / MathML
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::utils::forms::sanitizer::sanitize_rich;
+/// // Les balises autorisées sont conservées, les autres supprimées
+/// let html = "<b>gras</b> <script>alert('xss')</script>";
+/// let result = sanitize_rich(html);
+/// assert!(result.contains("<b>gras</b>"));
+/// assert!(!result.contains("<script>"));
+/// ```
 pub fn sanitize_rich(input: &str) -> String {
     if input.is_empty() {
         return String::new();
@@ -60,6 +79,19 @@ pub fn sanitize_rich(input: &str) -> String {
 /// =============================
 ///
 /// Automatically decides the sanitation mode
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::utils::forms::sanitizer::sanitize;
+/// // Champ "description" autorise le HTML riche (si présent dans RICH_CONTENT_FIELDS)
+/// let html = "<b>gras</b>";
+/// let result = sanitize("description", html);
+/// // Le résultat dépend de la config du projet (RICH_CONTENT_FIELDS)
+/// // Pour un champ non riche, le HTML est supprimé
+/// let result2 = sanitize("autre", html);
+/// assert!(!result2.contains("<b>"));
+/// ```
 pub fn sanitize(field: &str, input: &str) -> String {
     if RICH_CONTENT_FIELDS.contains(&field) {
         sanitize_rich(input)

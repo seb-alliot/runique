@@ -2,6 +2,7 @@ use serde_json::Value;
 use std::borrow::Cow;
 use std::fmt::Display;
 
+#[allow(dead_code)]
 /// Languages supported by Runique
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Lang {
@@ -9,7 +10,7 @@ pub enum Lang {
     #[default]
     En,
 }
-
+#[allow(dead_code)]
 impl Lang {
     /// Returns the language code (for file names)
     const fn code(&self) -> &'static str {
