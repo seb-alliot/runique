@@ -1,19 +1,47 @@
 /// snapshots/ directory (current state of the table, used for diff only)
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::paths::snapshot_dir;
+/// assert_eq!(snapshot_dir("migrations"), "migrations/snapshots");
+/// ```
 pub fn snapshot_dir(migrations_path: &str) -> String {
     format!("{}/snapshots", migrations_path)
 }
 
 /// Path to the snapshot file of a table
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::paths::snapshot_file_path;
+/// assert_eq!(snapshot_file_path("migrations", "users"), "migrations/snapshots/users.rs");
+/// ```
 pub fn snapshot_file_path(migrations_path: &str, table_name: &str) -> String {
     format!("{}/snapshots/{}.rs", migrations_path, table_name)
 }
 
 /// SeaORM module name for a CREATE (used in lib.rs and as file name)
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::paths::seaorm_create_module_name;
+/// assert_eq!(seaorm_create_module_name("20260219", "blog"), "m20260219_create_blog_table");
+/// ```
 pub fn seaorm_create_module_name(timestamp: &str, table_name: &str) -> String {
     format!("m{}_create_{}_table", timestamp, table_name)
 }
 
 /// Path to the SeaORM migration file for a CREATE
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::paths::seaorm_create_file_path;
+/// assert_eq!(seaorm_create_file_path("migrations", "20260219", "blog"), "migrations/m20260219_create_blog_table.rs");
+/// ```
 pub fn seaorm_create_file_path(migrations_path: &str, timestamp: &str, table_name: &str) -> String {
     format!(
         "{}/m{}_create_{}_table.rs",
@@ -22,11 +50,25 @@ pub fn seaorm_create_file_path(migrations_path: &str, timestamp: &str, table_nam
 }
 
 /// Root applied/ directory
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::paths::applied_dir;
+/// assert_eq!(applied_dir("migrations"), "migrations/applied");
+/// ```
 pub fn applied_dir(migrations_path: &str) -> String {
     format!("{}/applied", migrations_path)
 }
 
 /// applied/<table>/ directory
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::paths::table_applied_dir;
+/// assert_eq!(table_applied_dir("migrations", "users"), "migrations/applied/users");
+/// ```
 pub fn table_applied_dir(migrations_path: &str, table_name: &str) -> String {
     format!("{}/applied/{}", migrations_path, table_name)
 }

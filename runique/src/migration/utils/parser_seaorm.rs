@@ -10,6 +10,15 @@ use crate::migration::utils::{
     types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 
+/// Parse le code source SeaORM et retourne un schéma analysé.
+///
+/// # Exemple
+///
+/// ```rust,ignore
+/// // let schema = parse_seaorm_source("...");
+/// // assert!(schema.is_ok());
+/// ```
+
 struct SeaOrmVisitor {
     pub table_name: Option<String>,
     pub primary_key: Option<ParsedColumn>,
@@ -57,14 +66,6 @@ impl SeaOrmVisitor {
             return;
         };
         let method = mc.method.to_string();
-
-        if method == "table" {
-            if let Some(arg) = mc.args.first() {
-                if let Some(name) = extract_alias_new_str(arg) {
-                    self.table_name = Some(name);
-                }
-            }
-        }
 
         if method == "col" {
             if let Some(arg) = mc.args.first() {

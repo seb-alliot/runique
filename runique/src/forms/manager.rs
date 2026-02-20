@@ -154,10 +154,12 @@ impl Forms {
             js_files: Vec::new(),
         }
     }
+
     pub fn field_generic(&mut self, field: GenericField) {
         self.fields
             .insert(field.name().to_string(), Box::new(field));
     }
+
     fn render_js(&self, tera: &ATera) -> Result<String, String> {
         if self.js_files.is_empty() {
             return Ok(String::new());

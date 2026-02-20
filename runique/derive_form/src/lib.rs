@@ -21,6 +21,6 @@ mod schema_form;
 
 /// Macro #[derive(ModelSchemaForm)]
 #[proc_macro_attribute]
-pub fn model_form(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn form(attr: TokenStream, item: TokenStream) -> TokenStream {
     schema_form::model_schema(attr, item)
 }

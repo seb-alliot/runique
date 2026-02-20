@@ -40,8 +40,8 @@ impl FieldConfig {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct TextConfig {
-    pub max_length: Option<LengthConstraint<usize>>,
-    pub min_length: Option<LengthConstraint<usize>>,
+    pub max_length: Option<LengthConstraint>,
+    pub min_length: Option<LengthConstraint>,
 }
 
 #[derive(Clone, Serialize, Debug)]
@@ -192,10 +192,6 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         );
     }
 
-    // ========================================================================
-    // MÉTHODES SANS IMPLÉMENTATION => implémentées individuellement
-    // ========================================================================
-
     /// Validation spécifique au type de champ
     fn validate(&mut self) -> bool;
 
@@ -206,10 +202,6 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     fn finalize(&mut self) -> Result<(), String> {
         Ok(())
     }
-
-    // ========================================================================
-    // CONVERSION JSON - Implémentations par défaut
-    // ========================================================================
 
     fn to_json_value(&self) -> Value {
         json!(self.get_field_config().value)

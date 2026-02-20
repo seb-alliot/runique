@@ -3,6 +3,27 @@ use std::collections::{HashMap, HashSet};
 use crate::migration::utils::types::{Changes, ParsedColumn, ParsedSchema};
 
 /// Colonnes qui existent réellement en base (hors ignored et hors PK)
+///
+/// # Exemple
+///
+/// ```rust
+/// use runique::migration::utils::types::{ParsedSchema, ParsedColumn};
+/// use runique::migration::utils::diff::db_columns;
+/// let schema = ParsedSchema {
+///     table_name: "t".to_string(),
+///     columns: vec![
+///         ParsedColumn { name: "id".to_string(), col_type: "int".to_string(), nullable: false, unique: false, ignored: false },
+///         ParsedColumn { name: "name".to_string(), col_type: "string".to_string(), nullable: false, unique: false, ignored: false },
+///         ParsedColumn { name: "tmp".to_string(), col_type: "string".to_string(), nullable: false, unique: false, ignored: true },
+///     ],
+///     primary_key: Some(ParsedColumn { name: "id".to_string(), col_type: "int".to_string(), nullable: false, unique: false, ignored: false }),
+///     foreign_keys: vec![],
+///     indexes: vec![],
+/// };
+/// let cols = db_columns(&schema);
+/// assert_eq!(cols.len(), 1);
+/// assert_eq!(cols[0].name, "name");
+/// ```
 pub fn db_columns(schema: &ParsedSchema) -> Vec<&ParsedColumn> {
     let pk_name = schema.primary_key.as_ref().map(|pk| pk.name.as_str());
     schema
@@ -12,6 +33,14 @@ pub fn db_columns(schema: &ParsedSchema) -> Vec<&ParsedColumn> {
         .collect()
 }
 
+/// Calcule les différences entre deux schémas de table.
+///
+/// # Exemple
+///
+/// ```rust,ignore
+/// // let changes = diff_schemas(&old_schema, &new_schema);
+/// // assert!(changes.added_columns.len() > 0 || changes.dropped_columns.len() > 0);
+/// ```
 pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes {
     let prev_cols: HashMap<&str, &ParsedColumn> = db_columns(previous)
         .into_iter()

@@ -74,11 +74,37 @@ fn try_parse_builder_chain(expr: &Expr) -> Option<ParsedSchema> {
                     let methods = method_names_in_expr(arg);
                     let name = extract_str_from_call(arg);
                     let col_type = if methods.contains(&"uuid".to_string()) {
-                        "Uuid"
-                    } else if methods.contains(&"i64".to_string()) {
-                        "BigInteger"
+                        "Uuid".to_string()
+                    } else if methods.contains(&"i64".to_string())
+                        || methods.contains(&"big_integer".to_string())
+                    {
+                        "BigInteger".to_string()
+                    } else if methods.contains(&"i32".to_string())
+                        || methods.contains(&"integer".to_string())
+                    {
+                        "Integer".to_string()
+                    } else if methods.contains(&"i16".to_string())
+                        || methods.contains(&"small_integer".to_string())
+                    {
+                        "SmallInteger".to_string()
+                    } else if methods.contains(&"i8".to_string())
+                        || methods.contains(&"tiny_integer".to_string())
+                    {
+                        "TinyInteger".to_string()
+                    } else if methods.contains(&"u64".to_string())
+                        || methods.contains(&"big_unsigned".to_string())
+                    {
+                        "BigUnsigned".to_string()
+                    } else if methods.contains(&"u32".to_string())
+                        || methods.contains(&"unsigned".to_string())
+                    {
+                        "Unsigned".to_string()
+                    } else if methods.contains(&"string".to_string())
+                        || methods.contains(&"varchar".to_string())
+                    {
+                        "String".to_string()
                     } else {
-                        "Integer"
+                        "Integer".to_string()
                     };
                     if let Some(n) = name {
                         primary_key = Some(ParsedColumn {
