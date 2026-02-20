@@ -70,7 +70,7 @@
           <div class="form-grid">
             {% if form_fields is defined %}
               {% if form_fields.html is defined and form_fields.html %}
-                {{ form_fields.html | safe }}
+                {{ form_fields.html }}
               {% else %}
                 <p>Aucun champ disponible pour le moment.</p>
               {% endif %}

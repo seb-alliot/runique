@@ -37,7 +37,7 @@ pub fn db_columns(schema: &ParsedSchema) -> Vec<&ParsedColumn> {
 ///
 /// # Exemple
 ///
-/// ```rust,ignore
+/// ```rust
 /// // let changes = diff_schemas(&old_schema, &new_schema);
 /// // assert!(changes.added_columns.len() > 0 || changes.dropped_columns.len() > 0);
 /// ```

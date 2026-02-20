@@ -21,17 +21,18 @@
 //!
 //! ## Exemple rapide
 //!
-//! ```rust,ignore
-//! use runique::prelude::*;
-//!
-//! #[tokio::main]
-//! async fn main() {
-//!     let config = RuniqueConfig::from_env();
-//!     let app = RuniqueApp::builder(config).build().await.unwrap();
-//!     app.run().await.unwrap();
-//! }
-//! ```
-
+//! ```rust
+/// use runique::prelude::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     let config: RuniqueConfig = RuniqueConfig::from_env();
+///     builder::new(config)
+///         .build().await?
+///         .run().await?;
+///     Ok(())
+/// }
+/// ```
 // ---------------------------------------------------------------------------
 // Modules principaux (arborescence actuelle)
 // ---------------------------------------------------------------------------
@@ -205,7 +206,7 @@ pub mod prelude {
     // ========================================================================
     // MODULES PRINCIPAUX
     // ========================================================================
-    pub use crate::app::{RuniqueApp, RuniqueAppBuilder};
+    pub use crate::app::{RuniqueApp, RuniqueAppBuilder as builder};
     pub use crate::config::app::RuniqueConfig;
     pub use crate::context::{AppError, Request};
     pub use crate::engine::RuniqueEngine;

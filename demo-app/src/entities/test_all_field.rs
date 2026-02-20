@@ -1,5 +1,5 @@
 use crate::runique::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
-
+#[allow(dead_code)]
 pub fn test_all_fields_schema() -> ModelSchema {
     model!("TestAllFields")
         .table_name("test_all_fields")

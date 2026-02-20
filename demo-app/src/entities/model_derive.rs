@@ -1,5 +1,5 @@
 use crate::runique::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
-
+#[allow(dead_code)]
 pub fn users_booster_schema() -> ModelSchema {
     model!("UsersBooster")
         .table_name("users_booster")

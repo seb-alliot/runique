@@ -119,7 +119,12 @@ impl UserEntity for BuiltinUserEntity {
 /// Auth admin prête à l'emploi avec le User built-in.
 ///
 /// ```rust,ignore
-/// .with_admin(|a| a.auth(RuniqueAdminAuth::new()))
+///         .with_admin(|a| {
+///          a.with_registry(admin::admin_config())
+///              .hot_reload(cfg!(debug_assertions))
+///              .site_title("Administration")
+///              .auth(RuniqueAdminAuth::new())
+///              .routes(admins::admin("/admin"))
 /// ```
 pub type RuniqueAdminAuth =
     crate::middleware::auth::default_auth::DefaultAdminAuth<BuiltinUserEntity>;

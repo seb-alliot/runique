@@ -34,7 +34,7 @@ pub fn new_registry() -> ARlockmap {
 ///
 /// # Exemple
 ///
-/// ```rust,ignore
+/// ```rust
 /// use tower_http::services::ServeDir;
 /// let serve = ServeDir::new("./static");
 /// ```

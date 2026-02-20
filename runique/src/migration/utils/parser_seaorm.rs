@@ -14,11 +14,10 @@ use crate::migration::utils::{
 ///
 /// # Exemple
 ///
-/// ```rust,ignore
+/// ```rust
 /// // let schema = parse_seaorm_source("...");
 /// // assert!(schema.is_ok());
 /// ```
-
 struct SeaOrmVisitor {
     pub table_name: Option<String>,
     pub primary_key: Option<ParsedColumn>,
@@ -66,7 +65,15 @@ impl SeaOrmVisitor {
             return;
         };
         let method = mc.method.to_string();
-
+        // Détection du nom de table lors de Table::create().table(Alias::new(...))
+        if method == "table" {
+            if let Some(arg) = mc.args.first() {
+                let name = extract_alias_new_str(arg).or_else(|| extract_str_from_call(arg));
+                if let Some(n) = name {
+                    self.table_name = Some(n);
+                }
+            }
+        }
         if method == "col" {
             if let Some(arg) = mc.args.first() {
                 let methods = method_names_in_expr(arg);

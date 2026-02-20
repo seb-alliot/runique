@@ -35,14 +35,6 @@
     <span class="field-error-message">{{ field.error }}</span>
     {% endif %}
 
-    <script>
-        (function() {
-            const picker = document.getElementById('id_{{ field.name }}');
-            const textInput = document.getElementById('id_{{ field.name }}_text');
+    <script src="{{ "js/color.js" | runique_static }}"></script>
 
-            picker.addEventListener('input', function() {
-                textInput.value = picker.value.toUpperCase();
-            });
-        })();
-    </script>
 </div>
