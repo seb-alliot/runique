@@ -2,7 +2,6 @@ use runique::prelude::*;
 use runique::utils::aliases::StrMap;
 use std::sync::Arc;
 
-use crate::formulaire::user;
 use crate::formulaire::RegisterForm;
 
 // ───────────── Handler users_list ─────────────
@@ -249,7 +248,7 @@ pub async fn users_delete(
         .await?
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
 
-    let resource = admin
+    let resource: &AdminResource = admin
         .registry
         .resources
         .iter()

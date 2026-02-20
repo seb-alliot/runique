@@ -176,7 +176,7 @@ fn test_parse_builder_model_macro_snake_case() {
 
 #[test]
 fn test_parse_builder_no_build_returns_none() {
-    // Sans .build() la chaîne ne doit pas être reconnue
+    // Without .build(), the string should not be recognized
     let source = r#"
         pub fn schema() -> ModelSchema {
             model!("users")
@@ -394,7 +394,7 @@ fn test_parse_builder_index_not_unique_by_default() {
 }
 
 // ============================================================
-// Parser SeaORM
+// SeaORM Parser
 // ============================================================
 
 #[test]
@@ -545,7 +545,7 @@ fn test_parse_seaorm_index() {
 }
 
 // ============================================================
-// Diff — colonnes (via helper local)
+// Diff — columns (via local helper)
 // ============================================================
 
 #[test]
@@ -658,7 +658,7 @@ fn test_diff_unique_preserved() {
 }
 
 // ============================================================
-// Diff — colonnes via diff_schemas réel (modified_columns)
+// Diff — columns via real diff_schemas (modified_columns)
 // ============================================================
 
 #[test]
@@ -704,7 +704,7 @@ fn test_diff_schemas_modified_unique() {
 
 #[test]
 fn test_diff_schemas_no_false_positives() {
-    // Même schéma : aucun modified_columns
+    // Same schema: no modified_columns
     let schema = make_schema(
         "users",
         Some("id"),
@@ -720,7 +720,7 @@ fn test_diff_schemas_no_false_positives() {
 }
 
 // ============================================================
-// Diff — FK via diff_schemas réel
+// Diff — FK via real diff_schemas
 // ============================================================
 
 #[test]
@@ -801,7 +801,7 @@ fn test_diff_schemas_fk_replaced() {
 }
 
 // ============================================================
-// Diff — indexes via diff_schemas réel
+// Diff — indexes via real diff_schemas
 // ============================================================
 
 #[test]
@@ -1294,7 +1294,7 @@ fn extract_down(src: &str) -> &str {
 }
 
 // ============================================================
-// Diff — ignored via diff_schemas réel
+// Diff — ignored via real diff_schemas
 // ============================================================
 
 #[test]

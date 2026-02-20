@@ -6,18 +6,18 @@ use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;
 
-/// Contexte pour la génération du token
+/// Context for token generation
 pub enum CsrfContext<'a> {
     Anonymous { session_id: &'a str },
     Authenticated { user_id: i32 },
 }
 
-/// Token CSRF typé
+/// Typed CSRF token
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CsrfToken(pub String);
 
 impl CsrfToken {
-    /// Génération selon le contexte
+    /// Generation according to context
     pub fn generate_with_context(ctx: CsrfContext, secret: &str) -> Self {
         let raw = match ctx {
             CsrfContext::Anonymous { session_id } => generation_token(secret, session_id),
@@ -27,24 +27,24 @@ impl CsrfToken {
         };
         CsrfToken(raw)
     }
-    /// Masque le token pour l’injection
+    /// Masks the token for injection
     pub fn masked(&self) -> Self {
         CsrfToken(mask_csrf_token(&self.0))
     }
 
-    /// Démasque le token
+    /// Unmasks the token
     pub fn unmasked(masked: &str) -> Result<Self, &'static str> {
         let unmasked_hex = unmask_csrf_token(masked)?;
         Ok(CsrfToken(unmasked_hex))
     }
 
-    /// Accès au token brut
+    /// Access to the raw token
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
-/// Génération HMAC-SHA256 pour utilisateur anonyme
+/// HMAC-SHA256 generation for anonymous user
 pub fn generation_token(secret_key: &str, option: &str) -> String {
     let mut mac =
         HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");
@@ -62,7 +62,7 @@ pub fn generation_token(secret_key: &str, option: &str) -> String {
     hex::encode(mac.finalize().into_bytes())
 }
 
-/// Génération HMAC-SHA256 pour utilisateur connecté
+/// HMAC-SHA256 generation for authenticated user
 pub fn generation_user_token(secret_key: &str, option: &str) -> String {
     let mut mac =
         HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");
@@ -81,49 +81,49 @@ pub fn generation_user_token(secret_key: &str, option: &str) -> String {
     hex::encode(result.into_bytes())
 }
 
-/// Masquage pour protection BREACH
+/// Masking for BREACH protection
 pub fn mask_csrf_token(token_hex: &str) -> String {
-    // Remplacer expect par une gestion d'erreur ou un fallback
+    // Replace expect with error handling or a fallback
     let token_bytes = hex::decode(token_hex).expect("Invalid hex token");
 
     let mut rng = rand::rng();
 
     let mask: Vec<u8> = (0..token_bytes.len()).map(|_| rng.random()).collect();
 
-    // XOR du token avec le masque
+    // XOR the token with the mask
     let masked: Vec<u8> = token_bytes
         .iter()
         .zip(mask.iter())
         .map(|(t, m)| t ^ m)
         .collect();
 
-    // Concaténer masque + token_masqué
+    // Concatenate mask + masked_token
     let mut result = mask;
     result.extend(masked);
 
-    // Encoder en base64
+    // Encode in base64
     general_purpose::STANDARD.encode(&result)
 }
 
-/// Démasquage
+/// Unmasking
 pub fn unmask_csrf_token(masked_token_b64: &str) -> Result<String, &'static str> {
     let decoded = general_purpose::STANDARD
         .decode(masked_token_b64)
         .map_err(|_| "Invalid base64")?;
 
-    // Vérifier que la taille est paire (masque + token)
+    // Check that the size is even (mask + token)
     if decoded.len() % 2 != 0 {
         return Err("Invalid token length");
     }
 
     let token_len = decoded.len() / 2;
 
-    // Séparer masque et token masqué
+    // Split mask and masked token
     let (mask, masked) = decoded.split_at(token_len);
 
-    // XOR inverse pour récupérer le token original
+    // Inverse XOR to retrieve the original token
     let token_bytes: Vec<u8> = masked.iter().zip(mask.iter()).map(|(m, k)| m ^ k).collect();
 
-    // Convertir en hex
+    // Convert to hex
     Ok(hex::encode(token_bytes))
 }

@@ -1,7 +1,7 @@
 /// CSP Nonce Generation
 ///
-/// Utilitaires pour générer des nonces CSP (Content Security Policy)
-/// pour les scripts inline et styles.
+/// Utilities to generate CSP (Content Security Policy) nonces
+/// for inline scripts and styles.
 use rand::RngExt;
 #[derive(Debug, Clone)]
 pub struct CspNonce(String);

@@ -1,8 +1,8 @@
 pub mod admin_auth;
 pub mod auth_session;
-pub mod builtin_user;
 pub mod default_auth;
 pub mod form;
+pub mod user;
 pub mod user_trait;
 
 pub use auth_session::{
@@ -15,5 +15,5 @@ pub use user_trait::RuniqueUser;
 
 pub use default_auth::{DefaultAdminAuth, UserEntity};
 
-pub use builtin_user::{BuiltinUserEntity, RuniqueAdminAuth};
 pub use form::LoginForm;
+pub use user::{BuiltinUserEntity, RuniqueAdminAuth};

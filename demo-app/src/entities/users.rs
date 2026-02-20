@@ -1,4 +1,3 @@
-pub use crate::formulaire::user::Entity;
 pub use crate::runique::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
 
 pub fn eihwaz_users_schema() -> ModelSchema {
@@ -11,7 +10,6 @@ pub fn eihwaz_users_schema() -> ModelSchema {
         .column(ColumnDef::new("is_active").boolean().required())
         .column(ColumnDef::new("is_staff").boolean().required())
         .column(ColumnDef::new("is_superuser").boolean().required())
-        .column(ColumnDef::new("roles").string().nullable())
         .column(ColumnDef::new("created_at").datetime().nullable())
         .column(ColumnDef::new("updated_at").datetime().nullable())
         .build()

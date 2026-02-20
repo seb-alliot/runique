@@ -14,7 +14,7 @@ pub static FAILED_REGEX: Lazy<Regex> =
 pub static FOR_KEY_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"for\s+key\s+'[^.]+\.([^']+)'").unwrap());
 
-/// Champs autorisés à contenir du HTML riche
+/// Fields allowed to contain rich HTML
 pub static RICH_CONTENT_FIELDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     HashSet::from([
         "content",
@@ -28,7 +28,7 @@ pub static RICH_CONTENT_FIELDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ])
 });
 
-/// Policy HTML : balises autorisées (sécurité)
+/// HTML Policy: allowed tags (security)
 pub static ALLOWED_TAGS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     HashSet::from([
         "p",
@@ -51,7 +51,7 @@ pub static ALLOWED_TAGS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ])
 });
 
-/// Policy HTML : attributs autorisés par balise
+/// HTML Policy: allowed attributes per tag
 pub static ALLOWED_ATTRS: Lazy<HashMap<&'static str, HashSet<&'static str>>> = Lazy::new(|| {
     let mut map = HashMap::new();
     map.insert("a", HashSet::from(["href", "title", "target"]));

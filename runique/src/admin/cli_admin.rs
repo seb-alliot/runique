@@ -1,7 +1,7 @@
 // src/bin/createsuperuser.rs
 use crate::forms::base::FormField;
 use crate::forms::fields::text::TextField;
-use crate::middleware::auth::builtin_user::{ActiveModel, BuiltinUserEntity, UserEntity};
+use crate::middleware::auth::user::{ActiveModel, BuiltinUserEntity, UserEntity};
 use anyhow::Result;
 use rpassword::read_password;
 use sea_orm::{ActiveModelTrait, Set};

@@ -3,12 +3,12 @@ use ammonia::Builder;
 use std::collections::HashSet;
 
 /// =============================
-/// MODE STRICT — TEXTE UNIQUEMENT
+/// STRICT MODE — TEXT ONLY
 /// =============================
 ///
-/// - Supprime TOUS les tags HTML
-/// - Neutralise les protocoles dangereux
-/// - Utilisable partout sans réflexion
+/// - Removes ALL HTML tags
+/// - Neutralizes dangerous protocols
+/// - Usable everywhere without concern
 pub fn sanitize_strict(input: &str) -> String {
     if input.is_empty() {
         return String::new();
@@ -27,24 +27,24 @@ pub fn sanitize_strict(input: &str) -> String {
 }
 
 /// =============================
-/// MODE RICH — HTML CONTRÔLÉ
+/// RICH MODE — CONTROLLED HTML
 /// =============================
 ///
-/// - Allow-list stricte
-/// - Aucun JS possible
-/// - Aucun SVG / MathML
+/// - Strict allow-list
+/// - No JS possible
+/// - No SVG / MathML
 pub fn sanitize_rich(input: &str) -> String {
     if input.is_empty() {
         return String::new();
     }
 
-    // Construire le Builder sans conflit avec link_rel
+    // Build the Builder without conflict with link_rel
     let mut builder = Builder::new();
     let builder = builder.tags(ALLOWED_TAGS.clone());
     let builder = builder.tag_attributes(ALLOWED_ATTRS.clone());
     let mut builder = builder.url_schemes(HashSet::from(["http", "https", "mailto"]));
 
-    // Ajouter link_rel uniquement si rel n'est pas déjà dans ALLOWED_ATTRS
+    // Add link_rel only if rel is not already in ALLOWED_ATTRS
     if !ALLOWED_ATTRS
         .get("a")
         .is_some_and(|attrs| attrs.contains("rel"))
@@ -56,10 +56,10 @@ pub fn sanitize_rich(input: &str) -> String {
 }
 
 /// =============================
-/// POINT D’ENTRÉE UNIQUE
+/// SINGLE ENTRY POINT
 /// =============================
 ///
-/// Décide automatiquement du mode de sanitation
+/// Automatically decides the sanitation mode
 pub fn sanitize(field: &str, input: &str) -> String {
     if RICH_CONTENT_FIELDS.contains(&field) {
         sanitize_rich(input)
@@ -69,7 +69,7 @@ pub fn sanitize(field: &str, input: &str) -> String {
 }
 
 /// =============================
-/// TESTS XSS (OWASP)
+/// XSS TESTS (OWASP)
 /// =============================
 #[cfg(test)]
 mod tests {
