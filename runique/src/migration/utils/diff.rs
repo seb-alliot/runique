@@ -57,10 +57,12 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         .map(|c| (*c).clone())
         .collect();
 
-    let dropped_columns = prev_cols
-        .values()
+    let dropped_columns: Vec<ParsedColumn> = previous
+        .columns
+        .iter()
+        .filter(|c| !c.ignored)
         .filter(|c| !curr_cols.contains_key(c.name.as_str()))
-        .map(|c| c.name.clone())
+        .cloned()
         .collect();
 
     let modified_columns = curr_cols

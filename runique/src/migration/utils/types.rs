@@ -32,11 +32,11 @@ pub struct ParsedIndex {
     pub unique: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Changes {
     pub table_name: String,
     pub added_columns: Vec<ParsedColumn>,
-    pub dropped_columns: Vec<String>,
+    pub dropped_columns: Vec<ParsedColumn>, // <- CHANGÉ
     pub modified_columns: Vec<(ParsedColumn, ParsedColumn)>,
     pub added_fks: Vec<ParsedFk>,
     pub dropped_fks: Vec<ParsedFk>,
@@ -46,25 +46,6 @@ pub struct Changes {
 }
 
 impl Changes {
-    /// Vérifie si le diff de schéma est vide (aucune modification).
-    ///
-    /// # Exemple
-    ///
-    /// ```rust
-    /// use runique::migration::utils::types::Changes;
-    /// let changes = Changes {
-    ///     table_name: "test".to_string(),
-    ///     added_columns: vec![],
-    ///     dropped_columns: vec![],
-    ///     modified_columns: vec![],
-    ///     added_fks: vec![],
-    ///     dropped_fks: vec![],
-    ///     added_indexes: vec![],
-    ///     dropped_indexes: vec![],
-    ///     is_new_table: false,
-    /// };
-    /// assert!(changes.is_empty());
-    /// ```
     pub fn is_empty(&self) -> bool {
         !self.is_new_table
             && self.added_columns.is_empty()

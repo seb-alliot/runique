@@ -138,7 +138,7 @@ impl ModelSchema {
     /// The PK is always excluded.
     pub fn fill_form(
         &self,
-        form: &mut crate::forms::manager::Forms,
+        form: &mut crate::forms::Forms,
         fields: Option<&[&str]>,
         exclude: Option<&[&str]>,
     ) {

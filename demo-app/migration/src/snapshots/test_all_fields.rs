@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Alias::new("test_all_fields"))
                     .if_not_exists()
-                    .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
+                    .col(ColumnDef::new(Alias::new("id")).uuid().not_null().primary_key())
                     .col(ColumnDef::new(Alias::new("f_text")).string().null())
                     .col(ColumnDef::new(Alias::new("f_email")).string().null())
                     .col(ColumnDef::new(Alias::new("f_url")).string().null())
@@ -52,7 +52,8 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Alias::new("test_all_fields")).to_owned())
+            .drop_table(Table::drop().table(Alias::new("test_all_fields"))
+                .to_owned())
             .await?;
         Ok(())
     }

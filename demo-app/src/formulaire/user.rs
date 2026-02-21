@@ -9,8 +9,6 @@ impl RegisterForm {
         &self,
         db: &DatabaseConnection,
     ) -> Result<runique::prelude::user::Model, DbErr> {
-        let mut form = RegisterForm::from_form(self.get_form().clone());
-        let _ = form.clean().await;
         use runique::prelude::user::ActiveModel;
         let new_user = ActiveModel {
             username: Set(self.form.get_string("username")),

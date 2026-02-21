@@ -72,7 +72,7 @@ pub struct Range {
     pub max: f64,
 }
 
-/// Trait commun pour accéder à la configuration d'un champ
+/// Common trait to access a field's configuration
 pub trait CommonFieldConfig {
     fn get_field_config(&self) -> &FieldConfig;
     fn get_field_config_mut(&mut self) -> &mut FieldConfig;
@@ -90,7 +90,7 @@ impl CommonFieldConfig for FieldConfig {
 
 pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Sync {
     // ========================================================================
-    // GETTERS - Implémentation par défaut via CommonFieldConfig
+    // GETTERS - Default implementation via CommonFieldConfig
     // ========================================================================
 
     fn name(&self) -> &str {
@@ -126,7 +126,7 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
     }
 
     // ========================================================================
-    // SETTERS - Implémentation par défaut via CommonFieldConfig
+    // SETTERS - Default implementation via CommonFieldConfig
     // ========================================================================
 
     fn set_name(&mut self, name: &str) {

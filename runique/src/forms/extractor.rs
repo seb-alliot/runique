@@ -9,16 +9,16 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-/// Prisme : pipeline Sentinel -> CSRF -> Aegis (extraction)
+/// Prism: Sentinel -> CSRF -> Aegis pipeline (extraction)
 pub struct Prisme<T>(pub T);
 
-/// Fonction pipeline réutilisable : Sentinel -> CSRF -> Aegis
+/// Reusable pipeline function: Sentinel -> CSRF -> Aegis
 pub async fn prisme<S, T>(req: Request<Body>, state: &S) -> Result<Prisme<T>, Response>
 where
     S: Send + Sync,
     T: RuniqueForm,
 {
-    // Sentinel : dépendances + règles d'accès
+    // Sentinel: dependencies + access rules
     let tera = req.extensions().get::<ATera>().cloned().ok_or_else(|| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -56,24 +56,23 @@ where
         .unwrap_or("")
         .to_string();
 
-    // Aegis (extraction) : lecture unique du body
+    // Aegis (extraction): single read of the body
     let parsed = aegis(req, state, config.clone(), &content_type).await?;
 
-    // CSRF gate : vérification précoce sur données parsées
+    // CSRF gate: early check on parsed data
     if let Some(prisme) = csrf_gate::<T>(&parsed, csrf_session.as_str(), tera.clone()).await? {
         return Ok(prisme);
     }
-    // On récupère le flag depuis la config injectée par le builder
+
     let form_data = convert_for_form(parsed);
 
-    let mut form = T::build_with_data(
-        &form_data, // Maintenant potentiellement nettoyé
-        tera.clone(),
+    // ← Changed: build_with_data already creates the renderer, no need to set_tera afterwards
+    let form = T::build_with_data(
+        &form_data,
+        tera, // ← No need for .clone() if consumed
         csrf_session.as_str(),
     )
     .await;
-
-    form.get_form_mut().set_tera(tera);
 
     Ok(Prisme(form))
 }

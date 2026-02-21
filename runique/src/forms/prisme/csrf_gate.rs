@@ -21,8 +21,8 @@ pub async fn csrf_gate<T: RuniqueForm>(
 
     if csrf_submitted != Some(csrf_session) {
         let empty: StrMap = HashMap::new();
-        let mut form = T::build_with_data(&empty, tera.clone(), csrf_session).await;
-        form.get_form_mut().set_tera(tera);
+        let mut form = T::build_with_data(&empty, tera, csrf_session).await;
+
         if let Some(csrf_field) = form.get_form_mut().fields.get_mut(CSRF_TOKEN_KEY) {
             csrf_field.set_error("Token CSRF invalide ou manquant".to_string());
         }

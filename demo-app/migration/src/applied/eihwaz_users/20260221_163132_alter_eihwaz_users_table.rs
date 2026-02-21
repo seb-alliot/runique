@@ -10,7 +10,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Alias::new("eihwaz_users"))
-                    .drop_column(Alias::new("roles"))
+                    .drop_column(Alias::new("_password"))
                     .to_owned(),
             )
             .await?;
@@ -22,7 +22,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Alias::new("eihwaz_users"))
-                    .add_column(ColumnDef::new(Alias::new("roles")).string().not_null())
+                    .add_column(ColumnDef::new(Alias::new("_password")).string().not_null())
                     .to_owned(),
             )
             .await?;

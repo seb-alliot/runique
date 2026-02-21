@@ -11,16 +11,16 @@ use std::sync::Arc;
 use tera::{Context, Tera};
 use validator::{ValidateEmail, ValidateUrl};
 
-// Structure principale pour les champs texte
+// Main structure for text fields
 #[derive(Clone, Serialize, Debug)]
 pub struct TextField {
     pub base: FieldConfig,
     pub config: TextConfig,
     pub format: SpecialFormat,
-    pub hash_password: bool, // true par défaut
+    pub hash_password: bool, // true by default
 }
 
-// Formats spéciaux pour les champs texte
+// Special formats for text fields
 #[derive(Clone, Debug, Serialize)]
 pub enum SpecialFormat {
     None,
@@ -40,9 +40,9 @@ impl CommonFieldConfig for TextField {
     }
 }
 
-// Implémentation des méthodes pour TextField
+// Implementation of methods for TextField
 impl TextField {
-    // Constructeur privé général basé sur le field générique => évite la duplication de code
+    // Private generic constructor based on the generic field — avoids code duplication
     fn create(name: &str, type_field: &str, format: SpecialFormat) -> Self {
         Self {
             base: FieldConfig::new(name, type_field, "base_string"),
@@ -51,7 +51,7 @@ impl TextField {
             hash_password: true,
         }
     }
-    /// Désactive le hashage automatique du mot de passe (helper)
+    /// Disables automatic password hashing (helper)
     pub fn no_hash(mut self) -> Self {
         self.hash_password = false;
         self
@@ -78,7 +78,7 @@ impl TextField {
         self
     }
 
-    // Constructeurs publics pour différents types de champs texte
+    // Public constructors for different text field types
     pub fn text(name: &str) -> Self {
         Self::create(name, "text", SpecialFormat::None)
     }
@@ -100,7 +100,7 @@ impl TextField {
         Self::create(name, "url", SpecialFormat::Url)
     }
 
-    // Utilitaires mot de passe
+    // Password utilities
     pub fn hash_password(&self) -> Result<String, String> {
         if self.base.value.is_empty() {
             return Err("Le mot de passe est vide".to_string());
@@ -151,14 +151,14 @@ impl TextField {
 
 impl FormField for TextField {
     fn validate(&mut self) -> bool {
-        // Trim initial
+        // Initial trim
         let mut val = self.base.value.trim().to_string();
 
         if let SpecialFormat::RichText = self.format {
             val = crate::utils::sanitizer::sanitize(&self.base.name, &val);
         }
 
-        // Validation du champ requis
+        // Required field validation
         if self.base.is_required.choice && val.is_empty() {
             let msg = self
                 .base
@@ -174,7 +174,7 @@ impl FormField for TextField {
             return true;
         }
 
-        // Validation longueur min
+        // Minimum length validation
         if let Some(limits) = &self.config.min_length {
             let count: u32 = val.chars().count() as u32;
             if count < limits.value {
@@ -187,7 +187,7 @@ impl FormField for TextField {
             }
         }
 
-        // Validation longueur max
+        // Maximum length validation
         if let Some(limits) = &self.config.max_length {
             let count: u32 = val.chars().count() as u32;
             if count > limits.value {
@@ -200,7 +200,7 @@ impl FormField for TextField {
             }
         }
 
-        // Validation format spécial
+        // Special format validation
         match &self.format {
             SpecialFormat::Email if !val.validate_email() => {
                 self.set_error("Format d'adresse email invalide".into());
@@ -216,7 +216,7 @@ impl FormField for TextField {
             _ => {}
         }
 
-        // Mise à jour la valeur nettoyée
+        // Update the cleaned value
         self.base.value = val;
 
         self.clear_error();
@@ -225,7 +225,7 @@ impl FormField for TextField {
 
     fn finalize(&mut self) -> Result<(), String> {
         if let SpecialFormat::Password = &self.format {
-            // On ne hache que si ce n'est pas déjà fait et si hash_password est activé
+            // Only hash if not already done and hash_password is enabled
             if self.hash_password
                 && !self.base.value.is_empty()
                 && !self.base.value.starts_with("$argon2")
@@ -241,7 +241,7 @@ impl FormField for TextField {
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
 
-        // On prépare une version "sécurisée" de la base
+        // Prepare a "secured" version of the base
         let mut base_data = self.base.clone();
         if let SpecialFormat::Password = &self.format {
             base_data.value = "".to_string();
@@ -250,7 +250,7 @@ impl FormField for TextField {
         context.insert("field", &base_data);
         context.insert("input_type", &self.base.type_field);
 
-        // AJOUT IMPORTANT : On injecte la config pour readonly/disabled
+        // IMPORTANT: Inject readonly/disabled config
         context.insert("readonly", &self.to_json_readonly());
         context.insert("disabled", &self.to_json_disabled());
 

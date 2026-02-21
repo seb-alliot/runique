@@ -115,7 +115,7 @@ impl FormField for GenericField {
         delegate_to_kind!(mut self, set_disabled, disabled, msg)
     }
 
-    // --- Logique métier ---
+    // --- Business logic ---
 
     fn validate(&mut self) -> bool {
         delegate_to_kind!(mut self, validate)
@@ -125,7 +125,7 @@ impl FormField for GenericField {
         delegate_to_kind!(self, render, tera)
     }
 
-    // --- Sérialisation JSON ---
+    // --- JSON serialization ---
 
     fn to_json_value(&self) -> Value {
         delegate_to_kind!(self, to_json_value)

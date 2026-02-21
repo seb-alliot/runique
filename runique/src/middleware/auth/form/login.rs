@@ -1,4 +1,4 @@
-use crate::forms::{field::RuniqueForm, fields::text::TextField, manager::Forms};
+use crate::forms::{field::RuniqueForm, fields::text::TextField, Forms};
 use crate::impl_form_access;
 
 /// Formulaire de connexion admin fourni par Runique.
