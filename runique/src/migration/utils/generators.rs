@@ -1,90 +1,34 @@
 use crate::migration::utils::{
     helpers::col_type_to_method,
-    types::{Changes, ParsedSchema},
+    types::{Changes, ParsedColumn, ParsedSchema},
 };
 
 pub fn generate_create_file(schema: &ParsedSchema) -> String {
-    let mut cols = String::new();
+    let cols = build_create_table_cols(schema);
+    let fk_stmts = build_fk_create_stmts(schema);
+    let idx_stmts = build_index_create_stmts(schema);
 
-    if let Some(ref pk) = schema.primary_key {
-        cols.push_str(&format!(
-            "                    .col(ColumnDef::new(Alias::new(\"{}\")).integer().not_null().auto_increment().primary_key())\n",
-            pk.name
-        ));
-    }
-
-    for col in schema.columns.iter().filter(|c| !c.ignored) {
-        let type_method = col_type_to_method(&col.col_type);
-        let null = if col.nullable {
-            ".null()"
-        } else {
-            ".not_null()"
-        };
-        let unique = if col.unique { ".unique()" } else { "" };
-        cols.push_str(&format!(
-            "                    .col(ColumnDef::new(Alias::new(\"{}\")).{}{}{})\n",
-            col.name, type_method, null, unique
-        ));
-    }
-
-    let mut fk_stmts = String::new();
-    for fk in &schema.foreign_keys {
-        fk_stmts.push_str(&format!(
-            "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .from(Alias::new(\"{}\"), Alias::new(\"{}\"))\n                    .to(Alias::new(\"{}\"), Alias::new(\"{}\"))\n                    .on_delete(ForeignKeyAction::{})\n                    .on_update(ForeignKeyAction::{})\n                    .to_owned(),\n            )\n            .await?;\n\n",
-            schema.table_name, fk.from_column,
-            fk.to_table, fk.to_column,
-            fk.on_delete, fk.on_update
-        ));
-    }
-
-    let mut idx_stmts = String::new();
-    for idx in &schema.indexes {
-        let cols_str = idx
-            .columns
-            .iter()
-            .map(|c| format!("Alias::new(\"{}\")", c))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let unique = if idx.unique { ".unique()" } else { "" };
-        idx_stmts.push_str(&format!(
-            "        manager\n            .create_index(\n                Index::create()\n                    .name(\"{}\")\n                    .table(Alias::new(\"{}\"))\n                    .col({}){}\n                    .to_owned(),\n            )\n            .await?;\n\n",
-            idx.name, schema.table_name, cols_str, unique
-        ));
-    }
-
-    let mut fk_drops = String::new();
-    for fk in &schema.foreign_keys {
-        fk_drops.push_str(&format!(
-            "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{}\"))\n                    .name(\"{}_{}_{}_fkey\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
-            schema.table_name, schema.table_name, fk.from_column, fk.to_table
-        ));
-    }
-
-    let mut idx_drops = String::new();
-    for idx in &schema.indexes {
-        idx_drops.push_str(&format!(
-            "        manager\n            .drop_index(Index::drop().name(\"{}\").table(Alias::new(\"{}\")).to_owned())\n            .await?;\n\n",
-            idx.name, schema.table_name
-        ));
-    }
+    let fk_drops = build_fk_drop_stmts(schema);
+    let idx_drops = build_index_drop_stmts(schema);
 
     format!(
-        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n        manager\n            .create_table(\n                Table::create()\n                    .table(Alias::new(\"{}\"))\n                    .if_not_exists()\n{}\n                    .to_owned(),\n            )\n            .await?;\n\n{}{}        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{}{}        manager\n            .drop_table(Table::drop().table(Alias::new(\"{}\")).to_owned())\n            .await?;\n        Ok(())\n    }}\n}}\n",
-        schema.table_name,
-        cols.trim_end(),
-        fk_stmts,
-        idx_stmts,
-        fk_drops,
-        idx_drops,
-        schema.table_name
+        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n        manager\n            .create_table(\n                Table::create()\n                    .table(Alias::new(\"{table}\"))\n                    .if_not_exists()\n{cols}\n                    .to_owned(),\n            )\n            .await?;\n\n{fk_stmts}{idx_stmts}        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{fk_drops}{idx_drops}        manager\n            .drop_table(Table::drop().table(Alias::new(\"{table}\"))\n                .to_owned())\n            .await?;\n        Ok(())\n    }}\n}}\n",
+        table = schema.table_name,
+        cols = cols,
+        fk_stmts = fk_stmts,
+        idx_stmts = idx_stmts,
+        fk_drops = fk_drops,
+        idx_drops = idx_drops,
     )
 }
 
 pub fn generate_alter_file(change: &Changes) -> String {
     let (up_body, down_body) = build_alter_bodies(change);
+
     format!(
-        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{}\n        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{}\n        Ok(())\n    }}\n}}\n",
-        up_body.trim_end(), down_body.trim_end()
+        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{up}\n        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{down}\n        Ok(())\n    }}\n}}\n",
+        up = up_body.trim_end(),
+        down = down_body.trim_end()
     )
 }
 
@@ -114,13 +58,83 @@ pub fn generate_batch_down_file(changes: &[&Changes], timestamp: &str) -> String
     )
 }
 
-// ── internal helpers ────────────────────────────────────────────────────────
+fn build_create_table_cols(schema: &ParsedSchema) -> String {
+    let mut cols = String::new();
+
+    if let Some(ref pk) = schema.primary_key {
+        cols.push_str(&format!("{}\n", render_pk_col(pk)));
+    }
+
+    for col in schema.columns.iter().filter(|c| !c.ignored) {
+        cols.push_str(&format!(
+            "                    .col({})\n",
+            render_column_def(col)
+        ));
+    }
+
+    cols.trim_end().to_string()
+}
+
+fn build_fk_create_stmts(schema: &ParsedSchema) -> String {
+    let mut out = String::new();
+    for fk in &schema.foreign_keys {
+        out.push_str(&format!(
+            "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+            table = schema.table_name,
+            from = fk.from_column,
+            to_table = fk.to_table,
+            to_col = fk.to_column,
+            on_delete = fk.on_delete,
+            on_update = fk.on_update
+        ));
+    }
+    out
+}
+
+fn build_index_create_stmts(schema: &ParsedSchema) -> String {
+    let mut out = String::new();
+    for idx in &schema.indexes {
+        out.push_str(&render_create_index_stmt(
+            &schema.table_name,
+            &idx.name,
+            &idx.columns,
+            idx.unique,
+        ));
+        out.push('\n');
+    }
+    out
+}
+
+fn build_fk_drop_stmts(schema: &ParsedSchema) -> String {
+    let mut out = String::new();
+    for fk in &schema.foreign_keys {
+        out.push_str(&format!(
+            "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{table}\"))\n                    .name(\"{table}_{from}_{to}_fkey\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
+            table = schema.table_name,
+            from = fk.from_column,
+            to = fk.to_table
+        ));
+    }
+    out
+}
+
+fn build_index_drop_stmts(schema: &ParsedSchema) -> String {
+    let mut out = String::new();
+    for idx in &schema.indexes {
+        out.push_str(&format!(
+            "        manager\n            .drop_index(Index::drop().name(\"{idx}\").table(Alias::new(\"{table}\")).to_owned())\n            .await?;\n\n",
+            idx = idx.name,
+            table = schema.table_name
+        ));
+    }
+    out
+}
 
 fn build_alter_bodies(change: &Changes) -> (String, String) {
     let mut up = String::new();
     let mut down = String::new();
 
-    // drop index
+    // 1) DROP indexes (up) / DROP added indexes (down)
     for idx in &change.dropped_indexes {
         push_drop_index(&mut up, &change.table_name, &idx.name);
     }
@@ -128,7 +142,7 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
         push_drop_index(&mut down, &change.table_name, &idx.name);
     }
 
-    // drop FK
+    // 2) DROP FK
     for fk in &change.dropped_fks {
         push_drop_fk(&mut up, &change.table_name, &fk.from_column, &fk.to_table);
     }
@@ -136,22 +150,30 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
         push_drop_fk(&mut down, &change.table_name, &fk.from_column, &fk.to_table);
     }
 
-    // drop column
-    for col_name in &change.dropped_columns {
-        push_drop_column(&mut up, &change.table_name, col_name);
+    // 3) DROP columns
+    for col in &change.dropped_columns {
+        push_drop_column(&mut up, &change.table_name, &col.name);
     }
     for col in &change.added_columns {
         push_drop_column(&mut down, &change.table_name, &col.name);
     }
 
-    // modify column
+    // 4) MODIFY columns
     for (old, new) in &change.modified_columns {
+        // type change => manual
         if old.col_type != new.col_type {
             up.push_str(&format!(
-                "        // WARNING: type change on column '{0}': {1} -> {2}\n        // Manual migration required.\n\n",
-                new.name, old.col_type, new.col_type
+                "        // WARNING: type change on column '{col}': {old} -> {new}\n        // Manual migration required.\n\n",
+                col = new.name,
+                old = old.col_type,
+                new = new.col_type
             ));
-        } else {
+            continue;
+        }
+
+        // nullable -> not_null => destructive unless you backfill
+        if old.nullable && !new.nullable {
+            // Génère quand même le modify_column (risqué si NULL existants)
             push_modify_column(
                 &mut up,
                 &change.table_name,
@@ -168,28 +190,39 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
                 old.nullable,
                 old.unique,
             );
+            continue;
         }
-    }
 
-    // add column
-    for col in &change.added_columns {
-        push_add_column(
+        // safe modify
+        push_modify_column(
             &mut up,
             &change.table_name,
-            &col.name,
-            &col.col_type,
-            col.nullable,
-            col.unique,
+            &new.name,
+            &new.col_type,
+            new.nullable,
+            new.unique,
+        );
+        push_modify_column(
+            &mut down,
+            &change.table_name,
+            &old.name,
+            &old.col_type,
+            old.nullable,
+            old.unique,
         );
     }
-    for col_name in &change.dropped_columns {
-        down.push_str(&format!(
-            "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{0}\"))\n                    .add_column(ColumnDef::new(Alias::new(\"{1}\")).string().not_null())\n                    .to_owned(),\n            )\n            .await?;\n\n",
-            change.table_name, col_name
-        ));
+
+    // 5) ADD columns
+    for col in &change.added_columns {
+        push_add_column(&mut up, &change.table_name, col);
     }
 
-    // add FK
+    // 6) Recreate dropped columns in DOWN (now correct because we store ParsedColumn)
+    for col in &change.dropped_columns {
+        push_add_column(&mut down, &change.table_name, col);
+    }
+
+    // 7) ADD FK
     for fk in &change.added_fks {
         push_create_fk(
             &mut up,
@@ -213,7 +246,7 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
         );
     }
 
-    // add index
+    // 8) ADD indexes
     for idx in &change.added_indexes {
         push_create_index(
             &mut up,
@@ -244,17 +277,10 @@ fn append_up_ops(change: &Changes, buf: &mut String) {
         push_drop_fk(buf, &change.table_name, &fk.from_column, &fk.to_table);
     }
     for col in &change.dropped_columns {
-        push_drop_column(buf, &change.table_name, col);
+        push_drop_column(buf, &change.table_name, &col.name);
     }
     for col in &change.added_columns {
-        push_add_column(
-            buf,
-            &change.table_name,
-            &col.name,
-            &col.col_type,
-            col.nullable,
-            col.unique,
-        );
+        push_add_column(buf, &change.table_name, col);
     }
     for fk in &change.added_fks {
         push_create_fk(
@@ -282,11 +308,9 @@ fn append_down_ops(change: &Changes, buf: &mut String) {
     for col in &change.added_columns {
         push_drop_column(buf, &change.table_name, &col.name);
     }
+    // recreate dropped columns
     for col in &change.dropped_columns {
-        buf.push_str(&format!(
-            "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{0}\"))\n                    .add_column(ColumnDef::new(Alias::new(\"{1}\")).string().not_null())\n                    .to_owned(),\n            )\n            .await?;\n\n",
-            change.table_name, col
-        ));
+        push_add_column(buf, &change.table_name, col);
     }
     for fk in &change.dropped_fks {
         push_create_fk(
@@ -304,26 +328,68 @@ fn append_down_ops(change: &Changes, buf: &mut String) {
     }
 }
 
-// ── low-level string pushers ────────────────────────────────────────────────
+fn render_pk_col(pk: &ParsedColumn) -> String {
+    let ty = col_type_to_method(&pk.col_type);
+
+    // auto_increment only makes sense for integer-ish PK.
+    let autoinc_ok = matches!(
+        pk.col_type.as_str(),
+        "Integer" | "BigInteger" | "SmallInteger" | "TinyInteger" | "Unsigned" | "BigUnsigned"
+    );
+
+    let mut s = format!(
+        "                    .col(ColumnDef::new(Alias::new(\"{name}\")).{ty}.not_null()",
+        name = pk.name,
+        ty = ty
+    );
+
+    if autoinc_ok {
+        s.push_str(".auto_increment()");
+    }
+
+    s.push_str(".primary_key())");
+    s
+}
+
+fn render_column_def(col: &ParsedColumn) -> String {
+    let ty = col_type_to_method(&col.col_type);
+    let null = if col.nullable {
+        ".null()"
+    } else {
+        ".not_null()"
+    };
+    let uniq = if col.unique { ".unique()" } else { "" };
+    format!(
+        "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}",
+        name = col.name,
+        ty = ty,
+        null = null,
+        uniq = uniq
+    )
+}
 
 fn push_drop_index(buf: &mut String, table: &str, idx_name: &str) {
     buf.push_str(&format!(
-        "        manager\n            .drop_index(Index::drop().name(\"{0}\").table(Alias::new(\"{1}\")).to_owned())\n            .await?;\n\n",
-        idx_name, table
+        "        manager\n            .drop_index(Index::drop().name(\"{idx}\").table(Alias::new(\"{table}\")).to_owned())\n            .await?;\n\n",
+        idx = idx_name,
+        table = table
     ));
 }
 
 fn push_drop_fk(buf: &mut String, table: &str, from_col: &str, to_table: &str) {
     buf.push_str(&format!(
-        "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{0}\"))\n                    .name(\"{0}_{1}_{2}_fkey\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
-        table, from_col, to_table
+        "        manager\n            .drop_foreign_key(\n                ForeignKey::drop()\n                    .table(Alias::new(\"{table}\"))\n                    .name(\"{table}_{from}_{to}_fkey\")\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        table = table,
+        from = from_col,
+        to = to_table
     ));
 }
 
 fn push_drop_column(buf: &mut String, table: &str, col: &str) {
     buf.push_str(&format!(
-        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{0}\"))\n                    .drop_column(Alias::new(\"{1}\"))\n                    .to_owned(),\n            )\n            .await?;\n\n",
-        table, col
+        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .drop_column(Alias::new(\"{col}\"))\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        table = table,
+        col = col
     ));
 }
 
@@ -338,24 +404,20 @@ fn push_modify_column(
     let null = if nullable { ".null()" } else { ".not_null()" };
     let uniq = if unique { ".unique()" } else { "" };
     buf.push_str(&format!(
-        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{0}\"))\n                    .modify_column(ColumnDef::new(Alias::new(\"{1}\")).{2}{3}{4})\n                    .to_owned(),\n            )\n            .await?;\n\n",
-        table, col, col_type_to_method(col_type), null, uniq
+        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .modify_column(ColumnDef::new(Alias::new(\"{col}\")).{ty}{null}{uniq})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        table = table,
+        col = col,
+        ty = col_type_to_method(col_type),
+        null = null,
+        uniq = uniq
     ));
 }
 
-fn push_add_column(
-    buf: &mut String,
-    table: &str,
-    col: &str,
-    col_type: &str,
-    nullable: bool,
-    unique: bool,
-) {
-    let null = if nullable { ".null()" } else { ".not_null()" };
-    let uniq = if unique { ".unique()" } else { "" };
+fn push_add_column(buf: &mut String, table: &str, col: &ParsedColumn) {
     buf.push_str(&format!(
-        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{0}\"))\n                    .add_column(ColumnDef::new(Alias::new(\"{1}\")).{2}{3}{4})\n                    .to_owned(),\n            )\n            .await?;\n\n",
-        table, col, col_type_to_method(col_type), null, uniq
+        "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .add_column({coldef})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        table = table,
+        coldef = render_column_def(col),
     ));
 }
 
@@ -369,8 +431,13 @@ fn push_create_fk(
     on_update: &str,
 ) {
     buf.push_str(&format!(
-        "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .from(Alias::new(\"{0}\"), Alias::new(\"{1}\"))\n                    .to(Alias::new(\"{2}\"), Alias::new(\"{3}\"))\n                    .on_delete(ForeignKeyAction::{4})\n                    .on_update(ForeignKeyAction::{5})\n                    .to_owned(),\n            )\n            .await?;\n\n",
-        table, from_col, to_table, to_col, on_delete, on_update
+        "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        table = table,
+        from = from_col,
+        to_table = to_table,
+        to_col = to_col,
+        on_delete = on_delete,
+        on_update = on_update
     ));
 }
 
@@ -381,14 +448,35 @@ fn push_create_index(
     columns: &[String],
     unique: bool,
 ) {
-    let cols_str = columns
-        .iter()
-        .map(|c| format!("Alias::new(\"{}\")", c))
-        .collect::<Vec<_>>()
-        .join(", ");
-    let uniq = if unique { ".unique()" } else { "" };
-    buf.push_str(&format!(
-        "        manager\n            .create_index(\n                Index::create()\n                    .name(\"{0}\")\n                    .table(Alias::new(\"{1}\"))\n                    .col({2}){3}\n                    .to_owned(),\n            )\n            .await?;\n\n",
-        idx_name, table, cols_str, uniq
-    ));
+    buf.push_str(&render_create_index_stmt(table, idx_name, columns, unique));
+    buf.push('\n');
+}
+
+fn render_create_index_stmt(
+    table: &str,
+    idx_name: &str,
+    columns: &[String],
+    unique: bool,
+) -> String {
+    let mut cols_chain = String::new();
+    for c in columns {
+        cols_chain.push_str(&format!(
+            "                    .col(Alias::new(\"{c}\"))\n",
+            c = c
+        ));
+    }
+
+    let uniq_line = if unique {
+        "                    .unique()\n"
+    } else {
+        ""
+    };
+
+    format!(
+        "        manager\n            .create_index(\n                Index::create()\n                    .name(\"{idx}\")\n                    .table(Alias::new(\"{table}\"))\n{cols}{uniq}                    .to_owned(),\n            )\n            .await?;\n",
+        idx = idx_name,
+        table = table,
+        cols = cols_chain,
+        uniq = uniq_line
+    )
 }

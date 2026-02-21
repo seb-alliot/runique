@@ -1,14 +1,14 @@
-// --- Definitions communes pour les champs de formulaire ---
+// --- Common definitions for form fields ---
 pub use crate::forms::base::FormField;
-use crate::forms::manager::{Forms, ValidationError};
+use crate::forms::form::Forms;
+use crate::forms::renderer::FormRenderer; // ← Ajout
+use crate::forms::validator::ValidationError;
 use async_trait::async_trait;
 use sea_orm::DbErr;
 
 use crate::utils::aliases::{ATera, StrMap};
 
 dyn_clone::clone_trait_object!(FormField);
-
-// Extrait des modifications à faire dans trait_form.rs
 
 #[async_trait]
 pub trait RuniqueForm: Sized + Send + Sync {
@@ -18,12 +18,10 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn get_form_mut(&mut self) -> &mut Forms;
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        Ok(())
+        Ok(()) // Business validation hook
     }
 
     async fn is_valid(&mut self) -> bool {
-        // 1. Validation individuelle des champs (incluant CSRF)
-        // Mot de passe est encore a cette étape.
         let fields_valid = match self.get_form_mut().is_valid() {
             Ok(valid) => valid,
             Err(ValidationError::StackOverflow) => {
@@ -39,12 +37,8 @@ pub trait RuniqueForm: Sized + Send + Sync {
             return false;
         }
 
-        // 2. Validation métier croisée
         match self.clean().await {
             Ok(_) => {
-                // 3. FINALISATION
-                // Si tout est valide, on transforme les données (ex: Argon2)
-                // et autre validation d'un dev
                 if let Err(e) = self.get_form_mut().finalize() {
                     self.get_form_mut().global_errors.push(e);
                     return false;
@@ -69,24 +63,26 @@ pub trait RuniqueForm: Sized + Send + Sync {
         self.get_form_mut().database_error(err);
     }
 
+    // ← Modifié : création du renderer ici
     fn build(tera: ATera, csrf_token: &str) -> Self {
         let mut form = Forms::new(csrf_token);
-        form.set_tera(tera);
+        let renderer = FormRenderer::new(tera);
+        form.set_renderer(renderer);
         Self::register_fields(&mut form);
         Self::from_form(form)
     }
 
+    // ← Modifié : création du renderer ici aussi
     async fn build_with_data(raw_data: &StrMap, tera: ATera, csrf_token: &str) -> Self {
         let mut form = Forms::new(csrf_token);
 
-        form.set_tera(tera.clone());
+        let renderer = FormRenderer::new(tera);
+        form.set_renderer(renderer);
 
         Self::register_fields(&mut form);
-
         form.fill(raw_data);
 
         let mut instance = Self::from_form(form);
-
         let _is_valid = instance.is_valid().await;
 
         instance

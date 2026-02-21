@@ -104,7 +104,7 @@ pub mod formulaire {
             pub use crate::forms::generic::*;
         }
         pub mod formmanager {
-            pub use crate::forms::manager::*;
+            pub use crate::forms::Forms;
         }
         pub mod option_field {
             pub use crate::forms::options::*;
@@ -211,22 +211,21 @@ pub mod prelude {
     pub use crate::engine::RuniqueEngine;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
-        field,
         field::{FormField, RuniqueForm},
         fields::{
             boolean::BooleanField,
-            choice::ChoiceField,
+            choice::{ChoiceField, ChoiceOption},
             datetime::DateTimeField,
             file::FileField,
             hidden::HiddenField,
             number::NumericField,
-            special::{ColorField, JSONField, SlugField},
+            special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,
+            CheckboxField, DateField, DurationField, RadioField, TimeField,
         },
         generic::{FieldKind, GenericField},
-        manager::Forms,
         model_form::ModelForm,
-        Prisme,
+        Forms, Prisme,
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;

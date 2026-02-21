@@ -18,7 +18,6 @@ use crate::migration::utils::{
 /// // let schema = parse_seaorm_source("...");
 /// // assert!(schema.is_ok());
 /// ```
-
 struct SeaOrmVisitor {
     pub table_name: Option<String>,
     pub primary_key: Option<ParsedColumn>,
@@ -66,7 +65,15 @@ impl SeaOrmVisitor {
             return;
         };
         let method = mc.method.to_string();
+        if method == "table" && self.table_name.is_none() {
+            if let Some(arg) = mc.args.first() {
+                let name = extract_alias_new_str_inner(arg).or_else(|| extract_str_from_call(arg));
 
+                if let Some(n) = name {
+                    self.table_name = Some(n);
+                }
+            }
+        }
         if method == "col" {
             if let Some(arg) = mc.args.first() {
                 let methods = method_names_in_expr(arg);

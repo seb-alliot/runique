@@ -1,8 +1,9 @@
 pub use sea_orm_migration::prelude::*;
-mod m20260219_131003_create_blog_table;
-mod m20260219_131003_create_eihwaz_users_table;
-mod m20260219_131003_create_test_all_fields_table;
-mod m20260219_131003_create_users_booster_table;
+mod m20260221_163108_create_blog_table;
+mod m20260221_163108_create_eihwaz_users_table;
+mod m20260221_163108_create_test_all_fields_table;
+mod m20260221_163108_create_users_booster_table;
+mod m20260221_163132_alter_eihwaz_users_table;
 
 pub struct Migrator;
 
@@ -13,10 +14,11 @@ impl MigratorTrait for Migrator {
         //     .into_iter()
         //     .collect();
         vec![
-            Box::new(m20260219_131003_create_blog_table::Migration),
-            Box::new(m20260219_131003_create_users_booster_table::Migration),
-            Box::new(m20260219_131003_create_test_all_fields_table::Migration),
-            Box::new(m20260219_131003_create_eihwaz_users_table::Migration),
+            Box::new(m20260221_163108_create_blog_table::Migration),
+            Box::new(m20260221_163108_create_users_booster_table::Migration),
+            Box::new(m20260221_163108_create_test_all_fields_table::Migration),
+            Box::new(m20260221_163108_create_eihwaz_users_table::Migration),
+            Box::new(m20260221_163132_alter_eihwaz_users_table::Migration),
         ]
     }
 }

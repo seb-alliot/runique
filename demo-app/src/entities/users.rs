@@ -7,7 +7,6 @@ pub fn eihwaz_users_schema() -> ModelSchema {
         .column(ColumnDef::new("username").string().required())
         .column(ColumnDef::new("email").string().required())
         .column(ColumnDef::new("password").string().required())
-        .column(ColumnDef::new("_password").string().required())
         .column(ColumnDef::new("is_active").boolean().required())
         .column(ColumnDef::new("is_staff").boolean().required())
         .column(ColumnDef::new("is_superuser").boolean().required())

@@ -6,7 +6,7 @@ pub trait ModelForm: Sized + Send + Sync {
     fn exclude() -> Option<&'static [&'static str]> {
         None
     }
-    fn model_register_fields(form: &mut crate::forms::manager::Forms) {
+    fn model_register_fields(form: &mut crate::forms::Forms) {
         Self::schema().fill_form(form, Self::fields(), Self::exclude());
     }
 }

@@ -10,7 +10,8 @@ pub use crate::utils::*;
 // ── public parse entry points ────────────────────────────────────────────────
 
 pub fn parse_create_file(path: &str) -> Result<ParsedSchema> {
-    let source = fs::read_to_string(path).with_context(|| format!("Cannot read file: {}", path))?;
+    let source: String =
+        fs::read_to_string(path).with_context(|| format!("Cannot read file: {}", path))?;
     parse_seaorm_source(&source).with_context(|| format!("Cannot parse: {}", path))
 }
 
@@ -76,7 +77,17 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
 }
 
 // ── run ──────────────────────────────────────────────────────────────────────
+pub fn seaorm_alter_module_name(timestamp: &str, table: &str) -> String {
+    format!("m{}_alter_{}_table", timestamp, table)
+}
 
+pub fn seaorm_alter_file_path(migrations_path: &str, timestamp: &str, table: &str) -> String {
+    format!(
+        "{}/{}.rs",
+        migrations_path,
+        seaorm_alter_module_name(timestamp, table)
+    )
+}
 pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     println!(" Scanning entities in '{}'...", entities_path);
 
@@ -200,6 +211,19 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
             fs::create_dir_all(&table_dir)?;
 
             let alter_path = alter_file_path(migrations_path, &change.table_name, &timestamp);
+            if !change.is_new_table {
+                let module_name = seaorm_alter_module_name(&timestamp, &change.table_name);
+                let seaorm_path =
+                    seaorm_alter_file_path(migrations_path, &timestamp, &change.table_name);
+
+                fs::write(&seaorm_path, generate_alter_file(change)).with_context(|| {
+                    format!("Failed to write SeaORM alter migration: {}", seaorm_path)
+                })?;
+
+                println!("SeaORM ALTER migration generated: {}", seaorm_path);
+
+                update_migration_lib(migrations_path, &module_name)?;
+            }
             fs::write(&alter_path, generate_alter_file(change))
                 .with_context(|| format!("Failed to write: {}", alter_path))?;
             println!(" Generated: {}", alter_path);

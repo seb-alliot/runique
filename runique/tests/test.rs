@@ -71,11 +71,12 @@ fn diff(previous: &ParsedSchema, current: &ParsedSchema) -> Changes {
         .cloned()
         .collect();
 
-    let dropped_columns = previous
+    let dropped_columns: Vec<ParsedColumn> = previous
         .columns
         .iter()
-        .filter(|c| !curr_cols.contains(c.name.as_str()) && Some(c.name.as_str()) != pk_name)
-        .map(|c| c.name.clone())
+        .filter(|c| !c.ignored)
+        .filter(|c| !curr_cols.contains(c.name.as_str()))
+        .cloned()
         .collect();
 
     Changes {
@@ -597,7 +598,7 @@ fn test_diff_drop_column() {
 
     let changes = diff(&previous, &current);
     assert_eq!(changes.dropped_columns.len(), 1);
-    assert_eq!(changes.dropped_columns[0], "roles");
+    assert_eq!(changes.dropped_columns[0].name, "roles");
     assert!(changes.added_columns.is_empty());
 }
 
@@ -619,7 +620,7 @@ fn test_diff_pk_never_in_changes() {
 
     let changes = diff(&previous, &current);
     assert!(!changes.added_columns.iter().any(|c| c.name == "id"));
-    assert!(!changes.dropped_columns.iter().any(|c| c == "id"));
+    assert!(!changes.dropped_columns.iter().any(|c| c.name == "id"));
 }
 
 #[test]
@@ -889,7 +890,7 @@ fn test_changes_is_empty_false_if_added_column() {
 #[test]
 fn test_changes_is_empty_false_if_dropped_column() {
     let mut c = empty_changes();
-    c.dropped_columns.push("x".to_string());
+    c.dropped_columns.push(make_col("x"));
     assert!(!c.is_empty());
 }
 
@@ -1170,7 +1171,7 @@ fn test_generate_alter_file_add_column() {
 #[test]
 fn test_generate_alter_file_drop_column() {
     let mut c = empty_changes();
-    c.dropped_columns.push("old_field".to_string());
+    c.dropped_columns.push(make_col("old_field"));
     let output = generate_alter_file(&c);
     let up_section = extract_up(&output);
     assert!(up_section.contains("drop_column"));

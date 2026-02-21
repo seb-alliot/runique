@@ -1,5 +1,6 @@
 pub use crate::runique::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
 
+#[allow(dead_code)]
 pub fn blog_schema() -> ModelSchema {
     model!("Blog")
         .table_name("blog")
