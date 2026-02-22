@@ -3,7 +3,7 @@ use crate::forms::fields::TextField;
 use crate::forms::generic::GenericField;
 use crate::forms::renderer::FormRenderer;
 use crate::forms::validator::{FormValidator, ValidationError};
-use crate::utils::aliases::{FieldsMap, JsonMap, StrMap};
+use crate::utils::aliases::{FieldsMap, StrMap};
 use crate::utils::constante::CSRF_TOKEN_KEY;
 use indexmap::IndexMap;
 use serde::ser::{SerializeStruct, Serializer};
@@ -15,7 +15,7 @@ use std::collections::HashMap;
 pub struct Forms {
     pub fields: FieldsMap,
     pub global_errors: Vec<String>,
-    pub session_csrf_token: Option<String>,
+    pub session_csrf_token: String,
     renderer: Option<FormRenderer>,
 }
 
@@ -36,10 +36,8 @@ impl Serialize for Forms {
     {
         let mut state = serializer.serialize_struct("Forms", 7)?;
 
-        state.serialize_field("data", &self.data())?;
         state.serialize_field("errors", &self.errors())?;
         state.serialize_field("global_errors", &self.global_errors)?;
-        state.serialize_field("cleaned_data", &self.data())?;
 
         let js_files = self
             .renderer
@@ -103,7 +101,7 @@ impl Serialize for Forms {
 // BUILD & CONFIGURATION
 // ============================================================================
 use std::cell::Cell;
-const MAX_VALIDATION_DEPTH: usize = 20;
+const MAX_VALIDATION_DEPTH: usize = 10;
 
 thread_local! {
     static VALIDATION_DEPTH: Cell<usize> = const { Cell::new(0) };
@@ -121,6 +119,7 @@ impl Forms {
             result
         })
     }
+
     pub fn new(csrf_token: &str) -> Self {
         let mut fields: FieldsMap = IndexMap::new();
         let mut csrf_field = TextField::create_csrf();
@@ -134,7 +133,7 @@ impl Forms {
         Self {
             fields,
             global_errors: Vec::new(),
-            session_csrf_token: Some(csrf_token.to_string()),
+            session_csrf_token: csrf_token.to_string(),
             renderer: None,
         }
     }
@@ -227,13 +226,6 @@ impl Forms {
 // ============================================================================
 
 impl Forms {
-    pub fn data(&self) -> JsonMap {
-        self.fields
-            .iter()
-            .map(|(name, field)| (name.clone(), field.to_json_value()))
-            .collect()
-    }
-
     pub fn get_value(&self, name: &str) -> Option<String> {
         self.fields.get(name).map(|field| field.value().to_string())
     }
