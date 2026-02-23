@@ -1,3 +1,4 @@
+pub mod convertisseur;
 pub mod diff;
 pub mod generators;
 pub mod helpers;
@@ -6,6 +7,7 @@ pub mod parser_seaorm;
 pub mod paths;
 pub mod types;
 
+pub use convertisseur::*;
 pub use diff::*;
 pub use generators::*;
 pub use helpers::*;
