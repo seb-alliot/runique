@@ -1,7 +1,9 @@
+use crate::migration::utils::to_pascal_case;
 use crate::migration::{
     column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef, index::IndexDef,
-    primary_key::PrimaryKeyDef, relation::RelationDef,
+    primary_key::PrimaryKeyDef, relation::RelationDef, RelationKind,
 };
+
 /// The root struct — single source of truth for the model
 #[derive(Debug, Clone)]
 pub struct ModelSchema {
@@ -249,7 +251,11 @@ impl ModelSchema {
 
         // Primary key
         if let Some(ref pk) = self.primary_key {
-            out.push_str("    #[sea_orm(primary_key)]\n");
+            if pk.auto_increment {
+                out.push_str("    #[sea_orm(primary_key)]\n");
+            } else {
+                out.push_str("    #[sea_orm(primary_key, auto_increment = false)]\n");
+            }
             out.push_str(&format!(
                 "    pub {}: {},\n",
                 pk.name,
@@ -270,7 +276,37 @@ impl ModelSchema {
 
         // Relation
         out.push_str("#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]\n");
-        out.push_str("pub enum Relation {}\n\n");
+        out.push_str("pub enum Relation {\n");
+        for rel in &self.relations {
+            match &rel.kind {
+                RelationKind::BelongsTo { from, to } => {
+                    out.push_str(&format!(
+                        "    #[sea_orm(belongs_to = \"super::{}::Entity\", from = \"Column::{}\", to = \"super::{}::Column::{}\")]\n    {},\n",
+                        rel.target,
+                        to_pascal_case(from),
+                        rel.target,
+                        to_pascal_case(to),
+                        to_pascal_case(&rel.target)
+                    ));
+                }
+                RelationKind::HasMany | RelationKind::HasOne => {
+                    out.push_str(&format!(
+                        "    #[sea_orm(has_many = \"super::{}::Entity\")]\n    {},\n",
+                        rel.target,
+                        to_pascal_case(&rel.target)
+                    ));
+                }
+                RelationKind::ManyToMany { via } => {
+                    out.push_str(&format!(
+                        "    #[sea_orm(many_to_many = \"super::{}::Entity\", via = \"super::{}::Entity\")]\n    {},\n",
+                        rel.target,
+                        via,
+                        to_pascal_case(&rel.target)
+                    ));
+                }
+            }
+        }
+        out.push_str("}\n\n");
 
         // ActiveModelBehavior
         out.push_str("impl ActiveModelBehavior for ActiveModel {}\n\n");
@@ -280,11 +316,14 @@ impl ModelSchema {
 
         out
     }
+
     fn pk_to_rust_type(pk: &PrimaryKeyDef) -> &'static str {
         use sea_query::ColumnType::*;
         match &pk.col_type {
-            Integer => "i32",
+            Integer | TinyInteger | SmallInteger => "i32",
             BigInteger => "i64",
+            Unsigned => "u32",
+            BigUnsigned => "u64",
             Uuid => "Uuid",
             _ => "i32",
         }

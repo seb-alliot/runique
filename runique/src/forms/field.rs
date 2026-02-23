@@ -116,10 +116,6 @@ pub trait RuniqueForm: Sized + Send + Sync {
 
         Self::register_fields(&mut form);
         form.fill(raw_data);
-
-        let mut instance = Self::from_form(form);
-        let _is_valid = instance.is_valid().await;
-
-        instance
+        Self::from_form(form)
     }
 }
