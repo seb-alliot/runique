@@ -1,11 +1,9 @@
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField, TextConfig};
 pub use crate::forms::generic::GenericField;
 use crate::forms::options::LengthConstraint;
+use crate::utils::password::PasswordConfig;
 
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
-};
+use crate::utils::password::PasswordService;
 use serde::Serialize;
 use std::sync::Arc;
 use tera::{Context, Tera};
@@ -21,7 +19,7 @@ pub struct TextField {
 }
 
 // Special formats for text fields
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub enum SpecialFormat {
     None,
     Email,
@@ -102,24 +100,13 @@ impl TextField {
 
     // Password utilities
     pub fn hash_password(&self) -> Result<String, String> {
-        if self.base.value.is_empty() {
-            return Err("Le mot de passe est vide".to_string());
-        }
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        match argon2.hash_password(self.base.value.as_bytes(), &salt) {
-            Ok(h) => Ok(h.to_string()),
-            Err(e) => Err(format!("Erreur de hachage : {}", e)),
-        }
+        let config = crate::utils::password::password_get();
+        PasswordService::new(config).hash(&self.base.value)
     }
 
     pub fn verify_password(password_plain: &str, password_hash: &str) -> bool {
-        let Ok(parsed_hash) = PasswordHash::new(password_hash) else {
-            return false;
-        };
-        Argon2::default()
-            .verify_password(password_plain.as_bytes(), &parsed_hash)
-            .is_ok()
+        let config = crate::utils::password::password_get();
+        PasswordService::new(config).verify(password_plain, password_hash)
     }
 
     // Builder methods
@@ -225,14 +212,14 @@ impl FormField for TextField {
 
     fn finalize(&mut self) -> Result<(), String> {
         if let SpecialFormat::Password = &self.format {
-            // Only hash if not already done and hash_password is enabled
-            if self.hash_password
-                && !self.base.value.is_empty()
-                && !self.base.value.starts_with("$argon2")
-            {
-                match self.hash_password() {
-                    Ok(h) => self.base.value = h,
-                    Err(e) => return Err(e),
+            if self.hash_password && !self.base.value.is_empty() {
+                let config = crate::utils::password::password_get();
+                if let PasswordConfig::Auto(_) = config {
+                    let service = PasswordService::new(config);
+                    if !service.is_already_hashed(&self.base.value) {
+                        self.base.value =
+                            service.hash(&self.base.value).map_err(|e| e.to_string())?;
+                    }
                 }
             }
         }

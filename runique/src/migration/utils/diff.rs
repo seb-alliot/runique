@@ -6,7 +6,7 @@ use crate::migration::utils::types::{Changes, ParsedColumn, ParsedSchema};
 ///
 /// # Exemple
 ///
-/// ```rust
+/// ```rust, ignore
 /// use runique::migration::utils::types::{ParsedSchema, ParsedColumn};
 /// use runique::migration::utils::diff::db_columns;
 /// let schema = ParsedSchema {

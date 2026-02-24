@@ -3,13 +3,14 @@ use crate::config::{
     static_files::StaticConfig,
 };
 use crate::middleware::MiddlewareConfig;
+use crate::utils::password::PasswordConfig;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RuniqueConfig {
     pub server: ServerConfig,
     pub middleware: MiddlewareConfig,
     pub security: SecurityConfig,
+    pub password: PasswordConfig,
     pub static_files: StaticConfig,
     pub app: AppSettings,
     pub base_dir: String,
@@ -25,6 +26,7 @@ impl RuniqueConfig {
             server: ServerConfig::from_env(),
             middleware: MiddlewareConfig::from_env(),
             security: SecurityConfig::from_env(),
+            password: PasswordConfig::auto(),
             static_files: StaticConfig::from_env(),
             app: AppSettings::from_env(),
 

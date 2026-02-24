@@ -229,6 +229,7 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
+    pub use crate::utils::password::{AutoConfig, Manual, PasswordConfig};
     pub use derive_form::{form, DeriveModelForm};
 
     // ========================================================================

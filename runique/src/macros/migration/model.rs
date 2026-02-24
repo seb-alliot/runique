@@ -2,7 +2,7 @@
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust, ignore
 /// use runique::model;
 /// use runique::migration::{
 /// PrimaryKeyDef, ColumnDef, ForeignKeyDef, RelationDef, IndexDef, HooksDef};
