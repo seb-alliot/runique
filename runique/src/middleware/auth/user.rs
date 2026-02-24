@@ -118,7 +118,7 @@ impl UserEntity for BuiltinUserEntity {
 
 /// Auth admin prête à l'emploi avec le User built-in.
 ///
-/// ```rust,ignore
+/// ```rust, ignore
 /// .with_admin(|a| a.auth(RuniqueAdminAuth::new()))
 /// ```
 pub type RuniqueAdminAuth =

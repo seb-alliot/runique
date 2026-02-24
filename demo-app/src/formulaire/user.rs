@@ -1,7 +1,7 @@
 use crate::entities::users::eihwaz_users_schema;
 use runique::prelude::*;
 
-#[form(schema = eihwaz_users_schema, fields = [username, email, password, _password])]
+#[form(schema = eihwaz_users_schema, fields = [username, email, password])]
 pub struct RegisterForm;
 
 impl RegisterForm {

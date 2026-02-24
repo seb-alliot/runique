@@ -21,6 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     builder::new(config)
         .routes(url::routes())
+        .with_password(PasswordConfig::auto_with(Manual::Argon2))
         .with_database(db)
         .statics()
         .with_admin(|a| {

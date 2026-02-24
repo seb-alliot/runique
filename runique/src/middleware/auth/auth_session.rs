@@ -156,7 +156,7 @@ pub async fn has_permission(session: &Session, _permission: &str) -> bool {
 ///
 /// ```rust,ignore
 /// let protected = Router::new()
-///     .route("/dashboard", get(dashboard))
+///     .route("/admin/dashboard", get(dashboard))
 ///     .layer(axum::middleware::from_fn(login_required));
 /// ```
 pub async fn login_required(session: Session, request: Request, next: Next) -> Response {
@@ -193,7 +193,7 @@ pub async fn redirect_if_authenticated(session: Session, request: Request, next:
 ///
 /// ```rust,ignore
 /// let app = Router::new()
-///     .route("/dashboard", get(dashboard))
+///     .route("/admin/dashboard", get(dashboard))
 ///     .layer(axum::middleware::from_fn(load_user_middleware));
 /// ```
 pub async fn load_user_middleware(session: Session, mut request: Request, next: Next) -> Response {

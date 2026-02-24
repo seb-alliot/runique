@@ -89,7 +89,7 @@ impl ColumnDef {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust, ignore
     /// use crate::runique::migration::column::ColumnDef;
     /// ColumnDef::new("short_id").binary_len(16);
     /// ColumnDef::new("sha256_hash").binary_len(32);

@@ -51,6 +51,10 @@ pub async fn soumission_inscription(
     }
 
     // Cas fallback
+    context_update!(request => {
+        "title" => "Inscription utilisateur",
+        "inscription_form" => &form,
+    });
     request.render("inscription_form.html")
 }
 

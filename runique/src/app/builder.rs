@@ -8,6 +8,7 @@ use crate::engine::RuniqueEngine;
 use crate::macros::add_urls;
 use crate::middleware::{HostPolicy, SecurityPolicy};
 use crate::utils::aliases::{new, new_serve};
+use crate::utils::password::PasswordConfig;
 
 use super::error_build::BuildError;
 use super::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
@@ -201,6 +202,11 @@ impl RuniqueAppBuilder {
         self
     }
 
+    /// Configuration du mot de passe
+    pub fn with_password(mut self, config: PasswordConfig) -> Self {
+        self.config.password = config;
+        self
+    }
     // ═══════════════════════════════════════════════════════════
     // ADMIN PANEL
     // ═══════════════════════════════════════════════════════════
@@ -277,6 +283,7 @@ impl RuniqueAppBuilder {
             .map_err(|e| BuildError::template(e.to_string()))?);
 
         let config = new(config);
+        crate::utils::password::password_init(config.password.clone());
 
         // B. Engine (cœur de l'application)
         let engine = new(RuniqueEngine {
