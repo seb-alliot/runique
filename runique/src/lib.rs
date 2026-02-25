@@ -229,7 +229,6 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
-    pub use crate::utils::password::{AutoConfig, Manual, PasswordConfig};
     pub use derive_form::{form, DeriveModelForm};
 
     // ========================================================================
@@ -309,10 +308,7 @@ pub mod prelude {
     // ========================================================================
     // SÉCURITÉ - HMAC, Hashing, etc.
     // ========================================================================
-    pub use argon2::{
-        password_hash::{rand_core::OsRng, SaltString},
-        Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
-    };
+    pub use crate::utils::password::{hash, verify, AutoConfig, Manual, PasswordConfig};
     pub use hmac::{Hmac, Mac};
     pub use sha2::Sha256;
 

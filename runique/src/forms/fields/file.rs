@@ -24,6 +24,14 @@ fn is_valid_path(path: &str) -> bool {
     }
 }
 
+/// Parse la valeur du champ en liste de chemins de fichiers
+fn parse_file_list(val: &str) -> Vec<&str> {
+    val.split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub enum FileFieldType {
     None,
@@ -45,7 +53,6 @@ impl AllowedExtensions {
     }
 
     pub fn images() -> Self {
-        // SVG est exclu par défaut ici pour plus de sécurité
         Self::new(vec!["jpg", "jpeg", "png", "gif", "webp"])
     }
 
@@ -80,7 +87,7 @@ impl AllowedExtensions {
 
 pub type UploadPathFn = Option<Arc<dyn Fn(&str) -> String + Send + Sync>>;
 
-/// Configuration d’upload de fichier
+/// Configuration d'upload de fichier
 #[derive(Clone, Serialize, Default)]
 pub struct FileUploadConfig {
     #[serde(skip_serializing)]
@@ -96,35 +103,16 @@ impl std::fmt::Debug for FileUploadConfig {
             .finish()
     }
 }
-impl CommonFieldConfig for FileField {
-    fn get_field_config(&self) -> &FieldConfig {
-        &self.base
-    }
-
-    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
-        &mut self.base
-    }
-}
 
 impl FileUploadConfig {
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// CORRECTION : Utilise directement la String du media_root pour éviter les conflits de types
-    pub fn set_upload_path(mut self, media_root: String) -> Self {
+    pub fn upload_to(mut self, media_root: String) -> Self {
+        println!("Set upload path to: {}", media_root);
         let f = Arc::new(move |field_name: &str| format!("{}/{}", media_root, field_name));
         self.upload_to = Some(f);
-        self
-    }
-
-    /// Version originale utilisant l'Arc si vous l'avez déjà
-    pub fn upload_to(mut self, cfg: Arc<StaticConfig>) -> Self {
-        let root = cfg.media_root.clone();
-        let root_for_closure = root.clone();
-        let f = Arc::new(move |field_name: &str| format!("{}/{}", root_for_closure, field_name));
-        self.upload_to = Some(f);
-        println!("Set upload path to: {:?}", root);
         self
     }
 
@@ -143,6 +131,16 @@ pub struct FileField {
     pub max_files: Option<usize>,
     pub max_width: Option<u32>,
     pub max_height: Option<u32>,
+}
+
+impl CommonFieldConfig for FileField {
+    fn get_field_config(&self) -> &FieldConfig {
+        &self.base
+    }
+
+    fn get_field_config_mut(&mut self) -> &mut FieldConfig {
+        &mut self.base
+    }
 }
 
 impl FileField {
@@ -165,7 +163,6 @@ impl FileField {
         }
     }
 
-    // --- Nouveaux Constructeurs publics (comme TextField) ---
     pub fn image(name: &str) -> Self {
         Self::create(name, "file", FileFieldType::Image)
     }
@@ -178,14 +175,13 @@ impl FileField {
         Self::create(name, "file", FileFieldType::Any)
     }
 
-    // --- Builder Methods ---
     pub fn label(mut self, label: &str) -> Self {
         self.base.label = label.to_string();
         self
     }
 
     pub fn upload_to(mut self, cfg: &StaticConfig) -> Self {
-        self.upload_config = self.upload_config.set_upload_path(cfg.media_root.clone());
+        self.upload_config = self.upload_config.upload_to(cfg.media_root.clone());
         self
     }
 
@@ -196,7 +192,6 @@ impl FileField {
 
     pub fn max_files(mut self, count: usize) -> Self {
         self.max_files = Some(count);
-        // On ajoute automatiquement l'attribut HTML multiple si count > 1
         if count > 1 {
             self.base
                 .html_attributes
@@ -238,42 +233,48 @@ impl FormField for FileField {
             return false;
         }
 
-        if !val.is_empty() {
-            let files: Vec<&str> = val
-                .split(',')
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .collect();
+        if val.is_empty() {
+            self.clear_error();
+            return true;
+        }
 
-            // 2. Validation du nombre de fichiers
-            if let Some(max) = self.max_files {
-                if files.len() > max {
-                    self.set_error(format!("Maximum {} fichiers autorisés", max));
-                    return false;
-                }
+        let files = parse_file_list(val);
+
+        // 2. Validation du nombre de fichiers
+        if let Some(max) = self.max_files {
+            if files.len() > max {
+                self.set_error(format!("Maximum {} fichiers autorisés", max));
+                return false;
             }
+        }
 
-            // 3. Validation des extensions
-            for filename in files {
-                if !self.allowed_extensions.is_allowed(filename) {
-                    let exts = self.allowed_extensions.extensions.join(", ");
-                    self.set_error(format!(
-                        "Fichier '{}' non autorisé. Extensions: {}",
-                        filename, exts
-                    ));
-                    return false;
+        // 3. Validation extensions + taille
+        for filename in &files {
+            if !self.allowed_extensions.is_allowed(filename) {
+                let exts = self.allowed_extensions.extensions.join(", ");
+                self.set_error(format!(
+                    "Fichier '{}' non autorisé. Extensions: {}",
+                    filename, exts
+                ));
+                return false;
+            }
+            if let Some(max_mb) = self.upload_config.max_size_mb {
+                if let Ok(metadata) = std::fs::metadata(filename) {
+                    let size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
+                    if size_mb > max_mb as f64 {
+                        self.set_error(format!(
+                            "Fichier '{}' trop volumineux ({:.1}MB > {}MB max)",
+                            filename, size_mb, max_mb
+                        ));
+                        return false;
+                    }
                 }
             }
         }
 
-        // 4. Validation des images si applicable
+        // 4. Validation image : format réel + dimensions
         if let FileFieldType::Image = self.field_type {
-            let files: Vec<&str> = val
-                .split(',')
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .collect();
-            for filename in files {
+            for filename in &files {
                 if !is_valid_path(filename) {
                     self.set_error(format!(
                         "Le fichier '{}' n'est pas une image valide",
@@ -282,7 +283,6 @@ impl FormField for FileField {
                     return false;
                 }
 
-                // 5. Validation des dimensions (AJOUT)
                 if self.max_width.is_some() || self.max_height.is_some() {
                     if let Ok(reader) = ImageReader::open(filename) {
                         if let Ok(dims) = reader.into_dimensions() {
@@ -326,7 +326,6 @@ impl FormField for FileField {
         context.insert("is_file", &true);
         context.insert("is_image", &is_image);
 
-        // Paramètres de contraintes
         if let Some(size) = self.upload_config.max_size_mb {
             context.insert("max_size_mb", &size);
         }

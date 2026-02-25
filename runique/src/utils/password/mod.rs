@@ -27,9 +27,9 @@ impl Clone for Box<dyn PasswordHasher> {
 }
 
 #[derive(Debug, Clone)]
-pub struct UnifiedHasher;
+pub struct BaseHash;
 
-impl UnifiedHasher {
+impl BaseHash {
     pub fn new() -> Self {
         Self
     }
@@ -122,7 +122,7 @@ impl UnifiedHasher {
     }
 }
 
-impl Default for UnifiedHasher {
+impl Default for BaseHash {
     fn default() -> Self {
         Self::new()
     }
@@ -131,7 +131,7 @@ impl Default for UnifiedHasher {
 // === password/config.rs ===
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum PasswordConfig {
-    Delegated(AuthProvider),
+    Delegated(External),
     Auto(AutoConfig),
     Manual(Manual),
     #[serde(skip)]
@@ -145,7 +145,7 @@ impl Default for PasswordConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AuthProvider {
+pub enum External {
     GoogleOAuth,
     Microsoft,
     Apple,
@@ -247,7 +247,7 @@ impl PasswordConfig {
         Self::Manual(algorithm)
     }
 
-    pub fn oauth(provider: AuthProvider) -> Self {
+    pub fn oauth(provider: External) -> Self {
         Self::Delegated(provider)
     }
 
@@ -263,14 +263,14 @@ use crate::forms::{SpecialFormat, TextField};
 #[derive(Debug)]
 pub struct PasswordService {
     config: PasswordConfig,
-    hasher: UnifiedHasher,
+    hasher: BaseHash,
 }
 
 impl PasswordService {
     pub fn new(config: PasswordConfig) -> Self {
         Self {
             config,
-            hasher: UnifiedHasher::new(),
+            hasher: BaseHash::new(),
         }
     }
 
@@ -383,4 +383,14 @@ pub fn password_init(config: PasswordConfig) {
 
 pub fn password_get() -> PasswordConfig {
     PASSWORD_CONFIG.get_or_init(PasswordConfig::auto).clone()
+}
+
+pub fn hash(password: &str) -> Result<String, String> {
+    let svc = PasswordService::new(password_get());
+    svc.hash(password)
+}
+
+pub fn verify(password: &str, hash: &str) -> bool {
+    let svc = PasswordService::new(password_get());
+    svc.verify(password, hash)
 }

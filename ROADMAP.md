@@ -95,6 +95,13 @@ Contenant les options :
 
 # flow ashe du mot de passe
 
+
+### 6 Admin
+
+- **Personalisation** des templates
+    - 1) Personnalisation visuel
+    - 2) Documentation => clef a renseigner fournis dans le templates
+
 enum => delagate , auto , manuel
 
 logique enum =>
@@ -151,4 +158,4 @@ a quel moment injecter config.password ?
 => clean => regroupement logique metier global
 => finalyse => transformation
 => validate => regroupe tout avant persistance
-=> save => persistence 
+=> save => persistence
