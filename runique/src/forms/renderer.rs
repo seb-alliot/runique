@@ -42,8 +42,21 @@ impl FormRenderer {
         None
     }
 
-    pub fn render(&self, fields: &FieldsMap) -> Result<String, String> {
+    pub fn render(&self, fields: &FieldsMap, errors: &[String]) -> Result<String, String> {
         let mut html = Vec::new();
+
+        // Rendre les erreurs globales en premier
+        if !errors.is_empty() {
+            let mut context = tera::Context::new();
+            context.insert("errors", errors);
+            html.push(
+                errors
+                    .iter()
+                    .map(|err| format!("<div class=\"form-error\">{}</div>", err))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            );
+        }
 
         let js_html = self.render_js()?;
         if !js_html.is_empty() {
