@@ -30,7 +30,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
         let mut fields_valid = match self.get_form_mut().is_valid() {
             Ok(valid) => valid,
             Err(ValidationError::StackOverflow) => {
-                self.get_form_mut().global_errors.push(
+                self.get_form_mut().errors.push(
                     "Stack overflow détecté : récursion infinie dans la validation".to_string(),
                 );
                 return false;
@@ -52,7 +52,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
         match self.clean().await {
             Ok(_) => {
                 if let Err(e) = self.get_form_mut().finalize() {
-                    self.get_form_mut().global_errors.push(e);
+                    self.get_form_mut().errors.push(e);
                     return false;
                 }
                 true
@@ -63,7 +63,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
                     if let Some(field) = form.fields.get_mut(&name) {
                         field.set_error(msg);
                     } else {
-                        form.global_errors.push(msg);
+                        form.errors.push(msg);
                     }
                 }
                 false

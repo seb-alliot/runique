@@ -14,7 +14,7 @@ use std::collections::HashMap;
 #[derive(Clone)]
 pub struct Forms {
     pub fields: FieldsMap,
-    pub global_errors: Vec<String>,
+    pub errors: Vec<String>,
     pub session_csrf_token: String,
     renderer: Option<FormRenderer>,
 }
@@ -24,7 +24,7 @@ impl std::fmt::Debug for Forms {
         f.debug_struct("Forms")
             .field("fields_count", &self.fields.len())
             .field("has_renderer", &self.renderer.is_some())
-            .field("global_errors", &self.global_errors)
+            .field("errors", &self.errors)
             .finish()
     }
 }
@@ -37,7 +37,7 @@ impl Serialize for Forms {
         let mut state = serializer.serialize_struct("Forms", 7)?;
 
         state.serialize_field("errors", &self.errors())?;
-        state.serialize_field("global_errors", &self.global_errors)?;
+        state.serialize_field("errors", &self.errors)?;
 
         let js_files = self
             .renderer
@@ -107,14 +107,14 @@ thread_local! {
     static VALIDATION_DEPTH: Cell<usize> = const { Cell::new(0) };
 }
 impl Forms {
-    fn validate(fields: &mut FieldsMap, global_errors: &[String]) -> Result<bool, ValidationError> {
+    fn validate(fields: &mut FieldsMap, errors: &[String]) -> Result<bool, ValidationError> {
         VALIDATION_DEPTH.with(|depth| {
             let current = depth.get();
             if current > MAX_VALIDATION_DEPTH {
                 return Err(ValidationError::StackOverflow);
             }
             depth.set(current + 1);
-            let result = FormValidator::validate_fields(fields, global_errors);
+            let result = FormValidator::validate_fields(fields, errors);
             depth.set(current);
             result
         })
@@ -132,7 +132,7 @@ impl Forms {
 
         Self {
             fields,
-            global_errors: Vec::new(),
+            errors: Vec::new(),
             session_csrf_token: csrf_token.to_string(),
             renderer: None,
         }
@@ -197,14 +197,14 @@ impl Forms {
 
 impl Forms {
     pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
-        Self::validate(&mut self.fields, &self.global_errors)
+        Self::validate(&mut self.fields, &self.errors)
     }
     pub fn has_errors(&self) -> bool {
-        FormValidator::has_errors(&self.fields, &self.global_errors)
+        FormValidator::has_errors(&self.fields, &self.errors)
     }
 
     pub fn errors(&self) -> StrMap {
-        FormValidator::collect_errors(&self.fields, &self.global_errors)
+        FormValidator::collect_errors(&self.fields, &self.errors)
     }
 }
 
@@ -217,7 +217,7 @@ impl Forms {
         self.renderer
             .as_ref()
             .ok_or("Renderer non configuré")?
-            .render(&self.fields)
+            .render(&self.fields, &self.errors)
     }
 }
 
@@ -390,15 +390,15 @@ impl Forms {
                     let friendly_name = field.replace("_", " ");
                     form_field.set_error(format!("Ce {} est déjà utilisé.", friendly_name));
                 } else {
-                    self.global_errors
+                    self.errors
                         .push(format!("La valeur du champ '{}' est déjà utilisée.", field));
                 }
             } else {
-                self.global_errors
+                self.errors
                     .push("Une contrainte d'unicité a été violée.".to_string());
             }
         } else {
-            self.global_errors.push(format!("Erreur DB: {}", err_msg));
+            self.errors.push(format!("Erreur DB: {}", err_msg));
         }
     }
 

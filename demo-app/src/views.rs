@@ -33,15 +33,17 @@ pub async fn soumission_inscription(
 
     if request.is_post() {
         if form.is_valid().await {
-            let user = form.save(&request.engine.db).await.map_err(|err| {
-                form.get_form_mut().database_error(&err);
-                AppError::from(err)
-            })?;
-            success!(request.notices => format!("Bienvenue {}, votre compte est créé !", user.username));
-            return Ok(Redirect::to("/").into_response());
+            match form.save(&request.engine.db).await {
+                Ok(user) => {
+                    success!(request.notices => format!("Bienvenue {}, votre compte est créé !", user.username));
+                    return Ok(Redirect::to("/").into_response());
+                }
+                Err(err) => {
+                    form.get_form_mut().database_error(&err);
+                }
+            }
         }
 
-        // Validation échouée
         context_update!(request => {
             "title" => "Erreur de validation",
             "inscription_form" => &form,
@@ -50,11 +52,6 @@ pub async fn soumission_inscription(
         return request.render("inscription_form.html");
     }
 
-    // Cas fallback
-    context_update!(request => {
-        "title" => "Inscription utilisateur",
-        "inscription_form" => &form,
-    });
     request.render("inscription_form.html")
 }
 
