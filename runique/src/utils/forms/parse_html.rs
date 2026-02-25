@@ -43,7 +43,9 @@ pub async fn parse_multipart(
                 })?;
             }
 
-            data.entry(name).or_default().push(safe);
+            data.entry(name)
+                .or_default()
+                .push(path.to_string_lossy().to_string());
         }
         // --- Text field case ---
         else {

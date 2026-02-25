@@ -90,8 +90,5 @@ where
 }
 
 fn convert_for_form(parsed: StrVecMap) -> StrMap {
-    parsed
-        .into_iter()
-        .filter_map(|(k, mut v)| v.pop().map(|val| (k, val)))
-        .collect()
+    parsed.into_iter().map(|(k, v)| (k, v.join(","))).collect()
 }

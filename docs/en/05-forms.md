@@ -95,7 +95,7 @@ pub async fn register(
 ---
 [↑](#overview)
 
-<a id="manual-approach-runiqueform-trait"></a> 
+<a id="manual-approach-runiqueform-trait"></a>
 
 ## Manual Approach: RuniqueForm Trait
 
@@ -830,7 +830,7 @@ Automatically renders: all fields, labels, validation errors, the CSRF token, an
 ```html
 <form method="post">
     {% csrf %} <!-- included in the form, not required manually -->
-     <div class="row"> 
+     <div class="row">
         <div class="col-6">{% form.register_form.username %}</div>
         <div class="col-6">{% form.register_form.email %}</div>
     </div>
@@ -847,9 +847,9 @@ Automatically renders: all fields, labels, validation errors, the CSRF token, an
 ### Global Errors
 
 ```html
-{% if register_form.global_errors %}
+{% if register_form.errors %}
     <div class="alert alert-danger">
-        {% for msg in register_form.global_errors %}
+        {% for msg in register_form.errors %}
             <p>{{ msg }}</p>
         {% endfor %}
     </div>
@@ -863,7 +863,7 @@ Automatically renders: all fields, labels, validation errors, the CSRF token, an
 
 ### Field Data in JSON
 
-Forms automatically serialize `data`, `errors`, `global_errors`, `html`, `rendered_fields`, `fields`, and `js_files`.
+Forms automatically serialize `data`, `errors`, `errors`, `html`, `rendered_fields`, `fields`, and `js_files`.
 
 ---
 
@@ -1043,4 +1043,3 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 ← **[Routing](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/en/04-routing.md)** | **[Templates](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/en/06-templates.md)** →
 
 ---
-

@@ -687,10 +687,10 @@ pub struct Model;
 
 `DeriveModelForm` exclut automatiquement :
 
-- `id` (clé primaire)  
-- `csrf_token`  
-- `created_at`, `updated_at`  
-- `is_active`, `deleted_at`  
+- `id` (clé primaire)
+- `csrf_token`
+- `created_at`, `updated_at`
+- `is_active`, `deleted_at`
 - Tout champ marqué `#[sea_orm(primary_key)]`
 
 [↑](#vue-densemble)
@@ -747,9 +747,9 @@ match form.save(&request.engine.db).await {
 
 **Formats d'erreur supportés :**
 
-- **PostgreSQL** : `UNIQUE constraint`, `Key (field)=(value)`  
-- **SQLite** : `UNIQUE constraint failed: table.field`  
-- **MySQL** : `Duplicate entry ... for key 'table.field'`  
+- **PostgreSQL** : `UNIQUE constraint`, `Key (field)=(value)`
+- **SQLite** : `UNIQUE constraint failed: table.field`
+- **MySQL** : `Duplicate entry ... for key 'table.field'`
 
 Si le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est déjà utilisé »). Sinon, elle est ajoutée aux erreurs globales.
 
@@ -795,9 +795,9 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 ### Erreurs globales
 
 ```html
-{% if inscription_form.global_errors %}
+{% if inscription_form.errors %}
     <div class="alert alert-danger">
-        {% for msg in inscription_form.global_errors %}
+        {% for msg in inscription_form.errors %}
             <p>{{ msg }}</p>
         {% endfor %}
     </div>
@@ -809,7 +809,7 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 <a id="donnees-json"></a>
 ### Données de champ en JSON
 
-Les formulaires sérialisent automatiquement `data`, `errors`, `global_errors`, `html`, `rendered_fields`, `fields` et `js_files`.
+Les formulaires sérialisent automatiquement `data`, `errors`, `errors`, `html`, `rendered_fields`, `fields` et `js_files`.
 
 ---
 
@@ -973,4 +973,3 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 ## Prochaines étapes
 
 ← [**Routing**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/06-templates.md) →
-
