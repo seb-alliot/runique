@@ -307,13 +307,15 @@ impl Parse for FkDef {
             "set_null" => FkAction::SetNull,
             "restrict" => FkAction::Restrict,
             "set_default" => FkAction::SetDefault,
-            other => return Err(syn::Error::new(
-                action_ident.span(),
-                format!(
+            other => {
+                return Err(syn::Error::new(
+                    action_ident.span(),
+                    format!(
                     "Action FK inconnue : '{}'. Attendu : cascade, set_null, restrict, set_default",
                     other
                 ),
-            )),
+                ))
+            }
         };
         Ok(FkDef {
             table,
