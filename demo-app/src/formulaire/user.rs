@@ -1,4 +1,4 @@
-use crate::entities::users::eihwaz_users_schema;
+use crate::entities::users::schema as eihwaz_users_schema;
 use runique::prelude::*;
 
 #[form(schema = eihwaz_users_schema, fields = [username, email, password])]
@@ -32,12 +32,12 @@ impl RegisterForm {
             return Err(DbErr::Custom(e));
         }
         use runique::prelude::user::ActiveModel;
-        let new_user = ActiveModel {
+        let user = ActiveModel {
             username: Set(self.form.get_string("username")),
             email: Set(self.form.get_string("email")),
             password: Set(hash(&self.form.get_string("password")).unwrap()),
             ..Default::default()
         };
-        new_user.insert(db).await
+        user.insert(db).await
     }
 }

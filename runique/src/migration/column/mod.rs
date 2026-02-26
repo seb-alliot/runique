@@ -482,6 +482,7 @@ impl ColumnDef {
                 f.into()
             }
             ColumnType::Json | ColumnType::JsonBinary => JSONField::new(name).into(),
+            ColumnType::Char(_) => TextField::text(name).into(),
             _ => TextField::text(name).into(),
         };
 

@@ -190,7 +190,7 @@ pub use uuid;
 #[cfg(feature = "orm")]
 pub use sea_orm;
 
-pub use derive_form::DeriveModelForm;
+pub use derive_form::{model, DeriveModelForm};
 
 // ---------------------------------------------------------------------------
 // Prelude simplifié
@@ -229,6 +229,7 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
+    pub use derive_form::model;
     pub use derive_form::{form, DeriveModelForm};
 
     // ========================================================================
@@ -308,7 +309,9 @@ pub mod prelude {
     // ========================================================================
     // SÉCURITÉ - HMAC, Hashing, etc.
     // ========================================================================
-    pub use crate::utils::password::{hash, verify, AutoConfig, Manual, PasswordConfig};
+    pub use crate::utils::password::{
+        hash, password_init, verify, AutoConfig, Manual, PasswordConfig,
+    };
     pub use hmac::{Hmac, Mac};
     pub use sha2::Sha256;
 

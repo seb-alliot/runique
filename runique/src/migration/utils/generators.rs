@@ -358,7 +358,7 @@ fn render_column_def(col: &ParsedColumn) -> String {
     } else {
         ".not_null()"
     };
-    let uniq = if col.unique { ".unique()" } else { "" };
+    let uniq = if col.unique { ".unique_key()" } else { "" };
     format!(
         "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}",
         name = col.name,
@@ -402,7 +402,7 @@ fn push_modify_column(
     unique: bool,
 ) {
     let null = if nullable { ".null()" } else { ".not_null()" };
-    let uniq = if unique { ".unique()" } else { "" };
+    let uniq = if unique { ".unique_key()" } else { "" };
     buf.push_str(&format!(
         "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .modify_column(ColumnDef::new(Alias::new(\"{col}\")).{ty}{null}{uniq})\n                    .to_owned(),\n            )\n            .await?;\n\n",
         table = table,
@@ -467,7 +467,7 @@ fn render_create_index_stmt(
     }
 
     let uniq_line = if unique {
-        "                    .unique()\n"
+        "                    .unique_key()\n"
     } else {
         ""
     };

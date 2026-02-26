@@ -14,6 +14,8 @@ use runique::app::builder::RuniqueAppBuilder as builder;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
+
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
     let db_config = DatabaseConfig::from_env()?.build();
@@ -21,7 +23,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     builder::new(config)
         .routes(url::routes())
-        .with_password(PasswordConfig::auto_with(Manual::Argon2))
         .with_database(db)
         .statics()
         .with_admin(|a| {

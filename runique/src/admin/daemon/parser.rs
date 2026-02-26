@@ -179,7 +179,9 @@ fn parse_resource_body(tokens: TokenStream) -> Result<(String, Vec<String>), Str
                 // Unknown field → skip until next comma
                 skip_until_punct(&mut iter, ',');
                 eprintln!("  Unknown field in admin!{{}}: '{}'", other);
-            }
+            } // autre champ → element de configuration personnalisé,
+              // on skip jusqu'à la prochaine virgule pour ne pas bloquer le parsing
+              // exemple: surcharger un template de rendu pour laisser la main au développeur
         }
     }
 
@@ -224,7 +226,7 @@ fn parse_path(iter: &mut TokenIter) -> Result<String, String> {
     }
 
     if path.is_empty() {
-        Err("Expected type path (e.g., users::Model)".to_string())
+        Err("Expected type path (e.g., crate::users::Model)".to_string())
     } else {
         Ok(path)
     }
