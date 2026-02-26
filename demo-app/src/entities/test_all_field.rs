@@ -1,49 +1,40 @@
-use crate::runique::migration::{ColumnDef, ModelSchema, PrimaryKeyDef};
+use runique::prelude::*;
 
-#[allow(dead_code)]
-pub fn test_all_fields_schema() -> ModelSchema {
-    model!("TestAllFields")
-        .table_name("test_all_fields")
-        .primary_key(PrimaryKeyDef::new("id").uuid())
-        // ── Text ──
-        .column(ColumnDef::new("f_text").string().nullable())
-        .column(ColumnDef::new("f_email").string().nullable())
-        .column(ColumnDef::new("f_url").string().nullable())
-        .column(ColumnDef::new("f_password").string().nullable())
-        .column(ColumnDef::new("f_textarea").text().nullable())
-        .column(ColumnDef::new("f_richtext").text().nullable())
-        // ── Numeric ──
-        .column(ColumnDef::new("f_integer").integer().nullable())
-        .column(ColumnDef::new("f_float").string().nullable()) // f32 non supporté → string, à affiner
-        .column(ColumnDef::new("f_decimal").string().nullable()) // Decimal non supporté → string, à affiner
-        .column(ColumnDef::new("f_percent").integer().nullable())
-        .column(ColumnDef::new("f_range").integer().nullable())
-        // ── Boolean ──
-        .column(ColumnDef::new("f_checkbox").boolean().nullable())
-        .column(ColumnDef::new("f_radio_single").boolean().nullable())
-        // ── Choice ──
-        .column(ColumnDef::new("f_select").string().nullable())
-        .column(ColumnDef::new("f_select_multiple").json().nullable())
-        .column(ColumnDef::new("f_radio_group").string().nullable())
-        .column(ColumnDef::new("f_checkbox_group").json().nullable())
-        // ── Datetime ──
-        .column(ColumnDef::new("f_date").datetime().nullable()) // Date seul non supporté
-        .column(ColumnDef::new("f_time").string().nullable()) // Time non supporté → string
-        .column(ColumnDef::new("f_datetime").datetime().nullable())
-        .column(ColumnDef::new("f_duration").big_integer().nullable())
-        // ── File ──
-        .column(ColumnDef::new("f_file_image").json().nullable())
-        .column(ColumnDef::new("f_file_document").json().nullable())
-        .column(ColumnDef::new("f_file_any").json().nullable())
-        // ── Special ──
-        .column(ColumnDef::new("f_color").string().nullable())
-        .column(ColumnDef::new("f_slug").string().nullable())
-        .column(ColumnDef::new("f_uuid").uuid().nullable())
-        .column(ColumnDef::new("f_json").json().nullable())
-        .column(ColumnDef::new("f_ip").string().nullable())
-        // ── Meta ──
-        .column(ColumnDef::new("created_at").auto_now())
-        .column(ColumnDef::new("updated_at").auto_now_update())
-        .build()
-        .unwrap()
+model! {
+    TestAllFields,
+    table: "test_all_fields",
+    pk: id => uuid,
+    fields: {
+        f_text: String [nullable],
+        f_email: String [nullable],
+        f_url: String [nullable],
+        f_password: String [nullable],
+        f_textarea: String [nullable],
+        f_richtext: String [nullable],
+        f_integer: i32 [nullable],
+        f_float: String [nullable],
+        f_decimal: String [nullable],
+        f_percent: i32 [nullable],
+        f_range: i32 [nullable],
+        f_checkbox: bool [nullable],
+        f_radio_single: bool [nullable],
+        f_select: String [nullable],
+        f_select_multiple: json [nullable],
+        f_radio_group: String [nullable],
+        f_checkbox_group: json [nullable],
+        f_date: datetime [nullable],
+        f_time: String [nullable],
+        f_datetime: datetime [nullable],
+        f_duration: i64 [nullable],
+        f_file_image: json [nullable],
+        f_file_document: json [nullable],
+        f_file_any: json [nullable],
+        f_color: String [nullable],
+        f_slug: String [nullable],
+        f_uuid: uuid [nullable],
+        f_json: json [nullable],
+        f_ip: String [nullable],
+        created_at: datetime [auto_now],
+        updated_at: datetime [auto_now_update],
+    }
 }

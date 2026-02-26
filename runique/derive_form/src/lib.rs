@@ -3,6 +3,7 @@ use proc_macro::TokenStream;
 // Modules PRIVÉS (pas de pub)
 mod forms;
 mod helpers;
+mod model;
 mod models;
 
 /// Macro #[runique_form]
@@ -23,4 +24,9 @@ mod schema_form;
 #[proc_macro_attribute]
 pub fn form(attr: TokenStream, item: TokenStream) -> TokenStream {
     schema_form::model_schema(attr, item)
+}
+
+#[proc_macro]
+pub fn model(input: TokenStream) -> TokenStream {
+    model::model_impl(input)
 }
