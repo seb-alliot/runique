@@ -1,6 +1,4 @@
 // Tests pour CurrentUser (auth_session)
-#[test]
-
 use runique::middleware::auth::auth_session::CurrentUser;
 
 #[test]

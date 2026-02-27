@@ -1,5 +1,4 @@
 // Tests pour csp middleware
-#[test]
 
 use runique::middleware::security::csp::SecurityPolicy;
 

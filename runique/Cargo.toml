@@ -108,6 +108,9 @@ derive_form = { path = "derive_form" }
 clap.workspace = true
 rpassword.workspace = true
 
+[dev-dependencies]
+serial_test = "3"
+
 [features]
 default = ["orm", "all-databases"]
 orm = ["dep:sea-orm", "dep:sea-orm-migration"]

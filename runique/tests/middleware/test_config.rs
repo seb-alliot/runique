@@ -1,5 +1,4 @@
 // Tests pour MiddlewareConfig
-#[test]
 
 use runique::middleware::config::MiddlewareConfig;
 

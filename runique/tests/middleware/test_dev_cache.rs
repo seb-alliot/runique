@@ -1,5 +1,4 @@
 // Tests pour dev_no_cache_middleware (structure)
-#[test]
 
 use axum::http::header;
 use axum::http::Request;
