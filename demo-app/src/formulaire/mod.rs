@@ -9,3 +9,6 @@ pub use username::UsernameForm;
 
 pub mod image;
 pub use image::ImageForm;
+
+pub mod login;
+pub use login::LoginForm;

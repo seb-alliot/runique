@@ -1,3 +1,3 @@
 pub mod login;
 
-pub use login::LoginForm;
+pub use login::LoginAdmin;

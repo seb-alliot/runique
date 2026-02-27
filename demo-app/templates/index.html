@@ -49,6 +49,8 @@
     </main>
     <footer>
         {% block footer %}
+            <a href="{% link 'login' %}">Se connecter</a>
+            <a href="{% link 'profil' %}">Mon profil</a>
             <a href="{% link 'test_fields' %}">Test des champs</a>
             <a href="{% link 'upload_image' %}">uploader une image</a>
             <a href="{% link "inscription" %}">Inscrivez-vous !</a>

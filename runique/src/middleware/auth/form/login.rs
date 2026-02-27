@@ -7,11 +7,11 @@ use crate::impl_form_access;
 /// Le dev n'a pas besoin d'y toucher.
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(transparent)]
-pub struct LoginForm {
+pub struct LoginAdmin {
     pub form: Forms,
 }
 
-impl RuniqueForm for LoginForm {
+impl RuniqueForm for LoginAdmin {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")

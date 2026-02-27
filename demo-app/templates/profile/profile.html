@@ -1,0 +1,64 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="container">
+    {% block messages %}
+        {% messages %}
+    {% endblock %}
+
+    <div class="profile-card">
+        <h1>Mon profil</h1>
+
+        {% if profile_user %}
+            <div class="profile-info">
+                <div class="profile-avatar">
+                    <span class="avatar-placeholder">{{ profile_user.username | upper }}</span>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-row">
+                        <span class="label">Nom d'utilisateur</span>
+                        <span class="value">{{ profile_user.username }}</span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="label">Email</span>
+                        <span class="value">{{ profile_user.email }}</span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="label">Compte actif</span>
+                        <span class="value">{% if profile_user.is_active %}✅ Oui{% else %}❌ Non{% endif %}</span>
+                    </div>
+                    {% if profile_user.is_staff %}
+                        <div class="profile-row">
+                            <span class="label">Rôle</span>
+                            <span class="value badge-staff">Staff</span>
+                        </div>
+                    {% endif %}
+                    {% if profile_user.is_superuser %}
+                        <div class="profile-row">
+                            <span class="label">Rôle</span>
+                            <span class="value badge-admin">Superuser</span>
+                        </div>
+                    {% endif %}
+                    {% if profile_user.created_at %}
+                        <div class="profile-row">
+                            <span class="label">Membre depuis</span>
+                            <span class="value">{{ profile_user.created_at }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p>Impossible de charger les informations du profil.</p>
+        {% endif %}
+
+        <div class="profile-actions">
+            <a href='{% link "blog_info" %}' class="btn btn-primary">Écrire un article</a>
+            <a href='{% link "index" %}' class="btn btn-secondary">Retour à l'accueil</a>
+            <form method="post" action='{% link "logout" %}' style="display:inline">
+                {% csrf %}
+                <button type="submit" class="btn btn-danger">Se déconnecter</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
