@@ -26,5 +26,18 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
     })?;
     drop(map);
 
-    Ok(Value::String(pattern))
+    // Substituer les paramètres {id}, {slug}, etc.
+    let result = args
+        .iter()
+        .filter(|(k, _)| *k != "link")
+        .fold(pattern, |acc, (k, v)| {
+            let value = match v {
+                Value::String(s) => s.clone(),
+                Value::Number(n) => n.to_string(),
+                _ => v.to_string(),
+            };
+            acc.replace(&format!("{{{}}}", k), &value)
+        });
+
+    Ok(Value::String(result))
 }

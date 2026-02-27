@@ -5,7 +5,7 @@ model! {
     table: "eihwaz_users",
     pk: id => i32,
     fields: {
-        username: String [required, max_len(150)],
+        username: String [required, max_len(150), unique],
         email: String [required, unique],
         password: String [required, max_len(128)],
         is_active: bool [required],

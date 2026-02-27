@@ -1,91 +1,51 @@
+use crate::entities::blog::schema as blog;
 use runique::prelude::*;
-use serde::Serialize;
+use sea_orm::DatabaseConnection;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "blog")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub title: String,
-    pub email: String, // Email de l'auteur
-    pub website: Option<String>,
-    #[sea_orm(column_type = "Text")]
-    pub summary: String, // Pour le TextArea
-    #[sea_orm(column_type = "Text")]
-    pub content: String, // Pour le RichText
-    pub created_at: DateTime<Utc>,
-}
+#[form(schema = blog, fields = [title, email, summary, website, content])]
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {
-    fn new() -> Self {
-        Self {
-            id: NotSet,
-            title: NotSet,
-            email: NotSet,
-            website: NotSet,
-            summary: NotSet,
-            content: NotSet,
-            created_at: Set(chrono::Utc::now()),
-        }
-    }
-}
-
-impl_objects!(Entity);
-
-// --- FORMULAIRE BLOG ---
-#[derive(Serialize)]
-
-pub struct BlogForm {
-    pub form: Forms,
-}
-
-impl RuniqueForm for BlogForm {
-    fn register_fields(form: &mut Forms) {
-        // Titre (Texte simple)
-        form.field(
-            &TextField::text("title")
-                .label("Entrez un titre accrocheur")
-                .required()
-                .min_length(10, "Le titre doit contenir au moins 10 caractères"),
-        );
-
-        // Email de l'auteur
-        form.field(
-            &TextField::email("email")
-                .label("Entrez l'email de l'auteur")
-                .required(),
-        );
-
-        // Site Web (URL)
-        form.field(&TextField::url("website").label("Entrez le site web source"));
-
-        // Résumé (TextArea)
-        form.field(
-            &TextField::textarea("summary")
-                .label("Un court résumé...")
-                .required(),
-        );
-
-        // Contenu (TextArea ou RichText si implémenté dans GenericField)
-        form.field(
-            &TextField::richtext("content")
-                .label("Entrez le contenu de l'article ici")
-                .required(),
-        );
-    }
-
-    impl_form_access!();
-}
+pub struct BlogForm;
 
 impl BlogForm {
+    async fn clean_fields(&self) -> Result<(), String> {
+        let title = self.form.get_string("title");
+        let email = self.form.get_string("email");
+        let website = self.form.get_option("website");
+        let summary = self.form.get_string("summary");
+        let content = self.form.get_string("content");
+
+        if title.len() < 5 {
+            return Err("Title must be at least 5 characters long".to_string());
+        }
+        if let Some(website) = website {
+            if !website.starts_with("http") {
+                return Err("Website must start with http".to_string());
+            }
+        }
+        if !email.contains('@') {
+            return Err("Invalid email address".to_string());
+        }
+        if summary.len() < 10 {
+            return Err("Summary must be at least 10 characters long".to_string());
+        }
+        if content.len() < 20 {
+            return Err("Content must be at least 20 characters long".to_string());
+        }
+        Ok(())
+    }
+
+    async fn clean(&self) -> Result<(), String> {
+        self.clean_fields().await
+    }
+
     pub async fn save(
         &self,
         db: &DatabaseConnection,
-    ) -> Result<crate::formulaire::blog::Model, DbErr> {
-        let new_blog = crate::formulaire::blog::ActiveModel {
+    ) -> Result<crate::entities::blog::Model, DbErr> {
+        if let Err(e) = self.clean().await {
+            return Err(DbErr::Custom(e));
+        }
+        let new_blog: crate::entities::blog::ActiveModel = crate::entities::blog::ActiveModel {
             title: Set(self.form.get_string("title")),
             email: Set(self.form.get_string("email")),
             website: Set(self.form.get_option("website")),
