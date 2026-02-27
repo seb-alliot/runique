@@ -30,7 +30,7 @@ pub async fn dev_no_cache_middleware(
     response
 }
 
-fn is_localhost(req: &Request<Body>) -> bool {
+pub fn is_localhost(req: &Request<Body>) -> bool {
     req.headers()
         .get(header::HOST)
         .and_then(|h| h.to_str().ok())

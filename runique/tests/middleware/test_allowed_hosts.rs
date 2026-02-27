@@ -1,8 +1,7 @@
 // Tests pour allowed_hosts middleware
-#[test]
 
+use axum::http::{header, HeaderMap, StatusCode};
 use runique::middleware::security::allowed_hosts::HostPolicy;
-use axum::http::{HeaderMap, header, StatusCode};
 
 #[test]
 fn test_host_policy_basic() {
@@ -98,7 +97,8 @@ fn test_validate_ok_and_error() {
 
 #[test]
 fn test_validate_no_host_header() {
-    let validator = HostPolicy::new(vec!["localhost".to_string()], false);
+    // debug=true pour que le message contienne le host name
+    let validator = HostPolicy::new(vec!["localhost".to_string()], true);
     let headers = HeaderMap::new();
     let res = validator.validate(&headers);
     assert!(res.is_err());

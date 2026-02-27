@@ -1,15 +1,17 @@
 // Tests pour csrf middleware
-#[test]
 
 use runique::middleware::security::csrf::CsrfTokenFunction;
-use tera::Value;
 use std::collections::HashMap;
+use tera::{Function, Value};
 
 #[test]
 fn test_csrf_token_function_html() {
     let func = CsrfTokenFunction;
     let mut args = HashMap::new();
-    args.insert("csrf_token".to_string(), Value::String("tok123".to_string()));
+    args.insert(
+        "csrf_token".to_string(),
+        Value::String("tok123".to_string()),
+    );
     let html = func.call(&args).unwrap();
     assert!(html.as_str().unwrap().contains("csrf_token"));
     assert!(html.as_str().unwrap().contains("tok123"));

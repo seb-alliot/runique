@@ -1,5 +1,4 @@
 // Tests pour error_handler_middleware (structure)
-#[test]
 
 use runique::middleware::errors::error::RequestInfoHelper;
 use std::collections::HashMap;
