@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                     .table(Alias::new("eihwaz_users"))
                     .if_not_exists()
                     .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
-                    .col(ColumnDef::new(Alias::new("username")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("username")).string().not_null().unique_key())
                     .col(ColumnDef::new(Alias::new("email")).string().not_null().unique_key())
                     .col(ColumnDef::new(Alias::new("password")).string().not_null())
                     .col(ColumnDef::new(Alias::new("is_active")).boolean().not_null())

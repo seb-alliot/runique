@@ -3,37 +3,68 @@ use crate::utils::aliases::JsonMap;
 use crate::utils::aliases::TResult;
 use tera::Value;
 
-// Dans src/tera_function/form_filter.rs
-
 pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
     if let Some(field_name) = args.get("field").and_then(|v| v.as_str()) {
-        // Rendre le field
         let field_html = render_field(value, field_name)?;
+        let mut output = field_html.as_str().unwrap_or("").to_string();
 
-        // Vérifier si c'est le dernier field (par index)
-        if is_last_field_by_index(value, field_name) {
-            let scripts = render_scripts(value).unwrap_or_default();
-
-            if !scripts.is_empty() {
-                let combined = format!(
-                    "{}\n<!-- Form scripts (auto-injected after last field) -->\n{}",
-                    field_html.as_str().unwrap_or(""),
-                    scripts
-                );
-                return Ok(Value::String(combined));
+        // Injecter le CSRF avant le premier champ
+        if is_first_field_by_index(value, field_name) {
+            if let Some(csrf) = render_csrf(value) {
+                output = format!("{}\n{}", csrf, output);
             }
         }
 
-        return Ok(field_html);
+        // Injecter les scripts après le dernier champ
+        if is_last_field_by_index(value, field_name) {
+            let scripts = render_scripts(value).unwrap_or_default();
+            if !scripts.is_empty() {
+                output = format!(
+                    "{}\n<!-- Form scripts (auto-injected after last field) -->\n{}",
+                    output, scripts
+                );
+            }
+        }
+
+        return Ok(Value::String(output));
     }
 
     // Rendu du form complet
     render_form_html(value)
 }
 
+/// Vérifie si le field est le premier par index (hors csrf_token)
+fn is_first_field_by_index(value: &Value, field_name: &str) -> bool {
+    let fields = value
+        .get("fields")
+        .or_else(|| value.get("form").and_then(|f| f.get("fields")));
+
+    let fields_obj = match fields.and_then(|f| f.as_object()) {
+        Some(obj) => obj,
+        None => return false,
+    };
+
+    // Index minimum en excluant csrf_token
+    let min_index = fields_obj
+        .values()
+        .filter(|f| f.get("name").and_then(|n| n.as_str()) != Some("csrf_token"))
+        .filter_map(|field| field.get("index"))
+        .filter_map(|idx| idx.as_u64())
+        .min();
+
+    let current_index = fields_obj
+        .get(field_name)
+        .and_then(|field| field.get("index"))
+        .and_then(|idx| idx.as_u64());
+
+    match (min_index, current_index) {
+        (Some(min), Some(current)) => min == current,
+        _ => false,
+    }
+}
+
 /// Vérifie si le field est le dernier par index
 fn is_last_field_by_index(value: &Value, field_name: &str) -> bool {
-    // Chercher fields dans value ou value.form
     let fields = value
         .get("fields")
         .or_else(|| value.get("form").and_then(|f| f.get("fields")));
@@ -56,11 +87,19 @@ fn is_last_field_by_index(value: &Value, field_name: &str) -> bool {
         .and_then(|field| field.get("index"))
         .and_then(|idx| idx.as_u64());
 
-    // Comparer
     match (max_index, current_index) {
         (Some(max), Some(current)) => max == current,
         _ => false,
     }
+}
+
+/// Récupère le HTML du champ CSRF depuis rendered_fields
+fn render_csrf(value: &Value) -> Option<String> {
+    let rendered = find_rendered_fields(value)?;
+    rendered
+        .get("csrf_token")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 fn render_scripts(value: &Value) -> Option<String> {
@@ -110,7 +149,6 @@ fn find_rendered_fields(value: &Value) -> Option<&Value> {
 
 /// Rendu du HTML complet du formulaire
 fn render_form_html(value: &Value) -> TResult {
-    // Chercher html à plusieurs endroits
     let html = find_html(value);
 
     if let Some(html_str) = html {

@@ -23,7 +23,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("website")).string().null())
                     .col(ColumnDef::new(Alias::new("summary")).string().not_null())
                     .col(ColumnDef::new(Alias::new("content")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("created_at")).date_time().null())
                     .to_owned(),
             )
             .await?;

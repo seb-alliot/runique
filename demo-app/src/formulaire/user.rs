@@ -13,6 +13,7 @@ impl RegisterForm {
         if username.len() < 3 {
             return Err("Username must be at least 3 characters long".to_string());
         }
+
         if !email.contains('@') {
             return Err("Invalid email address".to_string());
         }
@@ -35,7 +36,10 @@ impl RegisterForm {
         let user = ActiveModel {
             username: Set(self.form.get_string("username")),
             email: Set(self.form.get_string("email")),
-            password: Set(hash(&self.form.get_string("password")).unwrap()),
+            password: Set(self.form.get_string("password")),
+            is_active: Set(true),
+            is_superuser: Set(false),
+            is_staff: Set(false),
             ..Default::default()
         };
         user.insert(db).await

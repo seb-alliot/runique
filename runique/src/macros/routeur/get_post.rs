@@ -1,4 +1,4 @@
-//! Macro pour construire des routes avec GET/POST
+//! Macro pour construire des routes avec GET/POST/PUT/DELETE/PATCH en une seule ligne
 
 #[macro_export]
 macro_rules! view {

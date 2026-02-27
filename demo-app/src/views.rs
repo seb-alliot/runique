@@ -1,14 +1,20 @@
+use crate::entities::blog::Entity as BlogEntity;
 use crate::form_test::TestAllFieldsForm;
-use crate::formulaire::blog::Entity as BlogEntity;
 use crate::formulaire::*;
 use runique::prelude::user::Entity as UserEntity;
 use runique::prelude::*;
 
-// ─── Accueil ─────────────────────────────────────────────────────────────────
-
-pub async fn index(mut request: Request) -> AppResult<Response> {
+// ─── Utilitaire : injecter l'état auth dans le contexte Tera ─────────────────
+async fn inject_auth(request: &mut Request) {
     let connected = is_authenticated(&request.session).await;
     let username = get_username(&request.session).await;
+    request.context.insert("connected", &connected);
+    request.context.insert("current_user", &username);
+}
+
+// ───  Index  ─────────────────────────────────────────────────────────────────
+pub async fn index(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
 
     context_update!(request => {
         "title" => "Bienvenue sur Runique",
@@ -18,8 +24,6 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
         "template" => "Tera comme moteur de templates",
         "tokio" => "Runtime asynchrone tokio",
         "session" => "Tower pour la gestion des sessions",
-        "connected" => &connected,
-        "current_user" => &username,
     });
 
     request.render("index.html")
@@ -31,6 +35,8 @@ pub async fn soumission_inscription(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
     }
@@ -73,6 +79,8 @@ pub async fn soumission_inscription(
 // ─── Connexion ────────────────────────────────────────────────────────────────
 
 pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
     }
@@ -129,13 +137,14 @@ pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> App
 
 pub async fn deconnexion(request: Request) -> AppResult<Response> {
     logout(&request.session).await.ok();
-    success!(request.notices => "Vous êtes déconnecté.");
     Ok(Redirect::to("/").into_response())
 }
 
 // ─── Profil ───────────────────────────────────────────────────────────────────
 
 pub async fn profil(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Connectez-vous pour accéder à votre profil.");
         return Ok(Redirect::to("/login").into_response());
@@ -169,6 +178,7 @@ pub async fn info_user(
     mut request: Request,
     Prisme(mut form): Prisme<UsernameForm>,
 ) -> AppResult<Response> {
+    inject_auth(&mut request).await;
     let template = "profile/view_user.html";
 
     if request.is_get() {
@@ -227,8 +237,9 @@ pub async fn info_user(
 // ─── Blog ─────────────────────────────────────────────────────────────────────
 
 pub async fn blog_list(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
     let articles = BlogEntity::find()
-        .order_by_desc(crate::formulaire::blog::Column::CreatedAt)
+        .order_by_desc(crate::entities::blog::Column::Id)
         .all(&*request.engine.db)
         .await
         .unwrap_or_default();
@@ -243,30 +254,31 @@ pub async fn blog_list(mut request: Request) -> AppResult<Response> {
 
 pub async fn blog_save(
     mut request: Request,
-    Prisme(mut form): Prisme<BlogForm>,
+    Prisme(mut blog): Prisme<BlogForm>,
 ) -> AppResult<Response> {
+    inject_auth(&mut request).await;
     let template = "blog/blog.html";
 
     if request.is_get() {
         context_update!(request => {
             "title" => "Créer un article de blog",
-            "blog_form" => &form,
+            "blog_form" => &blog,
         });
         return request.render(template);
     }
 
     if request.is_post() {
-        if form.is_valid().await {
-            match form.save(&request.engine.db).await {
+        if blog.is_valid().await {
+            match blog.save(&request.engine.db).await {
                 Ok(_) => {
                     success!(request.notices => "Article sauvegardé !");
                     return Ok(Redirect::to("/blog/liste").into_response());
                 }
                 Err(err) => {
-                    form.get_form_mut().database_error(&err);
+                    blog.get_form_mut().database_error(&err);
                     context_update!(request => {
                         "title" => "Erreur base de données",
-                        "blog_form" => &form,
+                        "blog_form" => &blog,
                     });
                     return request.render(template);
                 }
@@ -275,7 +287,7 @@ pub async fn blog_save(
 
         context_update!(request => {
             "title" => "Erreur de validation",
-            "blog_form" => &form,
+            "blog_form" => &blog,
             "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
         });
         return request.render(template);
@@ -284,7 +296,8 @@ pub async fn blog_save(
     request.render(template)
 }
 
-pub async fn blog_detail(mut request: Request, Path(id): Path<i32>) -> AppResult<Response> {
+pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
     let article = BlogEntity::find_by_id(id)
         .one(&*request.engine.db)
         .await
@@ -308,6 +321,7 @@ pub async fn blog_detail(mut request: Request, Path(id): Path<i32>) -> AppResult
 // ─── À propos ────────────────────────────────────────────────────────────────
 
 pub async fn about(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
     success!(request.notices => "Ceci est un message de succès.");
     info!(request.notices => "Ceci est un message d'information.");
     warning!(request.notices => "Ceci est un message d'avertissement.");
@@ -334,6 +348,7 @@ pub async fn upload_image_submit(
     mut request: Request,
     Prisme(mut form): Prisme<ImageForm>,
 ) -> AppResult<Response> {
+    inject_auth(&mut request).await;
     let template = "forms/upload_image.html";
 
     if request.is_get() {
@@ -367,6 +382,7 @@ pub async fn test_fields(
     mut request: Request,
     Prisme(mut form): Prisme<TestAllFieldsForm>,
 ) -> AppResult<Response> {
+    inject_auth(&mut request).await;
     let template = "forms/field_test.html";
 
     if request.is_get() {

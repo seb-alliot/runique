@@ -10,6 +10,5 @@ model! {
         website: String [nullable],
         summary: String [required],
         content: String [required],
-        created_at: datetime [auto_now],
     }
 }
