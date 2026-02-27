@@ -25,7 +25,7 @@ fn test_text_field_creation() {
 
 #[test]
 fn test_email_field() {
-    let field = TextField::email("email");
+    let field: TextField = TextField::email("email");
     assert_eq!(field.field_type(), "email");
 }
 

@@ -151,8 +151,6 @@ field s'auto valide => clean_field se verifie  => clean regroupe tout => finalyz
 
 a quel moment injecter config.password ?
 
-
-
 => field password => aucune verification, ne renvois qu'un champs apssword
 => clean_field => contrainte metier
 => clean => regroupement logique metier global
