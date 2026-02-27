@@ -138,6 +138,15 @@ pub async fn login_user_full(
 
 /// Déconnecte un utilisateur (supprime la session)
 pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Error> {
+    session.remove::<i32>(SESSION_USER_ID_KEY).await?;
+    session.remove::<String>(SESSION_USER_USERNAME_KEY).await?;
+    session.remove::<bool>(SESSION_USER_IS_STAFF_KEY).await?;
+    session
+        .remove::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+        .await?;
+    session
+        .remove::<Vec<String>>(SESSION_USER_ROLES_KEY)
+        .await?;
     session.delete().await
 }
 

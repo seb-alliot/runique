@@ -1,10 +1,15 @@
 use crate::form_test::TestAllFieldsForm;
+use crate::formulaire::blog::Entity as BlogEntity;
 use crate::formulaire::*;
 use runique::prelude::user::Entity as UserEntity;
 use runique::prelude::*;
 
-/// Page d'accueil
+// ─── Accueil ─────────────────────────────────────────────────────────────────
+
 pub async fn index(mut request: Request) -> AppResult<Response> {
+    let connected = is_authenticated(&request.session).await;
+    let username = get_username(&request.session).await;
+
     context_update!(request => {
         "title" => "Bienvenue sur Runique",
         "description" => "Un framework web moderne inspiré de Django",
@@ -13,16 +18,23 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
         "template" => "Tera comme moteur de templates",
         "tokio" => "Runtime asynchrone tokio",
         "session" => "Tower pour la gestion des sessions",
+        "connected" => &connected,
+        "current_user" => &username,
     });
 
     request.render("index.html")
 }
 
-/// Soumission du formulaire d'inscription
+// ─── Inscription ──────────────────────────────────────────────────────────────
+
 pub async fn soumission_inscription(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
+    if is_authenticated(&request.session).await {
+        return Ok(Redirect::to("/profil").into_response());
+    }
+
     if request.is_get() {
         context_update!(request => {
             "title" => "Inscription utilisateur",
@@ -35,8 +47,11 @@ pub async fn soumission_inscription(
         if form.is_valid().await {
             match form.save(&request.engine.db).await {
                 Ok(user) => {
-                    success!(request.notices => format!("Bienvenue {}, votre compte est créé !", user.username));
-                    return Ok(Redirect::to("/").into_response());
+                    login_user(&request.session, user.id, &user.username)
+                        .await
+                        .ok();
+                    success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
+                    return Ok(Redirect::to("/profil").into_response());
                 }
                 Err(err) => {
                     form.get_form_mut().database_error(&err);
@@ -55,7 +70,101 @@ pub async fn soumission_inscription(
     request.render("inscription_form.html")
 }
 
-/// Recherche d'utilisateur / vue utilisateur
+// ─── Connexion ────────────────────────────────────────────────────────────────
+
+pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> AppResult<Response> {
+    if is_authenticated(&request.session).await {
+        return Ok(Redirect::to("/profil").into_response());
+    }
+
+    let template = "auth/login.html";
+
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "Connexion",
+            "login_form" => &form,
+        });
+        return request.render(template);
+    }
+
+    if request.is_post() {
+        let username_val = form.get_form().get_value("username").unwrap_or_default();
+        let password_val = form.get_form().get_value("password").unwrap_or_default();
+
+        if !username_val.is_empty() && !password_val.is_empty() {
+            let db = request.engine.db.clone();
+            let user_opt = UserEntity::find()
+                .filter(runique::prelude::user::Column::Username.eq(&username_val))
+                .one(&*db)
+                .await
+                .unwrap_or(None);
+
+            match user_opt {
+                Some(user) if user.is_active => {
+                    if TextField::verify_password(&password_val, &user.password) {
+                        login_user(&request.session, user.id, &user.username)
+                            .await
+                            .ok();
+                        success!(request.notices => format!("Bienvenue {} !", user.username));
+                        return Ok(Redirect::to("/profil").into_response());
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        flash_now!(error => "Identifiants invalides");
+        context_update!(request => {
+            "title" => "Connexion",
+            "login_form" => &form,
+            "auth_error" => &true,
+        });
+        return request.render(template);
+    }
+
+    request.render(template)
+}
+
+// ─── Déconnexion ─────────────────────────────────────────────────────────────
+
+pub async fn deconnexion(request: Request) -> AppResult<Response> {
+    logout(&request.session).await.ok();
+    success!(request.notices => "Vous êtes déconnecté.");
+    Ok(Redirect::to("/").into_response())
+}
+
+// ─── Profil ───────────────────────────────────────────────────────────────────
+
+pub async fn profil(mut request: Request) -> AppResult<Response> {
+    if !is_authenticated(&request.session).await {
+        warning!(request.notices => "Connectez-vous pour accéder à votre profil.");
+        return Ok(Redirect::to("/login").into_response());
+    }
+
+    let user_id = get_user_id(&request.session).await;
+    let username = get_username(&request.session).await;
+
+    let user_opt = if let Some(id) = user_id {
+        UserEntity::find_by_id(id)
+            .one(&*request.engine.db)
+            .await
+            .unwrap_or(None)
+    } else {
+        None
+    };
+
+    context_update!(request => {
+        "title" => "Mon profil",
+        "username" => &username,
+        "profile_user" => &user_opt,
+        "connected" => &true,
+    });
+
+    request.render("profile/profile.html")
+}
+
+// ─── Recherche utilisateur ────────────────────────────────────────────────────
+
 pub async fn info_user(
     mut request: Request,
     Prisme(mut form): Prisme<UsernameForm>,
@@ -83,10 +192,11 @@ pub async fn info_user(
         let username = form.get_form().get_value("username").unwrap_or_default();
         let db = request.engine.db.clone();
 
-        let user_opt = UserEntity::objects
-            .filter(crate::user::Column::Username.eq(&username))
-            .first(&db)
-            .await?;
+        let user_opt = UserEntity::find()
+            .filter(runique::prelude::user::Column::Username.eq(&username))
+            .one(&*db)
+            .await
+            .unwrap_or(None);
 
         match user_opt {
             Some(user) => {
@@ -96,14 +206,14 @@ pub async fn info_user(
                     "email" => &user.email,
                     "found_user" => &user,
                     "user" => &form,
-                    "messages" => flash_now!(success => "Voici les infos que tu voulais !"),
+                    "messages" => flash_now!(success => "Utilisateur trouvé !"),
                 });
             }
             None => {
                 context_update!(request => {
                     "title" => "Vue utilisateur",
                     "user" => &form,
-                    "messages" => flash_now!(warning => "Utilisateur introuvable. Inscrivez-vous !"),
+                    "messages" => flash_now!(warning => "Utilisateur introuvable."),
                 });
             }
         }
@@ -114,7 +224,23 @@ pub async fn info_user(
     request.render(template)
 }
 
-/// Blog save
+// ─── Blog ─────────────────────────────────────────────────────────────────────
+
+pub async fn blog_list(mut request: Request) -> AppResult<Response> {
+    let articles = BlogEntity::find()
+        .order_by_desc(crate::formulaire::blog::Column::CreatedAt)
+        .all(&*request.engine.db)
+        .await
+        .unwrap_or_default();
+
+    context_update!(request => {
+        "title" => "Blog — Articles",
+        "articles" => &articles,
+    });
+
+    request.render("blog/blog_list.html")
+}
+
 pub async fn blog_save(
     mut request: Request,
     Prisme(mut form): Prisme<BlogForm>,
@@ -133,22 +259,20 @@ pub async fn blog_save(
         if form.is_valid().await {
             match form.save(&request.engine.db).await {
                 Ok(_) => {
-                    success!(request.notices => "Article de blog sauvegardé avec succès !");
-                    return Ok(Redirect::to("/").into_response());
+                    success!(request.notices => "Article sauvegardé !");
+                    return Ok(Redirect::to("/blog/liste").into_response());
                 }
                 Err(err) => {
                     form.get_form_mut().database_error(&err);
                     context_update!(request => {
-                        "title" => "Erreur de base de données",
+                        "title" => "Erreur base de données",
                         "blog_form" => &form,
-                        "messages" => flash_now!(warning => "Veuillez corriger les erreurs ci-dessous"),
                     });
                     return request.render(template);
                 }
             }
         }
 
-        // Validation échouée
         context_update!(request => {
             "title" => "Erreur de validation",
             "blog_form" => &form,
@@ -160,7 +284,29 @@ pub async fn blog_save(
     request.render(template)
 }
 
-/// Page "À propos"
+pub async fn blog_detail(mut request: Request, Path(id): Path<i32>) -> AppResult<Response> {
+    let article = BlogEntity::find_by_id(id)
+        .one(&*request.engine.db)
+        .await
+        .unwrap_or(None);
+
+    match article {
+        Some(a) => {
+            context_update!(request => {
+                "title" => &a.title,
+                "article" => &a,
+            });
+            request.render("blog/blog_detail.html")
+        }
+        None => {
+            warning!(request.notices => "Article introuvable.");
+            Ok(Redirect::to("/blog/liste").into_response())
+        }
+    }
+}
+
+// ─── À propos ────────────────────────────────────────────────────────────────
+
 pub async fn about(mut request: Request) -> AppResult<Response> {
     success!(request.notices => "Ceci est un message de succès.");
     info!(request.notices => "Ceci est un message d'information.");
@@ -175,13 +321,15 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
     request.render("about/about.html")
 }
 
-/// Test CSRF
+// ─── CSRF test ────────────────────────────────────────────────────────────────
+
 pub async fn test_csrf(request: Request) -> AppResult<Response> {
     success!(request.notices => "CSRF token validé avec succès !");
     Ok(Redirect::to("/").into_response())
 }
 
-/// Upload image
+// ─── Upload image ─────────────────────────────────────────────────────────────
+
 pub async fn upload_image_submit(
     mut request: Request,
     Prisme(mut form): Prisme<ImageForm>,
@@ -213,7 +361,8 @@ pub async fn upload_image_submit(
     request.render(template)
 }
 
-/// Test des champs Runique
+// ─── Test des champs ─────────────────────────────────────────────────────────
+
 pub async fn test_fields(
     mut request: Request,
     Prisme(mut form): Prisme<TestAllFieldsForm>,
@@ -223,7 +372,7 @@ pub async fn test_fields(
     if request.is_get() {
         context_update!(request => {
             "title" => "Test des champs de formulaire Runique",
-            "description" => "Page de test des champs de formulaire Runique",
+            "description" => "Page de test exhaustif de tous les types de champs",
             "test_form" => &form,
         });
         return request.render(template);

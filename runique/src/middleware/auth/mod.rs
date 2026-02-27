@@ -15,5 +15,5 @@ pub use user_trait::RuniqueUser;
 
 pub use default_auth::{DefaultAdminAuth, UserEntity};
 
-pub use form::LoginForm;
+pub use form::LoginAdmin;
 pub use user::{BuiltinUserEntity, RuniqueAdminAuth};

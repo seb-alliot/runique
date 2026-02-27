@@ -1,0 +1,35 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="form-container">
+        {% block messages %}
+            {% messages %}
+        {% endblock %}
+
+        <h1>{{ title }}</h1>
+
+        {% if auth_error %}
+            <div class="alert alert-danger">
+                Nom d'utilisateur ou mot de passe incorrect.
+            </div>
+        {% endif %}
+
+        <form id="login_form" method="post" action='{% link "login" %}'>
+            {% form.login_form %}
+            <button type="submit" class="btn btn-primary btn-submit">Se connecter</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <p>Pas encore de compte ? <a href='{% link "inscription" %}'>S'inscrire</a></p>
+            <a href='{% link "index" %}'>← Retour à l'accueil</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
