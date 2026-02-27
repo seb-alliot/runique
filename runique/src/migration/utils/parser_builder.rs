@@ -168,15 +168,19 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         .fields
         .into_iter()
         .map(|f| {
+            let has_auto_now = f.options.contains(&"auto_now".to_string());
+            let has_auto_now_update = f.options.contains(&"auto_now_update".to_string());
+
             let nullable = f
                 .options
                 .iter()
                 .any(|o| matches!(o.as_str(), "nullable" | "auto_now" | "auto_now_update"));
             let unique = f.options.contains(&"unique".to_string());
-            let ignored = f.options.contains(&"readonly".to_string());
-            let col_type = if f.options.contains(&"auto_now".to_string())
-                || f.options.contains(&"auto_now_update".to_string())
-            {
+
+            let ignored =
+                f.options.contains(&"readonly".to_string()) || has_auto_now || has_auto_now_update;
+
+            let col_type = if has_auto_now || has_auto_now_update {
                 "DateTime".to_string()
             } else {
                 dsl_field_type_to_col_type(&f.ty)
