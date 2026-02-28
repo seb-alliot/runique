@@ -26,5 +26,26 @@ fn test_csrf_token_function_html_empty() {
     assert!(html.as_str().unwrap().contains("value=\"\""));
 }
 
-// Pour tester la logique middleware, il faudrait un test d'intégration avec axum et session mockée.
-// On vérifie ici la structure de CsrfTokenFunction et la robustesse de call.
+#[test]
+fn test_csrf_token_function_is_safe() {
+    let func = CsrfTokenFunction;
+    assert!(func.is_safe());
+}
+
+#[test]
+fn test_csrf_token_function_html_structure() {
+    let func = CsrfTokenFunction;
+    let mut args = HashMap::new();
+    args.insert(
+        "csrf_token".to_string(),
+        Value::String("abc_token".to_string()),
+    );
+    let html = func.call(&args).unwrap().as_str().unwrap().to_string();
+    assert!(html.starts_with("<input"));
+    assert!(html.contains(r#"type="hidden""#));
+    assert!(html.contains(r#"name="csrf_token""#));
+    assert!(html.contains(r#"value="abc_token""#));
+}
+
+// Pour tester la logique middleware (génération/validation de session), il faudrait
+// un test d'intégration avec axum et session mockée.
