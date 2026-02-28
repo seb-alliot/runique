@@ -19,20 +19,6 @@
 
 ## Detailed Coverage by File
 
-### Admin Module
-
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| admin\cli_admin.rs | 0.00% (0/2) | 0.00% (0/85) | 0.00% (0/135) | - (0/0) |
-| admin\config\config_admin.rs | 0.00% (0/9) | 0.00% (0/50) | 0.00% (0/61) | - (0/0) |
-| admin\daemon\generator.rs | 0.00% (0/17) | 0.00% (0/464) | 0.00% (0/966) | - (0/0) |
-| admin\daemon\parser.rs | 0.00% (0/13) | 0.00% (0/163) | 0.00% (0/281) | - (0/0) |
-| admin\daemon\watcher.rs | 0.00% (0/5) | 0.00% (0/52) | 0.00% (0/78) | - (0/0) |
-| admin\middleware\admin_middleware.rs | 0.00% (0/3) | 0.00% (0/26) | 0.00% (0/38) | - (0/0) |
-| admin\registry.rs | 100.00% (9/9) | 100.00% (25/25) | 100.00% (33/33) | - (0/0) |
-| admin\resource.rs | 15.00% (3/20) | 32.32% (32/99) | 21.00% (21/100) | - (0/0) |
-| admin\router\admin_router.rs | 0.00% (0/13) | 0.00% (0/101) | 0.00% (0/149) | - (0/0) |
-
 ### App Module
 
 | Filename | Function | Line | Region | Branch |
