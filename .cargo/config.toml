@@ -1,0 +1,2 @@
+[build]
+jobs = 16  # Ryzen 7 5800X — 8 cœurs / 16 threads
