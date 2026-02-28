@@ -47,7 +47,10 @@ fn test_to_header_value_basic() {
 
 #[test]
 fn test_to_header_value_with_nonce() {
-    let mut policy = SecurityPolicy::default();
+    let mut policy = SecurityPolicy {
+        use_nonce: true,
+        ..Default::default()
+    };
     policy.use_nonce = true;
     let header = policy.to_header_value(Some("abc123"));
     assert!(header.contains("'nonce-abc123'"));

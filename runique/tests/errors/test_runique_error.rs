@@ -251,7 +251,7 @@ fn test_error_context_environment_info() {
 #[test]
 fn test_build_stack_trace_peuple_la_trace() {
     let mut ctx = ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, "erreur");
-    let io_err = std::io::Error::new(std::io::ErrorKind::Other, "cause");
+    let io_err = std::io::Error::other("cause");
     ctx.build_stack_trace(&io_err);
     assert!(!ctx.stack_trace.is_empty());
     assert_eq!(ctx.stack_trace[0].level, 0);
