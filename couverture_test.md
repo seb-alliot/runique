@@ -1,6 +1,4 @@
-Voici le rapport de couverture complet en Markdown :
 
-```markdown
 # Coverage Report - Runique Framework
 
 **Generated:** 2026-02-28 15:29
@@ -285,5 +283,3 @@ Voici le rapport de couverture complet en Markdown :
 3. **Priority 3:** Test `app\builder.rs` and `engine\core.rs` (core framework logic)
 4. **Priority 4:** Improve forms module coverage, especially `forms\form.rs` and `forms\generic.rs`
 ```
-
-Pour sauvegarder ce rapport, copie le contenu ci-dessus dans un fichier nommé `COVERAGE_REPORT.md`.
