@@ -11,13 +11,24 @@
 //! | `test_paths`            | snapshot_dir, migration_dir, chemins         |
 //! | `test_relation_kind`    | Enum RelationKind                            |
 //! | `test_types`            | ParsedSchema et types de colonnes            |
+//! | `test_hooks_def`        | HooksDef, Hook, HookType                     |
+//! | `test_index_def`        | IndexDef                                     |
+//! | `test_model_schema`     | ModelSchema, SchemaDiff                      |
+//! | `test_relation_def`     | RelationDef                                  |
 
+pub mod test_column_def;
 pub mod test_convertisseur;
 pub mod test_diff;
+pub mod test_foreign_key;
 pub mod test_helpers;
+pub mod test_hooks_def;
+pub mod test_index_def;
+pub mod test_model_schema;
 pub mod test_parser;
 pub mod test_parser_builder;
 pub mod test_parser_seaorm;
 pub mod test_paths;
+pub mod test_primary_key;
+pub mod test_relation_def;
 pub mod test_relation_kind;
 pub mod test_types;
