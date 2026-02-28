@@ -89,7 +89,6 @@
 
             <form method="POST" action="/admin/logout" class="logout-form">
             <button type="submit" class="topbar-user logout-button" title="Déconnexion">
-                {% csrf %}
                 <div class="user-avatar">
                     {{ current_user.username }}
                 </div>
