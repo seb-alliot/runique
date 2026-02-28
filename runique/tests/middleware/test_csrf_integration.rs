@@ -5,98 +5,61 @@
 //!   - shared server tests: reuse the persistent server from `helpers::server`
 //!     which allows multi-request flows with real cookie/session persistence.
 
-use axum::{
-    body::Body,
-    http::{Method, Request, StatusCode},
+use crate::helpers::{
+    assert::{assert_has_header, assert_status},
+    request,
+    server::{self, build_default_router, build_engine, test_client, test_server_addr},
 };
-use tower::ServiceExt;
-
-use crate::helpers::server::{build_engine, build_default_router, test_client, test_server_addr};
 
 // ── oneshot helpers ────────────────────────────────────────────────────────────
 
 async fn fresh_app() -> axum::Router {
-    let engine = build_engine().await;
-    build_default_router(engine)
+    build_default_router(build_engine().await)
 }
 
 // ── oneshot tests (isolated, no session persistence) ──────────────────────────
 
 #[tokio::test]
 async fn test_csrf_get_retourne_200_et_header_token() {
-    let app = fresh_app().await;
-
-    let req = Request::builder()
-        .method(Method::GET)
-        .uri("/")
-        .body(Body::empty())
-        .unwrap();
-
-    let resp = app.oneshot(req).await.unwrap();
-
-    assert_eq!(resp.status(), StatusCode::OK);
-    assert!(
-        resp.headers().contains_key("x-csrf-token"),
-        "X-CSRF-Token must be present in GET response"
-    );
+    let resp = request::get(fresh_app().await, "/").await;
+    assert_status(&resp, 200);
+    assert_has_header(&resp, "x-csrf-token");
 }
 
 #[tokio::test]
 async fn test_csrf_post_sans_header_passe() {
-    let app = fresh_app().await;
-
-    let req = Request::builder()
-        .method(Method::POST)
-        .uri("/submit")
-        .body(Body::empty())
-        .unwrap();
-
-    let resp = app.oneshot(req).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    let resp = request::post(fresh_app().await, "/submit").await;
+    assert_status(&resp, 200);
 }
 
 #[tokio::test]
 async fn test_csrf_post_avec_token_invalide_retourne_403() {
-    let app = fresh_app().await;
-
-    let req = Request::builder()
-        .method(Method::POST)
-        .uri("/submit")
-        .header("X-CSRF-Token", "token_completement_invalide_!!!")
-        .body(Body::empty())
-        .unwrap();
-
-    let resp = app.oneshot(req).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+    let resp = request::post_with_header(
+        fresh_app().await,
+        "/submit",
+        "X-CSRF-Token",
+        "token_completement_invalide_!!!",
+    )
+    .await;
+    assert_status(&resp, 403);
 }
 
 #[tokio::test]
 async fn test_csrf_delete_sans_header_passe() {
-    let app = fresh_app().await;
-
-    let req = Request::builder()
-        .method(Method::DELETE)
-        .uri("/delete")
-        .body(Body::empty())
-        .unwrap();
-
-    let resp = app.oneshot(req).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    let resp = request::delete(fresh_app().await, "/delete").await;
+    assert_status(&resp, 200);
 }
 
 #[tokio::test]
 async fn test_csrf_delete_avec_token_invalide_retourne_403() {
-    let app = fresh_app().await;
-
-    let req = Request::builder()
-        .method(Method::DELETE)
-        .uri("/delete")
-        .header("X-CSRF-Token", "faux_token_base64==")
-        .body(Body::empty())
-        .unwrap();
-
-    let resp = app.oneshot(req).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+    let resp = request::delete_with_header(
+        fresh_app().await,
+        "/delete",
+        "X-CSRF-Token",
+        "faux_token_base64==",
+    )
+    .await;
+    assert_status(&resp, 403);
 }
 
 // ── shared server tests (cookie persistence across requests) ──────────────────
@@ -106,7 +69,7 @@ async fn test_csrf_delete_avec_token_invalide_retourne_403() {
 #[tokio::test]
 async fn test_csrf_roundtrip_get_then_post_valide() {
     let addr = test_server_addr();
-    let client = test_client(); // cookie_store enabled
+    let client = test_client();
 
     // Step 1: GET — the server sets the session cookie + returns X-CSRF-Token
     let get_resp = client
@@ -116,14 +79,7 @@ async fn test_csrf_roundtrip_get_then_post_valide() {
         .expect("GET /");
 
     assert_eq!(get_resp.status(), 200);
-
-    let token = get_resp
-        .headers()
-        .get("x-csrf-token")
-        .expect("X-CSRF-Token header missing")
-        .to_str()
-        .expect("header to str")
-        .to_string();
+    let token = server::extract_header(&get_resp, "x-csrf-token");
 
     // Step 2: POST with the token obtained in step 1 — same session via cookie
     let post_resp = client
@@ -153,13 +109,7 @@ async fn test_csrf_token_vol_autre_session_retourne_403() {
         .await
         .expect("GET / client A");
 
-    let stolen_token = get_resp
-        .headers()
-        .get("x-csrf-token")
-        .expect("token header")
-        .to_str()
-        .expect("str")
-        .to_string();
+    let stolen_token = server::extract_header(&get_resp, "x-csrf-token");
 
     // Client B: different session, tries to use client A's token
     let client_b = test_client();

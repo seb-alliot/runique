@@ -4,14 +4,7 @@
 //! Ces tests utilisent un router Axum minimal avec MemoryStore pour créer
 //! de vraies sessions sans démarrer de serveur.
 
-use axum::{
-    body::Body,
-    http::{Request, StatusCode},
-    response::IntoResponse,
-    routing::get,
-    Router,
-};
-use tower::ServiceExt;
+use axum::{response::IntoResponse, routing::get, Router};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 use runique::middleware::auth::{
@@ -21,7 +14,12 @@ use runique::utils::constante::{
     SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_ROLES_KEY,
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+use crate::helpers::{
+    assert::{assert_body_str, assert_status},
+    request,
+};
+
+// ── Helper local ──────────────────────────────────────────────────────────────
 
 fn build_app(handler: axum::routing::MethodRouter) -> Router {
     let store = MemoryStore::default();
@@ -31,53 +29,36 @@ fn build_app(handler: axum::routing::MethodRouter) -> Router {
         .layer(session_layer)
 }
 
-async fn get_request(app: Router) -> axum::response::Response {
-    app.oneshot(Request::builder().uri("/test").body(Body::empty()).unwrap())
-        .await
-        .unwrap()
-}
-
 // ── is_authenticated ──────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn test_is_authenticated_when_no_user_in_session() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let auth = is_authenticated(&session).await;
-        if auth {
+        if is_authenticated(&session).await {
             "authenticated"
         } else {
             "anonymous"
         }
     }
 
-    let app = build_app(get(handler));
-    let res = get_request(app).await;
-    assert_eq!(res.status(), StatusCode::OK);
-
-    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    assert_eq!(&body[..], b"anonymous");
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_status(&res, 200);
+    assert_body_str(res, "anonymous").await;
 }
 
 #[tokio::test]
 async fn test_is_authenticated_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
         login_user(&session, 1, "alice").await.unwrap();
-        let auth = is_authenticated(&session).await;
-        if auth {
+        if is_authenticated(&session).await {
             "authenticated"
         } else {
             "anonymous"
         }
     }
 
-    let app = build_app(get(handler));
-    let res = get_request(app).await;
-    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    assert_eq!(&body[..], b"authenticated");
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "authenticated").await;
 }
 
 // ── login_user ────────────────────────────────────────────────────────────────
@@ -91,12 +72,8 @@ async fn test_login_user_sets_id_and_username() {
         format!("{}/{}", id, username)
     }
 
-    let app = build_app(get(handler));
-    let res = get_request(app).await;
-    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    assert_eq!(&body[..], b"42/bob");
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "42/bob").await;
 }
 
 // ── login_user_full ───────────────────────────────────────────────────────────
@@ -139,12 +116,8 @@ async fn test_login_user_full_sets_all_fields() {
         )
     }
 
-    let app = build_app(get(handler));
-    let res = get_request(app).await;
-    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    assert_eq!(&body[..], b"7/admin/true/true/editor");
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "7/admin/true/true/editor").await;
 }
 
 // ── logout ────────────────────────────────────────────────────────────────────
@@ -153,7 +126,6 @@ async fn test_login_user_full_sets_all_fields() {
 #[tokio::test]
 async fn test_logout_clears_session_keys() {
     async fn handler(session: Session) -> impl IntoResponse {
-        // 1. Login complet
         login_user_full(
             &session,
             1,
@@ -164,34 +136,28 @@ async fn test_logout_clears_session_keys() {
         )
         .await
         .unwrap();
-
-        // 2. Logout
         logout(&session).await.unwrap();
 
-        // 3. Vérifier que toutes les clés sont absentes
-        let user_id = get_user_id(&session).await;
-        let username = get_username(&session).await;
-        let is_staff = session
-            .get::<bool>(SESSION_USER_IS_STAFF_KEY)
-            .await
-            .ok()
-            .flatten();
-        let is_su = session
-            .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-            .await
-            .ok()
-            .flatten();
-        let roles = session
-            .get::<Vec<String>>(SESSION_USER_ROLES_KEY)
-            .await
-            .ok()
-            .flatten();
-
-        let all_cleared = user_id.is_none()
-            && username.is_none()
-            && is_staff.is_none()
-            && is_su.is_none()
-            && roles.is_none();
+        let all_cleared = get_user_id(&session).await.is_none()
+            && get_username(&session).await.is_none()
+            && session
+                .get::<bool>(SESSION_USER_IS_STAFF_KEY)
+                .await
+                .ok()
+                .flatten()
+                .is_none()
+            && session
+                .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+                .await
+                .ok()
+                .flatten()
+                .is_none()
+            && session
+                .get::<Vec<String>>(SESSION_USER_ROLES_KEY)
+                .await
+                .ok()
+                .flatten()
+                .is_none();
 
         if all_cleared {
             "cleared"
@@ -200,12 +166,8 @@ async fn test_logout_clears_session_keys() {
         }
     }
 
-    let app = build_app(get(handler));
-    let res = get_request(app).await;
-    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    assert_eq!(&body[..], b"cleared");
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "cleared").await;
 }
 
 #[tokio::test]
@@ -213,20 +175,15 @@ async fn test_is_not_authenticated_after_logout() {
     async fn handler(session: Session) -> impl IntoResponse {
         login_user(&session, 1, "alice").await.unwrap();
         logout(&session).await.unwrap();
-        let auth = is_authenticated(&session).await;
-        if auth {
+        if is_authenticated(&session).await {
             "authenticated"
         } else {
             "anonymous"
         }
     }
 
-    let app = build_app(get(handler));
-    let res = get_request(app).await;
-    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    assert_eq!(&body[..], b"anonymous");
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "anonymous").await;
 }
 
 // ── get_user_id / get_username ────────────────────────────────────────────────
@@ -234,20 +191,15 @@ async fn test_is_not_authenticated_after_logout() {
 #[tokio::test]
 async fn test_get_user_id_returns_none_when_not_logged_in() {
     async fn handler(session: Session) -> impl IntoResponse {
-        let id = get_user_id(&session).await;
-        if id.is_some() {
+        if get_user_id(&session).await.is_some() {
             "some"
         } else {
             "none"
         }
     }
 
-    let app = build_app(get(handler));
-    let res = get_request(app).await;
-    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    assert_eq!(&body[..], b"none");
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "none").await;
 }
 
 #[tokio::test]
@@ -257,10 +209,6 @@ async fn test_get_username_after_login() {
         get_username(&session).await.unwrap_or_default()
     }
 
-    let app = build_app(get(handler));
-    let res = get_request(app).await;
-    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
-        .await
-        .unwrap();
-    assert_eq!(&body[..], b"charlie");
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "charlie").await;
 }
