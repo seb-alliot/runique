@@ -4,6 +4,7 @@ pub mod config;
 pub mod db;
 pub mod errors;
 pub mod formulaire;
+pub mod helpers;
 pub mod middleware;
 pub mod migration;
 pub mod utils;
