@@ -2,8 +2,7 @@
 
 ## 1. Configuration du mot de passe via settings
 
-**Status :** 🔴 À faire
-
+**Status :** 🟢 Fait
 ### 1.a. Ajouter un enum pour `main.rs`
 Contenant les options :
 - `False`
@@ -55,6 +54,7 @@ Contenant les options :
 - Ne plus baser le rendu admin sur les formulaires bruts
 - Basculer sur les **models** qui gèrent leur propre rendu
 - Les formulaires se basent sur le model (et non l'inverse) si macro attribut connecté
+- Si formulaire formulaire fournis dans la macro, lié le formulaire au model pour en en recuperer la logique metier
 
 #### b.2. Formulaires personnalisés
 - Permettre l'ajout de formulaires pour récupérer la logique métier de l'API sur les models
@@ -63,7 +63,7 @@ Contenant les options :
 
 ## 4. Middleware CSP et Stabilité
 
-**Status :** 🔴 À faire
+**Status :** 🔴 En cour
 
 ### 4.a. Middleware CSP
 - Peaufiner la configuration pour la rendre plus simple et lisible
@@ -87,9 +87,6 @@ Contenant les options :
 - **Problème identifié :** Double appel de `is_valid()`
   - 1ère fois dans `build_with_data`
   - 2ème fois dans `is_valid` du handler du développeur
-
-
-
   Restructure la gestion des mots de passe
 
 

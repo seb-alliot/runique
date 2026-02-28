@@ -35,6 +35,7 @@ pub mod auth;
 pub mod config;
 pub mod db;
 pub mod errors;
+pub mod flash;
 pub mod formulaire;
 pub mod helpers;
 pub mod middleware;
