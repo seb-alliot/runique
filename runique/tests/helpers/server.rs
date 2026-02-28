@@ -122,3 +122,18 @@ pub fn test_client() -> reqwest::Client {
         .build()
         .expect("reqwest client")
 }
+
+/// Extrait la valeur d'un header d'une réponse `reqwest` (panics si absent).
+///
+/// # Exemple
+/// ```rust
+/// let token = server::extract_header(&get_resp, "x-csrf-token");
+/// ```
+pub fn extract_header(resp: &reqwest::Response, key: &str) -> String {
+    resp.headers()
+        .get(key)
+        .unwrap_or_else(|| panic!("Header '{key}' absent de la réponse"))
+        .to_str()
+        .unwrap_or_else(|_| panic!("Header '{key}' : valeur non-UTF8"))
+        .to_string()
+}
