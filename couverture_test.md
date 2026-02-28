@@ -261,11 +261,3 @@
 | **Engine** | core.rs | 🔴 High |
 
 ---
-
-## Recommendations
-
-1. **Priority 1:** Add tests for `migration\migrate.rs` and `migration\makemigrations.rs` (critical for DB operations)
-2. **Priority 2:** Cover `admin\cli_admin.rs` and admin daemon tools (CLI functionality)
-3. **Priority 3:** Test `app\builder.rs` and `engine\core.rs` (core framework logic)
-4. **Priority 4:** Improve forms module coverage, especially `forms\form.rs` and `forms\generic.rs`
-```
