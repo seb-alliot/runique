@@ -8,6 +8,7 @@ edition = "2021"
 sea-orm-migration = { version = "2.0.0-rc.32", features = [
     "runtime-tokio-rustls",
     "sqlx-postgres",
+    "sqlx-mysql",
     "sqlx-sqlite",
 ] }
 
