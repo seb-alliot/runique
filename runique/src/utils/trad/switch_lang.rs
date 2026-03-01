@@ -1,8 +1,9 @@
+use once_cell::sync::Lazy;
 use serde_json::Value;
 use std::borrow::Cow;
 use std::fmt::Display;
+use std::sync::OnceLock;
 
-#[allow(dead_code)]
 /// Languages supported by Runique
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Lang {
@@ -10,10 +11,49 @@ pub enum Lang {
     #[default]
     En,
 }
+
+static GLOBAL_LANG: OnceLock<Lang> = OnceLock::new();
+
+/// Initialise la langue globale de l'application (appelé une seule fois au démarrage).
+/// Les appels suivants sont ignorés.
+pub fn set_lang(lang: Lang) {
+    GLOBAL_LANG.set(lang).ok();
+}
+
+/// Retourne la langue globale configurée (défaut : `En`).
+pub fn current_lang() -> Lang {
+    *GLOBAL_LANG.get().unwrap_or(&Lang::En)
+}
+
+/// Traduit une clé avec la langue globale.
+pub fn t(key: &str) -> Cow<'static, str> {
+    current_lang().get(key)
+}
+
+/// Traduit une clé avec paramètres avec la langue globale.
+pub fn tf<T: Display>(key: &str, args: &[T]) -> String {
+    current_lang().format(key, args)
+}
+
+impl From<&str> for Lang {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "fr" | "fr-fr" | "fr-ca" | "fr-be" | "fr-ch" => Lang::Fr,
+            _ => Lang::En,
+        }
+    }
+}
+
+impl From<String> for Lang {
+    fn from(s: String) -> Self {
+        Lang::from(s.as_str())
+    }
+}
+
 #[allow(dead_code)]
 impl Lang {
     /// Returns the language code (for file names)
-    const fn code(&self) -> &'static str {
+    pub const fn code(&self) -> &'static str {
         match self {
             Lang::Fr => "fr",
             Lang::En => "en",
@@ -22,8 +62,6 @@ impl Lang {
 
     /// Loads the translation JSON for this language
     fn load_json(&self) -> &'static Value {
-        use once_cell::sync::Lazy;
-
         static FR: Lazy<Value> = Lazy::new(|| {
             serde_json::from_str(include_str!("fr.json"))
                 .unwrap_or_else(|e| panic!("Invalid translation file 'fr.json': {}", e))
@@ -49,7 +87,7 @@ impl Lang {
         for part in parts {
             match current.get(part) {
                 Some(val) => current = val,
-                None => return Cow::Owned(key.to_string()), // Fallback: returns the key
+                None => return Cow::Owned(key.to_string()),
             }
         }
 
