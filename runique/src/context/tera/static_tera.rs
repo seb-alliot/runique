@@ -5,6 +5,12 @@ use crate::middleware::CsrfTokenFunction;
 use crate::utils::aliases::{ARlockmap, JsonMap, TResult};
 use tera::{Tera, Value};
 
+// Filtre pour masquer une valeur sensible avec des bullets (nombre de caractères réel)
+fn mask_filter(value: &Value, _: &JsonMap) -> TResult {
+    let s = value.as_str().unwrap_or("");
+    Ok(Value::String("•".repeat(s.chars().count())))
+}
+
 // Filtre pour générer un champ CSRF hidden
 fn csrf_filter(value: &Value, _: &JsonMap) -> TResult {
     let token = value
@@ -43,6 +49,7 @@ pub fn register_asset_filters(
     runique_media_url: String,
     url_registry: ARlockmap,
 ) {
+    tera.register_filter("mask", mask_filter);
     tera.register_filter("static", register_filter(static_url));
     tera.register_filter("media", register_filter(media_url));
     tera.register_filter("runique_static", register_filter(runique_static_url));

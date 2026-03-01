@@ -3,7 +3,10 @@ sea-orm-cli migrate down      => rollback une migration
 sea-orm-cli migrate fresh     => drop tout + reapplique
 sea-orm-cli migrate status    => voir l'état des migrations
 
-# base pour un github propre 
+# base pour un github propre
 cargo fmt --all
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test
+
+# couverture des test api
+cargo llvm-cov --package runique --ignore-filename-regex "admin" --output-format markdown > couverture_test.md

@@ -166,6 +166,9 @@ impl Forms {
 
     pub fn fill(&mut self, data: &StrMap) {
         for field in self.fields.values_mut() {
+            if field.field_type() == "password" {
+                continue;
+            }
             if let Some(value) = data.get(field.name()) {
                 field.set_value(value);
             }

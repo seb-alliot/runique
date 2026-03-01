@@ -1,8 +1,8 @@
+use crate::entities::users;
 use crate::formulaire::RegisterForm;
-use runique::prelude::user;
 
 admin! {
-    users: user::Model => RegisterForm {
+    users: users::Model => RegisterForm {
         title: "Utilisateurs",
         permissions: ["admin"]
     }
