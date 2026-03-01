@@ -1227,3 +1227,397 @@ fn test_get_option_bool() {
     assert_eq!(form.get_option_bool("active"), Some(true));
     assert_eq!(form.get_option_bool("vide"), None);
 }
+
+// ============================================================================
+// DATE / TIME / DATETIME — Forms::get_naive_date etc.
+// ============================================================================
+
+#[test]
+fn test_get_naive_date_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("naissance"));
+    form.add_value("naissance", "1990-06-15");
+    let date = form.get_naive_date("naissance");
+    use chrono::NaiveDate;
+    assert_eq!(date, NaiveDate::from_ymd_opt(1990, 6, 15).unwrap());
+}
+
+#[test]
+fn test_get_naive_date_invalide_retourne_default() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("d"));
+    form.add_value("d", "pas-une-date");
+    let date = form.get_naive_date("d");
+    assert_eq!(date, chrono::NaiveDate::default());
+}
+
+#[test]
+fn test_get_naive_date_champ_vide_retourne_default() {
+    let form = Forms::new("csrf");
+    let date = form.get_naive_date("inexistant");
+    assert_eq!(date, chrono::NaiveDate::default());
+}
+
+#[test]
+fn test_get_option_naive_date_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("d"));
+    form.add_value("d", "2024-01-31");
+    let date = form.get_option_naive_date("d");
+    use chrono::NaiveDate;
+    assert_eq!(date, NaiveDate::from_ymd_opt(2024, 1, 31));
+}
+
+#[test]
+fn test_get_option_naive_date_invalide_retourne_none() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("d"));
+    form.add_value("d", "invalide");
+    assert_eq!(form.get_option_naive_date("d"), None);
+}
+
+#[test]
+fn test_get_option_naive_date_vide_retourne_none() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("d"));
+    form.add_value("d", "");
+    assert_eq!(form.get_option_naive_date("d"), None);
+}
+
+#[test]
+fn test_get_naive_time_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("t"));
+    form.add_value("t", "14:30");
+    let time = form.get_naive_time("t");
+    use chrono::NaiveTime;
+    assert_eq!(time, NaiveTime::from_hms_opt(14, 30, 0).unwrap());
+}
+
+#[test]
+fn test_get_naive_time_invalide_retourne_default() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("t"));
+    form.add_value("t", "pas-une-heure");
+    let time = form.get_naive_time("t");
+    assert_eq!(time, chrono::NaiveTime::default());
+}
+
+#[test]
+fn test_get_option_naive_time_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("t"));
+    form.add_value("t", "09:00");
+    use chrono::NaiveTime;
+    assert_eq!(
+        form.get_option_naive_time("t"),
+        NaiveTime::from_hms_opt(9, 0, 0)
+    );
+}
+
+#[test]
+fn test_get_option_naive_time_invalide_retourne_none() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("t"));
+    form.add_value("t", "25:00");
+    assert_eq!(form.get_option_naive_time("t"), None);
+}
+
+#[test]
+fn test_get_naive_datetime_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("dt"));
+    form.add_value("dt", "2025-03-15T10:30");
+    let dt = form.get_naive_datetime("dt");
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+    let expected = NaiveDateTime::new(
+        NaiveDate::from_ymd_opt(2025, 3, 15).unwrap(),
+        NaiveTime::from_hms_opt(10, 30, 0).unwrap(),
+    );
+    assert_eq!(dt, expected);
+}
+
+#[test]
+fn test_get_naive_datetime_invalide_retourne_default() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("dt"));
+    form.add_value("dt", "invalide");
+    assert_eq!(
+        form.get_naive_datetime("dt"),
+        chrono::NaiveDateTime::default()
+    );
+}
+
+#[test]
+fn test_get_option_naive_datetime_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("dt"));
+    form.add_value("dt", "2025-06-01T08:00");
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+    let expected = NaiveDateTime::new(
+        NaiveDate::from_ymd_opt(2025, 6, 1).unwrap(),
+        NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+    );
+    assert_eq!(form.get_option_naive_datetime("dt"), Some(expected));
+}
+
+#[test]
+fn test_get_option_naive_datetime_invalide_retourne_none() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("dt"));
+    form.add_value("dt", "2025-13-99T99:99");
+    assert_eq!(form.get_option_naive_datetime("dt"), None);
+}
+
+#[test]
+fn test_get_datetime_utc_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("ts"));
+    form.add_value("ts", "2025-01-01T00:00:00Z");
+    let dt = form.get_datetime_utc("ts");
+    use chrono::{TimeZone, Utc};
+    let expected = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
+    assert_eq!(dt, expected);
+}
+
+#[test]
+fn test_get_datetime_utc_invalide_retourne_maintenant() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("ts"));
+    form.add_value("ts", "invalide");
+    // Doit retourner un temps proche de maintenant (Utc::now())
+    let dt = form.get_datetime_utc("ts");
+    let now = chrono::Utc::now();
+    let diff = (now - dt).num_seconds().abs();
+    assert!(
+        diff < 5,
+        "La valeur par défaut doit être proche de maintenant"
+    );
+}
+
+#[test]
+fn test_get_option_datetime_utc_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("ts"));
+    form.add_value("ts", "2025-06-15T12:00:00+02:00");
+    let dt = form.get_option_datetime_utc("ts");
+    assert!(dt.is_some());
+}
+
+#[test]
+fn test_get_option_datetime_utc_invalide_retourne_none() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("ts"));
+    form.add_value("ts", "pas-une-date");
+    assert_eq!(form.get_option_datetime_utc("ts"), None);
+}
+
+// ============================================================================
+// UUID — Forms::get_uuid / get_option_uuid
+// ============================================================================
+
+#[test]
+fn test_get_uuid_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("token"));
+    form.add_value("token", "550e8400-e29b-41d4-a716-446655440000");
+    let uuid = form.get_uuid("token");
+    assert_eq!(uuid.to_string(), "550e8400-e29b-41d4-a716-446655440000");
+}
+
+#[test]
+fn test_get_uuid_invalide_retourne_nil() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("token"));
+    form.add_value("token", "pas-un-uuid");
+    let uuid = form.get_uuid("token");
+    assert_eq!(uuid, uuid::Uuid::nil());
+}
+
+#[test]
+fn test_get_uuid_champ_vide_retourne_nil() {
+    let form = Forms::new("csrf");
+    let uuid = form.get_uuid("inexistant");
+    assert_eq!(uuid, uuid::Uuid::nil());
+}
+
+#[test]
+fn test_get_option_uuid_valide() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("id"));
+    form.add_value("id", "550e8400-e29b-41d4-a716-446655440000");
+    let uuid = form.get_option_uuid("id");
+    assert!(uuid.is_some());
+    assert_eq!(
+        uuid.unwrap().to_string(),
+        "550e8400-e29b-41d4-a716-446655440000"
+    );
+}
+
+#[test]
+fn test_get_option_uuid_invalide_retourne_none() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("id"));
+    form.add_value("id", "invalide");
+    assert_eq!(form.get_option_uuid("id"), None);
+}
+
+#[test]
+fn test_get_option_uuid_vide_retourne_none() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("id"));
+    form.add_value("id", "");
+    assert_eq!(form.get_option_uuid("id"), None);
+}
+
+// ============================================================================
+// database_error — Forms::database_error
+// ============================================================================
+
+fn make_sqlite_unique_err(msg: &str) -> sea_orm::DbErr {
+    sea_orm::DbErr::Query(sea_orm::RuntimeErr::Internal(msg.to_string()))
+}
+
+#[test]
+fn test_database_error_erreur_generique() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("username"));
+    let err = make_sqlite_unique_err("ERREUR inconnue");
+    form.database_error(&err);
+    assert!(
+        !form.errors.is_empty(),
+        "Une erreur DB générique doit être ajoutée"
+    );
+    assert!(form.errors[0].starts_with("Erreur DB:"));
+}
+
+#[test]
+fn test_database_error_contrainte_unique_sans_champ_connu() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("username"));
+    // Message qui contient UNIQUE mais sans pattern de champ reconnu
+    let err = make_sqlite_unique_err("UNIQUE constraint failed");
+    form.database_error(&err);
+    // Doit ajouter une erreur globale
+    assert!(!form.errors.is_empty() || form.fields.values().any(|f| f.error().is_some()));
+}
+
+#[test]
+fn test_database_error_contrainte_unique_avec_champ_connu() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("email"));
+    // SQLite unique constraint format: "UNIQUE constraint failed: table.email"
+    let err = make_sqlite_unique_err("UNIQUE constraint failed: users.email");
+    form.database_error(&err);
+    // Le champ email ou les erreurs globales doit avoir une erreur
+    let has_field_error = form.fields.get("email").and_then(|f| f.error()).is_some();
+    let has_global_error = !form.errors.is_empty();
+    assert!(
+        has_field_error || has_global_error,
+        "Une erreur de contrainte unique doit générer une erreur"
+    );
+}
+
+#[test]
+fn test_database_error_champ_inconnu_dans_formulaire() {
+    let mut form = Forms::new("csrf");
+    // Pas de champ "telephone" dans le formulaire
+    form.field(&TextField::text("email"));
+    let err = make_sqlite_unique_err("UNIQUE constraint failed: users.telephone");
+    form.database_error(&err);
+    // Doit ajouter une erreur globale car le champ n'existe pas
+    // (ou une erreur de contrainte)
+    let handled = !form.errors.is_empty() || form.fields.values().any(|f| f.error().is_some());
+    assert!(
+        handled,
+        "L'erreur doit être traitée d'une façon ou d'une autre"
+    );
+}
+
+// ============================================================================
+// add_js et field_generic — Forms
+// ============================================================================
+
+#[test]
+fn test_forms_add_js_sans_renderer_ne_panique_pas() {
+    // Sans renderer, add_js doit juste ne rien faire
+    let mut form = Forms::new("csrf");
+    form.add_js(&["script.js"]); // ne doit pas paniquer
+}
+
+#[test]
+fn test_forms_field_generic_ajoute_champ() {
+    use runique::forms::fields::text::GenericField;
+    let mut form = Forms::new("csrf");
+    let field = TextField::text("mon_champ");
+    let generic: GenericField = field.into();
+    form.field_generic(generic);
+    assert!(form.fields.contains_key("mon_champ"));
+}
+
+#[test]
+fn test_forms_finalize_sans_champs_password() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("email"));
+    form.add_value("email", "test@example.com");
+    let result = form.finalize();
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_forms_has_errors_sans_erreurs() {
+    let form = Forms::new("csrf");
+    assert!(!form.has_errors());
+}
+
+#[test]
+fn test_forms_has_errors_avec_erreur_champ() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("nom").required());
+    // Valider un champ requis vide pour générer une erreur
+    if let Some(field) = form.fields.get_mut("nom") {
+        field.set_error("Ce champ est obligatoire".to_string());
+    }
+    assert!(form.has_errors());
+}
+
+#[test]
+fn test_forms_errors_collecte_erreurs_champs() {
+    let mut form = Forms::new("csrf");
+    form.field(&TextField::text("nom"));
+    if let Some(field) = form.fields.get_mut("nom") {
+        field.set_error("Erreur sur nom".to_string());
+    }
+    let errors = form.errors();
+    assert!(errors.contains_key("nom"));
+    assert_eq!(errors["nom"], "Erreur sur nom");
+}
+
+#[test]
+fn test_forms_set_renderer() {
+    use runique::forms::renderer::FormRenderer;
+    use std::sync::Arc;
+    use tera::Tera;
+
+    let mut form = Forms::new("csrf");
+    let renderer = FormRenderer::new(Arc::new(Tera::default()));
+    form.set_renderer(renderer);
+    // Après set_renderer, render() ne doit plus retourner "Renderer non configuré"
+    // (mais peut échouer pour d'autres raisons comme l'absence de templates)
+    // On vérifie juste que set_renderer ne panique pas
+}
+
+#[test]
+fn test_forms_render_sans_renderer_retourne_erreur() {
+    let form = Forms::new("csrf");
+    let result = form.render();
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Renderer non configuré"));
+}
+
+#[test]
+fn test_forms_debug_format() {
+    let form = Forms::new("csrf_test");
+    let s = format!("{:?}", form);
+    assert!(s.contains("Forms"));
+}

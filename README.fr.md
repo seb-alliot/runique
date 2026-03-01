@@ -369,7 +369,7 @@ Voir [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/PROJECT
 
 - 📁 [Project Structure](https://github.com/seb-alliot/runique/blob/main/INDEX.md)
 - 📊 [Full Status](https://github.com/seb-alliot/runique/blob/main/PROJECT_STATUS.md)
-- 🧪 [Test Reports](https://github.com/seb-alliot/runique/blob/main/TEST_REPORT.md)
+- 🧪 [Test Reports](https://github.com/seb-alliot/runique/blob/main/couverture_test.md)
 - 📋 [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
 - 📖 [Documentation Guide](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
 
@@ -380,10 +380,6 @@ Voir [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/PROJECT
 MIT License[LICENCE](https://github.com/seb-alliot/runique/blob/main/LICENCE) voir [SECURITY.md](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 
 ---
-
-## 🚀 Prêt pour la production
-
-Le framework Runique est **stable, testé et documenté**, prêt pour une utilisation en production.
 
 
 **Démarrer maintenant** → [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
