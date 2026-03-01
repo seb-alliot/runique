@@ -286,6 +286,21 @@ impl MiddlewareStaging {
         true
     }
 
+    /// Retourne la configuration des features middleware active
+    pub fn features(&self) -> &MiddlewareConfig {
+        &self.features
+    }
+
+    /// Retourne la durée de session configurée
+    pub fn session_duration(&self) -> Duration {
+        self.session_duration
+    }
+
+    /// Retourne le nombre de middlewares custom ajoutés
+    pub fn custom_count(&self) -> usize {
+        self.custom_middlewares.len()
+    }
+
     // ═══════════════════════════════════════════════════════════
     // APPLICATION — Le cœur de l'innovation
     //

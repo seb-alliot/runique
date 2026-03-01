@@ -12,6 +12,25 @@ fn make_renderer() -> runique::forms::renderer::FormRenderer {
     runique::forms::renderer::FormRenderer::new(tera)
 }
 
+fn make_renderer_with_templates() -> runique::forms::renderer::FormRenderer {
+    let mut tera = Tera::default();
+    // Ajouter un template js_files minimal pour tester render_js
+    tera.add_raw_template(
+        "js_files",
+        "{% for f in js_files %}<script src=\"{{ f }}\"></script>{% endfor %}",
+    )
+    .unwrap();
+    // Ajouter un template base_string pour render_field via TextField
+    tera.add_raw_template("base_string", "<input name=\"{{ field.name }}\">")
+        .unwrap();
+    tera.add_raw_template(
+        "csrf",
+        "<input type=\"hidden\" name=\"csrf_token\" value=\"{{ field.value }}\">",
+    )
+    .unwrap();
+    runique::forms::renderer::FormRenderer::new(Arc::new(tera))
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Création
 // ═══════════════════════════════════════════════════════════════
@@ -159,4 +178,82 @@ fn test_render_plusieurs_erreurs_globales() {
     let html = result.unwrap();
     assert!(html.contains("Erreur 1"));
     assert!(html.contains("Erreur 2"));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// render_field — rendu d'un champ individuel
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_render_field_avec_template_valide() {
+    use runique::forms::fields::TextField;
+    let renderer = make_renderer_with_templates();
+    let field = TextField::text("username");
+    let result = renderer.render_field(&field);
+    assert!(result.is_ok());
+    let html = result.unwrap();
+    assert!(html.contains("username"));
+}
+
+#[test]
+fn test_render_field_sans_template_retourne_erreur() {
+    use runique::forms::fields::TextField;
+    // make_renderer() n'a pas de template base_string
+    let renderer = make_renderer();
+    let field = TextField::text("champ");
+    let result = renderer.render_field(&field);
+    // Doit retourner une erreur car le template base_string est manquant
+    assert!(result.is_err());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// render_js — avec des fichiers JS
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_render_avec_js_files_et_template() {
+    use indexmap::IndexMap;
+    let mut renderer = make_renderer_with_templates();
+    renderer.add_js(&["form.js", "datepicker.js"]);
+
+    let fields = IndexMap::new();
+    let result = renderer.render(&fields, &[]);
+    assert!(result.is_ok());
+    let html = result.unwrap();
+    assert!(html.contains("form.js"));
+    assert!(html.contains("datepicker.js"));
+}
+
+#[test]
+fn test_render_js_sans_template_retourne_erreur() {
+    // make_renderer() n'a pas de template js_files
+    let mut renderer = make_renderer();
+    renderer.add_js(&["script.js"]);
+
+    use indexmap::IndexMap;
+    let fields = IndexMap::new();
+    let result = renderer.render(&fields, &[]);
+    // Doit échouer car le template js_files est absent
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Missing template: js_files"));
+}
+
+#[test]
+fn test_render_avec_champ_et_js() {
+    use indexmap::IndexMap;
+    use runique::forms::fields::TextField;
+
+    let mut renderer = make_renderer_with_templates();
+    renderer.add_js(&["ui.js"]);
+
+    let field = TextField::text("nom");
+    let mut fields: indexmap::IndexMap<String, Box<dyn runique::forms::base::FormField>> =
+        IndexMap::new();
+    fields.insert("nom".to_string(), Box::new(field));
+
+    let result = renderer.render(&fields, &[]);
+    assert!(result.is_ok());
+    let html = result.unwrap();
+    assert!(html.contains("ui.js"));
+    assert!(html.contains("nom"));
 }

@@ -74,6 +74,11 @@ impl StaticStaging {
         Ok(())
     }
 
+    /// Retourne `true` si le service de fichiers statiques est activé
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
     /// Les fichiers statiques sont toujours prêts
     pub fn is_ready(&self) -> bool {
         true
