@@ -5,6 +5,7 @@ use crate::forms::renderer::FormRenderer;
 use crate::forms::validator::{FormValidator, ValidationError};
 use crate::utils::aliases::{FieldsMap, StrMap};
 use crate::utils::constante::CSRF_TOKEN_KEY;
+use crate::utils::trad::{t, tf};
 use indexmap::IndexMap;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
@@ -184,10 +185,7 @@ impl Forms {
     pub fn finalize(&mut self) -> Result<(), String> {
         for (name, field) in self.fields.iter_mut() {
             if let Err(e) = field.finalize() {
-                return Err(format!(
-                    "Erreur lors de la finalisation du champ '{}': {}",
-                    name, e
-                ));
+                return Err(tf("forms.finalize_error", &[name, &e]));
             }
         }
         Ok(())
@@ -219,7 +217,7 @@ impl Forms {
     pub fn render(&self) -> Result<String, String> {
         self.renderer
             .as_ref()
-            .ok_or("Renderer non configuré")?
+            .ok_or_else(|| t("forms.tera_not_configured").into_owned())?
             .render(&self.fields, &self.errors)
     }
 }
@@ -391,17 +389,16 @@ impl Forms {
             if let Some(field) = Self::extract_field_name(&err_msg) {
                 if let Some(form_field) = self.fields.get_mut(&field) {
                     let friendly_name = field.replace("_", " ");
-                    form_field.set_error(format!("Ce {} est déjà utilisé.", friendly_name));
+                    form_field.set_error(tf("forms.unique_field_taken", &[&friendly_name]));
                 } else {
-                    self.errors
-                        .push(format!("La valeur du champ '{}' est déjà utilisée.", field));
+                    self.errors.push(tf("forms.unique_value_taken", &[&field]));
                 }
             } else {
                 self.errors
-                    .push("Une contrainte d'unicité a été violée.".to_string());
+                    .push(t("forms.unique_constraint_violated").into_owned());
             }
         } else {
-            self.errors.push(format!("Erreur DB: {}", err_msg));
+            self.errors.push(tf("forms.db_error", &[&err_msg]));
         }
     }
 

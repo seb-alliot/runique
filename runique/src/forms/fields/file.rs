@@ -1,3 +1,4 @@
+use crate::utils::trad::{t, tf};
 use crate::{
     config::StaticConfig,
     forms::base::{CommonFieldConfig, FieldConfig, FormField},
@@ -228,7 +229,7 @@ impl FormField for FileField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Veuillez sélectionner au moins un fichier".into());
+                .unwrap_or_else(|| t("forms.file_required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -243,7 +244,7 @@ impl FormField for FileField {
         // 2. Validation du nombre de fichiers
         if let Some(max) = self.max_files {
             if files.len() > max {
-                self.set_error(format!("Maximum {} fichiers autorisés", max));
+                self.set_error(tf("forms.file_max_count", &[&max]));
                 return false;
             }
         }
@@ -252,9 +253,9 @@ impl FormField for FileField {
         for filename in &files {
             if !self.allowed_extensions.is_allowed(filename) {
                 let exts = self.allowed_extensions.extensions.join(", ");
-                self.set_error(format!(
-                    "Fichier '{}' non autorisé. Extensions: {}",
-                    filename, exts
+                self.set_error(tf(
+                    "forms.file_extension_blocked",
+                    &[*filename, exts.as_str()],
                 ));
                 return false;
             }
@@ -262,9 +263,11 @@ impl FormField for FileField {
                 if let Ok(metadata) = std::fs::metadata(filename) {
                     let size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
                     if size_mb > max_mb as f64 {
-                        self.set_error(format!(
-                            "Fichier '{}' trop volumineux ({:.1}MB > {}MB max)",
-                            filename, size_mb, max_mb
+                        let size_str = format!("{:.1}", size_mb);
+                        let max_mb_str = max_mb.to_string();
+                        self.set_error(tf(
+                            "forms.file_too_large",
+                            &[*filename, size_str.as_str(), max_mb_str.as_str()],
                         ));
                         return false;
                     }
@@ -276,10 +279,7 @@ impl FormField for FileField {
         if let FileFieldType::Image = self.field_type {
             for filename in &files {
                 if !is_valid_path(filename) {
-                    self.set_error(format!(
-                        "Le fichier '{}' n'est pas une image valide",
-                        filename
-                    ));
+                    self.set_error(tf("forms.file_invalid_image", &[*filename]));
                     return false;
                 }
 
@@ -289,18 +289,20 @@ impl FormField for FileField {
                             let (w, h) = dims;
                             if let Some(max_w) = self.max_width {
                                 if w > max_w {
-                                    self.set_error(format!(
-                                        "L'image '{}' est trop large ({}px > {}px)",
-                                        filename, w, max_w
+                                    let (w_s, mw_s) = (w.to_string(), max_w.to_string());
+                                    self.set_error(tf(
+                                        "forms.image_too_wide",
+                                        &[*filename, w_s.as_str(), mw_s.as_str()],
                                     ));
                                     return false;
                                 }
                             }
                             if let Some(max_h) = self.max_height {
                                 if h > max_h {
-                                    self.set_error(format!(
-                                        "L'image '{}' est trop haute ({}px > {}px)",
-                                        filename, h, max_h
+                                    let (h_s, mh_s) = (h.to_string(), max_h.to_string());
+                                    self.set_error(tf(
+                                        "forms.image_too_tall",
+                                        &[*filename, h_s.as_str(), mh_s.as_str()],
                                     ));
                                     return false;
                                 }

@@ -2,6 +2,7 @@ use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField, TextConfig};
 pub use crate::forms::generic::GenericField;
 use crate::forms::options::LengthConstraint;
 use crate::utils::password::PasswordConfig;
+use crate::utils::trad::{t, tf};
 
 use crate::utils::password::PasswordService;
 use serde::Serialize;
@@ -152,7 +153,7 @@ impl FormField for TextField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -168,7 +169,7 @@ impl FormField for TextField {
                 let msg = limits
                     .message
                     .clone()
-                    .unwrap_or_else(|| format!("Trop court (min {})", limits.value));
+                    .unwrap_or_else(|| tf("forms.too_short", &[&limits.value]));
                 self.set_error(msg);
                 return false;
             }
@@ -181,7 +182,7 @@ impl FormField for TextField {
                 let msg = limits
                     .message
                     .clone()
-                    .unwrap_or_else(|| format!("Trop long (max {})", limits.value));
+                    .unwrap_or_else(|| tf("forms.too_long", &[&limits.value]));
                 self.set_error(msg);
                 return false;
             }
@@ -190,14 +191,14 @@ impl FormField for TextField {
         // Special format validation
         match &self.format {
             SpecialFormat::Email if !val.validate_email() => {
-                self.set_error("Format d'adresse email invalide".into());
+                self.set_error(t("forms.email_invalid").into_owned());
                 return false;
             }
             SpecialFormat::Email => {
                 val = val.to_lowercase();
             }
             SpecialFormat::Url if !val.validate_url() => {
-                self.set_error("Veuillez entrer une URL valide".into());
+                self.set_error(t("forms.url_invalid").into_owned());
                 return false;
             }
             _ => {}

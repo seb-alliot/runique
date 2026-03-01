@@ -1,4 +1,5 @@
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::utils::trad::{t, tf};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::Serialize;
 use serde_json::json;
@@ -78,7 +79,7 @@ impl FormField for DateField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -91,7 +92,7 @@ impl FormField for DateField {
         let date = match NaiveDate::parse_from_str(val, "%Y-%m-%d") {
             Ok(d) => d,
             Err(_) => {
-                self.set_error("Format de date invalide (attendu: YYYY-MM-DD)".into());
+                self.set_error(t("forms.date_invalid").into_owned());
                 return false;
             }
         };
@@ -104,8 +105,8 @@ impl FormField for DateField {
                     .extra_context
                     .get("min_message")
                     .cloned()
-                    .unwrap_or_else(|| json!(format!("Date minimale: {}", min)));
-                self.set_error(msg.to_string());
+                    .unwrap_or_else(|| json!(tf("forms.date_too_old", &[&min])));
+                self.set_error(msg.as_str().unwrap_or_default().to_string());
                 return false;
             }
         }
@@ -118,8 +119,8 @@ impl FormField for DateField {
                     .extra_context
                     .get("max_message")
                     .cloned()
-                    .unwrap_or_else(|| json!(format!("Date maximale: {}", max)));
-                self.set_error(msg.to_string());
+                    .unwrap_or_else(|| json!(tf("forms.date_too_far", &[&max])));
+                self.set_error(msg.as_str().unwrap_or_default().to_string());
                 return false;
             }
         }
@@ -211,7 +212,7 @@ impl FormField for TimeField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -224,7 +225,7 @@ impl FormField for TimeField {
         let time = match NaiveTime::parse_from_str(val, "%H:%M") {
             Ok(t) => t,
             Err(_) => {
-                self.set_error("Format de temps invalide (attendu: HH:MM)".into());
+                self.set_error(t("forms.time_invalid").into_owned());
                 return false;
             }
         };
@@ -237,8 +238,8 @@ impl FormField for TimeField {
                     .extra_context
                     .get("min_message")
                     .cloned()
-                    .unwrap_or_else(|| json!(format!("Temps minimal: {}", min)));
-                self.set_error(msg.to_string());
+                    .unwrap_or_else(|| json!(tf("forms.time_too_old", &[&min])));
+                self.set_error(msg.as_str().unwrap_or_default().to_string());
                 return false;
             }
         }
@@ -251,8 +252,8 @@ impl FormField for TimeField {
                     .extra_context
                     .get("max_message")
                     .cloned()
-                    .unwrap_or_else(|| json!(format!("Temps maximal: {}", max)));
-                self.set_error(msg.to_string());
+                    .unwrap_or_else(|| json!(tf("forms.time_too_far", &[&max])));
+                self.set_error(msg.as_str().unwrap_or_default().to_string());
                 return false;
             }
         }
@@ -344,7 +345,7 @@ impl FormField for DateTimeField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -357,7 +358,7 @@ impl FormField for DateTimeField {
         let datetime = match NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M") {
             Ok(dt) => dt,
             Err(_) => {
-                self.set_error("Format de date/temps invalide (attendu: YYYY-MM-DDTHH:MM)".into());
+                self.set_error(t("forms.date_invalid").into_owned());
                 return false;
             }
         };
@@ -370,8 +371,8 @@ impl FormField for DateTimeField {
                     .extra_context
                     .get("min_message")
                     .cloned()
-                    .unwrap_or_else(|| json!(format!("Date/temps minimal: {}", min)));
-                self.set_error(json!(msg).to_string());
+                    .unwrap_or_else(|| json!(tf("forms.datetime_too_old", &[&min])));
+                self.set_error(msg.as_str().unwrap_or_default().to_string());
                 return false;
             }
         }
@@ -384,8 +385,8 @@ impl FormField for DateTimeField {
                     .extra_context
                     .get("max_message")
                     .cloned()
-                    .unwrap_or_else(|| json!(format!("Date/temps maximal: {}", max)));
-                self.set_error(json!(msg).to_string());
+                    .unwrap_or_else(|| json!(tf("forms.datetime_too_far", &[&max])));
+                self.set_error(msg.as_str().unwrap_or_default().to_string());
                 return false;
             }
         }
@@ -478,7 +479,7 @@ impl FormField for DurationField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| json!("Ce champ est obligatoire").to_string());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -491,7 +492,7 @@ impl FormField for DurationField {
         let seconds = match val.parse::<u64>() {
             Ok(s) => s,
             Err(_) => {
-                self.set_error(json!("Durée invalide (nombre de secondes attendu)").to_string());
+                self.set_error(t("forms.duration_invalid").into_owned());
                 return false;
             }
         };
@@ -504,8 +505,8 @@ impl FormField for DurationField {
                     .extra_context
                     .get("min_message")
                     .cloned()
-                    .unwrap_or_else(|| json!(format!("Durée minimale: {} secondes", min)));
-                self.set_error(msg.to_string());
+                    .unwrap_or_else(|| json!(tf("forms.duration_too_short", &[&min])));
+                self.set_error(msg.as_str().unwrap_or_default().to_string());
                 return false;
             }
         }
@@ -518,8 +519,8 @@ impl FormField for DurationField {
                     .extra_context
                     .get("max_message")
                     .cloned()
-                    .unwrap_or_else(|| json!(format!("Durée maximale: {} secondes", max)));
-                self.set_error(msg.to_string());
+                    .unwrap_or_else(|| json!(tf("forms.duration_too_long", &[&max])));
+                self.set_error(msg.as_str().unwrap_or_default().to_string());
                 return false;
             }
         }

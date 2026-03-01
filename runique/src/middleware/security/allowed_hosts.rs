@@ -1,6 +1,7 @@
 // runique/src/middleware/allowed_hosts.rs
 
 use crate::utils::aliases::AEngine;
+use crate::utils::trad::{t, tf};
 use axum::{
     body::Body,
     extract::State,
@@ -100,12 +101,9 @@ impl HostPolicy {
 
     fn make_error_message(&self, host: &str) -> String {
         if self.debug {
-            format!(
-                "Invalid Host: '{}'. Add it to RUNIQUE_POLICY_ALLOWED_HOSTS.",
-                host
-            )
+            tf("middleware.host_debug", &[host])
         } else {
-            "Bad Request".to_string()
+            t("middleware.bad_request").into_owned()
         }
     }
 }

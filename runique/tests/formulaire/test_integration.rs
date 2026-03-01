@@ -72,7 +72,7 @@ fn test_text_field_required_empty_fails() {
     let mut field = TextField::text("name").required();
     field.set_value("");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Ce champ est obligatoire");
+    assert_eq!(field.error().unwrap(), "This field is required");
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn test_email_validation_invalid() {
     let mut field = TextField::email("email");
     field.set_value("pas-un-email");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Format d'adresse email invalide");
+    assert_eq!(field.error().unwrap(), "Invalid email address format");
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn test_url_validation_invalid() {
     let mut field = TextField::url("site");
     field.set_value("pas-une-url");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Veuillez entrer une URL valide");
+    assert_eq!(field.error().unwrap(), "Please enter a valid URL");
 }
 
 #[test]
@@ -271,7 +271,7 @@ fn test_boolean_required_not_checked_fails() {
     let mut field = BooleanField::new("cgu").required();
     field.set_value("false");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Vous devez accepter ce champ");
+    assert_eq!(field.error().unwrap(), "You must accept this field");
 }
 
 #[test]
@@ -318,7 +318,7 @@ fn test_choice_field_invalid_selection() {
         .add_choice("de", "Allemagne");
     field.set_value("xx");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Choix invalide");
+    assert_eq!(field.error().unwrap(), "Invalid choice");
 }
 
 #[test]
@@ -328,7 +328,7 @@ fn test_choice_field_required_empty() {
         .required();
     field.set_value("");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Veuillez sélectionner une option");
+    assert_eq!(field.error().unwrap(), "Please select an option");
 }
 
 #[test]
@@ -367,7 +367,7 @@ fn test_radio_field_invalid() {
         .add_choice("f", "Féminin");
     field.set_value("x");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Choix invalide");
+    assert_eq!(field.error().unwrap(), "Invalid choice");
 }
 
 #[test]
@@ -377,7 +377,7 @@ fn test_radio_field_required_empty() {
         .required();
     field.set_value("");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Veuillez sélectionner une option");
+    assert_eq!(field.error().unwrap(), "Please select an option");
 }
 
 // ============================================================================
@@ -411,7 +411,7 @@ fn test_checkbox_field_invalid_choice() {
         .add_choice("python", "Python");
     field.set_value("rust,java");
     assert!(!field.validate());
-    assert!(field.error().unwrap().contains("Choix invalide: java"));
+    assert!(field.error().unwrap().contains("Invalid choice: java"));
 }
 
 #[test]
@@ -421,10 +421,7 @@ fn test_checkbox_field_required_empty() {
         .required();
     field.set_value("");
     assert!(!field.validate());
-    assert_eq!(
-        field.error().unwrap(),
-        "Veuillez sélectionner au moins une option"
-    );
+    assert_eq!(field.error().unwrap(), "Please select at least one option");
 }
 
 #[test]
@@ -475,7 +472,7 @@ fn test_date_field_invalid_format() {
     let mut field = DateField::new("birthday");
     field.set_value("15/01/2000");
     assert!(!field.validate());
-    assert!(field.error().unwrap().contains("Format de date invalide"));
+    assert!(field.error().unwrap().contains("Invalid date format"));
 }
 
 #[test]
@@ -483,7 +480,7 @@ fn test_date_field_required_empty() {
     let mut field = DateField::new("birthday").required();
     field.set_value("");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Ce champ est obligatoire");
+    assert_eq!(field.error().unwrap(), "This field is required");
 }
 
 #[test]
@@ -522,7 +519,7 @@ fn test_time_field_invalid() {
     let mut field = TimeField::new("heure");
     field.set_value("25:00");
     assert!(!field.validate());
-    assert!(field.error().unwrap().contains("Format de temps invalide"));
+    assert!(field.error().unwrap().contains("Invalid time format"));
 }
 
 // ============================================================================
@@ -548,10 +545,7 @@ fn test_datetime_field_invalid() {
     let mut field = DateTimeField::new("rdv");
     field.set_value("2025-06-15 14:30");
     assert!(!field.validate());
-    assert!(field
-        .error()
-        .unwrap()
-        .contains("Format de date/temps invalide"));
+    assert!(field.error().unwrap().contains("Invalid date format"));
 }
 
 // ============================================================================
@@ -577,7 +571,7 @@ fn test_duration_field_invalid() {
     let mut field = DurationField::new("duree");
     field.set_value("abc");
     assert!(!field.validate());
-    assert!(field.error().unwrap().contains("Durée invalide"));
+    assert!(field.error().unwrap().contains("Invalid duration"));
 }
 
 #[test]
@@ -617,10 +611,7 @@ fn test_file_field_required_empty() {
     let mut field = FileField::image("photo").required();
     field.set_value("");
     assert!(!field.validate());
-    assert_eq!(
-        field.error().unwrap(),
-        "Veuillez sélectionner au moins un fichier"
-    );
+    assert_eq!(field.error().unwrap(), "Please select at least one file");
 }
 
 #[test]
@@ -628,7 +619,7 @@ fn test_file_field_invalid_extension() {
     let mut field = FileField::image("photo");
     field.set_value("malware.exe");
     assert!(!field.validate());
-    assert!(field.error().unwrap().contains("non autorisé"));
+    assert!(field.error().unwrap().contains("not allowed"));
 }
 
 #[test]
@@ -678,7 +669,7 @@ fn test_color_field_invalid_no_hash() {
     let mut field = ColorField::new("c");
     field.set_value("ff0000");
     assert!(!field.validate());
-    assert!(field.error().unwrap().contains("doit commencer par #"));
+    assert!(field.error().unwrap().contains("must start with #"));
 }
 
 #[test]
@@ -686,10 +677,7 @@ fn test_color_field_invalid_length() {
     let mut field = ColorField::new("c");
     field.set_value("#abcd");
     assert!(!field.validate());
-    assert!(field
-        .error()
-        .unwrap()
-        .contains("Format de couleur invalide"));
+    assert!(field.error().unwrap().contains("Invalid color"));
 }
 
 #[test]
@@ -697,7 +685,7 @@ fn test_color_field_invalid_chars() {
     let mut field = ColorField::new("c");
     field.set_value("#gghhii");
     assert!(!field.validate());
-    assert!(field.error().unwrap().contains("hexadécimaux"));
+    assert!(field.error().unwrap().contains("non-hexadecimal"));
 }
 
 // ============================================================================
@@ -733,7 +721,7 @@ fn test_slug_field_no_leading_trailing_dash() {
     assert!(field
         .error()
         .unwrap()
-        .contains("commencer ou finir par un tiret"));
+        .contains("must not start or end with dash"));
 }
 
 #[test]
@@ -766,7 +754,7 @@ fn test_uuid_field_invalid() {
     let mut field = UUIDField::new("token");
     field.set_value("pas-un-uuid");
     assert!(!field.validate());
-    assert!(field.error().unwrap().contains("Format UUID invalide"));
+    assert!(field.error().unwrap().contains("Invalid UUID format"));
 }
 
 #[test]
@@ -774,7 +762,7 @@ fn test_uuid_field_required_empty() {
     let mut field = UUIDField::new("token").required();
     field.set_value("");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Ce champ est obligatoire");
+    assert_eq!(field.error().unwrap(), "This field is required");
 }
 
 // ============================================================================
@@ -807,7 +795,7 @@ fn test_json_field_invalid() {
     let mut field = JSONField::new("data");
     field.set_value("{key: broken}");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "JSON invalide");
+    assert!(field.error().unwrap().contains("Invalid JSON"));
 }
 
 #[test]
@@ -847,7 +835,7 @@ fn test_ip_field_invalid() {
     let mut field = IPAddressField::new("ip");
     field.set_value("999.999.999.999");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Adresse IP invalide");
+    assert_eq!(field.error().unwrap(), "Invalid IP address");
 }
 
 #[test]
@@ -855,10 +843,7 @@ fn test_ip_field_ipv4_only_rejects_ipv6() {
     let mut field = IPAddressField::new("ip").ipv4_only();
     field.set_value("::1");
     assert!(!field.validate());
-    assert_eq!(
-        field.error().unwrap(),
-        "Seules les adresses IPv4 sont acceptées"
-    );
+    assert_eq!(field.error().unwrap(), "Only IPv4 addresses accepted");
 }
 
 #[test]
@@ -866,10 +851,7 @@ fn test_ip_field_ipv6_only_rejects_ipv4() {
     let mut field = IPAddressField::new("ip").ipv6_only();
     field.set_value("192.168.1.1");
     assert!(!field.validate());
-    assert_eq!(
-        field.error().unwrap(),
-        "Seules les adresses IPv6 sont acceptées"
-    );
+    assert_eq!(field.error().unwrap(), "Only IPv6 addresses accepted");
 }
 
 #[test]
@@ -924,7 +906,7 @@ fn test_hidden_field_csrf_validate_mismatch() {
     field.set_value("mauvais");
     field.set_expected_value("attendu");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Token CSRF invalide");
+    assert_eq!(field.error().unwrap(), "Invalid CSRF token");
 }
 
 #[test]
@@ -933,7 +915,7 @@ fn test_hidden_field_csrf_validate_empty() {
     field.set_value("");
     field.set_expected_value("attendu");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "Token CSRF manquant");
+    assert_eq!(field.error().unwrap(), "CSRF token missing");
 }
 
 #[test]
@@ -1488,7 +1470,7 @@ fn test_database_error_erreur_generique() {
         !form.errors.is_empty(),
         "Une erreur DB générique doit être ajoutée"
     );
-    assert!(form.errors[0].starts_with("Erreur DB:"));
+    assert!(form.errors[0].starts_with("DB error:"));
 }
 
 #[test]
@@ -1612,7 +1594,7 @@ fn test_forms_render_sans_renderer_retourne_erreur() {
     let form = Forms::new("csrf");
     let result = form.render();
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("Renderer non configuré"));
+    assert!(result.unwrap_err().contains("Tera not configured"));
 }
 
 #[test]

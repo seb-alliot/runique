@@ -277,6 +277,9 @@ impl RuniqueAppBuilder {
             .map_err(|e| BuildError::template(e.to_string()))?);
 
         let config = new(config);
+        crate::utils::trad::set_lang(crate::utils::trad::Lang::from(
+            config.app.language_code.as_str(),
+        ));
         crate::utils::password::password_init(config.password.clone());
 
         // B. Engine (cœur de l'application)

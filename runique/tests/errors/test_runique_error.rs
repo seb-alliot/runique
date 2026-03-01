@@ -278,3 +278,160 @@ fn test_error_context_from_anyhow() {
     assert!(ctx.message.contains("Erreur anyhow de test"));
     assert!(!ctx.stack_trace.is_empty());
 }
+
+// ═══════════════════════════════════════════════════════════════
+// RuniqueError — Clone variantes restantes
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_runique_error_clone_forbidden() {
+    let err = RuniqueError::Forbidden;
+    let cloned = err.clone();
+    assert_eq!(cloned.to_string(), err.to_string());
+}
+
+#[test]
+fn test_runique_error_clone_not_found() {
+    let err = RuniqueError::NotFound;
+    let cloned = err.clone();
+    assert_eq!(cloned.to_string(), err.to_string());
+}
+
+#[test]
+fn test_runique_error_clone_io() {
+    let err = RuniqueError::Io("disk full".to_string());
+    let cloned = err.clone();
+    assert_eq!(cloned.to_string(), err.to_string());
+}
+
+#[test]
+fn test_runique_error_clone_template() {
+    let err = RuniqueError::Template("template.html".to_string());
+    let cloned = err.clone();
+    assert_eq!(cloned.to_string(), err.to_string());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RuniqueError — to_error_context (Io et Custom)
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_to_error_context_io_500() {
+    let err = RuniqueError::Io("disk error".to_string());
+    let ctx = err.to_error_context();
+    assert_eq!(ctx.status_code, 500);
+}
+
+#[test]
+fn test_to_error_context_custom_500() {
+    let err = RuniqueError::Custom {
+        message: "custom".to_string(),
+        source: None,
+    };
+    let ctx = err.to_error_context();
+    assert_eq!(ctx.status_code, 500);
+}
+
+#[test]
+fn test_to_error_context_stack_trace_presente() {
+    let err = RuniqueError::Validation("val".to_string());
+    let ctx = err.to_error_context();
+    assert!(!ctx.stack_trace.is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ErrorContext — from_runique_error
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_from_runique_error_internal() {
+    let err = RuniqueError::Internal;
+    let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
+    assert_eq!(ctx.status_code, 500);
+}
+
+#[test]
+fn test_from_runique_error_forbidden() {
+    let err = RuniqueError::Forbidden;
+    let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
+    assert_eq!(ctx.status_code, 403);
+}
+
+#[test]
+fn test_from_runique_error_not_found_avec_path() {
+    let err = RuniqueError::NotFound;
+    let ctx = ErrorContext::from_runique_error(&err, Some("/ma-page"), None, None, None);
+    assert_eq!(ctx.status_code, 404);
+    assert!(ctx.message.contains("/ma-page"));
+}
+
+#[test]
+fn test_from_runique_error_not_found_sans_path() {
+    let err = RuniqueError::NotFound;
+    let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
+    assert_eq!(ctx.status_code, 404);
+}
+
+#[test]
+fn test_from_runique_error_validation() {
+    let err = RuniqueError::Validation("champ invalide".to_string());
+    let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
+    assert_eq!(ctx.status_code, 400);
+    assert!(ctx.message.contains("champ invalide"));
+}
+
+#[test]
+fn test_from_runique_error_io() {
+    let err = RuniqueError::Io("disk full".to_string());
+    let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
+    assert_eq!(ctx.status_code, 500);
+    assert!(ctx.message.contains("disk full"));
+}
+
+#[test]
+fn test_from_runique_error_template() {
+    let err = RuniqueError::Template("rendu.html".to_string());
+    let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
+    assert_eq!(ctx.status_code, 500);
+    assert!(ctx.message.contains("rendu.html"));
+}
+
+#[test]
+fn test_from_runique_error_custom() {
+    let err = RuniqueError::Custom {
+        message: "erreur custom".to_string(),
+        source: None,
+    };
+    let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
+    assert_eq!(ctx.status_code, 500);
+    assert!(ctx.message.contains("erreur custom"));
+}
+
+#[test]
+fn test_from_runique_error_a_stack_trace() {
+    let err = RuniqueError::Internal;
+    let ctx = ErrorContext::from_runique_error(&err, None, None, None, None);
+    assert!(!ctx.stack_trace.is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// read_template_source
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_read_template_source_inexistant_retourne_none() {
+    use runique::errors::error::read_template_source;
+    let result = read_template_source("template_qui_nexiste_pas.html");
+    assert!(result.is_none());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ErrorContext — database
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_error_context_database_500() {
+    let ctx = ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, "db error");
+    assert_eq!(ctx.status_code, 500);
+    assert_eq!(ctx.message, "db error");
+}

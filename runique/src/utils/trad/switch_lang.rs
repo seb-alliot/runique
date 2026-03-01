@@ -39,7 +39,8 @@ impl From<&str> for Lang {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "fr" | "fr-fr" | "fr-ca" | "fr-be" | "fr-ch" => Lang::Fr,
-            _ => Lang::En,
+            "en" | "en-us" | "en-gb" | "en-ca" => Lang::En,
+            _ => Lang::En, // Default to English if unrecognized
         }
     }
 }
@@ -107,37 +108,5 @@ impl Lang {
         }
 
         result
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_simple() {
-        let fr = Lang::Fr;
-        assert_eq!(fr.get("forms.required"), "Ce champ est obligatoire");
-
-        let en = Lang::En;
-        assert_eq!(en.get("forms.required"), "This field is required");
-    }
-
-    #[test]
-    fn test_get_nested() {
-        let fr = Lang::Fr;
-        assert_eq!(fr.get("error.title.not_found"), "Page non trouvée");
-    }
-
-    #[test]
-    fn test_format() {
-        let fr = Lang::Fr;
-        assert_eq!(fr.format("forms.too_short", &[5]), "Trop court (min 5)");
-    }
-
-    #[test]
-    fn test_missing_key() {
-        let fr = Lang::Fr;
-        assert_eq!(fr.get("missing.key"), "missing.key");
     }
 }

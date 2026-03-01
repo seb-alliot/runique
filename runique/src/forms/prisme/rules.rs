@@ -1,3 +1,4 @@
+use crate::utils::trad::t;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -91,7 +92,11 @@ pub fn evaluate_rules(rules: &GuardRules, ctx: Option<&GuardContext>) -> Result<
 
     if rules.login_required && !ctx.is_authenticated() {
         return Err(Box::new(
-            (StatusCode::UNAUTHORIZED, "Authentication required").into_response(),
+            (
+                StatusCode::UNAUTHORIZED,
+                t("forms.auth_required").into_owned(),
+            )
+                .into_response(),
         ));
     }
 
@@ -99,7 +104,11 @@ pub fn evaluate_rules(rules: &GuardRules, ctx: Option<&GuardContext>) -> Result<
         let has_any = rules.roles.iter().any(|role| ctx.has_role(role));
         if !has_any {
             return Err(Box::new(
-                (StatusCode::FORBIDDEN, "Insufficient role").into_response(),
+                (
+                    StatusCode::FORBIDDEN,
+                    t("forms.role_insufficient").into_owned(),
+                )
+                    .into_response(),
             ));
         }
     }

@@ -1,4 +1,5 @@
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::utils::trad::{t, tf};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -91,7 +92,7 @@ impl FormField for ChoiceField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Veuillez sélectionner une option".into());
+                .unwrap_or_else(|| t("forms.select_required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -100,7 +101,7 @@ impl FormField for ChoiceField {
             // Vérifier que la valeur existe dans les choix
             let valid = self.choices.iter().any(|c| c.value == val);
             if !valid {
-                self.set_error("Choix invalide".into());
+                self.set_error(t("forms.choice_invalid").into_owned());
                 return false;
             }
         }
@@ -178,7 +179,7 @@ impl FormField for RadioField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Veuillez sélectionner une option".into());
+                .unwrap_or_else(|| t("forms.select_required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -186,7 +187,7 @@ impl FormField for RadioField {
         if !val.is_empty() {
             let valid = self.choices.iter().any(|c| c.value == val);
             if !valid {
-                self.set_error("Choix invalide".into());
+                self.set_error(t("forms.choice_invalid").into_owned());
                 return false;
             }
         }
@@ -282,7 +283,7 @@ impl FormField for CheckboxField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Veuillez sélectionner au moins une option".into());
+                .unwrap_or_else(|| t("forms.checkbox_required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -292,7 +293,7 @@ impl FormField for CheckboxField {
             let selected_values: Vec<&str> = val.split(',').map(|s| s.trim()).collect();
             for sel_val in selected_values {
                 if !self.choices.iter().any(|c| c.value == sel_val) {
-                    self.set_error(format!("Choix invalide: {}", sel_val));
+                    self.set_error(tf("forms.choice_invalid_value", &[sel_val]));
                     return false;
                 }
             }

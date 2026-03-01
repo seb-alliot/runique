@@ -1,6 +1,7 @@
 use crate::config::RuniqueConfig;
 use crate::utils::aliases::{StrMap, StrVecMap};
 use crate::utils::parse_html::parse_multipart;
+use crate::utils::trad::t;
 use axum::{
     body::Body,
     extract::{FromRequest, Multipart},
@@ -24,9 +25,13 @@ where
     let mut parsed: StrVecMap = HashMap::new();
 
     if content_type.starts_with("multipart/form-data") {
-        let multipart = Multipart::from_request(req, state)
-            .await
-            .map_err(|_e| (StatusCode::BAD_REQUEST, "Multipart error").into_response())?;
+        let multipart = Multipart::from_request(req, state).await.map_err(|_e| {
+            (
+                StatusCode::BAD_REQUEST,
+                t("forms.multipart_error").into_owned(),
+            )
+                .into_response()
+        })?;
 
         let upload_dir = std::path::Path::new(&config.static_files.media_root);
         parsed = parse_multipart(multipart, upload_dir).await?;
@@ -35,7 +40,9 @@ where
             .into_body()
             .collect()
             .await
-            .map_err(|_e| (StatusCode::BAD_REQUEST, "Body error").into_response())?
+            .map_err(|_e| {
+                (StatusCode::BAD_REQUEST, t("forms.body_error").into_owned()).into_response()
+            })?
             .to_bytes();
 
         if content_type.starts_with("application/x-www-form-urlencoded") {
