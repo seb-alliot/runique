@@ -28,6 +28,7 @@
             name="{{ field.name }}"
             {# Sécurité pour le mot de passe #}
             {% if input_type != "password" %}value="{{ field.value }}"{% endif %}
+            {% if input_type == "password" %}autocomplete="new-password"{% endif %}
             placeholder="{{ field.placeholder }}"
 
             {# Gestion de max_length (si passé directement dans le contexte) #}

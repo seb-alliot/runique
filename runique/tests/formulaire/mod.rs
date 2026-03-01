@@ -13,5 +13,7 @@ pub mod test_hidden_field;
 pub mod test_integration;
 pub mod test_password;
 pub mod test_prisme_rules;
+pub mod test_prisme_sentinel;
+pub mod test_renderer;
 pub mod test_special_fields;
 pub mod test_validator;

@@ -121,8 +121,6 @@ fn generate_handlers_file(resources: &[ResourceDef], dir: &Path) -> Result<(), S
     let _ = writeln!(out);
     // Imports spécifiques par ressource
     for r in resources {
-        let model_path = model_import_path(&r.model_type);
-        let _ = writeln!(out, "use crate::{};", model_path);
         let _ = writeln!(out, "use crate::formulaire::{};", r.form_type);
     }
     let _ = writeln!(out);
@@ -138,14 +136,13 @@ fn generate_handlers_file(resources: &[ResourceDef], dir: &Path) -> Result<(), S
         .map_err(|e| format!("Impossible d'écrire handlers.rs: {}", e))
 }
 
-/// Convertit "users::Model" → "formulaire::users"
-fn model_import_path(model_type: &str) -> String {
-    let parts: Vec<&str> = model_type.split("::").collect();
-    if parts.len() >= 2 {
-        let module_parts = &parts[..parts.len() - 1];
-        format!("formulaire::{}", module_parts.join("::"))
+/// Retourne le chemin complet avec préfixe `crate::entities::` si nécessaire
+/// Si le chemin commence déjà par `crate::` ou `runique::`, il est utilisé tel quel
+fn full_model_path(model_type: &str) -> String {
+    if model_type.starts_with("crate::") || model_type.starts_with("runique::") {
+        model_type.to_string()
     } else {
-        format!("formulaire::{}", model_type.to_lowercase())
+        format!("crate::entities::{}", model_type)
     }
 }
 
@@ -163,7 +160,7 @@ fn write_handler_list(out: &mut String, r: &ResourceDef) -> Result<(), String> {
     let _ = writeln!(
         out,
         "        let entries = <{} as ModelTrait>::Entity::find()",
-        model
+        full_model_path(model)
     );
     let _ = writeln!(out, "            .all(&*req.engine.db)");
     let _ = writeln!(out, "            .await?;");
@@ -325,7 +322,7 @@ fn write_handler_edit(out: &mut String, r: &ResourceDef) -> Result<(), String> {
     let _ = writeln!(
         out,
         "    let entry = <{} as ModelTrait>::Entity::find_by_id(id)",
-        model
+        full_model_path(model)
     );
     let _ = writeln!(out, "        .one(&*req.engine.db)");
     let _ = writeln!(out, "        .await?");
@@ -435,7 +432,7 @@ fn write_handler_detail(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(
         out,
         "    let entry = <{} as ModelTrait>::Entity::find_by_id(id)",
-        model
+        full_model_path(model)
     );
     let _ = writeln!(out, "        .one(&*req.engine.db)");
     let _ = writeln!(out, "        .await?");
@@ -480,7 +477,7 @@ fn write_handler_delete(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(
         out,
         "        let entry = <{} as ModelTrait>::Entity::find_by_id(id)",
-        model
+        full_model_path(model)
     );
     let _ = writeln!(out, "            .one(&*req.engine.db)");
     let _ = writeln!(out, "            .await?");
@@ -504,7 +501,7 @@ fn write_handler_delete(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(
         out,
         "    let entry = <{} as ModelTrait>::Entity::find_by_id(id)",
-        model
+        full_model_path(model)
     );
     let _ = writeln!(out, "        .one(&*req.engine.db)");
     let _ = writeln!(out, "        .await?");
