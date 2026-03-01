@@ -9,6 +9,10 @@
 //! | `test_password`        | Hashage et vérification de mots de passe|
 //! | `test_integration`     | Flux complets formulaire → validation   |
 
+pub mod test_aegis;
+pub mod test_base_field;
+pub mod test_bool_choice;
+pub mod test_csrf_gate;
 pub mod test_hidden_field;
 pub mod test_integration;
 pub mod test_password;
