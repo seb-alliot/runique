@@ -359,7 +359,10 @@ fn test_middleware_staging_new_prod_profil_prod() {
 
 #[test]
 fn test_middleware_staging_from_config_debug() {
-    let mut config = RuniqueConfig::default();
+    let mut config = RuniqueConfig {
+        debug: true,
+        ..Default::default()
+    };
     config.debug = true;
     let ms = MiddlewareStaging::from_config(&config);
     assert!(!ms.features().enable_csp);
@@ -367,7 +370,10 @@ fn test_middleware_staging_from_config_debug() {
 
 #[test]
 fn test_middleware_staging_from_config_prod() {
-    let mut config = RuniqueConfig::default();
+    let mut config = RuniqueConfig {
+        debug: true,
+        ..Default::default()
+    };
     config.debug = false;
     let ms = MiddlewareStaging::from_config(&config);
     assert!(ms.features().enable_csp);

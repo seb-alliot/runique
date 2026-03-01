@@ -6,7 +6,7 @@
 
 
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)]()
-[![Tests](https://img.shields.io/badge/tests-36%2F36%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1157%2F1157%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Version](https://img.shields.io/badge/version-1.1.25-blue)]()
 [![Crates.io](https://img.shields.io/crates/v/runique)]()
@@ -315,7 +315,7 @@ Results: **1 157/1 157 tests passing** ✅
 ## 📊 Project Status
 
 - ✅ **Compilation** : No errors
-- ✅ **Tests** : 36/36 passing (100%)
+- ✅ **Tests** : 1 157/1 157 passing (100%)
 - ✅ **Documentation** : Complete (EN & FR)
 - ✅ **Production** : Ready
 
