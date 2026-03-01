@@ -357,7 +357,7 @@ Résultats : **36/36 tests passent** ✅
 ## 📊 État du projet
 
 - ✅ **Compilation** : Sans erreurs
-- ✅ **Tests** : 36/36 passent (100%)
+- ✅ **Tests** : 1 157/1 157 passent (100%)
 - ✅ **Documentation** : Complète (EN & FR)
 - ✅ **Production** : Prêt
 
