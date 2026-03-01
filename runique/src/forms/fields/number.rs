@@ -1,4 +1,5 @@
 use crate::forms::base::*;
+use crate::utils::trad::{t, tf};
 use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -162,7 +163,7 @@ impl FormField for NumericField {
                     .is_required
                     .message
                     .clone()
-                    .unwrap_or_else(|| "Requis".into()),
+                    .unwrap_or_else(|| t("forms.number_required").into_owned()),
             );
             return false;
         }
@@ -179,16 +180,13 @@ impl FormField for NumericField {
             .unwrap_or(0);
 
         if current_digits < self.min_digits.unwrap_or(0) {
-            self.set_error(format!(
-                "Il faut au moins {} chiffres après la virgule",
-                self.min_digits.unwrap_or(0)
-            ));
+            self.set_error(tf("forms.precision_min", &[&self.min_digits.unwrap_or(0)]));
             return false;
         }
         if current_digits > self.max_digits.unwrap_or(usize::MAX) {
-            self.set_error(format!(
-                "Maximum {} chiffres après la virgule autorisés",
-                self.max_digits.unwrap_or(usize::MAX)
+            self.set_error(tf(
+                "forms.precision_max",
+                &[&self.max_digits.unwrap_or(usize::MAX)],
             ));
             return false;
         }
@@ -199,18 +197,18 @@ impl FormField for NumericField {
                 if let Ok(v) = normalized.parse::<i64>() {
                     if let Some(m) = min {
                         if v < *m {
-                            self.set_error(format!("Minimum: {}", m));
+                            self.set_error(tf("forms.min_value", &[m]));
                             return false;
                         }
                     }
                     if let Some(m) = max {
                         if v > *m {
-                            self.set_error(format!("Maximum: {}", m));
+                            self.set_error(tf("forms.max_value", &[m]));
                             return false;
                         }
                     }
                 } else {
-                    self.set_error("Nombre entier invalide".into());
+                    self.set_error(t("forms.integer_required").into_owned());
                     return false;
                 }
             }
@@ -218,16 +216,16 @@ impl FormField for NumericField {
                 if let Ok(v) = normalized.parse::<f64>() {
                     if let Some(f) = value.as_ref() {
                         if v < f.min {
-                            self.set_error(format!("Trop bas (min: {})", f.min));
+                            self.set_error(tf("forms.min_value", &[&f.min]));
                             return false;
                         }
                         if v > f.max {
-                            self.set_error(format!("Trop haut (max: {})", f.max));
+                            self.set_error(tf("forms.max_value", &[&f.max]));
                             return false;
                         }
                     }
                 } else {
-                    self.set_error("Nombre invalide".into());
+                    self.set_error(t("forms.number_invalid").into_owned());
                     return false;
                 }
             }
@@ -235,12 +233,12 @@ impl FormField for NumericField {
                 match normalized.parse::<f64>() {
                     Ok(v) => {
                         if v < value.min || v > value.max {
-                            self.set_error("Valeur incorrecte".into());
+                            self.set_error(t("forms.number_invalid").into_owned());
                             return false;
                         }
                     }
                     Err(_) => {
-                        self.set_error("Invalide".into());
+                        self.set_error(t("forms.number_invalid").into_owned());
                         return false;
                     }
                 }

@@ -1,4 +1,5 @@
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::utils::trad::t;
 use serde::Serialize;
 use std::sync::Arc;
 use tera::{Context, Tera};
@@ -54,12 +55,12 @@ impl FormField for HiddenField {
         if self.base.name == "csrf_token" {
             if let Some(expected) = &self.expected_value {
                 if self.base.value.trim().is_empty() {
-                    self.set_error("Token CSRF manquant".to_string());
+                    self.set_error(t("csrf.missing").into_owned());
                     return false;
                 }
 
                 if self.base.value != *expected {
-                    self.set_error("Token CSRF invalide".to_string());
+                    self.set_error(t("csrf.invalid").into_owned());
                     return false;
                 }
             }

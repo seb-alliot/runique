@@ -1,4 +1,5 @@
 use crate::utils::aliases::{FieldsMap, StrMap};
+use crate::utils::trad::t;
 use std::fmt;
 
 #[derive(Debug, Clone)]
@@ -12,10 +13,7 @@ impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValidationError::StackOverflow => {
-                write!(
-                    f,
-                    "Stack overflow detected: infinite recursion in validation"
-                )
+                write!(f, "{}", t("forms.validation_overflow"))
             }
             ValidationError::FieldValidation(errors) => {
                 write!(f, "Validation errors: {:?}", errors)
@@ -40,7 +38,7 @@ impl FormValidator {
 
         for field in fields.values_mut() {
             if field.required() && field.value().trim().is_empty() {
-                field.set_error("This field is required".to_string());
+                field.set_error(t("forms.required").into_owned());
                 is_all_valid = false;
                 continue;
             }

@@ -1,4 +1,5 @@
 use crate::forms::base::*;
+use crate::utils::trad::t;
 use serde::Serialize;
 use std::sync::Arc;
 use tera::{Context, Tera};
@@ -61,7 +62,7 @@ impl FormField for BooleanField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Vous devez accepter ce champ".into());
+                .unwrap_or_else(|| t("forms.boolean_required").into_owned());
             self.set_error(msg);
             return false;
         }

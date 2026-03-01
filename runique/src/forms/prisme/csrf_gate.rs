@@ -2,6 +2,7 @@ use crate::forms::extractor::Prisme;
 use crate::forms::field::RuniqueForm;
 use crate::utils::aliases::{StrMap, StrVecMap};
 use crate::utils::constante::CSRF_TOKEN_KEY;
+use crate::utils::trad::t;
 use axum::response::Response;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -24,7 +25,7 @@ pub async fn csrf_gate<T: RuniqueForm>(
         let mut form = T::build_with_data(&empty, tera, csrf_session).await;
 
         if let Some(csrf_field) = form.get_form_mut().fields.get_mut(CSRF_TOKEN_KEY) {
-            csrf_field.set_error("Token CSRF invalide ou manquant".to_string());
+            csrf_field.set_error(t("csrf.invalid_or_missing").into_owned());
         }
         return Ok(Some(Prisme(form)));
     }

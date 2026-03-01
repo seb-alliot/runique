@@ -1,4 +1,5 @@
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
+use crate::utils::trad::{t, tf};
 use serde::Serialize;
 use serde_json::json;
 use std::net::IpAddr;
@@ -58,7 +59,7 @@ impl FormField for ColorField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -66,20 +67,18 @@ impl FormField for ColorField {
         if !val.is_empty() {
             // Valider le format hexadécimal #RRGGBB ou #RGB
             if !val.starts_with('#') {
-                self.set_error("La couleur doit commencer par #".into());
+                self.set_error(t("forms.color_no_hash").into_owned());
                 return false;
             }
 
             let hex = &val[1..];
             if hex.len() != 6 && hex.len() != 3 {
-                self.set_error("Format de couleur invalide (attendu: #RRGGBB ou #RGB)".into());
+                self.set_error(t("forms.color_invalid").into_owned());
                 return false;
             }
 
             if !hex.chars().all(|c| c.is_ascii_hexdigit()) {
-                self.set_error(
-                    "La couleur doit contenir uniquement des caractères hexadécimaux".into(),
-                );
+                self.set_error(t("forms.color_bad_hex").into_owned());
                 return false;
             }
         }
@@ -147,7 +146,7 @@ impl FormField for SlugField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -160,10 +159,7 @@ impl FormField for SlugField {
                     .chars()
                     .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
                 if !valid {
-                    self.set_error(
-                        "Le slug ne peut contenir que des lettres, chiffres, tirets et underscores"
-                            .into(),
-                    );
+                    self.set_error(t("forms.slug_unicode_invalid").into_owned());
                     return false;
                 }
             } else {
@@ -172,14 +168,14 @@ impl FormField for SlugField {
                     .chars()
                     .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
                 if !valid {
-                    self.set_error("Le slug ne peut contenir que des caractères ASCII, chiffres, tirets et underscores".into());
+                    self.set_error(t("forms.slug_invalid").into_owned());
                     return false;
                 }
             }
 
             // Ne doit pas commencer ou finir par un tiret
             if val.starts_with('-') || val.ends_with('-') {
-                self.set_error("Le slug ne peut pas commencer ou finir par un tiret".into());
+                self.set_error(t("forms.slug_no_dash").into_owned());
                 return false;
             }
         }
@@ -247,7 +243,7 @@ impl FormField for UUIDField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -255,9 +251,7 @@ impl FormField for UUIDField {
         if !val.is_empty() {
             // Valider le format UUID
             if Uuid::parse_str(val).is_err() {
-                self.set_error(
-                    "Format UUID invalide (attendu: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)".into(),
-                );
+                self.set_error(t("forms.uuid_invalid").into_owned());
                 return false;
             }
         }
@@ -335,15 +329,15 @@ impl FormField for JSONField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
 
         if !val.is_empty() {
             // Valider le JSON
-            if serde_json::from_str::<serde_json::Value>(val).is_err() {
-                self.set_error("JSON invalide".into());
+            if let Err(e) = serde_json::from_str::<serde_json::Value>(val) {
+                self.set_error(tf("forms.json_invalid", &[&e]));
                 return false;
             }
         }
@@ -437,7 +431,7 @@ impl FormField for IPAddressField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| "Ce champ est obligatoire".into());
+                .unwrap_or_else(|| t("forms.required").into_owned());
             self.set_error(msg);
             return false;
         }
@@ -447,16 +441,16 @@ impl FormField for IPAddressField {
             match val.parse::<IpAddr>() {
                 Ok(ip) => {
                     if self.ipv4_only && ip.is_ipv6() {
-                        self.set_error("Seules les adresses IPv4 sont acceptées".into());
+                        self.set_error(t("forms.ipv4_only").into_owned());
                         return false;
                     }
                     if self.ipv6_only && ip.is_ipv4() {
-                        self.set_error("Seules les adresses IPv6 sont acceptées".into());
+                        self.set_error(t("forms.ipv6_only").into_owned());
                         return false;
                     }
                 }
                 Err(_) => {
-                    self.set_error("Adresse IP invalide".into());
+                    self.set_error(t("forms.ip_invalid").into_owned());
                     return false;
                 }
             }
