@@ -1,19 +1,14 @@
+# Couverture de tests — Runique
 
-# Coverage Report - Runique Framework
+> Généré le 2026-03-01 · `cargo llvm-cov --package runique --ignore-filename-regex "admin" --output-format markdown`
 
-**Generated:** 2026-02-28 15:29
-**Tool:** cargo-llvm-cov (llvm-cov version 21.1.2-rust-1.91.0-stable)
+## Résumé global
 
----
-
-## Summary
-
-| Metric | Coverage | Details |
-|--------|----------|---------|
-| **Function Coverage** | 51.23% | 752/1468 |
-| **Line Coverage** | 44.66% | 4692/10505 |
-| **Region Coverage** | 41.35% | 6651/16084 |
-| **Branch Coverage** | - | 0/0 |
+| Métrique   | Couvert | Total | %      |
+|------------|---------|-------|--------|
+| Régions    | 7269    | 14165 | 51.32% |
+| Fonctions  | 809     | 1363  | 59.35% |
+| Lignes     | 5163    | 9363  | 55.14% |
 
 ---
 
@@ -21,243 +16,209 @@
 
 ### App Module
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| app\builder.rs | 0.00% (0/19) | 0.00% (0/129) | 0.00% (0/205) | - (0/0) |
-| app\error_build.rs | 0.00% (0/15) | 0.00% (0/92) | 0.00% (0/127) | - (0/0) |
-| app\runique_app.rs | 0.00% (0/4) | 0.00% (0/23) | 0.00% (0/41) | - (0/0) |
-| app\staging\admin_staging.rs | 0.00% (0/11) | 0.00% (0/74) | 0.00% (0/79) | - (0/0) |
-| app\staging\core_staging.rs | 0.00% (0/9) | 0.00% (0/59) | 0.00% (0/65) | - (0/0) |
-| app\staging\middleware_staging.rs | 0.00% (0/26) | 0.00% (0/177) | 0.00% (0/247) | - (0/0) |
-| app\staging\static_staging.rs | 0.00% (0/7) | 0.00% (0/24) | 0.00% (0/24) | - (0/0) |
-| app\templates.rs | 0.00% (0/9) | 0.00% (0/117) | 0.00% (0/181) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| app\builder.rs | 205 | 205 | 0.00% | 19 | 19 | 0.00% | 129 | 129 | 0.00% |
+| app\error_build.rs | 127 | 127 | 0.00% | 15 | 15 | 0.00% | 92 | 92 | 0.00% |
+| app\runique_app.rs | 41 | 41 | 0.00% | 4 | 4 | 0.00% | 23 | 23 | 0.00% |
+| app\staging\core_staging.rs | 65 | 65 | 0.00% | 9 | 9 | 0.00% | 59 | 59 | 0.00% |
+| app\staging\middleware_staging.rs | 247 | 247 | 0.00% | 26 | 26 | 0.00% | 177 | 177 | 0.00% |
+| app\staging\static_staging.rs | 24 | 24 | 0.00% | 7 | 7 | 0.00% | 24 | 24 | 0.00% |
+| app\templates.rs | 181 | 181 | 0.00% | 9 | 9 | 0.00% | 117 | 117 | 0.00% |
 
 ### Bin & Config
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| bin\runique.rs | 0.00% (0/9) | 0.00% (0/180) | 0.00% (0/339) | - (0/0) |
-| config\app.rs | 100.00% (3/3) | 100.00% (15/15) | 100.00% (19/19) | - (0/0) |
-| config\routes.rs | 0.00% (0/4) | 0.00% (0/16) | 0.00% (0/22) | - (0/0) |
-| config\security.rs | 100.00% (8/8) | 100.00% (31/31) | 100.00% (44/44) | - (0/0) |
-| config\server.rs | 100.00% (4/4) | 100.00% (14/14) | 100.00% (24/24) | - (0/0) |
-| config\settings.rs | 100.00% (2/2) | 100.00% (24/24) | 100.00% (39/39) | - (0/0) |
-| config\static_files.rs | 100.00% (15/15) | 100.00% (51/51) | 100.00% (80/80) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| bin\runique.rs | 339 | 339 | 0.00% | 9 | 9 | 0.00% | 180 | 180 | 0.00% |
+| config\app.rs | 19 | 0 | 100.00% | 3 | 0 | 100.00% | 15 | 0 | 100.00% |
+| config\router.rs | 22 | 22 | 0.00% | 4 | 4 | 0.00% | 16 | 16 | 0.00% |
+| config\security.rs | 44 | 0 | 100.00% | 8 | 0 | 100.00% | 31 | 0 | 100.00% |
+| config\server.rs | 24 | 0 | 100.00% | 4 | 0 | 100.00% | 14 | 0 | 100.00% |
+| config\settings.rs | 39 | 0 | 100.00% | 2 | 0 | 100.00% | 24 | 0 | 100.00% |
+| config\static_files.rs | 80 | 0 | 100.00% | 15 | 0 | 100.00% | 51 | 0 | 100.00% |
 
 ### Context Module
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| context\request_extractor.rs | 0.00% (0/4) | 0.00% (0/44) | 0.00% (0/60) | - (0/0) |
-| context\request_extensions.rs | 40.00% (4/10) | 44.87% (35/78) | 35.29% (42/119) | - (0/0) |
-| context\template.rs | 0.00% (0/18) | 0.00% (0/135) | 0.00% (0/200) | - (0/0) |
-| context\tera\csp.rs | 0.00% (0/1) | 0.00% (0/8) | 0.00% (0/11) | - (0/0) |
-| context\tera\form.rs | 73.68% (28/38) | 78.26% (126/161) | 76.58% (206/269) | - (0/0) |
-| context\tera\static_tera.rs | 0.00% (0/6) | 0.00% (0/39) | 0.00% (0/70) | - (0/0) |
-| context\tera\url.rs | 100.00% (7/7) | 96.88% (31/32) | 96.49% (55/57) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| context\request\extractor.rs | 60 | 60 | 0.00% | 4 | 4 | 0.00% | 44 | 44 | 0.00% |
+| context\request_extensions.rs | 119 | 77 | 35.29% | 10 | 6 | 40.00% | 78 | 43 | 44.87% |
+| context\template.rs | 200 | 200 | 0.00% | 18 | 18 | 0.00% | 135 | 135 | 0.00% |
+| context\tera\csp.rs | 11 | 11 | 0.00% | 1 | 1 | 0.00% | 8 | 8 | 0.00% |
+| context\tera\form.rs | 269 | 63 | 76.58% | 38 | 10 | 73.68% | 161 | 35 | 78.26% |
+| context\tera\static_tera.rs | 84 | 84 | 0.00% | 7 | 7 | 0.00% | 44 | 44 | 0.00% |
+| context\tera\url.rs | 57 | 2 | 96.49% | 7 | 0 | 100.00% | 32 | 1 | 96.88% |
 
 ### Database & Engine
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| db\config.rs | 20.00% (5/25) | 22.22% (38/171) | 28.28% (69/244) | - (0/0) |
-| engine\core.rs | 0.00% (0/2) | 0.00% (0/42) | 0.00% (0/57) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| db\config.rs | 244 | 175 | 28.28% | 25 | 20 | 20.00% | 171 | 133 | 22.22% |
+| engine\core.rs | 57 | 39 | 31.58% | 2 | 1 | 50.00% | 42 | 28 | 33.33% |
 
 ### Errors & Flash
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| errors\error.rs | 38.71% (12/31) | 48.06% (136/283) | 35.77% (137/383) | - (0/0) |
-| flash\flash_manager.rs | 100.00% (14/14) | 100.00% (49/49) | 100.00% (71/71) | - (0/0) |
-| flash\flash_struct.rs | 100.00% (6/6) | 100.00% (37/37) | 100.00% (27/27) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| errors\error.rs | 383 | 246 | 35.77% | 31 | 19 | 38.71% | 283 | 147 | 48.06% |
+| flash\flash_manager.rs | 71 | 0 | 100.00% | 14 | 0 | 100.00% | 49 | 0 | 100.00% |
+| flash\flash_struct.rs | 27 | 0 | 100.00% | 6 | 0 | 100.00% | 37 | 0 | 100.00% |
 
 ### Forms Module
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| forms\base.rs | 35.29% (12/34) | 40.00% (52/130) | 37.36% (65/174) | - (0/0) |
-| forms\extractor.rs | 0.00% (0/10) | 0.00% (0/65) | 0.00% (0/89) | - (0/0) |
-| forms\field.rs | 0.00% (0/8) | 0.00% (0/22) | 0.00% (0/32) | - (0/0) |
-| forms\fields\boolean.rs | 75.00% (9/12) | 72.88% (43/59) | 62.92% (56/89) | - (0/0) |
-| forms\fields\choice.rs | 71.11% (32/45) | 74.21% (164/221) | 71.08% (236/332) | - (0/0) |
-| forms\fields\datetime.rs | 43.40% (23/53) | 43.17% (177/410) | 38.84% (228/587) | - (0/0) |
-| forms\fields\file.rs | 60.00% (21/35) | 44.96% (107/238) | 41.89% (155/370) | - (0/0) |
-| forms\fields\hidden.rs | 77.78% (7/9) | 85.42% (41/48) | 80.30% (53/66) | - (0/0) |
-| forms\fields\number.rs | 73.68% (14/19) | 57.71% (116/201) | 52.85% (139/263) | - (0/0) |
-| forms\fields\special.rs | 77.59% (45/58) | 81.23% (277/341) | 76.48% (374/489) | - (0/0) |
-| forms\fields\text.rs | 76.67% (23/30) | 81.01% (145/179) | 77.89% (222/285) | - (0/0) |
-| forms\form.rs | 36.21% (21/58) | 27.52% (82/298) | 22.74% (136/598) | - (0/0) |
-| forms\generic.rs | 19.23% (5/26) | 19.23% (15/78) | 20.65% (19/92) | - (0/0) |
-| forms\model_form\mod.rs | 0.00% (0/3) | 0.00% (0/9) | 0.00% (0/13) | - (0/0) |
-| forms\options\bool_choice.rs | 0.00% (0/1) | 0.00% (0/3) | 0.00% (0/3) | - (0/0) |
-| forms\prisme\mod.rs | 0.00% (0/6) | 0.00% (0/41) | 0.00% (0/59) | - (0/0) |
-| forms\prisme\sondage.rs | 0.00% (0/4) | 0.00% (0/22) | 0.00% (0/32) | - (0/0) |
-| forms\prisme\rules.rs | 100.00% (11/11) | 100.00% (69/69) | 100.00% (69/69) | - (0/0) |
-| forms\prisme\sentinel.rs | 0.00% (0/1) | 0.00% (0/7) | 0.00% (0/16) | - (0/0) |
-| forms\renderer.rs | 33.33% (3/9) | 38.36% (28/73) | 30.09% (34/113) | - (0/0) |
-| forms\validator.rs | 66.67% (6/9) | 46.43% (26/56) | 50.54% (47/93) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| forms\base.rs | 174 | 109 | 37.36% | 34 | 22 | 35.29% | 130 | 78 | 40.00% |
+| forms\extractor.rs | 89 | 89 | 0.00% | 10 | 10 | 0.00% | 65 | 65 | 0.00% |
+| forms\field.rs | 32 | 32 | 0.00% | 8 | 8 | 0.00% | 22 | 22 | 0.00% |
+| forms\fields\boolean.rs | 89 | 33 | 62.92% | 12 | 3 | 75.00% | 59 | 16 | 72.88% |
+| forms\fields\choice.rs | 332 | 96 | 71.08% | 45 | 13 | 71.11% | 221 | 57 | 74.21% |
+| forms\fields\datetime.rs | 587 | 359 | 38.84% | 53 | 30 | 43.40% | 410 | 233 | 43.17% |
+| forms\fields\file.rs | 370 | 215 | 41.89% | 35 | 14 | 60.00% | 238 | 131 | 44.96% |
+| forms\fields\hidden.rs | 66 | 13 | 80.30% | 9 | 2 | 77.78% | 48 | 7 | 85.42% |
+| forms\fields\number.rs | 263 | 124 | 52.85% | 19 | 5 | 73.68% | 201 | 85 | 57.71% |
+| forms\fields\special.rs | 489 | 115 | 76.48% | 58 | 13 | 77.59% | 341 | 64 | 81.23% |
+| forms\fields\text.rs | 285 | 63 | 77.89% | 30 | 7 | 76.67% | 179 | 34 | 81.01% |
+| forms\form.rs | 601 | 465 | 22.63% | 58 | 37 | 36.21% | 301 | 219 | 27.24% |
+| forms\generic.rs | 92 | 73 | 20.65% | 26 | 21 | 19.23% | 78 | 63 | 19.23% |
+| forms\model_form\mod.rs | 13 | 13 | 0.00% | 3 | 3 | 0.00% | 9 | 9 | 0.00% |
+| forms\options\bool_choice.rs | 3 | 3 | 0.00% | 1 | 1 | 0.00% | 3 | 3 | 0.00% |
+| forms\prisme\aegis.rs | 59 | 59 | 0.00% | 6 | 6 | 0.00% | 41 | 41 | 0.00% |
+| forms\prisme\csrf_gate.rs | 32 | 32 | 0.00% | 4 | 4 | 0.00% | 22 | 22 | 0.00% |
+| forms\prisme\rules.rs | 69 | 0 | 100.00% | 11 | 0 | 100.00% | 69 | 0 | 100.00% |
+| forms\prisme\sentinel.rs | 16 | 0 | 100.00% | 1 | 0 | 100.00% | 7 | 0 | 100.00% |
+| forms\renderer.rs | 113 | 44 | 61.06% | 9 | 3 | 66.67% | 73 | 22 | 69.86% |
+| forms\validator.rs | 93 | 46 | 50.54% | 9 | 3 | 66.67% | 56 | 30 | 46.43% |
 
 ### Macros
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| macros\admin\macros_admin.rs | 0.00% (0/4) | 0.00% (0/11) | 0.00% (0/16) | - (0/0) |
-| macros\bdd\objects.rs | 62.50% (15/24) | 62.99% (97/154) | 61.97% (145/234) | - (0/0) |
-| macros\bdd\query.rs | 76.00% (19/25) | 69.51% (114/164) | 67.57% (175/259) | - (0/0) |
-| macros\context\flash.rs | 100.00% (19/19) | 100.00% (65/65) | 100.00% (96/96) | - (0/0) |
-| macros\context\helper.rs | 0.00% (0/6) | 0.00% (0/26) | 0.00% (0/31) | - (0/0) |
-| macros\context\impl_error.rs | 0.00% (0/2) | 0.00% (0/2) | 0.00% (0/8) | - (0/0) |
-| macros\forms\enum_kind.rs | 100.00% (1/1) | 100.00% (3/3) | 100.00% (3/3) | - (0/0) |
-| macros\forms\impl_form.rs | 0.00% (0/3) | 0.00% (0/9) | 0.00% (0/9) | - (0/0) |
-| macros\routeur\register_url.rs | 0.00% (0/7) | 0.00% (0/36) | 0.00% (0/63) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| macros\bdd\objects.rs | 234 | 89 | 61.97% | 24 | 9 | 62.50% | 154 | 57 | 62.99% |
+| macros\bdd\query.rs | 259 | 84 | 67.57% | 25 | 6 | 76.00% | 164 | 50 | 69.51% |
+| macros\context\flash.rs | 96 | 0 | 100.00% | 19 | 0 | 100.00% | 65 | 0 | 100.00% |
+| macros\context\helper.rs | 31 | 3 | 90.32% | 6 | 1 | 83.33% | 26 | 3 | 88.46% |
+| macros\context\impl_error.rs | 8 | 8 | 0.00% | 2 | 2 | 0.00% | 2 | 2 | 0.00% |
+| macros\forms\enum_kind.rs | 3 | 0 | 100.00% | 1 | 0 | 100.00% | 3 | 0 | 100.00% |
+| macros\forms\impl_form.rs | 9 | 9 | 0.00% | 3 | 3 | 0.00% | 9 | 9 | 0.00% |
+| macros\routeur\register_url.rs | 63 | 16 | 74.60% | 7 | 1 | 85.71% | 36 | 7 | 80.56% |
 
 ### Middleware
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| middleware\auth\auth_session.rs | 100.00% (26/26) | 100.00% (135/135) | 93.91% (185/197) | - (0/0) |
-| middleware\auth\default_auth.rs | 66.67% (2/3) | 75.00% (6/8) | 75.00% (6/8) | - (0/0) |
-| middleware\auth\form\login.rs | 0.00% (0/1) | 0.00% (0/10) | 0.00% (0/14) | - (0/0) |
-| middleware\auth\user.rs | 0.00% (0/13) | 0.00% (0/40) | 0.00% (0/46) | - (0/0) |
-| middleware\auth\user_trait.rs | 100.00% (2/2) | 100.00% (6/6) | 100.00% (11/11) | - (0/0) |
-| middleware\config.rs | 91.67% (11/12) | 98.51% (66/67) | 93.75% (45/48) | - (0/0) |
-| middleware\dev\cache.rs | 60.00% (3/5) | 40.62% (13/32) | 40.43% (19/47) | - (0/0) |
-| middleware\errors\error.rs | 66.67% (10/15) | 91.84% (225/245) | 68.18% (90/132) | - (0/0) |
-| middleware\security\allowed_hosts.rs | 61.90% (13/21) | 73.68% (98/133) | 83.20% (213/256) | - (0/0) |
-| middleware\security\csp.rs | 66.67% (12/18) | 62.30% (119/191) | 69.58% (247/355) | - (0/0) |
-| middleware\security\csrf.rs | 87.50% (7/8) | 87.34% (69/79) | 85.48% (106/124) | - (0/0) |
-| middleware\session\session_parametre.rs | 100.00% (2/2) | 100.00% (10/10) | 100.00% (7/7) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| middleware\auth\auth_session.rs | 197 | 12 | 93.91% | 26 | 0 | 100.00% | 135 | 0 | 100.00% |
+| middleware\auth\default_auth.rs | 8 | 2 | 75.00% | 3 | 1 | 66.67% | 8 | 2 | 75.00% |
+| middleware\auth\form\login.rs | 14 | 14 | 0.00% | 1 | 1 | 0.00% | 10 | 10 | 0.00% |
+| middleware\auth\user.rs | 46 | 4 | 91.30% | 13 | 2 | 84.62% | 40 | 4 | 90.00% |
+| middleware\auth\user_trait.rs | 11 | 0 | 100.00% | 2 | 0 | 100.00% | 6 | 0 | 100.00% |
+| middleware\config.rs | 48 | 3 | 93.75% | 12 | 1 | 91.67% | 67 | 1 | 98.51% |
+| middleware\dev\cache.rs | 47 | 28 | 40.43% | 5 | 2 | 60.00% | 32 | 19 | 40.62% |
+| middleware\errors\error.rs | 132 | 42 | 68.18% | 15 | 5 | 66.67% | 245 | 20 | 91.84% |
+| middleware\security\allowed_hosts.rs | 256 | 23 | 91.02% | 21 | 4 | 80.95% | 133 | 17 | 87.22% |
+| middleware\security\csp.rs | 355 | 108 | 69.58% | 18 | 6 | 66.67% | 191 | 72 | 62.30% |
+| middleware\security\csrf.rs | 124 | 18 | 85.48% | 8 | 1 | 87.50% | 79 | 10 | 87.34% |
+| middleware\session\session_parametre.rs | 7 | 0 | 100.00% | 2 | 0 | 100.00% | 10 | 0 | 100.00% |
 
 ### Migration Module
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| migration\column\mod.rs | 79.63% (43/54) | 70.42% (250/355) | 59.27% (323/545) | - (0/0) |
-| migration\foreign_key\mod.rs | 100.00% (6/6) | 100.00% (39/39) | 100.00% (42/42) | - (0/0) |
-| migration\hooks\mod.rs | 100.00% (7/7) | 100.00% (30/30) | 100.00% (45/45) | - (0/0) |
-| migration\index\mod.rs | 100.00% (6/6) | 100.00% (29/29) | 100.00% (45/45) | - (0/0) |
-| migration\makemigrations.rs | 3.85% (1/26) | 4.52% (9/199) | 4.57% (18/394) | - (0/0) |
-| migration\migrate.rs | 0.00% (0/38) | 0.00% (0/374) | 0.00% (0/654) | - (0/0) |
-| migration\primary_key\mod.rs | 100.00% (7/7) | 100.00% (38/38) | 97.62% (41/42) | - (0/0) |
-| migration\relation\mod.rs | 100.00% (4/4) | 100.00% (31/31) | 100.00% (18/18) | - (0/0) |
-| migration\schema\mod.rs | 87.50% (21/24) | 66.24% (157/237) | 69.44% (250/360) | - (0/0) |
-| migration\utils\convertisseur.rs | 100.00% (3/3) | 92.86% (13/14) | 95.24% (20/21) | - (0/0) |
-| migration\utils\diff.rs | 60.00% (12/20) | 84.62% (99/117) | 83.89% (125/149) | - (0/0) |
-| migration\utils\generators.rs | 0.00% (0/25) | 0.00% (0/387) | 0.00% (0/440) | - (0/0) |
-| migration\utils\helpers.rs | 100.00% (19/19) | 62.68% (215/343) | 63.80% (416/652) | - (0/0) |
-| migration\utils\parser_builder.rs | 100.00% (11/11) | 86.67% (143/165) | 71.61% (222/310) | - (0/0) |
-| migration\utils\parser_seaorm.rs | 13.33% (2/15) | 2.04% (4/196) | 2.68% (8/299) | - (0/0) |
-| migration\utils\paths.rs | 100.00% (47/47) | 100.00% (192/192) | 100.00% (356/356) | - (0/0) |
-| migration\utils\types.rs | 100.00% (1/1) | 100.00% (10/10) | 100.00% (17/17) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| migration\column\mod.rs | 545 | 222 | 59.27% | 54 | 11 | 79.63% | 355 | 105 | 70.42% |
+| migration\foreign_key\mod.rs | 42 | 0 | 100.00% | 6 | 0 | 100.00% | 39 | 0 | 100.00% |
+| migration\hooks\mod.rs | 45 | 0 | 100.00% | 7 | 0 | 100.00% | 30 | 0 | 100.00% |
+| migration\index\mod.rs | 45 | 0 | 100.00% | 6 | 0 | 100.00% | 29 | 0 | 100.00% |
+| migration\makemigrations.rs | 394 | 350 | 11.17% | 26 | 20 | 23.08% | 199 | 175 | 12.06% |
+| migration\migrate.rs | 654 | 654 | 0.00% | 38 | 38 | 0.00% | 374 | 374 | 0.00% |
+| migration\primary_key\mod.rs | 42 | 1 | 97.62% | 7 | 0 | 100.00% | 38 | 0 | 100.00% |
+| migration\relation\mod.rs | 18 | 0 | 100.00% | 4 | 0 | 100.00% | 31 | 0 | 100.00% |
+| migration\schema\mod.rs | 360 | 110 | 69.44% | 24 | 3 | 87.50% | 237 | 80 | 66.24% |
+| migration\utils\convertisseur.rs | 21 | 1 | 95.24% | 3 | 0 | 100.00% | 14 | 1 | 92.86% |
+| migration\utils\diff.rs | 149 | 24 | 83.89% | 20 | 8 | 60.00% | 117 | 18 | 84.62% |
+| migration\utils\generators.rs | 440 | 154 | 65.00% | 25 | 3 | 88.00% | 387 | 142 | 63.31% |
+| migration\utils\helpers.rs | 652 | 213 | 67.33% | 19 | 0 | 100.00% | 343 | 114 | 66.76% |
+| migration\utils\parser_builder.rs | 310 | 88 | 71.61% | 11 | 0 | 100.00% | 165 | 22 | 86.67% |
+| migration\utils\parser_seaorm.rs | 299 | 186 | 37.79% | 15 | 8 | 46.67% | 196 | 107 | 45.41% |
+| migration\utils\paths.rs | 356 | 0 | 100.00% | 47 | 0 | 100.00% | 192 | 0 | 100.00% |
+| migration\utils\types.rs | 17 | 0 | 100.00% | 1 | 0 | 100.00% | 10 | 0 | 100.00% |
 
 ### Utils Module
 
-| Filename | Function | Line | Region | Branch |
-|----------|----------|------|--------|--------|
-| utils\aliases\helpers.rs | 33.33% (1/3) | 33.33% (3/9) | 38.46% (5/13) | - (0/0) |
-| utils\config\autofield.rs | 100.00% (4/4) | 100.00% (16/16) | 100.00% (18/18) | - (0/0) |
-| utils\config\lecture_env.rs | 100.00% (1/1) | 100.00% (3/3) | 100.00% (7/7) | - (0/0) |
-| utils\constante\parse.rs | 42.86% (3/7) | 86.36% (38/44) | 72.00% (36/50) | - (0/0) |
-| utils\forms\parse_html.rs | 0.00% (0/9) | 0.00% (0/52) | 0.00% (0/99) | - (0/0) |
-| utils\forms\sanitizer.rs | 100.00% (7/7) | 100.00% (65/65) | 99.02% (101/102) | - (0/0) |
-| utils\init_error\init.rs | 0.00% (0/1) | 0.00% (0/10) | 0.00% (0/8) | - (0/0) |
-| utils\middleware\csp_nonce.rs | 100.00% (6/6) | 100.00% (30/30) | 100.00% (54/54) | - (0/0) |
-| utils\middleware\csrf.rs | 100.00% (11/11) | 100.00% (72/72) | 100.00% (139/139) | - (0/0) |
-| utils\password\mod.rs | 68.42% (26/38) | 64.29% (144/224) | 62.12% (205/330) | - (0/0) |
-| utils\trad\switch_lang.rs | 75.00% (9/12) | 86.21% (50/58) | 90.20% (92/102) | - (0/0) |
+| Fichier | Régions | Manquées | Cover | Fonctions | Manquées | Exec | Lignes | Manquées | Cover |
+|---------|--------:|---------:|------:|----------:|---------:|-----:|-------:|---------:|------:|
+| utils\aliases\helpers.rs | 13 | 4 | 69.23% | 3 | 1 | 66.67% | 9 | 3 | 66.67% |
+| utils\config\autofield.rs | 18 | 0 | 100.00% | 4 | 0 | 100.00% | 16 | 0 | 100.00% |
+| utils\config\lecture_env.rs | 7 | 0 | 100.00% | 1 | 0 | 100.00% | 3 | 0 | 100.00% |
+| utils\constante\parse.rs | 50 | 0 | 100.00% | 7 | 0 | 100.00% | 44 | 0 | 100.00% |
+| utils\forms\parse_html.rs | 99 | 99 | 0.00% | 9 | 9 | 0.00% | 52 | 52 | 0.00% |
+| utils\forms\sanitizer.rs | 102 | 1 | 99.02% | 7 | 0 | 100.00% | 65 | 0 | 100.00% |
+| utils\init_error\init.rs | 8 | 0 | 100.00% | 1 | 0 | 100.00% | 10 | 0 | 100.00% |
+| utils\middleware\csp_nonce.rs | 54 | 0 | 100.00% | 6 | 0 | 100.00% | 30 | 0 | 100.00% |
+| utils\middleware\csrf.rs | 139 | 0 | 100.00% | 11 | 0 | 100.00% | 72 | 0 | 100.00% |
+| utils\password\mod.rs | 330 | 125 | 62.12% | 38 | 12 | 68.42% | 224 | 80 | 64.29% |
+| utils\trad\switch_lang.rs | 102 | 10 | 90.20% | 12 | 3 | 75.00% | 58 | 8 | 86.21% |
 
 ---
 
-## Files with 100% Coverage ✅
+## Fichiers à 0% (non testés)
 
-- admin\registry.rs
-- config\app.rs
-- config\security.rs
-- config\server.rs
-- config\settings.rs
-- config\static_files.rs
-- context\tera\url.rs
-- flash\flash_manager.rs
-- flash\flash_struct.rs
-- forms\prisme\rules.rs
-- macros\context\flash.rs
-- macros\forms\enum_kind.rs
-- middleware\auth\auth_session.rs
-- middleware\auth\user_trait.rs
-- middleware\session\session_parametre.rs
-- migration\foreign_key\mod.rs
-- migration\hooks\mod.rs
-- migration\index\mod.rs
-- migration\primary_key\mod.rs
-- migration\relation\mod.rs
-- migration\utils\convertisseur.rs
-- migration\utils\helpers.rs
-- migration\utils\parser_builder.rs
-- migration\utils\paths.rs
-- migration\utils\types.rs
-- utils\config\autofield.rs
-- utils\config\lecture_env.rs
-- utils\forms\sanitizer.rs
-- utils\middleware\csp_nonce.rs
-- utils\middleware\csrf.rs
+| Fichier |
+|---------|
+| app\builder.rs |
+| app\error_build.rs |
+| app\runique_app.rs |
+| app\staging\core_staging.rs |
+| app\staging\middleware_staging.rs |
+| app\staging\static_staging.rs |
+| app\templates.rs |
+| bin\runique.rs |
+| config\router.rs |
+| context\request\extractor.rs |
+| context\template.rs |
+| context\tera\csp.rs |
+| context\tera\static_tera.rs |
+| forms\extractor.rs |
+| forms\field.rs |
+| forms\model_form\mod.rs |
+| forms\options\bool_choice.rs |
+| forms\prisme\aegis.rs |
+| forms\prisme\csrf_gate.rs |
+| macros\context\impl_error.rs |
+| macros\forms\impl_form.rs |
+| middleware\auth\form\login.rs |
+| migration\migrate.rs |
+| utils\forms\parse_html.rs |
 
----
+## Fichiers à 100%
 
-## Files with 0% Coverage ❌
-
-- admin\cli_admin.rs
-- admin\config\config_admin.rs
-- admin\daemon\generator.rs
-- admin\daemon\parser.rs
-- admin\daemon\watcher.rs
-- admin\middleware\admin_middleware.rs
-- admin\router\admin_router.rs
-- app\builder.rs
-- app\error_build.rs
-- app\runique_app.rs
-- app\staging\admin_staging.rs
-- app\staging\core_staging.rs
-- app\staging\middleware_staging.rs
-- app\staging\static_staging.rs
-- app\templates.rs
-- bin\runique.rs
-- config\routes.rs
-- context\request_extractor.rs
-- context\template.rs
-- context\tera\csp.rs
-- context\tera\static_tera.rs
-- db\config.rs
-- engine\core.rs
-- forms\extractor.rs
-- forms\field.rs
-- forms\model_form\mod.rs
-- forms\options\bool_choice.rs
-- forms\prisme\mod.rs
-- forms\prisme\sondage.rs
-- forms\prisme\sentinel.rs
-- macros\admin\macros_admin.rs
-- macros\context\helper.rs
-- macros\context\impl_error.rs
-- macros\forms\impl_form.rs
-- macros\routeur\register_url.rs
-- middleware\auth\form\login.rs
-- middleware\auth\user.rs
-- migration\migrate.rs
-- migration\utils\generators.rs
-- migration\utils\parser_seaorm.rs
-- utils\forms\parse_html.rs
-- utils\init_error\init.rs
-
----
-
-## Critical Low Coverage Areas (< 10%)
-
-| Module | Files | Risk Level |
-|--------|-------|------------|
-| **Admin/CLI** | 9 files | 🔴 High |
-| **App Core** | 8 files | 🔴 High |
-| **Migration Tools** | migrate.rs, makemigrations.rs | 🔴 High |
-| **Forms Prisme** | 4 files | 🟡 Medium |
-| **Engine** | core.rs | 🔴 High |
-
----
+| Fichier |
+|---------|
+| config\app.rs |
+| config\security.rs |
+| config\server.rs |
+| config\settings.rs |
+| config\static_files.rs |
+| flash\flash_manager.rs |
+| flash\flash_struct.rs |
+| forms\prisme\rules.rs |
+| forms\prisme\sentinel.rs |
+| macros\context\flash.rs |
+| macros\forms\enum_kind.rs |
+| middleware\auth\auth_session.rs (lignes) |
+| middleware\auth\user_trait.rs |
+| middleware\session\session_parametre.rs |
+| migration\foreign_key\mod.rs |
+| migration\hooks\mod.rs |
+| migration\index\mod.rs |
+| migration\primary_key\mod.rs (lignes) |
+| migration\relation\mod.rs |
+| migration\utils\paths.rs |
+| migration\utils\types.rs |
+| utils\config\autofield.rs |
+| utils\config\lecture_env.rs |
+| utils\constante\parse.rs |
+| utils\forms\sanitizer.rs (lignes) |
+| utils\init_error\init.rs |
+| utils\middleware\csp_nonce.rs |
+| utils\middleware\csrf.rs |
