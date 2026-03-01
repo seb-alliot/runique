@@ -38,6 +38,7 @@ pub mod errors;
 pub mod flash;
 pub mod formulaire;
 pub mod helpers;
+pub mod macros;
 pub mod middleware;
 pub mod migration;
 pub mod utils;
