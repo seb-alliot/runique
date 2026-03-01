@@ -270,7 +270,7 @@ cargo test --test integration_tests
 cargo test --all
 ```
 
-Results: **36/36 tests passing** ✅
+Results: **1 157/1 157 tests passing** ✅
 
 ---
 
