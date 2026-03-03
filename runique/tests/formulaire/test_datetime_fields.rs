@@ -35,7 +35,7 @@ fn test_date_field_vide_requis() {
 #[test]
 fn test_date_field_requis_message_custom() {
     let mut field = DateField::new("date");
-    field.set_required(true, Some("Date obligatoire".into()));
+    field.set_required(true, Some("Date obligatoire"));
     field.set_value("");
     assert!(!field.validate());
     assert_eq!(field.error().unwrap(), "Date obligatoire");
@@ -159,7 +159,7 @@ fn test_time_field_vide_requis() {
 #[test]
 fn test_time_field_requis_message_custom() {
     let mut field = TimeField::new("heure");
-    field.set_required(true, Some("Heure obligatoire".into()));
+    field.set_required(true, Some("Heure obligatoire"));
     field.set_value("");
     assert!(!field.validate());
     assert_eq!(field.error().unwrap(), "Heure obligatoire");
@@ -275,7 +275,7 @@ fn test_datetime_field_vide_requis() {
 #[test]
 fn test_datetime_field_requis_message_custom() {
     let mut field = DateTimeField::new("rdv");
-    field.set_required(true, Some("RDV obligatoire".into()));
+    field.set_required(true, Some("RDV obligatoire"));
     field.set_value("");
     assert!(!field.validate());
     assert_eq!(field.error().unwrap(), "RDV obligatoire");
@@ -393,7 +393,7 @@ fn test_duration_field_vide_requis() {
 #[test]
 fn test_duration_field_requis_message_custom() {
     let mut field = DurationField::new("duree");
-    field.set_required(true, Some("Durée obligatoire".into()));
+    field.set_required(true, Some("Durée obligatoire"));
     field.set_value("");
     assert!(!field.validate());
     assert_eq!(field.error().unwrap(), "Durée obligatoire");

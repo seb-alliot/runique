@@ -413,7 +413,6 @@ MIT License[LICENCE](https://github.com/seb-alliot/runique/blob/main/LICENCE) vo
 
 ---
 
-
 **Démarrer maintenant** → [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
 
 ---

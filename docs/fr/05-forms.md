@@ -32,11 +32,8 @@ Voici un sommaire structuré pour ton document « Formulaires » avec tous l
     - [UUIDField](#uuidfield)
     - [JSONField — Textarea avec validation JSON](#jsonfield)
     - [IPAddressField — Adresse IP](#ipaddressfield)
+    - [HiddenField — Champ caché](#hiddenfield)
   - [Récapitulatif des types de champs](#recapitulatif-types-champs)
-  - [Approche automatique : DeriveModelForm](#approche-automatique-deriveform)
-    - [Champs auto-exclus](#champs-auto-exclus)
-    - [Détection automatique des types](#detection-automatique-types)
-    - [Attributs de personnalisation](#attributs-personnalisation)
   - [Erreurs de base de données](#erreurs-base-donnees)
   - [Rendu dans les templates](#rendu-templates)
     - [Formulaire complet](#formulaire-complet)
@@ -62,7 +59,7 @@ Si tu veux, je peux aussi générer une **version Markdown cliquable complète**
 Runique fournit un système de formulaires puissant, inspiré de Django. Il existe **deux approches** :
 
 1. **Manuelle** — Définir les champs via le trait `RuniqueForm`.
-2. **Automatique** — Dériver un formulaire depuis un modèle SeaORM avec `#[derive(DeriveModelForm)]`.
+2. **Automatique** — Dériver un formulaire depuis un schéma `model!` avec `#[form(...)]`.
 
 Les formulaires sont extraits automatiquement des requêtes via l’extracteur **Prisme**, gèrent la validation (y compris via le crate `validator` pour les emails/URLs), le CSRF, le hachage Argon2 des mots de passe, et peuvent être sauvegardés directement en base de données.
 
@@ -201,7 +198,8 @@ impl RuniqueForm for RegisterForm {
 }
 ```
 
-> **⚠️ Important** : Après `is_valid()`, les champs `Password` sont **automatiquement hachés en Argon2**. Utilisez `clean()` pour toute comparaison de mots de passe en clair.
+> **⚠️ Important** : Après `is_valid()`, les champs `Password` sont **automatiquement hacher** si la configuration du hash de mot de passe est automatique, sinon le dev dois appeler le hash dans la logiqe metier de save(),
+Utilisez `clean()` pour toute comparaison de mots de passe en clair.
 
 ---
 
@@ -627,6 +625,28 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 
 [↑](#vue-densemble)
 
+<a id="hiddenfield"></a>
+### HiddenField — Champ caché
+
+Champ invisible dans le formulaire HTML (`<input type="hidden">`). Deux usages principaux : passer des données techniques sans les montrer à l'utilisateur, ou valider un token CSRF manuellement.
+
+```rust
+// Champ caché générique (ex: ID d'une entité liée)
+form.field(
+    &HiddenField::new("entity_id")
+        .label("ID entité"),
+);
+
+// Champ CSRF interne (géré automatiquement par Runique — pour usage avancé)
+form.field(&HiddenField::new_csrf());
+```
+
+> Dans les formulaires Runique standards, le CSRF est géré automatiquement via `{% csrf %}` dans le template. Vous n'avez pas besoin de `HiddenField::new_csrf()` sauf si vous construisez un formulaire entièrement personnalisé.
+
+---
+
+[↑](#vue-densemble)
+
 <a id="recapitulatif-types-champs"></a>
 ## Récapitulatif des types de champs
 
@@ -648,83 +668,7 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 | `UUIDField` | `new()` | Format UUID valide |
 | `JSONField` | `new()` | JSON valide via `serde_json` |
 | `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()` | IPv4/IPv6 via `std::net::IpAddr` |
-
----
-
-[↑](#vue-densemble)
-
-<a id="approche-automatique-deriveform"></a>
-## Approche automatique : DeriveModelForm
-
-Pour les cas simples, dérivez directement un formulaire depuis un modèle SeaORM :
-
-```rust
-use runique::prelude::*;
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-    pub password: String,
-    pub bio: Option<String>,
-    pub age: Option<i32>,
-    pub is_active: bool,
-    pub created_at: DateTime,
-}
-
-// Génère automatiquement : pub struct ModelForm { pub form: Forms }
-#[derive(DeriveModelForm)]
-pub struct Model;
-```
-
-[↑](#vue-densemble)
-
-<a id="champs-auto-exclus"></a>
-### Champs auto-exclus
-
-`DeriveModelForm` exclut automatiquement :
-
-- `id` (clé primaire)
-- `csrf_token`
-- `created_at`, `updated_at`
-- `is_active`, `deleted_at`
-- Tout champ marqué `#[sea_orm(primary_key)]`
-
-[↑](#vue-densemble)
-
-<a id="detection-automatique-types"></a>
-### Détection automatique des types
-
-| Règle | Type de champ généré | Helper dans `to_active_model()` |
-|-------|---------------------|---|
-| Nom contient `email` | `TextField::email()` | `get_string()` |
-| Nom contient `password` / `pwd` | `TextField::password()` | `get_string()` |
-| Nom contient `url` / `link` / `website` | `TextField::url()` | `get_string()` |
-| `String` + nom `description` / `bio` / `content` / `message` | `TextField::textarea()` | `get_string()` |
-| `String` (autre) | `TextField::text()` | `get_string()` |
-| `i32` | `NumericField::integer()` | `get_i32()` |
-| `i64` | `NumericField::integer()` | `get_i64()` |
-| `u32` | `NumericField::integer()` | `get_u32()` |
-| `u64` | `NumericField::integer()` | `get_u64()` |
-| `f32` | `NumericField::float()` | `get_f32()` |
-| `f64` | `NumericField::float()` | `get_f64()` |
-| `bool` | `BooleanField::new()` | `get_bool()` |
-| `Option<T>` | Champ **non required** | `get_option()` |
-| Non-`Option<T>` | Champ **required** | Type correspondant |
-
-[↑](#vue-densemble)
-
-<a id="attributs-personnalisation"></a>
-### Attributs de personnalisation
-
-```rust
-#[derive(DeriveModelForm)]
-#[exclude(bio, age)]  // Exclure des champs supplémentaires
-pub struct Model;
-```
+| `HiddenField` | `new()`, `new_csrf()` | Token CSRF si `name == "csrf_token"` |
 
 ---
 

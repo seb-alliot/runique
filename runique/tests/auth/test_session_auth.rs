@@ -1,4 +1,4 @@
-//! Tests — Session Auth (login_user, logout, is_authenticated)
+//! Tests — Session Auth (login, login_staff, logout, is_authenticated)
 //! Bug fix vérifié : logout() ne vidait pas toutes les clés de session
 //!
 //! Ces tests utilisent un router Axum minimal avec MemoryStore pour créer
@@ -8,7 +8,7 @@ use axum::{response::IntoResponse, routing::get, Router};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 use runique::middleware::auth::{
-    get_user_id, get_username, is_authenticated, login_user, login_user_full, logout,
+    get_user_id, get_username, is_authenticated, login, login_staff, logout,
 };
 use runique::utils::constante::{
     SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_ROLES_KEY,
@@ -49,7 +49,7 @@ async fn test_is_authenticated_when_no_user_in_session() {
 #[tokio::test]
 async fn test_is_authenticated_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login_user(&session, 1, "alice").await.unwrap();
+        login(&session, 1, "alice").await.unwrap();
         if is_authenticated(&session).await {
             "authenticated"
         } else {
@@ -61,12 +61,12 @@ async fn test_is_authenticated_after_login() {
     assert_body_str(res, "authenticated").await;
 }
 
-// ── login_user ────────────────────────────────────────────────────────────────
+// ── login ─────────────────────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn test_login_user_sets_id_and_username() {
+async fn test_login_sets_id_and_username() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login_user(&session, 42, "bob").await.unwrap();
+        login(&session, 42, "bob").await.unwrap();
         let id = get_user_id(&session).await.unwrap_or(0);
         let username = get_username(&session).await.unwrap_or_default();
         format!("{}/{}", id, username)
@@ -76,12 +76,12 @@ async fn test_login_user_sets_id_and_username() {
     assert_body_str(res, "42/bob").await;
 }
 
-// ── login_user_full ───────────────────────────────────────────────────────────
+// ── login_staff ───────────────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn test_login_user_full_sets_all_fields() {
+async fn test_login_staff_sets_all_fields() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login_user_full(&session, 7, "admin", true, true, vec!["editor".to_string()])
+        login_staff(&session, 7, "admin", true, true, vec!["editor".to_string()])
             .await
             .unwrap();
 
@@ -126,7 +126,7 @@ async fn test_login_user_full_sets_all_fields() {
 #[tokio::test]
 async fn test_logout_clears_session_keys() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login_user_full(
+        login_staff(
             &session,
             1,
             "alice",
@@ -173,7 +173,7 @@ async fn test_logout_clears_session_keys() {
 #[tokio::test]
 async fn test_is_not_authenticated_after_logout() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login_user(&session, 1, "alice").await.unwrap();
+        login(&session, 1, "alice").await.unwrap();
         logout(&session).await.unwrap();
         if is_authenticated(&session).await {
             "authenticated"
@@ -205,7 +205,7 @@ async fn test_get_user_id_returns_none_when_not_logged_in() {
 #[tokio::test]
 async fn test_get_username_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login_user(&session, 1, "charlie").await.unwrap();
+        login(&session, 1, "charlie").await.unwrap();
         get_username(&session).await.unwrap_or_default()
     }
 

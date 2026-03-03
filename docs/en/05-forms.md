@@ -27,11 +27,8 @@
     - [UUIDField](#uuidfield)
     - [JSONField — Textarea with JSON validation](#jsonfield--textarea-with-json-validation)
     - [IPAddressField — IP address](#ipaddressfield--ip-address)
+    - [HiddenField — Hidden field](#hiddenfield--hidden-field)
   - [Field types summary](#field-types-summary)
-  - [Automatic approach: DeriveModelForm](#automatic-approach-derivemodelform)
-    - [Auto-excluded fields](#auto-excluded-fields)
-    - [Automatic type detection](#automatic-type-detection)
-    - [Customization attributes](#customization-attributes)
   - [Database errors](#database-errors)
   - [Template rendering](#template-rendering)
     - [Full form](#full-form)
@@ -59,7 +56,7 @@ If you want, I can also generate a **fully clickable Markdown version** with ind
 Runique provides a powerful form system inspired by Django. There are **two approaches**:
 
 1. **Manual** — Define fields via the `RuniqueForm` trait.
-2. **Automatic** — Derive a form from a SeaORM model with `#[derive(DeriveModelForm)]`.
+2. **Automatic** — Derive a form from a `model!` schema with `#[form(...)]`.
 
 Forms are automatically extracted from requests via the **Prisme** extractor, handle validation (including via the `validator` crate for emails/URLs), CSRF, Argon2 password hashing, and can be saved directly to the database.
 
@@ -189,7 +186,8 @@ impl RuniqueForm for RegisterForm {
 }
 ```
 
-> **⚠️ Important**: After `is_valid()`, `Password` fields are **automatically hashed with Argon2**. Use `clean()` for any plain-text password comparisons.
+> **⚠️ Important**: After is_valid(), Password fields are automatically hashed if the password hashing configuration is set to automatic. Otherwise, the developer must call the hash function within the business logic of save().
+Use clean() for any comparison involving plaintext passwords.
 
 ---
 
@@ -596,6 +594,27 @@ form.field(&IPAddressField::new("ipv6").label("IPv6 address").ipv6_only());
 
 [↑](#table-of-contents)
 
+### HiddenField — Hidden field
+
+An invisible field in the HTML form (`<input type="hidden">`). Two main uses: pass technical data without showing it to the user, or manually validate a CSRF token.
+
+```rust
+// Generic hidden field (e.g. linked entity ID)
+form.field(
+    &HiddenField::new("entity_id")
+        .label("Entity ID"),
+);
+
+// Internal CSRF field (managed automatically by Runique — advanced use only)
+form.field(&HiddenField::new_csrf());
+```
+
+> In standard Runique forms, CSRF is handled automatically via `{% csrf %}` in the template. You don't need `HiddenField::new_csrf()` unless you are building a fully custom form.
+
+---
+
+[↑](#table-of-contents)
+
 ## Field types summary
 
 | Struct           | Constructors                                                           | Special validation                                  |
@@ -616,81 +635,7 @@ form.field(&IPAddressField::new("ipv6").label("IPv6 address").ipv6_only());
 | `UUIDField`      | `new()`                                                                | Valid UUID format                                   |
 | `JSONField`      | `new()`                                                                | Valid JSON via `serde_json`                         |
 | `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()`                              | IPv4/IPv6 via `std::net::IpAddr`                    |
-
----
-
-[↑](#table-of-contents)
-
-## Automatic approach: DeriveModelForm
-
-For simple cases, derive a form directly from a SeaORM model:
-
-```rust
-use runique::prelude::*;
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-    pub password: String,
-    pub bio: Option<String>,
-    pub age: Option<i32>,
-    pub is_active: bool,
-    pub created_at: DateTime,
-}
-
-// Automatically generates: pub struct ModelForm { pub form: Forms }
-#[derive(DeriveModelForm)]
-pub struct Model;
-```
-
-[↑](#table-of-contents)
-
-### Auto-excluded fields
-
-`DeriveModelForm` automatically excludes:
-
-- `id` (primary key)
-- `csrf_token`
-- `created_at`, `updated_at`
-- `is_active`, `deleted_at`
-- Any field marked `#[sea_orm(primary_key)]`
-
-[↑](#table-of-contents)
-
-### Automatic type detection
-
-| Rule                                                          | Generated field type      | Helper in `to_active_model()` |
-| ------------------------------------------------------------- | ------------------------- | ----------------------------- |
-| Name contains `email`                                         | `TextField::email()`      | `get_string()`                |
-| Name contains `password` / `pwd`                              | `TextField::password()`   | `get_string()`                |
-| Name contains `url` / `link` / `website`                      | `TextField::url()`        | `get_string()`                |
-| `String` + name `description` / `bio` / `content` / `message` | `TextField::textarea()`   | `get_string()`                |
-| `String` (other)                                              | `TextField::text()`       | `get_string()`                |
-| `i32`                                                         | `NumericField::integer()` | `get_i32()`                   |
-| `i64`                                                         | `NumericField::integer()` | `get_i64()`                   |
-| `u32`                                                         | `NumericField::integer()` | `get_u32()`                   |
-| `u64`                                                         | `NumericField::integer()` | `get_u64()`                   |
-| `f32`                                                         | `NumericField::float()`   | `get_f32()`                   |
-| `f64`                                                         | `NumericField::float()`   | `get_f64()`                   |
-| `bool`                                                        | `BooleanField::new()`     | `get_bool()`                  |
-| `Option<T>`                                                   | **not required** field    | `get_option()`                |
-| Non-`Option<T>`                                               | **required** field        | Matching type                 |
-
-[↑](#table-of-contents)
-
-### Customization attributes
-
-```rust
-#[derive(DeriveModelForm)]
-#[exclude(bio, age)]  // Exclude additional fields
-pub struct Model;
-```
-
----
+| `HiddenField`    | `new()`, `new_csrf()`                                                  | CSRF token validation if `name == "csrf_token"`     |
 
 [↑](#table-of-contents)
 

@@ -66,7 +66,7 @@ fn test_choice_field_vide_requis() {
 #[test]
 fn test_choice_field_requis_message_custom() {
     let mut field = ChoiceField::new("pays").choices(options());
-    field.set_required(true, Some("Veuillez choisir".into()));
+    field.set_required(true, Some("Veuillez choisir"));
     field.set_value("");
     assert!(!field.validate());
     assert_eq!(field.error().unwrap(), "Veuillez choisir");
@@ -131,7 +131,7 @@ fn test_radio_field_vide_requis() {
 #[test]
 fn test_radio_field_requis_message_custom() {
     let mut field = RadioField::new("genre").choices(options());
-    field.set_required(true, Some("Choix requis".into()));
+    field.set_required(true, Some("Choix requis"));
     field.set_value("");
     assert!(!field.validate());
     assert_eq!(field.error().unwrap(), "Choix requis");
@@ -196,7 +196,7 @@ fn test_checkbox_field_vide_requis() {
 #[test]
 fn test_checkbox_field_requis_message_custom() {
     let mut field = CheckboxField::new("interets").choices(options());
-    field.set_required(true, Some("Sélectionnez au moins un".into()));
+    field.set_required(true, Some("Sélectionnez au moins un"));
     field.set_value("");
     assert!(!field.validate());
     assert_eq!(field.error().unwrap(), "Sélectionnez au moins un");

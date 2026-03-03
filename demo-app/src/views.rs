@@ -1,6 +1,7 @@
 use crate::entities::blog::Entity as BlogEntity;
 use crate::form_test::TestAllFieldsForm;
 use crate::formulaire::*;
+use runique::middleware::auth::login as auth_login;
 use runique::prelude::user::Entity as UserEntity;
 use runique::prelude::*;
 
@@ -53,7 +54,7 @@ pub async fn soumission_inscription(
         if form.is_valid().await {
             match form.save(&request.engine.db).await {
                 Ok(user) => {
-                    login_user(&request.session, user.id, &user.username)
+                    auth_login(&request.session, user.id, &user.username)
                         .await
                         .ok();
                     success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
@@ -110,7 +111,7 @@ pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> App
             match user_opt {
                 Some(user) if user.is_active => {
                     if TextField::verify_password(&password_val, &user.password) {
-                        login_user(&request.session, user.id, &user.username)
+                        auth_login(&request.session, user.id, &user.username)
                             .await
                             .ok();
                         success!(request.notices => format!("Bienvenue {} !", user.username));

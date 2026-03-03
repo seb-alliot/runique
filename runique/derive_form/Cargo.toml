@@ -1,6 +1,6 @@
 [package]
 name = "derive_form"
-version = "1.1.20"
+version = "1.1.30"
 edition = "2021"
 authors = ["Itsuki"]
 license = "MIT"
@@ -9,7 +9,7 @@ repository = "https://github.com/seb-alliot/runique"
 homepage = "https://github.com/seb-alliot/runique"
 keywords = ["web", "forms", "macro", "derive"]
 categories = ["web-programming"]
-readme = "../../README.md"
+readme = "README.md"
 
 [lib]
 proc-macro = true
@@ -20,4 +20,3 @@ quote = "1"
 proc-macro2 = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-darling = "0.23.0"

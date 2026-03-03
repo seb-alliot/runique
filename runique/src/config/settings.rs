@@ -20,12 +20,12 @@ pub struct AppSettings {
 
 impl Default for AppSettings {
     fn default() -> Self {
-        let redirect_anonymous_url = env_or_default("REDIRECT_ANONYMOUS", "/");
-        let logging_url = env_or_default("LOGGING_URL", "/");
+        let redirect_anonymous_url: String = env_or_default("REDIRECT_ANONYMOUS", "/");
+        let logging_url: String = env_or_default("LOGGING_URL", "/");
         let user_connected_url: String = env_or_default("USER_CONNECTED_URL", "/");
-        let project_name = env_or_default("PROJECT_NAME", "myproject");
-        let language_app = env_or_default("LANGUAGE_APP", "en-us");
-        let time_zone = env_or_default("TIME_ZONE", "UTC");
+        let project_name: String = env_or_default("PROJECT_NAME", "myproject");
+        let language_app: String = env_or_default("LANGUAGE_APP", "en-us");
+        let time_zone: String = env_or_default("TIME_ZONE", "UTC");
         Self {
             installed_apps: vec![],
             middleware: vec![],

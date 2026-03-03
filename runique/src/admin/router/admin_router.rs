@@ -19,7 +19,7 @@ use crate::admin::middleware::admin_required;
 use crate::admin::registry::AdminRegistry;
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
-use crate::middleware::auth::{load_user_middleware, login_user_full};
+use crate::middleware::auth::{load_user_middleware, login_staff};
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
 use crate::{admin::config::AdminConfig, flash_now};
@@ -124,7 +124,7 @@ async fn admin_login_post(
 
     match result {
         Some(user) => {
-            if login_user_full(
+            if login_staff(
                 &req.session,
                 user.user_id,
                 &user.username,

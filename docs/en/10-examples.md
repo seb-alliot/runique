@@ -115,7 +115,6 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 // src/forms.rs
 use runique::prelude::*;
 
-#[runique_form]
 pub struct RegisterForm {
     pub form: Forms,
 }
@@ -226,7 +225,6 @@ pub async fn inscription(
 ### Search form
 
 ```rust
-#[runique_form]
 pub struct UsernameForm {
     pub form: Forms,
 }
@@ -317,7 +315,6 @@ pub async fn info_user(
 ### Upload form
 
 ```rust
-#[runique_form]
 pub struct ImageForm {
     pub form: Forms,
 }

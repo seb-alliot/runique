@@ -20,7 +20,7 @@ use tower_sessions::Session;
 // accessible in all handlers.
 //
 // Les champs is_staff / is_superuser / roles sont stockés
-// en session lors du login (via login_user_full) et relus
+// en session lors du login (via login) et relus
 // à chaque requête.
 // ═══════════════════════════════════════════════════════════════
 
@@ -99,8 +99,9 @@ pub async fn get_username(session: &Session) -> Option<String> {
 
 /// Connecte un utilisateur (stocke id + username en session)
 ///
-/// Version basique — sans rôles ni flags admin.
-pub async fn login_user(
+/// `is_staff`, `is_superuser` et `roles` sont à `false` / vide par défaut.
+/// Pour les comptes staff/admin, utilisez `login_staff`.
+pub async fn login(
     session: &Session,
     user_id: i32,
     username: &str,
@@ -109,14 +110,18 @@ pub async fn login_user(
     session
         .insert(SESSION_USER_USERNAME_KEY, username.to_string())
         .await?;
+    session.insert(SESSION_USER_IS_STAFF_KEY, false).await?;
+    session.insert(SESSION_USER_IS_SUPERUSER_KEY, false).await?;
+    session
+        .insert(SESSION_USER_ROLES_KEY, Vec::<String>::new())
+        .await?;
     Ok(())
 }
 
-/// Connecte un utilisateur avec tous ses attributs
+/// Connecte un utilisateur avec ses droits staff/admin et ses rôles
 ///
-/// Version complète — inclut is_staff, is_superuser et rôles.
-/// À utiliser pour les applications utilisant l'AdminPanel.
-pub async fn login_user_full(
+/// À utiliser pour les comptes qui ont `is_staff`, `is_superuser` ou des `roles` personnalisés.
+pub async fn login_staff(
     session: &Session,
     user_id: i32,
     username: &str,
