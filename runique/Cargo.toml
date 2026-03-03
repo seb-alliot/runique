@@ -107,6 +107,7 @@ derive_form = { path = "derive_form" }
 # CLI
 clap.workspace = true
 rpassword.workspace = true
+crossterm.workspace = true
 
 [dev-dependencies]
 serial_test = "3"
