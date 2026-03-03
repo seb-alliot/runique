@@ -10,7 +10,6 @@ In the `derive_form` crate, the available macros are:
 
 * `model!(...)` (proc macro)
 * `#[form(...)]` (attribute proc macro)
-* `#[derive(DeriveModelForm)]`
 
 On the Runique API side (`prelude`), `model` and `form` are re-exported.
 

@@ -172,7 +172,7 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 | Apprentissage | [Architecture](02-architecture.md) | Structure, conception, fonctionnement |
 | Config | [Configuration](03-configuration.md) | Paramètres, environnement, sécurité |
 | Routes | [Routage](04-routing.md) | Modèles URL, gestionnaires, paramètres |
-| Formulaires | [Formulaires](05-forms.md) | Prisme, FieldBuilder, DeriveModelForm |
+| Formulaires | [Formulaires](05-forms.md) | Prisme, FieldBuilder, `#[form(...)]` |
 | Vues | [Templates](06-templates.md) | Tags Django-like, filtres, fonctions Tera |
 | Données | [ORM](07-orm.md) | Modèles, requêtes, impl_objects! |
 | Sécurité | [Middlewares](08-middleware.md) | Slots, CSRF, CSP, sessions |

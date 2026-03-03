@@ -33,7 +33,7 @@ fn test_integer_vide_requis() {
 #[test]
 fn test_integer_requis_message_custom() {
     let mut field = NumericField::integer("age");
-    field.set_required(true, Some("Âge requis".into()));
+    field.set_required(true, Some("Âge requis"));
     field.set_value("");
     assert!(!field.validate());
     assert_eq!(field.error().unwrap(), "Âge requis");

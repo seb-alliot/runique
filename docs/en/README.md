@@ -193,7 +193,7 @@ The daemon (`runique start`) enables automatic regeneration, while a `cargo run`
 | Learning | [Architecture](02-architecture.md)     | Structure, design, internals               |
 | Config   | [Configuration](03-configuration.md)   | Settings, environment, security            |
 | Routes   | [Routing](04-routing.md)               | URL patterns, handlers, params             |
-| Forms    | [Forms](05-forms.md)                   | Prisme, FieldBuilder, DeriveModelForm      |
+| Forms    | [Forms](05-forms.md)                   | Prisme, FieldBuilder, `#[form(...)]`       |
 | Views    | [Templates](06-templates.md)           | Django-like tags, filters, Tera functions  |
 | Data     | [ORM](07-orm.md)                       | Models, queries, `impl_objects!`           |
 | Security | [Middlewares](08-middleware.md)        | Slots, CSRF, CSP, sessions                 |

@@ -8,7 +8,6 @@ Dans la crate `derive_form`, les macros disponibles sont :
 
 - `model!(...)` (proc macro)
 - `#[form(...)]` (proc macro attribut)
-- `#[derive(DeriveModelForm)]`
 
 Côté API Runique (`prelude`), `model` et `form` sont ré-exportées.
 

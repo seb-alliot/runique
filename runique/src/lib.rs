@@ -190,7 +190,7 @@ pub use uuid;
 #[cfg(feature = "orm")]
 pub use sea_orm;
 
-pub use derive_form::{model, DeriveModelForm};
+pub use derive_form::model;
 
 // ---------------------------------------------------------------------------
 // Prelude simplifié
@@ -229,8 +229,7 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
-    pub use derive_form::model;
-    pub use derive_form::{form, DeriveModelForm};
+    pub use derive_form::{form, model};
 
     // ========================================================================
     // CONFIGURATION

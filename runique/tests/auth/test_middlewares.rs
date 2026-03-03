@@ -5,7 +5,7 @@
 
 use axum::{middleware, routing::get, routing::post, Extension, Router};
 use runique::middleware::auth::{
-    has_permission, load_user_middleware, login_required, login_user, login_user_full,
+    has_permission, load_user_middleware, login, login_required, login_staff,
     redirect_if_authenticated, CurrentUser,
 };
 use std::{net::SocketAddr, sync::OnceLock};
@@ -55,14 +55,14 @@ fn auth_mw_addr() -> SocketAddr {
                     .route(
                         "/do_login",
                         post(|session: Session| async move {
-                            login_user(&session, 1, "alice").await.unwrap();
+                            login(&session, 1, "alice").await.unwrap();
                             "ok"
                         }),
                     )
                     .route(
                         "/do_login_full",
                         post(|session: Session| async move {
-                            login_user_full(
+                            login_staff(
                                 &session,
                                 2,
                                 "bob",
