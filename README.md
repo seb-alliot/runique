@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
 ![Tests](https://img.shields.io/badge/tests-1356%2F1356%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.25-blue)
+![Version](https://img.shields.io/badge/version-1.1.30-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
 
 Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
@@ -21,7 +21,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **1.1.25**.
+Workspace version (source of truth): **1.1.30**.
 
 ---
 
@@ -148,7 +148,7 @@ See: [couverture_test.md](couverture_test.md)
 - [Configuration](docs/en/03-configuration.md)
 - [Routing](docs/en/04-routing.md)
 - [Forms](docs/en/05-forms.md)
-- [Model/Schema](https://github.com/seb-alliot/runique/blobmain/docs/fr/12-model.md)
+- [Model/Schema](docs/en/12-model.md)
 - [Templates](docs/en/06-templates.md)
 - [ORM](docs/en/07-orm.md)
 - [Middleware](docs/en/08-middleware.md)
@@ -163,7 +163,7 @@ See: [couverture_test.md](couverture_test.md)
 - [Configuration](docs/fr/03-configuration.md)
 - [Routage](docs/fr/04-routing.md)
 - [Formulaires](docs/fr/05-forms.md)
-- [Model/Scema](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md)
+- [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md)
 - [Templates](docs/fr/06-templates.md)
 - [ORM](docs/fr/07-orm.md)
 - [Middlewares](docs/fr/08-middleware.md)

@@ -13,7 +13,7 @@ Veuillez signaler les problèmes sur [GitHub](https://github.com/seb-alliot/runi
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)]()
 [![Tests](https://img.shields.io/badge/tests-1356%2F1356%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-[![Version](https://img.shields.io/badge/version-1.1.25-blue)]()
+[![Version](https://img.shields.io/badge/version-1.1.30-blue)]()
 [![Crates.io](https://img.shields.io/crates/v/runique)]()
 
 Un framework web Rust moderne et complet, inspiré par Django, pour construire des applications web robustes et performantes.
@@ -84,10 +84,16 @@ Runique Framework
 Configurer votre serveur et application :
 
 ```rust
-let settings = Settings {
-    server: ServerConfig { ... },
-    database: DatabaseConfig { ... },
-    security: SecurityConfig { ... },
+// Chargement depuis l'environnement (.env)
+let config = RuniqueConfig::from_env();
+
+// Ou construction manuelle
+let config = RuniqueConfig {
+    server: ServerConfig { .. },
+    security: SecurityConfig { .. },
+    password: PasswordConfig::auto(),
+    debug: false,
+    ..Default::default()
 };
 ```
 
@@ -235,10 +241,14 @@ Utiliser les templates Tera :
 Utiliser SeaORM avec pattern Django-like :
 
 ```rust
-impl_objects!(User);
+impl_objects!(Entity);
 
-let users = User::objects
-    .filter(active.eq(true))
+// Tous les enregistrements
+let users = Entity::objects.all(&db).await?;
+
+// Avec filtre
+let users = Entity::objects
+    .filter(Column::Active.eq(true))
     .all(&db)
     .await?;
 ```
@@ -270,9 +280,13 @@ Middlewares de sécurité intégrés :
 Messages temporaires pour l'utilisateur :
 
 ```rust
-success!("Opération réussie !");
-error!("Une erreur s'est produite");
-warning!("Attention !");
+// Après une redirection
+success!(request.notices => "Opération réussie !");
+error!(request.notices => "Une erreur s'est produite");
+warning!(request.notices => "Attention !");
+
+// Immédiat (sans redirection)
+flash_now!(success => "Sauvegardé");
 ```
 
 👉 **Lire** : [docs/fr/09-flash-messages.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md) pour les détails
@@ -285,17 +299,16 @@ warning!("Attention !");
 
 Exemples complets d'utilisation :
 
-- Application blog complète
-- Authentification utilisateur
+- Structure d'application complète
+- Authentification (inscription, connexion)
 - Upload de fichiers
-- API REST
+- Mise à jour de profil
 
 👉 **Lire** : [docs/fr/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md) pour les exemples complets
 
 ---
 
 ## 🧭 Admin-beta
----
 
 Runique intègre une **vue d’administration en version bêta**, basée sur une macro déclarative `admin!` et un système de génération automatique.
 
@@ -312,8 +325,9 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 
 > ⚠️ La vue admin est actuellement en **bêta** et pose volontairement des bases simples, déclaratives et sûres. Des évolutions sont prévues (permissions plus fines, meilleur feedback, protections supplémentaires).
 
+👉 **Lire** : [Admin-beta](https://github.com/seb-alliot/runique/blob/main/docs/fr/11-Admin.md)
+
 ---
- **Lire** : [Admin-beta](https://github.com/seb-alliot/runique/blob/main/docs/fr/11-Admin.md)
 
 ## 🧪 Tests
 

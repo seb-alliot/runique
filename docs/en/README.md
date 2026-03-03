@@ -1,4 +1,3 @@
-
 # 📚 Runique Documentation - English
 
 Complete documentation of the Runique web framework.
@@ -24,8 +23,8 @@ Understanding the internal architecture of Runique.
 **Topics covered:**
 - Project structure
 - Component overview
-- Design patterns
-- How it works
+- `Request` extractor, `Prisme` pipeline
+- Core macros (`urlpatterns!`, `view!`, `context_update!`)
 
 👉 **Go to** : [Architecture Guide](02-architecture.md)
 
@@ -39,6 +38,7 @@ Configuring your Runique application.
 - Database setup
 - Environment variables
 - Security settings
+- `RuniqueApp` builder
 
 👉 **Go to** : [Configuration Guide](03-configuration.md)
 
@@ -48,10 +48,10 @@ Configuring your Runique application.
 URL routing and request handling.
 
 **Topics covered:**
-- URL patterns
-- Route definition
-- Request handlers
+- `urlpatterns!` and `view!` macros
 - URL parameters
+- Named routes and `link()`
+- Request handlers
 
 👉 **Go to** : [Routing Guide](04-routing.md)
 
@@ -61,10 +61,13 @@ URL routing and request handling.
 Building and handling forms.
 
 **Topics covered:**
-- Form creation
-- Field types
-- Validation
-- CSRF protection
+- `Prisme<T>` extractor (Sentinel → Aegis → CSRF Gate → Construction)
+- Manual declaration via `RuniqueForm` + `impl_form_access!()`
+- Automatic declaration via `#[derive(DeriveModelForm)]`
+- Field types (`TextField`, `NumericField`, `FileField`…)
+- `PasswordConfig` — Argon2/Bcrypt/Scrypt hashing, `pre_hash_hook`
+- Validation, typed helpers (`get_string()`, `get_i32()`…)
+- Saving and rendering in templates
 
 👉 **Go to** : [Forms Guide](05-forms.md)
 
@@ -74,10 +77,11 @@ Building and handling forms.
 Working with Tera templates.
 
 **Topics covered:**
-- Template syntax
-- Variables and loops
-- Filters
+- Django-like tags (`{% static %}`, `{% form.xxx %}`, `{% link %}`, `{% csrf %}`, `{% messages %}`, `{% csp_nonce %}`)
+- Tera filters and functions
+- `context_update!` macro
 - Template inheritance
+- Auto-injected variables
 
 👉 **Go to** : [Templates Guide](06-templates.md)
 
@@ -88,8 +92,8 @@ Database operations with SeaORM.
 
 **Topics covered:**
 - Model definition
-- Queries
-- Relations
+- `impl_objects!` macro
+- Queries, filters, relations
 - Migrations
 
 👉 **Go to** : [ORM Guide](07-orm.md)
@@ -100,10 +104,13 @@ Database operations with SeaORM.
 Security and request middleware.
 
 **Topics covered:**
-- CSRF protection
-- CSP headers
+- Middleware stack with slot system
+- CSRF protection (Double Submit Cookie)
+- Content Security Policy (CSP) with nonce
+- Allowed Hosts validation
 - Security headers
-- Custom middleware
+- Session configuration
+- Smart Builder vs classic Builder
 
 👉 **Go to** : [Middleware Guide](08-middleware.md)
 
@@ -113,67 +120,70 @@ Security and request middleware.
 User feedback and notifications.
 
 **Topics covered:**
-- Success messages
-- Error messages
-- Warning messages
-- Message handling
+- Redirect macros: `success!`, `error!`, `info!`, `warning!`
+- Immediate macro: `flash_now!`
+- Display with `{% messages %}`
+- Flash vs flash_now pattern
+- Consume-once behavior
 
 👉 **Go to** : [Flash Messages Guide](09-flash-messages.md)
 
 ---
 
 ### 🔟 [Examples](10-examples.md)
-Complete code examples and projects.
+Complete code examples.
 
 **Topics covered:**
-- Blog application
-- Authentication
+- Full application structure
+- Authentication (register, login)
 - File upload
-- REST API
+- Profile update
 
 👉 **Go to** : [Examples Guide](10-examples.md)
 
 ---
 
-### 11 [Admin](11-Admin.md)
+### 1️⃣1️⃣ [Admin](11-Admin.md)
+Automatically generated admin interface (beta).
+
+**Topics covered:**
+- Declarative `admin!` macro
+- Automatic CRUD generation
+- Generated routes, handlers and forms
+- Type safety and code transparency
+
+👉 **Go to** : [Admin Guide](11-Admin.md)
 
 ---
 
-##  Administration view (beta)
+### 1️⃣2️⃣ [Models](12-model.md)
+Data model definition.
 
-Runique includes a **beta administration view** built around a declarative `admin!` macro and a code-generation daemon.
+**Topics covered:**
+- SeaORM entity structure
+- Schema definition
+- Form integration
 
-Administrative resources are declared in `src/admin.rs`.
-From this declaration, Runique automatically generates a full CRUD admin interface (routes, handlers, forms) as **plain Rust code**, keeping the system transparent and auditable.
-
-The admin workflow favors:
-
-* **type safety** (compile-time validation of models and forms)
-* **explicitness** (no hidden logic, no procedural macros)
-* **developer control** over the generated code
-
-A watcher (`runique start`) regenerates the admin code on each change, while a `cargo run` workflow can be used when manual edits are required.
-
-> ⚠️ The admin view is currently in **beta** and focuses on a simple, declarative, and safe foundation. More advanced features (permissions granularity, feedback, protections) are planned.
+👉 **Go to** : [Models Guide](12-model.md)
 
 ---
 
----
 ## 🎯 Quick Navigation
 
 | Section | File | Topics |
 |---------|------|--------|
 | Setup | [Installation](01-installation.md) | Prerequisites, install, first steps |
-| Learn | [Architecture](02-architecture.md) | Structure, design, how it works |
+| Learn | [Architecture](02-architecture.md) | Structure, Request, Prisme, macros |
 | Config | [Configuration](03-configuration.md) | Settings, environment, security |
-| Routes | [Routing](04-routing.md) | URL patterns, handlers, parameters |
-| Forms | [Forms](05-forms.md) | Fields, validation, CSRF |
-| Views | [Templates](06-templates.md) | Syntax, variables, inheritance |
-| Data | [ORM](07-orm.md) | Models, queries, relations |
-| Security | [Middleware](08-middleware.md) | Protection, headers, policies |
-| Feedback | [Flash Messages](09-flash-messages.md) | Notifications, messages |
-| Code | [Examples](10-examples.md) | Complete projects |
-| Code | [Admin](11-Admin.md) | Admin beta |
+| Routes | [Routing](04-routing.md) | urlpatterns!, view!, URL parameters |
+| Forms | [Forms](05-forms.md) | Prisme, TextField, PasswordConfig, DeriveModelForm |
+| Views | [Templates](06-templates.md) | Django-like tags, filters, context_update! |
+| Data | [ORM](07-orm.md) | Models, queries, impl_objects! |
+| Security | [Middleware](08-middleware.md) | Slots, CSRF, CSP, sessions |
+| Feedback | [Flash Messages](09-flash-messages.md) | success!, flash_now!, {% messages %} |
+| Code | [Examples](10-examples.md) | Complete projects, auth, upload |
+| Admin | [Admin](11-Admin.md) | Admin beta, generated CRUD |
+| Models | [Models](12-model.md) | Entities, schemas, forms |
 
 ---
 
@@ -182,36 +192,15 @@ A watcher (`runique start`) regenerates the admin code on each change, while a `
 1. **New to Runique?** → Start with [Installation](01-installation.md)
 2. **Want to understand?** → Read [Architecture](02-architecture.md)
 3. **Ready to code?** → Check [Examples](10-examples.md)
-4. **Need help?** → Search relevant section above
-
----
-
-## 📋 Documentation Features
-
-- ✅ Complete and detailed
-- ✅ Code examples included
-- ✅ Best practices highlighted
-- ✅ Common issues addressed
-- ✅ Links and references
+4. **Need help?** → Search the relevant section above
 
 ---
 
 ## 🌍 Language
 
-- 📖 **[English](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)**
-- 🇫🇷 **[Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/README.md)**
+- 📖 **English** (you are here)
+- 🇫🇷 **[Français](../fr/README.md)**
 
 ---
 
-## 💡 Tips
-
-- Each guide has examples
-- Follow the sections in order
-- Check Examples for real code
-- Use your browser's search
-
----
-
-**Need help?** Check [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) or review relevant section.
-
-Happy coding! 🚀
+**Need help?** Check [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) or review the relevant section.
