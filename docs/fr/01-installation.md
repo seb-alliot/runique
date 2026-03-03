@@ -65,17 +65,17 @@ psql -U postgres
 CREATE DATABASE runique;
 ```
 
-### 4. Configurer la base de données (REQUIS)
+### 4. Appliquer les migrations
 
-Lancer les migrations:
+Appliquer les migrations existantes via le CLI SeaORM :
 
 ```bash
 cd demo-app/migration
-cargo run
+sea-orm-cli migrate up
 cd ..
 ```
 
-**Note:** La base de données est obligatoire - le framework ne peut pas fonctionner sans.
+**Note:** Les migrations initialisent le schéma de base de données requis par le framework.
 
 ### 5. Compiler le projet
 
@@ -112,7 +112,7 @@ Pour utiliser SQLite en développement:
 
 ```toml
 [dependencies]
-runique = { version = "1.1.20", features = ["orm", "sqlite"] }
+runique = { version = "1.1.30", features = ["orm", "sqlite"] }
 
 ```
 
@@ -185,8 +185,8 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 # Mode Debug (désactiver en production)
 DEBUG=true
 
-# Configuration base de données (exemple PostgreSQL)
-DB_ENGINE=postgres
+# Configuration base de données (exemple sqlite)
+DB_ENGINE=sqlite
 DB_USER=monuser
 DB_PASSWORD=monmotdepasse
 DB_HOST=localhost
@@ -209,16 +209,89 @@ psql -U runique_user -d runique -h localhost
 
 ## Migrations (SeaORM)
 
-### Voir les migrations existantes
+Le workflow de migration se déroule en deux étapes :
+
+### 1. Générer les fichiers de migration
+
+`runique makemigrations` lit vos entités déclarées dans `src/entities` et génère les fichiers de migration correspondants :
 
 ```bash
-cd demo-app/migration
-ls -la
+runique makemigrations --entities src/entities --migrations migration/src
 ```
 
-### Exécuter les migrations
+### 2. Appliquer les migrations
 
-Les migrations ne sont pas automatique, suivez la procédure expliqué dans le readme fournis apres cargo new votre_projet
+Les migrations sont exécutées via le CLI SeaORM :
+
+```bash
+sea-orm-cli migrate up --migration-dir migration/src
+```
+
+Ou via le wrapper Runique :
+
+```bash
+runique migration up --migrations migration/src
+```
+
+### Autres commandes de migration
+
+```bash
+runique migration down --migrations migration/src    # Annuler la dernière migration
+runique migration status --migrations migration/src  # Voir l'état des migrations
+```
+
+---
+
+## CLI Runique
+
+### Créer un superutilisateur
+
+```bash
+runique create-superuser
+```
+
+La commande est entièrement interactive et guidée étape par étape :
+
+```
+=== Créer un superutilisateur ===  [Ctrl+C pour quitter]
+
+[1/5] Algorithme de hachage :
+  1) Argon2  (recommandé)
+  2) Bcrypt
+  3) Scrypt
+  4) Custom provider
+Choix [1-4] (défaut: 1) :
+
+[2/5] Username :
+[3/5] Email :
+[4/5] Mot de passe :
+[5/5] Confirmer le mot de passe :
+
+──────────────────────────────────
+  Algorithme : Argon2
+  Username   : admin
+  Email      : admin@example.com
+  Mot de passe : ••••••••
+──────────────────────────────────
+[Entrée] Confirmer  [A] Changer l'algo  [Ctrl+C] Annuler
+```
+
+**Navigation :** `ESC` revient à l'étape précédente à tout moment. L'étape algorithm étant en premier, elle peut être modifiée à la fin via `[A]` sans recommencer depuis le début.
+
+> Le CLI s'exécute sans runtime applicatif — il n'a pas accès à la `PasswordConfig` configurée dans `main.rs`. L'algorithme est choisi explicitement à chaque exécution.
+>
+> Pour le cas `Custom`, fournissez un binaire ou script qui lit le mot de passe sur **stdin** et retourne le hash sur **stdout** — sélectionnez l'option `4) Custom provider` et indiquez le chemin.
+
+### Autres commandes
+
+```bash
+runique new <nom>                                                    # Créer un nouveau projet
+runique start [--main src/main.rs] [--admin src/admin.rs]           # Lancer avec daemon admin
+runique makemigrations --entities src/entities --migrations migration/src  # Générer les migrations
+runique migration up|down|status --migrations migration/src         # Gérer les migrations
+```
+
+---
 
 ## Troubleshooting
 
@@ -242,12 +315,12 @@ psql -U postgres -d runique -c "\dp"
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 ```
 
-### "SQLite driver est normalement activé de base modifier la base de donnée prise en charge par sea-orm dans votre cargo"
+### ❌ Feature SQLite non activée
 
 Vérifier que la feature est activée dans `Cargo.toml`:
 
 ```toml
-runique = { version = "1.1.20", features = ["orm", "postgres"] }
+runique = { version = "1.1.30", features = ["orm", "postgres"] }
 
 ```
 
@@ -272,7 +345,7 @@ rustup component add rust-analyzer
 # Linter & formatter
 rustup component add clippy rustfmt
 
-# SeaORM CLI (optionnel)
+# SeaORM CLI (requis pour les migrations)
 cargo install sea-orm-cli
 ```
 

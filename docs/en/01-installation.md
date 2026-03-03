@@ -65,17 +65,17 @@ psql -U postgres
 CREATE DATABASE runique;
 ```
 
-### 4. Configure the Database (REQUIRED)
+### 4. Apply Migrations
 
-Run the migrations:
+Apply the existing migrations via the SeaORM CLI:
 
 ```bash
 cd demo-app/migration
-cargo run
+sea-orm-cli migrate up
 cd ..
 ```
 
-**Note:** The database is mandatory — the framework cannot function without it.
+**Note:** Migrations initialize the database schema required by the framework.
 
 ### 5. Build the Project
 
@@ -112,7 +112,7 @@ To use SQLite in development:
 
 ```toml
 [dependencies]
-runique = { version = "1.1.20", features = ["orm", "sqlite"] }
+runique = { version = "1.1.30", features = ["orm", "sqlite"] }
 
 ```
 
@@ -185,8 +185,8 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 # Debug Mode (disable in production)
 DEBUG=true
 
-# Database configuration (PostgreSQL example)
-DB_ENGINE=postgres
+# Database configuration (sqlite example)
+DB_ENGINE=sqlite
 DB_USER=monuser
 DB_PASSWORD=monmotdepasse
 DB_HOST=localhost
@@ -209,19 +209,86 @@ psql -U runique_user -d runique -h localhost
 
 ## Migrations (SeaORM)
 
-### View Existing Migrations
+The migration workflow involves two steps:
+
+### 1. Generate Migration Files
+
+`runique makemigrations` reads your entities declared in `src/entities` and generates the corresponding migration files:
 
 ```bash
-cd demo-app/migration
-ls -la
+runique makemigrations --entities src/entities --migrations migration/src
 ```
 
-### Run Migrations
+### 2. Apply Migrations
 
-Migrations are not automatic — follow the procedure explained in the README provided after running:
+Migrations are run via the SeaORM CLI:
 
 ```bash
-cargo new your_project
+sea-orm-cli migrate up --migration-dir migration/src
+```
+
+Or via the Runique wrapper:
+
+```bash
+runique migration up --migrations migration/src
+```
+
+### Other Migration Commands
+
+```bash
+runique migration down --migrations migration/src    # Revert the last migration
+runique migration status --migrations migration/src  # Check migration status
+```
+
+---
+
+## Runique CLI
+
+### Create a Superuser
+
+```bash
+runique create-superuser
+```
+
+The command is fully interactive and step-by-step guided:
+
+```
+=== Create Superuser ===  [Ctrl+C to quit]
+
+[1/5] Hash algorithm:
+  1) Argon2  (recommended)
+  2) Bcrypt
+  3) Scrypt
+  4) Custom provider
+Choice [1-4] (default: 1):
+
+[2/5] Username:
+[3/5] Email:
+[4/5] Password:
+[5/5] Confirm password:
+
+──────────────────────────────────
+  Algorithm : Argon2
+  Username  : admin
+  Email     : admin@example.com
+  Password  : ••••••••
+──────────────────────────────────
+[Enter] Confirm  [A] Change algorithm  [Ctrl+C] Cancel
+```
+
+**Navigation:** `ESC` goes back to the previous step at any time. Since the algorithm step comes first, it can also be changed at the end via `[A]` without starting over.
+
+> The CLI runs without the application runtime — it has no access to the `PasswordConfig` configured in `main.rs`. The algorithm is chosen explicitly at each run.
+>
+> For the `Custom` case, provide a binary or script that reads the password from **stdin** and returns the hash on **stdout** — select option `4) Custom provider` and provide the path.
+
+### Other Commands
+
+```bash
+runique new <name>                                                    # Create a new project
+runique start [--main src/main.rs] [--admin src/admin.rs]           # Start with admin daemon
+runique makemigrations --entities src/entities --migrations migration/src  # Generate migrations
+runique migration up|down|status --migrations migration/src         # Manage migrations
 ```
 
 ---
@@ -248,12 +315,12 @@ psql -U postgres -d runique -c "\dp"
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 ```
 
-### "SQLite driver is normally enabled by default — modify the database supported by SeaORM in your Cargo file"
+### ❌ SQLite feature not enabled
 
 Make sure the feature is enabled in `Cargo.toml`:
 
 ```toml
-runique = { version = "1.1.20", features = ["orm", "postgres"] }
+runique = { version = "1.1.30", features = ["orm", "postgres"] }
 
 ```
 
@@ -278,7 +345,7 @@ rustup component add rust-analyzer
 # Linter & formatter
 rustup component add clippy rustfmt
 
-# SeaORM CLI (optional)
+# SeaORM CLI (required for migrations)
 cargo install sea-orm-cli
 ```
 
@@ -301,16 +368,9 @@ pre-commit run --all-files
 
 ✅ Installation complete! Now:
 
-1. Read the **Architecture** documentation
-   [https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
-
-2. Create your first **Routing**
-   [https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
-
-3. Define your **Forms**
-   [https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
-
-4. Explore the **Examples**
-   [https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
+1. Read the [**Architecture**](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+2. Create your first [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
+3. Define your [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+4. Explore the [**Examples**](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
 
 ---

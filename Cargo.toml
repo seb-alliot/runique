@@ -86,10 +86,10 @@ hex = "0.4"
 # CLI
 clap = { version = "4.5.55", features = ["derive"] }
 rpassword = "7.4.0"
+crossterm = "0.28"
 
 # Daemon admin
 notify = "8.2.0"
 syn = { version = "2", features = ["full", "visit"] }
 quote = "1"
 proc-macro2 = "1"
-
