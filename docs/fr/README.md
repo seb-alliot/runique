@@ -23,8 +23,8 @@ Comprendre l'architecture interne de Runique.
 **Sujets couverts:**
 - Structure du projet
 - Vue d'ensemble des composants
-- Motifs de conception
-- Comment ça marche
+- Extracteur `Request`, pipeline `Prisme`
+- Macros principales (`urlpatterns!`, `view!`, `context_update!`)
 
 👉 **Aller à** : [Guide d'architecture](02-architecture.md)
 
@@ -35,9 +35,10 @@ Configurer votre application Runique.
 
 **Sujets couverts:**
 - Configuration du serveur
-- Mise en place de la BD
+- Mise en place de la base de données
 - Variables d'environnement
 - Paramètres de sécurité
+- Builder `RuniqueApp`
 
 👉 **Aller à** : [Guide de configuration](03-configuration.md)
 
@@ -47,10 +48,10 @@ Configurer votre application Runique.
 Routage des URL et traitement des requêtes.
 
 **Sujets couverts:**
-- Modèles d'URL
-- Définition des routes
-- Gestionnaires de requêtes
+- Macro `urlpatterns!` et `view!`
 - Paramètres d'URL
+- Routes nommées et `link()`
+- Gestionnaires de requêtes
 
 👉 **Aller à** : [Guide de routage](04-routing.md)
 
@@ -60,12 +61,13 @@ Routage des URL et traitement des requêtes.
 Création et gestion de formulaires.
 
 **Sujets couverts:**
-- Extracteur Prisme
-- Déclaration manuelle via `RuniqueForm`
-- Déclaration basée modèle/schéma (AST) puis formulaire automatique
-- Types de champs (TextField, NumericField…)
-- Validation et sauvegarde
-- Rendu dans les templates
+- Extracteur `Prisme<T>` (Sentinel → Aegis → CSRF Gate → Construction)
+- Déclaration via `RuniqueForm` + `impl_form_access!()`
+- Déclaration automatique via `#[derive(DeriveModelForm)]`
+- Types de champs (`TextField`, `NumericField`, `FileField`…)
+- `PasswordConfig` — hachage Argon2/Bcrypt/Scrypt, `pre_hash_hook`
+- Validation, helpers typés (`get_string()`, `get_i32()`…)
+- Sauvegarde et rendu dans les templates
 
 👉 **Aller à** : [Guide des formulaires](05-forms.md)
 
@@ -75,10 +77,9 @@ Création et gestion de formulaires.
 Travailler avec les templates Tera.
 
 **Sujets couverts:**
-- Tags Django-like ({% static %}, {% form.xxx %}, {% link %}, {% csrf %}, {% messages %}, {% csp_nonce %})
-- Filtres Tera (static, media, form, csrf_field)
-- Fonctions Tera (csrf(), nonce(), link())
-- Macro context_update!
+- Tags Django-like (`{% static %}`, `{% form.xxx %}`, `{% link %}`, `{% csrf %}`, `{% messages %}`, `{% csp_nonce %}`)
+- Filtres et fonctions Tera
+- Macro `context_update!`
 - Héritage de templates
 - Variables auto-injectées
 
@@ -91,8 +92,8 @@ Opérations de base de données avec SeaORM.
 
 **Sujets couverts:**
 - Définition de modèles
-- Requêtes
-- Relations
+- Macro `impl_objects!`
+- Requêtes, filtres, relations
 - Migrations
 
 👉 **Aller à** : [Guide ORM](07-orm.md)
@@ -119,9 +120,9 @@ Sécurité et middlewares de requête.
 Retours utilisateur et notifications.
 
 **Sujets couverts:**
-- Macros de redirection : success!, error!, info!, warning!
-- Macro immédiate : flash_now!
-- Affichage avec {% messages %}
+- Macros de redirection : `success!`, `error!`, `info!`, `warning!`
+- Macro immédiate : `flash_now!`
+- Affichage avec `{% messages %}`
 - Pattern flash vs flash_now
 - Comportement de consommation (une seule lecture)
 
@@ -130,37 +131,40 @@ Retours utilisateur et notifications.
 ---
 
 ### 🔟 [Exemples](10-examples.md)
-Exemples de code complets et projets.
+Exemples de code complets.
 
 **Sujets couverts:**
-- Application blog
-- Authentification
+- Structure d'application complète
+- Authentification (inscription, connexion)
 - Upload de fichiers
-- API REST
+- Mise à jour de profil
 
 👉 **Aller à** : [Guide des exemples](10-examples.md)
 
 ---
-### 11. Admin
+
+### 1️⃣1️⃣ [Admin](11-Admin.md)
+Interface d'administration générée automatiquement (bêta).
+
+**Sujets couverts:**
+- Macro déclarative `admin!`
+- Génération automatique CRUD
+- Routes, handlers et formulaires générés
+- Sécurité de typage et transparence du code
+
+👉 **Aller à** : [Guide Admin](11-Admin.md)
 
 ---
 
-##  Vue d’administration (bêta)
+### 1️⃣2️⃣ [Modèles](12-model.md)
+Définition des modèles de données.
 
-Runique intègre une **vue d’administration en version bêta**, basée sur une macro déclarative `admin!` et un système de génération automatique.
+**Sujets couverts:**
+- Structure des entités SeaORM
+- Définition des schémas
+- Intégration avec les formulaires
 
-Les ressources administrables sont déclarées dans `src/admin.rs`.
-À partir de cette déclaration, Runique génère automatiquement une interface CRUD complète (routes, handlers, formulaires) sous forme de **code Rust standard**, lisible et auditable.
-
-Cette approche met l’accent sur :
-
-* la **sécurité de typage** (vérification à la compilation des modèles et formulaires)
-* la **transparence** (pas de logique cachée, pas de macro procédurale)
-* le **contrôle développeur** sur le code généré
-
-Le daemon (`runique start`) permet une régénération automatique, tandis qu’un workflow `cargo run` peut être utilisé lorsque des modifications manuelles sont nécessaires.
-
->  La vue admin est actuellement en **bêta** et pose volontairement des bases simples, déclaratives et sûres. Des évolutions sont prévues (permissions plus fines, meilleur feedback, protections supplémentaires).
+👉 **Aller à** : [Guide des modèles](12-model.md)
 
 ---
 
@@ -169,16 +173,18 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 | Section | Fichier | Sujets |
 |---------|---------|--------|
 | Setup | [Installation](01-installation.md) | Prérequis, install, premiers pas |
-| Apprentissage | [Architecture](02-architecture.md) | Structure, conception, fonctionnement |
+| Apprentissage | [Architecture](02-architecture.md) | Structure, Request, Prisme, macros |
 | Config | [Configuration](03-configuration.md) | Paramètres, environnement, sécurité |
-| Routes | [Routage](04-routing.md) | Modèles URL, gestionnaires, paramètres |
-| Formulaires | [Formulaires](05-forms.md) | Prisme, TextField, DeriveModelForm |
-| Vues | [Templates](06-templates.md) | Tags Django-like, filtres, fonctions Tera |
+| Routes | [Routage](04-routing.md) | urlpatterns!, view!, paramètres URL |
+| Formulaires | [Formulaires](05-forms.md) | Prisme, TextField, PasswordConfig, DeriveModelForm |
+| Vues | [Templates](06-templates.md) | Tags Django-like, filtres, context_update! |
 | Données | [ORM](07-orm.md) | Modèles, requêtes, impl_objects! |
 | Sécurité | [Middlewares](08-middleware.md) | Slots, CSRF, CSP, sessions |
 | Retours | [Flash Messages](09-flash-messages.md) | success!, flash_now!, {% messages %} |
-| Code | [Exemples](10-examples.md) | Projets complets |
-| Code | [Admin](11-Admin.md) | Admin beta |
+| Code | [Exemples](10-examples.md) | Projets complets, auth, upload |
+| Admin | [Admin](11-Admin.md) | Admin bêta, CRUD généré |
+| Modèles | [Modèles](12-model.md) | Entités, schémas, formulaires |
+
 ---
 
 ## 🚀 Par où commencer ?
@@ -190,16 +196,6 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 
 ---
 
-## 📋 Caractéristiques de la documentation
-
-- ✅ Complète et détaillée
-- ✅ Exemples de code inclus
-- ✅ Bonnes pratiques mises en évidence
-- ✅ Problèmes courants adressés
-- ✅ Liens et références
-
----
-
 ## 🌍 Langue
 
 - 🇬🇧 **[English](../en/README.md)**
@@ -207,15 +203,4 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 
 ---
 
-## 💡 Conseils
-
-- Chaque guide contient des exemples
-- Suivez les sections dans l'ordre
-- Consultez les exemples pour du code réel
-- Utilisez la recherche du navigateur
-
----
-
 **Besoin d'aide ?** Consultez [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md) ou relisez la section pertinente.
-
-Bon codage ! 🚀
