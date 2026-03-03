@@ -1,4 +1,3 @@
- 🦀 Projet Runique généré automatiquement
 
 Un framework web moderne inspiré de Django, construit avec Rust, Axum, SeaORM et Tera.
 
