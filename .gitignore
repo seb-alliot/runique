@@ -24,5 +24,6 @@ Thumbs.db
 examples/demo-app/src/media/
 examples/demo-app/.env
 
-# Claudeclaude-*.log
+# Claude
+tmpclaude-*
 .claude
