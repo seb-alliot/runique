@@ -61,8 +61,8 @@ Création et gestion de formulaires.
 
 **Sujets couverts:**
 - Extracteur Prisme
-- Trait FormTrait et #[runique_form]
-- DeriveModelForm (génération automatique)
+- Déclaration manuelle via `RuniqueForm`
+- Déclaration basée modèle/schéma (AST) puis formulaire automatique
 - Types de champs (FieldBuilder)
 - Validation et sauvegarde
 - Rendu dans les templates
