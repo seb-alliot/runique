@@ -1,36 +1,4 @@
-//! # Runique Framework
-//!
-//! Framework web moderne basé sur Axum pour la création d'applications web robustes et sécurisées.
-//!
-//! Organisation des modules alignée sur la hiérarchie `src/` actuelle tout en
-//! conservant des alias de compatibilité (`config_runique`, `formulaire`,
-//! middleware, etc.).
-//!
-//! ## Modules principaux
-//!
-//! - **`app`** : Constructeur et gestionnaire d'application
-//! - **`config`** : Configuration (serveur, sécurité, settings, fichiers statiques)
-//! - **`context`** : Contexte de requête, gestion d'erreurs, moteurs de template
-//! - **`engine`** : Moteur principal Runique
-//! - **`flash`** : Gestion des messages flash
-//! - **`forms`** : Système de formulaires et validation
-//! - **`macros`** : Macros utilitaires pour routes, contexte, flash, etc.
-//! - **`middleware`** : Middlewares de sécurité (CSRF, CSP, authentification, cache, etc.)
-//! - **`utils`** : Utilitaires (CSRF, CSP nonce, parsing HTML, response helpers)
-//! - **`db`** : Configuration ORM (optionnel, avec feature `orm`)
-//!
-//! ## Exemple rapide
-//!
-//! ```rust,ignore
-//! use runique::prelude::*;
-//!
-//! #[tokio::main]
-//! async fn main() {
-//!     let config = RuniqueConfig::from_env();
-//!     let app = RuniqueApp::builder(config).build().await.unwrap();
-//!     app.run().await.unwrap();
-//! }
-//! ```
+#![doc = include_str!("../../README.md")]
 
 // ---------------------------------------------------------------------------
 // Modules principaux (arborescence actuelle)
