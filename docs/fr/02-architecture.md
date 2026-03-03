@@ -1,4 +1,4 @@
-# 🏗️ Architecture
+﻿# 🏗️ Architecture
 
 ## Vue d'ensemble
 
@@ -24,6 +24,7 @@ runique/src/
 ├── errors/                 #  Gestion des erreurs
 ├── flash/                  #  Messages flash
 ├── forms/                  #  Système de formulaires
+│   └── prisme/             #  Pipeline sécurité (Sentinel, Aegis, CSRF Gate)
 ├── macros/                 #  Macros utilitaires
 │   ├── context_macro/      #  context!, context_update!
 │   ├── flash_message/      #  success!, error!, info!, warning!, flash_now!
@@ -103,11 +104,11 @@ pub async fn handler(
 }
 ```
 
-Automatiquement :
-1. Parse le body de la requête
-2. Crée une instance du formulaire
-3. Injecte le token CSRF
-4. Remplit les données soumises
+Pipeline automatique en 4 étapes :
+1. **Sentinel** — Vérifie les règles d'accès (login, rôles) via `GuardRules`
+2. **Aegis** — Lit le body une seule fois (multipart, urlencoded, json)
+3. **CSRF Gate** — Vérifie le token CSRF dans les données parsées
+4. **Construction** — Crée `T`, remplit les champs, prêt pour `is_valid()`
 
 ---
 
@@ -137,7 +138,7 @@ Runique fournit un ensemble de macros pour simplifier le développement :
 | Macro | Description | Exemple |
 |-------|-------------|---------|
 | `urlpatterns!` | Définir des routes avec noms | `urlpatterns!("/" => view!{...}, name = "index")` |
-| `view!` | Handler pour toutes méthodes HTTP | `view!{ GET => handler, POST => handler2 }` |
+| `view!` | Handler pour toutes méthodes HTTP | `view!{ handler }` |
 | `impl_objects!` | Manager Django-like pour SeaORM | `impl_objects!(Entity)` |
 
 ### Macros d'erreur

@@ -1,4 +1,4 @@
-# 🗄️ ORM & Base de Données
+﻿# 🗄️ ORM & Base de Données
 
 ## SeaORM + Objects Manager
 
@@ -264,7 +264,7 @@ use axum::extract::Path;
 
 // Handler CRUD
 // Variante avec macro (Entity::objects)
-async fn list_users() -> Response {
+async fn list_users() -> AppResult<Response> {
     let db = /* access db from app state */;
 
     match users::Entity::find()
@@ -277,7 +277,7 @@ async fn list_users() -> Response {
 }
 
 // Variante sans macro (SeaORM natif)
-async fn list_users_raw() -> Response {
+async fn list_users_raw() -> AppResult<Response> {
     let db = /* access db from app state */;
 
     match users::Entity::find()
@@ -292,7 +292,7 @@ async fn list_users_raw() -> Response {
 // Variante avec find_by_id
 async fn get_user(
     Path(id): Path<i32>,
-) -> Response {
+) -> AppResult<Response> {
     let db = /* access db from app state */;
 
     match users::Entity::find_by_id(id)
@@ -308,7 +308,7 @@ async fn get_user(
 // Variante sans macro (find_by_id)
 async fn get_user_raw(
     Path(id): Path<i32>,
-) -> Response {
+) -> AppResult<Response> {
     let db = /* access db from app state */;
 
     match users::Entity::find_by_id(id)
@@ -322,9 +322,9 @@ async fn get_user_raw(
 }
 
 async fn create_user(
-    Message(mut messages): Message,
+    mut request: Request,
     Json(payload): Json<CreateUserRequest>,
-) -> Response {
+) -> AppResult<Response> {
     let db = /* access db from app state */;
 
     let user = users::ActiveModel {
@@ -335,11 +335,11 @@ async fn create_user(
 
     match user.insert(&*db).await {
         Ok(created) => {
-            messages.success("Utilisateur créé!");
+            success!(request.notices => "Utilisateur créé !");
             (StatusCode::CREATED, Json(json!({"user": created}))).into_response()
         }
         Err(e) => {
-            messages.error(format!("Erreur: {}", e));
+            error!(request.notices => format!("Erreur : {}", e));
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
@@ -347,8 +347,8 @@ async fn create_user(
 
 async fn delete_user(
     Path(id): Path<i32>,
-    Message(mut messages): Message,
-) -> Response {
+    mut request: Request,
+) -> AppResult<Response> {
     let db = /* access db from app state */;
 
     match users::Entity::delete_by_id(id)
@@ -356,11 +356,11 @@ async fn delete_user(
         .await
     {
         Ok(result) if result.rows_affected > 0 => {
-            messages.success("Utilisateur supprimé");
+            success!(request.notices => "Utilisateur supprimé");
             Redirect::to("/users").into_response()
         }
         _ => {
-            messages.error("Erreur lors de la suppression");
+            error!(request.notices => "Erreur lors de la suppression");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }

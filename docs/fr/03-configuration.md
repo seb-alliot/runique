@@ -1,4 +1,4 @@
-# ⚙️ Configuration
+﻿# ⚙️ Configuration
 
 ## RuniqueConfig
 
@@ -7,7 +7,7 @@ Toute la configuration est facilitée via `.env` et est chargée dans une struct
 ### Charger la configuration
 
 ```rust
-use runique::config_runique::RuniqueConfig;
+use runique::prelude::*;
 
 let config = RuniqueConfig::from_env()?;
 
@@ -228,10 +228,10 @@ openssl rand -base64 32
 ## Accéder à la configuration dans le code
 
 ```rust
-use runique::config_runique::RuniqueConfig;
+use runique::prelude::*;
 
-async fn my_handler(template: TemplateContext) -> Response {
-    let config = &template.engine.config;
+pub async fn my_handler(request: Request) -> AppResult<Response> {
+    let config = &request.engine.config;
 
     println!("Debug mode: {}", config.debug);
     println!("Port: {}", config.server.port);
@@ -244,13 +244,13 @@ async fn my_handler(template: TemplateContext) -> Response {
 ### Configuration conditionnelle
 
 ```rust
-if template.engine.config.debug {
+if request.engine.config.debug {
     // Mode debug: logs détaillés, templates rechargés
 } else {
     // Mode production: cache templates, pas de logs sensibles
 }
 
-if template.engine.config.security.allowed_hosts.contains("*") {
+if request.engine.config.security.allowed_hosts.contains("*") {
     // ⚠️ Attention: tous les hosts sont autorisés (danger en production!)
 }
 ```
@@ -343,8 +343,8 @@ use runique::{urlpatterns, view};
 
 pub fn routes() -> Router {
     urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
-        "/about" => view!{ GET => views::about }, name = "about",
+        "/" => view!{ views::index }, name = "index",
+        "/about" => view!{ views::about }, name = "about",
     }
 }
 
