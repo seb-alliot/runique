@@ -1,62 +1,4 @@
-
-Voici un sommaire structuré pour ton document « Formulaires » avec tous les ancres existantes :
-
----
-
-# Sommaire
-
-- [📋 Formulaires](#vue-densemble)
-  - [Vue d'ensemble](#vue-densemble)
-  - [Extracteur Prisme](#extracteur-prisme)
-  - [Approche manuelle : trait RuniqueForm](#approche-manuelle-trait-runiqueform)
-    - [Structure de base](#structure-de-base)
-    - [Méthodes du trait RuniqueForm](#methodes-du-trait-runiqueform)
-    - [Pipeline de validation `is_valid()`](#pipeline-de-validation-is_valid)
-    - [Helpers de conversion typée](#helpers-de-conversion-typee)
-      - [Conversions directes](#conversions-directes)
-      - [Conversions Option](#conversions-option)
-      - [Utilisation dans save()](#utilisation-dans-save)
-  - [Types de champs](#types-de-champs)
-    - [TextField — Champs texte](#textfield)
-    - [NumericField — Champs numériques](#numericfield)
-    - [BooleanField — Cases à cocher / Radio simple](#booleanfield)
-    - [ChoiceField — Select / Dropdown](#choicefield)
-    - [RadioField — Boutons radio](#radiofield)
-    - [CheckboxField — Checkboxes multiples](#checkboxfield)
-    - [DateField, TimeField, DateTimeField — Date / Heure](#date-time-duration-fields)
-    - [DurationField — Durée](#durationfield)
-    - [FileField — Upload de fichiers](#filefield)
-    - [Fichiers JS associés](#js-associes)
-    - [ColorField — Sélecteur de couleur](#colorfield)
-    - [SlugField — Slug URL-friendly](#slugfield)
-    - [UUIDField](#uuidfield)
-    - [JSONField — Textarea avec validation JSON](#jsonfield)
-    - [IPAddressField — Adresse IP](#ipaddressfield)
-  - [Récapitulatif des types de champs](#recapitulatif-types-champs)
-  - [Approche automatique : DeriveModelForm](#approche-automatique-deriveform)
-    - [Champs auto-exclus](#champs-auto-exclus)
-    - [Détection automatique des types](#detection-automatique-types)
-    - [Attributs de personnalisation](#attributs-personnalisation)
-  - [Erreurs de base de données](#erreurs-base-donnees)
-  - [Rendu dans les templates](#rendu-templates)
-    - [Formulaire complet](#formulaire-complet)
-    - [Champ par champ](#champ-par-champ)
-    - [Erreurs globales](#erreurs-globales)
-    - [Données de champ en JSON](#donnees-json)
-  - [Exemple complet : inscription avec sauvegarde](#exemple-complet-inscription)
-    - [Handler GET/POST](#handler-get-post)
-  - [⚠️ Pièges courants](#pieges-courants)
-    - [1. Collision de noms de variables template](#collision-noms-variables)
-    - [2. Oublier le `mut` sur form](#mut-sur-form)
-    - [3. Comparer des mots de passe après `is_valid()`](#comparer-mot-de-passe)
-  - [Prochaines étapes](#prochaines-etapes)
-
----
-
-Si tu veux, je peux aussi générer une **version Markdown cliquable complète** avec indentation et liens directs pour un vrai sommaire interactif. Veux‑tu que je fasse ça ?
-
-
-<a id="vue-densemble"></a>
+﻿<a id="vue-densemble"></a>
 ## Vue d'ensemble
 
 Runique fournit un système de formulaires puissant, inspiré de Django. Il existe **deux approches** :
@@ -64,7 +6,7 @@ Runique fournit un système de formulaires puissant, inspiré de Django. Il exis
 1. **Manuelle** — Définir les champs via le trait `RuniqueForm`.
 2. **Automatique** — Dériver un formulaire depuis un modèle SeaORM avec `#[derive(DeriveModelForm)]`.
 
-Les formulaires sont extraits automatiquement des requêtes via l’extracteur **Prisme**, gèrent la validation (y compris via le crate `validator` pour les emails/URLs), le CSRF, le hachage Argon2 des mots de passe, et peuvent être sauvegardés directement en base de données.
+Les formulaires sont extraits automatiquement des requêtes via l’extracteur **Prisme**, gèrent la validation (y compris via le crate `validator` pour les emails/URLs), le CSRF, le hachage des mots de passe (selon la `PasswordConfig`), et peuvent être sauvegardés directement en base de données.
 
 ---
 
@@ -201,7 +143,7 @@ impl RuniqueForm for RegisterForm {
 }
 ```
 
-> **⚠️ Important** : Après `is_valid()`, les champs `Password` sont **automatiquement hachés en Argon2**. Utilisez `clean()` pour toute comparaison de mots de passe en clair.
+> **💡** Le comportement du hachage dépend de la `PasswordConfig` configurée au démarrage — voir [PasswordConfig](#passwordconfig).
 
 ---
 
@@ -285,7 +227,7 @@ form.field(&TextField::email("email").label("Email").required());
 // URL — validée via `validator::ValidateUrl`
 form.field(&TextField::url("website").label("Site web"));
 
-// Mot de passe — hachage Argon2 automatique dans finalize(), jamais ré-affiché en HTML
+// Mot de passe — hachage automatique dans finalize() si PasswordConfig::Auto, jamais ré-affiché en HTML
 form.field(
     &TextField::password("password")
         .label("Mot de passe")
@@ -319,7 +261,7 @@ TextField::text("nom")
 |--------|-----------|----------------|
 | `Email` | `validator::ValidateEmail` | Conversion en lowercase |
 | `Url` | `validator::ValidateUrl` | — |
-| `Password` | Standard | Hachage Argon2 dans `finalize()`, valeur vidée au `render()` |
+| `Password` | Standard | Hachage dans `finalize()` si `PasswordConfig::Auto`, valeur vidée au `render()` |
 | `RichText` | Standard | Sanitisation XSS (`sanitize()`) avant validation |
 | `Csrf` | Token session | — |
 
@@ -333,7 +275,75 @@ let hash = field.hash_password()?;
 let ok = TextField::verify_password("mdp_clair", "$argon2...");
 ```
 
-> Le hachage automatique détecte si la valeur commence déjà par `$argon2` pour éviter un double hachage.
+> Le hachage automatique détecte si la valeur est déjà hachée (Argon2, Bcrypt, Scrypt) pour éviter un double hachage.
+
+[↑](#vue-densemble)
+
+<a id="passwordconfig"></a>
+### PasswordConfig — Configuration du hachage
+
+La configuration est globale, initialisée une fois au démarrage :
+
+```rust
+// main.rs — avant RuniqueApp::builder()
+use runique::utils::password::{password_init, PasswordConfig, Manual};
+
+// Mode Auto (défaut) — Argon2
+password_init(PasswordConfig::auto());
+
+// Mode Auto avec Bcrypt
+password_init(PasswordConfig::auto_with(Manual::Bcrypt));
+
+// Mode Manual — le dev appelle hash() explicitement
+password_init(PasswordConfig::manual(Manual::Argon2));
+
+// Mode Délégué (OAuth) — aucun hachage
+use runique::utils::password::External;
+password_init(PasswordConfig::oauth(External::GoogleOAuth));
+```
+
+**Les 4 modes :**
+
+| Mode | Déclenchement | Usage typique |
+|------|--------------|---------------|
+| `Auto(AutoConfig)` | `finalize()` automatique | Applications classiques (défaut : Argon2) |
+| `Manual(algorithm)` | Le dev appelle `hash()` | Contrôle explicite du moment du hachage |
+| `Delegated(External)` | Jamais | OAuth / SSO (Google, Microsoft, LDAP…) |
+| `Custom(handler)` | `transform()` du handler | Système de hash propriétaire |
+
+**Options `AutoConfig` :**
+
+```rust
+use runique::utils::password::{AutoConfig, Manual};
+use std::sync::Arc;
+
+let config = AutoConfig {
+    algorithm: Manual::Argon2,
+    allow_empty: false,           // true = autorise un mot de passe vide (ex : formulaire de mise à jour)
+    pre_hash_hook: Some(Arc::new(|password| {
+        // Ex : vérifier la force avant hachage
+        if password.len() < 12 {
+            return Err("12 caractères minimum".to_string());
+        }
+        Ok(())
+    })),
+};
+password_init(PasswordConfig::Auto(config));
+```
+
+> **`pre_hash_hook`** — callback exécuté juste avant le hachage. Retourner `Err(msg)` annule le hachage et propage l’erreur dans le champ. Utile pour un vérificateur de force, un audit, ou tout contrôle custom.
+
+**Désactiver le hachage sur un champ spécifique :**
+
+```rust
+// Champ de confirmation — ne pas hacher, juste comparer dans clean()
+form.field(
+    &TextField::password("password_confirm")
+        .label("Confirmer")
+        .required()
+        .no_hash(),
+);
+```
 
 [↑](#vue-densemble)
 
@@ -632,7 +642,7 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 
 | Struct | Constructeurs | Validation spéciale |
 |--------|-------------|---------------------|
-| `TextField` | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, sanitisation XSS |
+| `TextField` | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, hachage configurable (`PasswordConfig`), sanitisation XSS |
 | `NumericField` | `integer()`, `float()`, `decimal()`, `percent()`, `range()` | Bornes min/max, précision décimale |
 | `BooleanField` | `new()`, `radio()` | Requis = doit être coché |
 | `ChoiceField` | `new()` + `.multiple()` | Valeur dans les choix déclarés |
@@ -856,7 +866,7 @@ impl RegisterForm {
         let model = users::ActiveModel {
             username: Set(self.form.get_string("username")),
             email: Set(self.form.get_string("email")),
-            // Le mot de passe est déjà haché en Argon2 après is_valid()
+            // Le mot de passe est haché si PasswordConfig::Auto (défaut)
             password: Set(self.form.get_string("password")),
             ..Default::default()
         };

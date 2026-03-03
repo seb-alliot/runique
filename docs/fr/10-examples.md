@@ -1,4 +1,4 @@
-# 📚 Exemples Pratiques
+﻿# 📚 Exemples Pratiques
 
 ## 1️⃣ Application minimale
 
@@ -22,9 +22,6 @@ mon_app/
 ### main.rs
 
 ```rust
-#[macro_use]
-extern crate runique;
-
 mod url;
 mod views;
 
@@ -59,8 +56,8 @@ use runique::{urlpatterns, view};
 
 pub fn routes() -> Router {
     urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
-        "/about" => view!{ GET => views::about }, name = "about",
+        "/" => view!{ views::index }, name = "index",
+        "/about" => view!{ views::about }, name = "about",
     }
 }
 ```
@@ -112,47 +109,47 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 ### Formulaire d'inscription
 
 ```rust
-// src/forms.rs
+// src/formulaire/user.rs
 use runique::prelude::*;
 
-#[runique_form]
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
 pub struct RegisterForm {
     pub form: Forms,
 }
 
-impl FormTrait for RegisterForm {
-    fn new() -> Self {
-        let mut form = Forms::new();
-        form.add_field("username", FieldBuilder::text()
-            .label("Nom d'utilisateur")
-            .required()
-            .min_length(3)
-            .max_length(50)
-            .build());
-        form.add_field("email", FieldBuilder::email()
-            .label("Email")
-            .required()
-            .build());
-        form.add_field("password", FieldBuilder::password()
-            .label("Mot de passe")
-            .required()
-            .min_length(8)
-            .build());
-        Self { form }
+impl RuniqueForm for RegisterForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &TextField::text("username")
+                .label("Nom d'utilisateur")
+                .required()
+                .min_length(3, "Minimum 3 caractères")
+                .max_length(50, "Maximum 50 caractères"),
+        );
+        form.field(
+            &TextField::email("email")
+                .label("Email")
+                .required(),
+        );
+        form.field(
+            &TextField::password("password")
+                .label("Mot de passe")
+                .required()
+                .min_length(8, "Minimum 8 caractères"),
+        );
     }
 
-    fn get_form(&self) -> &Forms { &self.form }
-    fn get_form_mut(&mut self) -> &mut Forms { &mut self.form }
-    fn get_name(&self) -> &str { "register_form" }
+    impl_form_access!();
 }
 
 impl RegisterForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
         use sea_orm::Set;
         let model = users::ActiveModel {
-            username: Set(self.form.get_value("username").unwrap_or_default()),
-            email: Set(self.form.get_value("email").unwrap_or_default()),
-            password: Set(self.form.get_value("password").unwrap_or_default()),
+            username: Set(self.form.get_string("username")),
+            email: Set(self.form.get_string("email")),
+            password: Set(self.form.get_string("password")),
             ..Default::default()
         };
         model.insert(db).await
@@ -164,7 +161,7 @@ impl RegisterForm {
 
 ```rust
 // src/views.rs
-pub async fn inscription(
+pub async fn soumission_inscription(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
@@ -226,25 +223,26 @@ pub async fn inscription(
 ### Formulaire de recherche
 
 ```rust
-#[runique_form]
+// src/formulaire/username.rs
+use runique::prelude::*;
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
 pub struct UsernameForm {
     pub form: Forms,
 }
 
-impl FormTrait for UsernameForm {
-    fn new() -> Self {
-        let mut form = Forms::new();
-        form.add_field("username", FieldBuilder::text()
-            .label("Nom d'utilisateur")
-            .required()
-            .placeholder("Rechercher un utilisateur")
-            .build());
-        Self { form }
+impl RuniqueForm for UsernameForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &TextField::text("username")
+                .label("Nom d'utilisateur")
+                .required()
+                .placeholder("Rechercher un utilisateur"),
+        );
     }
 
-    fn get_form(&self) -> &Forms { &self.form }
-    fn get_form_mut(&mut self) -> &mut Forms { &mut self.form }
-    fn get_name(&self) -> &str { "username_form" }
+    impl_form_access!();
 }
 ```
 
@@ -275,20 +273,19 @@ pub async fn info_user(
             return request.render(template);
         }
 
-        let username = form.get_form().get_value("username").unwrap_or_default();
+        let username = form.get_form().get_string("username");
         let db = request.engine.db.clone();
 
-        let user_opt = UserEntity::objects
-            .filter(users::Column::Username.eq(&username))
-            .first(&db)
-            .await?;
+        let user_opt = UserEntity::find()
+            .filter(runique::prelude::user::Column::Username.eq(&username))
+            .one(&*db)
+            .await
+            .unwrap_or(None);
 
         match user_opt {
             Some(user) => {
                 context_update!(request => {
                     "title" => "Vue utilisateur",
-                    "username" => &user.username,
-                    "email" => &user.email,
                     "found_user" => &user,  // ⚠️ NE PAS nommer "user" → collision avec le form
                     "user" => &form,         // Le form doit garder le nom "user" pour {% form.user %}
                     "messages" => flash_now!(success => "Utilisateur trouvé !"),
@@ -317,35 +314,37 @@ pub async fn info_user(
 ### Formulaire d'upload
 
 ```rust
-#[runique_form]
+// src/formulaire/image.rs
+use runique::prelude::*;
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(transparent)]
 pub struct ImageForm {
     pub form: Forms,
 }
 
-impl FormTrait for ImageForm {
-    fn new() -> Self {
-        let mut form = Forms::new();
-        form.add_field("image", FieldBuilder::image()
-            .label("Image")
-            .required()
-            .max_size_mb(5)
-            .max_files(1)
-            .max_dimensions(1920, 1080)
-            .allowed_extensions(vec!["jpg", "png", "webp", "avif"])
-            .build());
-        Self { form }
+impl RuniqueForm for ImageForm {
+    fn register_fields(form: &mut Forms) {
+        let config = StaticConfig::from_env();
+        form.field(
+            &FileField::image("image")
+                .label("Image")
+                .upload_to(&config)
+                .max_size_mb(5)
+                .max_files(1)
+                .max_dimensions(1920, 1080)
+                .allowed_extensions(vec!["jpg", "png", "webp", "avif"]),
+        );
     }
 
-    fn get_form(&self) -> &Forms { &self.form }
-    fn get_form_mut(&mut self) -> &mut Forms { &mut self.form }
-    fn get_name(&self) -> &str { "image_form" }
+    impl_form_access!();
 }
 ```
 
 ### Handler d'upload
 
 ```rust
-pub async fn upload_image(
+pub async fn upload_image_submit(
     mut request: Request,
     Prisme(mut form): Prisme<ImageForm>,
 ) -> AppResult<Response> {
@@ -398,17 +397,16 @@ pub async fn upload_image(
 ## 5️⃣ Page avec tous les types de messages
 
 ```rust
-pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
-    // Messages flash (affichés après redirect)
+pub async fn about(mut request: Request) -> AppResult<Response> {
     success!(request.notices => "Ceci est un message de succès.");
     info!(request.notices => "Ceci est un message d'information.");
     warning!(request.notices => "Ceci est un message d'avertissement.");
     error!(request.notices => "Ceci est un message d'erreur.");
 
     context_update!(request => {
-        "title" => "Démo messages",
+        "title" => "À propos du Framework Runique",
     });
-    request.render("demo.html")
+    request.render("about/about.html")
 }
 ```
 
@@ -431,8 +429,7 @@ pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
 ```rust
 pub fn routes() -> Router {
     urlpatterns! {
-        "/api/users" => view!{ api_list_users }
-        , name = "api_users",
+        "/api/users" => view!{ api_list_users }, name = "api_users",
     }
 }
 ```
@@ -446,7 +443,7 @@ use serde_json::json;
 pub async fn api_list_users(request: Request) -> AppResult<Response> {
 
     let users = users::Entity::find()
-        .all(&*&request.engine.db)
+        .all(&*request.engine.db)
         .await?;
 
     Ok(Json(json!({
@@ -513,8 +510,10 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 | `success!(request.notices => "...")` | Message flash avant redirect |
 | `flash_now!(error => "...")` | Message immédiat (pas de redirect) |
 | `form.is_valid().await` | Valider un formulaire Prisme |
-| `form.save(&db).await` | Sauvegarder en base de données |
+| `form.save(&request.engine.db).await` | Sauvegarder en base de données |
 | `form.get_form_mut().database_error(&err)` | Afficher une erreur DB dans le formulaire |
+| `form.get_form().get_string("champ")` | Lire une valeur de formulaire (String) |
+| `form.get_form().get_i32("champ")` | Lire une valeur de formulaire (i32) |
 
 ---
 
