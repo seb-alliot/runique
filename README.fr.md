@@ -30,6 +30,7 @@ Un framework web Rust moderne et complet, inspiré par Django, pour construire d
 - ⚙️ [Configuration](#️-configuration)
 - 🛣️ [Routage](#️-routage)
 - 📝 [Formulaires](#-formulaires)
+- 🧱 [Models](#model-schema)
 - 🎨 [Templates](#-templates)
 - 🗄️ [ORM](#️-orm)
 - 🔒 [Middlewares](#-middlewares)
@@ -195,6 +196,18 @@ impl RuniqueForm for RegisterForm {
 ```
 
 👉 **Lire** : [docs/fr/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md) pour tous les types de champs
+
+---
+
+<a id="model-schema"></a>
+
+## 🧱 Models
+
+**Documentation complète** : [Guide Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md)
+
+Définissez vos entités et schémas avec SeaORM, puis utilisez-les dans Runique pour vos opérations ORM.
+
+👉 **Lire** : [docs/fr/12-model.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md) pour la définition des models et schémas
 
 ---
 
