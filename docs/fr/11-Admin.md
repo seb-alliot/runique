@@ -1,6 +1,3 @@
-
----
-
 ##  Vue d’administration (bêta)
 
 La vue d’administration de Runique repose sur une **macro déclarative (`admin!`)** combinée à un **daemon de génération**.

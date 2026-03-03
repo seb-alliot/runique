@@ -1,11 +1,9 @@
-
----
 # 💾 Installation & Setup
 
 ## Prerequisites
 
-* **Rust 1.75+** - [Install rustup](https://rustup.rs/)
-* **PostgreSQL 12+** (or SQLite for dev)
+* **Rust 1.75+** – [Install rustup](https://rustup.rs/)
+* **PostgreSQL 12+** (or SQLite for development)
 * **Git**
 
 ### Check Versions
@@ -20,7 +18,7 @@ postgres --version # PostgreSQL 12+
 
 ## Project Installation
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/seb-alliot/runique.git
@@ -29,7 +27,7 @@ cd runique
 
 ### 2. Configure .env
 
-Create a `.env` file in the `demo-app/` directory:
+Create a `.env` file inside the `demo-app/` directory:
 
 ```env
 # Server
@@ -52,7 +50,7 @@ STATICFILES_DIRS=static
 MEDIA_ROOT=media
 
 # Security
-SECRET_KEY=your_secret_key_change_in_production
+SECRETE_KEY=your_secret_key_change_in_production
 RUNIQUE_ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
@@ -62,7 +60,7 @@ RUNIQUE_ALLOWED_HOSTS=localhost,127.0.0.1
 # PostgreSQL
 createdb runique
 
-# Or via psql:
+# Or from psql:
 psql -U postgres
 CREATE DATABASE runique;
 ```
@@ -77,7 +75,7 @@ cargo run
 cd ..
 ```
 
-**Note:** The database is mandatory – the framework cannot function without it.
+**Note:** The database is mandatory — the framework cannot function without it.
 
 ### 5. Build the Project
 
@@ -94,7 +92,7 @@ cargo build --release
 cargo run -p demo-app
 ```
 
-**Expected Output:**
+**Expected output:**
 
 ```rust
 🦀 Runique Framework operational
@@ -102,7 +100,7 @@ cargo run -p demo-app
    Connected to sqlite: runique
 ```
 
-Access **[http://127.0.0.1:3000](http://127.0.0.1:3000)** 🎉
+Visit **[http://127.0.0.1:3000](http://127.0.0.1:3000)** 🎉
 
 ---
 
@@ -110,11 +108,12 @@ Access **[http://127.0.0.1:3000](http://127.0.0.1:3000)** 🎉
 
 To use SQLite in development:
 
-### 1. Update `demo-app/Cargo.toml`
+### 1. Modify `demo-app/Cargo.toml`
 
 ```toml
 [dependencies]
 runique = { version = "1.1.20", features = ["orm", "sqlite"] }
+
 ```
 
 ### 2. Update `.env`
@@ -157,13 +156,13 @@ sudo systemctl start postgresql
 * [Download the installer](https://www.postgresql.org/download/windows/)
 * Follow the installation wizard
 
-### 2. Create User and Database
+### 2. Create the User and Database
 
 ```sql
 -- Connect as admin
 psql -U postgres
 
--- Create user
+-- Create the user
 CREATE USER runique_user WITH PASSWORD 'secure_password';
 
 -- Create the database
@@ -177,28 +176,30 @@ GRANT ALL PRIVILEGES ON SCHEMA public TO runique_user;
 ### 3. Configure `.env`
 
 ```env
+
 IP_SERVER=127.0.0.1
 PORT=3000
 SECRET_KEY=your-secret-key-change-in-production
 ALLOWED_HOSTS=localhost,127.0.0.1
 
-# Debug mode (disable in production)
+# Debug Mode (disable in production)
 DEBUG=true
 
 # Database configuration (PostgreSQL example)
 DB_ENGINE=postgres
-DB_USER=myuser
-DB_PASSWORD=mypassword
+DB_USER=monuser
+DB_PASSWORD=monmotdepasse
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=mydatabase
+DB_NAME=mabase
 
 # Or SQLite (default)
 DB_ENGINE=sqlite
-DATABASE_URL="sqlite://mydatabase.db?mode=rwc"
+DATABASE_URL="sqlite://mabase.db?mode=rwc"
+
 ```
 
-### 4. Verify Connection
+### 4. Verify the Connection
 
 ```bash
 psql -U runique_user -d runique -h localhost
@@ -217,7 +218,11 @@ ls -la
 
 ### Run Migrations
 
-Migrations are not automatic – follow the procedure explained in the README after `cargo new your_project`.
+Migrations are not automatic — follow the procedure explained in the README provided after running:
+
+```bash
+cargo new your_project
+```
 
 ---
 
@@ -229,11 +234,11 @@ Migrations are not automatic – follow the procedure explained in the README af
 # Check that PostgreSQL is running
 sudo systemctl status postgresql
 
-# Or macOS:
+# Or on macOS:
 brew services list
 ```
 
-### ❌ "Permission denied" on Database
+### ❌ "Permission denied" on the database
 
 ```bash
 # Check permissions
@@ -243,15 +248,16 @@ psql -U postgres -d runique -c "\dp"
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 ```
 
-### "SQLite driver should normally be enabled by default – modify the supported database in SeaORM in your Cargo"
+### "SQLite driver is normally enabled by default — modify the database supported by SeaORM in your Cargo file"
 
-Check that the feature is enabled in `Cargo.toml`:
+Make sure the feature is enabled in `Cargo.toml`:
 
 ```toml
 runique = { version = "1.1.20", features = ["orm", "postgres"] }
+
 ```
 
-### ❌ Compilation Error "sea_orm"
+### ❌ Compilation error "sea_orm"
 
 ```bash
 # Clean and rebuild
@@ -295,7 +301,16 @@ pre-commit run --all-files
 
 ✅ Installation complete! Now:
 
-1. Read the [**Architecture**](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
-2. Create your first [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
-3. Define your [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
-4. Check out the [**Examples**](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
+1. Read the **Architecture** documentation
+   [https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+
+2. Create your first **Routing**
+   [https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
+
+3. Define your **Forms**
+   [https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+
+4. Explore the **Examples**
+   [https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
+
+---

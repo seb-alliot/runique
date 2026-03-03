@@ -1,4 +1,4 @@
-# 📚 Exemples Pratiques
+﻿# 📚 Exemples Pratiques
 
 ## 1️⃣ Application minimale
 
@@ -531,4 +531,3 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 - [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
 
 ← [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md) | [**Back to README**](https://github.com/seb-alliot/runique/blob/main/README.md) →
-

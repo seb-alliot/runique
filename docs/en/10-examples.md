@@ -1,12 +1,11 @@
-
 # 📚 Practical Examples
 
-## 1️⃣ Minimal Application
+## 1️⃣ Minimal application
 
-### Structure
+### Project tree
 
 ```
-my_app/
+mon_app/
 ├── Cargo.toml
 ├── .env
 ├── src/
@@ -91,7 +90,7 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <title>{{ title }}</title>
@@ -108,9 +107,9 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 
 ---
 
-## 2️⃣ CRUD with Forms
+## 2️⃣ CRUD with forms
 
-### Registration Form
+### Registration form
 
 ```rust
 // src/forms.rs
@@ -161,20 +160,20 @@ impl RegisterForm {
 }
 ```
 
-### Registration Handler
+### Registration handler
 
 ```rust
 // src/views.rs
-pub async fn register(
+pub async fn inscription(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
-    let template = "registration_form.html";
+    let template = "inscription_form.html";
 
     if request.is_get() {
         context_update!(request => {
-            "title" => "Register",
-            "registration_form" => &form,
+            "title" => "Sign up",
+            "inscription_form" => &form,
         });
         return request.render(template);
     }
@@ -191,9 +190,9 @@ pub async fn register(
         }
 
         context_update!(request => {
-            "title" => "Validation Error",
-            "registration_form" => &form,
-            "messages" => flash_now!(error => "Please correct the errors"),
+            "title" => "Validation error",
+            "inscription_form" => &form,
+            "messages" => flash_now!(error => "Please fix the errors"),
         });
         return request.render(template);
     }
@@ -202,7 +201,7 @@ pub async fn register(
 }
 ```
 
-### Registration Template
+### Registration template
 
 ```html
 {% extends "base.html" %}
@@ -213,18 +212,18 @@ pub async fn register(
     <h1>{{ title }}</h1>
     {% messages %}
 
-    <form method="post" action='{% link "register" %}'>
-        {% form.registration_form %}
-        <button type="submit" class="btn btn-primary">Register</button>
+    <form method="post" action='{% link "inscription" %}'>
+        {% form.inscription_form %}
+        <button type="submit" class="btn btn-primary">Sign up</button>
     </form>
 {% endblock %}
 ```
 
 ---
 
-## 3️⃣ Search and Display an Entity
+## 3️⃣ Search and display an entity
 
-### Username Form
+### Search form
 
 ```rust
 #[runique_form]
@@ -249,10 +248,10 @@ impl FormTrait for UsernameForm {
 }
 ```
 
-### Search Handler
+### Search handler
 
 ```rust
-pub async fn view_user(
+pub async fn info_user(
     mut request: Request,
     Prisme(mut form): Prisme<UsernameForm>,
 ) -> AppResult<Response> {
@@ -290,8 +289,8 @@ pub async fn view_user(
                     "title" => "User view",
                     "username" => &user.username,
                     "email" => &user.email,
-                    "found_user" => &user,  // ⚠️ Do NOT name "user" → collision with the form
-                    "user" => &form,         // Form must keep the name "user" for {% form.user %}
+                    "found_user" => &user,  // ⚠️ DO NOT name it "user" → collision with the form
+                    "user" => &form,         // The form must keep the name "user" for {% form.user %}
                     "messages" => flash_now!(success => "User found!"),
                 });
             }
@@ -313,9 +312,9 @@ pub async fn view_user(
 
 ---
 
-## 4️⃣ File Upload
+## 4️⃣ File upload
 
-### Image Form
+### Upload form
 
 ```rust
 #[runique_form]
@@ -343,7 +342,7 @@ impl FormTrait for ImageForm {
 }
 ```
 
-### Upload Handler
+### Upload handler
 
 ```rust
 pub async fn upload_image(
@@ -369,7 +368,7 @@ pub async fn upload_image(
         context_update!(request => {
             "title" => "Error",
             "image_form" => &form,
-            "messages" => flash_now!(error => "Please correct the errors"),
+            "messages" => flash_now!(error => "Please fix the errors"),
         });
         return request.render(template);
     }
@@ -378,7 +377,7 @@ pub async fn upload_image(
 }
 ```
 
-### Upload Template
+### Upload template
 
 ```html
 {% extends "base.html" %}
@@ -396,18 +395,18 @@ pub async fn upload_image(
 
 ---
 
-## 5️⃣ Page Demonstrating All Message Types
+## 5️⃣ Page with all message types
 
 ```rust
 pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
     // Flash messages (displayed after redirect)
     success!(request.notices => "This is a success message.");
-    info!(request.notices => "This is an info message.");
+    info!(request.notices => "This is an informational message.");
     warning!(request.notices => "This is a warning message.");
     error!(request.notices => "This is an error message.");
 
     context_update!(request => {
-        "title" => "Message Demo",
+        "title" => "Messages demo",
     });
     request.render("demo.html")
 }
@@ -427,18 +426,18 @@ pub async fn demo_messages(mut request: Request) -> AppResult<Response> {
 
 ## 6️⃣ REST API
 
-### API Routes
+### API routes
 
 ```rust
 pub fn routes() -> Router {
     urlpatterns! {
-        "/api/users" => view!{api_create_user },
-         name = "api_users",
+        "/api/users" => view!{ api_list_users }
+        , name = "api_users",
     }
 }
 ```
 
-### JSON API Handler
+### JSON API handler
 
 ```rust
 use axum::Json;
@@ -460,12 +459,12 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 
 ---
 
-## 7️⃣ Full Base Template
+## 7️⃣ Complete base template
 
 ```html
 <!-- templates/base.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -480,7 +479,7 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
         <nav>
             <a href='{% link "index" %}'>🏠 Home</a>
             <a href='{% link "about" %}'>ℹ️ About</a>
-            <a href='{% link "register" %}'>📝 Register</a>
+            <a href='{% link "inscription" %}'>📝 Sign up</a>
             <a href='{% link "blog" %}'>📰 Blog</a>
         </nav>
     </header>
@@ -504,22 +503,22 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 
 ---
 
-## Pattern Summary
+## Pattern summary
 
-| Pattern                                    | When to Use                        |
+| Pattern                                    | When to use                        |
 | ------------------------------------------ | ---------------------------------- |
-| `request.render("template.html")`          | Standard HTML render               |
-| `Redirect::to("/").into_response()`        | After a successful POST            |
+| `request.render("template.html")`          | Standard HTML rendering            |
+| `Redirect::to("/").into_response()`        | After a successful action (POST)   |
 | `context_update!(request => {...})`        | Inject variables into the template |
 | `success!(request.notices => "...")`       | Flash message before redirect      |
 | `flash_now!(error => "...")`               | Immediate message (no redirect)    |
 | `form.is_valid().await`                    | Validate a Prisme form             |
-| `form.save(&db).await`                     | Save to database                   |
-| `form.get_form_mut().database_error(&err)` | Display DB error in the form       |
+| `form.save(&db).await`                     | Persist to the database            |
+| `form.get_form_mut().database_error(&err)` | Display a DB error inside the form |
 
 ---
 
-## Further Reading
+## Go further
 
 * [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
 * [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)

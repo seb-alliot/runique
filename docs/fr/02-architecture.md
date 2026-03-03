@@ -1,10 +1,10 @@
-# 🏗️ Architecture
+﻿# 🏗️ Architecture
 
 ## Vue d'ensemble
 
 Runique est organisée en **modules fonctionnels** basés sur la responsabilité :
 
-```
+```text
 runique/src/
 ├── app/                    #  App Builder, Templates & Builder Intelligent
 │   ├── builder.rs          #  RuniqueAppBuilder avec slots
@@ -80,10 +80,11 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 ```
 
 **Méthodes :**
+
 - `request.render("template.html")` — Rendu avec le contexte courant
 - `request.is_get()` / `request.is_post()` — Vérification de la méthode HTTP
 
-### 3. Prisme<T> — Extracteur de formulaire
+### 3. `Prisme<T>` — Extracteur de formulaire
 
 ```rust
 pub async fn handler(
@@ -104,6 +105,7 @@ pub async fn handler(
 ```
 
 Automatiquement :
+
 1. Parse le body de la requête
 2. Crée une instance du formulaire
 3. Injecte le token CSRF
@@ -118,14 +120,14 @@ Runique fournit un ensemble de macros pour simplifier le développement :
 ### Macros de contexte
 
 | Macro | Description | Exemple |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `context!` | Créer un contexte Tera | `context!("title" => "Page")` |
 | `context_update!` | Ajouter au contexte d'une Request | `context_update!(request => { "key" => value })` |
 
 ### Macros flash messages
 
 | Macro | Description | Exemple |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `success!` | Message de succès (session) | `success!(request.notices => "OK !")` |
 | `error!` | Message d'erreur (session) | `error!(request.notices => "Erreur")` |
 | `info!` | Message info (session) | `info!(request.notices => "Info")` |
@@ -135,7 +137,7 @@ Runique fournit un ensemble de macros pour simplifier le développement :
 ### Macros de routage
 
 | Macro | Description | Exemple |
-|-------|-------------|---------|
+| ----- | ----------- | ------- |
 | `urlpatterns!` | Définir des routes avec noms | `urlpatterns!("/" => view!{...}, name = "index")` |
 | `view!` | Handler pour toutes méthodes HTTP | `view!{ GET => handler, POST => handler2 }` |
 | `impl_objects!` | Manager Django-like pour SeaORM | `impl_objects!(Entity)` |
@@ -143,7 +145,7 @@ Runique fournit un ensemble de macros pour simplifier le développement :
 ### Macros d'erreur
 
 | Macro | Description |
-|-------|-------------|
+| ----- | ----------- |
 | `impl_from_error!` | Génère `From<Error>` pour `AppError` |
 
 ---
@@ -153,7 +155,7 @@ Runique fournit un ensemble de macros pour simplifier le développement :
 ### Tags Django-like (syntaxe sucrée)
 
 | Tag | Transformé en | Description |
-|-----|---------------|-------------|
+| --- | ------------- | ----------- |
 | `{% static "..." %}` | `{{ "..." \| static }}` | URL d'un fichier statique |
 | `{% media "..." %}` | `{{ "..." \| media }}` | URL d'un fichier média |
 | `{% csrf %}` | `{% include "csrf/..." %}` | Champ CSRF caché |
@@ -166,7 +168,7 @@ Runique fournit un ensemble de macros pour simplifier le développement :
 ### Filtres Tera
 
 | Filtre | Description |
-|--------|-------------|
+| ------ | ----------- |
 | `static` | Préfixe URL statique de l'app |
 | `media` | Préfixe URL média de l'app |
 | `runique_static` | Assets statiques internes au framework |
@@ -177,7 +179,7 @@ Runique fournit un ensemble de macros pour simplifier le développement :
 ### Fonctions Tera
 
 | Fonction | Description |
-|----------|-------------|
+| -------- | ----------- |
 | `csrf()` | Génère un champ CSRF depuis le contexte |
 | `nonce()` | Retourne le nonce CSP |
 | `link(link='...')` | Résolution d'URL nommée |
@@ -188,7 +190,7 @@ Runique fournit un ensemble de macros pour simplifier le développement :
 
 Runique applique les middlewares dans un **ordre optimal** via le système de slots :
 
-```
+```text
 Requête entrante
     ↓
 1. Extensions (slot 0)     → Injection Tera, Config, Engine
@@ -231,7 +233,7 @@ pub async fn handler(request: Request) -> AppResult<Response> {
 
 ## Lifecycle d'une requête
 
-```
+```text
 1. Requête HTTP arrive
 2. Middlewares traversés (order des slots)
 3. Extensions injectées (Engine, Tera, Config)
@@ -247,17 +249,20 @@ pub async fn handler(request: Request) -> AppResult<Response> {
 ## Bonnes Pratiques
 
 1. **Cloner les Arc :**
+
    ```rust
    let db = request.engine.db.clone();
    ```
 
 2. **Formulaires = copies par requête :**
+
    ```rust
    Prisme(mut form): Prisme<MyForm>
    // Chaque requête = formulaire isolé, zéro concurrence
    ```
 
 3. **context_update! pour le contexte :**
+
    ```rust
    context_update!(request => {
        "title" => "Ma page",
@@ -266,12 +271,14 @@ pub async fn handler(request: Request) -> AppResult<Response> {
    ```
 
 4. **Flash messages pour les redirections :**
+
    ```rust
    success!(request.notices => "Action réussie !");
    return Ok(Redirect::to("/").into_response());
    ```
 
 5. **flash_now! pour les rendus directs :**
+
    ```rust
    context_update!(request => {
        "messages" => flash_now!(error => "Erreur de validation"),

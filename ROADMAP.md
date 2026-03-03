@@ -1,81 +1,139 @@
-# Résumé des modifications à apporter
+# Roadmap Runique
 
 ## 1. Configuration du mot de passe via settings
 
 **Status :** 🟢 Fait
-### 1.a. Ajouter un enum pour `main.rs`
-Contenant les options :
-- `False`
-- `Auto` (Argon2 | Bcrypt | autre)
-- Choix manuel
 
-### 1.b. Logique selon l'option choisie
+### 1.a. Enum de configuration
 
-| Option | Comportement |
-|--------|-------------|
-| `False` | Aucun hashage de mot de passe. Le développeur peut utiliser une API tierce |
-| **Choix manuel** | La fonction de hash récupère l'option de configuration et match dessus |
-| **Auto hashage** | Si option choisie (ex: `auto::auto::argon2`), hash automatique du champ `password` |
-| **Vérification** | Fonction de vérification du mot de passe basée sur l'option de hash :&lt;br&gt;- Si Argon2 → vérif basée sur Argon2&lt;br&gt;- Si Bcrypt → vérif basée sur Bcrypt&lt;br&gt;- Si mode auto → choix de l'algorithme |
+- `password_init(PasswordConfig::...)` : **point d’entrée unique** pour l’initialisation globale du hash au démarrage.
+
+- `PasswordConfig::auto()` : mode auto avec config par défaut (valeur de configuration).
+- `PasswordConfig::auto_with(Manual::Argon2|Bcrypt|Scrypt)` : mode auto avec algo explicite (valeur de configuration).
+- `PasswordConfig::manual(Manual::Argon2|Bcrypt|Scrypt|Custom)` : hash manuel dans la logique métier (valeur de configuration).
+- `PasswordConfig::oauth(External::...)` : mode délégué (fournisseur externe, valeur de configuration).
+- `PasswordConfig::custom(handler)` : stratégie personnalisée via `PasswordHandler` (valeur de configuration).
+
+
+> Règle projet : l'initialisation effective du hash doit passer par `password_init(...)`.
+> `RuniqueConfig::from_env()` peut garder une valeur par défaut de configuration, mais ne remplace pas ce point d’entrée.
+
+### 1.b. Flow du mot de passe
+
+```text
+field password  →  clean_field (contraintes métier)
+    →  clean (regroupement logique globale)
+    →  finalize (transformation / hash si Auto)
+    →  validate (validation finale)
+    →  save (persistance)
+```
+
+Configuration dans `main.rs` :
+
+```rust
+use runique::utils::password::{External, Manual, PasswordConfig};
+
+// Initialisation globale (obligatoire)
+password_init(PasswordConfig::auto_with(Manual::Argon2));
+
+// Exemples de valeurs possibles :
+// password_init(PasswordConfig::auto());
+// password_init(PasswordConfig::manual(Manual::Bcrypt));
+// password_init(PasswordConfig::oauth(External::GoogleOAuth));
+```
 
 ---
 
 ## 2. I18n et Tracing
 
-**Status :** 🔴 À faire
+**Status :** 🟡 En cours
 
 ### 2.a. I18n (Internationalisation)
-- Configuration dans `main.rs` via un choix de langue
-- Exemple : `let lang = config.language(enum possible)`
-- Charge un fichier JSON correspondant
 
-### 2.b. Tracing d'erreur
-- Configurer le tracing sur le mode debug
+- Socle déjà en place : module `utils::trad::switch_lang`, enum `Lang` (FR/EN), JSON embarqués, formatage de messages.
+- Finaliser l’intégration runtime (config/session/request).
+- Uniformiser l’usage des clés i18n dans middleware/forms/errors.
 
-| Debug | Tracing |
-|-------|---------|
-| `false` | Off |
-| `true` | On → rendu console et page de debug |
+### 2.b. Tracing d’erreur
+
+- `debug = false` : tracing off.
+- `debug = true` : tracing on (console + page debug).
 
 ---
 
 ## 3. Migration et Vue Admin
 
-**Status :** 🔴 À faire (3.a à corriger)
+**Status :** 🟡 En cours
 
 ### 3.a. Système de migration
-- Finaliser le système de migration
-- Une fois terminé : API stable pour schema/migration
-- **Équivalent Django :** `models/admin`
+
+**Status :** 🟢 Fait — pipeline complet fonctionnel
+
+```text
+entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p migration
+```
+
+- Tous types supportés (string, int, float, bool, datetime, binary, json...).
+- Primary key, foreign keys, indexes, nullable, unique.
+- Vérifié sur Postgres, MariaDB, SQLite via Docker.
 
 ### 3.b. Vue Admin
 
+**Status :** 🟡 En cours
+
 #### b.1. Refonte du rendu
-- Ne plus baser le rendu admin sur les formulaires bruts
-- Basculer sur les **models** qui gèrent leur propre rendu
-- Les formulaires se basent sur le model (et non l'inverse) si macro attribut connecté
-- Si formulaire formulaire fournis dans la macro, lié le formulaire au model pour en en recuperer la logique metier
+
+- Basculer sur les **models** qui gèrent leur propre rendu.
+- Les formulaires se basent sur le model (et non l’inverse) si macro attribut connectée.
+- Si formulaire fourni dans la macro, lier le formulaire au model pour en récupérer la logique métier.
 
 #### b.2. Formulaires personnalisés
-- Permettre l'ajout de formulaires pour récupérer la logique métier de l'API sur les models
+
+- Permettre l’ajout de formulaires pour récupérer la logique métier de l’API sur les models.
+
+#### b.3. Personnalisation des templates admin
+
+- Personnalisation visuelle.
+- Documentation : clés à renseigner fournies dans les templates.
+
+#### b.4. Sécurité / permissions admin
+
+- Appliquer effectivement les permissions déclarées par ressource dans les handlers CRUD générés.
+- Clarifier le contrat `is_staff` / `is_superuser` / rôles custom.
+- Ajouter des tests d’autorisation par opération CRUD.
 
 ---
 
-## 4. Middleware CSP et Stabilité
+## 4. Sécurité middleware et stabilité
 
-**Status :** 🔴 En cour
+**Status :** 🟡 En cours
 
 ### 4.a. Middleware CSP
-- Peaufiner la configuration pour la rendre plus simple et lisible
 
-### 4.b. Stabilité
+- Peaufiner la configuration pour la rendre plus simple et lisible.
+- Réduire les directives permissives par défaut (`unsafe-inline`, `unsafe-eval`).
+- Harmoniser la gestion des nonces.
 
-| Tâche | Description |
-|-------|-------------|
-| **b.1** | Vérifier toutes les features, tests exhaustifs sur toutes les features |
-| **b.2** | Mettre à mal le framework, le pousser à bout pour la fiabilité |
-| **b.3** | Trouver des failles pour les corriger |
-| **b.4** | Ne pas considérer le framework comme terminé, il y a toujours à ajouter |
+### 4.b. CSRF secure-by-default
+
+- **Principe directeur :** respect forcé du contrat d’utilisation `methode http -> prisme -> handler` pour stabiliser la sécurité CSRF.
+- **Règle 1 (mutations) :** toutes les routes `POST`/`PUT`/`PATCH`/`DELETE` passent obligatoirement par Prisme.
+- **Règle 2 (lecture body) :** Prisme reste l’unique lecteur du body (pas de relecture middleware, pas de buffering global).
+- **Règle 3 (source token) :** `form-data` / `x-www-form-urlencoded` => token CSRF dans les champs ; `json/ajax` => token CSRF dans le header.
+- **Règle 4 (GET) :** `GET` reste classique (normalisation query/headers), sans vérification CSRF.
+- **Application progressive :** mode compat (warning) puis mode strict (refus des routes mutantes hors contrat).
+- **Effet attendu :** réduction des failles liées au non-respect du contrat, simplification des handlers, stabilité sécurité renforcée.
+
+### 4.c. Stabilité et couverture
+
+- **Tests exhaustifs** : 🟡 76.66% fonctions (objectif 85% minimum).
+- **Stress test** : 🔴 À faire (pousser le framework à bout).
+- **Audit sécurité** : 🔴 À faire (identifier et corriger les failles).
+
+### 4.d. Robustesse runtime
+
+- Réduire `panic!/unwrap/expect` sur les chemins runtime.
+- Propager des erreurs typées (`Result`) sur les points critiques (middleware, daemon, CLI, i18n).
 
 ---
 
@@ -83,74 +141,57 @@ Contenant les options :
 
 **Status :** 🟢 Fait
 
-### 5.a. Peaufiner/corriger les moteurs de formulaire
-- **Problème identifié :** Double appel de `is_valid()`
-  - 1ère fois dans `build_with_data`
-  - 2ème fois dans `is_valid` du handler du développeur
-  Restructure la gestion des mots de passe
+- Double appel de `is_valid()` corrigé.
+- Restructuration de la gestion des mots de passe.
 
+### 5.a. Potentiellement supprimé - `#[derive(DeriveModelForm)]`
 
-# flow ashe du mot de passe
+**Status :** 🟡 À évaluer
 
+- **Étape 1 — Check viabilité :** inventorier les usages réels (code + docs + exemples) et confirmer que le couple `model!(...)` + `#[form(...)]` couvre tous les cas actuels.
+- **Étape 2 — Mesure des pertes occasionnées :** lister précisément ce qui serait perdu (ergonomie, rétrocompatibilité, snippets existants, onboarding) et estimer l’impact migration.
+- **Étape 3 — Plan de transition :** préparer une migration douce (dépréciation documentée, alias temporaire éventuel, guide de remplacement).
+- **Étape 4 — Validation technique :** vérifier compile/tests/docs après remplacement des usages critiques.
+- **Étape 5 — Décision finale :** `GO` suppression ou `NO-GO` maintien selon coût réel vs bénéfice architecture.
 
-### 6 Admin
+---
 
-- **Personalisation** des templates
-    - 1) Personnalisation visuel
-    - 2) Documentation => clef a renseigner fournis dans le templates
+## 6. Publication crates.io
 
-enum => delagate , auto , manuel
+**Status :** 🔴 À faire
 
-logique enum =>
+### Étapes avant publication
 
-delagate => api => exemple -> google authenticator
+- 85% couverture minimum (`bin/` exclu) : 🟡 76.66% actuellement.
+- Remplacer doctests `ignore`/`no_run` par exemples réels : 🔴 À faire.
+- Docs complètes (models, forms, macros procédurales) : 🔴 À faire.
+- Publish crates.io : 🔴 À faire.
 
-auto => ashage du mot de passe automatique dans TexeField==SpecialFormat::password en fonction de la config , appel automatique a ashe_password.
+> Note : `bin/` est exclu du calcul de couverture (CLI non couvrable proprement).
+> Cible réaliste : **85-88%** après couverture des modules HTTP via helpers Axum.
 
-manuel => choix de l'algo , appel manuel a ash_password dans la logique metier
+---
 
+## 7. Gouvernance globale de la config API
 
-donc =>
+**Status :** 🟡 En cours
 
-    dalagate => code perso du dev dans son utisl par exemple
-    auto => enum appel ashe dans password
-    manuel => desactive hash dans passord et force l'appel dans la logique metier
+### 7.a. Résolution unifiée de configuration
 
+- Définir un ordre de priorité unique pour toute l’API :
+    1. Overrides explicites de démarrage
+    2. Configuration applicative (`RuniqueConfig`)
+    3. Variables d’environnement
+    4. Valeurs par défaut framework
 
-exemple
+### 7.b. Validation au boot (fail-fast)
 
-mains.rs
+- Valider toute la config critique avant le démarrage serveur (security, middleware, db, password, admin).
+- Refuser le boot en production si incohérence ou valeur manquante.
+- Autoriser des fallbacks contrôlés en dev/test avec warning explicite.
 
-let ashe = config.password(Delegate | auto::algo | manuel::algo )
+### 7.c. Contrat développeur
 
-mise en pratique
-
-        form.field(
-            &TextField::password("password")
-                .label("Entrez votre mot de passe")
-                .required()
-                .min_length(10, "Le titre doit contenir au moins 10 caractères"),
-        );
-
-fn clean_field (
-    let pw1 = get...
-    let pw2 = get..
-    if pw1 == pw2
-    pw1 = ash.pw1
-)
-
-et dans TexteField::SpecialFormat::password
-
-    password = config.password
-
-
-field s'auto valide => clean_field se verifie  => clean regroupe tout => finalyze transforme => validate => persistence
-
-a quel moment injecter config.password ?
-
-=> field password => aucune verification, ne renvois qu'un champs apssword
-=> clean_field => contrainte metier
-=> clean => regroupement logique metier global
-=> finalyse => transformation
-=> validate => regroupe tout avant persistance
-=> save => persistence
+- Documenter un point d’entrée clair de l’initialisation globale (pas de logique implicite cachée).
+- Éviter les doubles sources de vérité entre config runtime et valeurs par défaut internes.
+- Ajouter des tests d’intégration sur la résolution de config (priorités + erreurs de validation).

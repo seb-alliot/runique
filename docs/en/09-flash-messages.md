@@ -1,12 +1,11 @@
-
 # 💬 Flash Messages
 
-## Message System
+## Messaging System
 
-Runique provides a flash message system for user notifications. There are **two types** of messages:
+Runique provides a flash messaging system for user notifications. There are **two types** of messages:
 
 1. **Redirect messages** (`success!`, `error!`, `info!`, `warning!`) — stored in the session, displayed after a redirect
-2. **Immediate messages** (`flash_now!`) — displayed on the current request without going through the session
+2. **Immediate messages** (`flash_now!`) — displayed in the current request, without using the session
 
 ---
 
@@ -14,7 +13,7 @@ Runique provides a flash message system for user notifications. There are **two 
 
 These macros store messages in the session via `request.notices`. They are displayed **after the next redirect** (Post/Redirect/Get pattern).
 
-### `success!` — Success Message
+### `success!` — Success message
 
 ```rust
 success!(request.notices => "User created successfully!");
@@ -24,20 +23,20 @@ success!(request.notices => format!("Welcome {}!", username));
 success!(request.notices => "Created", "Email sent", "Welcome!");
 ```
 
-### `error!` — Error Message
+### `error!` — Error message
 
 ```rust
 error!(request.notices => "An error occurred");
 error!(request.notices => format!("Error: {}", e));
 ```
 
-### `info!` — Informational Message
+### `info!` — Informational message
 
 ```rust
-info!(request.notices => "Please verify your email");
+info!(request.notices => "Please check your email");
 ```
 
-### `warning!` — Warning
+### `warning!` — Warning message
 
 ```rust
 warning!(request.notices => "This action cannot be undone");
@@ -49,14 +48,14 @@ warning!(request.notices => "This action cannot be undone");
 
 ## `flash_now!` Macro — Immediate Messages
 
-`flash_now!` creates a `Vec<FlashMessage>` for **immediate display** in the current request. Ideal for cases where there is no redirect (e.g., re-displaying a form after validation errors).
+`flash_now!` creates a `Vec<FlashMessage>` for **immediate display** in the current request. Ideal when there is no redirect (for example, re-rendering a form after validation errors).
 
 ```rust
 // Single message
-let msgs = flash_now!(error => "Please correct the errors");
+let msgs = flash_now!(error => "Please fix the errors");
 
 // Multiple messages
-let msgs = flash_now!(warning => "Field A is invalid", "Field B is missing");
+let msgs = flash_now!(warning => "Field A is incorrect", "Field B is missing");
 ```
 
 ### Available Types
@@ -68,15 +67,15 @@ let msgs = flash_now!(warning => "Field A is invalid", "Field B is missing");
 | `info`    | `message-info`      |
 | `warning` | `message-warning`   |
 
-### Injecting into the Context
+### Injecting into the context
 
-`flash_now!` returns a vector to manually inject into the context:
+`flash_now!` returns a vector that must be manually injected into the context:
 
 ```rust
 context_update!(request => {
-    "title" => "Validation Error",
+    "title" => "Validation error",
     "form" => &form,
-    "messages" => flash_now!(error => "Please correct the errors"),
+    "messages" => flash_now!(error => "Please fix the errors"),
 });
 ```
 
@@ -84,10 +83,10 @@ context_update!(request => {
 
 ## Usage in Handlers
 
-### Pattern with Redirect (Flash Messages)
+### Pattern with redirect (flash messages)
 
 ```rust
-pub async fn submit_registration(
+pub async fn submit_signup(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
@@ -108,23 +107,23 @@ pub async fn submit_registration(
 
         // ❌ Validation failed → immediate message (no redirect)
         context_update!(request => {
-            "title" => "Validation Error",
-            "registration_form" => &form,
-            "messages" => flash_now!(error => "Please correct the errors"),
+            "title" => "Validation error",
+            "signup_form" => &form,
+            "messages" => flash_now!(error => "Please fix the errors"),
         });
-        return request.render("registration_form.html");
+        return request.render("signup_form.html");
     }
 
-    // GET → display the form
+    // GET → display form
     context_update!(request => {
-        "title" => "Registration",
-        "registration_form" => &form,
+        "title" => "Sign up",
+        "signup_form" => &form,
     });
-    request.render("registration_form.html")
+    request.render("signup_form.html")
 }
 ```
 
-### Multiple Message Types
+### Multiple message types
 
 ```rust
 pub async fn about(mut request: Request) -> AppResult<Response> {
@@ -142,17 +141,17 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 
 ---
 
-## Display in Templates
+## Displaying Messages in Templates
 
-### Automatic Tag `{% messages %}`
+### Automatic `{% messages %}` tag
 
-The `{% messages %}` tag automatically displays all messages:
+The `{% messages %}` tag automatically renders all messages:
 
 ```html
 {% messages %}
 ```
 
-It includes the internal template `message/message_include.html` which generates:
+It includes the internal template `message/message_include.html`, which generates:
 
 ```html
 {% if messages %}
@@ -166,7 +165,7 @@ It includes the internal template `message/message_include.html` which generates
 {% endif %}
 ```
 
-### Recommended Placement
+### Recommended placement
 
 Place `{% messages %}` in your base template, just before the main content:
 
@@ -185,9 +184,9 @@ Place `{% messages %}` in your base template, just before the main content:
 </body>
 ```
 
-### Customizing Display
+### Custom display
 
-To customize the output, loop manually over `messages`:
+To fully customize rendering, manually loop over `messages`:
 
 ```html
 {% if messages %}
@@ -210,50 +209,50 @@ To customize the output, loop manually over `messages`:
 
 ## Flash Behavior (Single Read)
 
-Flash messages stored in the session are **automatically consumed** when displayed:
+Flash messages stored in the session are **automatically consumed** upon display:
 
 ```
-1. POST /registration
+1. POST /signup
    → success!("Welcome!")
    → Redirect::to("/")
 
 2. GET /
-   → Messages are read from the session
-   → Displayed in the template
-   → Removed from the session
+   → Messages read from session
+   → Displayed in template
+   → Removed from session
 
 3. GET / (reload)
-   → No more messages (already consumed)
+   → No messages (already consumed)
 ```
 
 ---
 
-## Flash vs `flash_now`
+## Difference: Flash vs Flash Now
 
 |                       | `success!` / `error!` / etc. | `flash_now!`                             |
 | --------------------- | ---------------------------- | ---------------------------------------- |
 | **Storage**           | Session                      | Memory (Vec)                             |
 | **Display**           | After redirect               | Current request                          |
 | **Lifetime**          | Until next read              | Single request                           |
-| **Typical Use**       | Post/Redirect/Get            | Form re-display                          |
-| **Context Injection** | Automatic                    | Manual (`"messages" => flash_now!(...)`) |
+| **Typical use**       | Post/Redirect/Get            | Re-render form                           |
+| **Context injection** | Automatic                    | Manual (`"messages" => flash_now!(...)`) |
 
 ---
 
 ## When to Use Which?
 
-### ✅ Use Flash Macros (Session)
+### ✅ Use flash macros (session)
 
 ```rust
-// After a successful action with redirect
+// After successful action with redirect
 success!(request.notices => "Saved!");
 return Ok(Redirect::to("/").into_response());
 ```
 
-### ✅ Use `flash_now!` (Immediate)
+### ✅ Use `flash_now!` (immediate)
 
 ```rust
-// Validation error → re-display page without redirect
+// Validation error → re-render page without redirect
 context_update!(request => {
     "form" => &form,
     "messages" => flash_now!(error => "Invalid form"),

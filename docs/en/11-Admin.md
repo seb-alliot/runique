@@ -1,18 +1,15 @@
+##  Admin View (Beta)
 
----
-
-##  Administration View (Beta)
-
-Runique’s administration view is built on a **declarative macro (`admin!`)** combined with a **code generation daemon**.
+Runique’s admin view is based on a **declarative macro (`admin!`)** combined with a **generation daemon**.
 
 The goal is to provide a **transparent, auditable, and type-safe** approach:
-the generated admin code is regular Rust code, readable, inspectable, and modifiable when needed.
+the generated admin code is “normal” Rust — readable, inspectable, and modifiable if necessary.
 
 ---
 
-## 1) Declaring resources with `admin!`
+## 1) Declaring Resources via `admin!`
 
-Administrative resources are declared in the `src/admin.rs` file.
+Developers declare administrable resources inside `src/admin.rs`.
 
 Each resource is defined by:
 
@@ -20,7 +17,7 @@ Each resource is defined by:
 * a **model** (Rust type path)
 * a **form**
 * a **title**
-* a list of **authorized roles**
+* a list of allowed **roles**
 
 Example:
 
@@ -33,29 +30,30 @@ admin! {
 }
 ```
 
-The macro generates an `admin_config()` function that builds an `AdminRegistry` and registers each resource using `AdminResource`.
+The macro generates an `admin_config()` function that builds an `AdminRegistry` and registers each resource via `AdminResource`.
 
- **Type-safe**
-The macro includes *compile-time* checks: if a referenced model or form does not exist, compilation fails with an explicit error.
+### Type-safe
+
+The macro includes a *compile-time* verification: if a referenced model or form does not exist, compilation fails with an explicit error.
 
 ---
 
-## 2) What can be declared in the `admin!` macro
+## 2) What Can Be Declared in `admin!`
 
-The `admin!` macro is intentionally limited to **essential admin metadata**.
+The `admin!` macro allows declaring **only the essential metadata** of an admin resource.
 It does **not** describe business logic, authentication, or HTML rendering.
 
-### Supported fields
+### Supported Fields
 
-For each resource, the following fields are **mandatory**:
+For each resource, the following fields are **required**:
 
-| Field         | Description                                            |
-| ------------- | ------------------------------------------------------ |
-| `key`         | Resource identifier (used in routes: `/admin/{key}/…`) |
-| `model`       | Rust model path (e.g. `users::Model`)                  |
-| `form`        | Runique form type                                      |
-| `title`       | Title displayed in the admin interface                 |
-| `permissions` | List of authorized roles                               |
+| Field         | Description                                           |
+| ------------- | ----------------------------------------------------- |
+| `key`         | Resource identifier (used in routes `/admin/{key}/…`) |
+| `model`       | Rust model path (e.g., `users::Model`)                |
+| `form`        | Runique form type                                     |
+| `title`       | Display title in the admin interface                  |
+| `permissions` | List of allowed roles                                 |
 
 ### Permissions
 
@@ -64,31 +62,31 @@ permissions: ["admin", "staff"]
 ```
 
 * Permissions are expressed as **roles**
-* In the current version, the list applies **uniformly to all CRUD operations**
+* The list applies **uniformly to all CRUD operations** in the current version
 
-### ❌ What is intentionally not declarable
+### What Is Intentionally Not Declarable
 
-The `admin!` macro does **not** allow:
+The `admin!` macro does not allow declaring:
 
-* per-CRUD-operation permissions
-* conditional rules
-* HTML or template configuration
-* business logic
-* complex filters or relations
+* Different permissions per CRUD operation
+* Conditional rules
+* HTML rendering or templates
+* Business logic
+* Complex filters or relationships
 
-These limitations are **intentional**: the macro remains simple and declarative, while logic lives in the generated Rust code.
+These limitations are intentional: the macro remains simple and readable, while the logic resides in the generated Rust code.
 
 ---
 
-## 3) Parsing: reading `src/admin.rs`
+## 3) Parsing: Reading `src/admin.rs`
 
 When running `runique start`, the daemon:
 
 * reads `src/admin.rs`
 * parses the `admin! { ... }` macro using `syn`
-* extracts resources as `ResourceDef` values
+* extracts resources into `ResourceDef` structures
 
-Each resource contains:
+Each resource includes:
 
 * `key`
 * `model_type`
@@ -96,13 +94,13 @@ Each resource contains:
 * `title`
 * `permissions`
 
-The parser validates required fields and reports explicit errors in case of invalid syntax or missing data.
+The parser validates the presence of required fields and reports explicit errors for invalid syntax.
 
 ---
 
-## 4) Generation: creating `src/admins/`
+## 4) Generation: Creating `src/admins/`
 
-From the parsed resources, Runique automatically generates the following directory:
+From the parsed resources, Runique automatically generates:
 
 ```
 src/admins/
@@ -112,50 +110,49 @@ src/admins/
   └─ handlers.rs
 ```
 
-* **`router.rs`**: assembles CRUD routes (`list`, `create`, `detail`, `edit`, `delete`)
+* **`router.rs`**: CRUD routes (`list`, `create`, `detail`, `edit`, `delete`)
 * **`handlers.rs`**: SeaORM + form handlers (GET/POST, validation, rendering)
 * **`mod.rs`**: admin module entry point
 * **`README.md`**: warning that the folder is auto-generated
 
 ---
 
-## 5) Daemon / watcher: automatic regeneration
+## 5) Daemon / Watcher: Automatic Regeneration
 
 The `runique start` command launches a watcher (based on `notify`) that monitors `src/admin.rs`.
 
-On each detected change:
+On each detected modification:
 
-1. the file is read
+1. the file is re-read
 2. the macro is parsed
-3. the `src/admins/` directory is regenerated
-4. a simple result is displayed (✅ or ❌)
+3. the `src/admins/` folder is regenerated
+4. simple feedback is displayed (✅ or ❌)
 
-A debounce mechanism prevents multiple regenerations for a single save.
-
----
-
-##  Explicit trade-off: `src/admins/` is overwritten
-
-This workflow comes with an intentional trade-off:
-
-* `runique start` **fully removes and regenerates** the `src/admins/` directory
-* any manual changes inside this directory will be **overwritten**
-
-If manual changes are required, do **not** use `runique start`.
-Instead, switch to a `cargo run` workflow to avoid automatic regeneration.
+A *debounce* mechanism prevents multiple regenerations from a single file save.
 
 ---
 
-##  Permissions and roles (based on the `users` table)
+## ⚠️ Intentional Trade-off: Overwriting `src/admins/`
+
+This workflow involves a deliberate trade-off:
+
+* `runique start` **deletes and fully regenerates** the `src/admins/` folder
+* any manual modifications in this folder will be **overwritten**
+
+If manual changes are required, you must **avoid using `runique start`** and switch to a `cargo run` workflow to prevent automatic regeneration.
+
+---
+
+## 🔐 Permissions and Roles (Based on the `users` Table)
 
 The permission system relies on the authenticated user and data stored in the **`users` table**.
 
-Access checks are based on fields such as:
+Access control checks rely on:
 
 * **`is_active`**: the user must be active
-* **`is_staff`**: grants access to the admin interface
-* **`is_superuser`**: full access to all resources and operations
-* **`roles`** *(optional)*: custom roles (e.g. `"admin"`, `"editor"`)
+* **`is_staff`**: admin access authorization
+* **`is_superuser`**: full access
+* **`roles`** *(optional)*: custom roles (e.g., `"admin"`, `"editor"`)
 
 Permissions declared in the macro:
 
@@ -163,40 +160,40 @@ Permissions declared in the macro:
 permissions: ["admin", "staff"]
 ```
 
-are matched against the current user’s roles and attributes.
-A user is authorized if they have **at least one matching role** or an equivalent status (e.g. superuser).
+are compared against the current user’s roles and attributes.
+A user is authorized if they possess **at least one compatible role** or an equivalent status (e.g., superuser).
 
->  The `roles` field enables flexible role management without enforcing a rigid schema.
+> The `roles` field allows flexible permission management without enforcing a rigid schema.
 
 ---
 
-##  Important notes
+## 📌 Important Notes
 
 * The `admin!` macro defines **declarative rules**, not authentication logic
-* Authorization checks are performed **at runtime** via admin middlewares
-* The `users` table remains the **source of truth** for authorization
+* Access checks are performed **at runtime** via admin middlewares
+* The `users` table remains the **single source of truth** for authorization
 
 ---
 
-##  Current state (beta)
+## 🚧 Current State (Beta)
 
 * Automatic generation of CRUD routes and handlers
-* Centralized resource registry (`AdminRegistry`)
+* Central resource registry (`AdminRegistry`)
 * Global permissions per resource
-* Feedback is mainly **structural** (missing daemon, missing file, invalid declaration)
+* Feedback mainly **structural** (missing daemon, missing file, invalid declaration)
 
-Improvements to error feedback, permission granularity, and workflow safety are planned.
+Improvements in error feedback, permission granularity, and workflow safety are planned evolution areas.
 
 ---
 
-###  Conclusion
+### 🏁 Conclusion
 
 This architecture prioritizes:
 
-* **readability**
-* **type safety**
-* **developer control over generated code**
+* **Readability**
+* **Type-driven safety**
+* **Developer control over generated code**
 
-The admin view is intentionally simple, explicit, and designed to evolve.
+The admin view is intentionally simple, explicit, and evolvable.
 
 ---

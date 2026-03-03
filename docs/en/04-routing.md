@@ -1,9 +1,6 @@
-
----
-
 # 🛣️ Routing
 
-## urlpatterns! Macro
+## Macro `urlpatterns!`
 
 Define application routes with names for URL resolution:
 
@@ -12,6 +9,7 @@ use crate::views;
 use runique::prelude::*;
 use runique::{urlpatterns, view};
 
+
 pub fn routes() -> Router {
     urlpatterns! {
         "/" => view!{ views::index }, name = "index",
@@ -19,14 +17,14 @@ pub fn routes() -> Router {
         "/users/:id" => view!{ views::user_detail }, name = "user_detail",
 
         // For delete, separate route:
-        "/users/:id/delete" => view!{ views::delete_user }, name = "user_delete",
+        "/users/:id/delete" => view!{views::delete_user }, name = "user_delete",
     }
 }
 ```
 
-### With Names (recommended)
+### With names (recommended)
 
-Names allow URL resolution in templates using `{% link "name" %}`:
+Names allow URL resolution in templates via `{% link "name" %}`:
 
 ```rust
 urlpatterns! {
@@ -40,7 +38,7 @@ urlpatterns! {
 <a href='{% link "user_detail" id="42" %}'>Profile</a>
 ```
 
-### Without Names
+### Without names
 
 ```rust
 urlpatterns! {
@@ -51,25 +49,25 @@ urlpatterns! {
 
 ---
 
-## view! Macro
+## Macro `view!`
 
 ### Single handler for all methods
 
-A single handler handles GET, POST, PUT, and DELETE (recommended pattern with `request.is_get()` / `request.is_post()`):
+A single handler handles GET and POST as well as PUT and DELETE (recommended pattern with `request.is_get()` / `request.is_post()`):
 
 ```rust
 // In routes
-"/register" => view!{ views::register }, name = "register",
+"/inscription" => view!{ views::inscription }, name = "inscription",
 ```
 
 ```rust
 // In handler
-pub async fn register(
+pub async fn inscription(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
     if request.is_get() {
-        // Display empty form
+        // Display the empty form
         context_update!(request => { "form" => &form });
         return request.render("form.html");
     }
@@ -89,7 +87,7 @@ pub async fn register(
 
 ## Parameter Extractors
 
-### Path — URL Parameters
+### Path — URL parameters
 
 ```rust
 use axum::extract::Path;
@@ -117,7 +115,7 @@ async fn user_post(
 }
 ```
 
-### Query — Query Parameters
+### Query — Query parameters
 
 ```rust
 use axum::extract::Query;
@@ -143,7 +141,7 @@ async fn list(
 ```rust
 use runique::prelude::*;
 
-async fn register(
+async fn inscription(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
@@ -154,7 +152,7 @@ async fn register(
 }
 ```
 
-### JSON — POST Body
+### Json — JSON body
 
 ```rust
 use axum::Json;
@@ -232,7 +230,7 @@ async fn created(Json(data): Json<Data>) -> (StatusCode, Json<Data>) {
 
 ---
 
-## Complete App Structure
+## Full App Structure
 
 ```rust
 // src/url.rs
@@ -243,11 +241,13 @@ use runique::{urlpatterns, view};
 pub fn routes() -> Router {
     let router = urlpatterns! {
         "/" => view!{ views::index }, name = "index",
+
         "/about" => view! { views::about }, name = "about",
-        "/register" => view! { views::register_submit }, name = "register",
+        "/inscription" => view! { views::soumission_inscription }, name = "inscription",
     };
     router
 }
+
 ```
 
 ```rust
@@ -270,16 +270,16 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
     request.render("about/about.html")
 }
 
-pub async fn register_submit(
+pub async fn soumission_inscription(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
     if request.is_get() {
         context_update!(request => {
-            "title" => "Register",
-            "register_form" => &form,
+            "title" => "Sign up",
+            "inscription_form" => &form,
         });
-        return request.render("register_form.html");
+        return request.render("inscription_form.html");
     }
 
     if request.is_post() {
@@ -294,21 +294,21 @@ pub async fn register_submit(
 
         context_update!(request => {
             "title" => "Error",
-            "register_form" => &form,
-            "messages" => flash_now!(error => "Please correct the errors"),
+            "inscription_form" => &form,
+            "messages" => flash_now!(error => "Please fix the errors"),
         });
-        return request.render("register_form.html");
+        return request.render("inscription_form.html");
     }
 
-    request.render("register_form.html")
+    request.render("inscription_form.html")
 }
 ```
 
 ---
 
-## impl_objects! Macro (bonus)
+## Macro impl_objects! (bonus)
 
-For routes performing ORM queries, `impl_objects!` adds a Django-like manager:
+For routes that perform ORM queries, `impl_objects!` adds a Django-like manager:
 
 ```rust
 use runique::impl_objects;
@@ -322,11 +322,10 @@ let user = users::Entity::objects
     .await?;
 ```
 
-See the [ORM guide](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md) for more details.
+See the [ORM guide](07-orm.md) for more details.
 
 ---
 
 ## Next Steps
 
 ← [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md) | [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) →
-

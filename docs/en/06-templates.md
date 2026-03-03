@@ -1,9 +1,8 @@
-
 # 🎨 Templates
 
 ## Tera Engine
 
-Runique uses **Tera** as its template engine, with a syntax layer inspired by Django. Templates are written in standard HTML enriched with Tera tags and **Django-like tags** that Runique automatically transforms.
+Runique uses **Tera** as its template engine, with a Django-inspired syntax layer. Templates are written in standard HTML enriched with Tera tags and **Django-like tags** that Runique automatically transforms.
 
 ```rust
 use runique::prelude::*;
@@ -22,12 +21,12 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 
 ## The Request Object
 
-Each handler receives a `Request` containing everything needed:
+Each handler receives a `Request` containing everything required:
 
 ```rust
 pub struct Request {
     pub engine: AEngine,       // Arc<RuniqueEngine> (DB, Tera, Config)
-    pub session: Session,      // Tower sessions
+    pub session: Session,      // tower-sessions session
     pub notices: Message,      // Flash messages
     pub csrf_token: CsrfToken, // CSRF token
     pub context: Context,      // Tera context
@@ -37,25 +36,25 @@ pub struct Request {
 
 **Main methods:**
 
-| Method                        | Description                                  |
-| ----------------------------- | -------------------------------------------- |
-| `request.render("page.html")` | Render the template with the current context |
-| `request.is_get()`            | Checks if the method is GET                  |
-| `request.is_post()`           | Checks if the method is POST                 |
-| `request.is_put()`            | Checks if the method is PUT                  |
-| `request.is_delete()`         | Checks if the method is DELETE               |
+| Method                        | Description                          |
+| ----------------------------- | ------------------------------------ |
+| `request.render("page.html")` | Render template with current context |
+| `request.is_get()`            | Checks whether the method is GET     |
+| `request.is_post()`           | Checks whether the method is POST    |
+| `request.is_put()`            | Checks whether the method is PUT     |
+| `request.is_delete()`         | Checks whether the method is DELETE  |
 
-> 💡 **Hot-reload**: In `DEBUG=true` mode, templates are reloaded on every request (no Tera caching).
+> 💡 **Hot reload**: When `DEBUG=true`, templates are reloaded on every request (no Tera cache).
 
 ---
 
-## Macro `context_update!`
+## `context_update!` Macro
 
-Simplified syntax for injecting variables into the template context:
+A simplified syntax for injecting variables into the template context:
 
 ```rust
 context_update!(request => {
-    "title" => "My Page",
+    "title" => "My page",
     "user" => &form,
     "items" => &vec!["a", "b", "c"],
 });
@@ -67,11 +66,11 @@ Each `"key" => value` pair calls `request.context.insert("key", &value)`.
 
 ---
 
-## Django-like Tags (Sugar Syntax)
+## Django-like Tags (Syntactic Sugar)
 
-Runique pre-processes templates to transform Django-like syntax into standard Tera syntax. Both forms work, but **Django-like tags** are recommended for readability.
+Runique pre-processes templates to transform Django-like syntax into standard Tera syntax. You can use both forms, but **Django-like tags** are recommended for readability.
 
-### `{% static %}` — Static assets
+### `{% static %}` — Static Assets
 
 ```html
 <link rel="stylesheet" href='{% static "css/main.css" %}'>
@@ -79,50 +78,51 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 <img src='{% static "images/logo.png" %}' alt="Logo">
 ```
 
-**Transformed to:** `{{ "css/main.css" | static }}`
+**Transformed into:** `{{ "css/main.css" | static }}`
 **Result:** `/static/css/main.css`
 
 ---
 
-### `{% media %}` — Media files (uploads)
+### `{% media %}` — Media Files (Uploads)
 
 ```html
-<img src='{% media "avatars/photo.jpg" %}' alt="Profile Photo">
+<img src='{% media "avatars/photo.jpg" %}' alt="Profile photo">
 <a href='{% media "documents/cv.pdf" %}'>Download CV</a>
 ```
 
-**Transformed to:** `{{ "avatars/photo.jpg" | media }}`
+**Transformed into:** `{{ "avatars/photo.jpg" | media }}`
 **Result:** `/media/avatars/photo.jpg`
 
 ---
 
-### `{% csrf %}` — CSRF protection
+### `{% csrf %}` — CSRF Protection
 
 ```html
-<form method="post" action="/register">
+<form method="post" action="/signup">
     {% csrf %}
-    <!-- Automatically generates <input type="hidden" name="csrf_token" value="..."> -->
-    <!-- + JS validation script -->
+    <!-- Automatically generates:
+         <input type="hidden" name="csrf_token" value="...">
+         + validation JS script -->
 
     <button type="submit">Submit</button>
 </form>
 ```
 
-**Transformed to:** `{% include "csrf/csrf_field.html" %}`
+**Transformed into:** `{% include "csrf/csrf_field.html" %}`
 
-> ⚠️ **Not needed** in Runique forms (`{% form.xxx %}`) — CSRF token is automatically injected. Use `{% csrf %}` only for manually written HTML forms.
+> ⚠️ **Not required** inside Runique forms (`{% form.xxx %}`) — the CSRF token is injected automatically. Use `{% csrf %}` only for manually written HTML forms.
 
 ---
 
-### `{% messages %}` — Flash messages
+### `{% messages %}` — Flash Messages
 
 ```html
 {% messages %}
 ```
 
-**Transformed to:** `{% include "message/message_include.html" %}`
+**Transformed into:** `{% include "message/message_include.html" %}`
 
-Automatically displays all flash messages (success, error, info, warning) with the proper CSS classes. See the [Flash Messages guide](09-flash-messages.md) for details.
+Automatically displays all flash messages (success, error, info, warning) with corresponding CSS classes. See the [Flash Messages guide](09-flash-messages.md) for more details.
 
 ---
 
@@ -130,103 +130,103 @@ Automatically displays all flash messages (success, error, info, warning) with t
 
 ```html
 <script {% csp_nonce %}>
-    console.log("Secure script with CSP nonce");
+    console.log("Secured script with CSP nonce");
 </script>
 ```
 
-**Transformed to:** `{% include "csp/csp_nonce.html" %}`
+**Transformed into:** `{% include "csp/csp_nonce.html" %}`
 
-Injects the `nonce="..."` attribute on a `<script>` or `<style>` tag for Content Security Policy (CSP).
+Injects the `nonce="..."` attribute on `<script>` or `<style>` tags for Content Security Policy.
 
 ---
 
-### `{% link %}` — Named route links
+### `{% link %}` — Named Route Links
 
 ```html
 <a href='{% link "index" %}'>Home</a>
-<a href='{% link "user_detail" id="42" %}'>User Profile</a>
+<a href='{% link "user_detail" id="42" %}'>User profile</a>
 ```
 
-**Transformed to:** `{{ link(link='index') }}`
+**Transformed into:** `{{ link(link='index') }}`
 
-Resolves the name of a registered route (see [Routing](04-routing.md) and the `urlpatterns!` macro).
+Resolves the name of a route registered in the URL registry (see Routing and the `urlpatterns!` macro).
 
 ---
 
-### `{% form.xxx %}` — Full form rendering
+### `{% form.xxx %}` — Full Form Rendering
 
 ```html
-<form method="post" action="/register">
-    {% form.register_form %}
-    <button type="submit">Register</button>
+<form method="post" action="/signup">
+    {% form.signup_form %}
+    <button type="submit">Sign up</button>
 </form>
 ```
 
-**Transformed to:** `{{ register_form | form | safe }}`
+**Transformed into:** `{{ signup_form | form | safe }}`
 
-Renders the entire form: all HTML fields, validation errors, CSRF token, and necessary JS scripts.
+Renders the entire form: all HTML fields, validation errors, CSRF token, and required JS scripts.
 
 ---
 
-### `{% form.xxx.field %}` — Single field rendering
+### `{% form.xxx.field %}` — Single Field Rendering
 
 ```html
-<form method="post" action="/register">
+<form method="post" action="/signup">
     <div class="row">
-        <div class="col">{% form.register_form.username %}</div>
-        <div class="col">{% form.register_form.email %}</div>
+        <div class="col">{% form.signup_form.username %}</div>
+        <div class="col">{% form.signup_form.email %}</div>
     </div>
     <div class="row">
-        {% form.register_form.password %}
+        {% form.signup_form.password %}
     </div>
-    <button type="submit">Register</button>
+    <button type="submit">Sign up</button>
 </form>
 ```
 
-**Transformed to:** `{{ register_form | form(field='username') | safe }}`
+**Transformed into:** `{{ signup_form | form(field='username') | safe }}`
 
-Renders a single field. JS scripts are automatically injected after the **last field** rendered.
+Renders a single form field. JS scripts are automatically injected after the **last rendered field**.
 
 ---
 
 ## Tera Filters
 
-Filters are the "low-level" form of Django-like tags. You can use them directly in standard Tera syntax if preferred.
+Filters are the lower-level equivalent of Django-like tags. You can use them directly in standard Tera syntax if preferred.
 
 ### Asset Filters
 
-| Filter           | Description                      | Example             |                    |
-| ---------------- | -------------------------------- | ------------------- | ------------------ |
-| `static`         | Adds app static URL prefix       | `{{ "css/main.css"  | static }}`         |
-| `media`          | Adds media URL prefix            | `{{ "photo.jpg"     | media }}`          |
-| `runique_static` | Internal framework static assets | `{{ "css/error.css" | runique_static }}` |
-| `runique_media`  | Internal framework media         | `{{ "logo.png"      | runique_media }}`  |
+| Filter           | Description                      | Example                                   |
+| ---------------- | -------------------------------- | ----------------------------------------- |
+| `static`         | App static URL prefix            | `{{ "css/main.css" \| static }}`          |
+| `media`          | App media URL prefix             | `{{ "photo.jpg" \| media }}`              |
+| `runique_static` | Framework internal static assets | `{{ "css/error.css" \| runique_static }}` |
+| `runique_media`  | Framework internal media         | `{{ "logo.png" \| runique_media }}`       |
 
 ### Form Filter
 
-| Filter              | Description                   | Example        |                     |          |
-| ------------------- | ----------------------------- | -------------- | ------------------- | -------- |
-| `form`              | Renders the complete form     | `{{ my_form    | form                | safe }}` |
-| `form(field='xxx')` | Renders a single field        | `{{ my_form    | form(field='email') | safe }}` |
-| `csrf_field`        | Generates a hidden CSRF input | `{{ csrf_token | csrf_field          | safe }}` |
+| Filter              | Description                 | Example                                        |
+| ------------------- | --------------------------- | ---------------------------------------------- |
+| `form`              | Full form rendering         | `{{ my_form \| form \| safe }}`                |
+| `form(field='xxx')` | Single field rendering      | `{{ my_form \| form(field='email') \| safe }}` |
+| `csrf_field`        | Generates hidden CSRF input | `{{ csrf_token \| csrf_field \| safe }}`       |
 
 ### Tera Functions
 
-| Function           | Description                             | Example                    |
-| ------------------ | --------------------------------------- | -------------------------- |
-| `csrf()`           | Generates a CSRF field from the context | `{{ csrf() }}`             |
-| `nonce()`          | Returns the CSP nonce                   | `{{ nonce() }}`            |
-| `link(link='...')` | Resolves a named route                  | `{{ link(link='index') }}` |
+| Function           | Description                       | Example                    |
+| ------------------ | --------------------------------- | -------------------------- |
+| `csrf()`           | Generates CSRF field from context | `{{ csrf() }}`             |
+| `nonce()`          | Returns CSP nonce                 | `{{ nonce() }}`            |
+| `link(link='...')` | Named URL resolution              | `{{ link(link='index') }}` |
 
 ---
 
 ## Template Inheritance
 
-### Parent template (`base.html`)
+### Parent Template (base.html)
 
 ```html
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}My Site{% endblock %}</title>
@@ -253,7 +253,7 @@ Filters are the "low-level" form of Django-like tags. You can use them directly 
 </html>
 ```
 
-### Child template (`index.html`)
+### Child Template (index.html)
 
 ```html
 {% extends "base.html" %}
@@ -293,7 +293,7 @@ Filters are the "low-level" form of Django-like tags. You can use them directly 
     <div class="item-{{ loop.index }}">{{ item }}</div>
 {% endfor %}
 
-<!-- Using first/last -->
+<!-- With first/last -->
 {% for item in items %}
     {% if loop.first %}<ul>{% endif %}
     <li>{{ item }}</li>
@@ -312,21 +312,20 @@ Filters are the "low-level" form of Django-like tags. You can use them directly 
     <p>Please log in.</p>
 {% endif %}
 
-<!-- Combined tests -->
 {% if user and user.is_active %}
     <span class="badge">Active</span>
 {% endif %}
 
 {% if posts | length > 0 %}
-    <p>{{ posts | length }} articles found.</p>
+    <p>{{ posts | length }} posts found.</p>
 {% endif %}
 ```
 
 ---
 
-## Tera Macros (in templates)
+## Tera Macros (Inside Templates)
 
-Macros allow reusable components:
+Tera macros allow reusable components:
 
 ```html
 {% macro render_user(user) %}
@@ -336,7 +335,6 @@ Macros allow reusable components:
     </div>
 {% endmacro %}
 
-<!-- Usage -->
 {% for u in users %}
     {{ self::render_user(user=u) }}
 {% endfor %}
@@ -346,17 +344,17 @@ Macros allow reusable components:
 
 ## Form Error Handling
 
-### Automatic display (`{% form.xxx %}`)
+### Automatic Display (via `{% form.xxx %}`)
 
-When using `{% form.register_form %}`, validation errors are **automatically rendered** under the relevant fields.
+When using `{% form.signup_form %}`, validation errors are **automatically rendered** under each relevant field.
 
-### Manual display of global errors
+### Manual Global Error Display
 
 ```html
-{% if register_form.errors %}
+{% if signup_form.errors %}
     <div class="alert alert-warning">
         <ul>
-            {% for field_name, error_msg in register_form.errors %}
+            {% for field_name, error_msg in signup_form.errors %}
                 <li><strong>{{ field_name }}:</strong> {{ error_msg }}</li>
             {% endfor %}
         </ul>
@@ -369,17 +367,16 @@ When using `{% form.register_form %}`, validation errors are **automatically ren
 ## Complete Example: Page with Form
 
 ```rust
-// Rust handler
-pub async fn register(
+pub async fn signup(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
     if request.is_get() {
         context_update!(request => {
-            "title" => "Register",
-            "register_form" => &form,
+            "title" => "Sign Up",
+            "signup_form" => &form,
         });
-        return request.render("register.html");
+        return request.render("signup.html");
     }
 
     if request.is_post() {
@@ -394,18 +391,17 @@ pub async fn register(
 
         context_update!(request => {
             "title" => "Validation Error",
-            "register_form" => &form,
+            "signup_form" => &form,
             "messages" => flash_now!(error => "Please fix the errors"),
         });
-        return request.render("register.html");
+        return request.render("signup.html");
     }
 
-    request.render("register.html")
+    request.render("signup.html")
 }
 ```
 
 ```html
-<!-- Template register.html -->
 {% extends "base.html" %}
 
 {% block title %}{{ title }}{% endblock %}
@@ -415,42 +411,42 @@ pub async fn register(
 
     {% messages %}
 
-    <form method="post" action="/register">
-        {% form.register_form %}
-        <button type="submit" class="btn btn-primary">Register</button>
+    <form method="post" action="/signup">
+        {% form.signup_form %}
+        <button type="submit" class="btn btn-primary">Sign up</button>
     </form>
 {% endblock %}
 ```
 
 ---
 
-## Auto-injected Variables
+## Auto-Injected Variables
 
 These variables are automatically available in all templates:
 
-| Variable     | Type                | Description                              |
-| ------------ | ------------------- | ---------------------------------------- |
-| `csrf_token` | `String`            | Session CSRF token                       |
-| `csp_nonce`  | `String`            | CSP nonce for inline scripts/styles      |
-| `messages`   | `Vec<FlashMessage>` | Flash messages from the previous session |
-| `debug`      | `bool`              | Whether debug mode is active             |
+| Variable     | Type                | Description                          |
+| ------------ | ------------------- | ------------------------------------ |
+| `csrf_token` | `String`            | Session CSRF token                   |
+| `csp_nonce`  | `String`            | CSP nonce for inline scripts/styles  |
+| `messages`   | `Vec<FlashMessage>` | Flash messages from previous session |
+| `debug`      | `bool`              | Debug mode status                    |
 
 ---
 
 ## ⚠️ Common Pitfall: Variable Name Collision
 
-When using `{% form.user %}` in a template, Tera applies the `form` filter on the context variable `user`. **This variable must be a Prisme form**, not an arbitrary object.
+When using `{% form.user %}` in a template, Tera applies the `form` filter to the `user` variable in the context. **This variable must be a Prisme form**, not an arbitrary object.
 
 ```rust
 // ❌ ERROR: "user" is a SeaORM Model, not a form
 context_update!(request => {
-    "user" => &db_user,  // users::Model → the form filter will crash!
+    "user" => &db_user,
 });
 
 // ✅ CORRECT: separate form and DB entity
 context_update!(request => {
-    "user" => &form,           // UsernameForm (Prisme) → {% form.user %} works
-    "found_user" => &db_user,  // users::Model → {{ found_user.email }}
+    "user" => &form,
+    "found_user" => &db_user,
 });
 ```
 
