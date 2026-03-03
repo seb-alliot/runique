@@ -939,10 +939,10 @@ context_update!(request => {
 ### 2. Oublier le `mut` sur form
 
 ```rust
-// ❌ Ne peut pas appeler is_valid()
+//  Ne peut pas appeler is_valid()
 Prisme(form): Prisme<MyForm>
 
-// ✅ Correct
+//  Correct
 Prisme(mut form): Prisme<MyForm>
 ```
 
@@ -952,11 +952,11 @@ Prisme(mut form): Prisme<MyForm>
 ### 3. Comparer des mots de passe après `is_valid()`
 
 ```rust
-// ❌ Après is_valid(), les mots de passe sont hachés !
+//  Après is_valid(), les mots de passe sont hachés !
 let mdp = form.get_form().get_string("password");
 // mdp == "$argon2id$v=19$m=..." 😱
 
-// ✅ Comparer dans clean(), AVANT la finalisation
+//  Comparer dans clean(), AVANT la finalisation
 async fn clean(&mut self) -> Result<(), StrMap> {
     let mdp1 = self.form.get_string("password");
     let mdp2 = self.form.get_string("password_confirm");

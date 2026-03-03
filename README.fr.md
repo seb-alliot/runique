@@ -11,12 +11,15 @@ Bien que des efforts aient été faits pour assurer l'exactitude, certains liens
 Veuillez signaler les problèmes sur [GitHub](https://github.com/seb-alliot/runique/issues).
 
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)]()
-[![Tests](https://img.shields.io/badge/tests-1157%2F1157%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1356%2F1356%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Version](https://img.shields.io/badge/version-1.1.25-blue)]()
 [![Crates.io](https://img.shields.io/crates/v/runique)]()
 
 Un framework web Rust moderne et complet, inspiré par Django, pour construire des applications web robustes et performantes.
+
+> État actuel : développement actif.
+> La source produit est la crate `runique` ; `demo-app` sert de support de validation/test du framework.
 
 🌍 **Langues** : [English](README.md) | [🇫🇷 Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
 
@@ -312,7 +315,7 @@ cargo test --test integration_tests
 cargo test --all
 ```
 
-Résultats : **36/36 tests passent** ✅
+Résultats : **1356/1356 tests passent** ✅
 
 ---
 
@@ -324,6 +327,7 @@ Résultats : **36/36 tests passent** ✅
 - [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
 - [Routage](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
 - [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+- [Model/Scema](https://github.com/seb-alliot/runique/blob/main/docs/en/12-model.md)
 - [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
 - [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
 - [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
@@ -337,6 +341,7 @@ Résultats : **36/36 tests passent** ✅
 - [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
 - [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
 - [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+- [Model/Scema](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md)
 - [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md)
 - [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md)
 - [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
@@ -357,7 +362,7 @@ Résultats : **36/36 tests passent** ✅
 ## 📊 État du projet
 
 - ✅ **Compilation** : Sans erreurs
-- ✅ **Tests** : 1 157/1 157 passent (100%)
+- ✅ **Tests** : 1356/1356 passent (100%)
 - ✅ **Documentation** : Complète (EN & FR)
 - ✅ **Production** : Prêt
 
