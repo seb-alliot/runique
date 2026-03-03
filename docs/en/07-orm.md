@@ -1,4 +1,3 @@
-
 # 🗄️ ORM & Database
 
 ## SeaORM + Objects Manager
@@ -18,7 +17,7 @@ let all_users = users::Entity::objects
     .all(&*db)
     .await?;
 
-// With a filter
+// With filter
 let active_users = users::Entity::objects
     .filter(users::Column::Active.eq(true))
     .all(&*db)
@@ -31,7 +30,7 @@ let user = users::Entity::objects
     .await?;
 ```
 
-### Without Macro (Native SeaORM)
+### Without the macro (Native SeaORM)
 
 ```rust
 // All records
@@ -51,17 +50,17 @@ let user = users::Entity::find_by_id(user_id)
 
 ### Available Helpers
 
-* `all()`: entry point to chain `filter`, `order_by_asc/desc`, `limit`, `offset`.
-* `filter(...)` / `exclude(...)`: add conditions.
-* `first(db)` / `count(db)`: executes the query (alias for `one` / quick client-side count).
-* `get(db, id)` / `get_optional(db, id)`: direct access by primary key.
-* `get_or_404(db, ctx, msg)`: returns a 404/500 response with Tera rendering if missing.
+* `all()` — entry point for chaining `filter`, `order_by_asc/desc`, `limit`, `offset`.
+* `filter(...)` / `exclude(...)` — add conditions.
+* `first(db)` / `count(db)` — execute the query (alias for `one` / fast count).
+* `get(db, id)` / `get_optional(db, id)` — direct primary key access.
+* `get_or_404(db, ctx, msg)` — returns a 404/500 response with Tera rendering if missing.
 
 ---
 
 ## Common Queries
 
-### SELECT - Retrieve
+### SELECT — Retrieve
 
 ```rust
 // All records
@@ -95,7 +94,9 @@ let users = users::Entity::objects
     .await?;
 ```
 
-### COUNT - Count records
+---
+
+### COUNT — Count Records
 
 ```rust
 let count = users::Entity::objects
@@ -106,7 +107,9 @@ let count = users::Entity::objects
 println!("Active users: {}", count);
 ```
 
-### WHERE - Filtering
+---
+
+### WHERE — Filtering
 
 ```rust
 use sea_orm::ColumnTrait;
@@ -129,7 +132,6 @@ let users = users::Entity::objects
     .await?;
 
 // Multiple conditions
-use sea_orm::sea_query::Expr;
 let users = users::Entity::objects
     .filter(users::Column::Active.eq(true))
     .filter(users::Column::Age.gte(18))
@@ -149,7 +151,7 @@ let users = users::Entity::objects
 
 ---
 
-## INSERT - Create
+## INSERT — Create
 
 ```rust
 use sea_orm::Set;
@@ -167,7 +169,7 @@ println!("Created: {:?}", user);
 
 ---
 
-## UPDATE - Modify
+## UPDATE — Modify
 
 ```rust
 use sea_orm::{Set, Unchanged};
@@ -187,17 +189,17 @@ println!("Updated: {:?}", updated);
 
 ---
 
-## DELETE - Remove
+## DELETE — Remove
 
 ```rust
-// Delete single
+// Delete single record
 let result = users::Entity::delete_by_id(1)
     .exec(&*db)
     .await?;
 
 println!("Deleted: {} row(s)", result.rows_affected);
 
-// Delete multiple
+// Delete multiple records
 let result = users::Entity::delete_many()
     .filter(users::Column::Active.eq(false))
     .exec(&*db)
@@ -228,12 +230,12 @@ transaction.commit().await?;
 
 ---
 
-## Relations
+## Relationships
 
 ### One-to-Many
 
 ```rust
-// User has many Posts
+// A User has many Posts
 let user = users::Entity::objects.get_optional(&*db, 1).await?;
 
 if let Some(user) = user {
@@ -265,7 +267,7 @@ use runique::prelude::*;
 use axum::extract::Path;
 
 // CRUD Handler
-// Using macro (Entity::objects)
+// Variant with macro (Entity::objects)
 async fn list_users() -> Response {
     let db = /* access db from app state */;
 
@@ -278,7 +280,7 @@ async fn list_users() -> Response {
     }
 }
 
-// Without macro (native SeaORM)
+// Native SeaORM variant
 async fn list_users_raw() -> Response {
     let db = /* access db from app state */;
 
@@ -307,7 +309,7 @@ async fn get_user(
     }
 }
 
-// Without macro (find_by_id)
+// Native find_by_id variant
 async fn get_user_raw(
     Path(id): Path<i32>,
 ) -> Response {
@@ -362,7 +364,7 @@ async fn delete_user(
             Redirect::to("/users").into_response()
         }
         _ => {
-            messages.error("Deletion failed");
+            messages.error("Error while deleting");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }

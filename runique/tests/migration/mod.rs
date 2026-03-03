@@ -19,7 +19,6 @@
 //! | `test_migration_flow`   | Flux complet end-to-end (scan→gen→fichiers)  |
 
 pub mod test_column_def;
-pub mod test_column_def_extra;
 pub mod test_convertisseur;
 pub mod test_diff;
 pub mod test_foreign_key;
@@ -34,7 +33,6 @@ pub mod test_model_schema;
 pub mod test_parser;
 pub mod test_parser_builder;
 pub mod test_parser_seaorm;
-pub mod test_parser_seaorm_extra;
 pub mod test_paths;
 pub mod test_primary_key;
 pub mod test_relation_def;

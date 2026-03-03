@@ -1,32 +1,31 @@
-
 # 🛡️ Middleware & Security
 
 ## Overview
 
-Runique integrates configurable security middlewares. The **Smart Builder** automatically applies them in the optimal order using a slot system.
+Runique includes configurable security middleware. The **Intelligent Builder** automatically applies them in the optimal order thanks to the slot system.
 
 ---
 
 ## Middleware Stack (Execution Order)
 
 ```
-Incoming Request
+Incoming request
     ↓
-1. Extensions (slot 0)      → Inject Engine, Tera, Config
-2. ErrorHandler (slot 10)   → Capture and render errors
-3. Custom (slot 20+)        → Your custom middlewares
-4. CSP (slot 30)             → Content Security Policy & headers
-5. Cache (slot 40)           → No-cache in development
-6. Session (slot 50)         → Session management (MemoryStore by default)
-7. CSRF (slot 60)            → Cross-Site Request Forgery protection
-8. Host (slot 70)            → Allowed hosts validation
+1. Extensions (slot 0)     → Inject Engine, Tera, Config
+2. ErrorHandler (slot 10)  → Capture and render errors
+3. Custom (slot 20+)       → Your custom middlewares
+4. CSP (slot 30)           → Content Security Policy & headers
+5. Cache (slot 40)         → No-cache in development
+6. Session (slot 50)       → Session management (MemoryStore by default)
+7. CSRF (slot 60)          → Cross-Site Request Forgery protection
+8. Host (slot 70)          → Validate allowed hosts
     ↓
 Handler (your code)
     ↓
-Outgoing Response (middlewares in reverse order)
+Outgoing response (middlewares in reverse order)
 ```
 
-> 💡 With Axum, the last `.layer()` is executed first on the request. The Smart Builder handles this order automatically via slots.
+> 💡 With Axum, the last `.layer()` is the first one executed on the request. The Intelligent Builder handles this ordering automatically via slots.
 
 ---
 
@@ -34,26 +33,26 @@ Outgoing Response (middlewares in reverse order)
 
 ### How it works
 
-* Token **generated automatically** per session
-* **Double Submit Cookie** pattern (cookie + hidden input)
-* Checked on POST, PUT, PATCH, DELETE requests
+* Token generated **automatically** for each session
+* **Double Submit Cookie** pattern (cookie + hidden field)
+* Verified on POST, PUT, PATCH, DELETE requests
 * Ignored on GET, HEAD, OPTIONS requests
 
-### In Runique Forms
+### In Runique forms
 
-When using `{% form.xxx %}`, the CSRF token is **included automatically**. No need to add it manually.
+When you use `{% form.xxx %}`, CSRF is **included automatically**. No need to add it manually.
 
-### In Manual HTML Forms
+### In manual HTML forms
 
 ```html
 <form method="post" action="/submit">
     {% csrf %}
     <input type="text" name="data">
-    <button type="submit">Submit</button>
+    <button type="submit">Send</button>
 </form>
 ```
 
-### For AJAX Requests
+### For AJAX requests
 
 ```javascript
 const csrfToken = document.querySelector('[name="csrf_token"]').value;
@@ -78,17 +77,17 @@ fetch('/api/endpoint', {
 * Injected into the Tera context as `csp_nonce`
 * CSP headers added to every response
 
-### Usage in Templates
+### Usage in templates
 
 ```html
-<!-- Secure inline scripts -->
+<!-- Secured inline scripts -->
 <script {% csp_nonce %}>
     console.log("Script with CSP nonce");
 </script>
 
 <!-- Or using the variable directly -->
 <script nonce="{{ csp_nonce }}">
-    console.log("Alternative usage");
+    console.log("Alternative");
 </script>
 ```
 
@@ -102,12 +101,12 @@ fetch('/api/endpoint', {
 
 ---
 
-## Allowed Hosts Validation
+## Host Validation (Allowed Hosts)
 
 ### How it works
 
 * Compares the request `Host` header against `ALLOWED_HOSTS`
-* Blocks requests with unauthorized hosts (HTTP 400)
+* Blocks requests with a non-allowed host (HTTP 400)
 * Protects against Host Header Injection attacks
 
 ### `.env` Configuration
@@ -117,31 +116,31 @@ fetch('/api/endpoint', {
 ALLOWED_HOSTS=localhost,127.0.0.1,example.com
 
 # Supported patterns:
-# localhost       → exact match
-# .example.com    → matches example.com AND *.example.com
-# *               → ALL hosts (⚠️ DANGEROUS in production!)
+# localhost      → exact match
+# .example.com   → matches example.com AND *.example.com
+# *              → ALL hosts (⚠️ DANGEROUS in production!)
 ```
 
-### Debug Mode
+### Debug mode
 
-With `DEBUG=true`, host validation is **disabled by default** for easier development.
+With `DEBUG=true`, host validation is **disabled by default** to make development easier.
 
 ---
 
 ## Cache-Control
 
-### Development Mode (`DEBUG=true`)
+### Development mode (`DEBUG=true`)
 
-No-cache headers are added to force reload:
+`no-cache` headers are added to force reloads:
 
 ```
 Cache-Control: no-cache, no-store, must-revalidate
 Pragma: no-cache
 ```
 
-### Production Mode (`DEBUG=false`)
+### Production mode (`DEBUG=false`)
 
-Cache headers are enabled for performance.
+Caching headers are enabled for performance.
 
 ---
 
@@ -151,19 +150,19 @@ Runique automatically injects standard security headers:
 
 | Header                    | Value                             | Protection             |
 | ------------------------- | --------------------------------- | ---------------------- |
-| `X-Content-Type-Options`  | `nosniff`                         | Prevent MIME sniffing  |
-| `X-Frame-Options`         | `DENY`                            | Prevent clickjacking   |
+| `X-Content-Type-Options`  | `nosniff`                         | Prevents MIME sniffing |
+| `X-Frame-Options`         | `DENY`                            | Prevents clickjacking  |
 | `X-XSS-Protection`        | `1; mode=block`                   | Browser XSS protection |
-| `Referrer-Policy`         | `strict-origin-when-cross-origin` | Limit referrers        |
+| `Referrer-Policy`         | `strict-origin-when-cross-origin` | Limits referrers       |
 | `Content-Security-Policy` | Dynamic (with nonce)              | CSP                    |
 
 ---
 
 ## Sessions
 
-### Default Store
+### Default store
 
-Runique uses `MemoryStore` by default (data in memory, lost on restart).
+Runique uses `MemoryStore` by default (in-memory data, lost on restart).
 
 ### Configuration
 
@@ -175,16 +174,16 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-### Session Durations
+### Session durations
 
-| Duration                | Usage                     |
+| Duration                | Use case                  |
 | ----------------------- | ------------------------- |
 | `Duration::minutes(30)` | Short sessions (security) |
 | `Duration::hours(2)`    | Standard usage            |
 | `Duration::hours(24)`   | Runique default           |
 | `Duration::days(7)`     | "Remember me"             |
 
-### Custom Store (Production)
+### Custom store (production)
 
 ```rust
 use tower_sessions::MemoryStore;
@@ -195,7 +194,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-### Accessing Session in Handlers
+### Accessing session data in handlers
 
 ```rust
 pub async fn dashboard(request: Request) -> AppResult<Response> {
@@ -217,22 +216,22 @@ pub async fn dashboard(request: Request) -> AppResult<Response> {
 
 ## Builder Configuration
 
-### Classic Builder
+### Classic builder
 
 ```rust
 let app = RuniqueApp::builder(config)
     .routes(url::routes())
     .with_database(db)
-    .with_error_handler(true)   // Capture errors
-    .with_csp(true)             // CSP & security headers
-    .with_allowed_hosts(true)   // Host validation
-    .with_cache(true)           // No-cache in dev
-    .with_static_files()        // Static files service
+    .with_error_handler(true)      // Capture errors
+    .with_csp(true)                // CSP & security headers
+    .with_allowed_hosts(true)      // Host validation
+    .with_cache(true)              // No-cache in dev
+    .with_static_files()           // Static files service
     .build()
     .await?;
 ```
 
-### Smart Builder (New)
+### Intelligent Builder (new)
 
 ```rust
 use runique::app::RuniqueAppBuilder as IntelligentBuilder;
@@ -240,18 +239,18 @@ use runique::app::RuniqueAppBuilder as IntelligentBuilder;
 let app = IntelligentBuilder::new(config)
     .routes(url::routes())
     .with_database(db)
-    .statics()                  // Enable static files
+    .statics()                     // Enable static files
     .build()
     .await?;
 ```
 
-The Smart Builder:
+The Intelligent Builder:
 
-* **Automatically** applies middlewares in the correct order (slots)
-* Uses the **debug profile** for default values (permissive in dev, strict in prod)
-* Allows **customization** via `middleware(|m| { ... })`
+* Applies middlewares automatically in the correct order (slots)
+* Uses the debug profile for defaults (permissive in dev, strict in prod)
+* Allows customization via `middleware(|m| { ... })`
 
-### Customizing Middlewares
+### Customizing middlewares
 
 ```rust
 let app = IntelligentBuilder::new(config)
@@ -274,11 +273,11 @@ let app = IntelligentBuilder::new(config)
 | `SECRETE_KEY`                    | *(required)* | Secret key for CSRF                    |
 | `ALLOWED_HOSTS`                  | `*`          | Allowed hosts                          |
 | `DEBUG`                          | `true`       | Debug mode (affects CSP, cache, hosts) |
-| `RUNIQUE_ENABLE_CSP`             | *(auto)*     | Force CSP on/off                       |
+| `RUNIQUE_ENABLE_CSP`             | *(auto)*     | Force-enable/disable CSP               |
 | `RUNIQUE_ENABLE_HOST_VALIDATION` | *(auto)*     | Force host validation                  |
 | `RUNIQUE_ENABLE_CACHE`           | *(auto)*     | Force cache control                    |
 
-> In debug mode, security middlewares are permissive by default. `RUNIQUE_ENABLE_*` variables allow forcing specific behavior regardless of debug mode.
+> In debug mode, security middlewares are permissive by default. `RUNIQUE_ENABLE_*` variables let you force a specific behavior regardless of mode.
 
 ---
 

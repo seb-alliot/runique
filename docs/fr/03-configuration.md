@@ -1,4 +1,4 @@
-# ⚙️ Configuration
+﻿# ⚙️ Configuration
 
 ## RuniqueConfig
 
@@ -24,12 +24,14 @@ println!("DB: {}", config.database_url);
 ### Serveur
 
 | Variable | Défaut | Description |
+
 |----------|--------|-------------|
 | `IP_SERVER` | 127.0.0.1 | Adresse IP écoute |
 | `PORT` | 3000 | Port serveur |
 | `DEBUG` | true | Mode debug (templates, logs, etc.) |
 
 **Exemple:**
+
 ```env
 # Server Configuration
 IP_SERVER=127.0.0.1
@@ -59,6 +61,7 @@ ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
 ### Base de Données
 
 | Variable | Défaut | Description |
+
 |----------|--------|-------------|
 | `DATABASE_URL` | - | Chaîne de connexion complète |
 | `DB_ENGINE` | postgres | postgres, sqlite, mysql |
@@ -69,6 +72,7 @@ ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
 | `DB_NAME` | runique | Nom base de données |
 
 **PostgreSQL:**
+
 ```env
 DATABASE_URL=postgres://user:password@localhost:5432/dbname
 DB_ENGINE=postgres
@@ -80,6 +84,7 @@ DB_NAME=runique
 ```
 
 **SQLite (dev):**
+
 ```env
 DATABASE_URL=sqlite:runique.db?mode=rwc
 ```
@@ -87,12 +92,14 @@ DATABASE_URL=sqlite:runique.db?mode=rwc
 ### Templates & Assets
 
 | Variable | Défaut | Description |
+
 |----------|--------|-------------|
 | `TEMPLATES_DIR` | templates | Répertoire templates |
 | `STATICFILES_DIRS` | static | Répertoire assets statiques |
 | `MEDIA_ROOT` | media | Répertoire médias (uploads) |
 
 **Exemple:**
+
 ```env
 TEMPLATES_DIR=templates
 STATICFILES_DIRS=static:demo-app/static
@@ -102,17 +109,20 @@ MEDIA_ROOT=uploads
 ### Sécurité
 
 | Variable | Défaut | Description |
+
 |----------|--------|-------------|
 | `SECRETE_KEY` | - | Clé secrète CSRF (⚠️ CHANGE EN PROD!) |
 | `ALLOWED_HOSTS` | * | Hosts autorisés (comma-separated) |
 
 **Exemple:**
+
 ```env
 SECRETE_KEY=your_secret_key_change_this_in_production
 ALLOWED_HOSTS=localhost,127.0.0.1,example.com,.api.example.com
 ```
 
 **ALLOWED_HOSTS patterns:**
+
 - `localhost` - Exact match
 - `*` - Wildcard tous les hosts (DANGER en production!)
 - `.example.com` - Match example.com et *.example.com
@@ -155,7 +165,6 @@ MEDIA_ROOT=media
 # SECURITY
 # ============================================================================
 # IMPORTANT: Générer une nouvelle clé pour la production!
-# python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 SECRETE_KEY=your_secret_key_here_change_in_production
 
 # Format: comma-separated (no spaces)
@@ -367,6 +376,7 @@ let app = RuniqueApp::builder(config)
 ```
 
 **Exemples de durées :**
+
 ```rust
 Duration::hours(2)      // 2 heures
 Duration::days(7)       // 7 jours
@@ -424,6 +434,7 @@ let app = IntelligentBuilder::new(config)
 ### Valeurs par défaut
 
 | Configuration | Défaut | Notes |
+
 |--------------|--------|-------|
 | **Session duration** | 24 heures | |
 | **Session store** | `MemoryStore` | |

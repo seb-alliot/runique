@@ -1,16 +1,13 @@
-
----
-
 # ⚙️ Configuration
 
 ## RuniqueConfig
 
 All configuration is handled via `.env` and loaded into a `RuniqueConfig` struct.
 
-### Loading Configuration
+### Load configuration
 
 ```rust
-use runique::config_runique::RuniqueConfig;
+use runique::prelude::*;
 
 let config = RuniqueConfig::from_env()?;
 
@@ -38,14 +35,14 @@ println!("DB: {}", config.database_url);
 # Server Configuration
 IP_SERVER=127.0.0.1
 PORT=3000
-DEBUG=true
 
+DEBUG=true
 # Database Configuration (SQLite by default)
 
-# Secret key for CSRF management
+# Secret key for csrf management
 SECRETE_KEY=your_secret_key_here
 
-# Fill in for any DB other than SQLite
+# To be completed for any DB other than SQLite
 DB_ENGINE=postgres
 DB_USER=postgres
 DB_PASSWORD=password
@@ -53,11 +50,11 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=runique
 
-# Optional, not required except for personal use
-DATABASE_URL=postgresql://myuser:mypassword@localhost:5432/mydb
+# Optional, not mandatory unless for personal use
+DATABASE_URL=postgresql://monuser:monmotdepasse@localhost:5432/mabase
 
 # Allowed hosts for production
-ALLOWED_HOSTS=example.com,www.example.com,.api.example.com,localhost,127.0.0.1
+ALLOWED_HOSTS=exemple.com,www.exemple.com,.api.exemple.com,localhost,127.0.0.1
 ```
 
 ### Database
@@ -92,11 +89,11 @@ DATABASE_URL=sqlite:runique.db?mode=rwc
 
 ### Templates & Assets
 
-| Variable           | Default   | Description             |
-| ------------------ | --------- | ----------------------- |
-| `TEMPLATES_DIR`    | templates | Templates directory     |
-| `STATICFILES_DIRS` | static    | Static assets directory |
-| `MEDIA_ROOT`       | media     | Media/uploads directory |
+| Variable           | Default   | Description               |
+| ------------------ | --------- | ------------------------- |
+| `TEMPLATES_DIR`    | templates | Templates directory       |
+| `STATICFILES_DIRS` | static    | Static assets directory   |
+| `MEDIA_ROOT`       | media     | Media directory (uploads) |
 
 **Example:**
 
@@ -108,10 +105,10 @@ MEDIA_ROOT=uploads
 
 ### Security
 
-| Variable        | Default | Description                          |
-| --------------- | ------- | ------------------------------------ |
-| `SECRETE_KEY`   | -       | CSRF secret key (⚠️ CHANGE IN PROD!) |
-| `ALLOWED_HOSTS` | *       | Allowed hosts (comma-separated)      |
+| Variable | Default | Description |
+| --- | --- | --- |
+| `SECRETE_KEY` | - | CSRF secret key (⚠️ CHANGE IN PROD!) |
+| `ALLOWED_HOSTS` | * | Allowed hosts (comma-separated) |
 
 **Example:**
 
@@ -122,13 +119,13 @@ ALLOWED_HOSTS=localhost,127.0.0.1,example.com,.api.example.com
 
 **ALLOWED_HOSTS patterns:**
 
-* `localhost` - Exact match
-* `*` - Wildcard for all hosts (DANGER in production!)
-* `.example.com` - Matches example.com and *.example.com
+* `localhost` — Exact match
+* `*` — Wildcard for all hosts (DANGEROUS in production!)
+* `.example.com` — Matches example.com and *.example.com
 
 ---
 
-## Complete .env File
+## Full .env File
 
 ```env
 # ============================================================================
@@ -164,7 +161,6 @@ MEDIA_ROOT=media
 # SECURITY
 # ============================================================================
 # IMPORTANT: Generate a new key for production!
-# python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 SECRETE_KEY=your_secret_key_here_change_in_production
 
 # Format: comma-separated (no spaces)
@@ -184,12 +180,12 @@ PORT=443
 IP_SERVER=0.0.0.0
 
 # HTTPS
-SECRETE_KEY=<dynamically_generated>
+SECRETE_KEY=<generated dynamically>
 
 # Strict hosts
 ALLOWED_HOSTS=example.com,www.example.com,.api.example.com
 
-# External DB
+# Externalized DB
 DATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique
 ```
 
@@ -219,7 +215,7 @@ DATABASE_URL=sqlite::memory:
 
 ---
 
-## Generating a Secret Key
+## Generate a Secret Key
 
 ```bash
 # Python
@@ -234,13 +230,13 @@ openssl rand -base64 32
 
 ---
 
-## Accessing Configuration in Code
+## Access Configuration in Code
 
 ```rust
-use runique::config_runique::RuniqueConfig;
+use runique::prelude::*;
 
-async fn my_handler(template: TemplateContext) -> Response {
-    let config = &template.engine.config;
+pub async fn my_handler(request: Request) -> AppResult<Response> {
+    let config = &request.engine.config;
 
     println!("Debug mode: {}", config.debug);
     println!("Port: {}", config.server.port);
@@ -250,17 +246,17 @@ async fn my_handler(template: TemplateContext) -> Response {
 }
 ```
 
-### Conditional Configuration
+### Conditional configuration
 
 ```rust
-if template.engine.config.debug {
+if request.engine.config.debug {
     // Debug mode: detailed logs, templates reloaded
 } else {
-    // Production mode: cache templates, no sensitive logs
+    // Production mode: template cache, no sensitive logs
 }
 
-if template.engine.config.security.allowed_hosts.contains("*") {
-    // ⚠️ Warning: all hosts are allowed (danger in production!)
+if request.engine.config.security.allowed_hosts.contains("*") {
+    // ⚠️ Warning: all hosts are allowed (dangerous in production!)
 }
 ```
 
@@ -275,8 +271,8 @@ let config = RuniqueConfig::from_env()
     .expect("Invalid configuration");
 
 // Returns Err() if:
-// - DATABASE_URL is missing
-// - SECRETE_KEY is missing
+// - DATABASE_URL missing
+// - SECRETE_KEY missing
 // - Invalid variables
 ```
 
@@ -284,9 +280,9 @@ let config = RuniqueConfig::from_env()
 
 ## Programmatic Configuration (Outside .env)
 
-Besides `.env` configuration, the builder provides methods to customize your application directly.
+In addition to configuring via the `.env` file, the builder provides methods to customize your application directly.
 
-### Classic Builder
+### Classic builder
 
 ```rust
 let app = RuniqueApp::builder(config)
@@ -303,9 +299,9 @@ let app = RuniqueApp::builder(config)
 app.run().await?;
 ```
 
-### Smart Builder (new)
+### Intelligent Builder (new)
 
-The Smart Builder simplifies configuration and automatically manages middleware order:
+The Intelligent Builder simplifies configuration and automatically manages middleware order:
 
 ```rust
 use runique::app::RuniqueAppBuilder as IntelligentBuilder;
@@ -320,7 +316,7 @@ let app = IntelligentBuilder::new(config)
 app.run().await?;
 ```
 
-### Builder Methods
+### Builder methods
 
 #### 📦 Database
 
@@ -335,7 +331,7 @@ let app = RuniqueApp::builder(config)
     .build()
     .await?;
 
-// Option 2: deferred configuration (Smart Builder)
+// Option 2: deferred configuration (Intelligent Builder)
 let db_config = DatabaseConfig::from_env()?.build();
 
 let app = IntelligentBuilder::new(config)
@@ -352,8 +348,8 @@ use runique::{urlpatterns, view};
 
 pub fn routes() -> Router {
     urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
-        "/about" => view!{ GET => views::about }, name = "about",
+        "/" => view!{ views::index }, name = "index",
+        "/about" => view!{ views::about }, name = "about",
     }
 }
 
@@ -363,7 +359,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-#### ⏱️ Session Duration
+#### ⏱️ Session duration
 
 ```rust
 use tower_sessions::cookie::time::Duration;
@@ -375,7 +371,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-**Example durations:**
+**Duration examples:**
 
 ```rust
 Duration::hours(2)      // 2 hours
@@ -383,7 +379,7 @@ Duration::days(7)       // 7 days
 Duration::minutes(30)   // 30 minutes
 ```
 
-#### 🛡️ Middlewares (Classic Builder)
+#### 🛡️ Middlewares (classic builder)
 
 ```rust
 let app = RuniqueApp::builder(config)
@@ -396,9 +392,9 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-#### 🛡️ Middlewares (Smart Builder)
+#### 🛡️ Middlewares (Intelligent Builder)
 
-The Smart Builder uses the **debug/production profile** for defaults:
+The Intelligent Builder uses the **debug/production profile** for default values:
 
 ```rust
 let app = IntelligentBuilder::new(config)
@@ -413,16 +409,16 @@ let app = IntelligentBuilder::new(config)
 
 > In debug mode, CSP and host validation are disabled by default. In production, everything is enabled.
 
-#### 📁 Static Files
+#### 📁 Static files
 
 ```rust
-// Classic Builder
+// Classic builder
 let app = RuniqueApp::builder(config)
     .with_static_files()
     .build()
     .await?;
 
-// Smart Builder
+// Intelligent Builder
 let app = IntelligentBuilder::new(config)
     .statics()     // Enable static files
     // or
@@ -431,10 +427,10 @@ let app = IntelligentBuilder::new(config)
     .await?;
 ```
 
-### Default Values
+### Default values
 
 | Configuration | Default | Notes |
-| :--- | :---: | :--- |
+| --- | --- | --- |
 | **Session duration** | 24 hours | |
 | **Session store** | `MemoryStore` | |
 | **CSRF protection** | ✅ Always enabled | Cannot be disabled |
@@ -449,6 +445,3 @@ let app = IntelligentBuilder::new(config)
 ## Next Steps
 
 ← [**Architecture**](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md) | [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md) →
-
----
-

@@ -1,4 +1,4 @@
-# 🗄️ ORM & Base de Données
+﻿# 🗄️ ORM & Base de Données
 
 ## SeaORM + Objects Manager
 
