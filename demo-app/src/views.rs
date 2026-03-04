@@ -111,7 +111,7 @@ pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> App
 
             match user_opt {
                 Some(user) if user.is_active => {
-                    if TextField::verify_password(&password_val, &user.password) {
+                    if verify(&password_val, &user.password) {
                         auth_login(&request.session, user.id, &user.username)
                             .await
                             .ok();
@@ -178,25 +178,19 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
 
 pub async fn info_user(
     mut request: Request,
-    Prisme(form): Prisme<UsernameForm>,
+    Prisme(mut form): Prisme<UsernameForm>,
 ) -> AppResult<Response> {
     inject_auth(&mut request).await;
-    let template = "profile/view_user.html";
-    let username = form.get_form().get_value("username").unwrap_or_default();
+    let template = "profile/user_info.html";
 
-    if request.is_get() {
-        if username.is_empty() {
-            warning!(request.notices => "Veuillez entrer un nom d'utilisateur.");
-            context_update!(request => {
-                "title" => "Vue utilisateur",
-                "user" => &form,
-            });
-            return request.render(template);
-        }
+    if request.is_get() && form.is_valid().await {
         let db = request.engine.db.clone();
 
+        // Get the username value from the form
+        let username_val = form.get_form().get_value("username").unwrap_or_default();
+
         let user_opt = UserEntity::find()
-            .filter(runique::prelude::user::Column::Username.eq(&username))
+            .filter(runique::prelude::user::Column::Username.eq(&username_val))
             .one(&*db)
             .await
             .unwrap_or(None);
@@ -221,10 +215,15 @@ pub async fn info_user(
             }
         }
 
-        return request.render(template);
+        request.render(template)
+    } else {
+        // Always return a response
+        context_update!(request => {
+            "title" => "Vue utilisateur",
+            "user" => &form,
+        });
+        request.render(template)
     }
-
-    request.render(template)
 }
 
 // ─── Blog ─────────────────────────────────────────────────────────────────────

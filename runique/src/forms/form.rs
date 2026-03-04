@@ -22,6 +22,7 @@ pub struct Forms {
     pub errors: Vec<String>,
     pub session_csrf_token: String,
     renderer: Option<FormRenderer>,
+    submitted: bool,
 }
 
 impl std::fmt::Debug for Forms {
@@ -140,6 +141,7 @@ impl Forms {
             errors: Vec::new(),
             session_csrf_token: csrf_token.to_string(),
             renderer: None,
+            submitted: false,
         }
     }
 
@@ -173,14 +175,19 @@ impl Forms {
     /// Si allow_password est false, les champs password sont ignorés (sécurité GET).
     pub fn fill(&mut self, data: &StrMap, method: Method) {
         let allow_password = matches!(method, Method::POST | Method::PUT | Method::PATCH);
+        let mut has_data = false;
         for field in self.fields.values_mut() {
             if field.field_type() == "password" && !allow_password {
                 continue;
             }
             if let Some(value) = data.get(field.name()) {
+                if !value.trim().is_empty() {
+                    has_data = true;
+                }
                 field.set_value(value);
             }
         }
+        self.submitted = has_data;
     }
 
     pub fn add_value(&mut self, name: &str, value: &str) {
@@ -205,6 +212,9 @@ impl Forms {
 
 impl Forms {
     pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
+        if !self.is_submitted() {
+            return Ok(false);
+        }
         Self::validate(&mut self.fields, &self.errors)
     }
     pub fn has_errors(&self) -> bool {
@@ -252,10 +262,7 @@ impl Forms {
     /// Équivalent du `request.GET or None` de Django : retourne `false`
     /// si aucun champ (hors csrf_token) n'a de valeur non-vide.
     pub fn is_submitted(&self) -> bool {
-        self.fields
-            .iter()
-            .filter(|(name, _)| name.as_str() != CSRF_TOKEN_KEY)
-            .any(|(_, field)| !field.value().trim().is_empty())
+        self.submitted
     }
 
     /// Retourne la valeur comme `i32` (0 par défaut).
