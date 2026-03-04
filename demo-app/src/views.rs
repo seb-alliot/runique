@@ -50,31 +50,25 @@ pub async fn soumission_inscription(
         return request.render("inscription_form.html");
     }
 
-    if request.is_post() {
-        if form.is_valid().await {
-            match form.save(&request.engine.db).await {
-                Ok(user) => {
-                    auth_login(&request.session, user.id, &user.username)
-                        .await
-                        .ok();
-                    success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
-                    return Ok(Redirect::to("/profil").into_response());
-                }
-                Err(err) => {
-                    form.get_form_mut().database_error(&err);
-                }
+    if request.is_post() && form.is_valid().await {
+        match form.save(&request.engine.db).await {
+            Ok(user) => {
+                auth_login(&request.session, user.id, &user.username)
+                    .await
+                    .ok();
+                success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
+                return Ok(Redirect::to("/profil").into_response());
+            }
+            Err(err) => {
+                form.get_form_mut().database_error(&err);
             }
         }
-
-        context_update!(request => {
-            "title" => "Erreur de validation",
-            "inscription_form" => &form,
-            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
-        });
-        return request.render("inscription_form.html");
     }
-    println!("Form data: {:?}", form.get_form());
-
+    context_update!(request => {
+        "title" => "Erreur de validation",
+        "inscription_form" => &form,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+    });
     request.render("inscription_form.html")
 }
 
@@ -181,7 +175,7 @@ pub async fn info_user(
     Prisme(mut form): Prisme<UsernameForm>,
 ) -> AppResult<Response> {
     inject_auth(&mut request).await;
-    let template = "profile/user_info.html";
+    let template = "profile/view_user.html";
 
     if request.is_get() && form.is_valid().await {
         let db = request.engine.db.clone();

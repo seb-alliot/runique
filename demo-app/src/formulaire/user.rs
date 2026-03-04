@@ -36,7 +36,7 @@ impl RegisterForm {
         let user = ActiveModel {
             username: Set(self.form.get_string("username")),
             email: Set(self.form.get_string("email")),
-            password: Set(self.form.get_string("password")),
+            password: Set(hash(self.form.get_string("password").as_str()).unwrap_or_default()),
             is_active: Set(true),
             is_superuser: Set(false),
             is_staff: Set(false),
