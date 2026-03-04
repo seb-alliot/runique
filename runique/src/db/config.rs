@@ -2,23 +2,7 @@
 //!
 //! This module provides flexible configuration for connecting to different
 //! databases (PostgreSQL, MySQL, MariaDB, SQLite) via SeaORM.
-//!
-//! # Examples
-//!
-//! ```no_run
-//! use runique::prelude::DatabaseConfig;
-//!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // From environment variables
-//! let config = DatabaseConfig::from_env()?.build();
-//! let db = config.connect().await?;
-//!
-//! // Or from a URL
-//! let config = DatabaseConfig::from_url("sqlite://db.sqlite")?.build();
-//! let db = config.connect().await?;
-//! # Ok(())
-//! # }
-//! ```
+#![doc = include_str!("../../doc-tests/db_config_module.md")]
 
 use dotenvy::dotenv;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
@@ -29,23 +13,7 @@ use std::time::Duration;
 ///
 /// Contains all parameters needed to establish and manage a database
 /// connection, including connection pools and timeouts.
-///
-/// # Examples
-///
-/// ```no_run
-/// use runique::prelude::DatabaseConfig;
-/// use std::time::Duration;
-///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let config = DatabaseConfig::from_url("postgres://user:pass@localhost/db")?
-///     .max_connections(50)
-///     .connect_timeout(Duration::from_secs(10))
-///     .build();
-///
-/// let db = config.connect().await?;
-/// # Ok(())
-/// # }
-/// ```
+#[doc = include_str!("../../doc-tests/db_config_advanced.md")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     /// Database connection URL

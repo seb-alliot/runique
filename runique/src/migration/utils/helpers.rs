@@ -5,15 +5,7 @@ use syn::{Expr, ExprCall, ExprLit, ExprMethodCall, Lit};
 // ============================================================
 
 /// Retourne le nom de la méthode associée à un type de colonne.
-///
-/// # Exemple
-///
-/// ```rust
-/// use runique::migration::utils::helpers::col_type_to_method;
-/// assert_eq!(col_type_to_method("Text"), "text()");
-/// assert_eq!(col_type_to_method("TinyInteger"), "tiny_integer()");
-/// assert_eq!(col_type_to_method("Inconnu"), "string()");
-/// ```
+#[doc = include_str!("../../../doc-tests/migration_col_type.md")]
 pub fn col_type_to_method(col_type: &str) -> &str {
     match col_type {
         "Text" => "text()",

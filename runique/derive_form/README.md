@@ -66,6 +66,7 @@ pub struct RegisterForm;
 ### Parameters
 
 | Parameter  | Required | Description                              |
+
 | ---------- | -------- | ---------------------------------------- |
 | `schema`   | yes      | Path to the schema function from `model!`|
 | `fields`   | no       | Whitelist — only these fields are included |

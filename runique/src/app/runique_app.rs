@@ -1,7 +1,10 @@
 use axum::Router;
 use tokio::signal;
 
+use crate::config::RuniqueConfig;
 use crate::utils::aliases::AEngine;
+
+use super::builder::RuniqueAppBuilder;
 
 // ═══════════════════════════════════════════════════════════════
 // RuniqueApp — Application construite, prête à être lancée
@@ -13,6 +16,13 @@ pub struct RuniqueApp {
 }
 
 impl RuniqueApp {
+    /// Crée un nouveau builder pour configurer l'application.
+    ///
+    /// Raccourci vers [`RuniqueAppBuilder::new`].
+    pub fn builder(config: RuniqueConfig) -> RuniqueAppBuilder {
+        RuniqueAppBuilder::new(config)
+    }
+
     /// Lance le serveur HTTP avec graceful shutdown (Ctrl+C).
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         let addr = format!(

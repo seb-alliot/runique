@@ -32,6 +32,9 @@ use runique::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
+
     let config = RuniqueConfig::from_env();
 
     let db_config = DatabaseConfig::from_env()?.build();
@@ -120,24 +123,26 @@ pub struct RegisterForm {
 }
 
 impl FormTrait for RegisterForm {
-    fn new() -> Self {
-        let mut form = Forms::new();
-        form.add_field("username", FieldBuilder::text()
-            .label("Username")
-            .required()
-            .min_length(3)
-            .max_length(50)
-            .build());
-        form.add_field("email", FieldBuilder::email()
+    fn register_fields(form: &mut Forms) {
+
+        form.field(
+                &TextField::text("username",)
+                .label("Nom d'utilisateur")
+                .required()
+                .min_length(3)
+                .max_length(50)
+        );
+        form.field(
+            &TextField::email("email")
             .label("Email")
             .required()
-            .build());
-        form.add_field("password", FieldBuilder::password()
-            .label("Password")
+            );
+        form.field(
+            &TextField::::password("password")
+            .label("Mot de passe")
             .required()
             .min_length(8)
-            .build());
-        Self { form }
+        );
     }
 
     fn get_form(&self) -> &Forms { &self.form }
@@ -230,19 +235,16 @@ pub struct UsernameForm {
 }
 
 impl FormTrait for UsernameForm {
-    fn new() -> Self {
-        let mut form = Forms::new();
-        form.add_field("username", FieldBuilder::text()
-            .label("Username")
-            .required()
-            .placeholder("Search a user")
-            .build());
-        Self { form }
-    }
+    fn register_fields(form: &mut Forms) {
 
-    fn get_form(&self) -> &Forms { &self.form }
-    fn get_form_mut(&mut self) -> &mut Forms { &mut self.form }
-    fn get_name(&self) -> &str { "username_form" }
+        form.field(
+                &TextField::text("username")
+                    .label("Username")
+                    .required()
+                    .placeholder("Search a user")
+                );
+    }
+    impl_form_access!();
 }
 ```
 
@@ -320,22 +322,20 @@ pub struct ImageForm {
 }
 
 impl FormTrait for ImageForm {
-    fn new() -> Self {
-        let mut form = Forms::new();
-        form.add_field("image", FieldBuilder::image()
+    fn register_fields(form: &mut Forms) {
+        let config = StaticConfig::from_env();
+        form.field(
+            &FileField::image("image")
             .label("Image")
+            .upload_to(&config)
             .required()
             .max_size_mb(5)
             .max_files(1)
             .max_dimensions(1920, 1080)
             .allowed_extensions(vec!["jpg", "png", "webp", "avif"])
-            .build());
-        Self { form }
+            );
     }
-
-    fn get_form(&self) -> &Forms { &self.form }
-    fn get_form_mut(&mut self) -> &mut Forms { &mut self.form }
-    fn get_name(&self) -> &str { "image_form" }
+    impl_form_access!();
 }
 ```
 

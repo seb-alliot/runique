@@ -18,8 +18,8 @@ runique/
 │
 ├── docs/                     # Complete documentation
 │   ├── README.md             # Documentation hub
-│   ├── en/                   # English guides (10 sections)
-│   └── fr/                   # French guides (10 sections)
+│   ├── en/                   # English guides (13 sections)
+│   └── fr/                   # French guides (13 sections)
 │
 ├── runique/                  # Main framework crate
 │   ├── Cargo.toml

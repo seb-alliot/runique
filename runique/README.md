@@ -43,7 +43,7 @@ Available features: `sqlite`, `postgres`, `mysql`, `mariadb`, `all-databases` (d
 
 ## Quick usage
 
-```rust
+```rust,no_run
 use runique::prelude::*;
 
 #[tokio::main]

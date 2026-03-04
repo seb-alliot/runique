@@ -1,10 +1,17 @@
-﻿# Rust
-target/
-Cargo.lock
+# Rust
+/target/
 **/*.rs.bk
-*.pdb
+Cargo.lock
 
-# IDE
+# Environnement
+.env
+.env.*
+!.env.example
+
+# Fichiers temporaires Claude Code
+tmpclaude-*
+
+# Éditeurs
 .vscode/
 .idea/
 *.swp
@@ -15,15 +22,5 @@ Cargo.lock
 .DS_Store
 Thumbs.db
 
-# Env
-.env
-.env.local
-.env.test
-
-# Demo app
-examples/demo-app/src/media/
-examples/demo-app/.env
-
-# Claude
-tmpclaude-*
-.claude
+# Claude Code session data
+.claude/

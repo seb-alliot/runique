@@ -1,4 +1,4 @@
-# 🚀 Runique — Django-inspired Rust Framework
+# Runique — Django-inspired Rust Framework
 
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
 ![Tests](https://img.shields.io/badge/tests-1356%2F1356%20passing-brightgreen)
@@ -54,7 +54,7 @@ Detailed guide: [docs/en/01-installation.md](docs/en/01-installation.md)
 
 ## Quick usage
 
-```rust
+```rust,no_run
 use runique::prelude::*;
 
 #[tokio::main]
@@ -77,6 +77,16 @@ async fn main() {
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up|down|status --migrations migration/src`
 
+```
+
+```
+
+⚠️ Warning
+Only the makemigration command ensures that the migration chronology remains consistent with SeaORM.
+Using other commands may desynchronize the migration tracking.
+
+```
+
 Admin daemon behavior in `start`:
 
 - checks whether `.with_admin(...)` exists in `src/main.rs`
@@ -98,7 +108,7 @@ The workflow:
 Current beta limits:
 
 - mostly resource-level permissions
-- generated folder overwrite behavior (`src/admins/`)
+- generated folder overwrite (`src/admins/`)
 - iterative hardening still in progress
 
 Admin docs: [docs/en/11-Admin.md](docs/en/11-Admin.md)

@@ -183,14 +183,6 @@ pub async fn info_user(
     let template = "profile/view_user.html";
 
     if request.is_get() {
-        context_update!(request => {
-            "title" => "Rechercher un utilisateur",
-            "user" => &form,
-        });
-        return request.render(template);
-    }
-
-    if request.is_post() {
         if !form.is_valid().await {
             context_update!(request => {
                 "title" => "Rechercher un utilisateur",

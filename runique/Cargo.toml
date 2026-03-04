@@ -102,7 +102,7 @@ hex.workspace = true
 base64.workspace = true
 
 # Procedural macros
-derive_form = { path = "derive_form", version = "1.1.30" }
+derive_form.workspace = true
 
 # CLI
 clap.workspace = true
