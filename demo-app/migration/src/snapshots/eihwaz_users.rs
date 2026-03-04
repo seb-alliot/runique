@@ -19,8 +19,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("is_staff")).boolean().not_null())
                     .col(ColumnDef::new(Alias::new("is_superuser")).boolean().not_null())
                     .col(ColumnDef::new(Alias::new("roles")).string().null())
-                    .col(ColumnDef::new(Alias::new("created_at")).date_time().null())
-                    .col(ColumnDef::new(Alias::new("updated_at")).date_time().null())
                     .to_owned(),
             )
             .await?;

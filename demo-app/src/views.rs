@@ -183,6 +183,15 @@ pub async fn info_user(
     let template = "profile/view_user.html";
 
     if request.is_get() {
+        // Chargement initial sans données → formulaire vide, pas de validation
+        if !form.get_form().is_submitted() {
+            context_update!(request => {
+                "title" => "Rechercher un utilisateur",
+                "user" => &form,
+            });
+            return request.render(template);
+        }
+
         if !form.is_valid().await {
             context_update!(request => {
                 "title" => "Rechercher un utilisateur",
@@ -192,9 +201,8 @@ pub async fn info_user(
             return request.render(template);
         }
 
-        let username = form.get_form().get_value("username").unwrap_or_default();
+        let username = form.get_string("username");
         let db = request.engine.db.clone();
-
         let user_opt = UserEntity::find()
             .filter(runique::prelude::user::Column::Username.eq(&username))
             .one(&*db)

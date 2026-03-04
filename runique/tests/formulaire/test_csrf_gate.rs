@@ -7,6 +7,7 @@ use runique::middleware::LoginAdmin;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
+use reqwest::Method;
 
 fn make_tera() -> Arc<Tera> {
     Arc::new(Tera::default())
@@ -21,7 +22,7 @@ async fn test_csrf_gate_token_valide_retourne_none() {
     let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
     parsed.insert("csrf_token".to_string(), vec!["mon_token_csrf".to_string()]);
 
-    let result = csrf_gate::<LoginAdmin>(&parsed, "mon_token_csrf", make_tera()).await;
+    let result = csrf_gate::<LoginAdmin>(&parsed, "mon_token_csrf", make_tera(), &Method::POST).await;
     assert!(result.is_ok());
     assert!(
         result.unwrap().is_none(),
@@ -37,7 +38,7 @@ async fn test_csrf_gate_token_valide_retourne_none() {
 async fn test_csrf_gate_token_manquant_retourne_some_avec_erreur() {
     let parsed: HashMap<String, Vec<String>> = HashMap::new(); // pas de csrf_token
 
-    let result = csrf_gate::<LoginAdmin>(&parsed, "token_session", make_tera()).await;
+    let result = csrf_gate::<LoginAdmin>(&parsed, "token_session", make_tera(), &Method::POST).await;
     assert!(result.is_ok());
     let maybe_prisme = result.unwrap();
     assert!(
@@ -69,7 +70,7 @@ async fn test_csrf_gate_token_incorrect_retourne_some() {
     let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
     parsed.insert("csrf_token".to_string(), vec!["mauvais_token".to_string()]);
 
-    let result = csrf_gate::<LoginAdmin>(&parsed, "bon_token", make_tera()).await;
+    let result = csrf_gate::<LoginAdmin>(&parsed, "bon_token", make_tera(), &Method::POST).await;
     assert!(result.is_ok());
     assert!(
         result.unwrap().is_some(),
@@ -86,7 +87,7 @@ async fn test_csrf_gate_token_vide_retourne_some() {
     let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
     parsed.insert("csrf_token".to_string(), vec!["".to_string()]);
 
-    let result = csrf_gate::<LoginAdmin>(&parsed, "token_session", make_tera()).await;
+    let result = csrf_gate::<LoginAdmin>(&parsed, "token_session", make_tera(), &Method::POST).await;
     assert!(result.is_ok());
     assert!(
         result.unwrap().is_some(),
@@ -103,7 +104,7 @@ async fn test_csrf_gate_vec_vide_retourne_some() {
     let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
     parsed.insert("csrf_token".to_string(), vec![]);
 
-    let result = csrf_gate::<LoginAdmin>(&parsed, "token_session", make_tera()).await;
+    let result = csrf_gate::<LoginAdmin>(&parsed, "token_session", make_tera(), &Method::POST).await;
     assert!(result.is_ok());
     assert!(
         result.unwrap().is_some(),

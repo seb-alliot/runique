@@ -112,7 +112,7 @@ To use SQLite in development:
 
 ```toml
 [dependencies]
-runique = { version = "1.1.30", features = ["orm", "sqlite"] }
+runique = { version = "1.1.35", features = ["orm", "sqlite"] }
 
 ```
 
@@ -320,7 +320,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 Make sure the feature is enabled in `Cargo.toml`:
 
 ```toml
-runique = { version = "1.1.30", features = ["orm", "postgres"] }
+runique = { version = "1.1.35", features = ["orm", "postgres"] }
 
 ```
 

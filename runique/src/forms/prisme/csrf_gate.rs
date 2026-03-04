@@ -3,22 +3,30 @@ use crate::forms::field::RuniqueForm;
 use crate::utils::aliases::{StrMap, StrVecMap};
 use crate::utils::constante::CSRF_TOKEN_KEY;
 use crate::utils::trad::t;
+use axum::http::Method;
 use axum::response::Response;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
 
 /// CSRF gate : vérification du token dans les données parsées.
+/// Sur GET/HEAD sans token soumis (chargement initial), la validation est ignorée.
 /// Retourne Some(Prisme) si invalid/missing (formulaire vide avec erreur), None sinon.
 pub async fn csrf_gate<T: RuniqueForm>(
     parsed: &StrVecMap,
     csrf_session: &str,
     tera: Arc<Tera>,
+    method: &Method,
 ) -> Result<Option<Prisme<T>>, Response> {
     let csrf_submitted = parsed
         .get(CSRF_TOKEN_KEY)
         .and_then(|v| v.last())
         .map(|s| s.as_str());
+
+    // GET/HEAD sans token soumis = chargement initial, pas de données à protéger
+    if (method == Method::GET || method == Method::HEAD) && csrf_submitted.is_none() {
+        return Ok(None);
+    }
 
     if csrf_submitted != Some(csrf_session) {
         let empty: StrMap = HashMap::new();

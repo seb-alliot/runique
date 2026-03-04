@@ -244,6 +244,16 @@ impl Forms {
         self.get_value(name).filter(|v| !v.trim().is_empty())
     }
 
+    /// Indique si le formulaire a été soumis avec des données.
+    /// Équivalent du `request.GET or None` de Django : retourne `false`
+    /// si aucun champ (hors csrf_token) n'a de valeur non-vide.
+    pub fn is_submitted(&self) -> bool {
+        self.fields
+            .iter()
+            .filter(|(name, _)| name.as_str() != CSRF_TOKEN_KEY)
+            .any(|(_, field)| !field.value().trim().is_empty())
+    }
+
     /// Retourne la valeur comme `i32` (0 par défaut).
     pub fn get_i32(&self, name: &str) -> i32 {
         self.get_string(name).parse().unwrap_or(0)

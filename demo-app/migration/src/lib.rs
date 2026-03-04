@@ -1,4 +1,8 @@
 pub use sea_orm_migration::prelude::*;
+mod m20260304_150108_alter_eihwaz_users_table;
+mod m20260304_145358_alter_eihwaz_users_table;
+mod m20260304_145358_alter_test_all_fields_table;
+mod m20260304_145358_alter_users_booster_table;
 mod m20260227_143557_create_blog_table;
 mod m20260227_143557_create_eihwaz_users_table;
 mod m20260227_143557_create_test_all_fields_table;
@@ -17,6 +21,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20260227_143557_create_users_booster_table::Migration),
             Box::new(m20260227_143557_create_test_all_fields_table::Migration),
             Box::new(m20260227_143557_create_eihwaz_users_table::Migration),
+            Box::new(m20260304_145358_alter_users_booster_table::Migration),
+            Box::new(m20260304_145358_alter_test_all_fields_table::Migration),
+            Box::new(m20260304_145358_alter_eihwaz_users_table::Migration),
+            Box::new(m20260304_150108_alter_eihwaz_users_table::Migration),
         ]
     }
 }

@@ -14,7 +14,7 @@
 
 ---
 
-## [1.1.30] - 2026-02-09
+## [1.1.35] - 2026-02-09
 
 ### Changed
 - Form system stabilized with multiple internal improvements.
@@ -27,7 +27,7 @@
 - Initial work and design phase for a basic admin view.
 
 
-## [1.1.30] - 2026-02-09
+## [1.1.35] - 2026-02-09
 
 ### Modifié
 - Stabilisation du système de formulaires avec plusieurs améliorations internes.
