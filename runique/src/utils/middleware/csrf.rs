@@ -88,7 +88,7 @@ pub fn mask_csrf_token(token_hex: &str) -> String {
 
     let mut rng = rand::rng();
 
-    let mask: Vec<u8> = (0..token_bytes.len()).map(|_| rng.random()).collect();
+    let mask: Vec<u8> = (0..token_bytes.len()).map(|_| rng.random::<u8>()).collect();
 
     // XOR the token with the mask
     let masked: Vec<u8> = token_bytes

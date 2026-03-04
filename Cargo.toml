@@ -57,6 +57,7 @@ postal-code = "0.3.0"
 dyn-clone = "1.0.20"
 image = "0.25.9"
 tempfile = "3.24.0"
+dialoguer = "0.11"
 
 derive_form = "1.1.30"
 

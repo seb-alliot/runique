@@ -6,12 +6,12 @@ use crate::forms::validator::{FormValidator, ValidationError};
 use crate::utils::aliases::{FieldsMap, StrMap};
 use crate::utils::constante::CSRF_TOKEN_KEY;
 use crate::utils::trad::{t, tf};
+use axum::http::Method;
 use indexmap::IndexMap;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use axum::http::Method;
 
 /// Conteneur de champs de formulaire avec validation et rendu HTML
 ///

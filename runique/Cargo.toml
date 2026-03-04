@@ -81,6 +81,7 @@ postal-code.workspace = true
 dyn-clone.workspace = true
 image.workspace = true
 tempfile.workspace = true
+dialoguer.workspace = true
 
 # Logging
 tracing.workspace = true

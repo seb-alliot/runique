@@ -202,8 +202,8 @@ pub mod prelude {
     // ========================================================================
     // CONFIGURATION
     // ========================================================================
-    pub use crate::config::{security::SecurityConfig, server::ServerConfig};
     use crate::chrono;
+    pub use crate::config::{security::SecurityConfig, server::ServerConfig};
 
     // ========================================================================
     // UTILS

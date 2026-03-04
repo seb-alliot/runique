@@ -1,12 +1,9 @@
 use crate::middleware::auth::user::{ActiveModel, BuiltinUserEntity, UserEntity};
 use crate::utils::password::{BaseHash, Manual};
 use anyhow::Result;
-use crossterm::{
-    event::{read, Event, KeyCode, KeyModifiers},
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
-use sea_orm::{ActiveModelTrait, Set};
-use std::io::{stdout, Write};
+use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
+use std::io::Write;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,188 +50,107 @@ enum ReviewAction {
     Back,
 }
 
-// ─── Input helpers ────────────────────────────────────────────────────────────
-
-/// Lit une ligne de texte en mode raw.
-/// Retourne None sur ESC (retour), quitte sur Ctrl+C, Some(valeur) sur Entrée.
-fn read_line_esc(prompt: &str) -> Option<String> {
-    print!("{}", prompt);
-    let _ = stdout().flush();
-
-    enable_raw_mode().ok();
-    let mut buf = String::new();
-
-    let result = loop {
-        if let Ok(Event::Key(key)) = read() {
-            match key.code {
-                KeyCode::Enter => break Some(buf.clone()),
-                KeyCode::Esc => break None,
-                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    let _ = disable_raw_mode();
-                    println!("\nAnnulé.");
-                    std::process::exit(0);
-                }
-                KeyCode::Backspace => {
-                    if !buf.is_empty() {
-                        buf.pop();
-                        print!("\x08 \x08");
-                        let _ = stdout().flush();
-                    }
-                }
-                KeyCode::Char(c) => {
-                    buf.push(c);
-                    print!("{}", c);
-                    let _ = stdout().flush();
-                }
-                _ => {}
-            }
-        }
-    };
-
-    let _ = disable_raw_mode();
-    println!();
-    result
-}
-
-/// Même comportement que read_line_esc mais masque la saisie avec '•'.
-fn read_password_esc(prompt: &str) -> Option<String> {
-    print!("{}", prompt);
-    let _ = stdout().flush();
-
-    enable_raw_mode().ok();
-    let mut buf = String::new();
-
-    let result = loop {
-        if let Ok(Event::Key(key)) = read() {
-            match key.code {
-                KeyCode::Enter => break Some(buf.clone()),
-                KeyCode::Esc => break None,
-                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    let _ = disable_raw_mode();
-                    println!("\nAnnulé.");
-                    std::process::exit(0);
-                }
-                KeyCode::Backspace => {
-                    if !buf.is_empty() {
-                        buf.pop();
-                        print!("\x08 \x08");
-                        let _ = stdout().flush();
-                    }
-                }
-                KeyCode::Char(c) => {
-                    buf.push(c);
-                    print!("•");
-                    let _ = stdout().flush();
-                }
-                _ => {}
-            }
-        }
-    };
-
-    let _ = disable_raw_mode();
-    println!();
-    result
-}
-
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
-/// Retourne None sur ESC. L'appelant gère la navigation.
 fn step_algorithm() -> Option<AlgoChoice> {
-    loop {
-        println!("\n[1/5] Algorithme de hachage :");
-        println!("  1) Argon2  (recommandé)");
-        println!("  2) Bcrypt");
-        println!("  3) Scrypt");
-        println!("  4) Custom provider");
-        println!("      ESC = retour  •  Ctrl+C = quitter");
+    let items = vec![
+        "Argon2 (recommended)",
+        "Bcrypt",
+        "Scrypt",
+        "Custom provider",
+    ];
 
-        let input = read_line_esc("Choix [1-4] (défaut: 1) : ")?;
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("[1/5] Hashing algorithm")
+        .items(&items)
+        .default(0)
+        .interact_opt()
+        .ok()??;
 
-        match input.trim() {
-            "" | "1" => return Some(AlgoChoice::Argon2),
-            "2" => return Some(AlgoChoice::Bcrypt),
-            "3" => return Some(AlgoChoice::Scrypt),
-            "4" => loop {
-                println!("  ESC = retour au menu  •  Ctrl+C = quitter");
-                match read_line_esc("  Chemin du provider : ") {
-                    None => break,
-                    Some(p) => {
-                        let p = p.trim().to_string();
-                        if p.is_empty() {
-                            println!("  Chemin invalide.");
-                        } else {
-                            return Some(AlgoChoice::Custom(p));
-                        }
-                    }
-                }
-            },
-            _ => println!("  Choix invalide — entrez 1, 2, 3 ou 4."),
+    match selection {
+        0 => Some(AlgoChoice::Argon2),
+        1 => Some(AlgoChoice::Bcrypt),
+        2 => Some(AlgoChoice::Scrypt),
+        3 => {
+            let path: String = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("Provider path")
+                .interact_text()
+                .ok()?;
+            if path.trim().is_empty() {
+                println!("Invalid path.");
+                None
+            } else {
+                Some(AlgoChoice::Custom(path))
+            }
         }
+        _ => None,
     }
 }
 
-async fn step_username(db: &sea_orm::DatabaseConnection) -> Option<String> {
+async fn step_username(db: &DatabaseConnection) -> Option<String> {
     loop {
-        println!("\n  ESC = étape précédente  •  Ctrl+C = quitter");
-        let input = read_line_esc("[2/5] Username : ")?;
-        let input = input.trim().to_string();
+        let input: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("[2/5] Username")
+            .interact_text()
+            .ok()?;
 
+        let input = input.trim().to_string();
         if input.is_empty() {
-            println!("  Le nom d'utilisateur ne peut pas être vide.");
+            println!("Username cannot be empty.");
             continue;
         }
+
         if BuiltinUserEntity::find_by_username(db, &input)
             .await
             .is_some()
         {
-            println!("  Un utilisateur avec ce nom existe déjà.");
+            println!("A user with this name already exists.");
             continue;
         }
         return Some(input);
     }
 }
 
-async fn step_email(db: &sea_orm::DatabaseConnection) -> Option<String> {
+async fn step_email(db: &DatabaseConnection) -> Option<String> {
     loop {
-        println!("\n  ESC = étape précédente  •  Ctrl+C = quitter");
-        let input = read_line_esc("[3/5] Email : ")?;
-        let input = input.trim().to_lowercase();
+        let input: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("[3/5] Email")
+            .interact_text()
+            .ok()?;
 
+        let input = input.trim().to_lowercase();
         if input.is_empty() || !input.contains('@') {
-            println!("  Email invalide.");
+            println!("Invalid email.");
             continue;
         }
+
         if BuiltinUserEntity::find_by_email(db, &input).await.is_some() {
-            println!("  Un utilisateur avec cet email existe déjà.");
+            println!("A user with this email already exists.");
             continue;
         }
         return Some(input);
     }
 }
 
-/// ESC sur [4/5] = None (retour email).
-/// ESC sur [5/5] = boucle interne (ressaisie du mot de passe).
 fn step_password() -> Option<String> {
     loop {
-        println!("\n  ESC = étape précédente  •  Ctrl + C = quitter");
-        let pass1 = read_password_esc("[4/5] Mot de passe : ")?;
+        let pass1 = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("[4/5] Password")
+            .interact()
+            .ok()?;
 
         if pass1.len() < 10 {
-            println!("  Le mot de passe doit faire au moins 10 caractères.");
+            println!("Password must be at least 10 characters.");
             continue;
         }
 
-        println!("  ESC = ressaisir le mot de passe  •  Ctrl + C = quitter");
-        let pass2 = match read_password_esc("[5/5] Confirmer le mot de passe : ") {
-            None => {
-                println!("  Ressaisie du mot de passe.");
-                continue;
-            }
-            Some(p) => p,
-        };
+        let pass2 = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt("[5/5] Confirm password")
+            .interact()
+            .ok()?;
 
         if pass1 != pass2 {
-            println!("  Les mots de passe ne correspondent pas. Réessayez.");
+            println!("Passwords do not match. Please try again.");
             continue;
         }
 
@@ -247,23 +163,25 @@ fn step_review(state: &WizardState) -> ReviewAction {
     let username = state.username.as_deref().unwrap();
     let email = state.email.as_deref().unwrap();
 
-    loop {
-        println!("\n──────────────────────────────────");
-        println!("  Algorithme  : {}", algo.label());
-        println!("  Username    : {}", username);
-        println!("  Email       : {}", email);
-        println!("  Mot de passe: ••••••••");
-        println!("──────────────────────────────────");
-        println!("  [Entrée] Confirmer  [a] Changer l'algo  [ESC] Retour  [Ctrl+C] Annuler");
+    println!("\n──────────────────────────────────");
+    println!("  Algorithm   : {}", algo.label());
+    println!("  Username    : {}", username);
+    println!("  Email       : {}", email);
+    println!("  Password    : ••••••••");
+    println!("──────────────────────────────────");
 
-        match read_line_esc("") {
-            None => return ReviewAction::Back,
-            Some(s) => match s.trim().to_lowercase().as_str() {
-                "" => return ReviewAction::Confirm,
-                "a" => return ReviewAction::ChangeAlgo,
-                _ => println!("  Entrée non reconnue."),
-            },
-        }
+    let items = vec!["Confirm and create", "Change algorithm", "Modify password"];
+
+    match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Action")
+        .items(&items)
+        .default(0)
+        .interact()
+    {
+        Ok(0) => ReviewAction::Confirm,
+        Ok(1) => ReviewAction::ChangeAlgo,
+        Ok(2) => ReviewAction::Back,
+        _ => ReviewAction::Back,
     }
 }
 
@@ -286,33 +204,28 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
-        .map_err(|e| {
-            format!(
-                "Impossible de lancer le provider '{}' : {}",
-                provider_path, e
-            )
-        })?;
+        .map_err(|e| format!("Failed to launch provider '{}': {}", provider_path, e))?;
 
     if let Some(stdin) = child.stdin.as_mut() {
         stdin
             .write_all(password.as_bytes())
-            .map_err(|e| format!("Erreur écriture stdin : {}", e))?;
+            .map_err(|e| format!("Error writing to stdin: {}", e))?;
     }
 
     let output = child
         .wait_with_output()
-        .map_err(|e| format!("Erreur attente provider : {}", e))?;
+        .map_err(|e| format!("Error waiting for provider: {}", e))?;
 
     if !output.status.success() {
         return Err(format!(
-            "Le provider a retourné une erreur (code {:?})",
+            "Provider returned an error (exit code {:?})",
             output.status.code()
         ));
     }
 
     String::from_utf8(output.stdout)
         .map(|s| s.trim().to_string())
-        .map_err(|e| format!("Sortie provider invalide (UTF-8) : {}", e))
+        .map_err(|e| format!("Invalid provider output (UTF-8): {}", e))
 }
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
@@ -320,11 +233,10 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
 pub async fn create_superuser() -> Result<()> {
     dotenvy::dotenv().ok();
 
-    let database_url =
-        std::env::var("DATABASE_URL").expect("DATABASE_URL doit être défini dans .env");
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be defined in .env");
     let db = sea_orm::Database::connect(&database_url).await?;
 
-    println!("=== Créer un superutilisateur ===  [Ctrl+C pour quitter]");
+    println!("=== Create Superuser ===");
 
     let mut state = WizardState::default();
     let mut step = Step::Algorithm;
@@ -338,7 +250,6 @@ pub async fn create_superuser() -> Result<()> {
                         from_review = false;
                         step = Step::Review;
                     }
-                    // première étape : ESC ignoré — on reste
                 }
                 Some(algo) => {
                     state.algorithm = Some(algo);
@@ -388,23 +299,33 @@ pub async fn create_superuser() -> Result<()> {
         }
     }
 
+    // ─── Create superuser ─────────────────────────────────────────────────────
     let algo = state.algorithm.as_ref().unwrap();
     let password = state.password.as_ref().unwrap();
     let hashed =
-        hash_password(password, algo).map_err(|e| anyhow::anyhow!("Erreur de hachage : {}", e))?;
+        hash_password(password, algo).map_err(|e| anyhow::anyhow!("Hashing error: {}", e))?;
+
+    let username = state.username.unwrap();
+    let email = state.email.unwrap();
 
     let new_user = ActiveModel {
-        username: Set(state.username.unwrap()),
-        email: Set(state.email.unwrap()),
+        username: Set(username.clone()),
+        email: Set(email.clone()),
         password: Set(hashed),
         is_active: Set(true),
         is_staff: Set(true),
         is_superuser: Set(true),
+        created_at: Set(Some(chrono::Utc::now().naive_utc())),
+        updated_at: Set(Some(chrono::Utc::now().naive_utc())),
         ..Default::default()
     };
 
-    new_user.insert(&db).await?;
-    println!("\nSuperuser créé avec succès !");
+    let inserted = new_user.insert(&db).await?;
+
+    println!("\n✓ Superuser created successfully!");
+    println!("  ID       : {}", inserted.id);
+    println!("  Username : {}", username);
+    println!("  Email    : {}", email);
 
     Ok(())
 }
