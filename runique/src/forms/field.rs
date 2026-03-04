@@ -21,6 +21,20 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn get_form(&self) -> &Forms;
     fn get_form_mut(&mut self) -> &mut Forms;
 
+    // Raccourcis directs — délèguent à get_form() pour éviter form.get_form().xxx()
+    fn is_submitted(&self) -> bool {
+        self.get_form().is_submitted()
+    }
+    fn get_value(&self, name: &str) -> Option<String> {
+        self.get_form().get_value(name)
+    }
+    fn get_string(&self, name: &str) -> String {
+        self.get_form().get_string(name)
+    }
+    fn get_option(&self, name: &str) -> Option<String> {
+        self.get_form().get_option(name)
+    }
+
     // Business validation hook for individual fields
     async fn clean_field(&mut self, name: &str) -> bool {
         self.get_form().fields.contains_key(name)

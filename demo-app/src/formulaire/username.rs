@@ -12,8 +12,7 @@ impl RuniqueForm for UsernameForm {
     fn register_fields(form: &mut Forms) {
         form.field(
             &TextField::text("username")
-                .label("Entrez votre nom d'utilisateur")
-                .required(),
+                .label("Entrez votre nom d'utilisateur"),
         );
     }
     impl_form_access!();

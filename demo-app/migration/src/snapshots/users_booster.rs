@@ -18,8 +18,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("bio")).string().null())
                     .col(ColumnDef::new(Alias::new("website")).string().null())
                     .col(ColumnDef::new(Alias::new("is_active")).boolean().not_null())
-                    .col(ColumnDef::new(Alias::new("created_at")).date_time().null())
-                    .col(ColumnDef::new(Alias::new("updated_at")).date_time().null())
                     .to_owned(),
             )
             .await?;

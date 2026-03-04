@@ -41,8 +41,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("f_uuid")).uuid().null())
                     .col(ColumnDef::new(Alias::new("f_json")).json().null())
                     .col(ColumnDef::new(Alias::new("f_ip")).string().null())
-                    .col(ColumnDef::new(Alias::new("created_at")).date_time().null())
-                    .col(ColumnDef::new(Alias::new("updated_at")).date_time().null())
                     .to_owned(),
             )
             .await?;

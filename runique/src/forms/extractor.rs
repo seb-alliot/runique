@@ -49,6 +49,8 @@ where
             (StatusCode::INTERNAL_SERVER_ERROR, "CSRF token not found").into_response()
         })?;
 
+    let method = req.method().clone();
+
     let content_type = req
         .headers()
         .get("content-type")
@@ -60,7 +62,9 @@ where
     let parsed = aegis(req, state, config.clone(), &content_type).await?;
 
     // CSRF gate: early check on parsed data
-    if let Some(prisme) = csrf_gate::<T>(&parsed, csrf_session.as_str(), tera.clone()).await? {
+    if let Some(prisme) =
+        csrf_gate::<T>(&parsed, csrf_session.as_str(), tera.clone(), &method).await?
+    {
         return Ok(prisme);
     }
 
