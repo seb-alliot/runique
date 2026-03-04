@@ -162,6 +162,8 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         nullable: false,
         unique: false,
         ignored: false,
+        created_at: false,
+        updated_at: false,
     });
 
     let columns = model
@@ -171,14 +173,11 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
             let has_auto_now = f.options.contains(&"auto_now".to_string());
             let has_auto_now_update = f.options.contains(&"auto_now_update".to_string());
 
-            let nullable = f
-                .options
-                .iter()
-                .any(|o| matches!(o.as_str(), "nullable" | "auto_now" | "auto_now_update"));
-            let unique = f.options.contains(&"unique".to_string());
-
-            let ignored =
-                f.options.contains(&"readonly".to_string()) || has_auto_now || has_auto_now_update;
+    let nullable = f.options.contains(&"nullable".to_string())
+        && !has_auto_now
+        && !has_auto_now_update;
+        
+    let unique = f.options.contains(&"unique".to_string());
 
             let col_type = if has_auto_now || has_auto_now_update {
                 "DateTime".to_string()
@@ -191,7 +190,9 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                 col_type,
                 nullable,
                 unique,
-                ignored,
+                ignored: false,
+                created_at: has_auto_now,
+                updated_at: has_auto_now_update,
             }
         })
         .collect();

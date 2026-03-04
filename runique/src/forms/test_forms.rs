@@ -8,6 +8,7 @@ mod tests {
     use crate::forms::form::Forms;
     use crate::utils::aliases::StrMap;
     use std::collections::HashMap;
+    use axum::http::Method;
 
     // ── TextField ────────────────────────────────────────────────────────────────
 
@@ -337,7 +338,7 @@ mod tests {
         let mut data: HashMap<String, String> = HashMap::new();
         data.insert("username".to_string(), "bob".to_string());
         data.insert("age".to_string(), "30".to_string());
-        form.fill(&data);
+        form.fill(&data, Method::POST);
 
         assert_eq!(form.get_string("username"), "bob");
         assert_eq!(form.get_i32("age"), 30);
@@ -350,7 +351,7 @@ mod tests {
 
         let mut data: HashMap<String, String> = HashMap::new();
         data.insert("pwd".to_string(), "secret".to_string());
-        form.fill(&data);
+        form.fill(&data, Method::GET);
 
         // fill() skips password fields — value stays empty
         assert_eq!(form.get_string("pwd"), "");

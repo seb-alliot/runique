@@ -144,6 +144,8 @@ fn col(name: &str, ty: &str) -> ParsedColumn {
         nullable: false,
         unique: false,
         ignored: false,
+        created_at: false,
+        updated_at: false,
     }
 }
 
@@ -154,6 +156,8 @@ fn col_opt(name: &str, ty: &str, nullable: bool, unique: bool, ignored: bool) ->
         nullable,
         unique,
         ignored,
+        created_at: false,
+        updated_at: false,
     }
 }
 

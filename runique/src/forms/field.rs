@@ -6,6 +6,7 @@ use crate::forms::validator::ValidationError;
 use crate::utils::aliases::{ATera, StrMap};
 use async_trait::async_trait;
 use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
+use axum::http::Method;
 
 dyn_clone::clone_trait_object!(FormField);
 
@@ -134,7 +135,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
         form.set_renderer(renderer);
 
         Self::register_fields(&mut form);
-        form.fill(raw_data);
+        form.fill(raw_data, Method::POST);
         Self::from_form(form)
     }
 }

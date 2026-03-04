@@ -14,6 +14,8 @@ pub struct ParsedColumn {
     pub nullable: bool,
     pub unique: bool,
     pub ignored: bool,
+    pub created_at: bool,
+    pub updated_at: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]

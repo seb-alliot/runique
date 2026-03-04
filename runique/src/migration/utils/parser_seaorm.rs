@@ -90,6 +90,8 @@ impl SeaOrmVisitor {
                             nullable: false,
                             unique: false,
                             ignored: false,
+                            created_at: false,
+                            updated_at: false,
                         });
                     } else {
                         self.columns.push(ParsedColumn {
@@ -98,6 +100,8 @@ impl SeaOrmVisitor {
                             nullable,
                             unique,
                             ignored: false,
+                            created_at: false,
+                            updated_at: false,
                         });
                     }
                 }
