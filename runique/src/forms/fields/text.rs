@@ -99,17 +99,6 @@ impl TextField {
         Self::create(name, "url", SpecialFormat::Url)
     }
 
-    // Password utilities
-    pub fn hash_password(&self) -> Result<String, String> {
-        let config = crate::utils::password::password_get();
-        PasswordService::new(config).hash(&self.base.value)
-    }
-
-    pub fn verify_password(password_plain: &str, password_hash: &str) -> bool {
-        let config = crate::utils::password::password_get();
-        PasswordService::new(config).verify(password_plain, password_hash)
-    }
-
     // Builder methods
     pub fn required(mut self) -> Self {
         self.set_required(true, None);
