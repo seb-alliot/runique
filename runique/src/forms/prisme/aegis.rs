@@ -5,7 +5,7 @@ use crate::utils::trad::t;
 use axum::{
     body::Body,
     extract::{FromRequest, Multipart},
-    http::{Request, StatusCode},
+    http::{Method, Request, StatusCode},
     response::{IntoResponse, Response},
 };
 use http_body_util::BodyExt;
@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Aegis : extraction unique du body (multipart/urlencoded/json) et normalisation.
+/// Sur GET/HEAD, les données sont lues depuis les query params (token CSRF inclus).
 pub async fn aegis<S>(
     req: Request<Body>,
     state: &S,
@@ -23,6 +24,16 @@ where
     S: Send + Sync,
 {
     let mut parsed: StrVecMap = HashMap::new();
+
+    if req.method() == Method::GET || req.method() == Method::HEAD {
+        let query = req.uri().query().unwrap_or("");
+        parsed = serde_urlencoded::from_str::<StrMap>(query)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(k, v)| (k, vec![v]))
+            .collect();
+        return Ok(parsed);
+    }
 
     if content_type.starts_with("multipart/form-data") {
         let multipart = Multipart::from_request(req, state).await.map_err(|_e| {

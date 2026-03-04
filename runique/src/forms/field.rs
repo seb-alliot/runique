@@ -9,6 +9,11 @@ use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
 
 dyn_clone::clone_trait_object!(FormField);
 
+/// Trait principal pour les formulaires typés avec validation et sauvegarde
+///
+#[doc = include_str!("../../doc-tests/form_proc_macro.md")]
+///
+#[doc = include_str!("../../doc-tests/form_clean_save.md")]
 #[async_trait]
 pub trait RuniqueForm: Sized + Send + Sync {
     fn register_fields(form: &mut Forms);

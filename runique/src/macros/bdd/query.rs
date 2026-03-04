@@ -6,7 +6,7 @@ use crate::db::DatabaseConfig;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// #[cfg(feature = "sqlite")]
 /// async fn sqlite_query_example() {
 ///     use sea_orm::entity::prelude::*;

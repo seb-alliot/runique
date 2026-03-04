@@ -1,5 +1,4 @@
-
-Un framework web moderne inspiré de Django, construit avec Rust, Axum, SeaORM et Tera.
+# Runique — Django-inspired Rust Framework
 
 ---
 

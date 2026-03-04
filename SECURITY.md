@@ -15,7 +15,7 @@
 - **Severity**: Medium (5.9)
 - **Affected**: `rsa 0.9.10` (transitive dependency via `sqlx-mysql`)
 - **Impact**: Potential timing sidechannel attack on RSA decryption
-- **Mitigation**: 
+- **Mitigation**:
   - Use SQLite or PostgreSQL instead of MySQL in production
   - If MySQL is required, this only affects SSL/TLS connections
   - No fix available yet, waiting for upstream `sqlx` update
@@ -33,7 +33,7 @@
 If you discover a security vulnerability in Runique itself (not dependencies), please:
 
 1. **Do NOT** open a public issue
-2. Email: [your-email@example.com]
+2. Email: [alliotsebastien04@gmail.com]
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce

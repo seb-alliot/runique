@@ -64,6 +64,8 @@ use sea_orm::{Condition, DatabaseConnection, DbErr, EntityTrait};
 use std::marker::PhantomData;
 
 /// Django-style ORM manager for entities
+///
+#[doc = include_str!("../../../doc-tests/model_complete.md")]
 pub struct Objects<E: EntityTrait> {
     _phantom: PhantomData<E>,
 }
