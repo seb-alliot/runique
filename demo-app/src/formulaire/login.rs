@@ -23,4 +23,3 @@ impl RuniqueForm for LoginForm {
 
     impl_form_access!();
 }
-

@@ -7,8 +7,8 @@ mod tests {
     use crate::forms::fields::text::TextField;
     use crate::forms::form::Forms;
     use crate::utils::aliases::StrMap;
-    use std::collections::HashMap;
     use axum::http::Method;
+    use std::collections::HashMap;
 
     // ── TextField ────────────────────────────────────────────────────────────────
 

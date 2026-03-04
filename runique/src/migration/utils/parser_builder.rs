@@ -173,11 +173,11 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
             let has_auto_now = f.options.contains(&"auto_now".to_string());
             let has_auto_now_update = f.options.contains(&"auto_now_update".to_string());
 
-    let nullable = f.options.contains(&"nullable".to_string())
-        && !has_auto_now
-        && !has_auto_now_update;
-        
-    let unique = f.options.contains(&"unique".to_string());
+            let nullable = f.options.contains(&"nullable".to_string())
+                && !has_auto_now
+                && !has_auto_now_update;
+
+            let unique = f.options.contains(&"unique".to_string());
 
             let col_type = if has_auto_now || has_auto_now_update {
                 "DateTime".to_string()

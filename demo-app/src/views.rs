@@ -62,7 +62,6 @@ pub async fn soumission_inscription(
                 }
                 Err(err) => {
                     form.get_form_mut().database_error(&err);
-                    println!("Database error: {:?}", err);
                 }
             }
         }
@@ -179,30 +178,21 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
 
 pub async fn info_user(
     mut request: Request,
-    Prisme(mut form): Prisme<UsernameForm>,
+    Prisme(form): Prisme<UsernameForm>,
 ) -> AppResult<Response> {
     inject_auth(&mut request).await;
     let template = "profile/view_user.html";
+    let username = form.get_form().get_value("username").unwrap_or_default();
 
     if request.is_get() {
-        context_update!(request => {
-            "title" => "Rechercher un utilisateur",
-            "user" => &form,
-        });
-        return request.render(template);
-    }
-
-    if request.is_post() {
-        if !form.is_valid().await {
+        if username.is_empty() {
+            warning!(request.notices => "Veuillez entrer un nom d'utilisateur.");
             context_update!(request => {
-                "title" => "Rechercher un utilisateur",
+                "title" => "Vue utilisateur",
                 "user" => &form,
-                "messages" => flash_now!(error => "Erreur de validation"),
             });
             return request.render(template);
         }
-
-        let username = form.get_form().get_value("username").unwrap_or_default();
         let db = request.engine.db.clone();
 
         let user_opt = UserEntity::find()

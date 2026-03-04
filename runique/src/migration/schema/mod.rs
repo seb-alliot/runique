@@ -329,16 +329,12 @@ impl ModelSchema {
         }
     }
     pub fn auto_now_columns(&self) -> Vec<&ColumnDef> {
-        self.columns.iter()
-            .filter(|c| c.auto_now)
-            .collect()
+        self.columns.iter().filter(|c| c.auto_now).collect()
     }
 
     /// Trouve les colonnes auto_now_update (updated_at)
     pub fn auto_now_update_columns(&self) -> Vec<&ColumnDef> {
-        self.columns.iter()
-            .filter(|c| c.auto_now_update)
-            .collect()
+        self.columns.iter().filter(|c| c.auto_now_update).collect()
     }
 
     /// Vérifie si le modèle a besoin de timestamps automatiques
