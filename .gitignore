@@ -19,10 +19,15 @@ Thumbs.db
 .env*
 
 # Demo app
-examples/demo-app/src/media/
-examples/demo-app/.env
+/demo-app/migration/src/
+/demo-app/migration/src/snapshots/
+/demo-app/migration/src/applied/
 
-# Claudeclaude-*.log
-.claude
+
+# Demo media (si tu veux l’ignorer)
+/demo-app/media/
+
+
 # Fichiers temporaires Claude Code
 tmpclaude-*
+/.claude/
