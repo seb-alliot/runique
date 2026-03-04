@@ -150,7 +150,7 @@ pub async fn users_edit(
                 form_data.insert(k.clone(), v.to_string().trim_matches('"').to_string());
             }
         }
-        form.get_form_mut().fill(&form_data);
+        form.get_form_mut().fill(&form_data, Method::GET);
 
         context_update!(req => {
             "resource_key" => "users",

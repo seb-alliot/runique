@@ -9,7 +9,6 @@ impl RegisterForm {
         let username = self.form.get_string("username");
         let email = self.form.get_string("email");
         let password = self.form.get_string("password");
-        println!("Cleaning fields en entrée : username={}, email={}, password={}", username, email, password);
 
         if username.len() < 3 {
             return Err("Username must be at least 3 characters long".to_string());
@@ -21,7 +20,6 @@ impl RegisterForm {
         if password.len() < 10 {
             return Err("Password must be at least 10 characters long".to_string());
         }
-        println!("Cleaning fields en sortie : username={}, email={}, password={}", username, email, password);
         Ok(())
     }
     async fn clean(&self) -> Result<(), String> {
@@ -42,6 +40,8 @@ impl RegisterForm {
             is_active: Set(true),
             is_superuser: Set(false),
             is_staff: Set(false),
+            created_at: Set(Some(chrono::Utc::now().naive_utc())),
+            updated_at: Set(Some(chrono::Utc::now().naive_utc())),
             ..Default::default()
         };
         user.insert(db).await

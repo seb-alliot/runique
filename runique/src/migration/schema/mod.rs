@@ -328,6 +328,23 @@ impl ModelSchema {
             _ => "i32",
         }
     }
+    pub fn auto_now_columns(&self) -> Vec<&ColumnDef> {
+        self.columns.iter()
+            .filter(|c| c.auto_now)
+            .collect()
+    }
+
+    /// Trouve les colonnes auto_now_update (updated_at)
+    pub fn auto_now_update_columns(&self) -> Vec<&ColumnDef> {
+        self.columns.iter()
+            .filter(|c| c.auto_now_update)
+            .collect()
+    }
+
+    /// Vérifie si le modèle a besoin de timestamps automatiques
+    pub fn has_auto_timestamps(&self) -> bool {
+        self.columns.iter().any(|c| c.auto_now || c.auto_now_update)
+    }
 }
 
 /// Result of the diff between two ModelSchema

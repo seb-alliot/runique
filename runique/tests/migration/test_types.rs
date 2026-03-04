@@ -20,6 +20,8 @@ mod types_migration {
             nullable: false,
             unique: true,
             ignored: false,
+            created_at: false,
+            updated_at: false,
         };
         assert_eq!(col.name, "id");
         assert!(col.unique);

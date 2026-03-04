@@ -11,6 +11,7 @@ use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use axum::http::Method;
 
 /// Conteneur de champs de formulaire avec validation et rendu HTML
 ///
@@ -168,9 +169,12 @@ impl Forms {
         );
     }
 
-    pub fn fill(&mut self, data: &StrMap) {
+    /// Remplit les champs du formulaire à partir d'une map de données.
+    /// Si allow_password est false, les champs password sont ignorés (sécurité GET).
+    pub fn fill(&mut self, data: &StrMap, method: Method) {
+        let allow_password = matches!(method, Method::POST | Method::PUT | Method::PATCH);
         for field in self.fields.values_mut() {
-            if field.field_type() == "password" {
+            if field.field_type() == "password" && !allow_password {
                 continue;
             }
             if let Some(value) = data.get(field.name()) {

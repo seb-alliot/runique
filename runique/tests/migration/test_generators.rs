@@ -18,6 +18,8 @@ fn col(name: &str, col_type: &str) -> ParsedColumn {
         nullable: false,
         unique: false,
         ignored: false,
+        created_at: false,
+        updated_at: false,
     }
 }
 
