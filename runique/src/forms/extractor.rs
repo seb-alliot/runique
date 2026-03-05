@@ -71,12 +71,7 @@ where
     let form_data = convert_for_form(parsed);
 
     // ← Changed: build_with_data already creates the renderer, no need to set_tera afterwards
-    let form = T::build_with_data(
-        &form_data,
-        tera, // ← No need for .clone() if consumed
-        csrf_session.as_str(),
-    )
-    .await;
+    let form = T::build_with_data(&form_data, tera, csrf_session.as_str(), method).await;
 
     Ok(Prisme(form))
 }

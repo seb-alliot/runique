@@ -18,12 +18,6 @@ Thumbs.db
 # Env
 .env*
 
-# Demo app
-/demo-app/migration/src/
-/demo-app/migration/src/snapshots/
-/demo-app/migration/src/applied/
-
-
 # Demo media (si tu veux l’ignorer)
 /demo-app/media/
 

@@ -11,6 +11,7 @@ use runique::forms::fields::choice::{CheckboxField, ChoiceOption, RadioField};
 use runique::forms::fields::datetime::{DateField, DurationField, TimeField};
 use runique::forms::fields::special::{IPAddressField, UUIDField};
 use runique::prelude::*;
+use runique::utils::password;
 
 // ============================================================================
 // TEXTFIELD — Constructors
@@ -153,10 +154,10 @@ fn test_url_validation_invalid() {
 fn test_password_hash_and_verify() {
     let mut field = TextField::password("pass");
     field.set_value("MonMotDePasse123");
-    let hash = field.hash_password().unwrap();
+    let hash = password::hash("MonMotDePasse123").unwrap();
     assert!(hash.starts_with("$argon2"));
-    assert!(TextField::verify_password("MonMotDePasse123", &hash));
-    assert!(!TextField::verify_password("mauvais", &hash));
+    assert!(password::verify("MonMotDePasse123", &hash));
+    assert!(!password::verify("mauvais", &hash));
 }
 
 #[test]

@@ -8,7 +8,7 @@ use crate::formulaire::RegisterForm;
 pub async fn users_list(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
     if req.is_get() {
         let entries = <crate::entities::users::Model as ModelTrait>::Entity::find()
@@ -20,9 +20,7 @@ pub async fn users_list(
             .resources
             .iter()
             .find(|r| r.key == "users")
-            .ok_or_else(|| {
-                Box::new(AppError::new(ErrorContext::not_found("Resource not found")))
-            })?;
+            .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
         context_update!(req => {
             "resource_key" => "users",
@@ -41,20 +39,14 @@ pub async fn users_list(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée créée avec succès !");
-            return Ok(Redirect::to(&format!(
-                "{}/users/list",
-                admin.config.prefix.trim_end_matches('/')
-            ))
-            .into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
             let resource = admin
                 .registry
                 .resources
                 .iter()
                 .find(|r| r.key == "users")
-                .ok_or_else(|| {
-                    Box::new(AppError::new(ErrorContext::not_found("Resource not found")))
-                })?;
+                .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
             context_update!(req => {
                 "resource_key" => "users",
@@ -73,7 +65,7 @@ pub async fn users_list(
 pub async fn users_create(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
     let resource = admin
         .registry
@@ -99,11 +91,7 @@ pub async fn users_create(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée créée avec succès !");
-            return Ok(Redirect::to(&format!(
-                "{}/users/list",
-                admin.config.prefix.trim_end_matches('/')
-            ))
-            .into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
@@ -125,7 +113,7 @@ pub async fn users_edit(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
     Path(id): Path<i32>,
-    Prisme(mut form): Prisme<RegisterForm>,
+    Prisme(mut form): Prisme<RegisterForm>
 ) -> AppResult<Response> {
     let entry = <crate::entities::users::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
@@ -171,11 +159,7 @@ pub async fn users_edit(
                 AppError::from(err)
             })?;
             success!(req.notices => "Entrée mise à jour avec succès !");
-            return Ok(Redirect::to(&format!(
-                "{}/users/list",
-                admin.config.prefix.trim_end_matches('/')
-            ))
-            .into_response());
+            return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
         } else {
             context_update!(req => {
                 "resource_key" => "users",
@@ -198,7 +182,7 @@ pub async fn users_edit(
 pub async fn users_detail(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Path(id): Path<i32>,
+    Path(id): Path<i32>
 ) -> AppResult<Response> {
     let entry = <crate::entities::users::Model as ModelTrait>::Entity::find_by_id(id)
         .one(&*req.engine.db)
@@ -226,7 +210,7 @@ pub async fn users_detail(
 pub async fn users_delete(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Path(id): Path<i32>,
+    Path(id): Path<i32>
 ) -> AppResult<Response> {
     if req.is_post() {
         let entry = <crate::entities::users::Model as ModelTrait>::Entity::find_by_id(id)
@@ -236,11 +220,7 @@ pub async fn users_delete(
 
         entry.delete(&*req.engine.db).await?;
         success!(req.notices => "Entrée supprimée avec succès !");
-        return Ok(Redirect::to(&format!(
-            "{}/users/list",
-            admin.config.prefix.trim_end_matches('/')
-        ))
-        .into_response());
+        return Ok(Redirect::to(&format!("{}/users/list", admin.config.prefix.trim_end_matches('/'))).into_response());
     }
 
     let entry = <crate::entities::users::Model as ModelTrait>::Entity::find_by_id(id)
@@ -265,3 +245,4 @@ pub async fn users_delete(
     });
     req.render("delete")
 }
+

@@ -6,6 +6,7 @@
 //! - RuniqueForm::build, build_with_data, clean_field, clean, is_valid
 //! - RuniqueForm::save, save_txn (implémentations par défaut dans forms/field.rs)
 
+use axum::http::Method;
 use runique::forms::field::RuniqueForm;
 use runique::forms::form::Forms;
 use runique::middleware::LoginAdmin;
@@ -89,11 +90,12 @@ fn test_build_csrf_token_enregistre() {
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
+
 async fn test_build_with_data_remplit_username() {
     let tera = make_tera();
     let mut data = HashMap::new();
     data.insert("username".to_string(), "admin_user".to_string());
-    let form = LoginAdmin::build_with_data(&data, tera, "token").await;
+    let form = LoginAdmin::build_with_data(&data, tera, "token", Method::POST).await;
     assert!(form.get_form().fields.contains_key("username"));
     // Le champ username doit avoir la valeur fournie
     assert_eq!(form.get_form().get_string("username"), "admin_user");
@@ -101,13 +103,16 @@ async fn test_build_with_data_remplit_username() {
 
 #[tokio::test]
 async fn test_build_with_data_password_non_rempli_par_fill() {
-    // fill() ignore les champs password par sécurité
+    // fill() ignore les champs password par sécurité en GET
     let tera = make_tera();
     let mut data = HashMap::new();
     data.insert("password".to_string(), "secret".to_string());
-    let form = LoginAdmin::build_with_data(&data, tera, "token").await;
-    // Le password ne doit pas être injecté via fill()
+    let form = LoginAdmin::build_with_data(&data, tera, "token", Method::GET).await;
+    // Le password ne doit pas être injecté via fill() en GET
     assert_eq!(form.get_form().get_string("password"), "");
+    // Mais il doit l'être en POST
+    let form_post = LoginAdmin::build_with_data(&data, make_tera(), "token", Method::POST).await;
+    assert_eq!(form_post.get_form().get_string("password"), "secret");
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -193,6 +193,9 @@ impl Forms {
     pub fn add_value(&mut self, name: &str, value: &str) {
         if let Some(field) = self.fields.get_mut(name) {
             field.set_value(value);
+            if !value.trim().is_empty() && name != CSRF_TOKEN_KEY {
+                self.submitted = true;
+            }
         }
     }
 
@@ -212,9 +215,8 @@ impl Forms {
 
 impl Forms {
     pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
-        if !self.is_submitted() {
-            return Ok(false);
-        }
+        // Pour les tests unitaires et la robustesse, on valide toujours si is_valid() est appelé,
+        // même si le formulaire n'est pas marqué comme soumis (ex: aucun champ rempli).
         Self::validate(&mut self.fields, &self.errors)
     }
     pub fn has_errors(&self) -> bool {

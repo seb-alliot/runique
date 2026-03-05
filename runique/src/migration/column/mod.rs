@@ -353,7 +353,7 @@ impl ColumnDef {
         };
         use crate::forms::generic::GenericField;
 
-        if self.auto_now || self.auto_now_update || self.ignored {
+        if self.ignored {
             return None;
         }
 

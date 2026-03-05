@@ -1,9 +1,4 @@
-﻿
-Voici un sommaire structuré pour ton document « Formulaires » avec tous les ancres existantes :
-
----
-
-# Sommaire
+﻿# Sommaire
 
 - [📋 Formulaires](#vue-densemble)
   - [Vue d'ensemble](#vue-densemble)
@@ -50,10 +45,8 @@ Voici un sommaire structuré pour ton document « Formulaires » avec tous l
 
 ---
 
-Si tu veux, je peux aussi générer une **version Markdown cliquable complète** avec indentation et liens directs pour un vrai sommaire interactif. Veux‑tu que je fasse ça ?
-
-
 <a id="vue-densemble"></a>
+
 ## Vue d'ensemble
 
 Runique fournit un système de formulaires puissant, inspiré de Django. Il existe **deux approches** :
@@ -68,6 +61,7 @@ Les formulaires sont extraits automatiquement des requêtes via l’extracteur *
 [↑](#vue-densemble)
 
 <a id="extracteur-prisme"></a>
+
 ## Extracteur Prisme
 
 `Prisme<T>` est un extracteur Axum qui orchestre un pipeline complet en coulisses :
@@ -100,9 +94,11 @@ pub async fn inscription(
 [↑](#vue-densemble)
 
 <a id="approche-manuelle-trait-runiqueform"></a>
+
 ## Approche manuelle : trait RuniqueForm
 
 <a id="structure-de-base"></a>
+
 ### Structure de base
 
 Chaque formulaire contient un champ `form: Forms` et implémente le trait `RuniqueForm` :
@@ -152,22 +148,24 @@ fn get_form_mut(&mut self) -> &mut Forms {
 [↑](#vue-densemble)
 
 <a id="methodes-du-trait-runiqueform"></a>
+
 ### Méthodes du trait RuniqueForm
 
-| Méthode                             | Rôle                                                            |
-| ----------------------------------- | --------------------------------------------------------------- |
-| `register_fields(form)`             | Déclare les champs du formulaire                                |
-| `from_form(form)`                   | Construit l'instance depuis un `Forms`                          |
-| `get_form()` / `get_form_mut()`     | Accesseurs vers le `Forms` interne                              |
-| `clean()`                           | Logique métier croisée (ex: `mdp1 == mdp2`) — **optionnel**     |
-| `is_valid()`                        | Pipeline complet : validation champs → `clean()` → `finalize()` |
-| `database_error(&err)`              | Injecte une erreur DB sur le bon champ                          |
-| `build(tera, csrf_token)`           | Construit un formulaire vide                                    |
-| `build_with_data(data, tera, csrf)` | Construit, remplit et valide                                    |
+| Méthode                             | Rôle                                                                                                                                                                                                                            |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `register_fields(form)`             | Déclare les champs du formulaire                                                                                                                                                                                                |
+| `from_form(form)`                   | Construit l'instance depuis un `Forms`                                                                                                                                                                                          |
+| `get_form()` / `get_form_mut()`     | Accesseurs vers le `Forms` interne                                                                                                                                                                                              |
+| `clean()`                           | Logique métier croisée (ex: `mdp1 == mdp2`) — **optionnel**                                                                                                                                                                     |
+| `is_valid()`                        | Pipeline complet : validation champs → `clean()` → `finalize()`. **NB : is_valid() ne valide que si le formulaire a reçu des données (hors CSRF), ce qui évite l'affichage d'erreurs lors d'un GET ou d'un affichage initial.** |
+| `database_error(&err)`              | Injecte une erreur DB sur le bon champ                                                                                                                                                                                          |
+| `build(tera, csrf_token)`           | Construit un formulaire vide                                                                                                                                                                                                    |
+| `build_with_data(data, tera, csrf)` | Construit, remplit et valide                                                                                                                                                                                                    |
 
 [↑](#vue-densemble)
 
 <a id="pipeline-de-validation-is_valid"></a>
+
 ### Pipeline de validation `is_valid()`
 
 L'appel `form.is_valid().await` déclenche **3 étapes dans l'ordre** :
@@ -199,18 +197,20 @@ impl RuniqueForm for RegisterForm {
 ```
 
 > **⚠️ Important** : Après `is_valid()`, les champs `Password` sont **automatiquement hacher** si la configuration du hash de mot de passe est automatique, sinon le dev dois appeler le hash dans la logiqe metier de save(),
-Utilisez `clean()` pour toute comparaison de mots de passe en clair.
+> Utilisez `clean()` pour toute comparaison de mots de passe en clair.
 
 ---
 
 [↑](#vue-densemble)
 
 <a id="helpers-de-conversion-typee"></a>
+
 ## Helpers de conversion typée
 
 Les valeurs de formulaire sont stockées en `String`. Plutôt que de parser manuellement, utilisez les helpers typés sur `Forms` :
 
 <a id="conversions-directes"></a>
+
 ### Conversions directes
 
 ```rust
@@ -223,9 +223,11 @@ form.get_f32("ratio")            // -> f32 (gère , → .)
 form.get_f64("price")            // -> f64 (gère , → .)
 form.get_bool("active")          // -> bool (true/1/on → true)
 ```
+
 [↑](#vue-densemble)
 
 <a id="conversions-option"></a>
+
 ### Conversions Option
 
 ```rust
@@ -239,6 +241,7 @@ form.get_option_bool("news")     // -> Option<bool>
 [↑](#vue-densemble)
 
 <a id="utilisation-dans-save"></a>
+
 ### Utilisation dans save()
 
 ```rust
@@ -266,9 +269,11 @@ impl RegisterForm {
 [↑](#vue-densemble)
 
 <a id="types-de-champs"></a>
+
 ## Types de champs
 
 <a id="textfield"></a>
+
 ### TextField — Champs texte
 
 Le `TextField` gère 6 formats spéciaux via l'enum `SpecialFormat` :
@@ -314,6 +319,7 @@ TextField::text("nom")
 **Comportements automatiques par format :**
 
 | Format | Validation | Transformation |
+
 |--------|-----------|----------------|
 | `Email` | `validator::ValidateEmail` | Conversion en lowercase |
 | `Url` | `validator::ValidateUrl` | — |
@@ -336,6 +342,7 @@ let ok = TextField::verify_password("mdp_clair", "$argon2...");
 [↑](#vue-densemble)
 
 <a id="numericfield"></a>
+
 ### NumericField — Champs numériques
 
 5 variantes via l'enum `NumericConfig` :
@@ -375,6 +382,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="booleanfield"></a>
+
 ### BooleanField — Cases à cocher / Radio simple
 
 ```rust
@@ -395,6 +403,7 @@ form.field(&BooleanField::new("remember_me").label("Se souvenir").checked());
 [↑](#vue-densemble)
 
 <a id="choicefield"></a>
+
 ### ChoiceField — Select / Dropdown
 
 ```rust
@@ -428,6 +437,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="radiofield"></a>
+
 ### RadioField — Boutons radio
 
 ```rust
@@ -446,6 +456,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="checkboxfield"></a>
+
 ### CheckboxField — Checkboxes multiples
 
 ```rust
@@ -463,6 +474,7 @@ form.field(
 > Les valeurs soumises sont au format `"val1,val2,val3"`. La validation vérifie que chaque valeur existe dans les choix.
 
 <a id="date-time-duration-fields"></a>
+
 ### DateField, TimeField, DateTimeField — Date / Heure
 
 ```rust
@@ -486,6 +498,7 @@ form.field(&DateTimeField::new("event_start").label("Début de l'événement"));
 [↑](#vue-densemble)
 
 <a id="durationfield"></a>
+
 ### DurationField — Durée
 
 ```rust
@@ -500,6 +513,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="filefield"></a>
+
 ### FileField — Upload de fichiers
 
 ```rust
@@ -538,6 +552,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="js-associes"></a>
+
 ### Fichiers JS associés
 
 ```rust
@@ -552,6 +567,7 @@ Les fichiers JS sont inclus automatiquement dans le rendu HTML du formulaire.
 [↑](#vue-densemble)
 
 <a id="colorfield"></a>
+
 ### ColorField — Sélecteur de couleur
 
 ```rust
@@ -565,6 +581,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="slugfield"></a>
+
 ### SlugField — Slug URL-friendly
 
 ```rust
@@ -581,6 +598,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="uuidfield"></a>
+
 ### UUIDField
 
 ```rust
@@ -594,6 +612,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="jsonfield"></a>
+
 ### JSONField — Textarea avec validation JSON
 
 ```rust
@@ -608,6 +627,7 @@ form.field(
 [↑](#vue-densemble)
 
 <a id="ipaddressfield"></a>
+
 ### IPAddressField — Adresse IP
 
 ```rust
@@ -626,6 +646,7 @@ form.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());
 [↑](#vue-densemble)
 
 <a id="hiddenfield"></a>
+
 ### HiddenField — Champ caché
 
 Champ invisible dans le formulaire HTML (`<input type="hidden">`). Deux usages principaux : passer des données techniques sans les montrer à l'utilisateur, ou valider un token CSRF manuellement.
@@ -648,9 +669,11 @@ form.field(&HiddenField::new_csrf());
 [↑](#vue-densemble)
 
 <a id="recapitulatif-types-champs"></a>
+
 ## Récapitulatif des types de champs
 
 | Struct | Constructeurs | Validation spéciale |
+
 |--------|-------------|---------------------|
 | `TextField` | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, sanitisation XSS |
 | `NumericField` | `integer()`, `float()`, `decimal()`, `percent()`, `range()` | Bornes min/max, précision décimale |
@@ -675,6 +698,7 @@ form.field(&HiddenField::new_csrf());
 [↑](#vue-densemble)
 
 <a id="erreurs-base-donnees"></a>
+
 ## Erreurs de base de données
 
 La méthode `database_error()` analyse automatiquement les erreurs DB pour remonter l'erreur au bon champ :
@@ -702,15 +726,17 @@ Si le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est
 [↑](#vue-densemble)
 
 <a id="rendu-templates"></a>
+
 ## Rendu dans les templates
 
 <a id="formulaire-complet"></a>
+
 ### Formulaire complet
 
 ```html
 <form method="post">
-    {% form.inscription_form %}
-    <button type="submit">S'inscrire</button>
+  {% form.inscription_form %}
+  <button type="submit">S'inscrire</button>
 </form>
 ```
 
@@ -719,38 +745,42 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 [↑](#vue-densemble)
 
 <a id="champ-par-champ"></a>
+
 ### Champ par champ
 
 ```html
 <form method="post">
-    {% csrf %} <!-- inclus dans le formulaire, non nécessaire manuellement -->
-    <div class="row">
-        <div class="col-6">{% form.inscription_form.username %}</div>
-        <div class="col-6">{% form.inscription_form.email %}</div>
-    </div>
-    {% form.inscription_form.password %}
-    <button type="submit">S'inscrire</button>
+  {% csrf %}
+  <!-- inclus dans le formulaire, non nécessaire manuellement -->
+  <div class="row">
+    <div class="col-6">{% form.inscription_form.username %}</div>
+    <div class="col-6">{% form.inscription_form.email %}</div>
+  </div>
+  {% form.inscription_form.password %}
+  <button type="submit">S'inscrire</button>
 </form>
 ```
 
 [↑](#vue-densemble)
 
 <a id="erreurs-globales"></a>
+
 ### Erreurs globales
 
 ```html
 {% if inscription_form.errors %}
-    <div class="alert alert-danger">
-        {% for msg in inscription_form.errors %}
-            <p>{{ msg }}</p>
-        {% endfor %}
-    </div>
+<div class="alert alert-danger">
+  {% for msg in inscription_form.errors %}
+  <p>{{ msg }}</p>
+  {% endfor %}
+</div>
 {% endif %}
 ```
 
 [↑](#vue-densemble)
 
 <a id="donnees-json"></a>
+
 ### Données de champ en JSON
 
 Les formulaires sérialisent automatiquement `data`, `errors`, `errors`, `html`, `rendered_fields`, `fields` et `js_files`.
@@ -758,6 +788,7 @@ Les formulaires sérialisent automatiquement `data`, `errors`, `errors`, `html`,
 ---
 
 <a id="exemple-complet-inscription"></a>
+
 ## Exemple complet : inscription avec sauvegarde
 
 ```rust
@@ -812,6 +843,7 @@ impl RegisterForm {
 [↑](#vue-densemble)
 
 <a id="handler-get-post"></a>
+
 ### Handler GET/POST
 
 ```rust
@@ -859,9 +891,11 @@ pub async fn inscription(
 [↑](#vue-densemble)
 
 <a id="pieges-courants"></a>
+
 ## ⚠️ Pièges courants
 
 <a id="collision-noms-variables"></a>
+
 ### 1. Collision de noms de variables template
 
 Si votre template utilise `{% form.user %}`, la variable `user` dans le contexte **doit** être un formulaire, pas un Model SeaORM :
@@ -880,6 +914,7 @@ context_update!(request => {
 [↑](#vue-densemble)
 
 <a id="mut-sur-form"></a>
+
 ### 2. Oublier le `mut` sur form
 
 ```rust
@@ -893,10 +928,15 @@ Prisme(mut form): Prisme<MyForm>
 [↑](#vue-densemble)
 
 <a id="comparer-mot-de-passe"></a>
+
 ### 3. Comparer des mots de passe après `is_valid()`
 
 ```rust
-//  Après is_valid(), les mots de passe sont hachés !
+    /// main.rs ->
+    /// avec cette configuration ->
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
+
+//  et is_valid(), les mots de passe sont hachés !
 let mdp = form.get_form().get_string("password");
 // mdp == "$argon2id$v=19$m=..." 😱
 
@@ -914,6 +954,7 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 [↑](#vue-densemble)
 
 <a id="prochaines-etapes"></a>
+
 ## Prochaines étapes
 
 ← [**Routing**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/fr/06-templates.md) →

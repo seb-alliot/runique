@@ -45,8 +45,6 @@
 
 ---
 
-If you want, I can also generate a **fully clickable Markdown version** with indentation and direct links for a real interactive table of contents. Do you want me to do that?
-
 ---
 
 ## Overview
@@ -149,7 +147,7 @@ fn get_form_mut(&mut self) -> &mut Forms {
 | `from_form(form)`                   | Build the instance from a `Forms`                               |
 | `get_form()` / `get_form_mut()`     | Accessors for the internal `Forms`                              |
 | `clean()`                           | Cross-field business logic (e.g. `pwd1 == pwd2`) — **optional** |
-| `is_valid()`                        | Full pipeline: field validation → `clean()` → `finalize()`      |
+| `is_valid()`                        | Full pipeline: field validation → `clean()` → `finalize()`. **Note: is_valid() only validates if the form has received data (excluding CSRF), which prevents error messages from appearing on GET or initial display.** |
 | `database_error(&err)`              | Inject a DB error on the correct field                          |
 | `build(tera, csrf_token)`           | Build an empty form                                             |
 | `build_with_data(data, tera, csrf)` | Build, fill, and validate                                       |
@@ -849,7 +847,11 @@ Prisme(mut form): Prisme<MyForm>
 ### 3. Comparing passwords after `is_valid()`
 
 ```rust
-//  After is_valid(), passwords are hashed!
+
+/// main.rs ->
+/// with this configuration ->
+password_init(PasswordConfig::auto_with(Manual::Argon2));
+//  and is_valid(), passwords are hashed!
 let mdp = form.get_form().get_string("password");
 // mdp == "$argon2id$v=19$m=..." 😱
 

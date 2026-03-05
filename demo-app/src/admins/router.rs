@@ -1,6 +1,6 @@
-use crate::admins::handlers;
 use runique::prelude::*;
 use runique::{urlpatterns, view};
+use crate::admins::handlers;
 
 pub fn admin(prefix: &str) -> Router {
     urlpatterns! {

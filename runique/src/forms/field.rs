@@ -128,14 +128,19 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Self::from_form(form)
     }
 
-    async fn build_with_data(raw_data: &StrMap, tera: ATera, csrf_token: &str) -> Self {
+    async fn build_with_data(
+        raw_data: &StrMap,
+        tera: ATera,
+        csrf_token: &str,
+        method: Method,
+    ) -> Self {
         let mut form = Forms::new(csrf_token);
 
         let renderer = FormRenderer::new(tera);
         form.set_renderer(renderer);
 
         Self::register_fields(&mut form);
-        form.fill(raw_data, Method::POST);
+        form.fill(raw_data, method);
         Self::from_form(form)
     }
 }

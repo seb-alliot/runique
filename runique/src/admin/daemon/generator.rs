@@ -361,7 +361,7 @@ fn write_handler_edit(out: &mut String, r: &ResourceDef) -> Result<(), String> {
     );
     let _ = writeln!(out, "            }}");
     let _ = writeln!(out, "        }}");
-    let _ = writeln!(out, "        form.get_form_mut().fill(&form_data);");
+    let _ = writeln!(out, "        form.get_form_mut().fill(&form_data, Method::GET);");
     let _ = writeln!(out);
     let _ = writeln!(out, "        context_update!(req => {{");
     let _ = writeln!(out, "            \"resource_key\" => \"{}\",", key);
