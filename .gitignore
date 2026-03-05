@@ -18,10 +18,6 @@ Thumbs.db
 # Env
 .env*
 
-# Demo media (si tu veux l’ignorer)
-/demo-app/media/
-
-
 # Fichiers temporaires Claude Code
 tmpclaude-*
 /.claude/
