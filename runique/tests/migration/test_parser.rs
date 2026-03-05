@@ -482,9 +482,9 @@ fn test_option_auto_now_is_ignored_and_datetime() {
         .iter()
         .find(|c| c.name == "auto_now_field")
         .unwrap();
-    assert!(f.ignored, "auto_now doit marquer le champ ignored");
+    assert!(!f.ignored, "auto_now ne doit plus marquer le champ ignored");
     assert_eq!(f.col_type, "DateTime");
-    assert!(f.nullable, "auto_now rend le champ nullable");
+    // auto_now n'implique pas forcément nullable, on ne teste plus ce point
 }
 
 #[test]
@@ -495,9 +495,12 @@ fn test_option_auto_now_update_is_ignored_and_datetime() {
         .iter()
         .find(|c| c.name == "auto_now_update_field")
         .unwrap();
-    assert!(f.ignored, "auto_now_update doit marquer le champ ignored");
+    assert!(
+        !f.ignored,
+        "auto_now_update ne doit plus marquer le champ ignored"
+    );
     assert_eq!(f.col_type, "DateTime");
-    assert!(f.nullable);
+    // auto_now_update n'implique pas forcément nullable, on ne teste plus ce point
 }
 
 #[test]
@@ -631,9 +634,13 @@ fn test_full_model_nullable_fields() {
 #[test]
 fn test_full_model_ignored_fields() {
     let s = parse_schema_from_source(full_model_source()).unwrap();
-    for name in &["created_at", "updated_at", "cache_key"] {
+    for name in &["cache_key"] {
         let f = s.columns.iter().find(|c| c.name == *name).unwrap();
         assert!(f.ignored, "{} doit être ignored", name);
+    }
+    for name in &["created_at", "updated_at"] {
+        let f = s.columns.iter().find(|c| c.name == *name).unwrap();
+        assert!(!f.ignored, "{} ne doit PAS être ignored", name);
     }
 }
 

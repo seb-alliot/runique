@@ -277,15 +277,15 @@ fn test_column_to_sea_column_compile() {
 // ═══════════════════════════════════════════════════════════════
 
 #[test]
-fn test_to_form_field_auto_now_retourne_none() {
+fn test_to_form_field_auto_now_retourne_some() {
     let col = ColumnDef::new("created_at").auto_now();
-    assert!(col.to_form_field().is_none());
+    assert!(col.to_form_field().is_some());
 }
 
 #[test]
-fn test_to_form_field_auto_now_update_retourne_none() {
+fn test_to_form_field_auto_now_update_retourne_some() {
     let col = ColumnDef::new("updated_at").auto_now_update();
-    assert!(col.to_form_field().is_none());
+    assert!(col.to_form_field().is_some());
 }
 
 #[test]

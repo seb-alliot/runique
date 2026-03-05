@@ -172,6 +172,8 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         .map(|f| {
             let has_auto_now = f.options.contains(&"auto_now".to_string());
             let has_auto_now_update = f.options.contains(&"auto_now_update".to_string());
+            let is_created_at = f.name == "created_at";
+            let is_updated_at = f.name == "updated_at";
 
             let nullable = f.options.contains(&"nullable".to_string())
                 && !has_auto_now
@@ -185,14 +187,17 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                 dsl_field_type_to_col_type(&f.ty)
             };
 
+            // Les champs readonly, cache_key, etc. sont ignorés, mais pas created_at, updated_at, auto_now, auto_now_update
+            let ignored = f.options.contains(&"readonly".to_string()) || f.name == "cache_key";
+
             ParsedColumn {
                 name: f.name,
                 col_type,
                 nullable,
                 unique,
-                ignored: false,
-                created_at: has_auto_now,
-                updated_at: has_auto_now_update,
+                ignored,
+                created_at: has_auto_now || is_created_at,
+                updated_at: has_auto_now_update || is_updated_at,
             }
         })
         .collect();

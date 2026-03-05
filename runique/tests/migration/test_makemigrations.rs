@@ -288,8 +288,8 @@ fn test_scan_entities_auto_now_est_ignore() {
         .find(|c| c.name == "created_at")
         .unwrap();
     assert!(
-        created_at.ignored,
-        "created_at (auto_now) doit être ignored"
+        !created_at.ignored,
+        "created_at (auto_now) ne doit PAS être ignored"
     );
 }
 

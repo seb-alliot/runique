@@ -11,7 +11,14 @@ mod tests {
     use std::collections::HashMap;
 
     // ── TextField ────────────────────────────────────────────────────────────────
-
+    #[test]
+    fn test_formulaire_get_valide() {
+        let mut form = Forms::new("csrf");
+        form.field(&TextField::text("search").required());
+        // Simule un GET avec un champ rempli
+        form.add_value("search", "rust");
+        assert!(form.is_valid().is_ok());
+    }
     #[test]
     fn test_text_required_empty() {
         let mut field = TextField::text("username").required();

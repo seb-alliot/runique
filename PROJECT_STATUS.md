@@ -13,11 +13,11 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## 🧾 Snapshot (au 3 mars 2026)
 
-- **Version workspace** : `1.1.25`
+- **Version workspace** : `1.1.36`
 - **Licence** : MIT
 - **Branche de travail** : `vue_admin`
-- **Tests reportés** : **1356 / 1356** ✅
-- **Couverture (rapport du 2026-03-01)** :
+- **Tests reportés** : **1523 / 1523** ✅
+- **Couverture (rapport du 2026-03-04)** :
   - Fonctions : **76.66%**
   - Lignes : **71.04%**
   - Régions : **67.22%**
@@ -97,7 +97,7 @@ La vue admin est **opérationnelle en bêta** sur un modèle déclaratif + gén�
 
 ### État actuel
 
-- **Pass rate** : 100% (1356 tests)
+- **Pass rate** : 100% (1523/1523 réussi)
 - **Couverture fonctionnelle** : 76.66%
 - **Objectif roadmap avant publication** : 85%+
 - **Note** : la couverture reportée ignore les fichiers correspondant à `admin` (cf. commande ci-dessus)
@@ -165,7 +165,7 @@ Fichiers critiques encore bas ou à 0% selon `couverture_test.md` :
 
 ## ⚠️ Écarts / incohérences à surveiller
 
-- **Version** : la version actuelle reste `1.1.25` ; `1.1.30` correspond à la prochaine version en préparation.
+- **Version** : `1.1.36` ;
 - **Statut admin** : la doc technique admin décrit une base fonctionnelle, mais la roadmap la garde en chantier.
 - **Couverture** : le pourcentage global est bon en progression, mais encore en-dessous de la cible publication.
 - **CSRF** : pas de faille systématique si le framework est utilisé comme prévu ; le point sensible est le non-respect du contrat d’utilisation sur les routes mutantes hors flux Prisme.
@@ -206,5 +206,7 @@ Fichiers critiques encore bas ou à 0% selon `couverture_test.md` :
 
 ---
 
-**Dernière mise à jour** : 3 mars 2026
+**Dernière mise à jour** : 4 mars 2026
 **Statut global** : ✅ Stable sur le cœur, 🟡 Admin bêta en cours d'évolution
+Des erreurs muettes peuvent survenir, pensez a me les remonter si vous en trouvez.
+Mérci !

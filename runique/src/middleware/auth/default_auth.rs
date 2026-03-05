@@ -18,9 +18,9 @@ use std::marker::PhantomData;
 
 use sea_orm::DatabaseConnection;
 
-use crate::forms::fields::text::TextField;
 use crate::middleware::auth::RuniqueUser;
 use crate::middleware::auth::{AdminAuth, AdminLoginResult};
+use crate::utils::password;
 
 /// Trait côté base de données : comment récupérer un user par username.
 ///
@@ -101,7 +101,7 @@ impl<E: UserEntity> AdminAuth for DefaultAdminAuth<E> {
         }
 
         // 3. Vérifier le mot de passe (Argon2)
-        if !TextField::verify_password(password, user.password_hash()) {
+        if !password::verify(password, user.password_hash()) {
             return None;
         }
 

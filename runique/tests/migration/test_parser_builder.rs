@@ -118,8 +118,8 @@ fn test_parse_auto_now_becomes_datetime_and_ignored() {
         .unwrap();
     assert_eq!(created_at.col_type, "DateTime");
     assert!(
-        created_at.ignored,
-        "auto_now doit marquer le champ comme ignored"
+        !created_at.ignored,
+        "auto_now ne doit plus marquer le champ comme ignored"
     );
 }
 
