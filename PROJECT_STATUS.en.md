@@ -16,7 +16,7 @@ This document consolidates the actual state of the repository from the reference
 - **Workspace version**: `1.1.37`
 - **License**: MIT
 - **Working branch**: `vue_admin`
-- **Tests reported**: **1501 passed; 4 failed;**✅
+- **Tests reported**: **1523/1523 passed**✅
 - **Coverage (report from 2026-03-04)**:
   - Functions: **76.66%**
   - Lines: **71.04%**

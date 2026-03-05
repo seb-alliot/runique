@@ -205,6 +205,7 @@ Pour un rapport détaillé et continuellement mis à jour de l’état du projet
 * Changelog — `CHANGELOG.md`
 * Hub de documentation — `docs/README.md`
 * Politique de sécurité — `SECURITY.md`
+* Benchmark — `benchmark.md`
 
 ---
 

@@ -10,3 +10,10 @@ cargo test
 
 # couverture des test api
 cargo llvm-cov --package runique --ignore-filename-regex "admin" --output-format markdown > couverture_test.md
+
+
+# Benchmark
+$env:CARGO_PROFILE_RELEASE_DEBUG="true"
+cargo flamegraph -p demo-app --bin demo-app
+.\demo-app.exe
+oha -n 10000 -c 100 http://localhost:3000/blog/liste

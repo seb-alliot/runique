@@ -169,6 +169,7 @@ See: [couverture_test.md](couverture_test.md)
 - [Examples](docs/en/10-examples.md)
 - [Admin beta](docs/en/11-Admin.md)
 
+
 ### Français
 
 - [Installation](docs/fr/01-installation.md)
@@ -198,6 +199,7 @@ For the detailed, continuously updated state report, see [PROJECT_STATUS.md](PRO
 - [Changelog](CHANGELOG.md)
 - [Documentation hub](docs/README.md)
 - [Security policy](SECURITY.md)
+- [Benchmark](benchmark.md)
 
 ---
 
