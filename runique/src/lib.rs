@@ -301,6 +301,6 @@ pub mod prelude {
     pub use crate::admin::resource::{
         AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
     };
-    pub use axum::http::method::*;
     pub use crate::admin::router::{build_admin_router, AdminState};
+    pub use axum::http::method::*;
 }
