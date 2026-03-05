@@ -13,7 +13,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## 🧾 Snapshot (au 3 mars 2026)
 
-- **Version workspace** : `1.1.36`
+- **Version workspace** : `1.1.37`
 - **Licence** : MIT
 - **Branche de travail** : `vue_admin`
 - **Tests reportés** : **1523 / 1523** ✅
@@ -165,7 +165,7 @@ Fichiers critiques encore bas ou à 0% selon `couverture_test.md` :
 
 ## ⚠️ Écarts / incohérences à surveiller
 
-- **Version** : `1.1.36` ;
+- **Version** : `1.1.37` ;
 - **Statut admin** : la doc technique admin décrit une base fonctionnelle, mais la roadmap la garde en chantier.
 - **Couverture** : le pourcentage global est bon en progression, mais encore en-dessous de la cible publication.
 - **CSRF** : pas de faille systématique si le framework est utilisé comme prévu ; le point sensible est le non-respect du contrat d’utilisation sur les routes mutantes hors flux Prisme.
