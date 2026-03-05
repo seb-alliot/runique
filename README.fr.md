@@ -82,9 +82,12 @@ async fn main() {
 
 ```
 
-⚠️ Attention
-Seule la commande makemigration permet de préserver correctement la chronologie des migrations de SeaORM.
-L’utilisation des autres commandes peut désynchroniser le suivi des migrations.
+> ⚠️ **Avertissement**
+> La commande `makemigrations` permet de générer les tables SeaORM tout en
+> respectant la chronologie du système de migrations.
+> Pour garantir la cohérence du suivi des migrations, utilisez uniquement
+> la CLI de SeaORM pour appliquer ou gérer les migrations.
+> L’utilisation des commandes peut entraîner une désynchronisation.
 
 ```
 

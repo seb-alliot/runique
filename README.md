@@ -81,9 +81,12 @@ async fn main() {
 
 ```
 
-⚠️ Warning
-Only the makemigration command ensures that the migration chronology remains consistent with SeaORM.
-Using other commands may desynchronize the migration tracking.
+> ⚠️ **Warning**
+> The `makemigrations` command generates SeaORM tables while preserving the
+> chronological order of the migration system.
+> To ensure migration tracking remains consistent, only use the SeaORM CLI
+> to apply or manage migrations.
+> Using other commands may lead to migration desynchronization.
 
 ```
 
