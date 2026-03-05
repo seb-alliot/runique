@@ -164,13 +164,13 @@ impl DatabaseConfig {
             config: DatabaseConfig {
                 url,
                 engine,
-                max_connections: 20,
-                min_connections: 5,
-                connect_timeout: Duration::from_secs(8),
-                acquire_timeout: Duration::from_secs(8),
+                max_connections: 100,
+                min_connections: 20,
+                connect_timeout: Duration::from_secs(2),
+                acquire_timeout: Duration::from_millis(500),
                 idle_timeout: Duration::from_secs(300),
                 max_lifetime: Duration::from_secs(3600),
-                sqlx_logging: true,
+                sqlx_logging: false,
             },
         })
     }
@@ -395,7 +395,7 @@ fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
 /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
 ///     .max_connections(50)
 ///     .min_connections(10)
-///     .connect_timeout(Duration::from_secs(5))
+///     .connect_timeout(Duration::from_secs(2))
 ///     .logging(true)
 ///     .build();
 /// # Ok(())

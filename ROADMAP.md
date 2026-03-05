@@ -192,6 +192,30 @@ entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p mig
 
 ### 7.c. Contrat développeur
 
+**Status :** 🟠 En Stand by => Choix de is_valid() en cour de reflexion pour un meilleur usage d'utilisation
+
 - Documenter un point d’entrée clair de l’initialisation globale (pas de logique implicite cachée).
 - Éviter les doubles sources de vérité entre config runtime et valeurs par défaut internes.
 - Ajouter des tests d’intégration sur la résolution de config (priorités + erreurs de validation).
+
+### 8 Configuration du pool Database
+
+**Status :** 🔴 À faire
+
+- Permettre la configuration via .env
+
+=> En profiter pour faire du découpage de .env ?
+    => .env
+        => config basique dev
+        => redirection
+    => .env.conf
+        => pool
+           lang
+           timezone quand implementer
+    => .env.security
+        => csp
+            => interupteur
+                => csp activé
+        => rate limite quand implementer
+
+    etc
