@@ -634,7 +634,8 @@ fn test_full_model_nullable_fields() {
 #[test]
 fn test_full_model_ignored_fields() {
     let s = parse_schema_from_source(full_model_source()).unwrap();
-    for name in &["cache_key"] {
+    {
+        let name = &"cache_key";
         let f = s.columns.iter().find(|c| c.name == *name).unwrap();
         assert!(f.ignored, "{} doit être ignored", name);
     }
