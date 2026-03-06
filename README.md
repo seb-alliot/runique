@@ -201,7 +201,6 @@ Full reference: [docs/en/15-env.md](docs/en/15-env.md)
 - [Sessions](docs/en/14-sessions.md)
 - [Environment variables](docs/en/15-env.md)
 
-
 ### Français
 
 - [Installation](docs/fr/01-installation.md)
