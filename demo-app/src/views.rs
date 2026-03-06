@@ -15,7 +15,7 @@ async fn inject_auth(request: &mut Request) {
 
 // ───  Index  ─────────────────────────────────────────────────────────────────
 pub async fn index(mut request: Request) -> AppResult<Response> {
-
+    inject_auth(&mut request).await;
     context_update!(request => {
         "title" => "Bienvenue sur Runique",
         "description" => "Un framework web moderne inspiré de Django",

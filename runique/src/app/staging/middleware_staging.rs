@@ -9,7 +9,8 @@ use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, middleware, Router};
 use tower_http::compression::CompressionLayer;
 use tower_sessions::cookie::time::Duration;
-use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer, SessionStore};
+use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};
+use crate::middleware::session::CleaningMemoryStore;
 
 // ═══════════════════════════════════════════════════════════════
 // MiddlewareStaging — Réorganisation automatique par Slots
@@ -116,6 +117,13 @@ pub struct MiddlewareStaging {
     /// Applicateur de session personnalisé (None = MemoryStore par défaut)
     pub(crate) session_applicator: Option<SessionApplicator>,
 
+    /// Watermarks mémoire du CleaningMemoryStore (low, high) en octets
+    pub(crate) session_low_watermark: usize,
+    pub(crate) session_high_watermark: usize,
+
+    /// Intervalle du cleanup périodique en secondes (défaut : 60s, via RUNIQUE_SESSION_CLEANUP_SECS)
+    pub(crate) session_cleanup_interval_secs: u64,
+
     /// Middlewares custom du développeur (ordre d'ajout préservé)
     pub(crate) custom_middlewares: Vec<CustomMiddleware>,
 }
@@ -131,9 +139,12 @@ impl MiddlewareStaging {
 
         Self {
             features,
-            session_duration: Duration::seconds(86400), // 24h par défaut
-            anonymous_session_duration: Duration::seconds(300), // 5m par défaut
+            session_duration: Duration::seconds(86400),
+            anonymous_session_duration: Duration::seconds(300),
             session_applicator: None,
+            session_low_watermark: 128 * 1024 * 1024,
+            session_high_watermark: 256 * 1024 * 1024,
+            session_cleanup_interval_secs: 60,
             custom_middlewares: Vec::new(),
         }
     }
@@ -175,11 +186,31 @@ impl MiddlewareStaging {
             enable_cache: get_env_or("RUNIQUE_ENABLE_CACHE", defaults.enable_cache),
         };
 
+        let get_env_u64 = |key: &str, default: u64| -> u64 {
+            std::env::var(key)
+                .map(|v| v.parse::<u64>().unwrap_or(default))
+                .unwrap_or(default)
+        };
+        let get_env_usize = |key: &str, default: usize| -> usize {
+            std::env::var(key)
+                .map(|v| v.parse::<usize>().unwrap_or(default))
+                .unwrap_or(default)
+        };
+
         Self {
             features,
             session_duration: Duration::seconds(86400),
             anonymous_session_duration: Duration::seconds(300),
             session_applicator: None,
+            session_low_watermark: get_env_usize(
+                "RUNIQUE_SESSION_LOW_WATERMARK",
+                128 * 1024 * 1024,
+            ),
+            session_high_watermark: get_env_usize(
+                "RUNIQUE_SESSION_HIGH_WATERMARK",
+                256 * 1024 * 1024,
+            ),
+            session_cleanup_interval_secs: get_env_u64("RUNIQUE_SESSION_CLEANUP_SECS", 60),
             custom_middlewares: Vec::new(),
         }
     }
@@ -225,6 +256,26 @@ impl MiddlewareStaging {
     /// Configure la durée d'inactivité avant expiration de la session anonyme
     pub fn with_anonymous_session_duration(mut self, duration: Duration) -> Self {
         self.anonymous_session_duration = duration;
+        self
+    }
+
+    /// Configure les watermarks mémoire du CleaningMemoryStore.
+    ///
+    /// - `low`  : déclenche un cleanup proactif (non-bloquant) des sessions anonymes expirées
+    /// - `high` : cleanup d'urgence synchrone + refus si toujours dépassé (503)
+    ///
+    /// Surchargeable via `.env` : `RUNIQUE_SESSION_LOW_WATERMARK` / `RUNIQUE_SESSION_HIGH_WATERMARK` (octets)
+    pub fn with_session_memory_limit(mut self, low: usize, high: usize) -> Self {
+        self.session_low_watermark = low;
+        self.session_high_watermark = high;
+        self
+    }
+
+    /// Configure l'intervalle du cleanup périodique.
+    ///
+    /// Surchargeable via `.env` : `RUNIQUE_SESSION_CLEANUP_SECS`
+    pub fn with_session_cleanup_interval(mut self, secs: u64) -> Self {
+        self.session_cleanup_interval_secs = secs;
         self
     }
 
@@ -392,6 +443,9 @@ impl MiddlewareStaging {
         {
             let applicator = self.session_applicator;
             let anon_duration = self.anonymous_session_duration;
+            let low_wm = self.session_low_watermark;
+            let high_wm = self.session_high_watermark;
+            let cleanup_secs = self.session_cleanup_interval_secs;
 
             entries.push(MiddlewareEntry {
                 slot: SLOT_SESSION,
@@ -399,7 +453,10 @@ impl MiddlewareStaging {
                 apply: Box::new(move |r: Router| match applicator {
                     Some(apply_fn) => apply_fn(r, debug, anon_duration),
                     None => {
-                        let layer = SessionManagerLayer::new(MemoryStore::default())
+                        let store = CleaningMemoryStore::default()
+                            .with_watermarks(low_wm, high_wm);
+                        store.spawn_cleanup(tokio::time::Duration::from_secs(cleanup_secs));
+                        let layer = SessionManagerLayer::new(store)
                             .with_secure(!debug)
                             .with_http_only(!debug)
                             .with_expiry(Expiry::OnInactivity(anon_duration));
