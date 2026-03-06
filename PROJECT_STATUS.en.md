@@ -13,7 +13,7 @@ This document consolidates the actual state of the repository from the reference
 
 ## 🧾 Snapshot (as of March 3, 2026)
 
-- **Workspace version**: `1.1.38`
+- **Workspace version**: `1.1.40`
 - **License**: MIT
 - **Working branch**: `vue_admin`
 - **Tests reported**: **1523/1523 passed**✅
@@ -165,7 +165,7 @@ Visible in `CHANGELOG.md`:
 
 ## ⚠️ Gaps / inconsistencies to watch
 
-- **Version**: `1.1.38`
+- **Version**: `1.1.40`
 - **Admin status**: the admin technical doc describes a functional base, but the roadmap still lists it as in progress.
 - **Coverage**: the global percentage is improving but still below the publication target.
 - **CSRF**: no systematic flaw if the framework is used as intended; the sensitive point is not respecting the usage contract on mutating routes outside the Prisme flow.
