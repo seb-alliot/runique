@@ -15,7 +15,7 @@ use std::collections::HashMap;
 
 /// Conteneur de champs de formulaire avec validation et rendu HTML
 ///
-#[doc = include_str!("../../doc-tests/form_manual.md")]
+#[doc = include_str!("../../doc-tests/form/form_manual.md")]
 #[derive(Clone)]
 pub struct Forms {
     pub fields: FieldsMap,

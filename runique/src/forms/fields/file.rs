@@ -88,12 +88,24 @@ impl AllowedExtensions {
 
 pub type UploadPathFn = Option<Arc<dyn Fn(&str) -> String + Send + Sync>>;
 
+/// Limite appliquée si `.max_size_mb()` n'est jamais appelé.
+const DEFAULT_MAX_SIZE_MB: u64 = 10;
+
 /// Configuration d'upload de fichier
-#[derive(Clone, Serialize, Default)]
+#[derive(Clone, Serialize)]
 pub struct FileUploadConfig {
     #[serde(skip_serializing)]
     pub upload_to: UploadPathFn,
     pub max_size_mb: Option<u64>,
+}
+
+impl Default for FileUploadConfig {
+    fn default() -> Self {
+        Self {
+            upload_to: None,
+            max_size_mb: Some(DEFAULT_MAX_SIZE_MB),
+        }
+    }
 }
 
 impl std::fmt::Debug for FileUploadConfig {
@@ -229,7 +241,7 @@ impl FormField for FileField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.file_required").into_owned());
+                .unwrap_or_else(|| t("forms.file_required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -343,6 +355,6 @@ impl FormField for FileField {
         context.insert("readonly", &self.to_json_readonly());
         context.insert("disabled", &self.to_json_disabled());
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| format!("Erreur Tera (FileField): {}", e))
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }

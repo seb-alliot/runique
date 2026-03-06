@@ -3,7 +3,7 @@
 /// Génère un champ constant `objects` qui permet la syntaxe
 /// `Entity::objects.filter(...).all(&db).await`
 ///
-#[doc = include_str!("../../../doc-tests/impl_objects.md")]
+#[doc = include_str!("../../../doc-tests/macro_db/impl_objects.md")]
 #[macro_export]
 macro_rules! impl_objects {
     ($entity:ty) => {

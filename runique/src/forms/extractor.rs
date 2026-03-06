@@ -1,4 +1,5 @@
 use crate::forms::field::RuniqueForm;
+use crate::utils::trad::t;
 use crate::forms::prisme::{aegis, csrf_gate, sentinel};
 use crate::utils::aliases::{ARuniqueConfig, ATera, StrMap, StrVecMap};
 
@@ -22,7 +23,7 @@ where
     let tera = req.extensions().get::<ATera>().cloned().ok_or_else(|| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Tera not found in extensions",
+            t("forms.tera_not_configured").to_string(),
         )
             .into_response()
     })?;
@@ -34,7 +35,7 @@ where
         .ok_or_else(|| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Config not found in extensions",
+                t("forms.config_not_found").to_string(),
             )
                 .into_response()
         })?;
@@ -46,7 +47,7 @@ where
         .get::<crate::utils::csrf::CsrfToken>()
         .cloned()
         .ok_or_else(|| {
-            (StatusCode::INTERNAL_SERVER_ERROR, "CSRF token not found").into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR, t("csrf.missing").to_string()).into_response()
         })?;
 
     let method = req.method().clone();

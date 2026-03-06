@@ -25,7 +25,7 @@
 //!     Redirect::to("/users").into_response()
 //! }
 //! ```
-#![doc = include_str!("../../../doc-tests/flash_usage.md")]
+#![doc = include_str!("../../../doc-tests/flash_message/flash_usage.md")]
 
 #[macro_export]
 macro_rules! success {

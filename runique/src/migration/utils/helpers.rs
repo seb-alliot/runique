@@ -5,7 +5,7 @@ use syn::{Expr, ExprCall, ExprLit, ExprMethodCall, Lit};
 // ============================================================
 
 /// Retourne le nom de la méthode associée à un type de colonne.
-#[doc = include_str!("../../../doc-tests/migration_col_type.md")]
+#[doc = include_str!("../../../doc-tests/migration/migration_col_type.md")]
 pub fn col_type_to_method(col_type: &str) -> &str {
     match col_type {
         "Text" => "text()",

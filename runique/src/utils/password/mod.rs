@@ -11,6 +11,7 @@ use argon2::{
 use bcrypt::{hash as bcrypt_hash, verify as bcrypt_verify, DEFAULT_COST};
 use scrypt::{password_hash::SaltString as ScryptSaltString, Scrypt};
 
+use crate::utils::trad::{t, tf};
 use dyn_clone::DynClone;
 use std::fmt::Debug;
 
@@ -69,14 +70,14 @@ impl BaseHash {
 
     fn hash_argon2(&self, password: &str) -> Result<String, String> {
         if password.is_empty() {
-            return Err("Mot de passe vide".to_string());
+            return Err(t("forms.password_empty").into_owned());
         }
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
         argon2
             .hash_password(password.as_bytes(), &salt)
             .map(|h| h.to_string())
-            .map_err(|e| format!("Erreur Argon2: {}", e))
+            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_owned())
     }
 
     fn verify_argon2(&self, password: &str, hash: &str) -> bool {
@@ -90,9 +91,9 @@ impl BaseHash {
 
     fn hash_bcrypt(&self, password: &str) -> Result<String, String> {
         if password.is_empty() {
-            return Err("Mot de passe vide".to_string());
+            return Err(t("forms.password_empty").into_owned());
         }
-        bcrypt_hash(password, DEFAULT_COST).map_err(|e| format!("Erreur Bcrypt: {}", e))
+        bcrypt_hash(password, DEFAULT_COST).map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_owned())
     }
 
     fn verify_bcrypt(&self, password: &str, hash: &str) -> bool {
@@ -101,7 +102,7 @@ impl BaseHash {
 
     fn hash_scrypt(&self, password: &str) -> Result<String, String> {
         if password.is_empty() {
-            return Err("Mot de passe vide".to_string());
+            return Err(t("forms.password_empty").into_owned());
         }
 
         let salt = ScryptSaltString::generate(&mut OsRng);
@@ -109,7 +110,7 @@ impl BaseHash {
         Scrypt
             .hash_password(password.as_bytes(), &salt)
             .map(|h| h.to_string())
-            .map_err(|e| format!("Erreur Scrypt: {}", e))
+            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_owned())
     }
 
     fn verify_scrypt(&self, password: &str, hash: &str) -> bool {

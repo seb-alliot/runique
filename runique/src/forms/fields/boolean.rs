@@ -1,5 +1,5 @@
 use crate::forms::base::*;
-use crate::utils::trad::t;
+use crate::utils::trad::{t, tf};
 use serde::Serialize;
 use std::sync::Arc;
 use tera::{Context, Tera};
@@ -62,7 +62,7 @@ impl FormField for BooleanField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.boolean_required").into_owned());
+                .unwrap_or_else(|| t("forms.boolean_required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -83,6 +83,6 @@ impl FormField for BooleanField {
         context.insert("checked", &is_checked);
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }

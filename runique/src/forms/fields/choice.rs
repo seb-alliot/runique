@@ -92,7 +92,7 @@ impl FormField for ChoiceField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.select_required").into_owned());
+                .unwrap_or_else(|| t("forms.select_required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -101,7 +101,7 @@ impl FormField for ChoiceField {
             // Vérifier que la valeur existe dans les choix
             let valid = self.choices.iter().any(|c| c.value == val);
             if !valid {
-                self.set_error(t("forms.choice_invalid").into_owned());
+                self.set_error(t("forms.choice_invalid").to_string());
                 return false;
             }
         }
@@ -119,7 +119,7 @@ impl FormField for ChoiceField {
         context.insert("disabled", &self.to_json_disabled());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
 
@@ -179,7 +179,7 @@ impl FormField for RadioField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.select_required").into_owned());
+                .unwrap_or_else(|| t("forms.select_required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -187,7 +187,7 @@ impl FormField for RadioField {
         if !val.is_empty() {
             let valid = self.choices.iter().any(|c| c.value == val);
             if !valid {
-                self.set_error(t("forms.choice_invalid").into_owned());
+                self.set_error(t("forms.choice_invalid").to_string());
                 return false;
             }
         }
@@ -202,7 +202,7 @@ impl FormField for RadioField {
         context.insert("choices", &self.choices);
         context.insert("meta", &self.to_json_meta());
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 
     fn to_json_value(&self) -> Value {
@@ -283,7 +283,7 @@ impl FormField for CheckboxField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.checkbox_required").into_owned());
+                .unwrap_or_else(|| t("forms.checkbox_required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -310,6 +310,6 @@ impl FormField for CheckboxField {
         context.insert("meta", &self.to_json_meta());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }

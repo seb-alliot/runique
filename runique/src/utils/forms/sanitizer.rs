@@ -9,7 +9,7 @@ use std::collections::HashSet;
 /// - Removes ALL HTML tags
 /// - Neutralizes dangerous protocols
 /// - Usable everywhere without concern
-#[doc = include_str!("../../../doc-tests/sanitizer_strict.md")]
+#[doc = include_str!("../../../doc-tests/sanitizer/sanitizer_strict.md")]
 pub fn sanitize_strict(input: &str) -> String {
     if input.is_empty() {
         return String::new();
@@ -34,7 +34,7 @@ pub fn sanitize_strict(input: &str) -> String {
 /// - Strict allow-list
 /// - No JS possible
 /// - No SVG / MathML
-#[doc = include_str!("../../../doc-tests/sanitizer_rich.md")]
+#[doc = include_str!("../../../doc-tests/sanitizer/sanitizer_rich.md")]
 pub fn sanitize_rich(input: &str) -> String {
     if input.is_empty() {
         return String::new();
@@ -62,7 +62,7 @@ pub fn sanitize_rich(input: &str) -> String {
 /// =============================
 ///
 /// Automatically decides the sanitation mode
-#[doc = include_str!("../../../doc-tests/sanitizer.md")]
+#[doc = include_str!("../../../doc-tests/sanitizer/sanitizer.md")]
 pub fn sanitize(field: &str, input: &str) -> String {
     if RICH_CONTENT_FIELDS.contains(&field) {
         sanitize_rich(input)

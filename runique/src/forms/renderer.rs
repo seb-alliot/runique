@@ -1,5 +1,6 @@
 use crate::forms::base::FormField;
 use crate::utils::aliases::{ATera, FieldsMap};
+use crate::utils::trad::tf;
 use tracing::{debug, trace, warn};
 
 #[derive(Clone)]
@@ -66,7 +67,7 @@ impl FormRenderer {
         for field in fields.values() {
             match field.render(&self.tera) {
                 Ok(rendered) => html.push(rendered),
-                Err(e) => return Err(format!("Render error '{}': {}", field.name(), e)),
+                Err(e) => return Err(tf("forms.finalize_error", &[field.name(), &e]).to_owned()),
             }
         }
 
@@ -84,7 +85,7 @@ impl FormRenderer {
             .get_template_names()
             .any(|name| name == template_name)
         {
-            return Err(format!("Missing template: {}", template_name));
+            return Err(tf("forms.template_missing", &[template_name]).to_owned());
         }
 
         let mut context = tera::Context::new();
@@ -92,7 +93,7 @@ impl FormRenderer {
 
         self.tera
             .render(template_name, &context)
-            .map_err(|e| format!("JS render error: {}", e))
+            .map_err(|e| tf("forms.render_js_error", &[&e]).to_owned())
     }
 
     pub fn render_field(&self, field: &dyn FormField) -> Result<String, String> {

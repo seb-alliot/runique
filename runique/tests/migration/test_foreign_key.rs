@@ -9,7 +9,7 @@ use sea_query::ForeignKeyAction;
 
 #[test]
 fn test_foreign_key_new_defauts() {
-    let fk = ForeignKeyDef::new("user_id");
+    let fk: ForeignKeyDef = ForeignKeyDef::new("user_id");
     assert_eq!(fk.from_column, "user_id");
     assert_eq!(fk.to_column, "id", "to_column doit être 'id' par défaut");
     assert!(fk.to_table.is_empty());

@@ -1,4 +1,5 @@
 use crate::context::tera::csp::nonce_function;
+use crate::utils::trad::tf;
 use crate::context::tera::form::form_filter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
@@ -29,7 +30,7 @@ fn csrf_filter(value: &Value, _: &JsonMap) -> TResult {
 fn register_filter(base_url: String) -> impl Fn(&Value, &JsonMap) -> TResult {
     move |value: &Value, _: &JsonMap| {
         let file = value.as_str()
-            .ok_or_else(|| tera::Error::msg(format!("Erreur Runique : Le filtre static/media a reçu une valeur invalide ({:?}) au lieu d'un chemin de fichier.", value)))?;
+            .ok_or_else(|| tera::Error::msg(tf("forms.filter_invalid_value", &[&format!("{:?}", value)])))?;
 
         let full_url = format!(
             "{}/{}",
