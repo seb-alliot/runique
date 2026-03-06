@@ -89,7 +89,7 @@ hex = "0.4"
 # CLI
 clap = { version = "4.5.55", features = ["derive"] }
 rpassword = "7.4.0"
-crossterm = "0.29"
+crossterm = "0.29.0"
 
 # Daemon admin
 notify = "8.2.0"

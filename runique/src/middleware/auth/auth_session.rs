@@ -173,9 +173,7 @@ pub async fn protect_session(
 }
 
 /// Retire la protection manuelle d'une session anonyme.
-pub async fn unprotect_session(
-    session: &Session,
-) -> Result<(), tower_sessions::session::Error> {
+pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::session::Error> {
     session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
     Ok(())
 }
