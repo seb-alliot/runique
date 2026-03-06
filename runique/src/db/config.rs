@@ -2,7 +2,7 @@
 //!
 //! This module provides flexible configuration for connecting to different
 //! databases (PostgreSQL, MySQL, MariaDB, SQLite) via SeaORM.
-#![doc = include_str!("../../doc-tests/db_config_module.md")]
+#![doc = include_str!("../../doc-tests/db/db_config_module.md")]
 
 use dotenvy::dotenv;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
@@ -13,7 +13,7 @@ use std::time::Duration;
 ///
 /// Contains all parameters needed to establish and manage a database
 /// connection, including connection pools and timeouts.
-#[doc = include_str!("../../doc-tests/db_config_advanced.md")]
+#[doc = include_str!("../../doc-tests/db/db_config_advanced.md")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     /// Database connection URL

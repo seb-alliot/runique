@@ -69,7 +69,7 @@ impl ColumnDef {
 
     // ── Types ───────────────────────────────────────────────────────────────
     /// Binary field with default length of 255 bytes.
-    #[doc = include_str!("../../../doc-tests/column_binary.md")]
+    #[doc = include_str!("../../../doc-tests/migration/column_binary.md")]
     pub fn binary(mut self) -> Self {
         self.col_type = ColumnType::Binary(255);
         self

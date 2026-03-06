@@ -58,7 +58,7 @@ use sea_orm::DatabaseConnection;
 
 /// Intelligent application builder for Runique
 ///
-#[doc = include_str!("../../doc-tests/builder_basic.md")]
+#[doc = include_str!("../../doc-tests/builder/builder_basic.md")]
 pub struct RuniqueAppBuilder {
     config: RuniqueConfig,
     core: CoreStaging,

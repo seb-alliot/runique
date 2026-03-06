@@ -59,7 +59,7 @@ impl FormField for ColorField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -67,18 +67,18 @@ impl FormField for ColorField {
         if !val.is_empty() {
             // Valider le format hexadécimal #RRGGBB ou #RGB
             if !val.starts_with('#') {
-                self.set_error(t("forms.color_no_hash").into_owned());
+                self.set_error(t("forms.color_no_hash").to_string());
                 return false;
             }
 
             let hex = &val[1..];
             if hex.len() != 6 && hex.len() != 3 {
-                self.set_error(t("forms.color_invalid").into_owned());
+                self.set_error(t("forms.color_invalid").to_string());
                 return false;
             }
 
             if !hex.chars().all(|c| c.is_ascii_hexdigit()) {
-                self.set_error(t("forms.color_bad_hex").into_owned());
+                self.set_error(t("forms.color_bad_hex").to_string());
                 return false;
             }
         }
@@ -92,7 +92,7 @@ impl FormField for ColorField {
         context.insert("field", &self.base);
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
 
@@ -146,7 +146,7 @@ impl FormField for SlugField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -159,7 +159,7 @@ impl FormField for SlugField {
                     .chars()
                     .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
                 if !valid {
-                    self.set_error(t("forms.slug_unicode_invalid").into_owned());
+                    self.set_error(t("forms.slug_unicode_invalid").to_string());
                     return false;
                 }
             } else {
@@ -168,14 +168,14 @@ impl FormField for SlugField {
                     .chars()
                     .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
                 if !valid {
-                    self.set_error(t("forms.slug_invalid").into_owned());
+                    self.set_error(t("forms.slug_invalid").to_string());
                     return false;
                 }
             }
 
             // Ne doit pas commencer ou finir par un tiret
             if val.starts_with('-') || val.ends_with('-') {
-                self.set_error(t("forms.slug_no_dash").into_owned());
+                self.set_error(t("forms.slug_no_dash").to_string());
                 return false;
             }
         }
@@ -187,10 +187,10 @@ impl FormField for SlugField {
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
         context.insert("field", &self.base);
-        context.insert("field_hint", &"Format: lettres-chiffres-tirets");
+        context.insert("field_hint", &t("forms.hint_slug").to_string());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
 
@@ -243,7 +243,7 @@ impl FormField for UUIDField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -251,7 +251,7 @@ impl FormField for UUIDField {
         if !val.is_empty() {
             // Valider le format UUID
             if Uuid::parse_str(val).is_err() {
-                self.set_error(t("forms.uuid_invalid").into_owned());
+                self.set_error(t("forms.uuid_invalid").to_string());
                 return false;
             }
         }
@@ -263,13 +263,10 @@ impl FormField for UUIDField {
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
         context.insert("field", &self.base);
-        context.insert(
-            "field_hint",
-            &"Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        );
+        context.insert("field_hint", &t("forms.hint_uuid").to_string());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
 
@@ -329,7 +326,7 @@ impl FormField for JSONField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -349,7 +346,7 @@ impl FormField for JSONField {
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
         context.insert("field", &self.base);
-        context.insert("field_hint", &"Format JSON valide requis");
+        context.insert("field_hint", &t("forms.hint_json").to_string());
         context.insert("readonly", &self.to_json_readonly());
         context.insert("disabled", &self.to_json_disabled());
         // Nombre de lignes
@@ -362,7 +359,7 @@ impl FormField for JSONField {
         context.insert("rows", &rows);
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
 
@@ -431,7 +428,7 @@ impl FormField for IPAddressField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -441,16 +438,16 @@ impl FormField for IPAddressField {
             match val.parse::<IpAddr>() {
                 Ok(ip) => {
                     if self.ipv4_only && ip.is_ipv6() {
-                        self.set_error(t("forms.ipv4_only").into_owned());
+                        self.set_error(t("forms.ipv4_only").to_string());
                         return false;
                     }
                     if self.ipv6_only && ip.is_ipv4() {
-                        self.set_error(t("forms.ipv6_only").into_owned());
+                        self.set_error(t("forms.ipv6_only").to_string());
                         return false;
                     }
                 }
                 Err(_) => {
-                    self.set_error(t("forms.ip_invalid").into_owned());
+                    self.set_error(t("forms.ip_invalid").to_string());
                     return false;
                 }
             }
@@ -465,15 +462,15 @@ impl FormField for IPAddressField {
         context.insert("field", &self.base);
 
         let hint = if self.ipv4_only {
-            "Format IPv4: 192.168.1.1"
+            t("forms.hint_ip_v4").to_string()
         } else if self.ipv6_only {
-            "Format IPv6: 2001:0db8:85a3::8a2e:0370:7334"
+            t("forms.hint_ip_v6").to_string()
         } else {
-            "Format IPv4 ou IPv6"
+            t("forms.hint_ip").to_string()
         };
         context.insert("field_hint", &hint);
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }

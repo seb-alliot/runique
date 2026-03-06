@@ -15,6 +15,7 @@ use crate::{
     config::RuniqueConfig,
     errors::error::{ErrorContext, ErrorType, RuniqueError},
     utils::csrf::CsrfToken,
+    utils::trad::t,
 };
 
 /// Transport des infos requête pour debug contextuel
@@ -120,7 +121,7 @@ pub async fn error_handler_middleware(
             if status == StatusCode::NOT_FOUND {
                 ErrorContext::not_found(&request_helper.path).with_request_helper(&request_helper)
             } else {
-                ErrorContext::generic(status, "Une erreur est survenue")
+                ErrorContext::generic(status, &t("error.internal_occurred"))
                     .with_request_helper(&request_helper)
             }
         };
@@ -212,14 +213,15 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
 // --- FALLBACKS ---
 
 fn fallback_404_html() -> Response {
-    let html = r#"<!DOCTYPE html>
+    let html = format!(
+        r#"<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Page non trouvée</title>
+    <title>{title} - {text}</title>
     <style>
-        body {
+        body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             justify-content: center;
@@ -228,21 +230,21 @@ fn fallback_404_html() -> Response {
             margin: 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
-        }
-        .container {
+        }}
+        .container {{
             text-align: center;
             padding: 2rem;
-        }
-        h1 {
+        }}
+        h1 {{
             font-size: 6rem;
             margin: 0;
             font-weight: 700;
-        }
-        p {
+        }}
+        p {{
             font-size: 1.5rem;
             margin: 1rem 0;
-        }
-        a {
+        }}
+        a {{
             color: #fff;
             text-decoration: none;
             border: 2px solid #fff;
@@ -251,33 +253,38 @@ fn fallback_404_html() -> Response {
             display: inline-block;
             margin-top: 1rem;
             transition: all 0.3s ease;
-        }
-        a:hover {
+        }}
+        a:hover {{
             background: #fff;
             color: #667eea;
-        }
+        }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>404</h1>
-        <p>Page non trouvée</p>
-        <a href="/">Retour à l'accueil</a>
+        <h1>{title}</h1>
+        <p>{text}</p>
+        <a href="/">{back}</a>
     </div>
 </body>
-</html>"#;
+</html>"#,
+        title = t("html.404_title"),
+        text = t("html.404_text"),
+        back = t("html.back_home"),
+    );
     (StatusCode::NOT_FOUND, Html(html)).into_response()
 }
 
 fn fallback_500_html() -> Response {
-    let html = r#"<!DOCTYPE html>
+    let html = format!(
+        r#"<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>500 - Erreur serveur</title>
+    <title>{title} - {text}</title>
     <style>
-        body {
+        body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             justify-content: center;
@@ -286,21 +293,21 @@ fn fallback_500_html() -> Response {
             margin: 0;
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: #fff;
-        }
-        .container {
+        }}
+        .container {{
             text-align: center;
             padding: 2rem;
-        }
-        h1 {
+        }}
+        h1 {{
             font-size: 6rem;
             margin: 0;
             font-weight: 700;
-        }
-        p {
+        }}
+        p {{
             font-size: 1.5rem;
             margin: 1rem 0;
-        }
-        a {
+        }}
+        a {{
             color: #fff;
             text-decoration: none;
             border: 2px solid #fff;
@@ -309,22 +316,27 @@ fn fallback_500_html() -> Response {
             display: inline-block;
             margin-top: 1rem;
             transition: all 0.3s ease;
-        }
-        a:hover {
+        }}
+        a:hover {{
             background: #fff;
             color: #f5576c;
-        }
+        }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>500</h1>
-        <p>Erreur serveur interne</p>
-        <p style="font-size: 1rem;">Nos équipes ont été notifiées et travaillent sur le problème.</p>
-        <a href="/">Retour à l'accueil</a>
+        <h1>{title}</h1>
+        <p>{text}</p>
+        <p style="font-size: 1rem;">{notice}</p>
+        <a href="/">{back}</a>
     </div>
 </body>
-</html>"#;
+</html>"#,
+        title = t("html.500_title"),
+        text = t("html.500_text"),
+        notice = t("html.500_notice"),
+        back = t("html.back_home"),
+    );
     (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
 }
 
@@ -335,7 +347,7 @@ fn critical_error_html(error: &str) -> Response {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erreur critique</title>
+    <title>{title_tag}</title>
     <style>
         body {{
             font-family: 'Courier New', monospace;
@@ -376,14 +388,18 @@ fn critical_error_html(error: &str) -> Response {
 </head>
 <body>
     <div class="container">
-        <h1>⚠️ CRITICAL ERROR ⚠️</h1>
-        <p>Le système de gestion d'erreurs a lui-même rencontré une erreur.</p>
-        <p>Cette situation ne devrait jamais se produire. Veuillez contacter l'administrateur système.</p>
-        <pre>{}</pre>
+        <h1>⚠️ {title} ⚠️</h1>
+        <p>{text}</p>
+        <p>{contact}</p>
+        <pre>{error}</pre>
     </div>
 </body>
 </html>"#,
-        html_escape(error)
+        title_tag = t("html.critical_error_title"),
+        title = t("html.critical_error_title"),
+        text = t("html.critical_error_text"),
+        contact = t("html.critical_error_contact"),
+        error = html_escape(error),
     );
     (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
 }

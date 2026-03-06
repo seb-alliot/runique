@@ -11,6 +11,7 @@ use thiserror::Error;
 use tracing::{error, info};
 
 use crate::utils::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+use crate::utils::trad::{t, tf};
 // ═══════════════════════════════════════════════════════════════
 // ERREURS DE BUILD (refonte app builder)
 // ═══════════════════════════════════════════════════════════════
@@ -300,8 +301,8 @@ impl ErrorContext {
         Self::new(
             ErrorType::NotFound,
             StatusCode::NOT_FOUND,
-            "Page Not Found",
-            &format!("The requested path '{}' was not found", path),
+            &t("error.title.not_found"),
+            &tf("error.path_not_found", &[path]),
         )
     }
 
@@ -309,7 +310,7 @@ impl ErrorContext {
         Self::new(
             ErrorType::Internal,
             status,
-            "Internal Server Error",
+            &t("error.title.internal"),
             message,
         )
     }
@@ -388,13 +389,13 @@ impl ErrorContext {
         let mut ctx = match err {
             RuniqueError::Build(e) => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Build Error: {}", e),
+                &tf("error.build", &[&e.to_string()]),
             ),
             RuniqueError::Internal => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Une erreur interne est survenue",
+                &t("error.internal_occurred"),
             ),
-            RuniqueError::Forbidden => Self::generic(StatusCode::FORBIDDEN, "Accès interdit"),
+            RuniqueError::Forbidden => Self::generic(StatusCode::FORBIDDEN, &t("error.forbidden")),
             RuniqueError::NotFound => {
                 let path = path.unwrap_or("/");
                 Self::not_found(path)
@@ -403,11 +404,11 @@ impl ErrorContext {
             RuniqueError::Database(msg) => Self::database(sea_orm::DbErr::Custom(msg.clone())),
             RuniqueError::Io(msg) => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("IO Error: {}", msg),
+                &tf("error.io", &[msg.as_str()]),
             ),
             RuniqueError::Template(msg) => Self::generic(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Template Error: {}", msg),
+                &tf("error.template", &[msg.as_str()]),
             ),
             RuniqueError::Custom { message, source: _ } => {
                 Self::generic(StatusCode::INTERNAL_SERVER_ERROR, message)

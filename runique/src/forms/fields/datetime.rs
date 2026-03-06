@@ -79,7 +79,7 @@ impl FormField for DateField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -92,7 +92,7 @@ impl FormField for DateField {
         let date = match NaiveDate::parse_from_str(val, "%Y-%m-%d") {
             Ok(d) => d,
             Err(_) => {
-                self.set_error(t("forms.date_invalid").into_owned());
+                self.set_error(t("forms.date_invalid").to_string());
                 return false;
             }
         };
@@ -141,7 +141,7 @@ impl FormField for DateField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
 
@@ -212,7 +212,7 @@ impl FormField for TimeField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -225,7 +225,7 @@ impl FormField for TimeField {
         let time = match NaiveTime::parse_from_str(val, "%H:%M") {
             Ok(t) => t,
             Err(_) => {
-                self.set_error(t("forms.time_invalid").into_owned());
+                self.set_error(t("forms.time_invalid").to_string());
                 return false;
             }
         };
@@ -274,7 +274,7 @@ impl FormField for TimeField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
 
@@ -345,7 +345,7 @@ impl FormField for DateTimeField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -358,7 +358,7 @@ impl FormField for DateTimeField {
         let datetime = match NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M") {
             Ok(dt) => dt,
             Err(_) => {
-                self.set_error(t("forms.date_invalid").into_owned());
+                self.set_error(t("forms.date_invalid").to_string());
                 return false;
             }
         };
@@ -407,7 +407,7 @@ impl FormField for DateTimeField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
 
@@ -479,7 +479,7 @@ impl FormField for DurationField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -492,7 +492,7 @@ impl FormField for DurationField {
         let seconds = match val.parse::<u64>() {
             Ok(s) => s,
             Err(_) => {
-                self.set_error(t("forms.duration_invalid").into_owned());
+                self.set_error(t("forms.duration_invalid").to_string());
                 return false;
             }
         };
@@ -543,6 +543,6 @@ impl FormField for DurationField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }

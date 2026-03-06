@@ -4,13 +4,13 @@ use std::sync::{Arc, RwLock};
 use tower_http::services::ServeDir;
 
 /// Crée un nouvel `Arc` autour d'une valeur.
-#[doc = include_str!("../../../doc-tests/aliases_new.md")]
+#[doc = include_str!("../../../doc-tests/aliases/aliases_new.md")]
 pub fn new<T>(value: T) -> Arc<T> {
     Arc::new(value)
 }
 
 /// Crée un nouveau registre partagé (ARlockmap).
-#[doc = include_str!("../../../doc-tests/aliases_new_registry.md")]
+#[doc = include_str!("../../../doc-tests/aliases/aliases_new_registry.md")]
 pub fn new_registry() -> ARlockmap {
     Arc::new(RwLock::new(HashMap::new()))
 }

@@ -65,7 +65,7 @@ use std::marker::PhantomData;
 
 /// Django-style ORM manager for entities
 ///
-#[doc = include_str!("../../../doc-tests/model_complete.md")]
+#[doc = include_str!("../../../doc-tests/macro_db/model_complete.md")]
 pub struct Objects<E: EntityTrait> {
     _phantom: PhantomData<E>,
 }

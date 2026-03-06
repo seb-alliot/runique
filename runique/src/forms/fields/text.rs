@@ -142,7 +142,7 @@ impl FormField for TextField {
                 .is_required
                 .message
                 .clone()
-                .unwrap_or_else(|| t("forms.required").into_owned());
+                .unwrap_or_else(|| t("forms.required").to_string());
             self.set_error(msg);
             return false;
         }
@@ -180,14 +180,14 @@ impl FormField for TextField {
         // Special format validation
         match &self.format {
             SpecialFormat::Email if !val.validate_email() => {
-                self.set_error(t("forms.email_invalid").into_owned());
+                self.set_error(t("forms.email_invalid").to_string());
                 return false;
             }
             SpecialFormat::Email => {
                 val = val.to_lowercase();
             }
             SpecialFormat::Url if !val.validate_url() => {
-                self.set_error(t("forms.url_invalid").into_owned());
+                self.set_error(t("forms.url_invalid").to_string());
                 return false;
             }
             _ => {}
@@ -208,7 +208,7 @@ impl FormField for TextField {
                     let service = PasswordService::new(config);
                     if !service.is_already_hashed(&self.base.value) {
                         self.base.value =
-                            service.hash(&self.base.value).map_err(|e| e.to_string())?;
+                            service.hash(&self.base.value).map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_string())?;
                     }
                 }
             }
@@ -239,6 +239,6 @@ impl FormField for TextField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }

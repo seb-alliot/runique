@@ -4,6 +4,7 @@ use crate::forms::form::Forms;
 use crate::forms::renderer::FormRenderer;
 use crate::forms::validator::ValidationError;
 use crate::utils::aliases::{ATera, StrMap};
+use crate::utils::trad::t;
 use async_trait::async_trait;
 use axum::http::Method;
 use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
@@ -12,9 +13,9 @@ dyn_clone::clone_trait_object!(FormField);
 
 /// Trait principal pour les formulaires typés avec validation et sauvegarde
 ///
-#[doc = include_str!("../../doc-tests/form_proc_macro.md")]
+#[doc = include_str!("../../doc-tests/form/form_proc_macro.md")]
 ///
-#[doc = include_str!("../../doc-tests/form_clean_save.md")]
+#[doc = include_str!("../../doc-tests/form/form_clean_save.md")]
 #[async_trait]
 pub trait RuniqueForm: Sized + Send + Sync {
     fn register_fields(form: &mut Forms);
@@ -51,7 +52,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
             Ok(valid) => valid,
             Err(ValidationError::StackOverflow) => {
                 self.get_form_mut().errors.push(
-                    "Stack overflow détecté : récursion infinie dans la validation".to_string(),
+                    t("forms.validation_overflow").into_owned(),
                 );
                 return false;
             }

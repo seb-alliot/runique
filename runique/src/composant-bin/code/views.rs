@@ -1,4 +1,5 @@
 use crate::forms::RegisterForm;
+use crate::utils::trad::tf;
 use crate::models::users::{self, Entity as UserEntity};
 use runique::prelude::*;
 
@@ -37,7 +38,7 @@ pub async fn soumission_inscription(
                 AppError::from(err)
             })?;
 
-            success!(request.notices => format!("Bienvenue {}, votre compte est créé !", user.username));
+            success!(request.notices => tf("flash.welcome", &[&user.username]).into_owned());
             return Ok(Redirect::to("/").into_response());
         }
 

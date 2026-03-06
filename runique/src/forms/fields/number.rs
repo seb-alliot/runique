@@ -163,7 +163,7 @@ impl FormField for NumericField {
                     .is_required
                     .message
                     .clone()
-                    .unwrap_or_else(|| t("forms.number_required").into_owned()),
+                    .unwrap_or_else(|| t("forms.number_required").to_string()),
             );
             return false;
         }
@@ -208,7 +208,7 @@ impl FormField for NumericField {
                         }
                     }
                 } else {
-                    self.set_error(t("forms.integer_required").into_owned());
+                    self.set_error(t("forms.integer_required").to_string());
                     return false;
                 }
             }
@@ -225,7 +225,7 @@ impl FormField for NumericField {
                         }
                     }
                 } else {
-                    self.set_error(t("forms.number_invalid").into_owned());
+                    self.set_error(t("forms.number_invalid").to_string());
                     return false;
                 }
             }
@@ -233,12 +233,12 @@ impl FormField for NumericField {
                 match normalized.parse::<f64>() {
                     Ok(v) => {
                         if v < value.min || v > value.max {
-                            self.set_error(t("forms.number_invalid").into_owned());
+                            self.set_error(t("forms.number_invalid").to_string());
                             return false;
                         }
                     }
                     Err(_) => {
-                        self.set_error(t("forms.number_invalid").into_owned());
+                        self.set_error(t("forms.number_invalid").to_string());
                         return false;
                     }
                 }
@@ -256,6 +256,6 @@ impl FormField for NumericField {
         context.insert("disabled", &self.to_json_disabled());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| e.to_string())
+            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
     }
 }
