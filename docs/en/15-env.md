@@ -11,8 +11,8 @@ All keys configurable via `.env`. Values shown are defaults applied when the var
 | `DEBUG` | `false` (release) / `true` (debug_assertions) | Debug mode — enables detailed error pages |
 | `BASE_DIR` | `.` | Application root directory |
 | `PROJECT_NAME` | `myproject` | Project name (used for `root_urlconf`) |
-| `LANGUAGE_APP` | `en-us` | Application language code |
-| `TIME_ZONE` | `UTC` | Timezone |
+| `LANGUAGE_APP` | `en-us` | Application language code | -> only fr and en for error with i18n, not complete
+| `TIME_ZONE` | `UTC` | Timezone | -> not effect for now
 | `DEFAULT_AUTO_FIELD` | — | Default auto field type for models |
 
 ---
