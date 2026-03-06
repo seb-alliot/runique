@@ -186,37 +186,37 @@ Full reference: [docs/en/15-env.md](docs/en/15-env.md)
 
 ### English
 
-- [Installation]([docs/en/01-installation.md](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md))
-- [Architecture]([docs/en/02-architecture.md](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md))
-- [Configuration]([docs/en/03-configuration.md](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md))
-- [Routing]([docs/en/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md))
-- [Forms]([docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md))
-- [Model/Schema]([docs/en/12-model.md](https://github.com/seb-alliot/runique/blob/main/docs/en/12-model.md))
-- [Templates]([docs/en/06-templates.md](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md))
-- [ORM]([docs/en/07-orm.md](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md))
-- [Middleware]([docs/en/08-middleware.md](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md))
-- [Flash Messages]([docs/en/09-flash-messages.md](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md))
-- [Examples]([docs/en/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md))
-- [Admin beta]([docs/en/11-Admin.md](https://github.com/seb-alliot/runique/blob/main/docs/en/11-Admin.md))
-- [Sessions]([docs/en/14-sessions.md](https://github.com/seb-alliot/runique/blob/main/docs/en/14-sessions.md))
-- [Environment variables]([docs/en/15-env.md](https://github.com/seb-alliot/runique/blob/main/docs/en/15-env.md))
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
+- [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
+- [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+- [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/en/12-model.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
+- [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
+- [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
+- [Admin beta](https://github.com/seb-alliot/runique/blob/main/docs/en/11-Admin.md)
+- [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/14-sessions.md)
+- [Environment variables](https://github.com/seb-alliot/runique/blob/main/docs/en/15-env.md)
 
 ### Français
 
-- [Installation]([docs/fr/01-installation.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md))
-- [Architecture]([docs/fr/02-architecture.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md))
-- [Configuration]([docs/fr/03-configuration.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md))
-- [Routage]([docs/fr/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md))
-- [Formulaires]([docs/fr/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md))
-- [Model/Schema]([docs/fr/12-model.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md))
-- [Templates]([docs/fr/06-templates.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md))
-- [ORM]([docs/fr/07-orm.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md))
-- [Middlewares]([docs/fr/08-middleware.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md))
-- [Flash Messages]([docs/fr/09-flash-messages.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md))
-- [Exemples]([docs/fr/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md))
-- [Admin bêta]([docs/fr/11-Admin.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/11-Admin.md))
-- [Sessions]([docs/fr/14-sessions.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/14-sessions.md))
-- [Variables d'environnement]([docs/fr/15-env.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/15-env.md))
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
+- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+- [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md)
+- [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
+- [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
+- [Admin bêta](https://github.com/seb-alliot/runique/blob/main/docs/fr/11-Admin.md)
+- [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/14-sessions.md)
+- [Variables d'environnement](https://github.com/seb-alliot/runique/blob/main/docs/fr/15-env.md)
 
 ---
 
@@ -228,14 +228,14 @@ For the detailed, continuously updated state report, see [PROJECT_STATUS.md](htt
 
 ## Resources
 
-- [Project structure](INDEX.md)
-- [Changelog](CHANGELOG.md)
-- [Documentation hub](docs/README.md)
-- [Security policy](SECURITY.md)
-- [Benchmark](benchmark.md)
+- [Project structure](https://github.com/seb-alliot/runique/blob/main/INDEX.md)
+- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
+- [Documentation hub](https://github.com/seb-alliot/runique/blob/main/docs/README.md)
+- [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
+- [Benchmark](https://github.com/seb-alliot/runique/blob/main/benchmark.md)
 
 ---
 
 ## License
 
-MIT — see [LICENCE](LICENCE)
+MIT — see [LICENCE](https://github.com/seb-alliot/runique/blob/main/LICENCE)
