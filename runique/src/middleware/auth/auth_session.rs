@@ -1,8 +1,8 @@
 use crate::config::AppSettings;
 use crate::context::RequestExtensions;
 use crate::utils::constante::{
-    SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
-    SESSION_USER_ROLES_KEY, SESSION_USER_USERNAME_KEY,
+    SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
+    SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_ROLES_KEY, SESSION_USER_USERNAME_KEY,
 };
 use axum::{
     extract::Request,
@@ -153,6 +153,31 @@ pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Er
         .remove::<Vec<String>>(SESSION_USER_ROLES_KEY)
         .await?;
     session.delete().await
+}
+
+/// Protège une session anonyme contre le cleanup sous pression mémoire.
+///
+/// Utile pour les sessions avec de la valeur applicative (panier, formulaire multi-étapes).
+/// La session ne sera pas supprimée par le cleaner pendant `duration_secs` secondes.
+///
+/// # Exemple
+/// ```rust,ignore
+/// protect_session(&session, 3600).await?; // protège 1 heure
+/// ```
+pub async fn protect_session(
+    session: &Session,
+    duration_secs: i64,
+) -> Result<(), tower_sessions::session::Error> {
+    let protect_until = chrono::Utc::now().timestamp() + duration_secs;
+    session.insert(SESSION_ACTIVE_KEY, protect_until).await
+}
+
+/// Retire la protection manuelle d'une session anonyme.
+pub async fn unprotect_session(
+    session: &Session,
+) -> Result<(), tower_sessions::session::Error> {
+    session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
+    Ok(())
 }
 
 /// Vérifie si l'utilisateur a une permission donnée

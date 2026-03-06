@@ -17,6 +17,31 @@ This file presents the results of benchmarks performed locally on the developmen
 | Local PC (2m /blog/liste)      | 2    | 467,339  | 200         | 120,010         | 51.33    | 3896   | 68.14      | 80.47      | 100         | 184 deadline, 2.70 MiB/s |
 | Local PC (30s /)               | 2    | 146,667  | 500         | 30,020          | 102.1    | 4901   | 113.9      | 138.6      | 100         | 470 deadline, 3.57 MiB/s |
 
+## Session memory management — before/after fix
+
+`MemoryStore` (tower-sessions default) never deletes expired sessions — memory grows unboundedly under load.
+Runique replaces it with `CleaningMemoryStore`: periodic cleanup (60s timer) + two-tier watermark protection.
+
+**Test conditions**: release build, 500 concurrent, 5 min, route `/`, `TOKIO_WORKER_THREADS` default (Ryzen 7 5800X)
+Watermarks reduced for stress-test visibility: low = 5 MB, high = 10 MB, cleanup interval = 5s.
+
+| Phase                        | WorkingSet | Private |
+|------------------------------|------------|---------|
+| Before benchmark             | 16.5 MB    | 5.7 MB  |
+| After 5 min / 500 concurrent | 79.2 MB    | 68.7 MB |
+| Idle +8 min (post-benchmark) | 39.0 MB    | 27.8 MB |
+
+**Before fix** (raw `MemoryStore`, same load profile): **~1 369 MB** after 5 minutes — unbounded growth.
+**After fix**: peak at **79 MB**, returns to **39 MB** at idle. No unbounded growth.
+
+The 1 683 HTTP 500 responses are expected — the high watermark (10 MB) was intentionally set low to trigger
+the emergency refusal mechanism under stress. With production defaults (128 MB / 256 MB) no refusals occur
+at this load level.
+
+Post-benchmark idle memory does not return to baseline — this is normal allocator behavior (reserved pages),
+not a leak. The allocator keeps pages warm after a load spike.
+See [docs/en/14-sessions.md](docs/en/14-sessions.md) for full session management documentation.
+
 ## Notes
 
 - All tests were performed locally, compiled in release mode, with the environment variable `TOKIO_WORKER_THREADS=2`.
@@ -46,6 +71,31 @@ Ce fichier présente les résultats des benchmarks réalisés en local sur la ma
 | Local PC (30s /blog/liste)     | 2    | 134 518  | 500         | 30 028           | 111.3       | 4496   | 120.8      | 153.4      | 100        | 488 deadline, 3.11 MiB/s |
 | Local PC (2m /blog/liste)      | 2    | 467 339  | 200         | 120 010          | 51.33        | 3896   | 68.14      | 80.47      | 100        | 184 deadline, 2.70 MiB/s |
 | Local PC (30s /)               | 2    | 146 667  | 500         | 30 020           | 102.1        | 4901   | 113.9      | 138.6      | 100        | 470 deadline, 3.57 MiB/s |
+
+## Gestion mémoire des sessions — avant/après correctif
+
+`MemoryStore` (défaut tower-sessions) ne supprime jamais les sessions expirées — la mémoire croît sans limite sous charge.
+Runique le remplace par `CleaningMemoryStore` : cleanup périodique (timer 60s) + protection par watermarks à deux niveaux.
+
+**Conditions du test** : build release, 500 connexions simultanées, 5 min, route `/`, `TOKIO_WORKER_THREADS` par défaut (Ryzen 7 5800X).
+Watermarks réduits pour rendre les mécanismes visibles : low = 5 Mo, high = 10 Mo, intervalle cleanup = 5s.
+
+| Phase                              | WorkingSet | Private |
+|------------------------------------|------------|---------|
+| Avant benchmark                    | 16.5 Mo    | 5.7 Mo  |
+| Après 5 min / 500 connexions       | 79.2 Mo    | 68.7 Mo |
+| Idle +8 min (après benchmark)      | 39.0 Mo    | 27.8 Mo |
+
+**Avant correctif** (`MemoryStore` brut, même profil de charge) : **~1 369 Mo** après 5 minutes — croissance sans limite.
+**Après correctif** : pic à **79 Mo**, retour à **39 Mo** au repos. Aucune croissance unbounded.
+
+Les 1 683 erreurs HTTP 500 sont attendues — le high watermark (10 Mo) était volontairement bas pour déclencher
+le mécanisme de refus d'urgence sous stress. Avec les valeurs de production (128 Mo / 256 Mo) aucun refus n'intervient
+à ce niveau de charge.
+
+La mémoire idle après benchmark ne revient pas au niveau initial — comportement normal de l'allocateur (pages réservées),
+pas une fuite. L'allocateur conserve les pages chaudes après un pic de charge.
+Voir [docs/fr/14-sessions.md](docs/fr/14-sessions.md) pour la documentation complète de la gestion des sessions.
 
 ## Remarques
 

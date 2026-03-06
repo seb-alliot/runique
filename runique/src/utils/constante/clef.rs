@@ -9,6 +9,11 @@ pub const NONCE_KEY: &str = "csp_nonce";
 
 // Session key to store user ID
 pub const SESSION_USER_ID_KEY: &str = "user_id";
+
+// Session protection key — timestamp Unix (i64) indiquant jusqu'à quand protéger la session.
+// Posé manuellement par le dev pour des sessions anonymes à valeur (panier, formulaire multi-étapes).
+// Le cleaner ne supprime pas les sessions où ce timestamp est dans le futur.
+pub const SESSION_ACTIVE_KEY: &str = "session_active";
 pub const SESSION_USER_USERNAME_KEY: &str = "username";
 pub const SESSION_USER_IS_STAFF_KEY: &str = "is_staff";
 pub const SESSION_USER_IS_SUPERUSER_KEY: &str = "is_superuser";

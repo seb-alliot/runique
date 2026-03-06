@@ -17,3 +17,17 @@ $env:CARGO_PROFILE_RELEASE_DEBUG="true"
 cargo flamegraph -p demo-app --bin demo-app
 .\demo-app.exe
 oha -n 10000 -c 100 http://localhost:3000/blog/liste
+
+# check de la ram utilisé en stockage session sous powershell admin
+function Mem {
+  Get-Process demo-app |
+    Select-Object @{Name="Time";Expression={(Get-Date).ToString("HH:mm:ss")}},
+      @{Name="WS_MB";Expression={[math]::Round($_.WorkingSet64/1MB,1)}},
+      @{Name="Private_MB";Expression={[math]::Round($_.PrivateMemorySize64/1MB,1)}}
+}
+
+"=== BEFORE ==="; Mem
+oha -z 5m -c 500 http://localhost:3000/ | Out-Host
+"=== AFTER ==="; Mem
+Start-Sleep -Seconds 530
+"=== IDLE +530s ==="; Mem

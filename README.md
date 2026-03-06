@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-1523%2F1523%20passing-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.37-blue)
+![Version](https://img.shields.io/badge/version-1.1.38-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
 
 Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
@@ -21,7 +21,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **1.1.37**.
+Workspace version (source of truth): **1.1.38**.
 
 ---
 
@@ -152,6 +152,36 @@ See: [couverture_test.md](couverture_test.md)
 
 ---
 
+## Sessions
+
+`CleaningMemoryStore` replaces the default `MemoryStore` with automatic expired-session cleanup, a two-tier watermark system (128 MB / 256 MB), and priority-based protection for authenticated and high-value anonymous sessions (shopping carts, multi-step forms).
+
+- Low watermark: background purge of expired anonymous sessions
+- High watermark: synchronous emergency purge + 503 refusal if still exceeded
+- `protect_session(&session, duration_secs)` — marks an anonymous session as untouchable until a given timestamp
+- `user_id` key — automatically protects authenticated sessions
+
+Full reference: [docs/en/14-sessions.md](docs/en/14-sessions.md)
+
+---
+
+## Environment variables
+
+All behavior is configurable via `.env`. Key variables:
+
+```env
+RUNIQUE_SESSION_CLEANUP_SECS=60
+RUNIQUE_SESSION_LOW_WATERMARK=134217728
+RUNIQUE_SESSION_HIGH_WATERMARK=268435456
+SECRET_KEY=your-secret-key
+ALLOWED_HOSTS=localhost,example.com
+DATABASE_URL=sqlite://db.sqlite3
+```
+
+Full reference: [docs/en/15-env.md](docs/en/15-env.md)
+
+---
+
 ## Documentation map
 
 ### English
@@ -168,6 +198,8 @@ See: [couverture_test.md](couverture_test.md)
 - [Flash Messages](docs/en/09-flash-messages.md)
 - [Examples](docs/en/10-examples.md)
 - [Admin beta](docs/en/11-Admin.md)
+- [Sessions](docs/en/14-sessions.md)
+- [Environment variables](docs/en/15-env.md)
 
 
 ### Français
@@ -184,6 +216,8 @@ See: [couverture_test.md](couverture_test.md)
 - [Flash Messages](docs/fr/09-flash-messages.md)
 - [Exemples](docs/fr/10-examples.md)
 - [Admin bêta](docs/fr/11-Admin.md)
+- [Sessions](docs/fr/14-sessions.md)
+- [Variables d'environnement](docs/fr/15-env.md)
 
 ---
 

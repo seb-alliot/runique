@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-1523%2F1523%20passing-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.37-blue)
+![Version](https://img.shields.io/badge/version-1.1.38-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
 
 **Runique** est un framework web construit sur Axum, axé sur les formulaires **type-safe**, les middlewares de sécurité, le rendu de templates, l’intégration ORM et un workflow d’administration généré par code.
@@ -21,7 +21,7 @@
 * `demo-app/` → application de test/validation pour le développement du framework
 * `docs/` → documentation EN/FR
 
-Version du workspace (source de vérité) : **1.1.37**.
+Version du workspace (source de vérité) : **1.1.38**.
 
 ---
 
@@ -156,22 +156,54 @@ Voir :
 
 ---
 
+## Sessions
+
+`CleaningMemoryStore` remplace le `MemoryStore` par défaut avec un nettoyage automatique des sessions expirées, un système de watermarks à deux niveaux (128 Mo / 256 Mo) et une protection prioritaire des sessions à valeur.
+
+* Low watermark : purge asynchrone des sessions anonymes expirées
+* High watermark : purge d'urgence synchrone + refus 503 si toujours dépassé
+* `protect_session(&session, duration_secs)` — protège une session anonyme jusqu'à un timestamp futur
+* Clé `user_id` — protège automatiquement les sessions authentifiées
+
+Documentation complète : [docs/fr/14-sessions.md](docs/fr/14-sessions.md)
+
+---
+
+## Variables d'environnement
+
+Tout le comportement est configurable via `.env`. Variables principales :
+
+```env
+RUNIQUE_SESSION_CLEANUP_SECS=60
+RUNIQUE_SESSION_LOW_WATERMARK=134217728
+RUNIQUE_SESSION_HIGH_WATERMARK=268435456
+SECRET_KEY=votre-cle-secrete
+ALLOWED_HOSTS=localhost,example.com
+DATABASE_URL=sqlite://db.sqlite3
+```
+
+Référence complète : [docs/fr/15-env.md](docs/fr/15-env.md)
+
+---
+
 # Carte de la documentation
 
 ## Anglais
 
-* Installation — `docs/fr/01-installation.md`
-* Architecture — `docs/fr/02-architecture.md`
-* Configuration — `docs/fr/03-configuration.md`
-* Routing — `docs/fr/04-routing.md`
-* Forms — `docs/fr/05-forms.md`
-* Model/Schema — `docs/fr/12-model.md`
-* Templates — `docs/fr/06-templates.md`
-* ORM — `docs/fr/07-orm.md`
-* Middleware — `docs/fr/08-middleware.md`
-* Flash Messages — `docs/fr/09-flash-messages.md`
-* Examples — `docs/fr/10-examples.md`
-* Admin bêta — `docs/fr/11-Admin.md`
+* Installation — `docs/en/01-installation.md`
+* Architecture — `docs/en/02-architecture.md`
+* Configuration — `docs/en/03-configuration.md`
+* Routing — `docs/en/04-routing.md`
+* Forms — `docs/en/05-forms.md`
+* Model/Schema — `docs/en/12-model.md`
+* Templates — `docs/en/06-templates.md`
+* ORM — `docs/en/07-orm.md`
+* Middleware — `docs/en/08-middleware.md`
+* Flash Messages — `docs/en/09-flash-messages.md`
+* Examples — `docs/en/10-examples.md`
+* Admin bêta — `docs/en/11-Admin.md`
+* Sessions — [docs/en/14-sessions.md](docs/en/14-sessions.md)
+* Variables d'environnement — [docs/en/15-env.md](docs/en/15-env.md)
 
 ## Français
 
@@ -188,6 +220,8 @@ Voir :
 * Flash Messages — `docs/fr/09-flash-messages.md`
 * Exemples — `docs/fr/10-examples.md`
 * Admin bêta — `docs/fr/11-Admin.md`
+* Sessions — [docs/fr/14-sessions.md](docs/fr/14-sessions.md)
+* Variables d'environnement — [docs/fr/15-env.md](docs/fr/15-env.md)
 
 ---
 
