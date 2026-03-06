@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-1523%2F1523%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.40-blue)
+![Version](https://img.shields.io/badge/version-1.1.41-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
 
 Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
@@ -21,7 +21,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **1.1.40**.
+Workspace version (source of truth): **1.1.41**.
 
 ---
 
@@ -186,43 +186,43 @@ Full reference: [docs/en/15-env.md](docs/en/15-env.md)
 
 ### English
 
-- [Installation](docs/en/01-installation.md)
-- [Architecture](docs/en/02-architecture.md)
-- [Configuration](docs/en/03-configuration.md)
-- [Routing](docs/en/04-routing.md)
-- [Forms](docs/en/05-forms.md)
-- [Model/Schema](docs/en/12-model.md)
-- [Templates](docs/en/06-templates.md)
-- [ORM](docs/en/07-orm.md)
-- [Middleware](docs/en/08-middleware.md)
-- [Flash Messages](docs/en/09-flash-messages.md)
-- [Examples](docs/en/10-examples.md)
-- [Admin beta](docs/en/11-Admin.md)
-- [Sessions](docs/en/14-sessions.md)
-- [Environment variables](docs/en/15-env.md)
+- [Installation]([docs/en/01-installation.md](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md))
+- [Architecture]([docs/en/02-architecture.md](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md))
+- [Configuration]([docs/en/03-configuration.md](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md))
+- [Routing]([docs/en/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md))
+- [Forms]([docs/en/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md))
+- [Model/Schema]([docs/en/12-model.md](https://github.com/seb-alliot/runique/blob/main/docs/en/12-model.md))
+- [Templates]([docs/en/06-templates.md](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md))
+- [ORM]([docs/en/07-orm.md](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md))
+- [Middleware]([docs/en/08-middleware.md](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md))
+- [Flash Messages]([docs/en/09-flash-messages.md](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md))
+- [Examples]([docs/en/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md))
+- [Admin beta]([docs/en/11-Admin.md](https://github.com/seb-alliot/runique/blob/main/docs/en/11-Admin.md))
+- [Sessions]([docs/en/14-sessions.md](https://github.com/seb-alliot/runique/blob/main/docs/en/14-sessions.md))
+- [Environment variables]([docs/en/15-env.md](https://github.com/seb-alliot/runique/blob/main/docs/en/15-env.md))
 
 ### Français
 
-- [Installation](docs/fr/01-installation.md)
-- [Architecture](docs/fr/02-architecture.md)
-- [Configuration](docs/fr/03-configuration.md)
-- [Routage](docs/fr/04-routing.md)
-- [Formulaires](docs/fr/05-forms.md)
-- [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md)
-- [Templates](docs/fr/06-templates.md)
-- [ORM](docs/fr/07-orm.md)
-- [Middlewares](docs/fr/08-middleware.md)
-- [Flash Messages](docs/fr/09-flash-messages.md)
-- [Exemples](docs/fr/10-examples.md)
-- [Admin bêta](docs/fr/11-Admin.md)
-- [Sessions](docs/fr/14-sessions.md)
-- [Variables d'environnement](docs/fr/15-env.md)
+- [Installation]([docs/fr/01-installation.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md))
+- [Architecture]([docs/fr/02-architecture.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md))
+- [Configuration]([docs/fr/03-configuration.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md))
+- [Routage]([docs/fr/04-routing.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md))
+- [Formulaires]([docs/fr/05-forms.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md))
+- [Model/Schema]([docs/fr/12-model.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/12-model.md))
+- [Templates]([docs/fr/06-templates.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md))
+- [ORM]([docs/fr/07-orm.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md))
+- [Middlewares]([docs/fr/08-middleware.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md))
+- [Flash Messages]([docs/fr/09-flash-messages.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md))
+- [Exemples]([docs/fr/10-examples.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md))
+- [Admin bêta]([docs/fr/11-Admin.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/11-Admin.md))
+- [Sessions]([docs/fr/14-sessions.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/14-sessions.md))
+- [Variables d'environnement]([docs/fr/15-env.md](https://github.com/seb-alliot/runique/blob/main/docs/fr/15-env.md))
 
 ---
 
 ## Project status
 
-For the detailed, continuously updated state report, see [PROJECT_STATUS.md](PROJECT_STATUS.md).
+For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/PROJECT_STATUS.md).
 
 ---
 
