@@ -1,6 +1,7 @@
 use crate::app::error_build::BuildError;
 use crate::config::RuniqueConfig;
 use crate::context::RequestExtensions;
+use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
     allowed_hosts_middleware, csrf_middleware, dev_no_cache_middleware, error_handler_middleware,
     security_headers_middleware, MiddlewareConfig,
@@ -10,7 +11,6 @@ use axum::{self, middleware, Router};
 use tower_http::compression::CompressionLayer;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};
-use crate::middleware::session::CleaningMemoryStore;
 
 // ═══════════════════════════════════════════════════════════════
 // MiddlewareStaging — Réorganisation automatique par Slots
@@ -453,8 +453,7 @@ impl MiddlewareStaging {
                 apply: Box::new(move |r: Router| match applicator {
                     Some(apply_fn) => apply_fn(r, debug, anon_duration),
                     None => {
-                        let store = CleaningMemoryStore::default()
-                            .with_watermarks(low_wm, high_wm);
+                        let store = CleaningMemoryStore::default().with_watermarks(low_wm, high_wm);
                         store.spawn_cleanup(tokio::time::Duration::from_secs(cleanup_secs));
                         let layer = SessionManagerLayer::new(store)
                             .with_secure(!debug)
@@ -512,16 +511,21 @@ impl MiddlewareStaging {
                 name: "SessionTtlUpgrade",
                 apply: Box::new(move |r| {
                     r.layer(axum::middleware::from_fn(
-                        move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next<>| {
+                        move |req: axum::http::Request<axum::body::Body>,
+                              next: axum::middleware::Next| {
                             async move {
-                                if let Some(session) = req.extensions().get::<tower_sessions::Session>() {
+                                if let Some(session) =
+                                    req.extensions().get::<tower_sessions::Session>()
+                                {
                                     if crate::middleware::auth::is_authenticated(session).await {
-                                        session.set_expiry(Some(Expiry::OnInactivity(self.session_duration)));
+                                        session.set_expiry(Some(Expiry::OnInactivity(
+                                            self.session_duration,
+                                        )));
                                     }
                                 }
                                 next.run(req).await
                             }
-                        }
+                        },
                     ))
                 }),
             });

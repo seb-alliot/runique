@@ -145,6 +145,8 @@ pub use chrono;
 pub use hmac;
 pub use once_cell;
 pub use regex;
+#[cfg(feature = "orm")]
+pub use sea_orm;
 pub use serde;
 pub use serde_json;
 pub use sha2;
@@ -154,8 +156,6 @@ pub use tower;
 pub use tower_http;
 pub use tower_sessions;
 pub use uuid;
-#[cfg(feature = "orm")]
-pub use sea_orm;
 
 pub use derive_form::model;
 
