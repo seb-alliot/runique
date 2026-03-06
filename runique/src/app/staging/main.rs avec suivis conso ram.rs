@@ -9,11 +9,19 @@ mod form_test;
 mod formulaire;
 mod url;
 mod views;
+use dhat;
 
 use runique::app::builder::RuniqueAppBuilder as builder;
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
 
     password_init(PasswordConfig::Manual(Manual::Argon2));
 

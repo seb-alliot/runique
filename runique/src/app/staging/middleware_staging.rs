@@ -63,6 +63,7 @@ const SLOT_ERROR_HANDLER: u16 = 10; // Attrape les erreurs de TOUTE la pile
 const SLOT_SECURITY_HEADERS: u16 = 30; // CSP + security headers
 const SLOT_CACHE: u16 = 40; // Headers cache
 const SLOT_SESSION: u16 = 50; // Avant CSRF (CSRF en dépend)
+const SLOT_SESSION_UPGRADE: u16 = 55; // Après Session (lit/écrit en session)
 const SLOT_CSRF: u16 = 60; // Après Session (lit/écrit en session)
 const SLOT_HOST_VALIDATION: u16 = 70; // Dernier rempart avant handler
 
@@ -110,6 +111,8 @@ pub struct MiddlewareStaging {
     /// Durée d'inactivité avant expiration de la session
     pub(crate) session_duration: Duration,
 
+    /// Durée session anonyme => time life session anonyme
+    pub(crate) anonymous_session_duration: Duration,
     /// Applicateur de session personnalisé (None = MemoryStore par défaut)
     pub(crate) session_applicator: Option<SessionApplicator>,
 
@@ -129,6 +132,7 @@ impl MiddlewareStaging {
         Self {
             features,
             session_duration: Duration::seconds(86400), // 24h par défaut
+            anonymous_session_duration: Duration::seconds(300), // 5m par défaut
             session_applicator: None,
             custom_middlewares: Vec::new(),
         }
@@ -174,6 +178,7 @@ impl MiddlewareStaging {
         Self {
             features,
             session_duration: Duration::seconds(86400),
+            anonymous_session_duration: Duration::seconds(300),
             session_applicator: None,
             custom_middlewares: Vec::new(),
         }
@@ -214,6 +219,12 @@ impl MiddlewareStaging {
     /// Configure la durée d'inactivité avant expiration de la session
     pub fn with_session_duration(mut self, duration: Duration) -> Self {
         self.session_duration = duration;
+        self
+    }
+
+    /// Configure la durée d'inactivité avant expiration de la session anonyme
+    pub fn with_anonymous_session_duration(mut self, duration: Duration) -> Self {
+        self.anonymous_session_duration = duration;
         self
     }
 
@@ -380,17 +391,18 @@ impl MiddlewareStaging {
         // Slot 50 : Session — avant CSRF (CSRF en dépend)
         {
             let applicator = self.session_applicator;
-            let duration = self.session_duration;
+            let anon_duration = self.anonymous_session_duration;
+
             entries.push(MiddlewareEntry {
                 slot: SLOT_SESSION,
                 name: "Session",
-                apply: Box::new(move |r| match applicator {
-                    Some(apply_fn) => apply_fn(r, debug, duration),
+                apply: Box::new(move |r: Router| match applicator {
+                    Some(apply_fn) => apply_fn(r, debug, anon_duration),
                     None => {
                         let layer = SessionManagerLayer::new(MemoryStore::default())
                             .with_secure(!debug)
                             .with_http_only(!debug)
-                            .with_expiry(Expiry::OnInactivity(duration));
+                            .with_expiry(Expiry::OnInactivity(anon_duration));
                         r.layer(layer)
                     }
                 }),
@@ -431,6 +443,28 @@ impl MiddlewareStaging {
                     r.layer(middleware::from_fn_with_state(
                         eng,
                         security_headers_middleware,
+                    ))
+                }),
+            });
+        }
+
+        // Slot 55 : Upgrade TTL si authentifié
+        {
+            entries.push(MiddlewareEntry {
+                slot: SLOT_SESSION_UPGRADE,
+                name: "SessionTtlUpgrade",
+                apply: Box::new(move |r| {
+                    r.layer(axum::middleware::from_fn(
+                        move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next<>| {
+                            async move {
+                                if let Some(session) = req.extensions().get::<tower_sessions::Session>() {
+                                    if crate::middleware::auth::is_authenticated(session).await {
+                                        session.set_expiry(Some(Expiry::OnInactivity(self.session_duration)));
+                                    }
+                                }
+                                next.run(req).await
+                            }
+                        }
                     ))
                 }),
             });
