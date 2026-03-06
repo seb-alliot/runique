@@ -1,9 +1,9 @@
 use crate::context::tera::csp::nonce_function;
-use crate::utils::trad::tf;
 use crate::context::tera::form::form_filter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
 use crate::utils::aliases::{ARlockmap, JsonMap, TResult};
+use crate::utils::trad::tf;
 use tera::{Tera, Value};
 
 // Filtre pour masquer une valeur sensible avec des bullets (nombre de caractères réel)
@@ -29,8 +29,9 @@ fn csrf_filter(value: &Value, _: &JsonMap) -> TResult {
 // Fonction générique interne pour éviter la répétition
 fn register_filter(base_url: String) -> impl Fn(&Value, &JsonMap) -> TResult {
     move |value: &Value, _: &JsonMap| {
-        let file = value.as_str()
-            .ok_or_else(|| tera::Error::msg(tf("forms.filter_invalid_value", &[&format!("{:?}", value)])))?;
+        let file = value.as_str().ok_or_else(|| {
+            tera::Error::msg(tf("forms.filter_invalid_value", &[&format!("{:?}", value)]))
+        })?;
 
         let full_url = format!(
             "{}/{}",

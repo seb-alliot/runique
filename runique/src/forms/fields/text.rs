@@ -207,8 +207,9 @@ impl FormField for TextField {
                 if let PasswordConfig::Auto(_) = config {
                     let service = PasswordService::new(config);
                     if !service.is_already_hashed(&self.base.value) {
-                        self.base.value =
-                            service.hash(&self.base.value).map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_string())?;
+                        self.base.value = service
+                            .hash(&self.base.value)
+                            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_string())?;
                     }
                 }
             }
@@ -239,6 +240,12 @@ impl FormField for TextField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }

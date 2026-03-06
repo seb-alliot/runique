@@ -51,9 +51,9 @@ pub trait RuniqueForm: Sized + Send + Sync {
         let mut fields_valid = match self.get_form_mut().is_valid() {
             Ok(valid) => valid,
             Err(ValidationError::StackOverflow) => {
-                self.get_form_mut().errors.push(
-                    t("forms.validation_overflow").into_owned(),
-                );
+                self.get_form_mut()
+                    .errors
+                    .push(t("forms.validation_overflow").into_owned());
                 return false;
             }
             Err(_) => return false,

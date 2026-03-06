@@ -92,7 +92,13 @@ impl FormField for ColorField {
         context.insert("field", &self.base);
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 
@@ -190,7 +196,13 @@ impl FormField for SlugField {
         context.insert("field_hint", &t("forms.hint_slug").to_string());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 
@@ -266,7 +278,13 @@ impl FormField for UUIDField {
         context.insert("field_hint", &t("forms.hint_uuid").to_string());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 
@@ -359,7 +377,13 @@ impl FormField for JSONField {
         context.insert("rows", &rows);
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 
@@ -471,6 +495,12 @@ impl FormField for IPAddressField {
         context.insert("field_hint", &hint);
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }

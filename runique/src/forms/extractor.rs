@@ -1,7 +1,7 @@
 use crate::forms::field::RuniqueForm;
-use crate::utils::trad::t;
 use crate::forms::prisme::{aegis, csrf_gate, sentinel};
 use crate::utils::aliases::{ARuniqueConfig, ATera, StrMap, StrVecMap};
+use crate::utils::trad::t;
 
 use axum::{
     body::Body,
@@ -47,7 +47,11 @@ where
         .get::<crate::utils::csrf::CsrfToken>()
         .cloned()
         .ok_or_else(|| {
-            (StatusCode::INTERNAL_SERVER_ERROR, t("csrf.missing").to_string()).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                t("csrf.missing").to_string(),
+            )
+                .into_response()
         })?;
 
     let method = req.method().clone();
