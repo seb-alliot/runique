@@ -578,7 +578,7 @@ impl MiddlewareStaging {
         // Session avant CSRF → CSRF peut lire la session
         // ═══════════════════════════════════════
 
-        entries.sort_by(|a, b| b.slot.cmp(&a.slot));
+        entries.sort_by_key(|b| std::cmp::Reverse(b.slot));
 
         let mut router = router;
         for entry in entries {
