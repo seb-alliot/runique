@@ -103,14 +103,12 @@ pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> App
                 .unwrap_or(None);
 
             match user_opt {
-                Some(user) if user.is_active => {
-                    if verify(&password_val, &user.password) {
-                        auth_login(&request.session, user.id, &user.username)
-                            .await
-                            .ok();
-                        success!(request.notices => format!("Bienvenue {} !", user.username));
-                        return Ok(Redirect::to("/profil").into_response());
-                    }
+                Some(user) if user.is_active && verify(&password_val, &user.password) => {
+                    auth_login(&request.session, user.id, &user.username)
+                        .await
+                        .ok();
+                    success!(request.notices => format!("Bienvenue {} !", user.username));
+                    return Ok(Redirect::to("/profil").into_response());
                 }
                 _ => {}
             }
