@@ -256,6 +256,12 @@ impl FormField for NumericField {
         context.insert("disabled", &self.to_json_disabled());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }

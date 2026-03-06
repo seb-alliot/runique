@@ -93,7 +93,8 @@ impl BaseHash {
         if password.is_empty() {
             return Err(t("forms.password_empty").into_owned());
         }
-        bcrypt_hash(password, DEFAULT_COST).map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_owned())
+        bcrypt_hash(password, DEFAULT_COST)
+            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_owned())
     }
 
     fn verify_bcrypt(&self, password: &str, hash: &str) -> bool {

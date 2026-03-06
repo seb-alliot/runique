@@ -141,7 +141,13 @@ impl FormField for DateField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 
@@ -274,7 +280,13 @@ impl FormField for TimeField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 
@@ -407,7 +419,13 @@ impl FormField for DateTimeField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 
@@ -543,6 +561,12 @@ impl FormField for DurationField {
         }
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }

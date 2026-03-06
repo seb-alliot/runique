@@ -119,7 +119,13 @@ impl FormField for ChoiceField {
         context.insert("disabled", &self.to_json_disabled());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
 
@@ -202,7 +208,13 @@ impl FormField for RadioField {
         context.insert("choices", &self.choices);
         context.insert("meta", &self.to_json_meta());
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 
     fn to_json_value(&self) -> Value {
@@ -310,6 +322,12 @@ impl FormField for CheckboxField {
         context.insert("meta", &self.to_json_meta());
 
         tera.render(&self.base.template_name, &context)
-            .map_err(|e| tf("forms.finalize_error", &[&self.base.template_name, &e.to_string()]).to_string())
+            .map_err(|e| {
+                tf(
+                    "forms.finalize_error",
+                    &[&self.base.template_name, &e.to_string()],
+                )
+                .to_string()
+            })
     }
 }
