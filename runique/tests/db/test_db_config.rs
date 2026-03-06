@@ -145,9 +145,9 @@ fn test_from_url_valeurs_par_defaut() {
     let config = DatabaseConfig::from_url("sqlite://test.db")
         .unwrap()
         .build();
-    assert_eq!(config.max_connections, 20);
-    assert_eq!(config.min_connections, 5);
-    assert!(config.sqlx_logging);
+    assert_eq!(config.max_connections, 100);
+    assert_eq!(config.min_connections, 20);
+    assert!(!config.sqlx_logging);
 }
 
 // ═══════════════════════════════════════════════════════════════
