@@ -88,8 +88,6 @@ async fn main() {
 > to apply or manage migrations.
 > Using other commands may lead to migration desynchronization.
 
-```
-
 Admin daemon behavior in `start`:
 
 - checks whether `.with_admin(...)` exists in `src/main.rs`
