@@ -50,9 +50,15 @@ password_init(PasswordConfig::auto_with(Manual::Argon2));
 
 ### 2.a. I18n (Internationalisation)
 
-- Socle déjà en place : module `utils::trad::switch_lang`, enum `Lang` (FR/EN), JSON embarqués, formatage de messages.
-- Finaliser l’intégration runtime (config/session/request).
-- Uniformiser l’usage des clés i18n dans middleware/forms/errors.
+**Status :** 🟢 Socle complet — intégration runtime à finaliser
+
+- 🟢 8 langues supportées : `en`, `fr`, `it`, `es`, `de`, `pt`, `ja`, `zh`
+- 🟢 `Lang::from(&str)` avec codes locales standards (`fr-CA`, `es-MX`, `de-AT`, `pt-BR`, `zh-CN`, …)
+- 🟢 Fallback automatique vers l’anglais pour toute clé manquante
+- 🟢 14 sections couvertes par langue : `forms`, `csrf`, `error`, `build`, `middleware`, `admin`, `html`, `debug`, `flash`, `log`, `cli`, `daemon`, `macro`, `parser`
+- 🟢 Doc-tests via `#![doc = include_str!(...)]` dans `switch_lang.rs`
+- 🟡 Intégration runtime (config/session/request) — `set_lang()` depuis l’env ou la requête
+- 🟢 Uniformiser l’usage des clés i18n dans middleware/forms/errors
 
 ### 2.b. Tracing d’erreur
 
@@ -163,7 +169,7 @@ entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p mig
 ### Étapes avant publication
 
 - 85% couverture minimum (`bin/` exclu) : 🟡 76.66% actuellement.
-- Remplacer doctests `ignore`/`no_run` par exemples réels : 🔴 À faire.
+- Remplacer doctests `ignore`/`no_run` par exemples réels : 🟡 En cours (i18n, migration, forms, sanitizer, aliases, builder couverts).
 - Docs complètes (models, forms, macros procédurales) : 🔴 À faire.
 - Publish crates.io : 🔴 À faire.
 
