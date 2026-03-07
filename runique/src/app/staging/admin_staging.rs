@@ -4,15 +4,14 @@
 
 use std::sync::Arc;
 
-use crate::admin::{AdminConfig, AdminRegistry};
+use crate::admin::PrototypeAdminState;
+use crate::admin::{AdminConfig, AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::middleware::auth::AdminAuth;
-use crate::prototype_admin::PrototypeAdminState;
 use axum::Router;
 
 pub struct AdminStaging {
     pub config: AdminConfig,
-    pub registry: AdminRegistry,
     pub enabled: bool,
     pub route_admin: Option<Router>,
     pub proto_state: Option<Arc<PrototypeAdminState>>,
@@ -22,7 +21,6 @@ impl AdminStaging {
     pub fn new() -> Self {
         Self {
             config: AdminConfig::new(),
-            registry: AdminRegistry::new(),
             enabled: false,
             route_admin: None,
             proto_state: None,
@@ -85,8 +83,19 @@ impl AdminStaging {
         self
     }
 
-    pub fn with_registry(mut self, registry: AdminRegistry) -> Self {
-        self.registry = registry;
+    /// Surcharge les templates de l'interface admin.
+    ///
+    /// ```rust,ignore
+    /// .with_admin(|a| a
+    ///     .templates(|t| t
+    ///         .with_list("mon_theme/list.html")
+    ///         .with_dashboard("mon_theme/dashboard.html")
+    ///     )
+    /// )
+    /// ```
+    pub fn templates<F: FnOnce(AdminTemplate) -> AdminTemplate>(mut self, f: F) -> Self {
+        let current = std::mem::take(&mut self.config.templates);
+        self.config.templates = f(current);
         self
     }
 

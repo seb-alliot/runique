@@ -1,126 +1,78 @@
 # Roadmap Runique
 
-## 1. Configuration du mot de passe via settings
-
-**Status :** 🟢 Fait
-
-### 1.a. Enum de configuration
-
-- `password_init(PasswordConfig::...)` : **point d’entrée unique** pour l’initialisation globale du hash au démarrage.
-
-- `PasswordConfig::auto()` : mode auto avec config par défaut (valeur de configuration).
-- `PasswordConfig::auto_with(Manual::Argon2|Bcrypt|Scrypt)` : mode auto avec algo explicite (valeur de configuration).
-- `PasswordConfig::manual(Manual::Argon2|Bcrypt|Scrypt|Custom)` : hash manuel dans la logique métier (valeur de configuration).
-- `PasswordConfig::oauth(External::...)` : mode délégué (fournisseur externe, valeur de configuration).
-- `PasswordConfig::custom(handler)` : stratégie personnalisée via `PasswordHandler` (valeur de configuration).
-
-
-> Règle projet : l'initialisation effective du hash doit passer par `password_init(...)`.
-> `RuniqueConfig::from_env()` peut garder une valeur par défaut de configuration, mais ne remplace pas ce point d’entrée.
-
-### 1.b. Flow du mot de passe
-
-```text
-field password  →  clean_field (contraintes métier)
-    →  clean (regroupement logique globale)
-    →  finalize (transformation / hash si Auto)
-    →  validate (validation finale)
-    →  save (persistance)
-```
-
-Configuration dans `main.rs` :
-
-```rust
-use runique::utils::password::{External, Manual, PasswordConfig};
-
-// Initialisation globale (obligatoire)
-password_init(PasswordConfig::auto_with(Manual::Argon2));
-
-// Exemples de valeurs possibles :
-// password_init(PasswordConfig::auto());
-// password_init(PasswordConfig::manual(Manual::Bcrypt));
-// password_init(PasswordConfig::oauth(External::GoogleOAuth));
-```
-
----
-
-## 2. I18n et Tracing
+## 1. I18n et Tracing
 
 **Status :** 🟡 En cours
 
-### 2.a. I18n (Internationalisation)
+### 1.a. I18n (Internationalisation)
 
-**Status :** 🟢 Socle complet — intégration runtime à finaliser
+**Status :** 🟡 Intégration runtime à finaliser
 
-- 🟢 8 langues supportées : `en`, `fr`, `it`, `es`, `de`, `pt`, `ja`, `zh`
-- 🟢 `Lang::from(&str)` avec codes locales standards (`fr-CA`, `es-MX`, `de-AT`, `pt-BR`, `zh-CN`, …)
-- 🟢 Fallback automatique vers l’anglais pour toute clé manquante
-- 🟢 14 sections couvertes par langue : `forms`, `csrf`, `error`, `build`, `middleware`, `admin`, `html`, `debug`, `flash`, `log`, `cli`, `daemon`, `macro`, `parser`
-- 🟢 Doc-tests via `#![doc = include_str!(...)]` dans `switch_lang.rs`
 - 🟡 Intégration runtime (config/session/request) — `set_lang()` depuis l’env ou la requête
-- 🟢 Uniformiser l’usage des clés i18n dans middleware/forms/errors
 
-### 2.b. Tracing d’erreur
+### 1.b. Tracing d’erreur
 
 - `debug = false` : tracing off.
 - `debug = true` : tracing on (console + page debug).
 
 ---
 
-## 3. Migration et Vue Admin
+## 2. Vue Admin
 
 **Status :** 🟡 En cours
 
-### 3.a. Système de migration
+### À implémenter — court terme
 
-**Status :** 🟢 Fait — pipeline complet fonctionnel
+- 🔴 **list_display** : colonnes affichées dans la liste, configurables par ressource dans `admin!{}`
+  - `ColumnFilter::All` → inféré depuis les clés du premier enregistrement
+  - `ColumnFilter::Include(...)` / `Exclude(...)` → filtrage explicite
+  - Injecter `columns: Vec<String>` dans le contexte Tera
+  - Template list : `id="row-{{ entry.id }}"` + `id="cell-{{ entry.id }}-{{ col }}"` pour ciblage JS
+- 🔴 **Pagination** : `page` + `per_page` depuis query params, passer au `list_fn`
+- 🔴 **Ordering** : tri par colonne cliquable (query param `?order=col&dir=asc`)
+- 🔴 **search_fields** : recherche texte côté backend, route ou query param `?q=...`
+- 🔴 **JS assets** : champ `js: ["path/to/file.js"]` dans `admin!{}` → `js_files: Vec<String>` dans `AdminResource` → injecté dans bloc `extra_js` du template
+- 🔴 **Permissions runtime** : vérification des rôles par ressource à chaque requête admin (requête DB, option sécurisée)
 
-```text
-entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p migration
-```
+### À implémenter — moyen terme
 
-- Tous types supportés (string, int, float, bool, datetime, binary, json...).
-- Primary key, foreign keys, indexes, nullable, unique.
-- Vérifié sur Postgres, MariaDB, SQLite via Docker.
+- 🔴 **History / log admin** : table `admin_log` (user_id, resource_key, object_id, action, timestamp, changes jsonb) — hooks via signaux SeaORM
+- 🔴 **Bulk actions** : suppression en lot, actions custom déclarées par ressource
+- 🔴 **readonly_fields** : champs non-éditables affichés en lecture seule dans les formulaires
+- 🔴 **date_hierarchy** : navigation par date (année > mois > jour) en haut de la liste
+- 🔴 **list_filter** : filtres latéraux par valeur de colonne
 
-### 3.b. Vue Admin
+### Hors scope v1 (futur)
 
-**Status :** 🟡 En cours
+- **Inlines** : formulaires imbriqués pour relations SeaORM (`has_many`) — nécessite refonte du modèle form + JS add/remove + transactions groupées
+- **autocomplete_fields** : widget AJAX pour ForeignKey — nécessite route `/admin/{resource}/search` + JS Select2-style
+- **list_editable** : édition inline dans la liste
+- **date_hierarchy avancé** : navigation drill-down avec agrégations DB
 
-#### b.1. Refonte du rendu
+### Personnalisation templates
 
-- Basculer sur les **models** qui gèrent leur propre rendu.
-- Les formulaires se basent sur le model (et non l’inverse) si macro attribut connectée.
-- Si formulaire fourni dans la macro, lier le formulaire au model pour en récupérer la logique métier.
+- 🔴 Documentation des clés Tera disponibles par vue (list, create, edit, detail, delete)
+- 🔴 **i18n des templates admin** : brancher le système i18n existant sur les templates admin (labels, messages flash, erreurs, boutons) — section `admin` déjà présente dans les 8 langues
 
-#### b.2. Formulaires personnalisés
+### Sécurité / permissions admin
 
-- Permettre l’ajout de formulaires pour récupérer la logique métier de l’API sur les models.
-
-#### b.3. Personnalisation des templates admin
-
-- Personnalisation visuelle.
-- Documentation : clés à renseigner fournies dans les templates.
-
-#### b.4. Sécurité / permissions admin
-
-- Appliquer effectivement les permissions déclarées par ressource dans les handlers CRUD générés.
-- Clarifier le contrat `is_staff` / `is_superuser` / rôles custom.
-- Ajouter des tests d’autorisation par opération CRUD.
+- 🔴 Vérification runtime des rôles (requête DB par requête admin)
+- 🔴 Contrat `is_staff` / `is_superuser` / rôles custom à clarifier
+- 🔴 Tests d’autorisation par opération CRUD
 
 ---
 
-## 4. Sécurité middleware et stabilité
+## 3. Sécurité middleware et stabilité
 
 **Status :** 🟡 En cours
 
-### 4.a. Middleware CSP
+### 3.a. Middleware CSP
 
 - Peaufiner la configuration pour la rendre plus simple et lisible.
 - Réduire les directives permissives par défaut (`unsafe-inline`, `unsafe-eval`).
 - Harmoniser la gestion des nonces.
 
-### 4.b. CSRF secure-by-default
+### 3.b. CSRF secure-by-default
 
 - **Principe directeur :** respect forcé du contrat d’utilisation `methode http -> prisme -> handler` pour stabiliser la sécurité CSRF.
 - **Règle 1 (mutations) :** toutes les routes `POST`/`PUT`/`PATCH`/`DELETE` passent obligatoirement par Prisme.
@@ -130,29 +82,21 @@ entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p mig
 - **Application progressive :** mode compat (warning) puis mode strict (refus des routes mutantes hors contrat).
 - **Effet attendu :** réduction des failles liées au non-respect du contrat, simplification des handlers, stabilité sécurité renforcée.
 
-### 4.c. Stabilité et couverture
+### 3.c. Stabilité et couverture
 
 - **Tests exhaustifs** : 🟡 76.66% fonctions (objectif 85% minimum).
-- **Stress test** : 🔴 À faire (pousser le framework à bout).
 - **Audit sécurité** : 🔴 À faire (identifier et corriger les failles).
 
-### 4.d. Robustesse runtime
+### 3.d. Robustesse runtime
 
 - Réduire `panic!/unwrap/expect` sur les chemins runtime.
 - Propager des erreurs typées (`Result`) sur les points critiques (middleware, daemon, CLI, i18n).
 
 ---
 
-## 5. Moteurs de formulaire
+## 4. Formulaires — `#[derive(DeriveModelForm)]`
 
-**Status :** 🟢 Fait
-
-- Double appel de `is_valid()` corrigé.
-- Restructuration de la gestion des mots de passe.
-
-### 5.a. Potentiellement supprimé - `#[derive(DeriveModelForm)]`
-
-**Status :** 🟡 À évaluer
+**Status :** 🟡 À évaluer — potentiellement supprimé
 
 - **Étape 1 — Check viabilité :** inventorier les usages réels (code + docs + exemples) et confirmer que le couple `model!(...)` + `#[form(...)]` couvre tous les cas actuels.
 - **Étape 2 — Mesure des pertes occasionnées :** lister précisément ce qui serait perdu (ergonomie, rétrocompatibilité, snippets existants, onboarding) et estimer l’impact migration.
@@ -162,7 +106,7 @@ entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p mig
 
 ---
 
-## 6. Publication crates.io
+## 5. Publication crates.io
 
 **Status :** 🔴 À faire
 
@@ -170,19 +114,19 @@ entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p mig
 
 - 85% couverture minimum (`bin/` exclu) : 🟡 76.66% actuellement.
 - Remplacer doctests `ignore`/`no_run` par exemples réels : 🟡 En cours (i18n, migration, forms, sanitizer, aliases, builder couverts).
-- Docs complètes (models, forms, macros procédurales) : 🔴 À faire.
-- Publish crates.io : 🔴 À faire.
+- Docs complètes (models, forms, macros procédurales, etc) : 🔴 À faire.
+- Publish crates.io avec une réel documentation complete et lisible : 🔴 À faire.
 
 > Note : `bin/` est exclu du calcul de couverture (CLI non couvrable proprement).
 > Cible réaliste : **85-88%** après couverture des modules HTTP via helpers Axum.
 
 ---
 
-## 7. Gouvernance globale de la config API
+## 6. Gouvernance globale de la config API
 
 **Status :** 🟡 En cours
 
-### 7.a. Résolution unifiée de configuration
+### 6.a. Résolution unifiée de configuration
 
 - Définir un ordre de priorité unique pour toute l’API :
     1. Overrides explicites de démarrage
@@ -190,13 +134,13 @@ entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p mig
     3. Variables d’environnement
     4. Valeurs par défaut framework
 
-### 7.b. Validation au boot (fail-fast)
+### 6.b. Validation au boot (fail-fast)
 
 - Valider toute la config critique avant le démarrage serveur (security, middleware, db, password, admin).
 - Refuser le boot en production si incohérence ou valeur manquante.
 - Autoriser des fallbacks contrôlés en dev/test avec warning explicite.
 
-### 7.c. Contrat développeur
+### 6.c. Contrat développeur
 
 **Status :** 🟠 En Stand by => Choix de is_valid() en cour de reflexion pour un meilleur usage d'utilisation
 
@@ -204,24 +148,12 @@ entities/*.rs  →  makemigrations  →  fichiers sea-orm  →  cargo run -p mig
 - Éviter les doubles sources de vérité entre config runtime et valeurs par défaut internes.
 - Ajouter des tests d’intégration sur la résolution de config (priorités + erreurs de validation).
 
-### 8 Configuration du pool Database
+## 7. Configuration du pool Database
 
 **Status :** 🔴 À faire
 
-- Permettre la configuration via .env
-
-=> En profiter pour faire du découpage de .env ?
-    => .env
-        => config basique dev
-        => redirection
-    => .env.conf
-        => pool
-           lang
-           timezone quand implementer
-    => .env.security
-        => csp
-            => interupteur
-                => csp activé
-        => rate limite quand implementer
-
-    etc
+- Permettre la configuration du pool via `.env`
+- Découpage `.env` envisagé :
+  - `.env` — config basique dev + redirections
+  - `.env.conf` — pool, lang, timezone
+  - `.env.security` — CSP (interrupteur + directives), rate limite

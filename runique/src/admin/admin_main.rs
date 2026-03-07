@@ -18,11 +18,11 @@ use axum::{
 use serde_json::Value;
 
 use crate::admin::config::AdminConfig;
+use crate::admin::AdminRegistry;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::flash_now;
 use crate::forms::prisme::aegis;
-use crate::prototype_admin::AdminRegistry;
 use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
 
 // ─── Extracteur AdminBody ─────────────────────────────────────
@@ -84,8 +84,8 @@ pub async fn admin_get(
     inject_common_context(&mut req, &state, entry);
 
     match action.as_str() {
-        "list" => handle_list(&mut req, entry).await,
-        "create" => handle_create_get(&mut req, entry).await,
+        "list" => handle_list(&mut req, entry, &state).await,
+        "create" => handle_create_get(&mut req, entry, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Action inconnue",
         )))),
@@ -129,9 +129,9 @@ pub async fn admin_get_id(
     inject_common_context(&mut req, &state, entry);
 
     match action.as_str() {
-        "detail" => handle_detail(&mut req, entry, id).await,
-        "edit" => handle_edit_get(&mut req, entry, id).await,
-        "delete" => handle_delete_get(&mut req, entry, id).await,
+        "detail" => handle_detail(&mut req, entry, id, &state).await,
+        "edit" => handle_edit_get(&mut req, entry, id, &state).await,
+        "delete" => handle_delete_get(&mut req, entry, id, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Action inconnue",
         )))),
@@ -167,7 +167,7 @@ pub async fn admin_post_id(
 fn inject_common_context(
     req: &mut Request,
     state: &PrototypeAdminState,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
 ) {
     req.context.insert("site_title", &state.config.site_title);
     req.context.insert("resource_key", entry.meta.key);
@@ -216,7 +216,8 @@ fn value_to_strmap(v: Value) -> StrMap {
 
 async fn handle_list(
     req: &mut Request,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
+    state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let entries = match &entry.list_fn {
         Some(f) => f(req.engine.db.clone())
@@ -228,12 +229,18 @@ async fn handle_list(
     req.context.insert("entries", &entries);
     req.context.insert("total", &entries.len());
     req.context.insert("current_page", "list");
-    req.render(entry.meta.resolve_list())
+    let template = entry
+        .meta
+        .template_list
+        .as_deref()
+        .unwrap_or_else(|| state.config.templates.list.resolve());
+    req.render(template)
 }
 
 async fn handle_create_get(
     req: &mut Request,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
+    state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let tera = req.engine.tera.clone();
     let csrf = req.csrf_token.as_str().to_string();
@@ -241,12 +248,17 @@ async fn handle_create_get(
 
     req.context.insert("form_fields", form.get_form());
     req.context.insert("is_edit", &false);
-    req.render(entry.meta.resolve_create())
+    let template = entry
+        .meta
+        .template_create
+        .as_deref()
+        .unwrap_or_else(|| state.config.templates.create.resolve());
+    req.render(template)
 }
 
 async fn handle_create_post(
     req: &mut Request,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
     body: StrMap,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
@@ -276,13 +288,19 @@ async fn handle_create_post(
 
     req.context.insert("form_fields", form.get_form());
     req.context.insert("is_edit", &false);
-    req.render(entry.meta.resolve_create())
+    let template = entry
+        .meta
+        .template_create
+        .as_deref()
+        .unwrap_or_else(|| state.config.templates.create.resolve());
+    req.render(template)
 }
 
 async fn handle_detail(
     req: &mut Request,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
     id: i32,
+    state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let object = match &entry.get_fn {
         Some(f) => f(req.engine.db.clone(), id)
@@ -295,13 +313,19 @@ async fn handle_detail(
         req.context.insert("entry", v);
     }
     req.context.insert("object_id", &id);
-    req.render(entry.meta.resolve_detail())
+    let template = entry
+        .meta
+        .template_detail
+        .as_deref()
+        .unwrap_or_else(|| state.config.templates.detail.resolve());
+    req.render(template)
 }
 
 async fn handle_edit_get(
     req: &mut Request,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
     id: i32,
+    state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let tera = req.engine.tera.clone();
     let csrf = req.csrf_token.as_str().to_string();
@@ -325,12 +349,17 @@ async fn handle_edit_get(
     req.context.insert("form_fields", form.get_form());
     req.context.insert("is_edit", &true);
     req.context.insert("object_id", &id);
-    req.render(entry.meta.resolve_edit())
+    let template = entry
+        .meta
+        .template_edit
+        .as_deref()
+        .unwrap_or_else(|| state.config.templates.edit.resolve());
+    req.render(template)
 }
 
 async fn handle_edit_post(
     req: &mut Request,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
     id: i32,
     body: StrMap,
     state: &PrototypeAdminState,
@@ -366,13 +395,19 @@ async fn handle_edit_post(
     req.context.insert("form_fields", form.get_form());
     req.context.insert("is_edit", &true);
     req.context.insert("object_id", &id);
-    req.render(entry.meta.resolve_edit())
+    let template = entry
+        .meta
+        .template_edit
+        .as_deref()
+        .unwrap_or_else(|| state.config.templates.edit.resolve());
+    req.render(template)
 }
 
 async fn handle_delete_get(
     req: &mut Request,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
     id: i32,
+    state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let object = match &entry.get_fn {
         Some(f) => f(req.engine.db.clone(), id)
@@ -385,12 +420,17 @@ async fn handle_delete_get(
         req.context.insert("entry", v);
     }
     req.context.insert("object_id", &id);
-    req.render(entry.meta.resolve_delete())
+    let template = entry
+        .meta
+        .template_delete
+        .as_deref()
+        .unwrap_or_else(|| state.config.templates.delete.resolve());
+    req.render(template)
 }
 
 async fn handle_delete_post(
     req: &mut Request,
-    entry: &crate::prototype_admin::ResourceEntry,
+    entry: &crate::admin::ResourceEntry,
     id: i32,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {

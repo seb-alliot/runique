@@ -10,22 +10,6 @@ macro_rules! admin {
             }
         )*
     ) => {
-        pub fn admin_config() -> $crate::admin::AdminRegistry {
-            let mut registry = $crate::admin::AdminRegistry::new();
-            $(
-                registry.register(
-                    $crate::admin::AdminResource::new(
-                        stringify!($key),
-                        stringify!($($model)::+),
-                        stringify!($form),
-                        $title,
-                        vec![ $( $perm.to_string() ),* ],
-                    )
-                );
-            )*
-            registry
-        }
-
         // Vérification compile-time — justifie les `use` du dev
         // Si un type est introuvable → erreur de compilation explicite
         $(

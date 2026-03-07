@@ -13,7 +13,6 @@ pub mod flash;
 pub mod forms;
 pub mod macros;
 pub mod migration;
-pub mod prototype_admin;
 
 pub mod admin;
 pub mod errors;
@@ -301,7 +300,8 @@ pub mod prelude {
         AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
     };
     pub use crate::admin::router::{build_admin_router, AdminState};
-    pub use crate::prototype_admin::{
+    pub use crate::admin::template::{AdminTemplate, PathAdminTemplate};
+    pub use crate::admin::{
         admin_get, admin_get_id, admin_post, admin_post_id, AdminRegistry, CountFn, CreateFn,
         DeleteFn, DynForm, FormBuilder, GetFn, ListFn, PrototypeAdminState, ResourceEntry,
         UpdateFn,

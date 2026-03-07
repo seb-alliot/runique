@@ -11,7 +11,7 @@
 
 use async_trait::async_trait;
 use axum::{routing::get, Router};
-use runique::admin::{AdminConfig, AdminRegistry};
+use runique::admin::AdminConfig;
 use runique::app::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
 use runique::config::app::RuniqueConfig;
@@ -732,10 +732,9 @@ fn test_admin_staging_routes_stocke_router() {
 }
 
 #[test]
-fn test_admin_staging_with_registry() {
-    let registry = AdminRegistry::new();
-    let _a = AdminStaging::new().with_registry(registry);
-    // Vérifie que la méthode compile et s'exécute
+fn test_admin_staging_with_proto_state_none_par_defaut() {
+    let a = AdminStaging::new();
+    assert!(a.proto_state.is_none());
 }
 
 #[test]

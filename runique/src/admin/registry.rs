@@ -1,48 +1,50 @@
-use crate::admin::resource::AdminResource;
+use std::collections::HashMap;
 
-#[derive(Debug, Default)]
+use crate::admin::resource_entry::ResourceEntry;
+
+/// Registre des ressources admin — HashMap clé → ResourceEntry.
+///
+/// Alimenté par le code généré par le daemon (`src/admins/generated.rs`).
+/// Partagé en lecture seule via `Arc<AdminRegistry>` dans l'état Axum.
+#[derive(Default)]
 pub struct AdminRegistry {
-    pub resources: Vec<AdminResource>,
+    pub resources: HashMap<String, ResourceEntry>,
 }
 
 impl AdminRegistry {
     pub fn new() -> Self {
         Self {
-            resources: Vec::new(),
+            resources: HashMap::new(),
         }
     }
 
-    /// Enregistre une nouvelle ressource
-    ///
-    /// Appelé par le code généré dans `target/runique/admin/generated.rs`
-    pub fn register(&mut self, resource: AdminResource) {
-        self.resources.push(resource);
+    /// Enregistre une ressource. Appelé par le code généré au boot.
+    pub fn register(&mut self, entry: ResourceEntry) {
+        self.resources.insert(entry.meta.key.to_string(), entry);
     }
 
-    /// Récupère une ressource par sa clé
-    ///
-    /// Ex: registry.get("users") → Some(&AdminResource { key: "users", ... })
-    pub fn get(&self, key: &str) -> Option<&AdminResource> {
-        self.resources.iter().find(|r| r.key == key)
+    /// Lookup par clé URL (ex: "users", "blog")
+    pub fn get(&self, key: &str) -> Option<&ResourceEntry> {
+        self.resources.get(key)
     }
 
-    /// Vérifie si une ressource est enregistrée
-    pub fn contains(&self, key: &str) -> bool {
-        self.resources.iter().any(|r| r.key == key)
+    pub fn all(&self) -> impl Iterator<Item = &ResourceEntry> {
+        self.resources.values()
     }
 
-    /// Nombre de ressources enregistrées
-    pub fn len(&self) -> usize {
-        self.resources.len()
-    }
-
-    /// Vérifie si le registre est vide
     pub fn is_empty(&self) -> bool {
         self.resources.is_empty()
     }
 
-    /// Retourne les clés de toutes les ressources
+    pub fn len(&self) -> usize {
+        self.resources.len()
+    }
+
+    pub fn contains(&self, key: &str) -> bool {
+        self.resources.contains_key(key)
+    }
+
     pub fn keys(&self) -> Vec<&str> {
-        self.resources.iter().map(|r| r.key).collect()
+        self.resources.keys().map(|k| k.as_str()).collect()
     }
 }

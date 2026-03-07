@@ -30,8 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_session_cleanup_interval(5)
         })
         .with_admin(|a| {
-            a.with_registry(admin::admin_config())
-                .hot_reload(cfg!(debug_assertions))
+            a.hot_reload(cfg!(debug_assertions))
                 .site_title("Administration")
                 .auth(RuniqueAdminAuth::new())
                 .routes(admins::routes("/admin"))
