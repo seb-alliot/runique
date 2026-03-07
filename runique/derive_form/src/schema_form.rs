@@ -1,45 +1,85 @@
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::Span;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Path};
+use syn::{
+    bracketed,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    punctuated::Punctuated,
+    DeriveInput, Ident, Path, Token,
+};
+
+// ─── Attributs parsés depuis #[form(schema = ..., fields = [...], exclude = [...])] ───
+
+struct FormAttrs {
+    schema: Path,
+    fields: Option<Vec<Ident>>,
+    exclude: Option<Vec<Ident>>,
+}
+
+impl Parse for FormAttrs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut schema: Option<Path> = None;
+        let mut fields: Option<Vec<Ident>> = None;
+        let mut exclude: Option<Vec<Ident>> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "schema" => {
+                    schema = Some(input.parse::<Path>()?);
+                }
+                "fields" => {
+                    let content;
+                    bracketed!(content in input);
+                    let idents: Punctuated<Ident, Token![,]> =
+                        content.parse_terminated(Ident::parse, Token![,])?;
+                    fields = Some(idents.into_iter().collect());
+                }
+                "exclude" => {
+                    let content;
+                    bracketed!(content in input);
+                    let idents: Punctuated<Ident, Token![,]> =
+                        content.parse_terminated(Ident::parse, Token![,])?;
+                    exclude = Some(idents.into_iter().collect());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!("#[form]: attribut inconnu `{}`", other),
+                    ));
+                }
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        let schema = schema
+            .ok_or_else(|| syn::Error::new(Span::call_site(), "#[form]: `schema` est requis"))?;
+
+        Ok(FormAttrs {
+            schema,
+            fields,
+            exclude,
+        })
+    }
+}
+
+// ─── Point d'entrée du macro ───────────────────────────────────────────────
 
 pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
     let name = &input.ident;
 
-    // Parser les attributs : schema = fn_name, fields = [a, b, c]
-    let attr2: TokenStream2 = attr.into();
-    let attr_str = attr2.to_string();
+    let attrs = parse_macro_input!(attr as FormAttrs);
+    let schema_path = attrs.schema;
 
-    // Extraire schema
-    let schema_fn =
-        extract_value(&attr_str, "schema").expect("model_schema_form : schema = fn_name requis");
-    let schema_path: Path =
-        syn::parse_str(&schema_fn).expect("model_schema_form : chemin invalide");
-
-    // Extraire fields optionnel
-    let fields_expr = match extract_list(&attr_str, "fields") {
-        Some(fields) => {
-            let lits: Vec<syn::LitStr> = fields
-                .iter()
-                .map(|f| syn::LitStr::new(f, proc_macro2::Span::call_site()))
-                .collect();
-            quote! { Some(&[#(#lits),*]) }
-        }
-        None => quote! { None },
-    };
-
-    // Extraire exclude optionnel
-    let exclude_expr = match extract_list(&attr_str, "exclude") {
-        Some(fields) => {
-            let lits: Vec<syn::LitStr> = fields
-                .iter()
-                .map(|f| syn::LitStr::new(f, proc_macro2::Span::call_site()))
-                .collect();
-            quote! { Some(&[#(#lits),*]) }
-        }
-        None => quote! { None },
-    };
+    let fields_expr = ident_list_to_expr(attrs.fields);
+    let exclude_expr = ident_list_to_expr(attrs.exclude);
 
     let expanded = quote! {
         #[derive(::runique::serde::Serialize, Debug, Clone)]
@@ -79,30 +119,15 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
     TokenStream::from(expanded)
 }
 
-fn extract_value(attr_str: &str, key: &str) -> Option<String> {
-    let pattern = format!("{} =", key);
-    let start = attr_str.find(&pattern)? + pattern.len();
-    let rest = attr_str[start..].trim();
-    let end = rest
-        .find(|c| [',', ']', ')'].contains(&c))
-        .unwrap_or(rest.len());
-    Some(rest[..end].trim().to_string())
-}
-
-fn extract_list(attr_str: &str, key: &str) -> Option<Vec<String>> {
-    let pattern = format!("{} = [", key);
-    let start = attr_str.find(&pattern)? + pattern.len();
-    let end = attr_str[start..].find(']')?;
-    let list_str = &attr_str[start..start + end];
-    let items: Vec<String> = list_str
-        .split(',')
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
-    if items.is_empty() {
-        None
-    } else {
-        Some(items)
+fn ident_list_to_expr(idents: Option<Vec<Ident>>) -> proc_macro2::TokenStream {
+    match idents {
+        Some(list) => {
+            let lits: Vec<syn::LitStr> = list
+                .iter()
+                .map(|id| syn::LitStr::new(&id.to_string(), id.span()))
+                .collect();
+            quote! { Some(&[#(#lits),*]) }
+        }
+        None => quote! { None },
     }
 }
-

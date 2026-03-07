@@ -20,6 +20,7 @@ use crate::admin::registry::AdminRegistry;
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
 use crate::middleware::auth::{load_user_middleware, login_staff};
+use crate::prototype_admin::PrototypeAdminState;
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
 use crate::{admin::config::AdminConfig, flash_now};
@@ -44,6 +45,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .to_string();
     let registry = admin_staging.registry;
     let config = admin_staging.config;
+    let proto_state = admin_staging.proto_state;
 
     let admin_state = Arc::new(AdminState {
         registry: Arc::new(registry),
@@ -70,14 +72,20 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     };
 
     // Assemblage : public + (protected + generated avec middleware)
-    public_router
+    let mut router = public_router
         .merge(
             protected_router
                 .merge(generated_router)
                 .layer(middleware::from_fn(admin_required)),
         )
         .layer(middleware::from_fn(load_user_middleware))
-        .layer(Extension(admin_state))
+        .layer(Extension(admin_state));
+
+    if let Some(state) = proto_state {
+        router = router.layer(Extension(state));
+    }
+
+    router
 }
 
 async fn admin_dashboard_redirect() -> Response {
@@ -87,10 +95,27 @@ async fn admin_dashboard_redirect() -> Response {
 async fn admin_dashboard(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
+    proto: Option<Extension<Arc<PrototypeAdminState>>>,
 ) -> AppResult<Response> {
+    let db = req.engine.db.clone();
+
+    let mut resource_counts: std::collections::HashMap<String, u64> =
+        std::collections::HashMap::new();
+
+    if let Some(Extension(state)) = proto {
+        for (key, entry) in &state.registry.resources {
+            if let Some(count_fn) = &entry.count_fn {
+                if let Ok(n) = (count_fn)(db.clone()).await {
+                    resource_counts.insert(key.clone(), n);
+                }
+            }
+        }
+    }
+
     req = req
         .insert("site_title", &admin.config.site_title)
         .insert("resources", &admin.registry.resources)
+        .insert("resource_counts", &resource_counts)
         .insert("current_page", "dashboard")
         .insert("current_resource", &Option::<String>::None);
 

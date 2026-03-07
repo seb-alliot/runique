@@ -5,6 +5,7 @@ macro_rules! admin {
             $key:ident : $($model:ident)::+ => $form:ident {
                 title: $title:literal ,
                 permissions: [ $($perm:literal),* $(,)? ]
+                $(, edit_form: $edit_form_path:path)?
                 $(,)?
             }
         )*
@@ -32,6 +33,7 @@ macro_rules! admin {
                 fn _check_types() {
                     fn _model(_: &$($model)::+) {}
                     fn _form(_: &$form) {}
+                    $(fn _edit_form(_: &$edit_form_path) {})?
                 }
             };
         )*

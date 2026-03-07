@@ -1,4 +1,4 @@
-﻿// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // admin_main — Handler générique central de l'interface admin
 //
 // Routes :
@@ -20,10 +20,10 @@ use serde_json::Value;
 use crate::admin::config::AdminConfig;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
+use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::prototype_admin::AdminRegistry;
 use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
-use crate::flash_now;
 
 // ─── Extracteur AdminBody ─────────────────────────────────────
 //
@@ -65,7 +65,7 @@ impl<S: Send + Sync> FromRequest<S> for AdminBody {
 #[derive(Clone)]
 pub struct PrototypeAdminState {
     pub registry: Arc<AdminRegistry>,
-    pub config:   Arc<AdminConfig>,
+    pub config: Arc<AdminConfig>,
 }
 
 // ─── Points d'entrée Axum ────────────────────────────────────
@@ -84,9 +84,11 @@ pub async fn admin_get(
     inject_common_context(&mut req, &state, entry);
 
     match action.as_str() {
-        "list"   => handle_list(&mut req, entry).await,
+        "list" => handle_list(&mut req, entry).await,
         "create" => handle_create_get(&mut req, entry).await,
-        _        => Err(Box::new(AppError::new(ErrorContext::not_found("Action inconnue")))),
+        _ => Err(Box::new(AppError::new(ErrorContext::not_found(
+            "Action inconnue",
+        )))),
     }
 }
 
@@ -107,7 +109,9 @@ pub async fn admin_post(
 
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &state).await,
-        _        => Err(Box::new(AppError::new(ErrorContext::not_found("Action inconnue")))),
+        _ => Err(Box::new(AppError::new(ErrorContext::not_found(
+            "Action inconnue",
+        )))),
     }
 }
 
@@ -126,9 +130,11 @@ pub async fn admin_get_id(
 
     match action.as_str() {
         "detail" => handle_detail(&mut req, entry, id).await,
-        "edit"   => handle_edit_get(&mut req, entry, id).await,
+        "edit" => handle_edit_get(&mut req, entry, id).await,
         "delete" => handle_delete_get(&mut req, entry, id).await,
-        _        => Err(Box::new(AppError::new(ErrorContext::not_found("Action inconnue")))),
+        _ => Err(Box::new(AppError::new(ErrorContext::not_found(
+            "Action inconnue",
+        )))),
     }
 }
 
@@ -148,9 +154,11 @@ pub async fn admin_post_id(
     inject_common_context(&mut req, &state, entry);
 
     match action.as_str() {
-        "edit"   => handle_edit_post(&mut req, entry, id, body, &state).await,
+        "edit" => handle_edit_post(&mut req, entry, id, body, &state).await,
         "delete" => handle_delete_post(&mut req, entry, id, &state).await,
-        _        => Err(Box::new(AppError::new(ErrorContext::not_found("Action inconnue")))),
+        _ => Err(Box::new(AppError::new(ErrorContext::not_found(
+            "Action inconnue",
+        )))),
     }
 }
 
@@ -161,11 +169,14 @@ fn inject_common_context(
     state: &PrototypeAdminState,
     entry: &crate::prototype_admin::ResourceEntry,
 ) {
-    req.context.insert("site_title",       &state.config.site_title);
-    req.context.insert("resource_key",     entry.meta.key);
+    req.context.insert("site_title", &state.config.site_title);
+    req.context.insert("resource_key", entry.meta.key);
     req.context.insert("current_resource", entry.meta.key);
-    req.context.insert("resource",         &entry.meta);
-    req.context.insert("resources",        &state.registry.all().map(|e| &e.meta).collect::<Vec<_>>());
+    req.context.insert("resource", &entry.meta);
+    req.context.insert(
+        "resources",
+        &state.registry.all().map(|e| &e.meta).collect::<Vec<_>>(),
+    );
 
     for (k, v) in &entry.meta.extra_context {
         req.context.insert(k, v);
@@ -177,7 +188,10 @@ fn inject_common_context(
 fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     let submitted = body.get("csrf_token").map(|s| s.as_str());
     if submitted != Some(session_token) {
-        return Err(Box::new(AppError::new(ErrorContext::generic(StatusCode::FORBIDDEN, "CSRF token invalide ou manquant"))));
+        return Err(Box::new(AppError::new(ErrorContext::generic(
+            StatusCode::FORBIDDEN,
+            "CSRF token invalide ou manquant",
+        ))));
     }
     Ok(())
 }
@@ -188,10 +202,11 @@ fn value_to_strmap(v: Value) -> StrMap {
     if let Value::Object(obj) = v {
         for (k, v) in obj {
             let s = match v {
+                Value::Null => String::new(),
                 Value::String(s) => s,
                 Value::Number(n) => n.to_string(),
-                Value::Bool(b)   => b.to_string(),
-                other            => other.to_string(),
+                Value::Bool(b) => b.to_string(),
+                other => other.to_string(),
             };
             map.insert(k, s);
         }
@@ -204,14 +219,14 @@ async fn handle_list(
     entry: &crate::prototype_admin::ResourceEntry,
 ) -> AppResult<Response> {
     let entries = match &entry.list_fn {
-        Some(f) => f(req.engine.db.clone()).await.map_err(|e| {
-            Box::new(AppError::new(ErrorContext::database(e)))
-        })?,
+        Some(f) => f(req.engine.db.clone())
+            .await
+            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
         None => Vec::new(),
     };
 
-    req.context.insert("entries",      &entries);
-    req.context.insert("total",        &entries.len());
+    req.context.insert("entries", &entries);
+    req.context.insert("total", &entries.len());
     req.context.insert("current_page", "list");
     req.render(entry.meta.resolve_list())
 }
@@ -225,7 +240,7 @@ async fn handle_create_get(
     let form = (entry.form_builder)(StrMap::new(), tera, csrf, axum::http::Method::GET).await;
 
     req.context.insert("form_fields", form.get_form());
-    req.context.insert("is_edit",     &false);
+    req.context.insert("is_edit", &false);
     req.render(entry.meta.resolve_create())
 }
 
@@ -244,7 +259,7 @@ async fn handle_create_post(
     if form.is_valid().await {
         let result = match &entry.create_fn {
             Some(f) => f(req.engine.db.clone(), body_for_create).await,
-            None    => form.save(&*req.engine.db).await,
+            None => form.save(&req.engine.db).await,
         };
         if let Err(e) = result {
             form.get_form_mut().database_error(&e);
@@ -255,11 +270,12 @@ async fn handle_create_post(
             "{}/{}/list",
             state.config.prefix.trim_end_matches('/'),
             entry.meta.key
-        )).into_response());
+        ))
+        .into_response());
     }
 
     req.context.insert("form_fields", form.get_form());
-    req.context.insert("is_edit",     &false);
+    req.context.insert("is_edit", &false);
     req.render(entry.meta.resolve_create())
 }
 
@@ -269,9 +285,9 @@ async fn handle_detail(
     id: i32,
 ) -> AppResult<Response> {
     let object = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id).await.map_err(|e| {
-            Box::new(AppError::new(ErrorContext::database(e)))
-        })?,
+        Some(f) => f(req.engine.db.clone(), id)
+            .await
+            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
         None => None,
     };
 
@@ -292,18 +308,23 @@ async fn handle_edit_get(
 
     // Pré-remplissage via get_fn si disponible
     let data = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id).await
+        Some(f) => f(req.engine.db.clone(), id)
+            .await
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
             .map(value_to_strmap)
             .unwrap_or_default(),
         None => StrMap::new(),
     };
 
-    let form = (entry.form_builder)(data, tera, csrf, axum::http::Method::GET).await;
+    let builder = entry
+        .edit_form_builder
+        .as_ref()
+        .unwrap_or(&entry.form_builder);
+    let form = (builder)(data, tera, csrf, axum::http::Method::GET).await;
 
     req.context.insert("form_fields", form.get_form());
-    req.context.insert("is_edit",     &true);
-    req.context.insert("object_id",   &id);
+    req.context.insert("is_edit", &true);
+    req.context.insert("object_id", &id);
     req.render(entry.meta.resolve_edit())
 }
 
@@ -318,12 +339,16 @@ async fn handle_edit_post(
     let body_for_update = body.clone();
     let tera = req.engine.tera.clone();
     let csrf = req.csrf_token.as_str().to_string();
-    let mut form = (entry.form_builder)(body, tera, csrf, axum::http::Method::POST).await;
+    let builder = entry
+        .edit_form_builder
+        .as_ref()
+        .unwrap_or(&entry.form_builder);
+    let mut form = (builder)(body, tera, csrf, axum::http::Method::POST).await;
 
     if form.is_valid().await {
         let result = match &entry.update_fn {
             Some(f) => f(req.engine.db.clone(), id, body_for_update).await,
-            None    => form.save(&*req.engine.db).await,
+            None => form.save(&req.engine.db).await,
         };
         if let Err(e) = result {
             form.get_form_mut().database_error(&e);
@@ -334,12 +359,13 @@ async fn handle_edit_post(
             "{}/{}/list",
             state.config.prefix.trim_end_matches('/'),
             entry.meta.key
-        )).into_response());
+        ))
+        .into_response());
     }
 
     req.context.insert("form_fields", form.get_form());
-    req.context.insert("is_edit",     &true);
-    req.context.insert("object_id",   &id);
+    req.context.insert("is_edit", &true);
+    req.context.insert("object_id", &id);
     req.render(entry.meta.resolve_edit())
 }
 
@@ -349,9 +375,9 @@ async fn handle_delete_get(
     id: i32,
 ) -> AppResult<Response> {
     let object = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id).await.map_err(|e| {
-            Box::new(AppError::new(ErrorContext::database(e)))
-        })?,
+        Some(f) => f(req.engine.db.clone(), id)
+            .await
+            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
         None => None,
     };
 
@@ -369,20 +395,20 @@ async fn handle_delete_post(
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {
-        Box::new(AppError::new(ErrorContext::not_found("delete_fn non configurée pour cette ressource")))
+        Box::new(AppError::new(ErrorContext::not_found(
+            "delete_fn non configurée pour cette ressource",
+        )))
     })?;
 
-    delete_fn(req.engine.db.clone(), id).await.map_err(|e| {
-        Box::new(AppError::new(ErrorContext::database(e)))
-    })?;
+    delete_fn(req.engine.db.clone(), id)
+        .await
+        .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
 
     flash_now!(success => "Entrée supprimée avec succès !");
     Ok(Redirect::to(&format!(
         "{}/{}/list",
         state.config.prefix.trim_end_matches('/'),
         entry.meta.key
-    )).into_response())
+    ))
+    .into_response())
 }
-
-
-

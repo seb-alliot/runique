@@ -2,9 +2,12 @@
 // AdminStaging — Configuration de l'AdminPanel dans le builder
 // ═══════════════════════════════════════════════════════════════
 
+use std::sync::Arc;
+
 use crate::admin::{AdminConfig, AdminRegistry};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::middleware::auth::AdminAuth;
+use crate::prototype_admin::PrototypeAdminState;
 use axum::Router;
 
 pub struct AdminStaging {
@@ -12,6 +15,7 @@ pub struct AdminStaging {
     pub registry: AdminRegistry,
     pub enabled: bool,
     pub route_admin: Option<Router>,
+    pub proto_state: Option<Arc<PrototypeAdminState>>,
 }
 
 impl AdminStaging {
@@ -21,11 +25,17 @@ impl AdminStaging {
             registry: AdminRegistry::new(),
             enabled: false,
             route_admin: None,
+            proto_state: None,
         }
     }
 
     pub fn routes(mut self, router: Router) -> Self {
         self.route_admin = Some(router);
+        self
+    }
+
+    pub fn with_proto_state(mut self, state: Arc<PrototypeAdminState>) -> Self {
+        self.proto_state = Some(state);
         self
     }
 

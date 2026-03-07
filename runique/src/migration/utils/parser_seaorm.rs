@@ -82,7 +82,8 @@ impl SeaOrmVisitor {
                     let is_pk = methods.contains(&"primary_key".to_string());
                     let col_type = detect_col_type_seaorm(&methods);
                     let nullable = methods.contains(&"null".to_string());
-                    let unique = methods.contains(&"unique".to_string());
+                    let unique = methods.contains(&"unique".to_string())
+                        || methods.contains(&"unique_key".to_string());
                     if is_pk {
                         self.primary_key = Some(ParsedColumn {
                             name: n,

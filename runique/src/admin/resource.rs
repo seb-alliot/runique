@@ -165,9 +165,9 @@ pub struct AdminResource {
     pub display: DisplayConfig,
 
     /// Surcharges de templates par opération (None = template Runique par défaut)
-    pub template_list:   Option<String>,
+    pub template_list: Option<String>,
     pub template_create: Option<String>,
-    pub template_edit:   Option<String>,
+    pub template_edit: Option<String>,
     pub template_detail: Option<String>,
     pub template_delete: Option<String>,
 
@@ -201,12 +201,12 @@ impl AdminResource {
             title,
             permissions: ResourcePermissions::uniform(roles),
             display: DisplayConfig::new(),
-            template_list:   None,
+            template_list: None,
             template_create: None,
-            template_edit:   None,
+            template_edit: None,
             template_detail: None,
             template_delete: None,
-            extra_context:   std::collections::HashMap::new(),
+            extra_context: std::collections::HashMap::new(),
         }
     }
 
@@ -225,12 +225,12 @@ impl AdminResource {
             title,
             permissions,
             display: DisplayConfig::new(),
-            template_list:   None,
+            template_list: None,
             template_create: None,
-            template_edit:   None,
+            template_edit: None,
             template_detail: None,
             template_delete: None,
-            extra_context:   std::collections::HashMap::new(),
+            extra_context: std::collections::HashMap::new(),
         }
     }
 
@@ -269,7 +269,9 @@ impl AdminResource {
     }
 
     pub fn resolve_create(&self) -> &str {
-        self.template_create.as_deref().unwrap_or("admin/create.html")
+        self.template_create
+            .as_deref()
+            .unwrap_or("admin/create.html")
     }
 
     pub fn resolve_edit(&self) -> &str {
@@ -277,11 +279,15 @@ impl AdminResource {
     }
 
     pub fn resolve_detail(&self) -> &str {
-        self.template_detail.as_deref().unwrap_or("admin/detail.html")
+        self.template_detail
+            .as_deref()
+            .unwrap_or("admin/detail.html")
     }
 
     pub fn resolve_delete(&self) -> &str {
-        self.template_delete.as_deref().unwrap_or("admin/delete.html")
+        self.template_delete
+            .as_deref()
+            .unwrap_or("admin/delete.html")
     }
 
     // ─── Builder methods ──────────────────────────────────────────
@@ -312,7 +318,8 @@ impl AdminResource {
     }
 
     pub fn extra(mut self, key: &str, value: &str) -> Self {
-        self.extra_context.insert(key.to_string(), value.to_string());
+        self.extra_context
+            .insert(key.to_string(), value.to_string());
         self
     }
 

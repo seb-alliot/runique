@@ -1,6 +1,6 @@
 {% extends "admin_base" %}
 
-{% block title %}Liste — {{ resource.title | default(value="Éléments") }}{% endblock %}
+{% block title %}{{ resource.title | default(value="Éléments") }}{% endblock %}
 
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
@@ -12,49 +12,82 @@
 {% block content %}
 
   <div class="page-header">
-    <h1>Liste des {{ resource.title | default(value="éléments") }}</h1>
-    <p>Total : {{ total | default(value=0) }}</p>
-    <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">+ Créer</a>
+    <div>
+      <h1 style="font-size:1.35rem; font-weight:600;">{{ resource.title | default(value="Éléments") }}</h1>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">{{ total | default(value=0) }} entrée(s)</p>
+    </div>
+    <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Créer
+    </a>
   </div>
 
-  {% if entries is defined and entries | length > 0 %}
+  <div class="card">
+    {% if entries is defined and entries | length > 0 %}
 
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          {% for key, value in entries | first %}
-            {% if key != "password" and key != "password_hash" %}
-              <th>{{ key }}</th>
-            {% endif %}
-          {% endfor %}
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for entry in entries %}
-          <tr>
-            {% for key, value in entry %}
-              {% if key != "password" and key != "password_hash" %}
-                <td>{{ value }}</td>
-              {% endif %}
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>id</th>
+              {% for key, value in entries | first %}
+                {% if key != "id" and key != "password" and key != "password_hash" %}
+                  <th>{{ key }}</th>
+                {% endif %}
+              {% endfor %}
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entries %}
+              <tr>
+                <td><span class="id-badge">#{{ entry.id }}</span></td>
+                {% for key, value in entry %}
+                  {% if key != "id" and key != "password" and key != "password_hash" %}
+                    <td>
+                      {% if value == true %}
+                        <span class="badge badge-green">Oui</span>
+                      {% elif value == false %}
+                        <span class="badge badge-neutral">Non</span>
+                      {% elif value %}
+                        {{ value }}
+                      {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                {% endfor %}
+                <td>
+                  <div class="table-actions" style="justify-content:flex-end;">
+                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-secondary">Détail</a>
+                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-secondary">Modifier</a>
+                    <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" style="display:inline;">
+                      <button type="submit" class="btn btn-sm btn-danger"
+                              onclick="return confirm('Vraiment supprimer ?');">Supprimer</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
             {% endfor %}
-            <td>
-              <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-info">Détail</a>
-              <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-warning">Modifier</a>
-              <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" style="display:inline;">
-                <button type="submit" class="btn btn-sm btn-danger"
-                        onclick="return confirm('Vraiment supprimer ?');">Supprimer</button>
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </tbody>
+        </table>
+      </div>
 
-  {% else %}
+    {% else %}
 
-    <div class="alert alert-info">Aucune entrée pour le moment.</div>
+      <div class="empty-state">
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+        </svg>
+        <p class="empty-state-title">Aucune entrée</p>
+        <p class="empty-state-desc">Commencez par créer un élément.</p>
+        <a href="/admin/{{ resource.key }}/create" class="btn btn-primary" style="margin-top:0.5rem;">Créer le premier</a>
+      </div>
 
-  {% endif %}
+    {% endif %}
+  </div>
 
 {% endblock %}
