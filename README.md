@@ -90,6 +90,10 @@ async fn main() {
 
 ```
 
+```
+
+## Admin beta status (bêta)
+
 Admin daemon behavior in `start`:
 
 - checks whether `.with_admin(...)` exists in `src/main.rs`
@@ -97,8 +101,6 @@ Admin daemon behavior in `start`:
 - otherwise exits with an explicit hint
 
 ---
-
-## Admin beta status
 
 Admin resources are declared in `src/admin.rs` using `admin!`.
 

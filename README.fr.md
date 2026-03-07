@@ -91,6 +91,10 @@ async fn main() {
 
 ```
 
+```
+
+## Statut de l’admin (bêta)
+
 Comportement du daemon admin dans `start` :
 
 * vérifie si `.with_admin(...)` existe dans `src/main.rs`
@@ -98,8 +102,6 @@ Comportement du daemon admin dans `start` :
 * sinon quitte avec un message explicite
 
 ---
-
-# Statut de l’admin (bêta)
 
 Les ressources admin sont déclarées dans `src/admin.rs` via `admin!`.
 
