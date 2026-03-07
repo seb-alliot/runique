@@ -280,3 +280,20 @@
 
 .delete-zone-text   { font-size: 0.88rem; color: #fca5a5; }
 .delete-zone-title  { font-weight: 600; color: var(--danger); margin-bottom: 0.25rem; }
+
+/* ───────────────────────────────────────────────
+   Warning box (page de suppression)
+   ─────────────────────────────────────────────── */
+
+.warning-box {
+    background: var(--danger-light);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    font-size: 0.88rem;
+    color: #fca5a5;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.warning-box strong { color: var(--danger); }

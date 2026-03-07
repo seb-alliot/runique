@@ -93,7 +93,128 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0.75rem;
-    padding-top: 0.5rem;
+    padding-top: 1rem;
     border-top: 1px solid var(--border);
-    margin-top: 0.5rem;
+    margin-top: 1rem;
+}
+
+/* ───────────────────────────────────────────────
+   Bridge : classes field templates → admin
+   (les templates Runique utilisent form-control/form-group/mb-3)
+   ─────────────────────────────────────────────── */
+
+.form-control,
+.form-control.is-invalid {
+    width: 100%;
+    padding: 0.6rem 0.875rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    color: var(--text-main);
+    font: inherit;
+    font-size: 0.88rem;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+}
+
+.form-control::placeholder { color: var(--text-muted); }
+
+/* Autofill override (Chrome/Firefox appliquent un fond blanc/jaune sinon) */
+.form-control:-webkit-autofill,
+.form-control:-webkit-autofill:hover,
+.form-control:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px var(--bg-input) inset !important;
+    -webkit-text-fill-color: var(--text-main) !important;
+    caret-color: var(--text-main);
+}
+
+.form-control:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.form-control.is-invalid { border-color: var(--danger); }
+.form-control.is-invalid:focus { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
+
+textarea.form-control { min-height: 100px; resize: vertical; }
+
+.invalid-feedback { font-size: 0.78rem; color: var(--danger); margin-top: 0.25rem; }
+
+/* form-group + mb-3 */
+.form-group,
+.mb-3 { margin-bottom: 1.1rem; }
+
+/* ───────────────────────────────────────────────
+   Champs booléens (base_boolean.html)
+   ─────────────────────────────────────────────── */
+
+.form-field.boolean-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 1.1rem;
+}
+
+.boolean-field .field-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--text-main);
+}
+
+.boolean-field input[type="checkbox"],
+.boolean-field input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.boolean-field .field-label.field-error { color: var(--danger); }
+
+.field-error-message {
+    font-size: 0.78rem;
+    color: var(--danger);
+    margin-top: 0.2rem;
+}
+
+.required-indicator::after {
+    content: " *";
+    color: var(--danger);
+    font-size: 0.75rem;
+}
+
+/* ───────────────────────────────────────────────
+   Vue détail — dl/dt/dd
+   ─────────────────────────────────────────────── */
+
+.detail-dl { display: flex; flex-direction: column; gap: 0; }
+
+.detail-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+}
+
+.detail-row:last-child { border-bottom: none; }
+
+.detail-key {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding-top: 0.1rem;
+}
+
+.detail-val {
+    font-size: 0.88rem;
+    color: var(--text-main);
+    word-break: break-all;
 }

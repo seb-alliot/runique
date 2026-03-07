@@ -172,7 +172,30 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
             }
             // String, Text, Char, Varchar, Blob, Inet, Cidr, MacAddress, Interval, Enum, Binary, VarBinary
             _ => {
-                if is_nullable {
+                let is_password = fname_str.contains("password");
+                if is_password {
+                    // Champs mot de passe : hachage automatique via la config globale du dev.
+                    // Si vide → NotSet (ne pas écraser lors d'un edit sans nouveau mot de passe).
+                    if is_nullable {
+                        quote! {
+                            #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                                Some(v) => ::sea_orm::ActiveValue::Set(
+                                    Some(::runique::utils::password::hash(v).unwrap_or_else(|_| v.clone()))
+                                ),
+                                None => ::sea_orm::ActiveValue::Set(None),
+                            },
+                        }
+                    } else {
+                        quote! {
+                            #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                                Some(v) => ::sea_orm::ActiveValue::Set(
+                                    ::runique::utils::password::hash(v).unwrap_or_else(|_| v.clone())
+                                ),
+                                None => ::sea_orm::ActiveValue::NotSet,
+                            },
+                        }
+                    }
+                } else if is_nullable {
                     quote! {
                         #fname: ::sea_orm::ActiveValue::Set(
                             __data.get(#fname_str).filter(|v| !v.is_empty()).cloned()
@@ -192,8 +215,8 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
 
     // Type du PK pour la signature
     let pk_type = match model.pk.ty {
-        PkType::I32  => quote! { i32 },
-        PkType::I64  => quote! { i64 },
+        PkType::I32 => quote! { i32 },
+        PkType::I64 => quote! { i64 },
         PkType::Uuid => quote! { ::sea_orm::prelude::Uuid },
     };
 
@@ -201,6 +224,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
         /// Construit un `ActiveModel` à partir d'une map de données de formulaire (vue admin).
         /// - `id = Some(pk)` → mise à jour (Unchanged sur la PK)
         /// - `id = None`     → création (NotSet ou Uuid::new_v4() selon le type de PK)
+        #[allow(clippy::needless_update)]
         pub fn admin_from_form(
             __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
             __id: ::std::option::Option<#pk_type>,
@@ -298,6 +322,16 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
             return None;
         }
 
+        // Label auto-généré : snake_case → "First word capitalized"
+        let label = {
+            let s = fname_str.replace('_', " ");
+            let mut chars = s.chars();
+            match chars.next() {
+                None => s,
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+            }
+        };
+
         let required_suffix = if is_required && !is_nullable {
             quote! { .required() }
         } else {
@@ -306,40 +340,53 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
 
         let registration = match &field.ty {
             FieldType::Bool => quote! {
-                form.field(&::runique::forms::fields::BooleanField::new(#fname_str) #required_suffix);
+                form.field(&::runique::forms::fields::BooleanField::new(#fname_str).label(#label) #required_suffix);
             },
             FieldType::I8 | FieldType::I16 | FieldType::I32 | FieldType::U32
             | FieldType::I64 | FieldType::U64 => quote! {
-                form.field(&::runique::forms::fields::NumericField::integer(#fname_str));
+                form.field(&::runique::forms::fields::NumericField::integer(#fname_str).label(#label));
             },
             FieldType::F32 | FieldType::F64 => quote! {
-                form.field(&::runique::forms::fields::NumericField::float(#fname_str));
+                form.field(&::runique::forms::fields::NumericField::float(#fname_str).label(#label));
             },
             FieldType::Decimal(_) => quote! {
-                form.field(&::runique::forms::fields::NumericField::decimal(#fname_str));
+                form.field(&::runique::forms::fields::NumericField::decimal(#fname_str).label(#label));
             },
             FieldType::Date => quote! {
-                form.field(&::runique::forms::fields::DateField::new(#fname_str) #required_suffix);
+                form.field(&::runique::forms::fields::DateField::new(#fname_str).label(#label) #required_suffix);
             },
             FieldType::Time => quote! {
-                form.field(&::runique::forms::fields::TimeField::new(#fname_str) #required_suffix);
+                form.field(&::runique::forms::fields::TimeField::new(#fname_str).label(#label) #required_suffix);
             },
             FieldType::Datetime | FieldType::Timestamp | FieldType::TimestampTz => quote! {
-                form.field(&::runique::forms::fields::DateTimeField::new(#fname_str) #required_suffix);
+                form.field(&::runique::forms::fields::DateTimeField::new(#fname_str).label(#label) #required_suffix);
             },
             FieldType::Json | FieldType::JsonBinary => quote! {
-                form.field(&::runique::forms::fields::TextField::textarea(#fname_str) #required_suffix);
+                form.field(&::runique::forms::fields::TextField::textarea(#fname_str).label(#label) #required_suffix);
             },
             // String, Text, Char, Varchar, Uuid, Blob, Inet, Cidr, MacAddress, Interval, Enum, Binary, VarBinary
-            _ => quote! {
-                form.field(&::runique::forms::fields::TextField::text(#fname_str) #required_suffix);
-            },
+            _ => {
+                let is_password = fname_str.contains("password");
+                if is_password {
+                    quote! {
+                        form.field(&::runique::forms::fields::TextField::password(#fname_str).label(#label) #required_suffix);
+                    }
+                } else {
+                    quote! {
+                        form.field(&::runique::forms::fields::TextField::text(#fname_str).label(#label) #required_suffix);
+                    }
+                }
+            }
         };
 
         Some(registration)
     }).collect();
 
     quote! {
+        /// Alias stable utilisé par le daemon `runique start` pour référencer ce formulaire.
+        /// Toujours disponible via `{module}::AdminForm`.
+        pub type AdminForm = #form_name;
+
         /// Formulaire admin auto-généré à partir du modèle.
         /// Couvre tous les champs du modèle sauf les champs auto_now/auto_now_update.
         #[derive(::runique::serde::Serialize, Debug, Clone)]

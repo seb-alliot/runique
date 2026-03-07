@@ -35,11 +35,14 @@ pub struct ResourceDef {
     pub permissions: Vec<String>,
 
     /// Surcharges de templates par opération (optionnel)
-    pub template_list:   Option<String>,
+    pub template_list: Option<String>,
     pub template_create: Option<String>,
-    pub template_edit:   Option<String>,
+    pub template_edit: Option<String>,
     pub template_detail: Option<String>,
     pub template_delete: Option<String>,
+
+    /// Formulaire alternatif pour l'édition (optionnel, chemin complet ex: crate::formulaire::UserEditForm)
+    pub edit_form_type: Option<String>,
 
     /// Clés custom pour le contexte Tera (via extra: { "k" => "v" })
     pub extra_context: Vec<(String, String)>,
@@ -145,7 +148,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             Some(other) => return Err(format!("Expected '{{', found: {}", other)),
             None => return Err("Expected '{{', end of file".to_string()),
         };
-        let title       = body.title.clone();
+        let title = body.title.clone();
         let permissions = body.permissions.clone();
 
         resources.push(ResourceDef {
@@ -154,12 +157,13 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             form_type,
             title,
             permissions,
-            template_list:   body.template_list,
+            template_list: body.template_list,
             template_create: body.template_create,
-            template_edit:   body.template_edit,
+            template_edit: body.template_edit,
             template_detail: body.template_detail,
             template_delete: body.template_delete,
-            extra_context:   body.extra_context,
+            extra_context: body.extra_context,
+            edit_form_type: body.edit_form_type,
         });
 
         // Virgule optionnelle entre ressources
@@ -170,14 +174,15 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
 }
 
 struct ResourceBody {
-    title:           String,
-    permissions:     Vec<String>,
-    template_list:   Option<String>,
+    title: String,
+    permissions: Vec<String>,
+    template_list: Option<String>,
     template_create: Option<String>,
-    template_edit:   Option<String>,
+    template_edit: Option<String>,
     template_detail: Option<String>,
     template_delete: Option<String>,
-    extra_context:   Vec<(String, String)>,
+    extra_context: Vec<(String, String)>,
+    edit_form_type: Option<String>,
 }
 
 fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
@@ -185,14 +190,15 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
 
     let mut iter = tokens.into_iter().peekable();
     let mut body = ResourceBody {
-        title:           String::new(),
-        permissions:     Vec::new(),
-        template_list:   None,
+        title: String::new(),
+        permissions: Vec::new(),
+        template_list: None,
         template_create: None,
-        template_edit:   None,
+        template_edit: None,
         template_detail: None,
         template_delete: None,
-        extra_context:   Vec::new(),
+        extra_context: Vec::new(),
+        edit_form_type: None,
     };
 
     while iter.peek().is_some() {
@@ -225,6 +231,9 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
             }
             "template_delete" => {
                 body.template_delete = Some(parse_string_literal(&mut iter)?);
+            }
+            "edit_form" => {
+                body.edit_form_type = Some(parse_path(&mut iter)?);
             }
             "extra" => {
                 body.extra_context = parse_extra_map(&mut iter)?;
@@ -289,11 +298,21 @@ fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String
                         if s.starts_with('"') && s.ends_with('"') {
                             s[1..s.len() - 1].to_string()
                         } else {
-                            return Err(format!("Expected string value in extra map, found: {}", s));
+                            return Err(format!(
+                                "Expected string value in extra map, found: {}",
+                                s
+                            ));
                         }
                     }
-                    Some(other) => return Err(format!("Expected string value in extra map, found: {}", other)),
-                    None => return Err("Expected string value in extra map, end of file".to_string()),
+                    Some(other) => {
+                        return Err(format!(
+                            "Expected string value in extra map, found: {}",
+                            other
+                        ))
+                    }
+                    None => {
+                        return Err("Expected string value in extra map, end of file".to_string())
+                    }
                 };
 
                 pairs.push((key, value));
@@ -301,7 +320,10 @@ fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String
 
             Ok(pairs)
         }
-        Some(other) => Err(format!("Expected '{{...}}' for extra map, found: {}", other)),
+        Some(other) => Err(format!(
+            "Expected '{{...}}' for extra map, found: {}",
+            other
+        )),
         None => Err("Expected '{{...}}' for extra map, end of file".to_string()),
     }
 }

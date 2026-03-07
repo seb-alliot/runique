@@ -15,7 +15,7 @@
     <h1>Modifier — {{ resource.title | default(value="Élément") }}</h1>
   </header>
 
-  <div class="card">
+  <div class="card" style="max-width:60%;">
     <div class="card-header">
       <h2>Informations</h2>
     </div>
@@ -36,4 +36,15 @@
     </div>
   </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input[type="password"]').forEach(function (el) {
+      el.placeholder = '••••••••';
+      el.disabled = true;
+    });
+  });
+</script>
 {% endblock %}

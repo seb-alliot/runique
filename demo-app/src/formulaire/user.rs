@@ -4,6 +4,9 @@ use runique::prelude::*;
 #[form(schema = eihwaz_users_schema, fields = [username, email, password])]
 pub struct RegisterForm;
 
+#[form(schema = eihwaz_users_schema, fields = [username, email, is_active, is_staff, is_superuser, roles])]
+pub struct UserEditForm;
+
 impl RegisterForm {
     async fn clean_fields(&self) -> Result<(), String> {
         let username = self.form.get_string("username");

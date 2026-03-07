@@ -31,9 +31,8 @@ fn write_readme(dir: &Path) -> Result<(), String> {
 }
 
 fn write_mod(dir: &Path) -> Result<(), String> {
-    let content = "pub mod admin_panel;\npub use admin_panel::routes;\n";
-    fs::write(dir.join("mod.rs"), content)
-        .map_err(|e| format!("Impossible d'écrire mod.rs: {}", e))
+    let content = "pub mod admin_panel;\npub use admin_panel::{routes, admin_proto_state};\n";
+    fs::write(dir.join("mod.rs"), content).map_err(|e| format!("Impossible d'écrire mod.rs: {}", e))
 }
 
 fn write_admin_panel(resources: &[ResourceDef], dir: &Path) -> Result<(), String> {
@@ -45,19 +44,19 @@ fn write_admin_panel(resources: &[ResourceDef], dir: &Path) -> Result<(), String
     let _ = writeln!(out, "use runique::prelude::*;");
     let _ = writeln!(out);
 
-    // Imports des forms et entités du dev
-    for r in resources {
-        let _ = writeln!(out, "use crate::formulaire::{};", r.form_type);
-    }
+    // Imports des entités (AdminForm est généré par model! dans chaque module)
     for r in resources {
         let module = model_to_module(&r.model_type);
         let _ = writeln!(out, "use crate::entities::{};", module);
     }
     let _ = writeln!(out);
 
-    // Une impl DynForm par ressource
+    // Une impl DynForm par ressource (form principal + edit_form si déclaré)
     for r in resources {
         write_dyn_form_impl(&mut out, r)?;
+        if r.edit_form_type.is_some() {
+            write_edit_dyn_form_impl(&mut out, r)?;
+        }
     }
 
     // admin_register()
@@ -68,11 +67,12 @@ fn write_admin_panel(resources: &[ResourceDef], dir: &Path) -> Result<(), String
 }
 
 fn write_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), String> {
-    let form = &r.form_type;
-    let wrapper = format!("{}DynWrapper", form);
+    let module = model_to_module(&r.model_type);
+    let form_path = format!("{}::AdminForm", module);
+    let wrapper = format!("{}AdminFormDynWrapper", pascal_case(&module));
 
-    let _ = writeln!(out, "// ── DynForm wrapper pour {} ──", form);
-    let _ = writeln!(out, "struct {}(pub {});", wrapper, form);
+    let _ = writeln!(out, "// ── DynForm wrapper pour {}::AdminForm ──", module);
+    let _ = writeln!(out, "struct {}(pub {});", wrapper, form_path);
     let _ = writeln!(out);
     let _ = writeln!(out, "#[async_trait]");
     let _ = writeln!(out, "impl DynForm for {} {{", wrapper);
@@ -80,8 +80,11 @@ fn write_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), String> 
     let _ = writeln!(out, "        self.0.is_valid().await");
     let _ = writeln!(out, "    }}");
     let _ = writeln!(out);
-    let _ = writeln!(out, "    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {{");
-    let _ = writeln!(out, "        self.0.save(db).await.map(|_model| ())");
+    let _ = writeln!(
+        out,
+        "    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {{"
+    );
+    let _ = writeln!(out, "        self.0.save(db).await");
     let _ = writeln!(out, "    }}");
     let _ = writeln!(out);
     let _ = writeln!(out, "    fn get_form(&self) -> &Forms {{");
@@ -93,6 +96,44 @@ fn write_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), String> 
     let _ = writeln!(out, "    }}");
     let _ = writeln!(out, "}}");
     let _ = writeln!(out);
+
+    Ok(())
+}
+
+fn write_edit_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), String> {
+    let edit_form_path = r.edit_form_type.as_ref().unwrap();
+    let type_name = edit_form_path.split("::").last().unwrap_or(edit_form_path);
+    let module = model_to_module(&r.model_type);
+    let wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
+
+    let _ = writeln!(out, "// ── DynForm edit wrapper pour {} ──", edit_form_path);
+    let _ = writeln!(out, "struct {}(pub {});", wrapper, edit_form_path);
+    let _ = writeln!(out);
+    let _ = writeln!(out, "#[async_trait]");
+    let _ = writeln!(out, "impl DynForm for {} {{", wrapper);
+    let _ = writeln!(out, "    async fn is_valid(&mut self) -> bool {{");
+    let _ = writeln!(out, "        self.0.is_valid().await");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(
+        out,
+        "    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {{"
+    );
+    let _ = writeln!(out, "        self.0.save(db).await");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    fn get_form(&self) -> &Forms {{");
+    let _ = writeln!(out, "        self.0.get_form()");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    fn get_form_mut(&mut self) -> &mut Forms {{");
+    let _ = writeln!(out, "        self.0.get_form_mut()");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+
+    // Silence unused variable warning
+    let _ = type_name;
 
     Ok(())
 }
@@ -113,11 +154,23 @@ fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(
     let _ = writeln!(out);
 
     // Fonction routes() — retourne le Router axum du prototype admin
-    let _ = writeln!(out, "/// Construit le Router axum du prototype admin pour le préfixe donné.");
-    let _ = writeln!(out, "/// À passer à `.with_admin(|a| a.routes(admins::routes(\"/admin\")))` dans main.rs.");
-    let _ = writeln!(out, "pub fn routes(prefix: &str) -> runique::axum::Router {{");
+    let _ = writeln!(
+        out,
+        "/// Construit le Router axum du prototype admin pour le préfixe donné."
+    );
+    let _ = writeln!(
+        out,
+        "/// À passer à `.with_admin(|a| a.routes(admins::routes(\"/admin\")))` dans main.rs."
+    );
+    let _ = writeln!(
+        out,
+        "pub fn routes(prefix: &str) -> runique::axum::Router {{"
+    );
     let _ = writeln!(out, "    let p = prefix.trim_end_matches('/');");
-    let _ = writeln!(out, "    let config = Arc::new(AdminConfig::new().prefix(prefix));");
+    let _ = writeln!(
+        out,
+        "    let config = Arc::new(AdminConfig::new().prefix(prefix));"
+    );
     let _ = writeln!(out, "    let state = Arc::new(PrototypeAdminState {{");
     let _ = writeln!(out, "        registry: Arc::new(admin_register()),");
     let _ = writeln!(out, "        config: config.clone(),");
@@ -127,17 +180,37 @@ fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(
     let _ = writeln!(out, "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_get_id).post(admin_post_id))");
     let _ = writeln!(out, "        .layer(Extension(state))");
     let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+    let _ = writeln!(
+        out,
+        "/// Retourne l'état partagé du prototype admin (pour le dashboard)."
+    );
+    let _ = writeln!(
+        out,
+        "pub fn admin_proto_state() -> std::sync::Arc<PrototypeAdminState> {{"
+    );
+    let _ = writeln!(out, "    let config = Arc::new(AdminConfig::new());");
+    let _ = writeln!(out, "    std::sync::Arc::new(PrototypeAdminState {{");
+    let _ = writeln!(out, "        registry: Arc::new(admin_register()),");
+    let _ = writeln!(out, "        config,");
+    let _ = writeln!(out, "    }})");
+    let _ = writeln!(out, "}}");
 
     Ok(())
 }
 
 fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String> {
-    let key       = &r.key;
-    let model     = full_model_path(&r.model_type);
-    let form      = &r.form_type;
-    let title     = &r.title;
-    let wrapper   = format!("{}DynWrapper", form);
-    let roles: Vec<String> = r.permissions.iter().map(|p| format!("\"{}\".to_string()", p)).collect();
+    let key = &r.key;
+    let model = full_model_path(&r.model_type);
+    let title = &r.title;
+    let module = model_to_module(&r.model_type);
+    let form_path = format!("{}::AdminForm", module);
+    let wrapper = format!("{}AdminFormDynWrapper", pascal_case(&module));
+    let roles: Vec<String> = r
+        .permissions
+        .iter()
+        .map(|p| format!("\"{}\".to_string()", p))
+        .collect();
     let roles_str = roles.join(", ");
 
     // AdminResource
@@ -145,7 +218,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "    let meta = AdminResource::new(");
     let _ = writeln!(out, "        \"{}\",", key);
     let _ = writeln!(out, "        \"{}\",", model);
-    let _ = writeln!(out, "        \"{}\",", form);
+    let _ = writeln!(out, "        \"AdminForm\",");
     let _ = writeln!(out, "        \"{}\",", title);
     let _ = writeln!(out, "        vec![{}],", roles_str);
     let _ = writeln!(out, "    );");
@@ -175,43 +248,87 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // FormBuilder closure
     let _ = writeln!(out, "    let form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {{");
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            let form = {}::build_with_data(&data, tera, &csrf, method).await;", form);
-    let _ = writeln!(out, "            Box::new({}(form)) as Box<dyn DynForm>", wrapper);
+    let _ = writeln!(
+        out,
+        "            let form = {}::build_with_data(&data, tera, &csrf, method).await;",
+        form_path
+    );
+    let _ = writeln!(
+        out,
+        "            Box::new({}(form)) as Box<dyn DynForm>",
+        wrapper
+    );
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
-
-    // ListFn closure
-    let module = model_to_module(&r.model_type);
     let _ = writeln!(out, "    let list_fn: ListFn = Arc::new(|db: ADb| {{");
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            let rows = {}::Entity::find().all(&*db).await?;", module);
+    let _ = writeln!(
+        out,
+        "            let rows = {}::Entity::find().all(&*db).await?;",
+        module
+    );
     let _ = writeln!(out, "            Ok(rows.into_iter()");
-    let _ = writeln!(out, "                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))");
+    let _ = writeln!(
+        out,
+        "                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))"
+    );
     let _ = writeln!(out, "                .collect())");
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
 
-    // GetFn closure
-    let _ = writeln!(out, "    let get_fn: GetFn = Arc::new(|db: ADb, id: i32| {{");
+    // CountFn closure
+    let _ = writeln!(out, "    let count_fn: CountFn = Arc::new(|db: ADb| {{");
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            let row = {}::Entity::find_by_id(id).one(&*db).await?;", module);
-    let _ = writeln!(out, "            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))");
+    let _ = writeln!(
+        out,
+        "            {}::Entity::find().count(&*db).await",
+        module
+    );
+    let _ = writeln!(out, "        }})");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+
+    // GetFn closure
+    let _ = writeln!(
+        out,
+        "    let get_fn: GetFn = Arc::new(|db: ADb, id: i32| {{"
+    );
+    let _ = writeln!(out, "        Box::pin(async move {{");
+    let _ = writeln!(
+        out,
+        "            let row = {}::Entity::find_by_id(id).one(&*db).await?;",
+        module
+    );
+    let _ = writeln!(
+        out,
+        "            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))"
+    );
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
 
     // DeleteFn closure
-    let _ = writeln!(out, "    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: i32| {{");
+    let _ = writeln!(
+        out,
+        "    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: i32| {{"
+    );
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            {}::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())", module);
+    let _ = writeln!(
+        out,
+        "            {}::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())",
+        module
+    );
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
 
     // CreateFn closure — utilise admin_from_form() généré par le proc-macro
-    let _ = writeln!(out, "    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {{");
+    let _ = writeln!(
+        out,
+        "    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {{"
+    );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(out, "            {}::admin_from_form(&data, None)", module);
     let _ = writeln!(out, "                .insert(&*db).await.map(|_| ())");
@@ -220,21 +337,58 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out);
 
     // UpdateFn closure — utilise admin_from_form() généré par le proc-macro
-    let _ = writeln!(out, "    let update_fn: UpdateFn = Arc::new(|db: ADb, id: i32, data: StrMap| {{");
+    let _ = writeln!(
+        out,
+        "    let update_fn: UpdateFn = Arc::new(|db: ADb, id: i32, data: StrMap| {{"
+    );
     let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(out, "            {}::admin_from_form(&data, Some(id))", module);
+    let _ = writeln!(
+        out,
+        "            {}::admin_from_form(&data, Some(id))",
+        module
+    );
     let _ = writeln!(out, "                .update(&*db).await.map(|_| ())");
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
 
+    // EditFormBuilder closure (optionnel)
+    if let Some(ref edit_form_path) = r.edit_form_type {
+        let edit_wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
+        let _ = writeln!(out, "    let edit_form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {{");
+        let _ = writeln!(out, "        Box::pin(async move {{");
+        let _ = writeln!(
+            out,
+            "            let form = {}::build_with_data(&data, tera, &csrf, method).await;",
+            edit_form_path
+        );
+        let _ = writeln!(
+            out,
+            "            Box::new({}(form)) as Box<dyn DynForm>",
+            edit_wrapper
+        );
+        let _ = writeln!(out, "        }})");
+        let _ = writeln!(out, "    }});");
+        let _ = writeln!(out);
+    }
+
     let _ = writeln!(out, "    registry.register(");
-    let _ = writeln!(out, "        ResourceEntry::new(meta, form_builder)");
+    let has_edit_form = r.edit_form_type.is_some();
+    if has_edit_form {
+        let _ = writeln!(out, "        ResourceEntry::new(meta, form_builder)");
+        let _ = writeln!(
+            out,
+            "            .with_edit_form_builder(edit_form_builder)"
+        );
+    } else {
+        let _ = writeln!(out, "        ResourceEntry::new(meta, form_builder)");
+    }
     let _ = writeln!(out, "            .with_list_fn(list_fn)");
     let _ = writeln!(out, "            .with_get_fn(get_fn)");
     let _ = writeln!(out, "            .with_delete_fn(delete_fn)");
     let _ = writeln!(out, "            .with_create_fn(create_fn)");
     let _ = writeln!(out, "            .with_update_fn(update_fn)");
+    let _ = writeln!(out, "            .with_count_fn(count_fn)");
     let _ = writeln!(out, "    );");
     let _ = writeln!(out);
 
@@ -247,6 +401,19 @@ fn full_model_path(model_type: &str) -> String {
     } else {
         format!("crate::entities::{}", model_type)
     }
+}
+
+/// Convertit snake_case → PascalCase (ex: `blog_post` → `BlogPost`)
+fn pascal_case(s: &str) -> String {
+    s.split('_')
+        .map(|word| {
+            let mut c = word.chars();
+            match c.next() {
+                None => String::new(),
+                Some(first) => first.to_uppercase().collect::<String>() + c.as_str(),
+            }
+        })
+        .collect()
 }
 
 /// Extrait le nom du module depuis un chemin de model.
@@ -269,4 +436,3 @@ fn model_to_module(model_type: &str) -> String {
         result
     }
 }
-

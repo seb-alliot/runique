@@ -20,7 +20,7 @@
     {% for resource in resources %}
     <a href="/admin/{{ resource.key }}/list" class="stat-card" style="text-decoration:none">
         <div class="stat-label">{{ resource.title }}</div>
-        <div class="stat-value">{{ resource.count | default(value="—") }}</div>
+        <div class="stat-value">{{ resource_counts[resource.key] | default(value="—") }}</div>
         <div class="stat-meta">Voir la liste →</div>
     </a>
     {% endfor %}

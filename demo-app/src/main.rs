@@ -18,9 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
-    let db_config = DatabaseConfig::from_env()?
-        .min_connections(2)
-        .build();
+    let db_config = DatabaseConfig::from_env()?.min_connections(2).build();
     let db: DatabaseConnection = db_config.connect().await?;
 
     builder::new(config)
@@ -37,6 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .site_title("Administration")
                 .auth(RuniqueAdminAuth::new())
                 .routes(admins::routes("/admin"))
+                .with_proto_state(admins::admin_proto_state())
         })
         .build()
         .await

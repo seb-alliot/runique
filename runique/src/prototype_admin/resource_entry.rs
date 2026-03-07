@@ -11,60 +11,60 @@ use crate::utils::aliases::{ADb, ATera, StrMap};
 
 /// Closure construisant un form typé depuis des données brutes.
 pub type FormBuilder = Arc<
-    dyn Fn(StrMap, ATera, String, Method) -> BoxFuture<'static, Box<dyn DynForm>>
-        + Send
-        + Sync,
+    dyn Fn(StrMap, ATera, String, Method) -> BoxFuture<'static, Box<dyn DynForm>> + Send + Sync,
 >;
 
 /// Closure retournant toutes les entrées d'une ressource sous forme de `Vec<Value>`.
-pub type ListFn = Arc<
-    dyn Fn(ADb) -> BoxFuture<'static, Result<Vec<Value>, DbErr>>
-        + Send
-        + Sync,
->;
+pub type ListFn = Arc<dyn Fn(ADb) -> BoxFuture<'static, Result<Vec<Value>, DbErr>> + Send + Sync>;
 
 /// Closure retournant une entrée par son id sous forme de `Value`.
-pub type GetFn = Arc<
-    dyn Fn(ADb, i32) -> BoxFuture<'static, Result<Option<Value>, DbErr>>
-        + Send
-        + Sync,
->;
+pub type GetFn =
+    Arc<dyn Fn(ADb, i32) -> BoxFuture<'static, Result<Option<Value>, DbErr>> + Send + Sync>;
 
 /// Closure supprimant une entrée par son id.
-pub type DeleteFn = Arc<
-    dyn Fn(ADb, i32) -> BoxFuture<'static, Result<(), DbErr>>
-        + Send
-        + Sync,
->;
+pub type DeleteFn = Arc<dyn Fn(ADb, i32) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
 /// Closure mettant à jour une entrée par son id depuis les données du formulaire validé.
-pub type UpdateFn = Arc<
-    dyn Fn(ADb, i32, StrMap) -> BoxFuture<'static, Result<(), DbErr>>
-        + Send
-        + Sync,
->;
+pub type UpdateFn =
+    Arc<dyn Fn(ADb, i32, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
 /// Closure créant une nouvelle entrée depuis les données du formulaire validé.
-pub type CreateFn = Arc<
-    dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbErr>>
-        + Send
-        + Sync,
->;
+pub type CreateFn = Arc<dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
+
+/// Closure retournant le nombre total d'entrées d'une ressource.
+pub type CountFn = Arc<dyn Fn(ADb) -> BoxFuture<'static, Result<u64, DbErr>> + Send + Sync>;
 
 /// Entrée du registre admin : métadonnées + closures CRUD.
 pub struct ResourceEntry {
-    pub meta:         AdminResource,
+    pub meta: AdminResource,
     pub form_builder: FormBuilder,
-    pub list_fn:      Option<ListFn>,
-    pub get_fn:       Option<GetFn>,
-    pub delete_fn:    Option<DeleteFn>,
-    pub update_fn:    Option<UpdateFn>,
-    pub create_fn:    Option<CreateFn>,
+    pub edit_form_builder: Option<FormBuilder>,
+    pub list_fn: Option<ListFn>,
+    pub get_fn: Option<GetFn>,
+    pub delete_fn: Option<DeleteFn>,
+    pub update_fn: Option<UpdateFn>,
+    pub create_fn: Option<CreateFn>,
+    pub count_fn: Option<CountFn>,
 }
 
 impl ResourceEntry {
     pub fn new(meta: AdminResource, form_builder: FormBuilder) -> Self {
-        Self { meta, form_builder, list_fn: None, get_fn: None, delete_fn: None, update_fn: None, create_fn: None }
+        Self {
+            meta,
+            form_builder,
+            edit_form_builder: None,
+            list_fn: None,
+            get_fn: None,
+            delete_fn: None,
+            update_fn: None,
+            create_fn: None,
+            count_fn: None,
+        }
+    }
+
+    pub fn with_edit_form_builder(mut self, f: FormBuilder) -> Self {
+        self.edit_form_builder = Some(f);
+        self
     }
 
     pub fn with_list_fn(mut self, f: ListFn) -> Self {
@@ -89,6 +89,11 @@ impl ResourceEntry {
 
     pub fn with_create_fn(mut self, f: CreateFn) -> Self {
         self.create_fn = Some(f);
+        self
+    }
+
+    pub fn with_count_fn(mut self, f: CountFn) -> Self {
+        self.count_fn = Some(f);
         self
     }
 }

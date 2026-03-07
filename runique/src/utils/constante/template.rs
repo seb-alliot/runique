@@ -43,9 +43,9 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     // ("delete", "admin/composant/admin_delete.html"),
     // Prototype admin templates
     ("admin_base", "admin/admin_base.html"),
-    ("admin/list.html", "admin/composant/admin_list.html"),
+    ("admin/list.html", "admin/list.html"),
     ("admin/create.html", "admin/create.html"),
-    ("admin/edit.html",   "admin/edit.html"),
+    ("admin/edit.html", "admin/edit.html"),
     ("admin/detail.html", "admin/detail.html"),
     ("admin/delete.html", "admin/delete.html"),
 ];
