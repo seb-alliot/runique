@@ -1,0 +1,388 @@
+﻿// ═══════════════════════════════════════════════════════════════
+// admin_main — Handler générique central de l'interface admin
+//
+// Routes :
+//   /admin/{resource}/{action}          → admin_get / admin_post
+//   /admin/{resource}/{id}/{action}     → admin_get_id / admin_post_id
+// ═══════════════════════════════════════════════════════════════
+
+use std::sync::Arc;
+
+use axum::{
+    body::Body,
+    extract::{FromRequest, Path},
+    http::{Request as HttpRequest, StatusCode},
+    response::{IntoResponse, Redirect, Response},
+    Extension,
+};
+use serde_json::Value;
+
+use crate::admin::config::AdminConfig;
+use crate::context::template::{AppError, Request};
+use crate::errors::error::ErrorContext;
+use crate::forms::prisme::aegis;
+use crate::prototype_admin::AdminRegistry;
+use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
+use crate::flash_now;
+
+// ─── Extracteur AdminBody ─────────────────────────────────────
+//
+// Encapsule aegis pour gérer automatiquement multipart/form-data
+// ET application/x-www-form-urlencoded dans les handlers admin POST.
+// Remplace axum::extract::Form<StrMap> qui refusait le multipart.
+
+pub struct AdminBody(StrMap);
+
+impl<S: Send + Sync> FromRequest<S> for AdminBody {
+    type Rejection = Response;
+
+    async fn from_request(req: HttpRequest<Body>, state: &S) -> Result<Self, Self::Rejection> {
+        let config = req
+            .extensions()
+            .get::<ARuniqueConfig>()
+            .cloned()
+            .ok_or_else(|| {
+                (StatusCode::INTERNAL_SERVER_ERROR, "config manquante").into_response()
+            })?;
+
+        let content_type = req
+            .headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_string();
+
+        let parsed = aegis(req, state, config, &content_type).await?;
+
+        // StrVecMap → StrMap (multi-values jointes par virgule, comme Prisme)
+        let body = parsed.into_iter().map(|(k, v)| (k, v.join(","))).collect();
+        Ok(AdminBody(body))
+    }
+}
+
+// ─── État partagé ────────────────────────────────────────────
+
+#[derive(Clone)]
+pub struct PrototypeAdminState {
+    pub registry: Arc<AdminRegistry>,
+    pub config:   Arc<AdminConfig>,
+}
+
+// ─── Points d'entrée Axum ────────────────────────────────────
+
+/// GET /admin/{resource}/{action}  (list, create)
+pub async fn admin_get(
+    mut req: Request,
+    Path((resource_key, action)): Path<(String, String)>,
+    Extension(state): Extension<Arc<PrototypeAdminState>>,
+) -> AppResult<Response> {
+    let entry = state
+        .registry
+        .get(&resource_key)
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
+    inject_common_context(&mut req, &state, entry);
+
+    match action.as_str() {
+        "list"   => handle_list(&mut req, entry).await,
+        "create" => handle_create_get(&mut req, entry).await,
+        _        => Err(Box::new(AppError::new(ErrorContext::not_found("Action inconnue")))),
+    }
+}
+
+/// POST /admin/{resource}/{action}  (create)
+#[allow(private_interfaces)]
+pub async fn admin_post(
+    mut req: Request,
+    Path((resource_key, action)): Path<(String, String)>,
+    Extension(state): Extension<Arc<PrototypeAdminState>>,
+    AdminBody(body): AdminBody,
+) -> AppResult<Response> {
+    let entry = state
+        .registry
+        .get(&resource_key)
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
+    inject_common_context(&mut req, &state, entry);
+
+    match action.as_str() {
+        "create" => handle_create_post(&mut req, entry, body, &state).await,
+        _        => Err(Box::new(AppError::new(ErrorContext::not_found("Action inconnue")))),
+    }
+}
+
+/// GET /admin/{resource}/{id}/{action}  (detail, edit, delete)
+pub async fn admin_get_id(
+    mut req: Request,
+    Path((resource_key, id, action)): Path<(String, i32, String)>,
+    Extension(state): Extension<Arc<PrototypeAdminState>>,
+) -> AppResult<Response> {
+    let entry = state
+        .registry
+        .get(&resource_key)
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
+    inject_common_context(&mut req, &state, entry);
+
+    match action.as_str() {
+        "detail" => handle_detail(&mut req, entry, id).await,
+        "edit"   => handle_edit_get(&mut req, entry, id).await,
+        "delete" => handle_delete_get(&mut req, entry, id).await,
+        _        => Err(Box::new(AppError::new(ErrorContext::not_found("Action inconnue")))),
+    }
+}
+
+/// POST /admin/{resource}/{id}/{action}  (edit, delete)
+#[allow(private_interfaces)]
+pub async fn admin_post_id(
+    mut req: Request,
+    Path((resource_key, id, action)): Path<(String, i32, String)>,
+    Extension(state): Extension<Arc<PrototypeAdminState>>,
+    AdminBody(body): AdminBody,
+) -> AppResult<Response> {
+    let entry = state
+        .registry
+        .get(&resource_key)
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
+
+    inject_common_context(&mut req, &state, entry);
+
+    match action.as_str() {
+        "edit"   => handle_edit_post(&mut req, entry, id, body, &state).await,
+        "delete" => handle_delete_post(&mut req, entry, id, &state).await,
+        _        => Err(Box::new(AppError::new(ErrorContext::not_found("Action inconnue")))),
+    }
+}
+
+// ─── Fonctions internes ──────────────────────────────────────
+
+fn inject_common_context(
+    req: &mut Request,
+    state: &PrototypeAdminState,
+    entry: &crate::prototype_admin::ResourceEntry,
+) {
+    req.context.insert("site_title",       &state.config.site_title);
+    req.context.insert("resource_key",     entry.meta.key);
+    req.context.insert("current_resource", entry.meta.key);
+    req.context.insert("resource",         &entry.meta);
+    req.context.insert("resources",        &state.registry.all().map(|e| &e.meta).collect::<Vec<_>>());
+
+    for (k, v) in &entry.meta.extra_context {
+        req.context.insert(k, v);
+    }
+}
+
+/// Vérifie le token CSRF depuis le body du formulaire.
+/// Le middleware délègue la validation de form à Prisme — on la fait manuellement ici.
+fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
+    let submitted = body.get("csrf_token").map(|s| s.as_str());
+    if submitted != Some(session_token) {
+        return Err(Box::new(AppError::new(ErrorContext::generic(StatusCode::FORBIDDEN, "CSRF token invalide ou manquant"))));
+    }
+    Ok(())
+}
+
+/// Convertit un `Value::Object` en `StrMap` pour pré-remplir un formulaire.
+fn value_to_strmap(v: Value) -> StrMap {
+    let mut map = StrMap::new();
+    if let Value::Object(obj) = v {
+        for (k, v) in obj {
+            let s = match v {
+                Value::String(s) => s,
+                Value::Number(n) => n.to_string(),
+                Value::Bool(b)   => b.to_string(),
+                other            => other.to_string(),
+            };
+            map.insert(k, s);
+        }
+    }
+    map
+}
+
+async fn handle_list(
+    req: &mut Request,
+    entry: &crate::prototype_admin::ResourceEntry,
+) -> AppResult<Response> {
+    let entries = match &entry.list_fn {
+        Some(f) => f(req.engine.db.clone()).await.map_err(|e| {
+            Box::new(AppError::new(ErrorContext::database(e)))
+        })?,
+        None => Vec::new(),
+    };
+
+    req.context.insert("entries",      &entries);
+    req.context.insert("total",        &entries.len());
+    req.context.insert("current_page", "list");
+    req.render(entry.meta.resolve_list())
+}
+
+async fn handle_create_get(
+    req: &mut Request,
+    entry: &crate::prototype_admin::ResourceEntry,
+) -> AppResult<Response> {
+    let tera = req.engine.tera.clone();
+    let csrf = req.csrf_token.as_str().to_string();
+    let form = (entry.form_builder)(StrMap::new(), tera, csrf, axum::http::Method::GET).await;
+
+    req.context.insert("form_fields", form.get_form());
+    req.context.insert("is_edit",     &false);
+    req.render(entry.meta.resolve_create())
+}
+
+async fn handle_create_post(
+    req: &mut Request,
+    entry: &crate::prototype_admin::ResourceEntry,
+    body: StrMap,
+    state: &PrototypeAdminState,
+) -> AppResult<Response> {
+    check_csrf(&body, req.csrf_token.as_str())?;
+    let body_for_create = body.clone();
+    let tera = req.engine.tera.clone();
+    let csrf = req.csrf_token.as_str().to_string();
+    let mut form = (entry.form_builder)(body, tera, csrf, axum::http::Method::POST).await;
+
+    if form.is_valid().await {
+        let result = match &entry.create_fn {
+            Some(f) => f(req.engine.db.clone(), body_for_create).await,
+            None    => form.save(&*req.engine.db).await,
+        };
+        if let Err(e) = result {
+            form.get_form_mut().database_error(&e);
+            return Err(Box::new(AppError::new(ErrorContext::database(e))));
+        }
+        flash_now!(success => "Entrée créée avec succès !");
+        return Ok(Redirect::to(&format!(
+            "{}/{}/list",
+            state.config.prefix.trim_end_matches('/'),
+            entry.meta.key
+        )).into_response());
+    }
+
+    req.context.insert("form_fields", form.get_form());
+    req.context.insert("is_edit",     &false);
+    req.render(entry.meta.resolve_create())
+}
+
+async fn handle_detail(
+    req: &mut Request,
+    entry: &crate::prototype_admin::ResourceEntry,
+    id: i32,
+) -> AppResult<Response> {
+    let object = match &entry.get_fn {
+        Some(f) => f(req.engine.db.clone(), id).await.map_err(|e| {
+            Box::new(AppError::new(ErrorContext::database(e)))
+        })?,
+        None => None,
+    };
+
+    if let Some(v) = &object {
+        req.context.insert("entry", v);
+    }
+    req.context.insert("object_id", &id);
+    req.render(entry.meta.resolve_detail())
+}
+
+async fn handle_edit_get(
+    req: &mut Request,
+    entry: &crate::prototype_admin::ResourceEntry,
+    id: i32,
+) -> AppResult<Response> {
+    let tera = req.engine.tera.clone();
+    let csrf = req.csrf_token.as_str().to_string();
+
+    // Pré-remplissage via get_fn si disponible
+    let data = match &entry.get_fn {
+        Some(f) => f(req.engine.db.clone(), id).await
+            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
+            .map(value_to_strmap)
+            .unwrap_or_default(),
+        None => StrMap::new(),
+    };
+
+    let form = (entry.form_builder)(data, tera, csrf, axum::http::Method::GET).await;
+
+    req.context.insert("form_fields", form.get_form());
+    req.context.insert("is_edit",     &true);
+    req.context.insert("object_id",   &id);
+    req.render(entry.meta.resolve_edit())
+}
+
+async fn handle_edit_post(
+    req: &mut Request,
+    entry: &crate::prototype_admin::ResourceEntry,
+    id: i32,
+    body: StrMap,
+    state: &PrototypeAdminState,
+) -> AppResult<Response> {
+    check_csrf(&body, req.csrf_token.as_str())?;
+    let body_for_update = body.clone();
+    let tera = req.engine.tera.clone();
+    let csrf = req.csrf_token.as_str().to_string();
+    let mut form = (entry.form_builder)(body, tera, csrf, axum::http::Method::POST).await;
+
+    if form.is_valid().await {
+        let result = match &entry.update_fn {
+            Some(f) => f(req.engine.db.clone(), id, body_for_update).await,
+            None    => form.save(&*req.engine.db).await,
+        };
+        if let Err(e) = result {
+            form.get_form_mut().database_error(&e);
+            return Err(Box::new(AppError::new(ErrorContext::database(e))));
+        }
+        flash_now!(success => "Entrée mise à jour avec succès !");
+        return Ok(Redirect::to(&format!(
+            "{}/{}/list",
+            state.config.prefix.trim_end_matches('/'),
+            entry.meta.key
+        )).into_response());
+    }
+
+    req.context.insert("form_fields", form.get_form());
+    req.context.insert("is_edit",     &true);
+    req.context.insert("object_id",   &id);
+    req.render(entry.meta.resolve_edit())
+}
+
+async fn handle_delete_get(
+    req: &mut Request,
+    entry: &crate::prototype_admin::ResourceEntry,
+    id: i32,
+) -> AppResult<Response> {
+    let object = match &entry.get_fn {
+        Some(f) => f(req.engine.db.clone(), id).await.map_err(|e| {
+            Box::new(AppError::new(ErrorContext::database(e)))
+        })?,
+        None => None,
+    };
+
+    if let Some(v) = &object {
+        req.context.insert("entry", v);
+    }
+    req.context.insert("object_id", &id);
+    req.render(entry.meta.resolve_delete())
+}
+
+async fn handle_delete_post(
+    req: &mut Request,
+    entry: &crate::prototype_admin::ResourceEntry,
+    id: i32,
+    state: &PrototypeAdminState,
+) -> AppResult<Response> {
+    let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {
+        Box::new(AppError::new(ErrorContext::not_found("delete_fn non configurée pour cette ressource")))
+    })?;
+
+    delete_fn(req.engine.db.clone(), id).await.map_err(|e| {
+        Box::new(AppError::new(ErrorContext::database(e)))
+    })?;
+
+    flash_now!(success => "Entrée supprimée avec succès !");
+    Ok(Redirect::to(&format!(
+        "{}/{}/list",
+        state.config.prefix.trim_end_matches('/'),
+        entry.meta.key
+    )).into_response())
+}
+
+
+

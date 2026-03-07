@@ -1,0 +1,60 @@
+{% extends "admin_base" %}
+
+{% block title %}Liste — {{ resource.title | default(value="Éléments") }}{% endblock %}
+
+{% block breadcrumb %}
+  <span class="breadcrumb-sep">/</span>
+  <a href="/admin">Administration</a>
+  <span class="breadcrumb-sep">/</span>
+  <span>{{ resource.title | default(value="Éléments") }}</span>
+{% endblock %}
+
+{% block content %}
+
+  <div class="page-header">
+    <h1>Liste des {{ resource.title | default(value="éléments") }}</h1>
+    <p>Total : {{ total | default(value=0) }}</p>
+    <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">+ Créer</a>
+  </div>
+
+  {% if entries is defined and entries | length > 0 %}
+
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          {% for key, value in entries | first %}
+            {% if key != "password" and key != "password_hash" %}
+              <th>{{ key }}</th>
+            {% endif %}
+          {% endfor %}
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+          <tr>
+            {% for key, value in entry %}
+              {% if key != "password" and key != "password_hash" %}
+                <td>{{ value }}</td>
+              {% endif %}
+            {% endfor %}
+            <td>
+              <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-info">Détail</a>
+              <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-warning">Modifier</a>
+              <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-danger"
+                        onclick="return confirm('Vraiment supprimer ?');">Supprimer</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% else %}
+
+    <div class="alert alert-info">Aucune entrée pour le moment.</div>
+
+  {% endif %}
+
+{% endblock %}
