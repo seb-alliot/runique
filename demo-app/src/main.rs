@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate runique;
-use runique::prelude::*;
-
+mod prelude;
+use prelude::*;
 mod admin;
 mod admins;
 mod entities;
@@ -18,17 +18,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
-    let db_config = DatabaseConfig::from_env()?.build();
+    let db_config = DatabaseConfig::from_env()?
+        .min_connections(2)
+        .build();
     let db: DatabaseConnection = db_config.connect().await?;
 
     builder::new(config)
         .routes(url::routes())
         .with_database(db)
         .statics()
-        // Watermarks réduits pour observer les mécanismes sous charge (oha)
-        // Low  = 5 Mo  → purge asynchrone des sessions anonymes expirées
-        // High = 10 Mo → purge d'urgence synchrone + 503 si insuffisant
-        // Cleanup toutes les 5s pour voir la libération mémoire rapidement
         .middleware(|m| {
             m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
                 .with_session_cleanup_interval(5)
@@ -38,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .hot_reload(cfg!(debug_assertions))
                 .site_title("Administration")
                 .auth(RuniqueAdminAuth::new())
-                .routes(admins::admin("/admin"))
+                .routes(admins::routes("/admin"))
         })
         .build()
         .await

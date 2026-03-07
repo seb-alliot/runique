@@ -1,0 +1,39 @@
+{% extends "admin_base" %}
+
+{% block title %}Créer — {{ resource.title | default(value="Élément") }}{% endblock %}
+
+{% block breadcrumb %}
+  <span class="breadcrumb-sep">/</span>
+  <a href="/admin/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
+  <span class="breadcrumb-sep">/</span>
+  <span>Créer</span>
+{% endblock %}
+
+{% block content %}
+
+  <header class="page-header">
+    <h1>Créer — {{ resource.title | default(value="Élément") }}</h1>
+  </header>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Informations</h2>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="/admin/{{ resource.key }}/create">
+        <div class="form-grid">
+          {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
+            {{ form_fields.html | safe }}
+          {% else %}
+            <p>Aucun champ disponible pour le moment.</p>
+          {% endif %}
+        </div>
+        <div class="form-actions">
+          <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">Annuler</a>
+          <button type="submit" class="btn btn-primary">Créer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+{% endblock %}

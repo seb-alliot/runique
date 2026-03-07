@@ -1,4 +1,2 @@
-pub mod handlers;
-pub mod router;
-
-pub use router::admin;
+pub mod admin_panel;
+pub use admin_panel::routes;

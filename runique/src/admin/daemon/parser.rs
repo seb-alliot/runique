@@ -33,6 +33,16 @@ pub struct ResourceDef {
 
     /// Rôles autorisés
     pub permissions: Vec<String>,
+
+    /// Surcharges de templates par opération (optionnel)
+    pub template_list:   Option<String>,
+    pub template_create: Option<String>,
+    pub template_edit:   Option<String>,
+    pub template_detail: Option<String>,
+    pub template_delete: Option<String>,
+
+    /// Clés custom pour le contexte Tera (via extra: { "k" => "v" })
+    pub extra_context: Vec<(String, String)>,
 }
 
 /// Résultat du parsing de src/admin.rs
@@ -129,12 +139,14 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             None => return Err("Expected Form name, end of file".to_string()),
         };
 
-        // 6. { title: "...", permissions: [...] }
-        let (title, permissions) = match iter.next() {
+        // 6. { title: "...", permissions: [...], template_*: "...", extra: { ... } }
+        let body = match iter.next() {
             Some(TokenTree::Group(group)) => parse_resource_body(group.stream())?,
             Some(other) => return Err(format!("Expected '{{', found: {}", other)),
             None => return Err("Expected '{{', end of file".to_string()),
         };
+        let title       = body.title.clone();
+        let permissions = body.permissions.clone();
 
         resources.push(ResourceDef {
             key,
@@ -142,6 +154,12 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             form_type,
             title,
             permissions,
+            template_list:   body.template_list,
+            template_create: body.template_create,
+            template_edit:   body.template_edit,
+            template_detail: body.template_detail,
+            template_delete: body.template_delete,
+            extra_context:   body.extra_context,
         });
 
         // Virgule optionnelle entre ressources
@@ -151,12 +169,31 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
     Ok(resources)
 }
 
-fn parse_resource_body(tokens: TokenStream) -> Result<(String, Vec<String>), String> {
+struct ResourceBody {
+    title:           String,
+    permissions:     Vec<String>,
+    template_list:   Option<String>,
+    template_create: Option<String>,
+    template_edit:   Option<String>,
+    template_detail: Option<String>,
+    template_delete: Option<String>,
+    extra_context:   Vec<(String, String)>,
+}
+
+fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
     use proc_macro2::TokenTree;
 
     let mut iter = tokens.into_iter().peekable();
-    let mut title = String::new();
-    let mut permissions = Vec::new();
+    let mut body = ResourceBody {
+        title:           String::new(),
+        permissions:     Vec::new(),
+        template_list:   None,
+        template_create: None,
+        template_edit:   None,
+        template_detail: None,
+        template_delete: None,
+        extra_context:   Vec::new(),
+    };
 
     while iter.peek().is_some() {
         let field = match iter.next() {
@@ -165,34 +202,108 @@ fn parse_resource_body(tokens: TokenStream) -> Result<(String, Vec<String>), Str
             _ => continue,
         };
 
-        // ':'
         expect_punct(&mut iter, ':')?;
 
         match field.as_str() {
             "title" => {
-                title = parse_string_literal(&mut iter)?;
+                body.title = parse_string_literal(&mut iter)?;
             }
             "permissions" => {
-                permissions = parse_permissions_array(&mut iter)?;
+                body.permissions = parse_permissions_array(&mut iter)?;
+            }
+            "template_list" => {
+                body.template_list = Some(parse_string_literal(&mut iter)?);
+            }
+            "template_create" => {
+                body.template_create = Some(parse_string_literal(&mut iter)?);
+            }
+            "template_edit" => {
+                body.template_edit = Some(parse_string_literal(&mut iter)?);
+            }
+            "template_detail" => {
+                body.template_detail = Some(parse_string_literal(&mut iter)?);
+            }
+            "template_delete" => {
+                body.template_delete = Some(parse_string_literal(&mut iter)?);
+            }
+            "extra" => {
+                body.extra_context = parse_extra_map(&mut iter)?;
             }
             other => {
-                // Unknown field → skip until next comma
                 skip_until_punct(&mut iter, ',');
                 eprintln!("  Unknown field in admin!{{}}: '{}'", other);
-            } // autre champ → element de configuration personnalisé,
-              // on skip jusqu'à la prochaine virgule pour ne pas bloquer le parsing
-              // exemple: surcharger un template de rendu pour laisser la main au développeur
+            }
         }
     }
 
-    if title.is_empty() {
+    if body.title.is_empty() {
         return Err("Missing 'title' field in admin!{} declaration".to_string());
     }
-    if permissions.is_empty() {
+    if body.permissions.is_empty() {
         return Err("Missing 'permissions' field in admin!{} declaration".to_string());
     }
 
-    Ok((title, permissions))
+    Ok(body)
+}
+
+/// Parse extra: { "key" => "value", ... }
+fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
+    use proc_macro2::TokenTree;
+
+    match iter.next() {
+        Some(TokenTree::Group(group)) => {
+            let mut pairs = Vec::new();
+            let mut inner = group.stream().into_iter().peekable();
+
+            while inner.peek().is_some() {
+                // "key"
+                let key = match inner.next() {
+                    Some(TokenTree::Literal(lit)) => {
+                        let s = lit.to_string();
+                        if s.starts_with('"') && s.ends_with('"') {
+                            s[1..s.len() - 1].to_string()
+                        } else {
+                            continue;
+                        }
+                    }
+                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+                    _ => continue,
+                };
+
+                // =>
+                // consume '='
+                match inner.next() {
+                    Some(TokenTree::Punct(p)) if p.as_char() == '=' => {}
+                    _ => return Err("Expected '=>' in extra map".to_string()),
+                }
+                // consume '>'
+                match inner.next() {
+                    Some(TokenTree::Punct(p)) if p.as_char() == '>' => {}
+                    _ => return Err("Expected '>' after '=' in extra map".to_string()),
+                }
+
+                // "value"
+                let value = match inner.next() {
+                    Some(TokenTree::Literal(lit)) => {
+                        let s = lit.to_string();
+                        if s.starts_with('"') && s.ends_with('"') {
+                            s[1..s.len() - 1].to_string()
+                        } else {
+                            return Err(format!("Expected string value in extra map, found: {}", s));
+                        }
+                    }
+                    Some(other) => return Err(format!("Expected string value in extra map, found: {}", other)),
+                    None => return Err("Expected string value in extra map, end of file".to_string()),
+                };
+
+                pairs.push((key, value));
+            }
+
+            Ok(pairs)
+        }
+        Some(other) => Err(format!("Expected '{{...}}' for extra map, found: {}", other)),
+        None => Err("Expected '{{...}}' for extra map, end of file".to_string()),
+    }
 }
 
 type TokenIter = std::iter::Peekable<proc_macro2::token_stream::IntoIter>;

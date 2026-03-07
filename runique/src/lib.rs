@@ -13,6 +13,7 @@ pub mod flash;
 pub mod forms;
 pub mod macros;
 pub mod migration;
+pub mod prototype_admin;
 
 pub mod admin;
 pub mod errors;
@@ -294,9 +295,10 @@ pub mod prelude {
     // ========================================================================
     // Admin
     // ========================================================================
+    pub use futures_util::future::BoxFuture;
+    pub use crate::prototype_admin::{AdminRegistry, CreateFn, DeleteFn, DynForm, FormBuilder, GetFn, ListFn, UpdateFn, ResourceEntry, PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id};
     pub use crate::admin::config::config_admin::AdminConfig;
     pub use crate::admin::daemon::{generate, parse_admin_file, watch};
-    pub use crate::admin::registry::AdminRegistry;
     pub use crate::admin::resource::{
         AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
     };

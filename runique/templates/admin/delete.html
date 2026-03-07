@@ -1,0 +1,34 @@
+{% extends "admin_base" %}
+
+{% block title %}Supprimer — {{ resource.title | default(value="Élément") }}{% endblock %}
+
+{% block breadcrumb %}
+  <span class="breadcrumb-sep">/</span>
+  <a href="/admin/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
+  <span class="breadcrumb-sep">/</span>
+  <span>Supprimer</span>
+{% endblock %}
+
+{% block content %}
+
+  <div class="page-header">
+    <h1>Confirmer la suppression</h1>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="warning-box">
+        <p><strong>Attention !</strong> Vous êtes sur le point de supprimer l'entrée #{{ object_id }} de la ressource <strong>{{ resource.title | default(value=resource_key) }}</strong>.</p>
+        <p>Cette action est <strong>irréversible</strong>.</p>
+      </div>
+
+      <div class="form-actions">
+        <a href="/admin/{{ resource.key }}/{{ object_id }}/detail" class="btn btn-secondary">← Annuler</a>
+        <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/delete" style="display:inline;">
+          <button type="submit" class="btn btn-danger">Oui, supprimer définitivement</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}

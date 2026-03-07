@@ -1,0 +1,94 @@
+use std::sync::Arc;
+
+use axum::http::Method;
+use futures_util::future::BoxFuture;
+use sea_orm::DbErr;
+use serde_json::Value;
+
+use crate::admin::resource::AdminResource;
+use crate::prototype_admin::DynForm;
+use crate::utils::aliases::{ADb, ATera, StrMap};
+
+/// Closure construisant un form typé depuis des données brutes.
+pub type FormBuilder = Arc<
+    dyn Fn(StrMap, ATera, String, Method) -> BoxFuture<'static, Box<dyn DynForm>>
+        + Send
+        + Sync,
+>;
+
+/// Closure retournant toutes les entrées d'une ressource sous forme de `Vec<Value>`.
+pub type ListFn = Arc<
+    dyn Fn(ADb) -> BoxFuture<'static, Result<Vec<Value>, DbErr>>
+        + Send
+        + Sync,
+>;
+
+/// Closure retournant une entrée par son id sous forme de `Value`.
+pub type GetFn = Arc<
+    dyn Fn(ADb, i32) -> BoxFuture<'static, Result<Option<Value>, DbErr>>
+        + Send
+        + Sync,
+>;
+
+/// Closure supprimant une entrée par son id.
+pub type DeleteFn = Arc<
+    dyn Fn(ADb, i32) -> BoxFuture<'static, Result<(), DbErr>>
+        + Send
+        + Sync,
+>;
+
+/// Closure mettant à jour une entrée par son id depuis les données du formulaire validé.
+pub type UpdateFn = Arc<
+    dyn Fn(ADb, i32, StrMap) -> BoxFuture<'static, Result<(), DbErr>>
+        + Send
+        + Sync,
+>;
+
+/// Closure créant une nouvelle entrée depuis les données du formulaire validé.
+pub type CreateFn = Arc<
+    dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbErr>>
+        + Send
+        + Sync,
+>;
+
+/// Entrée du registre admin : métadonnées + closures CRUD.
+pub struct ResourceEntry {
+    pub meta:         AdminResource,
+    pub form_builder: FormBuilder,
+    pub list_fn:      Option<ListFn>,
+    pub get_fn:       Option<GetFn>,
+    pub delete_fn:    Option<DeleteFn>,
+    pub update_fn:    Option<UpdateFn>,
+    pub create_fn:    Option<CreateFn>,
+}
+
+impl ResourceEntry {
+    pub fn new(meta: AdminResource, form_builder: FormBuilder) -> Self {
+        Self { meta, form_builder, list_fn: None, get_fn: None, delete_fn: None, update_fn: None, create_fn: None }
+    }
+
+    pub fn with_list_fn(mut self, f: ListFn) -> Self {
+        self.list_fn = Some(f);
+        self
+    }
+
+    pub fn with_get_fn(mut self, f: GetFn) -> Self {
+        self.get_fn = Some(f);
+        self
+    }
+
+    pub fn with_delete_fn(mut self, f: DeleteFn) -> Self {
+        self.delete_fn = Some(f);
+        self
+    }
+
+    pub fn with_update_fn(mut self, f: UpdateFn) -> Self {
+        self.update_fn = Some(f);
+        self
+    }
+
+    pub fn with_create_fn(mut self, f: CreateFn) -> Self {
+        self.create_fn = Some(f);
+        self
+    }
+}

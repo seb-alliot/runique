@@ -163,6 +163,16 @@ pub struct AdminResource {
 
     /// Configuration d'affichage (colonnes, pagination, icône)
     pub display: DisplayConfig,
+
+    /// Surcharges de templates par opération (None = template Runique par défaut)
+    pub template_list:   Option<String>,
+    pub template_create: Option<String>,
+    pub template_edit:   Option<String>,
+    pub template_detail: Option<String>,
+    pub template_delete: Option<String>,
+
+    /// Clés custom injectées dans le contexte Tera (définies via extra: {} dans admin!{})
+    pub extra_context: std::collections::HashMap<String, String>,
 }
 
 impl AdminResource {
@@ -191,6 +201,12 @@ impl AdminResource {
             title,
             permissions: ResourcePermissions::uniform(roles),
             display: DisplayConfig::new(),
+            template_list:   None,
+            template_create: None,
+            template_edit:   None,
+            template_detail: None,
+            template_delete: None,
+            extra_context:   std::collections::HashMap::new(),
         }
     }
 
@@ -209,6 +225,12 @@ impl AdminResource {
             title,
             permissions,
             display: DisplayConfig::new(),
+            template_list:   None,
+            template_create: None,
+            template_edit:   None,
+            template_detail: None,
+            template_delete: None,
+            extra_context:   std::collections::HashMap::new(),
         }
     }
 
@@ -238,5 +260,64 @@ impl AdminResource {
     /// Retourne le chemin de la route suppression pour cette ressource
     pub fn delete_route(&self) -> String {
         format!("/{}/{{id}}/delete", self.key)
+    }
+
+    // ─── Résolution de templates (fallback sur défauts Runique) ───
+
+    pub fn resolve_list(&self) -> &str {
+        self.template_list.as_deref().unwrap_or("admin/list.html")
+    }
+
+    pub fn resolve_create(&self) -> &str {
+        self.template_create.as_deref().unwrap_or("admin/create.html")
+    }
+
+    pub fn resolve_edit(&self) -> &str {
+        self.template_edit.as_deref().unwrap_or("admin/edit.html")
+    }
+
+    pub fn resolve_detail(&self) -> &str {
+        self.template_detail.as_deref().unwrap_or("admin/detail.html")
+    }
+
+    pub fn resolve_delete(&self) -> &str {
+        self.template_delete.as_deref().unwrap_or("admin/delete.html")
+    }
+
+    // ─── Builder methods ──────────────────────────────────────────
+
+    pub fn template_list(mut self, path: &str) -> Self {
+        self.template_list = Some(path.to_string());
+        self
+    }
+
+    pub fn template_create(mut self, path: &str) -> Self {
+        self.template_create = Some(path.to_string());
+        self
+    }
+
+    pub fn template_edit(mut self, path: &str) -> Self {
+        self.template_edit = Some(path.to_string());
+        self
+    }
+
+    pub fn template_detail(mut self, path: &str) -> Self {
+        self.template_detail = Some(path.to_string());
+        self
+    }
+
+    pub fn template_delete(mut self, path: &str) -> Self {
+        self.template_delete = Some(path.to_string());
+        self
+    }
+
+    pub fn extra(mut self, key: &str, value: &str) -> Self {
+        self.extra_context.insert(key.to_string(), value.to_string());
+        self
+    }
+
+    pub fn extra_map(mut self, map: std::collections::HashMap<String, String>) -> Self {
+        self.extra_context.extend(map);
+        self
     }
 }
