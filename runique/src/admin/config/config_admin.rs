@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use crate::admin::template::AdminTemplate;
 use crate::middleware::auth::AdminAuth;
 
 pub struct AdminConfig {
@@ -23,6 +24,9 @@ pub struct AdminConfig {
     ///
     /// Voir `crate::middleware::auth::AdminAuth`.
     pub auth: Option<Arc<dyn AdminAuth>>,
+
+    /// Surcharges de templates admin (dashboard, login, list, etc.)
+    pub templates: AdminTemplate,
 }
 
 impl Clone for AdminConfig {
@@ -33,6 +37,7 @@ impl Clone for AdminConfig {
             site_title: self.site_title.clone(),
             enabled: self.enabled,
             auth: self.auth.clone(),
+            templates: self.templates.clone(),
         }
     }
 }
@@ -45,6 +50,7 @@ impl std::fmt::Debug for AdminConfig {
             .field("site_title", &self.site_title)
             .field("enabled", &self.enabled)
             .field("auth", &self.auth.as_ref().map(|_| "<AdminAuth>"))
+            .field("templates", &self.templates)
             .finish()
     }
 }
@@ -57,6 +63,7 @@ impl AdminConfig {
             site_title: "Administration".to_string(),
             enabled: true,
             auth: None,
+            templates: AdminTemplate::new(),
         }
     }
 

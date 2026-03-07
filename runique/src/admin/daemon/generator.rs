@@ -117,9 +117,9 @@ fn write_edit_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), Str
     let _ = writeln!(out);
     let _ = writeln!(
         out,
-        "    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {{"
+        "    async fn save(&mut self, _db: &DatabaseConnection) -> Result<(), DbErr> {{"
     );
-    let _ = writeln!(out, "        self.0.save(db).await");
+    let _ = writeln!(out, "        Ok(()) // update_fn gère la persistance");
     let _ = writeln!(out, "    }}");
     let _ = writeln!(out);
     let _ = writeln!(out, "    fn get_form(&self) -> &Forms {{");
@@ -132,7 +132,6 @@ fn write_edit_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), Str
     let _ = writeln!(out, "}}");
     let _ = writeln!(out);
 
-    // Silence unused variable warning
     let _ = type_name;
 
     Ok(())

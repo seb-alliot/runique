@@ -34,18 +34,13 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = tpls![
 ];
 
 pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
-    ("admin_base.html", "admin/admin_base.html"),
-    ("login", "admin/composant/admin_login.html"),
-    ("dashboard", "admin/composant/admin_dashboard.html"),
-    // ("list", "admin/composant/admin_list.html"),
-    // ("form", "admin/composant/admin_form.html"),
-    // ("detail", "admin/composant/admin_detail.html"),
-    // ("delete", "admin/composant/admin_delete.html"),
-    // Prototype admin templates
     ("admin_base", "admin/admin_base.html"),
-    ("admin/list.html", "admin/list.html"),
-    ("admin/create.html", "admin/create.html"),
-    ("admin/edit.html", "admin/edit.html"),
-    ("admin/detail.html", "admin/detail.html"),
-    ("admin/delete.html", "admin/delete.html"),
+
+    ("login", "admin/composant/login.html"),
+    ("dashboard", "admin/composant/dashboard.html"),
+    ("list", "admin/composant/list.html"),
+    ("create", "admin/composant/create.html"),
+    ("edit", "admin/composant/edit.html"),
+    ("detail", "admin/composant/detail.html"),
+    ("delete", "admin/composant/delete.html"),
 ];

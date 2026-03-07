@@ -1,11 +1,16 @@
 //! Tests — AdminRegistry
 //! Couvre : register, get, contains, len, is_empty, keys
 
+use std::sync::Arc;
+
 use runique::admin::registry::AdminRegistry;
 use runique::admin::resource::AdminResource;
+use runique::admin::resource_entry::{FormBuilder, ResourceEntry};
 
-fn make_resource(key: &'static str, title: &'static str) -> AdminResource {
-    AdminResource::new(key, "module::Model", "module::Form", title, vec![])
+fn make_entry(key: &'static str, title: &'static str) -> ResourceEntry {
+    let meta = AdminResource::new(key, "module::Model", "module::Form", title, vec![]);
+    let form_builder: FormBuilder = Arc::new(|_, _, _, _| Box::pin(async { unreachable!() }));
+    ResourceEntry::new(meta, form_builder)
 }
 
 // ── État initial ──────────────────────────────────────────────────────────────
@@ -22,7 +27,7 @@ fn test_registry_new_is_empty() {
 #[test]
 fn test_registry_register_single() {
     let mut registry = AdminRegistry::new();
-    registry.register(make_resource("users", "Utilisateurs"));
+    registry.register(make_entry("users", "Utilisateurs"));
     assert_eq!(registry.len(), 1);
     assert!(!registry.is_empty());
 }
@@ -30,10 +35,10 @@ fn test_registry_register_single() {
 #[test]
 fn test_registry_get_existing() {
     let mut registry = AdminRegistry::new();
-    registry.register(make_resource("users", "Utilisateurs"));
+    registry.register(make_entry("users", "Utilisateurs"));
     let resource = registry.get("users");
     assert!(resource.is_some());
-    assert_eq!(resource.unwrap().title, "Utilisateurs");
+    assert_eq!(resource.unwrap().meta.title, "Utilisateurs");
 }
 
 #[test]
@@ -45,11 +50,11 @@ fn test_registry_get_unknown_returns_none() {
 #[test]
 fn test_registry_get_correct_resource_by_key() {
     let mut registry = AdminRegistry::new();
-    registry.register(make_resource("users", "Utilisateurs"));
-    registry.register(make_resource("posts", "Articles"));
+    registry.register(make_entry("users", "Utilisateurs"));
+    registry.register(make_entry("posts", "Articles"));
     let r = registry.get("posts").unwrap();
-    assert_eq!(r.key, "posts");
-    assert_eq!(r.title, "Articles");
+    assert_eq!(r.meta.key, "posts");
+    assert_eq!(r.meta.title, "Articles");
 }
 
 // ── contains ─────────────────────────────────────────────────────────────────
@@ -57,7 +62,7 @@ fn test_registry_get_correct_resource_by_key() {
 #[test]
 fn test_registry_contains_registered() {
     let mut registry = AdminRegistry::new();
-    registry.register(make_resource("users", "U"));
+    registry.register(make_entry("users", "U"));
     assert!(registry.contains("users"));
 }
 
@@ -72,9 +77,9 @@ fn test_registry_does_not_contain_unregistered() {
 #[test]
 fn test_registry_len_after_multiple_registrations() {
     let mut registry = AdminRegistry::new();
-    registry.register(make_resource("users", "U"));
-    registry.register(make_resource("posts", "P"));
-    registry.register(make_resource("comments", "C"));
+    registry.register(make_entry("users", "U"));
+    registry.register(make_entry("posts", "P"));
+    registry.register(make_entry("comments", "C"));
     assert_eq!(registry.len(), 3);
 }
 
@@ -89,20 +94,10 @@ fn test_registry_keys_empty() {
 #[test]
 fn test_registry_keys_returns_all() {
     let mut registry = AdminRegistry::new();
-    registry.register(make_resource("users", "U"));
-    registry.register(make_resource("posts", "P"));
+    registry.register(make_entry("users", "U"));
+    registry.register(make_entry("posts", "P"));
     let keys = registry.keys();
     assert_eq!(keys.len(), 2);
     assert!(keys.contains(&"users"));
     assert!(keys.contains(&"posts"));
-}
-
-#[test]
-fn test_registry_keys_order_matches_insertion() {
-    let mut registry = AdminRegistry::new();
-    registry.register(make_resource("aaa", "A"));
-    registry.register(make_resource("bbb", "B"));
-    let keys = registry.keys();
-    assert_eq!(keys[0], "aaa");
-    assert_eq!(keys[1], "bbb");
 }

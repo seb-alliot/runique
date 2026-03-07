@@ -16,18 +16,16 @@ use serde::Deserialize;
 use tower_sessions::Session;
 
 use crate::admin::middleware::admin_required;
-use crate::admin::registry::AdminRegistry;
+use crate::admin::PrototypeAdminState;
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
 use crate::middleware::auth::{load_user_middleware, login_staff};
-use crate::prototype_admin::PrototypeAdminState;
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
 use crate::{admin::config::AdminConfig, flash_now};
 
 #[derive(Clone)]
 pub struct AdminState {
-    pub registry: Arc<AdminRegistry>,
     pub config: Arc<AdminConfig>,
 }
 
@@ -43,12 +41,10 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .prefix
         .trim_end_matches('/')
         .to_string();
-    let registry = admin_staging.registry;
     let config = admin_staging.config;
     let proto_state = admin_staging.proto_state;
 
     let admin_state = Arc::new(AdminState {
-        registry: Arc::new(registry),
         config: Arc::new(config.clone()),
     });
 
@@ -82,7 +78,13 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .layer(Extension(admin_state));
 
     if let Some(state) = proto_state {
-        router = router.layer(Extension(state));
+        // On remplace le config du proto_state par celui d'AdminStaging
+        // pour que les templates configurés via .templates() soient pris en compte.
+        let merged = Arc::new(PrototypeAdminState {
+            registry: state.registry.clone(),
+            config: Arc::new(config),
+        });
+        router = router.layer(Extension(merged));
     }
 
     router
@@ -102,7 +104,7 @@ async fn admin_dashboard(
     let mut resource_counts: std::collections::HashMap<String, u64> =
         std::collections::HashMap::new();
 
-    if let Some(Extension(state)) = proto {
+    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
         for (key, entry) in &state.registry.resources {
             if let Some(count_fn) = &entry.count_fn {
                 if let Ok(n) = (count_fn)(db.clone()).await {
@@ -110,16 +112,19 @@ async fn admin_dashboard(
                 }
             }
         }
-    }
+        state.registry.all().map(|e| &e.meta).collect()
+    } else {
+        Vec::new()
+    };
 
     req = req
         .insert("site_title", &admin.config.site_title)
-        .insert("resources", &admin.registry.resources)
+        .insert("resources", &resources)
         .insert("resource_counts", &resource_counts)
         .insert("current_page", "dashboard")
         .insert("current_resource", &Option::<String>::None);
 
-    req.render("dashboard")
+    req.render(admin.config.templates.dashboard.resolve())
 }
 
 async fn admin_login_get(
@@ -127,7 +132,7 @@ async fn admin_login_get(
     Extension(admin): Extension<Arc<AdminState>>,
 ) -> AppResult<Response> {
     req = req.insert("site_title", &admin.config.site_title);
-    req.render("login")
+    req.render(admin.config.templates.login.resolve())
 }
 
 async fn admin_login_post(
@@ -163,7 +168,9 @@ async fn admin_login_post(
                 req = req
                     .insert("site_title", &admin.config.site_title)
                     .insert("error", "Erreur lors de l'ouverture de session.");
-                return req.render("login").unwrap_or_else(|e| e.into_response());
+                return req
+                    .render(admin.config.templates.login.resolve())
+                    .unwrap_or_else(|e| e.into_response());
             }
 
             Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
@@ -173,7 +180,8 @@ async fn admin_login_post(
             req = req
                 .insert("site_title", &admin.config.site_title)
                 .insert("error", "Identifiants incorrects ou droits insuffisants.");
-            req.render("login").unwrap_or_else(|e| e.into_response())
+            req.render(admin.config.templates.login.resolve())
+                .unwrap_or_else(|e| e.into_response())
         }
     }
 }
