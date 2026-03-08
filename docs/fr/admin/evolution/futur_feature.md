@@ -55,7 +55,6 @@ Meilleur feedback lors de la génération : erreurs de compilation Rust exposée
 
 | Section | Description |
 | --- | --- |
-
 | [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
 | [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
 | [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |

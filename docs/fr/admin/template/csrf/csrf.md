@@ -119,14 +119,12 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
 
 | Section | Description |
 | --- | --- |
-
-| [Clés de contexte](../clef/context.md) — variables injectées par le backend dans chaque template
-| [Surcharge](../surcharge/surcharge.md) — remplacer le layout ou un composant CRUD
+| [Clés de contexte](../clef/context.md) | variables injectées par le backend dans chaque template
+| [Surcharge](../surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
 
 ## Revenir au sommaire
 
 | Section | Description |
 | --- | --- |
-
-| [Sommaire Admin](../template.md) - Admin
-| [Sommaire Template](../../11-Admin.md) - Sommaire template
+| [Sommaire Admin](../template.md) | Admin
+| [Sommaire Template](../../11-Admin.md) | Sommaire template
