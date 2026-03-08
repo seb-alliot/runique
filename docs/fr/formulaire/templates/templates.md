@@ -1,0 +1,56 @@
+# Rendu dans les templates
+
+[← Erreurs de base de données](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/erreurs/erreurs.md)
+
+---
+
+## Formulaire complet
+
+```html
+<form method="post">
+  {% form.inscription_form %}
+  <button type="submit">S'inscrire</button>
+</form>
+```
+
+Rend automatiquement : tous les champs, les labels, les erreurs de validation, le token CSRF et les scripts JS.
+
+---
+
+## Champ par champ
+
+```html
+<form method="post">
+  {% csrf %}
+  <div class="row">
+    <div class="col-6">{% form.inscription_form.username %}</div>
+    <div class="col-6">{% form.inscription_form.email %}</div>
+  </div>
+  {% form.inscription_form.password %}
+  <button type="submit">S'inscrire</button>
+</form>
+```
+
+---
+
+## Erreurs globales
+
+```html
+{% if inscription_form.errors %}
+<div class="alert alert-danger">
+  {% for msg in inscription_form.errors %}
+  <p>{{ msg }}</p>
+  {% endfor %}
+</div>
+{% endif %}
+```
+
+---
+
+## Données de champ en JSON
+
+Les formulaires sérialisent automatiquement `data`, `errors`, `html`, `rendered_fields`, `fields` et `js_files`.
+
+---
+
+← [**Erreurs de base de données**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/erreurs/erreurs.md) | [**Exemple complet**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/exemple/exemple.md) →
