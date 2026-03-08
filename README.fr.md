@@ -3,7 +3,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-1523%2F1523%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.41-blue)
+![Version](https://img.shields.io/badge/version-1.1.42-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
 
 **Runique** est un framework web construit sur Axum, axé sur les formulaires **type-safe**, les middlewares de sécurité, le rendu de templates, l’intégration ORM et un workflow d’administration généré par code.
@@ -11,7 +11,7 @@
 > État actuel : développement actif. La source de vérité du framework est la crate `runique`.
 > `demo-app` est utilisée comme application de validation/test pour le comportement du framework.
 
-🌍 **Langues** : [English](https://github.com/seb-alliot/runique/blob/main/README.m) | [Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
+🌍 **Langues** : [English](https://github.com/seb-alliot/runique/blob/main/README.md) | [Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
 
 ---
 
@@ -21,7 +21,7 @@
 * `demo-app/` → application de test/validation pour le développement du framework
 * `docs/` → documentation EN/FR
 
-Version du workspace (source de vérité) : **1.1.41**.
+Version du workspace (source de vérité) : **1.1.42**.
 
 ---
 
