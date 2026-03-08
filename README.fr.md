@@ -154,7 +154,7 @@ cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summa
 ```
 
 Voir :
-[couverture_test.md](https://github.com/seb-alliot/runique/blob/main/couverture_test.md)
+[couverture_test.md](https://github.com/seb-alliot/runique/tree/main/docs/couverture_test.md)
 
 ---
 
@@ -207,7 +207,7 @@ Référence complète : [docs/fr/15-env.md](https://github.com/seb-alliot/runiqu
 - [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md)
 - [Environment variables](https://github.com/seb-alliot/runique/blob/main/docs/en/env/15-env.md)
 
-### Français
+### French
 
 - [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md)
 - [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md)

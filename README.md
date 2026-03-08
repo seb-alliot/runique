@@ -150,7 +150,7 @@ Coverage command used:
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
 ```
 
-See: [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/couverture_test.md)
+See: [couverture_test.md](https://github.com/seb-alliot/runique/tree/main/docs/couverture_test.md)
 
 ---
 
