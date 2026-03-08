@@ -41,12 +41,13 @@
 - 🔴 **readonly_fields** : champs non-éditables affichés en lecture seule dans les formulaires
 - 🔴 **date_hierarchy** : navigation par date (année > mois > jour) en haut de la liste
 - 🔴 **list_filter** : filtres latéraux par valeur de colonne
+- 🔴 **Toggle boolean** : `PATCH /admin/{resource}/{id}/toggle/{field}` — checkbox cliquable dans la liste pour les champs booléens (`is_active`, `is_staff`, etc.)
 
 ### Hors scope v1 (futur)
 
 - **Inlines** : formulaires imbriqués pour relations SeaORM (`has_many`) — nécessite refonte du modèle form + JS add/remove + transactions groupées
 - **autocomplete_fields** : widget AJAX pour ForeignKey — nécessite route `/admin/{resource}/search` + JS Select2-style
-- **list_editable** : édition inline dans la liste
+- **list_editable** : édition inline dans la liste (hors boolean — voir toggle ci-dessous)
 - **date_hierarchy avancé** : navigation drill-down avec agrégations DB
 
 ### Personnalisation templates

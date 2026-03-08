@@ -10,7 +10,8 @@ Runique provides a declarative routing system via the `urlpatterns!` and `view!`
 | --- | --- |
 | [Macros](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/macros/macros.md) | `urlpatterns!`, `view!`, `impl_objects!` |
 | [Extractors](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/extracteurs/extracteurs.md) | Path, Query, Prisme, Json |
-| [Responses](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/reponses/reponses.md) | HTML, Redirect, JSON, StatusCode, complete structure |
+| [Responses](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/responses/responses.md)
+| HTML, Redirect, JSON, StatusCode, complete structure |
 
 ---
 
