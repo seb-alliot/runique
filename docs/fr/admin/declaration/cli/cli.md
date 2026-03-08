@@ -45,7 +45,11 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 
 ---
 
-## Sous-sections
+## Autre section
 
+- [Daemon & génération](../daemon/generation.md) — Watcher, fichiers
 - [Macro `admin!`](../macro/macro.md) — Déclaration des ressources administrables
-- [Daemon & génération](../daemon/generation.md) — Watcher, fichiers générés, compromis
+
+## Revenir au Sommaire
+
+-[Sommaire](../../11-Admin.md) - Sommaire Admin

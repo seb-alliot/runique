@@ -90,3 +90,12 @@ error[E0412]: cannot find type `RegisterForm` in module `users`
 ```
 
 Les champs obligatoires manquants produisent également des erreurs à la compilation, pas au runtime.
+
+## Autre section
+
+- [Cli](../cli/cli.md) - Fonctionnement de runique start
+- [Daemon & génération](../daemon/generation.md) — Watcher, fichiers
+
+## Revenir au Sommaire
+
+-[Sommaire](../../11-Admin.md) - Sommaire Admin

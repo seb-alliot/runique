@@ -57,3 +57,12 @@ cargo run
 Dans ce mode, `src/admins/` n'est plus surveillé ni écrasé. Les modifications persistent.
 
 > Le `README.md` généré dans `src/admins/` rappelle ce comportement directement dans le dépôt.
+
+## Autre section
+
+- [Cli](../cli/cli.md) - Fonctionnement de runique start
+- [Macro `admin!`](../macro/macro.md) — Déclaration des ressources administrables
+
+## Revenir au Sommaire
+
+-[Sommaire](../../11-Admin.md) - Sommaire Admin
