@@ -81,3 +81,13 @@ Variables injectées par le backend dans chaque template admin.
 | --- | --- | --- |
 | `entry` | `JSON Object` (optionnel) | Enregistrement sérialisé |
 | `object_id` | `i32` | Identifiant de l'enregistrement |
+
+## Sous-sections
+
+- [Surcharge](../surcharge/surcharge.md) — remplacer le layout ou un composant CRUD
+- [CSRF](../csrf/csrf.md) — token CSRF, `csrf.js`, checklist login custom
+
+## Revenir au sommaire
+
+- [Sommaire Admin](../template.md) - Admin
+- [Sommaire Template](../../11-Admin.md) - Sommaire template

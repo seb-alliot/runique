@@ -114,3 +114,13 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
 | Override de `{% block content %}` avec un `<form>` manuel sans `{% csrf %}` | Le champ `_csrf_token` est absent → 403 sur soumission | Ajouter `{% csrf %}` dans le `<form>` |
 | Template qui n'hérite pas de `admin_template.html` | Ni la meta ni le script `csrf.js` ne sont présents | Ajouter manuellement les deux éléments (voir checklist) |
 | Appel `fetch()` dans un script chargé avant `csrf.js` | L'intercepteur n'est pas encore actif | Charger le script custom après `csrf.js` ou utiliser `{% block scripts %}` |
+
+## Sous-sections
+
+- [Clés de contexte](../clef/context.md) — variables injectées par le backend dans chaque template
+- [Surcharge](../surcharge/surcharge.md) — remplacer le layout ou un composant CRUD
+
+## Revenir au sommaire
+
+- [Sommaire Admin](../template.md) - Admin
+- [Sommaire Template](../../11-Admin.md) - Sommaire template

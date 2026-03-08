@@ -51,6 +51,12 @@ Support des relations SeaORM dans les vues detail/edit (affichage des entités l
 
 Meilleur feedback lors de la génération : erreurs de compilation Rust exposées directement dans le terminal avec contexte.
 
+## Voir aussi
+
+| [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+| [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
+| [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Templates](../template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
 
 ## Revenir au sommaire
 
