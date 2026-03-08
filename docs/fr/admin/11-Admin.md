@@ -1,9 +1,5 @@
 # Admin Runique
 
-** CLi**
-La commande `runique start` lance un daemon qui surveille `src/admin.rs` en continu via un watcher basé sur `notify`.
-
-
 L'administration Runique génère un CRUD complet à partir d'une macro déclarative (`admin!`).
 Le code produit est du Rust ordinaire — lisible, auditable et modifiable si nécessaire.
 L'approche est volontairement transparente : pas de magie cachée, pas de runtime inconnu.
@@ -23,7 +19,8 @@ admin! {
 
 | Fichier | Contenu |
 | --- | --- |
-| [Cli](declaration/cli/cli.md) | Commande `runique start`, workflow général |
+| [Mise en place](setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+| [CLI](declaration/cli/cli.md) | Commande `runique start`, workflow général |
 | [Macro `admin!`](declaration/macro/macro.md) | Syntaxe complète, champs, erreurs compile-time |
 | [Daemon & génération](declaration/daemon/generation.md) | Watcher, structure `src/admins/`, écrasement |
 | [Permissions](permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
