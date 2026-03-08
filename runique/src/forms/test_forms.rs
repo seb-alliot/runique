@@ -629,12 +629,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_clean_field_not_called_when_required_missing() {
-        // Si un champ requis est vide, clean_field ne doit pas valider la logique métier
+        // Si un champ requis est vide, clean_field ne doit pas valider la logique métier.
+        // On simule un vrai POST (fill avec méthode POST) pour que submitted = true.
         let mut form = UsernameForm {
             form: Forms::new("csrf"),
         };
         UsernameForm::register_fields(&mut form.form);
-        // username vide → required échoue, clean_field non invoqué
+        // POST avec username vide → submitted=true, required échoue, clean_field non invoqué
+        let data: HashMap<String, String> = HashMap::new();
+        form.form.fill(&data, Method::POST);
         assert!(!form.is_valid().await);
     }
 }

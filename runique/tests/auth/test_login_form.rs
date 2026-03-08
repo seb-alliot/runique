@@ -153,8 +153,12 @@ async fn test_clean_retourne_ok_par_defaut() {
 
 #[tokio::test]
 async fn test_is_valid_invalide_sans_donnees() {
-    // username est required → formulaire invalide sans données
-    let mut login = login_form();
+    // username est required → formulaire invalide si soumis (POST) sans données
+    let mut form = Forms::new("csrf_token");
+    LoginAdmin::register_fields(&mut form);
+    let data: HashMap<String, String> = HashMap::new();
+    form.fill(&data, Method::POST);
+    let mut login = LoginAdmin::from_form(form);
     assert!(!login.is_valid().await);
 }
 
@@ -162,7 +166,8 @@ async fn test_is_valid_invalide_sans_donnees() {
 async fn test_is_valid_invalide_username_vide() {
     let mut form = Forms::new("csrf_token");
     LoginAdmin::register_fields(&mut form);
-    form.add_value("username", "");
+    let data: HashMap<String, String> = HashMap::new();
+    form.fill(&data, Method::POST);
     let mut login = LoginAdmin::from_form(form);
     assert!(!login.is_valid().await);
 }

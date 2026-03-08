@@ -1,289 +1,243 @@
-# 📚 Documentation Runique
+# Runique — Django-inspired Rust Framework
 
-Documentation complète et détaillée du framework Runique.
+![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
+![Tests passing](https://img.shields.io/badge/tests-1523%2F1523%20passing-green)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-1.1.43-blue)
+![Crates.io](https://img.shields.io/crates/v/runique)
 
-## 🌍 Langues disponibles
+Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
 
-- 🇬🇧 **[English](en/README.md)** - English documentation
-- 🇫🇷 **[Français](fr/README.md)** - Documentation en français
+> Current state: active development. The framework source of truth is the `runique` crate.
+> `demo-app` is used as a validation/testing application for framework behavior.
 
----
-
-## 📖 10 sections de documentation
-
-### 1. Installation
-
-Installer et configurer Runique pour la première fois.
-
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
+🌍 **Languages**: [English](https://github.com/seb-alliot/runique/blob/main/README.md) | [Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
 
 ---
 
-### 2. Architecture
+## What this repository contains
 
-Comprendre l'architecture et la structure interne du framework.
+- `runique/` → framework crate (main product)
+- `demo-app/` → test/validation app for framework development
+- `docs/` → EN/FR documentation
 
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/02-architecture.md)
-
----
-
-### 3. Configuration
-
-Configurer votre application (serveur, BD, sécurité).
-
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/03-configuration.md)
+Workspace version (source of truth): **1.1.43**.
 
 ---
 
-### 4. Routage
+## Core capabilities
 
-Définir les routes et les URL patterns.
+- Type-safe form system (`forms`, extractors, validators, renderers)
+- Routing macros and URL helpers
+- Tera template integration and context helpers
+- Security middleware (CSRF, CSP, allowed hosts, sanitization, auth/session)
+- SeaORM integration + migration tooling
+- Flash message system
+- Admin beta (`admin!` macro + daemon-generated CRUD code)
 
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/04-routing.md)
-
----
-
-### 5. Formulaires
-
-Créer et gérer les formulaires avec validation.
-
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+Main public modules are exposed from `runique/src/lib.rs`.
 
 ---
 
-### 6. Templates
-
-Utiliser les templates Tera pour les vues.
-
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/06-templates.md)
-
----
-
-### 7. ORM
-
-Travailler avec la base de données via SeaORM.
-
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/07-orm.md)
-
----
-
-### 8. Middlewares
-
-Intégrer les middlewares de sécurité.
-
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/08-middleware.md)
-
----
-
-### 9. Flash Messages
-
-Utiliser les messages flash pour les retours utilisateur.
-
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/09-flash-messages.md)
-
----
-
-### 10. Exemples
-
-Voir des exemples de code complets et de projets.
-
-**Lire** : [English](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) | [Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md)
-
----
-### 11. Admin
-
----
-
-##  Vue d’administration (bêta)
-
-Runique intègre une **vue d’administration en version bêta**, basée sur une macro déclarative `admin!` et un système de génération automatique.
-
-Les ressources administrables sont déclarées dans `src/admin.rs`.
-À partir de cette déclaration, Runique génère automatiquement une interface CRUD complète (routes, handlers, formulaires) sous forme de **code Rust standard**, lisible et auditable.
-
-Cette approche met l’accent sur :
-
-* la **sécurité de typage** (vérification à la compilation des modèles et formulaires)
-* la **transparence** (pas de logique cachée, pas de macro procédurale)
-* le **contrôle développeur** sur le code généré
-
-Le daemon (`runique start`) permet une régénération automatique, tandis qu’un workflow `cargo run` peut être utilisé lorsque des modifications manuelles sont nécessaires.
-
-> ⚠️ La vue admin est actuellement en **bêta** et pose volontairement des bases simples, déclaratives et sûres. Des évolutions sont prévues (permissions plus fines, meilleur feedback, protections supplémentaires).
-
----
-
-## 🎯 Guide de navigation
-
-### Je suis nouveau sur Runique
-
-1. Lire [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
-2. Lire [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
-3. Vérifier [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
-
-### Je veux apprendre X
-
-- Formulaires ? → [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
-- Routage ? → [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
-- BD ? → [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
-- Sécurité ? → [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
-
-### Je veux un exemple complet
-
-→ [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
-
----
-
-## 📊 Structure des documents
-
-Chaque document contient :
-
-- 📖 Explications détaillées
-
-- 💻 Exemples de code
-- 🎯 Bonnes pratiques
-- ⚠️ Pièges à éviter
-- 🔗 Références
-
----
-
-## 🚀 Démarrage rapide
-
-### Installation
+## Installation
 
 ```bash
-git clone <repo>
+git clone https://github.com/seb-alliot/runique
 cd runique
-cargo build
-cargo test
+cargo build --workspace
+cargo test --workspace
 ```
 
-### Première app
+Detailed guide: [docs/en/01-installation.md](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
 
-```rust
+---
+
+## Quick usage
+
+```rust,no_run
 use runique::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    let app = RuniqueApp::builder(settings)
-        .with_routes(routes)
-        .build()
-        .await;
-
-    app.run().await;
-}
-```
-
-### Formulaires
-
-```rust
-#[derive(RuniqueForm)]
-pub struct MyForm {
-    #[field(label = "Nom", required, min_length = 3)]
-    pub name: String,
-}
-
-// Dans le handler
-async fn handle_form(
-    Prisme(mut form): Prisme<MyForm>,
-    mut template: TemplateContext,
-) -> Response {
-    if form.is_valid().await {
-        // Traiter le formulaire
-    }
-    template.context.insert("form", form);
-    template.render("form.html")
+    let config = RuniqueConfig::from_env();
+    let app = RuniqueApp::builder(config).build().await.unwrap();
+    app.run().await.unwrap();
 }
 ```
 
 ---
 
-## 🌐 Choix de la langue
+## CLI (actual commands)
 
-### English (EN)
+`runique` provides:
 
-Cliquez sur le lien pour accéder à la documentation en anglais :
-[📖 English Documentation](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)
+- `runique new <name>`
+- `runique start [--main src/main.rs] [--admin src/admin.rs]`
+- `runique create-superuser`
+- `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
+- `runique migration up|down|status --migrations migration/src`
 
-### Français (FR)
+```
 
-Cliquez sur le lien pour accéder à la documentation en français :
-[📖 Documentation Française](https://github.com/seb-alliot/runique/blob/main/docs/fr/README.md)
+```
 
----
+> ⚠️ **Warning**
+> The `makemigrations` command generates SeaORM tables while preserving the
+> chronological order of the migration system.
+> To ensure migration tracking remains consistent, only use the SeaORM CLI
+> to apply or manage migrations.
+> Using other commands may lead to migration desynchronization.
 
-## 📋 Contenu par catégorie
+```
 
-### Mise en route
+```
 
-- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md)
-- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
-- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/02-architecture.md)
+## Admin beta status (bêta)
 
-### Développement
+Admin daemon behavior in `start`:
 
-- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/en/04-routing.md)
-- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
-- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/06-templates.md)
-
-### Données
-
-- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
-
-### Sécurité & Expérience
-
-- [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
-- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
-
-### Apprentissage pratique
-
-- [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
+- checks whether `.with_admin(...)` exists in `src/main.rs`
+- starts the admin watcher when enabled
+- otherwise exits with an explicit hint
 
 ---
 
-## 💡 Conseils pour utiliser la documentation
+Admin resources are declared in `src/admin.rs` using `admin!`.
 
-1. **Utilisez la barre de recherche** de votre navigateur (Ctrl+F)
-2. **Suivez l'ordre** des sections pour apprendre progressivement
-3. **Consultez les exemples** pour du code réel
-4. **Revisitez régulièrement** pour mieux comprendre
+The workflow:
 
----
+1. parse `admin!` declarations
+2. generate admin code under `src/admins/`
+3. refresh on changes with watcher mode
 
-## ❓ FAQ
+Current beta limits:
 
-**Où commence-t-on ?**
-→ [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md)
+- mostly resource-level permissions
+- generated folder overwrite (`src/admins/`)
+- iterative hardening still in progress
 
-**Comment créer un formulaire ?**
-→ [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
-
-**Comment interroger la BD ?**
-→ [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/07-orm.md)
-
-**Comment déployer en production ?**
-→ [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/03-configuration.md)
+Admin docs: [docs/en/11-Admin.md](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
 
 ---
 
-## 📞 Support
+## Features and database backends
 
-- 📚 Documentation : Vous êtes ici !
-- 🧪 Tests : Voir `runique/tests/`
-- 🎓 Exemples : Voir `demo-app/`
-- 📊 Rapports : Voir `PROJECT_STATUS.md`
+Default features:
 
----
+- `orm`
+- `all-databases`
 
-## ✅ Documentation Status
+Selectable backends:
 
-- ✅ 10 sections complètes
-- ✅ Bilingue (EN & FR)
-- ✅ Code examples inclus
-- ✅ À jour (24/01/2026)
+- `sqlite`
+- `postgres`
+- `mysql`
+- `mariadb`
 
 ---
 
-**Commencez maintenant !** 🚀
+## Test and coverage snapshot
 
-[📖 English](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md) | [📖 Français](https://github.com/seb-alliot/runique/blob/main/docs/fr/README.md)
+  - Reported tests: **1523/1523 passing**
+  - Coverage snapshot (`2026-03-01`, package `runique`):
+  - Functions: **76.66%**
+  - Lines: **71.04%**
+  - Regions: **67.22%**
+
+Coverage command used:
+
+```bash
+cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
+```
+
+See: [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md)
+
+---
+
+## Sessions
+
+`CleaningMemoryStore` replaces the default `MemoryStore` with automatic expired-session cleanup, a two-tier watermark system (128 MB / 256 MB), and priority-based protection for authenticated and high-value anonymous sessions (shopping carts, multi-step forms).
+
+- Low watermark: background purge of expired anonymous sessions
+- High watermark: synchronous emergency purge + 503 refusal if still exceeded
+- `protect_session(&session, duration_secs)` — marks an anonymous session as untouchable until a given timestamp
+- `user_id` key — automatically protects authenticated sessions
+
+Full reference: [docs/en/14-sessions.md](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md)
+
+---
+
+## Environment variables
+
+All behavior is configurable via `.env`. Key variables:
+
+```env
+RUNIQUE_SESSION_CLEANUP_SECS=60
+RUNIQUE_SESSION_LOW_WATERMARK=134217728
+RUNIQUE_SESSION_HIGH_WATERMARK=268435456
+SECRET_KEY=your-secret-key
+ALLOWED_HOSTS=localhost,example.com
+DATABASE_URL=sqlite://db.sqlite3
+```
+
+Full reference: [docs/en/15-env.md](https://github.com/seb-alliot/runique/blob/main/docs/en/env/15-env.md)
+
+---
+
+## Documentation map
+
+### English
+
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)
+- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md)
+- [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/en/model/12-model.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md)
+- [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md)
+- [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md)
+- [Admin bêta](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
+- [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md)
+- [Environment variables](https://github.com/seb-alliot/runique/blob/main/docs/en/env/15-env.md)
+
+### Français
+
+- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md)
+- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md)
+- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/03-configuration.md)
+- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md)
+- [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md)
+- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md)
+- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md)
+- [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md)
+- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md)
+- [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md)
+- [Admin bêta](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)
+- [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md)
+- [Variables d'environnement](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/15-env.md)
+
+---
+
+## Project status
+
+For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.md).
+
+---
+
+## Resources
+
+- [Project structure](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md)
+- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
+- [Documentation hub](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)
+- [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
+- [Benchmark](https://github.com/seb-alliot/runique/blob/main/benchmark.md)
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)

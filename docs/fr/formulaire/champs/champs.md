@@ -48,25 +48,34 @@ TextField::text("nom")
 
 **Comportements automatiques par format :**
 
-| Format     | Validation                 | Transformation                                              |
-| ---------- | -------------------------- | ----------------------------------------------------------- |
-| `Email`    | `validator::ValidateEmail` | Conversion en lowercase                                     |
-| `Url`      | `validator::ValidateUrl`   | —                                                           |
-| `Password` | Standard                   | Hachage Argon2 dans `finalize()`, valeur vidée au `render()` |
-| `RichText` | Standard                   | Sanitisation XSS (`sanitize()`) avant validation            |
-| `Csrf`     | Token session              | —                                                           |
+| Format | Validation | Transformation |
+| --- | --- | --- |
+| `Email` | `validator::ValidateEmail` | Conversion en lowercase |
+| `Url` | `validator::ValidateUrl` | — |
+| `Password` | Standard | Hachage Argon2 dans `finalize()`, valeur vidée au `render()` |
+| `RichText` | Standard | Sanitisation XSS (`sanitize()`) avant validation |
+| `Csrf` | Token session | — |
 
 **Utilitaires mot de passe :**
 
-```rust
-// Hacher manuellement
-let hash = field.hash_password()?;
+Le hachage et la vérification sont délégués à `PasswordConfig`, initialisé au démarrage via `password_init()` :
 
-// Vérifier un mot de passe
-let ok = TextField::verify_password("mdp_clair", "$argon2...");
+```rust
+use runique::prelude::{hash, verify};
+
+// Hacher manuellement (ex: création de compte hors formulaire)
+let hashed = hash("mon_mot_de_passe")?;
+
+// Vérifier un mot de passe clair contre un hash stocké en DB (ex: connexion)
+let ok = verify("mdp_clair", &user.password_hash);
+if !ok {
+    // mot de passe incorrect
+}
 ```
 
-> Le hachage automatique détecte si la valeur commence déjà par `$argon2` pour éviter un double hachage.
+> Le hachage automatique dans `finalize()` détecte si la valeur commence déjà par `$argon2` pour éviter un double hachage. Dans un formulaire de **connexion**, n'utilisez pas `is_valid()` pour vérifier le mot de passe — récupérez d'abord l'utilisateur en DB, puis appelez `verify()` manuellement.
+>
+> Voir → [Configuration des mots de passe](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/password/password.md) pour tous les modes (`Auto`, `Manual`, `Delegated`, `Custom`) et la configuration dans `main.rs`.
 
 ---
 

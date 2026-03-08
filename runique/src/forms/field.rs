@@ -48,6 +48,14 @@ pub trait RuniqueForm: Sized + Send + Sync {
     }
 
     async fn is_valid(&mut self) -> bool {
+        // If the form has no submitted data (e.g. first GET with no params), return false
+        // without setting any field errors. This prevents showing validation errors on the
+        // initial page load, and lets GET search forms fall through to their else branch
+        // cleanly. Note: Forms::is_valid() (sync) does not have this guard.
+        if !self.get_form().is_submitted() {
+            return false;
+        }
+
         let mut fields_valid = match self.get_form_mut().is_valid() {
             Ok(valid) => valid,
             Err(ValidationError::StackOverflow) => {
