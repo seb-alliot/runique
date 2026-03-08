@@ -140,6 +140,7 @@ admin! {
 
 ## Sous-sections
 
+| Section | Description |
 | --- | --- |
 
 | [Clés de contexte](../clef/context.md) — variables injectées par le backend dans chaque template
@@ -147,6 +148,7 @@ admin! {
 
 ## Revenir au sommaire
 
+| Section | Description |
 | --- | --- |
 
 | [Sommaire Admin](../template.md) - Admin

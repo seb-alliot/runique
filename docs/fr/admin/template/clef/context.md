@@ -84,6 +84,7 @@ Variables injectées par le backend dans chaque template admin.
 
 ## Sous-sections
 
+| Section | Description |
 | --- | --- |
 | [Surcharge](../surcharge/surcharge.md) — remplacer le layout ou un composant CRUD
 | [CSRF](../csrf/csrf.md) — token CSRF, `csrf.js`, checklist login custom

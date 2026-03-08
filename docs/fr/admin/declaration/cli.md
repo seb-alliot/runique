@@ -47,6 +47,7 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 
 ## Autre section
 
+| Section | Description |
 | --- | --- |
 
 - [Daemon & génération](../daemon/generation.md) — Watcher, fichiers
@@ -54,6 +55,7 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 
 ## Voir aussi
 
+| Section | Description |
 | --- | --- |
 
 | [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |

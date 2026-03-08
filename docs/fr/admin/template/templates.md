@@ -43,6 +43,7 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 
 ## Sous-sections
 
+| Section | Description |
 | --- | --- |
 
 | [Clés de contexte](clef/context.md) — variables injectées par le backend dans chaque template
@@ -51,6 +52,7 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 
 ## Voir aussi
 
+| Section | Description |
 | --- | --- |
 
 | [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |

@@ -60,6 +60,7 @@ Dans ce mode, `src/admins/` n'est plus surveillé ni écrasé. Les modifications
 
 ## Autre section
 
+| Section | Description |
 | --- | --- |
 
 | [Cli](../cli.md) - Fonctionnement de runique start
