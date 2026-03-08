@@ -82,7 +82,9 @@ save() / database_error()    → persistence or DB error handling
 
 **`clean()`** *(optional)* — Cross-field validation. Returns `Result<(), StrMap>`. Called once all fields are valid.
 
-**`is_valid()`** — Orchestrates the full pipeline. Skipped if the form has not received data (prevents errors on GET).
+**`is_valid()`** — Orchestrates the full pipeline. Safe to call on both GET and POST: returns `false` without setting field errors if no data has been submitted (first page load), validates normally otherwise.
+
+**`is_submitted()`** — Returns `true` if the form received data (POST, or GET with non-empty query params).
 
 **`database_error(&err)`** — Parses a DB error and attaches it to the correct field.
 
@@ -92,9 +94,38 @@ save() / database_error()    → persistence or DB error handling
 
 ---
 
+## `is_valid()` — calling on GET and POST
+
+`is_valid()` is designed to be called regardless of the HTTP method:
+
+- **First GET (empty form)** — returns `false`, no errors set on fields. The template renders a clean empty form.
+- **GET with query params (search form)** — validates normally, enabling GET-based searches without extra code.
+- **POST** — standard behavior: validates and sets field errors if invalid.
+
+```rust
+// Unified GET+POST handler — no method branching needed
+pub async fn search(
+    mut request: Request,
+    Prisme(mut form): Prisme<SearchForm>,
+) -> AppResult<Response> {
+    if form.is_valid().await {
+        let query = form.get_string("q");
+        // run the search...
+    }
+    // First GET: is_valid() == false, no errors → clean empty form
+    // Submitted GET invalid: is_valid() == false, errors shown
+    context_update!(request => { "search_form" => &form });
+    request.render("search.html")
+}
+```
+
+> **`is_submitted()`** is available when you need to explicitly distinguish "first page load" from "form submitted with invalid data".
+
+---
+
 ## `is_valid()` validation pipeline
 
-Calling `form.is_valid().await` triggers **4 steps in order**:
+Calling `form.is_valid().await` triggers **4 steps in order** (only if the form is submitted):
 
 1. **Field validation** — Each field runs `validate()`: required, length, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`, …)
 2. **`clean_field(name)`** — Per-field business validation, called for each field after step 1 (only if standard validation passed)

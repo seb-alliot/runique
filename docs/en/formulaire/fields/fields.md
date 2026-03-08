@@ -58,15 +58,22 @@ TextField::text("name")
 
 **Password utilities:**
 
-```rust
-// Hash manually
-let hash = field.hash_password()?;
+Hashing and verification are delegated to `PasswordConfig`, initialized at startup via `password_init()`:
 
-// Verify a password
-let ok = TextField::verify_password("plain_pwd", "$argon2...");
+```rust
+use runique::prelude::{hash, verify};
+
+// Hash manually (e.g. account creation outside a form)
+let hashed = hash("my_password")?;
+
+// Verify a plain password against a stored hash (e.g. login)
+let ok = verify("plain_pwd", &user.password_hash);
+if !ok {
+    // incorrect password
+}
 ```
 
-> Automatic hashing detects if the value already starts with `$argon2` to avoid double hashing.
+> Automatic hashing in `finalize()` detects if the value already starts with `$argon2` to avoid double hashing. In a **login** form, do not rely on `is_valid()` to check the password — fetch the user from the DB first, then call `verify()` manually.
 
 ---
 

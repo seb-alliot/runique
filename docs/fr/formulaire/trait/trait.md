@@ -82,7 +82,9 @@ save() / database_error()    → persistance ou gestion d'erreur DB
 
 **`clean()`** *(optionnel)* — Validation croisée entre plusieurs champs. Retourne `Result<(), StrMap>`. Appelée une fois que tous les champs sont valides.
 
-**`is_valid()`** — Orchestre le pipeline complet. Ignoré si le formulaire n'a pas reçu de données (évite les erreurs sur GET).
+**`is_valid()`** — Orchestre le pipeline complet. Peut être appelé sur GET comme sur POST : retourne `false` sans poser d'erreurs si aucune donnée n'a été soumise (premier affichage), valide normalement sinon.
+
+**`is_submitted()`** — Retourne `true` si le formulaire a reçu des données (POST, ou GET avec query params non vides).
 
 **`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ.
 
@@ -92,9 +94,38 @@ save() / database_error()    → persistance ou gestion d'erreur DB
 
 ---
 
+## `is_valid()` — appel sur GET et POST
+
+`is_valid()` est conçu pour être appelé indifféremment sur GET et POST :
+
+- **Premier GET (formulaire vide)** — `is_valid()` retourne `false`, aucune erreur n'est posée sur les champs. Le template affiche un formulaire propre.
+- **GET avec query params (formulaire de recherche)** — `is_valid()` valide normalement. Permet de faire des recherches via GET sans code supplémentaire.
+- **POST** — comportement standard : valide, pose les erreurs sur les champs si invalide.
+
+```rust
+// Handler GET+POST unifié — fonctionne sans if/else sur la méthode
+pub async fn search(
+    mut request: Request,
+    Prisme(mut form): Prisme<SearchForm>,
+) -> AppResult<Response> {
+    if form.is_valid().await {
+        let query = form.get_string("q");
+        // lancer la recherche...
+    }
+    // Premier GET : is_valid() == false, aucune erreur → formulaire vide
+    // GET soumis invalide : is_valid() == false, erreurs affichées
+    context_update!(request => { "search_form" => &form });
+    request.render("search.html")
+}
+```
+
+> **`is_submitted()`** est disponible si tu as besoin de distinguer explicitement "premier affichage" de "formulaire soumis sans données valides".
+
+---
+
 ## Pipeline de validation `is_valid()`
 
-L'appel `form.is_valid().await` déclenche **4 étapes dans l'ordre** :
+L'appel `form.is_valid().await` déclenche **4 étapes dans l'ordre** (uniquement si le formulaire est soumis) :
 
 1. **Validation des champs** — Chaque champ exécute son `validate()` : requis, longueur, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`…)
 2. **`clean_field(name)`** — Validation métier par champ, appelée pour chaque champ après l'étape 1 (uniquement si la validation standard a réussi)

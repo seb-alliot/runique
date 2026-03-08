@@ -9,6 +9,7 @@ All configuration is handled through `.env` and loaded into a `RuniqueConfig` st
 | [Environment Variables](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/variables/variables.md) | Server, DB, assets, security, complete `.env` file |
 | [Access in Code](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/code/code.md) | `RuniqueConfig`, validation, conditional configuration |
 | [Builder](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/builder/builder.md) | Classic Builder, Intelligent Builder, methods, default values |
+| [Passwords](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/password/password.md) | `PasswordConfig`: Auto, Manual, Delegated, Custom — `password_init()`, `hash()`, `verify()` |
 
 ## Next Steps
 

@@ -193,7 +193,9 @@ impl Forms {
                 field.set_value(value);
             }
         }
-        self.submitted = has_data;
+        // A POST/PUT/PATCH is always a submission, even if all fields are empty.
+        // A GET with query params is only "submitted" if at least one param is non-empty.
+        self.submitted = allow_password || has_data;
     }
 
     pub fn add_value(&mut self, name: &str, value: &str) {
