@@ -34,7 +34,7 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = tpls![
 ];
 
 pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
-    ("admin/admin_base_contract", "admin/admin_base_contract.html"),
+    ("admin/admin_template", "admin/admin_template.html"),
     ("admin_base", "admin/admin_base.html"),
 
     ("login", "admin/composant/login.html"),
