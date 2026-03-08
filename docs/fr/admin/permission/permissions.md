@@ -80,11 +80,11 @@ authentifié ?
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
-| [Templates](../template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [Évolutions](../evolution/futur_feature.md) | Axes d'évolution et état bêta |
+| [Mise en place](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Commande `runique start`, workflow général |
+| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
+| [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md) | Axes d'évolution et état bêta |
 
 ## Revenir au sommaire
 
-- [Sommaire Admin](../11-Admin.md)
+- [Sommaire Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)

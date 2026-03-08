@@ -49,18 +49,18 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 
 | Section | Description |
 | --- | --- |
-| [Daemon & génération](daemon/generation.md) | Watcher, fichiers
-| [Macro `admin!`](macro/macro.md) | Déclaration des ressources administrables
+| [Daemon & génération](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/daemon/generation.md) | Watcher, fichiers
+| [Macro `admin!`](github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/macro/macro.md) | Déclaration des ressources administrables
 
 ## Voir aussi
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
-| [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Templates](../template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [Évolutions](../evolution/futur_feature.md) | Axes d'évolution et état bêta |
+| [Mise en place](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
+| [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md) | Axes d'évolution et état bêta |
 
 ## Revenir au Sommaire
 
-- [Sommaire](../11-Admin.md) - Sommaire Admin
+- [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) - Sommaire Admin

@@ -86,11 +86,11 @@ Variables injectées par le backend dans chaque template admin.
 
 | Section | Description |
 | --- | --- |
-| [Surcharge](../surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
-| [CSRF](../csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom
+| [Surcharge](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
+| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom
 
 ## Revenir au sommaire
 
 | --- | --- |
-| [Sommaire template](../template.md) | Admin
-| [Sommaire](../../11-Admin.md) | Sommaire template
+| [Sommaire template](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Admin
+| [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Sommaire template

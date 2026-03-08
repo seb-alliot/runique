@@ -45,19 +45,19 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 
 | Section | Description |
 | --- | --- |
-| [Clés de contexte](clef/context.md) | variables injectées par le backend dans chaque template
-| [Surcharge](surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
+| [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | variables injectées par le backend dans chaque template
+| [Surcharge](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
 | [CSRF](csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom
 
 ## Voir aussi
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
-| [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Évolutions](../evolution/futur_feature.md) | Axes d'évolution et état bêta |
+| [Mise en place](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Commande `runique start`, workflow général |
+| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md) | Axes d'évolution et état bêta |
 
-## Revenir au sommaire
+## Revenir au menu
 
-- [Sommaire](../../../../../README.fr.md)
+- [Sommaire](https://github.com/seb-alliot/runique/blob/main/README.fr.md)

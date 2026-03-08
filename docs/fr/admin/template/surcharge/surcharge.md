@@ -142,12 +142,12 @@ admin! {
 
 | Section | Description |
 | --- | --- |
-| [Clés de contexte](../clef/context.md) | variables injectées par le backend dans chaque template
-| [CSRF](../csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom
+| [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | variables injectées par le backend dans chaque template
+| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | token CSRF, `csrf.js`, checklist login custom
 
 ## Revenir au sommaire
 
 | Section | Description |
 | --- | --- |
-| [Sommaire template](../template.md) | Admin
-| [Sommaire](../../11-Admin.md) | Sommaire template
+| [Sommaire template](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Admin
+| [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Sommaire template

@@ -55,11 +55,11 @@ Meilleur feedback lors de la génération : erreurs de compilation Rust exposée
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
-| [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Templates](../template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
+| [Mise en place](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Commande `runique start`, workflow général |
+| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
 
 ## Revenir au sommaire
 
-- [Sommaire Admin](../11-Admin.md)
+- [Sommaire Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)

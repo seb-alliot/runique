@@ -29,11 +29,11 @@ La macro est parsée par le daemon (`runique start`) qui génère la fonction `a
 | `model` (position) | chemin de type | Ex: `users::Model` |
 | `form` (position) | chemin de type | Type du formulaire Runique associé |
 | `title` | `&str` | Titre affiché dans l'interface |
-| `permissions` | `[&str; N]` | Rôles déclarés pour cette ressource (⚠️ non appliqués — voir [Permissions](../../permission/permissions.md)) |
+| `permissions` | `[&str; N]` | Rôles déclarés pour cette ressource (⚠️ non appliqués — voir [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md)) |
 
 ### Optionnels — surcharge de templates
 
-Ces champs permettent de remplacer un template CRUD par un template personnalisé (voir [Surcharge des templates](../../template/surcharge/surcharge.md)).
+Ces champs permettent de remplacer un template CRUD par un template personnalisé (voir [Surcharge des templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md)).
 
 | Champ | Valeur par défaut | Description |
 | --- | --- | --- |
@@ -104,9 +104,9 @@ Les champs obligatoires manquants produisent également des erreurs à la compil
 
 | Section | Description |
 | --- | --- |
-| [CLI](../cli.md) | Fonctionnement de `runique start`
-| [Daemon & génération](../daemon/generation.md) | Fichiers générés
+| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Fonctionnement de `runique start`
+| [Daemon & génération](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/daemon/generation.md) | Fichiers générés
 
 ## Revenir au sommaire
 
-- [Sommaire Admin](../../11-Admin.md)
+- [Sommaire Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)
