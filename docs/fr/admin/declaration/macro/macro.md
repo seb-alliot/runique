@@ -102,7 +102,7 @@ Les champs obligatoires manquants produisent également des erreurs à la compil
 
 ## Voir aussi
 
-- [CLI](../cli/cli.md) — Fonctionnement de `runique start`
+- [CLI](../cli.md) — Fonctionnement de `runique start`
 - [Daemon & génération](../daemon/generation.md) — Fichiers générés
 
 ## Revenir au sommaire

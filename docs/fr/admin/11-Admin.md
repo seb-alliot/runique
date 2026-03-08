@@ -20,10 +20,7 @@ admin! {
 | Fichier | Contenu |
 | --- | --- |
 | [Mise en place](setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](declaration/cli/cli.md) | Commande `runique start`, workflow général |
-| [Macro `admin!`](declaration/macro/macro.md) | Syntaxe complète, champs, erreurs compile-time |
-| [Daemon & génération](declaration/daemon/generation.md) | Watcher, structure `src/admins/`, écrasement |
+| [CLI](declaration/cli.md) | Commande `runique start`, workflow général |
 | [Permissions](permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
 | [Templates](template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [CSRF](template/csrf/csrf.md) | Token CSRF, `csrf.js`, `{% csrf %}`, checklist login custom |
 | [Évolutions](evolution/futur_feature.md) | Axes d'évolution et état bêta |

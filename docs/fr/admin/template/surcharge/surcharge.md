@@ -137,3 +137,13 @@ admin! {
 - Si `{% block extra_js %}` est surchargé, appeler `{{ super() }}` pour ne pas perdre `admin.js`.
 - Les éléments hors-blocks (`<meta csrf-token>`, `<script csrf.js>`) sont garantis par `admin_template` — ils ne peuvent pas être supprimés par surcharge.
 - Si `{% block messages %}` est redéfini, **conserver** `{% messages %}` dedans.
+
+## Sous-sections
+
+- [Clés de contexte](../clef/context.md) — variables injectées par le backend dans chaque template
+- [CSRF](../csrf/csrf.md) — token CSRF, `csrf.js`, checklist login custom
+
+## Revenir au sommaire
+
+- [Sommaire Admin](../template.md) - Admin
+- [Sommaire Template](../../11-Admin.md) - Sommaire template

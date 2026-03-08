@@ -49,9 +49,10 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 
 ## Voir aussi
 
-- [CLI](../cli/cli.md) — Fonctionnement de `runique start`
-- [Évolutions](../evolution/futur_feature.md) — Permissions granulaires dans la roadmap
-- [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+| [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+| [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
+| [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Évolutions](../evolution/futur_feature.md) | Axes d'évolution et état bêta |
 
 ## Revenir au sommaire
 

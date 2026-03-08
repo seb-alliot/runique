@@ -90,7 +90,6 @@ builder::new(config)
 | `.auth(RuniqueAdminAuth::new())` | Authentification admin (par défaut) |
 | `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |
 | `.with_proto_state(…)` | État partagé généré par le daemon |
-| `.hot_reload(bool)` | Rechargement à chaud des templates (dev uniquement) |
 
 ---
 
@@ -115,6 +114,13 @@ http://localhost:{PORT}/admin/
 La page `/admin/login` redirige vers le dashboard si les identifiants sont valides.
 
 ---
+
+## Voir aussi
+
+| [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
+| [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Templates](../template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
+| [Évolutions](../evolution/futur_feature.md) | Axes d'évolution et état bêta |
 
 ## Revenir au sommaire
 
