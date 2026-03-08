@@ -149,5 +149,5 @@ admin! {
 
 | Section | Description |
 | --- | --- |
-| [Sommaire Admin](../template.md) | Admin
-| [Sommaire Template](../../11-Admin.md) | Sommaire template
+| [Sommaire template](../template.md) | Admin
+| [Sommaire](../../11-Admin.md) | Sommaire template

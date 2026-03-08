@@ -60,4 +60,4 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 
 ## Revenir au sommaire
 
-- [Sommaire Admin](../11-Admin.md)
+- [Sommaire](../../../../../README.fr.md)

@@ -24,3 +24,7 @@ admin! {
 | [Permissions](permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
 | [Templates](template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
 | [Évolutions](evolution/futur_feature.md) | Axes d'évolution et état bêta |
+
+## Revenir au sommaire
+
+- [Sommaire](../../../../README.fr.md)

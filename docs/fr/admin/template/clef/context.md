@@ -92,5 +92,5 @@ Variables injectées par le backend dans chaque template admin.
 ## Revenir au sommaire
 
 | --- | --- |
-| [Sommaire Admin](../template.md) | Admin
-| [Sommaire Template](../../11-Admin.md) | Sommaire template
+| [Sommaire template](../template.md) | Admin
+| [Sommaire](../../11-Admin.md) | Sommaire template
