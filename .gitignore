@@ -21,3 +21,6 @@ Thumbs.db
 # Fichiers temporaires Claude Code
 tmpclaude-*
 /.claude/
+
+# Fichier perso
+/commande.txt
