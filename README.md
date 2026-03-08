@@ -224,7 +224,7 @@ Full reference: [docs/en/15-env.md](docs/en/15-env.md)
 
 ## Project status
 
-For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/PROJECT_STATUS.md).
+For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/tree/main/docs/fr/PROJECT_STATUS.md).
 
 ---
 
