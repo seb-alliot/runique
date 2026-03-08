@@ -1,4 +1,3 @@
-```markdown id="1r5skp"
 # ORM & Database
 
 Runique uses **SeaORM** with a Django-like manager provided through the `impl_objects!` macro.
@@ -14,4 +13,3 @@ Runique uses **SeaORM** with a Django-like manager provided through the `impl_ob
 ## Next Steps
 
 ← [**Templates**](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md) | [**Middleware & Security**](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md) →
-```

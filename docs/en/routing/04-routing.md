@@ -1,4 +1,3 @@
-```markdown
 # Routing
 
 Runique provides a declarative routing system via the `urlpatterns!` and `view!` macros, with named URL resolution in templates.
@@ -18,4 +17,3 @@ Runique provides a declarative routing system via the `urlpatterns!` and `view!`
 ## Next Steps
 
 ← [**Architecture**](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md) | [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md) →
-```
