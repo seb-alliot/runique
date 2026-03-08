@@ -199,10 +199,10 @@ Fichiers critiques encore bas ou à 0% selon `couverture_test.md` :
 ## 🔗 Références
 
 - Repository : [github.com/seb-alliot/runique](https://github.com/seb-alliot/runique)
-- Status coverage : `couverture_test.md`
-- Changelog : `CHANGELOG.md`
-- Roadmap : `ROADMAP.md`
-- Documentation : `docs/en` et `docs/fr`
+- Status coverage : (https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md)
+- Changelog : [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
+- Roadmap : [Roadmap](https://github.com/seb-alliot/runique/blob/main/ROADMAP.md)
+- Documentation : [English](https://github.com/seb-alliot/runique/tree/main/docs/en) et [Francais](https://github.com/seb-alliot/runique/tree/main/docs/fr)
 
 ---
 
