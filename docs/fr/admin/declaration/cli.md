@@ -50,7 +50,7 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 | Section | Description |
 | --- | --- |
 | [Daemon & génération](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/daemon/generation.md) | Watcher, fichiers
-| [Macro `admin!`](github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/macro/macro.md) | Déclaration des ressources administrables
+| [Macro `admin!`](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/macro/macro.md) | Déclaration des ressources administrables
 
 ## Voir aussi
 
