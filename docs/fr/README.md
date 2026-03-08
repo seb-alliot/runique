@@ -4,7 +4,7 @@ Documentation complète du framework web Runique.
 
 ## 📖 Sections de la documentation
 
-### 1️⃣ [Installation](01-installation.md)
+### 1️⃣ [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md)
 Démarrer avec Runique. Installation, dépendances et premiers pas.
 
 **Sujets couverts:**
@@ -13,11 +13,11 @@ Démarrer avec Runique. Installation, dépendances et premiers pas.
 - Configuration du projet
 - Première application
 
-👉 **Aller à** : [Guide d'installation](01-installation.md)
+👉 **Aller à** : [Guide d'installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md)
 
 ---
 
-### 2️⃣ [Architecture](02-architecture.md)
+### 2️⃣ [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md)
 Comprendre l'architecture interne de Runique.
 
 **Sujets couverts:**
@@ -26,11 +26,11 @@ Comprendre l'architecture interne de Runique.
 - Motifs de conception
 - Comment ça marche
 
-👉 **Aller à** : [Guide d'architecture](02-architecture.md)
+👉 **Aller à** : [Guide d'architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md)
 
 ---
 
-### 3️⃣ [Configuration](03-configuration.md)
+### 3️⃣ [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/03-configuration.md)
 Configurer votre application Runique.
 
 **Sujets couverts:**
@@ -39,11 +39,11 @@ Configurer votre application Runique.
 - Variables d'environnement
 - Paramètres de sécurité
 
-👉 **Aller à** : [Guide de configuration](03-configuration.md)
+👉 **Aller à** : [Guide de configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/03-configuration.md)
 
 ---
 
-### 4️⃣ [Routage](04-routing.md)
+### 4️⃣ [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md)
 Routage des URL et traitement des requêtes.
 
 **Sujets couverts:**
@@ -52,11 +52,11 @@ Routage des URL et traitement des requêtes.
 - Gestionnaires de requêtes
 - Paramètres d'URL
 
-👉 **Aller à** : [Guide de routage](04-routing.md)
+👉 **Aller à** : [Guide de routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md)
 
 ---
 
-### 5️⃣ [Formulaires](05-forms.md)
+### 5️⃣ [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md)
 Création et gestion de formulaires.
 
 **Sujets couverts:**
@@ -67,11 +67,11 @@ Création et gestion de formulaires.
 - Validation et sauvegarde
 - Rendu dans les templates
 
-👉 **Aller à** : [Guide des formulaires](05-forms.md)
+👉 **Aller à** : [Guide des formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md)
 
 ---
 
-### 6️⃣ [Templates](06-templates.md)
+### 6️⃣ [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md)
 Travailler avec les templates Tera.
 
 **Sujets couverts:**
@@ -82,11 +82,11 @@ Travailler avec les templates Tera.
 - Héritage de templates
 - Variables auto-injectées
 
-👉 **Aller à** : [Guide des templates](06-templates.md)
+👉 **Aller à** : [Guide des templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md)
 
 ---
 
-### 7️⃣ [ORM](07-orm.md)
+### 7️⃣ [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md)
 Opérations de base de données avec SeaORM.
 
 **Sujets couverts:**
@@ -95,11 +95,11 @@ Opérations de base de données avec SeaORM.
 - Relations
 - Migrations
 
-👉 **Aller à** : [Guide ORM](07-orm.md)
+👉 **Aller à** : [Guide ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md)
 
 ---
 
-### 8️⃣ [Middlewares](08-middleware.md)
+### 8️⃣ [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md)
 Sécurité et middlewares de requête.
 
 **Sujets couverts:**
@@ -111,11 +111,11 @@ Sécurité et middlewares de requête.
 - Configuration des sessions
 - Builder Intelligent vs Builder classique
 
-👉 **Aller à** : [Guide des middlewares](08-middleware.md)
+👉 **Aller à** : [Guide des middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md)
 
 ---
 
-### 9️⃣ [Flash Messages](09-flash-messages.md)
+### 9️⃣ [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md)
 Retours utilisateur et notifications.
 
 **Sujets couverts:**
@@ -125,11 +125,11 @@ Retours utilisateur et notifications.
 - Pattern flash vs flash_now
 - Comportement de consommation (une seule lecture)
 
-👉 **Aller à** : [Guide Flash Messages](09-flash-messages.md)
+👉 **Aller à** : [Guide Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md)
 
 ---
 
-### 🔟 [Exemples](10-examples.md)
+### 🔟 [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md)
 Exemples de code complets et projets.
 
 **Sujets couverts:**
@@ -138,10 +138,10 @@ Exemples de code complets et projets.
 - Upload de fichiers
 - API REST
 
-👉 **Aller à** : [Guide des exemples](10-examples.md)
+👉 **Aller à** : [Guide des exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md)
 
 ---
-### 11. Admin
+### 11. [Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)
 
 ---
 
@@ -162,30 +162,31 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 
 >  La vue admin est actuellement en **bêta** et pose volontairement des bases simples, déclaratives et sûres. Des évolutions sont prévues (permissions plus fines, meilleur feedback, protections supplémentaires).
 
+👉 **Go to**: [Guide des exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)
 ---
 
 ## 🎯 Navigation rapide
 
 | Section | Fichier | Sujets |
 |---------|---------|--------|
-| Setup | [Installation](01-installation.md) | Prérequis, install, premiers pas |
-| Apprentissage | [Architecture](02-architecture.md) | Structure, conception, fonctionnement |
-| Config | [Configuration](03-configuration.md) | Paramètres, environnement, sécurité |
-| Routes | [Routage](04-routing.md) | Modèles URL, gestionnaires, paramètres |
-| Formulaires | [Formulaires](05-forms.md) | Prisme, FieldBuilder, `#[form(...)]` |
-| Vues | [Templates](06-templates.md) | Tags Django-like, filtres, fonctions Tera |
-| Données | [ORM](07-orm.md) | Modèles, requêtes, impl_objects! |
-| Sécurité | [Middlewares](08-middleware.md) | Slots, CSRF, CSP, sessions |
-| Retours | [Flash Messages](09-flash-messages.md) | success!, flash_now!, {% messages %} |
-| Code | [Exemples](10-examples.md) | Projets complets |
-| Code | [Admin](11-Admin.md) | Admin beta |
+| Setup | [Installation](0https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md) | Prérequis, install, premiers pas |
+| Apprentissage | [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md) | Structure, conception, fonctionnement |
+| Config | [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/03-configuration.md) | Paramètres, environnement, sécurité |
+| Routes | [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md) | Modèles URL, gestionnaires, paramètres |
+| Formulaires | [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md) | Prisme, FieldBuilder, `#[form(...)]` |
+| Vues | [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md) | Tags Django-like, filtres, fonctions Tera |
+| Données | [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md) | Modèles, requêtes, impl_objects! |
+| Sécurité | [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md) | Slots, CSRF, CSP, sessions |
+| Retours | [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md) | success!, flash_now!, {% messages %} |
+| Code | [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md) | Projets complets |
+| Code | [Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Admin beta |
 ---
 
 ## 🚀 Par où commencer ?
 
-1. **Nouveau sur Runique ?** → Commencez par [Installation](01-installation.md)
-2. **Vous voulez comprendre ?** → Lisez [Architecture](02-architecture.md)
-3. **Prêt à coder ?** → Consultez [Exemples](10-examples.md)
+1. **Nouveau sur Runique ?** → Commencez par [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md)
+2. **Vous voulez comprendre ?** → Lisez [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md)
+3. **Prêt à coder ?** → Consultez [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md)
 4. **Besoin d'aide ?** → Cherchez la section correspondante ci-dessus
 
 ---
@@ -202,8 +203,8 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 
 ## 🌍 Langue
 
-- 🇬🇧 **[English](../en/README.md)**
-- 📖 **Français** (vous êtes ici)
+- 🇬🇧 **[English](https://github.com/seb-alliot/runique/blob/main/README.md)**
+- 📖 **[Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)**
 
 ---
 
@@ -216,6 +217,6 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 
 ---
 
-**Besoin d'aide ?** Consultez [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/10-examples.md) ou relisez la section pertinente.
+**Besoin d'aide ?** Consultez [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md) ou relisez la section pertinente.
 
-Bon codage ! 🚀
+Bon codage ! 
