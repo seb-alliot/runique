@@ -70,7 +70,7 @@ authentifié ?
 
 ## Notes
 
-- `is_active` et `roles` sont prévus dans la roadmap — voir [evolution/futur_feature.md](../evolution/futur_feature.md).
+- `is_active` et `roles` sont prévus dans la roadmap — voir [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md).
 - La macro `admin!` définit uniquement les règles déclaratives ; la logique d'application est dans les middlewares.
 - La granularité par opération CRUD (list/create/edit/delete) n'est pas supportée dans la version actuelle.
 
