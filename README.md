@@ -11,7 +11,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 > Current state: active development. The framework source of truth is the `runique` crate.
 > `demo-app` is used as a validation/testing application for framework behavior.
 
-🌍 **Languages**: [English](README.md) | [Français](README.fr.md)
+🌍 **Languages**: [English](https://github.com/seb-alliot/runique/blob/main/README.md) | [Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
 
 ---
 
@@ -48,7 +48,7 @@ cargo build --workspace
 cargo test --workspace
 ```
 
-Detailed guide: [docs/en/01-installation.md](docs/en/01-installation.md)
+Detailed guide: [docs/en/01-installation.md](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
 
 ---
 
@@ -116,7 +116,7 @@ Current beta limits:
 - generated folder overwrite (`src/admins/`)
 - iterative hardening still in progress
 
-Admin docs: [docs/en/11-Admin.md](docs/en/11-Admin.md)
+Admin docs: [docs/en/11-Admin.md](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
 
 ---
 
@@ -150,7 +150,7 @@ Coverage command used:
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
 ```
 
-See: [couverture_test.md](couverture_test.md)
+See: [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/couverture_test.md)
 
 ---
 
@@ -163,7 +163,7 @@ See: [couverture_test.md](couverture_test.md)
 - `protect_session(&session, duration_secs)` — marks an anonymous session as untouchable until a given timestamp
 - `user_id` key — automatically protects authenticated sessions
 
-Full reference: [docs/en/14-sessions.md](docs/en/14-sessions.md)
+Full reference: [docs/en/14-sessions.md](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md)
 
 ---
 
@@ -180,7 +180,7 @@ ALLOWED_HOSTS=localhost,example.com
 DATABASE_URL=sqlite://db.sqlite3
 ```
 
-Full reference: [docs/en/15-env.md](docs/en/15-env.md)
+Full reference: [docs/en/15-env.md](https://github.com/seb-alliot/runique/blob/main/docs/en/env/15-env.md)
 
 ---
 
@@ -224,15 +224,15 @@ Full reference: [docs/en/15-env.md](docs/en/15-env.md)
 
 ## Project status
 
-For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/tree/main/docs/fr/PROJECT_STATUS.md).
+For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.md).
 
 ---
 
 ## Resources
 
-- [Project structure](https://github.com/seb-alliot/runique/blob/main/INDEX.md)
+- [Project structure](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md)
 - [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
-- [Documentation hub](https://github.com/seb-alliot/runique/blob/main/docs/README.md)
+- [Documentation hub](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 - [Benchmark](https://github.com/seb-alliot/runique/blob/main/benchmark.md)
 
