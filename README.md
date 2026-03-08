@@ -192,7 +192,7 @@ Full reference: [docs/en/15-env.md](https://github.com/seb-alliot/runique/blob/m
 - [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
 - [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)
 - [Routage](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md)
-- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md)
 - [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/en/model/12-model.md)
 - [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)
 - [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md)
@@ -209,7 +209,7 @@ Full reference: [docs/en/15-env.md](https://github.com/seb-alliot/runique/blob/m
 - [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md)
 - [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/03-configuration.md)
 - [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md)
-- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md)
 - [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md)
 - [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md)
 - [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md)
@@ -240,4 +240,4 @@ For the detailed, continuously updated state report, see [PROJECT_STATUS.md](htt
 
 ## License
 
-MIT — see [LICENCE](https://github.com/seb-alliot/runique/blob/main/LICENCE)
+MIT — see [LICENSE](LICENSE)

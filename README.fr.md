@@ -243,4 +243,4 @@ Pour un rapport détaillé et continuellement mis à jour de l’état du projet
 
 # Licence
 
-MIT [`LICENCE`] — (https://github.com/seb-alliot/runique/blob/main/LICENCE)
+MIT — see [LICENSE](LICENSE)
