@@ -6,7 +6,7 @@ Complete documentation for the Runique web framework.
 
 ## 📖 Documentation Sections
 
-### 1️⃣ [Installation](01-installation.md)
+### 1️⃣ [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
 
 Get started with Runique. Installation, dependencies, and first steps.
 
@@ -17,11 +17,11 @@ Get started with Runique. Installation, dependencies, and first steps.
 * Project setup
 * First application
 
-👉 **Go to**: [Installation Guide](01-installation.md)
+👉 **Go to**: [Installation Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
 
 ---
 
-### 2️⃣ [Architecture](02-architecture.md)
+### 2️⃣ [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
 
 Understand Runique’s internal architecture.
 
@@ -32,11 +32,11 @@ Understand Runique’s internal architecture.
 * Design patterns
 * How it works
 
-👉 **Go to**: [Architecture Guide](02-architecture.md)
+👉 **Go to**: [Architecture Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
 
 ---
 
-### 3️⃣ [Configuration](03-configuration.md)
+### 3️⃣ [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)
 
 Configure your Runique application.
 
@@ -47,11 +47,11 @@ Configure your Runique application.
 * Environment variables
 * Security settings
 
-👉 **Go to**: [Configuration Guide](03-configuration.md)
+👉 **Go to**: [Configuration Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)
 
 ---
 
-### 4️⃣ [Routing](04-routing.md)
+### 4️⃣ [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md)
 
 URL routing and request handling.
 
@@ -62,11 +62,11 @@ URL routing and request handling.
 * Request handlers
 * URL parameters
 
-👉 **Go to**: [Routing Guide](04-routing.md)
+👉 **Go to**: [Routing Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md)
 
 ---
 
-### 5️⃣ [Forms](05-forms.md)
+### 5️⃣ [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md)
 
 Creating and managing forms.
 
@@ -79,11 +79,11 @@ Creating and managing forms.
 * Validation and persistence
 * Template rendering
 
-👉 **Go to**: [Forms Guide](05-forms.md)
+👉 **Go to**: [Forms Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md)
 
 ---
 
-### 6️⃣ [Templates](06-templates.md)
+### 6️⃣ [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)
 
 Working with Tera templates.
 
@@ -96,11 +96,11 @@ Working with Tera templates.
 * Template inheritance
 * Auto-injected variables
 
-👉 **Go to**: [Templates Guide](06-templates.md)
+👉 **Go to**: [Templates Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)
 
 ---
 
-### 7️⃣ [ORM](07-orm.md)
+### 7️⃣ [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md)
 
 Database operations with SeaORM.
 
@@ -111,11 +111,11 @@ Database operations with SeaORM.
 * Relations
 * Migrations
 
-👉 **Go to**: [ORM Guide](07-orm.md)
+👉 **Go to**: [ORM Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md)
 
 ---
 
-### 8️⃣ [Middlewares](08-middleware.md)
+### 8️⃣ [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md)
 
 Security and request middlewares.
 
@@ -129,11 +129,11 @@ Security and request middlewares.
 * Session configuration
 * Intelligent Builder vs Classic Builder
 
-👉 **Go to**: [Middlewares Guide](08-middleware.md)
+👉 **Go to**: [Middlewares Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md)
 
 ---
 
-### 9️⃣ [Flash Messages](09-flash-messages.md)
+### 9️⃣ [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md)
 
 User feedback and notifications.
 
@@ -145,11 +145,11 @@ User feedback and notifications.
 * Flash vs `flash_now` pattern
 * Single-read consumption behavior
 
-👉 **Go to**: [Flash Messages Guide](09-flash-messages.md)
+👉 **Go to**: [Flash Messages Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md)
 
 ---
 
-### 🔟 [Examples](10-examples.md)
+### 🔟 [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md)
 
 Complete code examples and projects.
 
@@ -160,11 +160,11 @@ Complete code examples and projects.
 * File uploads
 * REST API
 
-👉 **Go to**: [Examples Guide](10-examples.md)
+👉 **Go to**: [Examples Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md)
 
 ---
 
-### 11️⃣ Admin
+### 11️⃣ [Admin](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
 
 ## 🧭 Admin View (Beta)
 
@@ -183,31 +183,33 @@ The daemon (`runique start`) enables automatic regeneration, while a `cargo run`
 
 > The admin view is currently in **beta** and intentionally built on simple, declarative, and safe foundations. Future improvements are planned (finer permissions, better feedback, additional safeguards).
 
+👉 **Go to**: [Examples Guide](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
+
 ---
 
 ## 🎯 Quick Navigation
 
 | Section  | File                                   | Topics                                     |
 | -------- | -------------------------------------- | ------------------------------------------ |
-| Setup    | [Installation](01-installation.md)     | Prerequisites, install, first steps        |
-| Learning | [Architecture](02-architecture.md)     | Structure, design, internals               |
-| Config   | [Configuration](03-configuration.md)   | Settings, environment, security            |
-| Routes   | [Routing](04-routing.md)               | URL patterns, handlers, params             |
-| Forms    | [Forms](05-forms.md)                   | Prisme, FieldBuilder, `#[form(...)]`       |
-| Views    | [Templates](06-templates.md)           | Django-like tags, filters, Tera functions  |
-| Data     | [ORM](07-orm.md)                       | Models, queries, `impl_objects!`           |
-| Security | [Middlewares](08-middleware.md)        | Slots, CSRF, CSP, sessions                 |
-| Feedback | [Flash Messages](09-flash-messages.md) | `success!`, `flash_now!`, `{% messages %}` |
-| Code     | [Examples](10-examples.md)             | Complete projects                          |
-| Admin    | [Admin](11-Admin.md)                   | Admin (beta)                               |
+| Setup    | [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)     | Prerequisites, install, first steps        |
+| Learning | [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)     | Structure, design, internals               |
+| Config   | [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)   | Settings, environment, security            |
+| Routes   | [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md)               | URL patterns, handlers, params             |
+| Forms    | [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md)                   | Prisme, FieldBuilder, `#[form(...)]`       |
+| Views    | [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)           | Django-like tags, filters, Tera functions  |
+| Data     | [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md)                       | Models, queries, `impl_objects!`           |
+| Security | [Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md)        | Slots, CSRF, CSP, sessions                 |
+| Feedback | [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md) | `success!`, `flash_now!`, `{% messages %}` |
+| Code     | [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md)             | Complete projects                          |
+| Admin    | [Admin](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)                   | Admin (beta)                               |
 
 ---
 
 ## 🚀 Where to Start?
 
-1. **New to Runique?** → Start with [Installation](01-installation.md)
-2. **Want to understand the internals?** → Read [Architecture](02-architecture.md)
-3. **Ready to code?** → Check out [Examples](10-examples.md)
+1. **New to Runique?** → Start with [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
+2. **Want to understand the internals?** → Read [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
+3. **Ready to code?** → Check out [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md)
 4. **Need help?** → Browse the relevant section above
 
 ---
@@ -224,8 +226,8 @@ The daemon (`runique start`) enables automatic regeneration, while a `cargo run`
 
 ## 🌍 Language
 
-* 🇫🇷 **Français**
-* 🇬🇧 **English** (you are here)
+* 🇫🇷 **[Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)**
+* 🇬🇧 **[English](https://github.com/seb-alliot/runique/blob/main/README.md)**
 
 ---
 
