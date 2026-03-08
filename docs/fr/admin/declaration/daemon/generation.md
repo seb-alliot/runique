@@ -1,39 +1,44 @@
-# Génération de code et daemon
+# Daemon & génération de code
+
+## Comportement du daemon
+
+Le daemon surveille `src/admin.rs` en continu via `notify`.
+
+À chaque modification détectée :
+
+1. `src/admin.rs` est relu
+2. La macro `admin! { ... }` est parsée via `syn`, produisant des `ResourceDef`
+3. Le dossier `src/admins/` est supprimé puis entièrement régénéré
+4. Un retour est affiché (succès ou erreur de parsing)
+
+Un mécanisme de **debounce** (300 ms) évite les régénérations multiples lors d'un même enregistrement de fichier.
+
+Une **génération initiale** est effectuée au démarrage du daemon, sans attendre de modification.
+
+---
 
 ## Structure générée
 
-```
+```text
 src/admins/
-  ├── README.md       ← avertissement : dossier auto-généré
-  ├── mod.rs          ← point d'entrée du module admin
-  ├── router.rs       ← routes CRUD (list, create, detail, edit, delete)
-  └── handlers.rs     ← handlers SeaORM + formulaires (GET/POST, validation, rendu)
+  ├── README.md       ← avertissement : ne pas éditer manuellement
+  ├── mod.rs          ← expose `routes` et `admin_proto_state`
+  └── admin_panel.rs  ← fichier principal : wrappers DynForm + admin_register()
 ```
 
-### `router.rs`
+### `admin_panel.rs`
 
-Enregistre les routes pour chaque ressource déclarée dans `admin!` :
+Contient pour chaque ressource déclarée dans `admin!` :
 
-- `GET  /admin/{key}/`            → liste
-- `GET  /admin/{key}/create`      → formulaire de création
-- `POST /admin/{key}/create`      → soumission création
-- `GET  /admin/{key}/{id}`        → détail
-- `GET  /admin/{key}/{id}/edit`   → formulaire d'édition
-- `POST /admin/{key}/{id}/edit`   → soumission édition
-- `POST /admin/{key}/{id}/delete` → suppression
-
-### `handlers.rs`
-
-Contient les handlers Axum correspondant à chaque route. Chaque handler :
-
-- extrait l'utilisateur authentifié et vérifie les permissions
-- exécute la requête SeaORM appropriée
-- instancie le formulaire Runique
-- rend le template Tera correspondant
+- Un wrapper `DynForm` autour du formulaire Runique concret
+- Les closures `list_fn`, `get_fn`, `create_fn`, `update_fn`, `delete_fn`, `count_fn`
+- La fonction `admin_register()` qui construit le `HashMap<String, ResourceEntry>` chargé au boot
 
 ### `mod.rs`
 
-Déclare les sous-modules `router` et `handlers`, et expose la fonction `admin_config()` issue de la macro.
+Ré-exporte `routes` et `admin_proto_state` depuis `admin_panel`.
+
+---
 
 ## Le compromis : écrasement automatique
 
@@ -51,4 +56,4 @@ cargo run
 
 Dans ce mode, `src/admins/` n'est plus surveillé ni écrasé. Les modifications persistent.
 
-> Le README.md généré dans `src/admins/` rappelle ce comportement directement dans le dépôt.
+> Le `README.md` généré dans `src/admins/` rappelle ce comportement directement dans le dépôt.
