@@ -1,24 +1,15 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token }}">
-    <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
+{% extends "admin/admin_base_contract" %}
 
-    <title>{% block title %}{{ admin_title | default(value="Administration") }}{% endblock %} — {{ site_title | default(value="Runique Admin") }}</title>
+{% block extra_css %}
     <link rel="stylesheet" href="{{ "css/admin/variables.css" | runique_static }}">
     <link rel="stylesheet" href="{{ "css/admin/layout.css" | runique_static }}">
     <link rel="stylesheet" href="{{ "css/admin/components.css" | runique_static }}">
     <link rel="stylesheet" href="{{ "css/admin/buttons.css" | runique_static }}">
     <link rel="stylesheet" href="{{ "css/admin/forms.css" | runique_static }}">
     <link rel="stylesheet" href="{{ "css/admin/responsive.css" | runique_static }}">
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
+{% endblock %}
 
-<div class="admin-layout">
-
+{% block sidebar %}
     <aside class="admin-sidebar" id="adminSidebar">
 
         <div class="sidebar-header">
@@ -69,51 +60,36 @@
     </aside>
 
     <div class="admin-sidebar-overlay" id="sidebarOverlay"></div>
-
-    <div class="admin-main">
-
-        <header class="admin-topbar">
-
-            <button class="btn btn-ghost btn-icon" id="mobileBurger" style="display:none">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <line x1="3" y1="12" x2="21" y2="12"/>
-                    <line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-            </button>
-
-            <div class="topbar-breadcrumb">
-                <a href="/admin">Admin</a>
-                {% block breadcrumb %}{% endblock %}
-            </div>
-
-            <form method="POST" action="/admin/logout" class="logout-form">
-            <button type="submit" class="topbar-user logout-button" title="Déconnexion">
-                <div class="user-avatar">
-                    {{ current_user.username }}
-                </div>
-                <span>{{ current_user.username }}</span>
-            </button>
-            </form>
-
-        </header>
-
-        <main class="admin-content">
-
-            {% messages %}
-
-            {% block content %}{% endblock %}
-
-        </main>
-
-    </div>
-
-</div>
-
-{% block extra_js %}
-    <script src="{{ "js/csrf.js" | runique_static }}" defer></script>
-    <script src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
 {% endblock %}
 
-</body>
-</html>
+{% block topbar %}
+    <header class="admin-topbar">
+
+        <button class="btn btn-ghost btn-icon" id="mobileBurger" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+
+        <div class="topbar-breadcrumb">
+            <a href="/admin">Admin</a>
+            {% block breadcrumb %}{% endblock %}
+        </div>
+
+        <form method="POST" action="/admin/logout" class="logout-form">
+        <button type="submit" class="topbar-user logout-button" title="Déconnexion">
+            <div class="user-avatar">
+                {{ current_user.username }}
+            </div>
+            <span>{{ current_user.username }}</span>
+        </button>
+        </form>
+
+    </header>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
+{% endblock %}
