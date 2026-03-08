@@ -238,4 +238,4 @@ The daemon (`runique start`) enables automatic regeneration, while a `cargo run`
 
 ---
 
-**Need help?** Check [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md) or review the relevant section.
+**Need help?** Check [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md) or review the relevant section.

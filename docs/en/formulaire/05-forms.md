@@ -870,6 +870,6 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 
 ## Next steps
 
-← **[Routing](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/en/04-routing.md)** | **[Templates](https://github.com/seb-alliot/runique/blob/refonte-builder-app/docs/en/06-templates.md)** →
+← **[Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md)** | **[Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)** →
 
 ---
