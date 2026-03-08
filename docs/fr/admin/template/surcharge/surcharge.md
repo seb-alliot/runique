@@ -142,12 +142,12 @@ admin! {
 
 | --- | --- |
 
-- [Clés de contexte](../clef/context.md) — variables injectées par le backend dans chaque template
-- [CSRF](../csrf/csrf.md) — token CSRF, `csrf.js`, checklist login custom
+| [Clés de contexte](../clef/context.md) — variables injectées par le backend dans chaque template
+| [CSRF](../csrf/csrf.md) — token CSRF, `csrf.js`, checklist login custom
 
 ## Revenir au sommaire
 
 | --- | --- |
 
-- [Sommaire Admin](../template.md) - Admin
-- [Sommaire Template](../../11-Admin.md) - Sommaire template
+| [Sommaire Admin](../template.md) - Admin
+| [Sommaire Template](../../11-Admin.md) - Sommaire template

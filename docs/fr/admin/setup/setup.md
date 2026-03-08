@@ -117,6 +117,8 @@ La page `/admin/login` redirige vers le dashboard si les identifiants sont valid
 
 ## Voir aussi
 
+| --- | --- |
+
 | [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
 | [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
 | [Templates](../template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
