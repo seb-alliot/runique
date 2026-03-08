@@ -118,7 +118,7 @@ Limites actuelles de la bêta :
 * renforcement progressif encore en cours
 
 Documentation admin :
-`docs/fr/11-Admin.md`
+(https://github.com/seb-alliot/runique/blob/documentation/docs/fr/admin/11-Admin.md)
 
 ---
 
