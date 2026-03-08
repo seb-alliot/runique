@@ -1,8 +1,8 @@
 # Couverture de tests — Runique
 
-> Mis a jour le 2026-03-01
+> Mis a jour le 2026-03-06
 > `cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only`
-> **1 356 tests** — 0 echec
+> **1 523 tests** — 0 echec
 
 ## Resume global
 

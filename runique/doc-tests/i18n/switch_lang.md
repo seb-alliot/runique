@@ -36,9 +36,14 @@ assert_eq!(Lang::from("it"),    Lang::It);
 assert_eq!(Lang::from("it-IT"), Lang::It);
 assert_eq!(Lang::from("it-CH"), Lang::It);
 
+// Allemand
+assert_eq!(Lang::from("de"),    Lang::De);
+assert_eq!(Lang::from("de-DE"), Lang::De);
+assert_eq!(Lang::from("de-AT"), Lang::De);
+assert_eq!(Lang::from("de-CH"), Lang::De);
+
 // Inconnu → anglais par défaut
 assert_eq!(Lang::from("xx"),    Lang::En);
-assert_eq!(Lang::from("de"),    Lang::En);
 ```
 
 ## `Lang::get` — clé simple
