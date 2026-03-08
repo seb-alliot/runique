@@ -1,50 +1,33 @@
+use crate::entities::users::schema as users;
 use runique::prelude::*;
-use serde::Serialize;
 
-// --- FORMULAIRE D'INSCRIPTION ---
-#[derive(Serialize, Debug, Clone)]
-#[serde(transparent)]
-pub struct RegisterForm {
-    pub form: Forms,
-}
-
-impl RuniqueForm for RegisterForm {
-    fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::text("username")
-                .label("Entrez votre nom d'utilisateur")
-                .required(),
-        );
-
-        form.field(
-            &TextField::email("email")
-                .label("Entrez votre email")
-                .required(),
-        );
-
-        form.field(
-            &TextField::password("password")
-                .label("Entrez un mot de passe")
-                .required(),
-        );
-    }
-
-    impl_form_access!();
-}
+// Schema-based form — fields are derived directly from the entity schema.
+// Only list the fields you want to expose; the macro handles the rest
+// (field registration, Serialize, RuniqueForm implementation).
+#[form(schema = users, fields = [username, email, password])]
+pub struct RegisterForm;
 
 impl RegisterForm {
     pub async fn save(
         &self,
         db: &DatabaseConnection,
-    ) -> Result<crate::models::users::Model, DbErr> {
-        use crate::models::users as users_mod;
-        let new_user = users_mod::ActiveModel {
+    ) -> Result<crate::entities::users::Model, DbErr> {
+        use runique::prelude::user::ActiveModel;
+        let new_user = ActiveModel {
             username: Set(self.form.get_string("username")),
             email: Set(self.form.get_string("email")),
             password: Set(self.form.get_string("password")),
             ..Default::default()
         };
-
-        new_user.insert(db).await
+        let inserted = new_user.insert(db).await?;
+        // Convert runique::middleware::user::Model to users::Model
+        let users_model = crate::entities::users::Model {
+            id: inserted.id,
+            username: inserted.username,
+            email: inserted.email,
+            password: inserted.password,
+            // Add other fields as needed
+        };
+        Ok(users_model)
     }
 }

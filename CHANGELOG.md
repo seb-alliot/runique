@@ -1,3 +1,7 @@
+## [1.1.44]
+
+- **Fix** => Cli ok
+
 ## [1.1.42]
 
 - **Fix sécurity csrf** : Delete csrf on method Get

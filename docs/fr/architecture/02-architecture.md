@@ -1,36 +1,113 @@
-# Architecture
+# Architecture d'un projet Runique
 
-Runique est organisée en **modules fonctionnels** basés sur la responsabilité :
+Un projet Runique est une crate binaire Rust standard. `runique new` génère la structure de base, que tu fais évoluer selon tes besoins.
+
+## Structure type
 
 ```text
-runique/src/
-├── app/                    #  App Builder, Templates & Builder Intelligent
-│   ├── builder.rs          #  RuniqueAppBuilder avec slots
-│   ├── error_build.rs      #  Erreurs de build
-│   ├── templates.rs        #  TemplateLoader (Tera)
-│   └── staging/            #  Staging structs
-│       ├── core_staging.rs
-│   │   ├── middleware_staging.rs
-│   │   └── static_staging.rs
-│   └── error_build.rs      #  BuildError & CheckReport
-├── config/                 #  Configuration & Settings
-├── context/                #  Request Context & Tera tools
-│   ├── request.rs          #  Struct Request (extracteur)
-│   └── tera/               #  Filtres et fonctions Tera
-├── db/                     #  ORM & Database
-├── engine/                 #  RuniqueEngine
-├── errors/                 #  Gestion des erreurs
-├── flash/                  #  Messages flash
-├── forms/                  #  Système de formulaires
-├── macros/                 #  Macros utilitaires
-│   ├── context_macro/      #  context!, context_update!
-│   ├── flash_message/      #  success!, error!, info!, warning!, flash_now!
-│   └── router/             #  urlpatterns!, view!, impl_objects!
-├── middleware/             #  Middleware (Sécurité)
-│   └── security/           #  CSRF, CSP, Host, Cache, Error Handler
-├── utils/                  #  Utilitaires
-├── lib.rs
-└── prelude.rs
+mon-projet/
+├── src/
+│   ├── main.rs          # Point d'entrée — RuniqueApp builder
+│   ├── admin.rs         # Déclaration admin!{} (si admin activé)
+│   ├── urls.rs          # urlpatterns! — table de routage
+│   ├── views.rs         # Handlers (fonctions async)
+│   ├── forms.rs         # Structs RuniqueForm (ou dossier forms/)
+│   ├── models.rs        # Structs métier (ou dossier models/)
+│   └── admins/          # Généré par le daemon — ne pas modifier
+│       ├── generated.rs
+│       └── router.rs
+├── templates/           # Templates Tera (.html)
+├── static/              # Fichiers statiques (CSS, JS, images)
+│   └── media/           # Uploads (FileField)
+├── migration/           # Migrations SeaORM
+│   └── src/
+│       └── lib.rs
+├── .env                 # Variables d'environnement
+└── Cargo.toml
+```
+
+---
+
+## Rôle de chaque fichier
+
+**`main.rs`** — Configure et lance l'application via le builder :
+
+```rust
+#[macro_use]
+extern crate runique;
+use runique::prelude::*;
+
+mod forms;
+mod urls;
+mod views;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = RuniqueConfig::from_env();
+    let db = DatabaseConfig::from_env()?.build().connect().await?;
+
+    password_init(PasswordConfig::auto());
+
+    RuniqueAppBuilder::new(config)
+        .routes(urls::routes())
+        .with_database(db)
+        .statics()
+        .build()
+        .await?
+        .run()
+        .await?;
+
+    Ok(())
+}
+```
+
+**`urls.rs`** — Déclare les routes via `urlpatterns!` :
+
+```rust
+use runique::prelude::*;
+use crate::views;
+
+pub fn routes() -> Router {
+    urlpatterns![
+        get  "/",           views::index,
+        get  "/register",   views::register,
+        post "/register",   views::register,
+    ]
+}
+```
+
+**`views.rs`** — Handlers de requêtes :
+
+```rust
+pub async fn index(mut request: Request) -> AppResult<Response> {
+    context_update!(request => { "title" => "Accueil" });
+    request.render("index.html")
+}
+```
+
+**`forms.rs`** — Formulaires typés :
+
+```rust
+pub struct RegisterForm { pub form: Forms }
+
+impl RuniqueForm for RegisterForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(&TextField::text("username").label("Nom").required());
+        form.field(&TextField::email("email").label("Email").required());
+    }
+    impl_form_access!();
+}
+```
+
+**`admin.rs`** — Déclaration de la vue admin (fichiers générés dans `src/admins/`) :
+
+```rust
+admin! {
+    users: users::Model => RegisterForm {
+        title: "Utilisateurs",
+        permissions: ["admin"],
+    }
+}
 ```
 
 ---

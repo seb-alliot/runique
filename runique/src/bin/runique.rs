@@ -196,11 +196,13 @@ fn create_new_project(name: &str) -> Result<()> {
     let runique_version = env!("CARGO_PKG_VERSION");
 
     let view_rs_content = include_bytes!("../composant-bin/code/views.rs").to_vec();
-    let formulaire = include_bytes!("../composant-bin/code/forms.rs").to_vec();
+    let formulaire_register = include_bytes!("../composant-bin/code/forms.rs").to_vec();
+    let formulaire_login = include_bytes!("../composant-bin/code/login_form.rs").to_vec();
+    let formulaire_mod = include_bytes!("../composant-bin/code/formulaire_mod.rs").to_vec();
     let url_rs = include_bytes!("../composant-bin/code/url.rs").to_vec();
     let main_rs = include_bytes!("../composant-bin/code/main.rs").to_vec();
     let user_exemple = include_bytes!("../composant-bin/code/users.rs").to_vec();
-    let mod_rs_content = include_bytes!("../composant-bin/code/mod.rs").to_vec();
+    let entities_mod = include_bytes!("../composant-bin/code/mod.rs").to_vec();
 
     let index_html = include_bytes!("../composant-bin/template/index.html").to_vec();
     let about_html = include_bytes!("../composant-bin/template/about.html").to_vec();
@@ -228,7 +230,8 @@ fn create_new_project(name: &str) -> Result<()> {
     let readme_va = include_bytes!("../composant-bin/readme/README.md").to_vec();
     let readme_fr = include_bytes!("../composant-bin/readme/README.fr.md").to_vec();
 
-    fs::create_dir_all(project_dir.join("src/models"))?;
+    fs::create_dir_all(project_dir.join("src/entities"))?;
+    fs::create_dir_all(project_dir.join("src/formulaire"))?;
     fs::create_dir_all(project_dir.join("static/css/inscription"))?;
     fs::create_dir_all(project_dir.join("static/js"))?;
     fs::create_dir_all(project_dir.join("media/favicon"))?;
@@ -241,11 +244,13 @@ fn create_new_project(name: &str) -> Result<()> {
     fs::write(project_dir.join("README.fr.md"), readme_fr)?;
 
     fs::write(project_dir.join("src/main.rs"), main_rs)?;
-    fs::write(project_dir.join("src/forms.rs"), formulaire)?;
     fs::write(project_dir.join("src/url.rs"), url_rs)?;
     fs::write(project_dir.join("src/views.rs"), view_rs_content)?;
-    fs::write(project_dir.join("src/models/mod.rs"), mod_rs_content)?;
-    fs::write(project_dir.join("src/models/users.rs"), user_exemple)?;
+    fs::write(project_dir.join("src/entities/mod.rs"), entities_mod)?;
+    fs::write(project_dir.join("src/entities/users.rs"), user_exemple)?;
+    fs::write(project_dir.join("src/formulaire/mod.rs"), formulaire_mod)?;
+    fs::write(project_dir.join("src/formulaire/register.rs"), formulaire_register)?;
+    fs::write(project_dir.join("src/formulaire/login.rs"), formulaire_login)?;
 
     fs::write(project_dir.join("templates/index.html"), index_html)?;
     fs::write(project_dir.join("templates/about/about.html"), about_html)?;
