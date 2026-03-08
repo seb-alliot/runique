@@ -1,4 +1,3 @@
-```markdown
 # Sessions
 
 Runique uses `CleaningMemoryStore` as the default session store — a wrapper around an in-memory `HashMap` that adds automatic cleanup, watermark protection, and protection for valuable sessions.
@@ -20,4 +19,3 @@ Data is lost when the server restarts. For persistence, use an external store (R
 ## Next Steps
 
 ← [**Authentication**](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md) | [**Environment Variables**](https://github.com/seb-alliot/runique/blob/main/docs/en/env/15-env.md) →
-```

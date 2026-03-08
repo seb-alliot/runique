@@ -1,4 +1,3 @@
-```markdown
 # Models and AST (`model!`)
 
 > Related files: `src/entities/*`
@@ -22,4 +21,3 @@ The `model!` macro generates SeaORM entities, migration schemas, and associated 
 1. This document (`12-model.md`)
 2. [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md) for database usage
 3. [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md) for Prisme integration and rendering
-```

@@ -190,13 +190,13 @@ Référence complète : [docs/fr/15-env.md](https://github.com/seb-alliot/runiqu
 
 # Carte de la documentation
 
-### Englais
+### Anglais
 
 - [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
 - [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
 - [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)
 - [Routage](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md)
-- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/05-forms.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md)
 - [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/en/model/12-model.md)
 - [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)
 - [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md)
@@ -213,7 +213,7 @@ Référence complète : [docs/fr/15-env.md](https://github.com/seb-alliot/runiqu
 - [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md)
 - [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/03-configuration.md)
 - [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md)
-- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/05-forms.md)
+- [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md)
 - [Model/Schema](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md)
 - [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md)
 - [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md)

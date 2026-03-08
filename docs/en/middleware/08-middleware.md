@@ -1,4 +1,3 @@
-```markdown id="apf4a9"
 # Middleware & Security
 
 Runique includes configurable security middlewares automatically applied in the optimal order through the slot system.
@@ -36,4 +35,4 @@ Incoming request
 ## Next Steps
 
 ← [**ORM & Database**](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md) | [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md) →
-```
+
