@@ -2,12 +2,13 @@
 name = "runique"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "A Django-inspired web framework for Rust with ORM, templates, and comprehensive security middleware"
-keywords = ["web", "framework", "django", "orm", "runique"]
+keywords = ["web", "framework", "django", "sea-orm", "runique"]
 categories = ["web-programming::http-server"]
 readme = "readme.md"
 documentation = "https://docs.rs/runique"
