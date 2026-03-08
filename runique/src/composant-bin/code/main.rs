@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate runique;
 use runique::prelude::*;
-mod forms;
-mod models;
+mod entities;
+mod formulaire;
 mod url;
 mod views;
 
@@ -10,12 +10,10 @@ use runique::app::builder::RuniqueAppBuilder as builder;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
 
-    // Configuration de l'application
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
-    // Connexion à la base de données
     let db_config = DatabaseConfig::from_env()?.build();
     let db = db_config.connect().await?;
 

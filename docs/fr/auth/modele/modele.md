@@ -25,6 +25,12 @@ Pour créer le premier superutilisateur :
 runique create-superuser
 ```
 
+Pour accéder au modèle depuis votre code :
+
+```rust
+use runique::prelude::user::{Model, ActiveModel};
+```
+
 ---
 
 ## Trait RuniqueUser

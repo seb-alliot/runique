@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 
 # Database: sqlite (default) | postgres | mysql | mariadb | all-databases
-# in production => runique = { version = "1.0.8", features = ["orm", "postgres"] }
+# in production => runique = { version = "{{RUNIQUE_VERSION}}", features = ["orm", "postgres"] }
 runique = { path = "../runique", features = ["orm", "sqlite"] }
 
-serde ="1"
-
+serde = "1"
 chrono = "0.4"
-tracing-subscriber.workspace = true
+sea-orm = "=2.0.0-rc.32"sea-orm = "=2.0.0-rc.32"
+sea-orm-migration = "=2.0.0-rc.32"
