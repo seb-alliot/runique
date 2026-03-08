@@ -45,9 +45,9 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 
 | --- | --- |
 
-- [Clés de contexte](clef/context.md) — variables injectées par le backend dans chaque template
-- [Surcharge](surcharge/surcharge.md) — remplacer le layout ou un composant CRUD
-- [CSRF](csrf/csrf.md) — token CSRF, `csrf.js`, checklist login custom
+| [Clés de contexte](clef/context.md) — variables injectées par le backend dans chaque template
+| [Surcharge](surcharge/surcharge.md) — remplacer le layout ou un composant CRUD
+| [CSRF](csrf/csrf.md) — token CSRF, `csrf.js`, checklist login custom
 
 ## Voir aussi
 
@@ -59,7 +59,5 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 | [Évolutions](../evolution/futur_feature.md) | Axes d'évolution et état bêta |
 
 ## Revenir au sommaire
-
-| --- | --- |
 
 - [Sommaire Admin](../11-Admin.md)

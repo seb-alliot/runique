@@ -47,10 +47,14 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 
 ## Autre section
 
+| --- | --- |
+
 - [Daemon & génération](../daemon/generation.md) — Watcher, fichiers
 - [Macro `admin!`](../macro/macro.md) — Déclaration des ressources administrables
 
 ## Voir aussi
+
+| --- | --- |
 
 | [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
 | [Permissions](../permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |

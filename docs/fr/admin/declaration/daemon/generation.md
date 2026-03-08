@@ -60,8 +60,10 @@ Dans ce mode, `src/admins/` n'est plus surveillé ni écrasé. Les modifications
 
 ## Autre section
 
-- [Cli](../cli.md) - Fonctionnement de runique start
-- [Macro `admin!`](../macro/macro.md) — Déclaration des ressources administrables
+| --- | --- |
+
+| [Cli](../cli.md) - Fonctionnement de runique start
+| [Macro `admin!`](../macro/macro.md) — Déclaration des ressources administrables
 
 ## Revenir au Sommaire
 
