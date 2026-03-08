@@ -39,6 +39,32 @@ pub async fn csrf_middleware(
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
+    // Strip csrf_token des query params GET pour éviter l'exposition du token dans les URLs
+    if matches!(req.method(), &Method::GET | &Method::HEAD) {
+        let uri = req.uri();
+        if let Some(query) = uri.query() {
+            if query.split('&').any(|p| p.starts_with("csrf_token=")) {
+                let clean_query: String = query
+                    .split('&')
+                    .filter(|p| !p.starts_with("csrf_token="))
+                    .collect::<Vec<_>>()
+                    .join("&");
+
+                let new_uri = if clean_query.is_empty() {
+                    uri.path().to_string()
+                } else {
+                    format!("{}?{}", uri.path(), clean_query)
+                };
+
+                if let Ok(location) = HeaderValue::from_str(&new_uri) {
+                    let mut res = (StatusCode::FOUND, "").into_response();
+                    res.headers_mut().insert(axum::http::header::LOCATION, location);
+                    return res;
+                }
+            }
+        }
+    }
+
     let secret = &engine.config.server.secret_key;
 
     // Récupérer ou générer le token de session

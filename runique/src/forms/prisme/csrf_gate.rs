@@ -23,8 +23,8 @@ pub async fn csrf_gate<T: RuniqueForm>(
         .and_then(|v| v.last())
         .map(|s| s.as_str());
 
-    // GET/HEAD sans token soumis = chargement initial, pas de données à protéger
-    if (method == Method::GET || method == Method::HEAD) && csrf_submitted.is_none() {
+    // GET/HEAD : pas de validation CSRF (token non consommé + middleware strip l'URL)
+    if method == Method::GET || method == Method::HEAD {
         return Ok(None);
     }
 

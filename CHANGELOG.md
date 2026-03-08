@@ -1,3 +1,8 @@
+## [1.1.42]
+
+- **Fix sécurity csrf** : Delete csrf on method Get
+
+
 ## [1.1.38] 2026-03-06
 
 ### Fixed

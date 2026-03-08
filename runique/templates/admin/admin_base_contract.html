@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="{{ lang | default(value='fr') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# ═══ CONTRAT — ne pas retirer : requis pour les requêtes AJAX (csrf.js) #}
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
+
+    <title>{% block title %}Administration{% endblock %} — {{ site_title | default(value="Runique Admin") }}</title>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% block layout %}
+
+<div class="admin-layout">
+
+    {% block sidebar %}{% endblock %}
+
+    <div class="admin-main">
+
+        {% block topbar %}{% endblock %}
+
+        <main class="admin-content">
+
+            {# ═══ CONTRAT — ne pas retirer : messages flash du backend #}
+            {# Pour déplacer les messages, overridez ce block en conservant {% messages %} #}
+            {% block messages %}{% messages %}{% endblock %}
+
+            {% block content %}{% endblock %}
+
+        </main>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{# ═══ CONTRAT — ne pas retirer ni déplacer dans un block : requis pour CSRF AJAX #}
+<script src="{{ "js/csrf.js" | runique_static }}" defer></script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>
