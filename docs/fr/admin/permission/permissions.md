@@ -80,7 +80,6 @@ authentifié ?
 
 | Section | Description |
 | --- | --- |
-
 | [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
 | [CLI](../declaration/cli.md) | Commande `runique start`, workflow général |
 | [Templates](../template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
