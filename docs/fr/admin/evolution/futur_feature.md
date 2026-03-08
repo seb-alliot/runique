@@ -50,3 +50,8 @@ Support des relations SeaORM dans les vues detail/edit (affichage des entités l
 ## Amélioration du retour d'erreur du daemon
 
 Meilleur feedback lors de la génération : erreurs de compilation Rust exposées directement dans le terminal avec contexte.
+
+
+## Revenir au sommaire
+
+- [Sommaire Admin](../11-Admin.md)

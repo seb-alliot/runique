@@ -46,3 +46,13 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 - [Clés de contexte](clef/context.md) — variables injectées par le backend dans chaque template
 - [Surcharge](surcharge/surcharge.md) — remplacer le layout ou un composant CRUD
 - [CSRF](csrf/csrf.md) — token CSRF, `csrf.js`, checklist login custom
+
+## Voir aussi
+
+- [CLI](../cli/cli.md) — Fonctionnement de `runique start`
+- [Évolutions](../evolution/futur_feature.md) — Permissions granulaires dans la roadmap
+- [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
+
+## Revenir au sommaire
+
+- [Sommaire Admin](../11-Admin.md)
