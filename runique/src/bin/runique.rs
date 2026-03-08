@@ -249,8 +249,14 @@ fn create_new_project(name: &str) -> Result<()> {
     fs::write(project_dir.join("src/entities/mod.rs"), entities_mod)?;
     fs::write(project_dir.join("src/entities/users.rs"), user_exemple)?;
     fs::write(project_dir.join("src/formulaire/mod.rs"), formulaire_mod)?;
-    fs::write(project_dir.join("src/formulaire/register.rs"), formulaire_register)?;
-    fs::write(project_dir.join("src/formulaire/login.rs"), formulaire_login)?;
+    fs::write(
+        project_dir.join("src/formulaire/register.rs"),
+        formulaire_register,
+    )?;
+    fs::write(
+        project_dir.join("src/formulaire/login.rs"),
+        formulaire_login,
+    )?;
 
     fs::write(project_dir.join("templates/index.html"), index_html)?;
     fs::write(project_dir.join("templates/about/about.html"), about_html)?;
