@@ -372,7 +372,9 @@ async fn handle_edit_post(
         .edit_form_builder
         .as_ref()
         .unwrap_or(&entry.form_builder);
-    let mut form = (builder)(body, tera, csrf, axum::http::Method::POST).await;
+    // Method::PATCH signals edit mode — password fields relax their required constraint
+    // (empty password = keep existing, handled by NotSet in admin_from_form)
+    let mut form = (builder)(body, tera, csrf, axum::http::Method::PATCH).await;
 
     if form.is_valid().await {
         let result = match &entry.update_fn {

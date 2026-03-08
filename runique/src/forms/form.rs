@@ -173,12 +173,18 @@ impl Forms {
 
     /// Remplit les champs du formulaire à partir d'une map de données.
     /// Si allow_password est false, les champs password sont ignorés (sécurité GET).
+    /// En mode PATCH (edit admin), les champs password voient leur contrainte `required`
+    /// relaxée : valeur vide = garder l'existant (NotSet côté DB).
     pub fn fill(&mut self, data: &StrMap, method: Method) {
         let allow_password = matches!(method, Method::POST | Method::PUT | Method::PATCH);
+        let is_edit = matches!(method, Method::PATCH | Method::PUT);
         let mut has_data = false;
         for field in self.fields.values_mut() {
             if field.field_type() == "password" && !allow_password {
                 continue;
+            }
+            if field.field_type() == "password" && is_edit {
+                field.set_required(false, None);
             }
             if let Some(value) = data.get(field.name()) {
                 if !value.trim().is_empty() {

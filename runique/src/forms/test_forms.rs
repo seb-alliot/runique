@@ -381,6 +381,20 @@ mod tests {
     }
 
     #[test]
+    fn test_forms_fill_patch_relaxes_password_required() {
+        // In edit mode (PATCH), a required password field left empty must not fail validation.
+        // An empty password means "keep existing" — NotSet at DB level.
+        let mut form = Forms::new("csrf");
+        form.field(&TextField::password("pwd").required());
+
+        let data: HashMap<String, String> = HashMap::new(); // empty — no password submitted
+        form.fill(&data, Method::PATCH);
+
+        // required is relaxed → valid even with no password
+        assert!(form.is_valid().is_ok());
+    }
+
+    #[test]
     fn test_forms_has_errors_after_invalid() {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("name").required());
