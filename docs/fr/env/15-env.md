@@ -4,115 +4,16 @@ Toutes les clés configurables via `.env`. Les valeurs indiquées sont les défa
 
 ---
 
-## Application
+## Table des matières
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `DEBUG` | `false` (release) / `true` (debug_assertions) | Mode debug — active les pages d'erreur détaillées |
-| `BASE_DIR` | `.` | Répertoire racine de l'application |
-| `PROJECT_NAME` | `myproject` | Nom du projet (utilisé pour `root_urlconf`) |
-| `LANGUAGE_APP` | `en-us` | Code langue de l'application | -> seulement fr et en pour les erreur - i18n en cour
-| `TIME_ZONE` | `UTC` | Fuseau horaire | -> pas encore implementer
-| `DEFAULT_AUTO_FIELD` | — | Type de champ auto par défaut pour les modèles |
-
----
-
-## Serveur
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `IP_SERVER` | `127.0.0.1` | Adresse IP d'écoute |
-| `PORT` | `3000` | Port d'écoute |
-| `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures) — **à changer en production** |
-
----
-
-## Base de données
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `DATABASE_URL` | — | URL de connexion (`sqlite://...`, `postgres://...`, `mysql://...`) |
-| `DB_NAME` | `runique_db` | Nom de la base (utilisé si `DATABASE_URL` est absent) |
-
----
-
-## Fichiers statiques et médias
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `STATICFILES_DIRS` | `static` | Dossier des fichiers statiques |
-| `STATIC_URL` | `/static` | Préfixe URL pour les fichiers statiques |
-| `MEDIA_ROOT` | `media` | Dossier des fichiers médias uploadés |
-| `MEDIA_URL` | `/media` | Préfixe URL pour les médias |
-| `STATIC_RUNIQUE_PATH` | — | Chemin vers les assets internes de Runique |
-| `STATIC_RUNIQUE_URL` | `/runique/static` | Préfixe URL pour les assets de Runique |
-| `MEDIA_RUNIQUE_PATH` | — | Chemin vers les médias internes de Runique |
-| `MEDIA_RUNIQUE_URL` | `/runique/media` | Préfixe URL pour les médias de Runique |
-| `TEMPLATES_DIR` | — | Dossier des templates Tera |
-| `TEMPLATES_RUNIQUE` | — | Dossier des templates internes de Runique |
-| `STATICFILES` | `default_storage` | Backend de stockage |
-
----
-
-## Sécurité
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `ALLOWED_HOSTS` | `*` | Hosts autorisés (séparés par virgule) |
-| `SANITIZE_INPUTS` | `true` | Activer la sanitisation des entrées utilisateur |
-| `STRICT_CSP` | `false` | CSP stricte |
-| `ENFORCE_HTTPS` | `false` | Forcer HTTPS |
-| `RATE_LIMITING` | `false` | Activer la limitation de débit |
-
----
-
-## Middlewares
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `RUNIQUE_ENABLE_CSP` | `true` (prod) / `false` (dev) | Activer les headers Content Security Policy |
-| `RUNIQUE_ENABLE_HOST_VALIDATION` | `true` (prod) / `false` (dev) | Valider le header Host contre `ALLOWED_HOSTS` |
-| `RUNIQUE_ENABLE_DEBUG_ERRORS` | `false` (prod) / `true` (dev) | Pages d'erreur détaillées |
-| `RUNIQUE_ENABLE_CACHE` | `true` (prod) / `false` (dev) | Headers de cache HTTP |
-| `RUNIQUE_ALLOWED_HOSTS` | `*` | Hosts autorisés pour le middleware de validation |
-
----
-
-## CSP (Content Security Policy)
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `RUNIQUE_POLICY_CSP_DEFAULT` | — | Sources autorisées pour `default-src` (séparées par espace) |
-| `RUNIQUE_POLICY_CSP_SCRIPTS` | — | Sources autorisées pour `script-src` |
-| `RUNIQUE_POLICY_CSP_STYLES` | — | Sources autorisées pour `style-src` |
-| `RUNIQUE_POLICY_CSP_IMAGES` | — | Sources autorisées pour `img-src` |
-| `RUNIQUE_POLICY_CSP_FONTS` | — | Sources autorisées pour `font-src` |
-| `RUNIQUE_POLICY_CSP_STRICT_NONCE` | `false` | Activer le nonce strict pour les scripts inline |
-
----
-
-## Sessions
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `RUNIQUE_SESSION_CLEANUP_SECS` | `60` | Intervalle du cleanup périodique (secondes) |
-| `RUNIQUE_SESSION_LOW_WATERMARK` | `134217728` (128 Mo) | Seuil de cleanup proactif des sessions anonymes expirées (octets) |
-| `RUNIQUE_SESSION_HIGH_WATERMARK` | `268435456` (256 Mo) | Seuil d'urgence — cleanup synchrone + 503 si dépassé (octets) |
-
-Voir [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/14-sessions.md) pour le détail du comportement.
-
----
-
-## Redirections
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `REDIRECT_ANONYMOUS` | `/` | URL de redirection pour les visiteurs non connectés |
-| `LOGGING_URL` | `/` | URL de redirection vers la page de login |
-| `USER_CONNECTED_URL` | `/` | URL de redirection après connexion |
+| Section | Contenu |
+| --- | --- |
+| [Application & Serveur](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/application/application.md) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB, Redirections |
+| [Assets & médias](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/assets/assets.md) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR et URLs associées |
+| [Sécurité & sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/securite/securite.md) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 
 ---
 
 ## Prochaines étapes
 
-← [**Sessions**](https://github.com/seb-alliot/runique/blob/main/docs/fr/14-sessions.md)
+← [**Sessions**](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md)

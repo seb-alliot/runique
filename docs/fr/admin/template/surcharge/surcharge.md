@@ -69,7 +69,7 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
 ## Déclarer le template custom dans la config
 
 ```rust
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .with_admin(|a| a
         .templates(|t| t
             .with_base("mon_theme/admin_base")

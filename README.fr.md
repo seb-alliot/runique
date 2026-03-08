@@ -228,8 +228,7 @@ Référence complète : [docs/fr/15-env.md](docs/fr/15-env.md)
 # Statut du projet
 
 Pour un rapport détaillé et continuellement mis à jour de l’état du projet, voir :
-
-`PROJECT_STATUS.md`
+[PROJECT_STATUS.md](https://github.com/seb-alliot/runique/tree/main/docs/fr/PROJECT_STATUS.md)
 
 ---
 

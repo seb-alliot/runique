@@ -58,7 +58,8 @@ pub async fn csrf_middleware(
 
                 if let Ok(location) = HeaderValue::from_str(&new_uri) {
                     let mut res = (StatusCode::FOUND, "").into_response();
-                    res.headers_mut().insert(axum::http::header::LOCATION, location);
+                    res.headers_mut()
+                        .insert(axum::http::header::LOCATION, location);
                     return res;
                 }
             }

@@ -11,7 +11,7 @@ Au démarrage, `runique start` lit `src/main.rs` et recherche la présence de `.
 
 ```rust
 // src/main.rs
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .with_admin(|a| a.routes(admins::routes("/admin")))
     // ...
 ```
