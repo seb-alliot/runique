@@ -62,8 +62,8 @@ Dans ce mode, `src/admins/` n'est plus surveillé ni écrasé. Les modifications
 
 | Section | Description |
 | --- | --- |
-| [Cli](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) - Fonctionnement de runique start
-| [Macro `admin!`](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/macro/macro.md) — Déclaration des ressources administrables
+| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Fonctionnement de `runique start` |
+| [Macro `admin!`](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/macro/macro.md) | Déclaration des ressources administrables |
 
 ## Revenir au Sommaire
 

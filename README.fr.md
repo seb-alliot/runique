@@ -203,7 +203,7 @@ Référence complète : [docs/fr/15-env.md](docs/fr/15-env.md)
 - [Middleware](https://github.com/seb-alliot/runique/blob/main/docs/en/08-middleware.md)
 - [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/09-flash-messages.md)
 - [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/10-examples.md)
-- [Admin beta](https://github.com/seb-alliot/runique/blob/main/docs/en/11-Admin.md)
+- [Admin beta]((https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md))
 - [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/14-sessions.md)
 - [Environment variables](https://github.com/seb-alliot/runique/blob/main/docs/en/15-env.md)
 
