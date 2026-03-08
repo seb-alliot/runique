@@ -78,6 +78,7 @@ authentifié ?
 
 ## Voir aussi
 
+| Section | Description |
 | --- | --- |
 
 | [Mise en place](../setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
