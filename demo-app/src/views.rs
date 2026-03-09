@@ -26,7 +26,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
         "session" => "Tower pour la gestion des sessions",
     });
 
-    request.render("index.html")
+    request.render("1index.html")
 }
 
 // ─── Inscription ──────────────────────────────────────────────────────────────

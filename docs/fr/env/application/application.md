@@ -7,7 +7,6 @@
 | `DEBUG` | `false` (release) / `true` (debug_assertions) | Mode debug — active les pages d'erreur détaillées |
 | `BASE_DIR` | `.` | Répertoire racine de l'application |
 | `PROJECT_NAME` | `myproject` | Nom du projet (utilisé pour `root_urlconf`) |
-| `LANGUAGE_APP` | `en-us` | Code langue de l'application (fr et en pour les erreurs — i18n en cours) |
 | `TIME_ZONE` | `UTC` | Fuseau horaire (pas encore implémenté) |
 | `DEFAULT_AUTO_FIELD` | — | Type de champ auto par défaut pour les modèles |
 

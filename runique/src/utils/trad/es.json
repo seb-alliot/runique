@@ -79,6 +79,8 @@
         "session_write_error": "Error de escritura de sesión"
     },
     "error": {
+        "source": "Fuente: {}" ,
+        "AppError": "Error de aplicación",
         "build": "Error de compilación: {}",
         "internal": "Error interno",
         "forbidden": "Acceso prohibido",
@@ -99,6 +101,9 @@
         "path_not_found": "La ruta solicitada '{}' no fue encontrada",
         "internal_occurred": "Ocurrió un error interno",
         "context_occurred": "Error AppError ocurrido"
+    },
+    "title": {
+        "template": "Error de plantilla en '{}'"
     },
     "build": {
         "validation_failed": "La validación del build falló: {}",

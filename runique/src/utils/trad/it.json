@@ -79,6 +79,8 @@
         "session_write_error": "Errore di scrittura della sessione"
     },
     "error": {
+        "source": "Fonte: {}" ,
+        "AppError": "Errore dell'applicazione",
         "build": "Errore di build: {}",
         "internal": "Errore interno",
         "forbidden": "Accesso vietato",
@@ -99,6 +101,9 @@
         "path_not_found": "Il percorso richiesto '{}' non è stato trovato",
         "internal_occurred": "Si è verificato un errore interno",
         "context_occurred": "Errore AppError verificato"
+    },
+    "title": {
+        "template": "Errore del template in '{}'"
     },
     "build": {
         "validation_failed": "Validazione del build fallita: {}",
