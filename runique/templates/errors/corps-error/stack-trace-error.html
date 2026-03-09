@@ -1,38 +1,36 @@
 <!-- Stack trace -->
-        {% if stack_trace and stack_trace | length > 0 %}
-        <div class="section">
-            <h2>{{ debug_stack_trace_title }}</h2>
-
-
+{% if stack_trace and stack_trace | length > 0 %}
+    <div class="section">
+        <h2>{{ debug_stack_trace_title }}</h2>    
             {% if debug_repr %}
-            <div style="margin-bottom: 1rem;">
+            <div class="debug-repr-block">
                 <details>
-                    <summary style="cursor: pointer; color: #ff79c6; font-weight: bold; padding: 0.5rem 0; user-select: none;">
+                    <summary class="debug-repr-summary">
                         Debug repr <code>{:?}</code> (erreur racine)
                     </summary>
-                    <pre style="background: #1e1e2e; border: 1px solid #ff79c6; border-radius: 0.25rem; padding: 1rem; margin-top: 0.5rem; overflow-x: auto; color: #f8f8f2; white-space: pre-wrap; word-wrap: break-word;">{{ debug_repr }}</pre>
+                    <pre class="debug-repr-pre">{{ debug_repr }}</pre>
                 </details>
             </div>
             {% endif %}
 
             <div class="stack-trace">
                 {% for frame in stack_trace %}
-                <div class="stack-frame" {% if loop.first %}style="border-left-color: #ff6b6b; background: #2f1f1f;"{% endif %}>
+                <div class="stack-frame" {% if loop.first %}data-first="true"{% endif %}>
                     <span class="level">{{ frame.level }}</span>
-                    <strong style="{% if loop.first %}color: #ff6b6b;{% else %}color: #ffa94d;{% endif %}">
+                    <strong class="stack-frame-title" data-first="{{ loop.first }}">
                         {{ frame.message }}
                     </strong>
                     {% if frame.location %}
-                    <div style="margin-top: 0.5rem; opacity: 0.7; font-size: 0.9rem;">
+                    <div class="stack-frame-location">
                         📍 {{ frame.location }}
                     </div>
                     {% endif %}
                     {% if frame.debug_repr %}
                     <details>
-                        <summary style="cursor: pointer; color: #6272a4; font-size: 0.85rem; margin-top: 0.4rem; user-select: none;">
+                        <summary class="frame-debug-summary">
                             <code>{:?}</code> ce niveau
                         </summary>
-                        <pre style="background: #1a1a2e; border: 1px solid #44475a; border-radius: 0.2rem; padding: 0.6rem 0.8rem; margin-top: 0.3rem; overflow-x: auto; color: #bd93f9; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word;">{{ frame.debug_repr }}</pre>
+                        <pre class="frame-debug-pre">{{ frame.debug_repr }}</pre>
                     </details>
                     {% endif %}
                 </div>
@@ -40,11 +38,10 @@
             </div>
 
             {% if stack_trace | length > 1 %}
-            <div style="margin-top: 1rem; padding: 1rem; background: #1a1a1a; border-radius: 0.25rem; border-left: 3px solid #4c6ef5;">
-                <strong style="color: #4c6ef5;">💡 Conseil:</strong>
-                L'erreur la plus haute (niveau 0) est généralement la cause racine.
-                Les erreurs suivantes montrent comment l'erreur s'est propagée dans le code.
+            <div class="stack-trace-tip">
+                <strong class="stack-trace-tip-title">💡 Conseil:</strong>
+                {{ debug_stack_trace_tip }}
             </div>
-            {% endif %}
-        </div>
         {% endif %}
+    </div>
+{% endif %}
