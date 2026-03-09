@@ -34,6 +34,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .site_title("Administration")
                 .auth(RuniqueAdminAuth::new())
                 .routes(admins::routes("/admin"))
+                .templates(|a|a
+                    .with_dashboard("admin/test_dashboard.html"))
+
                 .with_proto_state(admins::admin_proto_state())
         })
         .build()
