@@ -26,7 +26,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
         "session" => "Tower pour la gestion des sessions",
     });
 
-    request.render("index.html")
+    request.render("1index.html")
 }
 
 // ─── Inscription ──────────────────────────────────────────────────────────────
@@ -334,7 +334,7 @@ pub async fn upload_image_submit(
     inject_auth(&mut request).await;
     let template = "forms/upload_image.html";
 
-    if request.is_get() {
+    if request.is_get() && form.is_valid().await {
         context_update!(request => {
             "title" => "Uploader un fichier",
             "image_form" => &form,
@@ -342,22 +342,19 @@ pub async fn upload_image_submit(
         return request.render(template);
     }
 
-    if request.is_post() {
-        if form.is_valid().await {
-            success!(request.notices => "Fichier uploadé avec succès !");
-            return Ok(Redirect::to("/").into_response());
-        }
-
-        context_update!(request => {
-            "title" => "Erreur de validation",
-            "image_form" => &form,
-            "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
-        });
-        return request.render(template);
+    if request.is_post() && form.is_valid().await {
+        success!(request.notices => "Fichier uploadé avec succès !");
+        return Ok(Redirect::to("/").into_response());
     }
 
+    context_update!(request => {
+        "title" => "Erreur de validation",
+        "image_form" => &form,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+    });
     request.render(template)
 }
+
 
 // ─── Test des champs ─────────────────────────────────────────────────────────
 
@@ -368,7 +365,7 @@ pub async fn test_fields(
     inject_auth(&mut request).await;
     let template = "forms/field_test.html";
 
-    if request.is_get() {
+    if request.is_get() && form.is_valid().await {
         context_update!(request => {
             "title" => "Test des champs de formulaire Runique",
             "description" => "Page de test exhaustif de tous les types de champs",
@@ -377,19 +374,15 @@ pub async fn test_fields(
         return request.render(template);
     }
 
-    if request.is_post() {
-        if form.is_valid().await {
-            success!(request.notices => "Formulaire validé avec succès !");
-            return Ok(Redirect::to("/test-fields").into_response());
-        }
-
-        context_update!(request => {
-            "title" => "Erreur de validation",
-            "test_form" => &form,
-            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
-        });
-        return request.render(template);
+    if request.is_post() && form.is_valid().await {
+        success!(request.notices => "Formulaire validé avec succès !");
+        return Ok(Redirect::to("/test-fields").into_response());
     }
 
+    context_update!(request => {
+        "title" => "Erreur de validation",
+        "test_form" => &form,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+    });
     request.render(template)
 }

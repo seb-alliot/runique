@@ -10,7 +10,7 @@ use std::sync::OnceLock;
 use thiserror::Error;
 use tracing::{error, info};
 
-use crate::utils::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
+use crate::utils::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES, ADMIN_TEMPLATES};
 use crate::utils::trad::{t, tf};
 // ═══════════════════════════════════════════════════════════════
 // ERREURS DE BUILD (refonte app builder)
@@ -25,6 +25,7 @@ fn get_internal_templates() -> &'static [&'static str] {
                 .iter()
                 .chain(ERROR_CORPS.iter())
                 .chain(FIELD_TEMPLATES.iter())
+                .chain(ADMIN_TEMPLATES.iter())
                 .map(|(name, _)| *name)
                 .collect::<Vec<&'static str>>()
         })
@@ -93,18 +94,18 @@ impl From<BuildError> for RuniqueError {
 impl RuniqueError {
     pub fn log(&self) {
         match self {
-            RuniqueError::Build(e) => error!("Erreur de build: {}", e),
-            RuniqueError::Internal => error!("Erreur interne"),
-            RuniqueError::Forbidden => info!("Accès interdit"),
-            RuniqueError::NotFound => info!("Ressource introuvable"),
-            RuniqueError::Validation(msg) => info!("Erreur de validation: {}", msg),
-            RuniqueError::Database(msg) => error!("Erreur base de données: {}", msg),
-            RuniqueError::Io(msg) => error!("Erreur IO: {}", msg),
-            RuniqueError::Template(msg) => error!("Erreur template: {}", msg),
+            RuniqueError::Build(e) => error!("{}", tf("RuniqueError.build", &[&e.to_string()])),
+            RuniqueError::Internal => error!("{}", t("RuniqueError.internal")),
+            RuniqueError::Forbidden => info!("{}", t("RuniqueError.forbidden")),
+            RuniqueError::NotFound => info!("{}", t("RuniqueError.not_found")),
+            RuniqueError::Validation(msg) => info!("{}", tf("RuniqueError.validation", &[msg])),
+            RuniqueError::Database(msg) => error!("{}", tf("RuniqueError.database", &[msg])),
+            RuniqueError::Io(msg) => error!("{}", tf("RuniqueError.io", &[msg])),
+            RuniqueError::Template(msg) => error!("{}", tf("RuniqueError.template", &[msg])),
             RuniqueError::Custom { message, source } => {
-                error!("Erreur custom: {}", message);
+                error!("{}", tf("RuniqueError.custom", &[message]));
                 if let Some(source) = source.as_ref() {
-                    error!("Source: {}", source);
+                    error!("{}", tf("RuniqueError.source", &[&source.to_string()]));
                 }
             }
         }
@@ -114,36 +115,36 @@ impl RuniqueError {
     pub fn to_error_context(&self) -> ErrorContext {
         let (status, error_type, title) = match self {
             RuniqueError::NotFound => {
-                (StatusCode::NOT_FOUND, ErrorType::NotFound, "Page Not Found")
+                (StatusCode::NOT_FOUND, ErrorType::NotFound, ("{}", t("RuniqueError.not_found")))
             }
             RuniqueError::Forbidden => (
                 StatusCode::FORBIDDEN,
                 ErrorType::Internal,
-                "Access Forbidden",
+                ("{}", t("RuniqueError.forbidden")),
             ),
             RuniqueError::Validation(_) => (
                 StatusCode::BAD_REQUEST,
                 ErrorType::Validation,
-                "Validation Error",
+                ("{}", t("RuniqueError.validation")),
             ),
             RuniqueError::Database(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Database,
-                "Database Error",
+                ("{}", t("RuniqueError.database")),
             ),
             RuniqueError::Template(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Template,
-                "Template Error",
+                ("{}", t("RuniqueError.template")),
             ),
             _ => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Internal,
-                "Internal Server Error",
+                ("{}", t("RuniqueError.internal")),
             ),
         };
 
-        let mut ctx = ErrorContext::new(error_type, status, title, &self.to_string());
+        let mut ctx = ErrorContext::new(error_type, status, &title.1, &self.to_string());
         ctx.build_stack_trace(self);
         ctx
     }
@@ -269,7 +270,7 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::Template,
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Template Rendering Error",
+            &tf("title.template", &[template_name]),
             &error.to_string(),
         );
         ctx.template_info = Some(TemplateInfo {
@@ -290,7 +291,7 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::Database,
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Database Error",
+            &tf("RuniqueError.database", &[&error.to_string()]),
             &error.to_string(),
         );
         ctx.build_stack_trace(&error);
@@ -319,7 +320,7 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::Internal,
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Application Error",
+            &t("RuniqueError.AppError"),
             &error.to_string(),
         );
         // Capture le {:?} complet de l'erreur anyhow (inclut la chaîne + backtrace)

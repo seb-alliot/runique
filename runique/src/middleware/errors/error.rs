@@ -147,6 +147,9 @@ pub async fn error_handler_middleware(
 fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
     let mut context = Context::new();
     inject_global_vars(&mut context, config, csrf_token);
+    context.insert("error_title", &t("html.404_title"));
+    context.insert("error_text", &t("html.404_text"));
+    context.insert("back_home", &t("html.back_home"));
 
     match tera.render("404", &context) {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
@@ -160,6 +163,9 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
 fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
     let mut context = Context::new();
     inject_global_vars(&mut context, config, csrf_token);
+    context.insert("error_title", &t("html.500_title"));
+    context.insert("error_text", &t("html.500_text"));
+    context.insert("back_home", &t("html.back_home"));
 
     match tera.render("500", &context) {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
@@ -185,7 +191,100 @@ fn render_debug_error_from_context(
     };
 
     inject_global_vars(&mut context, config, csrf_token);
-
+    // Textes i18n pour debug_field.html (via TemplateMessage)
+    context.insert("debug_info_title", &t("TemplateMessage.debug_info_title"));
+    context.insert("debug_field_title", &t("TemplateMessage.debug_field_title"));
+    context.insert("debug_field_count", &t("TemplateMessage.debug_field_count"));
+    context.insert("debug_error_count", &t("TemplateMessage.debug_error_count"));
+    context.insert(
+        "debug_main_message",
+        &t("TemplateMessage.debug_main_message"),
+    );
+    context.insert("debug_root_cause", &t("TemplateMessage.debug_root_cause"));
+    context.insert("debug_details", &t("TemplateMessage.debug_details"));
+    context.insert(
+        "debug_request_info",
+        &t("TemplateMessage.debug_request_info"),
+    );
+    context.insert("debug_http_method", &t("TemplateMessage.debug_http_method"));
+    context.insert("debug_path", &t("TemplateMessage.debug_path"));
+    context.insert(
+        "debug_query_params",
+        &t("TemplateMessage.debug_query_params"),
+    );
+    context.insert(
+        "debug_http_headers",
+        &t("TemplateMessage.debug_http_headers"),
+    );
+    context.insert(
+        "debug_template_info",
+        &t("TemplateMessage.debug_template_info"),
+    );
+    context.insert(
+        "debug_template_name",
+        &t("TemplateMessage.debug_template_name"),
+    );
+    context.insert("debug_error_line", &t("TemplateMessage.debug_error_line"));
+    context.insert(
+        "debug_template_source",
+        &t("TemplateMessage.debug_template_source"),
+    );
+    context.insert(
+        "debug_available_templates",
+        &t("TemplateMessage.debug_available_templates"),
+    );
+    context.insert(
+        "debug_stack_trace_title",
+        &t("TemplateMessage.debug_stack_trace_title"),
+    );
+    context.insert(
+        "debug_stack_trace_tip",
+        &t("TemplateMessage.debug_stack_trace_tip"),
+    );
+    context.insert("debug_environment", &t("TemplateMessage.debug_environment"));
+    context.insert("debug_debug_mode", &t("TemplateMessage.debug_debug_mode"));
+    context.insert("debug_enabled", &t("TemplateMessage.debug_enabled"));
+    context.insert("debug_disabled", &t("TemplateMessage.debug_disabled"));
+    context.insert(
+        "debug_rust_version",
+        &t("TemplateMessage.debug_rust_version"),
+    );
+    context.insert("debug_app_version", &t("TemplateMessage.debug_app_version"));
+    context.insert("debug_status_code", &t("TemplateMessage.debug_status_code"));
+    context.insert(
+        "debug_template_name",
+        &t("TemplateMessage.debug_template_name"),
+    );
+    context.insert("debug_error_line", &t("TemplateMessage.debug_error_line"));
+    context.insert(
+        "debug_template_source",
+        &t("TemplateMessage.debug_template_source"),
+    );
+    context.insert(
+        "debug_available_templates",
+        &t("TemplateMessage.debug_available_templates"),
+    );
+    context.insert(
+        "debug_stack_trace_title",
+        &t("TemplateMessage.debug_stack_trace_title"),
+    );
+    context.insert(
+        "debug_stack_trace_tip",
+        &t("TemplateMessage.debug_stack_trace_tip"),
+    );
+    context.insert("debug_environment", &t("TemplateMessage.debug_environment"));
+    context.insert("debug_debug_mode", &t("TemplateMessage.debug_debug_mode"));
+    context.insert("debug_enabled", &t("TemplateMessage.debug_enabled"));
+    context.insert("debug_disabled", &t("TemplateMessage.debug_disabled"));
+    context.insert(
+        "debug_rust_version",
+        &t("TemplateMessage.debug_rust_version"),
+    );
+    context.insert("debug_app_version", &t("TemplateMessage.debug_app_version"));
+    context.insert("debug_status_code", &t("TemplateMessage.debug_status_code"));
+    context.insert("debug_header_name", &t("TemplateMessage.debug_header_name"));
+    context.insert("debug_header_value", &t("TemplateMessage.debug_header_value"));
+    
     match tera.render("debug", &context) {
         Ok(html) => (
             StatusCode::from_u16(error_ctx.status_code)
@@ -208,14 +307,17 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
         context.insert("csrf_token", &token);
     }
     context.insert("debug", &config.debug);
+    // Ajoute la langue courante dans le contexte pour les templates
+    context.insert("lang", &crate::utils::trad::current_lang().code());
 }
 
 // --- FALLBACKS ---
 
 fn fallback_404_html() -> Response {
+    let lang = crate::utils::trad::current_lang().code();
     let html = format!(
         r#"<!DOCTYPE html>
-<html lang="fr">
+<html lang="{lang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -268,6 +370,7 @@ fn fallback_404_html() -> Response {
     </div>
 </body>
 </html>"#,
+        lang = lang,
         title = t("html.404_title"),
         text = t("html.404_text"),
         back = t("html.back_home"),
@@ -276,9 +379,10 @@ fn fallback_404_html() -> Response {
 }
 
 fn fallback_500_html() -> Response {
+    let lang = crate::utils::trad::current_lang().code();
     let html = format!(
         r#"<!DOCTYPE html>
-<html lang="fr">
+<html lang="{lang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -332,6 +436,7 @@ fn fallback_500_html() -> Response {
     </div>
 </body>
 </html>"#,
+        lang = lang,
         title = t("html.500_title"),
         text = t("html.500_text"),
         notice = t("html.500_notice"),
@@ -341,9 +446,10 @@ fn fallback_500_html() -> Response {
 }
 
 fn critical_error_html(error: &str) -> Response {
+    let lang = crate::utils::trad::current_lang().code();
     let html = format!(
         r#"<!DOCTYPE html>
-<html lang="fr">
+<html lang="{lang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -395,6 +501,7 @@ fn critical_error_html(error: &str) -> Response {
     </div>
 </body>
 </html>"#,
+        lang = lang,
         title_tag = t("html.critical_error_title"),
         title = t("html.critical_error_title"),
         text = t("html.critical_error_text"),

@@ -1,31 +1,31 @@
         <!-- Request information -->
         {% if request_info %}
         <div class="section">
-            <h2>📡 Informations de la requête</h2>
+            <h2>{{ debug_request_info }}</h2>
             <div class="info-grid">
                 <div class="info-card">
-                    <div class="label">Méthode HTTP</div>
+                    <div class="label">{{ debug_http_method }}</div>
                     <div class="value">{{ request_info.method }}</div>
                 </div>
                 <div class="info-card">
-                    <div class="label">Chemin</div>
+                    <div class="value">{{ debug_path }}</div>
                     <div class="value">{{ request_info.path }}</div>
                 </div>
                 {% if request_info.query %}
                 <div class="info-card" style="grid-column: 1 / -1;">
-                    <div class="label">Paramètres de requête</div>
+                    <div class="value">{{ debug_query_params }}</div>
                     <div class="value">{{ request_info.query }}</div>
                 </div>
                 {% endif %}
             </div>
 
             {% if request_info.headers %}
-            <h3>En-têtes HTTP</h3>
+            <h3>{{ debug_http_headers }}</h3>
             <table class="headers-table">
                 <thead>
                     <tr>
-                        <th>Nom</th>
-                        <th>Valeur</th>
+                        <th>{{ debug_header_name }}</th>
+                        <th>{{ debug_header_value }}</th>
                     </tr>
                 </thead>
                 <tbody>

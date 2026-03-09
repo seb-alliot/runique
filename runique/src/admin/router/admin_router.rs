@@ -42,7 +42,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .trim_end_matches('/')
         .to_string();
     let config = admin_staging.config;
-    let proto_state = admin_staging.proto_state;
+    let state = admin_staging.state;
 
     let admin_state = Arc::new(AdminState {
         config: Arc::new(config.clone()),
@@ -77,7 +77,7 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         .layer(middleware::from_fn(load_user_middleware))
         .layer(Extension(admin_state));
 
-    if let Some(state) = proto_state {
+    if let Some(state) = state {
         // On remplace le config du proto_state par celui d'AdminStaging
         // pour que les templates configurés via .templates() soient pris en compte.
         let merged = Arc::new(PrototypeAdminState {

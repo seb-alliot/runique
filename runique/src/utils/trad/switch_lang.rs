@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use serde_json::Value;
 use std::borrow::Cow;
 use std::fmt::Display;
-use std::sync::OnceLock;
+use std::sync::RwLock;
 
 /// Languages supported by Runique
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,17 +20,17 @@ pub enum Lang {
     Zh,
 }
 
-static GLOBAL_LANG: OnceLock<Lang> = OnceLock::new();
+static GLOBAL_LANG: RwLock<Lang> = RwLock::new(Lang::En);
 
-/// Initialise la langue globale de l'application (appelé une seule fois au démarrage).
-/// Les appels suivants sont ignorés.
+/// Définit dynamiquement la langue globale de l'application.
 pub fn set_lang(lang: Lang) {
-    GLOBAL_LANG.set(lang).ok();
+    let mut guard = GLOBAL_LANG.write().unwrap();
+    *guard = lang;
 }
 
 /// Retourne la langue globale configurée (défaut : `En`).
 pub fn current_lang() -> Lang {
-    *GLOBAL_LANG.get().unwrap_or(&Lang::En)
+    *GLOBAL_LANG.read().unwrap()
 }
 
 /// Traduit une clé avec la langue globale.

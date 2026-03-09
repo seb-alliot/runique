@@ -14,7 +14,7 @@ pub struct AdminStaging {
     pub config: AdminConfig,
     pub enabled: bool,
     pub route_admin: Option<Router>,
-    pub proto_state: Option<Arc<PrototypeAdminState>>,
+    pub state: Option<Arc<PrototypeAdminState>>,
 }
 
 impl AdminStaging {
@@ -23,7 +23,7 @@ impl AdminStaging {
             config: AdminConfig::new(),
             enabled: false,
             route_admin: None,
-            proto_state: None,
+            state: None,
         }
     }
 
@@ -32,8 +32,8 @@ impl AdminStaging {
         self
     }
 
-    pub fn with_proto_state(mut self, state: Arc<PrototypeAdminState>) -> Self {
-        self.proto_state = Some(state);
+    pub fn with_state(mut self, state: Arc<PrototypeAdminState>) -> Self {
+        self.state = Some(state);
         self
     }
 

@@ -208,7 +208,7 @@ pub fn routes(prefix: &str) -> runique::axum::Router {
 }
 
 /// Retourne l'état partagé du prototype admin (pour le dashboard).
-pub fn admin_proto_state() -> std::sync::Arc<PrototypeAdminState> {
+pub fn admin_state() -> std::sync::Arc<PrototypeAdminState> {
     let config = Arc::new(AdminConfig::new());
     std::sync::Arc::new(PrototypeAdminState {
         registry: Arc::new(admin_register()),
