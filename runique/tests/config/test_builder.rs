@@ -734,7 +734,7 @@ fn test_admin_staging_routes_stocke_router() {
 #[test]
 fn test_admin_staging_with_proto_state_none_par_defaut() {
     let a = AdminStaging::new();
-    assert!(a.proto_state.is_none());
+    assert!(a.state.is_none());
 }
 
 #[test]

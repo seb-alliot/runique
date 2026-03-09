@@ -15,6 +15,7 @@ use runique::app::builder::RuniqueAppBuilder as builder;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     password_init(PasswordConfig::Manual(Manual::Argon2));
+    set_lang(Lang::Fr);
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
@@ -37,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .templates(|a|a
                     .with_dashboard("admin/test_dashboard.html"))
 
-                .with_proto_state(admins::admin_proto_state())
+                .with_state(admins::admin_state())
         })
         .build()
         .await

@@ -203,6 +203,7 @@ pub mod prelude {
     // ========================================================================
     use crate::chrono;
     pub use crate::config::{security::SecurityConfig, server::ServerConfig};
+    pub use crate::utils::trad::{set_lang, Lang, current_lang, t, tf};
 
     // ========================================================================
     // UTILS
