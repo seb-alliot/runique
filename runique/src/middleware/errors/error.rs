@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tera::{Context, Tera};
 use tracing::{error, info, instrument};
 use tracing_futures::Instrument;
-
+use crate::utils::error::DEBUG_MESSAGE_KEYS;
 use crate::{
     config::RuniqueConfig,
     errors::error::{ErrorContext, ErrorType, RuniqueError},
@@ -34,7 +34,7 @@ pub async fn error_handler_middleware(
     request: Request<axum::body::Body>,
     next: Next,
 ) -> Response {
-    // ---  Collecte des infos requête ---
+    // --- Collecte des infos requête ---
     let csrf_token: Option<String> = request.extensions().get::<CsrfToken>().map(|t| t.0.clone());
     let request_helper = RequestInfoHelper {
         method: request.method().to_string(),
@@ -51,86 +51,20 @@ pub async fn error_handler_middleware(
             .collect(),
     };
 
-    // ---  Exécute la requête dans le span tracing ---
+    // --- Exécute la requête dans le span tracing ---
     let span = tracing::Span::current();
     let response = next.run(request).instrument(span.clone()).await;
 
     let status = response.status();
 
-    // ---  Gestion des erreurs ---
+    // --- Gestion des erreurs ---
     if status.is_server_error() || status == StatusCode::NOT_FOUND {
-        //  Essaie de récupérer SOIT un ErrorContext (venant de AppError)
-        //    SOIT un RuniqueError (venant de handlers qui retournent RuniqueError)
-        let error_context_from_app = response.extensions().get::<Arc<ErrorContext>>().cloned();
+        let error_ctx = build_error_context(&response, &request_helper, &tera);
 
-        let error_runique = response
-            .extensions()
-            .get::<Arc<RuniqueError>>()
-            .map(|err| (**err).clone());
-
-        let error_ctx = if let Some(ctx) = error_context_from_app {
-            info!(
-                method = %request_helper.method,
-                path = %request_helper.path,
-                error_type = ?ctx.error_type,
-                "Error with full context"
-            );
-
-            // Enrichir avec les infos de requête si pas déjà présent
-            let mut ctx = (*ctx).clone();
-            if ctx.request_info.is_none() {
-                ctx = ctx.with_request_helper(&request_helper);
-            }
-            ctx
-        } else if let Some(err) = error_runique {
-            //  On a un RuniqueError (ancien système)
-            match &err {
-                RuniqueError::Internal
-                | RuniqueError::Database(_)
-                | RuniqueError::Io(_)
-                | RuniqueError::Template(_)
-                | RuniqueError::Custom { .. }
-                | RuniqueError::Build(_) => {
-                    error!(
-                        method = %request_helper.method,
-                        path = %request_helper.path,
-                        error = %err,
-                        "Critical error occurred"
-                    );
-                }
-                RuniqueError::Validation(_) | RuniqueError::Forbidden | RuniqueError::NotFound => {
-                    info!(
-                        method = %request_helper.method,
-                        path = %request_helper.path,
-                        error = %err,
-                        "Handled error"
-                    );
-                }
-            }
-
-            // Créer un contexte enrichi depuis RuniqueError
-            ErrorContext::from_runique_error(
-                &err,
-                Some(&request_helper.path),
-                Some(&request_helper),
-                None,        // nom du template si applicable
-                Some(&tera), // tera pour template_info si template error
-            )
-        } else {
-            //  Pas d'erreur explicite, créer un contexte basique
-            if status == StatusCode::NOT_FOUND {
-                ErrorContext::not_found(&request_helper.path).with_request_helper(&request_helper)
-            } else {
-                ErrorContext::generic(status, &t("error.internal_occurred"))
-                    .with_request_helper(&request_helper)
-            }
-        };
-
-        // ---  Rendu selon mode debug ou production ---
+        // --- Rendu selon mode debug ou production ---
         if config.debug {
             return render_debug_error_from_context(&tera, &config, error_ctx, csrf_token);
         } else {
-            // Production : 404 ou 500 simple selon le type d'erreur
             return match error_ctx.error_type {
                 ErrorType::NotFound => render_404(&tera, &config, csrf_token),
                 _ => render_500(&tera, &config, csrf_token),
@@ -138,8 +72,82 @@ pub async fn error_handler_middleware(
         }
     }
 
-    // ---  Pas d'erreur : retourne la réponse normale ---
+    // --- Pas d'erreur : retourne la réponse normale ---
     response
+}
+
+/// Construit le ErrorContext depuis la réponse
+fn build_error_context(
+    response: &Response,
+    request_helper: &RequestInfoHelper,
+    tera: &Tera,
+) -> ErrorContext {
+    let error_context_from_app = response.extensions().get::<Arc<ErrorContext>>().cloned();
+    let error_runique = response
+        .extensions()
+        .get::<Arc<RuniqueError>>()
+        .map(|err| (**err).clone());
+
+    if let Some(ctx) = error_context_from_app {
+        info!(
+            method = %request_helper.method,
+            path = %request_helper.path,
+            error_type = ?ctx.error_type,
+            "Error with full context"
+        );
+
+        let mut ctx = (*ctx).clone();
+        if ctx.request_info.is_none() {
+            ctx = ctx.with_request_helper(request_helper);
+        }
+        return ctx;
+    }
+
+    if let Some(err) = error_runique {
+        log_runique_error(&err, request_helper);
+        return ErrorContext::from_runique_error(
+            &err,
+            Some(&request_helper.path),
+            Some(request_helper),
+            None,
+            Some(tera),
+        );
+    }
+
+    // Pas d'erreur explicite, créer un contexte basique
+    if response.status() == StatusCode::NOT_FOUND {
+        ErrorContext::not_found(&request_helper.path).with_request_helper(request_helper)
+    } else {
+        ErrorContext::generic(response.status(), &t("error.internal_occurred"))
+            .with_request_helper(request_helper)
+    }
+}
+
+/// Log l'erreur Runique selon sa gravité
+fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
+    match err {
+        RuniqueError::Internal
+        | RuniqueError::Database(_)
+        | RuniqueError::Io(_)
+        | RuniqueError::Template(_)
+        | RuniqueError::Custom { .. }
+        | RuniqueError::Build(_) => {
+            error!(
+                method = %request_helper.method,
+                path = %request_helper.path,
+                error = %err,
+                "Critical error occurred"
+            );
+        }
+        RuniqueError::Validation(_) | RuniqueError::Forbidden | RuniqueError::NotFound => {
+            info!(
+                method = %request_helper.method,
+                path = %request_helper.path,
+                error = %err,
+                "Handled error"
+            );
+        }
+    }
 }
 
 // --- Render Helpers ---
@@ -176,6 +184,14 @@ fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     }
 }
 
+/// Insère tous les messages de debug dans le contexte (itératif)
+fn insert_debug_messages(context: &mut Context) {
+    for key in DEBUG_MESSAGE_KEYS {
+        let translation_key = format!("TemplateMessage.{}", key);
+        context.insert(*key, &t(&translation_key));
+    }
+}
+
 fn render_debug_error_from_context(
     tera: &Tera,
     config: &RuniqueConfig,
@@ -191,100 +207,8 @@ fn render_debug_error_from_context(
     };
 
     inject_global_vars(&mut context, config, csrf_token);
-    // Textes i18n pour debug_field.html (via TemplateMessage)
-    context.insert("debug_info_title", &t("TemplateMessage.debug_info_title"));
-    context.insert("debug_field_title", &t("TemplateMessage.debug_field_title"));
-    context.insert("debug_field_count", &t("TemplateMessage.debug_field_count"));
-    context.insert("debug_error_count", &t("TemplateMessage.debug_error_count"));
-    context.insert(
-        "debug_main_message",
-        &t("TemplateMessage.debug_main_message"),
-    );
-    context.insert("debug_root_cause", &t("TemplateMessage.debug_root_cause"));
-    context.insert("debug_details", &t("TemplateMessage.debug_details"));
-    context.insert(
-        "debug_request_info",
-        &t("TemplateMessage.debug_request_info"),
-    );
-    context.insert("debug_http_method", &t("TemplateMessage.debug_http_method"));
-    context.insert("debug_path", &t("TemplateMessage.debug_path"));
-    context.insert(
-        "debug_query_params",
-        &t("TemplateMessage.debug_query_params"),
-    );
-    context.insert(
-        "debug_http_headers",
-        &t("TemplateMessage.debug_http_headers"),
-    );
-    context.insert(
-        "debug_template_info",
-        &t("TemplateMessage.debug_template_info"),
-    );
-    context.insert(
-        "debug_template_name",
-        &t("TemplateMessage.debug_template_name"),
-    );
-    context.insert("debug_error_line", &t("TemplateMessage.debug_error_line"));
-    context.insert(
-        "debug_template_source",
-        &t("TemplateMessage.debug_template_source"),
-    );
-    context.insert(
-        "debug_available_templates",
-        &t("TemplateMessage.debug_available_templates"),
-    );
-    context.insert(
-        "debug_stack_trace_title",
-        &t("TemplateMessage.debug_stack_trace_title"),
-    );
-    context.insert(
-        "debug_stack_trace_tip",
-        &t("TemplateMessage.debug_stack_trace_tip"),
-    );
-    context.insert("debug_environment", &t("TemplateMessage.debug_environment"));
-    context.insert("debug_debug_mode", &t("TemplateMessage.debug_debug_mode"));
-    context.insert("debug_enabled", &t("TemplateMessage.debug_enabled"));
-    context.insert("debug_disabled", &t("TemplateMessage.debug_disabled"));
-    context.insert(
-        "debug_rust_version",
-        &t("TemplateMessage.debug_rust_version"),
-    );
-    context.insert("debug_app_version", &t("TemplateMessage.debug_app_version"));
-    context.insert("debug_status_code", &t("TemplateMessage.debug_status_code"));
-    context.insert(
-        "debug_template_name",
-        &t("TemplateMessage.debug_template_name"),
-    );
-    context.insert("debug_error_line", &t("TemplateMessage.debug_error_line"));
-    context.insert(
-        "debug_template_source",
-        &t("TemplateMessage.debug_template_source"),
-    );
-    context.insert(
-        "debug_available_templates",
-        &t("TemplateMessage.debug_available_templates"),
-    );
-    context.insert(
-        "debug_stack_trace_title",
-        &t("TemplateMessage.debug_stack_trace_title"),
-    );
-    context.insert(
-        "debug_stack_trace_tip",
-        &t("TemplateMessage.debug_stack_trace_tip"),
-    );
-    context.insert("debug_environment", &t("TemplateMessage.debug_environment"));
-    context.insert("debug_debug_mode", &t("TemplateMessage.debug_debug_mode"));
-    context.insert("debug_enabled", &t("TemplateMessage.debug_enabled"));
-    context.insert("debug_disabled", &t("TemplateMessage.debug_disabled"));
-    context.insert(
-        "debug_rust_version",
-        &t("TemplateMessage.debug_rust_version"),
-    );
-    context.insert("debug_app_version", &t("TemplateMessage.debug_app_version"));
-    context.insert("debug_status_code", &t("TemplateMessage.debug_status_code"));
-    context.insert("debug_header_name", &t("TemplateMessage.debug_header_name"));
-    context.insert("debug_header_value", &t("TemplateMessage.debug_header_value"));
-    
+    insert_debug_messages(&mut context);
+
     match tera.render("debug", &context) {
         Ok(html) => (
             StatusCode::from_u16(error_ctx.status_code)
@@ -307,7 +231,6 @@ fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token:
         context.insert("csrf_token", &token);
     }
     context.insert("debug", &config.debug);
-    // Ajoute la langue courante dans le contexte pour les templates
     context.insert("lang", &crate::utils::trad::current_lang().code());
 }
 
