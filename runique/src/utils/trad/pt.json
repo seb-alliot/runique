@@ -79,6 +79,8 @@
         "session_write_error": "Erro ao gravar a sessão"
     },
     "error": {
+        "source": "Fonte: {}" ,
+        "AppError": "Erro de aplicação",
         "build": "Erro de build: {}",
         "internal": "Erro interno",
         "forbidden": "Acesso proibido",
@@ -99,6 +101,9 @@
         "path_not_found": "O caminho solicitado '{}' não foi encontrado",
         "internal_occurred": "Ocorreu um erro interno",
         "context_occurred": "Erro AppError ocorrido"
+    },
+    "title": {
+        "template": "Erro de template em '{}'"
     },
     "build": {
         "validation_failed": "Falha na validação do build: {}",

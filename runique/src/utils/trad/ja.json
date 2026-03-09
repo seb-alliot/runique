@@ -79,6 +79,8 @@
         "session_write_error": "セッション書き込みエラー"
     },
     "error": {
+        "source": "ソース: {}" ,
+        "AppError": "アプリケーションエラー",
         "build": "ビルドエラー: {}",
         "internal": "内部エラー",
         "forbidden": "アクセス禁止",
@@ -99,6 +101,9 @@
         "path_not_found": "要求されたパス '{}' は見つかりませんでした",
         "internal_occurred": "内部エラーが発生しました",
         "context_occurred": "AppError が発生しました"
+    },
+    "title": {
+        "template": "'{}' のテンプレートエラー"
     },
     "build": {
         "validation_failed": "ビルド検証に失敗しました: {}",

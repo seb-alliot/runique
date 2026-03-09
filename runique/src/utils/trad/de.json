@@ -79,6 +79,8 @@
         "session_write_error": "Fehler beim Schreiben der Session"
     },
     "error": {
+        "source": "Source: {}" ,
+        "AppError": "Anwendungsfehler",
         "build": "Build-Fehler: {}",
         "internal": "Interner Fehler",
         "forbidden": "Zugriff verboten",
@@ -99,6 +101,9 @@
         "path_not_found": "Der angeforderte Pfad '{}' wurde nicht gefunden",
         "internal_occurred": "Ein interner Fehler ist aufgetreten",
         "context_occurred": "AppError aufgetreten"
+    },
+    "title": {
+        "template": "Template-Fehler in '{}'"
     },
     "build": {
         "validation_failed": "Build-Validierung fehlgeschlagen: {}",

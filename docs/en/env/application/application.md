@@ -7,7 +7,6 @@
 | `DEBUG` | `false` (release) / `true` (debug_assertions) | Debug mode — enables detailed error pages |
 | `BASE_DIR` | `.` | Application root directory |
 | `PROJECT_NAME` | `myproject` | Project name (used for `root_urlconf`) |
-| `LANGUAGE_APP` | `en-us` | Application language code (fr and en for errors — i18n in progress) |
 | `TIME_ZONE` | `UTC` | Timezone (not yet implemented) |
 | `DEFAULT_AUTO_FIELD` | — | Default auto field type for models |
 

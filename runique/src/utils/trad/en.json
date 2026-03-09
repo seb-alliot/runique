@@ -79,6 +79,8 @@
     "session_write_error": "Session write error"
   },
   "error": {
+    "source": "Source: {}" ,
+    "AppError": "Application error",
     "build": "Build error: {}",
     "internal": "Internal error",
     "forbidden": "Access forbidden",
@@ -99,6 +101,9 @@
     "path_not_found": "The requested path '{}' was not found",
     "internal_occurred": "An internal error occurred",
     "context_occurred": "AppError occurred"
+  },
+  "title": {
+    "template": "Template error in '{}'"
   },
   "build": {
     "validation_failed": "Build validation failed: {}",

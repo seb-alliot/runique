@@ -79,6 +79,8 @@
         "session_write_error": "会话写入失败"
     },
     "error": {
+        "source": "来源：{}",
+        "AppError": "应用错误",
         "build": "构建出错：{}",
         "internal": "内部错误",
         "forbidden": "访问被拒绝",
@@ -99,6 +101,9 @@
         "path_not_found": "请求路径 '{}' 不存在",
         "internal_occurred": "发生内部错误",
         "context_occurred": "发生应用错误"
+    },
+    "title": {
+        "template": "'{}' 的模板错误"
     },
     "build": {
         "validation_failed": "构建验证失败：{}",

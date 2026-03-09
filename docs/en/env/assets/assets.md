@@ -8,12 +8,7 @@
 | `STATIC_URL` | `/static` | URL prefix for static files |
 | `MEDIA_ROOT` | `media` | Uploaded media files directory |
 | `MEDIA_URL` | `/media` | URL prefix for media files |
-| `STATIC_RUNIQUE_PATH` | — | Path to Runique internal assets |
-| `STATIC_RUNIQUE_URL` | `/runique/static` | URL prefix for Runique internal assets |
-| `MEDIA_RUNIQUE_PATH` | — | Path to Runique internal media |
-| `MEDIA_RUNIQUE_URL` | `/runique/media` | URL prefix for Runique internal media |
 | `TEMPLATES_DIR` | — | Tera templates directory |
-| `TEMPLATES_RUNIQUE` | — | Runique internal templates directory |
 | `STATICFILES` | `default_storage` | Storage backend |
 
 ---

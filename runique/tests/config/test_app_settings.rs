@@ -84,13 +84,6 @@ fn test_app_settings_default_time_zone() {
 
 #[test]
 #[serial]
-fn test_app_settings_default_use_i18n() {
-    let cfg = AppSettings::from_env();
-    assert!(cfg.use_i18n);
-}
-
-#[test]
-#[serial]
 fn test_app_settings_default_use_tz() {
     let cfg = AppSettings::from_env();
     assert!(cfg.use_tz);
