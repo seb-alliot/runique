@@ -31,7 +31,7 @@ fn write_readme(dir: &Path) -> Result<(), String> {
 }
 
 fn write_mod(dir: &Path) -> Result<(), String> {
-    let content = "pub mod admin_panel;\npub use admin_panel::{routes, admin_proto_state};\n";
+    let content = "pub mod admin_panel;\npub use admin_panel::{routes, admin_state};\n";
     fs::write(dir.join("mod.rs"), content).map_err(|e| format!("Impossible d'écrire mod.rs: {}", e))
 }
 
@@ -186,7 +186,7 @@ fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(
     );
     let _ = writeln!(
         out,
-        "pub fn admin_proto_state() -> std::sync::Arc<PrototypeAdminState> {{"
+        "pub fn admin_state() -> std::sync::Arc<PrototypeAdminState> {{"
     );
     let _ = writeln!(out, "    let config = Arc::new(AdminConfig::new());");
     let _ = writeln!(out, "    std::sync::Arc::new(PrototypeAdminState {{");

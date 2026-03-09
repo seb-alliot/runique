@@ -94,18 +94,18 @@ impl From<BuildError> for RuniqueError {
 impl RuniqueError {
     pub fn log(&self) {
         match self {
-            RuniqueError::Build(e) => error!("{}", tf("RuniqueError.build", &[&e.to_string()])),
-            RuniqueError::Internal => error!("{}", t("RuniqueError.internal")),
-            RuniqueError::Forbidden => info!("{}", t("RuniqueError.forbidden")),
-            RuniqueError::NotFound => info!("{}", t("RuniqueError.not_found")),
-            RuniqueError::Validation(msg) => info!("{}", tf("RuniqueError.validation", &[msg])),
-            RuniqueError::Database(msg) => error!("{}", tf("RuniqueError.database", &[msg])),
-            RuniqueError::Io(msg) => error!("{}", tf("RuniqueError.io", &[msg])),
-            RuniqueError::Template(msg) => error!("{}", tf("RuniqueError.template", &[msg])),
+            RuniqueError::Build(e) => error!("{}", tf("error.build", &[&e.to_string()])),
+            RuniqueError::Internal => error!("{}", t("error.internal")),
+            RuniqueError::Forbidden => info!("{}", t("error.forbidden")),
+            RuniqueError::NotFound => info!("{}", t("error.not_found")),
+            RuniqueError::Validation(msg) => info!("{}", tf("error.validation", &[msg])),
+            RuniqueError::Database(msg) => error!("{}", tf("error.database", &[msg])),
+            RuniqueError::Io(msg) => error!("{}", tf("error.io", &[msg])),
+            RuniqueError::Template(msg) => error!("{}", tf("error.template", &[msg])),
             RuniqueError::Custom { message, source } => {
-                error!("{}", tf("RuniqueError.custom", &[message]));
+                error!("{}", tf("error.custom", &[message]));
                 if let Some(source) = source.as_ref() {
-                    error!("{}", tf("RuniqueError.source", &[&source.to_string()]));
+                    error!("{}", tf("error.source", &[&source.to_string()]));
                 }
             }
         }
@@ -115,32 +115,32 @@ impl RuniqueError {
     pub fn to_error_context(&self) -> ErrorContext {
         let (status, error_type, title) = match self {
             RuniqueError::NotFound => {
-                (StatusCode::NOT_FOUND, ErrorType::NotFound, ("{}", t("RuniqueError.not_found")))
+                (StatusCode::NOT_FOUND, ErrorType::NotFound, ("{}", t("error.not_found")))
             }
             RuniqueError::Forbidden => (
                 StatusCode::FORBIDDEN,
                 ErrorType::Internal,
-                ("{}", t("RuniqueError.forbidden")),
+                ("{}", t("error.forbidden")),
             ),
             RuniqueError::Validation(_) => (
                 StatusCode::BAD_REQUEST,
                 ErrorType::Validation,
-                ("{}", t("RuniqueError.validation")),
+                ("{}", t("error.validation")),
             ),
             RuniqueError::Database(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Database,
-                ("{}", t("RuniqueError.database")),
+                ("{}", t("error.database")),
             ),
             RuniqueError::Template(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Template,
-                ("{}", t("RuniqueError.template")),
+                ("{}", t("error.template")),
             ),
             _ => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorType::Internal,
-                ("{}", t("RuniqueError.internal")),
+                ("{}", t("error.internal")),
             ),
         };
 
@@ -291,7 +291,7 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::Database,
             StatusCode::INTERNAL_SERVER_ERROR,
-            &tf("RuniqueError.database", &[&error.to_string()]),
+            &tf("error.database", &[&error.to_string()]),
             &error.to_string(),
         );
         ctx.build_stack_trace(&error);
@@ -320,7 +320,7 @@ impl ErrorContext {
         let mut ctx = Self::new(
             ErrorType::Internal,
             StatusCode::INTERNAL_SERVER_ERROR,
-            &t("RuniqueError.AppError"),
+            &t("error.AppError"),
             &error.to_string(),
         );
         // Capture le {:?} complet de l'erreur anyhow (inclut la chaîne + backtrace)

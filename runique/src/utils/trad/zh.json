@@ -201,18 +201,6 @@
         "punct_expected": "应为 '{}'，实际得到：{}",
         "punct_eof": "应为 '{}'，但已到达文件末尾"
     },
-    "RuniqueError": {
-        "build": "构建出错：{}",
-        "internal": "内部错误",
-        "forbidden": "访问被拒绝",
-        "not_found": "未找到资源",
-        "validation": "验证失败：{}",
-        "database": "数据库出错：{}",
-        "io": "输入/输出错误：{}",
-        "template": "模板出错：{}",
-        "custom": "自定义错误：{}",
-        "AppError": "应用错误：{}"
-    },
     "TemplateMessage": {
     "debug_info_title": "调试信息",
     "debug_field_title": "标题",

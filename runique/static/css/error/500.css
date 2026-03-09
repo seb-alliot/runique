@@ -1,0 +1,211 @@
+/*
+ * CSS Page 500 - Responsive
+ * Source : runique/static/css/error.css
+ */
+
+/* ===== RESET & BASE ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.6;
+  padding: 1rem;
+}
+
+/* ===== CONTENEUR ===== */
+.container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.error-container {
+  background: #2a2a2a;
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  border: 1px solid #3a3a3a;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* ===== ICÔNE ===== */
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  display: block;
+  animation: pulse 2s infinite;
+}
+
+/* ===== TITRE 500 ===== */
+.error-title {
+  font-size: 6rem;
+  font-weight: 900;
+  color: #ff6b6b;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 40px rgba(255, 107, 107, 0.3);
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+/* ===== MESSAGE ===== */
+.error-message {
+  font-size: 1.25rem;
+  color: #a0a0a0;
+  margin-bottom: 2rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ===== BOUTON ===== */
+.btn-retry {
+  display: inline-block;
+  background: linear-gradient(135deg, #c94b4b 0%, #4b134f 100%);
+  color: #fff;
+  text-decoration: none;
+  padding: 1rem 2.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(201, 75, 75, 0.4);
+}
+
+.btn-retry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(201, 75, 75, 0.6);
+}
+
+.btn-retry:active {
+  transform: translateY(0);
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+
+/* Tablettes */
+@media (max-width: 768px) {
+  .error-container {
+    padding: 2.5rem 1.5rem;
+  }
+  
+  .error-icon {
+    font-size: 3.5rem;
+  }
+  
+  .error-title {
+    font-size: 5rem;
+  }
+  
+  .error-message {
+    font-size: 1.1rem;
+  }
+  
+  .btn-retry {
+    padding: 0.875rem 2rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* Mobiles */
+@media (max-width: 480px) {
+  body {
+    padding: 0.5rem;
+  }
+  
+  .error-container {
+    padding: 2rem 1rem;
+    border-radius: 0.75rem;
+  }
+  
+  .error-icon {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .error-title {
+    font-size: 4rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .error-message {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .btn-retry {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+  }
+}
+
+/* Très petits écrans */
+@media (max-width: 320px) {
+  .error-title {
+    font-size: 3.5rem;
+  }
+  
+  .error-message {
+    font-size: 0.9rem;
+  }
+}
+
+/* Mode sombre forcé (déjà sombre mais au cas où) */
+@media (prefers-color-scheme: light) {
+  body {
+    background: #1a1a1a;
+    color: #e0e0e0;
+  }
+}
+
+/* Réduction des animations si demandé */
+@media (prefers-reduced-motion: reduce) {
+  .error-container {
+    animation: none;
+  }
+  
+  .error-icon {
+    animation: none;
+  }
+  
+  .btn-retry {
+    transition: none;
+  }
+}

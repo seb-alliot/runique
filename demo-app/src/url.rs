@@ -25,5 +25,6 @@ pub fn routes() -> Router {
         "/test-csrf"    => view! { views::test_csrf },             name = "test_csrf",
         "/upload-image" => view! { views::upload_image_submit },   name = "upload_image",
         "/test-fields"  => view! { views::test_fields },           name = "test_fields",
+
     }
 }

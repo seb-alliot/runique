@@ -25,21 +25,6 @@ pub const DEBUG_MESSAGE_KEYS: &[&str] = &[
     "debug_rust_version",
     "debug_app_version",
     "debug_status_code",
-    // --- DOUBLONS CONSERVÉS ---
-    "debug_template_name",
-    "debug_error_line",
-    "debug_template_source",
-    "debug_available_templates",
-    "debug_stack_trace_title",
-    "debug_stack_trace_tip",
-    "debug_environment",
-    "debug_debug_mode",
-    "debug_enabled",
-    "debug_disabled",
-    "debug_rust_version",
-    "debug_app_version",
-    "debug_status_code",
-    // --- FIN DOUBLONS ---
     "debug_header_name",
     "debug_header_value",
 ];

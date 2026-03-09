@@ -201,18 +201,6 @@
         "punct_expected": "'{}' esperado, encontrado: {}",
         "punct_eof": "'{}' esperado, fim do arquivo"
     },
-    "RuniqueError": {
-        "build": "Erro de build: {}",
-        "internal": "Erro interno",
-        "forbidden": "Acesso proibido",
-        "not_found": "Recurso não encontrado",
-        "validation": "Erro de validação: {}",
-        "database": "Erro de banco de dados: {}",
-        "io": "Erro de E/S: {}",
-        "template": "Erro de template: {}",
-        "custom": "Erro personalizado: {}",
-        "AppError": "Erro de aplicação: {}"
-    },
     "TemplateMessage": {
     "debug_info_title": "Informações de debug",
     "debug_field_title": "Título",

@@ -23,9 +23,10 @@ use crate::{
 ///     .layer(axum::middleware::from_fn(admin_required))
 /// ```
 pub async fn admin_required(session: Session, request: Request, next: Next) -> Response {
+    let return_url = "/";
     // 1. Pas authentifié → login admin
     if !is_authenticated(&session).await {
-        return Redirect::to("/admin/login").into_response();
+        return Redirect::to(return_url).into_response();
     }
 
     // 2. Authentifié mais pas staff/superuser → 403
@@ -45,7 +46,7 @@ pub async fn admin_required(session: Session, request: Request, next: Next) -> R
 
     if !is_staff && !is_superuser {
         flash_now!(error => "Droits insuffisants pour accéder à l'administration");
-        return Redirect::to("/admin/login").into_response();
+        return Redirect::to(return_url).into_response();
     }
 
     next.run(request).await

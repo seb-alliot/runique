@@ -201,18 +201,6 @@
     "punct_expected": "Expected '{}', found: {}",
     "punct_eof": "Expected '{}', end of file"
   },
-  "RuniqueError": {
-    "build": "Build error: {}",
-    "internal": "Internal error",
-    "forbidden": "Access forbidden",
-    "not_found": "Resource not found",
-    "validation": "Validation error: {}",
-    "database": "Database error: {}",
-    "io": "I/O error: {}",
-    "template": "Template error: {}",
-    "custom": "Custom error: {}",
-    "AppError": "Application Error: {}"
-  },
   "TemplateMessage": {
     "debug_info_title": "Debug Information",
     "debug_field_title": "Title",

@@ -201,18 +201,6 @@
         "punct_expected": "'{}' を期待していましたが、見つかったもの: {}",
         "punct_eof": "'{}' を期待していましたが、ファイルの終端に達しました"
     },
-    "RuniqueError": {
-        "build": "ビルドエラー: {}",
-        "internal": "内部エラー",
-        "forbidden": "アクセスが禁止されています",
-        "not_found": "リソースが見つかりません",
-        "validation": "検証エラー: {}",
-        "database": "データベースエラー: {}",
-        "io": "入出力エラー: {}",
-        "template": "テンプレートエラー: {}",
-        "custom": "カスタムエラー: {}",
-        "AppError": "アプリケーションエラー: {}"
-    },
     "TemplateMessage": {
     "debug_info_title": "デバッグ情報",
     "debug_field_title": "タイトル",
