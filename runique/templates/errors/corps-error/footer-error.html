@@ -1,5 +1,4 @@
-<footer class="error-footer">
-    <div class="error-footer-content">
-        <!-- reserved: build, trace-id, commit, etc. -->
-    </div>
+<footer class="error-footer timestamp section">
+    🕐 Error occurred at: {{ timestamp | default(value="N/A") }}
 </footer>
+

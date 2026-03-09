@@ -1,3 +1,8 @@
+/*
+ * CSS extrait des templates d'erreur (debug_error.html, 404.html, 500.html)
+ * Source : runique/static/css/error.css
+ */
+
 * {
     margin: 0;
     padding: 0;
@@ -14,7 +19,7 @@ body {
     flex-direction: column;
 }
 
-.container , header{
+.container, header {
     width: 80%;
 }
 
@@ -81,6 +86,7 @@ body {
     font-family: 'Courier New', monospace;
 }
 
+/* ===== STACK TRACE (amélioré avec styles du template) ===== */
 .stack-trace {
     background: #1a1a1a;
     padding: 1rem;
@@ -96,6 +102,12 @@ body {
     border-radius: 0.25rem;
 }
 
+/* Frame d'erreur racine (premier niveau) - style spécifique du template */
+.stack-frame:first-child {
+    border-left-color: #ff6b6b;
+    background: #2f1f1f;
+}
+
 .stack-frame .level {
     display: inline-block;
     background: #51cf66;
@@ -107,6 +119,48 @@ body {
     margin-right: 0.5rem;
 }
 
+/* Messages d'erreur avec couleurs conditionnelles du template */
+.stack-frame strong {
+    color: #ffa94d; /* Par défaut */
+}
+
+.stack-frame:first-child strong {
+    color: #ff6b6b; /* Erreur racine */
+}
+
+/* Localisation du frame */
+.stack-frame .location {
+    margin-top: 0.5rem;
+    opacity: 0.7;
+    font-size: 0.9rem;
+}
+
+/* Debug repr - styles du template */
+.debug-summary {
+    cursor: pointer;
+    color: #6272a4;
+    font-size: 0.85rem;
+    margin-top: 0.4rem;
+    user-select: none;
+}
+
+.debug-summary:hover {
+    color: #ff79c6;
+}
+
+/* Conseil/info box du template */
+.info-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #1a1a1a;
+    border-radius: 0.25rem;
+    border-left: 3px solid #4c6ef5;
+}
+
+.info-box strong {
+    color: #4c6ef5;
+}
+
 .code-block {
     background: #1a1a1a;
     padding: 1rem;
@@ -116,6 +170,29 @@ body {
     font-size: 0.9rem;
     white-space: pre-wrap;
     word-wrap: break-word;
+}
+
+/* Pre spécifique pour debug (du template) */
+pre.debug-repr {
+    background: #1e1e2e;
+    border: 1px solid #ff79c6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    overflow-x: auto;
+    color: #f8f8f2;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+pre.debug-frame {
+    background: #1a1a2e;
+    border: 1px solid #44475a;
+    border-radius: 0.2rem;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.3rem;
+    color: #bd93f9;
+    font-size: 0.85rem;
 }
 
 .code-block .line-number {
@@ -222,4 +299,22 @@ body {
     background: rgba(255, 107, 107, 0.1);
     color: #ff6b6b;
     font-weight: 600;
+}
+
+/* ===== UTILITAIRES ===== */
+.mb-1 {
+    margin-bottom: 1rem;
+}
+
+/* Summary pour details (du template) */
+summary {
+    cursor: pointer;
+    color: #ff79c6;
+    font-weight: bold;
+    padding: 0.5rem 0;
+    user-select: none;
+}
+
+summary:hover {
+    opacity: 0.8;
 }
