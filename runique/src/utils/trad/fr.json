@@ -128,7 +128,7 @@
     "404_title": "404",
     "404_text": "Page non trouvée",
     "500_title": "500",
-    "500_text": "Erreur serveur interne",
+    "500_text": "Une erreur est survenue sur le serveur",
     "500_notice": "Nos équipes ont été notifiées et travaillent sur le problème.",
     "back_home": "Retour à l'accueil",
     "critical_error_title": "Erreur critique",
@@ -200,18 +200,6 @@
     "role_required": "Au moins un rôle requis dans permissions: [...]",
     "punct_expected": "'{}' attendu, trouvé : {}",
     "punct_eof": "'{}' attendu, fin de fichier"
-  },
-  "RuniqueError": {
-    "build": "Erreur de build: {}",
-    "internal": "Erreur interne",
-    "forbidden": "Accès interdit",
-    "not_found": "Ressource introuvable",
-    "validation": "Erreur de validation: {}",
-    "database": "Erreur base de données: {}",
-    "io": "Erreur IO: {}",
-    "template": "Erreur template: {}",
-    "custom": "Erreur custom: {}",
-    "AppError": "Erreur d'application: {}"
   },
   "TemplateMessage": {
     "debug_info_title": "Informations de debug",
