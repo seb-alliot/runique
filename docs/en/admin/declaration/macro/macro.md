@@ -16,11 +16,6 @@ admin! {
         permissions: ["admin"],
         id_type: I32,                                  // I32 | I64 | Uuid
         edit_form: crate::forms::UserEditForm,         // separate form for edit
-        template_list: "my_theme/users_list.html",     // list template override
-        template_create: "my_theme/users_create.html", // create template override
-        template_edit: "my_theme/users_edit.html",     // edit template override
-        template_detail: "my_theme/users_detail.html", // detail template override
-        template_delete: "my_theme/users_delete.html", // delete template override
         extra: {
             "icon" => "user",
             "color" => "#3b82f6"
@@ -44,18 +39,6 @@ The macro is parsed by the daemon (`runique start`) which generates the `admin_r
 | `form` (positional) | type path | Runique form type for create/edit |
 | `title` | `&str` | Title displayed in the interface |
 | `permissions` | `[&str; N]` | Roles declared for this resource (⚠️ not enforced — see [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/permission/permissions.md)) |
-
-### Optional — template override
-
-These fields allow replacing a CRUD template with a custom one (see [Template override](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/surcharge.md)).
-
-| Field | Default value | Description |
-| --- | --- | --- |
-| `template_list` | `admin/list.html` | List template |
-| `template_create` | `admin/create.html` | Create form |
-| `template_edit` | `admin/edit.html` | Edit form |
-| `template_detail` | `admin/detail.html` | Detail page |
-| `template_delete` | `admin/delete.html` | Delete confirmation page |
 
 ### Optional — behaviour
 
