@@ -214,9 +214,9 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
 
     // Code de conversion de l'ID depuis String selon id_type
     let id_parse_code = match r.id_type.as_str() {
-        "I64" => "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().into()))?",
-        "Uuid" => "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".to_string().into()))?",
-        _ => "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().into()))?",
+        "I64" => "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?",
+        "Uuid" => "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?",
+        _ => "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?",
     };
 
     // AdminResource

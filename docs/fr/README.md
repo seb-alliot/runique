@@ -165,6 +165,59 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 👉 **Go to**: [Guide des exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)
 ---
 
+### 12. [Modèle](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md)
+
+DSL `model!`, génération d'entités SeaORM et de formulaires.
+
+**Sujets couverts:**
+- DSL `model!`
+- Génération de formulaires depuis le modèle
+- Génération de code (entities SeaORM)
+
+👉 **Aller à** : [Guide modèle](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md)
+
+---
+
+### 13. [Authentification](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md)
+
+Authentification utilisateur : sessions, middleware, modèle `is_staff` / `is_superuser`.
+
+**Sujets couverts:**
+- Modèle utilisateur
+- Helpers de session (login, logout)
+- Middleware d'authentification
+- Exemple complet
+
+👉 **Aller à** : [Guide authentification](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md)
+
+---
+
+### 14. [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md)
+
+Gestion des sessions en mémoire avec protection anti-fuite.
+
+**Sujets couverts:**
+- Store (`CleaningMemoryStore`)
+- Lecture / écriture en session
+- Protection des sessions sensibles
+
+👉 **Aller à** : [Guide sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md)
+
+---
+
+### 15. [Variables d'environnement](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/15-env.md)
+
+Toutes les variables `.env` reconnues par Runique.
+
+**Sujets couverts:**
+- Application et serveur
+- Sécurité et sessions
+- Assets et médias
+
+👉 **Aller à** : [Guide variables d'environnement](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/15-env.md)
+
+---
+
 ## 🎯 Navigation rapide
 
 | Section | Fichier | Sujets |
@@ -180,6 +233,10 @@ Le daemon (`runique start`) permet une régénération automatique, tandis qu’
 | Retours | [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md) | success!, flash_now!, {% messages %} |
 | Code | [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md) | Projets complets |
 | Code | [Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Admin beta |
+| Modèle | [Modèle](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md) | `model!`, entities, génération |
+| Auth | [Authentification](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md) | login, logout, middleware, is_staff |
+| Sessions | [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md) | store, lecture/écriture, protection |
+| Env | [Variables d'env](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/15-env.md) | configuration, sécurité, assets |
 ---
 
 ## 🚀 Par où commencer ?

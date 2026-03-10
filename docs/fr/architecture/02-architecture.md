@@ -68,11 +68,10 @@ use runique::prelude::*;
 use crate::views;
 
 pub fn routes() -> Router {
-    urlpatterns![
-        get  "/",           views::index,
-        get  "/register",   views::register,
-        post "/register",   views::register,
-    ]
+    urlpatterns! {
+        "/" => view!{ views::index }, name = "index",
+        "/register" => view!{ views::register }, name = "register",
+    }
 }
 ```
 
@@ -109,6 +108,33 @@ admin! {
     }
 }
 ```
+
+---
+
+## Démarrer un nouveau projet
+
+```bash
+runique new mon-projet
+cd mon-projet
+runique start
+```
+
+`runique new` génère la structure minimale décrite ci-dessus. Voici ce que chaque fichier t'appartient de modifier ou non :
+
+| Fichier / dossier | À modifier | Rôle |
+| --- | --- | --- |
+| `src/main.rs` | Oui | Configure le builder et déclare les modules |
+| `src/urls.rs` | Oui | Table de routage |
+| `src/views.rs` | Oui | Handlers de requêtes |
+| `src/forms.rs` | Oui | Formulaires et validation |
+| `src/admin.rs` | Oui (si admin) | Déclaration `admin!{}` |
+| `src/admins/` | **Non** | Généré par le daemon — ne pas modifier à la main |
+| `templates/` | Oui | Templates Tera |
+| `static/` | Oui | CSS, JS, images |
+| `migration/` | Non (sauf ajout de tables) | Migrations SeaORM |
+| `.env` | Oui | Variables d'environnement |
+
+> `runique start` surveille `src/admin.rs` et régénère `src/admins/` à chaque changement. Pour une app sans vue admin, `cargo run` suffit.
 
 ---
 
