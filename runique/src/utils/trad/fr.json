@@ -1,5 +1,9 @@
 {
   "forms": {
+    "upload_dir_error": "Erreur lors de la création du dossier d'upload",
+    "file_create_error": "Erreur lors de la création du fichier",
+    "multipart_stream_error": "Erreur dans le flux multipart",
+    "file_write_error": "Erreur lors de l'écriture du fichier",
     "required": "Ce champ est obligatoire",
     "too_short": "Trop court (min {})",
     "too_long": "Trop long (max {})",

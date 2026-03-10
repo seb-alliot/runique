@@ -1,5 +1,9 @@
 {
     "forms": {
+        "upload_dir_error": "Fehler beim Erstellen des Upload-Verzeichnisses",
+        "file_create_error": "Fehler beim Erstellen der Datei",
+        "multipart_stream_error": "Multipart-Stream-Fehler",
+        "file_write_error": "Fehler beim Schreiben der Datei",
         "required": "Dieses Feld ist erforderlich",
         "too_short": "Zu kurz (min. {})",
         "too_long": "Zu lang (max. {})",

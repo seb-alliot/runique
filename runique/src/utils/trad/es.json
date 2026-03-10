@@ -1,5 +1,9 @@
 {
     "forms": {
+        "upload_dir_error": "Error al crear el directorio de subida",
+        "file_create_error": "Error al crear el archivo",
+        "multipart_stream_error": "Error en el stream multipart",
+        "file_write_error": "Error al escribir el archivo",
         "required": "Este campo es obligatorio",
         "too_short": "Demasiado corto (mín {})",
         "too_long": "Demasiado largo (máx {})",
