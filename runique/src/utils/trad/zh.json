@@ -1,5 +1,9 @@
 {
     "forms": {
+        "upload_dir_error": "创建上传目录时出错",
+        "file_create_error": "创建文件时出错",
+        "multipart_stream_error": "多部分流错误",
+        "file_write_error": "写入文件时出错",
         "required": "此项为必填项",
         "too_short": "长度过短（最少 {} 个字符）",
         "too_long": "长度过长（最多 {} 个字符）",

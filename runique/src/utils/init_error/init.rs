@@ -7,6 +7,6 @@ pub fn init_logging() {
         .try_init()
         .is_err()
     {
-        eprintln!("Logger déjà initialisé");
+        eprintln!("Logger already initialized");
     }
 }

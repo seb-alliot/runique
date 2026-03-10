@@ -1,5 +1,9 @@
 {
     "forms": {
+        "upload_dir_error": "アップロードディレクトリの作成エラー",
+        "file_create_error": "ファイルの作成エラー",
+        "multipart_stream_error": "マルチパートストリームエラー",
+        "file_write_error": "ファイル書き込みエラー",
         "required": "このフィールドは必須です",
         "too_short": "短すぎます（最小 {}）",
         "too_long": "長すぎます（最大 {}）",

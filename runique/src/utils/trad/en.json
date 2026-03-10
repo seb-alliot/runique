@@ -1,5 +1,9 @@
 {
   "forms": {
+    "upload_dir_error": "Error creating upload directory",
+    "file_create_error": "Error creating file",
+    "multipart_stream_error": "Multipart stream error",
+    "file_write_error": "Error writing file",
     "required": "This field is required",
     "too_short": "Too short (min {})",
     "too_long": "Too long (max {})",

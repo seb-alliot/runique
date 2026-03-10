@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
+use crate::utils::trad::t;
 
 pub async fn parse_multipart(
     mut multipart: Multipart,
@@ -14,7 +15,7 @@ pub async fn parse_multipart(
 ) -> Result<StrVecMap, Response> {
     tokio::fs::create_dir_all(upload_dir)
         .await
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Upload dir error").into_response())?;
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, t("forms.upload_dir_error").to_string()).into_response())?;
 
     let mut data: StrVecMap = HashMap::new();
 
@@ -29,17 +30,15 @@ pub async fn parse_multipart(
             let safe = sanitize_filename(&filename);
             let path = upload_dir.join(&safe);
 
-            let mut file = tokio::fs::File::create(&path).await.map_err(|_| {
-                (StatusCode::INTERNAL_SERVER_ERROR, "File create error").into_response()
-            })?;
+            let mut file = tokio::fs::File::create(&path).await.map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, t("forms.file_create_error").to_string()).into_response())?;
 
             while let Some(chunk) = field.next().await {
                 let bytes = chunk.map_err(|_| {
-                    (StatusCode::BAD_REQUEST, "Multipart stream error").into_response()
+                    (StatusCode::BAD_REQUEST, t("forms.multipart_stream_error").to_string()).into_response()
                 })?;
 
                 file.write_all(&bytes).await.map_err(|_| {
-                    (StatusCode::INTERNAL_SERVER_ERROR, "File write error").into_response()
+                    (StatusCode::INTERNAL_SERVER_ERROR, t("forms.file_write_error").to_string()).into_response()
                 })?;
             }
 
