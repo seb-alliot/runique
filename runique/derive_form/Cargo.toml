@@ -7,7 +7,7 @@ license = "MIT"
 description = "Procedural macros for Runique web framework - automatic form generation from models"
 repository = "https://github.com/seb-alliot/runique"
 homepage = "https://github.com/seb-alliot/runique"
-keywords = ["web", "forms", "macro", "derive"]
+keywords = ["Itsuki", "framework", "runique", "web"]
 categories = ["web-programming"]
 readme = "README.md"
 
