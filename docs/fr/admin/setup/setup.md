@@ -76,7 +76,7 @@ builder::new(config)
         a.site_title("Administration")
          .auth(RuniqueAdminAuth::new())
          .routes(admins::routes("/admin"))
-         .with_proto_state(admins::admin_state())
+         .with_state(admins::admin_state())
     })
     .build()
     .await?
@@ -89,7 +89,7 @@ builder::new(config)
 | `.site_title("…")` | Titre affiché dans l'interface |
 | `.auth(RuniqueAdminAuth::new())` | Authentification admin (par défaut) |
 | `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |
-| `.with_proto_state(…)` | État partagé généré par le daemon |
+| `.with_state(…)` | État partagé généré par le daemon |
 
 ---
 

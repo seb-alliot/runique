@@ -72,14 +72,14 @@ Create a file that extends `admin_template` and fills the layout blocks.
 RuniqueApp::builder(config)
     .with_admin(|a| a
         .templates(|t| t
-            .with_list("mon_theme/list")
-            .with_create("mon_theme/create")
-            .with_edit("mon_theme/edit")
-            .with_detail("mon_theme/detail")
-            .with_delete("mon_theme/delete")
-            .with_dashboard("mon_theme/dashboard")
-            .with_login("mon_theme/login")
-            .with_base("mon_theme/admin_base")
+            .with_list("my_theme/list")
+            .with_create("my_theme/create")
+            .with_edit("my_theme/edit")
+            .with_detail("my_theme/detail")
+            .with_delete("my_theme/delete")
+            .with_dashboard("my_theme/dashboard")
+            .with_login("my_theme/login")
+            .with_base("my_theme/admin_base")
         )
     )
     .build().await?
