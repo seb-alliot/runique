@@ -201,7 +201,7 @@ fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     if submitted != Some(session_token) {
         return Err(Box::new(AppError::new(ErrorContext::generic(
             StatusCode::FORBIDDEN,
-            &t("csrf.invalid_or_missing").to_string(),
+            t("csrf.invalid_or_missing").as_ref(),
         ))));
     }
     Ok(())

@@ -126,7 +126,7 @@ async fn admin_dashboard(
         .insert("resources", &resources)
         .insert("resource_counts", &resource_counts)
         .insert("current_page", "dashboard")
-        .insert("lang", &current_lang().code())
+        .insert("lang", current_lang().code())
         .insert("current_resource", &Option::<String>::None);
 
     req.render(admin.config.templates.dashboard.resolve())
@@ -140,7 +140,7 @@ async fn admin_login_get(
 
     req = req
         .insert("site_title", &admin.config.site_title)
-        .insert("lang", &current_lang().code());
+        .insert("lang", current_lang().code());
     req.render(admin.config.templates.login.resolve())
 }
 
@@ -177,9 +177,9 @@ async fn admin_login_post(
                 insert_admin_messages(&mut req.context, "login");
                 insert_admin_messages(&mut req.context, "base");
                 req = req
-                    .insert("lang", &current_lang().code())
+                    .insert("lang", current_lang().code())
                     .insert("site_title", &admin.config.site_title)
-                    .insert("error", &t("admin.login.error_session").to_string());
+                    .insert("error", t("admin.login.error_session").to_string());
                 return req
                     .render(admin.config.templates.login.resolve())
                     .unwrap_or_else(|e| e.into_response());
@@ -193,7 +193,7 @@ async fn admin_login_post(
             insert_admin_messages(&mut req.context, "base");
             req = req
                 .insert("site_title", &admin.config.site_title)
-                .insert("error", &t("admin.login.error_credentials").to_string());
+                .insert("error", t("admin.login.error_credentials").to_string());
             req.render(admin.config.templates.login.resolve())
                 .unwrap_or_else(|e| e.into_response())
         }
