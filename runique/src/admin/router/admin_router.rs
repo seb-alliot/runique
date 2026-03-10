@@ -23,7 +23,7 @@ use crate::context::template::Request;
 use crate::middleware::auth::{load_user_middleware, login_staff};
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
-use crate::utils::trad::t;
+use crate::utils::trad::{t, current_lang};
 use crate::{admin::config::AdminConfig, flash_now};
 
 #[derive(Clone)]
@@ -126,6 +126,7 @@ async fn admin_dashboard(
         .insert("resources", &resources)
         .insert("resource_counts", &resource_counts)
         .insert("current_page", "dashboard")
+        .insert("lang", &current_lang().code())
         .insert("current_resource", &Option::<String>::None);
 
     req.render(admin.config.templates.dashboard.resolve())
