@@ -2,7 +2,7 @@
 {% block title %}{{ resource.title | default(value="Éléments") }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
-  <a href="/admin">{{ admin_list_breadcrumb_admin | default(value="Administration") }}</a>
+  <a href="/admin">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</a>
   <span class="breadcrumb-sep">/</span>
   <span>{{ resource.title | default(value="Éléments") }}</span>
 {% endblock %}
@@ -10,13 +10,13 @@
   <div class="page-header">
     <div>
       <h1 style="font-size:1.35rem; font-weight:600;">{{ resource.title | default(value="Éléments") }}</h1>
-      <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">{{ total | default(value=0) }} {{ admin_list_entries_count | default(value="entrée(s)") }}</p>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">{{ total | default(value=0) }} {% if admin_list_entries_count %}{{ admin_list_entries_count }}{% endif %}</p>
     </div>
     <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
-      {{ admin_list_btn_create | default(value="Créer") }}
+      {% if admin_list_btn_create %}{{ admin_list_btn_create }}{% endif %}
     </a>
   </div>
   <div class="card">
@@ -25,13 +25,13 @@
         <table class="admin-table">
           <thead>
             <tr>
-              <th>{{ admin_list_th_id | default(value="id") }}</th>
+              <th>{% if admin_list_th_id %}{{ admin_list_th_id }}{% endif %}</th>
               {% for key, value in entries | first %}
                 {% if key != "id" and key != "password" and key != "password_hash" %}
                   <th>{{ key }}</th>
                 {% endif %}
               {% endfor %}
-              <th style="text-align:right;">{{ admin_list_th_actions | default(value="Actions") }}</th>
+              <th style="text-align:right;">{% if admin_list_th_actions %}{{ admin_list_th_actions }}{% endif %}</th>
             </tr>
           </thead>
           <tbody>
@@ -42,9 +42,9 @@
                   {% if key != "id" and key != "password" and key != "password_hash" %}
                     <td>
                       {% if value == true %}
-                        <span class="badge badge-green">{{ admin_list_bool_true | default(value="Oui") }}</span>
+                        <span class="badge badge-green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
                       {% elif value == false %}
-                        <span class="badge badge-neutral">{{ admin_list_bool_false | default(value="Non") }}</span>
+                        <span class="badge badge-neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
                       {% elif value %}
                         {{ value }}
                       {% else %}
@@ -55,11 +55,11 @@
                 {% endfor %}
                 <td>
                   <div class="table-actions" style="justify-content:flex-end;">
-                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-secondary">{{ admin_list_btn_detail | default(value="Détail") }}</a>
-                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-secondary">{{ admin_list_btn_edit | default(value="Modifier") }}</a>
+                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-secondary">{% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% endif %}</a>
+                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-secondary">{% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% endif %}</a>
                     <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" style="display:inline;">
                       <button type="submit" class="btn btn-sm btn-danger"
-                              onclick="return confirm('{{ admin_list_confirm_delete | default(value="Vraiment supprimer ?") }}');">{{ admin_list_btn_delete | default(value="Supprimer") }}</button>
+                              onclick="return confirm('{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% endif %}');">{% if admin_list_btn_delete %}{{ admin_list_btn_delete }}{% endif %}</button>
                     </form>
                   </div>
                 </td>
@@ -74,9 +74,9 @@
           <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
           <rect x="9" y="3" width="6" height="4" rx="1"/>
         </svg>
-        <p class="empty-state-title">{{ admin_list_empty_title | default(value="Aucune entrée") }}</p>
-        <p class="empty-state-desc">{{ admin_list_empty_desc | default(value="Commencez par créer un élément.") }}</p>
-        <a href="/admin/{{ resource.key }}/create" class="btn btn-primary" style="margin-top:0.5rem;">{{ admin_list_btn_create_first | default(value="Créer le premier") }}</a>
+        <p class="empty-state-title">{% if admin_list_empty_title %}{{ admin_list_empty_title }}{% endif %}</p>
+        <p class="empty-state-desc">{% if admin_list_empty_desc %}{{ admin_list_empty_desc }}{% endif %}</p>
+        <a href="/admin/{{ resource.key }}/create" class="btn btn-primary" style="margin-top:0.5rem;">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>
       </div>
     {% endif %}
   </div>

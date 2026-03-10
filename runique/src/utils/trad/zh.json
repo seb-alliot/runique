@@ -276,7 +276,8 @@
         "card_info": "信息",
         "no_fields": "当前没有可用字段。",
         "btn_cancel": "取消",
-        "btn_submit": "创建"
+        "btn_submit": "创建",
+        "success": "条目创建成功！"
         },
         "edit": {
         "title": "编辑",
@@ -284,7 +285,8 @@
         "card_info": "信息",
         "no_fields": "当前没有可用字段。",
         "btn_cancel": "取消",
-        "btn_submit": "保存"
+        "btn_submit": "保存",
+        "success": "条目更新成功！"
         },
         "detail": {
         "title": "详情",
@@ -306,7 +308,8 @@
             "desc": "您即将删除条目",
             "of": "来自资源",
             "irreversible": "此操作不可撤销。"
-        }
+        },
+        "success": "条目删除成功！"
         },
         "base": {
         "title": "管理",

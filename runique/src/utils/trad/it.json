@@ -276,7 +276,8 @@
         "card_info": "Informazioni",
         "no_fields": "Nessun campo disponibile al momento.",
         "btn_cancel": "Annulla",
-        "btn_submit": "Crea"
+        "btn_submit": "Crea",
+        "success": "Voce creata con successo!"
         },
         "edit": {
         "title": "Modifica",
@@ -284,7 +285,8 @@
         "card_info": "Informazioni",
         "no_fields": "Nessun campo disponibile al momento.",
         "btn_cancel": "Annulla",
-        "btn_submit": "Salva"
+        "btn_submit": "Salva",
+        "success": "Voce aggiornata con successo!"
         },
         "detail": {
         "title": "Dettaglio",
@@ -301,6 +303,7 @@
         "heading": "Conferma eliminazione",
         "btn_cancel": "← Annulla",
         "btn_confirm": "Sì, elimina definitivamente",
+        "success": "Voce eliminata con successo!",
         "warning": {
             "title": "Attenzione!",
             "desc": "Stai per eliminare la voce",

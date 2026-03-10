@@ -276,7 +276,8 @@
         "card_info": "Information",
         "no_fields": "No fields available at the moment.",
         "btn_cancel": "Cancel",
-        "btn_submit": "Create"
+        "btn_submit": "Create",
+        "success": "Entry created successfully!"
       },
       "edit": {
         "title": "Edit",
@@ -284,7 +285,8 @@
         "card_info": "Information",
         "no_fields": "No fields available at the moment.",
         "btn_cancel": "Cancel",
-        "btn_submit": "Save"
+        "btn_submit": "Save",
+        "success": "Entry updated successfully!"
       },
       "detail": {
         "title": "Detail",
@@ -300,6 +302,7 @@
         "breadcrumb": "Delete",
         "heading": "Confirm deletion",
         "btn_cancel": "← Cancel",
+        "success": "Entry deleted successfully!",
         "btn_confirm": "Yes, delete permanently",
         "warning": {
           "title": "Warning!",

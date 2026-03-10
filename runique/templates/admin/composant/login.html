@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token }}">
-        <title>{{ admin_login_title | default(value="Connexion") }} — {{ site_title | default(value="Administration") }}</title>
+        <title>{% if admin_login_title %}{{ admin_login_title }}{% endif %} — {{ site_title | default(value="Administration") }}</title>
         <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
         {% block extra_css %}
             <link rel="stylesheet" href="{{ "css/admin/variables.css" | runique_static }}">
@@ -23,7 +23,7 @@
                 <div class="login-header">
                     <div class="login-logo">R</div>
                     <h1 class="login-title">{{ site_title | default(value="Runique Admin") }}</h1>
-                    <p class="login-subtitle">{{ admin_login_subtitle | default(value="Connectez-vous pour accéder au panneau d'administration") }}</p>
+                    <p class="login-subtitle">{% if admin_login_subtitle %}{{ admin_login_subtitle }}{% endif %}</p>
                 </div>
                 {% if error %}
                 <div class="alert alert-danger" style="margin-bottom: 1rem;">
@@ -33,7 +33,7 @@
                 <form class="login-form" method="POST" action="/admin/login">
                     {% csrf %}
                     <div class="form-group">
-                        <label class="form-label required" for="username">{{ admin_login_label_username | default(value="Nom d'utilisateur") }}</label>
+                        <label class="form-label required" for="username">{% if admin_login_label_username %}{{ admin_login_label_username }}{% endif %}</label>
                         <input
                             class="form-input {% if errors.username %}error{% endif %}"
                             type="text"
@@ -48,7 +48,7 @@
                         {% endif %}
                     </div>
                     <div class="form-group">
-                        <label class="form-label required" for="password">{{ admin_login_label_password | default(value="Mot de passe") }}</label>
+                        <label class="form-label required" for="password">{% if admin_login_label_password %}{{ admin_login_label_password }}{% endif %}</label>
                         <input
                             class="form-input {% if errors.password %}error{% endif %}"
                             type="password"
@@ -61,7 +61,7 @@
                         {% endif %}
                     </div>
                     <button type="submit" class="btn btn-primary login-btn">
-                        {{ admin_login_btn_submit | default(value="Se connecter") }}
+                        {% if admin_login_btn_submit %}{{ admin_login_btn_submit }}{% endif %}
                     </button>
                 </form>
             </div>

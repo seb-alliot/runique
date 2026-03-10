@@ -276,7 +276,8 @@
         "card_info": "Información",
         "no_fields": "No hay campos disponibles por el momento.",
         "btn_cancel": "Cancelar",
-        "btn_submit": "Crear"
+        "btn_submit": "Crear",
+        "success": "¡Entrada creada con éxito!"
         },
         "edit": {
         "title": "Editar",
@@ -284,7 +285,8 @@
         "card_info": "Información",
         "no_fields": "No hay campos disponibles por el momento.",
         "btn_cancel": "Cancelar",
-        "btn_submit": "Guardar"
+        "btn_submit": "Guardar",
+        "success": "¡Entrada actualizada con éxito!"
         },
         "detail": {
         "title": "Detalle",
@@ -306,7 +308,8 @@
             "desc": "Está a punto de eliminar la entrada",
             "of": "del recurso",
             "irreversible": "Esta acción es irreversible."
-        }
+        },
+        "success": "¡Entrada eliminada con éxito!"
         },
         "base": {
         "title": "Administración",

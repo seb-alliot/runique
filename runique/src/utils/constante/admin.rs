@@ -78,4 +78,8 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.base.breadcrumb",
     "admin.base.toggle",
     "admin.base.logout_title",
+    // flash messages
+    "admin.create.success",
+    "admin.edit.success",
+    "admin.delete.success",
 ];
