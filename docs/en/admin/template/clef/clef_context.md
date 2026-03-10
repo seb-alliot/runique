@@ -153,6 +153,8 @@ Automatically injected via `insert_admin_messages`. All keys follow the pattern 
 | `admin_dashboard_see_list`       | `String`               | i18n `admin.dashboard.see_list`                 |
 | `admin_dashboard_empty_title`    | `String`               | i18n `admin.dashboard.empty_title`              |
 | `admin_dashboard_empty_desc`     | `String`               | i18n `admin.dashboard.empty_desc`               |
+| `lang`                           | `&str`                 | Current language defined in `main.rs`           |
+| `admin_base_logout_title`        | `&str`                 | i18n `admin.base.logout_title`                  |
 
 ---
 
