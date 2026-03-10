@@ -53,7 +53,7 @@ if let Some(user) = user {
 ## Complete CRUD pattern
 
 ```rust
-use demo_app::models::users;
+use demo_app::entities::users;
 use runique::prelude::*;
 use axum::extract::Path;
 

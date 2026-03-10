@@ -80,14 +80,11 @@ pub async fn inscription(
 
 ## Macro impl_objects! (bonus)
 
-For routes that perform ORM queries, `impl_objects!` adds a Django-like manager:
+`impl_objects!` is **automatically generated** by the daemon in each entity file. It adds a Django-like manager usable directly in handlers:
 
 ```rust
-use runique::impl_objects;
+use crate::entities::users;
 
-impl_objects!(users::Entity);
-
-// Then in handlers:
 let user = users::Entity::objects
     .filter(users::Column::Username.eq("john"))
     .first(&db)
