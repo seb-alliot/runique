@@ -267,6 +267,7 @@ RuniqueApp::builder(config)
 
 ## Revenir au sommaire
 
+| Section | Description |
 | --- | --- |
 | [Sommaire template](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Admin
 | [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Sommaire template
