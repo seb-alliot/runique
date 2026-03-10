@@ -23,6 +23,7 @@ use crate::admin::AdminRegistry;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::flash_now;
+use crate::utils::trad::t;
 use crate::forms::prisme::aegis;
 use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
 
@@ -198,7 +199,7 @@ fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     if submitted != Some(session_token) {
         return Err(Box::new(AppError::new(ErrorContext::generic(
             StatusCode::FORBIDDEN,
-            "CSRF token invalide ou manquant",
+            &t("csrf.invalid_or_missing").to_string()
         ))));
     }
     Ok(())
@@ -285,7 +286,7 @@ async fn handle_create_post(
             form.get_form_mut().database_error(&e);
             return Err(Box::new(AppError::new(ErrorContext::database(e))));
         }
-        flash_now!(success => "Entrée créée avec succès !");
+        flash_now!(success => t("admin.create.success").to_string());
         return Ok(Redirect::to(&format!(
             "{}/{}/list",
             state.config.prefix.trim_end_matches('/'),
@@ -393,7 +394,7 @@ async fn handle_edit_post(
             form.get_form_mut().database_error(&e);
             return Err(Box::new(AppError::new(ErrorContext::database(e))));
         }
-        flash_now!(success => "Entrée mise à jour avec succès !");
+        flash_now!(success => t("admin.edit.success").to_string());
         return Ok(Redirect::to(&format!(
             "{}/{}/list",
             state.config.prefix.trim_end_matches('/'),
@@ -454,7 +455,7 @@ async fn handle_delete_post(
         .await
         .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
 
-    flash_now!(success => "Entrée supprimée avec succès !");
+    flash_now!(success => t("admin.delete.success").to_string());
     Ok(Redirect::to(&format!(
         "{}/{}/list",
         state.config.prefix.trim_end_matches('/'),

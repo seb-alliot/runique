@@ -276,7 +276,8 @@
         "card_info": "Informações",
         "no_fields": "Nenhum campo disponível no momento.",
         "btn_cancel": "Cancelar",
-        "btn_submit": "Criar"
+        "btn_submit": "Criar",
+        "success": "Entrada criada com sucesso!"
         },
         "edit": {
         "title": "Editar",
@@ -284,7 +285,8 @@
         "card_info": "Informações",
         "no_fields": "Nenhum campo disponível no momento.",
         "btn_cancel": "Cancelar",
-        "btn_submit": "Salvar"
+        "btn_submit": "Salvar",
+        "success": "Entrada atualizada com sucesso!"
         },
         "detail": {
         "title": "Detalhe",
@@ -306,7 +308,8 @@
             "desc": "Você está prestes a excluir a entrada",
             "of": "do recurso",
             "irreversible": "Esta ação é irreversível."
-        }
+        },
+        "success": "Entrada excluída com sucesso!"
         },
         "base": {
         "title": "Administração",

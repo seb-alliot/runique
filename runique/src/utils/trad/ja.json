@@ -276,7 +276,8 @@
         "card_info": "情報",
         "no_fields": "現在使用可能なフィールドはありません。",
         "btn_cancel": "キャンセル",
-        "btn_submit": "作成"
+        "btn_submit": "作成",
+        "success": "エントリが正常に作成されました！"
         },
         "edit": {
         "title": "編集",
@@ -284,7 +285,8 @@
         "card_info": "情報",
         "no_fields": "現在使用可能なフィールドはありません。",
         "btn_cancel": "キャンセル",
-        "btn_submit": "保存"
+        "btn_submit": "保存",
+        "success": "エントリが正常に更新されました！"
         },
         "detail": {
         "title": "詳細",
@@ -300,6 +302,7 @@
         "breadcrumb": "削除",
         "heading": "削除の確認",
         "btn_cancel": "← キャンセル",
+        "success": "エントリが正常に削除されました！",
         "btn_confirm": "はい、完全に削除します",
         "warning": {
             "title": "警告！",

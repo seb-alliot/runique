@@ -277,7 +277,8 @@
         "card_info": "Informations",
         "no_fields": "Aucun champ disponible pour le moment.",
         "btn_cancel": "Annuler",
-        "btn_submit": "Créer"
+        "btn_submit": "Créer",
+        "success": "Entrée créée avec succès !"
       },
       "edit": {
         "title": "Modifier",
@@ -285,7 +286,8 @@
         "card_info": "Informations",
         "no_fields": "Aucun champ disponible pour le moment.",
         "btn_cancel": "Annuler",
-        "btn_submit": "Enregistrer"
+        "btn_submit": "Enregistrer",
+        "success": "Entrée mise à jour avec succès !"
       },
       "detail": {
         "title": "Détail",
@@ -302,6 +304,7 @@
         "heading": "Confirmer la suppression",
         "btn_cancel": "← Annuler",
         "btn_confirm": "Oui, supprimer définitivement",
+        "success": "Entrée supprimée avec succès !",
         "warning": {
           "title": "Attention !",
           "desc": "Vous êtes sur le point de supprimer l'entrée",

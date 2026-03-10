@@ -1,31 +1,31 @@
 {% extends "admin_base" %}
-{% block title %}{{ admin_delete_title | default(value="Supprimer") }} — {{ resource.title | default(value="Élément") }}{% endblock %}
+{% block title %}{% if admin_delete_title %}{{ admin_delete_title }}{% endif %} — {{ resource.title | default(value="Élément") }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
   <a href="/admin/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
   <span class="breadcrumb-sep">/</span>
-  <span>{{ admin_delete_breadcrumb | default(value="Supprimer") }}</span>
+  <span>{% if admin_delete_breadcrumb %}{{ admin_delete_breadcrumb }}{% endif %}</span>
 {% endblock %}
 {% block content %}
   <div class="page-header">
-    <h1>{{ admin_delete_heading | default(value="Confirmer la suppression") }}</h1>
+    <h1>{% if admin_delete_heading %}{{ admin_delete_heading }}{% endif %}</h1>
   </div>
   <div class="card">
     <div class="card-body">
       <div class="warning-box">
       <p>
-        <strong>{{ admin_delete_warning_title | default(value="Attention !") }}</strong>
-        {{ admin_delete_warning_desc | default(value="Vous êtes sur le point de supprimer l'entrée") }}
+        <strong>{% if admin_delete_warning_title %}{{ admin_delete_warning_title }}{% endif %}</strong>
+        {% if admin_delete_warning_desc %}{{ admin_delete_warning_desc }}{% endif %}
         <strong>#{{ object_id }}</strong>
-        {{ admin_delete_warning_of | default(value="de la ressource") }}
+        {% if admin_delete_warning_of %}{{ admin_delete_warning_of }}{% endif %}
         <strong>{{ resource.title | default(value=resource_key) }}</strong>.
-        <p>{{ admin_delete_warning_irreversible | default(value="Cette action est irréversible.") }}</p>
+        <p>{% if admin_delete_warning_irreversible %}{{ admin_delete_warning_irreversible }}{% endif %}</p>
       </p>
       </div>
       <div class="form-actions">
-        <a href="/admin/{{ resource.key }}/{{ object_id }}/detail" class="btn btn-secondary">{{ admin_delete_btn_cancel | default(value="← Annuler") }}</a>
+        <a href="/admin/{{ resource.key }}/{{ object_id }}/detail" class="btn btn-secondary">{% if admin_delete_btn_cancel %}{{ admin_delete_btn_cancel }}{% endif %}</a>
         <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/delete" style="display:inline;">
-          <button type="submit" class="btn btn-danger">{{ admin_delete_btn_confirm | default(value="Oui, supprimer définitivement") }}</button>
+          <button type="submit" class="btn btn-danger">{% if admin_delete_btn_confirm %}{{ admin_delete_btn_confirm }}{% endif %}</button>
         </form>
       </div>
     </div>
