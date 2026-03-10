@@ -10,6 +10,7 @@ pub mod resource;
 pub mod resource_entry;
 pub mod router;
 pub mod template;
+pub mod trad;
 
 pub use admin_main::{admin_get, admin_get_id, admin_post, admin_post_id, PrototypeAdminState};
 pub use config::AdminConfig;

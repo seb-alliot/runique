@@ -117,18 +117,6 @@
     "host_debug": "Invalid Host: '{}'. Add it to RUNIQUE_ALLOWED_HOSTS.",
     "bad_request": "Bad Request"
   },
-  "admin": {
-    "session_error": "Session opening error.",
-    "invalid_credentials": "Invalid credentials or insufficient rights.",
-    "logout_success": "Logout successful.",
-    "no_auth_handler": "No auth handler configured. Call .auth(MyAuth) on AdminConfig.",
-    "insufficient_rights": "Insufficient rights to access admin",
-    "login_title": "Login — {}",
-    "login_subtitle": "Sign in to access the admin panel",
-    "username": "Username",
-    "password": "Password",
-    "login_button": "Sign in"
-  },
   "html": {
     "404_title": "404",
     "404_text": "Page not found",
@@ -235,5 +223,96 @@
     "debug_status_code": "Status Code",
     "debug_header_name": "Name",
     "debug_header_value": "Value"
-  }
+  },
+  "admin": {
+      "login": {
+        "title": "Login",
+        "subtitle": "Sign in to access the admin panel",
+        "label_username": "Username",
+        "label_password": "Password",
+        "btn_submit": "Sign in",
+        "error_session": "Error while opening session.",
+        "error_credentials": "Incorrect credentials or insufficient rights."
+      },
+      "logout": {
+        "success": "Successfully logged out."
+      },
+      "access": {
+        "no_auth_handler": "No authentication handler configured. Call .auth(MyAuth) on AdminConfig.",
+        "insufficient_rights": "Insufficient rights to access administration"
+      },
+      "dashboard": {
+        "title": "Dashboard",
+        "subtitle": "Application overview",
+        "card_resources": "Resources",
+        "th_resource": "Resource",
+        "th_key": "Key",
+        "th_permissions": "Permissions",
+        "th_actions": "Actions",
+        "btn_list": "List",
+        "btn_create": "Create",
+        "empty_title": "No resources registered",
+        "empty_desc": "Declare your resources in src/admin.rs with the admin!{{}} macro then run runique start"
+      },
+      "list": {
+        "breadcrumb_admin": "Administration",
+        "entries_count": "entry(ies)",
+        "btn_create": "Create",
+        "th_id": "id",
+        "th_actions": "Actions",
+        "bool_true": "Yes",
+        "bool_false": "No",
+        "btn_detail": "Detail",
+        "btn_edit": "Edit",
+        "btn_delete": "Delete",
+        "confirm_delete": "Really delete?",
+        "empty_title": "No entries",
+        "empty_desc": "Start by creating an item.",
+        "btn_create_first": "Create the first"
+      },
+      "create": {
+        "title": "Create",
+        "breadcrumb": "Create",
+        "card_info": "Information",
+        "no_fields": "No fields available at the moment.",
+        "btn_cancel": "Cancel",
+        "btn_submit": "Create"
+      },
+      "edit": {
+        "title": "Edit",
+        "breadcrumb": "Edit",
+        "card_info": "Information",
+        "no_fields": "No fields available at the moment.",
+        "btn_cancel": "Cancel",
+        "btn_submit": "Save"
+      },
+      "detail": {
+        "title": "Detail",
+        "breadcrumb": "Detail",
+        "entry_label": "Entry",
+        "btn_list": "← List",
+        "btn_edit": "Edit",
+        "btn_delete": "Delete",
+        "confirm_delete": "Delete this entry?"
+      },
+      "delete": {
+        "title": "Delete",
+        "breadcrumb": "Delete",
+        "heading": "Confirm deletion",
+        "btn_cancel": "← Cancel",
+        "btn_confirm": "Yes, delete permanently",
+        "warning": {
+          "title": "Warning!",
+          "desc": "You are about to delete the entry",
+          "of": "from resource",
+          "irreversible": "This action is irreversible."
+        }
+      },
+      "base": {
+        "title": "Administration",
+        "breadcrumb": "Admin",
+        "toggle": "Collapse menu",
+        "logout_title": "Logout"
+      }
+    }
 }

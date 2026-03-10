@@ -1,23 +1,18 @@
 {% extends "admin_base" %}
-
-{% block title %}Créer — {{ resource.title | default(value="Élément") }}{% endblock %}
-
+{% block title %}{{ admin_create_title | default(value="Créer") }} — {{ resource.title | default(value="Élément") }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
   <a href="/admin/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
   <span class="breadcrumb-sep">/</span>
-  <span>Créer</span>
+  <span>{{ admin_create_breadcrumb | default(value="Créer") }}</span>
 {% endblock %}
-
 {% block content %}
-
   <header class="page-header">
-    <h1>Créer — {{ resource.title | default(value="Élément") }}</h1>
+    <h1>{{ admin_create_title | default(value="Créer") }} — {{ resource.title | default(value="Élément") }}</h1>
   </header>
-
   <div class="card" style="max-width:60%;">
     <div class="card-header">
-      <h2>Informations</h2>
+      <h2>{{ admin_create_card_info | default(value="Informations") }}</h2>
     </div>
     <div class="card-body">
       <form method="POST" action="/admin/{{ resource.key }}/create">
@@ -25,15 +20,14 @@
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
             {{ form_fields.html }}
           {% else %}
-            <p>Aucun champ disponible pour le moment.</p>
+            <p>{{ admin_create_no_fields | default(value="Aucun champ disponible pour le moment.") }}</p>
           {% endif %}
         </div>
         <div class="form-actions">
-          <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">Annuler</a>
-          <button type="submit" class="btn btn-primary">Créer</button>
+          <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{{ admin_create_btn_cancel | default(value="Annuler") }}</a>
+          <button type="submit" class="btn btn-primary">{{ admin_create_btn_submit | default(value="Créer") }}</button>
         </div>
       </form>
     </div>
   </div>
-
 {% endblock %}

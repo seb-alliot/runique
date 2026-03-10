@@ -1,4 +1,11 @@
 use crate::utils::aliases::{ARuniqueConfig, ATera, StrMap};
+use crate::utils::error::DEBUG_MESSAGE_KEYS;
+use crate::{
+    config::RuniqueConfig,
+    errors::error::{ErrorContext, ErrorType, RuniqueError},
+    utils::csrf::CsrfToken,
+    utils::trad::t,
+};
 use axum::{
     extract::Extension,
     http::{Request, StatusCode},
@@ -10,13 +17,6 @@ use std::sync::Arc;
 use tera::{Context, Tera};
 use tracing::{error, info, instrument};
 use tracing_futures::Instrument;
-use crate::utils::error::DEBUG_MESSAGE_KEYS;
-use crate::{
-    config::RuniqueConfig,
-    errors::error::{ErrorContext, ErrorType, RuniqueError},
-    utils::csrf::CsrfToken,
-    utils::trad::t,
-};
 
 /// Transport des infos requête pour debug contextuel
 pub struct RequestInfoHelper {

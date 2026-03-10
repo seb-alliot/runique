@@ -24,12 +24,12 @@
                     <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                     <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                 </svg>
-                <span class="nav-label">Tableau de bord</span>
+                <span class="nav-label">{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</span>
             </a>
 
             {% if resources %}
                 <div class="nav-divider"></div>
-                <div class="nav-section-label">Ressources</div>
+                <div class="nav-section-label">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</div>
 
                 {% for resource in resources %}
                 <a href="/admin/{{ resource.key }}/list"
@@ -49,7 +49,7 @@
 
         <div class="sidebar-footer">
             <div style="display:flex; align-items:center; justify-content:center; padding: 0 0.75rem;">
-                <button class="sidebar-toggle" id="sidebarToggle" title="Réduire le menu">
+                <button class="sidebar-toggle" id="sidebarToggle" title="{% if admin_base_toggle %}{{ admin_base_toggle }}{% endif %}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                         <polyline points="15 18 9 12 15 6"/>
                     </svg>
@@ -74,12 +74,12 @@
         </button>
 
         <div class="topbar-breadcrumb">
-            <a href="/admin">Admin</a>
+            <a href="/admin">{% if admin_base_breadcrumb %}{{ admin_base_breadcrumb }}{% endif %}</a>
             {% block breadcrumb %}{% endblock %}
         </div>
 
         <form method="POST" action="/admin/logout" class="logout-form">
-        <button type="submit" class="topbar-user logout-button" title="Déconnexion">
+        <button type="submit" class="topbar-user logout-button" title="{% if admin_logout_title %}{{ admin_logout_title }}{% endif %}">
             <div class="user-avatar">
                 {{ current_user.username }}
             </div>

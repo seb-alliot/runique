@@ -4,9 +4,8 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token }}">
-        <title>Connexion — {{ site_title | default(value="Administration") }}</title>
+        <title>{{ admin_login_title | default(value="Connexion") }} — {{ site_title | default(value="Administration") }}</title>
         <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
-
         {% block extra_css %}
             <link rel="stylesheet" href="{{ "css/admin/variables.css" | runique_static }}">
             <link rel="stylesheet" href="{{ "css/admin/layout.css" | runique_static }}">
@@ -21,24 +20,20 @@
     <body>
         <div class="login-wrapper">
             <div class="login-card">
-
                 <div class="login-header">
                     <div class="login-logo">R</div>
                     <h1 class="login-title">{{ site_title | default(value="Runique Admin") }}</h1>
-                    <p class="login-subtitle">Connectez-vous pour accéder au panneau d'administration</p>
+                    <p class="login-subtitle">{{ admin_login_subtitle | default(value="Connectez-vous pour accéder au panneau d'administration") }}</p>
                 </div>
-
                 {% if error %}
                 <div class="alert alert-danger" style="margin-bottom: 1rem;">
                     {{ error }}
                 </div>
                 {% endif %}
-
                 <form class="login-form" method="POST" action="/admin/login">
                     {% csrf %}
-
                     <div class="form-group">
-                        <label class="form-label required" for="username">Nom d'utilisateur</label>
+                        <label class="form-label required" for="username">{{ admin_login_label_username | default(value="Nom d'utilisateur") }}</label>
                         <input
                             class="form-input {% if errors.username %}error{% endif %}"
                             type="text"
@@ -52,9 +47,8 @@
                         <span class="form-error">{{ errors.username }}</span>
                         {% endif %}
                     </div>
-
                     <div class="form-group">
-                        <label class="form-label required" for="password">Mot de passe</label>
+                        <label class="form-label required" for="password">{{ admin_login_label_password | default(value="Mot de passe") }}</label>
                         <input
                             class="form-input {% if errors.password %}error{% endif %}"
                             type="password"
@@ -66,13 +60,10 @@
                         <span class="form-error">{{ errors.password }}</span>
                         {% endif %}
                     </div>
-
                     <button type="submit" class="btn btn-primary login-btn">
-                        Se connecter
+                        {{ admin_login_btn_submit | default(value="Se connecter") }}
                     </button>
-
                 </form>
-
             </div>
         </div>
     </body>

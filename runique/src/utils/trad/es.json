@@ -117,18 +117,6 @@
         "host_debug": "Host no válido: '{}'. Añádelo a RUNIQUE_ALLOWED_HOSTS.",
         "bad_request": "Solicitud incorrecta"
     },
-    "admin": {
-        "session_error": "Error al abrir la sesión.",
-        "invalid_credentials": "Credenciales incorrectas o derechos insuficientes.",
-        "logout_success": "Cierre de sesión exitoso.",
-        "no_auth_handler": "Ningún handler de autenticación configurado. Llama a .auth(MyAuth) en AdminConfig.",
-        "insufficient_rights": "Derechos insuficientes para acceder a la administración",
-        "login_title": "Inicio de sesión — {}",
-        "login_subtitle": "Inicia sesión para acceder al panel de administración",
-        "username": "Nombre de usuario",
-        "password": "Contraseña",
-        "login_button": "Iniciar sesión"
-    },
     "html": {
         "404_title": "404",
         "404_text": "Página no encontrada",
@@ -235,5 +223,96 @@
     "debug_status_code": "Código de estado",
     "debug_header_name": "Nombre",
     "debug_header_value": "Valor"
+    },
+    "admin": {
+        "login": {
+        "title": "Inicio de sesión",
+        "subtitle": "Inicie sesión para acceder al panel de administración",
+        "label_username": "Nombre de usuario",
+        "label_password": "Contraseña",
+        "btn_submit": "Iniciar sesión",
+        "error_session": "Error al abrir la sesión.",
+        "error_credentials": "Credenciales incorrectas o permisos insuficientes."
+        },
+        "logout": {
+        "success": "Sesión cerrada correctamente."
+        },
+        "access": {
+        "no_auth_handler": "No hay ningún controlador de autenticación configurado. Llame a .auth(MyAuth) en AdminConfig.",
+        "insufficient_rights": "Permisos insuficientes para acceder a la administración"
+        },
+        "dashboard": {
+        "title": "Panel de control",
+        "subtitle": "Resumen de la aplicación",
+        "card_resources": "Recursos",
+        "th_resource": "Recurso",
+        "th_key": "Clave",
+        "th_permissions": "Permisos",
+        "th_actions": "Acciones",
+        "btn_list": "Lista",
+        "btn_create": "Crear",
+        "empty_title": "No hay recursos registrados",
+        "empty_desc": "Declare sus recursos en src/admin.rs con la macro admin!{{}} y luego ejecute runique start"
+        },
+        "list": {
+        "breadcrumb_admin": "Administración",
+        "entries_count": "entrada(s)",
+        "btn_create": "Crear",
+        "th_id": "id",
+        "th_actions": "Acciones",
+        "bool_true": "Sí",
+        "bool_false": "No",
+        "btn_detail": "Detalle",
+        "btn_edit": "Editar",
+        "btn_delete": "Eliminar",
+        "confirm_delete": "¿Realmente eliminar?",
+        "empty_title": "No hay entradas",
+        "empty_desc": "Comience creando un elemento.",
+        "btn_create_first": "Crear el primero"
+        },
+        "create": {
+        "title": "Crear",
+        "breadcrumb": "Crear",
+        "card_info": "Información",
+        "no_fields": "No hay campos disponibles por el momento.",
+        "btn_cancel": "Cancelar",
+        "btn_submit": "Crear"
+        },
+        "edit": {
+        "title": "Editar",
+        "breadcrumb": "Editar",
+        "card_info": "Información",
+        "no_fields": "No hay campos disponibles por el momento.",
+        "btn_cancel": "Cancelar",
+        "btn_submit": "Guardar"
+        },
+        "detail": {
+        "title": "Detalle",
+        "breadcrumb": "Detalle",
+        "entry_label": "Entrada",
+        "btn_list": "← Lista",
+        "btn_edit": "Editar",
+        "btn_delete": "Eliminar",
+        "confirm_delete": "¿Eliminar esta entrada?"
+        },
+        "delete": {
+        "title": "Eliminar",
+        "breadcrumb": "Eliminar",
+        "heading": "Confirmar eliminación",
+        "btn_cancel": "← Cancelar",
+        "btn_confirm": "Sí, eliminar permanentemente",
+        "warning": {
+            "title": "¡Advertencia!",
+            "desc": "Está a punto de eliminar la entrada",
+            "of": "del recurso",
+            "irreversible": "Esta acción es irreversible."
+        }
+        },
+        "base": {
+        "title": "Administración",
+        "breadcrumb": "Admin",
+        "toggle": "Contraer menú",
+        "logout_title": "Cerrar sesión"
+        }
     }
 }

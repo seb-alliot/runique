@@ -26,7 +26,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
         "session" => "Tower pour la gestion des sessions",
     });
 
-    request.render("1index.html")
+    request.render("index.html")
 }
 
 // ─── Inscription ──────────────────────────────────────────────────────────────
@@ -354,7 +354,6 @@ pub async fn upload_image_submit(
     });
     request.render(template)
 }
-
 
 // ─── Test des champs ─────────────────────────────────────────────────────────
 

@@ -16,12 +16,14 @@ use serde::Deserialize;
 use tower_sessions::Session;
 
 use crate::admin::middleware::admin_required;
+use crate::admin::trad::insert_admin_messages;
 use crate::admin::PrototypeAdminState;
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
 use crate::middleware::auth::{load_user_middleware, login_staff};
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
+use crate::utils::trad::t;
 use crate::{admin::config::AdminConfig, flash_now};
 
 #[derive(Clone)]
@@ -117,6 +119,8 @@ async fn admin_dashboard(
         Vec::new()
     };
 
+    insert_admin_messages(&mut req.context, "dashboard");
+
     req = req
         .insert("site_title", &admin.config.site_title)
         .insert("resources", &resources)
@@ -131,6 +135,8 @@ async fn admin_login_get(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
 ) -> AppResult<Response> {
+    insert_admin_messages(&mut req.context, "login");
+
     req = req.insert("site_title", &admin.config.site_title);
     req.render(admin.config.templates.login.resolve())
 }
@@ -143,7 +149,7 @@ async fn admin_login_post(
     let Some(auth) = &admin.config.auth else {
         return (
             StatusCode::NOT_IMPLEMENTED,
-            "Aucun handler d'authentification configuré. Appelez .auth(MyAuth) sur AdminConfig.",
+            t("admin.access.no_auth_handler").to_string(),
         )
             .into_response();
     };
@@ -165,9 +171,10 @@ async fn admin_login_post(
             .await
             .is_err()
             {
+                insert_admin_messages(&mut req.context, "login");
                 req = req
                     .insert("site_title", &admin.config.site_title)
-                    .insert("error", "Erreur lors de l'ouverture de session.");
+                    .insert("error", &t("admin.login.error_session").to_string());
                 return req
                     .render(admin.config.templates.login.resolve())
                     .unwrap_or_else(|e| e.into_response());
@@ -177,9 +184,10 @@ async fn admin_login_post(
         }
 
         None => {
+            insert_admin_messages(&mut req.context, "login");
             req = req
                 .insert("site_title", &admin.config.site_title)
-                .insert("error", "Identifiants incorrects ou droits insuffisants.");
+                .insert("error", &t("admin.login.error_credentials").to_string());
             req.render(admin.config.templates.login.resolve())
                 .unwrap_or_else(|e| e.into_response())
         }
@@ -187,10 +195,7 @@ async fn admin_login_post(
 }
 
 async fn admin_logout(session: Session, Extension(admin): Extension<Arc<AdminState>>) -> Response {
-    let _ = session
-        .insert("flash_messages", "Déconnexion réussie.")
-        .await;
     let _ = session.delete().await;
-    flash_now!( success => "Déconnexion réussie.");
+    flash_now!(success => t("admin.logout.success").to_string());
     Redirect::to(&format!("{}/login", admin.config.prefix)).into_response()
 }

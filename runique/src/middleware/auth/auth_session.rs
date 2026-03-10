@@ -82,7 +82,34 @@ pub async fn is_authenticated(session: &Session) -> bool {
         .flatten()
         .is_some()
 }
+pub async fn is_admin_authenticated(session: &Session) -> bool {
+    let is_authenticated = session
+        .get::<i32>(SESSION_USER_ID_KEY)
+        .await
+        .ok()
+        .flatten()
+        .is_some();
 
+    if !is_authenticated {
+        return false;
+    }
+
+    let is_staff = session
+        .get::<bool>(SESSION_USER_IS_STAFF_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    let is_superuser = session
+        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    is_staff || is_superuser
+}
 /// Récupère l'ID de l'utilisateur connecté
 pub async fn get_user_id(session: &Session) -> Option<i32> {
     session.get::<i32>(SESSION_USER_ID_KEY).await.ok().flatten()

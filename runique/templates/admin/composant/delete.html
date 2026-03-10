@@ -1,34 +1,33 @@
 {% extends "admin_base" %}
-
-{% block title %}Supprimer — {{ resource.title | default(value="Élément") }}{% endblock %}
-
+{% block title %}{{ admin_delete_title | default(value="Supprimer") }} — {{ resource.title | default(value="Élément") }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
   <a href="/admin/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
   <span class="breadcrumb-sep">/</span>
-  <span>Supprimer</span>
+  <span>{{ admin_delete_breadcrumb | default(value="Supprimer") }}</span>
 {% endblock %}
-
 {% block content %}
-
   <div class="page-header">
-    <h1>Confirmer la suppression</h1>
+    <h1>{{ admin_delete_heading | default(value="Confirmer la suppression") }}</h1>
   </div>
-
   <div class="card">
     <div class="card-body">
       <div class="warning-box">
-        <p><strong>Attention !</strong> Vous êtes sur le point de supprimer l'entrée #{{ object_id }} de la ressource <strong>{{ resource.title | default(value=resource_key) }}</strong>.</p>
-        <p>Cette action est <strong>irréversible</strong>.</p>
+      <p>
+        <strong>{{ admin_delete_warning_title | default(value="Attention !") }}</strong>
+        {{ admin_delete_warning_desc | default(value="Vous êtes sur le point de supprimer l'entrée") }}
+        <strong>#{{ object_id }}</strong>
+        {{ admin_delete_warning_of | default(value="de la ressource") }}
+        <strong>{{ resource.title | default(value=resource_key) }}</strong>.
+        <p>{{ admin_delete_warning_irreversible | default(value="Cette action est irréversible.") }}</p>
+      </p>
       </div>
-
       <div class="form-actions">
-        <a href="/admin/{{ resource.key }}/{{ object_id }}/detail" class="btn btn-secondary">← Annuler</a>
+        <a href="/admin/{{ resource.key }}/{{ object_id }}/detail" class="btn btn-secondary">{{ admin_delete_btn_cancel | default(value="← Annuler") }}</a>
         <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/delete" style="display:inline;">
-          <button type="submit" class="btn btn-danger">Oui, supprimer définitivement</button>
+          <button type="submit" class="btn btn-danger">{{ admin_delete_btn_confirm | default(value="Oui, supprimer définitivement") }}</button>
         </form>
       </div>
     </div>
   </div>
-
 {% endblock %}

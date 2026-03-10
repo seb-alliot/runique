@@ -1,30 +1,24 @@
 {% extends "admin_base" %}
-
-{% block title %}Tableau de bord{% endblock %}
-
+{% block title %}{{ admin_dashboard_title | default(value="Tableau de bord") }}{% endblock %}
 {% block breadcrumb %}
     <span class="breadcrumb-sep">/</span>
-    <span>Tableau de bord</span>
+    <span>{{ admin_dashboard_title | default(value="Tableau de bord") }}</span>
 {% endblock %}
-
 {% block content %}
-
 <div class="page-header">
     <div>
-        <h1 class="page-title">Tableau de bord</h1>
-        <p class="page-subtitle">Vue d'ensemble de l'application</p>
+        <h1 class="page-title">{{ admin_dashboard_title | default(value="Tableau de bord") }}</h1>
+        <p class="page-subtitle">{{ admin_dashboard_subtitle | default(value="Vue d'ensemble de l'application") }}</p>
     </div>
 </div>
-
 <div class="stats-grid">
     {% for resource in resources %}
     <a href="/admin/{{ resource.key }}/list" class="stat-card" style="text-decoration:none">
         <div class="stat-label">{{ resource.title }}</div>
         <div class="stat-value">{{ resource_counts[resource.key] | default(value="—") }}</div>
-        <div class="stat-meta">Voir la liste →</div>
+        <div class="stat-meta">{{ admin_dashboard_see_list | default(value="Voir la liste →") }}</div>
     </a>
     {% endfor %}
-
     {% if not resources %}
     <div class="card" style="grid-column: 1 / -1;">
         <div class="card-body">
@@ -34,31 +28,26 @@
                     <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
                     <line x1="8" y1="12" x2="16" y2="12"/>
                 </svg>
-                <p class="empty-state-title">Aucune ressource enregistrée</p>
-                <p class="empty-state-desc">
-                    Déclarez vos ressources dans <code>src/admin.rs</code> avec le macro <code>admin!{}</code>
-                    puis lancez <code>runique start</code>.
-                </p>
+                <p class="empty-state-title">{{ admin_dashboard_empty_title | default(value="Aucune ressource enregistrée") }}</p>
+                <p class="empty-state-desc">{{ admin_dashboard_empty_desc | default(value="Déclarez vos ressources dans src/admin.rs avec le macro admin!{} puis lancez runique start") }}</p>
             </div>
         </div>
     </div>
     {% endif %}
 </div>
-
-<!-- Quick resources -->
 {% if resources %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Ressources</h2>
+        <h2 class="card-title">{{ admin_dashboard_card_resources | default(value="Ressources") }}</h2>
     </div>
     <div class="admin-table-wrapper">
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Ressource</th>
-                    <th>Clé</th>
-                    <th>Permissions</th>
-                    <th>Actions</th>
+                    <th>{{ admin_dashboard_th_resource | default(value="Ressource") }}</th>
+                    <th>{{ admin_dashboard_th_key | default(value="Clé") }}</th>
+                    <th>{{ admin_dashboard_th_permissions | default(value="Permissions") }}</th>
+                    <th>{{ admin_dashboard_th_actions | default(value="Actions") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -73,8 +62,8 @@
                     </td>
                     <td>
                         <div class="table-actions">
-                            <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">Liste</a>
-                            <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">Créer</a>
+                            <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">{{ admin_dashboard_btn_list | default(value="Liste") }}</a>
+                            <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">{{ admin_dashboard_btn_create | default(value="Créer") }}</a>
                         </div>
                     </td>
                 </tr>
@@ -85,5 +74,4 @@
 </div>
 {% endif %}
 {% if current_page %}{% set current_page = current_page | default(value="list") %}{% endif %}
-
 {% endblock %}

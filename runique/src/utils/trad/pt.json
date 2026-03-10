@@ -117,18 +117,6 @@
         "host_debug": "Host inválido: '{}'. Adicione-o a RUNIQUE_ALLOWED_HOSTS.",
         "bad_request": "Requisição inválida"
     },
-    "admin": {
-        "session_error": "Erro ao abrir a sessão.",
-        "invalid_credentials": "Credenciais inválidas ou direitos insuficientes.",
-        "logout_success": "Logout realizado com sucesso.",
-        "no_auth_handler": "Nenhum handler de autenticação configurado. Chame .auth(MyAuth) no AdminConfig.",
-        "insufficient_rights": "Direitos insuficientes para acessar a administração",
-        "login_title": "Login — {}",
-        "login_subtitle": "Entre para acessar o painel de administração",
-        "username": "Nome de usuário",
-        "password": "Senha",
-        "login_button": "Entrar"
-    },
     "html": {
         "404_title": "404",
         "404_text": "Página não encontrada",
@@ -235,5 +223,96 @@
     "debug_status_code": "Código de status",
     "debug_header_name": "Nome",
     "debug_header_value": "Valor"
+    },
+    "admin": {
+        "login": {
+        "title": "Entrar",
+        "subtitle": "Faça login para acessar o painel de administração",
+        "label_username": "Nome de usuário",
+        "label_password": "Senha",
+        "btn_submit": "Entrar",
+        "error_session": "Erro ao abrir a sessão.",
+        "error_credentials": "Credenciais incorretas ou direitos insuficientes."
+        },
+        "logout": {
+        "success": "Desconectado com sucesso."
+        },
+        "access": {
+        "no_auth_handler": "Nenhum manipulador de autenticação configurado. Chame .auth(MyAuth) em AdminConfig.",
+        "insufficient_rights": "Direitos insuficientes para acessar a administração"
+        },
+        "dashboard": {
+        "title": "Painel",
+        "subtitle": "Visão geral da aplicação",
+        "card_resources": "Recursos",
+        "th_resource": "Recurso",
+        "th_key": "Chave",
+        "th_permissions": "Permissões",
+        "th_actions": "Ações",
+        "btn_list": "Lista",
+        "btn_create": "Criar",
+        "empty_title": "Nenhum recurso registrado",
+        "empty_desc": "Declare seus recursos em src/admin.rs com a macro admin!{{}} e depois execute runique start"
+        },
+        "list": {
+        "breadcrumb_admin": "Administração",
+        "entries_count": "entrada(s)",
+        "btn_create": "Criar",
+        "th_id": "id",
+        "th_actions": "Ações",
+        "bool_true": "Sim",
+        "bool_false": "Não",
+        "btn_detail": "Detalhe",
+        "btn_edit": "Editar",
+        "btn_delete": "Excluir",
+        "confirm_delete": "Realmente excluir?",
+        "empty_title": "Nenhuma entrada",
+        "empty_desc": "Comece criando um item.",
+        "btn_create_first": "Criar o primeiro"
+        },
+        "create": {
+        "title": "Criar",
+        "breadcrumb": "Criar",
+        "card_info": "Informações",
+        "no_fields": "Nenhum campo disponível no momento.",
+        "btn_cancel": "Cancelar",
+        "btn_submit": "Criar"
+        },
+        "edit": {
+        "title": "Editar",
+        "breadcrumb": "Editar",
+        "card_info": "Informações",
+        "no_fields": "Nenhum campo disponível no momento.",
+        "btn_cancel": "Cancelar",
+        "btn_submit": "Salvar"
+        },
+        "detail": {
+        "title": "Detalhe",
+        "breadcrumb": "Detalhe",
+        "entry_label": "Entrada",
+        "btn_list": "← Lista",
+        "btn_edit": "Editar",
+        "btn_delete": "Excluir",
+        "confirm_delete": "Excluir esta entrada?"
+        },
+        "delete": {
+        "title": "Excluir",
+        "breadcrumb": "Excluir",
+        "heading": "Confirmar exclusão",
+        "btn_cancel": "← Cancelar",
+        "btn_confirm": "Sim, excluir permanentemente",
+        "warning": {
+            "title": "Atenção!",
+            "desc": "Você está prestes a excluir a entrada",
+            "of": "do recurso",
+            "irreversible": "Esta ação é irreversível."
+        }
+        },
+        "base": {
+        "title": "Administração",
+        "breadcrumb": "Admin",
+        "toggle": "Recolher menu",
+        "logout_title": "Sair"
+        }
     }
 }

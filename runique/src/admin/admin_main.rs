@@ -18,6 +18,7 @@ use axum::{
 use serde_json::Value;
 
 use crate::admin::config::AdminConfig;
+use crate::admin::trad::insert_admin_messages;
 use crate::admin::AdminRegistry;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
@@ -169,6 +170,13 @@ fn inject_common_context(
     state: &PrototypeAdminState,
     entry: &crate::admin::ResourceEntry,
 ) {
+    insert_admin_messages(&mut req.context, "list");
+    insert_admin_messages(&mut req.context, "create");
+    insert_admin_messages(&mut req.context, "edit");
+    insert_admin_messages(&mut req.context, "detail");
+    insert_admin_messages(&mut req.context, "delete");
+    insert_admin_messages(&mut req.context, "base");
+
     req.context.insert("site_title", &state.config.site_title);
     req.context.insert("resource_key", entry.meta.key);
     req.context.insert("current_resource", entry.meta.key);
