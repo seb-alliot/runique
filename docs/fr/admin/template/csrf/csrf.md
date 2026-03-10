@@ -121,6 +121,7 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
 | --- | --- |
 | [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | variables injectées par le backend dans chaque template
 | [Surcharge](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
+| [Clef context](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/clef_context.md) | token CSRF, `csrf.js`, checklist login custom
 
 ## Revenir au sommaire
 
