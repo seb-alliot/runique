@@ -152,7 +152,6 @@ admin! {
 | --- | --- |
 | [Context keys](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/clef/context.md) | Variables injected by the backend into each template |
 | [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/csrf/csrf.md) | CSRF token, `csrf.js`, custom login checklist |
-| [Clef context](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/clef/clef_context.md) | token CSRF, `csrf.js`, checklist login custom
 
 ## Back to summary
 
