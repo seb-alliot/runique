@@ -84,15 +84,23 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn =
         Arc::new(|db: ADb| Box::pin(async move { users::Entity::find().count(&*db).await }));
 
-    let get_fn: GetFn = Arc::new(|db: ADb, id: i32| {
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().into()))?;
             let row = users::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
     });
 
-    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: i32| {
-        Box::pin(async move { users::Entity::delete_by_id(id).exec(&*db).await.map(|_| ()) })
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().into()))?;
+            users::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+        })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
@@ -104,8 +112,11 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let update_fn: UpdateFn = Arc::new(|db: ADb, id: i32, data: StrMap| {
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().into()))?;
             users::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -152,15 +163,23 @@ pub fn admin_register() -> AdminRegistry {
     let count_fn: CountFn =
         Arc::new(|db: ADb| Box::pin(async move { blog::Entity::find().count(&*db).await }));
 
-    let get_fn: GetFn = Arc::new(|db: ADb, id: i32| {
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().into()))?;
             let row = blog::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
     });
 
-    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: i32| {
-        Box::pin(async move { blog::Entity::delete_by_id(id).exec(&*db).await.map(|_| ()) })
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().into()))?;
+            blog::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+        })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
@@ -172,8 +191,11 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let update_fn: UpdateFn = Arc::new(|db: ADb, id: i32, data: StrMap| {
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().into()))?;
             blog::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await

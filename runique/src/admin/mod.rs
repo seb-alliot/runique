@@ -18,7 +18,7 @@ pub use daemon::{generate, parse_admin_file, watch};
 pub use dyn_form::DynForm;
 pub use registry::AdminRegistry;
 pub use resource::{
-    AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
+    AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
 };
 pub use resource_entry::{
     CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ResourceEntry, UpdateFn,

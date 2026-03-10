@@ -4,36 +4,66 @@ Ce document liste toutes les variables disponibles dans le contexte Tera lorsqu'
 
 ---
 
-## Variables globales (toutes les vues)
+## Variables globales (toutes les routes)
 
-Ces variables sont injectées sur **chaque vue admin** via `inject_common_context`.
+Ces variables sont injectées sur **toutes les routes** par l'extracteur `Request` du framework, avant même que les handlers admin s'exécutent.
+
+| Variable | Type Rust | Description |
+|---|---|---|
+| `debug` | `bool` | Mode debug activé ou non |
+| `csrf_token` | `String` | Token CSRF masqué — à inclure dans les formulaires POST |
+| `csp_nonce` | `&str` | Nonce CSP pour les balises `<script>` et `<style>` |
+| `static_runique` | `StaticConfig` | Config des assets statiques Runique (voir ci-dessous) |
+| `messages` | `Vec<FlashMessage>` | Messages flash de la session courante |
+| `current_user` | `CurrentUser` *(optionnel)* | Données de l'utilisateur connecté, absent si non authentifié |
+
+### Champs de `static_runique`
+
+```html
+{{ static_runique.static_url }}   {# URL de base des assets, ex: /static #}
+{{ static_runique.static_dir }}   {# Répertoire physique sur disque #}
+```
+
+---
+
+## Variables injectées par les handlers CRUD
+
+Ces variables sont injectées sur **toutes les vues CRUD admin** via `inject_context`, après l'extracteur.
 
 | Variable | Type | Description |
 |---|---|---|
 | `site_title` | `String` | Titre du site configuré dans `AdminConfig` |
-| `resource_key` | `&str` | Clé de la ressource courante (ex: `"user"`) |
+| `resource_key` | `&str` | Clé de la ressource courante (ex: `"users"`) |
 | `current_resource` | `&str` | Identique à `resource_key` |
-| `resource` | `ResourceMeta` | Métadonnées de la ressource courante (voir ci-dessous) |
-| `resources` | `Vec<ResourceMeta>` | Liste de toutes les ressources enregistrées |
-| `csrf_token` | `String` | Token CSRF à inclure dans les formulaires POST |
-| `static_runique` | `String` | URL des assets statiques Runique |
+| `resource` | `AdminResource` | Métadonnées complètes de la ressource courante (voir ci-dessous) |
+| `resources` | `Vec<AdminResource>` | Toutes les ressources enregistrées dans le registre |
 | `lang` | `String` | Code de langue courant (ex: `"fr"`) |
-| `debug` | `bool` | Mode debug activé ou non |
 
-### Structure `ResourceMeta`
+> Les clés déclarées dans `extra: {}` du bloc `admin!{}` sont également injectées **en tant que variables Tera de premier niveau**.
+> Exemple : `extra: { "icon" => "user" }` → `{{ icon }}` (accessible directement) ET `{{ resource.extra_context.icon }}`.
 
-| Champ | Type | Description |
+### Structure `AdminResource`
+
+| Champ Tera | Type | Description |
 |---|---|---|
-| `resource.key` | `&str` | Clé unique de la ressource |
-| `resource.title` | `&str` | Titre lisible de la ressource |
-| `resource.permissions.list` | `Vec<String>` | Rôles requis pour accéder à cette ressource |
-| `resource.extra_context` | `HashMap<String, Value>` | Contexte custom déclaré dans `admin!{}` |
+| `resource.key` | `&str` | Clé unique de la ressource (`"users"`) |
+| `resource.title` | `&str` | Titre lisible (`"Utilisateurs"`) |
+| `resource.model_path` | `&str` | Chemin du modèle SeaORM (`"crate::entities::users::Model"`) |
+| `resource.permissions.list` | `Vec<String>` | Rôles autorisés pour la liste |
+| `resource.permissions.view` | `Vec<String>` | Rôles autorisés pour le détail |
+| `resource.permissions.create` | `Vec<String>` | Rôles autorisés pour la création |
+| `resource.permissions.edit` | `Vec<String>` | Rôles autorisés pour l'édition |
+| `resource.permissions.delete` | `Vec<String>` | Rôles autorisés pour la suppression |
+| `resource.display.icon` | `String` *(optionnel)* | Nom d'icône déclaré |
+| `resource.display.pagination` | `usize` | Entrées par page (défaut : `25`) |
+| `resource.extra_context` | `HashMap<String, String>` | Clés custom déclarées dans `extra: {}` |
+| `resource.id_type` | `AdminIdType` | Type de la clé primaire (`I32`, `I64`, `Uuid`) |
 
 ---
 
-## Variables i18n globales (toutes les vues)
+## Variables i18n globales (toutes les vues CRUD)
 
-Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent le pattern `admin_{section}_{clé}`.
+Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera est la clé i18n avec les `.` remplacés par `_`.
 
 ### Section `base`
 
@@ -117,8 +147,13 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 
 **Route :** `GET /admin/login`
 
+> `inject_context` n'est **pas** appelé — les variables `resource`, `resources`, `resource_key` ne sont pas disponibles.
+
 | Variable | Type | Description |
 |---|---|---|
+| `site_title` | `String` | Titre du site |
+| `lang` | `String` | Code de langue courant |
+| `csrf_token` | `String` | Token CSRF (injecté par l'extracteur de base) |
 | `admin_login_title` | `String` | i18n `admin.login.title` |
 | `admin_login_subtitle` | `String` | i18n `admin.login.subtitle` |
 | `admin_login_label_username` | `String` | i18n `admin.login.label_username` |
@@ -126,9 +161,9 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 | `admin_login_btn_submit` | `String` | i18n `admin.login.btn_submit` |
 | `admin_login_error_session` | `String` | i18n `admin.login.error_session` |
 | `admin_login_error_credentials` | `String` | i18n `admin.login.error_credentials` |
-| `csrf_token` | `String` | Token CSRF à inclure dans le formulaire |
+| `error` *(optionnel)* | `String` | Message d'erreur verbatim — injecté uniquement en cas d'échec POST |
 
-> ⚠️ La vue login n'a **pas** accès aux variables `resource`, `resources`, `resource_key` — `inject_common_context` n'est pas appelé.
+> En cas d'échec POST, les messages i18n de la section `base` sont aussi injectés.
 
 ---
 
@@ -136,13 +171,17 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 
 **Route :** `GET /admin/`
 
+> `inject_context` n'est **pas** appelé. La variable `current_resource` est explicitement `None`.
+
 | Variable | Type | Description |
 |---|---|---|
-| `resources` | `Vec<ResourceMeta>` | Toutes les ressources enregistrées |
-| `resource_counts` | `HashMap<String, i64>` | Nombre d'entrées par ressource (clé = `resource.key`) |
+| `site_title` | `String` | Titre du site |
+| `lang` | `String` | Code de langue courant |
+| `resources` | `Vec<AdminResource>` | Toutes les ressources enregistrées |
+| `resource_counts` | `HashMap<String, u64>` | Nombre d'entrées par ressource (clé = `resource.key`) |
 | `current_page` | `&str` | Vaut `"dashboard"` |
-| `lang`| `&str`| La langue courante defini dans main.rs |
-| `admin_base_logout_title` | `&str` | i18n `admin.base.logout_title` |
+| `current_resource` | `None` | Absent — aucune ressource sélectionnée |
+| `admin_base_*` | — | Clés i18n section `base` (voir ci-dessus) |
 | `admin_dashboard_title` | `String` | i18n `admin.dashboard.title` |
 | `admin_dashboard_subtitle` | `String` | i18n `admin.dashboard.subtitle` |
 | `admin_dashboard_card_resources` | `String` | i18n `admin.dashboard.card_resources` |
@@ -164,7 +203,7 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 
 | Variable | Type | Description |
 |---|---|---|
-| `entries` | `Vec<Value>` | Liste des enregistrements sérialisés en JSON |
+| `entries` | `Vec<Value>` | Enregistrements sérialisés en JSON |
 | `total` | `usize` | Nombre total d'entrées |
 | `current_page` | `&str` | Vaut `"list"` |
 
@@ -178,7 +217,7 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 
 | Variable | Type | Description |
 |---|---|---|
-| `form_fields` | `FormOutput` | Formulaire généré par Prisme — accès via `form_fields.html` |
+| `form_fields` | `Forms` | Formulaire généré par Prisme — rendu via `{% form.field_name %}` ou `form_fields.html` |
 | `is_edit` | `bool` | Vaut `false` |
 
 > Les variables i18n de la section `create` sont listées dans les variables globales ci-dessus.
@@ -191,9 +230,10 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 
 | Variable | Type | Description |
 |---|---|---|
-| `form_fields` | `FormOutput` | Formulaire pré-rempli avec les données existantes |
+| `lang` | `String` | Code de langue courant |
+| `form_fields` | `Forms` | Formulaire pré-rempli avec les données existantes |
 | `is_edit` | `bool` | Vaut `true` |
-| `object_id` | `i32` | ID de l'entrée en cours d'édition |
+| `object_id` | `String` | ID de l'entrée en cours d'édition |
 
 > Les variables i18n de la section `edit` sont listées dans les variables globales ci-dessus.
 
@@ -205,8 +245,8 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 
 | Variable | Type | Description |
 |---|---|---|
-| `entry` | `Value` | Enregistrement sérialisé en JSON (absent si `get_fn` non configurée) |
-| `object_id` | `i32` | ID de l'entrée |
+| `entry` | `Value` *(optionnel)* | Enregistrement sérialisé en JSON — absent si `get_fn` non configurée |
+| `object_id` | `String` | ID de l'entrée |
 
 > Les variables i18n de la section `detail` sont listées dans les variables globales ci-dessus.
 
@@ -218,8 +258,8 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 
 | Variable | Type | Description |
 |---|---|---|
-| `entry` | `Value` | Enregistrement sérialisé en JSON (absent si `get_fn` non configurée) |
-| `object_id` | `i32` | ID de l'entrée à supprimer |
+| `entry` | `Value` *(optionnel)* | Enregistrement sérialisé en JSON — absent si `get_fn` non configurée |
+| `object_id` | `String` | ID de l'entrée à supprimer |
 
 > Les variables i18n de la section `delete` sont listées dans les variables globales ci-dessus.
 
@@ -227,10 +267,8 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 
 ## Pattern recommandé pour les variables i18n
 
-Toutes les variables i18n doivent être utilisées avec le pattern suivant dans Tera :
-
 ```html
-{% if admin_create_title %}{{ admin_create_title }}{% endif %}
+{{ admin_create_title }}
 ```
 
 > Ne pas utiliser `| default(value="...")` — les variables i18n sont toujours présentes si la langue est configurée.
@@ -273,4 +311,3 @@ RuniqueApp::builder(config)
 | --- | --- |
 | [Sommaire template](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Admin
 | [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Sommaire template
-
