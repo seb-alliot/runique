@@ -23,9 +23,9 @@ use crate::admin::AdminRegistry;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::flash_now;
-use crate::utils::trad::t;
 use crate::forms::prisme::aegis;
 use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
+use crate::utils::trad::t;
 
 // ─── Extracteur AdminBody ─────────────────────────────────────
 //
@@ -199,7 +199,7 @@ fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     if submitted != Some(session_token) {
         return Err(Box::new(AppError::new(ErrorContext::generic(
             StatusCode::FORBIDDEN,
-            &t("csrf.invalid_or_missing").to_string()
+            &t("csrf.invalid_or_missing").to_string(),
         ))));
     }
     Ok(())

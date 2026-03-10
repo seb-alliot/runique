@@ -6,12 +6,13 @@
 
 ### 1.a. I18n (Internationalisation)
 
-**Status :** 🟡 Intégration runtime à finaliser
+**Status :** Fini
 
-- 🟡 Intégration runtime (config/session/request) — `set_lang()` depuis l’env ou la requête
+- Intégration runtime (config/session/request) — `set_lang()` depuis l’env ou la requête
 
 ### 1.b. Tracing d’erreur
 
+- optionnel
 - `debug = false` : tracing off.
 - `debug = true` : tracing on (console + page debug).
 

@@ -120,7 +120,7 @@ async fn admin_dashboard(
     };
 
     insert_admin_messages(&mut req.context, "dashboard");
-
+    insert_admin_messages(&mut req.context, "base");
     req = req
         .insert("site_title", &admin.config.site_title)
         .insert("resources", &resources)
@@ -172,6 +172,7 @@ async fn admin_login_post(
             .is_err()
             {
                 insert_admin_messages(&mut req.context, "login");
+                insert_admin_messages(&mut req.context, "base");
                 req = req
                     .insert("site_title", &admin.config.site_title)
                     .insert("error", &t("admin.login.error_session").to_string());
@@ -185,6 +186,7 @@ async fn admin_login_post(
 
         None => {
             insert_admin_messages(&mut req.context, "login");
+            insert_admin_messages(&mut req.context, "base");
             req = req
                 .insert("site_title", &admin.config.site_title)
                 .insert("error", &t("admin.login.error_credentials").to_string());
