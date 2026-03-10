@@ -40,10 +40,10 @@ impl Serialize for Forms {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Forms", 7)?;
+        let mut state = serializer.serialize_struct("Forms", 8)?;
 
         state.serialize_field("errors", &self.errors())?;
-        state.serialize_field("errors", &self.errors)?;
+        state.serialize_field("form_errors", &self.errors)?;
 
         let js_files = self
             .renderer
