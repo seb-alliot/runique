@@ -88,6 +88,7 @@ Variables injected by the backend into each admin template.
 | --- | --- |
 | [Override](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/surcharge.md) | Replace the layout or a CRUD component |
 | [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/csrf/csrf.md) | CSRF token, `csrf.js`, custom login checklist |
+| [Clef context](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/clef/clef_context.md) | token CSRF, `csrf.js`, checklist login custom
 
 ## Back to summary
 

@@ -257,3 +257,16 @@ RuniqueApp::builder(config)
 ```
 
 > Les templates surchargés ont accès aux mêmes variables que les templates par défaut.
+
+## Sous-sections
+
+| Section | Description |
+| --- | --- |
+| [Surcharge](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
+| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom
+
+## Revenir au sommaire
+
+| --- | --- |
+| [Sommaire template](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Admin
+| [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Sommaire template
