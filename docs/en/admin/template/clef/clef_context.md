@@ -257,3 +257,17 @@ RuniqueApp::builder(config)
 ```
 
 Overridden templates have access to the **same variables as the default templates**.
+
+## Sub-sections
+
+| Section | Description |
+| --- | --- |
+| [Override](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/surcharge.md) | Replace the layout or a CRUD component |
+| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/csrf/csrf.md) | CSRF token, `csrf.js`, custom login checklist |
+
+## Back to summary
+
+| Section | Description |
+| --- | --- |
+| [Template summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/templates.md) | Admin templates |
+| [Admin summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md) | Admin |
