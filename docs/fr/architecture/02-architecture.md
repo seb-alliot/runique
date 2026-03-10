@@ -7,22 +7,29 @@ Un projet Runique est une crate binaire Rust standard. `runique new` génère la
 ```text
 mon-projet/
 ├── src/
-│   ├── main.rs          # Point d'entrée — RuniqueApp builder
-│   ├── admin.rs         # Déclaration admin!{} (si admin activé)
-│   ├── urls.rs          # urlpatterns! — table de routage
-│   ├── views.rs         # Handlers (fonctions async)
-│   ├── forms.rs         # Structs RuniqueForm (ou dossier forms/)
-│   ├── models.rs        # Structs métier (ou dossier models/)
-│   └── admins/          # Généré par le daemon — ne pas modifier
-│       ├── generated.rs
-│       └── router.rs
-├── templates/           # Templates Tera (.html)
-├── static/              # Fichiers statiques (CSS, JS, images)
-│   └── media/           # Uploads (FileField)
-├── migration/           # Migrations SeaORM
+│   ├── entities/          # Déclaration des model
+│   │   ├── users.rs       # Utilise l'ast de runique pour la cli makemigrations
+│   │   └── blog.rs        # Le cli est non compatible avec les struct basique
+│   │
+│   ├── formulaire/        # Déclaration des formulaire
+│   │   ├── inscription.rs # Utilisation du moteur de formulaire
+│   │   └── blog.rs        # ou de macro pro attribu
+│   │
+│   ├── main.rs            # Point d'entrée — RuniqueApp builder
+│   ├── admin.rs           # Déclaration admin!{} (si admin activé, necessaire pour la cli runique start)
+│   ├── urls.rs            # urlpatterns! — table de routage
+│   ├── views.rs           # Handlers (fonctions async)
+│   └──  forms.rs          # Structs RuniqueForm (ou dossier forms/)
+│
+├── templates/             # Templates Tera (.html)
+├── static/                # Fichiers statiques (CSS, JS, images)
+│   └── media/             # Uploads (FileField)
+│                          # Media peux etre dans un autre dossier
+│
+├── migration/             # Migrations SeaORM
 │   └── src/
 │       └── lib.rs
-├── .env                 # Variables d'environnement
+├── .env                   # Variables d'environnement
 └── Cargo.toml
 ```
 
@@ -37,7 +44,8 @@ mon-projet/
 extern crate runique;
 use runique::prelude::*;
 
-mod forms;
+mod entities;
+mod formulaire;
 mod urls;
 mod views;
 
@@ -84,7 +92,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-**`forms.rs`** — Formulaires typés :
+**`formulaire/`** — Formulaires typés :
 
 ```rust
 pub struct RegisterForm { pub form: Forms }
@@ -126,8 +134,9 @@ runique start
 | `src/main.rs` | Oui | Configure le builder et déclare les modules |
 | `src/urls.rs` | Oui | Table de routage |
 | `src/views.rs` | Oui | Handlers de requêtes |
-| `src/forms.rs` | Oui | Formulaires et validation |
-| `src/admin.rs` | Oui (si admin) | Déclaration `admin!{}` |
+| `src/entities/` | Oui | Déclarations de modèles (AST Runique, compatible `makemigrations`) |
+| `src/formulaire/` | Oui | Formulaires et validation |
+| `src/admin.rs` | Oui (si admin) | Déclaration `admin!{}`, requis pour `runique start` |
 | `src/admins/` | **Non** | Généré par le daemon — ne pas modifier à la main |
 | `templates/` | Oui | Templates Tera |
 | `static/` | Oui | CSS, JS, images |
