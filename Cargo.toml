@@ -60,7 +60,7 @@ image = "0.25.9"
 tempfile = "3.24.0"
 dialoguer = "0.12"
 
-derive_form = "1.1.31"
+derive_form = "1.1.32"
 
 # Logging
 tracing = "0.1"
