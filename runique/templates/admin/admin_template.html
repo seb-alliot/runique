@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token }}">
     <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
 
-    <title>{% block title %}Administration{% endblock %} — {{ site_title | default(value="Runique Admin") }}</title>
+    <title>{% if admin_base_title %}{{ admin_base_title }}{% endif %}</title>
 
     {% block extra_css %}{% endblock %}
 </head>

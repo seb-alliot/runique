@@ -79,11 +79,11 @@
         </div>
 
         <form method="POST" action="/admin/logout" class="logout-form">
-        <button type="submit" class="topbar-user logout-button" title="{% if admin_logout_title %}{{ admin_logout_title }}{% endif %}">
+        <button type="submit" class="topbar-user logout-button" title="{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% endif %}">
             <div class="user-avatar">
                 {{ current_user.username }}
             </div>
-            <span>{{ current_user.username }}</span>
+            <span>{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% else %}admin_base_logout_title est pas inserer{% endif %}</span>
         </button>
         </form>
 
