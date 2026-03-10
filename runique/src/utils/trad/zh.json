@@ -117,18 +117,6 @@
         "host_debug": "无效的主机名：'{}'。请将其添加到 RUNIQUE_ALLOWED_HOSTS 环境变量中。",
         "bad_request": "请求格式错误"
     },
-    "admin": {
-        "session_error": "会话初始化失败。",
-        "invalid_credentials": "凭据无效或权限不足。",
-        "logout_success": "退出登录成功。",
-        "no_auth_handler": "未配置身份验证处理器。请在 AdminConfig 上调用 .auth(MyAuth)。",
-        "insufficient_rights": "权限不足，无法访问管理后台",
-        "login_title": "{} - 登录",
-        "login_subtitle": "请登录以访问管理后台",
-        "username": "用户名",
-        "password": "密码",
-        "login_button": "登录"
-    },
     "html": {
         "404_title": "404",
         "404_text": "页面不存在",
@@ -235,5 +223,96 @@
     "debug_status_code": "状态码",
     "debug_header_name": "名称",
     "debug_header_value": "值"
+    },
+    "admin": {
+        "login": {
+        "title": "登录",
+        "subtitle": "请登录以访问管理面板",
+        "label_username": "用户名",
+        "label_password": "密码",
+        "btn_submit": "登录",
+        "error_session": "打开会话时出错。",
+        "error_credentials": "凭据不正确或权限不足。"
+        },
+        "logout": {
+        "success": "已成功登出。"
+        },
+        "access": {
+        "no_auth_handler": "未配置身份验证处理程序。请在AdminConfig上调用.auth(MyAuth)。",
+        "insufficient_rights": "访问管理权限不足"
+        },
+        "dashboard": {
+        "title": "仪表板",
+        "subtitle": "应用程序概览",
+        "card_resources": "资源",
+        "th_resource": "资源",
+        "th_key": "键",
+        "th_permissions": "权限",
+        "th_actions": "操作",
+        "btn_list": "列表",
+        "btn_create": "创建",
+        "empty_title": "未注册资源",
+        "empty_desc": "在src/admin.rs中使用admin!{{}}宏声明您的资源，然后运行runique start"
+        },
+        "list": {
+        "breadcrumb_admin": "管理",
+        "entries_count": "条目",
+        "btn_create": "创建",
+        "th_id": "id",
+        "th_actions": "操作",
+        "bool_true": "是",
+        "bool_false": "否",
+        "btn_detail": "详情",
+        "btn_edit": "编辑",
+        "btn_delete": "删除",
+        "confirm_delete": "确定要删除吗？",
+        "empty_title": "无条目",
+        "empty_desc": "请先创建一个项目。",
+        "btn_create_first": "创建第一个"
+        },
+        "create": {
+        "title": "创建",
+        "breadcrumb": "创建",
+        "card_info": "信息",
+        "no_fields": "当前没有可用字段。",
+        "btn_cancel": "取消",
+        "btn_submit": "创建"
+        },
+        "edit": {
+        "title": "编辑",
+        "breadcrumb": "编辑",
+        "card_info": "信息",
+        "no_fields": "当前没有可用字段。",
+        "btn_cancel": "取消",
+        "btn_submit": "保存"
+        },
+        "detail": {
+        "title": "详情",
+        "breadcrumb": "详情",
+        "entry_label": "条目",
+        "btn_list": "← 列表",
+        "btn_edit": "编辑",
+        "btn_delete": "删除",
+        "confirm_delete": "删除此条目？"
+        },
+        "delete": {
+        "title": "删除",
+        "breadcrumb": "删除",
+        "heading": "确认删除",
+        "btn_cancel": "← 取消",
+        "btn_confirm": "是，永久删除",
+        "warning": {
+            "title": "警告！",
+            "desc": "您即将删除条目",
+            "of": "来自资源",
+            "irreversible": "此操作不可撤销。"
+        }
+        },
+        "base": {
+        "title": "管理",
+        "breadcrumb": "管理",
+        "toggle": "收起菜单",
+        "logout_title": "登出"
+        }
     }
 }

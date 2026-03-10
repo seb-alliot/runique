@@ -10,7 +10,7 @@ use std::sync::OnceLock;
 use thiserror::Error;
 use tracing::{error, info};
 
-use crate::utils::constante::{ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES, ADMIN_TEMPLATES};
+use crate::utils::constante::{ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 use crate::utils::trad::{t, tf};
 // ═══════════════════════════════════════════════════════════════
 // ERREURS DE BUILD (refonte app builder)
@@ -114,9 +114,11 @@ impl RuniqueError {
     /// Convertit l'erreur en ErrorContext pour un rendu riche
     pub fn to_error_context(&self) -> ErrorContext {
         let (status, error_type, title) = match self {
-            RuniqueError::NotFound => {
-                (StatusCode::NOT_FOUND, ErrorType::NotFound, ("{}", t("error.not_found")))
-            }
+            RuniqueError::NotFound => (
+                StatusCode::NOT_FOUND,
+                ErrorType::NotFound,
+                ("{}", t("error.not_found")),
+            ),
             RuniqueError::Forbidden => (
                 StatusCode::FORBIDDEN,
                 ErrorType::Internal,

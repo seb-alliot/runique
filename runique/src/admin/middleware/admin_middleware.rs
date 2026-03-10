@@ -5,12 +5,7 @@ use axum::{
 };
 use tower_sessions::Session;
 
-use crate::utils::constante::SESSION_USER_IS_STAFF_KEY;
-use crate::utils::constante::SESSION_USER_IS_SUPERUSER_KEY;
-use crate::{
-    flash_now,
-    middleware::auth::{is_authenticated, CurrentUser},
-};
+use crate::middleware::auth::{is_admin_authenticated, CurrentUser};
 
 /// Middleware : accès admin requis (is_staff OU is_superuser)
 ///
@@ -23,32 +18,9 @@ use crate::{
 ///     .layer(axum::middleware::from_fn(admin_required))
 /// ```
 pub async fn admin_required(session: Session, request: Request, next: Next) -> Response {
-    let return_url = "/";
-    // 1. Pas authentifié → login admin
-    if !is_authenticated(&session).await {
-        return Redirect::to(return_url).into_response();
+    if !is_admin_authenticated(&session).await {
+        return Redirect::to("/").into_response();
     }
-
-    // 2. Authentifié mais pas staff/superuser → 403
-    let is_staff = session
-        .get::<bool>(SESSION_USER_IS_STAFF_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or(false);
-
-    let is_superuser = session
-        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or(false);
-
-    if !is_staff && !is_superuser {
-        flash_now!(error => "Droits insuffisants pour accéder à l'administration");
-        return Redirect::to(return_url).into_response();
-    }
-
     next.run(request).await
 }
 

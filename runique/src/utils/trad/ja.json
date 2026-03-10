@@ -117,18 +117,6 @@
         "host_debug": "無効なホスト: '{}'。RUNIQUE_ALLOWED_HOSTS に追加してください。",
         "bad_request": "不正なリクエスト"
     },
-    "admin": {
-        "session_error": "セッションを開く際にエラーが発生しました。",
-        "invalid_credentials": "認証情報が無効または権限が不足しています。",
-        "logout_success": "ログアウトしました。",
-        "no_auth_handler": "認証ハンドラーが設定されていません。AdminConfig で .auth(MyAuth) を呼び出してください。",
-        "insufficient_rights": "管理画面にアクセスする権限が不足しています",
-        "login_title": "ログイン — {}",
-        "login_subtitle": "管理パネルにアクセスするにはログインしてください",
-        "username": "ユーザー名",
-        "password": "パスワード",
-        "login_button": "ログイン"
-    },
     "html": {
         "404_title": "404",
         "404_text": "ページが見つかりません",
@@ -235,5 +223,96 @@
     "debug_status_code": "ステータスコード",
     "debug_header_name": "名前",
     "debug_header_value": "値"
+    },
+    "admin": {
+        "login": {
+        "title": "ログイン",
+        "subtitle": "管理パネルにアクセスするにはログインしてください",
+        "label_username": "ユーザー名",
+        "label_password": "パスワード",
+        "btn_submit": "ログイン",
+        "error_session": "セッションの開始中にエラーが発生しました。",
+        "error_credentials": "認証情報が正しくないか、権限が不足しています。"
+        },
+        "logout": {
+        "success": "ログアウトしました。"
+        },
+        "access": {
+        "no_auth_handler": "認証ハンドラーが設定されていません。AdminConfigで.auth(MyAuth)を呼び出してください。",
+        "insufficient_rights": "管理画面へのアクセス権限が不足しています"
+        },
+        "dashboard": {
+        "title": "ダッシュボード",
+        "subtitle": "アプリケーションの概要",
+        "card_resources": "リソース",
+        "th_resource": "リソース",
+        "th_key": "キー",
+        "th_permissions": "権限",
+        "th_actions": "アクション",
+        "btn_list": "一覧",
+        "btn_create": "作成",
+        "empty_title": "登録されたリソースがありません",
+        "empty_desc": "src/admin.rsでadmin!{{}}マクロを使用してリソースを宣言し、runique startを実行してください"
+        },
+        "list": {
+        "breadcrumb_admin": "管理",
+        "entries_count": "件",
+        "btn_create": "作成",
+        "th_id": "id",
+        "th_actions": "アクション",
+        "bool_true": "はい",
+        "bool_false": "いいえ",
+        "btn_detail": "詳細",
+        "btn_edit": "編集",
+        "btn_delete": "削除",
+        "confirm_delete": "本当に削除しますか？",
+        "empty_title": "エントリがありません",
+        "empty_desc": "最初に項目を作成してください。",
+        "btn_create_first": "最初の項目を作成"
+        },
+        "create": {
+        "title": "作成",
+        "breadcrumb": "作成",
+        "card_info": "情報",
+        "no_fields": "現在使用可能なフィールドはありません。",
+        "btn_cancel": "キャンセル",
+        "btn_submit": "作成"
+        },
+        "edit": {
+        "title": "編集",
+        "breadcrumb": "編集",
+        "card_info": "情報",
+        "no_fields": "現在使用可能なフィールドはありません。",
+        "btn_cancel": "キャンセル",
+        "btn_submit": "保存"
+        },
+        "detail": {
+        "title": "詳細",
+        "breadcrumb": "詳細",
+        "entry_label": "エントリ",
+        "btn_list": "← 一覧",
+        "btn_edit": "編集",
+        "btn_delete": "削除",
+        "confirm_delete": "このエントリを削除しますか？"
+        },
+        "delete": {
+        "title": "削除",
+        "breadcrumb": "削除",
+        "heading": "削除の確認",
+        "btn_cancel": "← キャンセル",
+        "btn_confirm": "はい、完全に削除します",
+        "warning": {
+            "title": "警告！",
+            "desc": "エントリを削除しようとしています",
+            "of": "リソース",
+            "irreversible": "この操作は元に戻せません。"
+        }
+        },
+        "base": {
+        "title": "管理",
+        "breadcrumb": "管理",
+        "toggle": "メニューを折りたたむ",
+        "logout_title": "ログアウト"
+        }
     }
 }

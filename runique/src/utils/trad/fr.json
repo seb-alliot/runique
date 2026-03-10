@@ -117,18 +117,6 @@
     "host_debug": "Hôte invalide : '{}'. Ajoutez-le à RUNIQUE_ALLOWED_HOSTS.",
     "bad_request": "Mauvaise requête"
   },
-  "admin": {
-    "session_error": "Erreur lors de l'ouverture de session.",
-    "invalid_credentials": "Identifiants incorrects ou droits insuffisants.",
-    "logout_success": "Déconnexion réussie.",
-    "no_auth_handler": "Aucun handler d'authentification configuré. Appelez .auth(MyAuth) sur AdminConfig.",
-    "insufficient_rights": "Droits insuffisants pour accéder à l'administration",
-    "login_title": "Connexion — {}",
-    "login_subtitle": "Connectez-vous pour accéder au panneau d'administration",
-    "username": "Nom d'utilisateur",
-    "password": "Mot de passe",
-    "login_button": "Se connecter"
-  },
   "html": {
     "404_title": "404",
     "404_text": "Page non trouvée",
@@ -235,5 +223,97 @@
     "debug_status_code": "Code de statut",
     "debug_header_name": "Nom",
     "debug_header_value": "Valeur"
-  }
+  },
+  "admin": {
+      "login": {
+        "title": "Connexion",
+        "subtitle": "Connectez-vous pour accéder au panneau d'administration",
+        "label_username": "Nom d'utilisateur",
+        "label_password": "Mot de passe",
+        "btn_submit": "Se connecter",
+        "error_session": "Erreur lors de l'ouverture de session.",
+        "error_credentials": "Identifiants incorrects ou droits insuffisants."
+      },
+      "logout": {
+        "success": "Déconnexion réussie."
+      },
+      "access": {
+        "no_auth_handler": "Aucun handler d'authentification configuré. Appelez .auth(MyAuth) sur AdminConfig.",
+        "insufficient_rights": "Droits insuffisants pour accéder à l'administration"
+      },
+      "dashboard": {
+        "title": "Tableau de bord",
+        "subtitle": "Vue d'ensemble de l'application",
+        "card_resources": "Ressources",
+        "th_resource": "Ressource",
+        "th_key": "Clé",
+        "th_permissions": "Permissions",
+        "th_actions": "Actions",
+        "btn_list": "Liste",
+        "btn_create": "Créer",
+        "see_list": "Voir la liste →",
+        "empty_title": "Aucune ressource enregistrée",
+        "empty_desc": "Déclarez vos ressources dans src/admin.rs avec le macro admin!{{}} puis lancez runique start"
+      },
+      "list": {
+        "breadcrumb_admin": "Administration",
+        "entries_count": "entrée(s)",
+        "btn_create": "Créer",
+        "th_id": "id",
+        "th_actions": "Actions",
+        "bool_true": "Oui",
+        "bool_false": "Non",
+        "btn_detail": "Détail",
+        "btn_edit": "Modifier",
+        "btn_delete": "Supprimer",
+        "confirm_delete": "Vraiment supprimer ?",
+        "empty_title": "Aucune entrée",
+        "empty_desc": "Commencez par créer un élément.",
+        "btn_create_first": "Créer le premier"
+      },
+      "create": {
+        "title": "Créer",
+        "breadcrumb": "Créer",
+        "card_info": "Informations",
+        "no_fields": "Aucun champ disponible pour le moment.",
+        "btn_cancel": "Annuler",
+        "btn_submit": "Créer"
+      },
+      "edit": {
+        "title": "Modifier",
+        "breadcrumb": "Modifier",
+        "card_info": "Informations",
+        "no_fields": "Aucun champ disponible pour le moment.",
+        "btn_cancel": "Annuler",
+        "btn_submit": "Enregistrer"
+      },
+      "detail": {
+        "title": "Détail",
+        "breadcrumb": "Détail",
+        "entry_label": "Entrée",
+        "btn_list": "← Liste",
+        "btn_edit": "Modifier",
+        "btn_delete": "Supprimer",
+        "confirm_delete": "Supprimer cette entrée ?"
+      },
+      "delete": {
+        "title": "Supprimer",
+        "breadcrumb": "Supprimer",
+        "heading": "Confirmer la suppression",
+        "btn_cancel": "← Annuler",
+        "btn_confirm": "Oui, supprimer définitivement",
+        "warning": {
+          "title": "Attention !",
+          "desc": "Vous êtes sur le point de supprimer l'entrée",
+          "of": "de la ressource",
+          "irreversible": "Cette action est irréversible."
+        }
+      },
+      "base": {
+        "title": "Administration",
+        "breadcrumb": "Admin",
+        "toggle": "Réduire le menu",
+        "logout_title": "Déconnexion"
+      }
+    }
 }

@@ -1,31 +1,26 @@
 {% extends "admin_base" %}
-
-{% block title %}Détail — {{ resource.title | default(value=resource_key) }} #{{ entry.id }}{% endblock %}
-
+{% block title %}{{ admin_detail_title | default(value="Détail") }} — {{ resource.title | default(value=resource_key) }} #{{ entry.id }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
   <a href="/admin/{{ resource.key }}/list">{{ resource.title | default(value=resource_key) }}</a>
   <span class="breadcrumb-sep">/</span>
-  <span>Détail #{{ entry.id }}</span>
+  <span>{{ admin_detail_breadcrumb | default(value="Détail") }} #{{ entry.id }}</span>
 {% endblock %}
-
 {% block content %}
-
   <div class="page-header">
     <div>
-      <h1 style="font-size:1.35rem; font-weight:600;">Détail — {{ resource.title | default(value=resource_key) }}</h1>
-      <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">Entrée #{{ entry.id }}</p>
+      <h1 style="font-size:1.35rem; font-weight:600;">{{ admin_detail_title | default(value="Détail") }} — {{ resource.title | default(value=resource_key) }}</h1>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">{{ admin_detail_entry_label | default(value="Entrée") }} #{{ entry.id }}</p>
     </div>
     <div style="display:flex; gap:0.6rem;">
-      <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">← Liste</a>
-      <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary">Modifier</a>
+      <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{{ admin_detail_btn_list | default(value="← Liste") }}</a>
+      <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary">{{ admin_detail_btn_edit | default(value="Modifier") }}</a>
       <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" style="display:inline;">
         <button type="submit" class="btn btn-danger"
-                onclick="return confirm('Supprimer cette entrée ?')">Supprimer</button>
+                onclick="return confirm('{{ admin_detail_confirm_delete | default(value="Supprimer cette entrée ?") }}')">{{ admin_detail_btn_delete | default(value="Supprimer") }}</button>
       </form>
     </div>
   </div>
-
   <div class="card">
     <div class="admin-table-wrapper">
       <table class="admin-table">
@@ -42,9 +37,9 @@
                 {% if key == "password" or key == "password_hash" %}
                   <span class="id-badge">••••••••</span>
                 {% elif value == true %}
-                  <span class="badge badge-green">Oui</span>
+                  <span class="badge badge-green">{{ admin_list_bool_true | default(value="Oui") }}</span>
                 {% elif value == false %}
-                  <span class="badge badge-neutral">Non</span>
+                  <span class="badge badge-neutral">{{ admin_list_bool_false | default(value="Non") }}</span>
                 {% elif value %}
                   {{ value }}
                 {% else %}
@@ -58,5 +53,4 @@
       </table>
     </div>
   </div>
-
 {% endblock %}

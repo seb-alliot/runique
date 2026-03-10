@@ -117,18 +117,6 @@
         "host_debug": "Ungültiger Host: '{}'. Fügen Sie ihn zu RUNIQUE_ALLOWED_HOSTS hinzu.",
         "bad_request": "Ungültige Anfrage"
     },
-    "admin": {
-        "session_error": "Fehler beim Öffnen der Sitzung.",
-        "invalid_credentials": "Ungültige Anmeldedaten oder unzureichende Rechte.",
-        "logout_success": "Abmeldung erfolgreich.",
-        "no_auth_handler": "Kein Authentifizierungs-Handler konfiguriert. Rufen Sie .auth(MyAuth) auf AdminConfig auf.",
-        "insufficient_rights": "Unzureichende Rechte für den Zugriff auf die Administration",
-        "login_title": "Anmelden — {}",
-        "login_subtitle": "Melden Sie sich an, um auf das Admin-Panel zuzugreifen",
-        "username": "Benutzername",
-        "password": "Passwort",
-        "login_button": "Anmelden"
-    },
     "html": {
         "404_title": "404",
         "404_text": "Seite nicht gefunden",
@@ -235,5 +223,96 @@
     "debug_status_code": "Statuscode",
     "debug_header_name": "Name",
     "debug_header_value": "Wert"
+    },
+    "admin": {
+        "login": {
+        "title": "Anmeldung",
+        "subtitle": "Melden Sie sich an, um auf das Admin-Panel zuzugreifen",
+        "label_username": "Benutzername",
+        "label_password": "Passwort",
+        "btn_submit": "Anmelden",
+        "error_session": "Fehler beim Öffnen der Sitzung.",
+        "error_credentials": "Falsche Anmeldedaten oder unzureichende Rechte."
+        },
+        "logout": {
+        "success": "Erfolgreich abgemeldet."
+        },
+        "access": {
+        "no_auth_handler": "Kein Authentifizierungshandler konfiguriert. Rufen Sie .auth(MyAuth) auf AdminConfig auf.",
+        "insufficient_rights": "Unzureichende Rechte für den Zugriff auf die Administration"
+        },
+        "dashboard": {
+        "title": "Dashboard",
+        "subtitle": "Anwendungsübersicht",
+        "card_resources": "Ressourcen",
+        "th_resource": "Ressource",
+        "th_key": "Schlüssel",
+        "th_permissions": "Berechtigungen",
+        "th_actions": "Aktionen",
+        "btn_list": "Liste",
+        "btn_create": "Erstellen",
+        "empty_title": "Keine Ressourcen registriert",
+        "empty_desc": "Deklarieren Sie Ihre Ressourcen in src/admin.rs mit dem admin!{{}}-Makro und führen Sie dann runique start aus"
+        },
+        "list": {
+        "breadcrumb_admin": "Administration",
+        "entries_count": "Eintrag/Einträge",
+        "btn_create": "Erstellen",
+        "th_id": "id",
+        "th_actions": "Aktionen",
+        "bool_true": "Ja",
+        "bool_false": "Nein",
+        "btn_detail": "Detail",
+        "btn_edit": "Bearbeiten",
+        "btn_delete": "Löschen",
+        "confirm_delete": "Wirklich löschen?",
+        "empty_title": "Keine Einträge",
+        "empty_desc": "Beginnen Sie mit der Erstellung eines Elements.",
+        "btn_create_first": "Ersten erstellen"
+        },
+        "create": {
+        "title": "Erstellen",
+        "breadcrumb": "Erstellen",
+        "card_info": "Informationen",
+        "no_fields": "Derzeit keine Felder verfügbar.",
+        "btn_cancel": "Abbrechen",
+        "btn_submit": "Erstellen"
+        },
+        "edit": {
+        "title": "Bearbeiten",
+        "breadcrumb": "Bearbeiten",
+        "card_info": "Informationen",
+        "no_fields": "Derzeit keine Felder verfügbar.",
+        "btn_cancel": "Abbrechen",
+        "btn_submit": "Speichern"
+        },
+        "detail": {
+        "title": "Detail",
+        "breadcrumb": "Detail",
+        "entry_label": "Eintrag",
+        "btn_list": "← Liste",
+        "btn_edit": "Bearbeiten",
+        "btn_delete": "Löschen",
+        "confirm_delete": "Diesen Eintrag löschen?"
+        },
+        "delete": {
+        "title": "Löschen",
+        "breadcrumb": "Löschen",
+        "heading": "Löschung bestätigen",
+        "btn_cancel": "← Abbrechen",
+        "btn_confirm": "Ja, dauerhaft löschen",
+        "warning": {
+            "title": "Achtung!",
+            "desc": "Sie sind dabei, den Eintrag",
+            "of": "aus der Ressource",
+            "irreversible": "Diese Aktion ist unwiderruflich."
+        }
+        },
+        "base": {
+        "title": "Administration",
+        "breadcrumb": "Admin",
+        "toggle": "Menü einklappen",
+        "logout_title": "Abmelden"
+        }
     }
 }

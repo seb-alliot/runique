@@ -1,23 +1,18 @@
 {% extends "admin_base" %}
-
-{% block title %}Modifier — {{ resource.title | default(value="Élément") }}{% endblock %}
-
+{% block title %}{{ admin_edit_title }} — {{ resource.title }}{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
-  <a href="/admin/{{ resource.key }}/list">{{ resource.title | default(value="Éléments") }}</a>
+  <a href="/admin/{{ resource.key }}/list">{{ resource.title }}</a>
   <span class="breadcrumb-sep">/</span>
-  <span>Modifier</span>
+  <span>{{ admin_edit_breadcrumb  }}</span>
 {% endblock %}
-
 {% block content %}
-
   <header class="page-header">
-    <h1>Modifier — {{ resource.title | default(value="Élément") }}</h1>
+    <h1>{{ admin_edit_title }} — {{ resource.title }}</h1>
   </header>
-
   <div class="card" style="max-width:60%;">
     <div class="card-header">
-      <h2>Informations</h2>
+      <h2>{{ admin_edit_card_info }}</h2>
     </div>
     <div class="card-body">
       <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/edit">
@@ -25,19 +20,17 @@
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
             {{ form_fields.html | safe }}
           {% else %}
-            <p>Aucun champ disponible pour le moment.</p>
+            <p>{{ admin_edit_no_fields | default(value="Aucun champ disponible pour le moment.") }}</p>
           {% endif %}
         </div>
         <div class="form-actions">
-          <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">Annuler</a>
-          <button type="submit" class="btn btn-primary">Enregistrer</button>
+          <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{{ admin_edit_btn_cancel | default(value="Annuler") }}</a>
+          <button type="submit" class="btn btn-primary">{{ admin_edit_btn_submit | default(value="Enregistrer") }}</button>
         </div>
       </form>
     </div>
   </div>
-
 {% endblock %}
-
 {% block extra_js %}
 {{ super() }}
 <script>

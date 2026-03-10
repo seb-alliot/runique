@@ -117,18 +117,6 @@
         "host_debug": "Host non valido: '{}'. Aggiungilo a RUNIQUE_ALLOWED_HOSTS.",
         "bad_request": "Richiesta non valida"
     },
-    "admin": {
-        "session_error": "Errore durante l'apertura della sessione.",
-        "invalid_credentials": "Credenziali non valide o diritti insufficienti.",
-        "logout_success": "Disconnessione riuscita.",
-        "no_auth_handler": "Nessun handler di autenticazione configurato. Chiama .auth(MyAuth) su AdminConfig.",
-        "insufficient_rights": "Diritti insufficienti per accedere all'amministrazione",
-        "login_title": "Accesso — {}",
-        "login_subtitle": "Accedi per entrare nel pannello di amministrazione",
-        "username": "Nome utente",
-        "password": "Password",
-        "login_button": "Accedi"
-    },
     "html": {
         "404_title": "404",
         "404_text": "Pagina non trovata",
@@ -235,5 +223,96 @@
     "debug_status_code": "Codice di stato",
     "debug_header_name": "Nome",
     "debug_header_value": "Valore"
+    },
+    "admin": {
+        "login": {
+        "title": "Accesso",
+        "subtitle": "Accedi per accedere al pannello di amministrazione",
+        "label_username": "Nome utente",
+        "label_password": "Password",
+        "btn_submit": "Accedi",
+        "error_session": "Errore durante l'apertura della sessione.",
+        "error_credentials": "Credenziali errate o diritti insufficienti."
+        },
+        "logout": {
+        "success": "Disconnessione riuscita."
+        },
+        "access": {
+        "no_auth_handler": "Nessun gestore di autenticazione configurato. Chiama .auth(MyAuth) su AdminConfig.",
+        "insufficient_rights": "Diritti insufficienti per accedere all'amministrazione"
+        },
+        "dashboard": {
+        "title": "Dashboard",
+        "subtitle": "Panoramica dell'applicazione",
+        "card_resources": "Risorse",
+        "th_resource": "Risorsa",
+        "th_key": "Chiave",
+        "th_permissions": "Permessi",
+        "th_actions": "Azioni",
+        "btn_list": "Elenco",
+        "btn_create": "Crea",
+        "empty_title": "Nessuna risorsa registrata",
+        "empty_desc": "Dichiara le tue risorse in src/admin.rs con la macro admin!{{}} poi esegui runique start"
+        },
+        "list": {
+        "breadcrumb_admin": "Amministrazione",
+        "entries_count": "voce/i",
+        "btn_create": "Crea",
+        "th_id": "id",
+        "th_actions": "Azioni",
+        "bool_true": "Sì",
+        "bool_false": "No",
+        "btn_detail": "Dettaglio",
+        "btn_edit": "Modifica",
+        "btn_delete": "Elimina",
+        "confirm_delete": "Eliminare davvero?",
+        "empty_title": "Nessuna voce",
+        "empty_desc": "Inizia creando un elemento.",
+        "btn_create_first": "Crea il primo"
+        },
+        "create": {
+        "title": "Crea",
+        "breadcrumb": "Crea",
+        "card_info": "Informazioni",
+        "no_fields": "Nessun campo disponibile al momento.",
+        "btn_cancel": "Annulla",
+        "btn_submit": "Crea"
+        },
+        "edit": {
+        "title": "Modifica",
+        "breadcrumb": "Modifica",
+        "card_info": "Informazioni",
+        "no_fields": "Nessun campo disponibile al momento.",
+        "btn_cancel": "Annulla",
+        "btn_submit": "Salva"
+        },
+        "detail": {
+        "title": "Dettaglio",
+        "breadcrumb": "Dettaglio",
+        "entry_label": "Voce",
+        "btn_list": "← Elenco",
+        "btn_edit": "Modifica",
+        "btn_delete": "Elimina",
+        "confirm_delete": "Eliminare questa voce?"
+        },
+        "delete": {
+        "title": "Elimina",
+        "breadcrumb": "Elimina",
+        "heading": "Conferma eliminazione",
+        "btn_cancel": "← Annulla",
+        "btn_confirm": "Sì, elimina definitivamente",
+        "warning": {
+            "title": "Attenzione!",
+            "desc": "Stai per eliminare la voce",
+            "of": "dalla risorsa",
+            "irreversible": "Questa azione è irreversibile."
+        }
+        },
+        "base": {
+        "title": "Amministrazione",
+        "breadcrumb": "Admin",
+        "toggle": "Comprimi menu",
+        "logout_title": "Disconnessione"
+        }
     }
 }
