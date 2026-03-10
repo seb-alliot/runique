@@ -141,6 +141,8 @@ Injectées automatiquement via `insert_admin_messages`. Toutes les clés suivent
 | `resources` | `Vec<ResourceMeta>` | Toutes les ressources enregistrées |
 | `resource_counts` | `HashMap<String, i64>` | Nombre d'entrées par ressource (clé = `resource.key`) |
 | `current_page` | `&str` | Vaut `"dashboard"` |
+| `lang`| `&str`| La langue courante defini dans main.rs |
+| `admin_base_logout_title` | `&str` | i18n `admin.base.logout_title` |
 | `admin_dashboard_title` | `String` | i18n `admin.dashboard.title` |
 | `admin_dashboard_subtitle` | `String` | i18n `admin.dashboard.subtitle` |
 | `admin_dashboard_card_resources` | `String` | i18n `admin.dashboard.card_resources` |
