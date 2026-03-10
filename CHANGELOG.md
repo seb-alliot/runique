@@ -1,3 +1,26 @@
+## [1.1.45] - 2026-03-10
+
+### Fixed
+- **Docs** : `admin!{}` — suppression des champs `template_*` (surcharge de templates via builder uniquement)
+- **Docs** : `.with_proto_state()` → `.with_state()` dans `admin/setup.md` (méthode inexistante en code)
+- **Docs** : `mon_theme/` → `my_theme/` dans `admin/template/surcharge/surcharge.md` (EN — noms FR non traduits)
+- **Docs** : labels de navigation inversés dans `admin/template/surcharge/` et `admin/template/clef/` (FR)
+- **Docs** : syntaxe `urlpatterns!` corrigée dans `architecture/` (FR+EN) — `get "/path" handler` → `"/path" => view!{ handler }, name = "name"`
+- **Docs** : `src/forms.rs` → `src/entities/` + `src/formulaire/` dans `architecture/` (FR+EN)
+- **Docs** : avertissement migrations — `runique migration up/down/status` contournait le suivi SeaORM — restructuré en sections "recommandé" vs "avancé"
+- **Docs** : `model!` — syntaxe `model!(...)` → `model! { ... }` (accolades, sans point-virgule)
+- **Docs** : `impl_objects!` — présenté comme déclaration manuelle → corrigé : généré automatiquement par le daemon ; ajout note "sucre syntaxique pur, SQL identique au SeaORM natif"
+- **Docs** : `use demo_app::models::users` → `use demo_app::entities::users` (6 occurrences dans orm/ et routing/)
+- **Clippy** : suppressions d'emprunts inutiles `&` sur retours `&'static str` dans `admin_main.rs` et `admin_router.rs`
+- **Clippy** : `.to_string().into()` → `.to_string()` (conversions inutiles dans `demo-app/admins/admin_panel.rs`)
+
+### Added
+- **Docs** : section "Démarrer un nouveau projet" dans `architecture/` (FR+EN)
+- **Docs** : sections 12–15 (Model, Auth, Sessions, Env) ajoutées aux hubs README (FR+EN)
+- **Docs** : architecture EN réécrite pour correspondre à la version FR
+
+---
+
 ## [1.1.44]
 
 - **Fix** => Cli ok

@@ -2,14 +2,14 @@
 
 ## SeaORM + Objects Manager
 
-Runique utilise **SeaORM** avec un manager Django-like via la macro `impl_objects!` :
+Runique utilise **SeaORM** avec un manager Django-like via la macro `impl_objects!`.
+
+La macro est **générée automatiquement** par le daemon dans chaque fichier d'entité (`runique makemigrations`). Aucune déclaration manuelle nécessaire.
+
+> **Note** : `impl_objects!` est du sucre syntaxique pur. Elle ne modifie pas les requêtes générées — le SQL produit est identique à du SeaORM natif.
 
 ```rust
-use demo_app::models::users;
-use runique::impl_objects;
-
-// Ajoutez le manager une fois dans votre modèle
-impl_objects!(users::Entity);
+use demo_app::entities::users;
 
 // Récupérer tous les users
 let all_users = users::Entity::objects
