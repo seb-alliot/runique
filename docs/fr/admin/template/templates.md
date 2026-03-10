@@ -48,7 +48,6 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 | [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | variables injectées par le backend dans chaque template
 | [Surcharge](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
 | [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom |
-| [Clef context](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/clef_context.md) | token CSRF, `csrf.js`, checklist login custom
 
 ## Voir aussi
 
