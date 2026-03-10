@@ -109,18 +109,6 @@ Pour remplacer uniquement la page de liste des utilisateurs :
 {% endblock %}
 ```
 
-Déclaration dans `src/admin.rs` :
-
-```rust
-admin! {
-    users: users::Model => AdminForm {
-        title: "Utilisateurs",
-        permissions: ["admin"],
-        template_list: "mon_theme/users_list",
-    }
-}
-```
-
 ---
 
 ## Blocks disponibles pour la surcharge
@@ -150,6 +138,7 @@ admin! {
 
 | Section | Description |
 | --- | --- |
+| [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/exemples.md) | 3 approches : héritage Runique, layout custom, HTML autonome |
 | [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | variables injectées par le backend dans chaque template
 | [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom |
 

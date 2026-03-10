@@ -16,11 +16,6 @@ admin! {
         permissions: ["admin"],
         id_type: I32,                                        // I32 | I64 | Uuid
         edit_form: crate::formulaire::UserEditForm,          // formulaire distinct pour l'édition
-        template_list: "mon_theme/users_list.html",          // surcharge template liste
-        template_create: "mon_theme/users_create.html",      // surcharge template création
-        template_edit: "mon_theme/users_edit.html",          // surcharge template édition
-        template_detail: "mon_theme/users_detail.html",      // surcharge template détail
-        template_delete: "mon_theme/users_delete.html",      // surcharge template suppression
         extra: {
             "icon" => "user",
             "color" => "#3b82f6"
@@ -44,18 +39,6 @@ La macro est parsée par le daemon (`runique start`) qui génère la fonction `a
 | `form` (position) | chemin de type | Type du formulaire Runique associé |
 | `title` | `&str` | Titre affiché dans l'interface |
 | `permissions` | `[&str; N]` | Rôles déclarés pour cette ressource (⚠️ non appliqués — voir [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md)) |
-
-### Optionnels — surcharge de templates
-
-Ces champs permettent de remplacer un template CRUD par un template personnalisé (voir [Surcharge des templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md)).
-
-| Champ | Valeur par défaut | Description |
-| --- | --- | --- |
-| `template_list` | `admin/list.html` | Template de liste |
-| `template_create` | `admin/create.html` | Formulaire de création |
-| `template_edit` | `admin/edit.html` | Formulaire d'édition |
-| `template_detail` | `admin/detail.html` | Page de détail |
-| `template_delete` | `admin/delete.html` | Page de confirmation de suppression |
 
 ### Optionnels — comportement
 

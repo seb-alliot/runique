@@ -1,9 +1,7 @@
 use crate::entities::blog::schema as blog;
 use runique::prelude::*;
-use sea_orm::DatabaseConnection;
 
 #[form(schema = blog, fields = [title, email, summary, website, content])]
-
 pub struct BlogForm;
 
 impl BlogForm {

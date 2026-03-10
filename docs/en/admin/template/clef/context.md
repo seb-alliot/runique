@@ -165,6 +165,40 @@ Automatically injected via `insert_admin_messages`. The Tera variable name is th
 
 > On POST failure, `base` section i18n keys are also injected.
 
+**Minimal example:**
+
+```html
+{% extends "admin/admin_template.html" %}
+
+{% block title %}{{ admin_login_title }}{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <h1>{{ admin_login_title }}</h1>
+    <p>{{ admin_login_subtitle }}</p>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/admin/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div>
+            <label>{{ admin_login_label_username }}</label>
+            <input type="text" name="username" required>
+        </div>
+        <div>
+            <label>{{ admin_login_label_password }}</label>
+            <input type="password" name="password" required>
+        </div>
+        <button type="submit">{{ admin_login_btn_submit }}</button>
+    </form>
+</div>
+{% endblock %}
+```
+
+> The login template extends `admin_template.html` (empty blocks contract), not `admin_base.html` — sidebar and topbar must not appear on the login page.
+
 ---
 
 ## `dashboard` View
@@ -195,6 +229,52 @@ Automatically injected via `insert_admin_messages`. The Tera variable name is th
 | `admin_dashboard_empty_title` | `String` | i18n `admin.dashboard.empty_title` |
 | `admin_dashboard_empty_desc` | `String` | i18n `admin.dashboard.empty_desc` |
 
+**Minimal example:**
+
+```html
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ admin_dashboard_title }}{% endblock %}
+
+{% block content %}
+<h1>{{ admin_dashboard_title }}</h1>
+<p>{{ admin_dashboard_subtitle }}</p>
+
+{% if resources %}
+<h2>{{ admin_dashboard_card_resources }}</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>{{ admin_dashboard_th_resource }}</th>
+            <th>{{ admin_dashboard_th_key }}</th>
+            <th>{{ admin_dashboard_th_permissions }}</th>
+            <th>{{ admin_dashboard_th_actions }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for res in resources %}
+        <tr>
+            <td>{{ res.title }}</td>
+            <td><code>{{ res.key }}</code></td>
+            <td>{{ res.permissions.list | join(sep=", ") }}</td>
+            <td>
+                <a href="/admin/{{ res.key }}/list">
+                    {{ admin_dashboard_btn_list }}
+                    {% if resource_counts[res.key] %}({{ resource_counts[res.key] }}){% endif %}
+                </a>
+                <a href="/admin/{{ res.key }}/create">{{ admin_dashboard_btn_create }}</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>{{ admin_dashboard_empty_title }}</p>
+<p>{{ admin_dashboard_empty_desc }}</p>
+{% endif %}
+{% endblock %}
+```
+
 ---
 
 ## `list` View
@@ -209,6 +289,53 @@ Automatically injected via `insert_admin_messages`. The Tera variable name is th
 
 > The i18n variables for the `list` section are listed in the global variables above.
 
+**Minimal example:**
+
+```html
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ resource.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>{{ resource.title }}
+        <small class="text-muted fs-6">{{ total }} {{ admin_list_entries_count }}</small>
+    </h1>
+    <a href="/admin/{{ resource_key }}/create" class="btn btn-primary">
+        {{ admin_list_btn_create }}
+    </a>
+</div>
+
+{% if entries %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>{{ admin_list_th_id }}</th>
+            {# add columns based on the model #}
+            <th>{{ admin_list_th_actions }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in entries %}
+        <tr>
+            <td>{{ entry.id }}</td>
+            <td>
+                <a href="/admin/{{ resource_key }}/{{ entry.id }}/detail">{{ admin_list_btn_detail }}</a>
+                <a href="/admin/{{ resource_key }}/{{ entry.id }}/edit">{{ admin_list_btn_edit }}</a>
+                <a href="/admin/{{ resource_key }}/{{ entry.id }}/delete">{{ admin_list_btn_delete }}</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>{{ admin_list_empty_title }}</p>
+<p>{{ admin_list_empty_desc }}</p>
+<a href="/admin/{{ resource_key }}/create">{{ admin_list_btn_create_first }}</a>
+{% endif %}
+{% endblock %}
+```
+
 ---
 
 ## `create` View
@@ -221,6 +348,30 @@ Automatically injected via `insert_admin_messages`. The Tera variable name is th
 | `is_edit` | `bool` | Value `false` |
 
 > The i18n variables for the `create` section are listed in the global variables above.
+
+**Minimal example:**
+
+```html
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ admin_create_title }} — {{ resource.title }}{% endblock %}
+
+{% block content %}
+<h1>{{ admin_create_title }} — {{ resource.title }}</h1>
+<p class="text-muted">{{ admin_create_card_info }}</p>
+
+<form method="POST" action="/admin/{{ resource_key }}/create">
+    {# csrf.js handles the token automatically for admin forms #}
+    {% if form_fields.html %}
+        {{ form_fields.html | safe }}
+    {% else %}
+        <p>{{ admin_create_no_fields }}</p>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">{{ admin_create_btn_submit }}</button>
+    <a href="/admin/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_create_btn_cancel }}</a>
+</form>
+{% endblock %}
+```
 
 ---
 
@@ -236,6 +387,29 @@ Automatically injected via `insert_admin_messages`. The Tera variable name is th
 
 > The i18n variables for the `edit` section are listed in the global variables above.
 
+**Minimal example:**
+
+```html
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ admin_edit_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
+
+{% block content %}
+<h1>{{ admin_edit_title }} — {{ resource.title }} <small>#{{ object_id }}</small></h1>
+<p class="text-muted">{{ admin_edit_card_info }}</p>
+
+<form method="POST" action="/admin/{{ resource_key }}/{{ object_id }}/edit">
+    {% if form_fields.html %}
+        {{ form_fields.html | safe }}
+    {% else %}
+        <p>{{ admin_edit_no_fields }}</p>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">{{ admin_edit_btn_submit }}</button>
+    <a href="/admin/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_edit_btn_cancel }}</a>
+</form>
+{% endblock %}
+```
+
 ---
 
 ## `detail` View
@@ -249,6 +423,31 @@ Automatically injected via `insert_admin_messages`. The Tera variable name is th
 
 > The i18n variables for the `detail` section are listed in the global variables above.
 
+**Minimal example:**
+
+```html
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ admin_detail_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
+
+{% block content %}
+<h1>{{ admin_detail_title }} — {{ resource.title }} <small>#{{ object_id }}</small></h1>
+
+{% if entry %}
+<dl class="row">
+    {% for key, value in entry %}
+    <dt class="col-sm-3">{{ key }}</dt>
+    <dd class="col-sm-9">{{ value }}</dd>
+    {% endfor %}
+</dl>
+{% endif %}
+
+<a href="/admin/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_detail_btn_list }}</a>
+<a href="/admin/{{ resource_key }}/{{ object_id }}/edit" class="btn btn-primary">{{ admin_detail_btn_edit }}</a>
+<a href="/admin/{{ resource_key }}/{{ object_id }}/delete" class="btn btn-danger">{{ admin_detail_btn_delete }}</a>
+{% endblock %}
+```
+
 ---
 
 ## `delete` View
@@ -261,6 +460,32 @@ Automatically injected via `insert_admin_messages`. The Tera variable name is th
 | `object_id` | `String` | ID of the entry to delete |
 
 > The i18n variables for the `delete` section are listed in the global variables above.
+
+**Minimal example:**
+
+```html
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ admin_delete_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
+
+{% block content %}
+<h1>{{ admin_delete_heading }}</h1>
+
+<div class="alert alert-danger">
+    <strong>{{ admin_delete_warning_title }}</strong>
+    <p>{{ admin_delete_warning_desc }}</p>
+    {% if entry %}
+    <p>{{ admin_delete_warning_of }} <strong>#{{ object_id }}</strong></p>
+    {% endif %}
+    <p>{{ admin_delete_warning_irreversible }}</p>
+</div>
+
+<form method="POST" action="/admin/{{ resource_key }}/{{ object_id }}/delete">
+    <button type="submit" class="btn btn-danger">{{ admin_delete_btn_confirm }}</button>
+    <a href="/admin/{{ resource_key }}/list" class="btn btn-secondary">{{ admin_delete_btn_cancel }}</a>
+</form>
+{% endblock %}
+```
 
 ---
 
