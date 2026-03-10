@@ -7,6 +7,7 @@ use serde_json::Value;
 
 use crate::admin::dyn_form::DynForm;
 use crate::admin::resource::AdminResource;
+pub use crate::admin::resource::{ColumnFilter, CrudOperation, DisplayConfig};
 use crate::utils::aliases::{ADb, ATera, StrMap};
 
 /// Closure construisant un form typé depuis des données brutes.
@@ -95,78 +96,5 @@ impl ResourceEntry {
     pub fn with_count_fn(mut self, f: CountFn) -> Self {
         self.count_fn = Some(f);
         self
-    }
-}
-
-/// Opérations CRUD disponibles sur une ressource admin
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
-pub enum CrudOperation {
-    List,
-    View,
-    Create,
-    Edit,
-    Delete,
-}
-
-/// Filtre les colonnes affichées dans la vue liste
-#[derive(Debug, Clone, Default, serde::Serialize)]
-pub enum ColumnFilter {
-    /// Affiche toutes les colonnes du Model (défaut)
-    #[default]
-    All,
-
-    /// Affiche uniquement les colonnes spécifiées
-    Include(Vec<String>),
-
-    /// Affiche toutes les colonnes sauf celles spécifiées
-    Exclude(Vec<String>),
-}
-
-/// Configuration de l'affichage d'une ressource dans l'interface admin
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct DisplayConfig {
-    /// Icône affichée dans la navigation (nom d'icône, ex: "user", "file")
-    pub icon: Option<String>,
-
-    /// Colonnes à afficher dans la vue liste
-    pub columns: ColumnFilter,
-
-    /// Nombre d'entrées par page
-    pub pagination: usize,
-}
-
-impl DisplayConfig {
-    pub fn new() -> Self {
-        Self {
-            icon: None,
-            columns: ColumnFilter::All,
-            pagination: 25,
-        }
-    }
-
-    pub fn icon(mut self, icon: &str) -> Self {
-        self.icon = Some(icon.to_string());
-        self
-    }
-
-    pub fn pagination(mut self, per_page: usize) -> Self {
-        self.pagination = per_page;
-        self
-    }
-
-    pub fn columns_include(mut self, cols: Vec<&str>) -> Self {
-        self.columns = ColumnFilter::Include(cols.iter().map(|s| s.to_string()).collect());
-        self
-    }
-
-    pub fn columns_exclude(mut self, cols: Vec<&str>) -> Self {
-        self.columns = ColumnFilter::Exclude(cols.iter().map(|s| s.to_string()).collect());
-        self
-    }
-}
-
-impl Default for DisplayConfig {
-    fn default() -> Self {
-        Self::new()
     }
 }

@@ -36,20 +36,23 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 ## Erreurs globales
 
 ```html
-{% if inscription_form.errors %}
+{% if inscription_form.form_errors %}
 <div class="alert alert-danger">
-  {% for msg in inscription_form.errors %}
+  {% for msg in inscription_form.form_errors %}
   <p>{{ msg }}</p>
   {% endfor %}
 </div>
 {% endif %}
 ```
 
+> `form_errors` → `Vec<String>` — erreurs non liées à un champ (ex: "Identifiants invalides").
+> `errors` → map `{ field_name: message }` — erreurs par champ + erreurs globales sous la clé `global`.
+
 ---
 
 ## Données de champ en JSON
 
-Les formulaires sérialisent automatiquement `data`, `errors`, `html`, `rendered_fields`, `fields` et `js_files`.
+Les formulaires sérialisent automatiquement `errors`, `form_errors`, `html`, `rendered_fields`, `fields` et `js_files`.
 
 ---
 

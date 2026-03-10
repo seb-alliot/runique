@@ -138,7 +138,9 @@ async fn admin_login_get(
 ) -> AppResult<Response> {
     insert_admin_messages(&mut req.context, "login");
 
-    req = req.insert("site_title", &admin.config.site_title);
+    req = req
+        .insert("site_title", &admin.config.site_title)
+        .insert("lang", &current_lang().code());
     req.render(admin.config.templates.login.resolve())
 }
 
@@ -175,6 +177,7 @@ async fn admin_login_post(
                 insert_admin_messages(&mut req.context, "login");
                 insert_admin_messages(&mut req.context, "base");
                 req = req
+                    .insert("lang", &current_lang().code())
                     .insert("site_title", &admin.config.site_title)
                     .insert("error", &t("admin.login.error_session").to_string());
                 return req

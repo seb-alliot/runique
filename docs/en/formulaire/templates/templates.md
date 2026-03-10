@@ -36,20 +36,23 @@ Automatically renders: all fields, labels, validation errors, CSRF token, and JS
 ## Global errors
 
 ```html
-{% if register_form.errors %}
+{% if register_form.form_errors %}
     <div class="alert alert-danger">
-        {% for msg in register_form.errors %}
+        {% for msg in register_form.form_errors %}
             <p>{{ msg }}</p>
         {% endfor %}
     </div>
 {% endif %}
 ```
 
+> `form_errors` → `Vec<String>` — errors not tied to a specific field (e.g. "Invalid credentials").
+> `errors` → map `{ field_name: message }` — per-field errors + global errors under the `global` key.
+
 ---
 
 ## Field data as JSON
 
-Forms automatically serialize `data`, `errors`, `html`, `rendered_fields`, `fields` and `js_files`.
+Forms automatically serialize `errors`, `form_errors`, `html`, `rendered_fields`, `fields` and `js_files`.
 
 ---
 

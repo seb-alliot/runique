@@ -25,7 +25,7 @@ use crate::errors::error::ErrorContext;
 use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
-use crate::utils::trad::t;
+use crate::utils::trad::{t, current_lang};
 
 // ─── Extracteur AdminBody ─────────────────────────────────────
 //
@@ -108,6 +108,7 @@ pub async fn admin_post(
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
     inject_common_context(&mut req, &state, entry);
+    req.context.insert("lang", &current_lang().code());
 
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &state).await,
@@ -129,7 +130,7 @@ pub async fn admin_get_id(
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
     inject_common_context(&mut req, &state, entry);
-
+    req.context.insert("lang", &current_lang().code());
     match action.as_str() {
         "detail" => handle_detail(&mut req, entry, id, &state).await,
         "edit" => handle_edit_get(&mut req, entry, id, &state).await,
@@ -234,7 +235,7 @@ async fn handle_list(
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
         None => Vec::new(),
     };
-
+    req.context.insert("lang", &current_lang().code());
     req.context.insert("entries", &entries);
     req.context.insert("total", &entries.len());
     req.context.insert("current_page", "list");
@@ -257,6 +258,7 @@ async fn handle_create_get(
 
     req.context.insert("form_fields", form.get_form());
     req.context.insert("is_edit", &false);
+    req.context.insert("lang", &current_lang().code());
     let template = entry
         .meta
         .template_create
@@ -297,6 +299,7 @@ async fn handle_create_post(
 
     req.context.insert("form_fields", form.get_form());
     req.context.insert("is_edit", &false);
+    req.context.insert("lang", &current_lang().code());
     let template = entry
         .meta
         .template_create

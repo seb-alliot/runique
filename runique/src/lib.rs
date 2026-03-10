@@ -20,119 +20,6 @@ pub mod middleware;
 
 pub mod utils;
 
-// ---------------------------------------------------------------------------
-// Alias de compatibilité pour l’ancien nommage
-// ---------------------------------------------------------------------------
-pub mod config_runique {
-    pub mod composant_config {
-        pub mod security_struct {
-            pub use crate::config::security::*;
-        }
-        pub mod server_struct {
-            pub use crate::config::server::*;
-        }
-        pub mod settings_struct {
-            pub use crate::config::settings::*;
-        }
-        pub mod static_struct {
-            pub use crate::config::static_files::*;
-        }
-    }
-
-    pub mod config_struct {
-        pub use crate::config::app::RuniqueConfig;
-    }
-
-    pub use composant_config::*;
-    pub use config_struct::RuniqueConfig;
-}
-
-#[cfg(feature = "orm")]
-pub mod data_base_runique {
-    pub mod config {
-        pub use crate::db::config::*;
-    }
-
-    pub mod composant_data_base {
-        pub use crate::macros::bdd::{objects::*, query::*};
-    }
-
-    pub use config::*;
-}
-
-pub mod formulaire {
-    pub mod builder_form {
-        pub mod base_struct {
-            pub use crate::forms::base::*;
-        }
-        pub mod field_type {
-            pub use crate::forms::fields::*;
-        }
-        pub mod generique_field {
-            pub use crate::forms::generic::*;
-        }
-        pub mod formmanager {
-            pub use crate::forms::Forms;
-        }
-        pub mod option_field {
-            pub use crate::forms::options::*;
-        }
-        pub mod trait_form {
-            pub use crate::forms::field::*;
-        }
-        pub mod model_form {
-            pub use crate::forms::model_form::*;
-        }
-    }
-
-    pub mod utils {
-        pub use crate::utils::*;
-    }
-
-    pub use builder_form::*;
-    pub use utils::*;
-}
-
-pub mod middleware_runique {
-    pub mod middleware {
-        pub use crate::middleware::allowed_hosts::*;
-        pub use crate::middleware::auth::*;
-        pub use crate::middleware::cache::*;
-        pub use crate::middleware::config::*;
-        pub use crate::middleware::csp::*;
-        pub use crate::middleware::csrf::*;
-        pub use crate::middleware::errors::*;
-    }
-
-    pub use middleware::*;
-}
-
-pub mod macro_runique {
-    pub use crate::macros::*;
-    pub use crate::macros::{
-        context::{context_simplifier, flash},
-        forms::*,
-        routeur::*,
-    };
-}
-
-pub mod moteur_engine {
-    pub mod engine_struct {
-        pub use crate::engine::core::*;
-    }
-
-    pub use engine_struct::*;
-}
-
-pub mod runique_start {
-    pub mod composant_app {
-        pub mod template_engine {
-            pub use crate::app::templates::*;
-        }
-    }
-
-    pub use crate::app::*;
-}
 pub use forms::Prisme;
 // ---------------------------------------------------------------------------
 // Ré-export des dépendances principales
@@ -229,7 +116,7 @@ pub mod prelude {
     // ========================================================================
     pub use axum::{
         extract::{Extension, Form, FromRequestParts, Path, Query, State},
-        http::{HeaderMap, HeaderValue, Method, StatusCode},
+        http::{HeaderMap, HeaderValue, Method, StatusCode, method::*},
         middleware,
         response::{Html, IntoResponse, Redirect, Response},
         routing::{any, delete, get, patch, post, put},
@@ -307,6 +194,5 @@ pub mod prelude {
         DeleteFn, DynForm, FormBuilder, GetFn, ListFn, PrototypeAdminState, ResourceEntry,
         UpdateFn,
     };
-    pub use axum::http::method::*;
     pub use futures_util::future::BoxFuture;
 }

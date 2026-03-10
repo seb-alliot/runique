@@ -140,7 +140,7 @@ impl Request {
         // mod reload for templates in debug mode
         // The backend cannot be reloaded here because it is shared between requests
         context.insert("debug", &engine.config.debug);
-        context.insert("static_runique", &engine.config.static_files.static_url);
+        context.insert("static_runique", &engine.config.static_files);
         context.insert("csrf_token", &csrf_token.masked().as_str());
 
         Self {
