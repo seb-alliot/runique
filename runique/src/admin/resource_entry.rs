@@ -20,14 +20,14 @@ pub type ListFn = Arc<dyn Fn(ADb) -> BoxFuture<'static, Result<Vec<Value>, DbErr
 
 /// Closure retournant une entrée par son id sous forme de `Value`.
 pub type GetFn =
-    Arc<dyn Fn(ADb, i32) -> BoxFuture<'static, Result<Option<Value>, DbErr>> + Send + Sync>;
+    Arc<dyn Fn(ADb, String) -> BoxFuture<'static, Result<Option<Value>, DbErr>> + Send + Sync>;
 
 /// Closure supprimant une entrée par son id.
-pub type DeleteFn = Arc<dyn Fn(ADb, i32) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
+pub type DeleteFn = Arc<dyn Fn(ADb, String) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
 /// Closure mettant à jour une entrée par son id depuis les données du formulaire validé.
 pub type UpdateFn =
-    Arc<dyn Fn(ADb, i32, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
+    Arc<dyn Fn(ADb, String, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
 /// Closure créant une nouvelle entrée depuis les données du formulaire validé.
 pub type CreateFn = Arc<dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;

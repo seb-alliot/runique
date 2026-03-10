@@ -22,7 +22,7 @@ An **initial generation** is performed on daemon startup, without waiting for a 
 ```text
 src/admins/
   ├── README.md       ← warning: do not edit manually
-  ├── mod.rs          ← exposes `routes` and `admin_proto_state`
+  ├── mod.rs          ← exposes `routes` and `admin_state`
   └── admin_panel.rs  ← main file: DynForm wrappers + admin_register()
 ```
 
@@ -36,7 +36,7 @@ Contains for each resource declared in `admin!`:
 
 ### `mod.rs`
 
-Re-exports `routes` and `admin_proto_state` from `admin_panel`.
+Re-exports `routes` and `admin_state` from `admin_panel`.
 
 ---
 

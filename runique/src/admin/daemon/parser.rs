@@ -44,6 +44,9 @@ pub struct ResourceDef {
     /// Formulaire alternatif pour l'édition (optionnel, chemin complet ex: crate::formulaire::UserEditForm)
     pub edit_form_type: Option<String>,
 
+    /// Type de la clé primaire : "I32" (défaut), "I64", "Uuid"
+    pub id_type: String,
+
     /// Clés custom pour le contexte Tera (via extra: { "k" => "v" })
     pub extra_context: Vec<(String, String)>,
 }
@@ -164,6 +167,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             template_delete: body.template_delete,
             extra_context: body.extra_context,
             edit_form_type: body.edit_form_type,
+            id_type: body.id_type,
         });
 
         // Virgule optionnelle entre ressources
@@ -183,6 +187,7 @@ struct ResourceBody {
     template_delete: Option<String>,
     extra_context: Vec<(String, String)>,
     edit_form_type: Option<String>,
+    id_type: String,
 }
 
 fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
@@ -199,6 +204,7 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         template_delete: None,
         extra_context: Vec::new(),
         edit_form_type: None,
+        id_type: "I32".to_string(),
     };
 
     while iter.peek().is_some() {
@@ -234,6 +240,9 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
             }
             "edit_form" => {
                 body.edit_form_type = Some(parse_path(&mut iter)?);
+            }
+            "id_type" => {
+                body.id_type = parse_ident(&mut iter)?;
             }
             "extra" => {
                 body.extra_context = parse_extra_map(&mut iter)?;
@@ -381,6 +390,17 @@ fn parse_string_literal(iter: &mut TokenIter) -> Result<String, String> {
         }
         Some(other) => Err(format!("Expected string literal, found: {}", other)),
         None => Err("Expected string literal, end of file".to_string()),
+    }
+}
+
+/// Parse un identifiant simple (ex: I32, I64, Uuid)
+fn parse_ident(iter: &mut TokenIter) -> Result<String, String> {
+    use proc_macro2::TokenTree;
+
+    match iter.next() {
+        Some(TokenTree::Ident(id)) => Ok(id.to_string()),
+        Some(other) => Err(format!("Expected identifier, found: {}", other)),
+        None => Err("Expected identifier, end of file".to_string()),
     }
 }
 

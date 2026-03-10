@@ -116,7 +116,7 @@ pub mod prelude {
     // ========================================================================
     pub use axum::{
         extract::{Extension, Form, FromRequestParts, Path, Query, State},
-        http::{HeaderMap, HeaderValue, Method, StatusCode, method::*},
+        http::{method::*, HeaderMap, HeaderValue, Method, StatusCode},
         middleware,
         response::{Html, IntoResponse, Redirect, Response},
         routing::{any, delete, get, patch, post, put},
@@ -185,7 +185,7 @@ pub mod prelude {
     pub use crate::admin::config::config_admin::AdminConfig;
     pub use crate::admin::daemon::{generate, parse_admin_file, watch};
     pub use crate::admin::resource::{
-        AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
+        AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
     };
     pub use crate::admin::router::{build_admin_router, AdminState};
     pub use crate::admin::template::{AdminTemplate, PathAdminTemplate};

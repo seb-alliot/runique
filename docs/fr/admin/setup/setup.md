@@ -76,7 +76,7 @@ builder::new(config)
         a.site_title("Administration")
          .auth(RuniqueAdminAuth::new())
          .routes(admins::routes("/admin"))
-         .with_proto_state(admins::admin_proto_state())
+         .with_proto_state(admins::admin_state())
     })
     .build()
     .await?

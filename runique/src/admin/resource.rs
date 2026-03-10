@@ -22,6 +22,29 @@
 //       delete: ["admin"],
 //   }
 
+/// Type de la clé primaire d'une ressource admin
+#[derive(Debug, Clone, Copy, Default, serde::Serialize)]
+pub enum AdminIdType {
+    /// i32 (défaut SeaORM)
+    #[default]
+    I32,
+    /// i64
+    I64,
+    /// UUID
+    Uuid,
+}
+
+impl AdminIdType {
+    /// Génère le code Rust de conversion depuis un `String` capturé dans la route
+    pub fn parse_expr(&self) -> &'static str {
+        match self {
+            AdminIdType::I32 => "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".into()))?;",
+            AdminIdType::I64 => "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".into()))?;",
+            AdminIdType::Uuid => "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".into()))?;",
+        }
+    }
+}
+
 /// Permissions granulaires par opération CRUD
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ResourcePermissions {
@@ -171,6 +194,9 @@ pub struct AdminResource {
     pub template_detail: Option<String>,
     pub template_delete: Option<String>,
 
+    /// Type de la clé primaire (pour les routes /{id}/)
+    pub id_type: AdminIdType,
+
     /// Clés custom injectées dans le contexte Tera (définies via extra: {} dans admin!{})
     pub extra_context: std::collections::HashMap<String, String>,
 }
@@ -200,6 +226,7 @@ impl AdminResource {
             form_path,
             title,
             permissions: ResourcePermissions::uniform(roles),
+            id_type: AdminIdType::I32,
             display: DisplayConfig::new(),
             template_list: None,
             template_create: None,
@@ -224,6 +251,7 @@ impl AdminResource {
             form_path,
             title,
             permissions,
+            id_type: AdminIdType::I32,
             display: DisplayConfig::new(),
             template_list: None,
             template_create: None,
@@ -314,6 +342,11 @@ impl AdminResource {
 
     pub fn template_delete(mut self, path: &str) -> Self {
         self.template_delete = Some(path.to_string());
+        self
+    }
+
+    pub fn id_type(mut self, id_type: AdminIdType) -> Self {
+        self.id_type = id_type;
         self
     }
 

@@ -23,7 +23,7 @@ use crate::context::template::Request;
 use crate::middleware::auth::{load_user_middleware, login_staff};
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
-use crate::utils::trad::{t, current_lang};
+use crate::utils::trad::{current_lang, t};
 use crate::{admin::config::AdminConfig, flash_now};
 
 #[derive(Clone)]

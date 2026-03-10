@@ -4,13 +4,27 @@
 
 ```rust
 admin! {
-    key: path::Model => FormType {
-        title: "Displayed title",
-        permissions: ["role1", "role2"]
-    },
-    other_key: other::Model => OtherForm {
-        title: "Other resource",
+    // Required fields only
+    articles: articles::Model => ArticleForm {
+        title: "Articles",
         permissions: ["admin"]
+    },
+
+    // All optional fields
+    users: users::Model => RegisterForm {
+        title: "Users",
+        permissions: ["admin"],
+        id_type: I32,                                  // I32 | I64 | Uuid
+        edit_form: crate::forms::UserEditForm,         // separate form for edit
+        template_list: "my_theme/users_list.html",     // list template override
+        template_create: "my_theme/users_create.html", // create template override
+        template_edit: "my_theme/users_edit.html",     // edit template override
+        template_detail: "my_theme/users_detail.html", // detail template override
+        template_delete: "my_theme/users_delete.html", // delete template override
+        extra: {
+            "icon" => "user",
+            "color" => "#3b82f6"
+        }
     }
 }
 ```
@@ -42,6 +56,69 @@ These fields allow replacing a CRUD template with a custom one (see [Template ov
 | `template_edit` | `admin/edit.html` | Edit form |
 | `template_detail` | `admin/detail.html` | Detail page |
 | `template_delete` | `admin/delete.html` | Delete confirmation page |
+
+### Optional — behaviour
+
+| Field | Default value | Description |
+| --- | --- | --- |
+| `id_type` | `I32` | Primary key type in routes — `I32`, `I64`, `Uuid` |
+| `edit_form` | *(same as `form`)* | Separate form type for edit operations |
+| `extra` | *(empty)* | Additional variables injected into all Tera templates for this resource |
+
+#### `id_type`
+
+By default, the `{id}` route segment is converted to `i32`. Declaring a different type generates the appropriate conversion in the CRUD closures:
+
+```rust
+admin! {
+    posts: posts::Model => PostForm {
+        title: "Posts",
+        permissions: ["admin"],
+        id_type: I64
+    }
+}
+```
+
+Supported types: `I32` (default), `I64`, `Uuid`.
+
+> The column type in the database is defined by the SeaORM entity, not by `id_type`. This field generates no migration or schema change — it only adjusts the String → native type conversion inside the admin handler.
+
+#### `edit_form`
+
+Use a different form for create and edit (common case: the create form includes a password field, the edit form does not):
+
+```rust
+admin! {
+    users: users::Model => RegisterForm {
+        title: "Users",
+        permissions: ["admin"],
+        edit_form: crate::forms::UserEditForm
+    }
+}
+```
+
+When declared, the edit view uses `edit_form`; the create view keeps using the main form. The `save()` method on the edit wrapper returns `Ok(())` — persistence is handled by `update_fn` via `admin_from_form`.
+
+#### `extra`
+
+Inject Tera variables available in all templates for this resource:
+
+```rust
+admin! {
+    users: users::Model => RegisterForm {
+        title: "Users",
+        permissions: ["admin"],
+        extra: {
+            "icon" => "user",
+            "color" => "#3b82f6"
+        }
+    }
+}
+```
+
+Keys are accessible via `{{ resource.extra_context.icon }}`.
+
+> Framework reserved keys (`entries`, `form_fields`, `object_id`, `csrf_token`, etc.) take priority over `extra` keys.
 
 ---
 
@@ -75,6 +152,9 @@ The `admin!` macro covers only **registry metadata**:
 - the Runique form for create/edit
 - the display title
 - the allowed roles (uniformly across all CRUD operations)
+- the primary key type (`id_type`)
+- a separate form for edit operations (`edit_form`)
+- additional per-resource Tera variables (`extra`)
 
 ## What cannot be declared
 

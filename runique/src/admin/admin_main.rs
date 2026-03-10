@@ -25,7 +25,7 @@ use crate::errors::error::ErrorContext;
 use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
-use crate::utils::trad::{t, current_lang};
+use crate::utils::trad::{current_lang, t};
 
 // ─── Extracteur AdminBody ─────────────────────────────────────
 //
@@ -83,7 +83,7 @@ pub async fn admin_get(
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    inject_common_context(&mut req, &state, entry);
+    inject_context(&mut req, &state, entry);
 
     match action.as_str() {
         "list" => handle_list(&mut req, entry, &state).await,
@@ -107,7 +107,7 @@ pub async fn admin_post(
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    inject_common_context(&mut req, &state, entry);
+    inject_context(&mut req, &state, entry);
     req.context.insert("lang", &current_lang().code());
 
     match action.as_str() {
@@ -121,7 +121,7 @@ pub async fn admin_post(
 /// GET /admin/{resource}/{id}/{action}  (detail, edit, delete)
 pub async fn admin_get_id(
     mut req: Request,
-    Path((resource_key, id, action)): Path<(String, i32, String)>,
+    Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
 ) -> AppResult<Response> {
     let entry = state
@@ -129,7 +129,7 @@ pub async fn admin_get_id(
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    inject_common_context(&mut req, &state, entry);
+    inject_context(&mut req, &state, entry);
     req.context.insert("lang", &current_lang().code());
     match action.as_str() {
         "detail" => handle_detail(&mut req, entry, id, &state).await,
@@ -145,7 +145,7 @@ pub async fn admin_get_id(
 #[allow(private_interfaces)]
 pub async fn admin_post_id(
     mut req: Request,
-    Path((resource_key, id, action)): Path<(String, i32, String)>,
+    Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     AdminBody(body): AdminBody,
 ) -> AppResult<Response> {
@@ -154,7 +154,8 @@ pub async fn admin_post_id(
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    inject_common_context(&mut req, &state, entry);
+    inject_context(&mut req, &state, entry);
+    req.context.insert("lang", &current_lang().code());
 
     match action.as_str() {
         "edit" => handle_edit_post(&mut req, entry, id, body, &state).await,
@@ -167,7 +168,7 @@ pub async fn admin_post_id(
 
 // ─── Fonctions internes ──────────────────────────────────────
 
-fn inject_common_context(
+fn inject_context(
     req: &mut Request,
     state: &PrototypeAdminState,
     entry: &crate::admin::ResourceEntry,
@@ -311,11 +312,11 @@ async fn handle_create_post(
 async fn handle_detail(
     req: &mut Request,
     entry: &crate::admin::ResourceEntry,
-    id: i32,
+    id: String,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let object = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id)
+        Some(f) => f(req.engine.db.clone(), id.clone())
             .await
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
         None => None,
@@ -336,7 +337,7 @@ async fn handle_detail(
 async fn handle_edit_get(
     req: &mut Request,
     entry: &crate::admin::ResourceEntry,
-    id: i32,
+    id: String,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let tera = req.engine.tera.clone();
@@ -344,7 +345,7 @@ async fn handle_edit_get(
 
     // Pré-remplissage via get_fn si disponible
     let data = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id)
+        Some(f) => f(req.engine.db.clone(), id.clone())
             .await
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
             .map(value_to_strmap)
@@ -372,7 +373,7 @@ async fn handle_edit_get(
 async fn handle_edit_post(
     req: &mut Request,
     entry: &crate::admin::ResourceEntry,
-    id: i32,
+    id: String,
     body: StrMap,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
@@ -420,11 +421,11 @@ async fn handle_edit_post(
 async fn handle_delete_get(
     req: &mut Request,
     entry: &crate::admin::ResourceEntry,
-    id: i32,
+    id: String,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let object = match &entry.get_fn {
-        Some(f) => f(req.engine.db.clone(), id)
+        Some(f) => f(req.engine.db.clone(), id.clone())
             .await
             .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
         None => None,
@@ -445,7 +446,7 @@ async fn handle_delete_get(
 async fn handle_delete_post(
     req: &mut Request,
     entry: &crate::admin::ResourceEntry,
-    id: i32,
+    id: String,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {

@@ -212,6 +212,13 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         .collect();
     let roles_str = roles.join(", ");
 
+    // Code de conversion de l'ID depuis String selon id_type
+    let id_parse_code = match r.id_type.as_str() {
+        "I64" => "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().into()))?",
+        "Uuid" => "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".to_string().into()))?",
+        _ => "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().into()))?",
+    };
+
     // AdminResource
     let _ = writeln!(out, "    // ── Ressource : {} ──", key);
     let _ = writeln!(out, "    let meta = AdminResource::new(");
@@ -292,9 +299,10 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // GetFn closure
     let _ = writeln!(
         out,
-        "    let get_fn: GetFn = Arc::new(|db: ADb, id: i32| {{"
+        "    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
+    let _ = writeln!(out, "            {};", id_parse_code);
     let _ = writeln!(
         out,
         "            let row = {}::Entity::find_by_id(id).one(&*db).await?;",
@@ -311,9 +319,10 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // DeleteFn closure
     let _ = writeln!(
         out,
-        "    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: i32| {{"
+        "    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
+    let _ = writeln!(out, "            {};", id_parse_code);
     let _ = writeln!(
         out,
         "            {}::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())",
@@ -338,9 +347,10 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // UpdateFn closure — utilise admin_from_form() généré par le proc-macro
     let _ = writeln!(
         out,
-        "    let update_fn: UpdateFn = Arc::new(|db: ADb, id: i32, data: StrMap| {{"
+        "    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
+    let _ = writeln!(out, "            {};", id_parse_code);
     let _ = writeln!(
         out,
         "            {}::admin_from_form(&data, Some(id))",
