@@ -1,8 +1,7 @@
 use crate::context::Request;
 use crate::flash::Message;
-use crate::middleware::auth::{get_user_id, is_authenticated};
 use crate::utils::aliases::AEngine;
-use crate::utils::csrf::{CsrfContext, CsrfToken};
+use crate::utils::csrf::CsrfToken;
 use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode};
 use tower_sessions::Session;
 
@@ -26,7 +25,6 @@ where
     /// Constructeur de contexte depuis les extensions Axum
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // 1. Récupération de l'engine depuis les extensions
-        // Injecté via un middleware lors du setup de l'application
         let engine = parts
             .extensions
             .get::<AEngine>()
@@ -38,42 +36,13 @@ where
             .get::<Session>()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // 3. Récupération ou génération du token CSRF
-        // On regarde d'abord si un token est déjà présent dans les extensions
-        // Injecté par ton middleware CSRF
-        let csrf_token: CsrfToken = if let Some(token) = parts.extensions.get::<CsrfToken>() {
-            token.clone()
-        } else {
-            // Génération d'un token selon que l'utilisateur est connecté ou non
-            if is_authenticated(session).await {
-                // Récupère l'ID réel de l'utilisateur connecté
-                if let Some(user_id) = get_user_id(session).await {
-                    // Génère un token lié à l'utilisateur connecté
-                    CsrfToken::generate_with_context(
-                        CsrfContext::Authenticated { user_id },
-                        &engine.config.server.secret_key,
-                    )
-                } else {
-                    // Fallback : token anonyme si impossible de récupérer l'ID
-                    let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
-                    CsrfToken::generate_with_context(
-                        CsrfContext::Anonymous {
-                            session_id: &session_id,
-                        },
-                        &engine.config.server.secret_key,
-                    )
-                }
-            } else {
-                // Génère un token lié à la session anonyme
-                let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
-                CsrfToken::generate_with_context(
-                    CsrfContext::Anonymous {
-                        session_id: &session_id,
-                    },
-                    &engine.config.server.secret_key,
-                )
-            }
-        };
+        // 3. Lecture du token CSRF injecté par le middleware CSRF
+        // Si absent, le middleware n'est pas branché — erreur serveur
+        let csrf_token = parts
+            .extensions
+            .get::<CsrfToken>()
+            .cloned()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 4. Construction du contexte complet
         Ok(Self {
@@ -81,7 +50,7 @@ where
             tpl: Request::new(
                 engine.clone(),
                 session.clone(),
-                csrf_token.clone(),
+                csrf_token,
                 parts.method.clone(),
             ),
             flash: Message {
