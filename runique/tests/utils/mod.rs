@@ -5,3 +5,4 @@ pub mod test_init_logging;
 pub mod test_lecture_env;
 pub mod test_password;
 pub mod test_sanitizer;
+pub mod env;

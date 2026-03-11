@@ -2,6 +2,7 @@
 
 use runique::config::app::RuniqueConfig;
 use serial_test::serial;
+use crate::utils::env::{set_env, del_env};
 
 // ═══════════════════════════════════════════════════════════════
 // Default derive
@@ -40,9 +41,7 @@ fn test_runique_config_clone() {
 #[test]
 #[serial]
 fn test_runique_config_from_env_base_dir_defaut() {
-    unsafe {
-        std::env::remove_var("BASE_DIR");
-    }
+    del_env("BASE_DIR");
     let cfg = RuniqueConfig::from_env();
     assert_eq!(cfg.base_dir, ".");
 }
@@ -50,55 +49,39 @@ fn test_runique_config_from_env_base_dir_defaut() {
 #[test]
 #[serial]
 fn test_runique_config_from_env_base_dir_personnalise() {
-    unsafe {
-        std::env::set_var("BASE_DIR", "/srv/app");
-    }
+    set_env("BASE_DIR", "/srv/app");
     let cfg = RuniqueConfig::from_env();
     assert_eq!(cfg.base_dir, "/srv/app");
-    unsafe {
-        std::env::remove_var("BASE_DIR");
-    }
+    del_env("BASE_DIR");
 }
 
 #[test]
 #[serial]
 fn test_runique_config_from_env_debug_true() {
-    unsafe {
-        std::env::set_var("DEBUG", "true");
-    }
+    set_env("DEBUG", "true");
     let cfg = RuniqueConfig::from_env();
     assert!(cfg.debug);
-    unsafe {
-        std::env::remove_var("DEBUG");
-    }
+    del_env("DEBUG");
 }
 
 #[test]
 #[serial]
 fn test_runique_config_from_env_debug_false() {
-    unsafe {
-        std::env::set_var("DEBUG", "false");
-    }
+    set_env("DEBUG", "false");
     let cfg = RuniqueConfig::from_env();
     assert!(!cfg.debug);
-    unsafe {
-        std::env::remove_var("DEBUG");
-    }
+    del_env("DEBUG");
 }
 
 #[test]
 #[serial]
 fn test_runique_config_from_env_debug_invalide_utilise_assertions() {
-    unsafe {
-        std::env::set_var("DEBUG", "pas_un_bool");
-    }
+    set_env("DEBUG", "pas_un_bool");
     let cfg = RuniqueConfig::from_env();
     // Valeur invalide → retombe sur cfg!(debug_assertions)
     // En mode test, debug_assertions est true
     assert_eq!(cfg.debug, cfg!(debug_assertions));
-    unsafe {
-        std::env::remove_var("DEBUG");
-    }
+    del_env("DEBUG");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -108,10 +91,8 @@ fn test_runique_config_from_env_debug_invalide_utilise_assertions() {
 #[test]
 #[serial]
 fn test_runique_config_from_env_contient_server_config() {
-    unsafe {
-        std::env::remove_var("IP_SERVER");
-        std::env::remove_var("PORT");
-    }
+    del_env("IP_SERVER");
+    del_env("PORT");
     let cfg = RuniqueConfig::from_env();
     // ServerConfig::from_env() donne ip="127.0.0.1" par défaut
     assert_eq!(cfg.server.ip_server, "127.0.0.1");
@@ -120,9 +101,7 @@ fn test_runique_config_from_env_contient_server_config() {
 #[test]
 #[serial]
 fn test_runique_config_from_env_contient_security_config() {
-    unsafe {
-        std::env::remove_var("SANITIZE_INPUTS");
-    }
+    del_env("SANITIZE_INPUTS");
     let cfg = RuniqueConfig::from_env();
     assert!(cfg.security.sanitize_inputs);
 }
@@ -130,9 +109,7 @@ fn test_runique_config_from_env_contient_security_config() {
 #[test]
 #[serial]
 fn test_runique_config_from_env_contient_static_config() {
-    unsafe {
-        std::env::remove_var("STATIC_URL");
-    }
+    del_env("STATIC_URL");
     let cfg = RuniqueConfig::from_env();
     assert_eq!(cfg.static_files.static_url, "/static");
 }

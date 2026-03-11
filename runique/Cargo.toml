@@ -81,8 +81,7 @@ country.workspace = true
 postal-code.workspace = true
 dyn-clone.workspace = true
 image.workspace = true
-tempfile.workspace = true
-dialoguer.workspace = true
+
 
 # Logging
 tracing.workspace = true
@@ -109,12 +108,12 @@ derive_form.workspace = true
 clap.workspace = true
 rpassword.workspace = true
 crossterm.workspace = true
+dialoguer.workspace = true
 
-# Probleme memoir
 
 [dev-dependencies]
 serial_test = "3"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "cookies"] }
+reqwest = { version = "0.13.2", features = ["json", "rustls", "cookies"] }
 
 [features]
 default = ["orm", "all-databases"]
