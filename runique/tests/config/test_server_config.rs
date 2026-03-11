@@ -2,17 +2,16 @@
 
 use runique::config::server::ServerConfig;
 use serial_test::serial;
+use crate::utils::env::{set_env, del_env};
 
 // ── Valeurs par défaut (sans variables d'environnement) ────────────────────────
 
 #[test]
 #[serial]
 fn test_server_config_default_ip() {
-        unsafe {
-    std::env::remove_var("IP_SERVER");
-    std::env::remove_var("PORT");
-    std::env::remove_var("SECRET_KEY");
-    }
+    del_env("IP_SERVER");
+    del_env("PORT");
+    del_env("SECRET_KEY");
     let config = ServerConfig::from_env();
     assert_eq!(config.ip_server, "127.0.0.1");
 }
@@ -20,9 +19,7 @@ fn test_server_config_default_ip() {
 #[test]
 #[serial]
 fn test_server_config_default_port() {
-    unsafe {
-        std::env::remove_var("PORT");
-    }
+    del_env("PORT");
     let config = ServerConfig::from_env();
     assert_eq!(config.port, 3000);
 }
@@ -30,9 +27,7 @@ fn test_server_config_default_port() {
 #[test]
 #[serial]
 fn test_server_config_default_secret_key() {
-    unsafe {
-        std::env::remove_var("SECRET_KEY");
-    }
+    del_env("SECRET_KEY");
     let config = ServerConfig::from_env();
     assert_eq!(config.secret_key, "default_secret_key");
 }
@@ -40,10 +35,8 @@ fn test_server_config_default_secret_key() {
 #[test]
 #[serial]
 fn test_server_config_domain_server_construit_correctement() {
-    unsafe {
-    std::env::remove_var("IP_SERVER");
-    std::env::remove_var("PORT");
-    }
+    del_env("IP_SERVER");
+    del_env("PORT");
     let config = ServerConfig::from_env();
     assert_eq!(
         config.domain_server,
@@ -56,68 +49,48 @@ fn test_server_config_domain_server_construit_correctement() {
 #[test]
 #[serial]
 fn test_server_config_ip_personnalise() {
-    unsafe {
-    std::env::set_var("IP_SERVER", "0.0.0.0");
-    }
+    set_env("IP_SERVER", "0.0.0.0");
     let config = ServerConfig::from_env();
     assert_eq!(config.ip_server, "0.0.0.0");
-    unsafe {
-        std::env::remove_var("IP_SERVER");
-    }
+    del_env("IP_SERVER");
 }
 
 #[test]
 #[serial]
 fn test_server_config_port_personnalise() {
-    unsafe {
-        std::env::set_var("PORT", "8080");
-    }
+    set_env("PORT", "8080");
     let config = ServerConfig::from_env();
     assert_eq!(config.port, 8080);
-    unsafe {
-        std::env::remove_var("PORT");
-    }
+    del_env("PORT");
 }
 
 #[test]
 #[serial]
 fn test_server_config_secret_key_personnalise() {
-    unsafe {
-        std::env::set_var("SECRET_KEY", "ma_cle_super_secrete");
-    }
+    set_env("SECRET_KEY", "ma_cle_super_secrete");
     let config = ServerConfig::from_env();
     assert_eq!(config.secret_key, "ma_cle_super_secrete");
-    unsafe {
-        std::env::remove_var("SECRET_KEY");
-    }
+    del_env("SECRET_KEY");
 }
 
 #[test]
 #[serial]
 fn test_server_config_domain_server_avec_ip_et_port_personnalises() {
-    unsafe {
-        std::env::set_var("IP_SERVER", "10.0.0.1");
-        std::env::set_var("PORT", "9000");
-    }
+    set_env("IP_SERVER", "10.0.0.1");
+    set_env("PORT", "9000");
     let config = ServerConfig::from_env();
     assert_eq!(config.domain_server, "10.0.0.1:9000");
-    unsafe {
-        std::env::remove_var("IP_SERVER");
-        std::env::remove_var("PORT");
-    }
+    del_env("IP_SERVER");
+    del_env("PORT");
 }
 
 #[test]
 #[serial]
 fn test_server_config_port_invalide_utilise_defaut() {
-    unsafe {
-        std::env::set_var("PORT", "pas_un_nombre");
-    }
+    set_env("PORT", "pas_un_nombre");
     let config = ServerConfig::from_env();
     assert_eq!(config.port, 3000);
-    unsafe {
-        std::env::remove_var("PORT");
-    }
+    del_env("PORT");
 }
 
 // ── Clone et Default ───────────────────────────────────────────────────────────

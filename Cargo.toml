@@ -57,7 +57,6 @@ country = "0.5.0"
 postal-code = "0.3.0"
 dyn-clone = "1.0.20"
 image = "0.25.10"
-tempfile = "3.24.0"
 dialoguer = "0.12"
 
 derive_form = "1.1.32"
