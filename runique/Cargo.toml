@@ -92,7 +92,6 @@ thiserror.workspace = true
 
 # Async
 async-trait.workspace = true
-once_cell.workspace = true
 
 # Validation
 validator.workspace = true

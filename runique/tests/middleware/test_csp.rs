@@ -95,34 +95,48 @@ fn test_permissive_frame_ancestors_self() {
 #[test]
 #[serial]
 fn test_from_env_custom_default_src() {
+    unsafe {
     std::env::set_var("RUNIQUE_POLICY_CSP_DEFAULT", "'self', cdn.example.com");
+    }
     let policy = SecurityPolicy::from_env();
     assert!(policy.default_src.contains(&"cdn.example.com".to_string()));
+    unsafe {
     std::env::remove_var("RUNIQUE_POLICY_CSP_DEFAULT");
+    }
 }
 
 #[test]
 #[serial]
 fn test_from_env_custom_scripts() {
+    unsafe {
     std::env::set_var("RUNIQUE_POLICY_CSP_SCRIPTS", "'self', cdn.js.com");
+    }
     let policy = SecurityPolicy::from_env();
     assert!(policy.script_src.contains(&"cdn.js.com".to_string()));
-    std::env::remove_var("RUNIQUE_POLICY_CSP_SCRIPTS");
+    unsafe {
+        std::env::remove_var("RUNIQUE_POLICY_CSP_SCRIPTS");
+    }
 }
 
 #[test]
 #[serial]
 fn test_from_env_nonce_false() {
-    std::env::set_var("RUNIQUE_POLICY_CSP_STRICT_NONCE", "false");
+    unsafe {
+        std::env::set_var("RUNIQUE_POLICY_CSP_STRICT_NONCE", "false");
+    }
     let policy = SecurityPolicy::from_env();
     assert!(!policy.use_nonce);
-    std::env::remove_var("RUNIQUE_POLICY_CSP_STRICT_NONCE");
+    unsafe {
+        std::env::remove_var("RUNIQUE_POLICY_CSP_STRICT_NONCE");
+    }
 }
 
 #[test]
 #[serial]
 fn test_from_env_nonce_true_by_default() {
-    std::env::remove_var("RUNIQUE_POLICY_CSP_STRICT_NONCE");
+    unsafe {
+        std::env::remove_var("RUNIQUE_POLICY_CSP_STRICT_NONCE");
+    }
     let policy = SecurityPolicy::from_env();
     assert!(policy.use_nonce);
 }

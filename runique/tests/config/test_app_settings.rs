@@ -44,7 +44,9 @@ fn test_autofield_default_est_autofield() {
 #[test]
 #[serial]
 fn test_autofield_from_env_defaut() {
-    std::env::remove_var("DEFAULT_AUTO_FIELD");
+    unsafe {
+        std::env::remove_var("DEFAULT_AUTO_FIELD");
+    }
     assert!(matches!(
         AutoFieldType::from_env(),
         AutoFieldType::AutoField
@@ -54,12 +56,16 @@ fn test_autofield_from_env_defaut() {
 #[test]
 #[serial]
 fn test_autofield_from_env_big() {
-    std::env::set_var("DEFAULT_AUTO_FIELD", "runique.db.models.BigAutoField");
+    unsafe {
+        std::env::set_var("DEFAULT_AUTO_FIELD", "runique.db.models.BigAutoField");
+    }
     assert!(matches!(
         AutoFieldType::from_env(),
         AutoFieldType::BigAutoField
     ));
-    std::env::remove_var("DEFAULT_AUTO_FIELD");
+    unsafe {
+        std::env::remove_var("DEFAULT_AUTO_FIELD");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -69,7 +75,9 @@ fn test_autofield_from_env_big() {
 #[test]
 #[serial]
 fn test_app_settings_default_language_code() {
-    std::env::remove_var("LANGUAGE_APP");
+    unsafe {
+        std::env::remove_var("LANGUAGE_APP");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.language_code, "en-us");
 }
@@ -77,7 +85,9 @@ fn test_app_settings_default_language_code() {
 #[test]
 #[serial]
 fn test_app_settings_default_time_zone() {
-    std::env::remove_var("TIME_ZONE");
+    unsafe {
+        std::env::remove_var("TIME_ZONE");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.time_zone, "UTC");
 }
@@ -106,7 +116,9 @@ fn test_app_settings_default_middleware_vide() {
 #[test]
 #[serial]
 fn test_app_settings_default_redirect_anonymous() {
-    std::env::remove_var("REDIRECT_ANONYMOUS");
+    unsafe {
+        std::env::remove_var("REDIRECT_ANONYMOUS");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.redirect_anonymous, "/");
 }
@@ -114,7 +126,9 @@ fn test_app_settings_default_redirect_anonymous() {
 #[test]
 #[serial]
 fn test_app_settings_default_logging_required() {
-    std::env::remove_var("LOGGING_URL");
+    unsafe {
+        std::env::remove_var("LOGGING_URL");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.logging_required, "/");
 }
@@ -122,7 +136,9 @@ fn test_app_settings_default_logging_required() {
 #[test]
 #[serial]
 fn test_app_settings_default_user_connected() {
-    std::env::remove_var("USER_CONNECTED_URL");
+    unsafe {
+        std::env::remove_var("USER_CONNECTED_URL");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.user_connected, "/");
 }
@@ -130,7 +146,9 @@ fn test_app_settings_default_user_connected() {
 #[test]
 #[serial]
 fn test_app_settings_default_root_urlconf() {
-    std::env::remove_var("PROJECT_NAME");
+    unsafe {
+        std::env::remove_var("PROJECT_NAME");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.root_urlconf, "myproject.urls");
 }
@@ -142,35 +160,51 @@ fn test_app_settings_default_root_urlconf() {
 #[test]
 #[serial]
 fn test_app_settings_language_code_personnalise() {
+    unsafe {
     std::env::set_var("LANGUAGE_APP", "fr-fr");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.language_code, "fr-fr");
-    std::env::remove_var("LANGUAGE_APP");
+    unsafe {
+        std::env::remove_var("LANGUAGE_APP");
+    }
 }
 
 #[test]
 #[serial]
 fn test_app_settings_time_zone_personnalise() {
-    std::env::set_var("TIME_ZONE", "Europe/Paris");
+    unsafe {
+        std::env::set_var("TIME_ZONE", "Europe/Paris");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.time_zone, "Europe/Paris");
-    std::env::remove_var("TIME_ZONE");
+    unsafe {
+        std::env::remove_var("TIME_ZONE");
+    }
 }
 
 #[test]
 #[serial]
 fn test_app_settings_project_name_modifie_urlconf() {
-    std::env::set_var("PROJECT_NAME", "monprojet");
+    unsafe {
+        std::env::set_var("PROJECT_NAME", "monprojet");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.root_urlconf, "monprojet.urls");
-    std::env::remove_var("PROJECT_NAME");
+    unsafe {
+        std::env::remove_var("PROJECT_NAME");
+    }
 }
 
 #[test]
 #[serial]
 fn test_app_settings_redirect_anonymous_personnalise() {
-    std::env::set_var("REDIRECT_ANONYMOUS", "/login");
+    unsafe {
+        std::env::set_var("REDIRECT_ANONYMOUS", "/login");
+    }
     let cfg = AppSettings::from_env();
     assert_eq!(cfg.redirect_anonymous, "/login");
-    std::env::remove_var("REDIRECT_ANONYMOUS");
+    unsafe {
+        std::env::remove_var("REDIRECT_ANONYMOUS");
+    }
 }

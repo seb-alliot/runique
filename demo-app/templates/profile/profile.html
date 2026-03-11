@@ -1,5 +1,8 @@
 {% extends "index.html" %}
-
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/profil.css" %}'>
+{% endblock %}
 {% block content %}
 <div class="container">
     {% block messages %}
@@ -42,7 +45,7 @@
                     {% if profile_user.created_at %}
                         <div class="profile-row">
                             <span class="label">Membre depuis</span>
-                            <span class="value">{{ profile_user.created_at }}</span>
+                            <span class="value">{{ profile_user.created_at | date(format="%d/%m/%Y") }}</span>
                         </div>
                     {% endif %}
                 </div>

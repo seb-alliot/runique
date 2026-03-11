@@ -3,8 +3,8 @@
 
 use runique::prelude::*;
 
-use crate::entities::blog;
 use crate::entities::users;
+use crate::entities::blog;
 
 // ── DynForm wrapper pour users::AdminForm ──
 struct UsersAdminFormDynWrapper(pub users::AdminForm);
@@ -63,32 +63,31 @@ pub fn admin_register() -> AdminRegistry {
         "Utilisateurs",
         vec!["admin".to_string()],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
-            Box::pin(async move {
-                let form = users::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-                Box::new(UsersAdminFormDynWrapper(form)) as Box<dyn DynForm>
-            })
-        });
+    let form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+        Box::pin(async move {
+            let form = users::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+            Box::new(UsersAdminFormDynWrapper(form)) as Box<dyn DynForm>
+        })
+    });
 
     let list_fn: ListFn = Arc::new(|db: ADb| {
         Box::pin(async move {
             let rows = users::Entity::find().all(&*db).await?;
-            Ok(rows
-                .into_iter()
+            Ok(rows.into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect())
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { users::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb| {
+        Box::pin(async move {
+            users::Entity::find().count(&*db).await
+        })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = users::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -96,9 +95,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             users::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -106,21 +103,15 @@ pub fn admin_register() -> AdminRegistry {
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             users::admin_from_form(&data, None)
-                .insert(&*db)
-                .await
-                .map(|_| ())
+                .insert(&*db).await.map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id
-                .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             users::admin_from_form(&data, Some(id))
-                .update(&*db)
-                .await
-                .map(|_| ())
+                .update(&*db).await.map(|_| ())
         })
     });
 
@@ -131,7 +122,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
-            .with_count_fn(count_fn),
+            .with_count_fn(count_fn)
     );
 
     // ── Ressource : blog ──
@@ -142,32 +133,31 @@ pub fn admin_register() -> AdminRegistry {
         "Articles",
         vec!["admin".to_string()],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
-            Box::pin(async move {
-                let form = blog::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-                Box::new(BlogAdminFormDynWrapper(form)) as Box<dyn DynForm>
-            })
-        });
+    let form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+        Box::pin(async move {
+            let form = blog::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+            Box::new(BlogAdminFormDynWrapper(form)) as Box<dyn DynForm>
+        })
+    });
 
     let list_fn: ListFn = Arc::new(|db: ADb| {
         Box::pin(async move {
             let rows = blog::Entity::find().all(&*db).await?;
-            Ok(rows
-                .into_iter()
+            Ok(rows.into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
                 .collect())
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { blog::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb| {
+        Box::pin(async move {
+            blog::Entity::find().count(&*db).await
+        })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = blog::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -175,9 +165,7 @@ pub fn admin_register() -> AdminRegistry {
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            let id = id
-                .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             blog::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -185,21 +173,15 @@ pub fn admin_register() -> AdminRegistry {
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             blog::admin_from_form(&data, None)
-                .insert(&*db)
-                .await
-                .map(|_| ())
+                .insert(&*db).await.map(|_| ())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-            let id = id
-                .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let id = id.parse::<i32>().map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             blog::admin_from_form(&data, Some(id))
-                .update(&*db)
-                .await
-                .map(|_| ())
+                .update(&*db).await.map(|_| ())
         })
     });
 
@@ -210,7 +192,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
-            .with_count_fn(count_fn),
+            .with_count_fn(count_fn)
     );
 
     registry
@@ -226,14 +208,8 @@ pub fn routes(prefix: &str) -> runique::axum::Router {
         config: config.clone(),
     });
     runique::axum::Router::new()
-        .route(
-            &format!("{}/{{resource}}/{{action}}", p),
-            get(admin_get).post(admin_post),
-        )
-        .route(
-            &format!("{}/{{resource}}/{{id}}/{{action}}", p),
-            get(admin_get_id).post(admin_post_id),
-        )
+        .route(&format!("{}/{{resource}}/{{action}}", p), get(admin_get).post(admin_post))
+        .route(&format!("{}/{{resource}}/{{id}}/{{action}}", p), get(admin_get_id).post(admin_post_id))
         .layer(Extension(state))
 }
 

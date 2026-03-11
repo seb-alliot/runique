@@ -8,7 +8,9 @@ use serial_test::serial;
 #[test]
 #[serial]
 fn test_security_config_defaults_sanitize_inputs() {
+    unsafe {
     std::env::remove_var("SANITIZE_INPUTS");
+    }
     let config = SecurityConfig::from_env();
     assert!(
         config.sanitize_inputs,
@@ -19,7 +21,9 @@ fn test_security_config_defaults_sanitize_inputs() {
 #[test]
 #[serial]
 fn test_security_config_defaults_strict_csp() {
+    unsafe {
     std::env::remove_var("STRICT_CSP");
+    }
     let config = SecurityConfig::from_env();
     assert!(config.strict_csp, "strict_csp doit être true par défaut");
 }
@@ -27,7 +31,9 @@ fn test_security_config_defaults_strict_csp() {
 #[test]
 #[serial]
 fn test_security_config_defaults_rate_limiting() {
-    std::env::remove_var("RATE_LIMITING");
+    unsafe {
+        std::env::remove_var("RATE_LIMITING");
+    }
     let config = SecurityConfig::from_env();
     assert!(
         config.rate_limiting,
@@ -38,7 +44,9 @@ fn test_security_config_defaults_rate_limiting() {
 #[test]
 #[serial]
 fn test_security_config_defaults_enforce_https() {
-    std::env::remove_var("ENFORCE_HTTPS");
+    unsafe {
+        std::env::remove_var("ENFORCE_HTTPS");
+    }
     let config = SecurityConfig::from_env();
     assert!(
         !config.enforce_https,
@@ -49,7 +57,9 @@ fn test_security_config_defaults_enforce_https() {
 #[test]
 #[serial]
 fn test_security_config_defaults_allowed_hosts() {
-    std::env::remove_var("ALLOWED_HOSTS");
+    unsafe {
+        std::env::remove_var("ALLOWED_HOSTS");
+    }
     let config = SecurityConfig::from_env();
     assert!(
         config.allowed_hosts.contains(&"localhost".to_string()),
@@ -66,59 +76,83 @@ fn test_security_config_defaults_allowed_hosts() {
 #[test]
 #[serial]
 fn test_security_config_sanitize_inputs_false() {
-    std::env::set_var("SANITIZE_INPUTS", "false");
+    unsafe {
+        std::env::set_var("SANITIZE_INPUTS", "false");
+    }
     let config = SecurityConfig::from_env();
     assert!(!config.sanitize_inputs);
-    std::env::remove_var("SANITIZE_INPUTS");
+    unsafe {
+        std::env::remove_var("SANITIZE_INPUTS");
+    }
 }
 
 #[test]
 #[serial]
 fn test_security_config_strict_csp_false() {
-    std::env::set_var("STRICT_CSP", "false");
+    unsafe {
+        std::env::set_var("STRICT_CSP", "false");
+    }
     let config = SecurityConfig::from_env();
     assert!(!config.strict_csp);
-    std::env::remove_var("STRICT_CSP");
+    unsafe {
+        std::env::remove_var("STRICT_CSP");
+    }
 }
 
 #[test]
 #[serial]
 fn test_security_config_enforce_https_true() {
-    std::env::set_var("ENFORCE_HTTPS", "true");
+    unsafe {
+        std::env::set_var("ENFORCE_HTTPS", "true");
+    }
     let config = SecurityConfig::from_env();
     assert!(config.enforce_https);
-    std::env::remove_var("ENFORCE_HTTPS");
+    unsafe {
+        std::env::remove_var("ENFORCE_HTTPS");
+    }
 }
 
 #[test]
 #[serial]
 fn test_security_config_rate_limiting_false() {
-    std::env::set_var("RATE_LIMITING", "false");
+    unsafe {
+        std::env::set_var("RATE_LIMITING", "false");
+    }
     let config = SecurityConfig::from_env();
     assert!(!config.rate_limiting);
-    std::env::remove_var("RATE_LIMITING");
+    unsafe {
+        std::env::remove_var("RATE_LIMITING");
+    }
 }
 
 #[test]
 #[serial]
 fn test_security_config_allowed_hosts_personnalises() {
-    std::env::set_var("ALLOWED_HOSTS", "example.com, api.example.com");
+    unsafe {
+        std::env::set_var("ALLOWED_HOSTS", "example.com, api.example.com");
+    }
     let config = SecurityConfig::from_env();
     assert!(config.allowed_hosts.contains(&"example.com".to_string()));
     assert!(config
         .allowed_hosts
         .contains(&"api.example.com".to_string()));
-    std::env::remove_var("ALLOWED_HOSTS");
+    unsafe {
+        std::env::remove_var("ALLOWED_HOSTS");
+    }
 }
 
 #[test]
 #[serial]
 fn test_security_config_allowed_hosts_un_seul() {
-    std::env::set_var("ALLOWED_HOSTS", "monsite.fr");
+    unsafe {
+        std::env::set_var("ALLOWED_HOSTS", "monsite.fr");
+    }
     let config = SecurityConfig::from_env();
     assert_eq!(config.allowed_hosts.len(), 1);
     assert_eq!(config.allowed_hosts[0], "monsite.fr");
-    std::env::remove_var("ALLOWED_HOSTS");
+    unsafe {
+        std::env::remove_var("ALLOWED_HOSTS");
+    }
 }
 
 // ── Clone et Debug ─────────────────────────────────────────────────────────────
