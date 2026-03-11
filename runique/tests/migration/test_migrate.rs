@@ -234,8 +234,9 @@ async fn test_down_sans_fichiers_avec_applied() {
 #[tokio::test]
 #[serial]
 async fn test_down_sans_database_url_retourne_err() {
+    unsafe {
     std::env::remove_var("DATABASE_URL");
-
+    }
     let dir = temp_dir("down_no_url");
     let applied = applied_dir(&dir);
     let users_dir = applied.join("users");
@@ -268,7 +269,9 @@ async fn test_down_fichier_inexistant_retourne_err() {
         Ok(url) => url,
         Err(_) => return,
     };
-    std::env::set_var("DATABASE_URL", &pg_url);
+    unsafe {
+        std::env::set_var("DATABASE_URL", &pg_url);
+    }
 
     let dir = temp_dir("down_no_file");
     applied_dir(&dir);
@@ -281,7 +284,9 @@ async fn test_down_fichier_inexistant_retourne_err() {
     .await;
     assert!(result.is_err(), "down() fichier inexistant doit Err");
 
-    std::env::remove_var("DATABASE_URL");
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -296,7 +301,9 @@ async fn test_down_batch_inexistant_retourne_err() {
         Ok(url) => url,
         Err(_) => return,
     };
-    std::env::set_var("DATABASE_URL", &pg_url);
+    unsafe {
+        std::env::set_var("DATABASE_URL", &pg_url);
+    }
 
     let dir = temp_dir("down_batch_no");
     applied_dir(&dir);
@@ -309,7 +316,9 @@ async fn test_down_batch_inexistant_retourne_err() {
     .await;
     assert!(result.is_err(), "down() batch inexistant doit Err");
 
-    std::env::remove_var("DATABASE_URL");
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -324,7 +333,9 @@ async fn test_down_drop_table_postgres() {
     };
 
     let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
-    std::env::set_var("DATABASE_URL", &pg_url);
+    unsafe {
+        std::env::set_var("DATABASE_URL", &pg_url);
+    }
 
     let table = "rq_test_drop_pg";
     db_pg::exec(&db, &format!("DROP TABLE IF EXISTS \"{}\"", table)).await;
@@ -358,7 +369,9 @@ async fn test_down_drop_table_postgres() {
     );
 
     db_pg::exec(&db, &format!("DROP TABLE IF EXISTS \"{}\"", table)).await;
-    std::env::remove_var("DATABASE_URL");
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
 }
 
 #[tokio::test]
@@ -369,7 +382,9 @@ async fn test_down_drop_column_postgres() {
     };
 
     let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
-    std::env::set_var("DATABASE_URL", &pg_url);
+    unsafe {
+        std::env::set_var("DATABASE_URL", &pg_url);
+    }
 
     let table = "rq_test_drop_col_pg";
     db_pg::exec(&db, &format!("DROP TABLE IF EXISTS \"{}\"", table)).await;
@@ -406,7 +421,9 @@ async fn test_down_drop_column_postgres() {
     );
 
     db_pg::exec(&db, &format!("DROP TABLE IF EXISTS \"{}\"", table)).await;
-    std::env::remove_var("DATABASE_URL");
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -426,7 +443,9 @@ async fn test_down_drop_table_mariadb() {
     } else {
         mariadb_url.replacen("mariadb://", "mysql://", 1)
     };
-    std::env::set_var("DATABASE_URL", &mysql_url);
+    unsafe {
+        std::env::set_var("DATABASE_URL", &mysql_url);
+    }
 
     let table = "rq_test_drop_maria";
     db_maria::exec(&db, &format!("DROP TABLE IF EXISTS `{}`", table)).await;
@@ -463,7 +482,9 @@ async fn test_down_drop_table_mariadb() {
     );
 
     db_maria::exec(&db, &format!("DROP TABLE IF EXISTS `{}`", table)).await;
-    std::env::remove_var("DATABASE_URL");
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -478,7 +499,9 @@ async fn test_down_batch_postgres() {
     };
 
     let pg_url = std::env::var("DATABASE_URL_PG").unwrap();
-    std::env::set_var("DATABASE_URL", &pg_url);
+    unsafe {
+        std::env::set_var("DATABASE_URL", &pg_url);
+    }
 
     let table = "rq_test_batch_pg";
     db_pg::exec(&db, &format!("DROP TABLE IF EXISTS \"{}\"", table)).await;
@@ -507,5 +530,7 @@ async fn test_down_batch_postgres() {
     );
 
     db_pg::exec(&db, &format!("DROP TABLE IF EXISTS \"{}\"", table)).await;
-    std::env::remove_var("DATABASE_URL");
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
 }

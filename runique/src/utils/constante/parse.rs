@@ -1,21 +1,21 @@
 use fancy_regex::Regex;
-use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 
-pub static CONSTRAINT_REGEX: Lazy<Regex> = Lazy::new(|| {
+pub static CONSTRAINT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"(?:constraint|contrainte\s+unique)\s+(?:["«])?([a-zA-Z0-9_]+)(?:["»])?"#).unwrap()
 });
 
-pub static KEY_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"Key\s+\(([^)]+)\)").unwrap());
+pub static KEY_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Key\s+\(([^)]+)\)").unwrap());
 
-pub static FAILED_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"failed:\s+[a-zA-Z0-9_]+\.([a-zA-Z0-9_]+)").unwrap());
+pub static FAILED_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"failed:\s+[a-zA-Z0-9_]+\.([a-zA-Z0-9_]+)").unwrap());
 
-pub static FOR_KEY_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"for\s+key\s+'[^.]+\.([^']+)'").unwrap());
+pub static FOR_KEY_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"for\s+key\s+'[^.]+\.([^']+)'").unwrap());
 
 /// Fields allowed to contain rich HTML
-pub static RICH_CONTENT_FIELDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+pub static RICH_CONTENT_FIELDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
         "content",
         "description",
@@ -29,7 +29,7 @@ pub static RICH_CONTENT_FIELDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 });
 
 /// HTML Policy: allowed tags (security)
-pub static ALLOWED_TAGS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+pub static ALLOWED_TAGS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
         "p",
         "br",
@@ -52,7 +52,7 @@ pub static ALLOWED_TAGS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 });
 
 /// HTML Policy: allowed attributes per tag
-pub static ALLOWED_ATTRS: Lazy<HashMap<&'static str, HashSet<&'static str>>> = Lazy::new(|| {
+pub static ALLOWED_ATTRS: LazyLock<HashMap<&'static str, HashSet<&'static str>>> = LazyLock::new(|| {
     let mut map = HashMap::new();
     map.insert("a", HashSet::from(["href", "title", "target"]));
     map

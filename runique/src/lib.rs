@@ -30,7 +30,7 @@ pub use async_trait;
 pub use axum;
 pub use chrono;
 pub use hmac;
-pub use once_cell;
+pub use std::sync::LazyLock;
 pub use regex;
 #[cfg(feature = "orm")]
 pub use sea_orm;
@@ -152,7 +152,7 @@ pub mod prelude {
     // ASYNC & TOKIO
     // ========================================================================
     pub use async_trait::async_trait;
-    pub use once_cell::sync::Lazy;
+    pub use std::sync::LazyLock;
     pub use tokio;
 
     // ========================================================================

@@ -8,9 +8,11 @@ use serial_test::serial;
 #[test]
 #[serial]
 fn test_server_config_default_ip() {
+        unsafe {
     std::env::remove_var("IP_SERVER");
     std::env::remove_var("PORT");
     std::env::remove_var("SECRET_KEY");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(config.ip_server, "127.0.0.1");
 }
@@ -18,7 +20,9 @@ fn test_server_config_default_ip() {
 #[test]
 #[serial]
 fn test_server_config_default_port() {
-    std::env::remove_var("PORT");
+    unsafe {
+        std::env::remove_var("PORT");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(config.port, 3000);
 }
@@ -26,7 +30,9 @@ fn test_server_config_default_port() {
 #[test]
 #[serial]
 fn test_server_config_default_secret_key() {
-    std::env::remove_var("SECRET_KEY");
+    unsafe {
+        std::env::remove_var("SECRET_KEY");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(config.secret_key, "default_secret_key");
 }
@@ -34,8 +40,10 @@ fn test_server_config_default_secret_key() {
 #[test]
 #[serial]
 fn test_server_config_domain_server_construit_correctement() {
+    unsafe {
     std::env::remove_var("IP_SERVER");
     std::env::remove_var("PORT");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(
         config.domain_server,
@@ -48,48 +56,68 @@ fn test_server_config_domain_server_construit_correctement() {
 #[test]
 #[serial]
 fn test_server_config_ip_personnalise() {
+    unsafe {
     std::env::set_var("IP_SERVER", "0.0.0.0");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(config.ip_server, "0.0.0.0");
-    std::env::remove_var("IP_SERVER");
+    unsafe {
+        std::env::remove_var("IP_SERVER");
+    }
 }
 
 #[test]
 #[serial]
 fn test_server_config_port_personnalise() {
-    std::env::set_var("PORT", "8080");
+    unsafe {
+        std::env::set_var("PORT", "8080");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(config.port, 8080);
-    std::env::remove_var("PORT");
+    unsafe {
+        std::env::remove_var("PORT");
+    }
 }
 
 #[test]
 #[serial]
 fn test_server_config_secret_key_personnalise() {
-    std::env::set_var("SECRET_KEY", "ma_cle_super_secrete");
+    unsafe {
+        std::env::set_var("SECRET_KEY", "ma_cle_super_secrete");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(config.secret_key, "ma_cle_super_secrete");
-    std::env::remove_var("SECRET_KEY");
+    unsafe {
+        std::env::remove_var("SECRET_KEY");
+    }
 }
 
 #[test]
 #[serial]
 fn test_server_config_domain_server_avec_ip_et_port_personnalises() {
-    std::env::set_var("IP_SERVER", "10.0.0.1");
-    std::env::set_var("PORT", "9000");
+    unsafe {
+        std::env::set_var("IP_SERVER", "10.0.0.1");
+        std::env::set_var("PORT", "9000");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(config.domain_server, "10.0.0.1:9000");
-    std::env::remove_var("IP_SERVER");
-    std::env::remove_var("PORT");
+    unsafe {
+        std::env::remove_var("IP_SERVER");
+        std::env::remove_var("PORT");
+    }
 }
 
 #[test]
 #[serial]
 fn test_server_config_port_invalide_utilise_defaut() {
-    std::env::set_var("PORT", "pas_un_nombre");
+    unsafe {
+        std::env::set_var("PORT", "pas_un_nombre");
+    }
     let config = ServerConfig::from_env();
     assert_eq!(config.port, 3000);
-    std::env::remove_var("PORT");
+    unsafe {
+        std::env::remove_var("PORT");
+    }
 }
 
 // ── Clone et Default ───────────────────────────────────────────────────────────

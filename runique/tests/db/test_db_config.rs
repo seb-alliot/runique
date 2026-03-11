@@ -233,10 +233,11 @@ fn test_builder_chaining() {
 #[test]
 #[serial]
 fn test_from_env_sqlite_par_defaut() {
+    unsafe {
     std::env::remove_var("DB_ENGINE");
     std::env::remove_var("DB_NAME");
     std::env::remove_var("DB_URL");
-
+    }
     let result = DatabaseConfig::from_env();
     assert!(result.is_ok(), "sqlite sans vars doit Ok");
     let config = result.unwrap().build();
@@ -247,73 +248,84 @@ fn test_from_env_sqlite_par_defaut() {
 #[test]
 #[serial]
 fn test_from_env_sqlite_avec_nom() {
+    unsafe {
     std::env::set_var("DB_ENGINE", "sqlite");
     std::env::set_var("DB_NAME", "myapp.sqlite");
+    }
 
     let result = DatabaseConfig::from_env();
     assert!(result.is_ok(), "sqlite avec DB_NAME doit Ok");
     let config = result.unwrap().build();
     assert_eq!(config.engine, DatabaseEngine::SQLite);
     assert!(config.url.contains("myapp.sqlite"));
-
-    std::env::remove_var("DB_ENGINE");
-    std::env::remove_var("DB_NAME");
+    unsafe {
+        std::env::remove_var("DB_ENGINE");
+        std::env::remove_var("DB_NAME");
+    }
 }
 
 #[test]
 #[serial]
 fn test_from_env_postgres_sans_user_retourne_err() {
+    unsafe {
     std::env::set_var("DB_ENGINE", "postgres");
     std::env::remove_var("DB_USER");
     std::env::remove_var("DB_PASSWORD");
     std::env::remove_var("DB_NAME");
-
+    }
     let result = DatabaseConfig::from_env();
     assert!(result.is_err(), "postgres sans DB_USER doit Err");
-
+    unsafe {
     std::env::remove_var("DB_ENGINE");
+    }
 }
 
 #[test]
 #[serial]
 fn test_from_env_postgres_sans_password_retourne_err() {
+    unsafe {
     std::env::set_var("DB_ENGINE", "postgres");
     std::env::set_var("DB_USER", "myuser");
     std::env::remove_var("DB_PASSWORD");
     std::env::remove_var("DB_NAME");
-
+    }
     let result = DatabaseConfig::from_env();
     assert!(result.is_err(), "postgres sans DB_PASSWORD doit Err");
-
+    unsafe {
     std::env::remove_var("DB_ENGINE");
     std::env::remove_var("DB_USER");
+    }
 }
 
 #[test]
 #[serial]
 fn test_from_env_postgres_sans_dbname_retourne_err() {
+    unsafe {
     std::env::set_var("DB_ENGINE", "postgres");
     std::env::set_var("DB_USER", "myuser");
     std::env::set_var("DB_PASSWORD", "secret");
     std::env::remove_var("DB_NAME");
-
+    }
     let result = DatabaseConfig::from_env();
     assert!(result.is_err(), "postgres sans DB_NAME doit Err");
-
+    unsafe {
     std::env::remove_var("DB_ENGINE");
     std::env::remove_var("DB_USER");
     std::env::remove_var("DB_PASSWORD");
+    }
 }
 
 #[test]
 #[serial]
 fn test_from_env_postgres_complet() {
+    unsafe {
     std::env::set_var("DB_ENGINE", "postgres");
     std::env::set_var("DB_USER", "myuser");
     std::env::set_var("DB_PASSWORD", "secret");
     std::env::set_var("DB_HOST", "myhost");
     std::env::set_var("DB_PORT", "5432");
     std::env::set_var("DB_NAME", "mydb");
+    }
 
     let result = DatabaseConfig::from_env();
     assert!(result.is_ok(), "postgres complet doit Ok");
@@ -331,20 +343,23 @@ fn test_from_env_postgres_complet() {
         "DB_PORT",
         "DB_NAME",
     ] {
+        unsafe {
         std::env::remove_var(var);
+        }
     }
 }
 
 #[test]
 #[serial]
 fn test_from_env_mysql_complet() {
+    unsafe {
     std::env::set_var("DB_ENGINE", "mysql");
     std::env::set_var("DB_USER", "mysqluser");
     std::env::set_var("DB_PASSWORD", "mysqlpass");
     std::env::set_var("DB_HOST", "localhost");
     std::env::set_var("DB_PORT", "3306");
     std::env::set_var("DB_NAME", "mysqldb");
-
+    }
     let result = DatabaseConfig::from_env();
     assert!(result.is_ok(), "mysql complet doit Ok");
     let config = result.unwrap().build();
@@ -359,20 +374,23 @@ fn test_from_env_mysql_complet() {
         "DB_PORT",
         "DB_NAME",
     ] {
+        unsafe {
         std::env::remove_var(var);
+        }
     }
 }
 
 #[test]
 #[serial]
 fn test_from_env_mariadb_complet() {
+    unsafe {
     std::env::set_var("DB_ENGINE", "mariadb");
     std::env::set_var("DB_USER", "mariauser");
     std::env::set_var("DB_PASSWORD", "mariapass");
     std::env::set_var("DB_HOST", "localhost");
     std::env::set_var("DB_PORT", "3306");
     std::env::set_var("DB_NAME", "mariadb");
-
+    }
     let result = DatabaseConfig::from_env();
     assert!(result.is_ok(), "mariadb complet doit Ok");
     let config = result.unwrap().build();
@@ -386,20 +404,28 @@ fn test_from_env_mariadb_complet() {
         "DB_PORT",
         "DB_NAME",
     ] {
+        unsafe {
         std::env::remove_var(var);
+        }
     }
 }
 
 #[test]
 #[serial]
 fn test_from_env_engine_inconnu_sans_db_url_retourne_err() {
+    unsafe {
     std::env::set_var("DB_ENGINE", "cassandra");
     std::env::remove_var("DB_URL");
+    }
 
     let result = DatabaseConfig::from_env();
     assert!(result.is_err(), "engine inconnu sans DB_URL doit Err");
-
+    unsafe {
+        std::env::remove_var("DB_ENGINE");
+    }
+    unsafe {
     std::env::remove_var("DB_ENGINE");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════

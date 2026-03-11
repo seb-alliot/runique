@@ -7,7 +7,6 @@ pub struct TestAllFieldsForm {
     pub form: Forms,
 }
 
-#[async_trait::async_trait]
 impl RuniqueForm for TestAllFieldsForm {
     fn register_fields(form: &mut Forms) {
         // ── Text ──

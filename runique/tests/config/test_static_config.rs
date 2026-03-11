@@ -10,7 +10,9 @@ use serial_test::serial;
 #[test]
 #[serial]
 fn test_static_config_default_static_url() {
+    unsafe {
     std::env::remove_var("STATIC_URL");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.static_url, "/static");
 }
@@ -18,7 +20,9 @@ fn test_static_config_default_static_url() {
 #[test]
 #[serial]
 fn test_static_config_default_media_url() {
-    std::env::remove_var("MEDIA_URL");
+    unsafe {
+        std::env::remove_var("MEDIA_URL");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.media_url, "/media");
 }
@@ -26,7 +30,9 @@ fn test_static_config_default_media_url() {
 #[test]
 #[serial]
 fn test_static_config_default_staticfiles_dirs() {
-    std::env::remove_var("STATICFILES_DIRS");
+    unsafe {
+        std::env::remove_var("STATICFILES_DIRS");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.staticfiles_dirs, "static");
 }
@@ -34,7 +40,9 @@ fn test_static_config_default_staticfiles_dirs() {
 #[test]
 #[serial]
 fn test_static_config_default_media_root() {
-    std::env::remove_var("MEDIA_ROOT");
+    unsafe {
+        std::env::remove_var("MEDIA_ROOT");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.media_root, "media");
 }
@@ -42,7 +50,9 @@ fn test_static_config_default_media_root() {
 #[test]
 #[serial]
 fn test_static_config_default_staticfiles() {
-    std::env::remove_var("STATICFILES");
+    unsafe {
+        std::env::remove_var("STATICFILES");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.staticfiles, "default_storage");
 }
@@ -50,7 +60,9 @@ fn test_static_config_default_staticfiles() {
 #[test]
 #[serial]
 fn test_static_config_default_templates_dir() {
-    std::env::remove_var("TEMPLATES_DIR");
+    unsafe {
+        std::env::remove_var("TEMPLATES_DIR");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.templates_dir, vec!["templates".to_string()]);
 }
@@ -58,7 +70,9 @@ fn test_static_config_default_templates_dir() {
 #[test]
 #[serial]
 fn test_static_config_default_static_runique_url() {
-    std::env::remove_var("STATIC_RUNIQUE_URL");
+    unsafe {
+        std::env::remove_var("STATIC_RUNIQUE_URL");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.static_runique_url, "/runique/static");
 }
@@ -66,7 +80,9 @@ fn test_static_config_default_static_runique_url() {
 #[test]
 #[serial]
 fn test_static_config_default_media_runique_url() {
-    std::env::remove_var("MEDIA_RUNIQUE_URL");
+    unsafe {
+        std::env::remove_var("MEDIA_RUNIQUE_URL");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.media_runique_url, "/runique/media");
 }
@@ -74,7 +90,9 @@ fn test_static_config_default_media_runique_url() {
 #[test]
 #[serial]
 fn test_static_config_default_base_dir() {
-    std::env::remove_var("BASE_DIR");
+    unsafe {
+        std::env::remove_var("BASE_DIR");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.base_dir, ".");
 }
@@ -86,39 +104,55 @@ fn test_static_config_default_base_dir() {
 #[test]
 #[serial]
 fn test_static_config_static_url_personnalise() {
-    std::env::set_var("STATIC_URL", "/assets");
+    unsafe {
+        std::env::set_var("STATIC_URL", "/assets");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.static_url, "/assets");
-    std::env::remove_var("STATIC_URL");
+    unsafe {
+        std::env::remove_var("STATIC_URL");
+    }
 }
 
 #[test]
 #[serial]
 fn test_static_config_media_url_personnalise() {
-    std::env::set_var("MEDIA_URL", "/uploads");
+    unsafe {
+        std::env::set_var("MEDIA_URL", "/uploads");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.media_url, "/uploads");
-    std::env::remove_var("MEDIA_URL");
+    unsafe {
+        std::env::remove_var("MEDIA_URL");
+    }
 }
 
 #[test]
 #[serial]
 fn test_static_config_templates_dir_multiples() {
-    std::env::set_var("TEMPLATES_DIR", "templates/front, templates/admin");
+    unsafe {
+        std::env::set_var("TEMPLATES_DIR", "templates/front, templates/admin");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.templates_dir.len(), 2);
     assert_eq!(cfg.templates_dir[0], "templates/front");
     assert_eq!(cfg.templates_dir[1], "templates/admin");
-    std::env::remove_var("TEMPLATES_DIR");
+    unsafe {
+        std::env::remove_var("TEMPLATES_DIR");
+    }
 }
 
 #[test]
 #[serial]
 fn test_static_config_base_dir_personnalise() {
-    std::env::set_var("BASE_DIR", "/app");
+    unsafe {
+        std::env::set_var("BASE_DIR", "/app");
+    }
     let cfg = StaticConfig::from_env();
     assert_eq!(cfg.base_dir, "/app");
-    std::env::remove_var("BASE_DIR");
+    unsafe {
+        std::env::remove_var("BASE_DIR");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════

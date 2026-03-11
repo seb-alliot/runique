@@ -334,7 +334,7 @@ pub async fn upload_image_submit(
     inject_auth(&mut request).await;
     let template = "forms/upload_image.html";
 
-    if request.is_get() && form.is_valid().await {
+    if request.is_get() {
         context_update!(request => {
             "title" => "Uploader un fichier",
             "image_form" => &form,
