@@ -9,17 +9,17 @@
 use std::sync::Arc;
 
 use axum::{
+    Extension,
     body::Body,
     extract::{FromRequest, Path},
     http::{Request as HttpRequest, StatusCode},
     response::{IntoResponse, Redirect, Response},
-    Extension,
 };
 use serde_json::Value;
 
+use crate::admin::AdminRegistry;
 use crate::admin::config::AdminConfig;
 use crate::admin::trad::insert_admin_messages;
-use crate::admin::AdminRegistry;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::flash_now;

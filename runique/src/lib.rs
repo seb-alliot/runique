@@ -30,13 +30,13 @@ pub use async_trait;
 pub use axum;
 pub use chrono;
 pub use hmac;
-pub use std::sync::LazyLock;
 pub use regex;
 #[cfg(feature = "orm")]
 pub use sea_orm;
 pub use serde;
 pub use serde_json;
 pub use sha2;
+pub use std::sync::LazyLock;
 pub use tera;
 pub use tokio;
 pub use tower;
@@ -65,8 +65,10 @@ pub mod prelude {
     pub use crate::engine::RuniqueEngine;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
+        Forms, Prisme,
         field::{FormField, RuniqueForm},
         fields::{
+            CheckboxField, DateField, DurationField, RadioField, TimeField,
             boolean::BooleanField,
             choice::{ChoiceField, ChoiceOption},
             datetime::DateTimeField,
@@ -75,11 +77,9 @@ pub mod prelude {
             number::NumericField,
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,
-            CheckboxField, DateField, DurationField, RadioField, TimeField,
         },
         generic::{FieldKind, GenericField},
         model_form::ModelForm,
-        Forms, Prisme,
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
@@ -90,7 +90,7 @@ pub mod prelude {
     // ========================================================================
     use crate::chrono;
     pub use crate::config::{security::SecurityConfig, server::ServerConfig};
-    pub use crate::utils::trad::{current_lang, set_lang, t, tf, Lang};
+    pub use crate::utils::trad::{Lang, current_lang, set_lang, t, tf};
 
     // ========================================================================
     // UTILS
@@ -115,12 +115,12 @@ pub mod prelude {
     // AXUM & HTTP
     // ========================================================================
     pub use axum::{
+        Json, Router,
         extract::{Extension, Form, FromRequestParts, Path, Query, State},
-        http::{method::*, HeaderMap, HeaderValue, Method, StatusCode},
+        http::{HeaderMap, HeaderValue, Method, StatusCode, method::*},
         middleware,
         response::{Html, IntoResponse, Redirect, Response},
         routing::{any, delete, get, patch, post, put},
-        Json, Router,
     };
 
     // ========================================================================
@@ -131,9 +131,9 @@ pub mod prelude {
     pub use crate::db::{DatabaseConfig, DatabaseConfigBuilder, DatabaseEngine};
     #[cfg(feature = "orm")]
     pub use sea_orm::{
-        self, entity::prelude::*, ActiveModelBehavior, ActiveModelTrait, ColumnTrait,
-        ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, ModelTrait, NotSet,
-        QueryFilter, QueryOrder, QuerySelect, Set,
+        self, ActiveModelBehavior, ActiveModelTrait, ColumnTrait, ConnectOptions, Database,
+        DatabaseConnection, DbErr, EntityTrait, ModelTrait, NotSet, QueryFilter, QueryOrder,
+        QuerySelect, Set, entity::prelude::*,
     };
     pub use sea_orm_migration::sea_query;
 
@@ -165,7 +165,7 @@ pub mod prelude {
     // SÉCURITÉ - HMAC, Hashing, etc.
     // ========================================================================
     pub use crate::utils::password::{
-        hash, password_init, verify, AutoConfig, Manual, PasswordConfig,
+        AutoConfig, Manual, PasswordConfig, hash, password_init, verify,
     };
     pub use hmac::{Hmac, Mac};
     pub use sha2::Sha256;
@@ -187,12 +187,12 @@ pub mod prelude {
     pub use crate::admin::resource::{
         AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
     };
-    pub use crate::admin::router::{build_admin_router, AdminState};
+    pub use crate::admin::router::{AdminState, build_admin_router};
     pub use crate::admin::template::{AdminTemplate, PathAdminTemplate};
     pub use crate::admin::{
-        admin_get, admin_get_id, admin_post, admin_post_id, AdminRegistry, CountFn, CreateFn,
-        DeleteFn, DynForm, FormBuilder, GetFn, ListFn, PrototypeAdminState, ResourceEntry,
-        UpdateFn,
+        AdminRegistry, CountFn, CreateFn, DeleteFn, DynForm, FormBuilder, GetFn, ListFn,
+        PrototypeAdminState, ResourceEntry, UpdateFn, admin_get, admin_get_id, admin_post,
+        admin_post_id,
     };
     pub use futures_util::future::BoxFuture;
 }

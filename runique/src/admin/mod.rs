@@ -12,7 +12,7 @@ pub mod router;
 pub mod template;
 pub mod trad;
 
-pub use admin_main::{admin_get, admin_get_id, admin_post, admin_post_id, PrototypeAdminState};
+pub use admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id};
 pub use config::AdminConfig;
 pub use daemon::{generate, parse_admin_file, watch};
 pub use dyn_form::DynForm;
@@ -23,6 +23,6 @@ pub use resource::{
 pub use resource_entry::{
     CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ResourceEntry, UpdateFn,
 };
-pub use router::build_admin_router;
 pub use router::AdminState;
+pub use router::build_admin_router;
 pub use template::{AdminTemplate, PathAdminTemplate};

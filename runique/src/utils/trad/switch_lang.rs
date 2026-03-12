@@ -3,8 +3,8 @@
 use serde_json::Value;
 use std::borrow::Cow;
 use std::fmt::Display;
-use std::sync::RwLock;
 use std::sync::LazyLock;
+use std::sync::RwLock;
 
 /// Languages supported by Runique
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]

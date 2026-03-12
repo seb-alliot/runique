@@ -1,7 +1,7 @@
 use crate::middleware::auth::user::{ActiveModel, BuiltinUserEntity, UserEntity};
 use crate::utils::password::{BaseHash, Manual};
 use anyhow::Result;
-use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
+use dialoguer::{Input, Password, Select, theme::ColorfulTheme};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
 use std::io::Write;
 

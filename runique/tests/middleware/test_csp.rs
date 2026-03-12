@@ -96,12 +96,12 @@ fn test_permissive_frame_ancestors_self() {
 #[serial]
 fn test_from_env_custom_default_src() {
     unsafe {
-    std::env::set_var("RUNIQUE_POLICY_CSP_DEFAULT", "'self', cdn.example.com");
+        std::env::set_var("RUNIQUE_POLICY_CSP_DEFAULT", "'self', cdn.example.com");
     }
     let policy = SecurityPolicy::from_env();
     assert!(policy.default_src.contains(&"cdn.example.com".to_string()));
     unsafe {
-    std::env::remove_var("RUNIQUE_POLICY_CSP_DEFAULT");
+        std::env::remove_var("RUNIQUE_POLICY_CSP_DEFAULT");
     }
 }
 
@@ -109,7 +109,7 @@ fn test_from_env_custom_default_src() {
 #[serial]
 fn test_from_env_custom_scripts() {
     unsafe {
-    std::env::set_var("RUNIQUE_POLICY_CSP_SCRIPTS", "'self', cdn.js.com");
+        std::env::set_var("RUNIQUE_POLICY_CSP_SCRIPTS", "'self', cdn.js.com");
     }
     let policy = SecurityPolicy::from_env();
     assert!(policy.script_src.contains(&"cdn.js.com".to_string()));

@@ -2,8 +2,8 @@
 //! Couvre : generation_token, generation_user_token, mask_csrf_token, unmask_csrf_token
 
 use runique::utils::csrf::{
-    generation_token, generation_user_token, mask_csrf_token, unmask_csrf_token, CsrfContext,
-    CsrfToken,
+    CsrfContext, CsrfToken, generation_token, generation_user_token, mask_csrf_token,
+    unmask_csrf_token,
 };
 
 const SECRET: &str = "test_secret_key_for_runique";
@@ -51,9 +51,11 @@ fn test_mask_produces_base64() {
     let token = generation_token(SECRET, "sid");
     let masked = mask_csrf_token(&token);
     // Base64 ne contient que [A-Za-z0-9+/=]
-    assert!(masked
-        .chars()
-        .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '='));
+    assert!(
+        masked
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=')
+    );
 }
 
 #[test]
@@ -111,7 +113,7 @@ fn test_unmask_empty_returns_empty_ok() {
 #[test]
 fn test_unmask_odd_length_returns_error() {
     // base64 de 3 octets → longueur décodée impaire → erreur "Invalid token length"
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
     let odd = general_purpose::STANDARD.encode([0x01u8, 0x02, 0x03]);
     let result = unmask_csrf_token(&odd);
     assert_eq!(result, Err("Invalid token length"));

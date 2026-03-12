@@ -1,10 +1,10 @@
 // Tests pour error_handler_middleware
 
-use axum::{http::StatusCode, middleware, routing::get, Extension, Router};
+use axum::{Extension, Router, http::StatusCode, middleware, routing::get};
 use http_body_util::BodyExt;
 use runique::{
     config::app::RuniqueConfig,
-    middleware::errors::error::{error_handler_middleware, RequestInfoHelper},
+    middleware::errors::error::{RequestInfoHelper, error_handler_middleware},
 };
 use std::{collections::HashMap, sync::Arc};
 

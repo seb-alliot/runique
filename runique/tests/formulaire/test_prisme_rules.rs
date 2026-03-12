@@ -1,7 +1,7 @@
 // Tests pour GuardContext, GuardRules et evaluate_rules (module prisme/rules)
 
 use axum::http::StatusCode;
-use runique::forms::prisme::rules::{evaluate_rules, GuardContext, GuardRules};
+use runique::forms::prisme::rules::{GuardContext, GuardRules, evaluate_rules};
 
 // ═══════════════════════════════════════════════════════════════
 // GuardContext

@@ -9,7 +9,7 @@
 //   .with_admin(|a| a.auth(RuniqueAdminAuth::new()))
 // ═══════════════════════════════════════════════════════════════
 
-use sea_orm::{entity::prelude::*, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*};
 
 use crate::impl_objects;
 pub use crate::middleware::auth::default_auth::UserEntity;

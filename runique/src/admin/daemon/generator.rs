@@ -175,8 +175,14 @@ fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(
     let _ = writeln!(out, "        config: config.clone(),");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out, "    runique::axum::Router::new()");
-    let _ = writeln!(out, "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{action}}}}\", p), get(admin_get).post(admin_post))");
-    let _ = writeln!(out, "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_get_id).post(admin_post_id))");
+    let _ = writeln!(
+        out,
+        "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{action}}}}\", p), get(admin_get).post(admin_post))"
+    );
+    let _ = writeln!(
+        out,
+        "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_get_id).post(admin_post_id))"
+    );
     let _ = writeln!(out, "        .layer(Extension(state))");
     let _ = writeln!(out, "}}");
     let _ = writeln!(out);
@@ -214,9 +220,15 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
 
     // Code de conversion de l'ID depuis String selon id_type
     let id_parse_code = match r.id_type.as_str() {
-        "I64" => "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?",
-        "Uuid" => "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?",
-        _ => "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?",
+        "I64" => {
+            "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?"
+        }
+        "Uuid" => {
+            "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?"
+        }
+        _ => {
+            "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".to_string().to_string()))?"
+        }
     };
 
     // AdminResource
@@ -252,7 +264,10 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     }
 
     // FormBuilder closure
-    let _ = writeln!(out, "    let form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {{");
+    let _ = writeln!(
+        out,
+        "    let form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {{"
+    );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
         out,
@@ -364,7 +379,10 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // EditFormBuilder closure (optionnel)
     if let Some(ref edit_form_path) = r.edit_form_type {
         let edit_wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
-        let _ = writeln!(out, "    let edit_form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {{");
+        let _ = writeln!(
+            out,
+            "    let edit_form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {{"
+        );
         let _ = writeln!(out, "        Box::pin(async move {{");
         let _ = writeln!(
             out,

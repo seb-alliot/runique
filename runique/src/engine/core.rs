@@ -1,15 +1,15 @@
 use crate::utils::aliases::{
-    new, new_registry, ADb, ARlockmap, ASecurityCsp, ASecurityHosts, ATera,
+    ADb, ARlockmap, ASecurityCsp, ASecurityHosts, ATera, new, new_registry,
 };
-use axum::{middleware, Router};
+use axum::{Router, middleware};
 use std::sync::Arc;
 use tera::Tera;
 
 use crate::config::RuniqueConfig;
 // On importe nos nouvelles structures renommées
 use crate::middleware::{
-    allowed_hosts_middleware, csrf_middleware, dev_no_cache_middleware, error_handler_middleware,
-    security_headers_middleware, HostPolicy, MiddlewareConfig, SecurityPolicy,
+    HostPolicy, MiddlewareConfig, SecurityPolicy, allowed_hosts_middleware, csrf_middleware,
+    dev_no_cache_middleware, error_handler_middleware, security_headers_middleware,
 };
 
 #[cfg(feature = "orm")]

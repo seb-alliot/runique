@@ -396,9 +396,15 @@ fn extract_statements_from_block(
                         // MySQL/MariaDB : MODIFY COLUMN nécessite le type. On fait un fallback "unsafe".
                         // => Si tu vises MySQL, il faudra passer sur sea_query pour être correct.
                         if make_null {
-                            format!("-- WARNING: modify_column NULL not supported safely on this backend for `{}`.`{}`", table_name, col)
+                            format!(
+                                "-- WARNING: modify_column NULL not supported safely on this backend for `{}`.`{}`",
+                                table_name, col
+                            )
                         } else {
-                            format!("-- WARNING: modify_column NOT NULL not supported safely on this backend for `{}`.`{}`", table_name, col)
+                            format!(
+                                "-- WARNING: modify_column NOT NULL not supported safely on this backend for `{}`.`{}`",
+                                table_name, col
+                            )
                         }
                     }
                 };

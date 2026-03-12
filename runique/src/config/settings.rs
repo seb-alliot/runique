@@ -1,4 +1,4 @@
-use crate::utils::config::{env_or_default, AutoFieldType};
+use crate::utils::config::{AutoFieldType, env_or_default};
 use serde::{Deserialize, Serialize};
 /// Vision globale des paramètres de l'application
 /// Contiendra tous les paramètres globaux de l'application

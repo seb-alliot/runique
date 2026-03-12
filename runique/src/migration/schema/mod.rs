@@ -1,7 +1,7 @@
 use crate::migration::utils::to_pascal_case;
 use crate::migration::{
-    column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef, index::IndexDef,
-    primary_key::PrimaryKeyDef, relation::RelationDef, RelationKind,
+    RelationKind, column::ColumnDef, foreign_key::ForeignKeyDef, hooks::HooksDef, index::IndexDef,
+    primary_key::PrimaryKeyDef, relation::RelationDef,
 };
 
 /// The root struct — single source of truth for the model

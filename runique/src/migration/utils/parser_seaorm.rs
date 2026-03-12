@@ -1,5 +1,5 @@
 use anyhow::Result;
-use syn::{visit::Visit, Expr};
+use syn::{Expr, visit::Visit};
 
 use crate::migration::utils::{
     helpers::{

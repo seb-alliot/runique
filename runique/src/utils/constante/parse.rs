@@ -52,8 +52,9 @@ pub static ALLOWED_TAGS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 });
 
 /// HTML Policy: allowed attributes per tag
-pub static ALLOWED_ATTRS: LazyLock<HashMap<&'static str, HashSet<&'static str>>> = LazyLock::new(|| {
-    let mut map = HashMap::new();
-    map.insert("a", HashSet::from(["href", "title", "target"]));
-    map
-});
+pub static ALLOWED_ATTRS: LazyLock<HashMap<&'static str, HashSet<&'static str>>> =
+    LazyLock::new(|| {
+        let mut map = HashMap::new();
+        map.insert("a", HashSet::from(["href", "title", "target"]));
+        map
+    });

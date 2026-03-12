@@ -3,7 +3,7 @@
 //! route introuvable) et les cas nominaux avec paramètres.
 
 use runique::context::tera::url::LinkFunction;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tera::Function;

@@ -66,7 +66,7 @@ mod helpers_migration {
     }
 
     // Les tests AST nécessitent syn::parse_str, on vérifie juste que les helpers ne paniquent pas et retournent un résultat attendu minimal.
-    use syn::{parse_str, Expr};
+    use syn::{Expr, parse_str};
 
     #[test]
     fn test_collect_chain() {

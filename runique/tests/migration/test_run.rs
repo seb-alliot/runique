@@ -5,6 +5,7 @@
 //!
 //! Aucune connexion DB requise — tests purement fichiers.
 
+use crate::utils::env::{del_env, set_env};
 use runique::migration::makemigrations::run;
 use std::fs;
 use std::path::PathBuf;
@@ -61,6 +62,7 @@ fn entity_post() -> &'static str {
             title: String,
             body: text [nullable],
             user_id: i32,
+            description: text [nullable],
         }
     }
     "#
@@ -89,6 +91,7 @@ fn entity_product() -> &'static str {
 
 #[tokio::test]
 async fn test_run_dossier_entites_vide() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_empty_ent");
     let migrations = temp_dir("run_empty_mig");
 
@@ -99,17 +102,22 @@ async fn test_run_dossier_entites_vide() {
     )
     .await;
     assert!(result.is_ok(), "run() vide doit Ok: {:?}", result);
-    // Aucun fichier de migration ne doit être généré
     assert!(
         !migrations.join("lib.rs").exists(),
         "lib.rs ne doit pas exister"
     );
+
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
 async fn test_run_dossier_inexistant_retourne_err() {
+    set_env("RUNIQUE_TEST", "1");
     let result = run("/chemin/inexistant_abc123/entities", "/tmp/mig_xyz", false).await;
     assert!(result.is_err(), "dossier inexistant doit Err");
+    del_env("RUNIQUE_TEST");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -118,6 +126,7 @@ async fn test_run_dossier_inexistant_retourne_err() {
 
 #[tokio::test]
 async fn test_run_cree_snapshot() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_snap_ent");
     let migrations = temp_dir("run_snap_mig");
 
@@ -134,10 +143,14 @@ async fn test_run_cree_snapshot() {
         migrations.join("snapshots/users.rs").exists(),
         "snapshot/users.rs doit exister"
     );
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
 async fn test_run_cree_lib_rs() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_lib_ent");
     let migrations = temp_dir("run_lib_mig");
 
@@ -156,10 +169,14 @@ async fn test_run_cree_lib_rs() {
     assert!(content.contains("pub struct Migrator;"));
     assert!(content.contains("impl MigratorTrait for Migrator"));
     assert!(content.contains("create_users_table"));
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
 async fn test_run_cree_fichier_seaorm_create() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_seaorm_ent");
     let migrations = temp_dir("run_seaorm_mig");
 
@@ -172,9 +189,16 @@ async fn test_run_cree_fichier_seaorm_create() {
     .await
     .unwrap();
 
-    let create_files: Vec<_> = fs::read_dir(&migrations)
+    let entries: Vec<_> = fs::read_dir(&migrations)
         .unwrap()
         .filter_map(|e| e.ok())
+        .collect();
+    println!("Contenu du dossier migrations :");
+    for entry in &entries {
+        println!("- {}", entry.file_name().to_string_lossy());
+    }
+    let create_files: Vec<_> = entries
+        .iter()
         .filter(|e| {
             let name = e.file_name();
             let s = name.to_string_lossy().to_string();
@@ -186,10 +210,14 @@ async fn test_run_cree_fichier_seaorm_create() {
         !create_files.is_empty(),
         "fichier m*_create_users_table.rs doit exister dans migrations/"
     );
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
 async fn test_run_dossier_applied_cree() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_applied_ent");
     let migrations = temp_dir("run_applied_mig");
 
@@ -206,6 +234,9 @@ async fn test_run_dossier_applied_cree() {
         migrations.join("applied").exists(),
         "dossier applied/ doit être créé"
     );
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -214,6 +245,7 @@ async fn test_run_dossier_applied_cree() {
 
 #[tokio::test]
 async fn test_run_idempotent_meme_entite() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_idem_ent");
     let migrations = temp_dir("run_idem_mig");
 
@@ -240,10 +272,14 @@ async fn test_run_idempotent_meme_entite() {
         "2e run() sans changements doit Ok: {:?}",
         result
     );
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
 async fn test_run_lib_rs_pas_duplique_au_second_run() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_idem2_ent");
     let migrations = temp_dir("run_idem2_mig");
 
@@ -270,6 +306,9 @@ async fn test_run_lib_rs_pas_duplique_au_second_run() {
         count, 2,
         "le module doit apparaître 2 fois dans lib.rs (mod + Box)"
     );
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -278,6 +317,7 @@ async fn test_run_lib_rs_pas_duplique_au_second_run() {
 
 #[tokio::test]
 async fn test_run_alter_ajout_colonne_nullable() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_alter_ent");
     let migrations = temp_dir("run_alter_mig");
 
@@ -310,10 +350,14 @@ async fn test_run_alter_ajout_colonne_nullable() {
         migrations.join("applied/users").exists(),
         "applied/users/ doit être créé pour l'ALTER"
     );
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
 async fn test_run_alter_cree_fichier_alter() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_alter_file_ent");
     let migrations = temp_dir("run_alter_file_mig");
 
@@ -352,11 +396,14 @@ async fn test_run_alter_cree_fichier_alter() {
             "fichier *_alter_users_table.rs doit exister dans applied/users/"
         );
     }
-    // Si alter_dir n'existe pas, le test n'échoue pas (implémentation variable)
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
 async fn test_run_alter_snapshot_mis_a_jour() {
+    set_env("RUNIQUE_TEST", "1");
     let entities = temp_dir("run_snap_update_ent");
     let migrations = temp_dir("run_snap_update_mig");
 
@@ -381,6 +428,9 @@ async fn test_run_alter_snapshot_mis_a_jour() {
     // Snapshot doit contenir "bio"
     let snap = fs::read_to_string(migrations.join("snapshots/users.rs")).unwrap();
     assert!(snap.contains("bio"), "snapshot doit contenir le champ bio");
+    del_env("RUNIQUE_TEST");
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -516,4 +566,10 @@ async fn test_run_ignore_mod_rs() {
         !migrations.join("snapshots/users.rs").exists(),
         "mod.rs doit être ignoré"
     );
+}
+
+use crate::utils::clean_tpm_test::test_cleanup_final_supprime_tout;
+#[tokio::test]
+async fn z_cleanup_final() {
+    test_cleanup_final_supprime_tout().await;
 }

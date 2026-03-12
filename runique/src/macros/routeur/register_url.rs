@@ -1,9 +1,10 @@
 use crate::engine::RuniqueEngine;
-use std::sync::{Arc, Mutex};
 use std::sync::LazyLock;
+use std::sync::{Arc, Mutex};
 
 // --- 1. Stockage temporaire pour la macro ---
-pub static PENDING_URLS: LazyLock<Mutex<Vec<(String, String)>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+pub static PENDING_URLS: LazyLock<Mutex<Vec<(String, String)>>> =
+    LazyLock::new(|| Mutex::new(Vec::new()));
 
 /// Utilisé par la macro urlpatterns!
 pub fn register_pending(name: impl Into<String>, path: impl Into<String>) {

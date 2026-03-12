@@ -1,8 +1,8 @@
 // Tests pour StaticConfig
 
+use crate::utils::env::{del_env, set_env};
 use runique::config::static_files::StaticConfig;
 use serial_test::serial;
-use crate::utils::env::{set_env, del_env};
 
 // ═══════════════════════════════════════════════════════════════
 // Valeurs par défaut (sans variables d'environnement)

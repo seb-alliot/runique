@@ -15,10 +15,10 @@
 //! ```
 
 use axum::{
-    body::Body,
-    http::{header, Method, Request},
-    response::Response,
     Router,
+    body::Body,
+    http::{Method, Request, header},
+    response::Response,
 };
 use tower::ServiceExt;
 

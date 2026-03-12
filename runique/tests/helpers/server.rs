@@ -16,9 +16,8 @@
 //! ```
 
 use axum::{
-    middleware,
+    Router, middleware,
     routing::{delete, get, post},
-    Router,
 };
 use runique::{
     config::app::RuniqueConfig,

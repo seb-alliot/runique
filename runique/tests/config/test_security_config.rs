@@ -1,8 +1,8 @@
 // Tests pour SecurityConfig
 
+use crate::utils::env::{del_env, set_env};
 use runique::config::security::SecurityConfig;
 use serial_test::serial;
-use crate::utils::env::{set_env, del_env};
 
 // ── Valeurs par défaut (sans variables d'environnement) ────────────────────────
 
@@ -106,9 +106,11 @@ fn test_security_config_allowed_hosts_personnalises() {
     set_env("ALLOWED_HOSTS", "example.com, api.example.com");
     let config = SecurityConfig::from_env();
     assert!(config.allowed_hosts.contains(&"example.com".to_string()));
-    assert!(config
-        .allowed_hosts
-        .contains(&"api.example.com".to_string()));
+    assert!(
+        config
+            .allowed_hosts
+            .contains(&"api.example.com".to_string())
+    );
     del_env("ALLOWED_HOSTS");
 }
 

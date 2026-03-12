@@ -6,7 +6,7 @@ use crate::utils::aliases::{AEngine, AppResult};
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
     extract::FromRequestParts,
-    http::{method::Method, request::Parts, StatusCode},
+    http::{StatusCode, method::Method, request::Parts},
     response::{Html, IntoResponse, Response},
 };
 use sea_orm::DbErr;
