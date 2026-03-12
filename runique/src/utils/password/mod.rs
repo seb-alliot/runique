@@ -2,14 +2,14 @@
 use serde::{Deserialize, Serialize};
 
 use argon2::{
-    password_hash::{
-        rand_core::OsRng, PasswordHash, PasswordHasher as _,
-        PasswordVerifier as ArgonPasswordVerifier, SaltString,
-    },
     Argon2,
+    password_hash::{
+        PasswordHash, PasswordHasher as _, PasswordVerifier as ArgonPasswordVerifier, SaltString,
+        rand_core::OsRng,
+    },
 };
-use bcrypt::{hash as bcrypt_hash, verify as bcrypt_verify, DEFAULT_COST};
-use scrypt::{password_hash::SaltString as ScryptSaltString, Scrypt};
+use bcrypt::{DEFAULT_COST, hash as bcrypt_hash, verify as bcrypt_verify};
+use scrypt::{Scrypt, password_hash::SaltString as ScryptSaltString};
 
 use crate::utils::trad::{t, tf};
 use dyn_clone::DynClone;

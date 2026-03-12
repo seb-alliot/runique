@@ -3,11 +3,11 @@ use crate::config::RuniqueConfig;
 use crate::context::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
-    allowed_hosts_middleware, csrf_middleware, dev_no_cache_middleware, error_handler_middleware,
-    security_headers_middleware, MiddlewareConfig,
+    MiddlewareConfig, allowed_hosts_middleware, csrf_middleware, dev_no_cache_middleware,
+    error_handler_middleware, security_headers_middleware,
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
-use axum::{self, middleware, Router};
+use axum::{self, Router, middleware};
 use tower_http::compression::CompressionLayer;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};

@@ -321,3 +321,10 @@ fn test_scan_entities_melange_valide_invalide() {
     // On vérifie juste que ça ne panique pas.
     let _ = result;
 }
+
+use crate::utils::clean_tpm_test::test_cleanup_final_supprime_tout;
+#[tokio::test]
+
+async fn z_cleanup_final() {
+    test_cleanup_final_supprime_tout().await;
+}

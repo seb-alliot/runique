@@ -4,7 +4,7 @@
 //! Ces tests utilisent un router Axum minimal avec MemoryStore pour créer
 //! de vraies sessions sans démarrer de serveur.
 
-use axum::{response::IntoResponse, routing::get, Router};
+use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 use runique::middleware::auth::{

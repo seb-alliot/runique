@@ -23,8 +23,8 @@
 //! ```
 
 use runique::sea_orm::{
-    sea_query::{Alias, Asterisk, Expr, Func, Query},
     ConnectionTrait, Database, DatabaseConnection,
+    sea_query::{Alias, Asterisk, Expr, Func, Query},
 };
 
 /// Charge `.env.test` si présent, puis retourne une connexion PostgreSQL.

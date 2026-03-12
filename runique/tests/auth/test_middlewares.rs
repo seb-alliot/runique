@@ -3,10 +3,10 @@
 // Stratégie : serveur persistant (OnceLock) avec MemoryStore.
 // Chaque test crée son propre client reqwest (cookie jar isolé → session distincte).
 
-use axum::{middleware, routing::get, routing::post, Extension, Router};
+use axum::{Extension, Router, middleware, routing::get, routing::post};
 use runique::middleware::auth::{
-    has_permission, load_user_middleware, login, login_required, login_staff,
-    redirect_if_authenticated, CurrentUser,
+    CurrentUser, has_permission, load_user_middleware, login, login_required, login_staff,
+    redirect_if_authenticated,
 };
 use std::{net::SocketAddr, sync::OnceLock};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};

@@ -5,7 +5,7 @@ use axum::{
 };
 use tower_sessions::Session;
 
-use crate::middleware::auth::{is_admin_authenticated, CurrentUser};
+use crate::middleware::auth::{CurrentUser, is_admin_authenticated};
 
 /// Middleware : accès admin requis (is_staff OU is_superuser)
 ///

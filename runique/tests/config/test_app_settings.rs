@@ -1,9 +1,9 @@
 // Tests pour AppSettings et AutoFieldType
 
+use crate::utils::env::{del_env, set_env};
 use runique::config::settings::AppSettings;
 use runique::utils::config::AutoFieldType;
 use serial_test::serial;
-use crate::utils::env::{set_env, del_env};
 
 // ═══════════════════════════════════════════════════════════════
 // AutoFieldType — parse, rust_type, default, from_env

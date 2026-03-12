@@ -38,9 +38,15 @@ impl AdminIdType {
     /// Génère le code Rust de conversion depuis un `String` capturé dans la route
     pub fn parse_expr(&self) -> &'static str {
         match self {
-            AdminIdType::I32 => "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".into()))?;",
-            AdminIdType::I64 => "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".into()))?;",
-            AdminIdType::Uuid => "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".into()))?;",
+            AdminIdType::I32 => {
+                "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".into()))?;"
+            }
+            AdminIdType::I64 => {
+                "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".into()))?;"
+            }
+            AdminIdType::Uuid => {
+                "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".into()))?;"
+            }
         }
     }
 }

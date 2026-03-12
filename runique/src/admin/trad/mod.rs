@@ -1,4 +1,4 @@
-use crate::utils::{trad::t, ADMIN_MESSAGE_KEYS};
+use crate::utils::{ADMIN_MESSAGE_KEYS, trad::t};
 use tera::Context;
 
 pub fn insert_admin_messages(context: &mut Context, section: &str) {

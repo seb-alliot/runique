@@ -15,7 +15,7 @@
 //   }
 
 use proc_macro2::TokenStream;
-use syn::{parse_file, visit::Visit, Macro};
+use syn::{Macro, parse_file, visit::Visit};
 
 #[derive(Debug, Clone)]
 pub struct ResourceDef {
@@ -317,10 +317,10 @@ fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String
                         return Err(format!(
                             "Expected string value in extra map, found: {}",
                             other
-                        ))
+                        ));
                     }
                     None => {
-                        return Err("Expected string value in extra map, end of file".to_string())
+                        return Err("Expected string value in extra map, end of file".to_string());
                     }
                 };
 
@@ -354,7 +354,7 @@ fn parse_path(iter: &mut TokenIter) -> Result<String, String> {
             }
             Some(TokenTree::Punct(p)) if p.as_char() == ':' => {
                 iter.next(); // premier ':'
-                             // Vérifie le deuxième ':'
+                // Vérifie le deuxième ':'
                 match iter.peek() {
                     Some(TokenTree::Punct(p2)) if p2.as_char() == ':' => {
                         iter.next();

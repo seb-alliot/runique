@@ -1,8 +1,8 @@
 // Tests pour env_or_default
 
+use crate::utils::env::{del_env, set_env};
 use runique::utils::config::lecture_env::env_or_default;
 use serial_test::serial;
-use crate::utils::env::{set_env, del_env};
 
 #[test]
 #[serial]

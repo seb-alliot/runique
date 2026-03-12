@@ -235,7 +235,7 @@ async fn test_down_sans_fichiers_avec_applied() {
 #[serial]
 async fn test_down_sans_database_url_retourne_err() {
     unsafe {
-    std::env::remove_var("DATABASE_URL");
+        std::env::remove_var("DATABASE_URL");
     }
     let dir = temp_dir("down_no_url");
     let applied = applied_dir(&dir);
@@ -251,6 +251,7 @@ async fn test_down_sans_database_url_retourne_err() {
     )
     .await;
     assert!(result.is_err(), "down() sans DATABASE_URL doit Err");
+    std::fs::remove_dir_all(&dir).ok();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -533,4 +534,10 @@ async fn test_down_batch_postgres() {
     unsafe {
         std::env::remove_var("DATABASE_URL");
     }
+}
+
+use crate::utils::clean_tpm_test::test_cleanup_final_supprime_tout;
+#[tokio::test]
+async fn z_cleanup_final() {
+    test_cleanup_final_supprime_tout().await;
 }

@@ -176,9 +176,9 @@ impl<E: EntityTrait> Clone for Objects<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::entity::prelude::*;
     use sea_orm::ActiveModelTrait;
     use sea_orm::Set;
+    use sea_orm::entity::prelude::*;
 
     // Définition du modèle de test
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]

@@ -1,6 +1,6 @@
 // Tests pour allowed_hosts middleware
 
-use axum::http::{header, HeaderMap, StatusCode};
+use axum::http::{HeaderMap, StatusCode, header};
 use runique::middleware::security::allowed_hosts::HostPolicy;
 
 #[test]

@@ -8,10 +8,10 @@
 //!   - DatabaseConfig::from_env() — sqlite par défaut, postgres complet, cas d'erreur
 //!   - DatabaseConfig::connect() — Postgres Docker, MariaDB Docker
 
+use crate::utils::env::{del_env, set_env};
 use runique::db::{DatabaseConfig, DatabaseEngine};
 use serial_test::serial;
 use std::time::Duration;
-use crate::utils::env::{set_env, del_env};
 
 // ═══════════════════════════════════════════════════════════════
 // DatabaseEngine::detect_from_url
@@ -250,7 +250,6 @@ fn test_from_env_sqlite_avec_nom() {
     set_env("DB_ENGINE", "sqlite");
     set_env("DB_NAME", "myapp.sqlite");
 
-
     let result = DatabaseConfig::from_env();
     assert!(result.is_ok(), "sqlite avec DB_NAME doit Ok");
     let config = result.unwrap().build();
@@ -266,7 +265,7 @@ fn test_from_env_postgres_sans_user_retourne_err() {
     set_env("DB_ENGINE", "postgres");
     del_env("DB_USER");
     del_env("DB_PASSWORD");
-    del_env("DB_NAME"); 
+    del_env("DB_NAME");
     let result = DatabaseConfig::from_env();
     assert!(result.is_err(), "postgres sans DB_USER doit Err");
     del_env("DB_ENGINE");
@@ -338,7 +337,7 @@ fn test_from_env_mysql_complet() {
     set_env("DB_HOST", "localhost");
     set_env("DB_PORT", "3306");
     set_env("DB_NAME", "mysqldb");
-    
+
     let result = DatabaseConfig::from_env();
     assert!(result.is_ok(), "mysql complet doit Ok");
     let config = result.unwrap().build();
@@ -388,7 +387,6 @@ fn test_from_env_mariadb_complet() {
 fn test_from_env_engine_inconnu_sans_db_url_retourne_err() {
     set_env("DB_ENGINE", "cassandra");
     del_env("DB_URL");
-    
 
     let result = DatabaseConfig::from_env();
     assert!(result.is_err(), "engine inconnu sans DB_URL doit Err");

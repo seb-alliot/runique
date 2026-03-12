@@ -3,5 +3,5 @@ pub mod parser;
 pub mod watcher;
 
 pub use generator::generate;
-pub use parser::{parse_admin_file, ParsedAdmin, ResourceDef};
+pub use parser::{ParsedAdmin, ResourceDef, parse_admin_file};
 pub use watcher::watch;

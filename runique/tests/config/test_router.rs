@@ -1,7 +1,7 @@
 //! Tests — config/router.rs
 //! Couvre : RuniqueRouter::new, default, add_route, nest
 
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use runique::config::router::RuniqueRouter;
 use runique::utils::aliases::AEngine;
 

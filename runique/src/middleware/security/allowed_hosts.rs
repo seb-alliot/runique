@@ -5,7 +5,7 @@ use crate::utils::trad::{t, tf};
 use axum::{
     body::Body,
     extract::State,
-    http::{header, HeaderMap, Request, StatusCode},
+    http::{HeaderMap, Request, StatusCode, header},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -89,7 +89,7 @@ impl HostPolicy {
                 return Err((
                     StatusCode::BAD_REQUEST,
                     self.make_error_message("<no host>"),
-                ))
+                ));
             }
         };
 

@@ -1,8 +1,8 @@
 // Tests pour ServerConfig
 
+use crate::utils::env::{del_env, set_env};
 use runique::config::server::ServerConfig;
 use serial_test::serial;
-use crate::utils::env::{set_env, del_env};
 
 // ── Valeurs par défaut (sans variables d'environnement) ────────────────────────
 

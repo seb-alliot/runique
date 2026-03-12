@@ -719,10 +719,12 @@ fn test_slug_field_no_leading_trailing_dash() {
     let mut field = SlugField::new("slug");
     field.set_value("-invalid-slug-");
     assert!(!field.validate());
-    assert!(field
-        .error()
-        .unwrap()
-        .contains("must not start or end with dash"));
+    assert!(
+        field
+            .error()
+            .unwrap()
+            .contains("must not start or end with dash")
+    );
 }
 
 #[test]

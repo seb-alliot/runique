@@ -1,18 +1,18 @@
 use std::{
     collections::HashMap,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
 };
 
 use async_trait::async_trait;
 use tokio::sync::Mutex;
 use tower_sessions::{
+    SessionStore,
     cookie::time::OffsetDateTime,
     session::{Id, Record},
     session_store::{self, ExpiredDeletion},
-    SessionStore,
 };
 
 // ═══════════════════════════════════════════════════════════════

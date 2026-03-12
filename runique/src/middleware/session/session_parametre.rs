@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use tower_sessions::cookie::time::Duration;
 use tower_sessions::SessionStore;
+use tower_sessions::cookie::time::Duration;
 
 pub enum SessionBackend {
     Memory,

@@ -2,7 +2,7 @@ use crate::context::Request;
 use crate::flash::Message;
 use crate::utils::aliases::AEngine;
 use crate::utils::csrf::CsrfToken;
-use axum::{extract::FromRequestParts, http::request::Parts, http::StatusCode};
+use axum::{extract::FromRequestParts, http::StatusCode, http::request::Parts};
 use tower_sessions::Session;
 
 /// Contexte principal pour un handler Runique

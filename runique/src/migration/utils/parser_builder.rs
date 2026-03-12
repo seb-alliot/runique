@@ -1,8 +1,7 @@
 use syn::{
-    braced, bracketed,
+    Ident, LitStr, Token, braced, bracketed,
     parse::{Parse, ParseStream},
     visit::Visit,
-    Ident, LitStr, Token,
 };
 
 use crate::migration::utils::types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};

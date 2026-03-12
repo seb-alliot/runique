@@ -8,9 +8,9 @@ use crate::utils::constante::CSRF_TOKEN_KEY;
 use crate::utils::trad::{t, tf};
 use axum::http::Method;
 use indexmap::IndexMap;
-use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde::ser::{SerializeStruct, Serializer};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Conteneur de champs de formulaire avec validation et rendu HTML

@@ -283,3 +283,10 @@ fn test_schema_clone() {
     assert_eq!(cloned.columns.len(), 1);
     assert!(cloned.primary_key.is_some());
 }
+
+use crate::utils::clean_tpm_test::test_cleanup_final_supprime_tout;
+#[tokio::test]
+
+async fn z_cleanup_final() {
+    test_cleanup_final_supprime_tout().await;
+}

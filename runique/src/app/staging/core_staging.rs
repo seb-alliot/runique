@@ -1,5 +1,5 @@
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
-use crate::utils::aliases::{new_registry, ARlockmap};
+use crate::utils::aliases::{ARlockmap, new_registry};
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;

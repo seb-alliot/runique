@@ -1,6 +1,6 @@
 use runique::prelude::*;
 use runique::utils::password::{
-    password_get, password_init, Manual, PasswordConfig, PasswordService,
+    Manual, PasswordConfig, PasswordService, password_get, password_init,
 };
 
 // ============================================================================

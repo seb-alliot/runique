@@ -56,10 +56,12 @@ async fn test_csrf_gate_token_manquant_retourne_some_avec_erreur() {
             csrf_field.error().is_some(),
             "Le champ csrf_token doit avoir une erreur"
         );
-        assert!(csrf_field
-            .error()
-            .unwrap()
-            .contains("Invalid or missing CSRF token"));
+        assert!(
+            csrf_field
+                .error()
+                .unwrap()
+                .contains("Invalid or missing CSRF token")
+        );
     }
 }
 

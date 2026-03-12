@@ -10,13 +10,13 @@
 //! - RuniqueAppBuilder (construction, méthodes chainables, build())
 
 use async_trait::async_trait;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use runique::admin::AdminConfig;
 use runique::app::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
 use runique::config::app::RuniqueConfig;
-use runique::middleware::auth::{AdminAuth, AdminLoginResult};
 use runique::middleware::MiddlewareConfig;
+use runique::middleware::auth::{AdminAuth, AdminLoginResult};
 use sea_orm::DatabaseConnection;
 use tower_sessions::cookie::time::Duration;
 
@@ -294,10 +294,12 @@ fn test_core_staging_validate_sans_db_retourne_err() {
     if let Err(build_err) = result {
         if let BuildErrorKind::CheckFailed(report) = &build_err.kind {
             assert!(report.has_errors());
-            assert!(report
-                .errors
-                .iter()
-                .any(|e| e.component.contains("Database")));
+            assert!(
+                report
+                    .errors
+                    .iter()
+                    .any(|e| e.component.contains("Database"))
+            );
         } else {
             panic!("Attendu CheckFailed, obtenu {:?}", build_err.kind);
         }
@@ -762,10 +764,12 @@ fn test_admin_staging_validate_enabled_sans_auth_retourne_err() {
     assert!(result.is_err());
     if let Err(e) = result {
         if let BuildErrorKind::CheckFailed(report) = &e.kind {
-            assert!(report
-                .errors
-                .iter()
-                .any(|e| e.component.contains("AdminPanel")));
+            assert!(
+                report
+                    .errors
+                    .iter()
+                    .any(|e| e.component.contains("AdminPanel"))
+            );
         } else {
             panic!("Attendu CheckFailed, obtenu {:?}", e.kind);
         }

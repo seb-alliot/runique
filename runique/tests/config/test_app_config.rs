@@ -1,8 +1,8 @@
 // Tests pour RuniqueConfig (config agrégée)
 
+use crate::utils::env::{del_env, set_env};
 use runique::config::app::RuniqueConfig;
 use serial_test::serial;
-use crate::utils::env::{set_env, del_env};
 
 // ═══════════════════════════════════════════════════════════════
 // Default derive
