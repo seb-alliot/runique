@@ -7,15 +7,13 @@
 
 use crate::utils::env::{del_env, set_env};
 use runique::migration::makemigrations::run;
+use crate::utils::clean_tpm_test::TestTempDir;
 use std::fs;
-use std::path::PathBuf;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-fn temp_dir(suffix: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("runique_test_run_{}", suffix));
-    fs::create_dir_all(&dir).ok();
-    dir
+fn temp_dir(suffix: &str) -> TestTempDir {
+    TestTempDir::new("runique_test_run", suffix)
 }
 
 fn entity_user() -> &'static str {
@@ -456,6 +454,8 @@ async fn test_run_deux_entites() {
     assert!(migrations.join("snapshots/users.rs").exists());
     assert!(migrations.join("snapshots/posts.rs").exists());
     assert!(migrations.join("lib.rs").exists());
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
@@ -479,6 +479,8 @@ async fn test_run_trois_entites() {
     assert!(lib_content.contains("create_users_table"));
     assert!(lib_content.contains("create_posts_table"));
     assert!(lib_content.contains("create_products_table"));
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
@@ -512,6 +514,8 @@ async fn test_run_plusieurs_entites_plusieurs_runs() {
     let lib = fs::read_to_string(migrations.join("lib.rs")).unwrap();
     assert!(lib.contains("users"));
     assert!(lib.contains("posts"));
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -541,6 +545,8 @@ async fn test_run_ignore_fichier_sans_macro() {
         !migrations.join("lib.rs").exists(),
         "lib.rs ne doit pas exister si aucun modèle trouvé"
     );
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
 #[tokio::test]
@@ -566,10 +572,7 @@ async fn test_run_ignore_mod_rs() {
         !migrations.join("snapshots/users.rs").exists(),
         "mod.rs doit être ignoré"
     );
+    std::fs::remove_dir_all(&entities).ok();
+    std::fs::remove_dir_all(&migrations).ok();
 }
 
-use crate::utils::clean_tpm_test::test_cleanup_final_supprime_tout;
-#[tokio::test]
-async fn z_cleanup_final() {
-    test_cleanup_final_supprime_tout().await;
-}

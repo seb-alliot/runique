@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use runique::migration::{makemigrations, migrate};
 use runique::utils::init_logging;
-use runique::utils::trad::{Lang, set_lang};
+use runique::utils::trad::{Lang, set_lang, t, tf};
 use std::fs;
 use std::path::Path;
 
@@ -122,25 +122,22 @@ fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
     let main_file = Path::new(main_path);
 
     if !main_file.exists() {
-        anyhow::bail!(
-            "Fichier non trouvé: {}\nAssurez-vous d'être à la racine de votre projet Runique.",
-            main_path
-        );
+        anyhow::bail!("{}", tf("cli.file_not_found", &[&main_path]));
     }
 
     let main_source = fs::read_to_string(main_file)?;
 
     if !has_admin(&main_source) {
-        println!("  Add .with_admin(...) in your builder to enable the AdminPanel.");
+        println!("  {}", t("cli.add_admin_hint"));
         return Ok(());
     }
 
-    println!("Admin detected → starting the daemon");
+    println!("{}", t("cli.admin_detected"));
     // Lancer le daemon en thread séparé
     let admin_path = admin_path.to_string();
     std::thread::spawn(move || {
         if let Err(e) = start_admin_daemon(&admin_path) {
-            eprintln!("[Daemon] Erreur: {}", e);
+            eprintln!("{}", tf("cli.daemon_error", &[&e.to_string()]));
         }
     });
 
@@ -149,9 +146,9 @@ fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
     let status = Command::new("cargo")
         .arg("run")
         .status()
-        .expect("Échec du lancement de cargo run");
+        .expect(&t("cli.cargo_run_expect"));
     if !status.success() {
-        anyhow::bail!("Le serveur applicatif n'a pas démarré correctement (cargo run)");
+        anyhow::bail!("{}", t("cli.cargo_run_failed"));
     }
     Ok(())
 }
@@ -171,13 +168,10 @@ fn start_admin_daemon(admin_path: &str) -> Result<()> {
     let admin_file = Path::new(admin_path);
 
     if !admin_file.exists() {
-        anyhow::bail!(
-            "Fichier admin non trouvé: {}\nCréez src/admin.rs avec le macro admin!{{}}.",
-            admin_path
-        );
+        anyhow::bail!("{}", tf("cli.admin_not_found", &[&admin_path]));
     }
 
-    watch(admin_file).map_err(|e| anyhow::anyhow!("Erreur daemon: {}", e))?;
+    watch(admin_file).map_err(|e| anyhow::anyhow!("{}", tf("cli.daemon_error", &[&e.to_string()])))?;
 
     Ok(())
 }
@@ -185,24 +179,24 @@ fn start_admin_daemon(admin_path: &str) -> Result<()> {
 // runique new — Création de projet
 fn create_new_project(name: &str) -> Result<()> {
     if name.is_empty() {
-        anyhow::bail!("The project name cannot be empty");
+        anyhow::bail!("{}", t("cli.name_empty"));
     }
     if !name
         .chars()
         .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
     {
-        anyhow::bail!("The project name must contain only letters, numbers, _ or -");
+        anyhow::bail!("{}", t("cli.name_invalid"));
     }
     if name.starts_with('-') {
-        anyhow::bail!("The project name cannot start with -");
+        anyhow::bail!("{}", t("cli.name_dash"));
     }
 
     let project_dir = Path::new(name);
     if project_dir.exists() {
-        anyhow::bail!("The folder '{}' already exists", name);
+        anyhow::bail!("{}", tf("cli.folder_exists", &[&name]));
     }
 
-    println!("🦀 Creating project '{}'...", name);
+    println!("🦀 {}", tf("cli.creating_project", &[&name]));
 
     let runique_version = env!("CARGO_PKG_VERSION");
 
@@ -291,10 +285,10 @@ fn create_new_project(name: &str) -> Result<()> {
     fs::write(project_dir.join("media/toshiro.avif"), image)?;
     fs::write(project_dir.join("media/favicon/favicon.ico"), favicon)?;
 
-    println!("  Project '{}' created successfully!", name);
-    println!("\n  To get started:");
-    println!("  cd {}", name);
-    println!("  cargo run");
+    println!("  {}", tf("cli.project_created", &[&name]));
+    println!("\n  {}", t("cli.getting_started"));
+    println!("  {}", tf("cli.cd_hint", &[&name]));
+    println!("  {}", t("cli.cargo_run_hint"));
 
     Ok(())
 }

@@ -168,7 +168,11 @@
         "name_invalid": "项目名称只能包含字母、数字、下划线或连字符",
         "name_dash": "项目名称不能以连字符开头",
         "folder_exists": "文件夹 '{}' 已存在",
-        "cargo_run_expect": "启动 cargo run 失败"
+        "cargo_run_expect": "启动 cargo run 失败",
+        "project_created": "项目 '{}' 创建成功！",
+        "getting_started": "开始使用：",
+        "cd_hint": "cd {}",
+        "cargo_run_hint": "cargo run"
     },
     "daemon": {
         "modification_detected": "检测到文件变更 → 正在重新生成……",
@@ -353,38 +357,37 @@
         "username_line": "  用户名 : {}",
         "email_line": "  邮箱   : {}"
         }
+    },
+    "makemigrations": {
+        "scanning": "正在扫描'{}'中的实体...",
+        "found_schema": "-> 找到架构: {}",
+        "no_schema": "在'{}'中未找到schema()函数。",
+        "schema_count": "找到{}个架构。",
+        "updated_lib": "已更新{}",
+        "no_changes": "未检测到更改。您的架构是最新的。",
+        "destructive_detected": "检测到破坏性更改:",
+        "generated": "已生成: {}",
+        "snapshot_updated": "已更新快照: {}",
+        "seaorm_alter": "已生成SeaORM ALTER迁移: {}",
+        "batch_up": "已生成批量上升: {}",
+        "batch_down": "已生成批量下降: {}",
+        "apply_hint": "运行'sea-orm-cli migrate up'来应用。"
+    },
+    "migrate": {
+        "applying": "正在从'{}'应用迁移...",
+        "run_hint": "运行: sea-orm-cli migrate up",
+        "complete": "回滚完成。",
+        "available_for": "'{}'的可用回滚文件:",
+        "rolling_back_batch": "正在回滚批次: {}",
+        "done": "完成: {}",
+        "rolling_back": "正在回滚: {}",
+        "no_applied_dir": "未找到applied/目录。",
+        "by_time_header": "by_time (完整批次):",
+        "none_available": "没有可用的回滚文件。",
+        "usage": "用法:",
+        "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
+        "usage_batch": "runique migration down --batch <timestamp>",
+        "no_down": "未找到down语句。",
+        "executing": "正在执行: {}"
     }
-  },
-  "makemigrations": {
-    "scanning": "正在扫描'{}'中的实体...",
-    "found_schema": "-> 找到架构: {}",
-    "no_schema": "在'{}'中未找到schema()函数。",
-    "schema_count": "找到{}个架构。",
-    "updated_lib": "已更新{}",
-    "no_changes": "未检测到更改。您的架构是最新的。",
-    "destructive_detected": "检测到破坏性更改:",
-    "generated": "已生成: {}",
-    "snapshot_updated": "已更新快照: {}",
-    "seaorm_alter": "已生成SeaORM ALTER迁移: {}",
-    "batch_up": "已生成批量上升: {}",
-    "batch_down": "已生成批量下降: {}",
-    "apply_hint": "运行'sea-orm-cli migrate up'来应用。"
-  },
-  "migrate": {
-    "applying": "正在从'{}'应用迁移...",
-    "run_hint": "运行: sea-orm-cli migrate up",
-    "complete": "回滚完成。",
-    "available_for": "'{}'的可用回滚文件:",
-    "rolling_back_batch": "正在回滚批次: {}",
-    "done": "完成: {}",
-    "rolling_back": "正在回滚: {}",
-    "no_applied_dir": "未找到applied/目录。",
-    "by_time_header": "by_time (完整批次):",
-    "none_available": "没有可用的回滚文件。",
-    "usage": "用法:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "未找到down语句。",
-    "executing": "正在执行: {}"
-  }
 }

@@ -136,7 +136,9 @@ pub async fn csrf_middleware(
     }
 
     // Injection du token pour le frontend
-    let masked = session_token.masked();
+    let masked = session_token
+        .masked()
+        .unwrap_or_else(|_| session_token.clone());
     let extensions = RequestExtensions::new().with_csrf_token(session_token.clone());
     extensions.inject_request(&mut req);
 

@@ -1,7 +1,7 @@
 # Runique — Django-inspired Rust Framework
 
 ![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-1523%2F1523%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-1.1.46-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
@@ -138,7 +138,7 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-  - Reported tests: **1523/1523 passing**
+  - Reported tests: **1731/1731 passing**
   - Coverage snapshot (`2026-03-01`, package `runique`):
   - Functions: **76.66%**
   - Lines: **71.04%**
@@ -240,4 +240,4 @@ For the detailed, continuously updated state report, see [PROJECT_STATUS.md](htt
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT — see [LICENSE](https://github.com/seb-alliot/runique/blob/main/LICENSE)

@@ -168,7 +168,11 @@
     "name_invalid": "The project name must contain only letters, numbers, _ or -",
     "name_dash": "The project name cannot start with -",
     "folder_exists": "The folder '{}' already exists",
-    "cargo_run_expect": "Failed to launch cargo run"
+    "cargo_run_expect": "Failed to launch cargo run",
+    "project_created": "Project '{}' created successfully!",
+    "getting_started": "To get started:",
+    "cd_hint": "cd {}",
+    "cargo_run_hint": "cargo run"
   },
   "daemon": {
     "modification_detected": "Modification detected → regeneration...",
@@ -353,7 +357,6 @@
         "username_line": "  Username : {}",
         "email_line": "  Email    : {}"
       }
-    }
   },
   "makemigrations": {
     "scanning": "Scanning entities in '{}'...",

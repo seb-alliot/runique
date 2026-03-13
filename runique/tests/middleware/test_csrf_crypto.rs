@@ -49,7 +49,7 @@ fn test_different_secrets_produce_different_tokens() {
 #[test]
 fn test_mask_produces_base64() {
     let token = generation_token(SECRET, "sid");
-    let masked = mask_csrf_token(&token);
+    let masked = mask_csrf_token(&token).expect("valid hex token");
     // Base64 ne contient que [A-Za-z0-9+/=]
     assert!(
         masked
@@ -61,7 +61,7 @@ fn test_mask_produces_base64() {
 #[test]
 fn test_mask_unmask_roundtrip() {
     let original = generation_token(SECRET, "session_xyz");
-    let masked = mask_csrf_token(&original);
+    let masked = mask_csrf_token(&original).expect("valid hex token");
     let unmasked = unmask_csrf_token(&masked).expect("unmask doit réussir");
     assert_eq!(unmasked, original);
 }
@@ -69,7 +69,7 @@ fn test_mask_unmask_roundtrip() {
 #[test]
 fn test_mask_unmask_roundtrip_user_token() {
     let original = generation_user_token(SECRET, "1337");
-    let masked = mask_csrf_token(&original);
+    let masked = mask_csrf_token(&original).expect("valid hex token");
     let unmasked = unmask_csrf_token(&masked).expect("unmask doit réussir");
     assert_eq!(unmasked, original);
 }
@@ -78,8 +78,8 @@ fn test_mask_unmask_roundtrip_user_token() {
 fn test_two_masks_of_same_token_differ() {
     // Le mask est randomisé — deux appels produisent des résultats différents
     let token = generation_token(SECRET, "sid");
-    let masked1 = mask_csrf_token(&token);
-    let masked2 = mask_csrf_token(&token);
+    let masked1 = mask_csrf_token(&token).expect("valid hex token");
+    let masked2 = mask_csrf_token(&token).expect("valid hex token");
     assert_ne!(
         masked1, masked2,
         "Le masking doit être aléatoire (BREACH protection)"
@@ -89,8 +89,8 @@ fn test_two_masks_of_same_token_differ() {
 #[test]
 fn test_two_masks_both_unmask_to_same_original() {
     let token = generation_token(SECRET, "sid");
-    let masked1 = mask_csrf_token(&token);
-    let masked2 = mask_csrf_token(&token);
+    let masked1 = mask_csrf_token(&token).expect("valid hex token");
+    let masked2 = mask_csrf_token(&token).expect("valid hex token");
     let un1 = unmask_csrf_token(&masked1).unwrap();
     let un2 = unmask_csrf_token(&masked2).unwrap();
     assert_eq!(un1, token);
@@ -149,7 +149,7 @@ fn test_csrf_token_masked_unmask_roundtrip() {
         },
         SECRET,
     );
-    let masked = token.masked();
+    let masked = token.masked().expect("masking doit réussir");
     let unmasked = CsrfToken::unmasked(masked.as_str()).expect("unmask doit réussir");
     assert_eq!(unmasked.as_str(), token.as_str());
 }

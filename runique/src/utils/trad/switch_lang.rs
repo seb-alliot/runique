@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::borrow::Cow;
 use std::fmt::Display;
 use std::sync::LazyLock;
-use std::sync::RwLock;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 /// Languages supported by Runique
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,17 +21,16 @@ pub enum Lang {
     Ru,
 }
 
-static GLOBAL_LANG: RwLock<Lang> = RwLock::new(Lang::En);
+static GLOBAL_LANG: AtomicU8 = AtomicU8::new(1); // 1 = Lang::En
 
 /// Définit dynamiquement la langue globale de l'application.
 pub fn set_lang(lang: Lang) {
-    let mut guard = GLOBAL_LANG.write().unwrap();
-    *guard = lang;
+    GLOBAL_LANG.store(lang.as_u8(), Ordering::Relaxed);
 }
 
 /// Retourne la langue globale configurée (défaut : `En`).
 pub fn current_lang() -> Lang {
-    *GLOBAL_LANG.read().unwrap()
+    Lang::from_u8(GLOBAL_LANG.load(Ordering::Relaxed))
 }
 
 /// Traduit une clé avec la langue globale.
@@ -76,6 +75,35 @@ impl From<String> for Lang {
 }
 
 impl Lang {
+    fn as_u8(self) -> u8 {
+        match self {
+            Lang::Fr => 0,
+            Lang::En => 1,
+            Lang::It => 2,
+            Lang::Es => 3,
+            Lang::De => 4,
+            Lang::Pt => 5,
+            Lang::Ja => 6,
+            Lang::Zh => 7,
+            Lang::Ru => 8,
+        }
+    }
+
+    fn from_u8(v: u8) -> Self {
+        match v {
+            0 => Lang::Fr,
+            1 => Lang::En,
+            2 => Lang::It,
+            3 => Lang::Es,
+            4 => Lang::De,
+            5 => Lang::Pt,
+            6 => Lang::Ja,
+            7 => Lang::Zh,
+            8 => Lang::Ru,
+            _ => Lang::En,
+        }
+    }
+
     /// Returns the language code (for file names)
     pub const fn code(&self) -> &'static str {
         match self {

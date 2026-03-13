@@ -19,10 +19,8 @@ use std::path::{Path, PathBuf};
 
 // ── Helpers partagés ─────────────────────────────────────────────────────────
 
-fn tmp(suffix: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("runique_flow_{}", suffix));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn tmp(suffix: &str) -> crate::utils::clean_tpm_test::TestTempDir {
+    crate::utils::clean_tpm_test::TestTempDir::new("runique_flow", suffix)
 }
 
 fn entities_dir(base: &Path) -> PathBuf {
@@ -873,9 +871,4 @@ fn test_flow_generate_create_float_types() {
         content.contains(".unique_key()"),
         "sku unique → .unique_key()"
     );
-}
-use crate::utils::clean_tpm_test::test_cleanup_final_supprime_tout;
-#[tokio::test]
-async fn z_cleanup_final() {
-    test_cleanup_final_supprime_tout().await;
 }
