@@ -3,6 +3,7 @@ use crate::middleware::auth::is_authenticated;
 use crate::utils::aliases::{AEngine, JsonMap, TResult};
 use crate::utils::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
 use crate::utils::csrf::{CsrfContext, CsrfToken};
+use subtle::ConstantTimeEq;
 use axum::{
     body::Body,
     extract::State,
@@ -124,7 +125,15 @@ pub async fn csrf_middleware(
                 .and_then(|masked| CsrfToken::unmasked(masked).ok());
 
             match header_token {
-                Some(token) if token.as_str() == session_token.as_str() => {
+                Some(token)
+                    if token
+                        .as_str()
+                        .as_bytes()
+                        // ct_eq : comparaison constant-time — évite qu'un attaquant
+                        // devine le token octet par octet via le temps de réponse
+                        .ct_eq(session_token.as_str().as_bytes())
+                        .into() =>
+                {
                     // OK, continue
                 }
                 _ => {
