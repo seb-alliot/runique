@@ -16,19 +16,31 @@
 
 ### 1.b. Middleware CSP
 
-- Peaufiner la configuration pour la rendre plus simple et lisible.
-- Réduire les directives permissives par défaut (`unsafe-inline`, `unsafe-eval`).
-- Harmoniser la gestion des nonces.
+- 🟢 `'unsafe-inline'` retiré de `script_src` et `style_src` par défaut
+- 🟢 `use_nonce: true` par défaut — nonce vide filtré
+- 🟢 HSTS ajouté : `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- 🔴 Peaufiner la configuration pour la rendre plus simple et lisible (builder CSP)
 
 ### 1.c. Robustesse runtime
 
 - 🟢 `utils/middleware/csrf.rs` — `mask_csrf_token()` → `Result` (fix appliqué, plus de crash DDoS)
+- 🟢 Comparaisons CSRF constant-time via `subtle::ct_eq` (`csrf_gate.rs`, `middleware/security/csrf.rs`, `forms/fields/hidden.rs`)
+- 🟢 Cookies session : `HttpOnly: true`, `SameSite: Strict`
+- 🟢 `allowed_hosts.rs` : bypass DEBUG supprimé → interrupteur `RUNIQUE_ENABLE_HOST_VALIDATION`
+- 🟢 `cli_admin.rs` : validation du chemin provider avant `Command::new` (anti-RCE)
+- 🟢 `SECRET_KEY` aléatoire générée à `runique new`
 - 🔴 `utils/trad/switch_lang.rs` — `RwLock.unwrap()` → migrer vers `AtomicU8` (empoisonnement cascade)
 - 🔴 `utils/middleware/csrf.rs:57,74` — `SystemTime::UNIX_EPOCH.unwrap()` (risque quasi nul, à surveiller)
-- Réduire `panic!/unwrap/expect` sur les chemins runtime.
-- Propager des erreurs typées (`Result`) sur les points critiques (middleware, daemon, CLI, i18n).
+- 🔴 Réduire `panic!/unwrap/expect` sur les chemins runtime
+- 🔴 Propager des erreurs typées (`Result`) sur les points critiques (middleware, daemon, CLI, i18n)
 
-### 1.d. Sécurité / permissions admin
+### 1.d. Nouveaux outils sécurité
+
+- 🟢 `RateLimiter` — rate limiting par IP, configurable par handler (`middleware/rate_limit.rs`)
+- 🟢 `LoginGuard` — protection brute-force par username (`middleware/auth/login_guard.rs`)
+- 🔴 Tracing sécurité structuré (voir 4.a)
+
+### 1.e. Sécurité / permissions admin
 
 - 🔴 Vérification runtime des rôles (requête DB par requête admin)
 - 🔴 Contrat `is_staff` / `is_superuser` / rôles custom à clarifier
@@ -52,7 +64,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 ### 3.a. Tests et couverture
 
 - **Tests exhaustifs** : 🟡 76.66% fonctions (objectif 85% minimum).
-- **Audit sécurité** : 🔴 À faire (identifier et corriger les failles).
+- **Audit sécurité** : 🟢 Fait — corrections appliquées (branche i18n, 2026-03-13/14)
 
 ### 3.b. Validation au boot (fail-fast)
 
@@ -128,7 +140,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 ## 5. Vue Admin
 
-**Status :** 🟡 En cours
+**Status :** 🟡 En cours (beta)
 
 ### Court terme
 
@@ -142,6 +154,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - 🔴 **search_fields** : recherche texte côté backend, route ou query param `?q=...`
 - 🔴 **JS assets** : champ `js: ["path/to/file.js"]` dans `admin!{}` → `js_files: Vec<String>` dans `AdminResource` → injecté dans bloc `extra_js` du template
 - 🔴 **Permissions runtime** : vérification des rôles par ressource à chaque requête admin (requête DB, option sécurisée)
+- 🟢 **i18n des templates admin** : système i18n branché sur tous les templates admin
 
 ### Moyen terme
 
@@ -154,15 +167,10 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 ### Hors scope v1 (futur)
 
-- **Inlines** : formulaires imbriqués pour relations SeaORM (`has_many`) — nécessite refonte du modèle form + JS add/remove + transactions groupées
-- **autocomplete_fields** : widget AJAX pour ForeignKey — nécessite route `/admin/{resource}/search` + JS Select2-style
-- **list_editable** : édition inline dans la liste (hors boolean — voir toggle)
+- **Inlines** : formulaires imbriqués pour relations SeaORM (`has_many`)
+- **autocomplete_fields** : widget AJAX pour ForeignKey
+- **list_editable** : édition inline dans la liste (hors boolean)
 - **date_hierarchy avancé** : navigation drill-down avec agrégations DB
-
-### Personnalisation templates
-
-- 🔴 Documentation des clés Tera disponibles par vue (list, create, edit, detail, delete)
-- 🔴 **i18n des templates admin** : brancher le système i18n existant sur les templates admin (labels, messages flash, erreurs, boutons) — section `admin` déjà présente dans les 8 langues
 
 ---
 
