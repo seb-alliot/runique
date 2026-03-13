@@ -1,8 +1,8 @@
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;
-use subtle::ConstantTimeEq;
 use std::sync::Arc;
+use subtle::ConstantTimeEq;
 use tera::{Context, Tera};
 
 #[derive(Clone, Serialize, Debug)]
