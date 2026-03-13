@@ -300,9 +300,3 @@ fn test_format_label_triple() {
     assert_eq!(label, "Date Of Birth");
 }
 
-use crate::utils::clean_tpm_test::test_cleanup_final_supprime_tout;
-#[tokio::test]
-
-async fn z_cleanup_final() {
-    test_cleanup_final_supprime_tout().await;
-}

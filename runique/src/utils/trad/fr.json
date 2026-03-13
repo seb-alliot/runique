@@ -168,7 +168,11 @@
     "name_invalid": "Le nom du projet ne doit contenir que des lettres, chiffres, _ ou -",
     "name_dash": "Le nom du projet ne peut pas commencer par -",
     "folder_exists": "Le dossier '{}' existe déjà",
-    "cargo_run_expect": "Échec du lancement de cargo run"
+    "cargo_run_expect": "Échec du lancement de cargo run",
+    "project_created": "Projet '{}' créé avec succès !",
+    "getting_started": "Pour démarrer :",
+    "cd_hint": "cd {}",
+    "cargo_run_hint": "cargo run"
   },
   "daemon": {
     "modification_detected": "Modification détectée → régénération...",
@@ -354,7 +358,6 @@
         "username_line": "  Utilisateur : {}",
         "email_line": "  Email       : {}"
       }
-    }
   },
   "makemigrations": {
     "scanning": "Scan des entités dans '{}'...",

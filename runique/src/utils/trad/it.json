@@ -168,7 +168,11 @@
         "name_invalid": "Il nome del progetto deve contenere solo lettere, numeri, _ o -",
         "name_dash": "Il nome del progetto non può iniziare con -",
         "folder_exists": "La cartella '{}' esiste già",
-        "cargo_run_expect": "Avvio di cargo run fallito"
+        "cargo_run_expect": "Avvio di cargo run fallito",
+        "project_created": "Progetto '{}' creato con successo!",
+        "getting_started": "Per iniziare:",
+        "cd_hint": "cd {}",
+        "cargo_run_hint": "cargo run"
     },
     "daemon": {
         "modification_detected": "Modifica rilevata → rigenerazione...",
@@ -353,38 +357,37 @@
         "username_line": "  Utente     : {}",
         "email_line": "  Email      : {}"
         }
+    },
+    "makemigrations": {
+        "scanning": "Scansione delle entità in '{}'...",
+        "found_schema": "-> Schema trovato: {}",
+        "no_schema": "Nessuna funzione schema() trovata in '{}'.",
+        "schema_count": "{} schema/i trovato/i.",
+        "updated_lib": "Aggiornato {}",
+        "no_changes": "Nessuna modifica rilevata. Lo schema è aggiornato.",
+        "destructive_detected": "Modifiche distruttive rilevate:",
+        "generated": "Generato: {}",
+        "snapshot_updated": "Snapshot aggiornato: {}",
+        "seaorm_alter": "Migrazione ALTER SeaORM generata: {}",
+        "batch_up": "Batch up generato: {}",
+        "batch_down": "Batch down generato: {}",
+        "apply_hint": "Eseguire 'sea-orm-cli migrate up' per applicare."
+    },
+    "migrate": {
+        "applying": "Applicazione migrazioni da '{}'...",
+        "run_hint": "Eseguire: sea-orm-cli migrate up",
+        "complete": "Rollback completato.",
+        "available_for": "File di rollback disponibili per '{}':",
+        "rolling_back_batch": "Rollback del batch: {}",
+        "done": "Completato: {}",
+        "rolling_back": "Rollback: {}",
+        "no_applied_dir": "Nessuna directory applied/ trovata.",
+        "by_time_header": "by_time (batch completi):",
+        "none_available": "Nessun file di rollback disponibile.",
+        "usage": "Utilizzo:",
+        "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
+        "usage_batch": "runique migration down --batch <timestamp>",
+        "no_down": "Nessuna istruzione down trovata.",
+        "executing": "Esecuzione: {}"
     }
-  },
-  "makemigrations": {
-    "scanning": "Scansione delle entità in '{}'...",
-    "found_schema": "-> Schema trovato: {}",
-    "no_schema": "Nessuna funzione schema() trovata in '{}'.",
-    "schema_count": "{} schema/i trovato/i.",
-    "updated_lib": "Aggiornato {}",
-    "no_changes": "Nessuna modifica rilevata. Lo schema è aggiornato.",
-    "destructive_detected": "Modifiche distruttive rilevate:",
-    "generated": "Generato: {}",
-    "snapshot_updated": "Snapshot aggiornato: {}",
-    "seaorm_alter": "Migrazione ALTER SeaORM generata: {}",
-    "batch_up": "Batch up generato: {}",
-    "batch_down": "Batch down generato: {}",
-    "apply_hint": "Eseguire 'sea-orm-cli migrate up' per applicare."
-  },
-  "migrate": {
-    "applying": "Applicazione migrazioni da '{}'...",
-    "run_hint": "Eseguire: sea-orm-cli migrate up",
-    "complete": "Rollback completato.",
-    "available_for": "File di rollback disponibili per '{}':",
-    "rolling_back_batch": "Rollback del batch: {}",
-    "done": "Completato: {}",
-    "rolling_back": "Rollback: {}",
-    "no_applied_dir": "Nessuna directory applied/ trovata.",
-    "by_time_header": "by_time (batch completi):",
-    "none_available": "Nessun file di rollback disponibile.",
-    "usage": "Utilizzo:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "Nessuna istruzione down trovata.",
-    "executing": "Esecuzione: {}"
-  }
 }

@@ -115,7 +115,13 @@ where
 
         let mut context = Context::new();
         context.insert("debug", &engine.config.debug);
-        context.insert("csrf_token", &csrf_token.masked().as_str());
+        context.insert(
+            "csrf_token",
+            &csrf_token
+                .masked()
+                .unwrap_or_else(|_| csrf_token.clone())
+                .as_str(),
+        );
         context.insert("csp_nonce", nonce);
         context.insert("static_runique", &engine.config.static_files);
         context.insert("messages", &messages);
@@ -141,7 +147,13 @@ impl Request {
         // The backend cannot be reloaded here because it is shared between requests
         context.insert("debug", &engine.config.debug);
         context.insert("static_runique", &engine.config.static_files);
-        context.insert("csrf_token", &csrf_token.masked().as_str());
+        context.insert(
+            "csrf_token",
+            &csrf_token
+                .masked()
+                .unwrap_or_else(|_| csrf_token.clone())
+                .as_str(),
+        );
 
         Self {
             engine,

@@ -18,10 +18,8 @@ use std::path::{Path, PathBuf};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-fn temp_dir(suffix: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("runique_test_migrate_{}", suffix));
-    fs::create_dir_all(&dir).ok();
-    dir
+fn temp_dir(suffix: &str) -> crate::utils::clean_tpm_test::TestTempDir {
+    crate::utils::clean_tpm_test::TestTempDir::new("runique_test_migrate", suffix)
 }
 
 fn applied_dir(base: &Path) -> PathBuf {
@@ -536,8 +534,3 @@ async fn test_down_batch_postgres() {
     }
 }
 
-use crate::utils::clean_tpm_test::test_cleanup_final_supprime_tout;
-#[tokio::test]
-async fn z_cleanup_final() {
-    test_cleanup_final_supprime_tout().await;
-}

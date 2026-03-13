@@ -187,10 +187,8 @@ fn test_diff_multiple_changes() {
 
 // ── update_migration_lib ──────────────────────────────────────────────────────
 
-fn tmp_dir(suffix: &str) -> String {
-    let dir = std::env::temp_dir().join(format!("runique_test_{}", suffix));
-    std::fs::create_dir_all(&dir).unwrap();
-    dir.to_str().unwrap().to_string()
+fn tmp_dir(suffix: &str) -> crate::utils::clean_tpm_test::TestTempDir {
+    crate::utils::clean_tpm_test::TestTempDir::new("runique_test", suffix)
 }
 
 #[test]
@@ -198,7 +196,7 @@ fn test_update_migration_lib_creates_lib_file() {
     let path = tmp_dir("create_lib");
     let module = "m20260101000000_create_users_table";
 
-    update_migration_lib(&path, module).unwrap();
+    update_migration_lib(path.as_str(), module).unwrap();
 
     let content = std::fs::read_to_string(format!("{}/lib.rs", path)).unwrap();
     assert!(content.contains(&format!("mod {};", module)));
@@ -212,8 +210,8 @@ fn test_update_migration_lib_appends_to_existing() {
     let m1 = "m20260101000000_create_users_table";
     let m2 = "m20260102000000_create_blog_table";
 
-    update_migration_lib(&path, m1).unwrap();
-    update_migration_lib(&path, m2).unwrap();
+    update_migration_lib(path.as_str(), m1).unwrap();
+    update_migration_lib(path.as_str(), m2).unwrap();
 
     let content = std::fs::read_to_string(format!("{}/lib.rs", path)).unwrap();
     assert!(content.contains(&format!("mod {};", m1)));
@@ -225,8 +223,8 @@ fn test_update_migration_lib_idempotent() {
     let path = tmp_dir("idempotent_lib");
     let module = "m20260101000000_create_users_table";
 
-    update_migration_lib(&path, module).unwrap();
-    update_migration_lib(&path, module).unwrap();
+    update_migration_lib(path.as_str(), module).unwrap();
+    update_migration_lib(path.as_str(), module).unwrap();
 
     let content = std::fs::read_to_string(format!("{}/lib.rs", path)).unwrap();
     let count = content.matches(&format!("mod {};", module)).count();

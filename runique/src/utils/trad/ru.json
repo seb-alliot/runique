@@ -168,7 +168,11 @@
         "name_invalid": "Имя проекта должно содержать только буквы, цифры, _ или -",
         "name_dash": "Имя проекта не может начинаться с -",
         "folder_exists": "Папка '{}' уже существует",
-        "cargo_run_expect": "Не удалось запустить cargo run"
+        "cargo_run_expect": "Не удалось запустить cargo run",
+        "project_created": "Проект '{}' успешно создан!",
+        "getting_started": "Для начала:",
+        "cd_hint": "cd {}",
+        "cargo_run_hint": "cargo run"
     },
     "daemon": {
         "modification_detected": "Обнаружено изменение → регенерация...",
@@ -354,38 +358,37 @@
         "username_line": "  Логин     : {}",
         "email_line": "  Email     : {}"
         }
+    },
+    "makemigrations": {
+        "scanning": "Сканирование сущностей в '{}'...",
+        "found_schema": "-> Схема найдена: {}",
+        "no_schema": "Функции schema() не найдены в '{}'.",
+        "schema_count": "Найдено {} схем(а).",
+        "updated_lib": "Обновлено {}",
+        "no_changes": "Изменений не обнаружено. Ваша схема актуальна.",
+        "destructive_detected": "Обнаружены деструктивные изменения:",
+        "generated": "Сгенерировано: {}",
+        "snapshot_updated": "Снимок обновлён: {}",
+        "seaorm_alter": "Сгенерирована миграция SeaORM ALTER: {}",
+        "batch_up": "Сгенерирован пакет up: {}",
+        "batch_down": "Сгенерирован пакет down: {}",
+        "apply_hint": "Запустите 'sea-orm-cli migrate up' для применения."
+    },
+    "migrate": {
+        "applying": "Применение миграций из '{}'...",
+        "run_hint": "Выполните: sea-orm-cli migrate up",
+        "complete": "Откат завершён.",
+        "available_for": "Доступные файлы отката для '{}':",
+        "rolling_back_batch": "Откат пакета: {}",
+        "done": "Готово: {}",
+        "rolling_back": "Откат: {}",
+        "no_applied_dir": "Каталог applied/ не найден.",
+        "by_time_header": "by_time (полные пакеты):",
+        "none_available": "Файлы отката отсутствуют.",
+        "usage": "Использование:",
+        "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
+        "usage_batch": "runique migration down --batch <timestamp>",
+        "no_down": "Инструкции down не найдены.",
+        "executing": "Выполняется: {}"
     }
-  },
-  "makemigrations": {
-    "scanning": "Сканирование сущностей в '{}'...",
-    "found_schema": "-> Схема найдена: {}",
-    "no_schema": "Функции schema() не найдены в '{}'.",
-    "schema_count": "Найдено {} схем(а).",
-    "updated_lib": "Обновлено {}",
-    "no_changes": "Изменений не обнаружено. Ваша схема актуальна.",
-    "destructive_detected": "Обнаружены деструктивные изменения:",
-    "generated": "Сгенерировано: {}",
-    "snapshot_updated": "Снимок обновлён: {}",
-    "seaorm_alter": "Сгенерирована миграция SeaORM ALTER: {}",
-    "batch_up": "Сгенерирован пакет up: {}",
-    "batch_down": "Сгенерирован пакет down: {}",
-    "apply_hint": "Запустите 'sea-orm-cli migrate up' для применения."
-  },
-  "migrate": {
-    "applying": "Применение миграций из '{}'...",
-    "run_hint": "Выполните: sea-orm-cli migrate up",
-    "complete": "Откат завершён.",
-    "available_for": "Доступные файлы отката для '{}':",
-    "rolling_back_batch": "Откат пакета: {}",
-    "done": "Готово: {}",
-    "rolling_back": "Откат: {}",
-    "no_applied_dir": "Каталог applied/ не найден.",
-    "by_time_header": "by_time (полные пакеты):",
-    "none_available": "Файлы отката отсутствуют.",
-    "usage": "Использование:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "Инструкции down не найдены.",
-    "executing": "Выполняется: {}"
-  }
 }

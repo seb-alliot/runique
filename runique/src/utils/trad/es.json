@@ -168,7 +168,11 @@
         "name_invalid": "El nombre del proyecto solo debe contener letras, números, _ o -",
         "name_dash": "El nombre del proyecto no puede comenzar con -",
         "folder_exists": "La carpeta '{}' ya existe",
-        "cargo_run_expect": "Error al lanzar cargo run"
+        "cargo_run_expect": "Error al lanzar cargo run",
+        "project_created": "¡Proyecto '{}' creado con éxito!",
+        "getting_started": "Para comenzar:",
+        "cd_hint": "cd {}",
+        "cargo_run_hint": "cargo run"
     },
     "daemon": {
         "modification_detected": "Modificación detectada → regenerando...",
@@ -353,38 +357,37 @@
         "username_line": "  Usuario    : {}",
         "email_line": "  Email      : {}"
         }
+    },
+    "makemigrations": {
+        "scanning": "Escaneando entidades en '{}'...",
+        "found_schema": "-> Esquema encontrado: {}",
+        "no_schema": "No se encontraron funciones schema() en '{}'.",
+        "schema_count": "{} esquema(s) encontrado(s).",
+        "updated_lib": "Actualizado {}",
+        "no_changes": "No se detectaron cambios. Su esquema está actualizado.",
+        "destructive_detected": "Cambios destructivos detectados:",
+        "generated": "Generado: {}",
+        "snapshot_updated": "Instantánea actualizada: {}",
+        "seaorm_alter": "Migración ALTER de SeaORM generada: {}",
+        "batch_up": "Lote up generado: {}",
+        "batch_down": "Lote down generado: {}",
+        "apply_hint": "Ejecute 'sea-orm-cli migrate up' para aplicar."
+    },
+    "migrate": {
+        "applying": "Aplicando migraciones desde '{}'...",
+        "run_hint": "Ejecutar: sea-orm-cli migrate up",
+        "complete": "Reversión completa.",
+        "available_for": "Archivos de reversión disponibles para '{}':",
+        "rolling_back_batch": "Revirtiendo lote: {}",
+        "done": "Hecho: {}",
+        "rolling_back": "Revirtiendo: {}",
+        "no_applied_dir": "No se encontró el directorio applied/.",
+        "by_time_header": "by_time (lotes completos):",
+        "none_available": "No hay archivos de reversión disponibles.",
+        "usage": "Uso:",
+        "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
+        "usage_batch": "runique migration down --batch <timestamp>",
+        "no_down": "No se encontraron instrucciones down.",
+        "executing": "Ejecutando: {}"
     }
-  },
-  "makemigrations": {
-    "scanning": "Escaneando entidades en '{}'...",
-    "found_schema": "-> Esquema encontrado: {}",
-    "no_schema": "No se encontraron funciones schema() en '{}'.",
-    "schema_count": "{} esquema(s) encontrado(s).",
-    "updated_lib": "Actualizado {}",
-    "no_changes": "No se detectaron cambios. Su esquema está actualizado.",
-    "destructive_detected": "Cambios destructivos detectados:",
-    "generated": "Generado: {}",
-    "snapshot_updated": "Instantánea actualizada: {}",
-    "seaorm_alter": "Migración ALTER de SeaORM generada: {}",
-    "batch_up": "Lote up generado: {}",
-    "batch_down": "Lote down generado: {}",
-    "apply_hint": "Ejecute 'sea-orm-cli migrate up' para aplicar."
-  },
-  "migrate": {
-    "applying": "Aplicando migraciones desde '{}'...",
-    "run_hint": "Ejecutar: sea-orm-cli migrate up",
-    "complete": "Reversión completa.",
-    "available_for": "Archivos de reversión disponibles para '{}':",
-    "rolling_back_batch": "Revirtiendo lote: {}",
-    "done": "Hecho: {}",
-    "rolling_back": "Revirtiendo: {}",
-    "no_applied_dir": "No se encontró el directorio applied/.",
-    "by_time_header": "by_time (lotes completos):",
-    "none_available": "No hay archivos de reversión disponibles.",
-    "usage": "Uso:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "No se encontraron instrucciones down.",
-    "executing": "Ejecutando: {}"
-  }
 }

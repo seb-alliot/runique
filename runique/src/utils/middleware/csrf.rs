@@ -28,8 +28,8 @@ impl CsrfToken {
         CsrfToken(raw)
     }
     /// Masks the token for injection
-    pub fn masked(&self) -> Self {
-        CsrfToken(mask_csrf_token(&self.0))
+    pub fn masked(&self) -> Result<Self, &'static str> {
+        mask_csrf_token(&self.0).map(CsrfToken)
     }
 
     /// Unmasks the token
@@ -82,9 +82,8 @@ pub fn generation_user_token(secret_key: &str, option: &str) -> String {
 }
 
 /// Masking for BREACH protection
-pub fn mask_csrf_token(token_hex: &str) -> String {
-    // Replace expect with error handling or a fallback
-    let token_bytes = hex::decode(token_hex).expect("Invalid hex token");
+pub fn mask_csrf_token(token_hex: &str) -> Result<String, &'static str> {
+    let token_bytes = hex::decode(token_hex).map_err(|_| "Invalid hex token")?;
 
     let mut rng = rand::rng();
 
@@ -102,7 +101,7 @@ pub fn mask_csrf_token(token_hex: &str) -> String {
     result.extend(masked);
 
     // Encode in base64
-    general_purpose::STANDARD.encode(&result)
+    Ok(general_purpose::STANDARD.encode(&result))
 }
 
 /// Unmasking

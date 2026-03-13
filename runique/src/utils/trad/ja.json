@@ -168,7 +168,11 @@
         "name_invalid": "プロジェクト名には文字、数字、_ または - のみ使用できます",
         "name_dash": "プロジェクト名は - で始めることができません",
         "folder_exists": "フォルダー '{}' はすでに存在します",
-        "cargo_run_expect": "cargo run の起動に失敗しました"
+        "cargo_run_expect": "cargo run の起動に失敗しました",
+        "project_created": "プロジェクト '{}' を作成しました！",
+        "getting_started": "始めるには：",
+        "cd_hint": "cd {}",
+        "cargo_run_hint": "cargo run"
     },
     "daemon": {
         "modification_detected": "変更を検出 → 再生成中...",
@@ -353,38 +357,37 @@
         "username_line": "  ユーザー名  : {}",
         "email_line": "  メール      : {}"
         }
+    },
+    "makemigrations": {
+        "scanning": "'{}'のエンティティをスキャン中...",
+        "found_schema": "-> スキーマが見つかりました: {}",
+        "no_schema": "'{}'にschema()関数が見つかりません。",
+        "schema_count": "{}個のスキーマが見つかりました。",
+        "updated_lib": "更新しました: {}",
+        "no_changes": "変更は検出されませんでした。スキーマは最新です。",
+        "destructive_detected": "破壊的な変更が検出されました:",
+        "generated": "生成しました: {}",
+        "snapshot_updated": "スナップショットを更新しました: {}",
+        "seaorm_alter": "SeaORM ALTERマイグレーションを生成しました: {}",
+        "batch_up": "バッチアップを生成しました: {}",
+        "batch_down": "バッチダウンを生成しました: {}",
+        "apply_hint": "'sea-orm-cli migrate up'を実行して適用してください。"
+    },
+    "migrate": {
+        "applying": "'{}'からマイグレーションを適用中...",
+        "run_hint": "実行: sea-orm-cli migrate up",
+        "complete": "ロールバックが完了しました。",
+        "available_for": "'{}'の利用可能なロールバックファイル:",
+        "rolling_back_batch": "バッチをロールバック中: {}",
+        "done": "完了: {}",
+        "rolling_back": "ロールバック中: {}",
+        "no_applied_dir": "applied/ディレクトリが見つかりません。",
+        "by_time_header": "by_time (フルバッチ):",
+        "none_available": "ロールバックファイルがありません。",
+        "usage": "使用方法:",
+        "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
+        "usage_batch": "runique migration down --batch <timestamp>",
+        "no_down": "Downステートメントが見つかりません。",
+        "executing": "実行中: {}"
     }
-  },
-  "makemigrations": {
-    "scanning": "'{}'のエンティティをスキャン中...",
-    "found_schema": "-> スキーマが見つかりました: {}",
-    "no_schema": "'{}'にschema()関数が見つかりません。",
-    "schema_count": "{}個のスキーマが見つかりました。",
-    "updated_lib": "更新しました: {}",
-    "no_changes": "変更は検出されませんでした。スキーマは最新です。",
-    "destructive_detected": "破壊的な変更が検出されました:",
-    "generated": "生成しました: {}",
-    "snapshot_updated": "スナップショットを更新しました: {}",
-    "seaorm_alter": "SeaORM ALTERマイグレーションを生成しました: {}",
-    "batch_up": "バッチアップを生成しました: {}",
-    "batch_down": "バッチダウンを生成しました: {}",
-    "apply_hint": "'sea-orm-cli migrate up'を実行して適用してください。"
-  },
-  "migrate": {
-    "applying": "'{}'からマイグレーションを適用中...",
-    "run_hint": "実行: sea-orm-cli migrate up",
-    "complete": "ロールバックが完了しました。",
-    "available_for": "'{}'の利用可能なロールバックファイル:",
-    "rolling_back_batch": "バッチをロールバック中: {}",
-    "done": "完了: {}",
-    "rolling_back": "ロールバック中: {}",
-    "no_applied_dir": "applied/ディレクトリが見つかりません。",
-    "by_time_header": "by_time (フルバッチ):",
-    "none_available": "ロールバックファイルがありません。",
-    "usage": "使用方法:",
-    "usage_files": "runique migration down --files <table/timestamp> [<table/timestamp> ...]",
-    "usage_batch": "runique migration down --batch <timestamp>",
-    "no_down": "Downステートメントが見つかりません。",
-    "executing": "実行中: {}"
-  }
 }
