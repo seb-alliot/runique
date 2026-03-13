@@ -8,7 +8,7 @@ pub static PENDING_URLS: LazyLock<Mutex<Vec<(String, String)>>> =
 
 /// Utilisé par la macro urlpatterns!
 pub fn register_pending(name: impl Into<String>, path: impl Into<String>) {
-    let mut pending = PENDING_URLS.lock().unwrap();
+    let mut pending = PENDING_URLS.lock().unwrap_or_else(|e| e.into_inner());
     pending.push((name.into(), path.into()));
 }
 
@@ -20,13 +20,19 @@ pub fn register_name_url(
     name: impl Into<String>,
     path: impl Into<String>,
 ) {
-    let mut map = engine.url_registry.write().unwrap();
+    let mut map = engine
+        .url_registry
+        .write()
+        .unwrap_or_else(|e| e.into_inner());
     map.insert(name.into(), path.into());
 }
 
 /// Récupère une URL à partir du nom
 pub fn reverse(engine: &Arc<RuniqueEngine>, name: &str) -> Option<String> {
-    let map = engine.url_registry.read().unwrap();
+    let map = engine
+        .url_registry
+        .read()
+        .unwrap_or_else(|e| e.into_inner());
     map.get(name).cloned()
 }
 
@@ -45,8 +51,11 @@ pub fn reverse_with_parameters(
 
 /// Transfère toutes les URLs en attente vers l'engine
 pub fn add_urls(engine: &Arc<RuniqueEngine>) {
-    let mut pending = PENDING_URLS.lock().unwrap();
-    let mut map = engine.url_registry.write().unwrap();
+    let mut pending = PENDING_URLS.lock().unwrap_or_else(|e| e.into_inner());
+    let mut map = engine
+        .url_registry
+        .write()
+        .unwrap_or_else(|e| e.into_inner());
 
     for (name, path) in pending.drain(..) {
         map.insert(name, path);

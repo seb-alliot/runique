@@ -533,4 +533,3 @@ async fn test_down_batch_postgres() {
         std::env::remove_var("DATABASE_URL");
     }
 }
-

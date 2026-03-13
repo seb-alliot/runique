@@ -283,4 +283,3 @@ fn test_schema_clone() {
     assert_eq!(cloned.columns.len(), 1);
     assert!(cloned.primary_key.is_some());
 }
-
