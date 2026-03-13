@@ -1,4 +1,5 @@
 use crate::migration::*;
+use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use std::fs;
@@ -36,7 +37,10 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
 
         if let Some(schema) = parse_schema_from_source(&source) {
-            println!("  -> Found schema: {}", schema.table_name);
+            println!(
+                "  {}",
+                tf("makemigrations.found_schema", &[&schema.table_name])
+            );
             schemas.push(schema);
         }
     }
@@ -72,7 +76,7 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
         fs::write(&lib, updated)?;
     }
 
-    println!(" Updated {}", lib);
+    println!(" {}", tf("makemigrations.updated_lib", &[&lib]));
     Ok(())
 }
 
@@ -89,14 +93,17 @@ pub fn seaorm_alter_file_path(migrations_path: &str, timestamp: &str, table: &st
     )
 }
 pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
-    println!(" Scanning entities in '{}'...", entities_path);
+    println!(" {}", tf("makemigrations.scanning", &[entities_path]));
 
     let schemas = scan_entities(entities_path)?;
     if schemas.is_empty() {
-        println!(" No schema() functions found in '{}'.", entities_path);
+        println!(" {}", tf("makemigrations.no_schema", &[entities_path]));
         return Ok(());
     }
-    println!(" Found {} schema(s).", schemas.len());
+    println!(
+        " {}",
+        tf("makemigrations.schema_count", &[&schemas.len().to_string()])
+    );
 
     fs::create_dir_all(applied_dir(migrations_path))?;
     fs::create_dir_all(snapshot_dir(migrations_path))?;
@@ -127,7 +134,7 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
     }
 
     if all_changes.is_empty() {
-        println!(" No changes detected. Your schema is up to date.");
+        println!(" {}", t("makemigrations.no_changes"));
         return Ok(());
     }
 
@@ -165,7 +172,7 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
     let blocking: Vec<String> = [type_changes, nullable_to_required].concat();
 
     if !blocking.is_empty() && !force {
-        println!("\nDestructive changes detected:");
+        println!("\n{}", t("makemigrations.destructive_detected"));
         for msg in &blocking {
             println!("{}", msg);
         }
@@ -201,10 +208,10 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
             fs::write(&seaorm_path, generate_create_file(schema))
                 .with_context(|| format!("Failed to write: {}", seaorm_path))?;
 
-            println!(" Generated: {}", seaorm_path);
+            println!(" {}", tf("makemigrations.generated", &[&seaorm_path]));
             update_migration_lib(migrations_path, &module_name)?;
         } else {
-            println!(" Updated snapshot: {}", snap_path);
+            println!(" {}", tf("makemigrations.snapshot_updated", &[&snap_path]));
 
             // ALTER file in applied/<table>/
             let table_dir = table_applied_dir(migrations_path, &change.table_name);
@@ -220,13 +227,13 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
                     format!("Failed to write SeaORM alter migration: {}", seaorm_path)
                 })?;
 
-                println!("SeaORM ALTER migration generated: {}", seaorm_path);
+                println!("{}", tf("makemigrations.seaorm_alter", &[&seaorm_path]));
 
                 update_migration_lib(migrations_path, &module_name)?;
             }
             fs::write(&alter_path, generate_alter_file(change))
                 .with_context(|| format!("Failed to write: {}", alter_path))?;
-            println!(" Generated: {}", alter_path);
+            println!(" {}", tf("makemigrations.generated", &[&alter_path]));
 
             // Batch up/down per table in applied/by_time/<table>/
             let up_dir = batch_up_dir(migrations_path, &change.table_name);
@@ -237,15 +244,15 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
             let up_path = batch_up_path(migrations_path, &change.table_name, &timestamp);
             fs::write(&up_path, generate_batch_up_file(&[change], &timestamp))
                 .with_context(|| format!("Failed to write batch up: {}", up_path))?;
-            println!(" Generated batch up:   {}", up_path);
+            println!(" {}", tf("makemigrations.batch_up", &[&up_path]));
 
             let down_path = batch_down_path(migrations_path, &change.table_name, &timestamp);
             fs::write(&down_path, generate_batch_down_file(&[change], &timestamp))
                 .with_context(|| format!("Failed to write batch down: {}", down_path))?;
-            println!(" Generated batch down: {}", down_path);
+            println!(" {}", tf("makemigrations.batch_down", &[&down_path]));
         }
     }
 
-    println!("\nRun 'sea-orm-cli migrate up' to apply.");
+    println!("\n{}", t("makemigrations.apply_hint"));
     Ok(())
 }

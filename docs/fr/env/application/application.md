@@ -9,6 +9,7 @@
 | `PROJECT_NAME` | `myproject` | Nom du projet (utilisé pour `root_urlconf`) |
 | `TIME_ZONE` | `UTC` | Fuseau horaire (pas encore implémenté) |
 | `DEFAULT_AUTO_FIELD` | — | Type de champ auto par défaut pour les modèles |
+| `LANG` | locale système | Langue de la CLI (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priorité : `.env` > locale système (`LC_ALL`, `LC_MESSAGES`) > `en` |
 
 ---
 

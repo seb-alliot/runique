@@ -14,6 +14,14 @@ All configuration keys available through `.env`. The listed values are the defau
 
 ---
 
+## Internationalisation (CLI)
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `.env` > system locale (`LC_ALL`, `LC_MESSAGES`) > `en` |
+
+---
+
 ## Next Steps
 
 ← [**Sessions**](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md)

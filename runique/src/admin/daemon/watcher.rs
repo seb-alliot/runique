@@ -15,6 +15,7 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use crate::admin::daemon::{generate, parse_admin_file};
+use crate::utils::trad::{t, tf};
 
 /// Démarre la surveillance de admin_path et régénère à chaque modification
 ///
@@ -43,12 +44,12 @@ pub fn watch(admin_path: &Path) -> Result<(), String> {
                     let now = Instant::now();
                     if now.duration_since(last_event) > debounce {
                         last_event = now;
-                        println!("\n Modification detected → regeneration...");
+                        println!("\n {}", t("daemon.modification_detected"));
                         run_generation(admin_path);
                     }
                 }
             }
-            Err(e) => eprintln!("  Watcher error: {}", e),
+            Err(e) => eprintln!("  {}", tf("daemon.watcher_error", &[&e.to_string()])),
         }
     }
 
@@ -65,27 +66,27 @@ fn run_generation(admin_path: &Path) {
     let source = match fs::read_to_string(admin_path) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!(" Unable to read: {}", e);
+            eprintln!(" {}", tf("daemon.unable_read", &[&e.to_string()]));
             return;
         }
     };
 
     match parse_admin_file(&source) {
         Err(e) => {
-            eprintln!(" Parsing error: {}", e);
+            eprintln!(" {}", tf("daemon.parse_error", &[&e.to_string()]));
         }
         Ok(parsed) => {
             if parsed.resources.is_empty() {
-                println!(" No resource in admin!{{}} — nothing to generate");
+                println!(" {}", t("daemon.no_resource"));
                 return;
             }
 
             match generate(&parsed.resources) {
                 Ok(()) => {
-                    println!(" Daemon operational → src/admin/generated.rs");
+                    println!(" {}", t("daemon.operational"));
                 }
                 Err(e) => {
-                    eprintln!(" Generation error: {}", e);
+                    eprintln!(" {}", tf("daemon.generation_error", &[&e.to_string()]));
                 }
             }
         }
