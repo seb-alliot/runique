@@ -6,51 +6,40 @@ Contrairement au rate limiting IP, il n'y a pas de faux positifs liés au NAT ou
 
 ---
 
-## Installation rapide
+## Usage
 
 ```rust
 use runique::prelude::*;
-use std::sync::Arc;
 
-// 5 échecs → blocage 5 minutes
-let guard = Arc::new(LoginGuard::new(5, 300));
-```
+static GUARD: LazyLock<LoginGuard> = LazyLock::new(|| LoginGuard::new(5, 300));
 
----
-
-## Utilisation dans un handler de login
-
-```rust
-async fn login_post(
+pub async fn login(
     session: Session,
-    State(guard): State<Arc<LoginGuard>>,
     State(db): State<DatabaseConnection>,
     Prisme(form): Prisme<LoginForm>,
 ) -> impl IntoResponse {
     let username = form.username();
 
-    // 1. Vérifier si le compte est verrouillé
-    if guard.is_locked(&username) {
-        let remaining = guard.remaining_lockout_secs(&username).unwrap_or(0);
-        // afficher un message d'erreur avec `remaining` secondes
-        return (StatusCode::TOO_MANY_REQUESTS, "Compte temporairement bloqué").into_response();
+    if GUARD.is_locked(&username) {
+        let remaining = GUARD.remaining_lockout_secs(&username).unwrap_or(0);
+        return (StatusCode::TOO_MANY_REQUESTS, format!("Réessayez dans {remaining}s")).into_response();
     }
 
-    // 2. Authentifier
     match authenticate(&username, &form.password(), &db).await {
         Some(user) => {
-            guard.record_success(&username);
+            GUARD.record_success(&username);
             login(&session, user.id, &user.username).await.unwrap();
             Redirect::to("/dashboard").into_response()
         }
         None => {
-            guard.record_failure(&username);
-            // afficher erreur de connexion
+            GUARD.record_failure(&username);
             (StatusCode::UNAUTHORIZED, "Identifiants invalides").into_response()
         }
     }
 }
 ```
+
+`LoginGuard::new(max_attempts, lockout_secs)` — le dev déclare ses limites où il veut, comme il veut.
 
 ---
 
@@ -59,14 +48,9 @@ async fn login_post(
 ### Par code
 
 ```rust
-// 5 échecs → blocage 5 minutes
-LoginGuard::new(5, 300)
-
-// 3 échecs → blocage 15 minutes
-LoginGuard::new(3, 900)
-
-// 10 échecs → blocage 1 heure
-LoginGuard::new(10, 3600)
+LoginGuard::new(5, 300)    // 5 échecs → blocage 5 minutes
+LoginGuard::new(3, 900)    // 3 échecs → blocage 15 minutes
+LoginGuard::new(10, 3600)  // 10 échecs → blocage 1 heure
 ```
 
 ### Par variables d'environnement
@@ -77,7 +61,7 @@ RUNIQUE_LOGIN_LOCKOUT_SECS=300
 ```
 
 ```rust
-let guard = Arc::new(LoginGuard::from_env());
+static GUARD: LazyLock<LoginGuard> = LazyLock::new(LoginGuard::from_env);
 ```
 
 ---
@@ -86,13 +70,11 @@ let guard = Arc::new(LoginGuard::from_env());
 
 ### `record_failure(username)`
 
-Incrémente le compteur d'échecs pour ce username.
-À appeler après chaque authentification échouée.
+Incrémente le compteur d'échecs pour ce username. À appeler après chaque authentification échouée.
 
 ### `record_success(username)`
 
-Réinitialise le compteur.
-À appeler après une connexion réussie.
+Réinitialise le compteur. À appeler après une connexion réussie.
 
 ### `is_locked(username) -> bool`
 
@@ -120,16 +102,14 @@ Les deux mécanismes sont complémentaires :
 | Objectif | Réduire le volume | Protéger les comptes |
 
 ```rust
-// Protection maximale : les deux en même temps
-let ip_limiter = Arc::new(RateLimiter::new(10, 60));
-let login_guard = Arc::new(LoginGuard::new(5, 300));
+static IP_LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new(10, 60));
+static GUARD:      LazyLock<LoginGuard>  = LazyLock::new(|| LoginGuard::new(5, 300));
 
-Router::new()
-    .route("/login", post(login_post))
-    .layer(axum::middleware::from_fn_with_state(
-        ip_limiter,
-        rate_limit_middleware,
-    ))
+pub async fn login(/* ... */) -> impl IntoResponse {
+    if !IP_LIMITER.is_allowed(&ip) { /* 429 */ }
+    if GUARD.is_locked(&username)  { /* 429 */ }
+    // ...
+}
 ```
 
 ---

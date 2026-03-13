@@ -1,26 +1,25 @@
 # Rate Limiting
 
-Runique's rate limiter is an IP-based application middleware, designed to be applied on sensitive routes (login, API, etc.).
-
-Unlike a global nginx rule, it is **granular**: each route can have its own limits.
+Runique's rate limiter is granular: each handler can have its own limits, declared directly in the code.
 
 ---
 
-## Quick Start
+## Usage
 
 ```rust
 use runique::prelude::*;
-use std::sync::Arc;
 
-let limiter = Arc::new(RateLimiter::new(5, 60)); // 5 requests per 60 seconds
+static LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new(10, 60));
 
-let app = Router::new()
-    .route("/login", post(login_view))
-    .layer(axum::middleware::from_fn_with_state(
-        limiter,
-        rate_limit_middleware,
-    ));
+pub async fn login(/* ... */) -> impl IntoResponse {
+    if !LIMITER.is_allowed(&ip) {
+        return StatusCode::TOO_MANY_REQUESTS.into_response();
+    }
+    // ...
+}
 ```
+
+`RateLimiter::new(max_requests, window_secs)` — the dev declares their limits wherever and however they want.
 
 ---
 
@@ -29,14 +28,9 @@ let app = Router::new()
 ### In code
 
 ```rust
-// 5 requests maximum per 60-second window
-RateLimiter::new(5, 60)
-
-// 3 requests per 10 seconds
-RateLimiter::new(3, 10)
-
-// 100 requests per minute
-RateLimiter::new(100, 60)
+RateLimiter::new(5, 60)    // 5 requests per minute
+RateLimiter::new(3, 300)   // 3 requests per 5 minutes
+RateLimiter::new(100, 60)  // 100 requests per minute
 ```
 
 ### Via environment variables
@@ -47,28 +41,7 @@ RUNIQUE_RATE_LIMIT_WINDOW_SECS=60
 ```
 
 ```rust
-let limiter = Arc::new(RateLimiter::from_env());
-```
-
----
-
-## Different Limits per Route
-
-```rust
-let login_limiter = Arc::new(RateLimiter::new(5, 60));   // strict
-let api_limiter   = Arc::new(RateLimiter::new(100, 60)); // relaxed
-
-let app = Router::new()
-    .route("/login", post(login_view))
-    .layer(axum::middleware::from_fn_with_state(
-        login_limiter,
-        rate_limit_middleware,
-    ))
-    .route("/api/data", get(api_view))
-    .layer(axum::middleware::from_fn_with_state(
-        api_limiter,
-        rate_limit_middleware,
-    ));
+static LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::from_env);
 ```
 
 ---
@@ -95,9 +68,9 @@ let app = Router::new()
 
 Builds from `RUNIQUE_RATE_LIMIT_REQUESTS` and `RUNIQUE_RATE_LIMIT_WINDOW_SECS`.
 
-### `rate_limit_middleware`
+### `is_allowed(key: &str) -> bool`
 
-Axum middleware function — pass to `from_fn_with_state`.
+Returns `true` if the key is under the limit, `false` otherwise.
 
 ---
 
