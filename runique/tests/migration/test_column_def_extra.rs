@@ -299,4 +299,3 @@ fn test_format_label_triple() {
     let label = field.label();
     assert_eq!(label, "Date Of Birth");
 }
-

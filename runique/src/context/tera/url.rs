@@ -17,7 +17,7 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
         .and_then(|v| v.as_str())
         .ok_or_else(|| tera::Error::msg("link() nécessite un argument 'link'"))?;
 
-    let map = url_registry.read().unwrap();
+    let map = url_registry.read().unwrap_or_else(|e| e.into_inner());
     let pattern = map.get(link_name).cloned().ok_or_else(|| {
         tera::Error::msg(format!(
             "Route '{}' introuvable.\n\nVérifiez que la route existe dans vos routes !",

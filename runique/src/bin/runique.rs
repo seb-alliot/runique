@@ -171,7 +171,8 @@ fn start_admin_daemon(admin_path: &str) -> Result<()> {
         anyhow::bail!("{}", tf("cli.admin_not_found", &[&admin_path]));
     }
 
-    watch(admin_file).map_err(|e| anyhow::anyhow!("{}", tf("cli.daemon_error", &[&e.to_string()])))?;
+    watch(admin_file)
+        .map_err(|e| anyhow::anyhow!("{}", tf("cli.daemon_error", &[&e.to_string()])))?;
 
     Ok(())
 }

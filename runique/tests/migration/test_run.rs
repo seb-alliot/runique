@@ -5,9 +5,9 @@
 //!
 //! Aucune connexion DB requise — tests purement fichiers.
 
+use crate::utils::clean_tpm_test::TestTempDir;
 use crate::utils::env::{del_env, set_env};
 use runique::migration::makemigrations::run;
-use crate::utils::clean_tpm_test::TestTempDir;
 use std::fs;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -575,4 +575,3 @@ async fn test_run_ignore_mod_rs() {
     std::fs::remove_dir_all(&entities).ok();
     std::fs::remove_dir_all(&migrations).ok();
 }
-

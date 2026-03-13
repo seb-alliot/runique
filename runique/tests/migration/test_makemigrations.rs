@@ -319,4 +319,3 @@ fn test_scan_entities_melange_valide_invalide() {
     // On vérifie juste que ça ne panique pas.
     let _ = result;
 }
-
