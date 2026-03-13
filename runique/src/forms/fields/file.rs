@@ -123,7 +123,6 @@ impl FileUploadConfig {
     }
 
     pub fn upload_to(mut self, media_root: String) -> Self {
-        println!("Set upload path to: {}", media_root);
         let f = Arc::new(move |field_name: &str| format!("{}/{}", media_root, field_name));
         self.upload_to = Some(f);
         self

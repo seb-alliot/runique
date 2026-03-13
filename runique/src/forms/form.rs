@@ -1,5 +1,5 @@
 use crate::forms::base::FormField;
-use crate::forms::fields::TextField;
+use crate::forms::fields::{HiddenField, TextField};
 use crate::forms::generic::GenericField;
 use crate::forms::renderer::FormRenderer;
 use crate::forms::validator::{FormValidator, ValidationError};
@@ -128,8 +128,9 @@ impl Forms {
 
     pub fn new(csrf_token: &str) -> Self {
         let mut fields: FieldsMap = IndexMap::new();
-        let mut csrf_field = TextField::create_csrf();
+        let mut csrf_field = HiddenField::new_csrf();
         csrf_field.set_value(csrf_token);
+        csrf_field.set_expected_value(csrf_token);
 
         fields.insert(
             CSRF_TOKEN_KEY.to_string(),

@@ -84,6 +84,7 @@ ammonia = "4.1.2"
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
+subtle = "2"
 
 # CLI
 clap = { version = "4.5.55", features = ["derive"] }

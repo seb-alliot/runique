@@ -1,7 +1,7 @@
 // runique/src/middleware/allowed_hosts.rs
 
 use crate::utils::aliases::AEngine;
-use crate::utils::trad::{t, tf};
+use crate::utils::trad::t;
 use axum::{
     body::Body,
     extract::State,
@@ -14,14 +14,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct HostPolicy {
     pub allowed_hosts: Vec<String>,
-    pub debug: bool, // Ajouté pour la cohérence avec is_host_allowed
+    pub enabled: bool,
 }
 
 impl HostPolicy {
-    pub fn new(allowed_hosts: Vec<String>, debug: bool) -> Self {
+    pub fn new(allowed_hosts: Vec<String>, enabled: bool) -> Self {
         Self {
             allowed_hosts,
-            debug,
+            enabled,
         }
     }
 
@@ -33,22 +33,17 @@ impl HostPolicy {
             .filter(|s: &String| !s.is_empty())
             .collect();
 
-        // On synchronise le mode debug avec l'interrupteur global
-        let debug = std::env::var("DEBUG")
-            .map(|v| v.parse().unwrap_or(false))
-            .unwrap_or(false);
+        let enabled = std::env::var("RUNIQUE_ENABLE_HOST_VALIDATION")
+            .map(|v| v.parse().unwrap_or(true))
+            .unwrap_or(true);
 
         Self {
             allowed_hosts: hosts,
-            debug,
+            enabled,
         }
     }
 
     pub fn is_host_allowed(&self, host: &str) -> bool {
-        if self.debug {
-            return true;
-        }
-
         fn normalize_host(host: &str) -> &str {
             if host.starts_with('[') {
                 host.split(']')
@@ -99,21 +94,20 @@ impl HostPolicy {
         Ok(())
     }
 
-    fn make_error_message(&self, host: &str) -> String {
-        if self.debug {
-            tf("middleware.host_debug", &[host])
-        } else {
-            t("middleware.bad_request").into_owned()
-        }
+    fn make_error_message(&self, _host: &str) -> String {
+        t("middleware.bad_request").into_owned()
     }
 }
 
 pub async fn allowed_hosts_middleware(
-    State(engine): State<AEngine>, // Now uses your central Engine
+    State(engine): State<AEngine>,
     request: Request<Body>,
     next: Next,
 ) -> Response {
-    // We use the "components" already loaded in the engine at startup
+    if !engine.security_hosts.enabled {
+        return next.run(request).await;
+    }
+
     if let Err((status, message)) = engine.security_hosts.validate(request.headers()) {
         return (status, message).into_response();
     }
@@ -127,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_exact_match() {
-        let validator = HostPolicy::new(vec!["exemple.com".to_string()], false);
+        let validator = HostPolicy::new(vec!["exemple.com".to_string()], true);
 
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(!validator.is_host_allowed("www.exemple.com"));
@@ -136,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_wildcard_subdomain() {
-        let validator = HostPolicy::new(vec![".exemple.com".to_string()], false);
+        let validator = HostPolicy::new(vec![".exemple.com".to_string()], true);
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(validator.is_host_allowed("www.exemple.com"));
         assert!(validator.is_host_allowed("api.exemple.com"));
@@ -146,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_wildcard_all() {
-        let validator = HostPolicy::new(vec!["*".to_string()], false);
+        let validator = HostPolicy::new(vec!["*".to_string()], true);
 
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(validator.is_host_allowed("n-importe-quoi.com"));
@@ -160,7 +154,7 @@ mod tests {
                 "www.exemple.com".to_string(),
                 ".api.exemple.com".to_string(),
             ],
-            false,
+            true,
         );
 
         assert!(validator.is_host_allowed("exemple.com"));
@@ -172,27 +166,25 @@ mod tests {
 
     #[test]
     fn test_host_with_port() {
-        let validator = HostPolicy::new(vec!["exemple.com".to_string()], false);
+        let validator = HostPolicy::new(vec!["exemple.com".to_string()], true);
 
         assert!(validator.is_host_allowed("exemple.com:8080"));
         assert!(validator.is_host_allowed("exemple.com:443"));
     }
 
     #[test]
-    fn test_debug_mode_allows_all() {
-        let validator = HostPolicy::new(
-            vec!["exemple.com".to_string()],
-            true, // debug = true
-        );
-
-        assert!(validator.is_host_allowed("n-importe-quoi.com"));
-        assert!(validator.is_host_allowed("malicious.com"));
+    fn test_disabled_allows_all() {
+        // Validation désactivée via RUNIQUE_ENABLE_HOST_VALIDATION=false
+        // Le bypass se fait au niveau du middleware, pas dans is_host_allowed
+        let validator = HostPolicy::new(vec!["exemple.com".to_string()], false);
+        assert!(!validator.is_host_allowed("n-importe-quoi.com"));
+        assert!(!validator.is_host_allowed("malicious.com"));
     }
 
     #[test]
     fn test_wildcard_subdomain_security() {
         // Test pour éviter que "malicious-exemple.com" match ".exemple.com"
-        let validator = HostPolicy::new(vec![".exemple.com".to_string()], false);
+        let validator = HostPolicy::new(vec![".exemple.com".to_string()], true);
 
         // Doit matcher
         assert!(validator.is_host_allowed("exemple.com"));

@@ -129,7 +129,6 @@ impl SecurityPolicy {
         if !self.style_src.is_empty() {
             let mut style_sources = self.style_src.clone();
             style_sources.push(format!("'nonce-{}'", nonce.unwrap_or("")));
-            style_sources.push(format!("'nonce-{}'", nonce.unwrap_or("")));
             style_sources.retain(|s| s != "'unsafe-inline'");
             directives.push(format!("style-src {}", style_sources.join(" ")));
         }

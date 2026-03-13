@@ -55,12 +55,6 @@ impl TextField {
         self.hash_password = false;
         self
     }
-    pub fn create_csrf() -> Self {
-        let mut field = Self::create("csrf_token", "hidden", SpecialFormat::Csrf);
-        field.base.template_name = "csrf".to_string();
-        field
-    }
-
     pub fn min_length(mut self, min: u32, msg: &str) -> Self {
         self.config.min_length = Some(LengthConstraint {
             value: min,

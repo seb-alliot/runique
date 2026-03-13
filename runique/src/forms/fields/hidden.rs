@@ -1,6 +1,7 @@
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;
+use subtle::ConstantTimeEq;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
@@ -59,7 +60,9 @@ impl FormField for HiddenField {
                     return false;
                 }
 
-                if self.base.value != *expected {
+                // ct_eq : comparaison constant-time — évite qu'un attaquant
+                // devine le token octet par octet via le temps de réponse
+                if !bool::from(self.base.value.as_bytes().ct_eq(expected.as_bytes())) {
                     self.set_error(t("csrf.invalid").to_string());
                     return false;
                 }

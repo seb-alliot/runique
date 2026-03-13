@@ -7,6 +7,7 @@ use axum::http::Method;
 use axum::response::Response;
 use std::collections::HashMap;
 use std::sync::Arc;
+use subtle::ConstantTimeEq;
 use tera::Tera;
 
 /// CSRF gate : vérification du token dans les données parsées.
@@ -28,7 +29,13 @@ pub async fn csrf_gate<T: RuniqueForm>(
         return Ok(None);
     }
 
-    if csrf_submitted != Some(csrf_session) {
+    // ct_eq : comparaison constant-time — évite qu'un attaquant
+    // devine le token octet par octet via le temps de réponse
+    let token_valid = csrf_submitted
+        .map(|s| bool::from(s.as_bytes().ct_eq(csrf_session.as_bytes())))
+        .unwrap_or(false);
+
+    if !token_valid {
         let empty: StrMap = HashMap::new();
         let mut form = T::build_with_data(&empty, tera, csrf_session, method.clone()).await;
 

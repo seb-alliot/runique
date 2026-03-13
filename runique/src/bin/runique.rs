@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use rand::RngExt;
 use runique::migration::{makemigrations, migrate};
 use runique::utils::init_logging;
 use runique::utils::trad::{Lang, set_lang, t, tf};
@@ -231,7 +232,13 @@ fn create_new_project(name: &str) -> Result<()> {
         .replace("{{RUNIQUE_VERSION}}", runique_version)
         .into_bytes();
 
-    let env_file = include_bytes!("../composant-bin/config/secret").to_vec();
+    let secret_key: String = (0..32)
+        .map(|_| rand::rng().random::<u8>())
+        .map(|b| format!("{:02x}", b))
+        .collect();
+    let env_file = include_str!("../composant-bin/config/secret")
+        .replace("your_secret_key_here", &secret_key)
+        .into_bytes();
     let gitignore = include_bytes!("../composant-bin/config/ignore").to_vec();
     let readme_va = include_bytes!("../composant-bin/readme/README.md").to_vec();
     let readme_fr = include_bytes!("../composant-bin/readme/README.fr.md").to_vec();
