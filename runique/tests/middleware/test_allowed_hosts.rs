@@ -60,10 +60,14 @@ fn test_host_with_port() {
 }
 
 #[test]
-fn test_debug_mode_allows_all() {
-    let validator = HostPolicy::new(vec!["exemple.com".to_string()], true);
-    assert!(validator.is_host_allowed("n-importe-quoi.com"));
-    assert!(validator.is_host_allowed("malicious.com"));
+fn test_disabled_bypasses_at_middleware_level() {
+    // Le bypass se fait dans le middleware (enabled=false → skip),
+    // pas dans is_host_allowed. Avec enabled=false, la validation reste active.
+    let validator = HostPolicy::new(vec!["exemple.com".to_string()], false);
+    assert!(!validator.is_host_allowed("n-importe-quoi.com"));
+    assert!(!validator.is_host_allowed("malicious.com"));
+    // L'hôte autorisé est toujours accepté
+    assert!(validator.is_host_allowed("exemple.com"));
 }
 
 #[test]
@@ -97,20 +101,20 @@ fn test_validate_ok_and_error() {
 
 #[test]
 fn test_validate_no_host_header() {
-    // debug=true pour que le message contienne le host name
     let validator = HostPolicy::new(vec!["localhost".to_string()], true);
     let headers = HeaderMap::new();
     let res = validator.validate(&headers);
     assert!(res.is_err());
-    if let Err((status, msg)) = res {
+    if let Err((status, _msg)) = res {
         assert_eq!(status, StatusCode::BAD_REQUEST);
-        assert!(msg.contains("<no host>"));
     }
 }
 
 #[test]
-fn test_make_error_message_debug() {
+fn test_make_error_message() {
+    // make_error_message retourne la traduction middleware.bad_request ("Bad Request")
+    // sans exposer l'hôte reçu (protection contre l'énumération d'hôtes)
     let validator = HostPolicy::new(vec!["localhost".to_string()], true);
     let msg = validator.validate(&HeaderMap::new()).err().unwrap().1;
-    assert!(msg.contains("Invalid Host"));
+    assert!(msg.contains("Bad Request"));
 }

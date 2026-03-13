@@ -6,51 +6,40 @@ Unlike IP rate limiting, there are no false positives from NAT or shared proxies
 
 ---
 
-## Quick Start
+## Usage
 
 ```rust
 use runique::prelude::*;
-use std::sync::Arc;
 
-// 5 failures → 5 minute lockout
-let guard = Arc::new(LoginGuard::new(5, 300));
-```
+static GUARD: LazyLock<LoginGuard> = LazyLock::new(|| LoginGuard::new(5, 300));
 
----
-
-## Usage in a Login Handler
-
-```rust
-async fn login_post(
+pub async fn login(
     session: Session,
-    State(guard): State<Arc<LoginGuard>>,
     State(db): State<DatabaseConnection>,
     Prisme(form): Prisme<LoginForm>,
 ) -> impl IntoResponse {
     let username = form.username();
 
-    // 1. Check if account is locked
-    if guard.is_locked(&username) {
-        let remaining = guard.remaining_lockout_secs(&username).unwrap_or(0);
-        // show error with `remaining` seconds
-        return (StatusCode::TOO_MANY_REQUESTS, "Account temporarily locked").into_response();
+    if GUARD.is_locked(&username) {
+        let remaining = GUARD.remaining_lockout_secs(&username).unwrap_or(0);
+        return (StatusCode::TOO_MANY_REQUESTS, format!("Try again in {remaining}s")).into_response();
     }
 
-    // 2. Authenticate
     match authenticate(&username, &form.password(), &db).await {
         Some(user) => {
-            guard.record_success(&username);
+            GUARD.record_success(&username);
             login(&session, user.id, &user.username).await.unwrap();
             Redirect::to("/dashboard").into_response()
         }
         None => {
-            guard.record_failure(&username);
-            // show login error
+            GUARD.record_failure(&username);
             (StatusCode::UNAUTHORIZED, "Invalid credentials").into_response()
         }
     }
 }
 ```
+
+`LoginGuard::new(max_attempts, lockout_secs)` — the dev declares their limits wherever and however they want.
 
 ---
 
@@ -59,14 +48,9 @@ async fn login_post(
 ### In code
 
 ```rust
-// 5 failures → 5 minute lockout
-LoginGuard::new(5, 300)
-
-// 3 failures → 15 minute lockout
-LoginGuard::new(3, 900)
-
-// 10 failures → 1 hour lockout
-LoginGuard::new(10, 3600)
+LoginGuard::new(5, 300)    // 5 failures → 5 minute lockout
+LoginGuard::new(3, 900)    // 3 failures → 15 minute lockout
+LoginGuard::new(10, 3600)  // 10 failures → 1 hour lockout
 ```
 
 ### Via environment variables
@@ -77,7 +61,7 @@ RUNIQUE_LOGIN_LOCKOUT_SECS=300
 ```
 
 ```rust
-let guard = Arc::new(LoginGuard::from_env());
+static GUARD: LazyLock<LoginGuard> = LazyLock::new(LoginGuard::from_env);
 ```
 
 ---
@@ -86,13 +70,11 @@ let guard = Arc::new(LoginGuard::from_env());
 
 ### `record_failure(username)`
 
-Increments the failure counter for this username.
-Call after each failed authentication attempt.
+Increments the failure counter for this username. Call after each failed authentication attempt.
 
 ### `record_success(username)`
 
-Resets the counter.
-Call after a successful login.
+Resets the counter. Call after a successful login.
 
 ### `is_locked(username) -> bool`
 
@@ -120,16 +102,14 @@ Both mechanisms are complementary:
 | Goal | Reduce volume | Protect accounts |
 
 ```rust
-// Maximum protection: both at the same time
-let ip_limiter = Arc::new(RateLimiter::new(10, 60));
-let login_guard = Arc::new(LoginGuard::new(5, 300));
+static IP_LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new(10, 60));
+static GUARD:      LazyLock<LoginGuard>  = LazyLock::new(|| LoginGuard::new(5, 300));
 
-Router::new()
-    .route("/login", post(login_post))
-    .layer(axum::middleware::from_fn_with_state(
-        ip_limiter,
-        rate_limit_middleware,
-    ))
+pub async fn login(/* ... */) -> impl IntoResponse {
+    if !IP_LIMITER.is_allowed(&ip) { /* 429 */ }
+    if GUARD.is_locked(&username)  { /* 429 */ }
+    // ...
+}
 ```
 
 ---

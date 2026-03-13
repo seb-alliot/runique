@@ -10,7 +10,7 @@ fn test_security_policy_default() {
     assert!(policy.script_src.contains(&"'self'".to_string()));
     assert!(policy.style_src.contains(&"'self'".to_string()));
     assert!(policy.img_src.contains(&"data:".to_string()));
-    assert!(!policy.use_nonce);
+    assert!(policy.use_nonce);
 }
 
 #[test]
