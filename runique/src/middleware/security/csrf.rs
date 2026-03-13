@@ -3,7 +3,6 @@ use crate::middleware::auth::is_authenticated;
 use crate::utils::aliases::{AEngine, JsonMap, TResult};
 use crate::utils::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
 use crate::utils::csrf::{CsrfContext, CsrfToken};
-use subtle::ConstantTimeEq;
 use axum::{
     body::Body,
     extract::State,
@@ -11,6 +10,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use subtle::ConstantTimeEq;
 use tera::{Function, Value};
 use tower_sessions::Session;
 
