@@ -296,7 +296,8 @@ impl MiddlewareStaging {
             move |router: Router, debug: bool, duration: Duration| {
                 let layer = SessionManagerLayer::new(store)
                     .with_secure(!debug)
-                    .with_http_only(!debug)
+                    .with_http_only(true)
+                    .with_same_site(tower_sessions::cookie::SameSite::Strict)
                     .with_expiry(Expiry::OnInactivity(duration));
                 router.layer(layer)
             },
@@ -457,7 +458,8 @@ impl MiddlewareStaging {
                         store.spawn_cleanup(tokio::time::Duration::from_secs(cleanup_secs));
                         let layer = SessionManagerLayer::new(store)
                             .with_secure(!debug)
-                            .with_http_only(!debug)
+                            .with_http_only(true)
+                            .with_same_site(tower_sessions::cookie::SameSite::Strict)
                             .with_expiry(Expiry::OnInactivity(anon_duration));
                         r.layer(layer)
                     }

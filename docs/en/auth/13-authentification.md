@@ -10,6 +10,7 @@ Runique provides a complete and extensible session-based authentication system.
 | [Session Helpers](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/session/session.md) | `login`, `logout`, `is_authenticated` |
 | [Protection Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/middleware/middleware.md) | `login_required`, `redirect_if_authenticated`, `load_user_middleware` |
 | [Complete Example](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/exemple/exemple.md) | Complete Login / Logout handlers |
+| [LoginGuard](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/login-guard/login-guard.md) | Brute-force protection per username |
 
 ## Next Steps
 

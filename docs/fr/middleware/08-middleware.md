@@ -11,10 +11,11 @@ Runique intègre des middlewares de sécurité configurables appliqués automati
 | [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/sessions/sessions.md) | Store, durées, accès dans les handlers |
 | [Hosts & Cache](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/hosts-cache/hosts-cache.md) | Allowed Hosts, Cache-Control, headers de sécurité |
 | [Builder & configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/builder/builder.md) | Builder classique, Builder Intelligent, variables d'env |
+| [Rate Limiting](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/rate-limit/rate-limit.md) | Limitation de débit par IP, par route, configurable |
 
 ## Stack d'exécution
 
-```
+```text
 Requête entrante
     ↓
 1. Extensions (slot 0)     → Injection Engine, Tera, Config

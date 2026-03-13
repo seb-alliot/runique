@@ -203,9 +203,19 @@ fn hash_password(password: &str, algo: &AlgoChoice) -> Result<String, String> {
 }
 
 fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, String> {
+    use std::path::Path;
     use std::process::{Command, Stdio};
 
-    let mut child = Command::new(provider_path)
+    // Vérifie que le chemin est un fichier existant et exécutable — pas de shell injection
+    let path = Path::new(provider_path);
+    if !path.exists() {
+        return Err(format!("Provider not found: '{}'", provider_path));
+    }
+    if !path.is_file() {
+        return Err(format!("Provider is not a file: '{}'", provider_path));
+    }
+
+    let mut child = Command::new(path)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()

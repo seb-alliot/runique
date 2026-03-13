@@ -29,15 +29,15 @@ impl Default for SecurityPolicy {
     fn default() -> Self {
         Self {
             default_src: vec!["'self'".into()],
-            script_src: vec!["'self'".into(), "'unsafe-inline'".into()],
-            style_src: vec!["'self'".into(), "'unsafe-inline'".into()],
+            script_src: vec!["'self'".into()],
+            style_src: vec!["'self'".into()],
             img_src: vec!["'self'".into(), "data:".into()],
             font_src: vec!["'self'".into()],
             connect_src: vec!["'self'".into()],
             frame_ancestors: vec!["'none'".into()],
             base_uri: vec!["'self'".into()],
             form_action: vec!["'self'".into()],
-            use_nonce: false,
+            use_nonce: true,
         }
     }
 }
@@ -121,15 +121,19 @@ impl SecurityPolicy {
 
         if !self.script_src.is_empty() {
             let mut script_sources = self.script_src.clone();
-            script_sources.push(format!("'nonce-{}'", nonce.unwrap_or("")));
-            script_sources.retain(|s| s != "'unsafe-inline'");
+            if let Some(n) = nonce.filter(|n| !n.is_empty()) {
+                script_sources.push(format!("'nonce-{}'", n));
+                script_sources.retain(|s| s != "'unsafe-inline'");
+            }
             directives.push(format!("script-src {}", script_sources.join(" ")));
         }
 
         if !self.style_src.is_empty() {
             let mut style_sources = self.style_src.clone();
-            style_sources.push(format!("'nonce-{}'", nonce.unwrap_or("")));
-            style_sources.retain(|s| s != "'unsafe-inline'");
+            if let Some(n) = nonce.filter(|n| !n.is_empty()) {
+                style_sources.push(format!("'nonce-{}'", n));
+                style_sources.retain(|s| s != "'unsafe-inline'");
+            }
             directives.push(format!("style-src {}", style_sources.join(" ")));
         }
 
@@ -258,6 +262,11 @@ pub async fn security_headers_middleware(
     headers.insert(
         "cross-origin-resource-policy",
         HeaderValue::from_static("same-origin"),
+    );
+
+    headers.insert(
+        "strict-transport-security",
+        HeaderValue::from_static("max-age=31536000; includeSubDomains"),
     );
 
     response
