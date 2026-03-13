@@ -46,7 +46,15 @@ pub fn tf<T: Display>(key: &str, args: &[T]) -> String {
 
 impl From<&str> for Lang {
     fn from(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
+        // Normalize locale strings: "fr_FR.UTF-8" → "fr-fr", "fr" → "fr"
+        let normalized = s
+            .split('.')
+            .next()
+            .unwrap_or(s)
+            .replace('_', "-")
+            .to_lowercase();
+
+        match normalized.as_str() {
             "fr" | "fr-fr" | "fr-ca" | "fr-be" | "fr-ch" => Lang::Fr,
             "en" | "en-us" | "en-gb" | "en-ca" => Lang::En,
             "it" | "it-it" | "it-ch" => Lang::It,
@@ -56,7 +64,7 @@ impl From<&str> for Lang {
             "ja" | "ja-jp" => Lang::Ja,
             "zh" | "zh-cn" | "zh-tw" | "zh-hk" => Lang::Zh,
             "ru" | "ru-ru" | "ru-by" | "ru-ua" => Lang::Ru,
-            _ => Lang::En, // Default to English if unrecognized
+            _ => Lang::En,
         }
     }
 }

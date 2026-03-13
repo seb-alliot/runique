@@ -1,5 +1,6 @@
 use crate::middleware::auth::user::{ActiveModel, BuiltinUserEntity, UserEntity};
 use crate::utils::password::{BaseHash, Manual};
+use crate::utils::trad::{t, tf};
 use anyhow::Result;
 use dialoguer::{Input, Password, Select, theme::ColorfulTheme};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
@@ -54,14 +55,14 @@ enum ReviewAction {
 
 fn step_algorithm() -> Option<AlgoChoice> {
     let items = vec![
-        "Argon2 (recommended)",
-        "Bcrypt",
-        "Scrypt",
-        "Custom provider",
+        t("admin.superuser.algo_argon2").to_string(),
+        t("admin.superuser.algo_bcrypt").to_string(),
+        t("admin.superuser.algo_scrypt").to_string(),
+        t("admin.superuser.algo_custom").to_string(),
     ];
 
     let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("[1/5] Hashing algorithm")
+        .with_prompt(t("admin.superuser.algo_prompt"))
         .items(&items)
         .default(0)
         .interact_opt()
@@ -73,11 +74,11 @@ fn step_algorithm() -> Option<AlgoChoice> {
         2 => Some(AlgoChoice::Scrypt),
         3 => {
             let path: String = Input::with_theme(&ColorfulTheme::default())
-                .with_prompt("Provider path")
+                .with_prompt(t("admin.superuser.provider_path"))
                 .interact_text()
                 .ok()?;
             if path.trim().is_empty() {
-                println!("Invalid path.");
+                println!("{}", t("admin.superuser.invalid_path"));
                 None
             } else {
                 Some(AlgoChoice::Custom(path))
@@ -90,13 +91,13 @@ fn step_algorithm() -> Option<AlgoChoice> {
 async fn step_username(db: &DatabaseConnection) -> Option<String> {
     loop {
         let input: String = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt("[2/5] Username")
+            .with_prompt(t("admin.superuser.username_prompt"))
             .interact_text()
             .ok()?;
 
         let input = input.trim().to_string();
         if input.is_empty() {
-            println!("Username cannot be empty.");
+            println!("{}", t("admin.superuser.username_empty"));
             continue;
         }
 
@@ -104,7 +105,7 @@ async fn step_username(db: &DatabaseConnection) -> Option<String> {
             .await
             .is_some()
         {
-            println!("A user with this name already exists.");
+            println!("{}", t("admin.superuser.username_taken"));
             continue;
         }
         return Some(input);
@@ -114,18 +115,18 @@ async fn step_username(db: &DatabaseConnection) -> Option<String> {
 async fn step_email(db: &DatabaseConnection) -> Option<String> {
     loop {
         let input: String = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt("[3/5] Email")
+            .with_prompt(t("admin.superuser.email_prompt"))
             .interact_text()
             .ok()?;
 
         let input = input.trim().to_lowercase();
         if input.is_empty() || !input.contains('@') {
-            println!("Invalid email.");
+            println!("{}", t("admin.superuser.email_invalid"));
             continue;
         }
 
         if BuiltinUserEntity::find_by_email(db, &input).await.is_some() {
-            println!("A user with this email already exists.");
+            println!("{}", t("admin.superuser.email_taken"));
             continue;
         }
         return Some(input);
@@ -135,22 +136,22 @@ async fn step_email(db: &DatabaseConnection) -> Option<String> {
 fn step_password() -> Option<String> {
     loop {
         let pass1 = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("[4/5] Password")
+            .with_prompt(t("admin.superuser.password_prompt"))
             .interact()
             .ok()?;
 
         if pass1.len() < 10 {
-            println!("Password must be at least 10 characters.");
+            println!("{}", t("admin.superuser.password_too_short"));
             continue;
         }
 
         let pass2 = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("[5/5] Confirm password")
+            .with_prompt(t("admin.superuser.confirm_prompt"))
             .interact()
             .ok()?;
 
         if pass1 != pass2 {
-            println!("Passwords do not match. Please try again.");
+            println!("{}", t("admin.superuser.password_mismatch"));
             continue;
         }
 
@@ -164,16 +165,20 @@ fn step_review(state: &WizardState) -> ReviewAction {
     let email = state.email.as_deref().unwrap();
 
     println!("\n──────────────────────────────────");
-    println!("  Algorithm   : {}", algo.label());
-    println!("  Username    : {}", username);
-    println!("  Email       : {}", email);
-    println!("  Password    : ••••••••");
+    println!("{}", tf("admin.superuser.review_algo", &[&algo.label()]));
+    println!("{}", tf("admin.superuser.review_username", &[&username]));
+    println!("{}", tf("admin.superuser.review_email", &[&email]));
+    println!("{}", t("admin.superuser.review_password"));
     println!("──────────────────────────────────");
 
-    let items = vec!["Confirm and create", "Change algorithm", "Modify password"];
+    let items = vec![
+        t("admin.superuser.confirm_create").to_string(),
+        t("admin.superuser.change_algo").to_string(),
+        t("admin.superuser.modify_password").to_string(),
+    ];
 
     match Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Action")
+        .with_prompt(t("admin.superuser.review_action"))
         .items(&items)
         .default(0)
         .interact()
@@ -231,12 +236,12 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 pub async fn create_superuser() -> Result<()> {
-    dotenvy::dotenv().ok();
+    dotenvy::dotenv_override().ok();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be defined in .env");
     let db = sea_orm::Database::connect(&database_url).await?;
 
-    println!("=== Create Superuser ===");
+    println!("{}", t("admin.superuser.title"));
 
     let mut state = WizardState::default();
     let mut step = Step::Algorithm;
@@ -322,10 +327,10 @@ pub async fn create_superuser() -> Result<()> {
 
     let inserted = new_user.insert(&db).await?;
 
-    println!("\n✓ Superuser created successfully!");
-    println!("  ID       : {}", inserted.id);
-    println!("  Username : {}", username);
-    println!("  Email    : {}", email);
+    println!("\n{}", t("admin.superuser.success"));
+    println!("{}", tf("admin.superuser.id_line", &[&inserted.id]));
+    println!("{}", tf("admin.superuser.username_line", &[&username]));
+    println!("{}", tf("admin.superuser.email_line", &[&email]));
 
     Ok(())
 }

@@ -1,9 +1,9 @@
 # Runique — Django-inspired Rust Framework
 
-![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
+![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-1523%2F1523%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.43-blue)
+![Version](https://img.shields.io/badge/version-1.1.46-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
 
 Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.

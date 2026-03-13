@@ -47,6 +47,8 @@ migration/
     └── m20220101_000001_create_table.rs
 ```
 
+Delete `m20220101_000001_create_table.rs` — `runique makemigrations` will generate the real files.
+
 ---
 
 ### Step 3: Configure migration files
@@ -59,7 +61,7 @@ Replace the content of `migration/Cargo.toml` with:
 [package]
 name = "migration"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 sea-orm-migration = { version = "2.0.0-rc.18", features = [
@@ -115,105 +117,72 @@ async fn main() {
 }
 ```
 
-> **Note**: This version ensures compatibility with Runique v1.0.85+
-
 ---
 
-### Step 4: Create the users table migration
-### Modify the initially created create_table.rs or delete and create a new migration
-### Warning: if you create a new one, delete the old one and modify the timestamp number in lib.rs
+### Step 4: Define your entities
 
-```bash
-# Create the migration file
-sea-orm-cli migrate generate create_users_table
-```
-
-This generates a file `migration/src/m{TIMESTAMP}_create_users_table.rs`
-
----
-
-### Step 5: Complete the migration file
-
-Modify the chosen file and replace **all its content** with:
+Your entities are already in `src/entities/`. Each file uses the `model!` macro:
 
 ```rust
-use sea_orm_migration::prelude::*;
+// src/entities/users.rs
+use runique::prelude::*;
 
-#[derive(DeriveMigrationName)]
-pub struct Migration;
-
-#[async_trait::async_trait]
-impl MigrationTrait for Migration {
-    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .create_table(
-                Table::create()
-                    .table(Users::Table)
-                    .if_not_exists()
-                    .col(
-                        ColumnDef::new(Users::Id)
-                            .integer()
-                            .not_null()
-                            .auto_increment()
-                            .primary_key(),
-                    )
-                    .col(
-                        ColumnDef::new(Users::Username)
-                            .string()
-                            .not_null()
-                            .unique_key(),
-                    )
-                    .col(
-                        ColumnDef::new(Users::Email)
-                            .string()
-                            .not_null()
-                            .unique_key(),
-                    )
-                    .col(ColumnDef::new(Users::Password).string().not_null())
-                    .col(ColumnDef::new(Users::Age).integer().not_null())
-                    .col(
-                        ColumnDef::new(Users::CreatedAt)
-                            .timestamp()
-                            .default(Expr::current_timestamp())
-                            .not_null(),
-                    )
-                    .to_owned(),
-            )
-            .await
+model! {
+    Users,
+    table: "users",
+    pk: id => i32,
+    fields: {
+        username: String [required, max_len(150), unique],
+        email: String [required, unique],
+        password: String [required, max_len(128)],
+        created_at: datetime [auto_now],
+        updated_at: datetime [auto_now_update],
     }
-
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .drop_table(Table::drop().table(Users::Table).to_owned())
-            .await
-    }
-}
-
-#[derive(DeriveIden)]
-enum Users {
-    Table,
-    Id,
-    Username,
-    Email,
-    Password,
-    Age,
-    CreatedAt,
 }
 ```
+
+Runique reads these to generate migrations automatically.
+
+---
+
+### Step 5: Generate migrations
+
+```bash
+runique makemigrations
+```
+
+This scans `src/entities/`, compares against snapshots, and generates:
+
+```text
+migration/src/
+├── lib.rs                                      ← auto-updated
+├── main.rs
+├── m{TIMESTAMP}_create_users_table.rs          ← generated
+└── snapshot/
+    └── users.rs                                ← schema snapshot
+```
+
+> For schema changes (ALTER), just modify your entity and run `runique makemigrations` again.
+> Use `--force` to skip the destructive change prompt.
+>
+> ⚠️ **Warning**
+> The `makemigrations` command generates SeaORM tables while preserving the
+> chronological order of the migration system.
+> To ensure migration tracking remains consistent, only use the SeaORM CLI
+> to apply or manage migrations.
+> Using other commands may lead to migration desynchronization.
 
 ---
 
 ### Step 6: Apply the migration
 
 ```bash
-# Apply the migration
 sea-orm-cli migrate up
 ```
 
 You should see:
 
-```
-
+```text
 Applying migration 'm{TIMESTAMP}_create_users_table'
 Migration 'm{TIMESTAMP}_create_users_table' has been applied
 ```
@@ -228,34 +197,48 @@ Migration 'm{TIMESTAMP}_create_users_table' has been applied
 cargo run
 ```
 
-Open your browser at **http://127.0.0.1:3000**
+Open your browser at **`http://127.0.0.1:3000`**
+
+---
+
+## Evolving the schema
+
+When you need to add, remove, or modify a column:
+
+1. Edit the `model!` in `src/entities/your_model.rs`
+2. Run `runique makemigrations` — detects the diff, generates an ALTER migration
+3. Run `sea-orm-cli migrate up` — applies it
+
+For destructive changes (type change, nullable → not null):
+
+```bash
+runique makemigrations --force
+```
 
 ---
 
 ## Final project structure
 
 ```
-
 {}/
-├── migration/                           <- New folder created
+├── migration/                           <- Created in step 2
 │   ├── Cargo.toml                       <- Configured in step 3.1
 │   └── src/
-│       ├── lib.rs
-│       ├── main.rs                      <- Modified in step 3.2
-│       └── m{TIMESTAMP}_create_users_table.rs  <- Created in step 5
+│       ├── lib.rs                       <- Auto-managed by makemigrations
+│       ├── main.rs                      <- Configured in step 3.2
+│       ├── m{TIMESTAMP}_create_users_table.rs
+│       └── snapshot/
+│           └── users.rs
 ├── src/
-│   ├── models/
+│   ├── entities/
 │   │   ├── mod.rs
-│   │   └── users.rs                     <- Matches the migration
-│   ├── static/css/
-│   ├── forms.rs
+│   │   └── users.rs                     <- Defines model! schema
+│   ├── formulaire/
 │   ├── main.rs
 │   ├── url.rs
 │   └── views.rs
 ├── templates/
-│   ├── index.html
-│   ├── about/
-│   └── profile/
+├── static/
 ├── .env
 ├── Cargo.toml
 └── README.md
@@ -266,14 +249,29 @@ Open your browser at **http://127.0.0.1:3000**
 ## Useful commands
 
 ```bash
-# Check migrations status
+# Generate migrations from entities
+runique makemigrations
+
+# Force generation (skip destructive change prompt)
+runique makemigrations --force
+
+# Custom paths
+runique makemigrations --entities src/entities --migrations migration/src
+
+# Apply migrations
+sea-orm-cli migrate up
+
+# Check migration status
 sea-orm-cli migrate status
 
-# Rollback the last migration
-sea-orm-cli migrate down
+# List available rollbacks
+runique migration status
 
-# Create a new migration
-sea-orm-cli migrate generate migration_name
+# Rollback a specific migration
+runique migration down --files users/20240101_120000
+
+# Rollback a full batch
+runique migration down --batch 20240101_120000
 
 # Reset the database (deletes all data)
 sea-orm-cli migrate down -n 999
@@ -345,6 +343,4 @@ Check that `migration/Cargo.toml` contains the `[workspace]` section
 
 ---
 
-Generated by **Runique CLI v1.1.30**
-
-```
+Generated by **Runique CLI v1.1.46**

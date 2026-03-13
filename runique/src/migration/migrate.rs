@@ -1,3 +1,4 @@
+use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend};
 use std::fs;
@@ -8,8 +9,8 @@ use std::path::Path;
 // ============================================================
 
 pub async fn up(migrations_path: &str) -> Result<()> {
-    println!("Applying migrations from '{}'...", migrations_path);
-    println!("Run: sea-orm-cli migrate up");
+    println!("{}", tf("migrate.applying", &[migrations_path]));
+    println!("{}", t("migrate.run_hint"));
     Ok(())
 }
 
@@ -36,12 +37,12 @@ pub async fn down(migrations_path: &str, files: Vec<String>, batch: Option<Strin
         }
     }
 
-    println!("\nRollback complete.");
+    println!("\n{}", t("migrate.complete"));
     Ok(())
 }
 
 pub async fn status(migrations_path: &str) -> Result<()> {
-    println!("Available rollback files for '{}':", migrations_path);
+    println!("{}", tf("migrate.available_for", &[migrations_path]));
     list_available(migrations_path)?;
     Ok(())
 }
@@ -60,21 +61,21 @@ async fn rollback_batch(
 
     if !Path::new(&batch_file).exists() {
         anyhow::bail!(
-            "Batch '{}' not found.\nRun 'sea-orm-builder migrate status' to list available batches.",
+            "Batch '{}' not found.\nRun 'runique migration status' to list available batches.",
             timestamp
         );
     }
 
     check_order_batch(&by_time_dir, timestamp)?;
 
-    println!("Rolling back batch: {}", timestamp);
+    println!("{}", tf("migrate.rolling_back_batch", &[timestamp]));
 
     let source = fs::read_to_string(&batch_file)
         .with_context(|| format!("Cannot read batch file: {}", batch_file))?;
 
     execute_down_block(&source, db).await?;
 
-    println!("  Done: {}", timestamp);
+    println!("  {}", tf("migrate.done", &[timestamp]));
     Ok(())
 }
 
@@ -93,7 +94,7 @@ async fn rollback_file(
 
     if !Path::new(&file_path).exists() {
         anyhow::bail!(
-            "File not found: {}\nRun 'sea-orm-builder migrate status' to list available files.",
+            "File not found: {}\nRun 'runique migration status' to list available files.",
             file_path
         );
     }
@@ -107,14 +108,14 @@ async fn rollback_file(
         check_order_file(&table_dir, timestamp)?;
     }
 
-    println!("Rolling back: {}", file_arg);
+    println!("{}", tf("migrate.rolling_back", &[file_arg]));
 
     let source = fs::read_to_string(&file_path)
         .with_context(|| format!("Cannot read file: {}", file_path))?;
 
     execute_down_block(&source, db).await?;
 
-    println!("  Done: {}", file_arg);
+    println!("  {}", tf("migrate.done", &[file_arg]));
     Ok(())
 }
 
@@ -180,7 +181,7 @@ fn list_available(migrations_path: &str) -> Result<()> {
     let applied_dir = format!("{}/applied", migrations_path);
 
     if !Path::new(&applied_dir).exists() {
-        println!("No applied/ directory found.");
+        println!("{}", t("migrate.no_applied_dir"));
         return Ok(());
     }
 
@@ -214,20 +215,18 @@ fn list_available(migrations_path: &str) -> Result<()> {
 
     if !batches.is_empty() {
         found = true;
-        println!("\n  by_time (full batches):");
+        println!("\n  {}:", t("migrate.by_time_header"));
         for batch in &batches {
             println!("    {}", batch.trim_end_matches(".rs"));
         }
     }
 
     if !found {
-        println!("No rollback files available.");
+        println!("{}", t("migrate.none_available"));
     } else {
-        println!("\nUsage:");
-        println!(
-            "  sea-orm-builder migrate down --files <table/timestamp> [<table/timestamp> ...]"
-        );
-        println!("  sea-orm-builder migrate down --batch <timestamp>");
+        println!("\n{}", t("migrate.usage"));
+        println!("  {}", t("migrate.usage_files"));
+        println!("  {}", t("migrate.usage_batch"));
     }
 
     Ok(())
@@ -247,12 +246,12 @@ async fn execute_down_block(source: &str, db: &DatabaseConnection) -> Result<()>
     let statements = extract_statements_from_block(&down_block, source, backend);
 
     if statements.is_empty() {
-        println!("  No down statements found.");
+        println!("  {}", t("migrate.no_down"));
         return Ok(());
     }
 
     for sql in &statements {
-        println!("  Executing: {}", sql);
+        println!("  {}", tf("migrate.executing", &[sql]));
         db.execute_unprepared(sql)
             .await
             .with_context(|| format!("Failed to execute: {}", sql))?;

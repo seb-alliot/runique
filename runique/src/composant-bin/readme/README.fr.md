@@ -14,7 +14,7 @@ cargo install sea-orm-cli
 ```
 
 <details>
-<summary>💡 Installation plus rapide (SQLite uniquement)</summary>
+<summary>Installation plus rapide (SQLite uniquement)</summary>
 
 Si tu utilises uniquement SQLite, tu peux installer une version allégée :
 
@@ -37,7 +37,8 @@ sea-orm-cli migrate init
 ```
 
 Cela crée la structure suivante :
-```
+
+```text
 migration/
 ├── Cargo.toml
 ├── README.md
@@ -46,6 +47,8 @@ migration/
     ├── main.rs
     └── m20220101_000001_create_table.rs
 ```
+
+Supprime `m20220101_000001_create_table.rs` — `runique makemigrations` générera les vrais fichiers.
 
 ---
 
@@ -58,8 +61,8 @@ Remplace le contenu de `migration/Cargo.toml` par :
 ```toml
 [package]
 name = "migration"
-version = "1.1.11"
-edition = "2021"
+version = "0.1.0"
+edition = "2024"
 
 [dependencies]
 sea-orm-migration = { version = "2.0.0-rc.18", features = [
@@ -71,12 +74,13 @@ tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 ```
 
->  **Important** : Utilise la version `2.0.0-rc.18` pour matcher avec Runique !
+> **Important** : Utilise la version `2.0.0-rc.18` pour matcher avec Runique !
 
 <details>
-<summary> Personnaliser les features selon ta base de données</summary>
+<summary>Personnaliser les features selon ta base de données</summary>
 
 **Pour PostgreSQL uniquement** :
+
 ```toml
 sea-orm-migration = { version = "2.0.0-rc.18", features = [
     "runtime-tokio-rustls",
@@ -85,6 +89,7 @@ sea-orm-migration = { version = "2.0.0-rc.18", features = [
 ```
 
 **Pour SQLite uniquement** :
+
 ```toml
 sea-orm-migration = { version = "2.0.0-rc.18", features = [
     "runtime-tokio-rustls",
@@ -93,6 +98,7 @@ sea-orm-migration = { version = "2.0.0-rc.18", features = [
 ```
 
 **Pour MySQL uniquement** :
+
 ```toml
 sea-orm-migration = { version = "2.0.0-rc.18", features = [
     "runtime-tokio-rustls",
@@ -115,108 +121,77 @@ async fn main() {
 }
 ```
 
-> 💡 **Note** : Cette version assure la compatibilité avec Runique v1.0.855+
-
 ---
 
-### Étape 4 : Créer la migration de la table users
-### Modifier create_table.rs initialement créé ou supprimer et créer une nouvelle migration
-### Attention, si tu en crée une nouvelle, supprime l'ancienne et modifie le numéro de timestamp dans lib.rs
+### Étape 4 : Définir tes entités
 
-```bash
-# Créer le fichier de migration
-sea-orm-cli migrate generate create_users_table
-```
-
-Cela génère un fichier `migration/src/m{TIMESTAMP}_create_users_table.rs`
-
----
-
-### Étape 5 : Compléter le fichier de migration
-
-Modifier le fichier choisis et remplace **tout son contenu** par :
+Tes entités se trouvent dans `src/entities/`. Chaque fichier utilise la macro `model!` :
 
 ```rust
-use sea_orm_migration::prelude::*;
+// src/entities/users.rs
+use runique::prelude::*;
 
-#[derive(DeriveMigrationName)]
-pub struct Migration;
-
-#[async_trait::async_trait]
-impl MigrationTrait for Migration {
-    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .create_table(
-                Table::create()
-                    .table(Users::Table)
-                    .if_not_exists()
-                    .col(
-                        ColumnDef::new(Users::Id)
-                            .integer()
-                            .not_null()
-                            .auto_increment()
-                            .primary_key(),
-                    )
-                    .col(
-                        ColumnDef::new(Users::Username)
-                            .string()
-                            .not_null()
-                            .unique_key(),
-                    )
-                    .col(
-                        ColumnDef::new(Users::Email)
-                            .string()
-                            .not_null()
-                            .unique_key(),
-                    )
-                    .col(ColumnDef::new(Users::Password).string().not_null())
-                    .col(ColumnDef::new(Users::Age).integer().not_null())
-                    .col(
-                        ColumnDef::new(Users::CreatedAt)
-                            .timestamp()
-                            .default(Expr::current_timestamp())
-                            .not_null(),
-                    )
-                    .to_owned(),
-            )
-            .await
+model! {
+    Users,
+    table: "users",
+    pk: id => i32,
+    fields: {
+        username: String [required, max_len(150), unique],
+        email: String [required, unique],
+        password: String [required, max_len(128)],
+        created_at: datetime [auto_now],
+        updated_at: datetime [auto_now_update],
     }
-
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .drop_table(Table::drop().table(Users::Table).to_owned())
-            .await
-    }
-}
-
-#[derive(DeriveIden)]
-enum Users {
-    Table,
-    Id,
-    Username,
-    Email,
-    Password,
-    Age,
-    CreatedAt,
 }
 ```
+
+Runique lit ces fichiers pour générer les migrations automatiquement.
+
+---
+
+### Étape 5 : Générer les migrations
+
+```bash
+runique makemigrations
+```
+
+Cela scanne `src/entities/`, compare avec les snapshots, et génère :
+
+```text
+migration/src/
+├── lib.rs                                      ← mis à jour automatiquement
+├── main.rs
+├── m{TIMESTAMP}_create_users_table.rs          ← généré
+└── snapshot/
+    └── users.rs                                ← snapshot du schéma
+```
+
+> Pour faire évoluer le schéma (ALTER), modifie ton entité et relance `runique makemigrations`.
+> Utilise `--force` pour ignorer la confirmation sur les changements destructifs.
+>
+> ⚠️ **Avertissement**
+> La commande `makemigrations` permet de générer les tables SeaORM tout en
+> respectant la chronologie du système de migrations.
+> Pour garantir la cohérence du suivi des migrations, utilisez uniquement
+> la CLI de SeaORM pour appliquer ou gérer les migrations.
+> L'utilisation des commandes peut entraîner une désynchronisation.
 
 ---
 
 ### Étape 6 : Appliquer la migration
 
 ```bash
-# Applique la migration
 sea-orm-cli migrate up
 ```
 
 Tu devrais voir :
-```
+
+```text
 Applying migration 'm{TIMESTAMP}_create_users_table'
 Migration 'm{TIMESTAMP}_create_users_table' has been applied
 ```
 
- **La table `users` est maintenant créée !**
+**La table `users` est maintenant créée !**
 
 ---
 
@@ -226,33 +201,48 @@ Migration 'm{TIMESTAMP}_create_users_table' has been applied
 cargo run
 ```
 
-🎉 Ouvre ton navigateur sur **http://127.0.0.1:3000**
+Ouvre ton navigateur sur **`http://127.0.0.1:3000`**
 
 ---
 
-##  Structure finale du projet
+## Faire évoluer le schéma
 
+Quand tu dois ajouter, supprimer ou modifier une colonne :
+
+1. Modifie le `model!` dans `src/entities/ton_modele.rs`
+2. Lance `runique makemigrations` — détecte le diff, génère une migration ALTER
+3. Lance `sea-orm-cli migrate up` — l'applique
+
+Pour les changements destructifs (changement de type, nullable → not null) :
+
+```bash
+runique makemigrations --force
 ```
+
+---
+
+## Structure finale du projet
+
+```text
 {}/
-├── migration/                           ← Nouveau dossier créé
-│   ├── Cargo.toml                       ← Configuré à l'étape 3.1
+├── migration/                           <- Créé à l'étape 2
+│   ├── Cargo.toml                       <- Configuré à l'étape 3.1
 │   └── src/
-│       ├── lib.rs
-│       ├── main.rs                      ← Modifié à l'étape 3.2
-│       └── m{TIMESTAMP}_create_users_table.rs  ← Créé à l'étape 5
+│       ├── lib.rs                       <- Géré automatiquement par makemigrations
+│       ├── main.rs                      <- Configuré à l'étape 3.2
+│       ├── m{TIMESTAMP}_create_users_table.rs
+│       └── snapshot/
+│           └── users.rs
 ├── src/
-│   ├── models/
+│   ├── entities/
 │   │   ├── mod.rs
-│   │   └── users.rs                     ←  Correspond à la migration
-│   ├── static/css/
-│   ├── forms.rs
+│   │   └── users.rs                     <- Définit le schéma model!
+│   ├── formulaire/
 │   ├── main.rs
 │   ├── url.rs
 │   └── views.rs
 ├── templates/
-│   ├── index.html
-│   ├── about/
-│   └── profile/
+├── static/
 ├── .env
 ├── Cargo.toml
 └── README.md
@@ -260,17 +250,32 @@ cargo run
 
 ---
 
-##  Commandes utiles
+## Commandes utiles
 
 ```bash
+# Générer les migrations depuis les entités
+runique makemigrations
+
+# Forcer la génération (ignorer la confirmation sur changements destructifs)
+runique makemigrations --force
+
+# Chemins personnalisés
+runique makemigrations --entities src/entities --migrations migration/src
+
+# Appliquer les migrations
+sea-orm-cli migrate up
+
 # Voir le statut des migrations
 sea-orm-cli migrate status
 
-# Rollback de la dernière migration
-sea-orm-cli migrate down
+# Lister les rollbacks disponibles
+runique migration status
 
-# Créer une nouvelle migration
-sea-orm-cli migrate generate nom_de_la_migration
+# Rollback d'une migration spécifique
+runique migration down --files users/20240101_120000
+
+# Rollback d'un batch complet
+runique migration down --batch 20240101_120000
 
 # Réinitialiser la base de données (supprime toutes les données)
 sea-orm-cli migrate down -n 999
@@ -279,52 +284,62 @@ sea-orm-cli migrate up
 
 ---
 
-##  Dépannage
+## Dépannage
 
-###  Erreur : "table users doesn't exist"
-→ Tu n'as pas appliqué la migration. Exécute :
+### Erreur : "table users doesn't exist"
+
+Tu n'as pas appliqué la migration. Exécute :
+
 ```bash
 sea-orm-cli migrate up
 ```
 
-###  Erreur : "sea-orm-cli: command not found"
-→ Installe sea-orm-cli :
+### Erreur : "sea-orm-cli: command not found"
+
+Installe sea-orm-cli :
+
 ```bash
 cargo install sea-orm-cli
 ```
 
-###  Erreur : "version mismatch"
-→ Vérifie que `migration/Cargo.toml` utilise bien `sea-orm-migration = "2.0.0-rc.18"`
+### Erreur : "version mismatch"
 
-###  Erreur : "no such table: users"
-→ Vérifie que :
+Vérifie que `migration/Cargo.toml` utilise bien `sea-orm-migration = "2.0.0-rc.18"`
+
+### Erreur : "no such table: users"
+
+Vérifie que :
+
 1. La migration a bien été appliquée (`sea-orm-cli migrate status`)
 2. Le chemin `DATABASE_URL` dans `.env` est correct
 3. Tu lances `cargo run` depuis la racine du projet (pas depuis `migration/`)
 
-###  Port 3000 déjà utilisé
-→ Change le port dans `.env` :
+### Port 3000 déjà utilisé
+
+Change le port dans `.env` :
+
 ```env
 PORT=8080
 ```
 
-###  Erreur : "workspace" lors de `sea-orm-cli migrate up`
-→ Vérifie que `migration/Cargo.toml` contient bien la section `[workspace]`
+### Erreur : "workspace" lors de `sea-orm-cli migrate up`
+
+Vérifie que `migration/Cargo.toml` contient bien la section `[workspace]`
 
 ---
 
-## 🎯 Fonctionnalités incluses
+## Fonctionnalités incluses
 
--  Inscription utilisateur avec validation
--  Recherche d'utilisateur par nom
--  Protection CSRF automatique
--  Flash messages (success, error, info, warning)
--  Thème sombre moderne et responsive
--  Templates Tera avec héritage
+- Inscription utilisateur avec validation
+- Recherche d'utilisateur par nom
+- Protection CSRF automatique
+- Flash messages (success, error, info, warning)
+- Thème sombre moderne et responsive
+- Templates Tera avec héritage
 
 ---
 
-##  Documentation
+## Documentation
 
 - [Runique Framework](https://docs.rs/runique)
 - [SeaORM Migrations](https://www.sea-ql.org/SeaORM/docs/migration/setting-up-migration/)
@@ -332,4 +347,4 @@ PORT=8080
 
 ---
 
-Généré par **Runique CLI v1.0.85** 🦀
+Généré par **Runique CLI v1.1.46**

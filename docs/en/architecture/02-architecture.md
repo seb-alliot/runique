@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     password_init(PasswordConfig::auto());
 
-    RuniqueAppBuilder::new(config)
+    RuniqueApp::builder(config)
         .routes(urls::routes())
         .with_database(db)
         .statics()
