@@ -109,6 +109,7 @@ pub mod prelude {
     // ========================================================================
     pub use crate::middleware::{
         allowed_hosts::*, auth::*, cache::*, config::*, csp::*, csrf::*, errors::*,
+        rate_limit::{RateLimiter, rate_limit_middleware},
     };
 
     // ========================================================================

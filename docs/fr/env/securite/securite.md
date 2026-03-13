@@ -37,6 +37,28 @@
 
 ---
 
+## Rate Limiting
+
+| Variable                        | Défaut | Description                                               |
+|---------------------------------|--------|-----------------------------------------------------------|
+| `RUNIQUE_RATE_LIMIT_REQUESTS`   | `60`   | Nombre de requêtes autorisées par fenêtre (`RateLimiter`) |
+| `RUNIQUE_RATE_LIMIT_WINDOW_SECS`| `60`   | Durée de la fenêtre en secondes (`RateLimiter`)           |
+
+Voir [Rate Limiting](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/rate-limit/rate-limit.md) pour l'utilisation.
+
+---
+
+## LoginGuard
+
+| Variable                       | Défaut | Description                                                    |
+|--------------------------------|--------|----------------------------------------------------------------|
+| `RUNIQUE_LOGIN_MAX_ATTEMPTS`   | `5`    | Nombre d'échecs avant verrouillage du compte (`LoginGuard`)    |
+| `RUNIQUE_LOGIN_LOCKOUT_SECS`   | `300`  | Durée du verrouillage en secondes (`LoginGuard`)               |
+
+Voir [LoginGuard](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/login-guard/login-guard.md) pour l'utilisation.
+
+---
+
 ## Sessions
 
 | Variable | Défaut | Description |

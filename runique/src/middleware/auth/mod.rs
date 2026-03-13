@@ -2,6 +2,7 @@ pub mod admin_auth;
 pub mod auth_session;
 pub mod default_auth;
 pub mod form;
+pub mod login_guard;
 pub mod user;
 pub mod user_trait;
 
@@ -15,6 +16,7 @@ pub use admin_auth::{AdminAuth, AdminLoginResult};
 pub use user_trait::RuniqueUser;
 
 pub use default_auth::{DefaultAdminAuth, UserEntity};
+pub use login_guard::LoginGuard;
 
 pub use form::LoginAdmin;
 pub use user::{BuiltinUserEntity, RuniqueAdminAuth};

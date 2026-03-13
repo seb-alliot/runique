@@ -89,6 +89,15 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - `debug = false` : tracing off
 - `debug = true` : tracing on (console + page debug)
 
+**Tracing sécurité :** 🔴 À faire
+
+- Événements structurés sur les points critiques (à brancher sur le tracing existant) :
+  - CSRF rejeté → `tracing::warn!`
+  - Host bloqué → `tracing::warn!`
+  - Login échoué / compte verrouillé (`LoginGuard`) → `tracing::warn!`
+  - Rate limit dépassé (`RateLimiter`) → `tracing::warn!`
+- Contexte riche : IP, username (si disponible), route, timestamp
+
 ### 4.b. Formulaires — `#[derive(DeriveModelForm)]`
 
 **Status :** 🟡 À évaluer — potentiellement supprimé
