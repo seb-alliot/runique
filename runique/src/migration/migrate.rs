@@ -9,8 +9,30 @@ use std::path::Path;
 // ============================================================
 
 pub async fn up(migrations_path: &str) -> Result<()> {
-    println!("{}", tf("migrate.applying", &[migrations_path]));
-    println!("{}", t("migrate.run_hint"));
+    dotenvy::dotenv().ok();
+
+    let migration_dir = migrations_path
+        .trim_end_matches("/src")
+        .trim_end_matches("\\src");
+
+    println!("{}", tf("migrate.applying", &[migration_dir]));
+
+    let status = tokio::process::Command::new("sea-orm-cli")
+        .args(["migrate", "up", "--migration-dir", migration_dir])
+        .status()
+        .await
+        .with_context(|| {
+            "Impossible de lancer sea-orm-cli. Est-il installé ? Exécutez : cargo install sea-orm-cli"
+        })?;
+
+    if !status.success() {
+        anyhow::bail!(
+            "sea-orm-cli migrate up a échoué (code: {:?})",
+            status.code()
+        );
+    }
+
+    println!("{}", t("migrate.complete"));
     Ok(())
 }
 

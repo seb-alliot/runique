@@ -90,7 +90,15 @@ impl RateLimiter {
     }
 }
 
-/// Extrait la clé IP depuis les headers (`X-Forwarded-For`, `X-Real-IP`, fallback `"unknown"`)
+/// Extrait la clé IP depuis les headers (`X-Forwarded-For`, `X-Real-IP`, fallback `"unknown"`).
+///
+/// **Pré-requis : reverse proxy de confiance.**
+/// Cette fonction fait confiance au header `X-Forwarded-For` tel qu'il arrive.
+/// Sans proxy en amont (nginx, Caddy, Cloudflare…) qui contrôle ce header,
+/// un client malveillant peut le forger pour contourner le rate limiting par IP.
+///
+/// Pour la protection brute-force sur le login, préférez [`LoginGuard`] qui
+/// limite par nom d'utilisateur — non bypassable par IP spoofing.
 fn extract_ip(req: &Request<Body>) -> String {
     req.headers()
         .get("x-forwarded-for")

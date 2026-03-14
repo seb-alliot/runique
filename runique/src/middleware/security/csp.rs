@@ -31,7 +31,11 @@ impl Default for SecurityPolicy {
             default_src: vec!["'self'".into()],
             script_src: vec!["'self'".into()],
             style_src: vec!["'self'".into()],
-            img_src: vec!["'self'".into(), "data:".into()],
+            // Uniquement `'self'` par défaut.
+            // Pour autoriser les images base64 inline (avatars, éditeurs rich-text),
+            // ajoutez `data:` via la variable d'env :
+            //   RUNIQUE_POLICY_CSP_IMAGES='self',data:
+            img_src: vec!["'self'".into()],
             font_src: vec!["'self'".into()],
             connect_src: vec!["'self'".into()],
             frame_ancestors: vec!["'none'".into()],

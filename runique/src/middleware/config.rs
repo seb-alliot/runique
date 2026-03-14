@@ -2,12 +2,20 @@
 ///
 /// Note: Le CSRF est TOUJOURS activé (imposé par le framework pour la sécurité)
 ///
+/// ## Gestion des pages d'erreur
+/// `enable_debug_errors` contrôle si le middleware `error_handler` est ajouté au router.
+/// Quand il est actif, les pages d'erreur sont rendues par Tera :
+/// - En **développement** (`DEBUG=true` ou `cargo build` sans `--release`) : traces complètes.
+/// - En **production** (`cargo build --release`) : pages 404/500 propres sans trace.
+///
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiddlewareConfig {
     pub enable_csp: bool,
     pub enable_host_validation: bool,
+    /// Active le middleware `error_handler` qui intercepte les erreurs 4xx/5xx.
+    /// Désactiver uniquement si vous gérez les erreurs manuellement dans chaque handler.
     pub enable_debug_errors: bool,
     pub enable_cache: bool,
 }
@@ -15,7 +23,6 @@ pub struct MiddlewareConfig {
 impl Default for MiddlewareConfig {
     fn default() -> Self {
         Self {
-            // Par défaut: tous les middlewares de sécurité activés
             enable_csp: true,
             enable_host_validation: true,
             enable_debug_errors: true,
