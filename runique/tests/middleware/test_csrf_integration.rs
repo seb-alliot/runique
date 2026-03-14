@@ -27,9 +27,11 @@ async fn test_csrf_get_retourne_200_et_header_token() {
 }
 
 #[tokio::test]
-async fn test_csrf_post_sans_header_passe() {
+async fn test_csrf_post_sans_header_sans_content_type_retourne_403() {
+    // POST sans header X-CSRF-Token et sans Content-Type form : désormais bloqué (403).
+    // Les soumissions HTML (urlencoded/multipart) passent toujours via Prisme.
     let resp = request::post(fresh_app().await, "/submit").await;
-    assert_status(&resp, 200);
+    assert_status(&resp, 403);
 }
 
 #[tokio::test]
@@ -45,9 +47,10 @@ async fn test_csrf_post_avec_token_invalide_retourne_403() {
 }
 
 #[tokio::test]
-async fn test_csrf_delete_sans_header_passe() {
+async fn test_csrf_delete_sans_header_sans_content_type_retourne_403() {
+    // DELETE sans header X-CSRF-Token et sans Content-Type form : désormais bloqué (403).
     let resp = request::delete(fresh_app().await, "/delete").await;
-    assert_status(&resp, 200);
+    assert_status(&resp, 403);
 }
 
 #[tokio::test]

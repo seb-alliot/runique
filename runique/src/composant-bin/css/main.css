@@ -275,6 +275,13 @@ footer p {
     }
 }
 
+/* Form field hints */
+.field-hints {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 0.3rem;
+}
+
 /* Très petit mobile (320px) */
 @media (max-width: 360px) {
     .content h1 {

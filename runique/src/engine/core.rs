@@ -37,7 +37,7 @@ impl RuniqueEngine {
     pub fn new(config: RuniqueConfig, tera: Tera, db: DatabaseConnection) -> Self {
         // Chargement unique au démarrage
         let features = MiddlewareConfig::from_env();
-        let security_csp = SecurityPolicy::from_env();
+        let security_csp = SecurityPolicy::default();
         let security_hosts = HostPolicy::from_env();
 
         Self {

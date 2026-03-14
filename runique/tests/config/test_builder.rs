@@ -332,6 +332,7 @@ fn test_middleware_config_development() {
 fn test_middleware_config_production() {
     let config = MiddlewareConfig::production();
     assert!(config.enable_csp);
+    assert!(!config.enable_header_security); // false par défaut — activé via builder
     assert!(config.enable_host_validation);
     assert!(config.enable_debug_errors);
     assert!(config.enable_cache);
@@ -378,19 +379,31 @@ fn test_middleware_staging_from_config_prod() {
     };
     config.debug = false;
     let ms = MiddlewareStaging::from_config(&config);
-    assert!(ms.features().enable_csp);
-}
-
-#[test]
-fn test_middleware_staging_with_csp_true() {
-    let ms = MiddlewareStaging::new(true).with_csp(true);
-    assert!(ms.features().enable_csp);
-}
-
-#[test]
-fn test_middleware_staging_with_csp_false() {
-    let ms = MiddlewareStaging::new(false).with_csp(false);
+    // CSP configure uniquement via le builder — toujours false depuis from_config
     assert!(!ms.features().enable_csp);
+    assert!(!ms.features().enable_header_security);
+}
+
+#[test]
+fn test_middleware_staging_with_csp_active() {
+    let ms = MiddlewareStaging::new(true).with_csp(|c| c);
+    assert!(ms.features().enable_csp);
+    assert!(!ms.features().enable_header_security);
+}
+
+#[test]
+fn test_middleware_staging_with_csp_avec_header_security() {
+    let ms = MiddlewareStaging::new(true).with_csp(|c| c.with_header_security(true));
+    assert!(ms.features().enable_csp);
+    assert!(ms.features().enable_header_security);
+}
+
+#[test]
+fn test_middleware_staging_without_csp_desactive() {
+    // Ne pas appeler with_csp = CSP desactive
+    let ms = MiddlewareStaging::new(true);
+    assert!(!ms.features().enable_csp);
+    assert!(!ms.features().enable_header_security);
 }
 
 #[test]
@@ -513,7 +526,7 @@ fn test_builder_with_error_handler_false_chainable() {
 
 #[test]
 fn test_builder_middleware_chainable() {
-    let _b = RuniqueAppBuilder::new(make_config()).middleware(|m| m.with_csp(false));
+    let _b = RuniqueAppBuilder::new(make_config()).middleware(|m| m.with_csp(|c| c));
 }
 
 #[test]
@@ -539,7 +552,10 @@ fn test_builder_chaine_complete_sync() {
         .no_statics()
         .with_session_duration(Duration::hours(8))
         .with_error_handler(false)
-        .middleware(|m| m.with_csp(false).with_cache(false))
+        .middleware(|m| {
+            m.with_cache(false)
+                .with_csp(|c| c.with_header_security(true))
+        })
         .static_files(|s| s.disable())
         .core(|c| c)
         .with_admin(|a| a);
@@ -658,20 +674,20 @@ async fn test_build_avec_statics_couvre_attach_static_files() {
     }
 }
 
-/// Build en profil production (debug=false) → couvre CSP + host_validation
-/// dans apply_to_router()
+/// Build avec CSP + header_security activés via builder → couvre security_headers_middleware
 #[tokio::test]
 async fn test_build_profil_production_couvre_csp_host_validation() {
     use sea_orm::Database;
     let db = Database::connect("sqlite::memory:").await.unwrap();
 
     let mut config = make_config();
-    config.debug = false; // → MiddlewareConfig::production() : csp=true, host_validation=true
+    config.debug = false;
 
     let result = RuniqueAppBuilder::new(config)
         .routes(Router::new())
         .no_statics()
         .core(|c| c.with_database(db))
+        .middleware(|m| m.with_csp(|c| c.with_header_security(true).with_nonce(true)))
         .build()
         .await;
 
@@ -680,7 +696,7 @@ async fn test_build_profil_production_couvre_csp_host_validation() {
         Err(ref e) => {
             assert!(
                 !matches!(e.kind, BuildErrorKind::CheckFailed(_)),
-                "Profil production : ne doit pas échouer sur CheckFailed"
+                "Ne doit pas echouer sur CheckFailed avec DB valide"
             );
         }
     }

@@ -253,6 +253,10 @@ impl Request {
     }
 
     pub fn form<T: crate::forms::field::RuniqueForm>(&self) -> T {
-        T::build(self.engine.tera.clone(), self.csrf_token.as_str())
+        let masked = self
+            .csrf_token
+            .masked()
+            .unwrap_or_else(|_| self.csrf_token.clone());
+        T::build(self.engine.tera.clone(), masked.as_str())
     }
 }

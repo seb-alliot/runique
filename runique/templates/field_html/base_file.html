@@ -5,7 +5,6 @@
         name="{{ field.name }}"
         id="id_{{ field.name }}"
         {% if field.is_required.choice %}required{% endif %}
-        {% if multiple %}multiple{% endif %}
         {% if allowed_extensions %}accept=".{{ allowed_extensions.extensions | join(sep=",.") }}"{% endif %}
         {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
         {% if readonly.choice %}readonly{% endif %}
@@ -13,7 +12,7 @@
     >
 
     {% if allowed_extensions or max_size_mb or max_files or max_width or max_height %}
-    <div style="font-size: 0.85rem; color: #6c757d; margin-top: 0.3rem;">
+    <div class="field-hints">
         {% if allowed_extensions %}
             Extensions : {{ allowed_extensions.extensions | join(sep=", ") }}
         {% endif %}

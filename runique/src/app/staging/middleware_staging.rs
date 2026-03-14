@@ -1,10 +1,11 @@
+use super::csp_config::CspConfig;
 use crate::app::error_build::BuildError;
 use crate::config::RuniqueConfig;
 use crate::context::RequestExtensions;
 use crate::middleware::session::CleaningMemoryStore;
 use crate::middleware::{
-    MiddlewareConfig, allowed_hosts_middleware, csrf_middleware, dev_no_cache_middleware,
-    error_handler_middleware, security_headers_middleware,
+    MiddlewareConfig, SecurityPolicy, allowed_hosts_middleware, csp_middleware, csrf_middleware,
+    dev_no_cache_middleware, error_handler_middleware, security_headers_middleware,
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, Router, middleware};
@@ -126,6 +127,9 @@ pub struct MiddlewareStaging {
 
     /// Middlewares custom du développeur (ordre d'ajout préservé)
     pub(crate) custom_middlewares: Vec<CustomMiddleware>,
+
+    /// Politique CSP définie via le builder (None = lecture depuis .env)
+    pub(crate) security_policy: Option<SecurityPolicy>,
 }
 
 impl MiddlewareStaging {
@@ -146,6 +150,7 @@ impl MiddlewareStaging {
             session_high_watermark: 256 * 1024 * 1024,
             session_cleanup_interval_secs: 60,
             custom_middlewares: Vec::new(),
+            security_policy: None,
         }
     }
 
@@ -174,7 +179,9 @@ impl MiddlewareStaging {
         };
 
         let features = MiddlewareConfig {
-            enable_csp: get_env_or("RUNIQUE_ENABLE_CSP", defaults.enable_csp),
+            // CSP configuré uniquement via le builder (.with_csp(true/false))
+            enable_csp: false,
+            enable_header_security: false,
             enable_host_validation: get_env_or(
                 "RUNIQUE_ENABLE_HOST_VALIDATION",
                 defaults.enable_host_validation,
@@ -212,6 +219,7 @@ impl MiddlewareStaging {
             ),
             session_cleanup_interval_secs: get_env_u64("RUNIQUE_SESSION_CLEANUP_SECS", 60),
             custom_middlewares: Vec::new(),
+            security_policy: None,
         }
     }
 
@@ -219,9 +227,46 @@ impl MiddlewareStaging {
     // Configuration des features
     // ═══════════════════════════════════════════════════
 
-    /// Active ou désactive le Content Security Policy
-    pub fn with_csp(mut self, enable: bool) -> Self {
-        self.features.enable_csp = enable;
+    /// Configure le Content Security Policy via une closure.
+    ///
+    /// La closure reçoit un [`CspConfig`] et retourne le `CspConfig` configuré.
+    /// Tout est désactivé par défaut — active explicitement ce dont tu as besoin.
+    /// Pour désactiver le CSP : ne pas appeler `.with_csp` du tout.
+    ///
+    /// # Exemple — configuration personnalisée
+    /// ```rust,ignore
+    /// .middleware(|m| {
+    ///     m.with_csp(|c| {
+    ///         c.with_header_security(true)
+    ///          .with_nonce(true)
+    ///          .scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
+    ///          .styles(vec!["'self'", "https://cdn.jsdelivr.net"])
+    ///          .images(vec!["'self'", "data:"])
+    ///     })
+    /// })
+    /// ```
+    ///
+    /// # Exemple — preset strict
+    /// ```rust,ignore
+    /// use runique::middleware::SecurityPolicy;
+    ///
+    /// .middleware(|m| {
+    ///     m.with_csp(|c| {
+    ///         c.policy(SecurityPolicy::strict())
+    ///          .with_header_security(true)
+    ///     })
+    /// })
+    /// ```
+    ///
+    /// # Exemple — CSP avec defaults uniquement
+    /// ```rust,ignore
+    /// .middleware(|m| m.with_csp(|c| c))
+    /// ```
+    pub fn with_csp(mut self, f: impl FnOnce(CspConfig) -> CspConfig) -> Self {
+        let csp = f(CspConfig::default());
+        self.features.enable_csp = true;
+        self.features.enable_header_security = csp.enable_header_security;
+        self.security_policy = Some(csp.policy);
         self
     }
 
@@ -491,17 +536,22 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 30 : CSP + Security headers
+        // Slot 30 : CSP (+ security headers additionnels si activés)
         if self.features.enable_csp {
             let eng = engine.clone();
+            let full_headers = self.features.enable_header_security;
             entries.push(MiddlewareEntry {
                 slot: SLOT_SECURITY_HEADERS,
                 name: "SecurityHeaders",
                 apply: Box::new(move |r| {
-                    r.layer(middleware::from_fn_with_state(
-                        eng,
-                        security_headers_middleware,
-                    ))
+                    if full_headers {
+                        r.layer(middleware::from_fn_with_state(
+                            eng,
+                            security_headers_middleware,
+                        ))
+                    } else {
+                        r.layer(middleware::from_fn_with_state(eng, csp_middleware))
+                    }
                 }),
             });
         }

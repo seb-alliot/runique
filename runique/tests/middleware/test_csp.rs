@@ -1,7 +1,7 @@
 // Tests pour csp middleware
 
+use runique::app::staging::CspConfig;
 use runique::middleware::security::csp::SecurityPolicy;
-use serial_test::serial;
 
 #[test]
 fn test_security_policy_default() {
@@ -9,7 +9,7 @@ fn test_security_policy_default() {
     assert!(policy.default_src.contains(&"'self'".to_string()));
     assert!(policy.script_src.contains(&"'self'".to_string()));
     assert!(policy.style_src.contains(&"'self'".to_string()));
-    assert!(policy.img_src.contains(&"data:".to_string()));
+    assert!(policy.img_src.contains(&"'self'".to_string()));
     assert!(policy.use_nonce);
 }
 
@@ -29,10 +29,11 @@ fn test_security_policy_permissive() {
 }
 
 #[test]
-fn test_security_policy_from_env_defaults() {
-    // On ne définit pas de variables d'env, donc on doit avoir les valeurs par défaut
-    let policy = SecurityPolicy::from_env();
-    assert!(policy.default_src.contains(&"'self'".to_string()));
+fn test_csp_config_default_policy() {
+    // CspConfig::default() demarre avec SecurityPolicy::default()
+    let csp = CspConfig::default();
+    assert!(csp.get_policy().default_src.contains(&"'self'".to_string()));
+    assert!(!csp.header_security_enabled());
 }
 
 #[test]
@@ -93,50 +94,52 @@ fn test_permissive_frame_ancestors_self() {
 }
 
 #[test]
-#[serial]
-fn test_from_env_custom_default_src() {
-    unsafe {
-        std::env::set_var("RUNIQUE_POLICY_CSP_DEFAULT", "'self', cdn.example.com");
-    }
-    let policy = SecurityPolicy::from_env();
-    assert!(policy.default_src.contains(&"cdn.example.com".to_string()));
-    unsafe {
-        std::env::remove_var("RUNIQUE_POLICY_CSP_DEFAULT");
-    }
+fn test_csp_config_custom_default_src() {
+    let csp = CspConfig::default().default_src(vec!["'self'", "cdn.example.com"]);
+    assert!(
+        csp.get_policy()
+            .default_src
+            .contains(&"cdn.example.com".to_string())
+    );
 }
 
 #[test]
-#[serial]
-fn test_from_env_custom_scripts() {
-    unsafe {
-        std::env::set_var("RUNIQUE_POLICY_CSP_SCRIPTS", "'self', cdn.js.com");
-    }
-    let policy = SecurityPolicy::from_env();
-    assert!(policy.script_src.contains(&"cdn.js.com".to_string()));
-    unsafe {
-        std::env::remove_var("RUNIQUE_POLICY_CSP_SCRIPTS");
-    }
+fn test_csp_config_custom_scripts() {
+    let csp = CspConfig::default().scripts(vec!["'self'", "cdn.js.com"]);
+    assert!(
+        csp.get_policy()
+            .script_src
+            .contains(&"cdn.js.com".to_string())
+    );
 }
 
 #[test]
-#[serial]
-fn test_from_env_nonce_false() {
-    unsafe {
-        std::env::set_var("RUNIQUE_POLICY_CSP_STRICT_NONCE", "false");
-    }
-    let policy = SecurityPolicy::from_env();
-    assert!(!policy.use_nonce);
-    unsafe {
-        std::env::remove_var("RUNIQUE_POLICY_CSP_STRICT_NONCE");
-    }
+fn test_csp_config_nonce_false() {
+    let csp = CspConfig::default().with_nonce(false);
+    assert!(!csp.get_policy().use_nonce);
 }
 
 #[test]
-#[serial]
-fn test_from_env_nonce_true_by_default() {
-    unsafe {
-        std::env::remove_var("RUNIQUE_POLICY_CSP_STRICT_NONCE");
-    }
-    let policy = SecurityPolicy::from_env();
-    assert!(policy.use_nonce);
+fn test_csp_config_nonce_true_par_defaut() {
+    let csp = CspConfig::default();
+    assert!(csp.get_policy().use_nonce);
+}
+
+#[test]
+fn test_csp_config_header_security() {
+    let csp = CspConfig::default().with_header_security(true);
+    assert!(csp.header_security_enabled());
+}
+
+#[test]
+fn test_csp_config_upgrade_insecure() {
+    let csp = CspConfig::default().with_upgrade_insecure(true);
+    assert!(csp.get_policy().upgrade_insecure_requests);
+}
+
+#[test]
+fn test_csp_config_preset_strict() {
+    let csp = CspConfig::default().policy(SecurityPolicy::strict());
+    assert!(csp.get_policy().use_nonce);
+    assert!(csp.get_policy().upgrade_insecure_requests);
 }

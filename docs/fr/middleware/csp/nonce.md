@@ -12,7 +12,7 @@ Le nonce est un jeton aléatoire généré par requête, injecté dans le header
 4. La variable `csp_nonce` est disponible dans tous les templates Tera
 5. `'unsafe-inline'` est automatiquement retiré de `script-src` et `style-src` quand le nonce est actif
 
-```
+```text
 Content-Security-Policy: script-src 'self' 'nonce-r4nd0m...'; style-src 'self' 'nonce-r4nd0m...'
 ```
 
@@ -61,7 +61,7 @@ Les scripts chargés depuis une URL autorisée dans `script-src` n'ont pas besoi
 <!-- Autorisé si 'self' ou le domaine est dans script-src -->
 <script src="/static/js/app.js"></script>
 
-<!-- Nécessite d'ajouter https://cdn.example.com à RUNIQUE_POLICY_CSP_SCRIPTS -->
+<!-- Nécessite d'ajouter https://cdn.example.com via .scripts(...) dans le builder -->
 <script src="https://cdn.example.com/lib.js"></script>
 ```
 
@@ -71,11 +71,32 @@ Les scripts chargés depuis une URL autorisée dans `script-src` n'ont pas besoi
 
 Non recommandé. Si votre application ne peut pas utiliser de nonce (ex. templates générés côté client) :
 
-```env
-RUNIQUE_POLICY_CSP_STRICT_NONCE=false
+```rust
+.middleware(|m| {
+    m.with_csp(|c| c.with_nonce(false))
+})
 ```
 
 Sans nonce, les scripts inline sont bloqués sauf si `'unsafe-inline'` est ajouté à `script-src` — ce qui neutralise la protection CSP contre le XSS.
+
+---
+
+## Faux positifs dans les outils de développement
+
+### Firefox DevTools — `sandbox eval code`
+
+Avec une CSP stricte (nonce actif), Firefox peut afficher une erreur de ce type dans la console :
+
+```text
+Content-Security-Policy : Les paramètres de la page ont empêché l'exécution
+d'un script intégré (script-src-elem) [...] sandbox eval code:17
+```
+
+**Ce n'est pas un bug dans votre application.** Il s'agit du sandbox interne de Firefox (DevTools, inspecteur, console) qui tente d'exécuter du code `eval()` pour son propre compte et se heurte à la CSP.
+
+- L'erreur disparaît en fermant les DevTools
+- Chrome ne génère pas ce faux positif
+- Votre application et vos scripts fonctionnent correctement
 
 ---
 

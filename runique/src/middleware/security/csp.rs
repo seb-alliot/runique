@@ -60,57 +60,6 @@ impl Default for SecurityPolicy {
 }
 
 impl SecurityPolicy {
-    pub fn from_env() -> Self {
-        let mut config = Self::default();
-        let get_list = |key: &str| -> Option<Vec<String>> {
-            std::env::var(key).ok().map(|v| {
-                v.split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect()
-            })
-        };
-
-        // On utilise les nouveaux noms explicites
-        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_DEFAULT") {
-            config.default_src = list;
-        }
-        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_SCRIPTS") {
-            config.script_src = list;
-        }
-        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_STYLES") {
-            config.style_src = list;
-        }
-        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_IMAGES") {
-            config.img_src = list;
-        }
-        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_FONTS") {
-            config.font_src = list;
-        }
-        // Configuration des objets embarqués (plugins, applets)
-        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_OBJECTS") {
-            config.object_src = list;
-        }
-        // Configuration des médias audio/vidéo
-        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_MEDIA") {
-            config.media_src = list;
-        }
-        // Configuration des iframes
-        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_FRAMES") {
-            config.frame_src = list;
-        }
-
-        config.upgrade_insecure_requests = std::env::var("ENFORCE_HTTPS")
-            .map(|v| v.parse().unwrap_or(false))
-            .unwrap_or(false);
-
-        config.use_nonce = std::env::var("RUNIQUE_POLICY_CSP_STRICT_NONCE")
-            .map(|v| v.parse().unwrap_or(true))
-            .unwrap_or(true);
-
-        config
-    }
-
     pub fn strict() -> Self {
         Self {
             default_src: vec!["'self'".into()],

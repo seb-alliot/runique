@@ -1,13 +1,13 @@
 # CSP Profiles
 
-Runique provides three built-in profiles. The active profile is set in the application builder.
+Runique provides three built-in profiles, usable via `.policy(...)` in the builder.
 
 ---
 
 ## Profile comparison
 
 | Directive | `default()` | `strict()` | `permissive()` |
-|-----------|:-----------:|:----------:|:--------------:|
+| --- | :-----------: | :----------: | :--------------: |
 | `default-src` | `'self'` | `'self'` | `'self'` |
 | `script-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` + `'unsafe-eval'` |
 | `style-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` |
@@ -20,6 +20,7 @@ Runique provides three built-in profiles. The active profile is set in the appli
 | `frame-ancestors` | `'none'` | `'none'` | `'self'` |
 | `base-uri` | `'self'` | `'self'` | `'self'` |
 | `form-action` | `'self'` | `'self'` | `'self'` |
+| `upgrade-insecure-requests` | ❌ | ✅ | ❌ |
 | Nonce | ✅ active | ✅ active | ❌ disabled |
 
 ---
@@ -28,24 +29,29 @@ Runique provides three built-in profiles. The active profile is set in the appli
 
 Recommended policy for production. All inline scripts and styles are allowed **only via nonce**. No external images or fonts.
 
-```rust
-// Default behavior — no configuration needed
+```rust,ignore
 RuniqueApp::new()
+    .middleware(|m| {
+        m.with_csp(|c| c)
+    })
     .build()
     .await?;
 ```
-
-Each directive can be overridden via env vars without touching the code. See [Directives & env vars](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/directives.md).
 
 ---
 
 ## `SecurityPolicy::strict()`
 
-Identical to `default()`. Use explicitly to signal strict policy intent in the code.
+More restrictive than `default()`: adds `upgrade-insecure-requests` and enforces the nonce. Use in production for maximum security.
 
-```rust
+```rust,ignore
 RuniqueApp::new()
-    .with_security_csp(SecurityPolicy::strict())
+    .middleware(|m| {
+        m.with_csp(|c| {
+            c.policy(SecurityPolicy::strict())
+             .with_header_security(true)
+        })
+    })
     .build()
     .await?;
 ```
@@ -61,9 +67,13 @@ Relaxed policy for development or legacy integrations. **Do not use in productio
 - `data:` and `https:` allowed for images and fonts
 - `frame-ancestors 'self'` instead of `'none'`
 
-```rust
+```rust,ignore
 RuniqueApp::new()
-    .with_security_csp(SecurityPolicy::permissive())
+    .middleware(|m| {
+        m.with_csp(|c| {
+            c.policy(SecurityPolicy::permissive())
+        })
+    })
     .build()
     .await?;
 ```
@@ -72,9 +82,24 @@ RuniqueApp::new()
 
 ## Custom policy
 
-For a fully custom policy, build a `SecurityPolicy` manually:
+For a fully custom policy, use the builder methods directly:
 
-```rust
+```rust,ignore
+RuniqueApp::new()
+    .middleware(|m| {
+        m.with_csp(|c| {
+            c.scripts(vec!["'self'", "https://cdn.example.com"])
+             .images(vec!["'self'", "data:"])
+             .with_nonce(true)
+        })
+    })
+    .build()
+    .await?;
+```
+
+Or build a `SecurityPolicy` manually for advanced cases:
+
+```rust,ignore
 use runique::middleware::SecurityPolicy;
 
 let policy = SecurityPolicy {
@@ -84,12 +109,12 @@ let policy = SecurityPolicy {
 };
 
 RuniqueApp::new()
-    .with_security_csp(policy)
+    .middleware(|m| {
+        m.with_csp(|c| c.policy(policy))
+    })
     .build()
     .await?;
 ```
-
-Unspecified directives inherit values from `default()`.
 
 ---
 

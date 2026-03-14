@@ -9,13 +9,13 @@
 {% block content %}
   <div class="page-header">
     <div>
-      <h1 style="font-size:1.35rem; font-weight:600;">{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }}</h1>
-      <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">{% if admin_detail_entry_label %}{{ admin_detail_entry_label }}{% endif %} #{{ entry.id }}</p>
+      <h1 class="page-title">{% if admin_detail_title %}{{ admin_detail_title }}{% endif %} — {{ resource.title | default(value=resource_key) }}</h1>
+      <p class="page-subtitle">{% if admin_detail_entry_label %}{{ admin_detail_entry_label }}{% endif %} #{{ entry.id }}</p>
     </div>
-    <div style="display:flex; gap:0.6rem;">
+    <div class="page-actions">
       <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
       <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
-      <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" style="display:inline;">
+      <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline">
         <button type="submit" class="btn btn-danger"
                 onclick="return confirm('{% if admin_detail_confirm_delete %}{{ admin_detail_confirm_delete }}{% endif %}')">{% if admin_detail_btn_delete %}{{ admin_detail_btn_delete }}{% endif %}</button>
       </form>
@@ -26,13 +26,13 @@
       <table class="admin-table">
         <tbody>
           <tr>
-            <td style="width:200px; color:var(--text-muted); font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">id</td>
+            <td class="admin-table-key">id</td>
             <td><span class="id-badge">#{{ entry.id }}</span></td>
           </tr>
           {% for key, value in entry %}
             {% if key != "id" %}
             <tr>
-              <td style="width:200px; color:var(--text-muted); font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">{{ key }}</td>
+              <td class="admin-table-key">{{ key }}</td>
               <td>
                 {% if key == "password" or key == "password_hash" %}
                   <span class="id-badge">••••••••</span>
@@ -43,7 +43,7 @@
                 {% elif value %}
                   {{ value }}
                 {% else %}
-                  <span style="color:var(--text-muted);">—</span>
+                  <span class="text-muted">—</span>
                 {% endif %}
               </td>
             </tr>

@@ -2,6 +2,7 @@ use crate::forms::extractor::Prisme;
 use crate::forms::field::RuniqueForm;
 use crate::utils::aliases::{StrMap, StrVecMap};
 use crate::utils::constante::CSRF_TOKEN_KEY;
+use crate::utils::middleware::csrf::unmask_csrf_token;
 use crate::utils::trad::t;
 use axum::http::Method;
 use axum::response::Response;
@@ -29,10 +30,13 @@ pub async fn csrf_gate<T: RuniqueForm>(
         return Ok(None);
     }
 
-    // ct_eq : comparaison constant-time — évite qu'un attaquant
-    // devine le token octet par octet via le temps de réponse
+    // Démasque le token soumis (base64 → hex) puis compare en constant-time
+    // au token brut de session pour éviter une attaque par timing.
     let token_valid = csrf_submitted
-        .map(|s| bool::from(s.as_bytes().ct_eq(csrf_session.as_bytes())))
+        .map(|s| match unmask_csrf_token(s) {
+            Ok(unmasked) => bool::from(unmasked.as_bytes().ct_eq(csrf_session.as_bytes())),
+            Err(_) => false,
+        })
         .unwrap_or(false);
 
     if !token_valid {
