@@ -1,5 +1,5 @@
 use crate::forms::base::FormField;
-use crate::forms::fields::{HiddenField, TextField};
+use crate::forms::fields::HiddenField;
 use crate::forms::generic::GenericField;
 use crate::forms::renderer::FormRenderer;
 use crate::forms::validator::{FormValidator, ValidationError};

@@ -4,6 +4,7 @@ pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_index", "runique_index/base_index.html"),
     ("message", "message/message.html"),
     ("404", "errors/404.html"),
+    ("429", "errors/429.html"),
     ("500", "errors/500.html"),
     ("debug", "errors/debug_error.html"),
     ("csrf", "csrf/csrf.html"),

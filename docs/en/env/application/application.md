@@ -25,10 +25,39 @@
 
 ## Database
 
+### Connection
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | — | Connection URL (`sqlite://...`, `postgres://...`, `mysql://...`) |
-| `DB_NAME` | `runique_db` | Database name (used if `DATABASE_URL` is absent) |
+| `DB_URL` | — | Full connection URL (takes priority over all component variables) |
+| `DB_ENGINE` | `sqlite` | Engine: `postgres`, `mysql`, `mariadb`, `sqlite` |
+| `DB_USER` | — | Username (required except for SQLite) |
+| `DB_PASSWORD` | — | Password (required except for SQLite) |
+| `DB_HOST` | `localhost` | Host |
+| `DB_PORT` | `5432` / `3306` | Port (default depends on engine) |
+| `DB_NAME` | `local_base.sqlite` | Database name |
+
+### Connection pool
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_MAX_CONNECTIONS` | `100` | Maximum pool size |
+| `DB_MIN_CONNECTIONS` | `20` | Minimum pool size |
+
+### Timeouts
+
+| Variable | Default | Unit | Description |
+|----------|---------|------|-------------|
+| `DB_CONNECT_TIMEOUT` | `2` | seconds | Connection establishment timeout |
+| `DB_ACQUIRE_TIMEOUT` | `500` | milliseconds | Pool acquire timeout |
+| `DB_IDLE_TIMEOUT` | `300` | seconds | Idle connection lifetime |
+| `DB_MAX_LIFETIME` | `3600` | seconds | Maximum connection lifetime |
+
+### SQL Logging
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_LOGGING` | `false` | Enable SQL query logging (`true`, `1`, `yes`) |
 
 ---
 

@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
+use tokio::time::interval;
 
 /// Entrée par username : (nombre d'échecs, début du verrouillage)
 type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
@@ -64,6 +65,25 @@ impl LoginGuard {
             .and_then(|v| v.parse().ok())
             .unwrap_or(300);
         Self::new(max, lockout)
+    }
+
+    /// Spawne une tâche Tokio qui purge périodiquement les entrées expirées.
+    /// À appeler une fois au démarrage de l'application.
+    pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
+        let store = self.store.clone();
+        let lockout_secs = self.lockout_secs;
+        tokio::spawn(async move {
+            let mut ticker = interval(period);
+            loop {
+                ticker.tick().await;
+                let mut guard = match store.lock() {
+                    Ok(g) => g,
+                    Err(p) => p.into_inner(),
+                };
+                let lockout = Duration::from_secs(lockout_secs);
+                guard.retain(|_, (_, last)| last.elapsed() < lockout);
+            }
+        });
     }
 
     /// Enregistre un échec de connexion pour ce username

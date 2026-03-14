@@ -10,6 +10,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
+use tokio::time::interval;
 
 /// Entrée par clé : (nombre de requêtes dans la fenêtre, début de la fenêtre)
 type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
@@ -46,6 +47,25 @@ impl RateLimiter {
             .and_then(|v| v.parse().ok())
             .unwrap_or(60);
         Self::new(max, window)
+    }
+
+    /// Spawne une tâche Tokio qui purge périodiquement les entrées expirées.
+    /// À appeler une fois au démarrage de l'application.
+    pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
+        let store = self.store.clone();
+        let window = self.window;
+        tokio::spawn(async move {
+            let mut ticker = interval(period);
+            loop {
+                ticker.tick().await;
+                let mut guard = match store.lock() {
+                    Ok(g) => g,
+                    Err(p) => p.into_inner(),
+                };
+                let now = Instant::now();
+                guard.retain(|_, (_, start)| now.duration_since(*start) < window);
+            }
+        });
     }
 
     /// Retourne `true` si la clé est sous la limite, `false` si dépassée
