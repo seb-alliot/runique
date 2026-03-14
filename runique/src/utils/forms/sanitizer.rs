@@ -1,6 +1,22 @@
 use crate::utils::constante::parse::{ALLOWED_ATTRS, ALLOWED_TAGS, RICH_CONTENT_FIELDS};
 use ammonia::Builder;
 use std::collections::HashSet;
+use std::sync::LazyLock;
+
+/// Builder ammonia pré-configuré — initialisé une seule fois, réutilisé à chaque requête.
+static RICH_BUILDER: LazyLock<Builder<'static>> = LazyLock::new(|| {
+    let mut builder = Builder::new();
+    builder.tags(ALLOWED_TAGS.clone());
+    builder.tag_attributes(ALLOWED_ATTRS.clone());
+    builder.url_schemes(HashSet::from(["http", "https", "mailto"]));
+    if !ALLOWED_ATTRS
+        .get("a")
+        .is_some_and(|attrs| attrs.contains("rel"))
+    {
+        builder.link_rel(Some("noopener noreferrer"));
+    }
+    builder
+});
 
 /// =============================
 /// STRICT MODE — TEXT ONLY
@@ -40,21 +56,7 @@ pub fn sanitize_rich(input: &str) -> String {
         return String::new();
     }
 
-    // Build the Builder without conflict with link_rel
-    let mut builder = Builder::new();
-    let builder = builder.tags(ALLOWED_TAGS.clone());
-    let builder = builder.tag_attributes(ALLOWED_ATTRS.clone());
-    let mut builder = builder.url_schemes(HashSet::from(["http", "https", "mailto"]));
-
-    // Add link_rel only if rel is not already in ALLOWED_ATTRS
-    if !ALLOWED_ATTRS
-        .get("a")
-        .is_some_and(|attrs| attrs.contains("rel"))
-    {
-        builder = builder.link_rel(Some("noopener noreferrer"));
-    }
-
-    builder.clean(input).to_string().trim().to_string()
+    RICH_BUILDER.clean(input).to_string().trim().to_string()
 }
 
 /// =============================

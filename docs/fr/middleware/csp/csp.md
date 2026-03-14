@@ -1,48 +1,37 @@
-# CSP & Headers de sécurité
+# Content Security Policy (CSP)
 
-## Content Security Policy (CSP)
-
-### Fonctionnement
-
-- **Nonce** généré automatiquement par requête
-- Injecté dans le contexte Tera sous `csp_nonce`
-- Headers CSP ajoutés à chaque réponse
-
-### Usage dans les templates
-
-```html
-<!-- Scripts inline sécurisés -->
-<script {% csp_nonce %}>
-    console.log("Script avec nonce CSP");
-</script>
-
-<!-- Ou avec la variable directement -->
-<script nonce="{{ csp_nonce }}">
-    console.log("Alternative");
-</script>
-```
-
-### Profils CSP
-
-| Profil | Description |
-|--------|-------------|
-| `CspConfig::strict()` | Politique stricte (production) |
-| `CspConfig::permissive()` | Politique permissive (développement) |
-| `CspConfig::default()` | Profil par défaut |
+Runique applique une politique CSP automatiquement à chaque réponse via le middleware `security_headers_middleware`. Un nonce unique est généré par requête et injecté dans les templates Tera.
 
 ---
 
-## Headers de sécurité
+## Table des matières
 
-Runique injecte automatiquement des headers de sécurité standards :
+| Section | Description |
+| --- | --- |
+| [Profils CSP](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/profils.md) | `default()`, `strict()`, `permissive()` — comparaison et cas d'usage |
+| [Directives & variables d'env](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/directives.md) | Toutes les directives configurables et leurs variables |
+| [Nonce CSP](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/nonce.md) | Fonctionnement du nonce, usage dans les templates |
+| [Headers de sécurité](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/headers.md) | Tous les headers injectés automatiquement |
 
-| Header | Valeur | Protection |
-|--------|--------|------------|
-| `X-Content-Type-Options` | `nosniff` | Empêche le MIME sniffing |
-| `X-Frame-Options` | `DENY` | Empêche le clickjacking |
-| `X-XSS-Protection` | `1; mode=block` | Protection XSS navigateur |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limite les referrers |
-| `Content-Security-Policy` | Dynamique (avec nonce) | CSP |
+---
+
+## Démarrage rapide
+
+La CSP est activée par défaut. Aucune configuration requise. Dans vos templates :
+
+```html
+<script {% csp_nonce %}>
+    // Ce script est autorisé par le nonce CSP
+    console.log("OK");
+</script>
+```
+
+Pour personnaliser la politique via `.env` :
+
+```env
+RUNIQUE_POLICY_CSP_IMAGES='self',data:
+RUNIQUE_POLICY_CSP_SCRIPTS='self',https://cdn.example.com
+```
 
 ---
 
@@ -51,7 +40,7 @@ Runique injecte automatiquement des headers de sécurité standards :
 | Section | Description |
 | --- | --- |
 | [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csrf/csrf.md) | Protection CSRF |
-| [Hosts & cache](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/hosts-cache/hosts-cache.md) | Validation des hosts |
+| [Builder & configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/builder/builder.md) | Configuration du builder |
 
 ## Retour au sommaire
 
