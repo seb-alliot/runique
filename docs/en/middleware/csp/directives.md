@@ -13,6 +13,9 @@ Each CSP directive is configurable via environment variable in `.env`, without m
 | `style-src` | `RUNIQUE_POLICY_CSP_STYLES` | `'self'` |
 | `img-src` | `RUNIQUE_POLICY_CSP_IMAGES` | `'self'` |
 | `font-src` | `RUNIQUE_POLICY_CSP_FONTS` | `'self'` |
+| `object-src` | `RUNIQUE_POLICY_CSP_OBJECTS` | `'none'` |
+| `media-src` | `RUNIQUE_POLICY_CSP_MEDIA` | `'self'` |
+| `frame-src` | `RUNIQUE_POLICY_CSP_FRAMES` | `'none'` |
 | Nonce active | `RUNIQUE_POLICY_CSP_STRICT_NONCE` | `true` |
 
 > The `connect-src`, `frame-ancestors`, `base-uri` and `form-action` directives are not yet overridable via env vars. Use a custom `SecurityPolicy` if needed.
@@ -40,10 +43,22 @@ RUNIQUE_POLICY_CSP_FONTS='self',https://fonts.gstatic.com
 RUNIQUE_POLICY_CSP_STYLES='self',https://fonts.googleapis.com
 ```
 
-### Disable nonce (not recommended)
+### Allow iframes from same domain
 
 ```env
-RUNIQUE_POLICY_CSP_STRICT_NONCE=false
+RUNIQUE_POLICY_CSP_FRAMES='self'
+```
+
+### Allow embedded objects (Flash plugins, etc.)
+
+```env
+RUNIQUE_POLICY_CSP_OBJECTS='self'
+```
+
+### Allow media from a CDN
+
+```env
+RUNIQUE_POLICY_CSP_MEDIA='self',https://cdn.example.com
 ```
 
 ---

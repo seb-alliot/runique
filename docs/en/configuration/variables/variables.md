@@ -8,6 +8,8 @@
 | `PORT` | `3000` | Server port |
 | `DEBUG` | `true` | Debug mode (templates, logs, etc.) |
 
+> **⚠️ Production:** Set `DEBUG=false` explicitly. In debug mode, detailed error pages are visible, potentially revealing sensitive information. Also, compiling with `cargo build --release` automatically disables debug assertions, but `DEBUG=true` may override this.
+
 ---
 
 ## Database

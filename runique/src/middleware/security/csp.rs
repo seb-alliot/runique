@@ -1,13 +1,12 @@
 use crate::context::RequestExtensions;
 use crate::utils::aliases::AEngine;
 use crate::utils::csp_nonce::CspNonce;
-
 use axum::{
     body::Body,
     extract::State,
     http::{HeaderValue, Request},
     middleware::Next,
-    response::Response,
+    response::{IntoResponse, Redirect, Response},
 };
 use serde::{Deserialize, Serialize};
 
@@ -19,9 +18,16 @@ pub struct SecurityPolicy {
     pub img_src: Vec<String>,
     pub font_src: Vec<String>,
     pub connect_src: Vec<String>,
+    /// Sources autorisées pour les objets embarqués (plugins, applets)
+    pub object_src: Vec<String>,
+    /// Sources autorisées pour les médias audio/vidéo
+    pub media_src: Vec<String>,
+    /// Sources autorisées pour les iframes
+    pub frame_src: Vec<String>,
     pub frame_ancestors: Vec<String>,
     pub base_uri: Vec<String>,
     pub form_action: Vec<String>,
+    pub upgrade_insecure_requests: bool,
     pub use_nonce: bool,
 }
 
@@ -38,9 +44,16 @@ impl Default for SecurityPolicy {
             img_src: vec!["'self'".into()],
             font_src: vec!["'self'".into()],
             connect_src: vec!["'self'".into()],
+            // Bloque tous les objets embarqués par défaut
+            object_src: vec!["'none'".into()],
+            // Autorise les médias depuis le même domaine
+            media_src: vec!["'self'".into()],
+            // Bloque les iframes par défaut
+            frame_src: vec!["'none'".into()],
             frame_ancestors: vec!["'none'".into()],
             base_uri: vec!["'self'".into()],
             form_action: vec!["'self'".into()],
+            upgrade_insecure_requests: false,
             use_nonce: true,
         }
     }
@@ -74,6 +87,22 @@ impl SecurityPolicy {
         if let Some(list) = get_list("RUNIQUE_POLICY_CSP_FONTS") {
             config.font_src = list;
         }
+        // Configuration des objets embarqués (plugins, applets)
+        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_OBJECTS") {
+            config.object_src = list;
+        }
+        // Configuration des médias audio/vidéo
+        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_MEDIA") {
+            config.media_src = list;
+        }
+        // Configuration des iframes
+        if let Some(list) = get_list("RUNIQUE_POLICY_CSP_FRAMES") {
+            config.frame_src = list;
+        }
+
+        config.upgrade_insecure_requests = std::env::var("ENFORCE_HTTPS")
+            .map(|v| v.parse().unwrap_or(false))
+            .unwrap_or(false);
 
         config.use_nonce = std::env::var("RUNIQUE_POLICY_CSP_STRICT_NONCE")
             .map(|v| v.parse().unwrap_or(true))
@@ -90,9 +119,13 @@ impl SecurityPolicy {
             img_src: vec!["'self'".into()],
             font_src: vec!["'self'".into()],
             connect_src: vec!["'self'".into()],
+            object_src: vec!["'none'".into()],
+            media_src: vec!["'self'".into()],
+            frame_src: vec!["'none'".into()],
             frame_ancestors: vec!["'none'".into()],
             base_uri: vec!["'self'".into()],
             form_action: vec!["'self'".into()],
+            upgrade_insecure_requests: true,
             use_nonce: true,
         }
     }
@@ -109,9 +142,13 @@ impl SecurityPolicy {
             img_src: vec!["'self'".into(), "data:".into(), "https:".into()],
             font_src: vec!["'self'".into(), "data:".into()],
             connect_src: vec!["'self'".into()],
+            object_src: vec!["'self'".into()],
+            media_src: vec!["'self'".into(), "https:".into()],
+            frame_src: vec!["'self'".into()],
             frame_ancestors: vec!["'self'".into()],
             base_uri: vec!["'self'".into()],
             form_action: vec!["'self'".into()],
+            upgrade_insecure_requests: false,
             use_nonce: false,
         }
     }
@@ -150,6 +187,15 @@ impl SecurityPolicy {
         if !self.connect_src.is_empty() {
             directives.push(format!("connect-src {}", self.connect_src.join(" ")));
         }
+        if !self.object_src.is_empty() {
+            directives.push(format!("object-src {}", self.object_src.join(" ")));
+        }
+        if !self.media_src.is_empty() {
+            directives.push(format!("media-src {}", self.media_src.join(" ")));
+        }
+        if !self.frame_src.is_empty() {
+            directives.push(format!("frame-src {}", self.frame_src.join(" ")));
+        }
         if !self.frame_ancestors.is_empty() {
             directives.push(format!(
                 "frame-ancestors {}",
@@ -161,6 +207,10 @@ impl SecurityPolicy {
         }
         if !self.form_action.is_empty() {
             directives.push(format!("form-action {}", self.form_action.join(" ")));
+        }
+
+        if self.upgrade_insecure_requests {
+            directives.push("upgrade-insecure-requests".to_string());
         }
 
         directives.join("; ")
@@ -274,4 +324,46 @@ pub async fn security_headers_middleware(
     );
 
     response
+}
+
+/// Middleware de redirection HTTPS
+pub async fn https_redirect_middleware(
+    State(engine): State<AEngine>,
+    req: Request<Body>,
+    next: Next,
+) -> Response {
+    // Vérifier si enforce_https est activé
+    if !engine.config.security.enforce_https {
+        return next.run(req).await;
+    }
+
+    // Vérifier si la requête est déjà en HTTPS
+    // Derrière un proxy, vérifier X-Forwarded-Proto
+    let is_https = req
+        .headers()
+        .get("x-forwarded-proto")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.eq_ignore_ascii_case("https"))
+        .unwrap_or(false);
+
+    if is_https {
+        return next.run(req).await;
+    }
+
+    // Construire l'URL HTTPS
+    let host = req
+        .headers()
+        .get(axum::http::header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("localhost");
+
+    let uri = req.uri();
+    let https_url = format!(
+        "https://{}{}",
+        host,
+        uri.path_and_query().map(|pq| pq.as_str()).unwrap_or("")
+    );
+
+    // Rediriger avec 301
+    Redirect::permanent(&https_url).into_response()
 }

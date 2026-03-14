@@ -13,6 +13,9 @@ Chaque directive CSP est configurable via variable d'environnement dans le `.env
 | `style-src` | `RUNIQUE_POLICY_CSP_STYLES` | `'self'` |
 | `img-src` | `RUNIQUE_POLICY_CSP_IMAGES` | `'self'` |
 | `font-src` | `RUNIQUE_POLICY_CSP_FONTS` | `'self'` |
+| `object-src` | `RUNIQUE_POLICY_CSP_OBJECTS` | `'none'` |
+| `media-src` | `RUNIQUE_POLICY_CSP_MEDIA` | `'self'` |
+| `frame-src` | `RUNIQUE_POLICY_CSP_FRAMES` | `'none'` |
 | Nonce actif | `RUNIQUE_POLICY_CSP_STRICT_NONCE` | `true` |
 
 > Les directives `connect-src`, `frame-ancestors`, `base-uri` et `form-action` ne sont pas encore surchargeables par variable d'env. Utilisez une `SecurityPolicy` personnalisée si besoin.
@@ -40,10 +43,22 @@ RUNIQUE_POLICY_CSP_FONTS='self',https://fonts.gstatic.com
 RUNIQUE_POLICY_CSP_STYLES='self',https://fonts.googleapis.com
 ```
 
-### Désactiver le nonce (non recommandé)
+### Autoriser les iframes depuis le même domaine
 
 ```env
-RUNIQUE_POLICY_CSP_STRICT_NONCE=false
+RUNIQUE_POLICY_CSP_FRAMES='self'
+```
+
+### Autoriser les objets embarqués (plugins Flash, etc.)
+
+```env
+RUNIQUE_POLICY_CSP_OBJECTS='self'
+```
+
+### Autoriser les médias depuis un CDN
+
+```env
+RUNIQUE_POLICY_CSP_MEDIA='self',https://cdn.example.com
 ```
 
 ---
