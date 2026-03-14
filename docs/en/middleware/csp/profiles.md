@@ -13,6 +13,9 @@ Runique provides three built-in profiles. The active profile is set in the appli
 | `style-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` |
 | `img-src` | `'self'` | `'self'` | `'self'` + `data:` + `https:` |
 | `font-src` | `'self'` | `'self'` | `'self'` + `data:` |
+| `object-src` | `'none'` | `'none'` | `'self'` |
+| `media-src` | `'self'` | `'self'` | `'self'` + `https:` |
+| `frame-src` | `'none'` | `'none'` | `'self'` |
 | `connect-src` | `'self'` | `'self'` | `'self'` |
 | `frame-ancestors` | `'none'` | `'none'` | `'self'` |
 | `base-uri` | `'self'` | `'self'` | `'self'` |

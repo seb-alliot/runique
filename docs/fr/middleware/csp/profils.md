@@ -13,6 +13,9 @@ Runique propose trois profils prédéfinis. Le profil actif est configuré dans 
 | `style-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` |
 | `img-src` | `'self'` | `'self'` | `'self'` + `data:` + `https:` |
 | `font-src` | `'self'` | `'self'` | `'self'` + `data:` |
+| `object-src` | `'none'` | `'none'` | `'self'` |
+| `media-src` | `'self'` | `'self'` | `'self'` + `https:` |
+| `frame-src` | `'none'` | `'none'` | `'self'` |
 | `connect-src` | `'self'` | `'self'` | `'self'` |
 | `frame-ancestors` | `'none'` | `'none'` | `'self'` |
 | `base-uri` | `'self'` | `'self'` | `'self'` |

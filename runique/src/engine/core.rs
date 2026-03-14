@@ -9,7 +9,8 @@ use crate::config::RuniqueConfig;
 // On importe nos nouvelles structures renommées
 use crate::middleware::{
     HostPolicy, MiddlewareConfig, SecurityPolicy, allowed_hosts_middleware, csrf_middleware,
-    dev_no_cache_middleware, error_handler_middleware, security_headers_middleware,
+    dev_no_cache_middleware, error_handler_middleware, https_redirect_middleware,
+    security_headers_middleware,
 };
 
 #[cfg(feature = "orm")]
@@ -53,6 +54,14 @@ impl RuniqueEngine {
     pub fn attach_middlewares(engine: Arc<Self>, router: Router) -> Router {
         let mut router = router;
         let f = &engine.features;
+
+        // 0. HTTPS Redirection (Avant tout pour éviter les redirections inutiles)
+        if engine.config.security.enforce_https {
+            router = router.layer(middleware::from_fn_with_state(
+                engine.clone(),
+                https_redirect_middleware,
+            ));
+        }
 
         // 1. Validation des Hosts (La toute première ligne de défense)
         if f.enable_host_validation {

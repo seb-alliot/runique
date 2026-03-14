@@ -53,6 +53,8 @@ static LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::from_env);
 - **Fixed window**: the counter resets after `window_secs` seconds
 - Returns `429 Too Many Requests` when the limit is exceeded
 
+> **⚠️ Security:** This middleware trusts `X-Forwarded-For` and `X-Real-IP` headers. Ensure your reverse proxy (nginx, etc.) controls these headers and does not allow them to be forged by clients. Without a trusted proxy, an attacker can bypass rate limiting by modifying these headers.
+
 ---
 
 ## API
