@@ -5,6 +5,17 @@ use runique::middleware::auth::login as auth_login;
 use runique::prelude::user::Entity as UserEntity;
 use runique::prelude::*;
 
+pub async fn test_template(mut request: Request) -> AppResult<Response> {
+    let lang = current_lang();
+    context_update!(request => {
+        "lang" => lang.code(),
+        "error_title" => t("html.429_title"),
+        "error_text" => t("html.429_text"),
+        "back_home" => t("html.back_home"),
+    });
+    request.render("test_template.html")
+}
+
 // ─── Utilitaire : injecter l'état auth dans le contexte Tera ─────────────────
 async fn inject_auth(request: &mut Request) {
     let connected = is_authenticated(&request.session).await;

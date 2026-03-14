@@ -127,6 +127,8 @@
     "500_title": "500",
     "500_text": "Une erreur est survenue sur le serveur",
     "500_notice": "Nos équipes ont été notifiées et travaillent sur le problème.",
+    "429_title": "429",
+    "429_text": "Trop de requêtes. Veuillez patienter un moment avant de réessayer.",
     "back_home": "Retour à l'accueil",
     "critical_error_title": "Erreur critique",
     "critical_error_text": "Le système de gestion d'erreurs a lui-même rencontré une erreur.",

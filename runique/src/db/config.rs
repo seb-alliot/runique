@@ -181,12 +181,29 @@ impl DatabaseConfig {
     ///
     /// # Environment Variables
     ///
-    /// - `DB_ENGINE` - Database type (postgres, mysql, mariadb, sqlite)
-    /// - `DB_USER` - Username (required except for SQLite)
-    /// - `DB_PASSWORD` - Password (required except for SQLite)
-    /// - `DB_HOST` - Host (default: localhost)
-    /// - `DB_PORT` - Port (default: 5432 for PostgreSQL, 3306 for MySQL)
-    /// - `DB_NAME` - Database name
+    /// **Connection (URL directe — prioritaire)**
+    /// - `DB_URL` - Full connection URL (e.g., `postgres://user:pass@host/db`). Takes priority over all component variables.
+    ///
+    /// **Connection (variables composantes)**
+    /// - `DB_ENGINE` - Database type: `postgres`, `mysql`, `mariadb`, `sqlite` (default: `sqlite`)
+    /// - `DB_USER` - Username (required for non-SQLite)
+    /// - `DB_PASSWORD` - Password (required for non-SQLite)
+    /// - `DB_HOST` - Host (default: `localhost`)
+    /// - `DB_PORT` - Port (default: `5432` for PostgreSQL, `3306` for MySQL/MariaDB)
+    /// - `DB_NAME` - Database name (default: `local_base.sqlite` for SQLite)
+    ///
+    /// **Connection pool**
+    /// - `DB_MAX_CONNECTIONS` - Maximum pool size (default: `100`)
+    /// - `DB_MIN_CONNECTIONS` - Minimum pool size (default: `20`)
+    ///
+    /// **Timeouts (in seconds)**
+    /// - `DB_CONNECT_TIMEOUT` - Connection timeout (default: `2`)
+    /// - `DB_ACQUIRE_TIMEOUT` - Pool acquire timeout in milliseconds (default: `500`)
+    /// - `DB_IDLE_TIMEOUT` - Idle connection lifetime (default: `300`)
+    /// - `DB_MAX_LIFETIME` - Maximum connection lifetime (default: `3600`)
+    ///
+    /// **Logging**
+    /// - `DB_LOGGING` - Enable SQL query logging: `true` / `false` (default: `false`)
     ///
     /// # Examples
     ///
@@ -194,7 +211,12 @@ impl DatabaseConfig {
     /// use runique::prelude::DatabaseConfig;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// // .env file:
+    /// // .env file — URL directe :
+    /// // DB_URL=postgres://myuser:secret@localhost:5432/mydb
+    /// // DB_MAX_CONNECTIONS=50
+    /// // DB_LOGGING=true
+    ///
+    /// // .env file — variables composantes :
     /// // DB_ENGINE=postgres
     /// // DB_USER=myuser
     /// // DB_PASSWORD=secret
@@ -212,46 +234,93 @@ impl DatabaseConfig {
     pub fn from_env() -> Result<DatabaseConfigBuilder, String> {
         dotenv().ok();
 
-        let engine = env::var("DB_ENGINE").unwrap_or_else(|_| "sqlite".to_string());
+        // DB_URL prioritaire sur les variables composantes
+        let url = if let Ok(direct_url) = env::var("DB_URL") {
+            direct_url
+        } else {
+            let engine = env::var("DB_ENGINE").unwrap_or_else(|_| "sqlite".to_string());
 
-        let url = match engine.as_str() {
-            "postgres" | "postgresql" | "mysql" | "mariadb" => {
-                let db_type = match engine.as_str() {
-                    "postgres" | "postgresql" => ("postgres", "5432", "PostgreSQL"),
-                    "mysql" => ("mysql", "3306", "MySQL"),
-                    "mariadb" => ("mariadb", "3306", "MariaDB"),
-                    _ => unreachable!(),
-                };
+            match engine.as_str() {
+                "postgres" | "postgresql" | "mysql" | "mariadb" => {
+                    let db_type = match engine.as_str() {
+                        "postgres" | "postgresql" => ("postgres", "5432", "PostgreSQL"),
+                        "mysql" => ("mysql", "3306", "MySQL"),
+                        "mariadb" => ("mariadb", "3306", "MariaDB"),
+                        _ => unreachable!(),
+                    };
 
-                let user = env::var("DB_USER")
-                    .map_err(|_| format!(" DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME", db_type.2, db_type.1))?;
+                    let user = env::var("DB_USER")
+                        .map_err(|_| format!(" DB_USER not set for {}\n\nRequired variables:\n  - DB_USER\n  - DB_PASSWORD\n  - DB_HOST (optional, default: localhost)\n  - DB_PORT (optional, default: {})\n  - DB_NAME", db_type.2, db_type.1))?;
 
-                let password = env::var("DB_PASSWORD")
-                    .map_err(|_| format!(" DB_PASSWORD not set for {}", db_type.2))?;
+                    let password = env::var("DB_PASSWORD")
+                        .map_err(|_| format!(" DB_PASSWORD not set for {}", db_type.2))?;
 
-                let host = env::var("DB_HOST")
-                    .unwrap_or_else(|_| "localhost".to_string());
+                    let host = env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
+                    let port = env::var("DB_PORT").unwrap_or_else(|_| db_type.1.to_string());
+                    let name = env::var("DB_NAME")
+                        .map_err(|_| format!(" DB_NAME not set for {}", db_type.2))?;
 
-                let port = env::var("DB_PORT")
-                    .unwrap_or_else(|_| db_type.1.to_string());
-
-                let name = env::var("DB_NAME")
-                    .map_err(|_| format!(" DB_NAME not set for {}", db_type.2))?;
-
-                format!("{}://{}:{}@{}:{}/{}", db_type.0, user, password, host, port, name)
-            }
-            "sqlite" => {
-                let name = env::var("DB_NAME")
-                    .unwrap_or_else(|_| "local_base.sqlite".to_string());
-                format!("sqlite://{}?mode=rwc", name)
-            }
-            other => {
-                env::var("DB_URL")
-                    .map_err(|_| format!(" Unsupported DB_ENGINE: {}\n\nSupported engines: postgres, mysql, mariadb, sqlite", other))?
+                    format!(
+                        "{}://{}:{}@{}:{}/{}",
+                        db_type.0, user, password, host, port, name
+                    )
+                }
+                "sqlite" => {
+                    let name =
+                        env::var("DB_NAME").unwrap_or_else(|_| "local_base.sqlite".to_string());
+                    format!("sqlite://{}?mode=rwc", name)
+                }
+                other => {
+                    return Err(format!(
+                        " Unsupported DB_ENGINE: {}\n\nSupported engines: postgres, mysql, mariadb, sqlite\nOr set DB_URL directly.",
+                        other
+                    ));
+                }
             }
         };
 
-        Self::from_url(url)
+        let mut builder = Self::from_url(url)?;
+
+        // Pool
+        if let Ok(v) = env::var("DB_MAX_CONNECTIONS") {
+            if let Ok(n) = v.parse::<u32>() {
+                builder.config.max_connections = n;
+            }
+        }
+        if let Ok(v) = env::var("DB_MIN_CONNECTIONS") {
+            if let Ok(n) = v.parse::<u32>() {
+                builder.config.min_connections = n;
+            }
+        }
+
+        // Timeouts
+        if let Ok(v) = env::var("DB_CONNECT_TIMEOUT") {
+            if let Ok(n) = v.parse::<u64>() {
+                builder.config.connect_timeout = Duration::from_secs(n);
+            }
+        }
+        if let Ok(v) = env::var("DB_ACQUIRE_TIMEOUT") {
+            if let Ok(n) = v.parse::<u64>() {
+                builder.config.acquire_timeout = Duration::from_millis(n);
+            }
+        }
+        if let Ok(v) = env::var("DB_IDLE_TIMEOUT") {
+            if let Ok(n) = v.parse::<u64>() {
+                builder.config.idle_timeout = Duration::from_secs(n);
+            }
+        }
+        if let Ok(v) = env::var("DB_MAX_LIFETIME") {
+            if let Ok(n) = v.parse::<u64>() {
+                builder.config.max_lifetime = Duration::from_secs(n);
+            }
+        }
+
+        // Logging
+        if let Ok(v) = env::var("DB_LOGGING") {
+            builder.config.sqlx_logging = matches!(v.to_lowercase().as_str(), "true" | "1" | "yes");
+        }
+
+        Ok(builder)
     }
 
     /// Establishes connection to the database

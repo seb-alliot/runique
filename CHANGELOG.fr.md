@@ -6,6 +6,27 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
+## [1.1.47] - 2026-03-14
+
+### Sécurité
+
+* **CSRF :** suppression du vecteur de panique `expect()` sur token malformé — remplacé par un fallback gracieux `unwrap_or_else` dans `csrf.rs`.
+* **CSRF :** `HeaderMap::contains_key("X-CSRF-Token")` confirmé insensible à la casse — aucun contournement possible via la casse des en-têtes.
+* **Sûreté des verrous :** `GLOBAL_LANG` (`RwLock<Lang>`) remplacé par `AtomicU8` — empoisonnement de verrou impossible, plus aucun `unwrap()` nécessaire.
+* **Sûreté des verrous :** acquisitions de `url_registry` et `PENDING_URLS` utilisent désormais `unwrap_or_else(|e| e.into_inner())` — survie à un mutex empoisonné en cas de panique dans un thread.
+
+### Ajouté
+
+* **Rate limiter (`RateLimiter`) :** middleware à fenêtre glissante par IP. Limite de requêtes et fenêtre de temps configurables. Retourne HTTP 429 en cas de dépassement.
+* **Login guard (`LoginGuard`) :** protection anti-bruteforce par nom d'utilisateur. Nombre de tentatives et durée de blocage configurables. Complémentaire au `RateLimiter` (IP vs. nom d'utilisateur).
+* **Nettoyage périodique (`spawn_cleanup`) :** `RateLimiter` et `LoginGuard` exposent `spawn_cleanup(period)` — démarre une tâche Tokio en arrière-plan qui purge les entrées expirées à intervalle configurable, sur le même modèle que `CleaningMemoryStore`.
+* **Template 429 :** template Tera dédié (`errors/429.html`) embarqué dans le binaire, rendu par `error_handler_middleware` sur `TOO_MANY_REQUESTS`. Inclut un fallback HTML inline si le rendu Tera échoue.
+* **i18n — clés 429 :** `html.429_title` et `html.429_text` ajoutés aux 9 fichiers de traduction (fr, en, de, es, it, pt, ja, zh, ru).
+* **CLI — langue :** la langue de l'application est désormais configurable via la variable d'environnement `RUNIQUE_LANG`. `RuniqueConfig::from_env()` la lit et l'applique automatiquement.
+* **Prelude :** `dotenvy` ré-exporté dans `runique::prelude` (section CONFIGURATION) et à la racine de la crate.
+
+---
+
 ## [1.1.45] - 2026-03-10
 
 ### Corrigé

@@ -12,20 +12,49 @@
 
 ## Base de données
 
+### Connexion
+
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `DATABASE_URL` | — | Chaîne de connexion complète |
-| `DB_ENGINE` | `postgres` | `postgres`, `sqlite`, `mysql` |
-| `DB_USER` | `postgres` | Utilisateur DB |
-| `DB_PASSWORD` | — | Mot de passe DB |
+| `DB_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |
+| `DB_ENGINE` | `sqlite` | `postgres`, `mysql`, `mariadb`, `sqlite` |
+| `DB_USER` | — | Utilisateur DB (requis sauf SQLite) |
+| `DB_PASSWORD` | — | Mot de passe DB (requis sauf SQLite) |
 | `DB_HOST` | `localhost` | Host DB |
-| `DB_PORT` | `5432` | Port DB |
-| `DB_NAME` | `runique` | Nom base de données |
+| `DB_PORT` | `5432` / `3306` | Port DB (défaut selon le moteur) |
+| `DB_NAME` | `local_base.sqlite` | Nom de la base de données |
 
-**PostgreSQL :**
+### Pool de connexions
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `DB_MAX_CONNECTIONS` | `100` | Taille maximale du pool |
+| `DB_MIN_CONNECTIONS` | `20` | Taille minimale du pool |
+
+### Timeouts
+
+| Variable | Défaut | Unité | Description |
+|----------|--------|-------|-------------|
+| `DB_CONNECT_TIMEOUT` | `2` | secondes | Timeout d'établissement de connexion |
+| `DB_ACQUIRE_TIMEOUT` | `500` | millisecondes | Timeout d'acquisition depuis le pool |
+| `DB_IDLE_TIMEOUT` | `300` | secondes | Durée d'inactivité avant fermeture |
+| `DB_MAX_LIFETIME` | `3600` | secondes | Durée de vie maximale d'une connexion |
+
+### Logging
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `DB_LOGGING` | `false` | Active les logs SQL (`true`, `1`, `yes`) |
+
+**PostgreSQL (URL directe) :**
 
 ```env
-DATABASE_URL=postgres://user:password@localhost:5432/dbname
+DB_URL=postgres://user:password@localhost:5432/dbname
+```
+
+**PostgreSQL (variables composantes) :**
+
+```env
 DB_ENGINE=postgres
 DB_USER=postgres
 DB_PASSWORD=secret
@@ -37,7 +66,18 @@ DB_NAME=runique
 **SQLite (dev) :**
 
 ```env
-DATABASE_URL=sqlite:runique.db?mode=rwc
+DB_ENGINE=sqlite
+DB_NAME=runique.db
+```
+
+**Pool personnalisé :**
+
+```env
+DB_MAX_CONNECTIONS=50
+DB_MIN_CONNECTIONS=5
+DB_CONNECT_TIMEOUT=5
+DB_IDLE_TIMEOUT=600
+DB_LOGGING=true
 ```
 
 ---

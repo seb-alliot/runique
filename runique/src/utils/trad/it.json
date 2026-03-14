@@ -127,6 +127,8 @@
         "500_title": "500",
         "500_text": "Errore interno del server",
         "500_notice": "Il nostro team è stato notificato e sta lavorando al problema.",
+        "429_title": "429",
+        "429_text": "Troppe richieste. Attendi un momento prima di riprovare.",
         "back_home": "Torna alla home",
         "critical_error_title": "Errore critico",
         "critical_error_text": "Il sistema di gestione degli errori ha riscontrato un errore.",

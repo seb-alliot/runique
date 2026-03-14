@@ -58,7 +58,15 @@ pub async fn error_handler_middleware(
     let status = response.status();
 
     // --- Gestion des erreurs ---
-    if status.is_server_error() || status == StatusCode::NOT_FOUND {
+    if status.is_server_error()
+        || status == StatusCode::NOT_FOUND
+        || status == StatusCode::TOO_MANY_REQUESTS
+    {
+        // 429 : rendu direct, pas de debug page
+        if status == StatusCode::TOO_MANY_REQUESTS {
+            return render_429(&tera, &config, csrf_token);
+        }
+
         let error_ctx = build_error_context(&response, &request_helper, &tera);
 
         // --- Rendu selon mode debug ou production ---
@@ -165,6 +173,19 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
             error!("Failed to render 404 template: {}", e);
             fallback_404_html()
         }
+    }
+}
+
+fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
+    let mut context = Context::new();
+    inject_global_vars(&mut context, config, csrf_token);
+    context.insert("error_title", &t("html.429_title"));
+    context.insert("error_text", &t("html.429_text"));
+    context.insert("back_home", &t("html.back_home"));
+
+    match tera.render("429", &context) {
+        Ok(html) => (StatusCode::TOO_MANY_REQUESTS, Html(html)).into_response(),
+        Err(_) => fallback_429_html(),
     }
 }
 
@@ -299,6 +320,53 @@ fn fallback_404_html() -> Response {
         back = t("html.back_home"),
     );
     (StatusCode::NOT_FOUND, Html(html)).into_response()
+}
+
+fn fallback_429_html() -> Response {
+    let lang = crate::utils::trad::current_lang().code();
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html lang="{lang}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            color: #fff;
+        }}
+        .container {{ text-align: center; padding: 2rem; }}
+        h1 {{ font-size: 6rem; margin: 0; font-weight: 700; }}
+        p {{ font-size: 1.5rem; margin: 1rem 0; }}
+        a {{
+            color: #fff; text-decoration: none; border: 2px solid #fff;
+            padding: 0.75rem 1.5rem; border-radius: 0.5rem;
+            display: inline-block; margin-top: 1rem; transition: all 0.3s ease;
+        }}
+        a:hover {{ background: #fff; color: #f7971e; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{title}</h1>
+        <p>{text}</p>
+        <a href="/">{back}</a>
+    </div>
+</body>
+</html>"#,
+        lang = lang,
+        title = t("html.429_title"),
+        text = t("html.429_text"),
+        back = t("html.back_home"),
+    );
+    (StatusCode::TOO_MANY_REQUESTS, Html(html)).into_response()
 }
 
 fn fallback_500_html() -> Response {

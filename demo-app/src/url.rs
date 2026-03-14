@@ -16,9 +16,9 @@ pub fn routes() -> Router {
         "/view-user"   => view! { views::info_user },              name = "search-user",
 
         // Blog
-        "/blog/liste"       => view! { views::blog_list },              name = "blog_list",
-        "/blog/nouveau"     => view! { views::blog_save },              name = "blog_info",
-        "/blog/{id}"         => view! { views::blog_detail },            name = "blog_detail",
+        "/blog/liste"       => view! { views::blog_list },         name = "blog_list",
+        "/blog/nouveau"     => view! { views::blog_save },         name = "blog_info",
+        "/blog/{id}"         => view! { views::blog_detail },      name = "blog_detail",
 
         // Outils & démo
         "/about"        => view! { views::about },                 name = "about",
@@ -26,5 +26,7 @@ pub fn routes() -> Router {
         "/upload-image" => view! { views::upload_image_submit },   name = "upload_image",
         "/test-fields"  => view! { views::test_fields },           name = "test_fields",
 
+        // test template
+        "/test-template" => view! { views::test_template },        name = "test_template",
     }
 }

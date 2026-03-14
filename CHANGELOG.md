@@ -6,6 +6,27 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.1.47] - 2026-03-14
+
+### Security
+
+* **CSRF:** Eliminated `expect()` panic vector on malformed token — replaced with graceful `unwrap_or_else` fallback in `csrf.rs`.
+* **CSRF:** `HeaderMap::contains_key("X-CSRF-Token")` confirmed case-insensitive — no bypass possible via header casing.
+* **Lock safety:** `GLOBAL_LANG` (`RwLock<Lang>`) replaced with `AtomicU8` — lock poisoning impossible, no `unwrap()` required.
+* **Lock safety:** `url_registry` and `PENDING_URLS` lock acquisitions now use `unwrap_or_else(|e| e.into_inner())` — survives poisoned mutex in any thread panic scenario.
+
+### Added
+
+* **Rate limiter (`RateLimiter`):** sliding-window middleware by IP. Configurable request limit and time window. Returns HTTP 429 on excess.
+* **Login guard (`LoginGuard`):** brute-force protection by username. Configurable attempt limit and lockout duration. Complementary to `RateLimiter` (IP vs. username).
+* **Periodic cleanup (`spawn_cleanup`):** both `RateLimiter` and `LoginGuard` expose `spawn_cleanup(period)` — spawns a Tokio background task that purges expired entries on a configurable interval, mirroring `CleaningMemoryStore`.
+* **429 template:** dedicated Tera template (`errors/429.html`) embedded in the binary, rendered by `error_handler_middleware` on `TOO_MANY_REQUESTS`. Includes inline HTML fallback if Tera render fails.
+* **i18n — 429 keys:** `html.429_title` and `html.429_text` added to all 9 translation files (fr, en, de, es, it, pt, ja, zh, ru).
+* **CLI — language:** application language now configurable via `RUNIQUE_LANG` environment variable. `RuniqueConfig::from_env()` reads and applies it automatically.
+* **Prelude:** `dotenvy` re-exported in `runique::prelude` (CONFIGURATION section) and at crate root.
+
+---
+
 ## [1.1.45] - 2026-03-10
 
 ### Fixed

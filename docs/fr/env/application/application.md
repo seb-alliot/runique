@@ -25,10 +25,39 @@
 
 ## Base de données
 
+### Connexion
+
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `DATABASE_URL` | — | URL de connexion (`sqlite://...`, `postgres://...`, `mysql://...`) |
-| `DB_NAME` | `runique_db` | Nom de la base (utilisé si `DATABASE_URL` est absent) |
+| `DB_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |
+| `DB_ENGINE` | `sqlite` | Moteur : `postgres`, `mysql`, `mariadb`, `sqlite` |
+| `DB_USER` | — | Utilisateur (requis sauf SQLite) |
+| `DB_PASSWORD` | — | Mot de passe (requis sauf SQLite) |
+| `DB_HOST` | `localhost` | Host |
+| `DB_PORT` | `5432` / `3306` | Port (défaut selon le moteur) |
+| `DB_NAME` | `local_base.sqlite` | Nom de la base de données |
+
+### Pool de connexions
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `DB_MAX_CONNECTIONS` | `100` | Taille maximale du pool |
+| `DB_MIN_CONNECTIONS` | `20` | Taille minimale du pool |
+
+### Timeouts
+
+| Variable | Défaut | Unité | Description |
+|----------|--------|-------|-------------|
+| `DB_CONNECT_TIMEOUT` | `2` | secondes | Timeout d'établissement de connexion |
+| `DB_ACQUIRE_TIMEOUT` | `500` | millisecondes | Timeout d'acquisition depuis le pool |
+| `DB_IDLE_TIMEOUT` | `300` | secondes | Durée d'inactivité avant fermeture |
+| `DB_MAX_LIFETIME` | `3600` | secondes | Durée de vie maximale d'une connexion |
+
+### Logging SQL
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `DB_LOGGING` | `false` | Active les logs SQL (`true`, `1`, `yes`) |
 
 ---
 
