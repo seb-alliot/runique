@@ -29,6 +29,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .middleware(|m| {
             m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
                 .with_session_cleanup_interval(5)
+                .with_csp(|c| {
+                    c.policy(SecurityPolicy::strict())
+                        .with_header_security(true)
+                        .with_upgrade_insecure(cfg!(not(debug_assertions)))
+                        .images(vec!["'self'", "data:"])
+                })
         })
         .with_admin(|a| {
             a.hot_reload(cfg!(debug_assertions))

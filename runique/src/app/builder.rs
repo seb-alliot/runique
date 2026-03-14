@@ -6,7 +6,7 @@ use super::templates::TemplateLoader;
 use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
 use crate::macros::add_urls;
-use crate::middleware::{HostPolicy, SecurityPolicy};
+use crate::middleware::HostPolicy;
 use crate::utils::aliases::{new, new_serve};
 
 use super::error_build::BuildError;
@@ -42,8 +42,12 @@ use sea_orm::DatabaseConnection;
 //       .routes(router)
 //       .static_files(|s| s.disable())
 //       .middleware(|m| {
-//           m.with_csp(true)
-//            .add_custom(my_auth_middleware)
+//           m.with_csp(|c| {
+//               c.with_header_security(true)
+//                .with_nonce(true)
+//                .scripts(vec!["'self'"])
+//           })
+//           .add_custom(my_auth_middleware)
 //       })
 //       .build().await?
 //
@@ -51,7 +55,7 @@ use sea_orm::DatabaseConnection;
 //       .with_database(db)
 //       .routes(router)
 //       .statics()
-//       .middleware(|m| m.with_csp(true))
+//       .middleware(|m| m.with_csp(|c| c.with_header_security(true)))
 //       .build().await?
 //
 // ═══════════════════════════════════════════════════════════════
@@ -266,7 +270,7 @@ impl RuniqueAppBuilder {
         // ═══════════════════════════════════════
         let config = self.config;
         let url_registry = self.core.url_registry;
-        let middleware = self.middleware;
+        let mut middleware = self.middleware;
         let statics_enabled = self.statics.enabled;
         let router = self.router;
 
@@ -290,7 +294,7 @@ impl RuniqueAppBuilder {
             db: new(db),
             features: middleware.features.clone(),
             url_registry,
-            security_csp: new(SecurityPolicy::from_env()),
+            security_csp: new(middleware.security_policy.take().unwrap_or_default()),
             security_hosts: new(HostPolicy::from_env()),
         });
 

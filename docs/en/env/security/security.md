@@ -1,39 +1,15 @@
 # Security, Middlewares, CSP & Sessions
 
-## Security
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ALLOWED_HOSTS` | `*` | Allowed hosts (comma-separated) |
-| `SANITIZE_INPUTS` | `true` | Enable user input sanitization |
-| `STRICT_CSP` | `false` | Strict CSP mode |
-| `ENFORCE_HTTPS` | `false` | Force HTTPS |
-| `RATE_LIMITING` | `false` | Enable rate limiting |
-
----
-
 ## Middlewares
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `RUNIQUE_ENABLE_CSP` | `true` (prod) / `false` (dev) | Enable Content Security Policy headers |
 | `RUNIQUE_ENABLE_HOST_VALIDATION` | `true` (prod) / `false` (dev) | Validate Host header against `ALLOWED_HOSTS` |
 | `RUNIQUE_ENABLE_DEBUG_ERRORS` | `false` (prod) / `true` (dev) | Detailed error pages |
 | `RUNIQUE_ENABLE_CACHE` | `true` (prod) / `false` (dev) | HTTP cache headers |
 | `RUNIQUE_ALLOWED_HOSTS` | `*` | Allowed hosts for the host validation middleware |
 
----
-
-## CSP (Content Security Policy)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RUNIQUE_POLICY_CSP_DEFAULT` | — | Allowed sources for `default-src` (space-separated) |
-| `RUNIQUE_POLICY_CSP_SCRIPTS` | — | Allowed sources for `script-src` |
-| `RUNIQUE_POLICY_CSP_STYLES` | — | Allowed sources for `style-src` |
-| `RUNIQUE_POLICY_CSP_IMAGES` | — | Allowed sources for `img-src` |
-| `RUNIQUE_POLICY_CSP_FONTS` | — | Allowed sources for `font-src` |
-| `RUNIQUE_POLICY_CSP_STRICT_NONCE` | `false` | Enable strict nonce for inline scripts |
+> **CSP** — The CSP policy is configured exclusively via the builder (`.with_csp(...)`), with no environment variable. See [CSP](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/csp.md).
 
 ---
 

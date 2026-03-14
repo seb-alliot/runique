@@ -47,7 +47,7 @@
         </nav>
 
         <div class="sidebar-footer">
-            <div style="display:flex; align-items:center; justify-content:center; padding: 0 0.75rem;">
+            <div class="sidebar-footer-center">
                 <button class="sidebar-toggle" id="sidebarToggle" title="{% if admin_base_toggle %}{{ admin_base_toggle }}{% endif %}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                         <polyline points="15 18 9 12 15 6"/>
@@ -64,7 +64,7 @@
 {% block topbar %}
     <header class="admin-topbar">
 
-        <button class="btn btn-ghost btn-icon" id="mobileBurger" style="display:none">
+        <button class="btn btn-ghost btn-icon hidden" id="mobileBurger">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <line x1="3" y1="12" x2="21" y2="12"/>

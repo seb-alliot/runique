@@ -5,6 +5,7 @@ use reqwest::Method;
 use runique::forms::field::RuniqueForm;
 use runique::forms::prisme::csrf_gate;
 use runique::middleware::LoginAdmin;
+use runique::utils::mask_csrf_token;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;
@@ -19,15 +20,19 @@ fn make_tera() -> Arc<Tera> {
 
 #[tokio::test]
 async fn test_csrf_gate_token_valide_retourne_none() {
-    let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
-    parsed.insert("csrf_token".to_string(), vec!["mon_token_csrf".to_string()]);
+    // Le token de session est en hex brut (sortie HMAC-SHA256 = 64 chars hex).
+    // Le token soumis dans le formulaire est la version masquée (base64).
+    let raw_token = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
+    let masked = mask_csrf_token(raw_token).expect("le masquage doit réussir sur un hex valide");
 
-    let result =
-        csrf_gate::<LoginAdmin>(&parsed, "mon_token_csrf", make_tera(), &Method::POST).await;
+    let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
+    parsed.insert("csrf_token".to_string(), vec![masked]);
+
+    let result = csrf_gate::<LoginAdmin>(&parsed, raw_token, make_tera(), &Method::POST).await;
     assert!(result.is_ok());
     assert!(
         result.unwrap().is_none(),
-        "Token valide doit retourner None"
+        "Token valide masqué doit retourner None"
     );
 }
 

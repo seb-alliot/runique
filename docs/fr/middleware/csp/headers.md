@@ -1,13 +1,13 @@
 # Headers de sécurité
 
-Le middleware `security_headers_middleware` injecte automatiquement un ensemble de headers de sécurité à chaque réponse, en plus du header CSP.
+Le middleware `security_headers_middleware` injecte automatiquement un ensemble de headers de sécurité à chaque réponse, en plus du header CSP. Il s'active via `.with_header_security(true)` dans le builder.
 
 ---
 
 ## Headers injectés
 
 | Header | Valeur | Protection |
-|--------|--------|------------|
+| --- | --- | --- |
 | `Content-Security-Policy` | Dynamique (avec nonce par requête) | Restreint les sources autorisées pour scripts, styles, images, etc. |
 | `X-Content-Type-Options` | `nosniff` | Empêche le navigateur de deviner le type MIME — bloque les attaques MIME sniffing |
 | `X-Frame-Options` | `DENY` | Interdit l'intégration de la page dans une iframe — protège contre le clickjacking |
@@ -23,25 +23,34 @@ Le middleware `security_headers_middleware` injecte automatiquement un ensemble 
 
 ## Activation
 
-Ces headers sont injectés par `security_headers_middleware`, actif quand `enable_csp = true` (défaut).
+### CSP seul (sans headers de sécurité additionnels)
 
 ```rust
-// Actif par défaut — aucune configuration requise
-RuniqueApp::new()
-    .build()
-    .await?;
-
-// Désactiver explicitement (non recommandé en production)
-RuniqueApp::new()
-    .middleware(MiddlewareConfig::default().with_csp(false))
-    .build()
-    .await?;
+.middleware(|m| {
+    m.with_csp(|c| c)
+})
 ```
 
-Via variable d'env :
+### CSP + tous les headers de sécurité
 
-```env
-RUNIQUE_ENABLE_CSP=false   # Désactive CSP + tous les headers de sécurité
+```rust
+.middleware(|m| {
+    m.with_csp(|c| {
+        c.with_header_security(true)
+         .with_nonce(true)
+    })
+})
+```
+
+### Preset strict complet
+
+```rust
+.middleware(|m| {
+    m.with_csp(|c| {
+        c.policy(SecurityPolicy::strict())
+         .with_header_security(true)
+    })
+})
 ```
 
 ---

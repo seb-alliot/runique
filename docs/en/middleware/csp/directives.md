@@ -1,108 +1,149 @@
-# CSP Directives & Environment Variables
+# CSP Directives
 
-Each CSP directive is configurable via environment variable in `.env`, without modifying code. Values are comma-separated lists.
+Each CSP directive is configurable via the builder — environment variables are no longer used.
 
 ---
 
-## Configurable directives
+## Available directives
 
-| CSP Directive | Env var | Default |
-|---------------|---------|---------|
-| `default-src` | `RUNIQUE_POLICY_CSP_DEFAULT` | `'self'` |
-| `script-src` | `RUNIQUE_POLICY_CSP_SCRIPTS` | `'self'` |
-| `style-src` | `RUNIQUE_POLICY_CSP_STYLES` | `'self'` |
-| `img-src` | `RUNIQUE_POLICY_CSP_IMAGES` | `'self'` |
-| `font-src` | `RUNIQUE_POLICY_CSP_FONTS` | `'self'` |
-| `object-src` | `RUNIQUE_POLICY_CSP_OBJECTS` | `'none'` |
-| `media-src` | `RUNIQUE_POLICY_CSP_MEDIA` | `'self'` |
-| `frame-src` | `RUNIQUE_POLICY_CSP_FRAMES` | `'none'` |
-| Nonce active | `RUNIQUE_POLICY_CSP_STRICT_NONCE` | `true` |
+| Builder method | CSP Directive | Default |
+| --- | --- | --- |
+| `.default_src(vec![...])` | `default-src` | `'self'` |
+| `.scripts(vec![...])` | `script-src` | `'self'` |
+| `.styles(vec![...])` | `style-src` | `'self'` |
+| `.images(vec![...])` | `img-src` | `'self'` |
+| `.fonts(vec![...])` | `font-src` | `'self'` |
+| `.connect(vec![...])` | `connect-src` | `'self'` |
+| `.objects(vec![...])` | `object-src` | `'none'` |
+| `.media(vec![...])` | `media-src` | `'self'` |
+| `.frames(vec![...])` | `frame-src` | `'none'` |
+| `.frame_ancestors(vec![...])` | `frame-ancestors` | `'none'` |
+| `.base_uri(vec![...])` | `base-uri` | `'self'` |
+| `.form_action(vec![...])` | `form-action` | `'self'` |
 
-> The `connect-src`, `frame-ancestors`, `base-uri` and `form-action` directives are not yet overridable via env vars. Use a custom `SecurityPolicy` if needed.
+### Toggles
+
+| Builder method | Default | Description |
+| --- | --- | --- |
+| `.with_nonce(bool)` | `true` | Per-request nonce injected into `script-src` and `style-src` |
+| `.with_header_security(bool)` | `false` | HSTS, X-Frame-Options, COEP, COOP, CORP… |
+| `.with_upgrade_insecure(bool)` | `false` | `upgrade-insecure-requests` |
+
+### Presets
+
+| Builder method | Description |
+| --- | --- |
+| `.policy(SecurityPolicy::default())` | Default policy — `'self'` everywhere, nonce active |
+| `.policy(SecurityPolicy::strict())` | Strict — mandatory nonce, `upgrade-insecure-requests`, `frame-ancestors 'none'` |
+| `.policy(SecurityPolicy::permissive())` | Permissive — `unsafe-eval` allowed, images from `https:` |
 
 ---
 
 ## Common examples
 
-### Allow a CDN for scripts
+### Minimal — CSP enabled with no customization
 
-```env
-RUNIQUE_POLICY_CSP_SCRIPTS='self',https://cdn.jsdelivr.net
+```rust,ignore
+RuniqueApp::new()
+    .middleware(|m| {
+        m.with_csp(|c| c)
+    })
+    .build()
+    .await?;
 ```
 
-### Allow inline base64 images (avatars, rich-text editors)
+### CDN for scripts and styles (e.g. Bootstrap)
 
-```env
-RUNIQUE_POLICY_CSP_IMAGES='self',data:
+```rust,ignore
+RuniqueApp::new()
+    .middleware(|m| {
+        m.with_csp(|c| {
+            c.scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
+             .styles(vec!["'self'", "https://cdn.jsdelivr.net"])
+        })
+    })
+    .build()
+    .await?;
 ```
 
-### Allow Google Fonts
+### Google Fonts + base64 images
 
-```env
-RUNIQUE_POLICY_CSP_FONTS='self',https://fonts.gstatic.com
-RUNIQUE_POLICY_CSP_STYLES='self',https://fonts.googleapis.com
+```rust,ignore
+RuniqueApp::new()
+    .middleware(|m| {
+        m.with_csp(|c| {
+            c.fonts(vec!["'self'", "https://fonts.gstatic.com"])
+             .styles(vec!["'self'", "https://fonts.googleapis.com"])
+             .images(vec!["'self'", "data:"])
+        })
+    })
+    .build()
+    .await?;
 ```
 
-### Allow iframes from same domain
+### WebSocket + iframes
 
-```env
-RUNIQUE_POLICY_CSP_FRAMES='self'
+```rust,ignore
+RuniqueApp::new()
+    .middleware(|m| {
+        m.with_csp(|c| {
+            c.connect(vec!["'self'", "wss://ws.example.com"])
+             .frames(vec!["'self'"])
+             .frame_ancestors(vec!["'self'"])
+        })
+    })
+    .build()
+    .await?;
 ```
 
-### Allow embedded objects (Flash plugins, etc.)
+### Full configuration (production)
 
-```env
-RUNIQUE_POLICY_CSP_OBJECTS='self'
+```rust,ignore
+RuniqueApp::new()
+    .middleware(|m| {
+        m.with_csp(|c| {
+            c.with_header_security(true)
+             .with_nonce(true)
+             .with_upgrade_insecure(true)
+             .scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
+             .styles(vec!["'self'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"])
+             .fonts(vec!["'self'", "https://fonts.gstatic.com"])
+             .images(vec!["'self'", "data:", "https://cdn.example.com"])
+             .connect(vec!["'self'", "wss://ws.example.com"])
+        })
+    })
+    .build()
+    .await?;
 ```
 
-### Allow media from a CDN
+### Strict preset with security headers
 
-```env
-RUNIQUE_POLICY_CSP_MEDIA='self',https://cdn.example.com
+```rust,ignore
+RuniqueApp::new()
+    .middleware(|m| {
+        m.with_csp(|c| {
+            c.policy(SecurityPolicy::strict())
+             .with_header_security(true)
+        })
+    })
+    .build()
+    .await?;
 ```
 
 ---
 
 ## Nonce behavior on `script-src` and `style-src`
 
-When the nonce is active (`RUNIQUE_POLICY_CSP_STRICT_NONCE=true`, default):
+When the nonce is active (`.with_nonce(true)`):
 
 - `'nonce-{value}'` is automatically appended to `script-src` and `style-src`
 - `'unsafe-inline'` is **automatically removed** from those directives if present
 
 This ensures inline scripts without a nonce are blocked, even if `'unsafe-inline'` was manually configured.
 
-```
+```text
 # Generated header with active nonce:
-Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-abc123'; ...
-```
-
----
-
-## Fixed directives (not configurable via env)
-
-These directives are defined in the profile and cannot be changed via env var:
-
-| Directive | Value (default/strict) | Role |
-|-----------|----------------------|------|
-| `connect-src` | `'self'` | Restricts XHR/fetch/WebSocket connections |
-| `frame-ancestors` | `'none'` | Prevents embedding in iframes (clickjacking) |
-| `base-uri` | `'self'` | Prevents `<base>` tag injection |
-| `form-action` | `'self'` | Prevents form submissions to external domains |
-
-To override them, use a custom `SecurityPolicy`:
-
-```rust
-use runique::middleware::SecurityPolicy;
-
-RuniqueApp::new()
-    .with_security_csp(SecurityPolicy {
-        connect_src: vec!["'self'".into(), "wss://ws.example.com".into()],
-        frame_ancestors: vec!["'self'".into()],
-        ..SecurityPolicy::default()
-    })
-    .build()
-    .await?;
+Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-abc123'; style-src 'self' 'nonce-abc123'; ...
 ```
 
 ---

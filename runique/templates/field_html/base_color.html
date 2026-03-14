@@ -8,7 +8,7 @@
     </label>
     {% endif %}
 
-    <div class="color-picker-container">
+    <div class="color-picker-container" data-color-picker>
         <input
             type="color"
             name="{{ field.name }}"
@@ -17,6 +17,7 @@
             {% if field.is_required.choice %}required{% endif %}
             {% for key, value in field.html_attributes %}{{ key }}="{{ value }}" {% endfor %}
             class="color-picker"
+            data-color-input
         >
         <input
             type="text"
@@ -26,6 +27,7 @@
             maxlength="7"
             pattern="^#[0-9A-Fa-f]{6}$"
             class="color-text-input"
+            data-color-text
             {% if readonly.choice %}readonly{% endif %}
             {% if disabled.choice %}disabled{% endif %}
         >
@@ -35,14 +37,5 @@
     <span class="field-error-message">{{ field.error }}</span>
     {% endif %}
 
-    <script>
-        (function() {
-            const picker = document.getElementById('id_{{ field.name }}');
-            const textInput = document.getElementById('id_{{ field.name }}_text');
-
-            picker.addEventListener('input', function() {
-                textInput.value = picker.value.toUpperCase();
-            });
-        })();
-    </script>
+    <script src="{{ "js/color_picker.js" | runique_static }}" defer></script>
 </div>

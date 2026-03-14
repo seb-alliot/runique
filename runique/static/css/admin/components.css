@@ -297,3 +297,25 @@
 }
 
 .warning-box strong { color: var(--danger); }
+
+/* ───────────────────────────────────────────────
+   Utilitaires (remplacent les style= inline)
+   ─────────────────────────────────────────────── */
+
+.page-actions       { display: flex; gap: 0.6rem; }
+.form-inline        { display: inline; }
+.text-muted         { color: var(--text-muted); }
+.th-right           { text-align: right; }
+.table-actions-end  { justify-content: flex-end; }
+.card-form          { max-width: 60%; }
+.card-full-width    { grid-column: 1 / -1; }
+.mt-sm              { margin-top: 0.5rem; }
+
+.admin-table-key {
+    width: 200px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}

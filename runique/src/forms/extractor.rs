@@ -75,8 +75,12 @@ where
 
     let form_data = convert_for_form(parsed);
 
-    // ← Changed: build_with_data already creates the renderer, no need to set_tera afterwards
-    let form = T::build_with_data(&form_data, tera, csrf_session.as_str(), method).await;
+    // Passe le token masqué au formulaire : les champs cachés et les re-rendus
+    // contiennent alors un token base64 cohérent avec la validation AJAX (X-CSRF-Token).
+    let csrf_for_form = csrf_session
+        .masked()
+        .unwrap_or_else(|_| csrf_session.clone());
+    let form = T::build_with_data(&form_data, tera, csrf_for_form.as_str(), method).await;
 
     Ok(Prisme(form))
 }

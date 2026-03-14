@@ -9,8 +9,8 @@
 {% block content %}
   <div class="page-header">
     <div>
-      <h1 style="font-size:1.35rem; font-weight:600;">{{ resource.title | default(value="Éléments") }}</h1>
-      <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">{{ total | default(value=0) }} {% if admin_list_entries_count %}{{ admin_list_entries_count }}{% endif %}</p>
+      <h1 class="page-title">{{ resource.title | default(value="Éléments") }}</h1>
+      <p class="page-subtitle">{{ total | default(value=0) }} {% if admin_list_entries_count %}{{ admin_list_entries_count }}{% endif %}</p>
     </div>
     <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
@@ -31,7 +31,7 @@
                   <th>{{ key }}</th>
                 {% endif %}
               {% endfor %}
-              <th style="text-align:right;">{% if admin_list_th_actions %}{{ admin_list_th_actions }}{% endif %}</th>
+              <th class="th-right">{% if admin_list_th_actions %}{{ admin_list_th_actions }}{% endif %}</th>
             </tr>
           </thead>
           <tbody>
@@ -48,16 +48,16 @@
                       {% elif value %}
                         {{ value }}
                       {% else %}
-                        <span style="color:var(--text-muted);">—</span>
+                        <span class="text-muted">—</span>
                       {% endif %}
                     </td>
                   {% endif %}
                 {% endfor %}
                 <td>
-                  <div class="table-actions" style="justify-content:flex-end;">
+                  <div class="table-actions table-actions-end">
                     <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-secondary">{% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% endif %}</a>
                     <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-secondary">{% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% endif %}</a>
-                    <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" style="display:inline;">
+                    <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline">
                       <button type="submit" class="btn btn-sm btn-danger"
                               onclick="return confirm('{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% endif %}');">{% if admin_list_btn_delete %}{{ admin_list_btn_delete }}{% endif %}</button>
                     </form>
@@ -76,7 +76,7 @@
         </svg>
         <p class="empty-state-title">{% if admin_list_empty_title %}{{ admin_list_empty_title }}{% endif %}</p>
         <p class="empty-state-desc">{% if admin_list_empty_desc %}{{ admin_list_empty_desc }}{% endif %}</p>
-        <a href="/admin/{{ resource.key }}/create" class="btn btn-primary" style="margin-top:0.5rem;">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>
+        <a href="/admin/{{ resource.key }}/create" class="btn btn-primary mt-sm">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>
       </div>
     {% endif %}
   </div>

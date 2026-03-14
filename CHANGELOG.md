@@ -1,4 +1,4 @@
-🌍 **Languages**: [English](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md) | [Français](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.fr.md)
+🌍 **Languages**: [English](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md) | [Français](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
 
 # Changelog
 
@@ -6,17 +6,37 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [1.1.47] - 2026-03-14
+## [1.1.47] - 2026-03-15
+
+### Breaking
+
+* **CSP — env vars removed:** All `RUNIQUE_POLICY_CSP_*`, `RUNIQUE_ENABLE_CSP`, `RUNIQUE_ENABLE_HEADER_SECURITY`, `ENFORCE_HTTPS`, `RUNIQUE_POLICY_CSP_STRICT_NONCE` environment variables removed. CSP is now configured exclusively via the builder.
+* **CSP — disabled by default:** `MiddlewareStaging::from_config()` no longer activates CSP automatically. Must be explicitly enabled via `.with_csp(...)`.
+* **`SecurityPolicy::from_env()` removed:** Replaced by `SecurityPolicy::default()`. All call sites updated.
+* **`builder.rs`:** Unused `SecurityPolicy` import removed.
 
 ### Security
 
+* **CSRF middleware:** Mutating requests (POST/PUT/DELETE/PATCH) without `X-CSRF-Token` header and without a form `Content-Type` (`application/x-www-form-urlencoded` / `multipart/form-data`) are now rejected with 403. Previously they passed through silently.
+* **CSRF token masking (BREACH protection):** `extractor.rs` (`build_with_data`) and `template.rs` (`form()`) now inject the **masked** (XOR + base64) token into form hidden fields instead of the raw HMAC-SHA256 hex. This ensures AJAX reads the correct masked value for the `X-CSRF-Token` header.
+* **`csrf_gate.rs`:** Submitted form token is now **unmasked** before constant-time comparison against the raw session token — making the full mask/unmask roundtrip consistent end-to-end.
 * **CSRF:** Eliminated `expect()` panic vector on malformed token — replaced with graceful `unwrap_or_else` fallback in `csrf.rs`.
 * **CSRF:** `HeaderMap::contains_key("X-CSRF-Token")` confirmed case-insensitive — no bypass possible via header casing.
 * **Lock safety:** `GLOBAL_LANG` (`RwLock<Lang>`) replaced with `AtomicU8` — lock poisoning impossible, no `unwrap()` required.
 * **Lock safety:** `url_registry` and `PENDING_URLS` lock acquisitions now use `unwrap_or_else(|e| e.into_inner())` — survives poisoned mutex in any thread panic scenario.
 
+### Fixed
+
+* **CSRF brace bug (`csrf.rs`):** A misplaced `} else {` caused the `else` branch to belong to `if requires_csrf` instead of `if has_header`, returning "CSRF token required" on every GET request (all views broken). Restructured to correct scoping.
+
 ### Added
 
+* **CSP builder API:** New closure-based sub-builder pattern — `.middleware(|m| m.with_csp(|c| c.method()))`.
+* **`CspConfig` struct:** Standalone sub-builder with full directive control: `scripts()`, `styles()`, `images()`, `fonts()`, `connect()`, `objects()`, `media()`, `frames()`, `frame_ancestors()`, `base_uri()`, `form_action()`, `default_src()`.
+* **`CspConfig` toggles:** `.with_nonce(bool)`, `.with_header_security(bool)`, `.with_upgrade_insecure(bool)`.
+* **`CspConfig` presets:** `.policy(SecurityPolicy::strict())`, `.policy(SecurityPolicy::permissive())`.
+* **`CspConfig` accessors:** `.get_policy() -> &SecurityPolicy` and `.header_security_enabled() -> bool` (used by tests).
+* **`MiddlewareConfig`:** New `enable_header_security: bool` field — controls whether `security_headers_middleware` (HSTS, X-Frame-Options, COEP, COOP, CORP) is activated alongside CSP.
 * **Rate limiter (`RateLimiter`):** sliding-window middleware by IP. Configurable request limit and time window. Returns HTTP 429 on excess.
 * **Login guard (`LoginGuard`):** brute-force protection by username. Configurable attempt limit and lockout duration. Complementary to `RateLimiter` (IP vs. username).
 * **Periodic cleanup (`spawn_cleanup`):** both `RateLimiter` and `LoginGuard` expose `spawn_cleanup(period)` — spawns a Tokio background task that purges expired entries on a configurable interval, mirroring `CleaningMemoryStore`.
@@ -24,6 +44,33 @@ All notable changes to this project will be documented in this file.
 * **i18n — 429 keys:** `html.429_title` and `html.429_text` added to all 9 translation files (fr, en, de, es, it, pt, ja, zh, ru).
 * **CLI — language:** application language now configurable via `RUNIQUE_LANG` environment variable. `RuniqueConfig::from_env()` reads and applies it automatically.
 * **Prelude:** `dotenvy` re-exported in `runique::prelude` (CONFIGURATION section) and at crate root.
+* **`runique/static/js/color_picker.js`:** New static JS file. Uses `data-color-picker` / `data-color-input` / `data-color-text` attributes for zero-inline-JS color picker sync. CSP-safe, idempotent on multiple color fields per page.
+
+### Changed
+
+* **`engine/core.rs`:** `SecurityPolicy::from_env()` → `SecurityPolicy::default()`.
+* **`MiddlewareStaging::apply_to_router()`:** Branches on `enable_header_security` to choose between `csp_middleware` (CSP only) and `security_headers_middleware` (CSP + all security headers).
+* **`base_color.html`:** Inline `<script>` (color picker sync) replaced with external `color_picker.js` loaded via `<script src defer>`. No nonce required — field templates are rendered without request context so `csp_nonce` was never available.
+* **`demo-app/main.rs`:** `upgrade-insecure-requests` is now conditional: enabled only in release builds (`cfg!(not(debug_assertions))`). Prevents Chrome from upgrading HTTP→HTTPS in localhost dev environments.
+
+### Templates
+
+* **Admin — inline `style=` removed:** `create.html` (`max-width:60%` → `card card-form`), `dashboard.html` (`grid-column: 1/-1` → `card-full-width`, `text-decoration:none` removed), `delete.html` (`display:inline` → `form-inline`), `edit.html` (`max-width:60%` → `card card-form`), `login.html` (`margin-bottom:1rem` removed), `admin_base.html` mobile burger (`display:none` → `hidden`).
+* **`admin/composant/edit.html`:** Inline `<script>` (image preview) now carries `nonce="{{ csp_nonce }}"`.
+
+### Docs
+
+* **`derive_form/README.md`:** Complete rewrite — field types table, PK types, all options, FK syntax, complete blog example (User/Category/Post/Comment), `impl_objects!` with all query methods, `#[form(...)]` parameters.
+* **`doc-tests/macro_db/model_complete.md`:** Rewritten with `model!` macro and `impl_objects!`.
+* **`docs/fr/middleware/csp/` + `docs/en/middleware/csp/`:** Full rewrite of `csp.md`, `directives.md`, `nonce.md`, `headers.md`, `profils.md` / `profiles.md` — env vars removed, builder examples added, complete directive/toggle/preset tables.
+* **`docs/fr/env/securite/` + `docs/en/env/security/`:** CSP section removed, replaced by a note pointing to the builder docs.
+* **`docs/fr/middleware/hosts-cache/` + `docs/en/`:** `RUNIQUE_ENABLE_CSP` row removed.
+
+### Tests
+
+* **`tests/middleware/test_csp.rs`:** All direct field accesses (`csp.policy.*`, `csp.enable_header_security`) replaced with accessor methods. `from_env()` tests removed and replaced with `CspConfig` builder tests.
+* **`tests/formulaire/test_csrf_gate.rs`:** `test_csrf_gate_token_valide_retourne_none` updated to use a valid 64-char hex token + `mask_csrf_token()` — matches the new masked-token contract.
+* **`tests/middleware/test_csrf_integration.rs`:** `test_csrf_post_sans_header_passe` → `test_csrf_post_sans_header_sans_content_type_retourne_403` (expects 403); same for DELETE variant.
 
 ---
 

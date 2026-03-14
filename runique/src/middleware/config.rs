@@ -13,6 +13,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiddlewareConfig {
     pub enable_csp: bool,
+    /// Active les headers de sécurité additionnels (HSTS, X-Frame-Options, COEP, COOP, CORP,
+    /// Referrer-Policy, Permissions-Policy). Sans effet si `enable_csp` est false.
+    ///
+    /// Quand `true` : utilise `security_headers_middleware` (CSP + headers additionnels).
+    /// Quand `false` : utilise `csp_middleware` (CSP uniquement).
+    pub enable_header_security: bool,
     pub enable_host_validation: bool,
     /// Active le middleware `error_handler` qui intercepte les erreurs 4xx/5xx.
     /// Désactiver uniquement si vous gérez les erreurs manuellement dans chaque handler.
@@ -24,6 +30,7 @@ impl Default for MiddlewareConfig {
     fn default() -> Self {
         Self {
             enable_csp: true,
+            enable_header_security: false,
             enable_host_validation: true,
             enable_debug_errors: true,
             enable_cache: true,
@@ -40,7 +47,9 @@ impl MiddlewareConfig {
         };
 
         Self {
-            enable_csp: get_bool("RUNIQUE_ENABLE_CSP", true),
+            // CSP configuré uniquement via le builder, pas le .env
+            enable_csp: false,
+            enable_header_security: false,
             enable_host_validation: get_bool("RUNIQUE_ENABLE_HOST_VALIDATION", true),
             enable_debug_errors: get_bool("RUNIQUE_ENABLE_DEBUG_ERRORS", true),
             enable_cache: get_bool("RUNIQUE_ENABLE_CACHE", true),
@@ -51,6 +60,7 @@ impl MiddlewareConfig {
     pub fn production() -> Self {
         Self {
             enable_csp: true,
+            enable_header_security: false,
             enable_host_validation: true,
             enable_debug_errors: true,
             enable_cache: true,
@@ -60,7 +70,8 @@ impl MiddlewareConfig {
     /// Configuration pour développement (plus permissif)
     pub fn development() -> Self {
         Self {
-            enable_csp: false,             // CSP désactivé pour faciliter le dev
+            enable_csp: false, // CSP désactivé pour faciliter le dev
+            enable_header_security: false,
             enable_host_validation: false, // Désactivé en dev (AllowedHostsValidator.debug=true anyway)
             enable_debug_errors: true,     // Pages de debug activées
             enable_cache: false,           // Pas de cache en dev
@@ -70,7 +81,8 @@ impl MiddlewareConfig {
     /// Configuration pour API (minimal)
     pub fn api() -> Self {
         Self {
-            enable_csp: false,            // Pas de CSP pour API
+            enable_csp: false, // Pas de CSP pour API
+            enable_header_security: false,
             enable_host_validation: true, // Important pour API (protection SSRF)
             enable_debug_errors: true,
             enable_cache: true,

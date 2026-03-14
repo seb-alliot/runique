@@ -49,8 +49,7 @@ Caching headers are enabled for performance.
 |----------|--------|-------------|
 | `SECRETE_KEY` | *(required)* | Secret key for CSRF |
 | `ALLOWED_HOSTS` | `*` | Allowed hosts |
-| `DEBUG` | `true` | Debug mode (affects CSP, cache, hosts) |
-| `RUNIQUE_ENABLE_CSP` | *(auto)* | Force-enable/disable CSP |
+| `DEBUG` | `true` | Debug mode (affects cache, hosts) |
 | `RUNIQUE_ENABLE_HOST_VALIDATION` | *(auto)* | Force host validation |
 | `RUNIQUE_ENABLE_CACHE` | *(auto)* | Force cache control |
 

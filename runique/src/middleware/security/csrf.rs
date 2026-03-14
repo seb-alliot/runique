@@ -140,8 +140,21 @@ pub async fn csrf_middleware(
                     return (StatusCode::FORBIDDEN, "Invalid CSRF token").into_response();
                 }
             }
+        } else {
+            // Pas de header CSRF : autorisé uniquement pour les soumissions de formulaires HTML
+            // (urlencoded / multipart). Les requêtes JSON sans header sont bloquées.
+            let ct = req
+                .headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("");
+            let is_form = ct.starts_with("application/x-www-form-urlencoded")
+                || ct.starts_with("multipart/form-data");
+            if !is_form {
+                return (StatusCode::FORBIDDEN, "CSRF token required").into_response();
+            }
+            // Sinon, on laisse Prisme valider le champ de formulaire
         }
-        // Sinon, on laisse Prisme valider le champ de formulaire
     }
 
     // Injection du token pour le frontend
