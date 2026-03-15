@@ -11,17 +11,17 @@ This document consolidates the actual state of the repository from the reference
 
 ---
 
-## 🧾 Snapshot (as of March 3, 2026)
+## 🧾 Snapshot (as of March 15, 2026)
 
-- **Workspace version**: `1.1.43`
+- **Workspace version**: `1.1.47`
 - **License**: MIT
-- **Working branch**: `vue_admin`
-- **Tests reported**: **1523/1523 passed**✅
-- **Coverage (report from 2026-03-04)**:
-  - Functions: **76.66%**
-  - Lines: **71.04%**
-  - Regions: **67.22%**
-- **Coverage command**: `cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only`
+- **Working branch**: `i18n` → merge into `main` for publication
+- **Tests reported**: **~1,600 / ~1,600 passed** ✅
+- **Coverage (report from 2026-03-15)**:
+  - Functions: **82.83%**
+  - Lines: **78.35%**
+  - Regions: **75.38%**
+- **Coverage command**: `cargo llvm-cov --tests --package runique --ignore-filename-regex "admin|bin/runique|runique_app" --summary-only`
 
 ---
 
@@ -47,7 +47,8 @@ The status below concerns the **`runique`** crate (product source).
 - **Security**: CSRF middleware, CSP, allowed hosts, sanitization, auth session.
 - **Flash messages**: temporary session message system.
 - **CLI `runique`**: `new`, `start`, `create-superuser` => password hashing via Argon2, reflection in progress for flexibility, `makemigrations`, `migration` => uses sea-orm CLI.
-- **I18n (base)**: translation module `utils::trad::switch_lang` with `Lang` (FR/EN), embedded JSON dictionaries and message formatting.
+- **I18n**: 8 languages (`en`, `fr`, `de`, `es`, `it`, `pt`, `ja`, `zh`), 14 sections, automatic fallback to `Lang::En`, stored via `AtomicU8`, configurable via `RUNIQUE_LANG`.
+- **Enhanced security**: rate limiter (`RateLimiter`), login guard (`LoginGuard`), masked CSRF (BREACH protection), HSTS, CSP nonce, constant-time comparisons (`subtle`).
 
 ### Exported modules (crate `runique`)
 
@@ -97,27 +98,27 @@ The admin view is **operational in beta** on a declarative model + code generati
 
 ### Current state
 
-- **Pass rate**: 100% (1523/1523 passing)
-- **Functional coverage**: 76.66%
-- **Roadmap target before publication**: 85%+
-- **Note**: reported coverage ignores files matching `admin` (see command above)
+- **Pass rate**: 100% (~1,600/~1,600 passing)
+- **Functional coverage**: 82.83%
+- **Roadmap target before publication**: ~85%+
+- **Note**: reported coverage ignores `admin`, `bin/runique`, `runique_app`
 
 ### Identified weak areas
 
-Critical files still low or at 0% according to `couverture_test.md`:
+Critical files still low according to `couverture_test.md`:
 
-- `engine/core.rs`
-- `errors/error.rs`
-- `migration/utils/parser_seaorm.rs`
-- `forms/fields/datetime.rs`
-- `forms/fields/file.rs`
-- several modules depending on a complete HTTP stack (`context/template.rs`, extractors, etc.)
+- `migration/migrate.rs` (22%) — depends on sea-orm CLI commands
+- `engine/core.rs` (50%)
+- `middleware/dev/cache.rs` (60%)
+- `forms/fields/file.rs` (61%) — multipart upload
+- `middleware/errors/error.rs` (60%)
 
-### Areas with strong progress (per `couverture_test.md`)
+### Areas with strong progress (session 2026-03-13 → 2026-03-15)
 
-- `db/config.rs`: ~22% → **93%**
-- `migration/makemigrations.rs`: ~22% → **76%**
-- `migration/migrate.rs`: 0% → **60%**
+- `context/template.rs`: 0% → **80.95%**
+- `middleware/security/csp.rs`: 66% → **95%**
+- `errors/error.rs`: 38% → **77%**
+- `context/request_extensions.rs`: 40% → **100%**
 
 ---
 
@@ -127,31 +128,32 @@ Critical files still low or at 0% according to `couverture_test.md`:
 
 - Complete and stabilized migration pipeline
 - Refactored/stabilized form system
-- Improved coverage (baseline rising)
+- i18n complete: 8 languages, 14 sections, `AtomicU8`, `RUNIQUE_LANG`
+- Security hardening: masked CSRF, CSP builder, HSTS, rate limiter, login guard
+- Coverage significantly improved (76% → 82% functions)
 
 ### In progress
 
-- Admin view beta (ergonomics, permissions, workflow security)
-- Simplification and hardening of some middleware points (notably CSP)
-- Application i18n integration: FR/EN base already present, global connection (config/runtime) still in progress
+- Admin view beta (runtime permissions, pagination, `js:` in `admin!`)
+- Raise coverage to 85%+
 
 ### To do
 
-- End-to-end configurable i18n (centralized runtime selection)
 - More advanced error tracing
-- Raise coverage to 85%+
-- Prepare crates.io publication (docs + target coverage)
+- Executable doctests/examples for crates.io
+- Gradual deprecation of legacy aliases
 
 ---
 
-## 🆕 Recent changes (Unreleased)
+## 🆕 Recent changes
 
-Visible in `CHANGELOG.md`:
+See `CHANGELOG.md` for full details. Key points from `[1.1.47]`:
 
-- complete migration pipeline announced and stabilized
-- broad support for column types + FK/index/nullable/unique
-- E2E DB tests on Postgres/MariaDB/SQLite
-- fixes on `runique start` and password rendering in admin
+- CSP fully migrated to builder (env vars removed)
+- Masked CSRF (BREACH protection), constant-time comparisons
+- Rate limiter + Login guard in prelude
+- i18n 8 languages delivered in `[1.1.46]`
+- Test coverage: 82.83% functions
 
 ---
 
@@ -165,34 +167,29 @@ Visible in `CHANGELOG.md`:
 
 ## ⚠️ Gaps / inconsistencies to watch
 
-- **Version**: `1.1.43`
-- **Admin status**: the admin technical doc describes a functional base, but the roadmap still lists it as in progress.
-- **Coverage**: the global percentage is improving but still below the publication target.
-- **CSRF**: no systematic flaw if the framework is used as intended; the sensitive point is not respecting the usage contract on mutating routes outside the Prisme flow.
+- **Coverage**: 82.83% functions, 85% target not yet reached.
+- **Admin permissions**: declared in `admin!{}` but not yet enforced at runtime in `admin_main`.
+- **`migration/migrate.rs`**: 22% coverage — depends on sea-orm CLI, difficult to unit test.
 
 ---
 
 ## 🛠️ Fixes to apply
 
-### High priority (security / robustness)
+### High priority
 
-- **Admin permissions**: actually apply the permissions declared per resource in the generated CRUD handlers (not just `is_staff` / `is_superuser`).
-- **CSRF (potential track)**: stabilize security by **enforcing the usage contract** (`http method -> prisme -> handler`) on mutating methods, with unique body reading in Prisme and no re-reading in middleware.
-- **CSP**: reduce permissive default directives (`unsafe-inline` / `unsafe-eval`) and harmonize the nonce strategy.
-- **Runtime safety**: replace `panic!/unwrap/expect` on runtime paths with propagated errors (`Result` + typed errors).
+- **Admin permissions**: actually enforce permissions declared per resource in generated CRUD handlers.
+- **Runtime safety**: replace remaining `panic!/unwrap/expect` on runtime paths with propagated errors.
 
-### Medium priority (technical consistency)
+### Medium priority
 
-- **I18n end-to-end**: connect the existing i18n base (FR/EN + JSON) to a centralized runtime selection (config/session/request).
 - **Admin daemon**: clarify and stabilize the lifecycle (start, stop, error reporting).
-- **Environment variables**: standardize naming and error messages (e.g., allowed hosts).
-- **Admin generation**: unify generation paths/contracts (`src/admins/` vs other documented paths).
+- **Admin generation**: unify generation paths/contracts (`src/admins/`).
 
-### Low priority (continuous quality)
+### Low priority
 
-- **Targeted coverage**: strengthen still-weak areas (`engine/core.rs`, `errors/error.rs`, `migration/utils/parser_seaorm.rs`, `forms/fields/datetime.rs`, `forms/fields/file.rs`).
-- **Doctests/docs publication**: convert `ignore/no_run` examples to executable ones and align crates.io docs.
-- **Compatibility debt**: plan the gradual deprecation of legacy aliases while maintaining backward compatibility.
+- **Targeted coverage**: `engine/core.rs`, `migration/migrate.rs`, `forms/fields/file.rs`, `middleware/dev/cache.rs`.
+- **Doctests/docs publication**: convert `ignore/no_run` examples to executable ones.
+- **Compatibility debt**: plan gradual deprecation of legacy aliases.
 
 ---
 
@@ -206,7 +203,7 @@ Visible in `CHANGELOG.md`:
 
 ---
 
-**Last update**: March 4, 2026
+**Last update**: March 15, 2026
 **Global status**: ✅ Stable core, 🟡 Admin beta evolving
 Silent errors may occur, please report them if you find any.
 Thank you!

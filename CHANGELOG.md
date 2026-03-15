@@ -68,9 +68,23 @@ All notable changes to this project will be documented in this file.
 
 ### Tests
 
-* **`tests/middleware/test_csp.rs`:** All direct field accesses (`csp.policy.*`, `csp.enable_header_security`) replaced with accessor methods. `from_env()` tests removed and replaced with `CspConfig` builder tests.
+* **`tests/middleware/test_csp.rs`:** All direct field accesses (`csp.policy.*`, `csp.enable_header_security`) replaced with accessor methods. `from_env()` tests removed and replaced with `CspConfig` builder tests. Added HTTP middleware tests: `csp_middleware`, `csp_report_only_middleware`, `security_headers_middleware` (HSTS, nonce, X-Frame-Options), `https_redirect_middleware` (308 redirect, `x-forwarded-proto: https` bypass).
 * **`tests/formulaire/test_csrf_gate.rs`:** `test_csrf_gate_token_valide_retourne_none` updated to use a valid 64-char hex token + `mask_csrf_token()` — matches the new masked-token contract.
-* **`tests/middleware/test_csrf_integration.rs`:** `test_csrf_post_sans_header_passe` → `test_csrf_post_sans_header_sans_content_type_retourne_403` (expects 403); same for DELETE variant.
+* **`tests/middleware/test_csrf_integration.rs`:** `test_csrf_post_sans_header_passe` → `test_csrf_post_sans_header_sans_content_type_retourne_403` (expects 403); same for DELETE variant. Added AJAX tests: POST/DELETE JSON with valid token (real session roundtrip), no token → 403, invalid token → 403, `X-Requested-With` alone → 403, token stolen from another session → 403.
+* **`tests/middleware/test_cleaning_store.rs`:** Added watermark and session protection tests — `purge_anonymous_expired` (low watermark), protected sessions (`user_id`, `session_active`) survive pass 1, saturated store (live protected sessions) → refusal.
+* **`tests/context/test_template_request.rs`:** New file — `TplRequest` extraction via `FromRequestParts`, `is_get/post/put/delete`, `render` (success and error), `insert`, `render_with`, extraction without engine → 500.
+* **`tests/errors/test_runique_error.rs`:** Added tests for `log` (all variants), `into_response` (HTTP status codes), `from_tera_error`, `with_request` / `with_request_helper` (sensitive header filtering), `database` constructor, `From<BuildError>`.
+
+---
+
+## [1.1.46] - 2026-03-13
+
+### Added
+
+* **i18n system:** Internationalisation built into the framework. 8 languages: `en` (default), `fr`, `de`, `es`, `it`, `pt`, `ja`, `zh`. 14 sections per language: `forms`, `csrf`, `error`, `build`, `middleware`, `admin`, `html`, `debug`, `flash`, `log`, `cli`, `daemon`, `macro`, `parser`.
+* **`t(key)`:** Translation macro returning `Cow<'static, str>`. Automatic fallback to `Lang::En` for any missing key — no panics possible.
+* **`switch_lang.rs`:** Active language stored via `AtomicU8` — lock-free, no `unwrap()` required.
+* **`RUNIQUE_LANG`:** Environment variable to configure the language at startup. Read and applied by `RuniqueConfig::from_env()`.
 
 ---
 

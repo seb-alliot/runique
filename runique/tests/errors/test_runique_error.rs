@@ -2,6 +2,7 @@
 
 use axum::http::StatusCode;
 use runique::errors::error::{ErrorContext, ErrorType, RuniqueError};
+use runique::middleware::RequestInfoHelper;
 
 // ═══════════════════════════════════════════════════════════════
 // RuniqueError — Display
@@ -434,4 +435,186 @@ fn test_error_context_database_500() {
     let ctx = ErrorContext::generic(StatusCode::INTERNAL_SERVER_ERROR, "db error");
     assert_eq!(ctx.status_code, 500);
     assert_eq!(ctx.message, "db error");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ErrorContext::database — constructeur réel
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_error_context_database_constructor() {
+    use sea_orm::DbErr;
+    let ctx = ErrorContext::database(DbErr::Custom("connexion perdue".to_string()));
+    assert_eq!(ctx.status_code, 500);
+    assert!(ctx.message.contains("connexion perdue"));
+    assert!(!ctx.stack_trace.is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RuniqueError::log — ne doit pas paniquer
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_log_all_variants_no_panic() {
+    use runique::app::error_build::BuildError;
+    RuniqueError::Internal.log();
+    RuniqueError::Forbidden.log();
+    RuniqueError::NotFound.log();
+    RuniqueError::Validation("champ".to_string()).log();
+    RuniqueError::Database("db".to_string()).log();
+    RuniqueError::Io("io".to_string()).log();
+    RuniqueError::Template("tmpl".to_string()).log();
+    RuniqueError::Custom {
+        message: "msg".to_string(),
+        source: None,
+    }
+    .log();
+    RuniqueError::Build(BuildError::validation("v")).log();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RuniqueError::into_response — codes HTTP
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_into_response_not_found_404() {
+    use axum::response::IntoResponse;
+    let resp = RuniqueError::NotFound.into_response();
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+}
+
+#[test]
+fn test_into_response_forbidden_403() {
+    use axum::response::IntoResponse;
+    let resp = RuniqueError::Forbidden.into_response();
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+}
+
+#[test]
+fn test_into_response_internal_500() {
+    use axum::response::IntoResponse;
+    let resp = RuniqueError::Internal.into_response();
+    assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+}
+
+#[test]
+fn test_into_response_validation_400() {
+    use axum::response::IntoResponse;
+    let resp = RuniqueError::Validation("bad".to_string()).into_response();
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// From<BuildError> for RuniqueError
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_from_build_error() {
+    use runique::app::error_build::BuildError;
+    let build_err = BuildError::validation("config manquante");
+    let err = RuniqueError::from(build_err);
+    assert!(matches!(err, RuniqueError::Build(_)));
+    assert!(err.to_string().contains("config manquante"));
+}
+
+#[test]
+fn test_runique_error_build_display() {
+    use runique::app::error_build::BuildError;
+    let err = RuniqueError::Build(BuildError::database_missing());
+    assert!(!err.to_string().is_empty());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ErrorContext::with_request_helper
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_with_request_helper() {
+    let helper = RequestInfoHelper {
+        method: "POST".to_string(),
+        path: "/api/test".to_string(),
+        query: Some("foo=bar".to_string()),
+        headers: Default::default(),
+    };
+    let ctx = ErrorContext::generic(StatusCode::BAD_REQUEST, "err").with_request_helper(&helper);
+    let info = ctx.request_info.unwrap();
+    assert_eq!(info.method, "POST");
+    assert_eq!(info.path, "/api/test");
+    assert_eq!(info.query, Some("foo=bar".to_string()));
+}
+
+#[test]
+fn test_with_request_helper_no_query() {
+    let helper = RequestInfoHelper {
+        method: "GET".to_string(),
+        path: "/page".to_string(),
+        query: None,
+        headers: Default::default(),
+    };
+    let ctx =
+        ErrorContext::generic(StatusCode::NOT_FOUND, "not found").with_request_helper(&helper);
+    assert!(ctx.request_info.unwrap().query.is_none());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ErrorContext::with_request
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_with_request_captures_method_and_path() {
+    use axum::body::Body;
+    use axum::http::Request;
+    let req = Request::builder()
+        .method("GET")
+        .uri("/resource?id=1")
+        .header("x-trace-id", "abc")
+        .body(Body::empty())
+        .unwrap();
+    let ctx = ErrorContext::generic(StatusCode::NOT_FOUND, "not found").with_request(&req);
+    let info = ctx.request_info.unwrap();
+    assert_eq!(info.method, "GET");
+    assert_eq!(info.path, "/resource");
+    assert_eq!(info.query, Some("id=1".to_string()));
+}
+
+#[test]
+fn test_with_request_filters_sensitive_headers() {
+    use axum::body::Body;
+    use axum::http::Request;
+    let req = Request::builder()
+        .method("POST")
+        .uri("/login")
+        .header("authorization", "Bearer secret")
+        .header("cookie", "session=abc")
+        .header("x-request-id", "123")
+        .body(Body::empty())
+        .unwrap();
+    let ctx = ErrorContext::generic(StatusCode::FORBIDDEN, "interdit").with_request(&req);
+    let headers = ctx.request_info.unwrap().headers;
+    assert!(!headers.contains_key("authorization"));
+    assert!(!headers.contains_key("cookie"));
+    assert!(headers.contains_key("x-request-id"));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ErrorContext::from_tera_error
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_from_tera_error_status_500() {
+    let tera = tera::Tera::default();
+    let tera_err =
+        tera::Tera::one_off("{{ invalid syntax }", &tera::Context::new(), false).unwrap_err();
+    let ctx = ErrorContext::from_tera_error(&tera_err, "broken.html", &tera);
+    assert_eq!(ctx.status_code, 500);
+    assert!(ctx.template_info.is_some());
+}
+
+#[test]
+fn test_from_tera_error_template_name_stored() {
+    let tera = tera::Tera::default();
+    let tera_err = tera::Tera::one_off("{% for %}", &tera::Context::new(), false).unwrap_err();
+    let ctx = ErrorContext::from_tera_error(&tera_err, "mytemplate.html", &tera);
+    let info = ctx.template_info.unwrap();
+    assert_eq!(info.name, "mytemplate.html");
 }

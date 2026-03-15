@@ -1,5 +1,6 @@
 pub mod test_allowed_hosts;
 pub mod test_auth_session;
+pub mod test_cleaning_store;
 pub mod test_config;
 pub mod test_csp;
 pub mod test_csrf;

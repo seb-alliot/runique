@@ -9,7 +9,7 @@ pub fn init_logging() {
     };
 
     let filter = std::env::var("RUST_LOG")
-        .map(|v| EnvFilter::new(v))
+        .map(EnvFilter::new)
         .unwrap_or_else(|_| EnvFilter::new(level));
 
     if tracing_subscriber::fmt()

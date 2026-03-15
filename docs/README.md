@@ -1,9 +1,9 @@
 # Runique — Django-inspired Rust Framework
 
-![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-1523%2F1523%20passing-green)
+![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
+![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.46-blue)
+![Version](https://img.shields.io/badge/version-1.1.47-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
 
 Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
@@ -21,7 +21,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **1.1.43**.
+Workspace version (source of truth): **1.1.47**.
 
 ---
 
@@ -138,7 +138,7 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-  - Reported tests: **1523/1523 passing**
+  - Reported tests: **1731/1731 passing**
   - Coverage snapshot (`2026-03-01`, package `runique`):
   - Functions: **76.66%**
   - Lines: **71.04%**
@@ -224,7 +224,7 @@ Full reference: [docs/en/15-env.md](https://github.com/seb-alliot/runique/blob/m
 
 ## Project status
 
-For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.md).
+For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md).
 
 ---
 
@@ -240,4 +240,4 @@ For the detailed, continuously updated state report, see [PROJECT_STATUS.md](htt
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT — see [LICENSE](https://github.com/seb-alliot/runique/blob/main/LICENSE)

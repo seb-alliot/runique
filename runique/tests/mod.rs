@@ -31,6 +31,7 @@
 //! - [`helpers::db`]      — SQLite en mémoire : `fresh_db()`, `fresh_db_with_schema()`, `exec()`, `count()`, …
 
 pub mod admin;
+pub mod app;
 pub mod auth;
 pub mod config;
 pub mod context;
