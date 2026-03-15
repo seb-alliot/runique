@@ -91,6 +91,18 @@ psql -U runique_user -d runique -h localhost
 
 ---
 
+## Créer un superutilisateur
+
+Après avoir appliqué les migrations, crée le premier compte admin :
+
+```bash
+runique create-superuser
+```
+
+Le CLI guide à travers un wizard interactif : algorithme de hash, nom d'utilisateur, email, mot de passe, puis confirmation avant création.
+
+---
+
 ## Voir aussi
 
 | Section | Description |
