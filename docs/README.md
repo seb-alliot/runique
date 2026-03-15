@@ -1,6 +1,6 @@
 # Runique — Django-inspired Rust Framework
 
-![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
+![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-1.1.47-blue)
@@ -224,7 +224,7 @@ Full reference: [docs/en/15-env.md](https://github.com/seb-alliot/runique/blob/m
 
 ## Project status
 
-For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md).
+For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.md).
 
 ---
 
@@ -235,6 +235,7 @@ For the detailed, continuously updated state report, see [PROJECT_STATUS.md](htt
 - [Documentation hub](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 - [Benchmark](https://github.com/seb-alliot/runique/blob/main/benchmark.md)
+- [Runique vs Django — Feature Comparison](https://github.com/seb-alliot/runique/blob/main/docs/en/comparatif-runique-django.en.md)
 
 ---
 
