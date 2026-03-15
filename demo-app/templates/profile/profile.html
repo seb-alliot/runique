@@ -57,7 +57,8 @@
         <div class="profile-actions">
             <a href='{% link "blog_info" %}' class="btn btn-primary">Écrire un article</a>
             <a href='{% link "index" %}' class="btn btn-secondary">Retour à l'accueil</a>
-            <form method="post" action='{% link "logout" %}' style="display:inline">
+            {# CSP strict : utiliser class="form-inline" plutôt que style="display:inline" #}
+            <form method="post" action='{% link "logout" %}' class="form-inline">
                 {% csrf %}
                 <button type="submit" class="btn btn-danger">Se déconnecter</button>
             </form>

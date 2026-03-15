@@ -38,7 +38,8 @@
     {% endfor %}
 
     {% if not resources %}
-    <div class="card" style="grid-column: 1 / -1;">
+    {# CSP strict : utiliser class="card-full-width" plutôt que style="grid-column: 1 / -1;" #}
+    <div class="card card-full-width">
         <div class="card-body">
             <div class="empty-state">
                 <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

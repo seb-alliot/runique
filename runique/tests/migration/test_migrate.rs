@@ -101,21 +101,48 @@ impl MigrationTrait for Migration {{
 }
 
 // ═══════════════════════════════════════════════════════════════
-// up() — stub CLI, pas de DB
+// up() — teste les deux DB (Postgres + MariaDB)
 // ═══════════════════════════════════════════════════════════════
 
+// Ignoré sur Windows avec code page non-UTF-8 (bug SQLx sur Windows français)
+// Validé sur le fixe (Ryzen 7 5800X). Relancer manuellement avec : cargo test test_up -- --ignored
 #[tokio::test]
+#[ignore]
+#[serial]
 async fn test_up_retourne_ok() {
-    let dir = temp_dir("up_ok");
-    let result = up(dir.to_str().unwrap()).await;
-    assert!(result.is_ok(), "up() doit Ok: {:?}", result);
+    dotenvy::from_filename(".env.test").ok();
+    let pg_url = match std::env::var("DATABASE_URL_PG") {
+        Ok(url) => url,
+        Err(_) => return, // skip si pas de Docker
+    };
+    unsafe { std::env::set_var("DATABASE_URL", &pg_url) };
+    let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
+    let result = up(migration_dir).await;
+    assert!(result.is_ok(), "up() Postgres doit Ok: {:?}", result);
+}
+
+// Ignoré sur Windows avec code page non-UTF-8 (bug SQLx sur Windows français)
+// Validé sur le fixe (Ryzen 7 5800X). Relancer manuellement avec : cargo test test_up -- --ignored
+#[tokio::test]
+#[ignore]
+#[serial]
+async fn test_up_mariadb_retourne_ok() {
+    dotenvy::from_filename(".env.test").ok();
+    let maria_url = match std::env::var("DATABASE_URL_MARIADB") {
+        Ok(url) => url,
+        Err(_) => return, // skip si pas de Docker
+    };
+    unsafe { std::env::set_var("DATABASE_URL", &maria_url) };
+    let migration_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../demo-app/migration");
+    let result = up(migration_dir).await;
+    assert!(result.is_ok(), "up() MariaDB doit Ok: {:?}", result);
 }
 
 #[tokio::test]
-async fn test_up_chemin_inexistant_retourne_ok() {
-    // up() ne vérifie pas si le dossier existe (stub)
+async fn test_up_chemin_inexistant_retourne_err() {
+    // up() avec chemin inexistant → sea-orm-cli échoue → Err attendu
     let result = up("/chemin/inexistant/abc").await;
-    assert!(result.is_ok(), "up() stub doit Ok même si dossier absent");
+    assert!(result.is_err(), "up() chemin inexistant doit Err");
 }
 
 // ═══════════════════════════════════════════════════════════════

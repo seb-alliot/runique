@@ -9,8 +9,26 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 
 # couverture des test api
-cargo llvm-cov --package runique --ignore-filename-regex "admin" --output-format markdown > couverture_test.md
+cargo llvm-cov --package runique --ignore-filename-regex "admin" --html => rendu visuel html
 
+cargo llvm-cov --package runique --ignore-filename-regex "admin" --summary-only 2>&1 | tee couverture_test.md => rendu sous forme de tableau dans la console
+
+
+# Tests ciblés
+cargo test --tests --package runique                          => tests intégration uniquement
+cargo test <nom_du_test> --package runique --tests            => un test précis
+cargo test migration::test_migrate --package runique --tests  => tests migration uniquement
+
+# Couverture — total uniquement
+cargo llvm-cov --package runique --ignore-filename-regex "admin" --summary-only 2>&1 | Select-String "TOTAL"
+
+# Docker
+docker compose up -d    => démarrer Postgres (5433) + MariaDB (3307)
+docker compose down     => arrêter les conteneurs
+
+# Build release
+cargo build --release -p demo-app
+TOKIO_WORKER_THREADS=2 ./target/release/demo-app   => lancer depuis demo-app/
 
 # Benchmark
 $env:CARGO_PROFILE_RELEASE_DEBUG="true"
