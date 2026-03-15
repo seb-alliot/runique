@@ -147,7 +147,7 @@ fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
     let status = Command::new("cargo")
         .arg("run")
         .status()
-        .expect(&t("cli.cargo_run_expect"));
+        .unwrap_or_else(|_| panic!("{}", t("cli.cargo_run_expect")));
     if !status.success() {
         anyhow::bail!("{}", t("cli.cargo_run_failed"));
     }

@@ -19,7 +19,7 @@
 - 🟢 `'unsafe-inline'` retiré de `script_src` et `style_src` par défaut
 - 🟢 `use_nonce: true` par défaut — nonce vide filtré
 - 🟢 HSTS ajouté : `Strict-Transport-Security: max-age=31536000; includeSubDomains`
-- 🔴 Peaufiner la configuration pour la rendre plus simple et lisible (builder CSP)
+- 🟢 Builder CSP — sous-builder `CspConfig` avec directives, toggles et presets (livré 1.1.47)
 
 ### 1.c. Robustesse runtime
 
@@ -29,7 +29,7 @@
 - 🟢 `allowed_hosts.rs` : bypass DEBUG supprimé → interrupteur `RUNIQUE_ENABLE_HOST_VALIDATION`
 - 🟢 `cli_admin.rs` : validation du chemin provider avant `Command::new` (anti-RCE)
 - 🟢 `SECRET_KEY` aléatoire générée à `runique new`
-- 🔴 `utils/trad/switch_lang.rs` — `RwLock.unwrap()` → migrer vers `AtomicU8` (empoisonnement cascade)
+- 🟢 `utils/trad/switch_lang.rs` — `RwLock` → `AtomicU8` (livré 1.1.46)
 - 🔴 `utils/middleware/csrf.rs:57,74` — `SystemTime::UNIX_EPOCH.unwrap()` (risque quasi nul, à surveiller)
 - 🔴 Réduire `panic!/unwrap/expect` sur les chemins runtime
 - 🔴 Propager des erreurs typées (`Result`) sur les points critiques (middleware, daemon, CLI, i18n)
@@ -63,7 +63,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 ### 3.a. Tests et couverture
 
-- **Tests exhaustifs** : 🟡 76.66% fonctions (objectif 85% minimum).
+- **Tests exhaustifs** : 🟡 82.83% fonctions (objectif 85% minimum).
 - **Audit sécurité** : 🟢 Fait — corrections appliquées (branche i18n, 2026-03-13/14)
 
 ### 3.b. Validation au boot (fail-fast)
@@ -176,7 +176,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 ## 6. Publication crates.io
 
-**Status :** 🟢 En continu — version actuelle **1.1.46** publiée
+**Status :** 🟢 En continu — version actuelle **1.1.47** publiée
 
 ### Processus de release
 
@@ -188,7 +188,7 @@ Chaque évolution notable → nouvelle version publiée sur crates.io avec chang
 
 ### Objectifs qualité avant chaque release
 
-- 🟡 85% couverture minimum (`bin/` exclu) — actuellement 76.66%
+- 🟡 85% couverture minimum (`bin/` exclu) — actuellement 82.83%
 - 🟡 Doctests `ignore`/`no_run` → exemples réels (i18n, migration, forms, builder couverts)
 - 🔴 Docs complètes — models, forms, macros procédurales
 
