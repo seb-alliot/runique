@@ -235,6 +235,7 @@ For the detailed, continuously updated state report, see [PROJECT_STATUS.md](htt
 - [Documentation hub](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 - [Benchmark](https://github.com/seb-alliot/runique/blob/main/benchmark.md)
+- [Runique vs Django — Feature Comparison](https://github.com/seb-alliot/runique/blob/main/docs/en/comparatif-runique-django.en.md)
 
 ---
 

@@ -37,6 +37,20 @@ RUNIQUE_SESSION_HIGH_WATERMARK=134217728
 
 ---
 
+## Sécurité des cookies par défaut
+
+Les cookies de session sont configurés avec les attributs de sécurité suivants par défaut :
+
+| Attribut | Valeur | Description |
+| --- | --- | --- |
+| `HttpOnly` | `true` | Toujours activé — inaccessible au JavaScript |
+| `SameSite` | `Strict` | Bloque les requêtes cross-site |
+| `Secure` | `true` en production | HTTPS uniquement (désactivé en debug) |
+
+Ces valeurs sont appliquées automatiquement par le builder et ne peuvent pas être modifiées sans toucher au framework.
+
+---
+
 ## Configuration via le builder
 
 ```rust
