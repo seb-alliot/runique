@@ -51,6 +51,27 @@ In your templates:
 
 ---
 
+## Forced HTTPS (`enforce_https`)
+
+The `ENFORCE_HTTPS=true` directive enables a 301 redirect to HTTPS for all HTTP requests. This redirect relies on the `X-Forwarded-Proto` header to detect whether the request arrived over HTTP or HTTPS.
+
+> **⚠️ Proxy requirement:** `enforce_https` trusts the `X-Forwarded-Proto` header. Without a trusted reverse proxy (nginx, Caddy, etc.) controlling this header, an attacker can forge `X-Forwarded-Proto: https` to bypass the redirect.
+>
+> **In production**, always place Runique behind a reverse proxy that controls this header:
+> strip any client-supplied `X-Forwarded-Proto` headers and inject the correct value (`https` or `http`) based on the actual connection.
+
+```env
+# .env
+ENFORCE_HTTPS=true
+```
+
+```nginx
+# nginx — correct configuration example
+proxy_set_header X-Forwarded-Proto $scheme;
+```
+
+---
+
 ## See also
 
 | Section | Description |

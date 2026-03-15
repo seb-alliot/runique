@@ -11,9 +11,11 @@ mod url;
 mod views;
 
 use runique::app::builder::RuniqueAppBuilder as builder;
+use runique::utils::init_logging;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    init_logging();
     password_init(PasswordConfig::Manual(Manual::Argon2));
     set_lang(Lang::It);
 

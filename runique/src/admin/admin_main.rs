@@ -26,6 +26,7 @@ use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
 use crate::utils::trad::{current_lang, t};
+use subtle::ConstantTimeEq;
 
 // ─── Extracteur AdminBody ─────────────────────────────────────
 //
@@ -197,8 +198,11 @@ fn inject_context(
 /// Vérifie le token CSRF depuis le body du formulaire.
 /// Le middleware délègue la validation de form à Prisme — on la fait manuellement ici.
 fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
-    let submitted = body.get("csrf_token").map(|s| s.as_str());
-    if submitted != Some(session_token) {
+    let valid = body
+        .get("csrf_token")
+        .map(|s| bool::from(s.as_bytes().ct_eq(session_token.as_bytes())))
+        .unwrap_or(false);
+    if !valid {
         return Err(Box::new(AppError::new(ErrorContext::generic(
             StatusCode::FORBIDDEN,
             t("csrf.invalid_or_missing").as_ref(),

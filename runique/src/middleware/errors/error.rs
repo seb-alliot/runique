@@ -502,7 +502,7 @@ fn critical_error_html(error: &str) -> Response {
     (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response()
 }
 
-fn html_escape(s: &str) -> String {
+pub(crate) fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
