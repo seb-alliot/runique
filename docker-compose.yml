@@ -6,6 +6,7 @@ services:
       POSTGRES_USER: runique
       POSTGRES_PASSWORD: runique_test
       POSTGRES_DB: runique_test
+      POSTGRES_INITDB_ARGS: "--locale=C --lc-messages=C"
     ports:
       - "5433:5432"
     healthcheck:

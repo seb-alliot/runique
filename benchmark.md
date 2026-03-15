@@ -17,6 +17,19 @@ This file presents the results of benchmarks performed locally on the developmen
 | Local PC (2m /blog/liste)      | 2    | 467,339  | 200         | 120,010         | 51.33    | 3896   | 68.14      | 80.47      | 100         | 184 deadline, 2.70 MiB/s |
 | Local PC (30s /)               | 2    | 146,667  | 500         | 30,020          | 102.1    | 4901   | 113.9      | 138.6      | 100         | 470 deadline, 3.57 MiB/s |
 
+## Connection pool impact — Laptop (CSP + CSRF + security headers, Postgres, TOKIO_WORKER_THREADS=2)
+
+Tests performed on laptop (weaker CPU than Ryzen 7 5800X), release build, route `/`, PostgreSQL, with full security middleware stack (CSP, CSRF, security headers, compression).
+
+| Pool config                | Concurrency | RPS   | Avg (ms) | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) | Success (%) |
+|----------------------------|-------------|-------|----------|----------|----------|----------|----------|-------------|
+| min=20 / max=100 (default) | 100         | 376   | 264.8    | 15.0     | 837.0    | 860.4    | 911.1    | 100         |
+| min=100 / max=200          | 100         | 1,765 | 55.9     | 15.3     | 21.6     | 723.4    | 813.4    | 100         |
+
+**Key finding**: with default pool (min=20), 80% of connections at 100 concurrency must wait for a slot → bimodal latency (P50=15ms vs P90=837ms). With min=100 pre-opened connections, P90 drops from 837ms to **21ms** (+40x). P50 unchanged (15ms) — the handler itself is fast, the bottleneck is pool acquisition.
+
+Pool is fully configurable via `.env`: `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS`, `DB_ACQUIRE_TIMEOUT`. Default values (20/100) are safe for most deployments. Increase `DB_MIN_CONNECTIONS` on high-traffic servers.
+
 ## Session memory management — before/after fix
 
 `MemoryStore` (tower-sessions default) never deletes expired sessions — memory grows unboundedly under load.
@@ -71,6 +84,19 @@ Ce fichier présente les résultats des benchmarks réalisés en local sur la ma
 | Local PC (30s /blog/liste)     | 2    | 134 518  | 500         | 30 028           | 111.3       | 4496   | 120.8      | 153.4      | 100        | 488 deadline, 3.11 MiB/s |
 | Local PC (2m /blog/liste)      | 2    | 467 339  | 200         | 120 010          | 51.33        | 3896   | 68.14      | 80.47      | 100        | 184 deadline, 2.70 MiB/s |
 | Local PC (30s /)               | 2    | 146 667  | 500         | 30 020           | 102.1        | 4901   | 113.9      | 138.6      | 100        | 470 deadline, 3.57 MiB/s |
+
+## Impact du pool de connexions — Laptop (CSP + CSRF + headers sécurité, Postgres, TOKIO_WORKER_THREADS=2)
+
+Tests réalisés sur laptop (CPU moins puissant qu'un Ryzen 7 5800X), build release, route `/`, PostgreSQL, pile de middlewares sécurité complète (CSP, CSRF, headers sécurité, compression).
+
+| Config pool                | Concurrence | RPS   | Moy. (ms) | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) | Succès (%) |
+|----------------------------|-------------|-------|-----------|----------|----------|----------|----------|------------|
+| min=20 / max=100 (défaut)  | 100         | 376   | 264.8     | 15.0     | 837.0    | 860.4    | 911.1    | 100        |
+| min=100 / max=200          | 100         | 1 765 | 55.9      | 15.3     | 21.6     | 723.4    | 813.4    | 100        |
+
+**Enseignement clé** : avec le pool par défaut (min=20), 80% des connexions à 100 concurrents doivent attendre un slot → latence bimodale (P50=15ms vs P90=837ms). Avec 100 connexions pré-ouvertes, le P90 chute de 837ms à **21ms** (÷40). Le P50 reste identique (15ms) — le handler lui-même est rapide, le goulot est l'acquisition du pool.
+
+Le pool est entièrement configurable via `.env` : `DB_MIN_CONNECTIONS`, `DB_MAX_CONNECTIONS`, `DB_ACQUIRE_TIMEOUT`. Les valeurs par défaut (20/100) sont sûres pour la plupart des déploiements. Augmenter `DB_MIN_CONNECTIONS` sur les serveurs à fort trafic.
 
 ## Gestion mémoire des sessions — avant/après correctif
 
