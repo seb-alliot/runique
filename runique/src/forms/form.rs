@@ -5,6 +5,7 @@ use crate::forms::renderer::FormRenderer;
 use crate::forms::validator::{FormValidator, ValidationError};
 use crate::utils::aliases::{FieldsMap, StrMap};
 use crate::utils::constante::CSRF_TOKEN_KEY;
+use crate::middleware::errors::error::html_escape;
 use crate::utils::trad::{t, tf};
 use axum::http::Method;
 use indexmap::IndexMap;
@@ -54,7 +55,7 @@ impl Serialize for Forms {
 
         let rendered_html = match self.render() {
             Ok(h) => h,
-            Err(e) => format!("<p style='color:red'>Render error: {}</p>", e),
+            Err(e) => format!("<p style='color:red'>Render error: {}</p>", html_escape(&e)),
         };
         state.serialize_field("html", &rendered_html)?;
 
