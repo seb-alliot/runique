@@ -89,6 +89,8 @@ let app = RuniqueApp::builder(config)
 
 En mode `DEBUG=true`, `with_csp` et `with_host_validation` sont **désactivés par défaut**. En production, tout est activé. Les variables `RUNIQUE_ENABLE_*` du `.env` sont prioritaires sur les défauts.
 
+> **`is_debug()`** — helper global disponible via `use runique::prelude::*`. Retourne `true` si `DEBUG=true` dans `.env`. Lu une seule fois au démarrage (`LazyLock`), disponible partout sans paramètre.
+
 ### Durée de session
 
 ```rust
@@ -136,6 +138,8 @@ let app = RuniqueApp::builder(config)
 | **Host validation** | Debug: ❌ / Prod: ✅ | Selon le mode |
 | **Cache control** | ✅ Activé | No-cache en debug |
 | **Static files** | ❌ Désactivé | Appeler `.statics()` |
+| **Hot reload admin** | Selon `DEBUG` | Automatique via `is_debug()` |
+| **Niveau de log** | Selon `DEBUG` | `debug` si `DEBUG=true`, `warn` sinon |
 
 ---
 

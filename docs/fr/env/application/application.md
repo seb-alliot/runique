@@ -4,7 +4,7 @@
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `DEBUG` | `false` (release) / `true` (debug_assertions) | Mode debug — active les pages d'erreur détaillées |
+| `DEBUG` | `false` | Interrupteur global dev/prod — lu **une seule fois** au démarrage via `LazyLock`. Active : niveau de log `debug`, pages d'erreur détaillées, hot reload templates admin. En production (`false`) : niveau `warn`, erreurs génériques. |
 | `BASE_DIR` | `.` | Répertoire racine de l'application |
 | `PROJECT_NAME` | `myproject` | Nom du projet (utilisé pour `root_urlconf`) |
 | `TIME_ZONE` | `UTC` | Fuseau horaire (pas encore implémenté) |

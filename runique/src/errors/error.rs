@@ -1,5 +1,6 @@
 use crate::middleware::RequestInfoHelper;
 use crate::utils::aliases::StrMap;
+use crate::utils::env::is_debug;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -243,7 +244,7 @@ impl ErrorContext {
             request_info: None,
             stack_trace: Vec::new(),
             environment: EnvironmentInfo {
-                debug_mode: cfg!(debug_assertions),
+                debug_mode: is_debug(),
                 rust_version: rust_version(),
                 app_version: env!("CARGO_PKG_VERSION").to_string(),
             },

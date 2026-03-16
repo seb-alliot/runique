@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use crate::admin::template::AdminTemplate;
 use crate::middleware::auth::AdminAuth;
+use crate::utils::env::is_debug;
 
 pub struct AdminConfig {
     /// Préfixe des routes admin (défaut : "/admin")
@@ -59,7 +60,7 @@ impl AdminConfig {
     pub fn new() -> Self {
         Self {
             prefix: "/admin".to_string(),
-            hot_reload: false,
+            hot_reload: is_debug(),
             site_title: "Administration".to_string(),
             enabled: true,
             auth: None,

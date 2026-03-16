@@ -3,6 +3,7 @@ use crate::config::{
     static_files::StaticConfig,
 };
 use crate::middleware::MiddlewareConfig;
+use crate::utils::env::is_debug;
 use crate::utils::password::PasswordConfig;
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -31,9 +32,7 @@ impl RuniqueConfig {
             app: AppSettings::from_env(),
 
             base_dir: std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string()),
-            debug: std::env::var("DEBUG")
-                .map(|v| v.parse().unwrap_or(cfg!(debug_assertions)))
-                .unwrap_or(cfg!(debug_assertions)),
+            debug: is_debug(),
         }
     }
 }

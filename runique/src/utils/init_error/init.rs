@@ -1,12 +1,8 @@
+use crate::utils::env::is_debug;
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
 
 pub fn init_logging() {
-    dotenvy::dotenv().ok();
-
-    let level = match std::env::var("DEBUG").as_deref() {
-        Ok("true") | Ok("1") => "debug",
-        _ => "warn",
-    };
+    let level = if is_debug() { "debug" } else { "warn" };
 
     let filter = std::env::var("RUST_LOG")
         .map(EnvFilter::new)

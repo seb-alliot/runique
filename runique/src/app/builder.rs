@@ -217,7 +217,7 @@ impl RuniqueAppBuilder {
     /// ```rust,ignore
     /// .with_admin(|a| a
     ///     .prefix("/admin")
-    ///     .hot_reload(cfg!(debug_assertions))
+    ///     .hot_reload(is_debug())
     ///     .site_title("Mon Admin")
     /// )
     /// ```
