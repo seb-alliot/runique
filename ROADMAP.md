@@ -174,7 +174,34 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 ---
 
-## 6. Publication crates.io
+## 6. TLS natif + Proxy intégré
+
+**Status :** 🔴 Planifié (après vue admin)
+
+### Objectif
+
+Rendre Runique autonome en production — binaire compilé + TLS natif, sans Nginx ni reverse proxy externe.
+
+### Composants
+
+- 🔴 **TLS natif** : `rustls` + `axum-server` — certificats PEM configurables via builder
+- 🔴 **Let's Encrypt** : renouvellement automatique (`instant-acme`) via background task Tokio (`tokio::time::interval`)
+- 🔴 **Compression** : `CompressionLayer` de `tower-http` (déjà disponible, à exposer dans le builder)
+- 🔴 **Cache statiques** : headers `Cache-Control` configurables via builder
+- 🔴 **Feature flags** : `features = ["tls", "proxy"]` — opt-in, binaire minimal par défaut
+
+### Ce qui reste hors scope
+
+- Load balancing multi-instances
+- Rate limiting réseau bas niveau (couvert côté applicatif par `RateLimiter`)
+
+### Impact déploiement
+
+`docker run` autonome — zéro dépendance externe, production-ready avec un seul conteneur.
+
+---
+
+## 7. Publication crates.io
 
 **Status :** 🟢 En continu — version actuelle **1.1.47** publiée
 

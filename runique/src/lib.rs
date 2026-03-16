@@ -65,7 +65,6 @@ pub mod prelude {
     pub use crate::context::{AppError, Request};
     pub use crate::engine::RuniqueEngine;
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
-    pub use crate::{error, flash_now, info, success, warning};
     pub use crate::forms::{
         Forms, Prisme,
         field::{FormField, RuniqueForm},
@@ -85,6 +84,7 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
+    pub use crate::{error, flash_now, info, success, warning};
     pub use derive_form::{form, model};
 
     // ========================================================================
@@ -98,9 +98,9 @@ pub mod prelude {
     // ========================================================================
     // UTILS
     // ========================================================================
+    pub use crate::macros::{reverse, reverse_with_parameters};
     pub use crate::utils::csp_nonce::*;
     pub use crate::utils::csrf::*;
-    pub use crate::macros::{reverse, reverse_with_parameters};
 
     // ========================================================================
     // CONTEXTE & TEMPLATE
