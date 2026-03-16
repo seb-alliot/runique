@@ -18,6 +18,9 @@ pub struct AdminConfig {
     /// Titre affiché dans l'interface admin
     pub site_title: String,
 
+    /// URL de retour vers le site principal (défaut : "/")
+    pub site_url: String,
+
     /// Active ou désactive entièrement l'AdminPanel
     pub enabled: bool,
 
@@ -36,6 +39,7 @@ impl Clone for AdminConfig {
             prefix: self.prefix.clone(),
             hot_reload: self.hot_reload,
             site_title: self.site_title.clone(),
+            site_url: self.site_url.clone(),
             enabled: self.enabled,
             auth: self.auth.clone(),
             templates: self.templates.clone(),
@@ -49,6 +53,7 @@ impl std::fmt::Debug for AdminConfig {
             .field("prefix", &self.prefix)
             .field("hot_reload", &self.hot_reload)
             .field("site_title", &self.site_title)
+            .field("site_url", &self.site_url)
             .field("enabled", &self.enabled)
             .field("auth", &self.auth.as_ref().map(|_| "<AdminAuth>"))
             .field("templates", &self.templates)
@@ -62,6 +67,7 @@ impl AdminConfig {
             prefix: "/admin".to_string(),
             hot_reload: is_debug(),
             site_title: "Administration".to_string(),
+            site_url: "/".to_string(),
             enabled: true,
             auth: None,
             templates: AdminTemplate::new(),
@@ -80,6 +86,11 @@ impl AdminConfig {
 
     pub fn site_title(mut self, title: &str) -> Self {
         self.site_title = title.to_string();
+        self
+    }
+
+    pub fn site_url(mut self, url: &str) -> Self {
+        self.site_url = url.to_string();
         self
     }
 

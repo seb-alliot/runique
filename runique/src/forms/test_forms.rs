@@ -443,7 +443,6 @@ mod tests {
         form: Forms,
     }
 
-    #[async_trait::async_trait]
     impl RuniqueForm for LoginForm {
         fn register_fields(form: &mut Forms) {
             form.field(&TextField::text("username").required());

@@ -1,14 +1,10 @@
 {% extends "index.html" %}
 
 {% block content %}
-<div class="container">
-    {% block messages %}
-        {% messages %}
-    {% endblock %}
-
+<div class="content">
     <div class="blog-header">
         <h1>{{ title }}</h1>
-        <a href='{% link "blog_info" %}' class="btn btn-primary">+ Nouvel article</a>
+        <a href="{% link 'blog_info' %}" class="btn btn-primary">+ Nouvel article</a>
     </div>
 
     {% if articles %}
@@ -17,13 +13,11 @@
                 <article class="blog-card">
                     <div class="blog-card-header">
                         <h2 class="blog-card-title">
-                            <a href='{% link "blog_detail" id=article.id %}'>{{ article.title }}</a>
+                            <a href="{% link 'blog_detail' id=article.id %}">{{ article.title }}</a>
                         </h2>
                         <span class="blog-card-meta">
                             Par {{ article.email }}
-                            {% if article.created_at %}
-                                · {{ article.created_at }}
-                            {% endif %}
+                            {% if article.created_at %}· {{ article.created_at }}{% endif %}
                         </span>
                     </div>
                     <p class="blog-card-summary">{{ article.summary | truncate(length=200) }}</p>
@@ -33,7 +27,7 @@
                                 🔗 Source
                             </a>
                         {% endif %}
-                        <a href='{% link "blog_detail" id=article.id %}' class="btn btn-secondary btn-sm">
+                        <a href="{% link 'blog_detail' id=article.id %}" class="btn-secondary btn-sm">
                             Lire la suite →
                         </a>
                     </div>
@@ -43,7 +37,7 @@
     {% else %}
         <div class="empty-state">
             <p>Aucun article pour l'instant.</p>
-            <a href='{% link "blog_info" %}' class="btn btn-primary">Écrire le premier article</a>
+            <a href="{% link 'blog_info' %}" class="btn btn-primary">Écrire le premier article</a>
         </div>
     {% endif %}
 </div>

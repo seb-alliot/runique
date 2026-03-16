@@ -10,12 +10,13 @@ use axum::{
     http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect, Response},
-    routing::{get, post},
+    routing::get,
 };
 use serde::Deserialize;
 use tower_sessions::Session;
 
 use crate::admin::PrototypeAdminState;
+use crate::admin::config::AdminConfig;
 use crate::admin::middleware::admin_required;
 use crate::admin::trad::insert_admin_messages;
 use crate::app::staging::AdminStaging;
@@ -24,7 +25,6 @@ use crate::middleware::auth::{load_user_middleware, login_staff};
 use crate::urlpatterns;
 use crate::utils::aliases::AppResult;
 use crate::utils::trad::{current_lang, t};
-use crate::{admin::config::AdminConfig, flash_now};
 
 #[derive(Clone)]
 pub struct AdminState {
@@ -52,14 +52,15 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
 
     // Routes publiques (login uniquement)
     let public_router = urlpatterns! {
-        &format!("{}/login", prefix) => get(admin_login_get).post(admin_login_post), name = "admin:login",
+        &format!("{}/login", prefix) => get(admin_login_get).post(admin_login_post), name = "admin_login",
     };
 
     // Routes protégées (dashboard + logout)
     let protected_router = urlpatterns! {
-        &format!("{}/", prefix) => get(admin_dashboard), name = "admin:dashboard",
-        &prefix => get(admin_dashboard_redirect), name = "admin:dashboard_redirect",
-        &format!("{}/logout", prefix) => post(admin_logout), name = "admin:logout",
+        &format!("{}/", prefix) => get(admin_dashboard), name = "admin_dashboard",
+        &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
+        &format!("{}/logout", prefix) => get(admin_logout), name = "admin_logout",
+        &format!("{}/toggle-template", prefix) => get(admin_toggle_template), name = "admin_toggle_template",
     };
 
     // Routes CRUD générées (protégées aussi)
@@ -92,8 +93,50 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     router
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Système de bascule de template — USAGE DEMO
+//
+// Cette mécanique permet à un dev de proposer deux rendus du même dashboard :
+//   - le template Runique (défaut, toujours présent)
+//   - un template custom fourni via `.templates(|t| t.with_dashboard(...))`
+//
+// Le bouton de bascule n'est visible dans l'UI que si `has_custom_template = true`,
+// c'est-à-dire uniquement quand un template custom a été configuré.
+// En usage normal (sans surcharge), ce code est inactif.
+//
+// ── À SUPPRIMER AVANT PUBLICATION ────────────────────────────────────────────
+//
+// Dans ce fichier (admin_router.rs) :
+//   - la constante ADMIN_TEMPLATE_SESSION_KEY
+//   - la route GET `/admin/toggle-template` dans protected_router
+//   - le handler `admin_toggle_template`
+//   - dans `admin_dashboard` : les variables `has_custom`, `use_custom`,
+//     la sélection de template conditionnelle,
+//     et les insertions `has_custom_template` + `template_is_custom` dans le contexte
+//
+// Dans demo-app/src/main.rs :
+//   - `.templates(|t| t.with_dashboard("admin/test_dashboard.html"))`
+//
+// Dans runique/templates/admin/composant/dashboard.html :
+//   - le bloc `{% if has_custom_template %}` avec le bouton de bascule
+// ─────────────────────────────────────────────────────────────────────────────
+const ADMIN_TEMPLATE_SESSION_KEY: &str = "admin_template_custom";
+
 async fn admin_dashboard_redirect() -> Response {
     Redirect::permanent("/admin/").into_response()
+}
+
+async fn admin_toggle_template(
+    session: Session,
+    Extension(admin): Extension<Arc<AdminState>>,
+) -> Response {
+    let current: bool = session
+        .get(ADMIN_TEMPLATE_SESSION_KEY)
+        .await
+        .unwrap_or(None)
+        .unwrap_or(false);
+    let _ = session.insert(ADMIN_TEMPLATE_SESSION_KEY, !current).await;
+    Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
 }
 
 async fn admin_dashboard(
@@ -119,27 +162,55 @@ async fn admin_dashboard(
         Vec::new()
     };
 
+    let has_custom = admin.config.templates.dashboard.dev.is_some();
+    let use_custom: bool = if has_custom {
+        req.session
+            .get(ADMIN_TEMPLATE_SESSION_KEY)
+            .await
+            .unwrap_or(None)
+            .unwrap_or(false)
+    } else {
+        false
+    };
+
     insert_admin_messages(&mut req.context, "dashboard");
     insert_admin_messages(&mut req.context, "base");
     req = req
         .insert("site_title", &admin.config.site_title)
+        .insert("site_url", &admin.config.site_url)
         .insert("resources", &resources)
         .insert("resource_counts", &resource_counts)
         .insert("current_page", "dashboard")
         .insert("lang", current_lang().code())
-        .insert("current_resource", &Option::<String>::None);
+        .insert("current_resource", &Option::<String>::None)
+        .insert("has_custom_template", has_custom)
+        .insert("template_is_custom", use_custom);
 
-    req.render(admin.config.templates.dashboard.resolve())
+    let template = if use_custom {
+        admin.config.templates.dashboard.dev.as_deref().unwrap()
+    } else {
+        admin.config.templates.dashboard.runique
+    };
+
+    req.render(template)
 }
 
 async fn admin_login_get(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> AppResult<Response> {
+    use crate::middleware::auth::is_admin_authenticated;
+    let from_logout = params.get("from").map(|v| v == "logout").unwrap_or(false);
+    if !from_logout && is_admin_authenticated(&req.session).await {
+        return Ok(Redirect::to(&format!("{}/", admin.config.prefix)).into_response());
+    }
+
     insert_admin_messages(&mut req.context, "login");
 
     req = req
         .insert("site_title", &admin.config.site_title)
+        .insert("site_url", &admin.config.site_url)
         .insert("lang", current_lang().code());
     req.render(admin.config.templates.login.resolve())
 }
@@ -179,6 +250,7 @@ async fn admin_login_post(
                 req = req
                     .insert("lang", current_lang().code())
                     .insert("site_title", &admin.config.site_title)
+                    .insert("site_url", &admin.config.site_url)
                     .insert("error", t("admin.login.error_session").to_string());
                 return req
                     .render(admin.config.templates.login.resolve())
@@ -192,7 +264,9 @@ async fn admin_login_post(
             insert_admin_messages(&mut req.context, "login");
             insert_admin_messages(&mut req.context, "base");
             req = req
+                .insert("lang", current_lang().code())
                 .insert("site_title", &admin.config.site_title)
+                .insert("site_url", &admin.config.site_url)
                 .insert("error", t("admin.login.error_credentials").to_string());
             req.render(admin.config.templates.login.resolve())
                 .unwrap_or_else(|e| e.into_response())
@@ -202,6 +276,5 @@ async fn admin_login_post(
 
 async fn admin_logout(session: Session, Extension(admin): Extension<Arc<AdminState>>) -> Response {
     let _ = session.delete().await;
-    flash_now!(success => t("admin.logout.success").to_string());
-    Redirect::to(&format!("{}/login", admin.config.prefix)).into_response()
+    Redirect::to(&format!("{}/login?from=logout", admin.config.prefix)).into_response()
 }

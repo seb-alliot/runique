@@ -47,6 +47,11 @@ impl AdminStaging {
         self
     }
 
+    pub fn site_url(mut self, url: &str) -> Self {
+        self.config = self.config.site_url(url);
+        self
+    }
+
     /// Branche le handler d'authentification admin
     ///
     /// ## Avec le User built-in (zéro config) :

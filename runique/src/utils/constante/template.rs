@@ -37,11 +37,11 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = tpls![
 pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     ("admin/admin_template", "admin/admin_template.html"),
     ("admin_base", "admin/admin_base.html"),
-    ("login", "admin/composant/login.html"),
-    ("dashboard", "admin/composant/dashboard.html"),
-    ("list", "admin/composant/list.html"),
-    ("create", "admin/composant/create.html"),
-    ("edit", "admin/composant/edit.html"),
-    ("detail", "admin/composant/detail.html"),
-    ("delete", "admin/composant/delete.html"),
+    ("admin/login", "admin/composant/login.html"),
+    ("admin/dashboard", "admin/composant/dashboard.html"),
+    ("admin/list", "admin/composant/list.html"),
+    ("admin/create", "admin/composant/create.html"),
+    ("admin/edit", "admin/composant/edit.html"),
+    ("admin/detail", "admin/composant/detail.html"),
+    ("admin/delete", "admin/composant/delete.html"),
 ];

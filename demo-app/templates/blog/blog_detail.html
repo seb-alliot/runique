@@ -1,19 +1,15 @@
 {% extends "index.html" %}
 
 {% block content %}
-<div class="container">
-    {% block messages %}
-        {% messages %}
-    {% endblock %}
-
+<div class="content">
     {% if article %}
         <article class="blog-detail">
             <div class="blog-detail-header">
                 <h1>{{ article.title }}</h1>
                 <div class="blog-detail-meta">
-                    <span>✍️ {{ article.email }}</span>
+                    <span>{{ article.email }}</span>
                     {% if article.created_at %}
-                        <span>📅 {{ article.created_at }}</span>
+                        <span>· {{ article.created_at }}</span>
                     {% endif %}
                     {% if article.website %}
                         <a href="{{ article.website }}" target="_blank" rel="noopener noreferrer">
@@ -34,8 +30,8 @@
     {% endif %}
 
     <div class="blog-detail-nav">
-        <a href='{% link "blog_list" %}' class="btn btn-secondary">← Retour aux articles</a>
-        <a href='{% link "blog_info" %}' class="btn btn-primary">+ Nouvel article</a>
+        <a href="{% link 'blog_list' %}" class="btn btn-secondary">← Retour aux articles</a>
+        <a href="{% link 'blog_info' %}" class="btn btn-primary">+ Nouvel article</a>
     </div>
 </div>
 {% endblock %}

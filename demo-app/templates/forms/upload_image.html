@@ -4,25 +4,77 @@
     {{ super() }}
     <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
     <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
 {% endblock %}
 
 {% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
 
-    <div class="content">
-        {% if title %}
-            <h1>{{ title }}</h1>
-        {% endif %}
+    <div class="demo-layout">
 
-    <h2>Uploader une image</h2>
+        <div class="form-container demo-form-panel">
+            <form id="image_form" method="post" enctype="multipart/form-data" action="{% link 'upload_image' %}">
+                {% form.image_form %}
+                <button type="submit" class="btn btn-primary btn-submit">
+                    Uploader le fichier
+                </button>
+            </form>
 
-        <!-- Formulaire de recherche d'utilisateur -->
-        {% block messages %}
-            {% messages %}
-        {% endblock %}
-        <form id="image_form" method="post" enctype="multipart/form-data">
-            {% form.image_form.image %}
-            <button type="submit">uploader le fichier</button>
-        </form>
+            <div class="text-center mt-3">
+                <a href="{% link 'index' %}">← Retour à l'accueil</a>
+            </div>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">formulaire/image.rs</div>
+            <pre><code><span class="kw">pub struct</span> <span class="ty">ImageForm</span> {
+    <span class="kw">pub</span> form: <span class="ty">Forms</span>,
+}
+
+<span class="kw">impl</span> <span class="ty">RuniqueForm</span> <span class="kw">for</span> <span class="ty">ImageForm</span> {
+    <span class="kw">fn</span> <span class="fn_">register_fields</span>(form: &amp;<span class="kw">mut</span> <span class="ty">Forms</span>) {
+        <span class="cm">// Le chemin d'upload vient de .env via StaticConfig</span>
+        <span class="kw">let</span> config = <span class="ty">StaticConfig</span>::<span class="fn_">from_env</span>();
+        form.<span class="fn_">field</span>(
+            &amp;<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"image"</span>)
+                .<span class="fn_">label</span>(<span class="st">"Choisissez une image"</span>)
+                .<span class="fn_">upload_to</span>(&amp;config)
+                .<span class="fn_">max_size_mb</span>(<span class="nb">5</span>)
+                .<span class="fn_">max_files</span>(<span class="nb">3</span>)
+                .<span class="fn_">max_dimensions</span>(<span class="nb">1920</span>, <span class="nb">1080</span>)
+                .<span class="fn_">allowed_extensions</span>(
+                    <span class="mc">vec!</span>[<span class="st">"png"</span>, <span class="st">"jpg"</span>, <span class="st">"jpeg"</span>, <span class="st">"gif"</span>]
+                ),
+        );
+    }
+    <span class="mc">impl_form_access!</span>();
+}</code></pre>
+
+            <div class="demo-code-title">3 façons de configurer le chemin</div>
+            <pre><code><span class="cm">// 1 — chemin direct (le plus simple)</span>
+<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"avatar"</span>)
+    .<span class="fn_">upload_to</span>(<span class="st">"media/avatars"</span>)
+
+<span class="cm">// 2 — lit MEDIA_ROOT depuis .env</span>
+<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"img"</span>)
+    .<span class="fn_">upload_to_env</span>()
+
+<span class="cm">// 3 — depuis une StaticConfig existante</span>
+<span class="kw">let</span> config = <span class="ty">StaticConfig</span>::<span class="fn_">from_env</span>();
+<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"img"</span>)
+    .<span class="fn_">upload_to</span>(&amp;config)</code></pre>
+
+            <div class="demo-code-title">extensions disponibles</div>
+            <pre><code><span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"img"</span>)    <span class="cm">// jpg jpeg png gif webp avif</span>
+<span class="ty">FileField</span>::<span class="fn_">document</span>(<span class="st">"doc"</span>) <span class="cm">// pdf doc docx odt</span>
+<span class="ty">FileField</span>::<span class="fn_">any</span>(<span class="st">"f"</span>)       <span class="cm">// pas de filtre</span>
+
+<span class="cm">// ou extensions personnalisées :</span>
+<span class="ty">FileField</span>::<span class="fn_">any</span>(<span class="st">"data"</span>)
+    .<span class="fn_">allowed_extensions</span>(<span class="mc">vec!</span>[<span class="st">"csv"</span>, <span class="st">"json"</span>])</code></pre>
+        </div>
+
     </div>
-
+</div>
 {% endblock %}

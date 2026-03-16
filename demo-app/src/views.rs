@@ -1,4 +1,5 @@
 use crate::entities::blog::Entity as BlogEntity;
+use crate::entities::contribution::Entity as ContributionEntity;
 use crate::form_test::TestAllFieldsForm;
 use crate::formulaire::*;
 use runique::middleware::auth::login as auth_login;
@@ -28,12 +29,14 @@ async fn inject_auth(request: &mut Request) {
 pub async fn index(mut request: Request) -> AppResult<Response> {
     context_update!(request => {
         "title" => "Bienvenue sur Runique",
-        "description" => "Un framework web moderne inspiré de Django",
-        "status" => "Framework en cours de développement...",
-        "backend" => "Axum pour le backend",
-        "template" => "Tera comme moteur de templates",
+        "description" => "Description: Un framework web inspiré de Django",
+        "status" => "Status: Framework en cours de développement...",
+        "backend" => "Server: Axum",
+        "template" => "Moteur de template: Tera",
         "tokio" => "Runtime asynchrone tokio",
-        "session" => "Tower pour la gestion des sessions",
+        "session" => "Session: tower avec memory store, evolution prévue a l'avenir",
+        "orm" => "ORM: sea-orm/sea-migration pour la gestion de la base de données",
+        "migration" => "Migrations: système intégré via macro model!",
     });
 
     request.render("index.html")
@@ -50,13 +53,13 @@ pub async fn soumission_inscription(
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
     }
-
+    let template = "auth/inscription_form.html";
     if request.is_get() {
         context_update!(request => {
             "title" => "Inscription utilisateur",
             "inscription_form" => &form,
         });
-        return request.render("inscription_form.html");
+        return request.render(template);
     }
 
     if request.is_post() && form.is_valid().await {
@@ -66,7 +69,7 @@ pub async fn soumission_inscription(
                     .await
                     .ok();
                 success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
-                return Ok(Redirect::to("/profil").into_response());
+                return Ok(Redirect::to("/").into_response());
             }
             Err(err) => {
                 form.get_form_mut().database_error(&err);
@@ -78,7 +81,7 @@ pub async fn soumission_inscription(
         "inscription_form" => &form,
         "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
     });
-    request.render("inscription_form.html")
+    request.render(template)
 }
 
 // ─── Connexion ────────────────────────────────────────────────────────────────
@@ -118,7 +121,7 @@ pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> App
                         .await
                         .ok();
                     success!(request.notices => format!("Bienvenue {} !", user.username));
-                    return Ok(Redirect::to("/profil").into_response());
+                    return Ok(Redirect::to("/").into_response());
                 }
                 _ => {}
             }
@@ -315,10 +318,10 @@ pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult
 
 pub async fn about(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
-    success!(request.notices => "Ceci est un message de succès.");
-    info!(request.notices => "Ceci est un message d'information.");
-    warning!(request.notices => "Ceci est un message d'avertissement.");
-    error!(request.notices => "Ceci est un message d'erreur.");
+    success!(request.notices => "Action réussie.");
+    info!(request.notices => "Message d'information.");
+    warning!(request.notices => "Attention requise.");
+    error!(request.notices => "Une erreur est survenue.");
 
     context_update!(request => {
         "title" => "À propos du Framework Runique",
@@ -394,4 +397,65 @@ pub async fn test_fields(
         "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
     });
     request.render(template)
+}
+
+pub async fn contribution_submit(
+    mut request: Request,
+    Prisme(mut form): Prisme<ContributionForm>,
+) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    let template = "contribution/contribution_form.html";
+    if !is_authenticated(&request.session).await {
+        return Ok(Redirect::to("/login").into_response());
+    }
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "Soumettre une contribution",
+            "contribution_form" => &form,
+        });
+        return request.render(template);
+    }
+
+    if request.is_post() && form.is_valid().await {
+        let user_id = get_user_id(&request.session).await.unwrap_or(0);
+        match form.save(&request.engine.db, user_id).await {
+            Ok(_) => {
+                success!(request.notices => "Contribution sauvegardée !");
+                return Ok(Redirect::to("/").into_response());
+            }
+            Err(err) => {
+                form.get_form_mut().database_error(&err);
+                context_update!(request => {
+                    "title" => "Erreur base de données",
+                    "contribution_form" => &form,
+                });
+                return request.render(template);
+            }
+        }
+    }
+
+    context_update!(request => {
+        "title" => "Erreur de validation",
+        "contribution_form" => &form,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+    });
+    request.render(template)
+}
+
+// ─── Liste des contributions ──────────────────────────────────────────────────
+
+pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    let contributions = ContributionEntity::find()
+        .order_by_desc(crate::entities::contribution::Column::Id)
+        .all(&*request.engine.db)
+        .await
+        .unwrap_or_default();
+
+    context_update!(request => {
+        "title" => "Contributions",
+        "contributions" => &contributions,
+    });
+
+    request.render("contribution/contribution_list.html")
 }

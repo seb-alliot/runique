@@ -11,7 +11,7 @@
 body {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
 }
 
 /* zone principale extensible */
@@ -180,12 +180,20 @@ footer {
     text-align: center;
 }
 
+.footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem 0;
+}
+
 footer a {
     color: var(--text-muted);
     text-decoration: none;
     margin: 0 0.8rem;
     font-size: 0.9rem;
     transition: color 0.2s ease;
+    white-space: nowrap;
 }
 
 footer a:hover {
@@ -198,20 +206,389 @@ footer p {
     color: #6b7280;
 }
 
+/* =========================
+    INDEX — STACK GRID
+   ========================= */
+.content h2 {
+    color: var(--accent);
+    margin: 2rem 0 1rem;
+    font-size: 1.3rem;
+}
 
+.lead {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.stack-card {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.stack-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+}
+
+/* =========================
+    INDEX — DEMO CARDS
+   ========================= */
+.demo-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    width: 100%;
+}
+
+.feature-card {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.feature-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.feature-card-admin {
+    border-color: #f59e0b;
+}
+
+.feature-card-admin h3 {
+    color: #f59e0b;
+}
+
+.feature-card-admin:hover {
+    border-color: #fbbf24;
+}
+
+.admin-credentials {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: 0.4rem;
+    padding: 0.3rem 0.6rem;
+    width: fit-content;
+}
+
+.cred-sep {
+    color: #6b7280;
+}
+
+.feature-card h3 {
+    color: var(--accent);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.feature-card p {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin: 0;
+}
+
+/* =========================
+    CONTAINER GÉNÉRIQUE
+   ========================= */
+.container {
+    width: 95%;
+    max-width: 1100px;
+    margin: 1.5rem auto;
+}
+
+.container > h1 {
+    color: var(--accent);
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* =========================
+    BLOG DETAIL
+   ========================= */
+.blog-detail {
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.blog-detail-header {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 1rem;
+}
+
+.blog-detail-header h1 {
+    color: var(--accent);
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.blog-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.blog-detail-meta a {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.blog-detail-meta a:hover {
+    color: var(--accent);
+}
+
+.blog-detail-summary blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 0.75rem 1.25rem;
+    margin: 1rem 0 1.5rem;
+    color: var(--text-muted);
+    font-style: italic;
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.blog-detail-content {
+    color: var(--text-main);
+    line-height: 1.8;
+    font-size: 0.95rem;
+}
+
+.blog-detail-nav {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #30363d;
+}
+
+/* =========================
+    BOUTONS GLOBAUX
+   ========================= */
+.btn {
+    display: inline-block;
+    padding: 0.7rem 1.2rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-align: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.btn-primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* =========================
+    CONTRIBUTIONS
+   ========================= */
+.contribution-link {
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+/* =========================
+    BLOG & CONTRIBUTIONS — LISTE
+   ========================= */
+.blog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+    width: 100%;
+}
+
+.blog-card {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: border-color 0.2s ease;
+}
+
+.blog-card:hover {
+    border-color: var(--accent);
+}
+
+.blog-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.blog-card-title {
+    font-size: 1rem;
+    color: var(--accent);
+    margin: 0;
+}
+
+.blog-card-title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.blog-card-meta {
+    font-size: 0.78rem;
+    color: #6b7280;
+}
+
+.blog-card-summary {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    flex: 1;
+}
+
+.blog-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.blog-card-link {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.blog-card-link:hover {
+    color: var(--accent);
+}
+
+.empty-state {
+    width: 100%;
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 1px solid #30363d;
+    color: var(--text-muted);
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+}
+
+.back-link {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.back-link a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.back-link a:hover {
+    color: var(--accent);
+}
 /* =========================
     RESPONSIVE
    ========================= */
 
-/* Tablettes */
-@media (max-width: 768px) {
+/* Tablettes (≤ 900px) — chevauchement réduit, image plus visible */
+@media (max-width: 900px) {
     header {
-        height: 200px;
+        height: 210px;
+    }
+
+    header img {
+        opacity: 0.55;
+    }
+
+    header::after {
+        background: linear-gradient(
+            to bottom,
+            rgba(15, 18, 22, 0.15),
+            rgba(15, 18, 22, 0.88)
+        );
     }
 
     .content {
-        margin: -3rem auto 2rem auto;
+        margin: -2.5rem auto 2rem;
         padding: 1.5rem;
+        border-radius: 1rem;
     }
 
     .content h1 {
@@ -228,10 +605,22 @@ footer p {
     }
 }
 
-/* Mobile */
+/* Mobile (≤ 480px) — petit chevauchement, image bien visible */
 @media (max-width: 480px) {
     header {
         height: 150px;
+    }
+
+    header img {
+        opacity: 0.65;
+    }
+
+    header::after {
+        background: linear-gradient(
+            to bottom,
+            rgba(15, 18, 22, 0.05),
+            rgba(15, 18, 22, 0.80)
+        );
     }
 
     .debug-banner {
@@ -240,7 +629,7 @@ footer p {
     }
 
     .content {
-        margin: 2rem;
+        margin: -1.5rem 0.75rem 1.5rem;
         border-radius: 0.75rem;
     }
 

@@ -35,17 +35,14 @@ model! {
         username: String [required, max_len(150), unique],
         email: String [required, unique],
         password: String [required],
-        is_active: bool [default(true)],
+        is_active: bool,
+        team_id: i32 [required],
         created_at: datetime [auto_now],
     },
     relations: {
         has_many: Post,
         belongs_to: Team via team_id,
     },
-    meta: {
-        ordering: [-created_at],
-        verbose_name: "utilisateur",
-    }
 }
 ```
 
@@ -69,33 +66,31 @@ La DSL est convertie en AST `Model` avec notamment :
 
 ### Options de champ
 
-- `required`, `nullable`, `unique`, `index`, `readonly`
-- `default(...)`, `max_len(n)`, `min_len(n)`, `max(n)`, `min(n)`, `max_f(n)`, `min_f(n)`
+- `required`, `nullable`, `unique`, `readonly`
+- `max_len(n)`, `min_len(n)`, `max(n)`, `min(n)`, `max_f(n)`, `min_f(n)`
 - `auto_now`, `auto_now_update`
-- `label("...")`, `help("...")`, `select_as("...")`
-- `fk(table.column, cascade|set_null|restrict|set_default)`
+- `label(...)`, `help(...)`, `select_as(...)`
 
 ### Relations
 
-| Syntaxe | Description |
-| --- | --- |
-| `has_many: Model,` | Relation 1-N |
-| `has_many: Model as alias,` | 1-N avec nom d'accès personnalisé |
-| `has_one: Model,` | Relation 1-1 |
-| `has_one: Model as alias,` | 1-1 avec nom d'accès personnalisé |
-| `belongs_to: Model via fk_field,` | Clé étrangère entrante |
-| `many_to_many: Model through pivot_table,` | Relation N-N |
+Les relations sont déclarées dans un bloc `relations: { ... }` optionnel après `fields`.
+
+| Syntaxe | Contrainte DB | Description |
+| --- | --- | --- |
+| `belongs_to: Model via fk_field,` | ✅ `FOREIGN KEY` générée | Clé étrangère vers `model.id` |
+| `belongs_to: Model via fk_field [cascade],` | ✅ `ON DELETE CASCADE` | FK avec on_delete cascade |
+| `belongs_to: Model via fk_field [cascade, restrict],` | ✅ | FK avec on_delete + on_update |
+| `has_many: Model,` | ❌ (code uniquement) | Relation 1-N |
+| `has_one: Model,` | ❌ (code uniquement) | Relation 1-1 |
+| `many_to_many: Model via pivot_table,` | ❌ (code uniquement) | Relation N-N |
+
+Actions FK disponibles : `cascade`, `restrict`, `set_null`, `set_default` (défaut : `no_action`).
+
+> `belongs_to` génère automatiquement une `FOREIGN KEY` dans la migration. La colonne FK (`fk_field`) doit être déclarée dans `fields`.
 
 ### Meta
 
-| Clé | Valeur | Description |
-| --- | --- | --- |
-| `ordering: [field, -field]` | liste | Tri par défaut (`-` = DESC) |
-| `unique_together: [(f1, f2), ...]` | liste de tuples | Contrainte d'unicité composite |
-| `verbose_name: "..."` | string | Nom affiché (singulier) |
-| `verbose_name_plural: "..."` | string | Nom affiché (pluriel) |
-| `abstract: true` | bool | Modèle abstrait (pas de table) |
-| `indexes: [(f1, f2), ...]` | liste de tuples | Index composites |
+> Le bloc `meta` est réservé aux futures versions (ordering, verbose_name, etc.). Il est parsé sans erreur mais ignoré.
 
 ---
 

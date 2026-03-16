@@ -14,11 +14,13 @@
     </div>
     <div class="page-actions">
       <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
+      {% if current_user and current_user.is_superuser and "demo" not in current_user.roles %}
       <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
       <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline">
         <button type="submit" class="btn btn-danger"
                 onclick="return confirm('{% if admin_detail_confirm_delete %}{{ admin_detail_confirm_delete }}{% endif %}')">{% if admin_detail_btn_delete %}{{ admin_detail_btn_delete }}{% endif %}</button>
       </form>
+      {% endif %}
     </div>
   </div>
   <div class="card">

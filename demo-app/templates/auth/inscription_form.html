@@ -1,0 +1,73 @@
+{% extends 'index.html' %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+{% block message %}
+    {% messages %}
+{% endblock %}
+
+<div class="demo-layout">
+
+    <div id="form" class="demo-form-panel">
+        <form method="post" action="/inscription">
+            {% form.inscription_form %}
+            <button type="submit">S'inscrire</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href='{% link "login" %}'>Déjà un compte ? Se connecter</a>
+            <a href="/">← Retour à l'accueil</a>
+        </div>
+    </div>
+
+    <div class="demo-code">
+        <div class="demo-code-title">formulaire/user.rs</div>
+        <pre><code><span class="cm">// Dériver un formulaire depuis un modèle</span>
+<span class="at">#[form(schema = eihwaz_users_schema,</span>
+<span class="at">       fields = [username, email, password])]</span>
+<span class="kw">pub struct</span> <span class="ty">RegisterForm</span>;
+
+<span class="cm">// clean() = override officiel du trait RuniqueForm</span>
+<span class="at">#[async_trait]</span>
+<span class="kw">impl</span> <span class="ty">RuniqueForm</span> <span class="kw">for</span> <span class="ty">RegisterForm</span> {
+    <span class="mc">impl_form_access!</span>(model);
+
+    <span class="kw">async fn</span> <span class="fn_">clean</span>(&amp;<span class="kw">mut self</span>) -&gt; <span class="ty">Result</span>&lt;(), <span class="ty">StrMap</span>&gt; {
+        <span class="kw">let mut</span> errors = <span class="ty">StrMap</span>::<span class="fn_">new</span>();
+        <span class="kw">if</span> <span class="kw">self</span>.<span class="fn_">get_string</span>(<span class="st">"username"</span>).<span class="fn_">len</span>() &lt; <span class="nb">3</span> {
+            errors.<span class="fn_">insert</span>(<span class="st">"username"</span>, <span class="st">"3 caractères minimum"</span>);
+        }
+        <span class="kw">if</span> <span class="kw">self</span>.<span class="fn_">get_string</span>(<span class="st">"password"</span>).<span class="fn_">len</span>() &lt; <span class="nb">10</span> {
+            errors.<span class="fn_">insert</span>(<span class="st">"password"</span>, <span class="st">"10 caractères minimum"</span>);
+        }
+        <span class="kw">if</span> errors.<span class="fn_">is_empty</span>() { <span class="ty">Ok</span>(()) } <span class="kw">else</span> { <span class="ty">Err</span>(errors) }
+    }
+}</code></pre>
+        <div class="demo-code-title">views.rs</div>
+        <pre><code><span class="kw">pub async fn</span> <span class="fn_">soumission_inscription</span>(
+    <span class="kw">mut</span> request: <span class="ty">Request</span>,
+    <span class="ty">Prisme</span>(<span class="kw">mut</span> form): <span class="ty">Prisme</span>&lt;<span class="ty">RegisterForm</span>&gt;,
+) -&gt; <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">if</span> request.<span class="fn_">is_post</span>() &amp;&amp; form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
+        <span class="kw">match</span> form.<span class="fn_">save</span>(&amp;db).<span class="kw">await</span> {
+            <span class="ty">Ok</span>(user) =&gt; {
+                <span class="fn_">auth_login</span>(&amp;session, user.id, &amp;user.username).<span class="kw">await</span>;
+                <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/profil"</span>).<span class="fn_">into_response</span>());
+            }
+            <span class="ty">Err</span>(err) =&gt; form.<span class="fn_">get_form_mut</span>().<span class="fn_">database_error</span>(&amp;err),
+        }
+    }
+    request.<span class="fn_">render</span>(<span class="st">"inscription_form.html"</span>)
+}</code></pre>
+    </div>
+
+</div>
+{% endblock %}

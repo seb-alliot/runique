@@ -8,20 +8,52 @@ The `#[form(...)]` attribute macro expects:
 - `fields = [..]` (optional)
 - `exclude = [..]` (optional)
 
-Concrete example:
+It generates only:
+
+- a struct containing `form: Forms`
+- `impl ModelForm` (`schema()`, `fields()`, `exclude()`)
+
+The developer then writes `impl RuniqueForm` with `impl_form_access!(model)`:
 
 ```rust
 use runique::prelude::*;
 
-#[form(schema = user_schema, fields = ["username", "email"], exclude = ["is_active"])]
+#[form(schema = user_schema, fields = [username, email])]
 pub struct UserForm;
+
+impl RuniqueForm for UserForm {
+    impl_form_access!(model);
+}
 ```
 
-This macro generates:
+### With business validation (`clean`)
 
-- a struct containing `form: Forms`,
-- `impl ModelForm` (`schema()`, `fields()`, `exclude()`),
-- `impl RuniqueForm` which delegates to `ModelForm::model_register_fields(...)`.
+Override `clean` directly in `impl RuniqueForm` — just like Django.
+`#[async_trait]` is only required when overriding an async method:
+
+```rust
+#[form(schema = user_schema, fields = [username, email, password])]
+pub struct RegisterForm;
+
+#[async_trait]
+impl RuniqueForm for RegisterForm {
+    impl_form_access!(model);
+
+    async fn clean(&mut self) -> Result<(), StrMap> {
+        let mut errors = StrMap::new();
+        if self.get_string("username").len() < 3 {
+            errors.insert("username".to_string(), "Minimum 3 characters".to_string());
+        }
+        if !self.get_string("email").contains('@') {
+            errors.insert("email".to_string(), "Invalid email".to_string());
+        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
+    }
+}
+```
+
+> `is_valid()` automatically calls `clean` after structural validation.
+> Returned errors are attached to fields and displayed inline in the template.
 
 ---
 
@@ -32,12 +64,13 @@ This macro generates:
 - Single model/schema contract, centralized
 - Coherent generation of migrations + forms
 - Reduced duplication of field definitions
+- `clean` is the official trait override — uniform between manual and model-based forms
 
 ### Points of attention
 
 - Strict DSL: a syntax error causes a macro build error
 - Misaligned `fields`/`exclude` with the schema can cause generation or runtime errors
-- Pedagogical order matters: understand `model/schema` before model-based form generation
+- `#[async_trait]` required on `impl RuniqueForm` only when overriding `clean` or `clean_field`
 
 ---
 

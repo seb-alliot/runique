@@ -45,7 +45,14 @@ impl Model {
     pub fn get_roles(&self) -> Vec<String> {
         self.roles
             .as_deref()
-            .and_then(|r| serde_json::from_str(r).ok())
+            .map(|r| {
+                serde_json::from_str(r).unwrap_or_else(|_| {
+                    r.split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect()
+                })
+            })
             .unwrap_or_default()
     }
 

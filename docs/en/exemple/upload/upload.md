@@ -9,12 +9,10 @@ pub struct ImageForm {
 
 impl RuniqueForm for ImageForm {
     fn register_fields(form: &mut Forms) {
-        let config = StaticConfig::from_env();
         form.field(
             &FileField::image("image")
                 .label("Image")
-                .upload_to(&config)
-                .required()
+                .upload_to_env()        // reads MEDIA_ROOT from .env
                 .max_size_mb(5)
                 .max_files(1)
                 .max_dimensions(1920, 1080)
@@ -23,6 +21,43 @@ impl RuniqueForm for ImageForm {
     }
     impl_form_access!();
 }
+```
+
+---
+
+## Configuring the upload path
+
+`upload_to` accepts three forms:
+
+```rust
+// 1 — direct path
+FileField::image("avatar").upload_to("media/avatars")
+
+// 2 — reads MEDIA_ROOT from .env (recommended)
+FileField::image("img").upload_to_env()
+
+// 3 — from an existing StaticConfig
+let config = StaticConfig::from_env();
+FileField::image("img").upload_to(&config)
+```
+
+`.env` configuration:
+
+```env
+MEDIA_ROOT=media/
+```
+
+---
+
+## Available field types
+
+```rust
+FileField::image("img")     // jpg jpeg png gif webp avif
+FileField::document("doc")  // pdf doc docx odt
+FileField::any("f")         // no extension filter
+
+// Custom extensions:
+FileField::any("data").allowed_extensions(vec!["csv", "json"])
 ```
 
 ---
@@ -44,20 +79,15 @@ pub async fn upload_image(
         return request.render(template);
     }
 
-    if request.is_post() {
-        if form.is_valid().await {
-            success!(request.notices => "File uploaded successfully!");
-            return Ok(Redirect::to("/").into_response());
-        }
-
-        context_update!(request => {
-            "title" => "Error",
-            "image_form" => &form,
-            "messages" => flash_now!(error => "Please fix the errors"),
-        });
-        return request.render(template);
+    if request.is_post() && form.is_valid().await {
+        success!(request.notices => "File uploaded successfully!");
+        return Ok(Redirect::to("/").into_response());
     }
 
+    context_update!(request => {
+        "title" => "Error",
+        "image_form" => &form,
+    });
     request.render(template)
 }
 ```
@@ -71,7 +101,6 @@ pub async fn upload_image(
 
 {% block content %}
     <h1>{{ title }}</h1>
-    {% messages %}
 
     <form method="post" enctype="multipart/form-data">
         {% form.image_form %}

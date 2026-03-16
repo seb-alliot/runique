@@ -1,4 +1,3 @@
-use runique::config::StaticConfig;
 use runique::prelude::*;
 use serde::Serialize;
 
@@ -10,11 +9,10 @@ pub struct ImageForm {
 
 impl RuniqueForm for ImageForm {
     fn register_fields(form: &mut Forms) {
-        let config = StaticConfig::from_env();
         form.field(
             &FileField::image("image")
                 .label("Choisissez une image à uploader")
-                .upload_to(&config)
+                .upload_to_env()
                 .max_size_mb(5)
                 .max_files(3)
                 .max_dimensions(1920, 1080)
