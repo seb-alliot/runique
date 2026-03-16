@@ -29,6 +29,11 @@ pub fn routes() -> Router {
         // test template
         "/test-template" => view! { views::test_template },        name = "test_template",
 
+        // Erreurs — vérifie que les pages d'erreur Runique s'affichent correctement
+        "/erreurs/404" => view! { views::force_not_found },         name = "force_404",
+        "/erreurs/500" => view! { views::force_server_error },      name = "force_500",
+        "/erreurs/429" => view! { views::force_too_many_requests }, name = "force_429",
+
         // Contributions
         "/contribution"  => view! { views::contribution_submit }, name = "contribution",
         "/contributions" => view! { views::contribution_list },   name = "contribution_list",

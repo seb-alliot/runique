@@ -61,11 +61,23 @@
             <h3>Messages flash</h3>
             <p>Success, info, warning, error</p>
         </a>
+        <a href="{% link 'force_404' %}" class="feature-card">
+            <h3>Page 404</h3>
+            <p>Vérification de l'affichage de la page d'erreur 404</p>
+        </a>
+        <a href="{% link 'force_500' %}" class="feature-card">
+            <h3>Page 500</h3>
+            <p>Vérification de l'affichage de la page d'erreur 500</p>
+        </a>
+        <a href="{% link 'force_429' %}" class="feature-card">
+            <h3>Page 429</h3>
+            <p>Vérification de l'affichage de la page d'erreur 429</p>
+        </a>
         <a href="{% link 'admin_login' %}" class="feature-card feature-card-admin">
             <h3>Admin</h3>
             <p>CRUD auto-généré, permissions, tableau de bord</p>
             <div class="admin-credentials">
-                <span>demo-admin</span>
+                <span>admin-demo</span>
                 <span class="cred-sep">/</span>
                 <span>admin-demo-password</span>
             </div>
