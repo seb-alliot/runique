@@ -29,7 +29,7 @@ async fn inject_auth(request: &mut Request) {
 pub async fn index(mut request: Request) -> AppResult<Response> {
     context_update!(request => {
         "title" => "Bienvenue sur Runique",
-        "description" => "Description: Un framework web inspiré de Django",
+        "description" => "Un framework web inspiré de Django",
         "status" => "Status: Framework en cours de développement...",
         "backend" => "Server: Axum",
         "template" => "Moteur de template: Tera",
@@ -440,6 +440,23 @@ pub async fn contribution_submit(
         "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
     });
     request.render(template)
+}
+
+// ─── Routes de test d'erreurs ─────────────────────────────────────────────────
+//
+// Ces routes existent uniquement pour vérifier que les pages d'erreur
+// de Runique s'affichent correctement. À ne pas exposer en production.
+
+pub async fn force_not_found(_: Request) -> Response {
+    StatusCode::NOT_FOUND.into_response()
+}
+
+pub async fn force_server_error(_: Request) -> Response {
+    StatusCode::INTERNAL_SERVER_ERROR.into_response()
+}
+
+pub async fn force_too_many_requests(_: Request) -> Response {
+    StatusCode::TOO_MANY_REQUESTS.into_response()
 }
 
 // ─── Liste des contributions ──────────────────────────────────────────────────
