@@ -56,7 +56,9 @@ pub mod prelude {
     // ========================================================================
     pub use crate::errors::ErrorContext;
     pub use crate::errors::RuniqueError;
+    pub use crate::utils::init_logging;
     pub use tracing;
+
     // ========================================================================
     // MODULES PRINCIPAUX
     // ========================================================================

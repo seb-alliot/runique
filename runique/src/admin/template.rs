@@ -21,49 +21,49 @@ impl PathAdminTemplate {
     pub fn dashboard() -> Self {
         Self {
             dev: None,
-            runique: "dashboard",
+            runique: "admin/dashboard",
         }
     }
 
     pub fn login() -> Self {
         Self {
             dev: None,
-            runique: "login",
+            runique: "admin/login",
         }
     }
 
     pub fn list() -> Self {
         Self {
             dev: None,
-            runique: "list",
+            runique: "admin/list",
         }
     }
 
     pub fn create() -> Self {
         Self {
             dev: None,
-            runique: "create",
+            runique: "admin/create",
         }
     }
 
     pub fn edit() -> Self {
         Self {
             dev: None,
-            runique: "edit",
+            runique: "admin/edit",
         }
     }
 
     pub fn detail() -> Self {
         Self {
             dev: None,
-            runique: "detail",
+            runique: "admin/detail",
         }
     }
 
     pub fn delete() -> Self {
         Self {
             dev: None,
-            runique: "delete",
+            runique: "admin/delete",
         }
     }
 

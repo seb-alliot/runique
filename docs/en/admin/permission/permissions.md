@@ -11,7 +11,7 @@ The permission system relies on the authenticated user, whose data is read from 
 | `is_staff` | `bool` | ✅ Active | Grants access to the admin interface |
 | `is_superuser` | `bool` | ✅ Active | Full access, bypasses all checks |
 | `is_active` | `bool` | ⏳ In development | Planned to block disabled accounts |
-| `roles` | `Option<Vec<String>>` | ⏳ In development | Per-resource permissions (declared, not enforced) |
+| `roles` | `Option<Vec<String>>` | ✅ Active | User roles — accessible in templates via `current_user.roles` |
 
 ---
 
@@ -38,7 +38,31 @@ A user with `is_superuser = true` bypasses **all** checks — admin entry and pe
 
 The field exists in the `users` model but is not yet checked by the admin middleware. An account with `is_active = false` can still log in if `is_staff` or `is_superuser` is `true`.
 
-### roles / permissions
+### roles
+
+The `roles` field is available in all admin templates via `current_user.roles`.
+
+#### Setting roles in the admin interface
+
+Roles are entered as free text, comma-separated:
+
+```
+editor
+editor, moderator
+admin, editor
+```
+
+#### Using roles in templates
+
+```html
+{% if current_user and "editor" in current_user.roles %}
+    <a href="...">Edit</a>
+{% endif %}
+```
+
+`is_superuser = true` always bypasses role conditions — a superuser sees everything.
+
+#### Per-resource permissions (declarative)
 
 The `admin!` macro allows declaring allowed roles per resource:
 

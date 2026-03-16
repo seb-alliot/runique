@@ -2,54 +2,43 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
-    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
+    <link rel="stylesheet" href='{% static "css/search-user.css" %}'>
 {% endblock %}
 
+{% block content %}
 <div class="content">
-    {% block content %}
+    {% if title %}<h1>{{ title }}</h1>{% endif %}
 
-    <div class="content">
-        {% if title %}
-            <h1>{{ title }}</h1>
+    <h2>Rechercher un utilisateur</h2>
+
+    <form id="username-form" method="get" action="{% link 'search-user' %}">
+        {% form.user %}
+        <button type="submit" class="btn btn-primary">Rechercher</button>
+    </form>
+
+    {% if username or email or age %}
+    <div class="result-card">
+        <h3>Informations Utilisateur</h3>
+
+        <div class="result-line">
+            <span class="result-label">Utilisateur :</span>
+            <span class="result-value">{{ username }}</span>
+        </div>
+
+        {% if email %}
+        <div class="result-line">
+            <span class="result-label">Email :</span>
+            <span class="result-value">{{ email }}</span>
+        </div>
         {% endif %}
 
-        <!-- Formulaire de recherche d'utilisateur -->
-            <h2>Rechercher un utilisateur</h2>
-                {% block messages %}
-                {% messages %}
-                {% endblock %}
-            <form id="username-form" method="get">
-                {% form.user %}
-                <button type="submit">Rechercher</button>
-            </form>
-
-        <!-- Affichage des informations de l'utilisateur -->
-            {% if username or email or age %}
-            <div class="result-card">
-                <h3>Informations Utilisateur</h3>
-
-                <div class="result-line">
-                    <span class="result-label">Utilisateur :</span>
-                    <span class="result-value">{{ username }}</span>
-                </div>
-
-                {% if email %}
-                <div class="result-line">
-                    <span class="result-label">Email :</span>
-                    <span class="result-value">{{ email }}</span>
-                </div>
-                {% endif %}
-
-                {% if age %}
-                <div class="result-line">
-                    <span class="result-label">Âge :</span>
-                    <span class="result-value">{{ age }} ans</span>
-                </div>
-                {% endif %}
-            </div>
-    {% endif %}
+        {% if age %}
+        <div class="result-line">
+            <span class="result-label">Âge :</span>
+            <span class="result-value">{{ age }} ans</span>
+        </div>
+        {% endif %}
     </div>
+    {% endif %}
 </div>
-
 {% endblock %}

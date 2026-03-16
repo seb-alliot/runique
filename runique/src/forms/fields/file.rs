@@ -3,6 +3,32 @@ use crate::{
     config::StaticConfig,
     forms::base::{CommonFieldConfig, FieldConfig, FormField},
 };
+
+/// Accepte un chemin d'upload sous plusieurs formes :
+/// - `"media/avatars"` (&str)
+/// - `String`
+/// - `&StaticConfig` (utilise `media_root` du .env)
+pub trait IntoUploadPath {
+    fn into_upload_path(self) -> String;
+}
+
+impl IntoUploadPath for &str {
+    fn into_upload_path(self) -> String {
+        self.to_string()
+    }
+}
+
+impl IntoUploadPath for String {
+    fn into_upload_path(self) -> String {
+        self
+    }
+}
+
+impl IntoUploadPath for &StaticConfig {
+    fn into_upload_path(self) -> String {
+        self.media_root.clone()
+    }
+}
 use image::ImageReader;
 use serde::Serialize;
 use std::path::Path;
@@ -192,8 +218,14 @@ impl FileField {
         self
     }
 
-    pub fn upload_to(mut self, cfg: &StaticConfig) -> Self {
-        self.upload_config = self.upload_config.upload_to(cfg.media_root.clone());
+    pub fn upload_to(mut self, path: impl IntoUploadPath) -> Self {
+        self.upload_config = self.upload_config.upload_to(path.into_upload_path());
+        self
+    }
+
+    pub fn upload_to_env(mut self) -> Self {
+        let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
+        self.upload_config = self.upload_config.upload_to(media_root);
         self
     }
 

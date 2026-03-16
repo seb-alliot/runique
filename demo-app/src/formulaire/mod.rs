@@ -12,3 +12,6 @@ pub use image::ImageForm;
 
 pub mod login;
 pub use login::LoginForm;
+
+pub mod contribution;
+pub use contribution::ContributionForm;

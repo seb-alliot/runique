@@ -1,59 +1,42 @@
-# Formulaire avec `impl_form_access!`
+# Formulaire basé modèle avec `#[form(...)]` et `impl_form_access!(model)`
 
-La macro `impl_form_access!` génère automatiquement les méthodes d'accès requises par le trait `RuniqueForm`.
+La macro `#[form(...)]` génère la struct et `impl ModelForm`.
+Le dev écrit `impl RuniqueForm` avec `impl_form_access!(model)` pour brancher les champs du modèle.
 
 ```rust,ignore
 use runique::prelude::*;
-use runique::forms::{RuniqueForm, Forms};
-use runique::forms::fields::text::TextField;
-use runique::forms::fields::number::NumericField;
-use async_trait::async_trait;
 
-pub struct RegisterForm {
-    form: Forms,
+#[form(schema = user_schema, fields = [username, email, password])]
+pub struct RegisterForm;
+
+impl RuniqueForm for RegisterForm {
+    impl_form_access!(model);
 }
+```
+
+## Avec validation métier
+
+`#[async_trait]` requis uniquement quand on override une méthode async :
+
+```rust,ignore
+use runique::prelude::*;
+
+#[form(schema = user_schema, fields = [username, email, password])]
+pub struct RegisterForm;
 
 #[async_trait]
 impl RuniqueForm for RegisterForm {
-    // Génère automatiquement : from_form, get_form, get_form_mut
-    impl_form_access!();
+    impl_form_access!(model);
 
-    fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("username")
-            .label("Nom d'utilisateur")
-            .min_length(3, "Minimum 3 caractères")
-            .max_length(50, "Maximum 50 caractères")
-            .required(true, None));
-
-        form.field(&TextField::email("email")
-            .label("Email")
-            .required(true, None));
-
-        form.field(&TextField::password("password")
-            .label("Mot de passe")
-            .min_length(8, "Minimum 8 caractères")
-            .required(true, None));
-
-        form.field(&NumericField::integer("age")
-            .label("Âge")
-            .min_value(13, "Vous devez avoir au moins 13 ans"));
+    async fn clean(&mut self) -> Result<(), StrMap> {
+        let mut errors = StrMap::new();
+        if self.get_string("username").len() < 3 {
+            errors.insert("username".to_string(), "Minimum 3 caractères".to_string());
+        }
+        if !self.get_string("email").contains('@') {
+            errors.insert("email".to_string(), "Email invalide".to_string());
+        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
-}
-
-// Utilisation dans un handler
-async fn register_handler(ctx: Request, Form(data): Form<HashMap<String, String>>) -> Response {
-    let csrf = ctx.csrf_token();
-
-    // Chargement depuis les données POST
-    let mut form = RegisterForm::build_with_data(&data, ctx.engine.tera.clone(), &csrf).await;
-
-    if form.is_valid().await {
-        form.save(ctx.db()).await.unwrap();
-        return Redirect::to("/success").into_response();
-    }
-
-    let mut context = ctx.context.clone();
-    context.insert("form", form.get_form());
-    ctx.render("register.html", &context)
 }
 ```

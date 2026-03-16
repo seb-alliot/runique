@@ -28,5 +28,9 @@ pub fn routes() -> Router {
 
         // test template
         "/test-template" => view! { views::test_template },        name = "test_template",
+
+        // Contributions
+        "/contribution"  => view! { views::contribution_submit }, name = "contribution",
+        "/contributions" => view! { views::contribution_list },   name = "contribution_list",
     }
 }

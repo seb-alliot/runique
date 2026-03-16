@@ -26,6 +26,30 @@
 }
 
 /* =========================
+    DEMO FLASH MESSAGES
+   ========================= */
+.about-intro {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.about-levels {
+    margin-top: 1.5rem;
+}
+
+.about-levels h3 {
+    color: var(--accent);
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.msg-success { color: #22c55e; }
+.msg-info    { color: #3b82f6; }
+.msg-warning { color: #f59e0b; }
+.msg-error   { color: #ef4444; }
+
+/* =========================
     RESPONSIVE
    ========================= */
 @media (max-width: 768px) {

@@ -314,6 +314,7 @@ impl RuniqueAppBuilder {
 
         let router = if self.admin.enabled {
             let admin_router = build_admin_router(self.admin);
+            add_urls(&engine);
             router.merge(admin_router)
         } else {
             router

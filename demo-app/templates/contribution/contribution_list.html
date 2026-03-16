@@ -1,0 +1,33 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="content">
+    <div class="blog-header">
+        <h1>{{ title }}</h1>
+        <a href="{% link 'contribution' %}" class="btn btn-primary">+ Nouvelle contribution</a>
+    </div>
+
+    {% if contributions %}
+        <div class="blog-grid">
+            {% for contribution in contributions %}
+                <article class="blog-card">
+                    <div class="blog-card-header">
+                        <h2 class="blog-card-title">{{ contribution.title }}</h2>
+                        <span class="blog-card-meta">par utilisateur #{{ contribution.user_id }}</span>
+                    </div>
+                    <p class="blog-card-summary">{{ contribution.content }}</p>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>Aucune contribution pour le moment.</p>
+            <a href="{% link 'contribution' %}" class="btn btn-primary">Soyez le premier !</a>
+        </div>
+    {% endif %}
+
+    <div class="back-link">
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,8 +1,6 @@
 /* =========================
-   FORMULAIRE INSCRIPTION
+    FORMULAIRE INSCRIPTION
    ========================= */
-
-
 
 body > main {
     flex: 1;
@@ -24,7 +22,7 @@ form {
 h1 {
     text-align: center;
     color: var(--accent);
-    margin-top: var(--margin-top);
+    margin: var(--margin-top);
 }
 form,
 .invalid-feedback,
@@ -97,11 +95,14 @@ form .error-message {
 }
 
 /* =========================
-   BOUTON
+    BOUTON
    ========================= */
 
 form button, .text-center a {
     margin-top: 1rem;
+    width: 100%;
+    display: block;
+    text-align: center;
     background: linear-gradient(135deg, var(--accent), #6366f1);
     color: #fff;
     border: none;
@@ -112,6 +113,7 @@ form button, .text-center a {
     cursor: pointer;
     transition: all 0.25s ease;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
 }
 
 /* Hover élégant */
@@ -146,7 +148,7 @@ form button:active, .text-center:active {
     align-items: center;
 }
 /* =========================
-   RESPONSIVE
+    RESPONSIVE
    ========================= */
 
 @media (max-width: 480px) {
@@ -161,7 +163,7 @@ form button:active, .text-center:active {
     }
 }
 /* =========================
-   NAVIGATION RESPONSIVE
+    NAVIGATION RESPONSIVE
    ========================= */
 
 .text-center {
@@ -214,7 +216,7 @@ form button:active, .text-center:active {
 }
 
 /* =========================
-   RESPONSIVE
+    RESPONSIVE
    ========================= */
 
 @media (max-width: 768px) {

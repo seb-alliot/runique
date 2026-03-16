@@ -26,6 +26,7 @@
         <h1 class="page-title">Tableau de bord</h1>
         <p class="page-subtitle">Vue d'ensemble de l'application</p>
     </div>
+    <a href="/admin/toggle-template" class="btn btn-secondary btn-sm">← Template par défaut</a>
 </div>
 
 <div class="stats-grid">
@@ -97,19 +98,4 @@
     </div>
 </div>
 {% endif %}
-{% if current_page %}{% set current_page = current_page | default(value="list") %}{% endif %}
-</main>
 {% endblock %}
-    <footer>
-        {% block footer %}
-            <a href="{% link 'login' %}">Se connecter</a>
-            <a href="{% link 'profil' %}">Mon profil</a>
-            <a href="{% link 'test_fields' %}">Test des champs</a>
-            <a href="{% link 'upload_image' %}">uploader une image</a>
-            <a href="{% link "inscription" %}">Inscrivez-vous !</a>
-            <a href="{% link "search-user" %}">Recherche utilisateur</a>
-            <a href="{% link "about" %}">À propos</a>
-            <a href="{% link "blog_info" %}">Blog</a>
-            <p>&copy; 2026 My Web Application</p>
-        {% endblock %}
-    </footer>

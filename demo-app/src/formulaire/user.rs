@@ -7,34 +7,49 @@ pub struct RegisterForm;
 #[form(schema = eihwaz_users_schema, fields = [username, email, is_active, is_staff, is_superuser, roles])]
 pub struct UserEditForm;
 
-impl RegisterForm {
-    async fn clean_fields(&self) -> Result<(), String> {
-        let username = self.form.get_string("username");
-        let email = self.form.get_string("email");
-        let password = self.form.get_string("password");
+#[async_trait]
+impl RuniqueForm for RegisterForm {
+    impl_form_access!(model);
+
+    async fn clean(&mut self) -> Result<(), StrMap> {
+        let username = self.get_string("username");
+        let email = self.get_string("email");
+        let password = self.get_string("password");
+        let mut errors = StrMap::new();
 
         if username.len() < 3 {
-            return Err("Username must be at least 3 characters long".to_string());
+            errors.insert(
+                "username".to_string(),
+                "Username must be at least 3 characters long".to_string(),
+            );
         }
-
         if !email.contains('@') {
-            return Err("Invalid email address".to_string());
+            errors.insert("email".to_string(), "Invalid email address".to_string());
         }
         if password.len() < 10 {
-            return Err("Password must be at least 10 characters long".to_string());
+            errors.insert(
+                "password".to_string(),
+                "Password must be at least 10 characters long".to_string(),
+            );
         }
-        Ok(())
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
-    async fn clean(&self) -> Result<(), String> {
-        self.clean_fields().await
-    }
+}
+
+impl RuniqueForm for UserEditForm {
+    impl_form_access!(model);
+}
+
+impl RegisterForm {
     pub async fn save(
         &self,
         db: &DatabaseConnection,
     ) -> Result<runique::prelude::user::Model, DbErr> {
-        if let Err(e) = self.clean().await {
-            return Err(DbErr::Custom(e));
-        }
         use runique::prelude::user::ActiveModel;
         let user = ActiveModel {
             username: Set(self.form.get_string("username")),

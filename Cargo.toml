@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "runique",
+    "runique/derive_form",
     "demo-app",
     "demo-app/migration"
 ]
@@ -59,7 +60,7 @@ dyn-clone = "1.0.20"
 image = "0.25.10"
 dialoguer = "0.12"
 
-derive_form = "1.1.32"
+derive_form = { path = "runique/derive_form" }
 
 # Logging
 tracing = "0.1"

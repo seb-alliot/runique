@@ -2,11 +2,9 @@
    PROFIL UTILISATEUR
    ========================= */
 
-.container {
-    min-height: 100vh;
+.profile-wrapper {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    justify-content: center;
     padding: 2rem 1rem;
 }
 
@@ -18,7 +16,6 @@
     border: solid #003d9f;
     border-radius: 10px;
     padding: 2rem;
-    margin-top: var(--margin-top);
     animation: formFade 1s ease forwards;
 }
 
@@ -162,44 +159,15 @@
     border-top: 1px solid #1f2937;
 }
 
-/* Boutons */
-.btn {
-    padding: 0.8rem 1.5rem;
-    border-radius: 1rem;
-    font-weight: 700;
-    font-size: 0.9rem;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, var(--accent), #6366f1);
-    color: #fff;
-}
-
-.btn-secondary {
-    background: transparent;
-    border: 1px solid #1f2937;
-    color: var(--text-muted);
-}
-
+/* Bouton danger (spécifique profil) */
 .btn-danger {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: #fff;
 }
 
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
-    filter: brightness(1.05);
-}
-
-.btn:active {
-    transform: translateY(0);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+/* Formulaire inline dans les actions */
+.form-inline {
+    display: contents;
 }
 
 /* =========================
@@ -209,7 +177,6 @@
 @media (max-width: 768px) {
     .profile-card {
         padding: 1.5rem;
-        margin-top: 1rem;
     }
 
     .profile-card h1 {
@@ -219,10 +186,6 @@
     .profile-avatar {
         width: 100px;
         height: 100px;
-    }
-
-    .avatar-placeholder {
-        font-size: 2rem;
     }
 
     .profile-row {
@@ -245,14 +208,14 @@
         width: 100%;
     }
 
-    .btn {
+    .profile-actions .btn {
         width: 100%;
         text-align: center;
     }
 }
 
 @media (max-width: 480px) {
-    .container {
+    .profile-wrapper {
         padding: 1rem 0.75rem;
     }
 

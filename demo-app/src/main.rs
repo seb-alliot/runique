@@ -11,13 +11,12 @@ mod url;
 mod views;
 
 use runique::app::builder::RuniqueAppBuilder as builder;
-use runique::utils::init_logging;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logging();
     password_init(PasswordConfig::Manual(Manual::Argon2));
-    set_lang(Lang::It);
+    set_lang(Lang::Fr);
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
@@ -42,8 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             a.site_title("Administration")
                 .auth(RuniqueAdminAuth::new())
                 .routes(admins::routes("/admin"))
-                // .templates(|a|a
-                //     .with_dashboard("admin/test_dashboard.html"))
+                .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
                 .with_state(admins::admin_state())
         })
         .build()

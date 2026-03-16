@@ -100,20 +100,6 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
             }
         }
 
-        impl ::runique::forms::field::RuniqueForm for #name {
-            fn register_fields(form: &mut ::runique::forms::Forms) {
-                <Self as ::runique::forms::model_form::ModelForm>::model_register_fields(form);
-            }
-            fn from_form(form: ::runique::forms::Forms) -> Self {
-                Self { form }
-            }
-            fn get_form(&self) -> &::runique::forms::Forms {
-                &self.form
-            }
-            fn get_form_mut(&mut self) -> &mut ::runique::forms::Forms {
-                &mut self.form
-            }
-        }
     };
 
     TokenStream::from(expanded)

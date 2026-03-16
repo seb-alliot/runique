@@ -8,20 +8,52 @@ La macro attribut `#[form(...)]` attend :
 - `fields = [..]` (optionnel)
 - `exclude = [..]` (optionnel)
 
-Exemple concret :
+Elle génère uniquement :
+
+- la struct avec `form: Forms`
+- `impl ModelForm` (`schema()`, `fields()`, `exclude()`)
+
+Le dev écrit ensuite `impl RuniqueForm` avec `impl_form_access!(model)` :
 
 ```rust
 use runique::prelude::*;
 
-#[form(schema = user_schema, fields = ["username", "email"], exclude = ["is_active"])]
+#[form(schema = user_schema, fields = [username, email])]
 pub struct UserForm;
+
+impl RuniqueForm for UserForm {
+    impl_form_access!(model);
+}
 ```
 
-Cette macro génère :
+### Avec validation métier (`clean`)
 
-- une struct avec `form: Forms`,
-- `impl ModelForm` (`schema()`, `fields()`, `exclude()`),
-- `impl RuniqueForm` qui délègue à `ModelForm::model_register_fields(...)`.
+Overrider `clean` directement dans `impl RuniqueForm` — comme Django.
+`#[async_trait]` est requis uniquement quand on override une méthode async :
+
+```rust
+#[form(schema = user_schema, fields = [username, email, password])]
+pub struct RegisterForm;
+
+#[async_trait]
+impl RuniqueForm for RegisterForm {
+    impl_form_access!(model);
+
+    async fn clean(&mut self) -> Result<(), StrMap> {
+        let mut errors = StrMap::new();
+        if self.get_string("username").len() < 3 {
+            errors.insert("username".to_string(), "Minimum 3 caractères".to_string());
+        }
+        if !self.get_string("email").contains('@') {
+            errors.insert("email".to_string(), "Email invalide".to_string());
+        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
+    }
+}
+```
+
+> `is_valid()` appelle automatiquement `clean` après la validation structurelle.
+> Les erreurs retournées sont attachées aux champs et affichées inline dans le template.
 
 ---
 
@@ -32,12 +64,13 @@ Cette macro génère :
 - Contrat unique modèle/schéma centralisé
 - Génération cohérente migration + formulaire
 - Réduction de duplication de définition de champs
+- `clean` est l'override officiel du trait — uniforme entre formulaires manuels et basés modèle
 
 ### Points d'attention
 
 - DSL stricte : erreur de syntaxe = erreur de macro au build
 - `fields`/`exclude` mal alignés avec le schéma => erreurs de génération/exécution
-- Ordre pédagogique important : comprendre `model/schema` avant la méthode formulaire basée modèle
+- `#[async_trait]` requis sur `impl RuniqueForm` uniquement quand on override `clean` ou `clean_field`
 
 ---
 

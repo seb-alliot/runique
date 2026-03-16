@@ -1,4 +1,5 @@
 use crate::model::ast::*;
+use proc_macro2;
 use syn::token;
 use syn::{
     parse::{Parse, ParseStream},
@@ -342,6 +343,15 @@ impl Parse for RelationDef {
                     return Err(syn::Error::new(via_kw.span(), "Attendu : 'via'"));
                 }
                 let via: Ident = input.parse()?;
+                // options FK optionnelles : [cascade], [cascade, restrict], etc.
+                // consommées ici, gérées par le système de migration
+                if input.peek(syn::token::Bracket) {
+                    let opts;
+                    syn::bracketed!(opts in input);
+                    while !opts.is_empty() {
+                        opts.parse::<proc_macro2::TokenTree>().ok();
+                    }
+                }
                 RelationDef::BelongsTo { model, via }
             }
             "has_many" => {

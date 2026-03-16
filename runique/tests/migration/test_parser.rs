@@ -123,6 +123,27 @@ fn relations_source() -> &'static str {
     "#
 }
 
+fn relations_cascade_source() -> &'static str {
+    r#"
+    use runique::prelude::*;
+    model! {
+        Comment,
+        table: "comments",
+        pk: id => i32,
+        fields: {
+            body: String,
+            post_id: i32,
+            author_id: i32,
+        },
+        relations: {
+            belongs_to: Post via post_id [cascade],
+            belongs_to: EihwazUsers via author_id [cascade, restrict],
+            has_one: CommentMeta,
+        }
+    }
+    "#
+}
+
 fn meta_source() -> &'static str {
     r#"
     use runique::prelude::*;
@@ -681,4 +702,120 @@ fn test_multiple_calls_same_source_return_equal_results() {
     let s2 = parse_schema_from_source(relations_source()).unwrap();
     assert_eq!(s1.table_name, s2.table_name);
     assert_eq!(s1.columns.len(), s2.columns.len());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Relations — FK générées depuis belongs_to
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_belongs_to_genere_une_fk() {
+    let s = parse_schema_from_source(relations_source()).unwrap();
+    assert_eq!(
+        s.foreign_keys.len(),
+        1,
+        "belongs_to doit générer exactement 1 FK"
+    );
+}
+
+#[test]
+fn test_belongs_to_from_column() {
+    let s = parse_schema_from_source(relations_source()).unwrap();
+    let fk = &s.foreign_keys[0];
+    assert_eq!(fk.from_column, "user_id");
+}
+
+#[test]
+fn test_belongs_to_to_table_pascal_vers_snake() {
+    let s = parse_schema_from_source(relations_source()).unwrap();
+    let fk = &s.foreign_keys[0];
+    // User → user
+    assert_eq!(fk.to_table, "user");
+}
+
+#[test]
+fn test_belongs_to_to_column_defaut_id() {
+    let s = parse_schema_from_source(relations_source()).unwrap();
+    let fk = &s.foreign_keys[0];
+    assert_eq!(fk.to_column, "id");
+}
+
+#[test]
+fn test_belongs_to_on_delete_no_action_par_defaut() {
+    let s = parse_schema_from_source(relations_source()).unwrap();
+    let fk = &s.foreign_keys[0];
+    assert_eq!(fk.on_delete, "NoAction");
+    assert_eq!(fk.on_update, "NoAction");
+}
+
+#[test]
+fn test_has_many_ne_genere_pas_de_fk() {
+    let s = parse_schema_from_source(relations_source()).unwrap();
+    // only belongs_to generates FK — has_many does not
+    assert!(
+        s.foreign_keys
+            .iter()
+            .all(|fk| fk.from_column != "comment_id")
+    );
+}
+
+#[test]
+fn test_belongs_to_cascade_on_delete() {
+    let s = parse_schema_from_source(relations_cascade_source()).unwrap();
+    let fk = s
+        .foreign_keys
+        .iter()
+        .find(|fk| fk.from_column == "post_id")
+        .unwrap();
+    assert_eq!(fk.on_delete, "Cascade");
+    assert_eq!(fk.on_update, "NoAction");
+}
+
+#[test]
+fn test_belongs_to_cascade_et_restrict() {
+    let s = parse_schema_from_source(relations_cascade_source()).unwrap();
+    let fk = s
+        .foreign_keys
+        .iter()
+        .find(|fk| fk.from_column == "author_id")
+        .unwrap();
+    assert_eq!(fk.on_delete, "Cascade");
+    assert_eq!(fk.on_update, "Restrict");
+}
+
+#[test]
+fn test_plusieurs_belongs_to_generent_plusieurs_fk() {
+    let s = parse_schema_from_source(relations_cascade_source()).unwrap();
+    assert_eq!(s.foreign_keys.len(), 2, "2 belongs_to → 2 FK");
+}
+
+#[test]
+fn test_belongs_to_table_cible_pascal_to_snake_composee() {
+    let s = parse_schema_from_source(relations_cascade_source()).unwrap();
+    let fk = s
+        .foreign_keys
+        .iter()
+        .find(|fk| fk.from_column == "author_id")
+        .unwrap();
+    // EihwazUsers → eihwaz_users
+    assert_eq!(fk.to_table, "eihwaz_users");
+}
+
+#[test]
+fn test_has_one_ne_genere_pas_de_fk() {
+    let s = parse_schema_from_source(relations_cascade_source()).unwrap();
+    // has_one: CommentMeta ne doit pas créer de FK
+    assert!(
+        s.foreign_keys
+            .iter()
+            .all(|fk| fk.to_table != "comment_meta")
+    );
+}
+
+#[test]
+fn test_relations_champs_intacts_avec_cascade() {
+    let s = parse_schema_from_source(relations_cascade_source()).unwrap();
+    assert!(s.columns.iter().any(|c| c.name == "body"));
+    assert!(s.columns.iter().any(|c| c.name == "post_id"));
+    assert!(s.columns.iter().any(|c| c.name == "author_id"));
 }

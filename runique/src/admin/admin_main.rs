@@ -182,6 +182,7 @@ fn inject_context(
     insert_admin_messages(&mut req.context, "base");
 
     req.context.insert("site_title", &state.config.site_title);
+    req.context.insert("site_url", &state.config.site_url);
     req.context.insert("resource_key", entry.meta.key);
     req.context.insert("current_resource", entry.meta.key);
     req.context.insert("resource", &entry.meta);

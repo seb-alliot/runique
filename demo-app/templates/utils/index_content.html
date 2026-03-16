@@ -1,0 +1,74 @@
+<div class="content">
+    {% messages %}
+
+    <h1>{{ title }}</h1>
+    <p class="lead">{{ description }}</p>
+
+    <div class="stack-grid">
+        <div class="stack-card">
+            <span class="stack-label">Backend</span>
+            <span>{{ backend }}</span>
+        </div>
+        <div class="stack-card">
+            <span class="stack-label">Templates</span>
+            <span>{{ template }}</span>
+        </div>
+        <div class="stack-card">
+            <span class="stack-label">ORM</span>
+            <span>{{ orm }}</span>
+        </div>
+        <div class="stack-card">
+            <span class="stack-label">Runtime</span>
+            <span>{{ tokio }}</span>
+        </div>
+        <div class="stack-card">
+            <span class="stack-label">Session</span>
+            <span>{{ session }}</span>
+        </div>
+        <div class="stack-card">
+            <span class="stack-label">Migrations</span>
+            <span>{{ migration }}</span>
+        </div>
+    </div>
+
+    <h2>Démonstrations</h2>
+    <div class="demo-cards">
+        <a href="{% link 'inscription' %}" class="feature-card">
+            <h3>Inscription</h3>
+            <p>Formulaire basé modèle, validation, hash mot de passe</p>
+        </a>
+        <a href="{% link 'login' %}" class="feature-card">
+            <h3>Authentification</h3>
+            <p>Login / logout, sessions, protection des routes</p>
+        </a>
+        <a href="{% link 'blog_list' %}" class="feature-card">
+            <h3>Blog</h3>
+            <p>CRUD complet, ModelForm, SeaORM</p>
+        </a>
+        <a href="{% link 'contribution_list' %}" class="feature-card">
+            <h3>Contributions</h3>
+            <p>FK, route protégée par authentification</p>
+        </a>
+        <a href="{% link 'test_fields' %}" class="feature-card">
+            <h3>Champs de formulaire</h3>
+            <p>Tous les types disponibles dans Runique</p>
+        </a>
+        <a href="{% link 'upload_image' %}" class="feature-card">
+            <h3>Upload fichier</h3>
+            <p>Image, validation taille et extension</p>
+        </a>
+        <a href="{% link 'about' %}" class="feature-card">
+            <h3>Messages flash</h3>
+            <p>Success, info, warning, error</p>
+        </a>
+        <a href="{% link 'admin_login' %}" class="feature-card feature-card-admin">
+            <h3>Admin</h3>
+            <p>CRUD auto-généré, permissions, tableau de bord</p>
+            <div class="admin-credentials">
+                <span>demo-admin</span>
+                <span class="cred-sep">/</span>
+                <span>admin-demo-password</span>
+            </div>
+        </a>
+    </div>
+</div>
