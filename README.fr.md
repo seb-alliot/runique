@@ -239,7 +239,7 @@ Pour un rapport détaillé et continuellement mis à jour de l’état du projet
 * [`SECURITY.md`] — (https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 * [`benchmark.md`] — (https://github.com/seb-alliot/runique/blob/main/benchmark.md)
 * [Runique vs Django — Comparatif des fonctionnalités](https://github.com/seb-alliot/runique/blob/main/docs/fr/comparatif-runique-django.fr.md)
-* [Runique vs Django — Feature Comparison (EN)](https://github.com/seb-alliot/runique/blob/main/docs/en/comparatif-runique-django.en.md)
+* [Runique vs Django — Feature Comparison (EN)](https://github.com/seb-alliot/runique/blob/main/docs/en/comparatif-runique-django.md)
 
 ---
 

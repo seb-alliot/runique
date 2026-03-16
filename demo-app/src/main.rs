@@ -34,13 +34,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_csp(|c| {
                     c.policy(SecurityPolicy::strict())
                         .with_header_security(true)
-                        .with_upgrade_insecure(cfg!(not(debug_assertions)))
+                        .with_upgrade_insecure(!is_debug())
                         .images(vec!["'self'", "data:"])
                 })
         })
         .with_admin(|a| {
-            a.hot_reload(cfg!(debug_assertions))
-                .site_title("Administration")
+            a.site_title("Administration")
                 .auth(RuniqueAdminAuth::new())
                 .routes(admins::routes("/admin"))
                 // .templates(|a|a
