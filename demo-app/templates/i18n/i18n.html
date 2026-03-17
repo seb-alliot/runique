@@ -1,0 +1,67 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Internationalisation des templates internes de Runique.<br>
+        N'affecte que les données renvoyées par le framework lui-même
+        (pages d'erreur, admin, messages de validation).
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">Déclaration dans main.rs</div>
+            <pre><code><span class="kw">use</span> runique::prelude::*;
+
+<span class="cm">// À appeler une seule fois au démarrage, avant builder::new().</span>
+<span class="fn_">set_lang</span>(<span class="ty">Lang</span>::Fr);</code></pre>
+
+            <div class="demo-code-title">Langues disponibles</div>
+            <pre><code><span class="ty">Lang</span>::Fr  <span class="cm">// Français</span>
+<span class="ty">Lang</span>::En  <span class="cm">// English  (défaut si non appelé)</span>
+<span class="ty">Lang</span>::It  <span class="cm">// Italiano</span>
+<span class="ty">Lang</span>::Es  <span class="cm">// Español</span>
+<span class="ty">Lang</span>::De  <span class="cm">// Deutsch</span>
+<span class="ty">Lang</span>::Pt  <span class="cm">// Português</span>
+<span class="ty">Lang</span>::Ja  <span class="cm">// 日本語</span>
+<span class="ty">Lang</span>::Zh  <span class="cm">// 中文</span>
+<span class="ty">Lang</span>::Ru  <span class="cm">// Русский</span></code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">Ce que ça traduit</div>
+            <pre><code><span class="cm">// Pages d'erreur Runique</span>
+<span class="nm">404</span> Not Found  →  <span class="st">"Page introuvable"</span>
+<span class="nm">429</span> Too Many    →  <span class="st">"Trop de requêtes"</span>
+<span class="nm">500</span> Server Err  →  <span class="st">"Erreur interne"</span>
+
+<span class="cm">// Messages de validation des formulaires</span>
+required  →  <span class="st">"Ce champ est obligatoire"</span>
+max_len   →  <span class="st">"Trop long (max : 255)"</span>
+
+<span class="cm">// Interface d'administration</span>
+<span class="st">"Enregistrer"</span> / <span class="st">"Supprimer"</span> / <span class="st">"Rechercher"</span> …</code></pre>
+
+            <div class="demo-code-title">Ce que ça ne traduit PAS</div>
+            <pre><code><span class="cm">// Vos propres templates Tera → votre responsabilité.</span>
+<span class="cm">// Vos propres messages d'erreur métier → votre responsabilité.</span>
+<span class="cm">// La langue ne change pas dynamiquement par requête.</span>
+<span class="cm">// C'est un réglage global au démarrage du serveur.</span></code></pre>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/i18n/i18n.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/i18n/i18n.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

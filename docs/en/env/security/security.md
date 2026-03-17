@@ -13,13 +13,7 @@
 
 ## Sessions
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `RUNIQUE_SESSION_CLEANUP_SECS` | `60` | Periodic cleanup interval (seconds) |
-| `RUNIQUE_SESSION_LOW_WATERMARK` | `134217728` (128 MB) | Proactive cleanup threshold — background purge of expired anonymous sessions (bytes) |
-| `RUNIQUE_SESSION_HIGH_WATERMARK` | `268435456` (256 MB) | Emergency threshold — synchronous cleanup + 503 if still exceeded (bytes) |
-
-See [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md) for behavioral details.
+Session memory limits and cleanup interval are configured via the builder — see [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md).
 
 ---
 

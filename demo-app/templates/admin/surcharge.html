@@ -1,0 +1,94 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Remplacer les templates par défaut de l'admin par les vôtres.
+        <span style="opacity:0.6; font-size:0.9rem;">(fonctionnalité beta)</span>
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">Surcharge dans main.rs</div>
+            <pre><code>builder::<span class="fn_">new</span>(config)
+    .<span class="fn_">with_admin</span>(|a| {
+        a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
+         .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
+         .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
+         .<span class="fn_">templates</span>(|t| {
+             t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/mon_dashboard.html"</span>)
+         })
+         .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
+    })</code></pre>
+
+            <div class="demo-code-title">Exemple utilisé dans cette démo</div>
+            <pre><code>builder::<span class="fn_">new</span>(config)
+    .<span class="fn_">with_admin</span>(|a| {
+        a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
+         .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
+         .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
+         .<span class="fn_">templates</span>(|t| t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/test_dashboard.html"</span>))
+         .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
+    })</code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">Templates surchargeables</div>
+            <pre><code><span class="cm">// Dashboard principal</span>
+t.<span class="fn_">with_dashboard</span>(<span class="st">"mon_dashboard.html"</span>)
+
+<span class="cm">// À venir (beta) :</span>
+<span class="cm">// t.with_list("mon_list.html")</span>
+<span class="cm">// t.with_form("mon_form.html")</span></code></pre>
+
+            <div class="demo-code-title">Clés injectées par Runique (obligatoires)</div>
+            <pre><code><span class="cm">// Votre template doit étendre le template admin de base.</span>
+<span class="cm">// Ces clés sont injectées automatiquement par Runique.</span>
+{% raw %}{% extends "admin/admin_template" %}{% endraw %}
+
+{% raw %}{{ site_title }}{% endraw %}       <span class="cm">// titre configuré dans .site_title()</span>
+{% raw %}{{ site_url }}{% endraw %}         <span class="cm">// URL de base</span>
+{% raw %}{{ resources }}{% endraw %}        <span class="cm">// liste des ressources (key, title, permissions)</span>
+{% raw %}{{ resource_counts }}{% endraw %}   <span class="cm">// nb d'entrées par ressource</span>
+{% raw %}{{ lang }}{% endraw %}             <span class="cm">// code langue actif (ex: "fr")</span></code></pre>
+
+            <div class="demo-code-title">Blocks Tera surchargeables</div>
+            <pre><code><span class="cm">// Blocks disponibles dans admin/admin_template</span>
+{% raw %}{% block extra_css %}{% endblock %}{% endraw %}   <span class="cm">// styles CSS additionnels</span>
+{% raw %}{% block title %}{% endblock %}{% endraw %}       <span class="cm">// titre de l'onglet</span>
+{% raw %}{% block breadcrumb %}{% endblock %}{% endraw %}  <span class="cm">// fil d'ariane</span>
+{% raw %}{% block content %}{% endblock %}{% endraw %}     <span class="cm">// contenu principal</span>
+{% raw %}{% block sidebar %}{% endblock %}{% endraw %}     <span class="cm">// barre latérale</span>
+{% raw %}{% block topbar %}{% endblock %}{% endraw %}      <span class="cm">// barre du haut</span>
+{% raw %}{% block messages %}{% endblock %}{% endraw %}    <span class="cm">// messages flash</span>
+{% raw %}{% block extra_js %}{% endblock %}{% endraw %}    <span class="cm">// scripts JS additionnels</span>
+{% raw %}{% block footer %}{% endblock %}{% endraw %}      <span class="cm">// pied de page</span></code></pre>
+
+            <div class="demo-code-title">Clés supplémentaires via with_state()</div>
+            <pre><code><span class="cm">// Données custom passées via extra_context dans admin_state().</span>
+<span class="cm">// Ex : utilisateur connecté, stats métier, etc.</span>
+{% raw %}{{ resource_counts[resource.key] }}{% endraw %}  <span class="cm">// exemple démo</span></code></pre>
+
+            <div class="demo-code-title">Exemple concret</div>
+            <pre><code><span class="cm">// Le dashboard affiché dans la vue admin de cette démo</span>
+<span class="cm">// est lui-même un template de surcharge.</span>
+<span class="cm">// demo-app/templates/admin/test_dashboard.html</span></code></pre>
+            <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">Voir sur GitHub</a>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/surcharge.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'admin_hub' %}">← Retour à l'admin</a>
+    </div>
+</div>
+{% endblock %}

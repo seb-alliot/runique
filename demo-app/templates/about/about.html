@@ -66,6 +66,10 @@
     request.<span class="fn_">render</span>(<span class="st">"blog/blog.html"</span>)
 }</code></pre>
 
+            <div class="demo-code-title">flash_now! — message immédiat sans session</div>
+            <pre><code><span class="cm">// Affiche le message sur la page courante (pas de redirect)</span>
+<span class="mc">flash_now!</span>(error => request, <span class="st">"Formulaire invalide."</span>);</code></pre>
+
             <div class="demo-code-title">index.html — affichage dans le template</div>
             <pre><code><span class="cm">&lt;!-- dans le layout de base --&gt;</span>
 &lt;<span class="kw">main</span>&gt;
@@ -79,7 +83,8 @@
     </div>
 
     <div class="back-link">
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md" target="_blank" class="btn btn-secondary">En savoir plus</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md" target="_blank" class="btn btn-secondary">Doc EN</a>
         <a href="{% link 'index' %}">← Retour à l'accueil</a>
     </div>
 </div>

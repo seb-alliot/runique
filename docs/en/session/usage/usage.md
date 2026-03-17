@@ -22,17 +22,11 @@ pub async fn handler(request: Request) -> AppResult<Response> {
 
 ## `.env` configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RUNIQUE_SESSION_CLEANUP_SECS` | `60` | Cleanup timer interval (seconds) |
-| `RUNIQUE_SESSION_LOW_WATERMARK` | `134217728` (128 MB) | Proactive cleanup threshold (bytes) |
-| `RUNIQUE_SESSION_HIGH_WATERMARK` | `268435456` (256 MB) | Emergency threshold + refusal (bytes) |
-
-```env
-# Example: cleanup every 30s, reduced watermarks for memory-constrained server
-RUNIQUE_SESSION_CLEANUP_SECS=30
-RUNIQUE_SESSION_LOW_WATERMARK=67108864
-RUNIQUE_SESSION_HIGH_WATERMARK=134217728
+```rust,ignore
+.middleware(|m| {
+    m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
+     .with_session_cleanup_interval(5)
+})
 ```
 
 ---

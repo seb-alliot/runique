@@ -1,0 +1,60 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Interface d'administration auto-générée à partir de vos modèles.
+    </p>
+
+    <div class="demo-sections">
+
+        <div class="demo-section">
+            <h2>Démo live</h2>
+            <div class="demo-cards">
+                <a href="{% link 'admin_login' %}" class="feature-card feature-card-admin">
+                    <h3>Accéder à l'admin</h3>
+                    <p>CRUD auto-généré, permissions, tableau de bord personnalisé</p>
+                    <div class="admin-credentials">
+                        <span>admin-demo</span>
+                        <span class="cred-sep">/</span>
+                        <span>admin-demo-password</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Documentation</h2>
+            <div class="demo-cards">
+
+                <a href="{% link 'admin_declaration' %}" class="feature-card">
+                    <h3>Déclaration — <code>impl_admin!</code></h3>
+                    <p>Déclarer un modèle dans l'admin, champs, permissions</p>
+                </a>
+
+                <a href="{% link 'admin_setup' %}" class="feature-card">
+                    <h3>Configuration &amp; CLI</h3>
+                    <p>Setup, <code>runique start</code>, génération du panneau admin</p>
+                </a>
+
+                <a href="{% link 'admin_surcharge' %}" class="feature-card">
+                    <h3>Surcharge de templates <span style="font-size:0.75rem; opacity:0.6;">(beta)</span></h3>
+                    <p>Personnaliser les templates admin : dashboard, liste, formulaire</p>
+                </a>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

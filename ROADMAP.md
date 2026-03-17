@@ -14,33 +14,17 @@
 - **Application progressive :** mode compat (warning) puis mode strict (refus des routes mutantes hors contrat).
 - **Effet attendu :** réduction des failles liées au non-respect du contrat, simplification des handlers, stabilité sécurité renforcée.
 
-### 1.b. Middleware CSP
+### 1.b. Robustesse runtime
 
-- 🟢 `'unsafe-inline'` retiré de `script_src` et `style_src` par défaut
-- 🟢 `use_nonce: true` par défaut — nonce vide filtré
-- 🟢 HSTS ajouté : `Strict-Transport-Security: max-age=31536000; includeSubDomains`
-- 🟢 Builder CSP — sous-builder `CspConfig` avec directives, toggles et presets (livré 1.1.47)
-
-### 1.c. Robustesse runtime
-
-- 🟢 `utils/middleware/csrf.rs` — `mask_csrf_token()` → `Result` (fix appliqué, plus de crash DDoS)
-- 🟢 Comparaisons CSRF constant-time via `subtle::ct_eq` (`csrf_gate.rs`, `middleware/security/csrf.rs`, `forms/fields/hidden.rs`)
-- 🟢 Cookies session : `HttpOnly: true`, `SameSite: Strict`
-- 🟢 `allowed_hosts.rs` : bypass DEBUG supprimé → interrupteur `RUNIQUE_ENABLE_HOST_VALIDATION`
-- 🟢 `cli_admin.rs` : validation du chemin provider avant `Command::new` (anti-RCE)
-- 🟢 `SECRET_KEY` aléatoire générée à `runique new`
-- 🟢 `utils/trad/switch_lang.rs` — `RwLock` → `AtomicU8` (livré 1.1.46)
 - 🔴 `utils/middleware/csrf.rs:57,74` — `SystemTime::UNIX_EPOCH.unwrap()` (risque quasi nul, à surveiller)
 - 🔴 Réduire `panic!/unwrap/expect` sur les chemins runtime
 - 🔴 Propager des erreurs typées (`Result`) sur les points critiques (middleware, daemon, CLI, i18n)
 
-### 1.d. Nouveaux outils sécurité
+### 1.c. Nouveaux outils sécurité
 
-- 🟢 `RateLimiter` — rate limiting par IP, configurable par handler (`middleware/rate_limit.rs`)
-- 🟢 `LoginGuard` — protection brute-force par username (`middleware/auth/login_guard.rs`)
-- 🔴 Tracing sécurité structuré (voir 4.a)
+- 🔴 Tracing sécurité structuré (voir 3.a)
 
-### 1.e. Sécurité / permissions admin
+### 1.d. Sécurité / permissions admin
 
 - 🔴 Vérification runtime des rôles (requête DB par requête admin)
 - 🔴 Contrat `is_staff` / `is_superuser` / rôles custom à clarifier
@@ -61,45 +45,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 **Status :** 🟡 En cours
 
-### 3.a. Tests et couverture
-
-- **Tests exhaustifs** : 🟡 82.83% fonctions (objectif 85% minimum).
-- **Audit sécurité** : 🟢 Fait — corrections appliquées (branche i18n, 2026-03-13/14)
-
-### 3.b. Validation au boot (fail-fast)
-
-- Valider toute la config critique avant le démarrage serveur (security, middleware, db, password, admin).
-- Refuser le boot en production si incohérence ou valeur manquante.
-- Autoriser des fallbacks contrôlés en dev/test avec warning explicite.
-
-### 3.c. Gouvernance globale de la config API
-
-- Définir un ordre de priorité unique pour toute l'API :
-    1. Overrides explicites de démarrage
-    2. Configuration applicative (`RuniqueConfig`)
-    3. Variables d'environnement
-    4. Valeurs par défaut framework
-- Documenter un point d'entrée clair de l'initialisation globale (pas de logique implicite cachée).
-- Éviter les doubles sources de vérité entre config runtime et valeurs par défaut internes.
-- Ajouter des tests d'intégration sur la résolution de config (priorités + erreurs de validation).
-
-> **Status contrat développeur :** 🟠 En stand-by — choix de `is_valid()` en cours de réflexion.
-
----
-
-## 4. Features
-
-**Status :** 🟡 En cours
-
-### 4.a. I18n et Tracing
-
-**I18n :** 🟢 Fini — intégration runtime (config/session/request), `set_lang()` depuis l'env ou la requête.
-
-**Tracing d'erreur :**
-
-- Optionnel
-- `debug = false` : tracing off
-- `debug = true` : tracing on (console + page debug)
+### 3.a. Tracing
 
 **Tracing sécurité :** 🔴 À faire
 
@@ -127,9 +73,42 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - `DEBUG=true` active uniquement les domaines non explicitement désactivés (valeur par défaut raisonnable).
 - `TracingConfig` passé au builder : `.tracing(TracingConfig::new().security(true))`.
 - Chaque module interne lit son interrupteur avant d'émettre — zéro overhead si désactivé.
-- Objectif : pouvoir activer le hot reload templates sans noyer les logs avec les autres domaines.
 
-### 4.b. Formulaires — `#[derive(DeriveModelForm)]`
+### 3.b. Tests et couverture
+
+- 🟡 85% couverture minimum (`bin/` exclu) — actuellement 82.83%
+- 🟡 Doctests `ignore`/`no_run` → exemples réels (i18n, migration, forms, builder couverts)
+- 🔴 Docs complètes — models, forms, macros procédurales
+
+> `bin/` exclu du calcul de couverture (CLI non couvrable proprement).
+> Cible réaliste : **85-88%** après couverture des modules HTTP via helpers Axum.
+
+### 3.c. Validation au boot (fail-fast)
+
+- Valider toute la config critique avant le démarrage serveur (security, middleware, db, password, admin).
+- Refuser le boot en production si incohérence ou valeur manquante.
+- Autoriser des fallbacks contrôlés en dev/test avec warning explicite.
+
+### 3.d. Gouvernance globale de la config API
+
+- Définir un ordre de priorité unique pour toute l'API :
+    1. Overrides explicites de démarrage
+    2. Configuration applicative (`RuniqueConfig`)
+    3. Variables d'environnement
+    4. Valeurs par défaut framework
+- Documenter un point d'entrée clair de l'initialisation globale (pas de logique implicite cachée).
+- Éviter les doubles sources de vérité entre config runtime et valeurs par défaut internes.
+- Ajouter des tests d'intégration sur la résolution de config (priorités + erreurs de validation).
+
+> **Status contrat développeur :** 🟠 En stand-by — choix de `is_valid()` en cours de réflexion.
+
+---
+
+## 4. Features framework
+
+**Status :** 🟡 En cours
+
+### 4.a. Formulaires — `#[derive(DeriveModelForm)]`
 
 **Status :** 🟡 À évaluer — potentiellement supprimé
 
@@ -139,7 +118,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - **Étape 4 — Validation technique :** vérifier compile/tests/docs après remplacement des usages critiques.
 - **Étape 5 — Décision finale :** `GO` suppression ou `NO-GO` maintien selon coût réel vs bénéfice architecture.
 
-### 4.c. `request.path_param` et `request.query_param`
+### 4.b. `request.path_param` et `request.query_param`
 
 **Status :** 🔴 À faire
 
@@ -149,7 +128,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - Pattern actuel : `Path(id): Path<i32>` en paramètre de fonction (extractor Axum brut)
 - Pattern cible : `let id = request.path_param::<i32>("id")?;`
 
-### 4.d. Configuration du pool Database
+### 4.c. Configuration du pool Database
 
 **Status :** 🔴 À faire
 
@@ -159,7 +138,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
   - `.env.conf` — pool, lang, timezone
   - `.env.security` — CSP (interrupteur + directives), rate limite
 
-### 4.e. Système de slots atomique (extensibilité builder)
+### 4.d. Système de slots atomique (extensibilité builder)
 
 - Permettre à des plugins/crates externes de revendiquer un slot middleware stable à l'init du module.
 - Fondation : `AtomicU16::fetch_add` — sans lock, sans risque de poison.
@@ -183,7 +162,6 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - 🔴 **search_fields** : recherche texte côté backend, route ou query param `?q=...`
 - 🔴 **JS assets** : champ `js: ["path/to/file.js"]` dans `admin!{}` → `js_files: Vec<String>` dans `AdminResource` → injecté dans bloc `extra_js` du template
 - 🔴 **Permissions runtime** : vérification des rôles par ressource à chaque requête admin (requête DB, option sécurisée)
-- 🟢 **i18n des templates admin** : système i18n branché sur tous les templates admin
 
 ### Moyen terme
 
@@ -203,7 +181,52 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 ---
 
-## 6. TLS natif + Proxy intégré
+## 6. Features applicatives non couvertes
+
+**Status :** 🔴 Non planifié — à prioriser
+
+### 6.a. Pagination
+
+- Aucune API de pagination côté framework (hors admin interne)
+- Pattern actuel : `.find().all()` retourne tout sans limite
+- Objectif : helper `Paginator::new(query, page, per_page)` → `PaginatedResult { items, total, page, total_pages }`
+- Intégration SeaORM : `.paginate(db, per_page).fetch_page(page)`
+- Contexte Tera injecté automatiquement (`paginator.page`, `paginator.total_pages`, etc.)
+
+### 6.b. Email
+
+- Aucun système d'envoi d'email
+- Cas d'usage : confirmation inscription, reset mot de passe, notifications
+- Dépendance envisagée : `lettre` (SMTP async)
+- API cible : `Email::new().to("user@example.com").subject("...").html(body).send().await`
+
+### 6.c. Permissions fines par route
+
+- Actuel : seul `is_authenticated()` / rôles admin existent
+- Manque : décorateur / guard `login_required`, `role_required("admin")` sur les handlers
+- Pattern cible : guard extracteur Axum ou helper `request.require_auth()?`
+
+### 6.d. API JSON / REST
+
+- Aucune réponse JSON native côté framework
+- Cas d'usage : endpoints API, retours fetch/HTMX JSON
+- À évaluer : helper `JsonResponse::ok(data)`, extracteur `Json<T>` (déjà Axum natif, à exposer proprement)
+
+### 6.e. Caching applicatif
+
+- `.with_cache(true)` présent dans le builder mais non utilisé côté handlers
+- Aucun helper de cache clé/valeur exposé
+- À définir : scope (in-memory, Redis), TTL, invalidation
+
+### 6.f. Transactions DB
+
+- SeaORM supporte les transactions nativement
+- Aucun helper ou pattern documenté dans Runique
+- À exposer : `db.begin()` / `txn.commit()` / `txn.rollback()` avec guide d'usage
+
+---
+
+## 7. TLS natif + Proxy intégré
 
 **Status :** 🔴 Planifié (après vue admin)
 
@@ -230,23 +253,28 @@ Rendre Runique autonome en production — binaire compilé + TLS natif, sans Ngi
 
 ---
 
-## 7. Publication crates.io
+## 8. Publication crates.io
 
-**Status :** 🟢 En continu — version actuelle **1.1.47** publiée
+**Status :** 🟡 Processus à documenter — version actuelle **1.1.47** publiée
 
 ### Processus de release
 
 Chaque évolution notable → nouvelle version publiée sur crates.io avec changelog.
 
-- Incrément **patch** (1.1.x) : fix, i18n, sûreté, corrections silencieuses
+- Incrément **patch** (1.1.x) : fix, sûreté, corrections silencieuses
 - Incrément **minor** (1.x.0) : nouvelle feature stable, nouveau middleware, extension admin
 - Incrément **major** (x.0.0) : rupture d'API publique
 
+### Ordre de publication (workspace multi-crates)
+
+- 🔴 Documenter l'ordre exact : `derive_form` → `runique` (dépendance proc-macro)
+- 🔴 Checklist de publication : bump version, `cargo publish --dry-run`, tests, tag git, publish
+- 🔴 Automatisation envisagée : script ou CI (GitHub Actions) pour release reproductible
+
 ### Objectifs qualité avant chaque release
 
-- 🟡 85% couverture minimum (`bin/` exclu) — actuellement 82.83%
-- 🟡 Doctests `ignore`/`no_run` → exemples réels (i18n, migration, forms, builder couverts)
-- 🔴 Docs complètes — models, forms, macros procédurales
-
-> `bin/` exclu du calcul de couverture (CLI non couvrable proprement).
-> Cible réaliste : **85-88%** après couverture des modules HTTP via helpers Axum.
+- 🟢 Couverture ~80% — suffisant, rapport dans `couverture_test.md`
+- 🟡 Doctests `ignore`/`no_run` → exemples réels
+- 🟢 Docs models — démo `/modeles` en place
+- 🟢 Docs forms — démo `/test-fields` en place
+- 🔴 Docs macros procédurales

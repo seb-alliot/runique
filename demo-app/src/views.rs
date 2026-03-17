@@ -447,6 +447,70 @@ pub async fn roadmap(mut request: Request) -> AppResult<Response> {
     request.render("roadmap/roadmap.html")
 }
 
+pub async fn admin_hub(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Administration",
+    });
+    request.render("admin/hub.html")
+}
+
+pub async fn admin_declaration(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Déclaration — impl_admin!",
+    });
+    request.render("admin/declaration.html")
+}
+
+pub async fn admin_setup(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Configuration & CLI",
+    });
+    request.render("admin/setup.html")
+}
+
+pub async fn admin_surcharge_exemple(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Exemple — template de surcharge",
+    });
+    request.render("admin/surcharge_exemple.html")
+}
+
+pub async fn admin_surcharge(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Surcharge de templates",
+    });
+    request.render("admin/surcharge.html")
+}
+
+pub async fn macros_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Macros",
+    });
+    request.render("macros/macros.html")
+}
+
+pub async fn session_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Sessions",
+    });
+    request.render("session/session.html")
+}
+
+pub async fn i18n_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Internationalisation (i18n)",
+    });
+    request.render("i18n/i18n.html")
+}
+
 // ─── Middleware — hub & pages individuelles ───────────────────────────────────
 
 pub async fn middleware_hub(mut request: Request) -> AppResult<Response> {

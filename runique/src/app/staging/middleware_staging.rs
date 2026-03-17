@@ -193,31 +193,14 @@ impl MiddlewareStaging {
             enable_cache: get_env_or("RUNIQUE_ENABLE_CACHE", defaults.enable_cache),
         };
 
-        let get_env_u64 = |key: &str, default: u64| -> u64 {
-            std::env::var(key)
-                .map(|v| v.parse::<u64>().unwrap_or(default))
-                .unwrap_or(default)
-        };
-        let get_env_usize = |key: &str, default: usize| -> usize {
-            std::env::var(key)
-                .map(|v| v.parse::<usize>().unwrap_or(default))
-                .unwrap_or(default)
-        };
-
         Self {
             features,
             session_duration: Duration::seconds(86400),
             anonymous_session_duration: Duration::seconds(300),
             session_applicator: None,
-            session_low_watermark: get_env_usize(
-                "RUNIQUE_SESSION_LOW_WATERMARK",
-                128 * 1024 * 1024,
-            ),
-            session_high_watermark: get_env_usize(
-                "RUNIQUE_SESSION_HIGH_WATERMARK",
-                256 * 1024 * 1024,
-            ),
-            session_cleanup_interval_secs: get_env_u64("RUNIQUE_SESSION_CLEANUP_SECS", 60),
+            session_low_watermark: 128 * 1024 * 1024,
+            session_high_watermark: 256 * 1024 * 1024,
+            session_cleanup_interval_secs: 60,
             custom_middlewares: Vec::new(),
             security_policy: None,
             allowed_hosts: Vec::new(),
@@ -334,7 +317,6 @@ impl MiddlewareStaging {
     /// - `low`  : déclenche un cleanup proactif (non-bloquant) des sessions anonymes expirées
     /// - `high` : cleanup d'urgence synchrone + refus si toujours dépassé (503)
     ///
-    /// Surchargeable via `.env` : `RUNIQUE_SESSION_LOW_WATERMARK` / `RUNIQUE_SESSION_HIGH_WATERMARK` (octets)
     pub fn with_session_memory_limit(mut self, low: usize, high: usize) -> Self {
         self.session_low_watermark = low;
         self.session_high_watermark = high;
@@ -343,7 +325,6 @@ impl MiddlewareStaging {
 
     /// Configure l'intervalle du cleanup périodique.
     ///
-    /// Surchargeable via `.env` : `RUNIQUE_SESSION_CLEANUP_SECS`
     pub fn with_session_cleanup_interval(mut self, secs: u64) -> Self {
         self.session_cleanup_interval_secs = secs;
         self
