@@ -1,0 +1,70 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Content Security Policy — contrôle quelles ressources le navigateur peut charger.
+        Trois profils prédéfinis, directives personnalisables, support du nonce.
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">main.rs — profils prédéfinis</div>
+            <pre><code><span class="kw">use</span> runique::middleware::csp::<span class="ty">SecurityPolicy</span>;
+
+<span class="ty">RuniqueApp</span>::<span class="fn_">new</span>()
+    .<span class="fn_">middleware</span>(<span class="ty">SecurityPolicy</span>::<span class="fn_">default</span>())
+    .<span class="fn_">urls</span>(<span class="fn_">routes</span>())
+    .<span class="fn_">run</span>().<span class="kw">await</span>
+
+<span class="cm">// Profils disponibles :</span>
+<span class="cm">//   SecurityPolicy::default()    — équilibré</span>
+<span class="cm">//   SecurityPolicy::strict()     — aucune ressource externe</span>
+<span class="cm">//   SecurityPolicy::permissive() — développement</span></code></pre>
+
+            <div class="demo-code-title">Directives personnalisées</div>
+            <pre><code><span class="ty">SecurityPolicy</span>::<span class="fn_">default</span>()
+    .<span class="fn_">script_src</span>([<span class="st">"'self'"</span>, <span class="st">"cdn.example.com"</span>])
+    .<span class="fn_">style_src</span>([<span class="st">"'self'"</span>, <span class="st">"'unsafe-inline'"</span>])
+    .<span class="fn_">img_src</span>([<span class="st">"'self'"</span>, <span class="st">"data:"</span>])
+    .<span class="fn_">connect_src</span>([<span class="st">"'self'"</span>])</code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">Nonce — scripts inline sécurisés</div>
+            <pre><code><span class="cm">&#123;# template — injecter le nonce #&#125;</span>
+&lt;script nonce=<span class="st">"&#123;&#123; csp_nonce &#125;&#125;"</span>&gt;
+    console.<span class="fn_">log</span>(<span class="st">"script autorisé"</span>);
+&lt;/script&gt;
+
+<span class="cm">// Le nonce est régénéré à chaque requête.</span>
+<span class="cm">// Il est automatiquement injecté dans le contexte Tera.</span></code></pre>
+
+            <div class="demo-code-title">En-têtes générés</div>
+            <pre><code><span class="cm">// Header envoyé au navigateur :</span>
+Content-Security-Policy:
+  default-src <span class="st">'self'</span>;
+  script-src  <span class="st">'self'</span> <span class="st">'nonce-abc123'</span>;
+  style-src   <span class="st">'self'</span> <span class="st">'unsafe-inline'</span>;
+  img-src     <span class="st">'self'</span> data:;
+
+<span class="cm">// Notes :</span>
+<span class="cm">// — enforce_https active HSTS automatiquement</span>
+<span class="cm">// — nécessite un reverse proxy de confiance</span></code></pre>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/csp.md" target="_blank" class="btn btn-secondary">En savoir plus</a>
+        <a href="{% link 'middleware_hub' %}">← Retour aux middlewares</a>
+    </div>
+</div>
+{% endblock %}

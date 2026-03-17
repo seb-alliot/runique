@@ -1,5 +1,5 @@
 /* =========================
-   DEMO LAYOUT — mobile first
+    DEMO LAYOUT — mobile first
    ========================= */
 
 .demo-layout {
@@ -26,14 +26,14 @@
 }
 
 /* =========================
-   FORM PANEL (gauche)
+    FORM PANEL (gauche)
    ========================= */
 
 .demo-form-panel {
-    border: 1px solid #30363d;
+    border: 1px solid var(--border);
     border-radius: 0.75rem;
     padding: 1.5rem 2rem;
-    background: #0d1117;
+    background: var(--bg-base);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -45,19 +45,19 @@
 }
 
 /* =========================
-   CODE PANEL (droite)
+    CODE PANEL (droite)
    ========================= */
 
 .demo-code {
-    background: #0d1117;
-    border: 1px solid #30363d;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
     border-radius: 0.75rem;
     overflow: hidden;
 }
 
 .demo-code-title {
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
     padding: 0.5rem 1rem;
     font-size: 0.78rem;
     color: #8b949e;
@@ -83,7 +83,7 @@
     font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     font-size: 0.75rem;
     line-height: 1.7;
-    color: #e6edf3;
+    color: var(--text-main);
 }
 
 @media (min-width: 768px) {
@@ -98,11 +98,11 @@
 }
 
 /* =========================
-   BOUTON SUBMIT (pleine largeur)
+    BOUTON SUBMIT (pleine largeur)
    ========================= */
 
 .btn-submit {
-    width: 100%;
+    width: 50%;
     padding: 0.8rem 1rem;
     border-radius: 1rem;
     font-size: 0.95rem;

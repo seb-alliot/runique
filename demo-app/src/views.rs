@@ -6,17 +6,6 @@ use runique::middleware::auth::login as auth_login;
 use runique::prelude::user::Entity as UserEntity;
 use runique::prelude::*;
 
-pub async fn test_template(mut request: Request) -> AppResult<Response> {
-    let lang = current_lang();
-    context_update!(request => {
-        "lang" => lang.code(),
-        "error_title" => t("html.429_title"),
-        "error_text" => t("html.429_text"),
-        "back_home" => t("html.back_home"),
-    });
-    request.render("test_template.html")
-}
-
 // ─── Utilitaire : injecter l'état auth dans le contexte Tera ─────────────────
 async fn inject_auth(request: &mut Request) {
     let connected = is_authenticated(&request.session).await;
@@ -372,29 +361,15 @@ pub async fn upload_image_submit(
 
 pub async fn test_fields(
     mut request: Request,
-    Prisme(mut form): Prisme<TestAllFieldsForm>,
+    Prisme(form): Prisme<TestAllFieldsForm>,
 ) -> AppResult<Response> {
     inject_auth(&mut request).await;
     let template = "forms/field_test.html";
 
-    if request.is_get() && form.is_valid().await {
-        context_update!(request => {
-            "title" => "Test des champs de formulaire Runique",
-            "description" => "Page de test exhaustif de tous les types de champs",
-            "test_form" => &form,
-        });
-        return request.render(template);
-    }
-
-    if request.is_post() && form.is_valid().await {
-        success!(request.notices => "Formulaire validé avec succès !");
-        return Ok(Redirect::to("/test-fields").into_response());
-    }
-
     context_update!(request => {
-        "title" => "Erreur de validation",
+        "title" => "Test des champs de formulaire Runique",
+        "description" => "Page de test exhaustif de tous les types de champs",
         "test_form" => &form,
-        "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
     });
     request.render(template)
 }
@@ -440,6 +415,104 @@ pub async fn contribution_submit(
         "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
     });
     request.render(template)
+}
+
+// ─── Model demo ───────────────────────────────────────────────────────────────
+
+pub async fn model_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Modèles & Schémas",
+    });
+    request.render("model/model.html")
+}
+
+// ─── RGPD ─────────────────────────────────────────────────────────────────────
+
+pub async fn rgpd(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Politique de confidentialité",
+    });
+    request.render("rgpd/rgpd.html")
+}
+
+// ─── Roadmap ──────────────────────────────────────────────────────────────────
+
+pub async fn roadmap(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Ce qui arrive",
+    });
+    request.render("roadmap/roadmap.html")
+}
+
+// ─── Middleware — hub & pages individuelles ───────────────────────────────────
+
+pub async fn middleware_hub(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Middlewares",
+    });
+    request.render("middleware/index.html")
+}
+
+pub async fn middleware_csrf(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "CSRF — Protection automatique",
+    });
+    request.render("middleware/csrf.html")
+}
+
+pub async fn middleware_csp(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "CSP — Content Security Policy",
+    });
+    request.render("middleware/csp.html")
+}
+
+pub async fn middleware_rate_limit(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Rate Limiter",
+    });
+    request.render("middleware/rate_limit.html")
+}
+
+pub async fn middleware_login_guard(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Login Guard — Anti brute-force",
+    });
+    request.render("middleware/login_guard.html")
+}
+
+pub async fn middleware_hosts(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Host Validation",
+    });
+    request.render("middleware/hosts.html")
+}
+
+pub async fn middleware_https(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "HTTPS — Redirection & HSTS",
+    });
+    request.render("middleware/https.html")
+}
+
+// ─── Routeur — page démo ──────────────────────────────────────────────────────
+
+pub async fn router_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Routeur",
+    });
+    request.render("router/router.html")
 }
 
 // ─── Routes de test d'erreurs ─────────────────────────────────────────────────

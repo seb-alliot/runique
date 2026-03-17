@@ -19,10 +19,12 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Déclaration des routes | `urls.py` avec `path()` | `url.rs` avec axum `Router` |
-| Routes dynamiques | `path('users/<int:id>/', view)` | `.route("/users/:id", get(view))` |
+| Déclaration des routes | `urls.py` avec `path()` | `url.rs` avec macro `urlpatterns!{}` |
+| Routes dynamiques | `path('users/<int:id>/', view)` | `"/users/{id}"` dans `urlpatterns!` |
 | Namespaces | `app_name` + `include()` | `Router::new().nest("/prefix", ...)` |
 | Reverse URL | `{% url "nom_vue" %}` natif | `{% link "nom_vue" %}` → Tera function custom |
+| Récupérer un paramètre de chemin | `kwargs['id']` via `request.resolver_match` | `Path(id): Path<i32>` en paramètre de vue (extractor Axum) — `request.path_param("id")` [prévu](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param) |
+| Récupérer un query param | `request.GET.get('key')` | `Query(params): Query<HashMap<...>>` en paramètre de vue — `request.query_param("key")` [prévu](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param) |
 
 ---
 
@@ -180,3 +182,4 @@
 - Permissions runtime dans l'admin
 - Équivalent `django-simple-history`
 - NoSQL natif (hors scope, brancher `mongodb`)
+- `request.path_param()` / `request.query_param()` — actuellement via extractors Axum bruts (voir [roadmap](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param))

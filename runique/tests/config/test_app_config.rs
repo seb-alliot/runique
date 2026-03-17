@@ -78,9 +78,8 @@ fn test_runique_config_from_env_debug_false() {
 fn test_runique_config_from_env_debug_invalide_utilise_assertions() {
     set_env("DEBUG", "pas_un_bool");
     let cfg = RuniqueConfig::from_env();
-    // Valeur invalide → retombe sur cfg!(debug_assertions)
-    // En mode test, debug_assertions est true
-    assert_eq!(cfg.debug, cfg!(debug_assertions));
+    // Valeur invalide → false (Production par défaut)
+    assert!(!cfg.debug);
     del_env("DEBUG");
 }
 

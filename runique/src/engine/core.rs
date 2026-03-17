@@ -38,7 +38,7 @@ impl RuniqueEngine {
         // Chargement unique au démarrage
         let features = MiddlewareConfig::from_env();
         let security_csp = SecurityPolicy::default();
-        let security_hosts = HostPolicy::from_env();
+        let security_hosts = HostPolicy::default();
 
         Self {
             config,

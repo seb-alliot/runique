@@ -1,21 +1,38 @@
 /* =========================
-    VARIABLES DE COULEURS
+    VARIABLES GLOBALES
    ========================= */
 
-
 :root {
-    --bg-main: #0f1216;
-    --bg-header: #111827;
-    --bg-card: #111827;
-    --bg-input: #1f2937;
-    --bg-footer: #0f1216;
-    --text-main: #f9fafb;
-    --text-muted: #9ca3af;
-    --accent: #3b82f6;
-    --accent-hover: #2563eb;
-    --border-color: #374151;
-    --error-color: #ef4444;
+    /* ── Backgrounds (deux niveaux) ── */
+    --bg-base:    #0d1117;   /* fond page, elements les plus sombres */
+    --bg-surface: #111827;   /* surfaces posées : cards, inputs, panels */
+
+    /* ── Text ── */
+    --text-main:  #f9fafb;   /* texte principal */
+    --text-muted: #9ca3af;   /* texte secondaire */
+    --text-dim:   #6b7280;   /* meta, footer, labels legers */
+
+    /* ── Accent ── */
+    --accent:         #3b82f6;  /* bleu principal */
+    --accent-hover:   #2563eb;  /* bleu hover */
+    --accent-indigo:  #6366f1;  /* indigo (gradient secondaire) */
+    --accent-warning: #f59e0b;  /* orange/amber (carte admin, warnings) */
+
+    /* ── Borders ── */
+    --border:       #30363d;  /* bordure standard */
+    --border-light: #1f2937;  /* bordure douce (footer, header) */
+
+    /* ── Semantic ── */
+    --error-color:   #ef4444;
     --success-color: #22c55e;
-    --danger: #ff6b6b;
+    --warning-color: #f59e0b;
+    --danger:        #ff6b6b;
+
+    /* ── Spacing ── */
     --margin-top: 2%;
+
+    /* -- color-card -- */
+    --card-color: #fca5a5;
+
+    --shadow-message: rgba(255, 255, 255, 0.03)
 }

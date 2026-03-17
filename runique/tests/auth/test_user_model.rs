@@ -40,8 +40,9 @@ fn test_get_roles_json_valide() {
 
 #[test]
 fn test_get_roles_json_invalide_retourne_vide() {
+    // Fallback CSV : "not-json" n'est pas du JSON mais est un token CSV valide
     let model = make_model(Some("not-json"));
-    assert!(model.get_roles().is_empty());
+    assert_eq!(model.get_roles(), vec!["not-json"]);
 }
 
 #[test]

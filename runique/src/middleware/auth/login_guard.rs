@@ -18,7 +18,7 @@ type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
 /// use runique::prelude::*;
 /// use std::sync::Arc;
 ///
-/// let guard = Arc::new(LoginGuard::new(5, 300)); // 5 échecs → 5 min de blocage
+/// let guard = Arc::new(LoginGuard::new().max_attempts(5).lockout_secs(300));
 ///
 /// // Dans le handler de login :
 /// if guard.is_locked(&username) {
@@ -44,27 +44,32 @@ pub struct LoginGuard {
 }
 
 impl LoginGuard {
-    pub fn new(max_attempts: u32, lockout_secs: u64) -> Self {
+    /// Crée un LoginGuard avec les valeurs par défaut (5 tentatives / 300 s).
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// LoginGuard::new()
+    ///     .max_attempts(5)
+    ///     .lockout_secs(300)
+    /// ```
+    pub fn new() -> Self {
         Self {
             store: Arc::new(Mutex::new(HashMap::new())),
-            max_attempts,
-            lockout_secs,
+            max_attempts: 5,
+            lockout_secs: 300,
         }
     }
 
-    /// Construit depuis les variables d'environnement :
-    /// `RUNIQUE_LOGIN_MAX_ATTEMPTS` (défaut : 5)
-    /// `RUNIQUE_LOGIN_LOCKOUT_SECS` (défaut : 300)
-    pub fn from_env() -> Self {
-        let max = std::env::var("RUNIQUE_LOGIN_MAX_ATTEMPTS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(5);
-        let lockout = std::env::var("RUNIQUE_LOGIN_LOCKOUT_SECS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(300);
-        Self::new(max, lockout)
+    /// Nombre d'échecs avant verrouillage du compte
+    pub fn max_attempts(mut self, max: u32) -> Self {
+        self.max_attempts = max;
+        self
+    }
+
+    /// Durée du verrouillage en secondes
+    pub fn lockout_secs(mut self, secs: u64) -> Self {
+        self.lockout_secs = secs;
+        self
     }
 
     /// Spawne une tâche Tokio qui purge périodiquement les entrées expirées.
@@ -131,6 +136,27 @@ impl LoginGuard {
         store.get(username).map(|(n, _)| *n).unwrap_or(0)
     }
 
+    /// Retourne la clé effective à utiliser avec `LoginGuard`.
+    ///
+    /// - Username non vide → clé par username (protection compte ciblé)
+    /// - Username vide ou absent → `"anonym:{ip}"` (protection anonyme par IP)
+    ///
+    /// Garantit que les tentatives anonymes ne partagent pas un compteur global :
+    /// verrouiller `"anonym:1.2.3.4"` n'affecte pas `"anonym:5.6.7.8"`.
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// let key = LoginGuard::effective_key(&username, &ip);
+    /// if GUARD.is_locked(&key) { /* 429 */ }
+    /// ```
+    pub fn effective_key<'a>(username: &'a str, ip: &str) -> std::borrow::Cow<'a, str> {
+        if username.trim().is_empty() {
+            std::borrow::Cow::Owned(format!("anonym:{ip}"))
+        } else {
+            std::borrow::Cow::Borrowed(username)
+        }
+    }
+
     /// Secondes restantes avant déverrouillage, ou `None` si non verrouillé
     pub fn remaining_lockout_secs(&self, username: &str) -> Option<u64> {
         let store = match self.store.lock() {
@@ -146,5 +172,11 @@ impl LoginGuard {
             }
         }
         None
+    }
+}
+
+impl Default for LoginGuard {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -9,7 +9,11 @@ Runique's rate limiter is granular: each handler can have its own limits, declar
 ```rust
 use runique::prelude::*;
 
-static LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new(10, 60));
+static LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| {
+    RateLimiter::new()
+        .max_requests(10)
+        .window_secs(60)
+});
 
 pub async fn login(/* ... */) -> impl IntoResponse {
     if !LIMITER.is_allowed(&ip) {
@@ -19,29 +23,14 @@ pub async fn login(/* ... */) -> impl IntoResponse {
 }
 ```
 
-`RateLimiter::new(max_requests, window_secs)` — the dev declares their limits wherever and however they want.
-
 ---
 
 ## Configuration
 
-### In code
-
 ```rust
-RateLimiter::new(5, 60)    // 5 requests per minute
-RateLimiter::new(3, 300)   // 3 requests per 5 minutes
-RateLimiter::new(100, 60)  // 100 requests per minute
-```
-
-### Via environment variables
-
-```env
-RUNIQUE_RATE_LIMIT_REQUESTS=60
-RUNIQUE_RATE_LIMIT_WINDOW_SECS=60
-```
-
-```rust
-static LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::from_env);
+RateLimiter::new().max_requests(5).window_secs(60)    // 5 requests per minute
+RateLimiter::new().max_requests(3).window_secs(300)   // 3 requests per 5 minutes
+RateLimiter::new().max_requests(100).window_secs(60)  // 100 requests per minute
 ```
 
 ---
@@ -51,7 +40,7 @@ static LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::from_env);
 - The rate limit key is the request's **IP address**
 - Supports `X-Forwarded-For` and `X-Real-IP` headers (reverse proxy)
 - **Fixed window**: the counter resets after `window_secs` seconds
-- Returns `429 Too Many Requests` when the limit is exceeded
+- Returns `429 Too Many Requests` when the limit is exceeded, with a `Retry-After: <seconds>` header
 
 > **⚠️ Security:** This middleware trusts `X-Forwarded-For` and `X-Real-IP` headers. Ensure your reverse proxy (nginx, etc.) controls these headers and does not allow them to be forged by clients. Without a trusted proxy, an attacker can bypass rate limiting by modifying these headers.
 
@@ -59,20 +48,25 @@ static LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::from_env);
 
 ## API
 
-### `RateLimiter::new(max_requests, window_secs)`
+### `RateLimiter::new()`
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `max_requests` | `u32` | Number of requests allowed in the window |
-| `window_secs` | `u64` | Window duration in seconds |
+Creates a rate limiter with default values (60 req / 60 s).
 
-### `RateLimiter::from_env()`
+### `.max_requests(max: u32)`
 
-Builds from `RUNIQUE_RATE_LIMIT_REQUESTS` and `RUNIQUE_RATE_LIMIT_WINDOW_SECS`.
+Number of requests allowed in the window.
+
+### `.window_secs(secs: u64)`
+
+Window duration in seconds.
 
 ### `is_allowed(key: &str) -> bool`
 
 Returns `true` if the key is under the limit, `false` otherwise.
+
+### `retry_after_secs(key: &str) -> u64`
+
+Seconds remaining until the window resets for this key. Returns `0` if the window has already expired or the key is unknown. Used to populate the `Retry-After` header in 429 responses.
 
 ---
 

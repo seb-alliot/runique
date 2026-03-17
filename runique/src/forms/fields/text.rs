@@ -118,6 +118,13 @@ impl TextField {
         self.set_disabled(true, Some(msg));
         self
     }
+
+    pub fn rows(mut self, rows: usize) -> Self {
+        self.base
+            .extra_context
+            .insert("rows".to_string(), serde_json::json!(rows));
+        self
+    }
 }
 
 impl FormField for TextField {
@@ -231,6 +238,10 @@ impl FormField for TextField {
         }
         if let Some(l) = &self.config.max_length {
             context.insert("max_length", &l.value);
+        }
+
+        if let Some(rows) = self.base.extra_context.get("rows").and_then(|r| r.as_u64()) {
+            context.insert("rows", &rows);
         }
 
         tera.render(&self.base.template_name, &context)

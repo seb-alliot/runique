@@ -47,11 +47,11 @@ impl MiddlewareConfig {
         };
 
         Self {
-            // CSP configuré uniquement via le builder, pas le .env
+            // CSP et host validation configurés uniquement via le builder
             enable_csp: false,
             enable_header_security: false,
-            enable_host_validation: get_bool("RUNIQUE_ENABLE_HOST_VALIDATION", true),
-            enable_debug_errors: get_bool("RUNIQUE_ENABLE_DEBUG_ERRORS", true),
+            enable_host_validation: false,
+            enable_debug_errors: true, // toujours monté — config.debug gère le contenu
             enable_cache: get_bool("RUNIQUE_ENABLE_CACHE", true),
         }
     }

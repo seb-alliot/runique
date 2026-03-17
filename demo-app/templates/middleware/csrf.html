@@ -1,0 +1,77 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Le middleware CSRF est activé par défaut dans le builder Runique.
+        Dans les formulaires, la protection est entièrement transparente via <strong>Prisme</strong>.
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">main.rs — activation</div>
+            <pre><code><span class="ty">RuniqueApp</span>::<span class="fn_">new</span>()
+    .<span class="fn_">urls</span>(<span class="fn_">routes</span>())
+    .<span class="fn_">run</span>().<span class="kw">await</span>
+
+<span class="cm">// Le middleware CSRF est inclus automatiquement.</span>
+<span class="cm">// Aucune configuration manuelle requise.</span></code></pre>
+
+            <div class="demo-code-title">template — tous les champs d'un coup</div>
+            <pre><code><span class="cm">&#123;# Rendu de l'ensemble du formulaire #&#125;</span>
+&lt;form method=<span class="st">"post"</span>&gt;
+    &#123;% form.inscription_form %&#125;
+    &lt;button type=<span class="st">"submit"</span>&gt;S'inscrire&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+
+            <div class="demo-code-title">template — champ par champ</div>
+            <pre><code><span class="cm">&#123;# Rendu individuel pour contrôler l'ordre ou la mise en page #&#125;</span>
+&lt;form method=<span class="st">"post"</span>&gt;
+    &#123;% form.inscription_form.username %&#125;
+    &#123;% form.inscription_form.email %&#125;
+    &#123;% form.inscription_form.password %&#125;
+    &lt;button type=<span class="st">"submit"</span>&gt;S'inscrire&lt;/button&gt;
+&lt;/form&gt;
+
+<span class="cm">&#123;# Dans les deux cas, le token CSRF est inséré automatiquement. #&#125;</span>
+<span class="cm">&#123;# Aucune balise &#123;% csrf_token %&#125; à ajouter. #&#125;</span></code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">views.rs — extraction avec Prisme</div>
+            <pre><code><span class="kw">pub async fn</span> <span class="fn_">inscription</span>(
+    <span class="kw">mut</span> request: <span class="ty">Request</span>,
+    <span class="ty">Prisme</span>(<span class="kw">mut</span> form): <span class="ty">Prisme</span>&lt;<span class="ty">RegisterForm</span>&gt;,
+) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">if</span> request.<span class="fn_">is_post</span>() &amp;&amp; form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
+        <span class="cm">// Prisme valide le token CSRF avant d'extraire le formulaire.</span>
+        <span class="cm">// En cas d'échec : redirection silencieuse vers la page courante.</span>
+        form.<span class="fn_">save</span>(&amp;request.engine.db).<span class="kw">await</span>?;
+    }
+    request.<span class="fn_">render</span>(<span class="st">"auth/inscription_form.html"</span>)
+}</code></pre>
+
+            <div class="demo-code-title">Fonctionnement interne</div>
+            <pre><code><span class="cm">// Ordre dans le builder :</span>
+<span class="cm">// Session(50) → CSRF(60) → routes</span>
+
+<span class="cm">// Le token est lié à la session.</span>
+<span class="cm">// Prisme masque / démasque le token à chaque requête.</span>
+<span class="cm">// Double-submit cookie non requis : session suffisante.</span></code></pre>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csrf/csrf.md" target="_blank" class="btn btn-secondary">En savoir plus</a>
+        <a href="{% link 'middleware_hub' %}">← Retour aux middlewares</a>
+    </div>
+</div>
+{% endblock %}

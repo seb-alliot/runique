@@ -11,7 +11,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HostPolicy {
     pub allowed_hosts: Vec<String>,
     pub enabled: bool,
@@ -21,24 +21,6 @@ impl HostPolicy {
     pub fn new(allowed_hosts: Vec<String>, enabled: bool) -> Self {
         Self {
             allowed_hosts,
-            enabled,
-        }
-    }
-
-    pub fn from_env() -> Self {
-        let hosts = std::env::var("RUNIQUE_ALLOWED_HOSTS")
-            .unwrap_or_else(|_| "localhost:3000".to_string())
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s: &String| !s.is_empty())
-            .collect();
-
-        let enabled = std::env::var("RUNIQUE_ENABLE_HOST_VALIDATION")
-            .map(|v| v.parse().unwrap_or(true))
-            .unwrap_or(true);
-
-        Self {
-            allowed_hosts: hosts,
             enabled,
         }
     }

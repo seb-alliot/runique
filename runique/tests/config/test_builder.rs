@@ -407,15 +407,32 @@ fn test_middleware_staging_without_csp_desactive() {
 }
 
 #[test]
-fn test_middleware_staging_with_host_validation_true() {
-    let ms = MiddlewareStaging::new(true).with_host_validation(true);
+fn test_middleware_staging_with_allowed_hosts_enabled() {
+    let ms = MiddlewareStaging::new(true)
+        .with_allowed_hosts(|h| h.enabled(true).host("monsite.fr").host("www.monsite.fr"));
     assert!(ms.features().enable_host_validation);
+    assert_eq!(ms.allowed_hosts().len(), 2);
 }
 
 #[test]
-fn test_middleware_staging_with_host_validation_false() {
-    let ms = MiddlewareStaging::new(true).with_host_validation(false);
+fn test_middleware_staging_with_allowed_hosts_disabled() {
+    let ms =
+        MiddlewareStaging::new(true).with_allowed_hosts(|h| h.enabled(false).host("monsite.fr"));
     assert!(!ms.features().enable_host_validation);
+}
+
+#[test]
+fn test_middleware_staging_host_config_hosts_batch() {
+    let ms = MiddlewareStaging::new(true)
+        .with_allowed_hosts(|h| h.enabled(true).hosts(vec!["a.fr", "b.fr", "c.fr"]));
+    assert_eq!(ms.allowed_hosts().len(), 3);
+}
+
+#[test]
+fn test_middleware_staging_no_allowed_hosts_disabled_by_default() {
+    let ms = MiddlewareStaging::new(true);
+    assert!(!ms.features().enable_host_validation);
+    assert!(ms.allowed_hosts().is_empty());
 }
 
 #[test]

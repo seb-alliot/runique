@@ -1,10 +1,10 @@
 /* =========================
-    FORMULAIRE INSCRIPTION
+    FORMULAIRE INSCRIPTION / LOGIN
    ========================= */
 
 body > main {
     flex: 1;
-    }
+}
 
 form {
     width: 35%;
@@ -12,18 +12,21 @@ form {
     margin-right: auto;
     margin-block: var(--margin-top);
     padding: 2rem;
-    border: solid #003d9f;
+    border: 1px solid var(--border);
     border-radius: 10px;
-    background-color: #0e1840;
+    background-color: var(--bg-surface);
 }
+
 .form-label {
     width: 100%;
 }
+
 h1 {
     text-align: center;
     color: var(--accent);
     margin: var(--margin-top);
 }
+
 form,
 .invalid-feedback,
 .form-text,
@@ -31,11 +34,13 @@ form,
 .form-label {
     text-align: center;
 }
+
 .form-container {
     display: flex;
     flex-direction: column;
     align-items: center;
 }
+
 form button {
     align-self: center;
 }
@@ -55,12 +60,11 @@ form label {
 }
 
 /* Inputs */
-
 form input,
 form textarea,
 form select {
-    background: #0f172a;
-    border: 1px solid #1f2937;
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
     border-radius: 0.75rem;
     padding: 0.7rem 0.9rem;
     color: var(--text-main);
@@ -69,29 +73,99 @@ form select {
     outline: none;
 }
 
-/* Placeholder */
 form input::placeholder {
-    color: #475569;
+    color: var(--text-dim);
 }
 
-/* Focus premium */
+/* Focus */
 form input:focus,
 form textarea:focus,
 form select:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    background: #111827;
+    background: var(--bg-surface);
 }
 
-/* Champs invalides (si backend ajoute class error) */
+/* Champs invalides */
 form .error input {
-    border-color: #ef4444;
+    border-color: var(--error-color);
 }
 
-/* Texte d’erreur */
 form .error-message {
     font-size: 0.75rem;
     color: #fca5a5;
+}
+
+/* =========================
+    LABEL FLOTTANT
+   ========================= */
+
+.form-group {
+    position: relative;
+    margin-bottom: 1.6rem;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fieldFade 0.5s ease forwards;
+}
+
+.form-group .form-label {
+    position: absolute;
+    top: 1rem;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    background: transparent;
+}
+
+.form-group .form-control {
+    width: 100%;
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
+    border-radius: 0.9rem;
+    padding: 1.4rem 0.9rem 0.6rem;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+.form-group:focus-within .form-label,
+.form-group:has(.form-control:not(:placeholder-shown)) .form-label {
+    top: 0.35rem;
+    font-size: 0.7rem;
+    color: var(--accent);
+}
+
+.form-group:nth-child(1) { animation-delay: 0.1s; }
+.form-group:nth-child(2) { animation-delay: 0.2s; }
+.form-group:nth-child(3) { animation-delay: 0.3s; }
+.form-group:nth-child(4) { animation-delay: 0.4s; }
+
+.is-invalid {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+}
+
+.invalid-feedback {
+    font-size: 0.75rem;
+    color: #fca5a5;
+    margin-top: 0.3rem;
+}
+
+/* =========================
+    ANIMATIONS
+   ========================= */
+
+form {
+    animation: formFade 1s ease forwards;
+}
+
+@keyframes formFade {
+    from { opacity: 0; transform: translateY(15px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fieldFade {
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* =========================
@@ -103,7 +177,7 @@ form button, .text-center a {
     width: 100%;
     display: block;
     text-align: center;
-    background: linear-gradient(135deg, var(--accent), #6366f1);
+    background: linear-gradient(135deg, var(--accent), var(--accent-indigo));
     color: #fff;
     border: none;
     padding: 0.8rem 1rem;
@@ -116,55 +190,20 @@ form button, .text-center a {
     box-sizing: border-box;
 }
 
-/* Hover élégant */
-form button:hover, .text-center:hover  {
+form button:hover, .text-center:hover {
     transform: translateY(-1px);
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
     filter: brightness(1.05);
 }
 
-/* Active */
 form button:active, .text-center:active {
     transform: translateY(0);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
 }
-.text-center:hover  {
+
+.text-center:hover {
     box-shadow: none;
 }
-.text-center {
-    width: 20vw;
-    display: flex;
-    justify-content: center;
-    margin: var(--margin-top);
-
-}
-.text-center a {
-    color: #fff;
-    text-decoration: none;
-}
-#form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-/* =========================
-    RESPONSIVE
-   ========================= */
-
-@media (max-width: 480px) {
-    form {
-        gap: 1rem;
-        width: 80%;
-    }
-
-    form button {
-        font-size: 0.9rem;
-        padding: 0.7rem;
-    }
-}
-/* =========================
-    NAVIGATION RESPONSIVE
-   ========================= */
 
 .text-center {
     width: 100%;
@@ -174,6 +213,17 @@ form button:active, .text-center:active {
     gap: 1rem;
     padding: 1.5rem;
     margin: var(--margin-top) auto;
+}
+
+.text-center a {
+    color: #fff;
+    text-decoration: none;
+}
+
+#form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* Bloc inscription */
@@ -201,7 +251,7 @@ form button:active, .text-center:active {
 /* Lien retour */
 .text-center > a:last-child {
     background: transparent;
-    border: 1px solid #1f2937;
+    border: 1px solid var(--border-light);
     color: var(--text-muted);
     font-size: 0.85rem;
     padding: 0.6rem 1rem;
@@ -213,6 +263,15 @@ form button:active, .text-center:active {
 .text-center > a:last-child:hover {
     border-color: var(--accent);
     color: var(--accent);
+}
+
+/* Notice RGPD */
+.rgpd-notice {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-style: italic;
+    text-align: center;
+    margin-top: 0.5rem;
 }
 
 /* =========================
@@ -235,6 +294,16 @@ form button:active, .text-center:active {
 }
 
 @media (max-width: 480px) {
+    form {
+        gap: 1rem;
+        width: 80%;
+    }
+
+    form button {
+        font-size: 0.9rem;
+        padding: 0.7rem;
+    }
+
     .text-center {
         width: 90%;
         padding: 0.75rem;

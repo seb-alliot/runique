@@ -1,4 +1,5 @@
 use super::csp_config::CspConfig;
+use super::host_config::HostConfig;
 use crate::app::error_build::BuildError;
 use crate::config::RuniqueConfig;
 use crate::context::RequestExtensions;
@@ -130,6 +131,9 @@ pub struct MiddlewareStaging {
 
     /// Politique CSP définie via le builder (None = lecture depuis .env)
     pub(crate) security_policy: Option<SecurityPolicy>,
+
+    /// Hôtes autorisés définis via le builder
+    pub(crate) allowed_hosts: Vec<String>,
 }
 
 impl MiddlewareStaging {
@@ -151,6 +155,7 @@ impl MiddlewareStaging {
             session_cleanup_interval_secs: 60,
             custom_middlewares: Vec::new(),
             security_policy: None,
+            allowed_hosts: Vec::new(),
         }
     }
 
@@ -182,14 +187,9 @@ impl MiddlewareStaging {
             // CSP configuré uniquement via le builder (.with_csp(true/false))
             enable_csp: false,
             enable_header_security: false,
-            enable_host_validation: get_env_or(
-                "RUNIQUE_ENABLE_HOST_VALIDATION",
-                defaults.enable_host_validation,
-            ),
-            enable_debug_errors: get_env_or(
-                "RUNIQUE_ENABLE_DEBUG_ERRORS",
-                defaults.enable_debug_errors,
-            ),
+            // host validation configuré uniquement via le builder (.with_allowed_hosts)
+            enable_host_validation: false,
+            enable_debug_errors: true, // toujours monté — config.debug gère le contenu
             enable_cache: get_env_or("RUNIQUE_ENABLE_CACHE", defaults.enable_cache),
         };
 
@@ -220,6 +220,7 @@ impl MiddlewareStaging {
             session_cleanup_interval_secs: get_env_u64("RUNIQUE_SESSION_CLEANUP_SECS", 60),
             custom_middlewares: Vec::new(),
             security_policy: None,
+            allowed_hosts: Vec::new(),
         }
     }
 
@@ -270,9 +271,33 @@ impl MiddlewareStaging {
         self
     }
 
-    /// Active ou désactive la validation des hosts autorisés
-    pub fn with_host_validation(mut self, enable: bool) -> Self {
-        self.features.enable_host_validation = enable;
+    /// Configure la validation des hôtes autorisés via une closure.
+    ///
+    /// La closure reçoit un [`HostConfig`] et retourne le `HostConfig` configuré.
+    /// La validation est **désactivée par défaut** — appeler `.enabled(true)` explicitement.
+    /// Pour désactiver : ne pas appeler `.with_allowed_hosts` du tout.
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// .middleware(|m| {
+    ///     m.with_allowed_hosts(|h| {
+    ///         h.enabled(true)
+    ///          .host("monsite.fr")
+    ///          .host("www.monsite.fr")
+    ///     })
+    /// })
+    /// ```
+    ///
+    /// # Wildcard sous-domaines
+    /// ```rust,ignore
+    /// m.with_allowed_hosts(|h| {
+    ///     h.enabled(true).host(".monsite.fr")
+    /// })
+    /// ```
+    pub fn with_allowed_hosts(mut self, f: impl FnOnce(HostConfig) -> HostConfig) -> Self {
+        let config = f(HostConfig::default());
+        self.allowed_hosts = config.hosts;
+        self.features.enable_host_validation = config.enabled;
         self
     }
 
@@ -397,6 +422,11 @@ impl MiddlewareStaging {
     /// Retourne la configuration des features middleware active
     pub fn features(&self) -> &MiddlewareConfig {
         &self.features
+    }
+
+    /// Retourne la liste des hôtes autorisés configurés
+    pub fn allowed_hosts(&self) -> &[String] {
+        &self.allowed_hosts
     }
 
     /// Retourne la durée de session configurée
