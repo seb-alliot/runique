@@ -22,6 +22,14 @@ pub fn routes() -> Router {
 
         // Outils & démo
         "/about"        => view! { views::about },                 name = "about",
+        "/admin-demo"              => view! { views::admin_hub },          name = "admin_hub",
+        "/admin-demo/declaration"  => view! { views::admin_declaration },  name = "admin_declaration",
+        "/admin-demo/setup"        => view! { views::admin_setup },        name = "admin_setup",
+        "/admin-demo/surcharge"          => view! { views::admin_surcharge },         name = "admin_surcharge",
+        "/admin-demo/surcharge/exemple"  => view! { views::admin_surcharge_exemple },  name = "admin_surcharge_exemple",
+        "/i18n"         => view! { views::i18n_demo },             name = "i18n_demo",
+        "/session"      => view! { views::session_demo },          name = "session_demo",
+        "/macros"       => view! { views::macros_demo },           name = "macros_demo",
         "/routeur"      => view! { views::router_demo },           name = "router_demo",
         "/modeles"      => view! { views::model_demo },            name = "model_demo",
         "/roadmap"      => view! { views::roadmap },               name = "roadmap",

@@ -1,0 +1,85 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Macros utilitaires fournies par Runique.
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">context_update! — injecter des données dans le template</div>
+            <pre><code><span class="kw">pub async fn</span> <span class="fn_">ma_vue</span>(<span class="kw">mut</span> request: <span class="ty">Request</span>) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="mc">context_update!</span>(request => {
+        <span class="st">"title"</span>       => <span class="st">"Ma page"</span>,
+        <span class="st">"description"</span> => <span class="st">"Un framework web en Rust"</span>,
+    });
+    request.<span class="fn_">render</span>(<span class="st">"ma_page.html"</span>)
+}</code></pre>
+
+            <div class="demo-code-title">context! — créer un contexte indépendant</div>
+            <pre><code><span class="kw">use</span> runique::prelude::*;
+
+<span class="cm">// Utile pour construire un contexte sans Request</span>
+<span class="kw">let</span> ctx = <span class="mc">context!</span> {
+    <span class="st">"title"</span> => <span class="st">"Ma page"</span>,
+    <span class="st">"user"</span>  => &username,
+};</code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">impl_from_error! — convertir une erreur en AppError</div>
+            <pre><code><span class="kw">use</span> runique::prelude::*;
+
+<span class="cm">// Génère impl From&lt;DbErr&gt; for AppError</span>
+<span class="cm">// et impl From&lt;anyhow::Error&gt; for AppError</span>
+<span class="mc">impl_from_error!</span>(
+    anyhow::<span class="ty">Error</span> => from_anyhow,
+    <span class="ty">DbErr</span>         => database
+);
+
+<span class="cm">// Permet d'utiliser ? directement dans les handlers</span>
+<span class="kw">pub async fn</span> <span class="fn_">ma_vue</span>(request: <span class="ty">Request</span>) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">let</span> items = <span class="ty">MonModel</span>::<span class="fn_">objects</span>()
+        .<span class="fn_">all</span>(&db).<span class="kw">await</span>?; <span class="cm">// DbErr converti automatiquement</span>
+    request.<span class="fn_">render</span>(<span class="st">"liste.html"</span>)
+}</code></pre>
+        </div>
+
+    </div>
+
+    <div class="demo-layout" style="margin-top:1.5rem;">
+        <div class="demo-code">
+            <div class="demo-code-title">impl_objects! — syntaxe Django-like pour SeaORM</div>
+            <pre><code><span class="cm">// Généré automatiquement par `runique start` sur chaque entité.</span>
+<span class="cm">// Ajoute un champ `objects` de style Django — ne change pas</span>
+<span class="cm">// la quantité de code, juste la syntaxe.</span>
+
+<span class="mc">impl_objects!</span>(<span class="ty">Entity</span>);
+
+<span class="cm">// Équivalences :</span>
+<span class="ty">Entity</span>::objects.<span class="fn_">all</span>(&db).<span class="kw">await</span>?
+<span class="cm">// == Entity::find().all(&db).await?</span>
+
+<span class="ty">Entity</span>::objects.<span class="fn_">filter</span>(<span class="ty">Column</span>::Title.<span class="fn_">eq</span>(<span class="st">"Rust"</span>)).<span class="fn_">all</span>(&db).<span class="kw">await</span>?
+<span class="cm">// == Entity::find().filter(...).all(&db).await?</span>
+
+<span class="ty">Entity</span>::objects.<span class="fn_">get</span>(<span class="nm">1</span>, &db).<span class="kw">await</span>?
+<span class="cm">// == Entity::find_by_id(1).one(&db).await?</span></code></pre>
+        </div>
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/macros/macros.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/macros/macros.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

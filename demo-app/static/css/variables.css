@@ -36,3 +36,33 @@
 
     --shadow-message: rgba(255, 255, 255, 0.03)
 }
+
+/* ── Mode clair ── */
+[data-theme="light"] {
+    --msg-error-text:   #991b1b;
+    --msg-success-text: #166534;
+    --msg-info-text:    #1e40af;
+    --msg-warning-text: #92400e;
+    --bg-base:    #f3f4f6;
+    --bg-surface: #ffffff;
+
+    --text-main:  #111827;
+    --text-muted: #4b5563;
+    --text-dim:   #9ca3af;
+
+    --accent:         #2563eb;
+    --accent-hover:   #1d4ed8;
+    --accent-indigo:  #4f46e5;
+    --accent-warning: #d97706;
+
+    --border:       #d1d5db;
+    --border-light: #e5e7eb;
+
+    --error-color:   #dc2626;
+    --success-color: #16a34a;
+    --warning-color: #d97706;
+    --danger:        #ef4444;
+
+    --card-color: #fca5a5;
+    --shadow-message: rgba(0, 0, 0, 0.04);
+}

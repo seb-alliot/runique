@@ -54,10 +54,6 @@
                     <h3>Blog</h3>
                     <p>CRUD complet, ModelForm, SeaORM</p>
                 </a>
-                <a href="{% link 'contribution_list' %}" class="feature-card">
-                    <h3>Contributions</h3>
-                    <p>FK, route protégée par authentification</p>
-                </a>
                 <a href="{% link 'model_demo' %}" class="feature-card">
                     <h3>Modèles & Schémas</h3>
                     <p>Définir un modèle, types, contraintes, relations, migrations</p>
@@ -88,6 +84,18 @@
                     <h3>Messages flash</h3>
                     <p>Success, info, warning, error</p>
                 </a>
+                <a href="{% link 'i18n_demo' %}" class="feature-card">
+                    <h3>Internationalisation</h3>
+                    <p>Langue des templates Runique — 9 langues disponibles</p>
+                </a>
+                <a href="{% link 'session_demo' %}" class="feature-card">
+                    <h3>Sessions</h3>
+                    <p>MemoryStore, limites mémoire, nettoyage périodique automatique</p>
+                </a>
+                <a href="{% link 'macros_demo' %}" class="feature-card">
+                    <h3>Macros</h3>
+                    <p>context_update!, context!, impl_from_error!</p>
+                </a>
                 <a href="{% link 'force_404' %}" class="feature-card">
                     <h3>Pages d'erreur</h3>
                     <p>404, 500, 429 — vérification des pages Runique</p>
@@ -98,14 +106,9 @@
         <div class="demo-section">
             <h2>Administration</h2>
             <div class="demo-cards">
-                <a href="{% link 'admin_login' %}" class="feature-card feature-card-admin">
-                    <h3>Admin</h3>
-                    <p>CRUD auto-généré, permissions, tableau de bord</p>
-                    <div class="admin-credentials">
-                        <span>admin-demo</span>
-                        <span class="cred-sep">/</span>
-                        <span>admin-demo-password</span>
-                    </div>
+                <a href="{% link 'admin_hub' %}" class="feature-card feature-card-admin">
+                    <h3>Administration</h3>
+                    <p>CRUD auto-généré, permissions, tableau de bord, surcharge templates</p>
                 </a>
             </div>
         </div>

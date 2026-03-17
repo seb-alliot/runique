@@ -1,0 +1,120 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Template de dashboard personnalisé utilisé dans cette démo.
+    </p>
+
+    <div class="demo-code">
+        <div class="demo-code-title">demo-app/templates/admin/test_dashboard.html</div>
+        <pre><code>{% raw %}{% extends "admin/admin_template" %}
+
+{% block extra_css %}{% endraw %}
+    &lt;link rel="stylesheet" href='{% raw %}{% static "css/variables.css" %}{% endraw %}'&gt;
+    &lt;link rel="stylesheet" href='{% raw %}{% static "css/main.css" %}{% endraw %}'&gt;
+    &lt;link rel="stylesheet" href='{% raw %}{% static "css/admin/dashboard.css" %}{% endraw %}'&gt;
+    &lt;link rel="icon" type="image/png" href='{% raw %}{% media "favicon/favicon.ico" %}{% endraw %}'&gt;
+{% raw %}{% endblock %}
+
+{% block title %}Administration{% endblock %}
+
+{% block breadcrumb %}{% endraw %}
+&lt;div class="breadcrumb"&gt;
+    &lt;span&gt;Admin&lt;/span&gt;
+    &lt;span class="breadcrumb-sep"&gt;/&lt;/span&gt;
+    &lt;span&gt;Tableau de bord&lt;/span&gt;
+&lt;/div&gt;
+{% raw %}{% endblock %}
+
+{% block content %}{% endraw %}
+
+&lt;div class="page-header"&gt;
+    &lt;div&gt;
+        &lt;h1 class="page-title"&gt;Tableau de bord&lt;/h1&gt;
+        &lt;p class="page-subtitle"&gt;Vue d'ensemble de l'application&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;a href="/admin/toggle-template" class="btn btn-secondary btn-sm"&gt;← Template par défaut&lt;/a&gt;
+&lt;/div&gt;
+
+&lt;div class="stats-grid"&gt;
+    {% raw %}{% for resource in resources %}{% endraw %}
+    &lt;a href="/admin/{% raw %}{{ resource.key }}{% endraw %}/list" class="stat-card"&gt;
+        &lt;div class="stat-label"&gt;{% raw %}{{ resource.title }}{% endraw %}&lt;/div&gt;
+        &lt;div class="stat-value"&gt;{% raw %}{{ resource_counts[resource.key] | default(value="0") }}{% endraw %}&lt;/div&gt;
+        &lt;div class="stat-meta"&gt;Voir la liste →&lt;/div&gt;
+    &lt;/a&gt;
+    {% raw %}{% endfor %}
+
+    {% if not resources %}{% endraw %}
+    &lt;div class="card card-full-width"&gt;
+        &lt;div class="card-body"&gt;
+            &lt;div class="empty-state"&gt;
+                &lt;p class="empty-state-title"&gt;Aucune ressource enregistrée&lt;/p&gt;
+                &lt;p class="empty-state-desc"&gt;
+                    Déclarez vos ressources dans &lt;code&gt;src/admin.rs&lt;/code&gt;
+                    avec le macro &lt;code&gt;admin!{}&lt;/code&gt;
+                    puis lancez &lt;code&gt;runique start&lt;/code&gt;.
+                &lt;/p&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    {% raw %}{% endif %}{% endraw %}
+&lt;/div&gt;
+
+{% raw %}{% if resources %}{% endraw %}
+&lt;div class="card"&gt;
+    &lt;div class="card-header"&gt;
+        &lt;h2 class="card-title"&gt;Ressources&lt;/h2&gt;
+    &lt;/div&gt;
+    &lt;div class="admin-table-wrapper"&gt;
+        &lt;table class="admin-table"&gt;
+            &lt;thead&gt;
+                &lt;tr&gt;
+                    &lt;th&gt;Ressource&lt;/th&gt;
+                    &lt;th&gt;Clé&lt;/th&gt;
+                    &lt;th&gt;Permissions&lt;/th&gt;
+                    &lt;th&gt;Actions&lt;/th&gt;
+                &lt;/tr&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+                {% raw %}{% for resource in resources %}{% endraw %}
+                &lt;tr&gt;
+                    &lt;td&gt;&lt;strong&gt;{% raw %}{{ resource.title }}{% endraw %}&lt;/strong&gt;&lt;/td&gt;
+                    &lt;td&gt;&lt;span class="id-badge"&gt;{% raw %}{{ resource.key }}{% endraw %}&lt;/span&gt;&lt;/td&gt;
+                    &lt;td&gt;
+                        {% raw %}{% for perm in resource.permissions.list %}{% endraw %}
+                        &lt;span class="badge badge-blue"&gt;{% raw %}{{ perm }}{% endraw %}&lt;/span&gt;
+                        {% raw %}{% endfor %}{% endraw %}
+                    &lt;/td&gt;
+                    &lt;td&gt;
+                        &lt;div class="table-actions"&gt;
+                            &lt;a href="/admin/{% raw %}{{ resource.key }}{% endraw %}/list"
+                               class="btn btn-secondary btn-sm"&gt;Liste&lt;/a&gt;
+                            &lt;a href="/admin/{% raw %}{{ resource.key }}{% endraw %}/create"
+                               class="btn btn-primary btn-sm"&gt;Créer&lt;/a&gt;
+                        &lt;/div&gt;
+                    &lt;/td&gt;
+                &lt;/tr&gt;
+                {% raw %}{% endfor %}{% endraw %}
+            &lt;/tbody&gt;
+        &lt;/table&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+{% raw %}{% endif %}
+
+{% endblock %}{% endraw %}</code></pre>
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">Voir sur GitHub</a>
+        <a href="{% link 'admin_surcharge' %}">← Retour à la surcharge</a>
+    </div>
+</div>
+{% endblock %}

@@ -21,6 +21,33 @@ main {
 }
 
 /* =========================
+    THEME TOGGLE
+   ========================= */
+#theme-toggle {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 100;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+#theme-toggle:hover {
+    border-color: var(--accent);
+    transform: scale(1.1);
+}
+
+/* =========================
     DEBUG
    ========================= */
 .debug-banner {
@@ -69,7 +96,7 @@ header::after {
     background: var(--bg-surface);
     padding: 2rem 2.5rem;
     border-radius: 2rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 var(--shadow-message);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), inset 0 1px 0 var(--shadow-message);
     position: relative;
     z-index: 1;
     display: flex;
@@ -77,6 +104,10 @@ header::after {
     align-items: center;
 }
 
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
 .content h1 {
     font-size: 2rem;
     margin-bottom: 1rem;
@@ -124,25 +155,25 @@ header::after {
 }
 
 .message-Error {
-    color: #fecaca;
+    color: var(--msg-error-text, #fecaca);
     border-left: 4px solid var(--error-color);
     background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), var(--bg-surface) 40%);
 }
 
 .message-Success {
-    color: #bbf7d0;
+    color: var(--msg-success-text, #bbf7d0);
     border-left: 4px solid var(--success-color);
     background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), var(--bg-surface) 40%);
 }
 
 .message-Info {
-    color: #bfdbfe;
+    color: var(--msg-info-text, #bfdbfe);
     border-left: 4px solid var(--accent);
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.15), var(--bg-surface) 40%);
 }
 
 .message-Warning {
-    color: #fde68a;
+    color: var(--msg-warning-text, #fde68a);
     border-left: 4px solid var(--accent-warning);
     background: linear-gradient(90deg, rgba(245, 158, 11, 0.15), var(--bg-surface) 40%);
 }

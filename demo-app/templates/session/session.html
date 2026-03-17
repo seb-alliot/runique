@@ -1,0 +1,72 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Sessions en mémoire avec nettoyage périodique automatique des sessions expirées.
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">Configuration dans main.rs</div>
+            <pre><code>builder::<span class="fn_">new</span>(config)
+    .<span class="fn_">middleware</span>(|m| {
+        m
+            <span class="cm">// Taille max par session / taille totale du store</span>
+            .<span class="fn_">with_session_memory_limit</span>(
+                <span class="nm">5</span> * <span class="nm">1024</span> * <span class="nm">1024</span>,   <span class="cm">// 5 Mo par session</span>
+                <span class="nm">10</span> * <span class="nm">1024</span> * <span class="nm">1024</span>,  <span class="cm">// 10 Mo total</span>
+            )
+            <span class="cm">// Intervalle de nettoyage des sessions expirées (en minutes)</span>
+            .<span class="fn_">with_session_cleanup_interval</span>(<span class="nm">5</span>)
+    })</code></pre>
+
+            <div class="demo-code-title">Lecture / écriture en handler</div>
+            <pre><code><span class="kw">use</span> runique::prelude::*;
+
+<span class="kw">pub async fn</span> <span class="fn_">mon_handler</span>(<span class="kw">mut</span> request: <span class="ty">Request</span>) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="cm">// Vérifier si l'utilisateur est connecté</span>
+    <span class="kw">let</span> connected = <span class="fn_">is_authenticated</span>(&request.session).<span class="kw">await</span>;
+
+    <span class="cm">// Récupérer le nom d'utilisateur (Option&lt;String&gt;)</span>
+    <span class="kw">let</span> username = <span class="fn_">get_username</span>(&request.session).<span class="kw">await</span>; <span class="cm">// None si non connecté</span>
+
+    request.<span class="fn_">render</span>(<span class="st">"template.html"</span>)
+}</code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">Nettoyage périodique</div>
+            <pre><code><span class="cm">// with_session_cleanup_interval(5) démarre</span>
+<span class="cm">// une tâche Tokio en arrière-plan qui supprime</span>
+<span class="cm">// les sessions expirées toutes les 5 minutes.</span>
+<span class="cm">//</span>
+<span class="cm">// Sans ce nettoyage, le MemoryStore grossit</span>
+<span class="cm">// indéfiniment avec les sessions abandonnées.</span></code></pre>
+
+            <div class="demo-code-title">Store actuel &amp; roadmap</div>
+            <pre><code><span class="cm">// Actuellement : MemoryStore uniquement.</span>
+<span class="cm">// Les sessions sont perdues au redémarrage du serveur.</span>
+<span class="cm">// Adapté pour : développement, démo, faible charge.</span>
+
+<span class="cm">// Prévu :</span>
+<span class="cm">// → Redis store (sessions persistantes)</span>
+<span class="cm">// → Store configurable via builder</span></code></pre>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

@@ -172,9 +172,6 @@ Full reference: [docs/en/14-sessions.md](https://github.com/seb-alliot/runique/b
 All behavior is configurable via `.env`. Key variables:
 
 ```env
-RUNIQUE_SESSION_CLEANUP_SECS=60
-RUNIQUE_SESSION_LOW_WATERMARK=134217728
-RUNIQUE_SESSION_HIGH_WATERMARK=268435456
 SECRET_KEY=your-secret-key
 ALLOWED_HOSTS=localhost,example.com
 DATABASE_URL=sqlite://db.sqlite3
