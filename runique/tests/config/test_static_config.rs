@@ -69,7 +69,7 @@ fn test_static_config_default_static_runique_url() {
 fn test_static_config_default_media_runique_url() {
     del_env("MEDIA_RUNIQUE_URL");
     let cfg = StaticConfig::from_env();
-    assert_eq!(cfg.media_runique_url, "/runique/media");
+    assert_eq!(cfg.media_runique, "/runique/media");
 }
 
 #[test]

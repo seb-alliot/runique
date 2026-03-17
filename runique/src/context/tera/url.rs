@@ -26,10 +26,10 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
     })?;
     drop(map);
 
-    // Substituer les paramètres {id}, {slug}, etc.
-    let result = args
+    // Substituer les paramètres de route {id}, {slug}, etc.
+    let mut result = args
         .iter()
-        .filter(|(k, _)| *k != "link")
+        .filter(|(k, _)| *k != "link" && *k != "query")
         .fold(pattern, |acc, (k, v)| {
             let value = match v {
                 Value::String(s) => s.clone(),
@@ -38,6 +38,33 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
             };
             acc.replace(&format!("{{{}}}", k), &value)
         });
+
+    // Gérer les paramètres de query string
+    if let Some(query_val) = args.get("query") {
+        let query_str = match query_val {
+            Value::String(s) => s.clone(),
+            Value::Object(map) => {
+                // Construire ?k1=v1&k2=v2
+                map.iter()
+                    .map(|(k, v)| {
+                        let v_encoded: String = match v {
+                            Value::String(s) => urlencoding::encode(s).into_owned(),
+                            Value::Number(n) => n.to_string(),
+                            _ => urlencoding::encode(&v.to_string()).into_owned(),
+                        };
+                        format!("{}={}", k, v_encoded)
+                    })
+                    .collect::<Vec<_>>()
+                    .join("&")
+            }
+            _ => query_val.to_string(),
+        };
+
+        if !query_str.is_empty() {
+            result.push('?');
+            result.push_str(&query_str);
+        }
+    }
 
     Ok(Value::String(result))
 }

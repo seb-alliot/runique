@@ -54,6 +54,7 @@ impl RuniqueForm for BlogForm {
     }
 }
 
+#[allow(dead_code)]
 impl BlogForm {
     pub async fn save(
         &self,

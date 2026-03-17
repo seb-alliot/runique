@@ -117,7 +117,8 @@ a {
 .content h2 {
     color: var(--accent);
     margin: 2rem 0 1rem;
-    font-size: 1.3rem;
+    font-size: 1rem;
+    text-align: center;
 }
 
 .content p {
@@ -134,6 +135,7 @@ a {
     color: var(--text-muted);
     font-size: 1rem;
     margin-bottom: 1.5rem;
+    text-align: center;
 }
 
 /* =========================
@@ -299,7 +301,7 @@ footer p {
 }
 
 .stack-label {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -319,6 +321,7 @@ footer p {
 .demo-section {
     flex: 1;
     min-width: 260px;
+    max-width: 260px;
     background: var(--bg-surface);
     border: 1px solid var(--border-light);
     border-radius: 1rem;
@@ -401,7 +404,7 @@ footer p {
    ========================= */
 .container {
     width: 95%;
-    max-width: 1100px;
+    max-width: 1300px;
     margin: 1.5rem auto;
 }
 
@@ -671,4 +674,31 @@ footer p {
     .content h1 { font-size: 1rem; }
     .content     { padding: 0.75rem; }
     footer a     { display: block; margin: 0.4rem 0; }
+}
+
+
+/* summary cliquable */
+.demo-section summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* supprime le chevron natif */
+.demo-section summary::-webkit-details-marker {
+    display: none;
+}
+
+/* flèche */
+.demo-section summary::after {
+    content: "▸";
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+}
+
+/* rotation quand ouvert */
+.demo-section details[open] summary::after {
+    transform: rotate(90deg);
 }

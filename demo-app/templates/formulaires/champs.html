@@ -1,0 +1,104 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Deux façons de déclarer un champ — manuellement via <code>register_fields</code>, ou via la macro proc <code>#[form]</code>.
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">Déclaration manuelle — register_fields</div>
+            <pre><code><span class="kw">use</span> runique::prelude::*;
+
+<span class="at">#[derive(Serialize, Debug, Clone)]</span>
+<span class="at">#[serde(transparent)]</span>
+<span class="kw">pub struct</span> <span class="ty">MonForm</span> {
+    <span class="kw">pub</span> form: <span class="ty">Forms</span>,
+}
+
+<span class="kw">impl</span> <span class="ty">RuniqueForm</span> <span class="kw">for</span> <span class="ty">MonForm</span> {
+    <span class="kw">fn</span> <span class="fn_">register_fields</span>(form: &<span class="kw">mut</span> <span class="ty">Forms</span>) {
+        form.<span class="fn_">field</span>(&<span class="ty">TextField</span>::<span class="fn_">text</span>(<span class="st">"username"</span>)
+            .<span class="fn_">label</span>(<span class="st">"Nom d'utilisateur"</span>));
+
+        form.<span class="fn_">field</span>(&<span class="ty">TextField</span>::<span class="fn_">email</span>(<span class="st">"email"</span>)
+            .<span class="fn_">label</span>(<span class="st">"Adresse email"</span>));
+
+        form.<span class="fn_">field</span>(&<span class="ty">TextField</span>::<span class="fn_">password</span>(<span class="st">"password"</span>)
+            .<span class="fn_">label</span>(<span class="st">"Mot de passe"</span>)
+            .<span class="fn_">min_length</span>(<span class="nm">8</span>, <span class="st">"8 caractères minimum"</span>));
+
+        form.<span class="fn_">field</span>(&<span class="ty">NumericField</span>::<span class="fn_">integer</span>(<span class="st">"age"</span>)
+            .<span class="fn_">label</span>(<span class="st">"Âge"</span>)
+            .<span class="fn_">min</span>(<span class="nm">0.0</span>, <span class="st">"Valeur positive"</span>));
+
+        form.<span class="fn_">field</span>(&<span class="ty">BooleanField</span>::<span class="fn_">new</span>(<span class="st">"actif"</span>)
+            .<span class="fn_">label</span>(<span class="st">"Compte actif"</span>));
+
+        <span class="kw">let</span> roles = <span class="fn_">vec!</span>[
+            <span class="ty">ChoiceOption</span>::<span class="fn_">new</span>(<span class="st">"admin"</span>, <span class="st">"Administrateur"</span>),
+            <span class="ty">ChoiceOption</span>::<span class="fn_">new</span>(<span class="st">"user"</span>, <span class="st">"Utilisateur"</span>),
+        ];
+        form.<span class="fn_">field</span>(&<span class="ty">ChoiceField</span>::<span class="fn_">new</span>(<span class="st">"role"</span>)
+            .<span class="fn_">label</span>(<span class="st">"Rôle"</span>)
+            .<span class="fn_">choices</span>(roles));
+    }
+}</code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">Macro proc #[form] — basé sur un schéma DB</div>
+            <pre><code><span class="kw">use</span> crate::entities::contribution::schema <span class="kw">as</span> contribution;
+<span class="kw">use</span> runique::prelude::*;
+
+<span class="cm">// Les champs sont lus depuis le schéma SeaORM</span>
+<span class="cm">// — types, contraintes, nullable déduits automatiquement</span>
+<span class="at">#[form(schema = contribution, fields = [title, content])]</span>
+<span class="kw">pub struct</span> <span class="ty">ContributionForm</span>;
+
+<span class="at">#[async_trait]</span>
+<span class="kw">impl</span> <span class="ty">RuniqueForm</span> <span class="kw">for</span> <span class="ty">ContributionForm</span> {
+    <span class="mc">impl_form_access!</span>(model);
+
+    <span class="kw">async fn</span> <span class="fn_">clean</span>(&<span class="kw">mut self</span>) -> <span class="ty">Result</span>&lt;(), <span class="ty">StrMap</span>&gt; {
+        <span class="kw">let</span> title = <span class="kw">self</span>.<span class="fn_">get_string</span>(<span class="st">"title"</span>);
+        <span class="kw">let mut</span> errors = <span class="ty">StrMap</span>::<span class="fn_">new</span>();
+
+        <span class="kw">if</span> title.<span class="fn_">len</span>() < <span class="nm">5</span> {
+            errors.<span class="fn_">insert</span>(
+                <span class="st">"title"</span>.<span class="fn_">to_string</span>(),
+                <span class="st">"5 caractères minimum"</span>.<span class="fn_">to_string</span>(),
+            );
+        }
+
+        <span class="kw">if</span> errors.<span class="fn_">is_empty</span>() { <span class="ty">Ok</span>(()) }
+        <span class="kw">else</span> { <span class="ty">Err</span>(errors) }
+    }
+}</code></pre>
+
+            <div class="demo-code-title">Différence clé</div>
+            <pre><code><span class="cm">// Manuel — contrôle total, sans entité DB</span>
+<span class="cm">// → idéal pour formulaires de contact, login, recherche</span>
+
+<span class="cm">// #[form] — branché sur le schéma SeaORM</span>
+<span class="cm">// → idéal pour CRUD, ModelForm Django-like</span>
+<span class="cm">// → form.save(&db).await? disponible automatiquement</span></code></pre>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'formulaires_hub' %}">← Retour Formulaires</a>
+    </div>
+</div>
+{% endblock %}

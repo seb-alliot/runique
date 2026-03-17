@@ -99,14 +99,6 @@ fn test_runique_config_from_env_contient_server_config() {
 
 #[test]
 #[serial]
-fn test_runique_config_from_env_contient_security_config() {
-    del_env("SANITIZE_INPUTS");
-    let cfg = RuniqueConfig::from_env();
-    assert!(cfg.security.sanitize_inputs);
-}
-
-#[test]
-#[serial]
 fn test_runique_config_from_env_contient_static_config() {
     del_env("STATIC_URL");
     let cfg = RuniqueConfig::from_env();

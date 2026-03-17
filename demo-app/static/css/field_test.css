@@ -128,3 +128,24 @@
         padding: 1rem;
     }
 }
+
+.section summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section summary::-webkit-details-marker {
+    display: none;
+}
+
+.section summary::after {
+    content: "▸";
+    transition: transform 0.2s ease;
+}
+
+.section details[open] summary::after {
+    transform: rotate(90deg);
+}

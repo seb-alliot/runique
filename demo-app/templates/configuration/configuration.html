@@ -1,0 +1,102 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Configuration complète d'une application Runique via le builder — tout est déclaratif, typé, et validé au démarrage.
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">main.rs — configuration minimale</div>
+            <pre><code><span class="at">#[tokio::main]</span>
+<span class="kw">async fn</span> <span class="fn_">main</span>() -> <span class="ty">Result</span>&lt;(), <span class="ty">AppError</span>&gt; {
+    <span class="fn_">init_logging</span>();
+
+    <span class="kw">let</span> db_config = <span class="ty">DatabaseConfig</span>::<span class="fn_">from_env</span>()?.min_connections(2).build();
+    <span class="kw">let</span> db:<span class="kw">DatabaseConnection</span> = db_config.connect().await?;
+
+
+    <span class="ty">RuniqueApp</span>::<span class="fn_">builder</span>()
+        .<span class="fn_">with_database</span>(db)
+        .<span class="fn_">routes</span>(url::<span class="fn_">.routes()</span>())
+        .<span class="fn_">statics()</span>
+        .<span class="fn_">build</span>()?
+        .<span class="fn_">run</span>().<span class="kw">await</span>
+}</code></pre>
+
+            <div class="demo-code-title">Sécurité — middlewares via builder</div>
+            <pre><code><span class="ty">RuniqueApp</span>::<span class="fn_">builder</span>()
+    <span class="cm">// Rate limiter : 100 req/60s par IP</span>
+    .<span class="fn_">with_rate_limiter</span>(
+        <span class="ty">RateLimiter</span>::<span class="fn_">new</span>()
+            .<span class="fn_">max_requests</span>(<span class="nm">100</span>)
+            .<span class="fn_">window_secs</span>(<span class="nm">60</span>)
+    )
+    <span class="cm">// Hôtes autorisés</span>
+    .<span class="fn_">with_allowed_hosts</span>(<span class="fn_">vec!</span>[
+        <span class="st">"monsite.fr"</span>,
+        <span class="st">"www.monsite.fr"</span>,
+    ])
+    <span class="cm">// CSP — profil strict</span>
+    .<span class="fn_">with_csp</span>(<span class="ty">Csp</span>::<span class="fn_">strict</span>())
+    <span class="cm">// Redirection HTTPS + HSTS</span>
+    .<span class="fn_">with_https_redirect</span>(<span class="kw">true</span>)</code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">Templates & fichiers statiques</div>
+            <pre><code><span class="ty">RuniqueApp</span>::<span class="fn_">builder</span>()
+    <span class="cm">// Répertoire des templates Tera</span>
+    <span class="cm">Dossier template par defaut</span>
+    <span class="cm">// Fichiers statiques (CSS, JS, images)</span>
+    .<span class="cm">statics() => dossier static par defaut</span>
+    <span class="cm">// Uploads utilisateur => media</span>
+    .<span class="cm">upload_to dans les formulaires => dossier media par defaut</span>(<span class="st">"media"</span>)
+
+<span class="cm">// Ou tout depuis .env</span>
+<span class="cm">// TEMPLATES_DIR=templates</span>
+<span class="cm">// STATICFILES_DIRS=static</span>
+<span class="cm">// MEDIA_ROOT=media</span></code></pre>
+
+            <div class="demo-code-title">.env — variables reconnues</div>
+            <pre><code><span class="cm"># Serveur</span>
+IP_SERVER=127.0.0.1
+PORT=3000
+DEBUG=true
+
+<span class="cm"># Sécurité</span>
+SECRET_KEY=Générez aleatoirement -> runique new projet
+
+<span class="cm"># Assets</span>
+TEMPLATES_DIR=templates
+STATICFILES_DIRS=static
+MEDIA_ROOT=media</code></pre>
+
+            <div class="demo-code-title">LoginGuard — anti brute-force</div>
+            <pre><code><span class="cm">// Utilisé dans le handler login, après Prisme</span>
+<span class="kw">let</span> guard = <span class="ty">LoginGuard</span>::<span class="fn_">new</span>()
+    .<span class="fn_">max_attempts</span>(<span class="nm">5</span>)
+    .<span class="fn_">lockout_secs</span>(<span class="nm">300</span>);
+
+<span class="kw">if</span> guard.<span class="fn_">is_locked</span>(&username, &ip).<span class="kw">await</span> {
+    <span class="kw">return</span> <span class="ty">Err</span>(<span class="ty">AppError</span>::<span class="fn_">too_many_requests</span>());
+}
+guard.<span class="fn_">record_failure</span>(&username, &ip).<span class="kw">await</span>;</code></pre>
+        </div>
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/builder/builder.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/builder/builder.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

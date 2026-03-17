@@ -22,7 +22,7 @@
 <span class="kw">static</span> LIMITER: <span class="ty">LazyLock</span>&lt;<span class="ty">RateLimiter</span>&gt; = <span class="ty">LazyLock</span>::<span class="fn_">new</span>(|| {
     <span class="ty">RateLimiter</span>::<span class="fn_">new</span>()
         .<span class="fn_">max_requests</span>(<span class="nm">100</span>)
-        .<span class="fn_">window_secs</span>(<span class="nm">60</span>)
+        .<span class="fn_">retry_after</span>(<span class="nm">60</span>)
 });
 
 <span class="kw">pub async fn</span> <span class="fn_">login</span>(<span class="cm">/* ... */</span>) -&gt; <span class="kw">impl</span> <span class="ty">IntoResponse</span> {
@@ -34,19 +34,19 @@
 
             <div class="demo-code-title">Exemples de configuration</div>
             <pre><code><span class="cm">// 5 requêtes par minute</span>
-<span class="ty">RateLimiter</span>::<span class="fn_">new</span>().<span class="fn_">max_requests</span>(<span class="nm">5</span>).<span class="fn_">window_secs</span>(<span class="nm">60</span>)
+<span class="ty">RateLimiter</span>::<span class="fn_">new</span>().<span class="fn_">max_requests</span>(<span class="nm">5</span>).<span class="fn_">retry_after</span>(<span class="nm">60</span>)
 
 <span class="cm">// 3 requêtes par 5 minutes</span>
-<span class="ty">RateLimiter</span>::<span class="fn_">new</span>().<span class="fn_">max_requests</span>(<span class="nm">3</span>).<span class="fn_">window_secs</span>(<span class="nm">300</span>)
+<span class="ty">RateLimiter</span>::<span class="fn_">new</span>().<span class="fn_">max_requests</span>(<span class="nm">3</span>).<span class="fn_">retry_after</span>(<span class="nm">300</span>)
 
 <span class="cm">// 100 requêtes par minute (défaut : 60/60)</span>
-<span class="ty">RateLimiter</span>::<span class="fn_">new</span>().<span class="fn_">max_requests</span>(<span class="nm">100</span>).<span class="fn_">window_secs</span>(<span class="nm">60</span>)</code></pre>
+<span class="ty">RateLimiter</span>::<span class="fn_">new</span>().<span class="fn_">max_requests</span>(<span class="nm">100</span>).<span class="fn_">retry_after</span>(<span class="nm">60</span>)</code></pre>
         </div>
 
         <div class="demo-code">
             <div class="demo-code-title">Fonctionnement</div>
             <pre><code><span class="cm">// Fenêtre glissante par adresse IP.</span>
-<span class="cm">// Compteur réinitialisé après `window_secs` secondes.</span>
+<span class="cm">// Compteur réinitialisé après `retry_after` secondes.</span>
 
 <span class="cm">// Réponse quand la limite est dépassée :</span>
 HTTP/1.1 <span class="nm">429</span> Too Many Requests

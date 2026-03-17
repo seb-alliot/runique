@@ -15,8 +15,8 @@
 
 | Filter | Description | Example |
 |--------|-------------|---------|
-| `form` | Full form rendering | `{{ my_form \| form \| safe }}` |
-| `form(field='xxx')` | Single field rendering | `{{ my_form \| form(field='email') \| safe }}` |
+| `form` | Full form rendering | `{{ form.my_form \| form \| safe }}` |
+| `form(field='xxx')` | Single field rendering | `{{ form.my_form \| form(field='email') \| safe }}` |
 | `csrf_field` | Generates a hidden CSRF input | `{{ csrf_token \| csrf_field \| safe }}` |
 
 ---

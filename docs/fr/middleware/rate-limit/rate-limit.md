@@ -12,7 +12,7 @@ use runique::prelude::*;
 static LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| {
     RateLimiter::new()
         .max_requests(10)
-        .window_secs(60)
+        .retry_after(60)
 });
 
 pub async fn login(/* ... */) -> impl IntoResponse {
@@ -28,9 +28,9 @@ pub async fn login(/* ... */) -> impl IntoResponse {
 ## Configuration
 
 ```rust
-RateLimiter::new().max_requests(5).window_secs(60)    // 5 requêtes par minute
-RateLimiter::new().max_requests(3).window_secs(300)   // 3 requêtes par 5 minutes
-RateLimiter::new().max_requests(100).window_secs(60)  // 100 requêtes par minute
+RateLimiter::new().max_requests(5).retry_after(60)    // 5 requêtes par minute
+RateLimiter::new().max_requests(3).retry_after(300)   // 3 requêtes par 5 minutes
+RateLimiter::new().max_requests(100).retry_after(60)  // 100 requêtes par minute
 ```
 
 ---
@@ -39,7 +39,7 @@ RateLimiter::new().max_requests(100).window_secs(60)  // 100 requêtes par minut
 
 - La clé de limitation est l'**adresse IP** de la requête
 - Supporte les headers `X-Forwarded-For` et `X-Real-IP` (reverse proxy)
-- Fenêtre **fixe** : le compteur repart à zéro après `window_secs` secondes
+- Fenêtre **fixe** : le compteur repart à zéro après `retry_after` secondes
 - Réponse `429 Too Many Requests` quand la limite est dépassée, avec header `Retry-After: <secondes>`
 
 > **⚠️ Sécurité :** Ce middleware fait confiance aux headers `X-Forwarded-For` et `X-Real-IP`. Assurez-vous que votre reverse proxy (nginx, etc.) contrôle ces headers et ne les laisse pas être forgés par les clients. Sans proxy de confiance, un attaquant peut contourner le rate limiting en modifiant ces headers.
@@ -56,7 +56,7 @@ Crée un rate limiter avec les valeurs par défaut (60 req / 60 s).
 
 Nombre de requêtes autorisées dans la fenêtre.
 
-### `.window_secs(secs: u64)`
+### `.retry_after(secs: u64)`
 
 Durée de la fenêtre en secondes.
 
