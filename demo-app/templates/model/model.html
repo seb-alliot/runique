@@ -1,0 +1,115 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">entities/blog.rs — modèle simple</div>
+            <pre><code><span class="mc">model!</span> {
+    <span class="ty">Blog</span>,
+    table: <span class="st">"blog"</span>,
+    pk: id => <span class="ty">i32</span>,
+    fields: {
+        title:   <span class="ty">String</span> [<span class="kw">required</span>],
+        email:   <span class="ty">String</span> [<span class="kw">required</span>],
+        website: <span class="ty">String</span> [<span class="kw">nullable</span>],
+        summary: <span class="ty">String</span> [<span class="kw">required</span>],
+        content: <span class="ty">String</span> [<span class="kw">required</span>],
+    }
+}</code></pre>
+
+            <div class="demo-code-title">entities/contribution.rs — relation + contraintes</div>
+            <pre><code><span class="mc">model!</span> {
+    <span class="ty">Contributions</span>,
+    table: <span class="st">"contributions"</span>,
+    pk: id => <span class="ty">i32</span>,
+    fields: {
+        user_id:    <span class="ty">i32</span>      [<span class="kw">required</span>],
+        title:      <span class="ty">String</span>   [<span class="kw">required</span>, <span class="fn_">max_len</span>(<span class="nb">200</span>)],
+        content:    <span class="ty">String</span>   [<span class="kw">required</span>],
+        created_at: <span class="ty">datetime</span> [<span class="kw">auto_now</span>],
+    },
+    relations: {
+        belongs_to: <span class="ty">EihwazUsers</span> via user_id [<span class="kw">cascade</span>],
+    }
+}</code></pre>
+
+            <div class="demo-code-title">types disponibles</div>
+            <pre><code><span class="cm">// Texte</span>
+<span class="ty">String</span>   <span class="cm">// VARCHAR</span>
+<span class="ty">Text</span>     <span class="cm">// TEXT</span>
+
+<span class="cm">// Numérique</span>
+<span class="ty">i32</span>  <span class="ty">i64</span>  <span class="ty">f32</span>  <span class="ty">f64</span>  <span class="ty">Decimal</span>
+
+<span class="cm">// Temporel</span>
+<span class="ty">datetime</span>  <span class="ty">date</span>  <span class="ty">time</span>
+
+<span class="cm">// Autre</span>
+<span class="ty">bool</span>  <span class="ty">Json</span>  <span class="ty">Uuid</span></code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">modificateurs de champ</div>
+            <pre><code><span class="cm">// Présence</span>
+[<span class="kw">required</span>]              <span class="cm">// NOT NULL</span>
+[<span class="kw">nullable</span>]              <span class="cm">// NULL autorisé</span>
+
+<span class="cm">// Valeurs automatiques</span>
+[<span class="kw">auto_now</span>]              <span class="cm">// timestamp à la création</span>
+[<span class="fn_">default</span>(<span class="st">"valeur"</span>)]    <span class="cm">// valeur par défaut</span>
+
+<span class="cm">// Contraintes</span>
+[<span class="fn_">max_len</span>(<span class="nb">200</span>)]          <span class="cm">// longueur maximale</span>
+[<span class="kw">unique</span>]                <span class="cm">// contrainte UNIQUE</span></code></pre>
+
+            <div class="demo-code-title">views.rs — requêtes sea-orm</div>
+            <pre><code><span class="cm">// Tous les articles</span>
+<span class="kw">let</span> articles = <span class="ty">BlogEntity</span>::<span class="fn_">find</span>()
+    .<span class="fn_">order_by_desc</span>(<span class="ty">Column</span>::<span class="ty">Id</span>)
+    .<span class="fn_">all</span>(&amp;db).<span class="kw">await</span>?;
+
+<span class="cm">// Un article par id</span>
+<span class="kw">let</span> article = <span class="ty">BlogEntity</span>::<span class="fn_">find_by_id</span>(id)
+    .<span class="fn_">one</span>(&amp;db).<span class="kw">await</span>?;
+
+<span class="cm">// Filtré</span>
+<span class="kw">let</span> user = <span class="ty">UserEntity</span>::<span class="fn_">find</span>()
+    .<span class="fn_">filter</span>(<span class="ty">Column</span>::<span class="ty">Username</span>.<span class="fn_">eq</span>(&amp;username))
+    .<span class="fn_">one</span>(&amp;db).<span class="kw">await</span>?;</code></pre>
+
+            <div class="demo-code-title">migration — générer et appliquer</div>
+            <pre><code><span class="cm"># détecter les changements et générer</span>
+runique makemigrations
+
+<span class="cm"># appliquer</span>
+runique migration up
+
+<span class="cm"># lister les rollbacks disponibles</span>
+runique migration status
+
+<span class="cm"># annuler — par fichier ou par batch</span>
+runique migration down --files users/<span class="nb">20240101_120000</span>
+runique migration down --batch <span class="nb">20240101_120000</span>
+
+<span class="cm"># ⚠ rollback partiel : risque de désynchronisation</span>
+<span class="cm">#   entre les fichiers applied/ et l'état réel de la DB.</span>
+<span class="cm">#   Toujours rollback dans l'ordre inverse (plus récent d'abord).</span></code></pre>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md" target="_blank" class="btn btn-secondary">En savoir plus</a>
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

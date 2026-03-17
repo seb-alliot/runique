@@ -22,12 +22,22 @@ pub fn routes() -> Router {
 
         // Outils & démo
         "/about"        => view! { views::about },                 name = "about",
+        "/routeur"      => view! { views::router_demo },           name = "router_demo",
+        "/modeles"      => view! { views::model_demo },            name = "model_demo",
+        "/roadmap"      => view! { views::roadmap },               name = "roadmap",
+        "/rgpd"         => view! { views::rgpd },                  name = "rgpd",
         "/test-csrf"    => view! { views::test_csrf },             name = "test_csrf",
         "/upload-image" => view! { views::upload_image_submit },   name = "upload_image",
         "/test-fields"  => view! { views::test_fields },           name = "test_fields",
 
-        // test template
-        "/test-template" => view! { views::test_template },        name = "test_template",
+        // Middlewares
+        "/middleware"                  => view! { views::middleware_hub },         name = "middleware_hub",
+        "/middleware/csrf"             => view! { views::middleware_csrf },        name = "middleware_csrf",
+        "/middleware/csp"              => view! { views::middleware_csp },         name = "middleware_csp",
+        "/middleware/rate-limiter"     => view! { views::middleware_rate_limit },  name = "middleware_rate_limit",
+        "/middleware/login-guard"      => view! { views::middleware_login_guard }, name = "middleware_login_guard",
+        "/middleware/host-validation"  => view! { views::middleware_hosts },       name = "middleware_hosts",
+        "/middleware/https"            => view! { views::middleware_https },       name = "middleware_https",
 
         // Erreurs — vérifie que les pages d'erreur Runique s'affichent correctement
         "/erreurs/404" => view! { views::force_not_found },         name = "force_404",

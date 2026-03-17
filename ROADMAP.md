@@ -110,6 +110,25 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
   - Rate limit dépassé (`RateLimiter`) → `tracing::warn!`
 - Contexte riche : IP, username (si disponible), route, timestamp
 
+**Tracing granulaire (`TracingConfig`) :** 🔴 À faire
+
+- Problème actuel : `DEBUG=true` active tout le tracing (hot reload templates, requêtes DB, middlewares, sessions…) → trop verbeux en développement normal.
+- Solution : struct `TracingConfig` configurable via le builder, avec interrupteurs indépendants par domaine :
+
+  ```rust
+  TracingConfig::new()
+      .templates(false)   // hot reload, rechargement Tera
+      .database(false)    // requêtes SeaORM, migrations
+      .sessions(false)    // lifecycle sessions
+      .security(true)     // CSRF, host, rate limit, login guard
+      .requests(false)    // entrée/sortie HTTP
+  ```
+
+- `DEBUG=true` active uniquement les domaines non explicitement désactivés (valeur par défaut raisonnable).
+- `TracingConfig` passé au builder : `.tracing(TracingConfig::new().security(true))`.
+- Chaque module interne lit son interrupteur avant d'émettre — zéro overhead si désactivé.
+- Objectif : pouvoir activer le hot reload templates sans noyer les logs avec les autres domaines.
+
 ### 4.b. Formulaires — `#[derive(DeriveModelForm)]`
 
 **Status :** 🟡 À évaluer — potentiellement supprimé
@@ -120,7 +139,17 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - **Étape 4 — Validation technique :** vérifier compile/tests/docs après remplacement des usages critiques.
 - **Étape 5 — Décision finale :** `GO` suppression ou `NO-GO` maintien selon coût réel vs bénéfice architecture.
 
-### 4.c. Configuration du pool Database
+### 4.c. `request.path_param` et `request.query_param`
+
+**Status :** 🔴 À faire
+
+- Ajouter `path_param::<T>("key")` et `query_param::<T>("key")` directement sur `Request`
+- Objectif : uniformiser l'API — la signature de toutes les vues ne prend que `request`, plus besoin de déclarer `Path(id): Path<i32>` en paramètre
+- Symétrique avec `request.render`, `request.is_post`, etc. (tout passe par `request`)
+- Pattern actuel : `Path(id): Path<i32>` en paramètre de fonction (extractor Axum brut)
+- Pattern cible : `let id = request.path_param::<i32>("id")?;`
+
+### 4.d. Configuration du pool Database
 
 **Status :** 🔴 À faire
 
@@ -130,7 +159,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
   - `.env.conf` — pool, lang, timezone
   - `.env.security` — CSP (interrupteur + directives), rate limite
 
-### 4.d. Système de slots atomique (extensibilité builder)
+### 4.e. Système de slots atomique (extensibilité builder)
 
 - Permettre à des plugins/crates externes de revendiquer un slot middleware stable à l'init du module.
 - Fondation : `AtomicU16::fetch_add` — sans lock, sans risque de poison.

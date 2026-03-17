@@ -18,8 +18,8 @@ impl RuniqueForm for TestAllFieldsForm {
                 .label("Mot de passe")
                 .min_length(8, "Min 8 caractères"),
         );
-        form.field(&TextField::textarea("f_textarea").label("Textarea"));
-        form.field(&TextField::richtext("f_richtext").label("Rich Text"));
+        form.field(&TextField::textarea("f_textarea").label("Textarea").rows(4));
+        form.field(&TextField::richtext("f_richtext").label("Rich Text").rows(4));
         form.field(
             &TextField::text("f_readonly")
                 .label("Readonly")
@@ -135,7 +135,8 @@ impl RuniqueForm for TestAllFieldsForm {
         form.field(
             &JSONField::new("f_json")
                 .label("JSON")
-                .placeholder(r#"{"clé": "valeur"}"#),
+                .placeholder(r#"{"clé": "valeur"}"#)
+                .rows(4),
         );
         form.field(
             &IPAddressField::new("f_ip")

@@ -1,0 +1,49 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="content">
+    <h1>{{ title }}</h1>
+
+    <h2>Site de démonstration</h2>
+    <p>
+        Ce site est une démonstration technique du framework <strong>Runique</strong>.
+        Il n'a pas vocation commerciale. Les données saisies servent uniquement à illustrer
+        le fonctionnement du framework.
+    </p>
+
+    <h2>Données collectées</h2>
+    <p>
+        Lors de la création d'un compte, les informations suivantes sont enregistrées :
+    </p>
+    <p><strong>Nom d'utilisateur</strong>, <strong>adresse email</strong>, <strong>mot de passe</strong> (haché, jamais stocké en clair).</p>
+    <p>
+        Ce site étant une démonstration, <strong>aucun email réel n'est requis</strong> —
+        une adresse factice (ex: <code>test@example.com</code>) est tout à fait acceptée.
+    </p>
+    <p>
+        Ces données sont stockées dans une base de données locale à des fins de test uniquement.
+    </p>
+
+    <h2>Utilisation des données</h2>
+    <p>Vos données ne sont <strong>jamais</strong> :</p>
+    <p>— partagées avec des tiers</p>
+    <p>— exploitées à des fins commerciales</p>
+    <p>— utilisées à des fins de profilage ou de marketing</p>
+
+    <h2>Durée de conservation</h2>
+    <p>
+        Les données peuvent être supprimées à tout moment sur simple demande.
+        La base de données de démonstration est réinitialisée périodiquement.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+        Pour toute demande de suppression ou question, ouvrez une issue sur le
+        <a href="https://github.com/seb-alliot/runique" target="_blank">dépôt GitHub</a>.
+    </p>
+
+    <div class="back-link">
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

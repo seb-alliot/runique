@@ -12,8 +12,8 @@
 .profile-card {
     width: 100%;
     max-width: 600px;
-    background: #0e1840;
-    border: solid #003d9f;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 2rem;
     animation: formFade 1s ease forwards;
@@ -42,7 +42,7 @@
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), #6366f1);
+    background: linear-gradient(135deg, var(--accent), var(--accent-indigo));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -75,8 +75,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.25rem;
-    background: #0f172a;
-    border: 1px solid #1f2937;
+    background: var(--bg-base);
+    border: 1px solid var(--border-light);
     border-radius: 0.75rem;
     transition: all 0.2s ease;
     opacity: 0;
@@ -130,19 +130,19 @@
 .badge-staff {
     background: rgba(99, 102, 241, 0.2);
     color: #818cf8;
-    border: 1px solid #6366f1;
+    border: 1px solid var(--accent-indigo);
 }
 
 .badge-admin {
     background: rgba(239, 68, 68, 0.2);
-    color: #fca5a5;
-    border: 1px solid #ef4444;
+    color: var(--card-color);
+    border: 1px solid var(--error-color);
 }
 
 /* Message erreur */
 .profile-card > p {
     text-align: center;
-    color: #fca5a5;
+    color: var(--card-color);
     padding: 2rem;
     background: rgba(239, 68, 68, 0.1);
     border-radius: 0.75rem;
@@ -156,13 +156,13 @@
     gap: 1rem;
     justify-content: center;
     padding-top: 1.5rem;
-    border-top: 1px solid #1f2937;
+    border-top: 1px solid var(--border-light);
 }
 
 /* Bouton danger (spécifique profil) */
 .btn-danger {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: #fff;
+    background: linear-gradient(135deg, var(--error-color), #dc2626);
+    color: var(--text-main);
 }
 
 /* Formulaire inline dans les actions */

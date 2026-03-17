@@ -8,11 +8,17 @@
 let app = RuniqueApp::builder(config)
     .routes(url::routes())
     .with_database(db)
-    .with_error_handler(true)
     .middleware(|m| {
-        m.with_csp(true)               // CSP & security headers
-         .with_host_validation(true)   // Host validation
-         .with_cache(true)             // No-cache in dev
+        m.with_csp(|c| {
+              c.policy(SecurityPolicy::strict())
+               .with_header_security(true)
+           })
+         .with_allowed_hosts(|h| {
+              h.enabled(true)
+               .host("mysite.com")
+               .host("www.mysite.com")
+           })
+         .with_cache(true)
     })
     .statics()
     .build()
@@ -21,21 +27,22 @@ let app = RuniqueApp::builder(config)
 
 ---
 
-## Customizing middlewares
+## Conditional by environment
 
 ```rust
-let app = RuniqueApp::builder(config)
-    .routes(url::routes())
-    .with_database(db)
-    .middleware(|m| {
-        m.with_csp(false)              // Disable CSP
-         .with_host_validation(false)  // Disable host validation
-    })
-    .build()
-    .await?;
+.middleware(|m| {
+    m.with_csp(|c| {
+          c.policy(SecurityPolicy::strict())
+           .with_upgrade_insecure(!is_debug())
+       })
+     .with_allowed_hosts(|h| {
+          h.enabled(!is_debug())  // disabled in dev, active in prod
+           .host("mysite.com")
+       })
+})
 ```
 
-> In `DEBUG=true` mode, `with_csp` and `with_host_validation` are already disabled by default.
+> In `DEBUG=true` mode, `is_debug()` returns `true` — security guards can be conditionally disabled.
 
 ---
 

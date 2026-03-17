@@ -44,10 +44,10 @@
     margin-bottom: 0.75rem;
 }
 
-.msg-success { color: #22c55e; }
-.msg-info    { color: #3b82f6; }
-.msg-warning { color: #f59e0b; }
-.msg-error   { color: #ef4444; }
+.msg-success { color: var(--success-color); }
+.msg-info    { color: var(--accent); }
+.msg-warning { color: var(--accent-warning); }
+.msg-error   { color: var(--error-color); }
 
 /* =========================
     RESPONSIVE

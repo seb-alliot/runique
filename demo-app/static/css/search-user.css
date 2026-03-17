@@ -29,8 +29,8 @@
     grid-column: 2;
     width: 100%;
     padding: 0.6rem 0.9rem;
-    background: #0f172a;
-    border: 1px solid #1f2937;
+    background: var(--bg-deep);
+    border: 1px solid var(--border-light);
     border-radius: 0.75rem;
     color: var(--text-main);
     font-size: 0.95rem;
@@ -52,9 +52,9 @@
 .result-card {
     margin-top: 2rem;
     padding: 1.5rem;
-    background: #0d1117;
+    background: var(--bg-dark);
     border-radius: 0.75rem;
-    border: 1px solid #30363d;
+    border: 1px solid var(--border-dark);
     max-width: 600px;
 }
 
@@ -62,7 +62,7 @@
     margin-top: 0;
     margin-bottom: 1.25rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid #30363d;
+    border-bottom: 1px solid var(--border-dark);
     font-size: 1.1rem;
     color: var(--accent);
 }

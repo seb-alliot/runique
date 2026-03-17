@@ -3,7 +3,6 @@
 {% block style %}
     {{ super() }}
     <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
-    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
     <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
 {% endblock %}
 
@@ -23,6 +22,7 @@
 
             <div class="text-center mt-3">
                 <a href="{% link 'contribution_list' %}">Voir les contributions</a>
+                <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/middleware/middleware.md" target="_blank" class="btn btn-secondary">En savoir plus</a>
                 <a href="{% link 'index' %}">← Retour à l'accueil</a>
             </div>
         </div>

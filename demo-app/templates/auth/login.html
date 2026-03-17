@@ -3,7 +3,6 @@
 {% block style %}
     {{ super() }}
     <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
-    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
     <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
 {% endblock %}
 
@@ -34,6 +33,7 @@
                     <p>Pas encore de compte ?</p>
                     <a href='{% link "inscription" %}'>S'inscrire</a>
                 </div>
+                <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md" target="_blank" class="btn btn-secondary">En savoir plus</a>
                 <a href='{% link "index" %}'>← Retour à l'accueil</a>
             </div>
         </div>

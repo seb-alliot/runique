@@ -30,6 +30,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .middleware(|m| {
             m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
                 .with_session_cleanup_interval(5)
+                .with_allowed_hosts(|h| {
+                    h.enabled(!is_debug())
+                        .host("localhost:3000")
+                        .host("127.0.0.1:3000")
+                })
                 .with_csp(|c| {
                     c.policy(SecurityPolicy::strict())
                         .with_header_security(true)

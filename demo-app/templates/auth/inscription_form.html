@@ -3,7 +3,6 @@
 {% block style %}
     {{ super() }}
     <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
-    <link rel="stylesheet" href='{% static "css/inscription/inscription-label.css" %}'>
     <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
 {% endblock %}
 
@@ -24,7 +23,9 @@
 
         <div class="text-center mt-3">
             <a href='{% link "login" %}'>Déjà un compte ? Se connecter</a>
+            <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">En savoir plus</a>
             <a href="/">← Retour à l'accueil</a>
+            <p class="rgpd-notice">Site de démonstration — une adresse email factice est acceptée. <a href="{% link 'rgpd' %}">Confidentialité</a>.</p>
         </div>
     </div>
 

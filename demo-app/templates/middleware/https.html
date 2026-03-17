@@ -1,0 +1,72 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Redirection automatique HTTP → HTTPS et en-têtes de sécurité HSTS.
+        Fonctionne via le header <code>X-Forwarded-Proto</code> — nécessite un reverse proxy.
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">main.rs — activation</div>
+            <pre><code><span class="kw">use</span> runique::middleware::https::<span class="fn_">enforce_https</span>;
+
+<span class="ty">RuniqueApp</span>::<span class="fn_">new</span>()
+    .<span class="fn_">middleware</span>(<span class="fn_">enforce_https</span>())
+    .<span class="fn_">urls</span>(<span class="fn_">routes</span>())
+    .<span class="fn_">run</span>().<span class="kw">await</span>
+
+<span class="cm">// Redirige vers HTTPS si X-Forwarded-Proto: http</span>
+<span class="cm">// Ajoute automatiquement le header HSTS.</span></code></pre>
+
+            <div class="demo-code-title">En-têtes générés</div>
+            <pre><code><span class="cm">// Redirection HTTP → HTTPS :</span>
+HTTP/1.1 <span class="nm">301</span> Moved Permanently
+Location: https://monsite.fr/...
+
+<span class="cm">// Header HSTS ajouté sur les réponses HTTPS :</span>
+Strict-Transport-Security:
+  max-age=<span class="nm">31536000</span>; includeSubDomains</code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">Prérequis — reverse proxy</div>
+            <pre><code><span class="cm">// enforce_https lit X-Forwarded-Proto.</span>
+<span class="cm">// Ce header doit être injecté par le proxy.</span>
+
+<span class="cm"># nginx</span>
+proxy_set_header X-Forwarded-Proto $scheme;
+
+<span class="cm"># Caddy</span>
+<span class="cm"># injecté automatiquement</span>
+
+<span class="cm">// ⚠ Sans proxy de confiance, ce header</span>
+<span class="cm">//   peut être forgé par un client.</span>
+<span class="cm">//   Ne jamais l'activer en local pur.</span></code></pre>
+
+            <div class="demo-code-title">Combinaison recommandée</div>
+            <pre><code><span class="cm">// En production, combiner :</span>
+<span class="ty">RuniqueApp</span>::<span class="fn_">new</span>()
+    .<span class="fn_">middleware</span>(<span class="fn_">enforce_https</span>())
+    .<span class="fn_">middleware</span>(<span class="fn_">allowed_hosts_middleware</span>())
+    .<span class="fn_">middleware</span>(<span class="ty">SecurityPolicy</span>::<span class="fn_">strict</span>())
+    .<span class="fn_">urls</span>(<span class="fn_">routes</span>())
+    .<span class="fn_">run</span>().<span class="kw">await</span></code></pre>
+        </div>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md" target="_blank" class="btn btn-secondary">En savoir plus</a>
+        <a href="{% link 'middleware_hub' %}">← Retour aux middlewares</a>
+    </div>
+</div>
+{% endblock %}

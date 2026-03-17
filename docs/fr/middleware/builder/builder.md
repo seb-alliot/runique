@@ -8,11 +8,17 @@
 let app = RuniqueApp::builder(config)
     .routes(url::routes())
     .with_database(db)
-    .with_error_handler(true)
     .middleware(|m| {
-        m.with_csp(true)               // CSP & headers sécurité
-         .with_host_validation(true)   // Validation des hosts
-         .with_cache(true)             // No-cache en dev
+        m.with_csp(|c| {
+              c.policy(SecurityPolicy::strict())
+               .with_header_security(true)
+           })
+         .with_allowed_hosts(|h| {
+              h.enabled(true)
+               .host("monsite.fr")
+               .host("www.monsite.fr")
+           })
+         .with_cache(true)
     })
     .statics()
     .build()
@@ -21,21 +27,22 @@ let app = RuniqueApp::builder(config)
 
 ---
 
-## Personnaliser les middlewares
+## Conditionnel selon l'environnement
 
 ```rust
-let app = RuniqueApp::builder(config)
-    .routes(url::routes())
-    .with_database(db)
-    .middleware(|m| {
-        m.with_csp(false)              // Désactiver CSP
-         .with_host_validation(false)  // Désactiver la validation des hosts
-    })
-    .build()
-    .await?;
+.middleware(|m| {
+    m.with_csp(|c| {
+          c.policy(SecurityPolicy::strict())
+           .with_upgrade_insecure(!is_debug())
+       })
+     .with_allowed_hosts(|h| {
+          h.enabled(!is_debug())  // désactivé en dev, actif en prod
+           .host("monsite.fr")
+       })
+})
 ```
 
-> En mode `DEBUG=true`, `with_csp` et `with_host_validation` sont déjà désactivés par défaut.
+> En mode `DEBUG=true`, `is_debug()` retourne `true` — les guards de sécurité peuvent être désactivés conditionnellement.
 
 ---
 

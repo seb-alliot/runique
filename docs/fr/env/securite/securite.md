@@ -3,35 +3,11 @@
 ## Middlewares
 
 | Variable | Défaut | Description |
-|----------|--------|-------------|
-| `RUNIQUE_ENABLE_HOST_VALIDATION` | `true` (prod) / `false` (dev) | Valider le header Host contre `ALLOWED_HOSTS` |
-| `RUNIQUE_ENABLE_DEBUG_ERRORS` | `false` (prod) / `true` (dev) | Pages d'erreur détaillées |
+| --- | --- | --- |
 | `RUNIQUE_ENABLE_CACHE` | `true` (prod) / `false` (dev) | Headers de cache HTTP |
-| `RUNIQUE_ALLOWED_HOSTS` | `*` | Hosts autorisés pour le middleware de validation |
 
-> **CSP** — La politique CSP est configurée exclusivement via le builder (`.with_csp(...)`), sans variable d'environnement. Voir [CSP](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/csp.md).
-
----
-
-## Rate Limiting
-
-| Variable                        | Défaut | Description                                               |
-|---------------------------------|--------|-----------------------------------------------------------|
-| `RUNIQUE_RATE_LIMIT_REQUESTS`   | `60`   | Nombre de requêtes autorisées par fenêtre (`RateLimiter`) |
-| `RUNIQUE_RATE_LIMIT_WINDOW_SECS`| `60`   | Durée de la fenêtre en secondes (`RateLimiter`)           |
-
-Voir [Rate Limiting](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/rate-limit/rate-limit.md) pour l'utilisation.
-
----
-
-## LoginGuard
-
-| Variable                       | Défaut | Description                                                    |
-|--------------------------------|--------|----------------------------------------------------------------|
-| `RUNIQUE_LOGIN_MAX_ATTEMPTS`   | `5`    | Nombre d'échecs avant verrouillage du compte (`LoginGuard`)    |
-| `RUNIQUE_LOGIN_LOCKOUT_SECS`   | `300`  | Durée du verrouillage en secondes (`LoginGuard`)               |
-
-Voir [LoginGuard](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/login-guard/login-guard.md) pour l'utilisation.
+> **CSP** — Configurée exclusivement via le builder (`.with_csp(...)`). Voir [CSP](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/csp.md).
+> **Host validation** — Configurée exclusivement via le builder (`.with_allowed_hosts([...])`). Voir [Host Validation](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/hosts/hosts.md).
 
 ---
 

@@ -1,7 +1,8 @@
+use crate::utils::trad::t;
 use axum::{
     body::Body,
     extract::State,
-    http::{Request, StatusCode},
+    http::{Request, StatusCode, header},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -26,27 +27,32 @@ pub struct RateLimiter {
 }
 
 impl RateLimiter {
-    pub fn new(max_requests: u32, window_secs: u64) -> Self {
+    /// Crée un rate limiter avec les valeurs par défaut (60 req / 60 s).
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// RateLimiter::new()
+    ///     .max_requests(100)
+    ///     .window_secs(60)
+    /// ```
+    pub fn new() -> Self {
         Self {
             store: Arc::new(Mutex::new(HashMap::new())),
-            max_requests,
-            window: Duration::from_secs(window_secs),
+            max_requests: 60,
+            window: Duration::from_secs(60),
         }
     }
 
-    /// Construit depuis les variables d'environnement :
-    /// `RUNIQUE_RATE_LIMIT_REQUESTS` (défaut : 60)
-    /// `RUNIQUE_RATE_LIMIT_WINDOW_SECS` (défaut : 60)
-    pub fn from_env() -> Self {
-        let max = std::env::var("RUNIQUE_RATE_LIMIT_REQUESTS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(60);
-        let window = std::env::var("RUNIQUE_RATE_LIMIT_WINDOW_SECS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(60);
-        Self::new(max, window)
+    /// Nombre maximal de requêtes autorisées dans la fenêtre
+    pub fn max_requests(mut self, max: u32) -> Self {
+        self.max_requests = max;
+        self
+    }
+
+    /// Durée de la fenêtre en secondes
+    pub fn window_secs(mut self, secs: u64) -> Self {
+        self.window = Duration::from_secs(secs);
+        self
     }
 
     /// Spawne une tâche Tokio qui purge périodiquement les entrées expirées.
@@ -68,6 +74,22 @@ impl RateLimiter {
         });
     }
 
+    /// Secondes restantes avant la réinitialisation de la fenêtre pour cette clé.
+    /// Retourne `0` si la clé est inconnue ou si la fenêtre est déjà expirée.
+    pub fn retry_after_secs(&self, key: &str) -> u64 {
+        let store = match self.store.lock() {
+            Ok(s) => s,
+            Err(p) => p.into_inner(),
+        };
+        match store.get(key) {
+            Some((_, start)) => {
+                let elapsed = Instant::now().duration_since(*start);
+                self.window.saturating_sub(elapsed).as_secs()
+            }
+            None => 0,
+        }
+    }
+
     /// Retourne `true` si la clé est sous la limite, `false` si dépassée
     pub fn is_allowed(&self, key: &str) -> bool {
         let mut store = match self.store.lock() {
@@ -87,6 +109,12 @@ impl RateLimiter {
         } else {
             false
         }
+    }
+}
+
+impl Default for RateLimiter {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -121,7 +149,7 @@ fn extract_ip(req: &Request<Body>) -> String {
 /// use runique::prelude::*;
 /// use std::sync::Arc;
 ///
-/// let limiter = Arc::new(RateLimiter::new(5, 60)); // 5 req/min par IP
+/// let limiter = Arc::new(RateLimiter::new().max_requests(5).window_secs(60));
 ///
 /// Router::new()
 ///     .route("/login", post(login_view))
@@ -139,6 +167,12 @@ pub async fn rate_limit_middleware(
     if limiter.is_allowed(&ip) {
         next.run(req).await
     } else {
-        (StatusCode::TOO_MANY_REQUESTS, "Too many requests").into_response()
+        let retry_after = limiter.retry_after_secs(&ip).to_string();
+        (
+            StatusCode::TOO_MANY_REQUESTS,
+            [(header::RETRY_AFTER, retry_after)],
+            t("html.429_text").into_owned(),
+        )
+            .into_response()
     }
 }

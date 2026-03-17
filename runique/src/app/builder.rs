@@ -295,7 +295,10 @@ impl RuniqueAppBuilder {
             features: middleware.features.clone(),
             url_registry,
             security_csp: new(middleware.security_policy.take().unwrap_or_default()),
-            security_hosts: new(HostPolicy::from_env()),
+            security_hosts: new(HostPolicy::new(
+                middleware.allowed_hosts.clone(),
+                middleware.features.enable_host_validation,
+            )),
         });
 
         // C. Enregistrement des URLs (urlpatterns!)
