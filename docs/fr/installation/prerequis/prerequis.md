@@ -50,8 +50,7 @@ STATICFILES_DIRS=static
 MEDIA_ROOT=media
 
 # Security
-SECRETE_KEY=your_secret_key_change_in_production
-RUNIQUE_ALLOWED_HOSTS=localhost,127.0.0.1
+SECRET_KEY=your_secret_key_change_in_production
 ```
 
 ### 3. Compiler le projet

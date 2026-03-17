@@ -1,0 +1,95 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Déclarer un modèle avec la macro <code>model!</code>, générer et appliquer les migrations SeaORM.
+    </p>
+
+    <div class="demo-layout">
+
+        <div class="demo-code">
+            <div class="demo-code-title">Déclarer un modèle — macro model!</div>
+            <pre><code><span class="cm">// src/models/article.rs</span>
+<span class="at">#[model(</span>
+<span class="at">    fields = [title, content, published, author_id],</span>
+<span class="at">    belongs_to = [User [cascade = false]]</span>
+<span class="at">)]</span>
+<span class="kw">pub struct</span> <span class="ty">Article</span>;
+
+<span class="cm">// Champs avec contraintes</span>
+<span class="at">#[model(fields = [</span>
+<span class="at">    username: { unique = true, max_length = 150 },</span>
+<span class="at">    email:    { unique = true },</span>
+<span class="at">    bio:      { null = true, blank = true },</span>
+<span class="at">])]</span>
+<span class="kw">pub struct</span> <span class="ty">Profil</span>;</code></pre>
+
+            <div class="demo-code-title">Générer les migrations</div>
+            <pre><code><span class="cm"># Génère les fichiers de migration depuis les entités</span>
+$ runique makemigrations \
+    --entities src/entities \
+    --migrations migration/src
+
+<span class="cm"># Fichier généré : migration/src/m20240101_000001_create_article.rs</span></code></pre>
+
+            <div class="demo-code-title">Appliquer / Rollback</div>
+            <pre><code"><span class="cm"># Appliquer toutes les migrations en attente</span>
+$ runique migration up
+
+<span class="cm"># Rollback de la dernière migration</span>
+$ runique migration down
+
+<span class="cm"># Voir l'état des migrations</span>
+$ runique migration status</code></pre>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">Fichier de migration généré</div>
+            <pre><code><span class="cm">// migration/src/m20240101_000001_create_article.rs</span>
+<span class="at">#[async_trait]</span>
+<span class="kw">impl</span> <span class="ty">MigrationTrait</span> <span class="kw">for</span> <span class="ty">Migration</span> {
+    <span class="kw">async fn</span> <span class="fn_">up</span>(&self, manager: &<span class="ty">SchemaManager</span>) -> <span class="ty">Result</span>&lt;()&gt; {
+        manager.<span class="fn_">create_table</span>(
+            <span class="ty">Table</span>::<span class="fn_">create</span>()
+                .<span class="fn_">table</span>(<span class="ty">Article</span>::<span class="ty">Table</span>)
+                .<span class="fn_">col</span>(<span class="ty">ColumnDef</span>::<span class="fn_">new</span>(<span class="ty">Article</span>::Id)
+                    .<span class="fn_">integer</span>().<span class="fn_">auto_increment</span>().<span class="fn_">primary_key</span>())
+                .<span class="fn_">col</span>(<span class="ty">ColumnDef</span>::<span class="fn_">new</span>(<span class="ty">Article</span>::Title)
+                    .<span class="fn_">string</span>().<span class="fn_">not_null</span>())
+                .<span class="fn_">to_owned()
+        ).<span class="kw">await</span>
+    }
+
+    <span class="kw">async fn</span> <span class="fn_">down</span>(&self, manager: &<span class="ty">SchemaManager</span>) -> <span class="ty">Result</span>&lt;()&gt; {
+        manager.<span class="fn_">drop_table</span>(
+            <span class="ty">Table</span>::<span class="fn_">drop</span>().<span class="fn_">table</span>(<span class="ty">Article</span>::<span class="ty">Table</span>).<span class="fn_">to_owned</span>()
+        ).<span class="kw">await</span>
+    }
+}
+</code></pre>
+    <div class="demo-code-title">Intégration au démarrage</div>
+    <pre><code>
+    1. Installer <span><a class="kw" href="https://crates.io/crates/sea-orm-cli" target="_blank">sea-orm-cli</a></span>
+    2. Être connecté à votre base de données
+    3. Définir vos modèles dans <span class="cm">/entities</span>
+    4. Générez les migrations avec : <span class="ty">runique makemigrations</span>
+    5. Appliquez les migrations avec : <span class="ty">runique migrate</span>
+    <span class="cm">// La CLI Runique wrap `sea-orm-cli migrate up`</span>
+</code></pre>
+
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/migrations/migrations.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/installation/migrations/migrations.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

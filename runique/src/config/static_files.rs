@@ -7,7 +7,7 @@ pub struct StaticConfig {
     pub static_runique_path: String,
     pub static_runique_url: String,
     pub media_runique_path: String,
-    pub media_runique_url: String,
+    pub media_runique: String,
     pub templates_runique: String,
 
     // User project
@@ -28,7 +28,7 @@ impl StaticConfig {
             std::env::var("STATIC_RUNIQUE_URL").unwrap_or_else(|_| "/runique/static".to_string());
         let media_runique_path = std::env::var("MEDIA_RUNIQUE_PATH")
             .unwrap_or_else(|_| format!("{}/media", env!("CARGO_MANIFEST_DIR")));
-        let media_runique_url =
+        let media_runique =
             std::env::var("MEDIA_RUNIQUE_URL").unwrap_or_else(|_| "/runique/media".to_string());
         let templates_runique = std::env::var("TEMPLATES_RUNIQUE")
             .unwrap_or_else(|_| format!("{}/templates", env!("CARGO_MANIFEST_DIR")));
@@ -47,7 +47,7 @@ impl StaticConfig {
             static_runique_path,
             static_runique_url,
             media_runique_path,
-            media_runique_url,
+            media_runique,
             templates_runique,
             templates_dir,
             staticfiles_dirs,

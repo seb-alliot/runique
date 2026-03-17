@@ -15,8 +15,8 @@
 
 | Filtre | Description | Exemple |
 |--------|-------------|---------|
-| `form` | Rendu complet du formulaire | `{{ mon_form \| form \| safe }}` |
-| `form(field='xxx')` | Rendu d'un seul champ | `{{ mon_form \| form(field='email') \| safe }}` |
+| `form` | Rendu complet du formulaire | `{{ form.nom_form \| form \| safe }}` |
+| `form(field='xxx')` | Rendu d'un seul champ | `{{ form.nom_form \| form(field='email') \| safe }}` |
 | `csrf_field` | Génère un input hidden CSRF | `{{ csrf_token \| csrf_field \| safe }}` |
 
 ---

@@ -1,0 +1,31 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Système de formulaires Runique — déclaration, validation, rendu.
+    </p>
+
+    <div class="demo-cards">
+        <a href="{% link 'test_fields' %}" class="feature-card">
+            <h3>Rendu visuel des champs</h3>
+            <p>Aperçu de tous les types de champs disponibles dans Runique</p>
+        </a>
+        <a href="{% link 'formulaires_champs' %}" class="feature-card">
+            <h3>Déclarer un champ</h3>
+            <p>Déclaration manuelle et via la macro proc <code>#[form]</code></p>
+        </a>
+        <a href="{% link 'formulaires_templates' %}" class="feature-card">
+            <h3>Rendu dans les templates</h3>
+            <p><code>{% raw %}{% form.mon_form %}{% endraw %}</code> vs <code>{% raw %}{% form.nom_form.champ %}{% endraw %}</code></p>
+        </a>
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

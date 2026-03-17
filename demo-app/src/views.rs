@@ -219,6 +219,60 @@ pub async fn info_user(
     }
 }
 
+// ─── À propos ────────────────────────────────────────────────────────────────
+
+pub async fn about(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    success!(request.notices => "Action réussie.");
+    info!(request.notices => "Message d'information.");
+    warning!(request.notices => "Attention requise.");
+    error!(request.notices => "Une erreur est survenue.");
+
+    context_update!(request => {
+        "title" => "À propos du Framework Runique",
+        "content" => "Runique est un framework web inspiré de Django, construit sur Axum et Tera.",
+    });
+
+    request.render("about/about.html")
+}
+
+// ─── CSRF test ────────────────────────────────────────────────────────────────
+
+pub async fn test_csrf(request: Request) -> AppResult<Response> {
+    success!(request.notices => "CSRF token validé avec succès !");
+    Ok(Redirect::to("/").into_response())
+}
+
+// ─── Upload image ─────────────────────────────────────────────────────────────
+
+pub async fn upload_image_submit(
+    mut request: Request,
+    Prisme(mut form): Prisme<ImageForm>,
+) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    let template = "forms/upload_image.html";
+
+    if request.is_get() {
+        context_update!(request => {
+            "title" => "Uploader un fichier",
+            "image_form" => &form,
+        });
+        return request.render(template);
+    }
+
+    if request.is_post() && form.is_valid().await {
+        success!(request.notices => "Fichier uploadé avec succès !");
+        return Ok(Redirect::to("/").into_response());
+    }
+
+    context_update!(request => {
+        "title" => "Erreur de validation",
+        "image_form" => &form,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+    });
+    request.render(template)
+}
+
 // ─── Blog ─────────────────────────────────────────────────────────────────────
 
 pub async fn blog_list(mut request: Request) -> AppResult<Response> {
@@ -301,60 +355,6 @@ pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult
             Ok(Redirect::to("/blog/liste").into_response())
         }
     }
-}
-
-// ─── À propos ────────────────────────────────────────────────────────────────
-
-pub async fn about(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    success!(request.notices => "Action réussie.");
-    info!(request.notices => "Message d'information.");
-    warning!(request.notices => "Attention requise.");
-    error!(request.notices => "Une erreur est survenue.");
-
-    context_update!(request => {
-        "title" => "À propos du Framework Runique",
-        "content" => "Runique est un framework web inspiré de Django, construit sur Axum et Tera.",
-    });
-
-    request.render("about/about.html")
-}
-
-// ─── CSRF test ────────────────────────────────────────────────────────────────
-
-pub async fn test_csrf(request: Request) -> AppResult<Response> {
-    success!(request.notices => "CSRF token validé avec succès !");
-    Ok(Redirect::to("/").into_response())
-}
-
-// ─── Upload image ─────────────────────────────────────────────────────────────
-
-pub async fn upload_image_submit(
-    mut request: Request,
-    Prisme(mut form): Prisme<ImageForm>,
-) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    let template = "forms/upload_image.html";
-
-    if request.is_get() {
-        context_update!(request => {
-            "title" => "Uploader un fichier",
-            "image_form" => &form,
-        });
-        return request.render(template);
-    }
-
-    if request.is_post() && form.is_valid().await {
-        success!(request.notices => "Fichier uploadé avec succès !");
-        return Ok(Redirect::to("/").into_response());
-    }
-
-    context_update!(request => {
-        "title" => "Erreur de validation",
-        "image_form" => &form,
-        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
-    });
-    request.render(template)
 }
 
 // ─── Test des champs ─────────────────────────────────────────────────────────
@@ -471,7 +471,7 @@ pub async fn admin_setup(mut request: Request) -> AppResult<Response> {
     request.render("admin/setup.html")
 }
 
-pub async fn admin_surcharge_exemple(mut request: Request) -> AppResult<Response> {
+pub async fn surcharge_exemple(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
     context_update!(request => {
         "title" => "Exemple — template de surcharge",
@@ -485,6 +485,22 @@ pub async fn admin_surcharge(mut request: Request) -> AppResult<Response> {
         "title" => "Surcharge de templates",
     });
     request.render("admin/surcharge.html")
+}
+
+pub async fn installation_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Installation",
+    });
+    request.render("installation/installation.html")
+}
+
+pub async fn database_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Base de données",
+    });
+    request.render("database/database.html")
 }
 
 pub async fn macros_demo(mut request: Request) -> AppResult<Response> {
@@ -569,6 +585,74 @@ pub async fn middleware_https(mut request: Request) -> AppResult<Response> {
     request.render("middleware/https.html")
 }
 
+// ─── Formulaires — hub & sous-pages ──────────────────────────────────────────
+
+pub async fn formulaires_hub(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Formulaires",
+    });
+    request.render("formulaires/index.html")
+}
+
+pub async fn formulaires_champs(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Déclarer un champ",
+    });
+    request.render("formulaires/champs.html")
+}
+
+pub async fn formulaires_templates(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Rendu dans les templates",
+    });
+    request.render("formulaires/templates.html")
+}
+
+// ─── Nouvelles pages démo ─────────────────────────────────────────────────────
+
+pub async fn template_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Templates & Tags Tera",
+    });
+    request.render("template/template.html")
+}
+
+pub async fn configuration_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Configuration builder",
+    });
+    request.render("configuration/configuration.html")
+}
+
+pub async fn orm_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "ORM — Requêtes SeaORM",
+    });
+    request.render("orm/orm.html")
+}
+
+pub async fn migrations_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Migrations",
+    });
+    request.render("migrations/migrations.html")
+}
+
+pub async fn comparatif_demo(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Comparatif Django / Runique",
+    });
+    request.render("comparatif/comparatif.html")
+}
+
 // ─── Routeur — page démo ──────────────────────────────────────────────────────
 
 pub async fn router_demo(mut request: Request) -> AppResult<Response> {
@@ -584,6 +668,14 @@ pub async fn router_demo(mut request: Request) -> AppResult<Response> {
 // Ces routes existent uniquement pour vérifier que les pages d'erreur
 // de Runique s'affichent correctement. À ne pas exposer en production.
 
+pub async fn propos_template_error(mut request: Request) -> AppResult<Response> {
+    // Forcer le mode debug sur cette page pour tester l'affichage des erreurs de template en mode debug
+    context_update!(request => {
+        "title" => "Page de test d'erreur de template",
+    });
+    request.render("router/fallback.html")
+}
+
 pub async fn force_not_found(_: Request) -> Response {
     StatusCode::NOT_FOUND.into_response()
 }
@@ -592,7 +684,7 @@ pub async fn force_server_error(_: Request) -> Response {
     StatusCode::INTERNAL_SERVER_ERROR.into_response()
 }
 
-pub async fn force_too_many_requests(_: Request) -> Response {
+pub async fn force_to_many_requests(_: Request) -> Response {
     StatusCode::TOO_MANY_REQUESTS.into_response()
 }
 

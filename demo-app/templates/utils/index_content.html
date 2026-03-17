@@ -1,6 +1,4 @@
 <div class="content">
-    {% messages %}
-
     <h1>{{ title }}</h1>
     <p class="lead">{{ description }}</p>
 
@@ -34,83 +32,127 @@
     <div class="demo-sections">
 
         <div class="demo-section">
-            <h2>Authentification</h2>
-            <div class="demo-cards">
-                <a href="{% link 'inscription' %}" class="feature-card">
-                    <h3>Inscription</h3>
-                    <p>Formulaire basé modèle, validation, hash mot de passe</p>
-                </a>
-                <a href="{% link 'login' %}" class="feature-card">
-                    <h3>Authentification</h3>
-                    <p>Login / logout, sessions, protection des routes</p>
-                </a>
-            </div>
+            <details>
+                <summary><h2>Authentification</h2></summary>
+                <div class="demo-cards">
+                    <a href="{% link 'inscription' %}" class="feature-card">
+                        <h3>Inscription</h3>
+                        <p>Formulaire basé modèle, validation, hash mot de passe</p>
+                    </a>
+                    <a href="{% link 'login' %}" class="feature-card">
+                        <h3>Authentification</h3>
+                        <p>Login / logout, sessions, protection des routes</p>
+                    </a>
+                    <a href="{% link 'profil' %}" class="feature-card">
+                        <h3>Profil utilisateur</h3>
+                        <p>Session active, données utilisateur, déconnexion</p>
+                    </a>
+                </div>
+            </details>
         </div>
 
         <div class="demo-section">
-            <h2>Données & Formulaires</h2>
-            <div class="demo-cards">
-                <a href="{% link 'blog_list' %}" class="feature-card">
-                    <h3>Blog</h3>
-                    <p>CRUD complet, ModelForm, SeaORM</p>
-                </a>
-                <a href="{% link 'model_demo' %}" class="feature-card">
-                    <h3>Modèles & Schémas</h3>
-                    <p>Définir un modèle, types, contraintes, relations, migrations</p>
-                </a>
-                <a href="{% link 'test_fields' %}" class="feature-card">
-                    <h3>Champs de formulaire</h3>
-                    <p>Tous les types disponibles dans Runique</p>
-                </a>
-                <a href="{% link 'upload_image' %}" class="feature-card">
-                    <h3>Upload fichier</h3>
-                    <p>Image, validation taille et extension</p>
-                </a>
-            </div>
+            <details>
+                <summary><h2>Données & Formulaires</h2></summary>
+                <div class="demo-cards">
+                    <a href="{% link 'orm_demo' %}" class="feature-card">
+                        <h3>ORM — Requêtes</h3>
+                        <p>objects, filter, paginate, relations, create/update/delete</p>
+                    </a>
+                    <a href="{% link 'database_demo' %}" class="feature-card">
+                        <h3>Base de données</h3>
+                        <p>DatabaseConfig, from_env, from_url, pool, timeouts</p>
+                    </a>
+                    <a href="{% link 'model_demo' %}" class="feature-card">
+                        <h3>Modèles & Schémas</h3>
+                        <p>Définir un modèle, types, contraintes, relations, migrations</p>
+                    </a>
+                    <a href="{% link 'formulaires_hub' %}" class="feature-card">
+                        <h3>Formulaires</h3>
+                        <p>Déclaration, champs disponibles, rendu Tera</p>
+                    </a>
+                    <a href="{% link 'upload_image' %}" class="feature-card">
+                        <h3>Upload fichier</h3>
+                        <p>Image, validation taille et extension</p>
+                    </a>
+                </div>
+            </details>
         </div>
 
         <div class="demo-section">
-            <h2>Framework</h2>
-            <div class="demo-cards">
-                <a href="{% link 'router_demo' %}" class="feature-card">
-                    <h3>Routeur</h3>
-                    <p>urlpatterns!, paramètres de chemin, liens nommés</p>
-                </a>
-                <a href="{% link 'middleware_hub' %}" class="feature-card">
-                    <h3>Middlewares</h3>
-                    <p>CSRF, CSP, Rate Limiter, Login Guard, Host Validation, HTTPS</p>
-                </a>
-                <a href="{% link 'about' %}" class="feature-card">
-                    <h3>Messages flash</h3>
-                    <p>Success, info, warning, error</p>
-                </a>
-                <a href="{% link 'i18n_demo' %}" class="feature-card">
-                    <h3>Internationalisation</h3>
-                    <p>Langue des templates Runique — 9 langues disponibles</p>
-                </a>
-                <a href="{% link 'session_demo' %}" class="feature-card">
-                    <h3>Sessions</h3>
-                    <p>MemoryStore, limites mémoire, nettoyage périodique automatique</p>
-                </a>
-                <a href="{% link 'macros_demo' %}" class="feature-card">
-                    <h3>Macros</h3>
-                    <p>context_update!, context!, impl_from_error!</p>
-                </a>
-                <a href="{% link 'force_404' %}" class="feature-card">
-                    <h3>Pages d'erreur</h3>
-                    <p>404, 500, 429 — vérification des pages Runique</p>
-                </a>
-            </div>
+            <details>
+                <summary><h2>Démarrage</h2></summary>
+                <div class="demo-cards">
+                    <a href="{% link 'installation_demo' %}" class="feature-card">
+                        <h3>Installation</h3>
+                        <p>Prérequis, .env, commandes CLI, démarrage rapide</p>
+                    </a>
+                    <a href="{% link 'configuration_demo' %}" class="feature-card">
+                        <h3>Configuration builder</h3>
+                        <p>RuniqueApp::builder(), middlewares, secrets, assets</p>
+                    </a>
+                    <a href="{% link 'migrations_demo' %}" class="feature-card">
+                        <h3>Migrations</h3>
+                        <p>macro model!, makemigrations, migration up/down/status</p>
+                    </a>
+                    <a href="{% link 'comparatif_demo' %}" class="feature-card">
+                        <h3>Comparatif Django</h3>
+                        <p>Équivalences routes, vues, formulaires, ORM, sécurité</p>
+                    </a>
+                </div>
+            </details>
         </div>
 
         <div class="demo-section">
-            <h2>Administration</h2>
-            <div class="demo-cards">
-                <a href="{% link 'admin_hub' %}" class="feature-card feature-card-admin">
-                    <h3>Administration</h3>
-                    <p>CRUD auto-généré, permissions, tableau de bord, surcharge templates</p>
-                </a>
-            </div>
+            <details>
+                <summary><h2>Framework</h2></summary>
+                <div class="demo-cards">
+                    <a href="{% link 'router_demo' %}" class="feature-card">
+                        <h3>Routeur</h3>
+                        <p>urlpatterns!, paramètres de chemin, liens nommés</p>
+                    </a>
+                    <a href="{% link 'template_demo' %}" class="feature-card">
+                        <h3>Templates & Tags</h3>
+                        <p>{% raw %}{% static %}, {% link %}, {% media %}, {% messages %}, {% form.xxx %}{% endraw %}</p>
+                    </a>
+                    <a href="{% link 'middleware_hub' %}" class="feature-card">
+                        <h3>Middlewares</h3>
+                        <p>CSRF, CSP, Rate Limiter, Login Guard, Host Validation, HTTPS</p>
+                    </a>
+                    <a href="{% link 'about' %}" class="feature-card">
+                        <h3>Messages flash</h3>
+                        <p>Success, info, warning, error</p>
+                    </a>
+                    <a href="{% link 'i18n_demo' %}" class="feature-card">
+                        <h3>Internationalisation</h3>
+                        <p>Langue des templates Runique — 9 langues disponibles</p>
+                    </a>
+                    <a href="{% link 'session_demo' %}" class="feature-card">
+                        <h3>Sessions</h3>
+                        <p>MemoryStore, limites mémoire, nettoyage périodique automatique</p>
+                    </a>
+                    <a href="{% link 'macros_demo' %}" class="feature-card">
+                        <h3>Macros</h3>
+                        <p>context_update!, context!, impl_from_error!</p>
+                    </a>
+                    <a href="{% link 'propos_template_error' %}" class="feature-card">
+                        <h3>Pages d'erreur</h3>
+                        <p>404, 500, 429 — vérification des pages Runique</p>
+                    </a>
+                </div>
+            </details>
+        </div>
+
+        <div class="demo-section">
+            <details>
+                <summary><h2>Administration</h2></summary>
+                <div class="demo-cards">
+                    <a href="{% link 'admin_hub' %}" class="feature-card feature-card-admin">
+                        <h3>Administration</h3>
+                        <p>CRUD auto-généré, permissions, tableau de bord, surcharge templates</p>
+                    </a>
+                </div>
+            </details>
         </div>
 
     </div>

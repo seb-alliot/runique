@@ -33,7 +33,7 @@ impl RateLimiter {
     /// ```rust,ignore
     /// RateLimiter::new()
     ///     .max_requests(100)
-    ///     .window_secs(60)
+    ///     .retry_after(60)
     /// ```
     pub fn new() -> Self {
         Self {
@@ -50,7 +50,7 @@ impl RateLimiter {
     }
 
     /// Durée de la fenêtre en secondes
-    pub fn window_secs(mut self, secs: u64) -> Self {
+    pub fn retry_after(mut self, secs: u64) -> Self {
         self.window = Duration::from_secs(secs);
         self
     }
@@ -83,8 +83,8 @@ impl RateLimiter {
         };
         match store.get(key) {
             Some((_, start)) => {
-                let elapsed = Instant::now().duration_since(*start);
-                self.window.saturating_sub(elapsed).as_secs()
+                let interval = Instant::now().duration_since(*start);
+                self.window.saturating_sub(interval).as_secs()
             }
             None => 0,
         }
@@ -123,7 +123,7 @@ impl Default for RateLimiter {
 /// **Pré-requis : reverse proxy de confiance.**
 /// Cette fonction fait confiance au header `X-Forwarded-For` tel qu'il arrive.
 /// Sans proxy en amont (nginx, Caddy, Cloudflare…) qui contrôle ce header,
-/// un client malveillant peut le forger pour contourner le rate limiting par IP.
+/// un client malveillant peut le forcer pour contourner le rate limiting par IP.
 ///
 /// Pour la protection brute-force sur le login, préférez [`LoginGuard`] qui
 /// limite par nom d'utilisateur — non bypassable par IP spoofing.
@@ -149,7 +149,7 @@ fn extract_ip(req: &Request<Body>) -> String {
 /// use runique::prelude::*;
 /// use std::sync::Arc;
 ///
-/// let limiter = Arc::new(RateLimiter::new().max_requests(5).window_secs(60));
+/// let limiter = Arc::new(RateLimiter::new().max_requests(5).retry_after(60));
 ///
 /// Router::new()
 ///     .route("/login", post(login_view))

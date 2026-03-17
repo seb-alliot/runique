@@ -100,9 +100,10 @@ runique migration status
 runique migration down --files users/<span class="nb">20240101_120000</span>
 runique migration down --batch <span class="nb">20240101_120000</span>
 
-<span class="cm"># ⚠ rollback partiel : risque de désynchronisation</span>
+<span class="cm"># ⚠ Rollback partiel : risque de désynchronisation</span>
 <span class="cm">#   entre les fichiers applied/ et l'état réel de la DB.</span>
-<span class="cm">#   Toujours rollback dans l'ordre inverse (plus récent d'abord).</span></code></pre>
+<span class="cm">#   Privilégier les commandes SeaORM en cas de rollback.</span>
+<span class="cm">#   Toujours rollback dans l'ordre inverse(+ récent d'arbord).</span></code></pre>
         </div>
 
     </div>

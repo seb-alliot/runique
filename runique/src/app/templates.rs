@@ -22,7 +22,7 @@ impl TemplateLoader {
             config.static_files.static_url.clone(),
             config.static_files.media_url.clone(),
             config.static_files.static_runique_url.clone(),
-            config.static_files.media_runique_url.clone(),
+            config.static_files.media_runique.clone(),
             url_registry.clone(),
         );
 
