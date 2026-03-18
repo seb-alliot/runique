@@ -1,5 +1,4 @@
 pub use sea_orm_migration::prelude::*;
-
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -8,6 +7,8 @@ impl MigratorTrait for Migrator {
         // let mut migrations: Vec<Box<dyn MigrationTrait>> = user_runique()
         //     .into_iter()
         //     .collect();
-        vec![]
+        vec![
+
+        ]
     }
 }
