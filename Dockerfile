@@ -1,18 +1,9 @@
+# --- Étape 1 : BUILDER ---
+# On utilise Rust 1.91 pour être aligné avec ta machine locale
 FROM rust:1.91-slim-bookworm AS builder
-WORKDIR /usr/src/app
 
-# 1. On installe les outils nécessaires
-
-# Si 'runique' est un binaire de ton projet, on le compilera après
-
-COPY . .
-
-# 2. On compile TOUT le workspace (incluant le CLI runique et l'app)
-RUN cargo build --release
-
-FROM debian:bookworm-slim
-WORKDIR /app
-
+# Installation des dépendances système nécessaires à la compilation
+# pkg-config et libssl-dev sont CRUCIAUX pour compiler sea-orm-cli et les crates réseau
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
@@ -20,19 +11,47 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Installation forcée de la version RC correspondante
+WORKDIR /usr/src/app
+
+# Installation de la version précise de sea-orm-cli (RC 32)
+# On le fait AVANT de copier le code pour mettre cette couche en cache
 RUN cargo install sea-orm-cli --version 2.0.0-rc.32
 
-# 3. On copie les binaires compilés depuis le builder
-# (Adapte le chemin si ton binaire runique est dans un autre dossier target)
+# Copie de tout le workspace
+COPY . .
+
+# Compilation de l'application demo-app et de ton outil runique
+# Le flag --release optimise les performances (indispensable pour la prod)
+RUN cargo build --release
+
+# --- Étape 2 : RUNTIME (Image finale légère) ---
+FROM debian:bookworm-slim
+WORKDIR /app
+
+# Installation des bibliothèques de partage nécessaires au binaire Rust pour s'exécuter
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libpq-dev \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+# On récupère uniquement les fichiers nécessaires depuis le builder
+# 1. Le binaire principal
 COPY --from=builder /usr/src/app/target/release/demo-app /app/demo-app
+
+# 2. Le binaire runique (ton CLI perso)
 COPY --from=builder /usr/src/app/target/release/runique /usr/local/bin/runique
+
+# 3. Le CLI Sea-ORM pour les migrations
 COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
-# 4. On copie le code source des entités et des migrations
-# car 'runique makemigrations' en a besoin pour lire tes structures Rust
-COPY --from=builder /usr/src/app/entity /app/entity
-COPY --from=builder /usr/src/app/migration /app/migration
+# 4. Le dossier des migrations (Sea-ORM en a besoin pour lire le code des tables)
+# Adapté à ta structure de workspace : demo-app/migration
+COPY --from=builder /usr/src/app/demo-app/migration /app/migration
 
+# Configuration du port
 ENV PORT=3000
+EXPOSE 3000
+
+# Lancement de l'application
 CMD ["./demo-app"]
