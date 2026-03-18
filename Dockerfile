@@ -40,15 +40,14 @@ COPY --from=builder /usr/src/app/target/release/runique /usr/local/bin/runique
 COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
 # --- DOSSIERS DE DONNÉES ---
-# Note : On s'assure que les dossiers existent avant de copier
-RUN mkdir -p /app/static /app/media /app/templates /app/migration
+# On crée l'arborescence attendue par l'admin (/app/runique/static)
+RUN mkdir -p /app/runique/static /app/runique/templates /app/static /app/media /app/templates /app/migration
 
-# 1. On copie d'abord les fichiers du framework (base)
-COPY --from=builder /usr/src/app/runique/static/ /app/static/
-COPY --from=builder /usr/src/app/runique/templates/ /app/templates/
+# 1. On copie les fichiers du framework DANS LEUR SOUS-DOSSIER DÉDIÉ
+COPY --from=builder /usr/src/app/runique/static/ /app/runique/static/
+COPY --from=builder /usr/src/app/runique/templates/ /app/runique/templates/
 
-# 2. On "fusionne" avec les fichiers de ton app (ils s'ajouteront sans tout supprimer)
-# IMPORTANT : Le "/" à la fin de la source ET de la destination est crucial pour fusionner le contenu
+# 2. On copie les fichiers de ton application à la racine /app/
 COPY --from=builder /usr/src/app/demo-app/static/ /app/static/
 COPY --from=builder /usr/src/app/demo-app/templates/ /app/templates/
 COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
