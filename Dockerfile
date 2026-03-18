@@ -47,7 +47,7 @@ COPY --from=builder /usr/src/app/demo-app/src/entities /app/src/entities
 
 COPY --from=builder /usr/src/app/demo-app/migration /app/migration
 COPY --from=builder /usr/src/app/demo-app/static /app/static
-COPY --from=builder /usr/src/app/runique/static /app/static
+COPY --from=builder /usr/src/app/runique/static/ /app/static/
 COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
 COPY --from=builder /usr/src/app/demo-app/templates /app/templates
 
