@@ -1,9 +1,9 @@
 pub use sea_orm_migration::prelude::*;
+mod m20260318_153933_create_blog_table;
+mod m20260318_153933_create_contributions_table;
 mod m20260318_153933_create_eihwaz_users_table;
 mod m20260318_153933_create_test_all_fields_table;
 mod m20260318_153933_create_users_booster_table;
-mod m20260318_153933_create_contributions_table;
-mod m20260318_153933_create_blog_table;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -13,7 +13,6 @@ impl MigratorTrait for Migrator {
         //     .into_iter()
         //     .collect();
         vec![
-
             Box::new(m20260318_153933_create_blog_table::Migration),
             Box::new(m20260318_153933_create_contributions_table::Migration),
             Box::new(m20260318_153933_create_users_booster_table::Migration),
