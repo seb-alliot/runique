@@ -1,9 +1,6 @@
 # --- Étape 1 : BUILDER ---
-# On utilise Rust 1.91 pour être aligné avec ta machine locale
 FROM rust:1.91-slim-bookworm AS builder
 
-# Installation des dépendances système nécessaires à la compilation
-# pkg-config et libssl-dev sont CRUCIAUX pour compiler sea-orm-cli et les crates réseau
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
@@ -13,18 +10,16 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /usr/src/app
 
-# Installation de la version précise de sea-orm-cli (RC 32)
-# On le fait AVANT de copier le code pour mettre cette couche en cache
+# Installation de sea-orm-cli pour les migrations au build si besoin
 RUN cargo install sea-orm-cli --version 2.0.0-rc.32
 
-# Copie de tout le workspace
+# On copie tout le projet (demo-app + runique)
 COPY . .
 
-# Compilation de l'application demo-app et de ton outil runique
-# Le flag --release optimise les performances (indispensable pour la prod)
+# Compilation en mode release
 RUN cargo build --release
 
-# --- Étape 2 : RUNTIME ---
+# --- Étape 2 : RUNTIME (L'image qui tourne sur Railway) ---
 FROM debian:bookworm-slim
 WORKDIR /app
 
@@ -34,25 +29,36 @@ RUN apt-get update && apt-get install -y \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Binaires
+# 1. Récupération des binaires
 COPY --from=builder /usr/src/app/target/release/demo-app /app/demo-app
 COPY --from=builder /usr/src/app/target/release/runique /usr/local/bin/runique
 COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
-# --- DOSSIERS DE DONNÉES ---
-# On crée l'arborescence attendue par l'admin (/app/runique/static)
-RUN mkdir -p /app/runique/static /app/runique/media /app/runique/templates /app/static /app/media
+# 2. Création de TOUTE la structure de dossiers
+# On crée "src/entities" parce que Sea-ORM le cherche au démarrage
+RUN mkdir -p /app/runique/static /app/runique/templates /app/runique/media \
+            /app/static /app/media /app/templates \
+            /app/src/entities /app/migration
 
-# Copies depuis le builder
+# 3. Copies des fichiers statiques et templates
+# On respecte les deux dossiers pour éviter les conflits
 COPY --from=builder /usr/src/app/runique/static/ /app/runique/static/
 COPY --from=builder /usr/src/app/runique/templates/ /app/runique/templates/
+
 COPY --from=builder /usr/src/app/demo-app/static/ /app/static/
+COPY --from=builder /usr/src/app/demo-app/templates/ /app/templates/
 COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
 
-# Droits d'écriture pour les media (important pour les futurs uploads)
+# 4. Copie des fichiers sources nécessaires au runtime (Entities & Migrations)
+COPY --from=builder /usr/src/app/demo-app/migration/ /app/migration/
+COPY --from=builder /usr/src/app/demo-app/src/entities/ /app/src/entities/
+
+# Droits d'écriture pour les uploads
 RUN chmod -R 777 /app/media
 
+# Configuration réseau
 ENV PORT=3000
 EXPOSE 3000
 
+# On lance l'app
 CMD ["./demo-app"]
