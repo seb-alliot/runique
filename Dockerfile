@@ -24,41 +24,41 @@ COPY . .
 # Le flag --release optimise les performances (indispensable pour la prod)
 RUN cargo build --release
 
-# --- Étape 2 : RUNTIME (Image finale légère) ---
+# --- Étape 2 : RUNTIME ---
 FROM debian:bookworm-slim
 WORKDIR /app
 
-# Installation des bibliothèques de partage nécessaires au binaire Rust pour s'exécuter
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libpq-dev \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# On récupère uniquement les fichiers nécessaires depuis le builder
-# 1. Le binaire principal
+# Binaires
 COPY --from=builder /usr/src/app/target/release/demo-app /app/demo-app
 COPY --from=builder /usr/src/app/target/release/runique /usr/local/bin/runique
 COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
-# --- CORRECTION DES CHEMINS ICI ---
-# On crée la structure attendue par ton outil
+# --- DOSSIERS DE DONNÉES ---
+# Note : On s'assure que les dossiers existent avant de copier
+RUN mkdir -p /app/static /app/media /app/templates /app/migration
 
-# Demo-app
-COPY --from=builder /usr/src/app/demo-app/src/entities /app/src/entities
+# 1. On copie d'abord les fichiers du framework (base)
+COPY --from=builder /usr/src/app/runique/static/ /app/static/
+COPY --from=builder /usr/src/app/runique/templates/ /app/templates/
 
-COPY --from=builder /usr/src/app/demo-app/migration /app/migration
-COPY --from=builder /usr/src/app/demo-app/static /app/static/
-
+# 2. On "fusionne" avec les fichiers de ton app (ils s'ajouteront sans tout supprimer)
+# IMPORTANT : Le "/" à la fin de la source ET de la destination est crucial pour fusionner le contenu
+COPY --from=builder /usr/src/app/demo-app/static/ /app/static/
+COPY --from=builder /usr/src/app/demo-app/templates/ /app/templates/
 COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
-COPY --from=builder /usr/src/app/demo-app/templates /app/templates
+COPY --from=builder /usr/src/app/demo-app/migration/ /app/migration/
+COPY --from=builder /usr/src/app/demo-app/src/entities/ /app/src/entities/
 
-# Frameworks
-COPY --from=builder /usr/src/app/runique/templates /app/templates
-COPY --from=builder /usr/src/app/runique/static /app/static/
-# Configuration du port
+# Droits d'écriture pour les media (important pour les futurs uploads)
+RUN chmod -R 777 /app/media
+
 ENV PORT=3000
 EXPOSE 3000
 
-# Lancement de l'application
 CMD ["./demo-app"]
