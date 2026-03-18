@@ -3,29 +3,31 @@ FROM rust:1.85-bookworm AS builder
 
 WORKDIR /usr/src/app
 
-# On copie TOUT le repo (indispensable pour le workspace)
+# Copie de TOUT le dépôt (nécessaire pour les dépendances du workspace)
 COPY . .
 
-# ON RESTE À LA RACINE. On utilise -p (package) pour cibler demo-app.
-# Cargo trouvera automatiquement le dossier runique car il est à la racine.
-RUN cargo build --release -p demo-app
+# On compile uniquement le binaire de demo-app
+# Le flag --bin garantit qu'on génère le bon exécutable
+RUN cd demo-app && cargo build --release --bin demo-app
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Installation des libs pour le réseau et la DB
+# Dépendances système nécessaires
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libpq-dev \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Le binaire se trouve TOUJOURS dans target/release à la racine du workspace
+# On récupère le binaire compilé dans le dossier target du workspace
 COPY --from=builder /usr/src/app/target/release/demo-app /app/demo-app
 
+# Railway utilise souvent le port 8080 par défaut
 ENV PORT=8080
 EXPOSE 8080
 
+# Commande de lancement
 CMD ["./demo-app"]
