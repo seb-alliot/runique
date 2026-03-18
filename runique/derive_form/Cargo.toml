@@ -1,12 +1,12 @@
 [package]
 name = "derive_form"
-version = "1.1.32"
+version = "1.1.33"
 edition = "2021"
 authors = ["Itsuki"]
 license = "MIT"
 description = "Procedural macros for Runique web framework - automatic form generation from models"
 repository = "https://github.com/seb-alliot/runique"
-homepage = "https://github.com/seb-alliot/runique"
+homepage = "https://runique-production.up.railway.app/"
 keywords = ["Itsuki", "framework", "runique", "web"]
 categories = ["web-programming"]
 readme = "README.md"
