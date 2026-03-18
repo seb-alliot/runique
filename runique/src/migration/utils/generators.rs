@@ -367,12 +367,22 @@ fn render_column_def(col: &ParsedColumn) -> String {
         ".not_null()"
     };
     let uniq = if col.unique { ".unique_key()" } else { "" };
+
+    // --- AJOUT : Gestion des timestamps par défaut ---
+    let default = if col.created_at || col.updated_at {
+        ".default(Expr::current_timestamp())"
+    } else {
+        ""
+    };
+    // -------------------------------------------------
+
     format!(
-        "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}",
+        "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}",
         name = col.name,
         ty = ty,
         null = null,
-        uniq = uniq
+        uniq = uniq,
+        default = default
     )
 }
 

@@ -11,7 +11,5 @@ model! {
         bio: String [nullable],
         website: String [nullable],
         is_active: bool [required],
-        created_at: datetime [auto_now],
-        updated_at: datetime [auto_now_update],
     }
 }
