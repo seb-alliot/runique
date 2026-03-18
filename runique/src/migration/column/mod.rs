@@ -312,6 +312,9 @@ impl ColumnDef {
 
         if let Some(ref val) = self.default {
             col.default(val.clone());
+        } else if self.auto_now || self.auto_now_update {
+            // Force un timestamp actuel au niveau SQL pour Postgres/MySQL
+            col.extra("DEFAULT CURRENT_TIMESTAMP".to_string());
         }
 
         col
@@ -477,7 +480,7 @@ impl ColumnDef {
         };
 
         field.set_label(&label);
-        if required {
+        if required && !self.auto_now && !self.auto_now_update {
             field.set_required(true, None);
         }
 

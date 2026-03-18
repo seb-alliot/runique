@@ -23,12 +23,13 @@ impl RuniqueForm for BlogForm {
             );
         }
         if let Some(ref w) = website
-            && !w.starts_with("http") {
-                errors.insert(
-                    "website".to_string(),
-                    "Website must start with http".to_string(),
-                );
-            }
+            && !w.starts_with("http")
+        {
+            errors.insert(
+                "website".to_string(),
+                "Website must start with http".to_string(),
+            );
+        }
         if !email.contains('@') {
             errors.insert("email".to_string(), "Invalid email address".to_string());
         }
