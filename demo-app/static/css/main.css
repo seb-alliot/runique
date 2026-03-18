@@ -144,8 +144,8 @@ a {
 .flash-messages {
     display: flex;
     flex-direction: column;
-    align-items: anchor-center;
     margin: 0.5rem;
+    align-items: center;
 }
 
 [class^="message-"] {
@@ -318,12 +318,11 @@ footer p {
     gap: 1.25rem;
     align-items: flex-start;
     justify-content: center;
+    min-width: 100%;
 }
 
 .demo-section {
     flex: 1;
-    min-width: 260px;
-    max-width: 260px;
     background: var(--bg-surface);
     border: 1px solid var(--border-light);
     border-radius: 1rem;
@@ -369,6 +368,7 @@ footer p {
     color: var(--text-muted);
     font-size: 0.82rem;
     margin: 0;
+    text-align: center;
 }
 
 .feature-card-admin {
@@ -377,6 +377,7 @@ footer p {
 
 .feature-card-admin h3 {
     color: var(--accent-warning);
+    text-align: center;
 }
 
 .feature-card-admin:hover {
@@ -395,6 +396,7 @@ footer p {
     border-radius: 0.4rem;
     padding: 0.3rem 0.6rem;
     width: fit-content;
+    align-self: center;
 }
 
 .cred-sep {
@@ -406,7 +408,7 @@ footer p {
    ========================= */
 .container {
     width: 95%;
-    max-width: 1900px;
+    max-width: 1500px;
     margin: 1.5rem auto;
 }
 

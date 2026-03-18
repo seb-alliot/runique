@@ -53,8 +53,22 @@
 
         <div class="demo-section">
             <details>
-                <summary><h2>Données & Formulaires</h2></summary>
+                <summary><h2>Formulaires</h2></summary>
                 <div class="demo-cards">
+                    <a href="{% link 'formulaires_hub' %}" class="feature-card">
+                        <h3>Formulaires</h3>
+                        <p>Déclaration, champs disponibles, rendu Tera</p>
+                    </a>
+                    <a href="{% link 'upload_image' %}" class="feature-card">
+                        <h3>Upload fichier</h3>
+                        <p>Image, validation taille et extension</p>
+                    </a>
+                </div>
+            </details>
+        </div>
+        <div class="demo-section">
+            <details>
+                <summary><h2>Database</h2></summary>
                     <a href="{% link 'orm_demo' %}" class="feature-card">
                         <h3>ORM — Requêtes</h3>
                         <p>objects, filter, paginate, relations, create/update/delete</p>
@@ -67,18 +81,8 @@
                         <h3>Modèles & Schémas</h3>
                         <p>Définir un modèle, types, contraintes, relations, migrations</p>
                     </a>
-                    <a href="{% link 'formulaires_hub' %}" class="feature-card">
-                        <h3>Formulaires</h3>
-                        <p>Déclaration, champs disponibles, rendu Tera</p>
-                    </a>
-                    <a href="{% link 'upload_image' %}" class="feature-card">
-                        <h3>Upload fichier</h3>
-                        <p>Image, validation taille et extension</p>
-                    </a>
-                </div>
             </details>
         </div>
-
         <div class="demo-section">
             <details>
                 <summary><h2>Démarrage</h2></summary>

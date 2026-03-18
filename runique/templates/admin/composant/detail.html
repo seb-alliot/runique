@@ -17,8 +17,10 @@
       {% if current_user and current_user.is_superuser and "demo" not in current_user.roles %}
       <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
       <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline">
-        <button type="submit" class="btn btn-danger"
-                onclick="return confirm('{% if admin_detail_confirm_delete %}{{ admin_detail_confirm_delete }}{% endif %}')">{% if admin_detail_btn_delete %}{{ admin_detail_btn_delete }}{% endif %}</button>
+          <button type="submit" class="btn btn-sm btn-danger" 
+            data-confirm-delete="'{% if admin_detail_confirm_delete %}{{ admin_detail_confirm_delete }}{% endif %}">
+               {% if admin_list_btn_delete %}{{ admin_list_btn_delete }}{% endif %}
+          </button>
       </form>
       {% endif %}
     </div>
@@ -55,4 +57,11 @@
       </table>
     </div>
   </div>
+  <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
+  <script nonce="{{ csp_nonce }}">
+      var adminActions = new AdminActions({
+          deleteMessage: "{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% else %}Vraiment supprimer ?{% endif %}"
+      });
+      adminActions.init();
+  </script>
 {% endblock %}

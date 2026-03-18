@@ -33,12 +33,11 @@
 {% endblock %}
 {% block extra_js %}
 {{ super() }}
-<script {% if csp_nonce %}nonce="{{ csp_nonce }}"{% endif %}>
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('input[type="password"]').forEach(function (el) {
-      el.placeholder = '••••••••';
-      el.disabled = true;
-    });
-  });
-</script>
-{% endblock %}
+  <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
+  <script nonce="{{ csp_nonce }}">
+      var adminActions = new AdminActions({
+          deleteMessage: "{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% else %}Vraiment supprimer ?{% endif %}"
+      });
+      adminActions.init();
+  </script>
+  {% endblock %}

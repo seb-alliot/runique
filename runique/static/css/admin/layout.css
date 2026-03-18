@@ -277,14 +277,14 @@ ul { list-style: none; }
 }
 
 .user-avatar {
-    width: clamp(28px, 4vw, 50px);
-    height: clamp(28px, 4vw, 40px);
+    width: clamp(32px, 4vw, 40px);
+    height: clamp(32px, 4vw, 40px);
     border-radius: 50%;
     background: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.5rem;
+    font-size: clamp(0.4rem, 1vh, 1.2rem);
     font-weight: 600;
     color: #fff;
 }

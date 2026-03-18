@@ -12,7 +12,7 @@
     <aside class="admin-sidebar" id="adminSidebar">
 
         <div class="sidebar-header">
-            <div class="sidebar-logo"></div>
+            <div class="sidebar-logo">R</div>
             <span class="sidebar-title">{{ site_title | default(value="Runique Admin") }}</span>
         </div>
 
@@ -91,5 +91,5 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
+    <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
 {% endblock %}
