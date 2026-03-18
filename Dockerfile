@@ -1,12 +1,13 @@
 # ---------- Build ----------
-FROM rust:1.85 as builder
+FROM rust:1.85-bookworm as builder
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copier tout le workspace
+# Copier TOUT le contenu du dépôt (nécessaire pour un workspace)
 COPY . .
 
-# Build uniquement demo-app
+# Build spécifique du package demo-app
+# On utilise --locked pour s'assurer que le Cargo.lock est respecté
 RUN cargo build --release -p demo-app
 
 # ---------- Runtime ----------
@@ -14,20 +15,18 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Installer certificats et bibliothèques nécessaires pour Postgres
+# Installation des libs essentielles (openssl est souvent oublié et cause des crashs au runtime)
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libpq-dev \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copier le binaire compilé
-COPY --from=builder /app/target/release/demo-app /app/demo-app
+# Copie du binaire depuis le builder
+COPY --from=builder /usr/src/app/target/release/demo-app /app/demo-app
 
-# Variables d'environnement pour Railway
+# Railway injecte PORT, mais on définit une valeur par défaut
 ENV PORT=8080
-# DATABASE_URL est injecté automatiquement par Railway
+EXPOSE ${PORT}
 
-EXPOSE 8080
-
-# Lancer demo-app
 CMD ["./demo-app"]
