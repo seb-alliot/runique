@@ -22,14 +22,13 @@ impl RuniqueForm for BlogForm {
                 "Title must be at least 5 characters long".to_string(),
             );
         }
-        if let Some(ref w) = website {
-            if !w.starts_with("http") {
+        if let Some(ref w) = website
+            && !w.starts_with("http") {
                 errors.insert(
                     "website".to_string(),
                     "Website must start with http".to_string(),
                 );
             }
-        }
         if !email.contains('@') {
             errors.insert("email".to_string(), "Invalid email address".to_string());
         }
