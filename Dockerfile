@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # build uniquement demo-app
-RUN cargo build --release -p demo-app
+RUN cargo run -p demo-app
 
 # ---------- Runtime ----------
 FROM debian:bookworm-slim
