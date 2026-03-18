@@ -43,14 +43,19 @@ COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
 # --- CORRECTION DES CHEMINS ICI ---
 # On crée la structure attendue par ton outil
+
+# Demo-app
 COPY --from=builder /usr/src/app/demo-app/src/entities /app/src/entities
 
 COPY --from=builder /usr/src/app/demo-app/migration /app/migration
-COPY --from=builder /usr/src/app/demo-app/static /app/static
-COPY --from=builder /usr/src/app/runique/static/ /app/static/
+COPY --from=builder /usr/src/app/demo-app/static/ /app/static/
+
 COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
 COPY --from=builder /usr/src/app/demo-app/templates /app/templates
 
+# Frameworks
+COPY --from=builder /usr/src/app/runique/templates /app/templates
+COPY --from=builder /usr/src/app/runique/static/ /app/static/
 # Configuration du port
 ENV PORT=3000
 EXPOSE 3000
