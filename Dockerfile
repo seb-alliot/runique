@@ -1,5 +1,4 @@
-FROM rust:1.85-bookworm AS builder
-
+FROM rust:1.91-slim-bookworm AS builder
 RUN rustup update stable
 
 WORKDIR /usr/src/app
