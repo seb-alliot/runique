@@ -15,12 +15,12 @@ use runique::app::builder::RuniqueAppBuilder as builder;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logging();
-    password_init(PasswordConfig::Manual(Manual::Argon2));
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
     set_lang(Lang::Fr);
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
-    let db_config = DatabaseConfig::from_env()?.min_connections(2).build();
+    let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
     let db: DatabaseConnection = db_config.connect().await?;
 
     builder::new(config)
