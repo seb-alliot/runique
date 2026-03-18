@@ -1,11 +1,12 @@
 FROM rust:1.85-bookworm AS builder
 
+RUN rustup update stable
+
 WORKDIR /usr/src/app
 
 # On copie TOUT le repo (indispensable pour que le workspace fonctionne)
 COPY . .
 
-RUN rustup update stable
 # On compile le package demo-app.
 # Comme on est à la racine, Cargo trouve "runique" sans problème.
 RUN cargo build --release -p demo-app
