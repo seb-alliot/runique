@@ -6,6 +6,51 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
+## [1.1.48] - 2026-03-18
+
+### Changements majeurs
+
+* **CSP**
+
+  * Suppression de la configuration via variables d’environnement.
+  * La CSP doit désormais être configurée exclusivement via le builder.
+
+* **Host / allowed_host**
+
+  * Suppression des clés du `.env`.
+  * La configuration se fait maintenant via le builder, en cohérence avec la CSP.
+
+---
+
+### Correctifs
+
+* **Makemigrations**
+
+  * Les valeurs `auto_now` et `auto_now_update` sont désormais automatiquement définies par la CLI.
+  * Les différences entre plusieurs appels à `makemigrations` ne sont pas encore gérées.
+
+* **Admin**
+
+  * Modification manuelle de la vue admin pour tester un filtrage basé sur les rôles (rôle démo).
+  * Le filtrage fonctionne correctement.
+
+* **is_debug()**
+
+  * Utilisation temporaire pour piloter l’activation des logs.
+  * L’approche actuelle n’est pas satisfaisante et sera remplacée.
+  * Évolution prévue : configuration des logs via un builder dédié avec système d’activation/désactivation.
+
+---
+
+### Ajouts
+
+* **Site de démonstration**
+
+  * Un site vitrine de Runique est désormais disponible :
+    [https://runique-production.up.railway.app/](https://runique-production.up.railway.app/)
+
+---
+
 ## [1.1.47] - 2026-03-15
 
 ### Rupture
