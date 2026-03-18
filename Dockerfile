@@ -46,7 +46,7 @@ COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 COPY --from=builder /usr/src/app/demo-app/src/entities /app/src/entities
 COPY --from=builder /usr/src/app/demo-app/migration /app/migration
 COPY --from=builder /usr/src/app/demo-app/static /app/static
-COPY --from=builder /usr/src/app/demo-app/media /app/media
+COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
 COPY --from=builder /usr/src/app/demo-app/templates /app/templates
 
 # Configuration du port
