@@ -42,7 +42,7 @@ pub async fn soumission_inscription(
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
     }
-    let template = "auth/inscription_form.html";
+    let template = "auth/inscription.html";
     if request.is_get() {
         context_update!(request => {
             "title" => "Inscription utilisateur",
@@ -51,14 +51,14 @@ pub async fn soumission_inscription(
         return request.render(template);
     }
 
-    if request.is_post() && form.is_valid().await {
+    if request.is_post() {
         match form.save(&request.engine.db).await {
             Ok(user) => {
                 auth_login(&request.session, user.id, &user.username)
                     .await
                     .ok();
                 success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
-                return Ok(Redirect::to("/").into_response());
+                return Ok(Redirect::to("/profil").into_response());
             }
             Err(err) => {
                 form.get_form_mut().database_error(&err);
@@ -79,7 +79,7 @@ pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> App
     inject_auth(&mut request).await;
 
     if is_authenticated(&request.session).await {
-        return Ok(Redirect::to("/profil").into_response());
+        return Ok(Redirect::to("/profile").into_response());
     }
 
     let template = "auth/login.html";
@@ -110,7 +110,7 @@ pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> App
                         .await
                         .ok();
                     success!(request.notices => format!("Bienvenue {} !", user.username));
-                    return Ok(Redirect::to("/").into_response());
+                    return Ok(Redirect::to("/profil").into_response());
                 }
                 _ => {}
             }
@@ -247,7 +247,7 @@ pub async fn test_csrf(request: Request) -> AppResult<Response> {
 
 pub async fn upload_image_submit(
     mut request: Request,
-    Prisme(mut form): Prisme<ImageForm>,
+    Prisme(form): Prisme<ImageForm>,
 ) -> AppResult<Response> {
     inject_auth(&mut request).await;
     let template = "forms/upload_image.html";
@@ -260,7 +260,7 @@ pub async fn upload_image_submit(
         return request.render(template);
     }
 
-    if request.is_post() && form.is_valid().await {
+    if request.is_post() {
         success!(request.notices => "Fichier uploadé avec succès !");
         return Ok(Redirect::to("/").into_response());
     }
@@ -307,31 +307,27 @@ pub async fn blog_save(
     }
 
     if request.is_post() {
-        if blog.is_valid().await {
-            match blog.save(&request.engine.db).await {
-                Ok(_) => {
-                    success!(request.notices => "Article sauvegardé !");
-                    return Ok(Redirect::to("/blog/liste").into_response());
-                }
-                Err(err) => {
-                    blog.get_form_mut().database_error(&err);
-                    context_update!(request => {
-                        "title" => "Erreur base de données",
-                        "blog_form" => &blog,
-                    });
-                    return request.render(template);
-                }
+        match blog.save(&request.engine.db).await {
+            Ok(_) => {
+                success!(request.notices => "Article sauvegardé !");
+                return Ok(Redirect::to("/blog/liste").into_response());
+            }
+            Err(err) => {
+                blog.get_form_mut().database_error(&err);
+                context_update!(request => {
+                    "title" => "Erreur base de données",
+                    "blog_form" => &blog,
+                });
+                return request.render(template);
             }
         }
-
-        context_update!(request => {
-            "title" => "Erreur de validation",
-            "blog_form" => &blog,
-            "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
-        });
-        return request.render(template);
     }
 
+    context_update!(request => {
+        "title" => "Erreur de validation",
+        "blog_form" => &blog,
+        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+    });
     request.render(template)
 }
 

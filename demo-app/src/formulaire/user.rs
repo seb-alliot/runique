@@ -58,6 +58,8 @@ impl RegisterForm {
             is_active: Set(true),
             is_superuser: Set(false),
             is_staff: Set(false),
+            created_at: Set(Some(chrono::Utc::now().naive_utc())),
+            updated_at: Set(Some(chrono::Utc::now().naive_utc())),
             ..Default::default()
         };
         user.insert(db).await
