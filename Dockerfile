@@ -1,14 +1,15 @@
+# ---------- Build ----------
 FROM rust:1.85 as builder
 
 WORKDIR /app
 
-# ✅ copier TOUT le workspace
+# copier TOUT le repo (workspace complet)
 COPY . .
 
 # build uniquement demo-app
 RUN cargo build --release -p demo-app
 
-# runtime
+# ---------- Runtime ----------
 FROM debian:bookworm-slim
 
 WORKDIR /app
