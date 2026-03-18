@@ -1,8 +1,54 @@
-🌍 **Languages**: [English](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md) | [Français](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
+🌍 **Languages**:
+ [English](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md) | [Français](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.fr.md)
 
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+---
+
+## [1.1.48] - 2026-03-18
+
+### Breaking Changes
+
+* **CSP**
+
+  * Environment variable configuration has been removed.
+  * CSP must now be configured exclusively via the builder.
+
+* **Host / allowed_host**
+
+  * Removed from `.env`.
+  * Configuration is now handled via the builder, consistent with CSP.
+
+---
+
+### Fixes
+
+* **Makemigrations**
+
+  * `auto_now` and `auto_now_update` values are now automatically set by the CLI.
+  * Differences between multiple `makemigrations` calls are not yet handled.
+
+* **Admin**
+
+  * Admin view manually updated to test role-based filtering (demo role).
+  * Filtering works as expected.
+
+* **is_debug()**
+
+  * Temporary usage to control logging activation.
+  * Current approach is not suitable and will be replaced.
+  * Planned improvement: logging configuration via a dedicated builder with toggle support.
+
+---
+
+### Added
+
+* **Showcase Website**
+
+  * A demonstration website for Runique is now available:
+    [https://runique-production.up.railway.app/](https://runique-production.up.railway.app/)
 
 ---
 

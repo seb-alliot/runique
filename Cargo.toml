@@ -14,7 +14,7 @@ rust-version = "1.85"
 authors = ["Itsuki"]
 license = "MIT"
 repository = "https://github.com/seb-alliot/runique"
-homepage = "https://github.com/seb-alliot/runique"
+homepage = "https://runique-production.up.railway.app/"
 
 [workspace.dependencies]
 # Framework web

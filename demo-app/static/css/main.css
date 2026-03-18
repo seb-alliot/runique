@@ -316,6 +316,7 @@ footer p {
     flex-wrap: wrap;
     gap: 1.25rem;
     align-items: flex-start;
+    justify-content: center;
 }
 
 .demo-section {
