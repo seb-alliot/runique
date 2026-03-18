@@ -302,7 +302,7 @@
    Utilitaires (remplacent les style= inline)
    ─────────────────────────────────────────────── */
 
-.page-actions       { display: flex; gap: 0.6rem; }
+.page-actions       { display: flex; gap: 0.6rem; height: 25px; }
 .form-inline        { display: inline; }
 .text-muted         { color: var(--text-muted); }
 .th-right           { text-align: right; }
