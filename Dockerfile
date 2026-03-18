@@ -43,7 +43,7 @@ COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
 # --- CORRECTION DES CHEMINS ICI ---
 # On crée la structure attendue par ton outil
-COPY --from=builder /usr/src/app/entity /app/src/entities
+COPY --from=builder /usr/src/app/entities /app/src/entities
 COPY --from=builder /usr/src/app/demo-app/migration /app/migration
 
 # Configuration du port
