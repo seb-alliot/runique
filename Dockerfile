@@ -2,8 +2,7 @@ FROM rust:1.91-slim-bookworm AS builder
 WORKDIR /usr/src/app
 
 # 1. On installe les outils nécessaires
-# Installation forcée de la version RC correspondante
-RUN cargo install sea-orm-cli --version 2.0.0-rc.32
+
 # Si 'runique' est un binaire de ton projet, on le compilera après
 
 COPY . .
@@ -15,8 +14,14 @@ FROM debian:bookworm-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    ca-certificates libpq-dev openssl \
+    pkg-config \
+    libssl-dev \
+    libpq-dev \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
+
+# Installation forcée de la version RC correspondante
+RUN cargo install sea-orm-cli --version 2.0.0-rc.32
 
 # 3. On copie les binaires compilés depuis le builder
 # (Adapte le chemin si ton binaire runique est dans un autre dossier target)
