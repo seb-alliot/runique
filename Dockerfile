@@ -8,7 +8,7 @@ COPY . .
 
 # On compile uniquement le binaire de demo-app
 # Le flag --bin garantit qu'on génère le bon exécutable
-RUN cargo build --release --bin demo-app
+RUN cd demo-app && cargo build --release --bin demo-app
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim
