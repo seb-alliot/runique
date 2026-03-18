@@ -7,7 +7,7 @@
     grid-template-columns: 1fr;
     gap: 1.5rem;
     align-items: start;
-    width: 95%;
+    width: 90%;
     margin: 0 auto;
 }
 
@@ -24,7 +24,11 @@
         grid-template-columns: 1fr 1fr;
     }
 }
-
+@media (min-width: 1524px) {
+    .demo-layout {
+        width: 80%;
+    }
+}
 /* =========================
     FORM PANEL (gauche)
    ========================= */
@@ -98,7 +102,7 @@
 }
 
 /* =========================
-    BOUTON SUBMIT (pleine largeur)
+    BOUTON SUBMIT
    ========================= */
 
 .btn-submit {

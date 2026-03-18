@@ -2,7 +2,7 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription.css" %}'>
     <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
 {% endblock %}
 
@@ -61,7 +61,7 @@
     <span class="kw">if</span> !<span class="fn_">is_authenticated</span>(&amp;request.session).<span class="kw">await</span> {
         <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/login"</span>).<span class="fn_">into_response</span>());
     }
-    <span class="kw">if</span> request.<span class="fn_">is_post</span>() && form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
+    <span class="kw">if</span> request.<span class="fn_">is_post</span>() {
         <span class="kw">let</span> user_id = <span class="fn_">get_user_id</span>(&amp;session).<span class="kw">await</span>.<span class="fn_">unwrap_or</span>(<span class="nb">0</span>);
         form.<span class="fn_">save</span>(&amp;db, user_id).<span class="kw">await</span>?;
         <span class="mc">success!</span>(request.notices => <span class="st">"Contribution sauvegardée !"</span>);

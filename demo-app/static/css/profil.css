@@ -1,13 +1,17 @@
 /* =========================
-   PROFIL UTILISATEUR
+    PROFIL UTILISATEUR
    ========================= */
 
 .profile-wrapper {
     display: flex;
     justify-content: center;
+    flex-direction: column;
     padding: 2rem 1rem;
 }
-
+#place-center {
+    display: flex;
+    justify-content: center;
+}
 /* Carte profil */
 .profile-card {
     width: 100%;
@@ -17,6 +21,9 @@
     border-radius: 10px;
     padding: 2rem;
     animation: formFade 1s ease forwards;
+    display: flex;
+    flex-direction: column;
+    align-self: center;
 }
 
 /* Titre */
@@ -171,7 +178,7 @@
 }
 
 /* =========================
-   RESPONSIVE
+    RESPONSIVE
    ========================= */
 
 @media (max-width: 768px) {
