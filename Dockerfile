@@ -1,32 +1,33 @@
-# ---------- Build ----------
-FROM rust:1.85-bookworm as builder
+# Stage 1: Build
+FROM rust:1.85-bookworm AS builder
 
 WORKDIR /usr/src/app
 
-# Copier TOUT le contenu du dépôt (nécessaire pour un workspace)
+# Copie de TOUT le dépôt (nécessaire pour les dépendances du workspace)
 COPY . .
 
-# Build spécifique du package demo-app
-# On utilise --locked pour s'assurer que le Cargo.lock est respecté
-RUN cargo build --release -p demo-app
+# On compile uniquement le binaire de demo-app
+# Le flag --bin garantit qu'on génère le bon exécutable
+RUN cargo build --release --bin demo-app
 
-# ---------- Runtime ----------
+# Stage 2: Runtime
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Installation des libs essentielles (openssl est souvent oublié et cause des crashs au runtime)
+# Dépendances système nécessaires
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libpq-dev \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copie du binaire depuis le builder
+# On récupère le binaire compilé dans le dossier target du workspace
 COPY --from=builder /usr/src/app/target/release/demo-app /app/demo-app
 
-# Railway injecte PORT, mais on définit une valeur par défaut
+# Railway utilise souvent le port 8080 par défaut
 ENV PORT=8080
-EXPOSE ${PORT}
+EXPOSE 8080
 
+# Commande de lancement
 CMD ["./demo-app"]
