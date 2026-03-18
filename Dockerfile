@@ -1,29 +1,32 @@
 FROM rust:1.91-slim-bookworm AS builder
-RUN rustup update stable
-
 WORKDIR /usr/src/app
 
-# On copie TOUT le repo (indispensable pour que le workspace fonctionne)
+# 1. On installe les outils nécessaires
+RUN cargo install sea-orm-cli
+# Si 'runique' est un binaire de ton projet, on le compilera après
+
 COPY . .
 
-# On compile le package demo-app.
-# Comme on est à la racine, Cargo trouve "runique" sans problème.
-RUN cargo build --release -p demo-app
+# 2. On compile TOUT le workspace (incluant le CLI runique et l'app)
+RUN cargo build --release
 
 FROM debian:bookworm-slim
 WORKDIR /app
 
-# Dépendances système pour Rust/Postgres/OpenSSL
 RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libpq-dev \
-    openssl \
+    ca-certificates libpq-dev openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# On récupère le binaire dans le dossier target racine
+# 3. On copie les binaires compilés depuis le builder
+# (Adapte le chemin si ton binaire runique est dans un autre dossier target)
 COPY --from=builder /usr/src/app/target/release/demo-app /app/demo-app
+COPY --from=builder /usr/src/app/target/release/runique /usr/local/bin/runique
+COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
-ENV PORT=8080
-EXPOSE 8080
+# 4. On copie le code source des entités et des migrations
+# car 'runique makemigrations' en a besoin pour lire tes structures Rust
+COPY --from=builder /usr/src/app/entity /app/entity
+COPY --from=builder /usr/src/app/migration /app/migration
 
+ENV PORT=3000
 CMD ["./demo-app"]
