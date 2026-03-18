@@ -2,7 +2,7 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription.css" %}'>
     <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
 {% endblock %}
 
@@ -76,7 +76,7 @@
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
     <span class="ty">Prisme</span>(<span class="kw">mut</span> form): <span class="ty">Prisme</span>&lt;<span class="ty">RegisterForm</span>&gt;,
 ) -&gt; <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
-    <span class="kw">if</span> request.<span class="fn_">is_post</span>() &amp;&amp; form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
+    <span class="kw">if</span> request.<span class="fn_">is_post</span>() {
         <span class="kw">match</span> form.<span class="fn_">save</span>(&amp;db).<span class="kw">await</span> {
             <span class="ty">Ok</span>(user) =&gt; {
                 <span class="fn_">auth_login</span>(&amp;session, user.id, &amp;user.username).<span class="kw">await</span>;

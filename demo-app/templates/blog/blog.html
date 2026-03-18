@@ -2,7 +2,7 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/inscription/inscription.css" %}'>
+    <link rel="stylesheet" href='{% static "css/inscription.css" %}'>
     <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
 {% endblock %}
 
@@ -56,7 +56,7 @@
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
     <span class="ty">Prisme</span>(<span class="kw">mut</span> form): <span class="ty">Prisme</span>&lt;<span class="ty">BlogForm</span>&gt;,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
-    <span class="kw">if</span> request.<span class="fn_">is_post</span>() && form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
+    <span class="kw">if</span> request.<span class="fn_">is_post</span>() {
         form.<span class="fn_">save</span>(&amp;db).<span class="kw">await</span>?;
         <span class="mc">success!</span>(request.notices => <span class="st">"Article publié !"</span>);
         <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/blog"</span>).<span class="fn_">into_response</span>());
