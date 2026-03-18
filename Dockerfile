@@ -38,15 +38,12 @@ RUN apt-get update && apt-get install -y \
 # On récupère uniquement les fichiers nécessaires depuis le builder
 # 1. Le binaire principal
 COPY --from=builder /usr/src/app/target/release/demo-app /app/demo-app
-
-# 2. Le binaire runique (ton CLI perso)
 COPY --from=builder /usr/src/app/target/release/runique /usr/local/bin/runique
-
-# 3. Le CLI Sea-ORM pour les migrations
 COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
-# 4. Le dossier des migrations (Sea-ORM en a besoin pour lire le code des tables)
-# Adapté à ta structure de workspace : demo-app/migration
+# --- CORRECTION DES CHEMINS ICI ---
+# On crée la structure attendue par ton outil
+COPY --from=builder /usr/src/app/entity /app/src/entities
 COPY --from=builder /usr/src/app/demo-app/migration /app/migration
 
 # Configuration du port
