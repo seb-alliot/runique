@@ -8,7 +8,6 @@ impl MigratorTrait for Migrator {
         // let mut migrations: Vec<Box<dyn MigrationTrait>> = user_runique()
         //     .into_iter()
         //     .collect();
-        vec![
-        ]
+        vec![]
     }
 }
