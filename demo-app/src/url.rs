@@ -51,6 +51,7 @@ pub fn routes() -> Router {
         "/modeles"                       => view! { model_demo },             name = "model_demo",
         "/roadmap"                       => view! { roadmap },                name = "roadmap",
         "/changelog"                     => view! { changelog },              name = "changelog",
+        "/problemes-connus"              => view! { probleme_connu },         name = "problemes_connus",
         "/rgpd"                          => view! { rgpd },                   name = "rgpd",
         "/test-csrf"                     => view! { test_csrf },              name = "test_csrf",
 

@@ -460,6 +460,13 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
     });
     request.render("changelog/changelog.html")
 }
+pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Problèmes connus",
+    });
+    request.render("changelog/probleme_connu.html")
+}
 
 pub async fn roadmap(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;

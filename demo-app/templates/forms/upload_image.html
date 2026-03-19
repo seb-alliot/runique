@@ -36,11 +36,14 @@
 <span class="kw">impl</span> <span class="ty">RuniqueForm</span> <span class="kw">for</span> <span class="ty">ImageForm</span> {
     <span class="kw">fn</span> <span class="fn_">register_fields</span>(form: &amp;<span class="kw">mut</span> <span class="ty">Forms</span>) {
         <span class="cm">// Le chemin d'upload vient de .env via StaticConfig</span>
-        <span class="kw">let</span> config = <span class="ty">StaticConfig</span>::<span class="fn_">from_env</span>();
         form.<span class="fn_">field</span>(
             &amp;<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"image"</span>)
                 .<span class="fn_">label</span>(<span class="st">"Choisissez une image"</span>)
-                .<span class="fn_">upload_to</span>(&amp;config)
+                .<span class="fn_">upload_to</span>() -> dossier media
+                -> <span class="cm">upload_to_env() lit MEDIA_ROOT depuis .env</span>
+                -> <span class="cm">sinon via MEDIA_URL= -> .env</span>
+                -> <span class="cm">aucun verification d'existance de media verifier actuellement</span>
+                .<span class="fn_">required</span>()
                 .<span class="fn_">max_size_mb</span>(<span class="nb">5</span>)
                 .<span class="fn_">max_files</span>(<span class="nb">3</span>)
                 .<span class="fn_">max_dimensions</span>(<span class="nb">1920</span>, <span class="nb">1080</span>)
