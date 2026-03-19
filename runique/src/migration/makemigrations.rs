@@ -160,7 +160,7 @@ fn topological_sort_changes(
 
     // in_degree correct : compter combien de tables dépendent de chacune
     let mut in_degree: HashMap<String, usize> = new_tables.iter().map(|t| (t.clone(), 0)).collect();
-    for (_, table_deps) in &deps {
+    for table_deps in deps.values() {
         for dep in table_deps {
             *in_degree.entry(dep.clone()).or_insert(0) += 1;
         }
