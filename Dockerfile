@@ -49,6 +49,9 @@ COPY --from=builder /usr/src/app/demo-app/static/ /app/static/
 COPY --from=builder /usr/src/app/demo-app/templates/ /app/templates/
 COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
 
+# On crée le dossier uploads pour les fichiers uploadés par l'utilisateur
+RUN mkdir -p /app/media/uploads
+
 # 4. Copie des fichiers sources nécessaires au runtime (Entities & Migrations)
 COPY --from=builder /usr/src/app/demo-app/migration/ /app/migration/
 COPY --from=builder /usr/src/app/demo-app/src/entities/ /app/src/entities/
