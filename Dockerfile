@@ -37,7 +37,7 @@ COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 # 2. Création de TOUTE la structure de dossiers
 # On crée "src/entities" parce que Sea-ORM le cherche au démarrage
 RUN mkdir -p /app/runique/static /app/runique/templates /app/runique/media \
-            /app/static /app/media /app/templates /app/media/uploads\
+            /app/static /app/media /app/templates \
             /app/src/entities /app/migration
 
 
