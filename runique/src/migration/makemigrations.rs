@@ -115,7 +115,9 @@ fn detect_db_kind() -> crate::migration::utils::types::DbKind {
 /// Les tables référencées par d'autres nouvelles tables sont placées en premier.
 /// Les tables existantes (non nouvelles) sont ignorées : elles existent déjà en DB.
 /// En cas de dépendance circulaire, les tables restantes sont ajoutées à la fin.
-fn topological_sort_changes(changes: Vec<crate::migration::utils::types::Changes>) -> Vec<crate::migration::utils::types::Changes> {
+fn topological_sort_changes(
+    changes: Vec<crate::migration::utils::types::Changes>,
+) -> Vec<crate::migration::utils::types::Changes> {
     use std::collections::{HashMap, HashSet, VecDeque};
 
     let new_tables: HashSet<String> = changes
@@ -146,7 +148,10 @@ fn topological_sort_changes(changes: Vec<crate::migration::utils::types::Changes
         in_degree.entry(table.clone()).or_insert(0);
         for dep in table_deps {
             *in_degree.entry(dep.clone()).or_insert(0) += 0; // assure l'entrée
-            dependents.entry(dep.clone()).or_default().push(table.clone());
+            dependents
+                .entry(dep.clone())
+                .or_default()
+                .push(table.clone());
         }
         for dep in table_deps {
             *in_degree.get_mut(dep).unwrap_or(&mut 0) += 0;
@@ -184,9 +189,12 @@ fn topological_sort_changes(changes: Vec<crate::migration::utils::types::Changes
     }
 
     // Tables non nouvelles : conserver leur ordre original à la fin
-    let mut result: Vec<crate::migration::utils::types::Changes> = Vec::with_capacity(changes.len());
-    let mut by_name: HashMap<String, crate::migration::utils::types::Changes> =
-        changes.into_iter().map(|c| (c.table_name.clone(), c)).collect();
+    let mut result: Vec<crate::migration::utils::types::Changes> =
+        Vec::with_capacity(changes.len());
+    let mut by_name: HashMap<String, crate::migration::utils::types::Changes> = changes
+        .into_iter()
+        .map(|c| (c.table_name.clone(), c))
+        .collect();
 
     // Nouvelles tables triées topologiquement
     for name in sorted_names {

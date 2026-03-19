@@ -5,10 +5,11 @@ use crate::utils::trad::t;
 
 use axum::{
     body::Body,
-    extract::FromRequest,
+    extract::{FromRequest, FromRequestParts, Path},
     http::{Request, StatusCode},
     response::{IntoResponse, Response},
 };
+use std::collections::HashMap;
 
 /// Prism: Sentinel -> CSRF -> Aegis pipeline (extraction)
 pub struct Prisme<T>(pub T);
@@ -63,6 +64,22 @@ where
         .unwrap_or("")
         .to_string();
 
+    // Extraction des paramètres d'URL avant de consommer le body
+    let (mut parts, body) = req.into_parts();
+
+    let path_params = Path::<HashMap<String, String>>::from_request_parts(&mut parts, state)
+        .await
+        .map(|Path(p)| p)
+        .unwrap_or_default();
+
+    let query_params = parts
+        .uri
+        .query()
+        .and_then(|q| serde_urlencoded::from_str::<HashMap<String, String>>(q).ok())
+        .unwrap_or_default();
+
+    let req = Request::from_parts(parts, body);
+
     // Aegis (extraction): single read of the body
     let parsed = aegis(req, state, config.clone(), &content_type).await?;
 
@@ -80,7 +97,9 @@ where
     let csrf_for_form = csrf_session
         .masked()
         .unwrap_or_else(|_| csrf_session.clone());
-    let form = T::build_with_data(&form_data, tera, csrf_for_form.as_str(), method).await;
+    let mut form = T::build_with_data(&form_data, tera, csrf_for_form.as_str(), method).await;
+    form.get_form_mut()
+        .set_url_params(path_params, query_params);
 
     Ok(Prisme(form))
 }

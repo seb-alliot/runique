@@ -72,4 +72,61 @@ impl RegisterForm {
 
 ---
 
+## Accès aux paramètres d'URL
+
+### Depuis `Request` — accès brut
+
+```rust
+// Paramètre de route : /article/{id}
+let id = request.path_param("id");       // Option<&str>
+
+// Paramètre de query string : ?page=2
+let page = request.from_url("page");     // Option<&str>
+```
+
+### Depuis le formulaire — `cleaned_*()` whitelisté et typé
+
+Les variantes `cleaned_*` couvrent **toutes les sources** (POST, path param, query param) dans cet ordre de priorité. Elles retournent `None` si le champ n'est pas déclaré dans le formulaire.
+
+```rust
+form.cleaned_string("search")   // Option<String>
+form.cleaned_i32("page")        // Option<i32>
+form.cleaned_i64("id")          // Option<i64>
+form.cleaned_u32("quantity")    // Option<u32>
+form.cleaned_u64("ref")         // Option<u64>
+form.cleaned_f32("ratio")       // Option<f32>  (gère , → .)
+form.cleaned_f64("price")       // Option<f64>  (gère , → .)
+form.cleaned_bool("active")     // Option<bool> (true/1/on → true)
+
+// Champ non déclaré → None garanti, aucune fuite possible
+form.cleaned_string("is_admin") // None
+```
+
+Cas concret — pré-remplir un champ depuis l'URL (`GET /edit?title=Mon+Article`) :
+
+```rust
+pub async fn edit(
+    mut request: Request,
+    Prisme(mut form): Prisme<ArticleForm>,
+) -> AppResult<Response> {
+    if request.is_get() {
+        if let Some(t) = form.cleaned_string("title") {
+            form.get_form_mut().add_value("title", &t);
+        }
+    }
+
+    if request.is_post() && form.is_valid().await {
+        form.save(&request.engine.db).await?;
+        return Ok(Redirect::to("/articles").into_response());
+    }
+
+    context_update!(request => { "form" => &form });
+    request.render("edit.html")
+}
+```
+
+> **Sécurité** — `cleaned_*()` est liée au schéma du formulaire : un attaquant ne peut pas injecter un paramètre URL arbitraire (`?is_admin=true`) qui ne soit pas un champ déclaré. Fonctionne aussi bien avec `#[form(...)]` qu'avec les formulaires classiques.
+
+---
+
 ← [**Trait RuniqueForm**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/trait/trait.md) | [**Types de champs**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/champs/champs.md) →

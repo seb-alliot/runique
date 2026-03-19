@@ -1,0 +1,130 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+        Accès aux valeurs de formulaire et aux paramètres d'URL — helpers typés et accès whitelisté.
+    </p>
+    <!-- Démo live -->
+    <div class="demo-section" style="margin-top: 2rem;">
+        <h2>Démo live</h2>
+        <p>
+            Route active : <code>/formulaires/helpers/<strong>{{ path_id | default(value="—") }}</strong></code>
+            &nbsp;·&nbsp;
+            <code>from_url("search")</code> : <strong>{{ search_value | default(value="—") }}</strong>
+            &nbsp;·&nbsp;
+            <code>cleaned_string("search")</code> : <strong>{{ cleaned_search | default(value="—") }}</strong>
+        </p>
+        <p style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+            Testez en modifiant l'URL :
+        </p>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem;">
+            <a href="/formulaires/helpers/rust" class="btn btn-secondary">
+                /helpers/<strong>rust</strong>
+            </a>
+            <a href="/formulaires/helpers/rust?search=framework" class="btn btn-secondary">
+                /helpers/<strong>rust</strong>?search=framework
+            </a>
+            <a href="/formulaires/helpers/rust?search=framework&is_admin=true" class="btn btn-secondary">
+                +is_admin=true <span style="font-size:0.8rem; opacity:0.7">(ignoré — hors whitelist)</span>
+            </a>
+        </div>
+    </div>
+    <div class="demo-layout">
+
+        <!-- Helpers de conversion typée — POST -->
+        <div class="demo-code">
+            <div class="demo-code-title">Helpers POST — après is_valid()</div>
+            <pre><code><span class="cm">// Valeur par défaut si le champ est vide</span>
+form.<span class="fn_">get_string</span>(<span class="st">"username"</span>)     <span class="cm">// -> String  ("" si vide)</span>
+form.<span class="fn_">get_i32</span>(<span class="st">"age"</span>)           <span class="cm">// -> i32     (0 par défaut)</span>
+form.<span class="fn_">get_f64</span>(<span class="st">"price"</span>)         <span class="cm">// -> f64     (gère , → .)</span>
+form.<span class="fn_">get_bool</span>(<span class="st">"active"</span>)        <span class="cm">// -> bool    (true/1/on → true)</span>
+form.<span class="fn_">get_uuid</span>(<span class="st">"ref"</span>)           <span class="cm">// -> Uuid    (Uuid::nil() si vide)</span>
+
+<span class="cm">// Option — None si vide</span>
+form.<span class="fn_">get_option</span>(<span class="st">"bio"</span>)         <span class="cm">// -> Option&lt;String&gt;</span>
+form.<span class="fn_">get_option_i32</span>(<span class="st">"age"</span>)   <span class="cm">// -> Option&lt;i32&gt;</span>
+form.<span class="fn_">get_option_f64</span>(<span class="st">"note"</span>)  <span class="cm">// -> Option&lt;f64&gt;</span>
+form.<span class="fn_">get_option_bool</span>(<span class="st">"news"</span>) <span class="cm">// -> Option&lt;bool&gt;</span>
+form.<span class="fn_">get_option_uuid</span>(<span class="st">"id"</span>)   <span class="cm">// -> Option&lt;Uuid&gt;</span></code></pre>
+        </div>
+
+        <!-- Helpers date / heure -->
+        <div class="demo-code">
+            <div class="demo-code-title">Helpers date / heure</div>
+            <pre><code>form.<span class="fn_">get_naive_date</span>(<span class="st">"birthday"</span>)
+form.<span class="fn_">get_naive_time</span>(<span class="st">"meeting"</span>)
+form.<span class="fn_">get_naive_datetime</span>(<span class="st">"event_start"</span>)
+form.<span class="fn_">get_datetime_utc</span>(<span class="st">"created_at"</span>)
+
+<span class="cm">// Variantes Option</span>
+form.<span class="fn_">get_option_naive_date</span>(<span class="st">"birthday"</span>)
+form.<span class="fn_">get_option_naive_datetime</span>(<span class="st">"event_start"</span>)
+form.<span class="fn_">get_option_datetime_utc</span>(<span class="st">"created_at"</span>)</code></pre>
+        </div>
+
+        <!-- Accès URL brut depuis Request -->
+        <div class="demo-code">
+            <div class="demo-code-title">Accès brut aux paramètres d'URL — depuis Request</div>
+            <pre><code><span class="cm">// Route déclarée : "/article/{id}"</span>
+<span class="kw">let</span> id   = request.<span class="fn_">path_param</span>(<span class="st">"id"</span>);   <span class="cm">// Option&lt;&amp;str&gt;</span>
+
+<span class="cm">// Query string : /article/42?page=2</span>
+<span class="kw">let</span> page = request.<span class="fn_">from_url</span>(<span class="st">"page"</span>);  <span class="cm">// Option&lt;&amp;str&gt;</span></code></pre>
+        </div>
+
+        <!-- cleaned_* — whitelisté et typé -->
+        <div class="demo-code">
+            <div class="demo-code-title">cleaned_*() — whitelisté, typé, toutes sources</div>
+            <pre><code><span class="cm">// Priorité : POST → path param → query param
+// None si le champ n'est pas déclaré dans le formulaire</span>
+
+form.<span class="fn_">cleaned_string</span>(<span class="st">"search"</span>)    <span class="cm">// Option&lt;String&gt;</span>
+form.<span class="fn_">cleaned_i32</span>(<span class="st">"page"</span>)        <span class="cm">// Option&lt;i32&gt;</span>
+form.<span class="fn_">cleaned_i64</span>(<span class="st">"id"</span>)          <span class="cm">// Option&lt;i64&gt;</span>
+form.<span class="fn_">cleaned_f64</span>(<span class="st">"price"</span>)       <span class="cm">// Option&lt;f64&gt;  (gère , → .)</span>
+form.<span class="fn_">cleaned_bool</span>(<span class="st">"active"</span>)     <span class="cm">// Option&lt;bool&gt;</span>
+form.<span class="fn_">cleaned_string</span>(<span class="st">"is_admin"</span>) <span class="cm">// None — champ inconnu</span></code></pre>
+        </div>
+
+        <!-- Exemple réel : recherche blog -->
+        <div class="demo-code">
+            <div class="demo-code-title">Exemple réel — recherche GET /blog/liste?search=rust</div>
+            <pre><code><span class="cm">// views.rs — filtre articles selon query string</span>
+<span class="kw">pub async fn</span> <span class="fn_">blog_list</span>(
+    <span class="kw">mut</span> request: <span class="ty">Request</span>,
+    <span class="ty">Prisme</span>(form): <span class="ty">Prisme</span>&lt;<span class="ty">SearchDemoForm</span>&gt;,
+) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">let</span> search = form.<span class="fn_">cleaned_string</span>(<span class="st">"search"</span>);
+
+    <span class="kw">let mut</span> query = <span class="ty">BlogEntity</span>::<span class="fn_">find</span>();
+    <span class="kw">if let</span> <span class="ty">Some</span>(<span class="kw">ref</span> term) = search {
+        query = query.<span class="fn_">filter</span>(
+            <span class="ty">Condition</span>::<span class="fn_">any</span>()
+                .<span class="fn_">add</span>(<span class="ty">Column</span>::<span class="ty">Title</span>.<span class="fn_">contains</span>(term))
+                .<span class="fn_">add</span>(<span class="ty">Column</span>::<span class="ty">Summary</span>.<span class="fn_">contains</span>(term)),
+        );
+    }
+    <span class="cm">// ...</span>
+}
+
+<span class="cm">// Exemple réel : recherche user /view-user?username=alice</span>
+<span class="kw">let</span> username = form.<span class="fn_">cleaned_string</span>(<span class="st">"username"</span>).<span class="fn_">unwrap_or_default</span>();</code></pre>
+        </div>
+
+    </div>
+
+    <div class="back-link" style="margin-top: 2rem;">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'formulaires_hub' %}">← Formulaires</a>
+    </div>
+</div>
+{% endblock %}

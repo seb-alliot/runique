@@ -327,6 +327,8 @@ footer p {
     border: 1px solid var(--border-light);
     border-radius: 1rem;
     padding: 1.25rem 1.5rem 1.5rem;
+    margin-bottom: 3%;
+
 }
 
 .demo-section h2 {

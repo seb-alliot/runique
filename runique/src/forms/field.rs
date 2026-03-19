@@ -11,6 +11,22 @@ use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
 
 dyn_clone::clone_trait_object!(FormField);
 
+/// Logique commune à tous les `cleaned_*` — whiteliste + priorité POST > path > query.
+fn cleaned_value(form: &Forms, name: &str) -> Option<String> {
+    if !form.fields.contains_key(name) {
+        return None;
+    }
+    if let Some(val) = form.fields.get(name).map(|f| f.value()) {
+        if !val.is_empty() {
+            return Some(val.to_string());
+        }
+    }
+    form.path_params
+        .get(name)
+        .or_else(|| form.query_params.get(name))
+        .map(|s| s.to_string())
+}
+
 /// Trait principal pour les formulaires typés avec validation et sauvegarde
 ///
 #[doc = include_str!("../../doc-tests/form/form_proc_macro.md")]
@@ -22,6 +38,48 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn from_form(form: Forms) -> Self;
     fn get_form(&self) -> &Forms;
     fn get_form_mut(&mut self) -> &mut Forms;
+
+    // ── Accès whitelisté aux valeurs (POST > path param > query param) ──────────
+
+    /// `String` — `None` si le champ est inconnu ou vide.
+    fn cleaned_string(&self, name: &str) -> Option<String> {
+        cleaned_value(self.get_form(), name)
+    }
+    /// `i32` — `None` si inconnu, vide ou non parseable.
+    fn cleaned_i32(&self, name: &str) -> Option<i32> {
+        cleaned_value(self.get_form(), name)?.parse().ok()
+    }
+    /// `i64` — `None` si inconnu, vide ou non parseable.
+    fn cleaned_i64(&self, name: &str) -> Option<i64> {
+        cleaned_value(self.get_form(), name)?.parse().ok()
+    }
+    /// `u32` — `None` si inconnu, vide ou non parseable.
+    fn cleaned_u32(&self, name: &str) -> Option<u32> {
+        cleaned_value(self.get_form(), name)?.parse().ok()
+    }
+    /// `u64` — `None` si inconnu, vide ou non parseable.
+    fn cleaned_u64(&self, name: &str) -> Option<u64> {
+        cleaned_value(self.get_form(), name)?.parse().ok()
+    }
+    /// `f32` — gère `,` → `.`. `None` si inconnu, vide ou non parseable.
+    fn cleaned_f32(&self, name: &str) -> Option<f32> {
+        cleaned_value(self.get_form(), name)?
+            .replace(',', ".")
+            .parse()
+            .ok()
+    }
+    /// `f64` — gère `,` → `.`. `None` si inconnu, vide ou non parseable.
+    fn cleaned_f64(&self, name: &str) -> Option<f64> {
+        cleaned_value(self.get_form(), name)?
+            .replace(',', ".")
+            .parse()
+            .ok()
+    }
+    /// `bool` — `true` pour `"true"`, `"1"`, `"on"` (insensible à la casse).
+    fn cleaned_bool(&self, name: &str) -> Option<bool> {
+        let v = cleaned_value(self.get_form(), name)?;
+        Some(matches!(v.to_lowercase().as_str(), "true" | "1" | "on"))
+    }
 
     // Raccourcis directs — délèguent à get_form() pour éviter form.get_form().xxx()
     fn is_submitted(&self) -> bool {

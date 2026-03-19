@@ -15,3 +15,9 @@ pub use login::LoginForm;
 
 pub mod contribution;
 pub use contribution::ContributionForm;
+
+pub mod search_demo;
+pub use search_demo::SearchDemoForm;
+
+pub mod form_test;
+pub use form_test::TestAllFieldsForm;

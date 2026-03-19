@@ -5,7 +5,6 @@ use prelude::*;
 mod admin;
 mod admins;
 mod entities;
-mod form_test;
 mod formulaire;
 mod url;
 mod views;

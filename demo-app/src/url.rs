@@ -3,16 +3,15 @@ use crate::views::*;
 use runique::prelude::*;
 
 pub fn routes() -> Router {
-    let limiter = Arc::new(
-        RateLimiter::new()
-            .max_requests(5)
-            .retry_after(60),
-    );
+    let limiter = Arc::new(RateLimiter::new().max_requests(5).retry_after(60));
 
     register_pending("upload_image", "/upload-image");
     let upload_route = Router::new()
         .route("/upload-image", view!(upload_image_submit))
-        .route_layer(middleware::from_fn_with_state(limiter, rate_limit_middleware));
+        .route_layer(middleware::from_fn_with_state(
+            limiter,
+            rate_limit_middleware,
+        ));
 
     urlpatterns! {
         "/"                              => view!{ index },                   name = "index",
@@ -60,6 +59,8 @@ pub fn routes() -> Router {
         "/formulaires"                   => view! { formulaires_hub },        name = "formulaires_hub",
         "/formulaires/champs"            => view! { formulaires_champs },     name = "formulaires_champs",
         "/formulaires/rendu"             => view! { formulaires_templates },  name = "formulaires_templates",
+        "/formulaires/helpers"           => view! { formulaires_helpers },    name = "formulaires_helpers",
+        "/formulaires/helpers/{id}"      => view! { formulaires_helpers },    name = "formulaires_helpers_detail",
 
         // Middlewares
         "/middleware"                    => view! { middleware_hub },         name = "middleware_hub",
