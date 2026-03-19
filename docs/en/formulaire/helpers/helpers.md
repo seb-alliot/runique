@@ -72,4 +72,61 @@ impl RegisterForm {
 
 ---
 
+## URL parameter access
+
+### From `Request` — raw access
+
+```rust
+// Route parameter: /article/{id}
+let id = request.path_param("id");       // Option<&str>
+
+// Query string parameter: ?page=2
+let page = request.from_url("page");     // Option<&str>
+```
+
+### From the form — `cleaned_*()` whitelisted and typed
+
+The `cleaned_*` variants cover **all sources** (POST, path param, query param) in that priority order. They return `None` if the field is not declared in the form.
+
+```rust
+form.cleaned_string("search")   // Option<String>
+form.cleaned_i32("page")        // Option<i32>
+form.cleaned_i64("id")          // Option<i64>
+form.cleaned_u32("quantity")    // Option<u32>
+form.cleaned_u64("ref")         // Option<u64>
+form.cleaned_f32("ratio")       // Option<f32>  (handles , → .)
+form.cleaned_f64("price")       // Option<f64>  (handles , → .)
+form.cleaned_bool("active")     // Option<bool> (true/1/on → true)
+
+// Unknown field → guaranteed None, no leakage possible
+form.cleaned_string("is_admin") // None
+```
+
+Practical example — pre-fill a field from the URL (`GET /edit?title=My+Article`):
+
+```rust
+pub async fn edit(
+    mut request: Request,
+    Prisme(mut form): Prisme<ArticleForm>,
+) -> AppResult<Response> {
+    if request.is_get() {
+        if let Some(t) = form.cleaned_string("title") {
+            form.get_form_mut().add_value("title", &t);
+        }
+    }
+
+    if request.is_post() && form.is_valid().await {
+        form.save(&request.engine.db).await?;
+        return Ok(Redirect::to("/articles").into_response());
+    }
+
+    context_update!(request => { "form" => &form });
+    request.render("edit.html")
+}
+```
+
+> **Security** — `cleaned_*()` is bound to the form schema: an attacker cannot inject an arbitrary URL parameter (`?is_admin=true`) that is not a declared field. Works with both `#[form(...)]` and classic forms.
+
+---
+
 ← [**RuniqueForm trait**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/trait/trait.md) | [**Field types**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/fields/fields.md) →

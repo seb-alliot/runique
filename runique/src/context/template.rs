@@ -3,13 +3,15 @@ use crate::errors::error::ErrorContext;
 use crate::flash::Message;
 use crate::impl_from_error;
 use crate::utils::aliases::{AEngine, AppResult};
+use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
-    extract::FromRequestParts,
+    extract::{FromRequestParts, Path},
     http::{StatusCode, method::Method, request::Parts},
     response::{Html, IntoResponse, Response},
 };
 use sea_orm::DbErr;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Context;
 use tower_sessions::Session;
@@ -79,6 +81,8 @@ pub struct Request {
     pub csrf_token: CsrfToken,
     pub context: Context,
     pub method: Method,
+    pub path_params: HashMap<String, String>,
+    pub query_params: HashMap<String, String>,
 }
 
 impl<S> FromRequestParts<S> for Request
@@ -87,7 +91,7 @@ where
 {
     type Rejection = StatusCode;
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let ex = &parts.extensions;
 
         // Fast extraction
@@ -129,6 +133,17 @@ where
         if let Some(current_user) = ex.get::<crate::middleware::auth::CurrentUser>() {
             context.insert("current_user", current_user);
         }
+        let path_params = Path::<HashMap<String, String>>::from_request_parts(parts, state)
+            .await
+            .map(|Path(p)| p)
+            .unwrap_or_default();
+
+        let query_params = parts
+            .uri
+            .query()
+            .and_then(|q| serde_urlencoded::from_str::<HashMap<String, String>>(q).ok())
+            .unwrap_or_default();
+
         Ok(Self {
             engine,
             session,
@@ -136,6 +151,8 @@ where
             csrf_token,
             context,
             method: parts.method.clone(),
+            path_params,
+            query_params,
         })
     }
 }
@@ -162,6 +179,8 @@ impl Request {
             csrf_token,
             context,
             method,
+            path_params: HashMap::new(),
+            query_params: HashMap::new(),
         }
     }
 
@@ -250,6 +269,21 @@ impl Request {
             self.context.insert(k, &v);
         }
         self.render(template)
+    }
+
+    /// Récupère un paramètre de route (`/{id}`)
+    pub fn path_param(&self, key: &str) -> Option<&str> {
+        self.path_params.get(key).map(|s| s.as_str())
+    }
+
+    /// Récupère un paramètre de query string (`?page=2`)
+    pub fn from_url(&self, key: &str) -> Option<&str> {
+        self.query_params.get(key).map(|s| s.as_str())
+    }
+
+    /// Retourne un `UrlParams` combinant path et query — à passer à `form.cleaned()`
+    pub fn url_params(&self) -> UrlParams<'_> {
+        UrlParams::new(&self.path_params, &self.query_params)
     }
 
     pub fn form<T: crate::forms::field::RuniqueForm>(&self) -> T {

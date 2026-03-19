@@ -24,6 +24,8 @@ pub struct Forms {
     pub session_csrf_token: String,
     renderer: Option<FormRenderer>,
     submitted: bool,
+    pub(crate) path_params: HashMap<String, String>,
+    pub(crate) query_params: HashMap<String, String>,
 }
 
 impl std::fmt::Debug for Forms {
@@ -147,7 +149,18 @@ impl Forms {
             session_csrf_token: csrf_token.to_string(),
             renderer: None,
             submitted: false,
+            path_params: HashMap::new(),
+            query_params: HashMap::new(),
         }
+    }
+
+    pub fn set_url_params(
+        &mut self,
+        path: HashMap<String, String>,
+        query: HashMap<String, String>,
+    ) {
+        self.path_params = path;
+        self.query_params = query;
     }
 
     pub fn set_renderer(&mut self, renderer: FormRenderer) {

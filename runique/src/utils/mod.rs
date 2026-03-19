@@ -7,6 +7,7 @@ pub mod init_error;
 pub mod middleware;
 pub mod password;
 pub mod trad;
+pub mod url_params;
 
 pub use aliases::*;
 pub use config::*;
@@ -16,3 +17,4 @@ pub use forms::*;
 pub use init_error::init_logging;
 pub use middleware::*;
 pub use password::*;
+pub use url_params::UrlParams;

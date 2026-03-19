@@ -403,11 +403,7 @@ fn build_updated_at_trigger_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> St
     if *db_kind != DbKind::Postgres {
         return String::new();
     }
-    let updated_at_cols: Vec<_> = schema
-        .columns
-        .iter()
-        .filter(|c| c.updated_at)
-        .collect();
+    let updated_at_cols: Vec<_> = schema.columns.iter().filter(|c| c.updated_at).collect();
     if updated_at_cols.is_empty() {
         return String::new();
     }

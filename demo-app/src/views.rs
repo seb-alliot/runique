@@ -1,6 +1,5 @@
 use crate::entities::blog::Entity as BlogEntity;
 use crate::entities::contribution::Entity as ContributionEntity;
-use crate::form_test::TestAllFieldsForm;
 use crate::formulaire::*;
 use runique::middleware::auth::login as auth_login;
 use runique::prelude::user::Entity as UserEntity;
@@ -51,21 +50,20 @@ pub async fn soumission_inscription(
         return request.render(template);
     }
 
-    if request.is_post()
-        && form.is_valid().await {
-            match form.save(&request.engine.db).await {
-                Ok(user) => {
-                    auth_login(&request.session, user.id, &user.username)
-                        .await
-                        .ok();
-                    success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
-                    return Ok(Redirect::to("/profil").into_response());
-                }
-                Err(err) => {
-                    form.get_form_mut().database_error(&err);
-                }
+    if request.is_post() && form.is_valid().await {
+        match form.save(&request.engine.db).await {
+            Ok(user) => {
+                auth_login(&request.session, user.id, &user.username)
+                    .await
+                    .ok();
+                success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
+                return Ok(Redirect::to("/profil").into_response());
+            }
+            Err(err) => {
+                form.get_form_mut().database_error(&err);
             }
         }
+    }
     context_update!(request => {
         "title" => "Erreur de validation",
         "inscription_form" => &form,
@@ -76,7 +74,10 @@ pub async fn soumission_inscription(
 
 // ─── Connexion ────────────────────────────────────────────────────────────────
 
-pub async fn login_user(mut request: Request, Prisme(form): Prisme<LoginForm>) -> AppResult<Response> {
+pub async fn login_user(
+    mut request: Request,
+    Prisme(form): Prisme<LoginForm>,
+) -> AppResult<Response> {
     inject_auth(&mut request).await;
 
     if is_authenticated(&request.session).await {
@@ -180,8 +181,7 @@ pub async fn info_user(
     if request.is_get() && form.is_valid().await {
         let db = request.engine.db.clone();
 
-        // Get the username value from the form
-        let username_val = form.get_form().get_value("username").unwrap_or_default();
+        let username_val = form.cleaned_string("username").unwrap_or_default();
 
         let user_opt = UserEntity::find()
             .filter(runique::prelude::user::Column::Username.eq(&username_val))
@@ -276,17 +276,34 @@ pub async fn upload_image_submit(
 
 // ─── Blog ─────────────────────────────────────────────────────────────────────
 
-pub async fn blog_list(mut request: Request) -> AppResult<Response> {
+pub async fn blog_list(
+    mut request: Request,
+    Prisme(form): Prisme<SearchDemoForm>,
+) -> AppResult<Response> {
     inject_auth(&mut request).await;
-    let articles = BlogEntity::find()
-        .order_by_desc(crate::entities::blog::Column::Id)
-        .all(&*request.engine.db)
-        .await
-        .unwrap_or_default();
+
+    let search = form.cleaned_string("search");
+
+    let mut query = BlogEntity::find().order_by_desc(crate::entities::blog::Column::Id);
+
+    if let Some(ref term) = search
+        && !term.is_empty()
+    {
+        use sea_orm::Condition;
+        query = query.filter(
+            Condition::any()
+                .add(crate::entities::blog::Column::Title.contains(term.as_str()))
+                .add(crate::entities::blog::Column::Summary.contains(term.as_str())),
+        );
+    }
+
+    let articles = query.all(&*request.engine.db).await.unwrap_or_default();
 
     context_update!(request => {
-        "title" => "Blog — Articles",
+        "title"   => "Blog — Articles",
         "articles" => &articles,
+        "search"  => &search,
+        "search_form" => &form,
     });
 
     request.render("blog/blog_list.html")
@@ -614,6 +631,25 @@ pub async fn formulaires_templates(mut request: Request) -> AppResult<Response> 
         "title" => "Rendu dans les templates",
     });
     request.render("formulaires/templates.html")
+}
+
+pub async fn formulaires_helpers(
+    mut request: Request,
+    Prisme(form): Prisme<crate::formulaire::SearchDemoForm>,
+) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+
+    let path_id = request.path_param("id").map(|s| s.to_string());
+    let search_value = request.from_url("search").map(|s| s.to_string());
+    let cleaned_search = form.cleaned_string("search");
+
+    context_update!(request => {
+        "title"          => "Helpers & accès URL",
+        "path_id"        => &path_id,
+        "search_value"   => &search_value,
+        "cleaned_search" => &cleaned_search,
+    });
+    request.render("formulaires/helpers.html")
 }
 
 // ─── Nouvelles pages démo ─────────────────────────────────────────────────────
