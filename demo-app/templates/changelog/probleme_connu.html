@@ -1,0 +1,41 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead"">
+        <h2 id="probleme-connu">Description des problèmes connus</h2>
+    </p>
+    <div class="roadmap-section">
+        <h2 class="roadmap-heading roadmap-active">v1.1.49 — 2026-03-19</h2>
+        <div class="roadmap-grid">
+            <div class="roadmap-card">
+                <h3><code><br><span>- Upload de fichiers</h3>
+                <p>
+                    <strong>Fix :</strong><br>Les validations d’upload (taille, dimensions, etc.) ne sont pas encore appliquées.</code><br>
+                    Les fichiers sont envoyés avant vérification, ce qui peut entraîner des uploads inutiles et des erreurs côté client.
+                </p>
+            </div>
+            <div class="roadmap-card">
+                <h3><code><br><span>DX</h3>
+                <p>
+                    <strong>Manquant :</strong><br>Cargo watch non présent.</code><br>
+                    Un reload des template dev est présent seulement si DEBUG=true
+                </p>
+            </div>
+            <div class="roadmap-card">
+                <h3><code><br><span>Tracing des erreur en mode DEBUG</h3>
+                <p>
+                    <strong>Manquant :</strong><br>Le tracing est obligatoirement complet</code><br>
+                    Aucun paramétrage individuel possible actuellement.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md" target="_blank" class="btn btn-secondary">CHANGELOG complet</a>
+        <a href="{% link 'roadmap' %}">Roadmap →</a>
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

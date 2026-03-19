@@ -90,6 +90,11 @@ header::after {
 /* =========================
     CONTENT
    ========================= */
+#probleme-connu {
+    text-align: center;
+    color:var(--error-color);
+    margin-bottom: 2%;
+}
 .content {
     max-width: 90%;
     margin: -5rem auto 3rem auto;
