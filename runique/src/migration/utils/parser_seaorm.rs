@@ -84,6 +84,7 @@ impl SeaOrmVisitor {
                     let nullable = methods.contains(&"null".to_string());
                     let unique = methods.contains(&"unique".to_string())
                         || methods.contains(&"unique_key".to_string());
+                    let has_default_now = methods.contains(&"default".to_string());
                     if is_pk {
                         self.primary_key = Some(ParsedColumn {
                             name: n,
@@ -93,6 +94,7 @@ impl SeaOrmVisitor {
                             ignored: false,
                             created_at: false,
                             updated_at: false,
+                            has_default_now: false,
                         });
                     } else {
                         self.columns.push(ParsedColumn {
@@ -103,6 +105,7 @@ impl SeaOrmVisitor {
                             ignored: false,
                             created_at: false,
                             updated_at: false,
+                            has_default_now,
                         });
                     }
                 }

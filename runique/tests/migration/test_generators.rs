@@ -6,7 +6,7 @@ use runique::migration::utils::{
     generators::{
         generate_alter_file, generate_batch_down_file, generate_batch_up_file, generate_create_file,
     },
-    types::{Changes, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
+    types::{Changes, DbKind, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -20,6 +20,7 @@ fn col(name: &str, col_type: &str) -> ParsedColumn {
         ignored: false,
         created_at: false,
         updated_at: false,
+        has_default_now: false,
     }
 }
 
@@ -91,7 +92,7 @@ fn simple_changes(table: &str) -> Changes {
 #[test]
 fn test_create_file_contient_nom_table() {
     let schema = simple_schema("users");
-    let content = generate_create_file(&schema);
+    let content = generate_create_file(&schema, &DbKind::Other);
     assert!(
         content.contains("users"),
         "Le nom de la table doit apparaître"
@@ -101,7 +102,7 @@ fn test_create_file_contient_nom_table() {
 #[test]
 fn test_create_file_contient_struct_migration() {
     let schema = simple_schema("users");
-    let content = generate_create_file(&schema);
+    let content = generate_create_file(&schema, &DbKind::Other);
     assert!(content.contains("pub struct Migration"));
     assert!(content.contains("impl MigrationTrait for Migration"));
 }
@@ -109,7 +110,7 @@ fn test_create_file_contient_struct_migration() {
 #[test]
 fn test_create_file_contient_up_et_down() {
     let schema = simple_schema("users");
-    let content = generate_create_file(&schema);
+    let content = generate_create_file(&schema, &DbKind::Other);
     assert!(content.contains("async fn up("));
     assert!(content.contains("async fn down("));
 }
@@ -117,7 +118,7 @@ fn test_create_file_contient_up_et_down() {
 #[test]
 fn test_create_file_contient_colonnes() {
     let schema = simple_schema("users");
-    let content = generate_create_file(&schema);
+    let content = generate_create_file(&schema, &DbKind::Other);
     assert!(
         content.contains("name"),
         "La colonne 'name' doit être présente"
@@ -127,7 +128,7 @@ fn test_create_file_contient_colonnes() {
 #[test]
 fn test_create_file_avec_cle_etrangere() {
     let schema = schema_with_fk();
-    let content = generate_create_file(&schema);
+    let content = generate_create_file(&schema, &DbKind::Other);
     assert!(
         content.contains("user_id"),
         "La FK 'user_id' doit apparaître"
@@ -137,7 +138,7 @@ fn test_create_file_avec_cle_etrangere() {
 #[test]
 fn test_create_file_avec_index() {
     let schema = schema_with_index();
-    let content = generate_create_file(&schema);
+    let content = generate_create_file(&schema, &DbKind::Other);
     assert!(
         content.contains("idx_articles_slug"),
         "L'index doit apparaître"
@@ -153,7 +154,7 @@ fn test_create_file_schema_vide_colonnes() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema);
+    let content = generate_create_file(&schema, &DbKind::Other);
     assert!(content.contains("empty_table"));
 }
 
@@ -166,7 +167,7 @@ fn test_create_file_sans_pk() {
         foreign_keys: vec![],
         indexes: vec![],
     };
-    let content = generate_create_file(&schema);
+    let content = generate_create_file(&schema, &DbKind::Other);
     assert!(content.contains("junction_table"));
 }
 

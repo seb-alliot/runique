@@ -16,16 +16,12 @@
     <div class="demo-layout">
 
         <div class="demo-code">
-            <div class="demo-code-title">main.rs — activation</div>
-            <pre><code><span class="kw">use</span> runique::middleware::https::<span class="fn_">enforce_https</span>;
+            <div class="demo-code-title">.env — activation</div>
+            <pre><code><span class="cm"># Activer la redirection HTTPS + HSTS</span>
+ENFORCE_HTTPS=<span class="kw">true</span>
 
-<span class="ty">RuniqueApp</span>::<span class="fn_">new</span>()
-    .<span class="fn_">middleware</span>(<span class="fn_">enforce_https</span>())
-    .<span class="fn_">urls</span>(<span class="fn_">routes</span>())
-    .<span class="fn_">run</span>().<span class="kw">await</span>
-
-<span class="cm">// Redirige vers HTTPS si X-Forwarded-Proto: http</span>
-<span class="cm">// Ajoute automatiquement le header HSTS.</span></code></pre>
+<span class="cm"># Redirige vers HTTPS si X-Forwarded-Proto: http</span>
+<span class="cm"># Ajoute automatiquement le header HSTS.</span></code></pre>
 
             <div class="demo-code-title">En-têtes générés</div>
             <pre><code><span class="cm">// Redirection HTTP → HTTPS :</span>
@@ -53,13 +49,24 @@ proxy_set_header X-Forwarded-Proto $scheme;
 <span class="cm">//   Ne jamais l'activer en local pur.</span></code></pre>
 
             <div class="demo-code-title">Combinaison recommandée</div>
-            <pre><code><span class="cm">// En production, combiner :</span>
-<span class="ty">RuniqueApp</span>::<span class="fn_">new</span>()
-    .<span class="fn_">middleware</span>(<span class="fn_">enforce_https</span>())
-    .<span class="fn_">middleware</span>(<span class="fn_">allowed_hosts_middleware</span>())
-    .<span class="fn_">middleware</span>(<span class="ty">SecurityPolicy</span>::<span class="fn_">strict</span>())
-    .<span class="fn_">urls</span>(<span class="fn_">routes</span>())
-    .<span class="fn_">run</span>().<span class="kw">await</span></code></pre>
+            <pre><code><span class="cm">// .env — activer HTTPS :</span>
+ENFORCE_HTTPS=<span class="kw">true</span>
+
+<span class="cm">// main.rs — combiner hosts + CSP strict :</span>
+<span class="kw">use</span> runique::app::builder::<span class="ty">RuniqueAppBuilder</span> <span class="kw">as</span> builder;
+<span class="kw">use</span> runique::middleware::security::csp::<span class="ty">SecurityPolicy</span>;
+<span class="kw">use</span> runique::prelude::<span class="ty">RuniqueConfig</span>;
+
+builder::<span class="fn_">new</span>(<span class="ty">RuniqueConfig</span>::<span class="fn_">from_env</span>())
+    .<span class="fn_">middleware</span>(|m| m
+        .<span class="fn_">with_allowed_hosts</span>(|h| h
+            .<span class="fn_">enabled</span>(<span class="kw">true</span>)
+            .<span class="fn_">host</span>(<span class="st">"monsite.fr"</span>))
+        .<span class="fn_">with_csp</span>(|c| c
+            .<span class="fn_">policy</span>(<span class="ty">SecurityPolicy</span>::<span class="fn_">strict</span>())))
+    .<span class="fn_">routes</span>(url::<span class="fn_">routes</span>())
+    .<span class="fn_">build</span>().<span class="kw">await</span>?
+    .<span class="fn_">run</span>().<span class="kw">await</span>?</code></pre>
         </div>
 
     </div>

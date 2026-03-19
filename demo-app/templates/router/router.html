@@ -82,9 +82,15 @@
 }</code></pre>
 
             <div class="demo-code-title">main.rs — brancher les routes</div>
-            <pre><code><span class="ty">RuniqueApp</span>::<span class="fn_">new</span>()
-    .<span class="fn_">urls</span>(<span class="fn_">routes</span>())
-    .<span class="fn_">run</span>().<span class="kw">await</span></code></pre>
+            <pre><code><span class="kw">use</span> runique::app::builder::<span class="ty">RuniqueAppBuilder</span> <span class="kw">as</span> builder;
+<span class="kw">use</span> runique::prelude::<span class="ty">RuniqueConfig</span>;
+
+<span class="kw">let</span> config = <span class="ty">RuniqueConfig</span>::<span class="fn_">from_env</span>();
+
+builder::<span class="fn_">new</span>(config)
+    .<span class="fn_">routes</span>(url::<span class="fn_">routes</span>())
+    .<span class="fn_">build</span>().<span class="kw">await</span>?
+    .<span class="fn_">run</span>().<span class="kw">await</span>?</code></pre>
         </div>
 
     </div>

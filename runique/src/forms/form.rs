@@ -131,7 +131,10 @@ impl Forms {
         let mut fields: FieldsMap = IndexMap::new();
         let mut csrf_field = HiddenField::new_csrf();
         csrf_field.set_value(csrf_token);
-        csrf_field.set_expected_value(csrf_token);
+        // Le CSRF est déjà validé en amont par csrf_gate (Prisme).
+        // set_expected_value n'est pas appelé ici : les tokens masqués sont
+        // différents à chaque requête (masque aléatoire), ct_eq échouerait
+        // systématiquement et bloquerait is_valid() sur tous les formulaires.
 
         fields.insert(
             CSRF_TOKEN_KEY.to_string(),

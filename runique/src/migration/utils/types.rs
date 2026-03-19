@@ -1,3 +1,13 @@
+/// Backend de base de données cible — utilisé pour générer le SQL DB-spécifique
+/// (ex: ON UPDATE CURRENT_TIMESTAMP pour MySQL, trigger pour PostgreSQL).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub enum DbKind {
+    Postgres,
+    Mysql,
+    #[default]
+    Other,
+}
+
 #[derive(Debug, Clone)]
 pub struct ParsedSchema {
     pub table_name: String,
@@ -16,6 +26,8 @@ pub struct ParsedColumn {
     pub ignored: bool,
     pub created_at: bool,
     pub updated_at: bool,
+    /// Colonne avec DEFAULT CURRENT_TIMESTAMP — détecté depuis le builder ou le snapshot SeaORM.
+    pub has_default_now: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -17,12 +17,16 @@
 
         <div class="demo-code">
             <div class="demo-code-title">main.rs — profils prédéfinis</div>
-            <pre><code><span class="kw">use</span> runique::middleware::csp::<span class="ty">SecurityPolicy</span>;
+            <pre><code><span class="kw">use</span> runique::app::builder::<span class="ty">RuniqueAppBuilder</span> <span class="kw">as</span> builder;
+<span class="kw">use</span> runique::middleware::security::csp::<span class="ty">SecurityPolicy</span>;
+<span class="kw">use</span> runique::prelude::<span class="ty">RuniqueConfig</span>;
 
-<span class="ty">RuniqueApp</span>::<span class="fn_">new</span>()
-    .<span class="fn_">middleware</span>(<span class="ty">SecurityPolicy</span>::<span class="fn_">default</span>())
-    .<span class="fn_">urls</span>(<span class="fn_">routes</span>())
-    .<span class="fn_">run</span>().<span class="kw">await</span>
+builder::<span class="fn_">new</span>(<span class="ty">RuniqueConfig</span>::<span class="fn_">from_env</span>())
+    .<span class="fn_">middleware</span>(|m| m
+        .<span class="fn_">with_csp</span>(|c| c.<span class="fn_">policy</span>(<span class="ty">SecurityPolicy</span>::<span class="fn_">default</span>())))
+    .<span class="fn_">routes</span>(url::<span class="fn_">routes</span>())
+    .<span class="fn_">build</span>().<span class="kw">await</span>?
+    .<span class="fn_">run</span>().<span class="kw">await</span>?
 
 <span class="cm">// Profils disponibles :</span>
 <span class="cm">//   SecurityPolicy::default()    — équilibré</span>
@@ -30,11 +34,14 @@
 <span class="cm">//   SecurityPolicy::permissive() — développement</span></code></pre>
 
             <div class="demo-code-title">Directives personnalisées</div>
-            <pre><code><span class="ty">SecurityPolicy</span>::<span class="fn_">default</span>()
-    .<span class="fn_">script_src</span>([<span class="st">"'self'"</span>, <span class="st">"cdn.example.com"</span>])
-    .<span class="fn_">style_src</span>([<span class="st">"'self'"</span>, <span class="st">"'unsafe-inline'"</span>])
-    .<span class="fn_">img_src</span>([<span class="st">"'self'"</span>, <span class="st">"data:"</span>])
-    .<span class="fn_">connect_src</span>([<span class="st">"'self'"</span>])</code></pre>
+            <pre><code><span class="cm">// Les directives se configurent via CspConfig</span>
+builder::<span class="fn_">new</span>(config)
+    .<span class="fn_">middleware</span>(|m| m
+        .<span class="fn_">with_csp</span>(|c| c
+            .<span class="fn_">scripts</span>(<span class="fn_">vec!</span>[<span class="st">"'self'"</span>, <span class="st">"cdn.example.com"</span>])
+            .<span class="fn_">styles</span>(<span class="fn_">vec!</span>[<span class="st">"'self'"</span>, <span class="st">"'unsafe-inline'"</span>])
+            .<span class="fn_">images</span>(<span class="fn_">vec!</span>[<span class="st">"'self'"</span>, <span class="st">"data:"</span>])
+            .<span class="fn_">connect</span>(<span class="fn_">vec!</span>[<span class="st">"'self'"</span>])))</code></pre>
         </div>
 
         <div class="demo-code">

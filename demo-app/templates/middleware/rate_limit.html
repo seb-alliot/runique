@@ -16,20 +16,29 @@
     <div class="demo-layout">
 
         <div class="demo-code">
-            <div class="demo-code-title">Utilisation dans un handler</div>
-            <pre><code><span class="kw">use</span> runique::prelude::*;
+            <div class="demo-code-title">Application sur une route — urls.rs</div>
+            <pre><code><span class="kw">use</span> runique::macros::routeur::register_url::register_pending;
+<span class="kw">use</span> runique::prelude::*;
+<span class="kw">use</span> std::sync::Arc;
 
-<span class="kw">static</span> LIMITER: <span class="ty">LazyLock</span>&lt;<span class="ty">RateLimiter</span>&gt; = <span class="ty">LazyLock</span>::<span class="fn_">new</span>(|| {
-    <span class="ty">RateLimiter</span>::<span class="fn_">new</span>()
-        .<span class="fn_">max_requests</span>(<span class="nm">100</span>)
-        .<span class="fn_">retry_after</span>(<span class="nm">60</span>)
-});
+<span class="kw">pub fn</span> <span class="fn_">routes</span>() -&gt; <span class="ty">Router</span> {
+    <span class="kw">let</span> limiter = <span class="ty">Arc</span>::<span class="fn_">new</span>(
+        <span class="ty">RateLimiter</span>::<span class="fn_">new</span>()
+            .<span class="fn_">max_requests</span>(<span class="nm">5</span>)
+            .<span class="fn_">retry_after</span>(<span class="nm">60</span>),
+    );
 
-<span class="kw">pub async fn</span> <span class="fn_">login</span>(<span class="cm">/* ... */</span>) -&gt; <span class="kw">impl</span> <span class="ty">IntoResponse</span> {
-    <span class="kw">if</span> !LIMITER.<span class="fn_">is_allowed</span>(&amp;ip) {
-        <span class="kw">return</span> <span class="ty">StatusCode</span>::TOO_MANY_REQUESTS.<span class="fn_">into_response</span>();
-    }
-    <span class="cm">// ...</span>
+    <span class="cm">// register_pending est requis pour que {% link 'nom_route' %}</span>
+    <span class="cm">// fonctionne dans les templates Tera.</span>
+    <span class="fn_">register_pending</span>(<span class="st">"upload_image"</span>, <span class="st">"/upload-image"</span>);
+
+    <span class="kw">let</span> upload_route = <span class="ty">Router</span>::<span class="fn_">new</span>()
+        .<span class="fn_">route</span>(<span class="st">"/upload-image"</span>, <span class="fn_">view!</span>(upload_handler))
+        .<span class="fn_">route_layer</span>(middleware::<span class="fn_">from_fn_with_state</span>(limiter, rate_limit_middleware));
+
+    urlpatterns! {
+        <span class="cm">// autres routes...</span>
+    }.<span class="fn_">merge</span>(upload_route)
 }</code></pre>
 
             <div class="demo-code-title">Exemples de configuration</div>

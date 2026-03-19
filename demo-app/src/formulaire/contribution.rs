@@ -13,16 +13,16 @@ impl RuniqueForm for ContributionForm {
         let content = self.get_string("content");
         let mut errors = StrMap::new();
 
-        if title.len() < 5 {
+        if title.len() < 3 {
             errors.insert(
                 "title".to_string(),
-                "Le titre doit faire au moins 5 caractères.".to_string(),
+                "Le titre doit faire au moins 3 caractères.".to_string(),
             );
         }
-        if content.len() < 20 {
+        if content.len() < 10 {
             errors.insert(
                 "content".to_string(),
-                "Le contenu doit faire au moins 20 caractères.".to_string(),
+                "Le contenu doit faire au moins 10 caractères.".to_string(),
             );
         }
 
