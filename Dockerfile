@@ -37,8 +37,9 @@ COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 # 2. Création de TOUTE la structure de dossiers
 # On crée "src/entities" parce que Sea-ORM le cherche au démarrage
 RUN mkdir -p /app/runique/static /app/runique/templates /app/runique/media \
-            /app/static /app/media /app/templates \
+            /app/static /app/media /app/templates /app/media/uploads\
             /app/src/entities /app/migration
+
 
 # 3. Copies des fichiers statiques et templates
 # On respecte les deux dossiers pour éviter les conflits
@@ -48,9 +49,6 @@ COPY --from=builder /usr/src/app/runique/templates/ /app/runique/templates/
 COPY --from=builder /usr/src/app/demo-app/static/ /app/static/
 COPY --from=builder /usr/src/app/demo-app/templates/ /app/templates/
 COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
-
-# On crée le dossier uploads pour les fichiers uploadés par l'utilisateur
-RUN mkdir -p /app/media/uploads
 
 # 4. Copie des fichiers sources nécessaires au runtime (Entities & Migrations)
 COPY --from=builder /usr/src/app/demo-app/migration/ /app/migration/
