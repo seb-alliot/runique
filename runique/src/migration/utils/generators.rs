@@ -1,24 +1,28 @@
 use crate::migration::utils::{
     helpers::col_type_to_method,
-    types::{Changes, ParsedColumn, ParsedSchema},
+    types::{Changes, DbKind, ParsedColumn, ParsedSchema},
 };
 
-pub fn generate_create_file(schema: &ParsedSchema) -> String {
-    let cols = build_create_table_cols(schema);
+pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
+    let cols = build_create_table_cols(schema, db_kind);
     let fk_stmts = build_fk_create_stmts(schema);
     let idx_stmts = build_index_create_stmts(schema);
+    let trigger_stmts = build_updated_at_trigger_stmts(schema, db_kind);
 
     let fk_drops = build_fk_drop_stmts(schema);
     let idx_drops = build_index_drop_stmts(schema);
+    let trigger_drops = build_updated_at_trigger_drops(schema, db_kind);
 
     format!(
-        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n        manager\n            .create_table(\n                Table::create()\n                    .table(Alias::new(\"{table}\"))\n                    .if_not_exists()\n{cols}\n                    .to_owned(),\n            )\n            .await?;\n\n{fk_stmts}{idx_stmts}        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{fk_drops}{idx_drops}        manager\n            .drop_table(Table::drop().table(Alias::new(\"{table}\"))\n                .to_owned())\n            .await?;\n        Ok(())\n    }}\n}}\n",
+        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n        manager\n            .create_table(\n                Table::create()\n                    .table(Alias::new(\"{table}\"))\n                    .if_not_exists()\n{cols}\n                    .to_owned(),\n            )\n            .await?;\n\n{fk_stmts}{idx_stmts}{trigger_stmts}        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{trigger_drops}{fk_drops}{idx_drops}        manager\n            .drop_table(Table::drop().table(Alias::new(\"{table}\"))\n                .to_owned())\n            .await?;\n        Ok(())\n    }}\n}}\n",
         table = schema.table_name,
         cols = cols,
         fk_stmts = fk_stmts,
         idx_stmts = idx_stmts,
+        trigger_stmts = trigger_stmts,
         fk_drops = fk_drops,
         idx_drops = idx_drops,
+        trigger_drops = trigger_drops,
     )
 }
 
@@ -66,7 +70,7 @@ pub fn generate_batch_down_file(changes: &[&Changes], timestamp: &str) -> String
     )
 }
 
-fn build_create_table_cols(schema: &ParsedSchema) -> String {
+fn build_create_table_cols(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     let mut cols = String::new();
 
     if let Some(ref pk) = schema.primary_key {
@@ -76,7 +80,7 @@ fn build_create_table_cols(schema: &ParsedSchema) -> String {
     for col in schema.columns.iter().filter(|c| !c.ignored) {
         cols.push_str(&format!(
             "                    .col({})\n",
-            render_column_def(col)
+            render_column_def(col, db_kind)
         ));
     }
 
@@ -359,7 +363,7 @@ fn render_pk_col(pk: &ParsedColumn) -> String {
     s
 }
 
-fn render_column_def(col: &ParsedColumn) -> String {
+fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
     let ty = col_type_to_method(&col.col_type);
     let null = if col.nullable {
         ".null()"
@@ -368,21 +372,77 @@ fn render_column_def(col: &ParsedColumn) -> String {
     };
     let uniq = if col.unique { ".unique_key()" } else { "" };
 
-    // --- AJOUT : Gestion des timestamps par défaut ---
-    let default = if col.created_at || col.updated_at {
+    let default = if col.has_default_now {
         ".default(Expr::current_timestamp())"
     } else {
         ""
     };
-    // -------------------------------------------------
+
+    // MySQL/MariaDB : ON UPDATE CURRENT_TIMESTAMP pour les colonnes updated_at.
+    // PostgreSQL : géré via un trigger généré séparément dans build_updated_at_trigger_stmts.
+    let on_update = if col.updated_at && *db_kind == DbKind::Mysql {
+        ".extra(\"ON UPDATE CURRENT_TIMESTAMP\")"
+    } else {
+        ""
+    };
 
     format!(
-        "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}",
+        "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}{on_update}",
         name = col.name,
         ty = ty,
         null = null,
         uniq = uniq,
-        default = default
+        default = default,
+        on_update = on_update,
+    )
+}
+
+/// Génère les triggers PostgreSQL pour les colonnes `updated_at`.
+/// Pour MySQL, la gestion est inline via `.extra("ON UPDATE CURRENT_TIMESTAMP")`.
+fn build_updated_at_trigger_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> String {
+    if *db_kind != DbKind::Postgres {
+        return String::new();
+    }
+    let updated_at_cols: Vec<_> = schema
+        .columns
+        .iter()
+        .filter(|c| c.updated_at)
+        .collect();
+    if updated_at_cols.is_empty() {
+        return String::new();
+    }
+
+    let table = &schema.table_name;
+    let fn_name = format!("set_updated_at_{}", table);
+    let trigger_name = format!("trg_{}_updated_at", table);
+
+    format!(
+        "        manager.get_connection().execute_unprepared(\n            \"CREATE OR REPLACE FUNCTION {fn_name}() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;\"\n        ).await?;\n        manager.get_connection().execute_unprepared(\n            \"CREATE TRIGGER {trigger_name} BEFORE UPDATE ON {table} FOR EACH ROW EXECUTE PROCEDURE {fn_name}();\"\n        ).await?;\n\n",
+        fn_name = fn_name,
+        trigger_name = trigger_name,
+        table = table,
+    )
+}
+
+/// Supprime les triggers PostgreSQL `updated_at` dans le bloc `down`.
+fn build_updated_at_trigger_drops(schema: &ParsedSchema, db_kind: &DbKind) -> String {
+    if *db_kind != DbKind::Postgres {
+        return String::new();
+    }
+    let has_updated_at = schema.columns.iter().any(|c| c.updated_at);
+    if !has_updated_at {
+        return String::new();
+    }
+
+    let table = &schema.table_name;
+    let fn_name = format!("set_updated_at_{}", table);
+    let trigger_name = format!("trg_{}_updated_at", table);
+
+    format!(
+        "        manager.get_connection().execute_unprepared(\n            \"DROP TRIGGER IF EXISTS {trigger_name} ON {table};\"\n        ).await?;\n        manager.get_connection().execute_unprepared(\n            \"DROP FUNCTION IF EXISTS {fn_name}();\"\n        ).await?;\n\n",
+        trigger_name = trigger_name,
+        table = table,
+        fn_name = fn_name,
     )
 }
 
@@ -435,7 +495,7 @@ fn push_add_column(buf: &mut String, table: &str, col: &ParsedColumn) {
     buf.push_str(&format!(
         "        manager\n            .alter_table(\n                Table::alter()\n                    .table(Alias::new(\"{table}\"))\n                    .add_column({coldef})\n                    .to_owned(),\n            )\n            .await?;\n\n",
         table = table,
-        coldef = render_column_def(col),
+        coldef = render_column_def(col, &DbKind::Other),
     ));
 }
 

@@ -20,7 +20,7 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
         "title" => "Bienvenue sur Runique",
         "description" => "Un framework web inspiré de Django",
         "status" => "Status: Framework en cours de développement...",
-        "backend" => "Server: Axum",
+        "backend" => "Rust , Axum",
         "template" => "Moteur de template: Tera",
         "tokio" => "Runtime asynchrone tokio",
         "session" => "Session: tower avec memory store, evolution prévue a l'avenir",
@@ -51,20 +51,21 @@ pub async fn soumission_inscription(
         return request.render(template);
     }
 
-    if request.is_post() {
-        match form.save(&request.engine.db).await {
-            Ok(user) => {
-                auth_login(&request.session, user.id, &user.username)
-                    .await
-                    .ok();
-                success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
-                return Ok(Redirect::to("/profil").into_response());
-            }
-            Err(err) => {
-                form.get_form_mut().database_error(&err);
+    if request.is_post()
+        && form.is_valid().await {
+            match form.save(&request.engine.db).await {
+                Ok(user) => {
+                    auth_login(&request.session, user.id, &user.username)
+                        .await
+                        .ok();
+                    success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
+                    return Ok(Redirect::to("/profil").into_response());
+                }
+                Err(err) => {
+                    form.get_form_mut().database_error(&err);
+                }
             }
         }
-    }
     context_update!(request => {
         "title" => "Erreur de validation",
         "inscription_form" => &form,
@@ -75,7 +76,7 @@ pub async fn soumission_inscription(
 
 // ─── Connexion ────────────────────────────────────────────────────────────────
 
-pub async fn login(mut request: Request, Prisme(form): Prisme<LoginForm>) -> AppResult<Response> {
+pub async fn login_user(mut request: Request, Prisme(form): Prisme<LoginForm>) -> AppResult<Response> {
     inject_auth(&mut request).await;
 
     if is_authenticated(&request.session).await {
@@ -247,7 +248,7 @@ pub async fn test_csrf(request: Request) -> AppResult<Response> {
 
 pub async fn upload_image_submit(
     mut request: Request,
-    Prisme(form): Prisme<ImageForm>,
+    Prisme(mut form): Prisme<ImageForm>,
 ) -> AppResult<Response> {
     inject_auth(&mut request).await;
     let template = "forms/upload_image.html";
@@ -260,7 +261,7 @@ pub async fn upload_image_submit(
         return request.render(template);
     }
 
-    if request.is_post() {
+    if request.is_post() && form.is_valid().await {
         success!(request.notices => "Fichier uploadé avec succès !");
         return Ok(Redirect::to("/").into_response());
     }
@@ -306,7 +307,7 @@ pub async fn blog_save(
         return request.render(template);
     }
 
-    if request.is_post() {
+    if request.is_post() && blog.is_valid().await {
         match blog.save(&request.engine.db).await {
             Ok(_) => {
                 success!(request.notices => "Article sauvegardé !");
@@ -434,6 +435,14 @@ pub async fn rgpd(mut request: Request) -> AppResult<Response> {
 }
 
 // ─── Roadmap ──────────────────────────────────────────────────────────────────
+
+pub async fn changelog(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    context_update!(request => {
+        "title" => "Changelog",
+    });
+    request.render("changelog/changelog.html")
+}
 
 pub async fn roadmap(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;

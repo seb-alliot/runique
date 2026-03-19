@@ -345,6 +345,7 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         ignored: false,
         created_at: false,
         updated_at: false,
+        has_default_now: false,
     });
 
     let columns = model
@@ -378,6 +379,7 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                 ignored,
                 created_at: has_auto_now || is_created_at,
                 updated_at: has_auto_now_update || is_updated_at,
+                has_default_now: has_auto_now || has_auto_now_update || is_created_at || is_updated_at,
             }
         })
         .collect();

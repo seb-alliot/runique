@@ -22,6 +22,7 @@ mod types_migration {
             ignored: false,
             created_at: false,
             updated_at: false,
+            has_default_now: false,
         };
         assert_eq!(col.name, "id");
         assert!(col.unique);

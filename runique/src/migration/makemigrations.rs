@@ -80,6 +80,125 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
     Ok(())
 }
 
+// ── db kind detection ────────────────────────────────────────────────────────
+
+/// Détecte le backend DB depuis `DB_URL` ou `DB_ENGINE` dans le `.env`.
+/// Utilisé pour générer le SQL DB-spécifique (trigger vs ON UPDATE).
+fn detect_db_kind() -> crate::migration::utils::types::DbKind {
+    dotenvy::dotenv().ok();
+    use crate::migration::utils::types::DbKind;
+
+    let url = std::env::var("DB_URL")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .unwrap_or_default();
+
+    if url.starts_with("postgres://") || url.starts_with("postgresql://") {
+        return DbKind::Postgres;
+    } else if url.starts_with("mysql://") || url.starts_with("mariadb://") {
+        return DbKind::Mysql;
+    }
+
+    match std::env::var("DB_ENGINE")
+        .unwrap_or_default()
+        .to_lowercase()
+        .as_str()
+    {
+        "postgres" | "postgresql" => DbKind::Postgres,
+        "mysql" | "mariadb" => DbKind::Mysql,
+        _ => DbKind::Other,
+    }
+}
+
+// ── topological sort ─────────────────────────────────────────────────────────
+
+/// Trie les `Changes` par ordre de dépendance FK.
+/// Les tables référencées par d'autres nouvelles tables sont placées en premier.
+/// Les tables existantes (non nouvelles) sont ignorées : elles existent déjà en DB.
+/// En cas de dépendance circulaire, les tables restantes sont ajoutées à la fin.
+fn topological_sort_changes(changes: Vec<crate::migration::utils::types::Changes>) -> Vec<crate::migration::utils::types::Changes> {
+    use std::collections::{HashMap, HashSet, VecDeque};
+
+    let new_tables: HashSet<String> = changes
+        .iter()
+        .filter(|c| c.is_new_table)
+        .map(|c| c.table_name.clone())
+        .collect();
+
+    // Dépendances : table → tables dont elle dépend (parmi les nouvelles tables)
+    let mut deps: HashMap<String, HashSet<String>> = HashMap::new();
+    for change in &changes {
+        if !change.is_new_table {
+            continue;
+        }
+        let entry = deps.entry(change.table_name.clone()).or_default();
+        for fk in &change.added_fks {
+            if new_tables.contains(&fk.to_table) && fk.to_table != change.table_name {
+                entry.insert(fk.to_table.clone());
+            }
+        }
+    }
+
+    // Algorithme de Kahn
+    let mut in_degree: HashMap<String, usize> = HashMap::new();
+    let mut dependents: HashMap<String, Vec<String>> = HashMap::new();
+
+    for (table, table_deps) in &deps {
+        in_degree.entry(table.clone()).or_insert(0);
+        for dep in table_deps {
+            *in_degree.entry(dep.clone()).or_insert(0) += 0; // assure l'entrée
+            dependents.entry(dep.clone()).or_default().push(table.clone());
+        }
+        for dep in table_deps {
+            *in_degree.get_mut(dep).unwrap_or(&mut 0) += 0;
+        }
+    }
+
+    // in_degree correct : compter combien de tables dépendent de chacune
+    let mut in_degree: HashMap<String, usize> = new_tables.iter().map(|t| (t.clone(), 0)).collect();
+    for (_, table_deps) in &deps {
+        for dep in table_deps {
+            *in_degree.entry(dep.clone()).or_insert(0) += 1;
+        }
+    }
+
+    let mut queue: VecDeque<String> = in_degree
+        .iter()
+        .filter(|(_, d)| **d == 0)
+        .map(|(t, _)| t.clone())
+        .collect();
+    let mut sorted_names: Vec<String> = Vec::new();
+
+    while let Some(table) = queue.pop_front() {
+        sorted_names.push(table.clone());
+        if let Some(dependents_list) = dependents.get(&table) {
+            for dep in dependents_list {
+                let entry = in_degree.entry(dep.clone()).or_insert(1);
+                if *entry > 0 {
+                    *entry -= 1;
+                }
+                if *entry == 0 {
+                    queue.push_back(dep.clone());
+                }
+            }
+        }
+    }
+
+    // Tables non nouvelles : conserver leur ordre original à la fin
+    let mut result: Vec<crate::migration::utils::types::Changes> = Vec::with_capacity(changes.len());
+    let mut by_name: HashMap<String, crate::migration::utils::types::Changes> =
+        changes.into_iter().map(|c| (c.table_name.clone(), c)).collect();
+
+    // Nouvelles tables triées topologiquement
+    for name in sorted_names {
+        if let Some(c) = by_name.remove(&name) {
+            result.push(c);
+        }
+    }
+    // Restants (alter + éventuels cycles)
+    result.extend(by_name.into_values());
+    result
+}
+
 // ── run ──────────────────────────────────────────────────────────────────────
 pub fn seaorm_alter_module_name(timestamp: &str, table: &str) -> String {
     format!("m{}_alter_{}_table", timestamp, table)
@@ -186,6 +305,12 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
     }
 
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
+    let db_kind = detect_db_kind();
+
+    // ── tri topologique des nouvelles tables ─────────────────────────────────
+    // Les tables référencées par FK doivent être créées AVANT les tables qui
+    // les référencent, car sea-orm exécute les migrations dans l'ordre de lib.rs.
+    all_changes = topological_sort_changes(all_changes);
 
     // ── write files ──────────────────────────────────────────────────────────
     for change in &all_changes {
@@ -194,10 +319,13 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
             .find(|s| s.table_name == change.table_name)
             .unwrap();
 
-        // Snapshot always updated
+        // Snapshot always updated (DbKind::Other — pas de SQL DB-spécifique dans le diff)
         let snap_path = snapshot_file_path(migrations_path, &change.table_name);
-        fs::write(&snap_path, generate_create_file(schema))
-            .with_context(|| format!("Failed to write snapshot: {}", snap_path))?;
+        fs::write(
+            &snap_path,
+            generate_create_file(schema, &crate::migration::utils::types::DbKind::Other),
+        )
+        .with_context(|| format!("Failed to write snapshot: {}", snap_path))?;
 
         if change.is_new_table {
             // Timestamped SeaORM file — immutable, executed by sea-orm-cli
@@ -205,7 +333,7 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
             let seaorm_path =
                 seaorm_create_file_path(migrations_path, &timestamp, &change.table_name);
 
-            fs::write(&seaorm_path, generate_create_file(schema))
+            fs::write(&seaorm_path, generate_create_file(schema, &db_kind))
                 .with_context(|| format!("Failed to write: {}", seaorm_path))?;
 
             println!(" {}", tf("makemigrations.generated", &[&seaorm_path]));

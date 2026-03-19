@@ -72,6 +72,7 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
                 if prev.col_type != curr.col_type
                     || prev.nullable != curr.nullable
                     || prev.unique != curr.unique
+                    || prev.has_default_now != curr.has_default_now
                 {
                     Some(((*prev).clone(), (*curr).clone()))
                 } else {

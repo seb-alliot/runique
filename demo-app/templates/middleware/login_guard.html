@@ -60,7 +60,7 @@
 <span class="cm">// LoginGuard   — lockout par compte ou IP anonyme</span>
 
 <span class="kw">static</span> IP_LIMITER: <span class="ty">LazyLock</span>&lt;<span class="ty">RateLimiter</span>&gt; = <span class="ty">LazyLock</span>::<span class="fn_">new</span>(||
-    <span class="ty">RateLimiter</span>::<span class="fn_">new</span>().<span class="fn_">max_requests</span>(<span class="nm">10</span>).<span class="fn_">window_secs</span>(<span class="nm">60</span>));
+    <span class="ty">RateLimiter</span>::<span class="fn_">new</span>().<span class="fn_">max_requests</span>(<span class="nm">10</span>).<span class="fn_">retry_after</span>(<span class="nm">60</span>));
 <span class="kw">static</span> GUARD: <span class="ty">LazyLock</span>&lt;<span class="ty">LoginGuard</span>&gt; = <span class="ty">LazyLock</span>::<span class="fn_">new</span>(||
     <span class="ty">LoginGuard</span>::<span class="fn_">new</span>().<span class="fn_">max_attempts</span>(<span class="nm">5</span>).<span class="fn_">lockout_secs</span>(<span class="nm">300</span>));
 

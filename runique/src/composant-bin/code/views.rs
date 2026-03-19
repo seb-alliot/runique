@@ -1,22 +1,24 @@
 use crate::formulaire::RegisterForm;
 use runique::prelude::*;
 
+async fn inject_auth(request: &mut Request) {
+    let connected = is_authenticated(&request.session).await;
+    let username = get_username(&request.session).await;
+    request.context.insert("connected", &connected);
+    request.context.insert("current_user", &username);
+}
+
 /// Page d'accueil
 pub async fn index(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
     context_update!(request => {
         "title" => "Bienvenue sur Runique",
         "description" => "Un framework web moderne inspiré de Django",
-        "status" => "Framework en cours de développement...",
-        "backend" => "Axum pour le backend",
-        "template" => "Tera comme moteur de templates",
-        "tokio" => "Runtime asynchrone tokio",
-        "session" => "Tower pour la gestion des sessions",
     });
-
     request.render("index.html")
 }
 
-/// Soumission du formulaire d'inscription
+/// Inscription
 pub async fn soumission_inscription(
     mut request: Request,
     Prisme(mut form): Prisme<RegisterForm>,
@@ -26,22 +28,24 @@ pub async fn soumission_inscription(
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/").into_response());
     }
-    let template = "auth/inscription.html";
+
+    let template = "inscription_form.html";
+
     if request.is_get() {
         context_update!(request => {
-            "title" => "Inscription utilisateur",
+            "title" => "Inscription",
             "inscription_form" => &form,
         });
         return request.render(template);
     }
 
-    if request.is_post() {
+    if request.is_post() && form.is_valid().await {
         match form.save(&request.engine.db).await {
             Ok(user) => {
                 auth_login(&request.session, user.id, &user.username)
                     .await
                     .ok();
-                success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
+                success!(request.notices => format!("Bienvenue {} !", user.username));
                 return Ok(Redirect::to("/").into_response());
             }
             Err(err) => {
@@ -49,24 +53,21 @@ pub async fn soumission_inscription(
             }
         }
     }
+
     context_update!(request => {
-        "title" => "Erreur de validation",
+        "title" => "Inscription",
         "inscription_form" => &form,
         "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
     });
     request.render(template)
 }
+
 /// Page "À propos"
 pub async fn about(mut request: Request) -> AppResult<Response> {
-    success!(request.notices => "Ceci est un message de succès.");
-    info!(request.notices => "Ceci est un message d'information.");
-    warning!(request.notices => "Ceci est un message d'avertissement.");
-    error!(request.notices => "Ceci est un message d'erreur.");
-
+    inject_auth(&mut request).await;
     context_update!(request => {
-        "title" => "À propos du Framework Runique",
+        "title" => "À propos",
         "content" => "Runique est un framework web inspiré de Django, construit sur Axum et Tera.",
     });
-
     request.render("about/about.html")
 }

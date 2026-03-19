@@ -16,7 +16,10 @@
 
         <div class="demo-code">
             <div class="demo-code-title">Configuration dans main.rs</div>
-            <pre><code>builder::<span class="fn_">new</span>(config)
+            <pre><code><span class="kw">use</span> runique::app::builder::<span class="ty">RuniqueAppBuilder</span> <span class="kw">as</span> builder;
+<span class="kw">use</span> runique::prelude::<span class="ty">RuniqueConfig</span>;
+
+builder::<span class="fn_">new</span>(<span class="ty">RuniqueConfig</span>::<span class="fn_">from_env</span>())
     .<span class="fn_">middleware</span>(|m| {
         m
             <span class="cm">// Taille max par session / taille totale du store</span>

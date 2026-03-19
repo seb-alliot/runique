@@ -101,7 +101,8 @@ pub mod prelude {
     // ========================================================================
     // UTILS
     // ========================================================================
-    pub use crate::macros::{reverse, reverse_with_parameters};
+    pub use crate::macros::{reverse, reverse_with_parameters, register_name_url, register_pending};
+    pub use crate::{urlpatterns, view};
     pub use crate::utils::csp_nonce::*;
     pub use crate::utils::csrf::*;
 

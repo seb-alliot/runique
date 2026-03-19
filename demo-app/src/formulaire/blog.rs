@@ -16,10 +16,10 @@ impl RuniqueForm for BlogForm {
         let content = self.get_string("content");
         let mut errors = StrMap::new();
 
-        if title.len() < 5 {
+        if title.len() < 3 {
             errors.insert(
                 "title".to_string(),
-                "Title must be at least 5 characters long".to_string(),
+                "Le titre doit faire au moins 3 caractères.".to_string(),
             );
         }
         if let Some(ref w) = website
@@ -27,22 +27,22 @@ impl RuniqueForm for BlogForm {
         {
             errors.insert(
                 "website".to_string(),
-                "Website must start with http".to_string(),
+                "Le site web doit commencer par http ou https.".to_string(),
             );
         }
         if !email.contains('@') {
-            errors.insert("email".to_string(), "Invalid email address".to_string());
+            errors.insert("email".to_string(), "Adresse email invalide.".to_string());
         }
-        if summary.len() < 10 {
+        if summary.len() < 5 {
             errors.insert(
                 "summary".to_string(),
-                "Summary must be at least 10 characters long".to_string(),
+                "Le résumé doit faire au moins 5 caractères.".to_string(),
             );
         }
-        if content.len() < 20 {
+        if content.len() < 10 {
             errors.insert(
                 "content".to_string(),
-                "Content must be at least 20 characters long".to_string(),
+                "Le contenu doit faire au moins 10 caractères.".to_string(),
             );
         }
 

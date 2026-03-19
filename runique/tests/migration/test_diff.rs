@@ -16,6 +16,7 @@ fn col(name: &str, col_type: &str) -> ParsedColumn {
         ignored: false,
         created_at: false,
         updated_at: false,
+        has_default_now: false,
     }
 }
 

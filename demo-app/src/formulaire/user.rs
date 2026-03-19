@@ -20,16 +20,16 @@ impl RuniqueForm for RegisterForm {
         if username.len() < 3 {
             errors.insert(
                 "username".to_string(),
-                "Username must be at least 3 characters long".to_string(),
+                "Le nom d'utilisateur doit faire au moins 3 caractères.".to_string(),
             );
         }
         if !email.contains('@') {
-            errors.insert("email".to_string(), "Invalid email address".to_string());
+            errors.insert("email".to_string(), "Adresse email invalide.".to_string());
         }
-        if password.len() < 10 {
+        if password.len() < 8 {
             errors.insert(
                 "password".to_string(),
-                "Password must be at least 10 characters long".to_string(),
+                "Le mot de passe doit faire au moins 8 caractères.".to_string(),
             );
         }
 

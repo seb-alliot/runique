@@ -173,3 +173,53 @@ async fn test_spawn_cleanup_no_panic() {
     limiter.spawn_cleanup(tokio::time::Duration::from_secs(3600));
     // Pas de panique = OK
 }
+
+// ── route_layer — pattern utilisé dans url.rs ─────────────────────────────────
+
+/// Vérifie que route_layer avec rate_limit_middleware bloque après N requêtes.
+/// Reproduit exactement le câblage de url.rs pour /upload-image.
+#[tokio::test]
+async fn test_route_layer_blocks_after_limit() {
+    let limiter = Arc::new(RateLimiter::new().max_requests(5).retry_after(60));
+
+    let app = Router::new()
+        .route("/upload-image", get(|| async { "ok" }))
+        .route_layer(axum::middleware::from_fn_with_state(
+            limiter,
+            rate_limit_middleware,
+        ));
+
+    // Les 5 premières requêtes passent
+    for _ in 0..5 {
+        let resp = request::get(app.clone(), "/upload-image").await;
+        assert_status(&resp, 200);
+    }
+
+    // La 6e est bloquée
+    let resp = request::get(app.clone(), "/upload-image").await;
+    assert_status(&resp, 429);
+    assert!(resp.headers().contains_key("retry-after"));
+}
+
+/// Vérifie que route_layer n'affecte pas les autres routes du même routeur.
+#[tokio::test]
+async fn test_route_layer_does_not_affect_other_routes() {
+    let limiter = Arc::new(RateLimiter::new().max_requests(1).retry_after(60));
+
+    let app = Router::new()
+        .route("/upload-image", get(|| async { "upload" }))
+        .route_layer(axum::middleware::from_fn_with_state(
+            limiter,
+            rate_limit_middleware,
+        ))
+        .route("/autre", get(|| async { "autre" }));
+
+    // Épuise la limite sur /upload-image
+    request::get(app.clone(), "/upload-image").await;
+    let bloque = request::get(app.clone(), "/upload-image").await;
+    assert_status(&bloque, 429);
+
+    // /autre n'est pas affecté
+    let autre = request::get(app.clone(), "/autre").await;
+    assert_status(&autre, 200);
+}
