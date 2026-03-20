@@ -7,6 +7,54 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.1.50] - 2026-03-20
+
+### Fixed
+
+* **Upload form — browser resend dialog (PRG):**
+  `upload_image_submit` handler now always redirects after POST (success or failure).
+  Flash notices (`success!` / `error!`) persist across the redirect via session.
+  Eliminates the browser "resend form data?" dialog on F5 / back navigation.
+
+* **`is_valid()` — blocked all forms:**
+  Removed `set_expected_value()` call in `Forms::new()`.
+  CSRF is already validated upstream in `Prisme` — the double-validation was redundant and caused every form submission to fail even with valid data.
+
+* **Makemigrations — FK order and `updated_at`:**
+  New tables are topologically sorted before code generation — referenced tables appear first in `lib.rs`.
+  `updated_at` now generates `ON UPDATE CURRENT_TIMESTAMP` (MySQL) or a trigger (PostgreSQL) based on `DB_URL` / `DB_ENGINE`.
+  Diff detects columns that gained or lost `DEFAULT CURRENT_TIMESTAMP` and generates the corresponding `ALTER` automatically.
+
+* **`FileField` — upload validation:**
+  Invalid files (wrong extension, size exceeded, incorrect image format) are now automatically deleted from disk when validation fails.
+  Submissions with no file selected (`filename=""`) no longer create an orphan empty file — `required` constraint works correctly.
+  `upload_to("path")` applies the exact path provided. `upload_to_env()` uses `{MEDIA_ROOT}/{field_name}/`. File move happens in `finalize()` only if validation passes.
+
+* **CSP — inline styles removed from demo-app templates:**
+  All `style="..."` attributes removed from `formulaires/index.html`. Replaced with named CSS classes (`.roadmap-intro`, `.feature-card--disabled`).
+
+### Added
+
+* **`RuniqueForm::clear()`** — empties all field values (except the CSRF token) and resets `submitted` to `false`.
+  Wraps `Forms::clear_values()`. Requires `&mut self` — can be called from a handler or from `save(&mut self)` on the form itself.
+  Not callable inside `clean()` or `clean_field()` (runs during `is_valid()`, before `save()` reads the data).
+
+* **`Forms::clear_values()`** — low-level counterpart to `RuniqueForm::clear()`, accessible directly on the inner `Forms` instance.
+
+* **`derive_form` — `file()` option:**
+  Models can now declare a file field directly in the DSL:
+  `image: String [file(image, "media/uploads")]`
+  `derive_form` => 1.1.34 : automatically generates the corresponding `FileField` with the correct type and upload path. Available types: `image`, `document`, `any`.
+
+### Documentation
+
+* **`clear()` documented** in `docs/fr/formulaire/trait/trait.md` and `docs/en/formulaire/trait/trait.md`:
+  lifecycle diagram updated, method reference added, full `## clear()` section with three contexts (from handler, from `save(&mut self)`, where it cannot be called).
+
+* **`helpers.html`** — added `clear()` demo code block showing handler usage and the PRG note.
+
+---
+
 ## [1.1.48] - 2026-03-18
 
 ### Breaking Changes
