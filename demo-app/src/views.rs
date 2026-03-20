@@ -1,5 +1,8 @@
 use crate::entities::blog::Entity as BlogEntity;
+use crate::entities::changelog_entry::Entity as ChangelogEntryEntity;
 use crate::entities::contribution::Entity as ContributionEntity;
+use crate::entities::known_issue::Entity as KnownIssueEntity;
+use crate::entities::roadmap_entry::Entity as RoadmapEntryEntity;
 use crate::formulaire::*;
 use runique::middleware::auth::login as auth_login;
 use runique::prelude::user::Entity as UserEntity;
@@ -456,27 +459,97 @@ pub async fn rgpd(mut request: Request) -> AppResult<Response> {
     request.render("rgpd/rgpd.html")
 }
 
-// ─── Roadmap ──────────────────────────────────────────────────────────────────
+// ─── Roadmap / Changelog ──────────────────────────────────────────────────────
+
+#[derive(serde::Serialize)]
+struct VersionGroup<T: serde::Serialize> {
+    version: String,
+    release_date: String,
+    entries: Vec<T>,
+}
 
 pub async fn changelog(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
+
+    let all = ChangelogEntryEntity::find()
+        .order_by_desc(crate::entities::changelog_entry::Column::Version)
+        .order_by_asc(crate::entities::changelog_entry::Column::SortOrder)
+        .all(&*request.engine.db)
+        .await
+        .unwrap_or_default();
+
+    let mut groups: Vec<VersionGroup<crate::entities::changelog_entry::Model>> = Vec::new();
+    for entry in all {
+        if let Some(g) = groups.last_mut() {
+            if g.version == entry.version {
+                g.entries.push(entry);
+                continue;
+            }
+        }
+        groups.push(VersionGroup {
+            version: entry.version.clone(),
+            release_date: entry.release_date.clone(),
+            entries: vec![entry],
+        });
+    }
+
     context_update!(request => {
-        "title" => "Changelog",
+        "title"  => "Changelog",
+        "groups" => &groups,
     });
     request.render("changelog/changelog.html")
 }
+
 pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
+
+    let all = KnownIssueEntity::find()
+        .order_by_desc(crate::entities::known_issue::Column::Version)
+        .order_by_asc(crate::entities::known_issue::Column::SortOrder)
+        .all(&*request.engine.db)
+        .await
+        .unwrap_or_default();
+
+    let mut groups: Vec<VersionGroup<crate::entities::known_issue::Model>> = Vec::new();
+    for entry in all {
+        if let Some(g) = groups.last_mut() {
+            if g.version == entry.version {
+                g.entries.push(entry);
+                continue;
+            }
+        }
+        groups.push(VersionGroup {
+            version: entry.version.clone(),
+            release_date: String::new(),
+            entries: vec![entry],
+        });
+    }
+
     context_update!(request => {
-        "title" => "Problèmes connus",
+        "title"  => "Problèmes connus",
+        "groups" => &groups,
     });
     request.render("changelog/probleme_connu.html")
 }
 
 pub async fn roadmap(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
+
+    let all = RoadmapEntryEntity::find()
+        .order_by_asc(crate::entities::roadmap_entry::Column::SortOrder)
+        .all(&*request.engine.db)
+        .await
+        .unwrap_or_default();
+
+    let active: Vec<_> = all.iter().filter(|e| e.status == "active").collect();
+    let planned: Vec<_> = all.iter().filter(|e| e.status == "planned").collect();
+    let future: Vec<_> = all.iter().filter(|e| e.status == "future").collect();
+
     context_update!(request => {
-        "title" => "Ce qui arrive",
+        "title"   => "Ce qui arrive",
+        "active"  => &active,
+        "planned" => &planned,
+        "future"  => &future,
     });
     request.render("roadmap/roadmap.html")
 }
