@@ -4,6 +4,7 @@ mod prelude;
 use prelude::*;
 mod admin;
 mod admins;
+mod backend;
 mod entities;
 mod formulaire;
 mod url;
