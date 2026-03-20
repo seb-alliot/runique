@@ -6,6 +6,54 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
+## [1.1.50] - 2026-03-20
+
+### Correctifs
+
+* **Formulaire upload — dialog « renvoyer les données » (PRG) :**
+  Le handler `upload_image_submit` redirige désormais systématiquement après chaque POST (succès ou échec).
+  Les notices flash (`success!` / `error!`) persistent après la redirection via la session.
+  Supprime le dialog « Voulez-vous renvoyer les données du formulaire ? » au rechargement de page (F5 / retour arrière).
+
+* **`is_valid()` — bloquait tous les formulaires :**
+  Suppression de l'appel à `set_expected_value()` dans `Forms::new()`.
+  Le CSRF est déjà validé en amont dans `Prisme` — la double validation était redondante et invalidait chaque soumission même avec des données correctes.
+
+* **Makemigrations — ordre FK et `updated_at` :**
+  Les nouvelles tables sont triées topologiquement avant la génération — les tables référencées par FK apparaissent en premier dans `lib.rs`.
+  `updated_at` génère désormais `ON UPDATE CURRENT_TIMESTAMP` (MySQL) ou un trigger (PostgreSQL) selon `DB_URL` / `DB_ENGINE`.
+  Le diff détecte les colonnes qui ont gagné ou perdu `DEFAULT CURRENT_TIMESTAMP` et génère l'`ALTER` correspondant automatiquement.
+
+* **`FileField` — validation des uploads :**
+  Les fichiers invalides (mauvaise extension, taille dépassée, format image incorrect) sont maintenant supprimés du disque automatiquement si la validation échoue.
+  Les soumissions sans fichier sélectionné (`filename=""`) ne créent plus de fichier vide orphelin — la contrainte `required` fonctionne correctement.
+  `upload_to("chemin")` applique le chemin exact fourni. `upload_to_env()` utilise `{MEDIA_ROOT}/{nom_du_champ}/`. Le déplacement s'effectue dans `finalize()` uniquement si la validation passe.
+
+* **CSP — styles inline supprimés des templates demo-app :**
+  Tous les attributs `style="..."` supprimés de `formulaires/index.html`. Remplacés par des classes CSS nommées (`.roadmap-intro`, `.feature-card--disabled`).
+
+### Ajouté
+
+* **`RuniqueForm::clear()`** — vide toutes les valeurs des champs (hors token CSRF) et remet `submitted` à `false`.
+  Délègue à `Forms::clear_values()`. Nécessite `&mut self` — peut être appelé depuis un handler ou depuis `save(&mut self)` sur le formulaire lui-même.
+  Non appelable dans `clean()` ou `clean_field()` (s'exécutent pendant `is_valid()`, avant que `save()` lise les données).
+
+* **`Forms::clear_values()`** — pendant bas niveau de `RuniqueForm::clear()`, accessible directement sur l'instance `Forms`.
+
+* **`derive_form` — option `file()` :**
+  Les modèles peuvent maintenant déclarer un champ fichier directement dans le DSL :
+  `image: String [file(image, "media/uploads")]`
+  `derive_form` => 1.1.34 : génère automatiquement le `FileField` correspondant avec le bon type et le chemin d'upload. Types disponibles : `image`, `document`, `any`.
+
+### Documentation
+
+* **`clear()` documenté** dans `docs/fr/formulaire/trait/trait.md` et `docs/en/formulaire/trait/trait.md` :
+  diagramme du cycle de vie mis à jour, référence des méthodes complétée, section `## clear()` ajoutée avec trois contextes d'utilisation (depuis un handler, depuis `save(&mut self)`, où il ne peut pas être appelé).
+
+* **`helpers.html`** — ajout d'un bloc de code démo pour `clear()` illustrant l'usage depuis un handler et la note PRG.
+
+---
+
 ## [1.1.48] - 2026-03-18
 
 ### Changements majeurs
