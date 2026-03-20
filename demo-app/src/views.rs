@@ -480,11 +480,11 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
 
     let mut groups: Vec<VersionGroup<crate::entities::changelog_entry::Model>> = Vec::new();
     for entry in all {
-        if let Some(g) = groups.last_mut() {
-            if g.version == entry.version {
-                g.entries.push(entry);
-                continue;
-            }
+        if let Some(g) = groups.last_mut()
+            && g.version == entry.version
+        {
+            g.entries.push(entry);
+            continue;
         }
         groups.push(VersionGroup {
             version: entry.version.clone(),
@@ -512,11 +512,11 @@ pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
 
     let mut groups: Vec<VersionGroup<crate::entities::known_issue::Model>> = Vec::new();
     for entry in all {
-        if let Some(g) = groups.last_mut() {
-            if g.version == entry.version {
-                g.entries.push(entry);
-                continue;
-            }
+        if let Some(g) = groups.last_mut()
+            && g.version == entry.version
+        {
+            g.entries.push(entry);
+            continue;
         }
         groups.push(VersionGroup {
             version: entry.version.clone(),
