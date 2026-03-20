@@ -7,6 +7,7 @@ mod m20260318_153933_create_users_booster_table;
 mod m20260320_122444_create_changelog_entry_table;
 mod m20260320_122444_create_known_issue_table;
 mod m20260320_122444_create_roadmap_entry_table;
+mod m20260320_130926_alter_roadmap_entry_table;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -24,6 +25,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260320_122444_create_known_issue_table::Migration),
             Box::new(m20260320_122444_create_roadmap_entry_table::Migration),
             Box::new(m20260320_122444_create_changelog_entry_table::Migration),
+            Box::new(m20260320_130926_alter_roadmap_entry_table::Migration),
         ]
     }
 }

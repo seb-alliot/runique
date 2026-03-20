@@ -49,3 +49,8 @@ oha -z 5m -c 500 http://localhost:3000/ | Out-Host
 "=== AFTER ==="; Mem
 Start-Sleep -Seconds 530
 "=== IDLE +530s ==="; Mem
+
+
+// Gestion de railway
+
+railway shell
