@@ -429,8 +429,7 @@ impl FormField for FileField {
                 .unwrap_or(file_path.as_str());
             let dest = dest_dir_path.join(filename);
 
-            std::fs::rename(src, &dest)
-                .map_err(|e| format!("move '{}': {}", dest.display(), e))?;
+            std::fs::rename(src, &dest).map_err(|e| format!("move '{}': {}", dest.display(), e))?;
 
             new_paths.push(dest.to_string_lossy().to_string());
         }
