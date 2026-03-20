@@ -1,0 +1,39 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+
+    {% for section in sections %}
+    <div class="roadmap-section">
+        <h2 class="roadmap-heading {{ section.heading_class }}">{{ section.heading }}</h2>
+        <div class="roadmap-grid">
+            {% for entry in section.entries %}
+            <div class="roadmap-card">
+                <h3>
+                    {% if entry.subtitle %}
+                    <span class="card-badge card-badge--{{ entry.subtitle | lower }}">{{ entry.subtitle }}</span>
+                    {% endif %}
+                    {{ entry.title }}
+                </h3>
+                <p>{{ entry.description }}</p>
+                {% if entry.link_url %}
+                <a href="{{ entry.link_url }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ entry.link_label | default(value="Voir") }}</a>
+                {% endif %}
+                {% if entry.link_url_2 %}
+                <a href="{{ entry.link_url_2 }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ entry.link_label_2 | default(value="Voir") }}</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="back-link">
+        {% if ext_link_url %}
+        <a href="{{ ext_link_url }}" target="_blank" class="btn btn-secondary">{{ ext_link_label }}</a>
+        {% endif %}
+        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

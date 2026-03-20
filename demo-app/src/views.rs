@@ -3,10 +3,95 @@ use crate::entities::changelog_entry::Entity as ChangelogEntryEntity;
 use crate::entities::contribution::Entity as ContributionEntity;
 use crate::entities::known_issue::Entity as KnownIssueEntity;
 use crate::entities::roadmap_entry::Entity as RoadmapEntryEntity;
+use crate::entities::{code_example, demo_category, demo_page, form_field, page_doc_link};
 use crate::formulaire::*;
 use runique::middleware::auth::login as auth_login;
 use runique::prelude::user::Entity as UserEntity;
 use runique::prelude::*;
+
+#[derive(serde::Serialize)]
+struct FieldGroup {
+    type_name: String,
+    fields: Vec<form_field::Model>,
+}
+
+// ─── Helper partagé — fetch code_examples + doc_links par slug ───────────────
+async fn fetch_page_examples(
+    slug: &str,
+    db: &sea_orm::DatabaseConnection,
+) -> (Vec<code_example::Model>, Vec<page_doc_link::Model>) {
+    let page = demo_page::Entity::find()
+        .filter(demo_page::Column::Slug.eq(slug))
+        .one(db)
+        .await
+        .unwrap_or(None);
+
+    let Some(page) = page else {
+        return (vec![], vec![]);
+    };
+
+    let examples = code_example::Entity::find()
+        .filter(code_example::Column::PageId.eq(page.id))
+        .order_by_asc(code_example::Column::SortOrder)
+        .all(db)
+        .await
+        .unwrap_or_default();
+
+    let links = page_doc_link::Entity::find()
+        .filter(page_doc_link::Column::PageId.eq(page.id))
+        .order_by_asc(page_doc_link::Column::SortOrder)
+        .all(db)
+        .await
+        .unwrap_or_default();
+
+    (examples, links)
+}
+
+// ─── Vue générique DB — page_type = "code" ────────────────────────────────────
+async fn demo_code_page(slug: &str, request: &mut Request) -> AppResult<Response> {
+    inject_auth(request).await;
+
+    let db = request.engine.db.clone();
+
+    let page = demo_page::Entity::find()
+        .filter(demo_page::Column::Slug.eq(slug))
+        .one(&*db)
+        .await
+        .unwrap_or(None);
+
+    let Some(page) = page else {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    };
+
+    let code_examples = code_example::Entity::find()
+        .filter(code_example::Column::PageId.eq(page.id))
+        .order_by_asc(code_example::Column::SortOrder)
+        .all(&*db)
+        .await
+        .unwrap_or_default();
+
+    let doc_links = page_doc_link::Entity::find()
+        .filter(page_doc_link::Column::PageId.eq(page.id))
+        .order_by_asc(page_doc_link::Column::SortOrder)
+        .all(&*db)
+        .await
+        .unwrap_or_default();
+
+    let category = demo_category::Entity::find_by_id(page.category_id)
+        .one(&*db)
+        .await
+        .unwrap_or(None);
+
+    context_update!(request => {
+        "title"         => &page.title,
+        "page"          => &page,
+        "code_examples" => &code_examples,
+        "doc_links"     => &doc_links,
+        "category"      => &category,
+    });
+
+    request.render("demo/generic.html")
+}
 
 // ─── Utilitaire : injecter l'état auth dans le contexte Tera ─────────────────
 async fn inject_auth(request: &mut Request) {
@@ -45,10 +130,15 @@ pub async fn soumission_inscription(
         return Ok(Redirect::to("/profil").into_response());
     }
     let template = "auth/inscription.html";
+    let db = request.engine.db.clone();
+    let (code_examples, doc_links) = fetch_page_examples("inscription", &db).await;
+
     if request.is_get() {
         context_update!(request => {
-            "title" => "Inscription utilisateur",
+            "title"         => "Inscription utilisateur",
             "inscription_form" => &form,
+            "code_examples" => &code_examples,
+            "doc_links"     => &doc_links,
         });
         return request.render(template);
     }
@@ -68,9 +158,11 @@ pub async fn soumission_inscription(
         }
     }
     context_update!(request => {
-        "title" => "Erreur de validation",
+        "title"         => "Erreur de validation",
         "inscription_form" => &form,
-        "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+        "code_examples" => &code_examples,
+        "doc_links"     => &doc_links,
+        "messages"      => flash_now!(error => "Veuillez corriger les erreurs"),
     });
     request.render(template)
 }
@@ -88,11 +180,15 @@ pub async fn login_user(
     }
 
     let template = "auth/login.html";
+    let db = request.engine.db.clone();
+    let (code_examples, doc_links) = fetch_page_examples("login", &db).await;
 
     if request.is_get() {
         context_update!(request => {
-            "title" => "Connexion",
-            "login_form" => &form,
+            "title"         => "Connexion",
+            "login_form"    => &form,
+            "code_examples" => &code_examples,
+            "doc_links"     => &doc_links,
         });
         return request.render(template);
     }
@@ -123,9 +219,11 @@ pub async fn login_user(
 
         flash_now!(error => "Identifiants invalides");
         context_update!(request => {
-            "title" => "Connexion",
-            "login_form" => &form,
-            "auth_error" => &true,
+            "title"         => "Connexion",
+            "login_form"    => &form,
+            "auth_error"    => &true,
+            "code_examples" => &code_examples,
+            "doc_links"     => &doc_links,
         });
         return request.render(template);
     }
@@ -255,11 +353,15 @@ pub async fn upload_image_submit(
 ) -> AppResult<Response> {
     inject_auth(&mut request).await;
     let template = "forms/upload_image.html";
+    let db = request.engine.db.clone();
+    let (code_examples, doc_links) = fetch_page_examples("upload_image", &db).await;
 
     if request.is_get() {
         context_update!(request => {
-            "title" => "Uploader un fichier",
-            "image_form" => &form,
+            "title"         => "Uploader un fichier",
+            "image_form"    => &form,
+            "code_examples" => &code_examples,
+            "doc_links"     => &doc_links,
         });
         return request.render(template);
     }
@@ -381,19 +483,46 @@ pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult
 
 // ─── Test des champs ─────────────────────────────────────────────────────────
 
-pub async fn test_fields(
-    mut request: Request,
-    Prisme(form): Prisme<TestAllFieldsForm>,
-) -> AppResult<Response> {
+pub async fn test_fields(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
-    let template = "forms/field_test.html";
+
+    let db = request.engine.db.clone();
+    let page = demo_page::Entity::find()
+        .filter(demo_page::Column::Slug.eq("formulaires_champs"))
+        .one(&*db)
+        .await
+        .unwrap_or(None);
+    let form_fields = if let Some(ref p) = page {
+        form_field::Entity::find()
+            .filter(form_field::Column::PageId.eq(p.id))
+            .order_by_asc(form_field::Column::SortOrder)
+            .all(&*db)
+            .await
+            .unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    let mut field_groups: Vec<FieldGroup> = vec![];
+    for field in form_fields {
+        if field_groups
+            .last()
+            .map(|g: &FieldGroup| g.type_name.as_str())
+            != Some(&field.field_type)
+        {
+            field_groups.push(FieldGroup {
+                type_name: field.field_type.clone(),
+                fields: vec![],
+            });
+        }
+        field_groups.last_mut().unwrap().fields.push(field);
+    }
 
     context_update!(request => {
-        "title" => "Test des champs de formulaire Runique",
-        "description" => "Page de test exhaustif de tous les types de champs",
-        "test_form" => &form,
+        "title"        => "Champs disponibles",
+        "field_groups" => &field_groups,
     });
-    request.render(template)
+    request.render("forms/field_test.html")
 }
 
 pub async fn contribution_submit(
@@ -442,11 +571,7 @@ pub async fn contribution_submit(
 // ─── Model demo ───────────────────────────────────────────────────────────────
 
 pub async fn model_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Modèles & Schémas",
-    });
-    request.render("model/model.html")
+    demo_code_page("model_demo", &mut request).await
 }
 
 // ─── RGPD ─────────────────────────────────────────────────────────────────────
@@ -462,10 +587,21 @@ pub async fn rgpd(mut request: Request) -> AppResult<Response> {
 // ─── Roadmap / Changelog ──────────────────────────────────────────────────────
 
 #[derive(serde::Serialize)]
-struct VersionGroup<T: serde::Serialize> {
-    version: String,
-    release_date: String,
-    entries: Vec<T>,
+struct CardEntry {
+    subtitle: Option<String>,
+    title: String,
+    description: String,
+    link_url: Option<String>,
+    link_label: Option<String>,
+    link_url_2: Option<String>,
+    link_label_2: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct CardSection {
+    heading: String,
+    heading_class: String,
+    entries: Vec<CardEntry>,
 }
 
 pub async fn changelog(mut request: Request) -> AppResult<Response> {
@@ -478,26 +614,45 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
         .await
         .unwrap_or_default();
 
-    let mut groups: Vec<VersionGroup<crate::entities::changelog_entry::Model>> = Vec::new();
+    let mut sections: Vec<CardSection> = Vec::new();
     for entry in all {
-        if let Some(g) = groups.last_mut()
-            && g.version == entry.version
+        let heading = format!("v{} — {}", entry.version, entry.release_date);
+        if let Some(s) = sections.last_mut()
+            && s.heading == heading
         {
-            g.entries.push(entry);
+            s.entries.push(CardEntry {
+                subtitle: Some(entry.category.clone()),
+                title: entry.title.clone(),
+                description: entry.description.clone(),
+                link_url: None,
+                link_label: None,
+                link_url_2: None,
+                link_label_2: None,
+            });
             continue;
         }
-        groups.push(VersionGroup {
-            version: entry.version.clone(),
-            release_date: entry.release_date.clone(),
-            entries: vec![entry],
+        sections.push(CardSection {
+            heading,
+            heading_class: "roadmap-active".into(),
+            entries: vec![CardEntry {
+                subtitle: Some(entry.category.clone()),
+                title: entry.title.clone(),
+                description: entry.description.clone(),
+                link_url: None,
+                link_label: None,
+                link_url_2: None,
+                link_label_2: None,
+            }],
         });
     }
 
     context_update!(request => {
-        "title"  => "Changelog",
-        "groups" => &groups,
+        "title"    => "Changelog",
+        "sections" => &sections,
+        "ext_link_label" => "CHANGELOG complet",
+        "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
     });
-    request.render("changelog/changelog.html")
+    request.render("info/cards.html")
 }
 
 pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
@@ -510,26 +665,45 @@ pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
         .await
         .unwrap_or_default();
 
-    let mut groups: Vec<VersionGroup<crate::entities::known_issue::Model>> = Vec::new();
+    let mut sections: Vec<CardSection> = Vec::new();
     for entry in all {
-        if let Some(g) = groups.last_mut()
-            && g.version == entry.version
+        let heading = format!("v{}", entry.version);
+        if let Some(s) = sections.last_mut()
+            && s.heading == heading
         {
-            g.entries.push(entry);
+            s.entries.push(CardEntry {
+                subtitle: Some(entry.issue_type.clone()),
+                title: entry.title.clone(),
+                description: entry.description.clone(),
+                link_url: None,
+                link_label: None,
+                link_url_2: None,
+                link_label_2: None,
+            });
             continue;
         }
-        groups.push(VersionGroup {
-            version: entry.version.clone(),
-            release_date: String::new(),
-            entries: vec![entry],
+        sections.push(CardSection {
+            heading,
+            heading_class: "roadmap-active".into(),
+            entries: vec![CardEntry {
+                subtitle: Some(entry.issue_type.clone()),
+                title: entry.title.clone(),
+                description: entry.description.clone(),
+                link_url: None,
+                link_label: None,
+                link_url_2: None,
+                link_label_2: None,
+            }],
         });
     }
 
     context_update!(request => {
-        "title"  => "Problèmes connus",
-        "groups" => &groups,
+        "title"    => "Problèmes connus",
+        "sections" => &sections,
+        "ext_link_label" => "CHANGELOG complet",
+        "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
     });
-    request.render("changelog/probleme_connu.html")
+    request.render("info/cards.html")
 }
 
 pub async fn roadmap(mut request: Request) -> AppResult<Response> {
@@ -541,17 +715,46 @@ pub async fn roadmap(mut request: Request) -> AppResult<Response> {
         .await
         .unwrap_or_default();
 
-    let active: Vec<_> = all.iter().filter(|e| e.status == "active").collect();
-    let planned: Vec<_> = all.iter().filter(|e| e.status == "planned").collect();
-    let future: Vec<_> = all.iter().filter(|e| e.status == "future").collect();
+    let status_sections = [
+        ("active", "🔧 En cours", "roadmap-active"),
+        ("planned", "📋 Prévu", "roadmap-planned"),
+        ("future", "🔭 Futur", "roadmap-future"),
+    ];
+
+    let sections: Vec<CardSection> = status_sections
+        .iter()
+        .filter_map(|(status, heading, class)| {
+            let entries: Vec<CardEntry> = all
+                .iter()
+                .filter(|e| e.status == *status)
+                .map(|e| CardEntry {
+                    subtitle: None,
+                    title: e.title.clone(),
+                    description: e.description.clone(),
+                    link_url: e.link_url.clone(),
+                    link_label: e.link_label.clone(),
+                    link_url_2: e.link_url_2.clone(),
+                    link_label_2: e.link_label_2.clone(),
+                })
+                .collect();
+            if entries.is_empty() {
+                return None;
+            }
+            Some(CardSection {
+                heading: String::from(*heading),
+                heading_class: String::from(*class),
+                entries,
+            })
+        })
+        .collect();
 
     context_update!(request => {
-        "title"   => "Ce qui arrive",
-        "active"  => &active,
-        "planned" => &planned,
-        "future"  => &future,
+        "title"    => "Ce qui arrive",
+        "sections" => &sections,
+        "ext_link_label" => "Roadmap complète",
+        "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/ROADMAP.md",
     });
-    request.render("roadmap/roadmap.html")
+    request.render("info/cards.html")
 }
 
 pub async fn admin_hub(mut request: Request) -> AppResult<Response> {
@@ -563,19 +766,11 @@ pub async fn admin_hub(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn admin_declaration(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Déclaration — impl_admin!",
-    });
-    request.render("admin/declaration.html")
+    demo_code_page("admin_declaration", &mut request).await
 }
 
 pub async fn admin_setup(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Configuration & CLI",
-    });
-    request.render("admin/setup.html")
+    demo_code_page("admin_setup", &mut request).await
 }
 
 pub async fn surcharge_exemple(mut request: Request) -> AppResult<Response> {
@@ -595,43 +790,23 @@ pub async fn admin_surcharge(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn installation_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Installation",
-    });
-    request.render("installation/installation.html")
+    demo_code_page("installation_demo", &mut request).await
 }
 
 pub async fn database_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Base de données",
-    });
-    request.render("database/database.html")
+    demo_code_page("database_demo", &mut request).await
 }
 
 pub async fn macros_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Macros",
-    });
-    request.render("macros/macros.html")
+    demo_code_page("macros_demo", &mut request).await
 }
 
 pub async fn session_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Sessions",
-    });
-    request.render("session/session.html")
+    demo_code_page("session_demo", &mut request).await
 }
 
 pub async fn i18n_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Internationalisation (i18n)",
-    });
-    request.render("i18n/i18n.html")
+    demo_code_page("i18n_demo", &mut request).await
 }
 
 // ─── Middleware — hub & pages individuelles ───────────────────────────────────
@@ -645,51 +820,27 @@ pub async fn middleware_hub(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn middleware_csrf(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "CSRF — Protection automatique",
-    });
-    request.render("middleware/csrf.html")
+    demo_code_page("middleware_csrf", &mut request).await
 }
 
 pub async fn middleware_csp(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "CSP — Content Security Policy",
-    });
-    request.render("middleware/csp.html")
+    demo_code_page("middleware_csp", &mut request).await
 }
 
 pub async fn middleware_rate_limit(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Rate Limiter",
-    });
-    request.render("middleware/rate_limit.html")
+    demo_code_page("middleware_rate_limit", &mut request).await
 }
 
 pub async fn middleware_login_guard(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Login Guard — Anti brute-force",
-    });
-    request.render("middleware/login_guard.html")
+    demo_code_page("middleware_login_guard", &mut request).await
 }
 
 pub async fn middleware_hosts(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Host Validation",
-    });
-    request.render("middleware/hosts.html")
+    demo_code_page("middleware_hosts", &mut request).await
 }
 
 pub async fn middleware_https(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "HTTPS — Redirection & HSTS",
-    });
-    request.render("middleware/https.html")
+    demo_code_page("middleware_https", &mut request).await
 }
 
 // ─── Formulaires — hub & sous-pages ──────────────────────────────────────────
@@ -703,19 +854,11 @@ pub async fn formulaires_hub(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn formulaires_champs(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Déclarer un champ",
-    });
-    request.render("formulaires/champs.html")
+    demo_code_page("formulaires_champs", &mut request).await
 }
 
 pub async fn formulaires_templates(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Rendu dans les templates",
-    });
-    request.render("formulaires/templates.html")
+    demo_code_page("formulaires_templates", &mut request).await
 }
 
 pub async fn formulaires_helpers(
@@ -740,53 +883,29 @@ pub async fn formulaires_helpers(
 // ─── Nouvelles pages démo ─────────────────────────────────────────────────────
 
 pub async fn template_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Templates & Tags Tera",
-    });
-    request.render("template/template.html")
+    demo_code_page("template_demo", &mut request).await
 }
 
 pub async fn configuration_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Configuration builder",
-    });
-    request.render("configuration/configuration.html")
+    demo_code_page("configuration_demo", &mut request).await
 }
 
 pub async fn orm_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "ORM — Requêtes SeaORM",
-    });
-    request.render("orm/orm.html")
+    demo_code_page("orm_demo", &mut request).await
 }
 
 pub async fn migrations_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Migrations",
-    });
-    request.render("migrations/migrations.html")
+    demo_code_page("migrations_demo", &mut request).await
 }
 
 pub async fn comparatif_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Comparatif Django / Runique",
-    });
-    request.render("comparatif/comparatif.html")
+    demo_code_page("comparatif_demo", &mut request).await
 }
 
 // ─── Routeur — page démo ──────────────────────────────────────────────────────
 
 pub async fn router_demo(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
-    context_update!(request => {
-        "title" => "Routeur",
-    });
-    request.render("router/router.html")
+    demo_code_page("router_demo", &mut request).await
 }
 
 // ─── Routes de test d'erreurs ─────────────────────────────────────────────────

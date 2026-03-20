@@ -7,7 +7,7 @@
     grid-template-columns: 1fr;
     gap: 1.5rem;
     align-items: start;
-    width: 90%;
+    width: 100%;
     margin: 0 auto;
 }
 
@@ -112,6 +112,70 @@
     font-size: 0.95rem;
 }
 
+/* =========================
+    BADGE contextuel (title)
+   ========================= */
+
+.demo-code-badge {
+    margin-left: auto;
+    background: var(--accent, #2563eb);
+    color: #fff;
+    font-size: 0.68rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.4rem;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+}
+
+/* =========================
+    CHAMPS FORMULAIRE
+   ========================= */
+
+.field-details {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: var(--bg-base);
+}
+
+.field-details summary {
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.field-details summary::-webkit-details-marker { display: none; }
+
+.field-details[open] summary {
+    border-bottom: 1px solid var(--border);
+}
+
+.field-type {
+    color: #ffa657;
+    font-size: 0.82rem;
+}
+
+.field-body {
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+}
+
+.field-body p { margin: 0 0 0.5rem; }
+
+.field-body pre {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    background: var(--bg-surface);
+    border-radius: 0.4rem;
+}
+
 /* Syntax — classes légères */
 .kw  { color: #ff7b72; }   /* keywords: pub, fn, async, let, match, struct, impl */
 .ty  { color: #ffa657; }   /* types: String, Result, Vec, i32, bool */
@@ -123,3 +187,35 @@
 .nb  { color: #79c0ff; }   /* numbers, booleans */
 .op  { color: #ff7b72; }   /* operators */
 .field { color: #e6edf3; } /* field names */
+
+/* Rendu visuel champ — field_test.html */
+.field-visual {
+    margin: 0.75rem 0;
+    padding: 0.75rem 1rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+}
+
+.field-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.field-preview label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.field-preview input,
+.field-preview select,
+.field-preview textarea {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-main);
+    border: 1px solid var(--border);
+    border-radius: 0.3rem;
+    color: var(--text-main);
+    font-size: 0.85rem;
+}
