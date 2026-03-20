@@ -39,4 +39,5 @@
         {% endblock %}
     </footer>
     <script nonce="{{ csp_nonce }}" src='{% static "js/theme.js" %}'></script>
+    {% block scripts %}{% endblock %}
 </body>

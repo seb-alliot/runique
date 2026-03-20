@@ -68,3 +68,25 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
 
     Ok(Value::String(result))
 }
+
+// Exemples d'utilisation dans les templates :
+//
+// Route simple :
+//   {% link "index" %}
+//   → /
+//
+// Paramètre de route :
+//   {% link "article_detail" id=article.id %}
+//   → /articles/42
+//
+// Sans query :
+//   {% link "article_list" %}
+//   → /articles
+//
+// Avec query (objet) :
+//   {% link "article_list" query={page: 2, search: "rust"} %}
+//   → /articles?page=2&search=rust
+//
+// Avec query (string brute) :
+//   {% link "article_list" query="page=2&search=rust" %}
+//   → /articles?page=2&search=rust

@@ -8,6 +8,14 @@ mod m20260320_122444_create_changelog_entry_table;
 mod m20260320_122444_create_known_issue_table;
 mod m20260320_122444_create_roadmap_entry_table;
 mod m20260320_130926_alter_roadmap_entry_table;
+mod m20260320_143527_create_code_example_table;
+mod m20260320_143527_create_demo_category_table;
+mod m20260320_143527_create_demo_page_table;
+mod m20260320_143527_create_demo_section_table;
+mod m20260320_143527_create_form_field_table;
+mod m20260320_143527_create_page_doc_link_table;
+mod m20260320_151115_alter_demo_category_table;
+mod m20260320_163000_alter_form_field_table;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -26,6 +34,14 @@ impl MigratorTrait for Migrator {
             Box::new(m20260320_122444_create_roadmap_entry_table::Migration),
             Box::new(m20260320_122444_create_changelog_entry_table::Migration),
             Box::new(m20260320_130926_alter_roadmap_entry_table::Migration),
+            Box::new(m20260320_143527_create_demo_page_table::Migration),
+            Box::new(m20260320_143527_create_demo_section_table::Migration),
+            Box::new(m20260320_143527_create_demo_category_table::Migration),
+            Box::new(m20260320_143527_create_code_example_table::Migration),
+            Box::new(m20260320_143527_create_form_field_table::Migration),
+            Box::new(m20260320_143527_create_page_doc_link_table::Migration),
+            Box::new(m20260320_151115_alter_demo_category_table::Migration),
+            Box::new(m20260320_163000_alter_form_field_table::Migration),
         ]
     }
 }
