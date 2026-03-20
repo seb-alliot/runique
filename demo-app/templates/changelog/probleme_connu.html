@@ -4,46 +4,21 @@
 <div class="container">
     <h1>{{ title }}</h1>
 
-    <h2 id="probleme-connu">Description des problèmes connus</h2>
-
+    {% for group in groups %}
     <div class="roadmap-section">
-        <h2 class="roadmap-heading roadmap-active">v1.1.50 — 2026-03-20</h2>
+        <h2 class="roadmap-heading roadmap-active">v{{ group.version }}</h2>
         <div class="roadmap-grid">
-
+            {% for entry in group.entries %}
             <div class="roadmap-card">
-                <h3>Upload de fichiers</h3>
+                <h3>{{ entry.title }}</h3>
                 <p>
-                    <strong>Fix :</strong> Les validations d’upload (taille, dimensions, etc.) ne sont pas encore appliquées.<br>
-                    Les fichiers sont envoyés avant vérification, ce qui peut entraîner des uploads inutiles et des erreurs côté client.
+                    <strong>{{ entry.issue_type | capitalize }} :</strong> {{ entry.description }}
                 </p>
             </div>
-
-            <div class="roadmap-card">
-                <h3>DX</h3>
-                <p>
-                    <strong>Manquant :</strong> Cargo watch non présent.<br>
-                    Le rechargement des templates du dev est actif seulement si <code>DEBUG=true</code>.
-                </p>
-            </div>
-
-            <div class="roadmap-card">
-                <h3>Tracing des erreurs en mode DEBUG</h3>
-                <p>
-                    <strong>Manquant :</strong> Le tracing est complet.<br>
-                    Aucun paramétrage individuel possible actuellement.
-                </p>
-            </div>
-
-            <div class="roadmap-card">
-                <h3>Session</h3>
-                <p>
-                    <strong>Manquant :</strong> Invalidation automatique des sessions.<br>
-                    Déconnexion d’un utilisateur déjà connecté sur un autre appareil.
-                </p>
-            </div>
-
+            {% endfor %}
         </div>
     </div>
+    {% endfor %}
 
     <div class="back-link">
         <a href="https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md" target="_blank" class="btn btn-secondary">CHANGELOG complet</a>

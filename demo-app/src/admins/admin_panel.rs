@@ -4,6 +4,9 @@
 use runique::prelude::*;
 
 use crate::entities::blog;
+use crate::entities::changelog_entry;
+use crate::entities::known_issue;
+use crate::entities::roadmap_entry;
 use crate::entities::users;
 
 // ── DynForm wrapper pour users::AdminForm ──
@@ -33,6 +36,72 @@ struct BlogAdminFormDynWrapper(pub blog::AdminForm);
 
 #[async_trait]
 impl DynForm for BlogAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper pour changelog_entry::AdminForm ──
+struct ChangelogEntryAdminFormDynWrapper(pub changelog_entry::AdminForm);
+
+#[async_trait]
+impl DynForm for ChangelogEntryAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper pour roadmap_entry::AdminForm ──
+struct RoadmapEntryAdminFormDynWrapper(pub roadmap_entry::AdminForm);
+
+#[async_trait]
+impl DynForm for RoadmapEntryAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper pour known_issue::AdminForm ──
+struct KnownIssueAdminFormDynWrapper(pub known_issue::AdminForm);
+
+#[async_trait]
+impl DynForm for KnownIssueAdminFormDynWrapper {
     async fn is_valid(&mut self) -> bool {
         self.0.is_valid().await
     }
@@ -197,6 +266,257 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             blog::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_count_fn(count_fn),
+    );
+
+    // ── Ressource : changelog_entry ──
+    let meta = AdminResource::new(
+        "changelog_entry",
+        "crate::entities::changelog_entry::Model",
+        "AdminForm",
+        "Changelog",
+        vec!["admin".to_string()],
+    );
+    let form_builder: FormBuilder =
+        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+            Box::pin(async move {
+                let form =
+                    changelog_entry::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(ChangelogEntryAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        });
+
+    let list_fn: ListFn = Arc::new(|db: ADb| {
+        Box::pin(async move {
+            let rows = changelog_entry::Entity::find().all(&*db).await?;
+            Ok(rows
+                .into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect())
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb| {
+        Box::pin(async move { changelog_entry::Entity::find().count(&*db).await })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let row = changelog_entry::Entity::find_by_id(id).one(&*db).await?;
+            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            changelog_entry::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            changelog_entry::admin_from_form(&data, None)
+                .insert(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            changelog_entry::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_count_fn(count_fn),
+    );
+
+    // ── Ressource : roadmap_entry ──
+    let meta = AdminResource::new(
+        "roadmap_entry",
+        "crate::entities::roadmap_entry::Model",
+        "AdminForm",
+        "Roadmap",
+        vec!["admin".to_string()],
+    );
+    let form_builder: FormBuilder =
+        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+            Box::pin(async move {
+                let form =
+                    roadmap_entry::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(RoadmapEntryAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        });
+
+    let list_fn: ListFn = Arc::new(|db: ADb| {
+        Box::pin(async move {
+            let rows = roadmap_entry::Entity::find().all(&*db).await?;
+            Ok(rows
+                .into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect())
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb| {
+        Box::pin(async move { roadmap_entry::Entity::find().count(&*db).await })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let row = roadmap_entry::Entity::find_by_id(id).one(&*db).await?;
+            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            roadmap_entry::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            roadmap_entry::admin_from_form(&data, None)
+                .insert(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            roadmap_entry::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_count_fn(count_fn),
+    );
+
+    // ── Ressource : known_issue ──
+    let meta = AdminResource::new(
+        "known_issue",
+        "crate::entities::known_issue::Model",
+        "AdminForm",
+        "Problèmes connus",
+        vec!["admin".to_string()],
+    );
+    let form_builder: FormBuilder =
+        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+            Box::pin(async move {
+                let form =
+                    known_issue::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(KnownIssueAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        });
+
+    let list_fn: ListFn = Arc::new(|db: ADb| {
+        Box::pin(async move {
+            let rows = known_issue::Entity::find().all(&*db).await?;
+            Ok(rows
+                .into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect())
+        })
+    });
+
+    let count_fn: CountFn =
+        Arc::new(|db: ADb| Box::pin(async move { known_issue::Entity::find().count(&*db).await }));
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let row = known_issue::Entity::find_by_id(id).one(&*db).await?;
+            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            known_issue::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            known_issue::admin_from_form(&data, None)
+                .insert(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            known_issue::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
                 .map(|_| ())

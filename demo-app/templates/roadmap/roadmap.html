@@ -3,88 +3,60 @@
 {% block content %}
 <div class="container">
     <h1>{{ title }}</h1>
-    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+    <p class="lead roadmap-intro">
         Runique est en développement actif — voici les grandes directions à venir.
     </p>
 
+    {% if active %}
     <div class="roadmap-section">
         <h2 class="roadmap-heading roadmap-active">🔧 En cours</h2>
         <div class="roadmap-grid">
+            {% for entry in active %}
             <div class="roadmap-card">
-                <h3>Vue Admin</h3>
-                <p>Pagination, tri par colonne, recherche, <code>list_display</code> configurable par ressource.</p>
+                <h3>{{ entry.title }}</h3>
+                <p>{{ entry.description }}</p>
+                {% if entry.link_url %}
+                <a href="{{ entry.link_url }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ entry.link_label | default(value="Voir") }}</a>
+                {% endif %}
             </div>
-            <div class="roadmap-card">
-                <h3>CSRF secure-by-default</h3>
-                <p>Application du contrat <code>POST → Prisme → handler</code> pour toutes les mutations.</p>
-            </div>
-            <div class="roadmap-card">
-                <h3>Couverture de tests</h3>
-                <p>Objectif ~85 % minimum — actuellement à ~82 %.</p>
-                <a href="https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md" target="_blank" class="btn btn-sm btn-outline-primary">Voir la couverture actuelle</a>
-            </div>
-            <div class="roadmap-card">
-                <h3>Bug(s) et correctif(s) </h3>
-                <p>Detection et correction des bugs.</p>
-                <p>Si vous avez rencontré un comportement inattendu, n'hésitez pas à ouvrir une issue ou à contribuer une PR !</p>
-                <p>Voir les problèmes connus <br><a href="{% link 'problemes_connus' %}">Problèmes connus</a><br>
-                et les corrections récentes sur<br>
-                <a href="{% link 'changelog' %}">Changelog</a>.</p>
-            </div>
+            {% endfor %}
         </div>
     </div>
+    {% endif %}
 
+    {% if planned %}
     <div class="roadmap-section">
         <h2 class="roadmap-heading roadmap-planned">📋 Prévu</h2>
         <div class="roadmap-grid">
+            {% for entry in planned %}
             <div class="roadmap-card">
-                <h3>request.path_param / query_param</h3>
-                <p>Accès aux paramètres directement depuis <code>request</code>, sans déclarer d'extractors Axum en paramètre de vue.</p>
+                <h3>{{ entry.title }}</h3>
+                <p>{{ entry.description }}</p>
+                {% if entry.link_url %}
+                <a href="{{ entry.link_url }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ entry.link_label | default(value="Voir") }}</a>
+                {% endif %}
             </div>
-            <div class="roadmap-card">
-                <h3>Tracing sécurité</h3>
-                <p>Événements structurés sur CSRF rejeté, login échoué, rate limit dépassé, host bloqué.</p>
-            </div>
-            <div class="roadmap-card">
-                <h3>Configuration pool DB</h3>
-                <p>Taille du pool, timeout, max connexions — configurables depuis <code>.env</code>.</p>
-            </div>
-            <div class="roadmap-card">
-                <h3>Permissions runtime admin</h3>
-                <p>Vérification des rôles par ressource à chaque requête admin.</p>
-            </div>
-            <div class="roadmap-card">
-                <h3>Validation au boot</h3>
-                <p>Refus du démarrage en production si la configuration est incohérente ou incomplète.</p>
-            </div>
+            {% endfor %}
         </div>
     </div>
+    {% endif %}
 
+    {% if future %}
     <div class="roadmap-section">
         <h2 class="roadmap-heading roadmap-future">🔭 Futur</h2>
         <div class="roadmap-grid">
+            {% for entry in future %}
             <div class="roadmap-card">
-                <h3>axum-server — TLS natif</h3>
-                <p>Remplacement de Nginx par <code>axum-server</code> — TLS intégré, binaire autonome en production sans dépendance externe.</p>
+                <h3>{{ entry.title }}</h3>
+                <p>{{ entry.description }}</p>
+                {% if entry.link_url %}
+                <a href="{{ entry.link_url }}" target="_blank" class="btn btn-sm btn-outline-primary">{{ entry.link_label | default(value="Voir") }}</a>
+                {% endif %}
             </div>
-            <div class="roadmap-card">
-                <h3>Email natif</h3>
-                <p>Envoi d'emails via <code>lettre</code>, templates email, backend SMTP configurable.</p>
-            </div>
-            <div class="roadmap-card">
-                <h3>Flux auth complet</h3>
-                <p>Activation de compte par email, reset de mot de passe.</p>
-            </div>
-            <div class="roadmap-card">
-                <h3>Bulk actions admin</h3>
-                <p>Suppression en lot, actions custom déclarées par ressource.</p>
-            </div>
-            <div class="roadmap-card">
-                <h3>Historique admin</h3>
-                <p>Log des actions CRUD par utilisateur — qui a modifié quoi et quand.</p>
-            </div>
+            {% endfor %}
         </div>
     </div>
+    {% endif %}
 
     <div class="back-link">
         <a href="https://github.com/seb-alliot/runique/blob/main/ROADMAP.md" target="_blank" class="btn btn-secondary">Roadmap complète</a>

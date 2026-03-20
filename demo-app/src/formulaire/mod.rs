@@ -1,3 +1,12 @@
+pub mod changelog_entry;
+pub use changelog_entry::ChangelogEntryForm;
+
+pub mod known_issue;
+pub use known_issue::KnownIssueForm;
+
+pub mod roadmap_entry;
+pub use roadmap_entry::RoadmapEntryForm;
+
 pub mod user;
 pub use user::RegisterForm;
 

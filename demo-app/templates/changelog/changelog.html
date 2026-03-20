@@ -3,66 +3,23 @@
 {% block content %}
 <div class="container">
     <h1>{{ title }}</h1>
-    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+    <p class="lead roadmap-intro">
         Historique des corrections et améliorations apportées au framework et à cette application de démonstration.
     </p>
 
+    {% for group in groups %}
     <div class="roadmap-section">
-        <h2 class="roadmap-heading roadmap-active">v1.1.50 — 2026-03-20</h2>
+        <h2 class="roadmap-heading roadmap-active">v{{ group.version }} — {{ group.release_date }}</h2>
         <div class="roadmap-grid">
-
+            {% for entry in group.entries %}
             <div class="roadmap-card">
-                <h3>- Fix — <code>FileField</code><br>validation des restrictions</h3>
-                <p>
-                    <strong>Fix :</strong> les fichiers invalides (mauvaise extension, taille dépassée, format image incorrect) sont maintenant supprimés du disque automatiquement si la validation échoue.<br>
-                    <strong>Fix :</strong> les soumissions sans fichier sélectionné (<code>filename=""</code>) ne créent plus de fichier vide orphelin sur le disque — la contrainte <code>required</code> fonctionne correctement.<br>
-                    <strong>Fix :</strong> <code>upload_to("chemin")</code> applique maintenant le chemin exact. <code>upload_to_env()</code> utilise <code>{MEDIA_ROOT}/{nom_du_champ}/</code>. Le déplacement se fait dans <code>finalize()</code> uniquement si la validation passe.
-                </p>
+                <h3>{{ entry.category }} — {{ entry.title }}</h3>
+                <p>{{ entry.description }}</p>
             </div>
-
-            <div class="roadmap-card">
-                <h3>- Feature — <code>derive_form</code><br>option <code>file()</code></h3>
-                <p>
-                    Les modèles peuvent maintenant déclarer un champ fichier directement dans le DSL :<br>
-                    <code>image: String [file(image, "media/uploads")]</code><br>
-                    <code>derive_form</code> génère automatiquement le <code>FileField</code> correspondant avec le bon type et le chemin d'upload. Types disponibles : <code>image</code>, <code>document</code>, <code>any</code>.
-                </p>
-            </div>
-
-            <div class="roadmap-card">
-                <h3>- Roadmap — refactorisation<br>système de champs en <code>widget</code></h3>
-                <p>
-                    L'option <code>file()</code> est une solution pragmatique. La direction long terme est une refactorisation du système de champs de formulaire en widget (à la Django) : chaque champ du modèle pourra déclarer son type de rendu indépendamment de son type SQL, sans cas particuliers dans le générateur.
-                </p>
-            </div>
-
+            {% endfor %}
         </div>
     </div>
-
-    <div class="roadmap-section">
-        <h2 class="roadmap-heading roadmap-active">v1.1.50 — 2026-03-20</h2>
-        <div class="roadmap-grid">
-        
-            <div class="roadmap-card">
-                <h3>- Bug — <code><br><span>is_valid()</span></code><br> -> bloquait tous les formulaires</h3>
-                <p>
-                    <strong>Fix :</strong> suppression de <code>set_expected_value()</code> dans <code>Forms::new()</code><br>
-                    Le CSRF est déjà validé en amont dans <code>Prisme</code> — la
-                    double validation était inutile et bloquante sur la validation des formulaires.<br>
-                    Ce qui invalidait les formulaires même quand les données étaient correctes.
-                </p>
-            </div>
-
-            <div class="roadmap-card">
-                <h3>- Fix — <code><br><span>makemigrations</span></code><br> -><code> ordre FK</code> et <code>updated_at</code></h3>
-                <p>
-                    Les nouvelles tables sont triées topologiquement avant génération — les tables référencées par FK sont enregistrées en premier dans <code>lib.rs</code>.<br>
-                    La colonne <code>updated_at</code> génère <code>ON UPDATE CURRENT_TIMESTAMP</code> (MySQL) ou un trigger (PostgreSQL) selon <code>DB_URL</code> / <code>DB_ENGINE</code>.<br>
-                    Le diff détecte les colonnes qui ont gagné ou perdu <code>DEFAULT CURRENT_TIMESTAMP</code> et génère un ALTER automatiquement.
-                </p>
-            </div>
-        </div>
-    </div>
+    {% endfor %}
 
     <div class="back-link">
         <a href="https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md" target="_blank" class="btn btn-secondary">CHANGELOG complet</a>
