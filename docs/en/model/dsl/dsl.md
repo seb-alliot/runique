@@ -70,6 +70,48 @@ The DSL is converted into an internal `Model` AST structure, including:
 - `max_len(n)`, `min_len(n)`, `max(n)`, `min(n)`, `max_f(n)`, `min_f(n)`
 - `auto_now`, `auto_now_update`
 - `label(...)`, `help(...)`, `select_as(...)`
+- `file(kind)`, `file(kind, "upload/path")` — file field (see below)
+
+### File fields — `file()`
+
+A `String` field can be declared as a file field using the `file()` option. The auto-generated form (`AdminForm`) will then use a `FileField` instead of a `TextField`.
+
+```rust
+model! {
+    Article,
+    table: "articles",
+    pk: id => i32,
+    fields: {
+        title: String [required],
+
+        // image — explicit directory
+        image: String [file(image, "media/articles")],
+
+        // document — auto directory from MEDIA_ROOT + field name
+        file: String [file(document)],
+
+        // any file type
+        attachment: String [file(any, "media/uploads")],
+    },
+}
+```
+
+**Available kinds:**
+
+| Value | Default allowed extensions | Maps to |
+| --- | --- | --- |
+| `image` | `jpg jpeg png gif webp avif` | `FileField::image()` |
+| `document` | `pdf doc docx txt odt` | `FileField::document()` |
+| `any` | no filter | `FileField::any()` |
+
+**Upload path:**
+
+| Syntax | Destination |
+| --- | --- |
+| `file(image, "media/articles")` | `media/articles/` (exact path) |
+| `file(image)` | `{MEDIA_ROOT}/{field_name}/` (reads `MEDIA_ROOT` from `.env`) |
+
+> Invalid files are deleted from disk if validation fails. The destination directory is created automatically on the first valid upload.
 
 ### Relations
 

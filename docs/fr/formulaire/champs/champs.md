@@ -241,25 +241,38 @@ form.field(
 ## FileField — Upload de fichiers
 
 ```rust
-use runique::config::StaticConfig;
-
-let config = StaticConfig::from_env();
-
-// Image avec contraintes complètes
+// Image avec contraintes complètes — dossier explicite
 form.field(
     &FileField::image("avatar")
         .label("Photo de profil")
-        .upload_to(&config)
+        .upload_to("uploads/avatars")   // → uploads/avatars/
         .max_size_mb(5)
         .max_files(1)
         .max_dimensions(1920, 1080)
-        .allowed_extensions(vec!["png", "jpg", "jpeg", "webp"]),
+        .allowed_extensions(vec!["png", "jpg", "jpeg", "webp", "avif"]),
+);
+
+// Image — dossier automatique depuis MEDIA_ROOT (.env)
+// Les fichiers vont dans {MEDIA_ROOT}/{nom_du_champ}/  ex: media/photo/
+form.field(
+    &FileField::image("photo")
+        .label("Photo")
+        .upload_to_env()
+        .max_size_mb(5),
+);
+
+// Sans upload_to — fichiers stockés directement dans MEDIA_ROOT
+form.field(
+    &FileField::image("image")
+        .label("Image")
+        .max_size_mb(5),
 );
 
 // Document
 form.field(
     &FileField::document("cv")
         .label("CV")
+        .upload_to("uploads/cv")
         .max_size_mb(10),
 );
 
@@ -271,7 +284,17 @@ form.field(
 );
 ```
 
-> **Sécurité** : les fichiers `.svg` sont **toujours refusés** par défaut (risque XSS). La validation d'image utilise le crate `image` pour vérifier le format réel du fichier.
+**Destination des fichiers :**
+
+| Méthode | Destination |
+| --- | --- |
+| `.upload_to("uploads/images")` | `uploads/images/` (chemin exact) |
+| `.upload_to_env()` | `{MEDIA_ROOT}/{nom_du_champ}/` (depuis `.env`) |
+| *(aucune)* | `MEDIA_ROOT` directement (pas de sous-dossier) |
+
+Le déplacement vers la destination finale s'effectue dans `finalize()`, **uniquement si la validation passe**. Le dossier est créé automatiquement s'il n'existe pas encore.
+
+> **Sécurité** : les fichiers `.svg` sont **toujours refusés** par défaut (risque XSS). La validation d'image utilise le crate `image` pour vérifier le format réel du fichier. Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.
 
 ### Fichiers JS associés
 

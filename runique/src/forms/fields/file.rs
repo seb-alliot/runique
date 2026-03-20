@@ -35,6 +35,13 @@ use std::path::Path;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
+/// Supprime les fichiers uploadés du disque (nettoyage en cas d'échec de validation)
+fn cleanup_files(files: &[String]) {
+    for path in files {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
 /// Vérifie si le fichier est une image valide
 fn is_valid_path(path: &str) -> bool {
     let p = Path::new(path);
@@ -80,7 +87,7 @@ impl AllowedExtensions {
     }
 
     pub fn images() -> Self {
-        Self::new(vec!["jpg", "jpeg", "png", "gif", "webp"])
+        Self::new(vec!["jpg", "jpeg", "png", "gif", "webp", "avif"])
     }
 
     pub fn documents() -> Self {
@@ -148,8 +155,8 @@ impl FileUploadConfig {
         Self::default()
     }
 
-    pub fn upload_to(mut self, media_root: String) -> Self {
-        let f = Arc::new(move |field_name: &str| format!("{}/{}", media_root, field_name));
+    pub fn upload_to(mut self, path: String) -> Self {
+        let f = Arc::new(move |_field_name: &str| path.clone());
         self.upload_to = Some(f);
         self
     }
@@ -225,7 +232,8 @@ impl FileField {
 
     pub fn upload_to_env(mut self) -> Self {
         let media_root = std::env::var("MEDIA_ROOT").unwrap_or_else(|_| "media".to_string());
-        self.upload_config = self.upload_config.upload_to(media_root);
+        let f = Arc::new(move |field_name: &str| format!("{}/{}", media_root, field_name));
+        self.upload_config.upload_to = Some(f);
         self
     }
 
@@ -282,11 +290,16 @@ impl FormField for FileField {
             return true;
         }
 
-        let files = parse_file_list(val);
+        let files: Vec<String> = parse_file_list(val)
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect();
 
         // 2. Validation du nombre de fichiers
         if let Some(max) = self.max_files {
             if files.len() > max {
+                cleanup_files(&files);
+                self.base.value.clear();
                 self.set_error(tf("forms.file_max_count", &[&max]));
                 return false;
             }
@@ -296,9 +309,11 @@ impl FormField for FileField {
         for filename in &files {
             if !self.allowed_extensions.is_allowed(filename) {
                 let exts = self.allowed_extensions.extensions.join(", ");
+                cleanup_files(&files);
+                self.base.value.clear();
                 self.set_error(tf(
                     "forms.file_extension_blocked",
-                    &[*filename, exts.as_str()],
+                    &[filename.as_str(), exts.as_str()],
                 ));
                 return false;
             }
@@ -308,9 +323,11 @@ impl FormField for FileField {
                     if size_mb > max_mb as f64 {
                         let size_str = format!("{:.1}", size_mb);
                         let max_mb_str = max_mb.to_string();
+                        cleanup_files(&files);
+                        self.base.value.clear();
                         self.set_error(tf(
                             "forms.file_too_large",
-                            &[*filename, size_str.as_str(), max_mb_str.as_str()],
+                            &[filename.as_str(), size_str.as_str(), max_mb_str.as_str()],
                         ));
                         return false;
                     }
@@ -322,7 +339,9 @@ impl FormField for FileField {
         if let FileFieldType::Image = self.field_type {
             for filename in &files {
                 if !is_valid_path(filename) {
-                    self.set_error(tf("forms.file_invalid_image", &[*filename]));
+                    cleanup_files(&files);
+                    self.base.value.clear();
+                    self.set_error(tf("forms.file_invalid_image", &[filename.as_str()]));
                     return false;
                 }
 
@@ -333,9 +352,11 @@ impl FormField for FileField {
                             if let Some(max_w) = self.max_width {
                                 if w > max_w {
                                     let (w_s, mw_s) = (w.to_string(), max_w.to_string());
+                                    cleanup_files(&files);
+                                    self.base.value.clear();
                                     self.set_error(tf(
                                         "forms.image_too_wide",
-                                        &[*filename, w_s.as_str(), mw_s.as_str()],
+                                        &[filename.as_str(), w_s.as_str(), mw_s.as_str()],
                                     ));
                                     return false;
                                 }
@@ -343,9 +364,11 @@ impl FormField for FileField {
                             if let Some(max_h) = self.max_height {
                                 if h > max_h {
                                     let (h_s, mh_s) = (h.to_string(), max_h.to_string());
+                                    cleanup_files(&files);
+                                    self.base.value.clear();
                                     self.set_error(tf(
                                         "forms.image_too_tall",
-                                        &[*filename, h_s.as_str(), mh_s.as_str()],
+                                        &[filename.as_str(), h_s.as_str(), mh_s.as_str()],
                                     ));
                                     return false;
                                 }
@@ -358,6 +381,62 @@ impl FormField for FileField {
 
         self.clear_error();
         true
+    }
+
+    fn finalize(&mut self) -> Result<(), String> {
+        let upload_fn = match &self.upload_config.upload_to {
+            Some(f) => f.clone(),
+            None => return Ok(()),
+        };
+
+        let val = self.base.value.trim().to_string();
+        if val.is_empty() {
+            return Ok(());
+        }
+
+        let dest_dir = upload_fn(&self.base.name);
+        let dest_dir_path = Path::new(&dest_dir);
+
+        let files: Vec<String> = val
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        let mut new_paths = Vec::new();
+
+        for file_path in &files {
+            let src = Path::new(file_path.as_str());
+
+            // Already in the right directory — nothing to move
+            if src.parent() == Some(dest_dir_path) {
+                new_paths.push(file_path.clone());
+                continue;
+            }
+
+            // Not a freshly uploaded file (e.g. stored DB value pointing elsewhere)
+            if !src.exists() {
+                new_paths.push(file_path.clone());
+                continue;
+            }
+
+            std::fs::create_dir_all(dest_dir_path)
+                .map_err(|e| format!("upload dir '{}': {}", dest_dir, e))?;
+
+            let filename = src
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(file_path.as_str());
+            let dest = dest_dir_path.join(filename);
+
+            std::fs::rename(src, &dest)
+                .map_err(|e| format!("move '{}': {}", dest.display(), e))?;
+
+            new_paths.push(dest.to_string_lossy().to_string());
+        }
+
+        self.base.value = new_paths.join(",");
+        Ok(())
     }
 
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {

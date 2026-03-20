@@ -29,52 +29,47 @@
 
         <div class="demo-code">
             <div class="demo-code-title">formulaire/image.rs</div>
-            <pre><code><span class="kw">pub struct</span> <span class="ty">ImageForm</span> {
+            <pre><code><span class="attr">#[derive(Serialize)]</span>
+<span class="kw">pub struct</span> <span class="ty">ImageForm</span> {
+    <span class="attr">#[serde(flatten)]</span>
     <span class="kw">pub</span> form: <span class="ty">Forms</span>,
 }
 
 <span class="kw">impl</span> <span class="ty">RuniqueForm</span> <span class="kw">for</span> <span class="ty">ImageForm</span> {
+    <span class="mc">impl_form_access!</span>();
     <span class="kw">fn</span> <span class="fn_">register_fields</span>(form: &amp;<span class="kw">mut</span> <span class="ty">Forms</span>) {
-        <span class="cm">// Le chemin d'upload vient de .env via StaticConfig</span>
         form.<span class="fn_">field</span>(
             &amp;<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"image"</span>)
-                .<span class="fn_">label</span>(<span class="st">"Choisissez une image"</span>)
-                .<span class="fn_">upload_to</span>() -> dossier media
-                -> <span class="cm">upload_to_env() lit MEDIA_ROOT depuis .env</span>
-                -> <span class="cm">sinon via MEDIA_URL= -> .env</span>
-                -> <span class="cm">aucun verification d'existance de media verifier actuellement</span>
+                .<span class="fn_">label</span>(<span class="st">"Choisissez une image à uploader"</span>)
+                .<span class="fn_">upload_to</span>(<span class="st">"media/uploads/images"</span>) <span class="cm">// path personnalisé</span>
+                <span class="cm">// ou .upload_to_env() → lit MEDIA_ROOT depuis .env</span>
                 .<span class="fn_">required</span>()
                 .<span class="fn_">max_size_mb</span>(<span class="nb">5</span>)
                 .<span class="fn_">max_files</span>(<span class="nb">3</span>)
                 .<span class="fn_">max_dimensions</span>(<span class="nb">1920</span>, <span class="nb">1080</span>)
-                .<span class="fn_">allowed_extensions</span>(
-                    <span class="mc">vec!</span>[<span class="st">"png"</span>, <span class="st">"jpg"</span>, <span class="st">"jpeg"</span>, <span class="st">"gif"</span>]
-                ),
+                .<span class="fn_">allowed_extensions</span>(<span class="mc">vec!</span>[<span class="st">"png"</span>, <span class="st">"jpg"</span>, <span class="st">"jpeg"</span>, <span class="st">"gif"</span>]),
         );
     }
-    <span class="mc">impl_form_access!</span>();
 }</code></pre>
 
-            <div class="demo-code-title">3 façons de configurer le chemin</div>
-            <pre><code><span class="cm">// 1 — chemin direct (le plus simple)</span>
+            <div class="demo-code-title">configurer le chemin d'upload</div>
+            <pre><code><span class="cm">// chemin direct — fichiers dans media/uploads/images/</span>
 <span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"avatar"</span>)
-    .<span class="fn_">upload_to</span>(<span class="st">"media/avatars"</span>)
+    .<span class="fn_">upload_to</span>(<span class="st">"media/uploads/images"</span>)
 
-<span class="cm">// 2 — lit MEDIA_ROOT depuis .env</span>
-<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"img"</span>)
+<span class="cm">// depuis .env — fichiers dans {MEDIA_ROOT}/{nom_du_champ}/</span>
+<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"photo"</span>)
     .<span class="fn_">upload_to_env</span>()
 
-<span class="cm">// 3 — depuis une StaticConfig existante</span>
-<span class="kw">let</span> config = <span class="ty">StaticConfig</span>::<span class="fn_">from_env</span>();
-<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"img"</span>)
-    .<span class="fn_">upload_to</span>(&amp;config)</code></pre>
+<span class="cm">// sans upload_to — fichiers dans MEDIA_ROOT directement</span>
+<span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"image"</span>)</code></pre>
 
             <div class="demo-code-title">extensions disponibles</div>
             <pre><code><span class="ty">FileField</span>::<span class="fn_">image</span>(<span class="st">"img"</span>)    <span class="cm">// jpg jpeg png gif webp avif</span>
-<span class="ty">FileField</span>::<span class="fn_">document</span>(<span class="st">"doc"</span>) <span class="cm">// pdf doc docx odt</span>
+<span class="ty">FileField</span>::<span class="fn_">document</span>(<span class="st">"doc"</span>) <span class="cm">// pdf doc docx txt odt</span>
 <span class="ty">FileField</span>::<span class="fn_">any</span>(<span class="st">"f"</span>)       <span class="cm">// pas de filtre</span>
 
-<span class="cm">// ou extensions personnalisées :</span>
+<span class="cm">// extensions personnalisées :</span>
 <span class="ty">FileField</span>::<span class="fn_">any</span>(<span class="st">"data"</span>)
     .<span class="fn_">allowed_extensions</span>(<span class="mc">vec!</span>[<span class="st">"csv"</span>, <span class="st">"json"</span>])</code></pre>
         </div>

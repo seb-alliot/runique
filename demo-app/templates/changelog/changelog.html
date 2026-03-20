@@ -8,6 +8,38 @@
     </p>
 
     <div class="roadmap-section">
+        <h2 class="roadmap-heading roadmap-active">v1.1.50 — 2026-03-20</h2>
+        <div class="roadmap-grid">
+
+            <div class="roadmap-card">
+                <h3>- Fix — <code>FileField</code><br>validation des restrictions</h3>
+                <p>
+                    <strong>Fix :</strong> les fichiers invalides (mauvaise extension, taille dépassée, format image incorrect) sont maintenant supprimés du disque automatiquement si la validation échoue.<br>
+                    <strong>Fix :</strong> les soumissions sans fichier sélectionné (<code>filename=""</code>) ne créent plus de fichier vide orphelin sur le disque — la contrainte <code>required</code> fonctionne correctement.<br>
+                    <strong>Fix :</strong> <code>upload_to("chemin")</code> applique maintenant le chemin exact. <code>upload_to_env()</code> utilise <code>{MEDIA_ROOT}/{nom_du_champ}/</code>. Le déplacement se fait dans <code>finalize()</code> uniquement si la validation passe.
+                </p>
+            </div>
+
+            <div class="roadmap-card">
+                <h3>- Feature — <code>derive_form</code><br>option <code>file()</code></h3>
+                <p>
+                    Les modèles peuvent maintenant déclarer un champ fichier directement dans le DSL :<br>
+                    <code>image: String [file(image, "media/uploads")]</code><br>
+                    <code>derive_form</code> génère automatiquement le <code>FileField</code> correspondant avec le bon type et le chemin d'upload. Types disponibles : <code>image</code>, <code>document</code>, <code>any</code>.
+                </p>
+            </div>
+
+            <div class="roadmap-card">
+                <h3>- Roadmap — refactorisation<br>système de champs en <code>widget</code></h3>
+                <p>
+                    L'option <code>file()</code> est une solution pragmatique. La direction long terme est une refactorisation du système de champs de formulaire en widget (à la Django) : chaque champ du modèle pourra déclarer son type de rendu indépendamment de son type SQL, sans cas particuliers dans le générateur.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="roadmap-section">
         <h2 class="roadmap-heading roadmap-active">v1.1.49 — 2026-03-19</h2>
         <div class="roadmap-grid">
         

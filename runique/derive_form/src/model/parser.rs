@@ -287,6 +287,28 @@ impl Parse for FieldOption {
                 let fk = FkDef::parse(&content)?;
                 Ok(FieldOption::Fk(fk))
             }
+            "file" => {
+                let content;
+                syn::parenthesized!(content in input);
+                let kind_ident: Ident = content.parse()?;
+                let kind = match kind_ident.to_string().as_str() {
+                    "image" => crate::model::ast::FileKind::Image,
+                    "document" => crate::model::ast::FileKind::Document,
+                    "any" => crate::model::ast::FileKind::Any,
+                    other => return Err(syn::Error::new(
+                        kind_ident.span(),
+                        format!("Type de fichier inconnu : '{}'. Attendu : image, document, any", other),
+                    )),
+                };
+                let upload_to = if content.peek(Token![,]) {
+                    content.parse::<Token![,]>()?;
+                    let s: LitStr = content.parse()?;
+                    Some(s.value())
+                } else {
+                    None
+                };
+                Ok(FieldOption::File { kind, upload_to })
+            }
             other => Err(syn::Error::new(
                 option_ident.span(),
                 format!("Option inconnue : '{}'", other),
