@@ -11,6 +11,8 @@ keywords = ["Itsuki", "framework", "runique", "web"]
 categories = ["web-programming"]
 readme = "README.md"
 
+[workspace]
+
 [lib]
 proc-macro = true
 
