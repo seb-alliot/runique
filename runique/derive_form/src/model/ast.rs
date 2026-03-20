@@ -80,6 +80,13 @@ pub enum FieldOption {
     #[allow(dead_code)]
     Help(String),
     Fk(FkDef),
+    File { kind: FileKind, upload_to: Option<String> },
+}
+
+pub enum FileKind {
+    Image,
+    Document,
+    Any,
 }
 
 pub struct FkDef {

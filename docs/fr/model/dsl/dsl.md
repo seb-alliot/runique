@@ -70,6 +70,48 @@ La DSL est convertie en AST `Model` avec notamment :
 - `max_len(n)`, `min_len(n)`, `max(n)`, `min(n)`, `max_f(n)`, `min_f(n)`
 - `auto_now`, `auto_now_update`
 - `label(...)`, `help(...)`, `select_as(...)`
+- `file(kind)`, `file(kind, "chemin/upload")` — champ fichier (voir ci-dessous)
+
+### Champs fichier — `file()`
+
+Un champ `String` peut être déclaré comme champ fichier avec l'option `file()`. Le formulaire auto-généré (`AdminForm`) utilisera alors un `FileField` au lieu d'un `TextField`.
+
+```rust
+model! {
+    Article,
+    table: "articles",
+    pk: id => i32,
+    fields: {
+        titre: String [required],
+
+        // image — dossier explicite
+        image: String [file(image, "media/articles")],
+
+        // document — dossier auto depuis MEDIA_ROOT + nom du champ
+        fichier: String [file(document)],
+
+        // tout type de fichier
+        piece_jointe: String [file(any, "media/uploads")],
+    },
+}
+```
+
+**Types disponibles :**
+
+| Valeur | Extensions autorisées par défaut | Correspondance |
+| --- | --- | --- |
+| `image` | `jpg jpeg png gif webp avif` | `FileField::image()` |
+| `document` | `pdf doc docx txt odt` | `FileField::document()` |
+| `any` | aucun filtre | `FileField::any()` |
+
+**Chemin d'upload :**
+
+| Syntaxe | Destination |
+| --- | --- |
+| `file(image, "media/articles")` | `media/articles/` (chemin exact) |
+| `file(image)` | `{MEDIA_ROOT}/{nom_du_champ}/` (lit `MEDIA_ROOT` depuis `.env`) |
+
+> Les fichiers invalides sont supprimés du disque si la validation échoue. Le dossier de destination est créé automatiquement lors du premier upload valide.
 
 ### Relations
 

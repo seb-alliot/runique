@@ -239,25 +239,38 @@ form.field(
 ## FileField — File uploads
 
 ```rust
-use runique::config::StaticConfig;
-
-let config = StaticConfig::from_env();
-
-// Image with full constraints
+// Image with full constraints — explicit directory
 form.field(
     &FileField::image("avatar")
         .label("Profile picture")
-        .upload_to(&config)
+        .upload_to("uploads/avatars")   // → uploads/avatars/
         .max_size_mb(5)
         .max_files(1)
         .max_dimensions(1920, 1080)
-        .allowed_extensions(vec!["png", "jpg", "jpeg", "webp"]),
+        .allowed_extensions(vec!["png", "jpg", "jpeg", "webp", "avif"]),
+);
+
+// Image — automatic directory from MEDIA_ROOT (.env)
+// Files go to {MEDIA_ROOT}/{field_name}/  e.g. media/photo/
+form.field(
+    &FileField::image("photo")
+        .label("Photo")
+        .upload_to_env()
+        .max_size_mb(5),
+);
+
+// Without upload_to — files stored directly in MEDIA_ROOT
+form.field(
+    &FileField::image("image")
+        .label("Image")
+        .max_size_mb(5),
 );
 
 // Document
 form.field(
     &FileField::document("cv")
         .label("Resume")
+        .upload_to("uploads/cv")
         .max_size_mb(10),
 );
 
@@ -269,7 +282,17 @@ form.field(
 );
 ```
 
-> **Security**: `.svg` files are **always rejected** by default (XSS risk). Image validation uses the `image` crate to check the real file format.
+**File destination:**
+
+| Method | Destination |
+| --- | --- |
+| `.upload_to("uploads/images")` | `uploads/images/` (exact path) |
+| `.upload_to_env()` | `{MEDIA_ROOT}/{field_name}/` (from `.env`) |
+| *(none)* | `MEDIA_ROOT` directly (no subdirectory) |
+
+The move to the final destination happens in `finalize()`, **only if validation passes**. The directory is created automatically if it does not already exist.
+
+> **Security**: `.svg` files are **always rejected** by default (XSS risk). Image validation uses the `image` crate to check the real file format. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.
 
 ### Associated JS files
 

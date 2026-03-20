@@ -31,6 +31,12 @@ pub async fn parse_multipart(
 
         // --- File case ---
         if let Some(filename) = field.file_name().map(|s| s.to_string()) {
+            // No file selected (browser sends filename="" with empty body) — drain and skip
+            if filename.is_empty() {
+                while field.next().await.is_some() {}
+                continue;
+            }
+
             let safe = sanitize_filename(&filename);
             let path = upload_dir.join(&safe);
 

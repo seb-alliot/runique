@@ -1,4 +1,4 @@
-use crate::model::ast::*;
+use crate::model::ast::{self, *};
 use crate::model::utils::*;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -338,6 +338,25 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
             quote! {}
         };
 
+        // Champ fichier — priorité sur l'inférence par type
+        if let Some(file_opt) = field.options.iter().find_map(|o| {
+            if let FieldOption::File { kind, upload_to } = o { Some((kind, upload_to)) } else { None }
+        }) {
+            let (kind, upload_to) = file_opt;
+            let file_constructor = match kind {
+                FileKind::Image    => quote! { ::runique::forms::fields::FileField::image(#fname_str) },
+                FileKind::Document => quote! { ::runique::forms::fields::FileField::document(#fname_str) },
+                FileKind::Any      => quote! { ::runique::forms::fields::FileField::any(#fname_str) },
+            };
+            let upload_suffix = match upload_to {
+                Some(path) => quote! { .upload_to(#path) },
+                None       => quote! {},
+            };
+            return Some(quote! {
+                form.field(&#file_constructor.label(#label) #upload_suffix #required_suffix);
+            });
+        }
+
         let registration = match &field.ty {
             FieldType::Bool => quote! {
                 form.field(&::runique::forms::fields::BooleanField::new(#fname_str).label(#label) #required_suffix);
@@ -432,6 +451,7 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::SelectAs(s) => quote! { .select_as(#s) },
         FieldOption::Default(lit) => quote! { .default(sea_query::Value::from(#lit)) },
         FieldOption::Label(_) | FieldOption::Help(_) => quote! {},
+        FieldOption::File { .. } => quote! {},
         FieldOption::Fk(fk) => {
             let table = fk.table.to_string();
             let column = fk.column.to_string();
