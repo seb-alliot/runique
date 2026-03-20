@@ -68,6 +68,8 @@ is_valid()              → pipeline de validation
     ↓  finalize()                   (hash Argon2, transformations finales)
         ↓
 save() / database_error()    → persistance ou gestion d'erreur DB
+        ↓
+clear()                 → [optionnel] vide le formulaire après traitement
 ```
 
 **Référence des méthodes :**
@@ -87,6 +89,8 @@ save() / database_error()    → persistance ou gestion d'erreur DB
 **`is_submitted()`** — Retourne `true` si le formulaire a reçu des données (POST, ou GET avec query params non vides).
 
 **`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ.
+
+**`clear()`** — Vide toutes les valeurs des champs (hors CSRF) et remet `submitted` à `false`. À appeler après avoir lu les données nettoyées, avant un redirect ou un re-rendu vide.
 
 **`build(tera, csrf_token)`** — Construit un formulaire vide.
 
@@ -197,8 +201,60 @@ impl RuniqueForm for RegisterForm {
 }
 ```
 
-> **⚠️ Important** : Après `is_valid()`, les champs `Password` sont **automatiquement hachés**.
+> **⚠️ Important** : Les champs `Password` sont **hachés automatiquement** lors de `finalize()` par défaut (Argon2), sauf si `password_init` est appelé dans `main.rs` avec `PasswordConfig::Manual`, `Delegated` ou `Custom`.
 > Utilisez `clean()` pour toute comparaison de mots de passe en clair — c'est la seule étape où ils sont encore lisibles.
+
+---
+
+## `clear()` — vider le formulaire après traitement
+
+`clear()` vide toutes les valeurs des champs (hors token CSRF) et remet `submitted` à `false`.
+
+Accessible partout où `self` est `&mut Self` — dans un handler ou dans une méthode du formulaire lui-même.
+
+### Depuis un handler
+
+```rust
+if form.is_valid().await {
+    let path = form.cleaned_string("image"); // 1. lire avant clear
+    // sauvegarder en DB...
+    form.clear();                            // 2. vider
+    success!(request.notices => "Fichier uploadé !");
+    context_update!(request => { "image_form" => &form });
+    return request.render(template);         // 3. re-rendre avec formulaire vide
+}
+```
+
+### Depuis le formulaire lui-même (`save(&mut self)`)
+
+Passer `save` en `&mut self` permet d'encapsuler le clear directement — le handler n'a rien à faire :
+
+```rust
+impl BlogForm {
+    pub async fn save(
+        &mut self,
+        db: &DatabaseConnection,
+    ) -> Result<blog::Model, DbErr> {
+        let record = blog::ActiveModel {
+            title: Set(self.form.get_string("title")),
+            // ...
+            ..Default::default()
+        };
+        let result = record.insert(db).await;
+        if result.is_ok() {
+            self.clear(); // vide automatiquement après succès
+        }
+        result
+    }
+}
+```
+
+### Où `clear()` ne peut pas être appelé
+
+- Dans une méthode `&self` (lecture seule) — ne compile pas
+- Dans `clean()` ou `clean_field()` — s'exécutent **pendant** `is_valid()`, avant que les données soient lues par `save()` ; appeler `clear()` ici viderait le formulaire avant la sauvegarde
+
+> **💡 Avec redirect (PRG)** : si le handler redirige après succès (`Redirect::to(...)`), `clear()` n'est pas nécessaire — la nouvelle requête GET crée automatiquement une instance fraîche et vide.
 
 ---
 

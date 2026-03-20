@@ -57,7 +57,7 @@ impl RuniqueForm for BlogForm {
 #[allow(dead_code)]
 impl BlogForm {
     pub async fn save(
-        &self,
+        &mut self,
         db: &DatabaseConnection,
     ) -> Result<crate::entities::blog::Model, DbErr> {
         let new_blog = crate::entities::blog::ActiveModel {
@@ -68,6 +68,10 @@ impl BlogForm {
             content: Set(self.form.get_string("content")),
             ..Default::default()
         };
-        new_blog.insert(db).await
+        let new_blog = new_blog.insert(db).await;
+        if new_blog.is_ok() {
+            self.clear();
+        }
+        new_blog
     }
 }

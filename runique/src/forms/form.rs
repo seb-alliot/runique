@@ -225,6 +225,17 @@ impl Forms {
         }
     }
 
+    /// Vide toutes les valeurs de champ (hors CSRF).
+    /// À appeler après avoir lu les données nettoyées, avant un redirect.
+    pub fn clear_values(&mut self) {
+        for (name, field) in self.fields.iter_mut() {
+            if name != CSRF_TOKEN_KEY {
+                field.set_value("");
+            }
+        }
+        self.submitted = false;
+    }
+
     pub fn finalize(&mut self) -> Result<(), String> {
         for (name, field) in self.fields.iter_mut() {
             if let Err(e) = field.finalize() {

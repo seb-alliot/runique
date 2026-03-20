@@ -56,6 +56,22 @@ form.<span class="fn_">get_option_bool</span>(<span class="st">"news"</span>) <s
 form.<span class="fn_">get_option_uuid</span>(<span class="st">"id"</span>)   <span class="cm">// -> Option&lt;Uuid&gt;</span></code></pre>
         </div>
 
+        <!-- clear() — vider après traitement -->
+        <div class="demo-code">
+            <div class="demo-code-title">clear() — vider le formulaire après traitement</div>
+            <pre><code><span class="cm">// Re-rendre le formulaire vide après succès (sans redirect)</span>
+<span class="kw">if</span> form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
+    <span class="kw">let</span> path = form.<span class="fn_">cleaned_string</span>(<span class="st">"image"</span>); <span class="cm">// 1. lire avant clear</span>
+    <span class="cm">// sauvegarder...</span>
+    form.<span class="fn_">clear</span>();                               <span class="cm">// 2. vider</span>
+    <span class="mc">context_update!</span>(request => { <span class="st">"upload_form"</span> => &form });
+    <span class="kw">return</span> request.<span class="fn_">render</span>(template);            <span class="cm">// 3. form vide affiché</span>
+}
+
+<span class="cm">// Avec redirect (PRG) : clear() inutile</span>
+<span class="cm">// la nouvelle requête GET crée une instance fraîche automatiquement</span></code></pre>
+        </div>
+
         <!-- Helpers date / heure -->
         <div class="demo-code">
             <div class="demo-code-title">Helpers date / heure</div>
