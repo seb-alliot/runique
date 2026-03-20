@@ -72,6 +72,40 @@ impl RuniqueForm for RegisterForm {
 - `fields`/`exclude` mal alignés avec le schéma => erreurs de génération/exécution
 - `#[async_trait]` requis sur `impl RuniqueForm` uniquement quand on override `clean` ou `clean_field`
 
+### Limitation connue — surcharge de champ non prise en charge
+
+> **La surcharge individuelle d'un champ auto-généré par `#[form(...)]` ou `model!` n'est pas encore prise en charge.**
+
+Il n'est pas possible aujourd'hui de personnaliser un seul champ (ex: ajouter `.max_size_mb(5)` ou changer le label) sans réécrire l'intégralité de `register_fields` à la main, ce qui annule le bénéfice de la macro.
+
+**Contournement actuel :** écrire un formulaire manuel complet et déclarer les champs explicitement.
+
+```rust
+// ❌ Pas encore possible
+#[form(schema = article_schema)]
+pub struct ArticleForm;
+
+impl RuniqueForm for ArticleForm {
+    impl_form_access!(model);
+    // surcharger juste le champ image → impossible sans tout réécrire
+}
+
+// ✅ Contournement : formulaire manuel
+impl RuniqueForm for ArticleForm {
+    impl_form_access!();
+    fn register_fields(form: &mut Forms) {
+        form.field(&TextField::text("titre").label("Titre").required());
+        form.field(
+            &FileField::image("image")
+                .upload_to("media/articles")
+                .max_size_mb(5),
+        );
+    }
+}
+```
+
+Cette limitation sera levée en **v2.0** avec la refactorisation du système de champs en widgets, qui permettra de déclarer et surcharger n'importe quel champ directement depuis le modèle.
+
 ---
 
 ## Voir aussi
