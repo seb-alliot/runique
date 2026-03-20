@@ -17,6 +17,8 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("description")).string().not_null())
                     .col(ColumnDef::new(Alias::new("link_url")).string().null())
                     .col(ColumnDef::new(Alias::new("link_label")).string().null())
+                    .col(ColumnDef::new(Alias::new("link_url_2")).string().null())
+                    .col(ColumnDef::new(Alias::new("link_label_2")).string().null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned(),
             )

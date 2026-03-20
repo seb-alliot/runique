@@ -10,6 +10,8 @@ model! {
         description: String [required],
         link_url: String [nullable],
         link_label: String [nullable],
+        link_url_2: String [nullable],
+        link_label_2: String [nullable],
         sort_order: i32 [required],
     }
 }
