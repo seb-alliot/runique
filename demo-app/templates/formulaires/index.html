@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
     <h1>{{ title }}</h1>
-    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+    <p class="lead">
         Système de formulaires Runique — déclaration, validation, rendu.
     </p>
 
@@ -18,12 +18,31 @@
         </a>
         <a href="{% link 'formulaires_templates' %}" class="feature-card">
             <h3>Rendu dans les templates</h3>
-            <p><code>{% raw %}{% form.mon_form %}{% endraw %}</code> vs <code>{% raw %}{% form.nom_form.champ %}{% endraw %}</code></p>
+            <p><code>{% raw %}{%{% endraw %} form.mon_form {% raw %}%}{% endraw %}</code> vs <code>{% raw %}{%{% endraw %} form.nom_form.champ {% raw %}%}{% endraw %}</code></p>
         </a>
         <a href="{% link 'formulaires_helpers' %}" class="feature-card">
             <h3>Helpers & accès URL</h3>
             <p>Conversions typées, <code>path_param()</code>, <code>from_url()</code> et <code>cleaned()</code> whitelisté</p>
         </a>
+    </div>
+
+    <div class="roadmap-section">
+        <h2 class="roadmap-heading">v2.0 — Système de widgets (prévu)</h2>
+        <p class="roadmap-intro">
+            La v2.0 introduira un système de widgets inspiré de Django : chaque champ du modèle pourra
+            déclarer son type de rendu indépendamment de son type SQL, et les champs auto-générés
+            pourront être surchargés individuellement sans réécrire l'intégralité du formulaire.
+        </p>
+        <div class="demo-cards">
+            <div class="feature-card feature-card--disabled">
+                <h3>Déclaration via le modèle</h3>
+                <p><code>image: String [widget(image, "media/articles")]</code><br>Le widget est déclaré une fois dans le modèle, le formulaire l'hérite automatiquement.</p>
+            </div>
+            <div class="feature-card feature-card--disabled">
+                <h3>Surcharge individuelle</h3>
+                <p>Personnaliser un seul champ auto-généré sans réécrire tous les autres — comme <code>ModelForm</code> en Django.</p>
+            </div>
+        </div>
     </div>
 
     <div class="back-link">

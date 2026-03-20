@@ -233,8 +233,16 @@ footer p {
     ROADMAP
    ========================= */
 .roadmap-section {
+    margin-top: 2rem;
     margin-bottom: 2.5rem;
     width: 100%;
+}
+
+.roadmap-intro {
+    text-align: center;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    margin-bottom: 2%;
 }
 
 .roadmap-heading {
@@ -376,6 +384,16 @@ footer p {
     font-size: 0.82rem;
     margin: 0;
     text-align: center;
+}
+
+.feature-card--disabled {
+    cursor: default;
+    opacity: 0.75;
+}
+
+.feature-card--disabled:hover {
+    border-color: var(--border);
+    transform: none;
 }
 
 .feature-card-admin {

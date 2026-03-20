@@ -261,16 +261,21 @@ pub async fn upload_image_submit(
         return request.render(template);
     }
 
-    if request.is_post() && form.is_valid().await {
-        success!(request.notices => "Fichier uploadé avec succès !");
-        return Ok(Redirect::to("/").into_response());
+    if request.is_post() {
+        if form.is_valid().await {
+            success!(request.notices => "Fichier uploadé avec succès !");
+        } else {
+            let errors = form.get_form().errors();
+            let msg = if errors.is_empty() {
+                "Erreur de validation".to_string()
+            } else {
+                errors.values().cloned().collect::<Vec<_>>().join(" | ")
+            };
+            error!(request.notices => &msg);
+        }
+        return Ok(Redirect::to("/upload-image").into_response());
     }
 
-    context_update!(request => {
-        "title" => "Erreur de validation",
-        "image_form" => &form,
-        "messages" => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
-    });
     request.render(template)
 }
 

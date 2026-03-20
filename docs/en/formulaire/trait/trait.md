@@ -68,6 +68,8 @@ is_valid()                   → validation pipeline
     ↓  finalize()            (Argon2 hashing, final transforms)
         ↓
 save() / database_error()    → persistence or DB error handling
+        ↓
+clear()                      → [optional] empty the form after processing
 ```
 
 **Method reference:**
@@ -87,6 +89,8 @@ save() / database_error()    → persistence or DB error handling
 **`is_submitted()`** — Returns `true` if the form received data (POST, or GET with non-empty query params).
 
 **`database_error(&err)`** — Parses a DB error and attaches it to the correct field.
+
+**`clear()`** — Clears all field values (except CSRF) and resets `submitted` to `false`. Call it after reading cleaned data, before a redirect or empty re-render.
 
 **`build(tera, csrf_token)`** — Build an empty form.
 
@@ -197,8 +201,60 @@ impl RuniqueForm for RegisterForm {
 }
 ```
 
-> **⚠️ Important**: After `is_valid()`, `Password` fields are **automatically hashed**.
+> **⚠️ Important**: `Password` fields are **automatically hashed** during `finalize()` by default (Argon2), unless `password_init` is called in `main.rs` with `PasswordConfig::Manual`, `Delegated`, or `Custom`.
 > Use `clean()` for any password comparison — it is the only step where they are still readable.
+
+---
+
+## `clear()` — empty the form after processing
+
+`clear()` resets all field values (except the CSRF token) and sets `submitted` back to `false`.
+
+Available anywhere `self` is `&mut Self` — from a handler or from a method on the form itself.
+
+### From a handler
+
+```rust
+if form.is_valid().await {
+    let path = form.cleaned_string("image"); // 1. read before clear
+    // save to DB...
+    form.clear();                            // 2. empty
+    success!(request.notices => "File uploaded!");
+    context_update!(request => { "image_form" => &form });
+    return request.render(template);         // 3. re-render with empty form
+}
+```
+
+### From the form itself (`save(&mut self)`)
+
+Declaring `save` with `&mut self` lets you encapsulate the clear inside — the handler does nothing extra:
+
+```rust
+impl BlogForm {
+    pub async fn save(
+        &mut self,
+        db: &DatabaseConnection,
+    ) -> Result<blog::Model, DbErr> {
+        let record = blog::ActiveModel {
+            title: Set(self.form.get_string("title")),
+            // ...
+            ..Default::default()
+        };
+        let result = record.insert(db).await;
+        if result.is_ok() {
+            self.clear(); // automatically empty after success
+        }
+        result
+    }
+}
+```
+
+### Where `clear()` cannot be called
+
+- In a `&self` method (immutable) — does not compile
+- In `clean()` or `clean_field()` — these run **during** `is_valid()`, before `save()` reads the data; calling `clear()` here would wipe the form before it is saved
+
+> **💡 With redirect (PRG)**: if the handler redirects after success (`Redirect::to(...)`), `clear()` is not needed — the new GET request automatically creates a fresh empty instance.
 
 ---
 

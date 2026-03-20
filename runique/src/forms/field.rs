@@ -95,6 +95,11 @@ pub trait RuniqueForm: Sized + Send + Sync {
         self.get_form().get_option(name)
     }
 
+    /// Vide toutes les valeurs du formulaire (hors CSRF).
+    fn clear(&mut self) {
+        self.get_form_mut().clear_values();
+    }
+
     // Business validation hook for individual fields
     async fn clean_field(&mut self, name: &str) -> bool {
         self.get_form().fields.contains_key(name)
