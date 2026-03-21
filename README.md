@@ -12,7 +12,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 > Current state: active development. The framework source of truth is the `runique` crate.
 > `demo-app` is used as a validation/testing application for framework behavior.
 
-🌍 **Languages**: [English](/readme/en) | [Français](/readme/fr)
+🌍 **Languages**: English | [Français](https://runique-production.up.railway.app/readme/fr)
 
 ---
 
@@ -49,7 +49,7 @@ cargo build --workspace
 cargo test --workspace
 ```
 
-Detailed guide: [Installation](/docs/en/installation)
+Detailed guide: [Installation](https://runique-production.up.railway.app/docs/en/installation)
 
 ---
 
@@ -93,8 +93,6 @@ Admin daemon behavior in `start`:
 - starts the admin watcher when enabled
 - otherwise exits with an explicit hint
 
----
-
 Admin resources are declared in `src/admin.rs` using `admin!`.
 
 The workflow:
@@ -109,7 +107,7 @@ Current beta limits:
 - generated folder overwrite (`src/admins/`)
 - iterative hardening still in progress
 
-Admin docs: [Admin](/docs/en/admin)
+Admin docs: [Admin](https://runique-production.up.railway.app/docs/en/admin)
 
 ---
 
@@ -137,8 +135,6 @@ Selectable backends:
   - Lines: **71.04%**
   - Regions: **67.22%**
 
-Coverage command used:
-
 ```bash
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
 ```
@@ -147,14 +143,14 @@ cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summa
 
 ## Sessions
 
-`CleaningMemoryStore` replaces the default `MemoryStore` with automatic expired-session cleanup, a two-tier watermark system (128 MB / 256 MB), and priority-based protection for authenticated and high-value anonymous sessions.
+`CleaningMemoryStore` replaces the default `MemoryStore` with automatic expired-session cleanup, a two-tier watermark system (128 MB / 256 MB), and priority-based protection for authenticated sessions.
 
 - Low watermark: background purge of expired anonymous sessions
 - High watermark: synchronous emergency purge + 503 refusal if still exceeded
 - `protect_session(&session, duration_secs)` — marks an anonymous session as untouchable until a given timestamp
 - `user_id` key — automatically protects authenticated sessions
 
-Full reference: [Sessions](/docs/en/session)
+Full reference: [Sessions](https://runique-production.up.railway.app/docs/en/session)
 
 ---
 
@@ -170,35 +166,35 @@ SECRET_KEY=your-secret-key
 DATABASE_URL=sqlite://db.sqlite3
 ```
 
-Full reference: [Environment variables](/docs/en/env)
+Full reference: [Environment variables](https://runique-production.up.railway.app/docs/en/env)
 
 ---
 
-## Documentation map
+## Documentation
 
-- [Installation](/docs/en/installation)
-- [Architecture](/docs/en/architecture)
-- [Configuration](/docs/en/configuration)
-- [Routing](/docs/en/routing)
-- [Forms](/docs/en/formulaire)
-- [Model/Schema](/docs/en/model)
-- [Templates](/docs/en/template)
-- [ORM](/docs/en/orm)
-- [Middlewares](/docs/en/middleware)
-- [Flash Messages](/docs/en/flash)
-- [Examples](/docs/en/exemple)
-- [Admin beta](/docs/en/admin)
-- [Sessions](/docs/en/session)
-- [Environment variables](/docs/en/env)
+- [Installation](https://runique-production.up.railway.app/docs/en/installation)
+- [Architecture](https://runique-production.up.railway.app/docs/en/architecture)
+- [Configuration](https://runique-production.up.railway.app/docs/en/configuration)
+- [Routing](https://runique-production.up.railway.app/docs/en/routing)
+- [Forms](https://runique-production.up.railway.app/docs/en/formulaire)
+- [Model/Schema](https://runique-production.up.railway.app/docs/en/model)
+- [Templates](https://runique-production.up.railway.app/docs/en/template)
+- [ORM](https://runique-production.up.railway.app/docs/en/orm)
+- [Middlewares](https://runique-production.up.railway.app/docs/en/middleware)
+- [Flash Messages](https://runique-production.up.railway.app/docs/en/flash)
+- [Examples](https://runique-production.up.railway.app/docs/en/exemple)
+- [Admin beta](https://runique-production.up.railway.app/docs/en/admin)
+- [Sessions](https://runique-production.up.railway.app/docs/en/session)
+- [Environment variables](https://runique-production.up.railway.app/docs/en/env)
 
 ---
 
 ## Resources
 
-- [Changelog](/changelog)
-- [Runique vs Django — Feature Comparison](/docs/en/comparatif)
-- [GitHub](https://github.com/seb-alliot/runique)
+- [Changelog](https://runique-production.up.railway.app/changelog)
+- [Runique vs Django — Feature Comparison](https://runique-production.up.railway.app/docs/en/comparatif)
 - [Crates.io](https://crates.io/crates/runique)
+- [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 
 ---
 
