@@ -43,9 +43,9 @@ pub fn schema() -> runique::migration::schema::ModelSchema {
 
 | Section | Description |
 | --- | --- |
-| [DSL & AST](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/dsl/dsl.md) | Syntaxe `model!`, types, options |
-| [Formulaires & enjeux](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/formulaires/formulaires.md) | `#[form(...)]` |
+| [DSL & AST](/docs/fr/model/dsl) | Syntaxe `model!`, types, options |
+| [Formulaires & enjeux](/docs/fr/model/formulaires) | `#[form(...)]` |
 
 ## Retour au sommaire
 
-- [Models](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md)
+- [Models](/docs/fr/model)

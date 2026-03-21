@@ -21,8 +21,6 @@
 | ------ | ----------- |
 | `static` | App static URL prefix |
 | `media` | App media URL prefix |
-| `runique_static` | Internal framework static assets |
-| `runique_media` | Internal framework media assets |
 | `form` | Render full form or specific field |
 | `csrf_field` | Generate a hidden CSRF input |
 
@@ -42,11 +40,11 @@
 
 | Section | Description |
 | --- | --- |
-| [Key concepts](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/concepts/concepts.md) | `RuniqueEngine`, `Request`, `Prisme<T>` |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/macros/macros.md) | Context, flash, routing, error macros |
-| [Middleware stack](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/middleware/middleware.md) | Slot order, dependency injection |
-| [Request lifecycle](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/lifecycle/lifecycle.md) | Lifecycle, best practices |
+| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Macros](/docs/en/architecture/macros) | Context, flash, routing, error macros |
+| [Middleware stack](/docs/en/architecture/middleware) | Slot order, dependency injection |
+| [Request lifecycle](/docs/en/architecture/lifecycle) | Lifecycle, best practices |
 
 ## Back to summary
 
-- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
+- [Architecture](/docs/en/architecture)

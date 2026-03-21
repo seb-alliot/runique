@@ -1,6 +1,6 @@
 # Types de champs
 
-[← Helpers de conversion](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md)
+[← Helpers de conversion](/docs/fr/formulaire/helpers)
 
 ---
 
@@ -75,7 +75,7 @@ if !ok {
 
 > Le hachage automatique dans `finalize()` détecte si la valeur commence déjà par `$argon2` pour éviter un double hachage. Dans un formulaire de **connexion**, n'utilisez pas `is_valid()` pour vérifier le mot de passe — récupérez d'abord l'utilisateur en DB, puis appelez `verify()` manuellement.
 >
-> Voir → [Configuration des mots de passe](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/password/password.md) pour tous les modes (`Auto`, `Manual`, `Delegated`, `Custom`) et la configuration dans `main.rs`.
+> Voir → [Configuration des mots de passe](/docs/fr/configuration/password) pour tous les modes (`Auto`, `Manual`, `Delegated`, `Custom`) et la configuration dans `main.rs`.
 
 ---
 
@@ -419,4 +419,4 @@ form.field(&HiddenField::new_csrf());
 
 ---
 
-← [**Helpers de conversion**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md) | [**Erreurs de base de données**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/erreurs/erreurs.md) →
+← [**Helpers de conversion**](/docs/fr/formulaire/helpers) | [**Erreurs de base de données**](/docs/fr/formulaire/erreurs) →

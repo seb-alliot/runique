@@ -171,9 +171,9 @@ DATABASE_URL=sqlite::memory:
 
 | Section | Description |
 | --- | --- |
-| [Accessing config in code](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/code/code.md) | `RuniqueConfig`, validation |
-| [Builder](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/builder/builder.md) | Programmatic configuration |
+| [Accessing config in code](/docs/en/configuration/code) | `RuniqueConfig`, validation |
+| [Builder](/docs/en/configuration/builder) | Programmatic configuration |
 
 ## Back to summary
 
-- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)
+- [Configuration](/docs/en/configuration)

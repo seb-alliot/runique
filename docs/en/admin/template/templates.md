@@ -45,19 +45,19 @@ Written directly in `admin_template.html` — **cannot be removed** by overridin
 
 | Section | Description |
 | --- | --- |
-| [Context keys](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/clef/context.md) | Variables injected by the backend into each template |
-| [Override](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/surcharge.md) | Replace the layout or a CRUD component |
-| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/csrf/csrf.md) | CSRF token, `csrf.js`, custom login checklist |
+| [Context keys](/docs/en/admin/template) | Variables injected by the backend into each template |
+| [Override](/docs/en/admin/template) | Replace the layout or a CRUD component |
+| [CSRF](/docs/en/admin/template) | CSRF token, `csrf.js`, custom login checklist |
 
 ## See also
 
 | Section | Description |
 | --- | --- |
-| [Setup](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/setup/setup.md) | Wire the admin into an existing project, create a superuser |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/cli.md) | `runique start` command, general workflow |
-| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/permission/permissions.md) | Roles, `is_staff` / `is_superuser`, runtime check |
-| [Roadmap](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/evolution/evolution.md) | Planned features and beta status |
+| [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
+| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
+| [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
+| [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |
 
 ## Back to menu
 
-- [Admin Summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
+- [Admin Summary](/docs/en/admin)

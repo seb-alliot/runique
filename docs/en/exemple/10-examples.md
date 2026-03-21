@@ -6,12 +6,12 @@ Concrete examples covering the most common Runique use cases.
 
 | Module | Description |
 | --- | --- |
-| [Minimal Application](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/minimal/minimal.md) | `main.rs`, `url.rs`, `views.rs`, base template |
-| [CRUD Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/forms/forms.md) | Registration, entity search, error handling |
-| [File Upload](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/upload/upload.md) | `FileField`, upload handler, multipart template |
-| [Other Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/others/others.md) | Flash messages, REST API, base template, pattern summary |
+| [Minimal Application](/docs/en/exemple/minimal) | `main.rs`, `url.rs`, `views.rs`, base template |
+| [CRUD Forms](/docs/en/exemple/forms) | Registration, entity search, error handling |
+| [File Upload](/docs/en/exemple/upload) | `FileField`, upload handler, multipart template |
+| [Other Examples](/docs/en/exemple/others) | Flash messages, REST API, base template, pattern summary |
 
 ## Back to the Index
 
-← [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md) | [**README**](https://github.com/seb-alliot/runique/blob/main/README.md) →
+← [**Flash Messages**](/docs/en/flash) | [**README**](https://github.com/seb-alliot/runique/blob/main/README.md) →
 

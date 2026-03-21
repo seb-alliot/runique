@@ -21,8 +21,6 @@
 | ------ | ----------- |
 | `static` | Préfixe URL statique de l'app |
 | `media` | Préfixe URL média de l'app |
-| `runique_static` | Assets statiques internes au framework |
-| `runique_media` | Médias internes au framework |
 | `form` | Rendu de formulaire complet ou par champ |
 | `csrf_field` | Génère un input hidden CSRF |
 
@@ -42,11 +40,11 @@
 
 | Section | Description |
 | --- | --- |
-| [Concepts clés](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/concepts/concepts.md) | `RuniqueEngine`, `Request`, `Prisme<T>` |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/macros/macros.md) | Macros de contexte, flash, routage, erreur |
-| [Stack middleware](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/middleware/middleware.md) | Ordre des slots, injection de dépendances |
-| [Lifecycle d'une requête](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/lifecycle/lifecycle.md) | Cycle de vie, bonnes pratiques |
+| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Macros](/docs/fr/architecture/macros) | Macros de contexte, flash, routage, erreur |
+| [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |
+| [Lifecycle d'une requête](/docs/fr/architecture/lifecycle) | Cycle de vie, bonnes pratiques |
 
 ## Retour au sommaire
 
-- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/02-architecture.md)
+- [Architecture](/docs/fr/architecture)

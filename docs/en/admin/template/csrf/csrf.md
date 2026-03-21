@@ -119,12 +119,12 @@ If the login template is customised (outside `admin_template.html`), the followi
 
 | Section | Description |
 | --- | --- |
-| [Context keys](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/clef/context.md) | Variables injected by the backend into each template |
-| [Override](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/surcharge.md) | Replace the layout or a CRUD component |
+| [Context keys](/docs/en/admin/template) | Variables injected by the backend into each template |
+| [Override](/docs/en/admin/template) | Replace the layout or a CRUD component |
 
 ## Back to summary
 
 | Section | Description |
 | --- | --- |
-| [Template summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/templates.md) | Admin templates |
-| [Admin summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md) | Admin |
+| [Template summary](/docs/en/admin/template) | Admin templates |
+| [Admin summary](/docs/en/admin) | Admin |

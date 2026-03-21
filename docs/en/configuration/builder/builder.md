@@ -87,7 +87,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-In `DEBUG=true` mode, `with_csp` and `with_host_validation` are **disabled by default**. In production, everything is enabled. The `RUNIQUE_ENABLE_*` variables in `.env` take priority over the defaults.
+Host validation is enabled exclusively via `with_allowed_hosts(vec![...])` in the builder — without this call, validation is disabled. No `.env` variable controls this behaviour.
 
 > **`is_debug()`** — global helper available via `use runique::prelude::*`. Returns `true` if `DEBUG=true` in `.env`. Read once at startup (`LazyLock`), available everywhere without passing a parameter.
 
@@ -147,9 +147,9 @@ let app = RuniqueApp::builder(config)
 
 | Section | Description |
 | --- | --- |
-| [Environment variables](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/variables/variables.md) | All `.env` variables |
-| [Accessing config in code](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/code/code.md) | `RuniqueConfig`, validation |
+| [Environment variables](/docs/en/configuration/variables) | All `.env` variables |
+| [Accessing config in code](/docs/en/configuration/code) | `RuniqueConfig`, validation |
 
 ## Back to summary
 
-- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)
+- [Configuration](/docs/en/configuration)

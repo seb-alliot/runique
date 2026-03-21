@@ -7,6 +7,51 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.1.52] - Unreleased
+
+### Fixed
+
+* **Boolean field — unchecked treated as absent:**
+  An unchecked boolean field is now treated as `false` instead of absent.
+  The `required` validator no longer requires the checkbox to be checked — it only checks that the field is present.
+
+* **Password — removed from admin edit view:**
+  The password field is no longer shown in the admin edit view.
+  Password changes will be handled through a dedicated reset form sent by email.
+
+### Added
+
+* **Session invalidation:**
+  Sessions can now be made unique via the middleware builder — disabled by default.
+  When enabled, only the most recent session for a user remains valid.
+
+* **Admin view — role-based access:**
+  Role-based access control for the admin view is now functional.
+  Documentation will cover the configuration in detail.
+
+* **`| markdown` Tera filter:**
+  A `markdown` filter is now built into the framework — powered by `pulldown-cmark`.
+  Usage: `{{ variable | markdown }}` in any template. The preprocessor automatically injects `| safe`, so no manual escaping is needed.
+
+* **DB-driven documentation system (demo-app):**
+  The documentation is now stored in PostgreSQL and served dynamically via the Runique app.
+  Content is structured as sections → pages → blocks (one block per `##` heading).
+  A seed function runs once on startup, importing all `.md` files from `docs/fr/` and `docs/en/`.
+  A `site_config` table stores dynamic values (current version, release date, URLs) injectable into templates.
+  The admin panel allows editing each block individually without touching any files.
+
+---
+
+## [1.1.51] - 2026-03-20
+
+### Fixed
+
+* **`derive_form` version mismatch:**
+  Publication order was inverted — `runique` 1.1.50 was released with `derive_form` 1.1.33 instead of the intended 1.1.34.
+  Re-published with the correct dependency.
+
+---
+
 ## [1.1.50] - 2026-03-20
 
 ### Fixed

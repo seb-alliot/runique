@@ -91,9 +91,9 @@ user.can_admin(&["editor"])       // → bool
 
 | Section | Description |
 | --- | --- |
-| [Modèle utilisateur](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/modele/modele.md) | Built-in, trait `RuniqueUser` |
-| [Helpers de session](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/session/session.md) | `login`, `logout`, vérifications |
+| [Modèle utilisateur](/docs/fr/auth/modele) | Built-in, trait `RuniqueUser` |
+| [Helpers de session](/docs/fr/auth/session) | `login`, `logout`, vérifications |
 
 ## Retour au sommaire
 
-- [Authentification](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md)
+- [Authentification](/docs/fr/auth)

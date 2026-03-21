@@ -94,7 +94,7 @@ authentifié ?
 
 ## Notes
 
-- `is_active` et `roles` sont prévus dans la roadmap — voir [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md).
+- `is_active` et `roles` sont prévus dans la roadmap — voir [Évolutions](/docs/fr/admin/evolution).
 - La macro `admin!` définit uniquement les règles déclaratives ; la logique d'application est dans les middlewares.
 - La granularité par opération CRUD (list/create/edit/delete) n'est pas supportée dans la version actuelle.
 
@@ -104,11 +104,11 @@ authentifié ?
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Commande `runique start`, workflow général |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md) | Axes d'évolution et état bêta |
+| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
+| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
+| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |
+| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
 
 ## Revenir au sommaire
 
-- [Sommaire Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)
+- [Sommaire Admin](/docs/fr/admin)

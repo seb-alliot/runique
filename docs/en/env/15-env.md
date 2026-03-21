@@ -8,9 +8,9 @@ All configuration keys available through `.env`. The listed values are the defau
 
 | Section | Content |
 | --- | --- |
-| [Application & Server](https://github.com/seb-alliot/runique/blob/main/docs/en/env/application/application.md) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB, Redirects |
-| [Assets & Media](https://github.com/seb-alliot/runique/blob/main/docs/en/env/assets/assets.md) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR and associated URLs |
-| [Security & Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/env/securite/securite.md) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
+| [Application & Server](/docs/en/env/application) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB, Redirects |
+| [Assets & Media](/docs/en/env/assets) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR and associated URLs |
+| [Security & Sessions](/docs/en/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 
 ---
 
@@ -24,4 +24,4 @@ All configuration keys available through `.env`. The listed values are the defau
 
 ## Next Steps
 
-← [**Sessions**](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md)
+← [**Sessions**](/docs/en/session)

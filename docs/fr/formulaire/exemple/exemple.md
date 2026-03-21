@@ -1,6 +1,6 @@
 # Exemple complet & pièges courants
 
-[← Rendu dans les templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/templates/templates.md)
+[← Rendu dans les templates](/docs/fr/formulaire/templates)
 
 ---
 
@@ -201,4 +201,4 @@ async fn clean(&mut self) -> Result<(), StrMap> {
 
 ---
 
-← [**Rendu dans les templates**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/templates/templates.md) | [**Formulaires**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md) →
+← [**Rendu dans les templates**](/docs/fr/formulaire/templates) | [**Formulaires**](/docs/fr/formulaire) →

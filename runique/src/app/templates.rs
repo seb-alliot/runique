@@ -96,6 +96,13 @@ impl TemplateLoader {
             })
             .to_string();
 
+        // Traitement Markdown ({{ var | markdown }} → {{ var | markdown | safe }})
+        content = MARKDOWN_REGEX
+            .replace_all(&content, |caps: &Captures| {
+                format!("{{{{ {} | markdown | safe }}}}", &caps[1])
+            })
+            .to_string();
+
         // Traitement Static/Media
         content = BALISE_LINK
             .replace_all(&content, |caps: &Captures| {

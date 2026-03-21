@@ -1,6 +1,6 @@
 # Configuration des mots de passe
 
-[← Builder](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/builder/builder.md)
+[← Builder](/docs/fr/configuration/builder)
 
 ---
 
@@ -114,8 +114,8 @@ Ces fonctions utilisent automatiquement la `PasswordConfig` initialisée au dém
 
 Les champs `TextField::password()` sont hachés automatiquement dans `finalize()` en mode `Auto`. En mode `Manual` ou `Delegated`, aucun hachage automatique n'a lieu.
 
-Voir → [Types de champs — TextField](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/champs/champs.md)
+Voir → [Types de champs — TextField](/docs/fr/formulaire/champs)
 
 ---
 
-← [**Builder**](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/builder/builder.md)
+← [**Builder**](/docs/fr/configuration/builder)

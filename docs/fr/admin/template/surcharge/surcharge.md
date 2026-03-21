@@ -138,13 +138,13 @@ Pour remplacer uniquement la page de liste des utilisateurs :
 
 | Section | Description |
 | --- | --- |
-| [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/exemples.md) | 3 approches : héritage Runique, layout custom, HTML autonome |
-| [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | variables injectées par le backend dans chaque template
-| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom |
+| [Exemples](/docs/fr/admin/template) | 3 approches : héritage Runique, layout custom, HTML autonome |
+| [Clés de contexte](/docs/fr/admin/template) | variables injectées par le backend dans chaque template
+| [CSRF](/docs/fr/admin/template) | token CSRF, `csrf.js`, checklist login custom |
 
 ## Revenir au sommaire
 
 | Section | Description |
 | --- | --- |
-| [Sommaire template](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Sommaire templates |
-| [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Sommaire admin |
+| [Sommaire template](/docs/fr/admin/template) | Sommaire templates |
+| [Sommaire](/docs/fr/admin) | Sommaire admin |

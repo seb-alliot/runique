@@ -1,0 +1,27 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/doc.css" %}'>
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+<div class="doc-index-container">
+    <h1>Documentation</h1>
+
+    <div class="doc-lang-switch">
+        <a href='{% link "doc_index_fr" %}' class="btn {% if lang == 'fr' %}btn-primary{% else %}btn-secondary{% endif %}">Français</a>
+        <a href='{% link "doc_index_en" %}' class="btn {% if lang == 'en' %}btn-primary{% else %}btn-secondary{% endif %}">English</a>
+    </div>
+
+    <div class="doc-sections-grid">
+        {% for section in sections %}
+        <a href="/docs/{{ lang }}/{{ section.slug }}" class="doc-section-card">
+            <h2>{{ section.title }}</h2>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

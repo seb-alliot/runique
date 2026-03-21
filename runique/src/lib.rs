@@ -46,6 +46,7 @@ pub use uuid;
 
 pub use derive_form::model;
 pub use dotenvy;
+pub use pulldown_cmark;
 
 // ---------------------------------------------------------------------------
 // Prelude simplifié

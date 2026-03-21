@@ -55,7 +55,7 @@ pub async fn dashboard(request: Request) -> AppResult<Response> {
 }
 ```
 
-> Pour le système de sessions complet avec watermarks, voir [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md).
+> Pour le système de sessions complet avec watermarks, voir [Sessions](/docs/fr/session).
 
 ---
 
@@ -63,9 +63,9 @@ pub async fn dashboard(request: Request) -> AppResult<Response> {
 
 | Section | Description |
 | --- | --- |
-| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csrf/csrf.md) | Protection CSRF |
-| [Builder](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/builder/builder.md) | Configuration du builder |
+| [CSRF](/docs/fr/middleware/csrf) | Protection CSRF |
+| [Builder](/docs/fr/middleware/builder) | Configuration du builder |
 
 ## Retour au sommaire
 
-- [Middleware & Sécurité](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md)
+- [Middleware & Sécurité](/docs/fr/middleware)

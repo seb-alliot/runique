@@ -95,6 +95,9 @@ async-trait.workspace = true
 # Validation
 validator.workspace = true
 
+# Documentation
+pulldown-cmark.workspace = true
+
 # CSRF
 hmac.workspace = true
 sha2.workspace = true

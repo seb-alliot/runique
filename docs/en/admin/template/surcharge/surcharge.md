@@ -137,13 +137,13 @@ To replace only the users list page:
 
 | Section | Description |
 | --- | --- |
-| [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/examples.md) | 3 approaches: Runique inheritance, custom layout, standalone HTML |
-| [Context keys](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/clef/context.md) | Variables injected by the backend into each template |
-| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/csrf/csrf.md) | CSRF token, `csrf.js`, custom login checklist |
+| [Examples](/docs/en/admin/template) | 3 approaches: Runique inheritance, custom layout, standalone HTML |
+| [Context keys](/docs/en/admin/template) | Variables injected by the backend into each template |
+| [CSRF](/docs/en/admin/template) | CSRF token, `csrf.js`, custom login checklist |
 
 ## Back to summary
 
 | Section | Description |
 | --- | --- |
-| [Template summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/templates.md) | Admin templates |
-| [Admin summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md) | Admin |
+| [Template summary](/docs/en/admin/template) | Admin templates |
+| [Admin summary](/docs/en/admin) | Admin |

@@ -1,6 +1,6 @@
 # Database errors
 
-[← Field types](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/fields/fields.md)
+[← Field types](/docs/en/formulaire/fields)
 
 ---
 
@@ -26,4 +26,4 @@ If the field is identified, the error appears on that field (e.g. "This email is
 
 ---
 
-← [**Field types**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/fields/fields.md) | [**Template rendering**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/templates/templates.md) →
+← [**Field types**](/docs/en/formulaire/fields) | [**Template rendering**](/docs/en/formulaire/templates) →

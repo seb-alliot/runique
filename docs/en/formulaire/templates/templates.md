@@ -1,6 +1,6 @@
 # Template rendering
 
-[← Database errors](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/errors/errors.md)
+[← Database errors](/docs/en/formulaire/errors)
 
 ---
 
@@ -56,4 +56,4 @@ Forms automatically serialize `errors`, `form_errors`, `html`, `rendered_fields`
 
 ---
 
-← [**Database errors**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/errors/errors.md) | [**Full example**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/example/example.md) →
+← [**Database errors**](/docs/en/formulaire/errors) | [**Full example**](/docs/en/formulaire/example) →

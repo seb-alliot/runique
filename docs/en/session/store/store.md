@@ -44,9 +44,9 @@ Protected sessions are never sacrificed in pass 1.
 
 | Section | Description |
 | --- | --- |
-| [Protection](https://github.com/seb-alliot/runique/blob/main/docs/en/session/protection/protection.md) | Session protection |
-| [Usage & configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/session/usage/usage.md) | Access and configuration |
+| [Protection](/docs/en/session/protection) | Session protection |
+| [Usage & configuration](/docs/en/session/usage) | Access and configuration |
 
 ## Back to summary
 
-- [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md)
+- [Sessions](/docs/en/session)

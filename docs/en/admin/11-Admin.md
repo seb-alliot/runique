@@ -19,13 +19,13 @@ admin! {
 
 | File | Contents |
 | --- | --- |
-| [Setup](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/setup/setup.md) | Wire the admin into an existing project, create a superuser |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/cli.md) | `runique start` command, general workflow |
-| [Daemon & generation](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/daemon/generation.md) | Generated files, watcher behaviour |
-| [Macro `admin!`](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/macro/macro.md) | Full syntax, required and optional fields |
-| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/permission/permissions.md) | Roles, `is_staff` / `is_superuser`, runtime check |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/templates.md) | Template hierarchy, blocks, visual override |
-| [Roadmap](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/evolution/evolution.md) | Planned features and beta status |
+| [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
+| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
+| [Daemon & generation](/docs/en/admin/declaration) | Generated files, watcher behaviour |
+| [Macro `admin!`](/docs/en/admin/declaration) | Full syntax, required and optional fields |
+| [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
+| [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
+| [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |
 
 ## Back to menu
 

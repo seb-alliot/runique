@@ -217,9 +217,9 @@ pub async fn info_user(
 
 | Section | Description |
 | --- | --- |
-| [Minimal application](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/minimal/minimal.md) | Simple starting point |
-| [Upload](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/upload/upload.md) | File upload |
+| [Minimal application](/docs/en/exemple/minimal) | Simple starting point |
+| [Upload](/docs/en/exemple/upload) | File upload |
 
 ## Back to summary
 
-- [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md)
+- [Examples](/docs/en/exemple)

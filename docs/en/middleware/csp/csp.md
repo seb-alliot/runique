@@ -8,10 +8,10 @@ Runique applies a CSP policy via the security middleware, configured exclusively
 
 | Section | Description |
 | --- | --- |
-| [CSP Profiles](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/profiles.md) | `default()`, `strict()`, `permissive()` — comparison and use cases |
-| [Directives](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/directives.md) | All configurable directives |
-| [CSP Nonce](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/nonce.md) | How the nonce works, template usage |
-| [Security Headers](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/headers.md) | All automatically injected headers |
+| [CSP Profiles](/docs/en/middleware/csp) | `default()`, `strict()`, `permissive()` — comparison and use cases |
+| [Directives](/docs/en/middleware/csp) | All configurable directives |
+| [CSP Nonce](/docs/en/middleware/csp) | How the nonce works, template usage |
+| [Security Headers](/docs/en/middleware/csp) | All automatically injected headers |
 
 ---
 
@@ -76,9 +76,9 @@ proxy_set_header X-Forwarded-Proto $scheme;
 
 | Section | Description |
 | --- | --- |
-| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csrf/csrf.md) | CSRF protection |
-| [Builder & configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/builder/builder.md) | Builder configuration |
+| [CSRF](/docs/en/middleware/csrf) | CSRF protection |
+| [Builder & configuration](/docs/en/middleware/builder) | Builder configuration |
 
 ## Back to summary
 
-- [Middleware & Security](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md)
+- [Middleware & Security](/docs/en/middleware)

@@ -1,10 +1,12 @@
 use crate::entities::{
-    blog, changelog_entry, code_example, demo_category, demo_page, demo_section, form_field,
-    known_issue, page_doc_link, roadmap_entry, users,
+    blog, changelog_entry, code_example, demo_category, demo_page, demo_section, doc_block,
+    doc_page, doc_section, form_field, known_issue, page_doc_link, roadmap_entry, site_config,
+    users,
 };
 use crate::formulaire::{
     BlogForm, ChangelogEntryForm, CodeExampleForm, DemoCategoryForm, DemoPageForm, DemoSectionForm,
-    FormFieldForm, KnownIssueForm, PageDocLinkForm, RegisterForm, RoadmapEntryForm,
+    DocBlockForm, DocPageForm, DocSectionForm, FormFieldForm, KnownIssueForm, PageDocLinkForm,
+    RegisterForm, RoadmapEntryForm, SiteConfigForm,
 };
 
 admin! {
@@ -51,6 +53,22 @@ admin! {
     }
     form_field: form_field::Model => FormFieldForm {
         title: "Champs formulaire",
+        permissions: ["admin"]
+    }
+    doc_section: doc_section::Model => DocSectionForm {
+        title: "Doc — Sections",
+        permissions: ["admin"]
+    }
+    doc_page: doc_page::Model => DocPageForm {
+        title: "Doc — Pages",
+        permissions: ["admin"]
+    }
+    doc_block: doc_block::Model => DocBlockForm {
+        title: "Doc — Blocs",
+        permissions: ["admin"]
+    }
+    site_config: site_config::Model => SiteConfigForm {
+        title: "Configuration site",
         permissions: ["admin"]
     }
 }

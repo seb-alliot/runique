@@ -1,6 +1,6 @@
 # Extracteur Prisme
 
-[← Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md)
+[← Formulaires](/docs/fr/formulaire)
 
 ---
 
@@ -31,4 +31,4 @@ pub async fn inscription(
 
 ---
 
-← [**Formulaires**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md) | [**Trait RuniqueForm**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/trait/trait.md) →
+← [**Formulaires**](/docs/fr/formulaire) | [**Trait RuniqueForm**](/docs/fr/formulaire/trait) →

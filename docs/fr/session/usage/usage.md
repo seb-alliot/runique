@@ -65,9 +65,9 @@ let app = RuniqueApp::builder(config)
 
 | Section | Description |
 | --- | --- |
-| [Store & watermarks](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/store/store.md) | CleaningMemoryStore, mécanismes de purge |
-| [Protection](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/protection/protection.md) | Protection des sessions |
+| [Store & watermarks](/docs/fr/session/store) | CleaningMemoryStore, mécanismes de purge |
+| [Protection](/docs/fr/session/protection) | Protection des sessions |
 
 ## Retour au sommaire
 
-- [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md)
+- [Sessions](/docs/fr/session)

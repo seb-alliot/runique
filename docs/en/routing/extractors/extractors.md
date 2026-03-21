@@ -95,9 +95,9 @@ async fn create_api(
 
 | Section | Description |
 | --- | --- |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/macros/macros.md) | `urlpatterns!`, `view!`, `impl_objects!` |
-| [Responses](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/responses/responses.md) | Response types |
+| [Macros](/docs/en/routing/macros) | `urlpatterns!`, `view!`, `impl_objects!` |
+| [Responses](/docs/en/routing/responses) | Response types |
 
 ## Back to summary
 
-- [Routing](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md)
+- [Routing](/docs/en/routing)

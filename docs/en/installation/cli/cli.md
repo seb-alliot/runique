@@ -2,11 +2,11 @@
 
 ## Create a Superuser
 
+Command-line interface to create superusers, start the server and manage migrations.
+
 ```bash
 runique create-superuser
 ```
-
-The command is fully interactive:
 
 ```
 === Create Superuser ===  [Ctrl+C to quit]
@@ -56,9 +56,9 @@ runique create-superuser                                            # Create a s
 
 | Section | Description |
 | --- | --- |
-| [Migrations](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/migrations/migrations.md) | Migration workflow |
-| [Troubleshooting](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/troubleshooting/troubleshooting.md) | Solving common issues |
+| [Migrations](/docs/en/installation/migrations) | Migration workflow |
+| [Troubleshooting](/docs/en/installation/troubleshooting) | Solving common issues |
 
 ## Back to summary
 
-- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
+- [Installation](/docs/en/installation)

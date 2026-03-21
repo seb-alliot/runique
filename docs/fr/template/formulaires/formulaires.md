@@ -113,9 +113,9 @@ context_update!(request => {
 
 | Section | Description |
 | --- | --- |
-| [Tags Django-like](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/tags/tags.md) | `{% form.xxx %}`, `{% csrf %}` |
-| [Filtres & fonctions](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/filtres/filtres.md) | Filtres bas niveau |
+| [Tags Django-like](/docs/fr/template/tags) | `{% form.xxx %}`, `{% csrf %}` |
+| [Filtres & fonctions](/docs/fr/template/filtres) | Filtres bas niveau |
 
 ## Retour au sommaire
 
-- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md)
+- [Templates](/docs/fr/template)

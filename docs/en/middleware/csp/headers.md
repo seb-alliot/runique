@@ -67,4 +67,4 @@ The `security_headers_middleware` automatically injects a set of security header
 
 ## Back
 
-- [CSP — Overview](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/csp.md)
+- [CSP — Overview](/docs/en/middleware/csp)

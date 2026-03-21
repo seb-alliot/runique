@@ -70,4 +70,4 @@ Secondes restantes avant réinitialisation de la fenêtre pour cette clé. Retou
 
 ---
 
-← [**Builder & configuration**](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/builder/builder.md) | [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md) →
+← [**Builder & configuration**](/docs/fr/middleware/builder) | [**Flash Messages**](/docs/fr/flash) →

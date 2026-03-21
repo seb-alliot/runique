@@ -126,11 +126,11 @@ La page `/admin/login` redirige vers le dashboard si les identifiants sont valid
 
 | Section | Description |
 | --- | --- |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Commande `runique start`, workflow général |
-| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md) | Axes d'évolution et état bêta |
+| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
+| [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |
+| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
 
 ## Revenir au sommaire
 
-- [Sommaire Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)
+- [Sommaire Admin](/docs/fr/admin)

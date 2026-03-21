@@ -10,12 +10,12 @@ Data is lost when the server restarts. For persistence, use an external store (R
 
 | Section | Content |
 | --- | --- |
-| [Store & Watermarks](https://github.com/seb-alliot/runique/blob/main/docs/en/session/store/store.md) | `CleaningMemoryStore`, low/high watermarks, memory estimation |
-| [Protection](https://github.com/seb-alliot/runique/blob/main/docs/en/session/protection/protection.md) | Automatic protection (`user_id`), manual (`session_active`), shopping cart use cases |
-| [Usage & Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/session/usage/usage.md) | Session access in handlers, `.env`, builder |
+| [Store & Watermarks](/docs/en/session/store) | `CleaningMemoryStore`, low/high watermarks, memory estimation |
+| [Protection](/docs/en/session/protection) | Automatic protection (`user_id`), manual (`session_active`), shopping cart use cases |
+| [Usage & Configuration](/docs/en/session/usage) | Session access in handlers, `.env`, builder |
 
 ---
 
 ## Next Steps
 
-← [**Authentication**](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md) | [**Environment Variables**](https://github.com/seb-alliot/runique/blob/main/docs/en/env/15-env.md) →
+← [**Authentication**](/docs/en/auth) | [**Environment Variables**](/docs/en/env) →

@@ -1,6 +1,6 @@
 # Field types
 
-[← Typed conversion helpers](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md)
+[← Typed conversion helpers](/docs/en/formulaire/helpers)
 
 ---
 
@@ -417,4 +417,4 @@ form.field(&HiddenField::new_csrf());
 
 ---
 
-← [**Typed conversion helpers**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md) | [**Database errors**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/errors/errors.md) →
+← [**Typed conversion helpers**](/docs/en/formulaire/helpers) | [**Database errors**](/docs/en/formulaire/errors) →

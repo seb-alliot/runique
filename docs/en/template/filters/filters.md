@@ -6,8 +6,16 @@
 |--------|-------------|---------|
 | `static` | App static URL prefix | `{{ "css/main.css" \| static }}` |
 | `media` | App media URL prefix | `{{ "photo.jpg" \| media }}` |
-| `runique_static` | Framework internal static assets | `{{ "css/error.css" \| runique_static }}` |
-| `runique_media` | Framework internal media | `{{ "logo.png" \| runique_media }}` |
+
+---
+
+## Markdown filter
+
+| Filter     | Description                                        | Example                          |
+|------------|----------------------------------------------------|----------------------------------|
+| `markdown` | Converts Markdown to HTML (automatically safe)     | `{{ page.content \| markdown }}` |
+
+> Runique's preprocessor automatically injects `\| safe` — no need to add it manually.
 
 ---
 
@@ -35,9 +43,9 @@
 
 | Section | Description |
 | --- | --- |
-| [Django-like tags](https://github.com/seb-alliot/runique/blob/main/docs/en/template/tags/tags.md) | Syntactic sugar |
-| [Tera syntax](https://github.com/seb-alliot/runique/blob/main/docs/en/template/syntax/syntax.md) | Inheritance, loops, conditions |
+| [Django-like tags](/docs/en/template/tags) | Syntactic sugar |
+| [Tera syntax](/docs/en/template/syntax) | Inheritance, loops, conditions |
 
 ## Back to summary
 
-- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)
+- [Templates](/docs/en/template)

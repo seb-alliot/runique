@@ -131,9 +131,9 @@ let result = users::Entity::delete_many()
 
 | Section | Description |
 | --- | --- |
-| [Manager & helpers](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/manager/manager.md) | `impl_objects!`, helpers |
-| [Advanced](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/advanced/advanced.md) | Transactions, relations |
+| [Manager & helpers](/docs/en/orm/manager) | `impl_objects!`, helpers |
+| [Advanced](/docs/en/orm/advanced) | Transactions, relations |
 
 ## Back to summary
 
-- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md)
+- [ORM](/docs/en/orm)

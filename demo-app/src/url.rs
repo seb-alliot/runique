@@ -78,6 +78,12 @@ pub fn routes() -> Router {
         "/erreurs/500"                   => view! { force_server_error },     name = "force_500",
         "/erreurs/429"                   => view! { force_to_many_requests }, name = "force_429",
 
+        // Documentation
+        "/docs/fr"                       => view! { docs_index_fr },         name = "doc_index_fr",
+        "/docs/en"                       => view! { docs_index_en },         name = "doc_index_en",
+        "/docs/{lang}/{section}"         => view! { docs_section },          name = "doc_section",
+        "/docs/{lang}/{section}/{page}"  => view! { docs_page },             name = "doc_page",
+
         // Contributions
         "/contribution"                  => view! { contribution_submit },    name = "contribution",
         "/contributions"                 => view! { contribution_list },      name = "contribution_list",

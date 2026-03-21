@@ -120,9 +120,9 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 
 | Section | Description |
 | --- | --- |
-| [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/forms/forms.md) | CRUD with forms |
-| [Upload](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/upload/upload.md) | File upload |
+| [Forms](/docs/en/exemple/forms) | CRUD with forms |
+| [Upload](/docs/en/exemple/upload) | File upload |
 
 ## Back to summary
 
-- [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md)
+- [Examples](/docs/en/exemple)

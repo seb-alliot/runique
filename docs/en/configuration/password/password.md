@@ -1,6 +1,6 @@
 # Password configuration
 
-[← Builder](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/builder/builder.md)
+[← Builder](/docs/en/configuration/builder)
 
 ---
 
@@ -113,8 +113,8 @@ These functions automatically use the `PasswordConfig` initialized at startup.
 
 `TextField::password()` fields are automatically hashed in `finalize()` in `Auto` mode. In `Manual` or `Delegated` mode, no automatic hashing occurs.
 
-See → [Field types — TextField](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/fields/fields.md)
+See → [Field types — TextField](/docs/en/formulaire/fields)
 
 ---
 
-← [**Builder**](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/builder/builder.md)
+← [**Builder**](/docs/en/configuration/builder)

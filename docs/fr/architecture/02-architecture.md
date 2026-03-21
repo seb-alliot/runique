@@ -52,7 +52,8 @@ mod views;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = RuniqueConfig::from_env();
-    let db = DatabaseConfig::from_env()?.build().connect().await?;
+    let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
+    let db: DatabaseConnection = db_config.connect().await?;
 
     password_init(PasswordConfig::auto());
 
@@ -151,14 +152,14 @@ runique start
 
 | Section | Contenu |
 | --- | --- |
-| [Concepts clés](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/concepts/concepts.md) | `RuniqueEngine`, `Request`, `Prisme<T>` |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/macros/macros.md) | Macros de contexte, flash, routage, erreur |
-| [Tags & filtres Tera](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/tera/tera.md) | Tags Django-like, filtres, fonctions |
-| [Stack middleware](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/middleware/middleware.md) | Ordre des slots, injection de dépendances |
-| [Lifecycle d'une requête](https://github.com/seb-alliot/runique/blob/main/docs/fr/architecture/lifecycle/lifecycle.md) | Cycle de vie, bonnes pratiques |
+| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Macros](/docs/fr/architecture/macros) | Macros de contexte, flash, routage, erreur |
+| [Tags & filtres Tera](/docs/fr/architecture/tera) | Tags Django-like, filtres, fonctions |
+| [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |
+| [Lifecycle d'une requête](/docs/fr/architecture/lifecycle) | Cycle de vie, bonnes pratiques |
 
 ---
 
 ## Prochaines étapes
 
-← [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md) | [**Configuration**](https://github.com/seb-alliot/runique/blob/main/docs/fr/configuration/03-configuration.md) →
+← [Installation](/docs/fr/installation) | [**Configuration**](/docs/fr/configuration) →

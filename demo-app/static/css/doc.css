@@ -1,0 +1,402 @@
+/* ── Doc index ─────────────────────────────────────────────── */
+
+.doc-index-container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.doc-index-container h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.doc-lang-switch {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.doc-sections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.doc-section-card {
+    display: block;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.doc-section-card:hover {
+    border-color: var(--primary, #4f9cf9);
+    background: var(--surface-hover, rgba(79, 156, 249, 0.05));
+}
+
+.doc-section-card h2 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* ── Doc page layout ────────────────────────────────────────── */
+
+.doc-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 120px);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────── */
+
+.doc-sidebar {
+    border-right: 1px solid var(--border, #333);
+    padding: 1.5rem 1rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.doc-sidebar-header {
+    margin-bottom: 1.5rem;
+}
+
+.doc-back-link {
+    font-size: 0.8rem;
+    color: var(--text-muted, #888);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.doc-back-link:hover {
+    color: var(--primary, #4f9cf9);
+}
+
+.doc-sidebar-header h3 {
+    font-size: 0.95rem;
+    margin: 0;
+    color: var(--text-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.doc-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.doc-nav-link {
+    display: block;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    color: var(--text, #ccc);
+    transition: background 0.15s;
+}
+
+.doc-nav-link:hover {
+    background: var(--surface-hover, rgba(255,255,255,0.05));
+}
+
+.doc-nav-link.active {
+    background: var(--primary-muted, rgba(79, 156, 249, 0.15));
+    color: var(--primary, #4f9cf9);
+    font-weight: 600;
+}
+
+/* ── Contenu ────────────────────────────────────────────────── */
+
+.doc-content {
+    padding: 2rem 2.5rem;
+    max-width: 1000px;
+}
+
+.doc-content h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.doc-lead {
+    font-size: 1.05rem;
+    color: var(--text-muted, #888);
+    margin-bottom: 2rem;
+}
+.doc-lead p {
+    font-size: inherit;
+    color: inherit;
+    margin: 0;
+}
+
+/* Table des matières */
+
+.doc-toc {
+    background: var(--surface, rgba(255,255,255,0.04));
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+}
+
+.doc-toc strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-muted, #888);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.doc-toc ul {
+    margin: 0;
+    padding-left: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.doc-toc a {
+    color: var(--primary, #4f9cf9);
+    text-decoration: none;
+}
+
+.doc-toc a:hover {
+    text-decoration: underline;
+}
+
+.doc-toc table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.doc-toc table th {
+    text-align: left;
+    padding: 0.3rem 0.75rem;
+    color: var(--text-muted, #888);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.doc-toc table td {
+    padding: 0.35rem 0.75rem;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,0.05));
+}
+
+.doc-toc table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Blocs */
+
+.doc-block {
+    margin-bottom: 3rem;
+}
+
+.doc-block h2 {
+    font-size: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border, #333);
+    margin-bottom: 1.5rem;
+}
+
+.doc-block-content h3 {
+    font-size: 1.05rem;
+    margin-top: 1.75rem;
+    margin-bottom: 0.75rem;
+    color: var(--text, #e0e0e0);
+}
+
+.doc-block-content h3 + pre,
+.doc-block-content h3 + p {
+    margin-top: 0.5rem;
+}
+
+.doc-block-content p {
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+.doc-block-content ul,
+.doc-block-content ol {
+    padding-left: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.doc-block-content li {
+    padding-inline-start: 1px;
+    margin-bottom: 0.25rem;
+}
+
+.doc-block-content pre {
+    background: var(--surface, #1a1a2e);
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+}
+
+.doc-block-content code:not(pre code) {
+    background: var(--surface, rgba(255,255,255,0.08));
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+.doc-block-content table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 1rem 0;
+}
+
+.doc-block-content th,
+.doc-block-content td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border, #333);
+    text-align: left;
+}
+
+.doc-block-content th {
+    background: var(--surface, rgba(255,255,255,0.04));
+    font-weight: 600;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+/* Bouton hamburger — caché sur desktop */
+.doc-mobile-bar {
+    display: none;
+}
+
+/* Fix overflow global */
+.doc-layout {
+    overflow-x: hidden;
+}
+
+.doc-content {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.doc-block-content pre {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.doc-block-content table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.doc-toc table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+@media (max-width: 1024px) {
+    /* Barre mobile avec hamburger */
+    .doc-mobile-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border, #333);
+        background: var(--bg, #0f0f1a);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .doc-mobile-bar-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted, #888);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .doc-hamburger {
+        background: none;
+        border: 1px solid var(--border, #333);
+        border-radius: 6px;
+        padding: 0.4rem 0.6rem;
+        cursor: pointer;
+        color: var(--text, #ccc);
+        font-size: 1rem;
+        line-height: 1;
+        flex-shrink: 0;
+        margin-left: 1rem;
+    }
+
+    .doc-hamburger:hover {
+        border-color: var(--primary, #4f9cf9);
+        color: var(--primary, #4f9cf9);
+    }
+
+    /* Layout mobile */
+    .doc-layout {
+        grid-template-columns: 1fr;
+    }
+
+    /* Sidebar masquée par défaut sur mobile */
+    .doc-sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 280px;
+        height: 100vh;
+        z-index: 200;
+        background: var(--bg, #0f0f1a);
+        border-right: 1px solid var(--border, #333);
+        padding: 1.5rem 1rem;
+        overflow-y: auto;
+        transition: left 0.25s ease;
+    }
+
+    .doc-sidebar.open {
+        left: 0;
+    }
+
+    /* Overlay derrière la sidebar */
+    .doc-sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 150;
+    }
+
+    .doc-sidebar-overlay.open {
+        display: block;
+    }
+
+    .doc-content {
+        padding: 1.25rem 1rem;
+        max-width: 100%;
+    }
+
+    .doc-content h1 {
+        font-size: 1.4rem;
+    }
+}

@@ -6,7 +6,7 @@
 runique create-superuser
 ```
 
-La commande est entièrement interactive :
+Une interface en ligne de commande pour créer des superutilisateurs, lancer le serveur et gérer les migrations.
 
 ```
 === Créer un superutilisateur ===  [Ctrl+C pour quitter]
@@ -56,9 +56,9 @@ runique create-superuser                                            # Créer un 
 
 | Section | Description |
 | --- | --- |
-| [Migrations](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/migrations/migrations.md) | Workflow de migration |
-| [Troubleshooting](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/troubleshooting/troubleshooting.md) | Résoudre les problèmes courants |
+| [Migrations](/docs/fr/installation/migrations) | Workflow de migration |
+| [Troubleshooting](/docs/fr/installation/troubleshooting) | Résoudre les problèmes courants |
 
 ## Retour au sommaire
 
-- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md)
+- [Installation](/docs/fr/installation)

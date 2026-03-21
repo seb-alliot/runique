@@ -47,7 +47,7 @@ RuniqueApp::builder(config)
 
 ## Approche 2 — Étendre un layout personnalisé
 
-On a créé son propre `template.html` (voir [Surcharge du layout](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md)) et on l'utilise comme base.
+On a créé son propre `template.html` (voir [Surcharge du layout](/docs/fr/admin/template)) et on l'utilise comme base.
 
 ```html
 {# templates.html #}
@@ -139,7 +139,7 @@ Aucun `{% extends %}` n'est nécessaire. Le template est un fichier HTML complet
 </html>
 ```
 
-> Si le template n'étend pas `admin_template.html`, les éléments CSRF ne sont plus injectés automatiquement. Il faut les ajouter manuellement (voir ci-dessus). Voir [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/csrf/csrf.md) pour le détail.
+> Si le template n'étend pas `admin_template.html`, les éléments CSRF ne sont plus injectés automatiquement. Il faut les ajouter manuellement (voir ci-dessus). Voir [CSRF](/docs/fr/admin/template) pour le détail.
 
 ---
 
@@ -157,5 +157,5 @@ Aucun `{% extends %}` n'est nécessaire. Le template est un fichier HTML complet
 
 | Section | Description |
 | --- | --- |
-| [Surcharge](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md) | Principe et niveaux d'héritage |
-| [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | Variables disponibles par vue |
+| [Surcharge](/docs/fr/admin/template) | Principe et niveaux d'héritage |
+| [Clés de contexte](/docs/fr/admin/template) | Variables disponibles par vue |

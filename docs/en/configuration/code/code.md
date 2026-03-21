@@ -68,9 +68,9 @@ let config = RuniqueConfig::from_env()
 
 | Section | Description |
 | --- | --- |
-| [Environment variables](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/variables/variables.md) | All `.env` variables |
-| [Builder](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/builder/builder.md) | Programmatic configuration |
+| [Environment variables](/docs/en/configuration/variables) | All `.env` variables |
+| [Builder](/docs/en/configuration/builder) | Programmatic configuration |
 
 ## Back to summary
 
-- [Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md)
+- [Configuration](/docs/en/configuration)

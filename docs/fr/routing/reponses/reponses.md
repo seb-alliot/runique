@@ -136,9 +136,9 @@ pub async fn soumission_inscription(
 
 | Section | Description |
 | --- | --- |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/macros/macros.md) | `urlpatterns!`, `view!`, `impl_objects!` |
-| [Extracteurs](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/extracteurs/extracteurs.md) | Path, Query, Prisme, Json |
+| [Macros](/docs/fr/routing/macros) | `urlpatterns!`, `view!`, `impl_objects!` |
+| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, Prisme, Json |
 
 ## Retour au sommaire
 
-- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md)
+- [Routage](/docs/fr/routing)
