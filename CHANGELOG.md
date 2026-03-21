@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+* **Admin view — automatic trim on database entries:**
+  Text fields and passwords submitted via the admin view are now trimmed before being saved to the database.
+  Prevents unintended differences caused by leading or trailing whitespace.
+
 * **Boolean field — unchecked treated as absent:**
   An unchecked boolean field is now treated as `false` instead of absent.
   The `required` validator no longer requires the checkbox to be checked — it only checks that the field is present.
@@ -20,6 +24,10 @@ All notable changes to this project will be documented in this file.
   Password changes will be handled through a dedicated reset form sent by email.
 
 ### Added
+
+* **Admin view — configurable pagination:**
+  Page size in the list view is now configurable via the admin builder: `.page_size(15)`.
+  Default remains 10. Pagination controls appear automatically once results exceed the limit.
 
 * **Session invalidation:**
   Sessions can now be made unique via the middleware builder — disabled by default.
