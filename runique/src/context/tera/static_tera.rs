@@ -40,7 +40,6 @@ fn markdown_filter(value: &Value, _: &JsonMap) -> TResult {
     Ok(Value::String(output))
 }
 
-
 // Fonction générique interne pour éviter la répétition
 fn register_filter(base_url: String, version: String) -> impl Fn(&Value, &JsonMap) -> TResult {
     move |value: &Value, _: &JsonMap| {
@@ -76,8 +75,14 @@ pub fn register_asset_filters(
     tera.register_filter("mask", mask_filter);
     tera.register_filter("static", register_filter(static_url, version.clone()));
     tera.register_filter("media", register_filter(media_url, String::new()));
-    tera.register_filter("runique_static", register_filter(runique_static_url, version));
-    tera.register_filter("runique_media", register_filter(runique_media_url, String::new()));
+    tera.register_filter(
+        "runique_static",
+        register_filter(runique_static_url, version),
+    );
+    tera.register_filter(
+        "runique_media",
+        register_filter(runique_media_url, String::new()),
+    );
     tera.register_filter("form", form_filter);
     tera.register_filter("csrf_field", csrf_filter);
     tera.register_filter("markdown", markdown_filter);

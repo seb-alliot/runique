@@ -51,6 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .routes(admins::routes("/admin"))
                 .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
                 .with_state(admins::admin_state())
+                .page_size(15)
         })
         .build()
         .await

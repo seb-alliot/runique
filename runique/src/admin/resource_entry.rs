@@ -15,8 +15,9 @@ pub type FormBuilder = Arc<
     dyn Fn(StrMap, ATera, String, Method) -> BoxFuture<'static, Box<dyn DynForm>> + Send + Sync,
 >;
 
-/// Closure retournant toutes les entrées d'une ressource sous forme de `Vec<Value>`.
-pub type ListFn = Arc<dyn Fn(ADb) -> BoxFuture<'static, Result<Vec<Value>, DbErr>> + Send + Sync>;
+/// Closure retournant une page d'entrées d'une ressource (offset, limit).
+pub type ListFn =
+    Arc<dyn Fn(ADb, u64, u64) -> BoxFuture<'static, Result<Vec<Value>, DbErr>> + Send + Sync>;
 
 /// Closure retournant une entrée par son id sous forme de `Value`.
 pub type GetFn =

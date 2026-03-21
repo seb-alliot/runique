@@ -11,7 +11,7 @@ use std::sync::Arc;
 use axum::{
     Extension,
     body::Body,
-    extract::{FromRequest, Path},
+    extract::{FromRequest, Path, Query},
     http::{Request as HttpRequest, StatusCode},
     response::{IntoResponse, Redirect, Response},
 };
@@ -78,6 +78,7 @@ pub async fn admin_get(
     mut req: Request,
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Query(params): Query<StrMap>,
 ) -> AppResult<Response> {
     let entry = state
         .registry
@@ -87,7 +88,14 @@ pub async fn admin_get(
     inject_context(&mut req, &state, entry);
 
     match action.as_str() {
-        "list" => handle_list(&mut req, entry, &state).await,
+        "list" => {
+            let page = params
+                .get("page")
+                .and_then(|p| p.parse::<u64>().ok())
+                .unwrap_or(1)
+                .max(1);
+            handle_list(&mut req, entry, &state, page).await
+        }
         "create" => handle_create_get(&mut req, entry, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Action inconnue",
@@ -237,17 +245,48 @@ async fn handle_list(
     req: &mut Request,
     entry: &crate::admin::ResourceEntry,
     state: &PrototypeAdminState,
+    page: u64,
 ) -> AppResult<Response> {
-    let entries = match &entry.list_fn {
-        Some(f) => f(req.engine.db.clone())
-            .await
-            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
-        None => Vec::new(),
+    let page_size = state.config.page_size;
+    let offset = (page - 1) * page_size;
+
+    let (entries_result, count_result) = tokio::join!(
+        async {
+            match &entry.list_fn {
+                Some(f) => f(req.engine.db.clone(), offset, page_size).await,
+                None => Ok(Vec::new()),
+            }
+        },
+        async {
+            match &entry.count_fn {
+                Some(f) => f(req.engine.db.clone()).await,
+                None => Ok(0u64),
+            }
+        }
+    );
+    let entries = entries_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+    let count = count_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+    // Si count_fn absent, estime le total depuis la page courante (évite la pagination cassée)
+    let total = if entry.count_fn.is_some() {
+        count
+    } else {
+        offset + entries.len() as u64
     };
+
+    let page_count = (total + page_size - 1) / page_size;
+    let page = page.min(page_count.max(1)); // clampe la page demandée à la plage valide
+
     req.context.insert("lang", &current_lang().code());
     req.context.insert("entries", &entries);
-    req.context.insert("total", &entries.len());
+    req.context.insert("total", &total);
+    req.context.insert("page", &page);
+    req.context.insert("page_count", &page_count);
+    req.context.insert("has_prev", &(page > 1));
+    req.context.insert("has_next", &(page < page_count));
+    req.context.insert("prev_page", &(page.saturating_sub(1)));
+    req.context.insert("next_page", &(page + 1));
     req.context.insert("current_page", "list");
+
     let template = entry
         .meta
         .template_list

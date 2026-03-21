@@ -374,6 +374,7 @@ impl DynForm for SiteConfigAdminFormDynWrapper {
 /// Construit le registre admin au boot.
 /// Appelé par le builder de l'application.
 pub fn admin_register() -> AdminRegistry {
+    runique::admin::register_roles(vec!["admin".to_string()]);
     let mut registry = AdminRegistry::new();
 
     // ── Ressource : users ──
@@ -392,9 +393,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = users::Entity::find().all(&*db).await?;
+            let rows = users::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -482,9 +487,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = blog::Entity::find().all(&*db).await?;
+            let rows = blog::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -562,9 +571,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = changelog_entry::Entity::find().all(&*db).await?;
+            let rows = changelog_entry::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -646,9 +659,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = roadmap_entry::Entity::find().all(&*db).await?;
+            let rows = roadmap_entry::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -730,9 +747,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = known_issue::Entity::find().all(&*db).await?;
+            let rows = known_issue::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -813,9 +834,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = demo_category::Entity::find().all(&*db).await?;
+            let rows = demo_category::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -896,9 +921,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = demo_page::Entity::find().all(&*db).await?;
+            let rows = demo_page::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -979,9 +1008,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = demo_section::Entity::find().all(&*db).await?;
+            let rows = demo_section::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -1062,9 +1095,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = code_example::Entity::find().all(&*db).await?;
+            let rows = code_example::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -1145,9 +1182,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = page_doc_link::Entity::find().all(&*db).await?;
+            let rows = page_doc_link::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -1228,9 +1269,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = form_field::Entity::find().all(&*db).await?;
+            let rows = form_field::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -1311,9 +1356,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = doc_section::Entity::find().all(&*db).await?;
+            let rows = doc_section::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -1393,9 +1442,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = doc_page::Entity::find().all(&*db).await?;
+            let rows = doc_page::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -1475,9 +1528,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = doc_block::Entity::find().all(&*db).await?;
+            let rows = doc_block::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -1558,9 +1615,13 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb| {
+    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
         Box::pin(async move {
-            let rows = site_config::Entity::find().all(&*db).await?;
+            let rows = site_config::Entity::find()
+                .offset(offset)
+                .limit(limit)
+                .all(&*db)
+                .await?;
             Ok(rows
                 .into_iter()
                 .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
@@ -1631,11 +1692,6 @@ pub fn admin_register() -> AdminRegistry {
 /// À passer à `.with_admin(|a| a.routes(admins::routes("/admin")))` dans main.rs.
 pub fn routes(prefix: &str) -> runique::axum::Router {
     let p = prefix.trim_end_matches('/');
-    let config = Arc::new(AdminConfig::new().prefix(prefix));
-    let state = Arc::new(PrototypeAdminState {
-        registry: Arc::new(admin_register()),
-        config: config.clone(),
-    });
     runique::axum::Router::new()
         .route(
             &format!("{}/{{resource}}/{{action}}", p),
@@ -1645,7 +1701,6 @@ pub fn routes(prefix: &str) -> runique::axum::Router {
             &format!("{}/{{resource}}/{{id}}/{{action}}", p),
             get(admin_get_id).post(admin_post_id),
         )
-        .layer(Extension(state))
 }
 
 /// Retourne l'état partagé du prototype admin (pour le dashboard).

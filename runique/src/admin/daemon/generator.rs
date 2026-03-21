@@ -185,14 +185,6 @@ fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(
         "pub fn routes(prefix: &str) -> runique::axum::Router {{"
     );
     let _ = writeln!(out, "    let p = prefix.trim_end_matches('/');");
-    let _ = writeln!(
-        out,
-        "    let config = Arc::new(AdminConfig::new().prefix(prefix));"
-    );
-    let _ = writeln!(out, "    let state = Arc::new(PrototypeAdminState {{");
-    let _ = writeln!(out, "        registry: Arc::new(admin_register()),");
-    let _ = writeln!(out, "        config: config.clone(),");
-    let _ = writeln!(out, "    }});");
     let _ = writeln!(out, "    runique::axum::Router::new()");
     let _ = writeln!(
         out,
@@ -202,7 +194,6 @@ fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(
         out,
         "        .route(&format!(\"{{}}/{{{{resource}}}}/{{{{id}}}}/{{{{action}}}}\", p), get(admin_get_id).post(admin_post_id))"
     );
-    let _ = writeln!(out, "        .layer(Extension(state))");
     let _ = writeln!(out, "}}");
     let _ = writeln!(out);
     let _ = writeln!(
@@ -301,11 +292,14 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
-    let _ = writeln!(out, "    let list_fn: ListFn = Arc::new(|db: ADb| {{");
+    let _ = writeln!(
+        out,
+        "    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {{"
+    );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
         out,
-        "            let rows = {}::Entity::find().all(&*db).await?;",
+        "            let rows = {}::Entity::find().offset(offset).limit(limit).all(&*db).await?;",
         module
     );
     let _ = writeln!(out, "            Ok(rows.into_iter()");
