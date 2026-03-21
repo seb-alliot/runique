@@ -54,6 +54,9 @@ COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
 COPY --from=builder /usr/src/app/demo-app/migration/ /app/migration/
 COPY --from=builder /usr/src/app/demo-app/src/entities/ /app/src/entities/
 
+# 5. Copie de la documentation (lue par doc_seed.rs au démarrage)
+COPY --from=builder /usr/src/app/docs/ /app/docs/
+
 # Droits d'écriture pour les uploads
 RUN chmod -R 777 /app/media
 
