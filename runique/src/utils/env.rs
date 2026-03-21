@@ -40,3 +40,12 @@ static ENV: LazyLock<RuniqueEnv> = LazyLock::new(RuniqueEnv::from_env);
 pub fn is_debug() -> bool {
     matches!(*ENV, RuniqueEnv::Development)
 }
+
+/// Génère un token de 4 chiffres basé sur les nanosecondes au démarrage.
+/// Utilisé comme cache-buster pour les assets statiques.
+pub fn css_token() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| (d.subsec_nanos() % 9000 + 1000).to_string())
+        .unwrap_or_else(|_| "1000".to_string())
+}

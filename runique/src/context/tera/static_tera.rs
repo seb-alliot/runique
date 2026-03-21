@@ -40,8 +40,9 @@ fn markdown_filter(value: &Value, _: &JsonMap) -> TResult {
     Ok(Value::String(output))
 }
 
+
 // Fonction générique interne pour éviter la répétition
-fn register_filter(base_url: String) -> impl Fn(&Value, &JsonMap) -> TResult {
+fn register_filter(base_url: String, version: String) -> impl Fn(&Value, &JsonMap) -> TResult {
     move |value: &Value, _: &JsonMap| {
         let file = value.as_str().ok_or_else(|| {
             tera::Error::msg(tf("forms.filter_invalid_value", &[&format!("{:?}", value)]))
@@ -53,7 +54,13 @@ fn register_filter(base_url: String) -> impl Fn(&Value, &JsonMap) -> TResult {
             file.trim_start_matches('/')
         );
 
-        Ok(Value::String(full_url))
+        let url = if version.is_empty() {
+            full_url
+        } else {
+            format!("{}?v={}", full_url, version)
+        };
+
+        Ok(Value::String(url))
     }
 }
 
@@ -65,11 +72,12 @@ pub fn register_asset_filters(
     runique_media_url: String,
     url_registry: ARlockmap,
 ) {
+    let version = crate::utils::env::css_token();
     tera.register_filter("mask", mask_filter);
-    tera.register_filter("static", register_filter(static_url));
-    tera.register_filter("media", register_filter(media_url));
-    tera.register_filter("runique_static", register_filter(runique_static_url));
-    tera.register_filter("runique_media", register_filter(runique_media_url));
+    tera.register_filter("static", register_filter(static_url, version.clone()));
+    tera.register_filter("media", register_filter(media_url, String::new()));
+    tera.register_filter("runique_static", register_filter(runique_static_url, version));
+    tera.register_filter("runique_media", register_filter(runique_media_url, String::new()));
     tera.register_filter("form", form_filter);
     tera.register_filter("csrf_field", csrf_filter);
     tera.register_filter("markdown", markdown_filter);
