@@ -37,7 +37,10 @@ impl FormValidator {
         let mut is_all_valid = true;
 
         for field in fields.values_mut() {
-            if field.required() && field.value().trim().is_empty() {
+            if field.required()
+                && field.value().trim().is_empty()
+                && field.field_type() != "checkbox"
+            {
                 field.set_error(t("forms.required").into_owned());
                 is_all_valid = false;
                 continue;

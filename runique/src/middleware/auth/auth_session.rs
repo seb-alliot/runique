@@ -168,6 +168,27 @@ pub async fn login_staff(
     Ok(())
 }
 
+/// Connecte un utilisateur en invalidant toutes ses sessions existantes.
+///
+/// Garantit qu'un seul appareil à la fois peut être connecté avec ce compte.
+/// Si `session_store` n'est pas disponible (store externe), se comporte comme `login`.
+///
+/// # Exemple
+/// ```rust,ignore
+/// login_exclusive(&request.session, &request.engine, user.id, &user.username).await.ok();
+/// ```
+pub async fn login_exclusive(
+    session: &Session,
+    engine: &crate::engine::RuniqueEngine,
+    user_id: i32,
+    username: &str,
+) -> Result<(), tower_sessions::session::Error> {
+    if let Some(store) = engine.session_store.get() {
+        store.invalidate_user_sessions(user_id).await;
+    }
+    login(session, user_id, username).await
+}
+
 /// Déconnecte un utilisateur (supprime la session)
 pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Error> {
     session.remove::<i32>(SESSION_USER_ID_KEY).await?;

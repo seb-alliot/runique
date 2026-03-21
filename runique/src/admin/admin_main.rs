@@ -194,6 +194,9 @@ fn inject_context(
     for (k, v) in &entry.meta.extra_context {
         req.context.insert(k, v);
     }
+
+    let registered_roles = crate::admin::get_roles();
+    req.context.insert("registered_roles", &registered_roles);
 }
 
 /// Vérifie le token CSRF depuis le body du formulaire.

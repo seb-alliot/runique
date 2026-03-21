@@ -37,6 +37,28 @@ impl DynForm for UsersAdminFormDynWrapper {
     }
 }
 
+// ── DynForm edit wrapper pour crate::formulaire::UserEditForm ──
+struct UsersEditFormDynWrapper(pub crate::formulaire::UserEditForm);
+
+#[async_trait]
+impl DynForm for UsersEditFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, _db: &DatabaseConnection) -> Result<(), DbErr> {
+        Ok(()) // update_fn gère la persistance
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
 // ── DynForm wrapper pour blog::AdminForm ──
 struct BlogAdminFormDynWrapper(pub blog::AdminForm);
 
@@ -260,6 +282,7 @@ impl DynForm for FormFieldAdminFormDynWrapper {
 /// Construit le registre admin au boot.
 /// Appelé par le builder de l'application.
 pub fn admin_register() -> AdminRegistry {
+    runique::admin::register_roles(vec!["admin".to_string()]);
     let mut registry = AdminRegistry::new();
 
     // ── Ressource : users ──
@@ -331,8 +354,19 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
+    let edit_form_builder: FormBuilder =
+        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+            Box::pin(async move {
+                let form =
+                    crate::formulaire::UserEditForm::build_with_data(&data, tera, &csrf, method)
+                        .await;
+                Box::new(UsersEditFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        });
+
     registry.register(
         ResourceEntry::new(meta, form_builder)
+            .with_edit_form_builder(edit_form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_delete_fn(delete_fn)

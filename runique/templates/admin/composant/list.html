@@ -56,7 +56,12 @@
                 <td>
                   <div class="table-actions table-actions-end">
                     <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-secondary">{% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% endif %}</a>
-                    {% if current_user and current_user.is_superuser and "demo" not in current_user.roles %}
+                    {% set_global can_modify = false %}
+                    {% if current_user %}
+                      {% if current_user.is_superuser %}{% set_global can_modify = true %}
+                      {% else %}{% for role in current_user.roles %}{% if role in resource.permissions.edit %}{% set_global can_modify = true %}{% endif %}{% endfor %}{% endif %}
+                    {% endif %}
+                    {% if current_user and can_modify %}
                     <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-secondary">{% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% endif %}</a>
                     <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline">
                       <button type="submit" class="btn btn-sm btn-danger" 

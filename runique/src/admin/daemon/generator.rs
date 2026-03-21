@@ -138,9 +138,28 @@ fn write_edit_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), Str
 }
 
 fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(), String> {
+    // Collecte tous les rôles uniques déclarés dans permissions: [...]
+    let mut all_roles: Vec<String> = resources
+        .iter()
+        .flat_map(|r| r.permissions.iter().cloned())
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+    all_roles.sort();
+    let roles_str = all_roles
+        .iter()
+        .map(|p| format!("\"{}\".to_string()", p))
+        .collect::<Vec<_>>()
+        .join(", ");
+
     let _ = writeln!(out, "/// Construit le registre admin au boot.");
     let _ = writeln!(out, "/// Appelé par le builder de l'application.");
     let _ = writeln!(out, "pub fn admin_register() -> AdminRegistry {{");
+    let _ = writeln!(
+        out,
+        "    runique::admin::register_roles(vec![{}]);",
+        roles_str
+    );
     let _ = writeln!(out, "    let mut registry = AdminRegistry::new();");
     let _ = writeln!(out);
 

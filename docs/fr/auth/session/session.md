@@ -28,6 +28,20 @@ login_staff(
 ).await?;
 ```
 
+### Connexion exclusive
+
+Pour n'autoriser qu'un seul appareil connecté à la fois, activer via le builder :
+
+```rust
+RuniqueApp::builder(config)
+    .middleware(|m| m.with_exclusive_login(true))
+```
+
+`login` et `login_staff` invalident alors automatiquement toutes les sessions existantes
+de l'utilisateur à chaque nouvelle connexion. Aucun changement dans les handlers.
+
+> Désactivé par défaut (`false`). Sans effet si un store externe est utilisé.
+
 ---
 
 ## Déconnexion
@@ -64,7 +78,7 @@ if let Some(username) = get_username(&session).await {
 Ces variables contrôlent les redirections automatiques des middlewares :
 
 | Variable | Défaut | Description |
-|-----------------------|--------|------------------------------------------------------|
+| --- | --- | --- |
 | `REDIRECT_ANONYMOUS` | `/` | Cible de redirection pour les utilisateurs non connectés |
 | `USER_CONNECTED_URL` | `/` | Cible de redirection pour les utilisateurs déjà connectés |
 

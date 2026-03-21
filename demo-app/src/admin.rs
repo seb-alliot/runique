@@ -10,7 +10,8 @@ use crate::formulaire::{
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"]
+        permissions: ["admin"],
+        edit_form: crate::formulaire::UserEditForm,
     }
     blog: blog::Model => BlogForm {
         title: "Articles",
