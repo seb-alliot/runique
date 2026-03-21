@@ -259,6 +259,15 @@ pub async fn roadmap(mut request: Request) -> AppResult<Response> {
 
 // ─── Sitemap ──────────────────────────────────────────────────────────────────
 
+pub async fn google_verify(_: Request) -> Response {
+    (
+        StatusCode::OK,
+        [("content-type", "text/html; charset=utf-8")],
+        "google-site-verification: google59ae742b6eee40ef.html",
+    )
+        .into_response()
+}
+
 pub async fn sitemap_xml(_: Request) -> Response {
     let candidates = ["demo-app/sitemap.xml", "sitemap.xml", "/app/sitemap.xml"];
     let xml = candidates
