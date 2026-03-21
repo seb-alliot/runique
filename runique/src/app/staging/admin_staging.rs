@@ -66,6 +66,12 @@ impl AdminStaging {
         self
     }
 
+    /// Définit le nombre d'entrées par page dans la vue liste (défaut : 10).
+    pub fn page_size(mut self, size: u64) -> Self {
+        self.config = self.config.page_size(size);
+        self
+    }
+
     /// Branche le handler d'authentification admin
     ///
     /// ## Avec le User built-in (zéro config) :

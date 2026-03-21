@@ -96,6 +96,21 @@
       </div>
     {% endif %}
   </div>
+  {% if page_count is defined and page_count > 1 %}
+  <div class="pagination">
+    {% if has_prev %}
+      <a href="?page={{ prev_page }}" class="btn btn-sm btn-secondary">&laquo;</a>
+    {% else %}
+      <span class="btn btn-sm btn-secondary disabled">&laquo;</span>
+    {% endif %}
+    <span class="pagination-info">{{ page }} / {{ page_count }}</span>
+    {% if has_next %}
+      <a href="?page={{ next_page }}" class="btn btn-sm btn-secondary">&raquo;</a>
+    {% else %}
+      <span class="btn btn-sm btn-secondary disabled">&raquo;</span>
+    {% endif %}
+  </div>
+  {% endif %}
   <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
   <script nonce="{{ csp_nonce }}">
       var adminActions = new AdminActions({

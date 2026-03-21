@@ -31,6 +31,9 @@ pub struct AdminConfig {
 
     /// Surcharges de templates admin (dashboard, login, list, etc.)
     pub templates: AdminTemplate,
+
+    /// Nombre d'entrées par page dans la vue liste (défaut : 10)
+    pub page_size: u64,
 }
 
 impl Clone for AdminConfig {
@@ -43,6 +46,7 @@ impl Clone for AdminConfig {
             enabled: self.enabled,
             auth: self.auth.clone(),
             templates: self.templates.clone(),
+            page_size: self.page_size,
         }
     }
 }
@@ -71,7 +75,13 @@ impl AdminConfig {
             enabled: true,
             auth: None,
             templates: AdminTemplate::new(),
+            page_size: 10,
         }
+    }
+
+    pub fn page_size(mut self, size: u64) -> Self {
+        self.page_size = size.max(1);
+        self
     }
 
     pub fn prefix(mut self, prefix: &str) -> Self {

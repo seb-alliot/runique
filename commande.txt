@@ -54,3 +54,9 @@ Start-Sleep -Seconds 530
 // Gestion de railway
 
 railway shell
+
+
+// commande windows runtime recalsitrant
+taskkill /F /IM demo-app.exe
+
+cargo clean --target-dir
