@@ -136,12 +136,50 @@ a {
     color: var(--text-main);
 }
 
+.lead-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+}
+
 .lead {
     color: var(--text-muted);
-    font-size: 1rem;
-    margin-bottom: 1.5rem;
+    font-size: 1.05rem;
     text-align: center;
+    max-width: 600px;
+    line-height: 1.7;
+    margin: 0;
 }
+
+.lead strong {
+    color: var(--accent);
+}
+
+.lead-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+}
+
+.lead-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.lead-tag--axum  { background: rgba(94, 186, 255, 0.12); border-color: rgba(94, 186, 255, 0.4);  color: #5ebaff; }
+.lead-tag--orm   { background: rgba(100, 220, 160, 0.12); border-color: rgba(100, 220, 160, 0.4); color: #64dca0; }
+.lead-tag--tpl   { background: rgba(255, 180, 80, 0.12);  border-color: rgba(255, 180, 80, 0.4);  color: #ffb450; }
+.lead-tag--rt    { background: rgba(180, 120, 255, 0.12); border-color: rgba(180, 120, 255, 0.4); color: #b478ff; }
+.lead-tag--sec   { background: rgba(255, 100, 100, 0.12); border-color: rgba(255, 100, 100, 0.4); color: #ff6464; }
+.lead-tag--admin { background: rgba(94, 186, 255, 0.08);  border-color: rgba(94, 186, 255, 0.25); color: #7ecfff; }
 
 /* =========================
     MESSAGES
