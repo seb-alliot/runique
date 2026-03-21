@@ -299,6 +299,7 @@ impl RuniqueAppBuilder {
                 middleware.allowed_hosts.clone(),
                 middleware.features.enable_host_validation,
             )),
+            session_store: std::sync::OnceLock::new(),
         });
 
         // C. Enregistrement des URLs (urlpatterns!)
@@ -331,7 +332,11 @@ impl RuniqueAppBuilder {
         //   Extensions → Session → CSRF → CSP → Host
         // ═══════════════════════════════════════
 
-        let router = middleware.apply_to_router(router, config, engine.clone(), tera);
+        let (router, session_store) =
+            middleware.apply_to_router(router, config, engine.clone(), tera);
+        if let Some(store) = session_store {
+            engine.session_store.set(store).ok();
+        }
 
         // ═══════════════════════════════════════
         // ÉTAPE 6 : FICHIERS STATIQUES (conditionnel)

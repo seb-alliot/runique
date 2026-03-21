@@ -1,8 +1,9 @@
+use crate::middleware::session::CleaningMemoryStore;
 use crate::utils::aliases::{
     ADb, ARlockmap, ASecurityCsp, ASecurityHosts, ATera, new, new_registry,
 };
 use axum::{Router, middleware};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tera::Tera;
 
 use crate::config::RuniqueConfig;
@@ -30,6 +31,11 @@ pub struct RuniqueEngine {
     // Les politiques (Les Meubles)
     pub security_csp: ASecurityCsp,
     pub security_hosts: ASecurityHosts,
+
+    /// Store de session in-memory — disponible uniquement si CleaningMemoryStore est utilisé.
+    /// `None` si le dev a configuré un store externe (Redis, PostgreSQL…).
+    /// Utilisé par `login_exclusive` pour invalider les sessions d'un utilisateur.
+    pub session_store: OnceLock<Arc<CleaningMemoryStore>>,
 }
 
 impl RuniqueEngine {
@@ -48,6 +54,7 @@ impl RuniqueEngine {
             features,
             security_csp: new(security_csp),
             security_hosts: new(security_hosts),
+            session_store: OnceLock::new(),
         }
     }
 

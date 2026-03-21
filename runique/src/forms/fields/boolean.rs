@@ -1,5 +1,5 @@
 use crate::forms::base::*;
-use crate::utils::trad::{t, tf};
+use crate::utils::trad::tf;
 use serde::Serialize;
 use std::sync::Arc;
 use tera::{Context, Tera};
@@ -55,18 +55,9 @@ impl BooleanField {
 
 impl FormField for BooleanField {
     fn validate(&mut self) -> bool {
-        // Pour un champ booléen "requis", on vérifie qu'il est coché (true)
-        if self.base.is_required.choice && self.base.value != "true" {
-            let msg = self
-                .base
-                .is_required
-                .message
-                .clone()
-                .unwrap_or_else(|| t("forms.boolean_required").to_string());
-            self.set_error(msg);
-            return false;
-        }
-
+        // Un champ booléen est toujours valide : "true" ou "false" (décoché = false).
+        // required = NOT NULL en DB, pas "doit être coché".
+        // Pour forcer la coche (ex: CGU), utiliser clean() avec une erreur custom.
         self.clear_error();
         true
     }

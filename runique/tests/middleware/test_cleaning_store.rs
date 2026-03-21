@@ -321,6 +321,103 @@ async fn test_anon_alive_not_purged_by_anonymous_purge() {
     let _ = size_before; // taille vérifiée implicitement via load
 }
 
+// ── exclusive_login ───────────────────────────────────────────────────────────
+
+/// Nouvelle connexion avec exclusive_login=true → session précédente invalidée.
+#[tokio::test]
+async fn test_exclusive_login_invalidates_previous_session() {
+    let store = CleaningMemoryStore::default().with_exclusive_login(true);
+
+    // Session 1 — user_id = 42, déjà connectée
+    let mut session1 = fresh_record(3600);
+    store.create(&mut session1).await.unwrap();
+    session1
+        .data
+        .insert("user_id".to_string(), serde_json::json!(42));
+    store.save(&session1).await.unwrap();
+
+    // Session 2 — même user_id, nouvelle connexion
+    let mut session2 = fresh_record(3600);
+    store.create(&mut session2).await.unwrap();
+    session2
+        .data
+        .insert("user_id".to_string(), serde_json::json!(42));
+    store.save(&session2).await.unwrap();
+
+    // session1 doit avoir été invalidée
+    assert!(store.load(&session1.id).await.unwrap().is_none());
+    // session2 doit toujours exister
+    assert!(store.load(&session2.id).await.unwrap().is_some());
+}
+
+/// exclusive_login=false (défaut) → plusieurs sessions coexistent pour le même utilisateur.
+#[tokio::test]
+async fn test_exclusive_login_disabled_allows_multiple_sessions() {
+    let store = CleaningMemoryStore::default(); // false par défaut
+
+    let mut session1 = fresh_record(3600);
+    store.create(&mut session1).await.unwrap();
+    session1
+        .data
+        .insert("user_id".to_string(), serde_json::json!(42));
+    store.save(&session1).await.unwrap();
+
+    let mut session2 = fresh_record(3600);
+    store.create(&mut session2).await.unwrap();
+    session2
+        .data
+        .insert("user_id".to_string(), serde_json::json!(42));
+    store.save(&session2).await.unwrap();
+
+    assert!(store.load(&session1.id).await.unwrap().is_some());
+    assert!(store.load(&session2.id).await.unwrap().is_some());
+}
+
+/// exclusive_login=true → les sessions d'un autre utilisateur ne sont pas affectées.
+#[tokio::test]
+async fn test_exclusive_login_does_not_affect_other_users() {
+    let store = CleaningMemoryStore::default().with_exclusive_login(true);
+
+    let mut session_a = fresh_record(3600);
+    store.create(&mut session_a).await.unwrap();
+    session_a
+        .data
+        .insert("user_id".to_string(), serde_json::json!(1));
+    store.save(&session_a).await.unwrap();
+
+    let mut session_b = fresh_record(3600);
+    store.create(&mut session_b).await.unwrap();
+    session_b
+        .data
+        .insert("user_id".to_string(), serde_json::json!(2));
+    store.save(&session_b).await.unwrap();
+
+    // Utilisateurs différents → les deux sessions coexistent
+    assert!(store.load(&session_a.id).await.unwrap().is_some());
+    assert!(store.load(&session_b.id).await.unwrap().is_some());
+}
+
+/// exclusive_login=true → une mise à jour de session déjà connectée ne s'auto-invalide pas.
+#[tokio::test]
+async fn test_exclusive_login_only_triggers_on_first_login() {
+    let store = CleaningMemoryStore::default().with_exclusive_login(true);
+
+    let mut session1 = fresh_record(3600);
+    store.create(&mut session1).await.unwrap();
+    session1
+        .data
+        .insert("user_id".to_string(), serde_json::json!(42));
+    store.save(&session1).await.unwrap();
+
+    // Mise à jour (user_id déjà présent) → ne doit pas s'auto-invalider
+    session1
+        .data
+        .insert("extra".to_string(), serde_json::json!("data"));
+    store.save(&session1).await.unwrap();
+
+    assert!(store.load(&session1.id).await.unwrap().is_some());
+}
+
 /// store saturé (high watermark, aucune session purgeable) → refus.
 #[tokio::test]
 async fn test_store_saturated_refuses_new_session() {

@@ -10,6 +10,7 @@ use crate::middleware::{
 };
 use crate::utils::aliases::{AEngine, ARuniqueConfig, ATera};
 use axum::{self, Router, middleware};
+use std::sync::Arc;
 use tower_http::compression::CompressionLayer;
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};
@@ -126,6 +127,9 @@ pub struct MiddlewareStaging {
     /// Intervalle du cleanup périodique en secondes (défaut : 60s, via RUNIQUE_SESSION_CLEANUP_SECS)
     pub(crate) session_cleanup_interval_secs: u64,
 
+    /// Un seul appareil connecté à la fois par utilisateur (défaut : false)
+    pub(crate) exclusive_login: bool,
+
     /// Middlewares custom du développeur (ordre d'ajout préservé)
     pub(crate) custom_middlewares: Vec<CustomMiddleware>,
 
@@ -153,6 +157,7 @@ impl MiddlewareStaging {
             session_low_watermark: 128 * 1024 * 1024,
             session_high_watermark: 256 * 1024 * 1024,
             session_cleanup_interval_secs: 60,
+            exclusive_login: false,
             custom_middlewares: Vec::new(),
             security_policy: None,
             allowed_hosts: Vec::new(),
@@ -201,6 +206,7 @@ impl MiddlewareStaging {
             session_low_watermark: 128 * 1024 * 1024,
             session_high_watermark: 256 * 1024 * 1024,
             session_cleanup_interval_secs: 60,
+            exclusive_login: false,
             custom_middlewares: Vec::new(),
             security_policy: None,
             allowed_hosts: Vec::new(),
@@ -330,6 +336,20 @@ impl MiddlewareStaging {
         self
     }
 
+    /// Active ou désactive la connexion exclusive (un seul appareil à la fois).
+    ///
+    /// Par défaut à `false`. Si `true`, toute nouvelle connexion invalide automatiquement
+    /// les sessions existantes du même utilisateur — sans modifier les handlers.
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// .middleware(|m| m.with_exclusive_login(true))
+    /// ```
+    pub fn with_exclusive_login(mut self, exclusive: bool) -> Self {
+        self.exclusive_login = exclusive;
+        self
+    }
+
     /// Configure un store de session personnalisé (Redis, PostgreSQL, etc.)
     ///
     /// # Exemple
@@ -440,7 +460,7 @@ impl MiddlewareStaging {
         config: ARuniqueConfig,
         engine: AEngine,
         tera: ATera,
-    ) -> Router {
+    ) -> (Router, Option<Arc<CleaningMemoryStore>>) {
         let debug = config.debug;
         let mut entries: Vec<MiddlewareEntry> = Vec::new();
 
@@ -497,22 +517,35 @@ impl MiddlewareStaging {
         }
 
         // Slot 50 : Session — avant CSRF (CSRF en dépend)
-        {
+        let memory_store: Option<Arc<CleaningMemoryStore>> = {
             let applicator = self.session_applicator;
             let anon_duration = self.anonymous_session_duration;
             let low_wm = self.session_low_watermark;
             let high_wm = self.session_high_watermark;
             let cleanup_secs = self.session_cleanup_interval_secs;
 
+            let exclusive_login = self.exclusive_login;
+            let store_arc = if applicator.is_none() {
+                let store = Arc::new(
+                    CleaningMemoryStore::default()
+                        .with_watermarks(low_wm, high_wm)
+                        .with_exclusive_login(exclusive_login),
+                );
+                store.spawn_cleanup(tokio::time::Duration::from_secs(cleanup_secs));
+                Some(store)
+            } else {
+                None
+            };
+
+            let store_for_layer = store_arc.clone();
             entries.push(MiddlewareEntry {
                 slot: SLOT_SESSION,
                 name: "Session",
                 apply: Box::new(move |r: Router| match applicator {
                     Some(apply_fn) => apply_fn(r, debug, anon_duration),
                     None => {
-                        let store = CleaningMemoryStore::default().with_watermarks(low_wm, high_wm);
-                        store.spawn_cleanup(tokio::time::Duration::from_secs(cleanup_secs));
-                        let layer = SessionManagerLayer::new(store)
+                        let store = store_for_layer.expect("store created above");
+                        let layer = SessionManagerLayer::new((*store).clone())
                             .with_secure(!debug)
                             .with_http_only(true)
                             .with_same_site(tower_sessions::cookie::SameSite::Strict)
@@ -521,7 +554,9 @@ impl MiddlewareStaging {
                     }
                 }),
             });
-        }
+
+            store_arc
+        };
 
         // Slot 60 : CSRF — TOUJOURS activé, après Session
         {
@@ -648,6 +683,6 @@ impl MiddlewareStaging {
             router = (entry.apply)(router);
         }
 
-        router
+        (router, memory_store)
     }
 }

@@ -79,6 +79,8 @@ pub struct CleaningMemoryStore {
     size_bytes: Arc<AtomicUsize>,
     low_watermark: usize,
     high_watermark: usize,
+    /// Si `true`, toute nouvelle connexion invalide les sessions existantes du même utilisateur.
+    exclusive_login: bool,
 }
 
 impl Default for CleaningMemoryStore {
@@ -88,6 +90,7 @@ impl Default for CleaningMemoryStore {
             size_bytes: Arc::new(AtomicUsize::new(0)),
             low_watermark: LOW_WATERMARK_DEFAULT,
             high_watermark: HIGH_WATERMARK_DEFAULT,
+            exclusive_login: false,
         }
     }
 }
@@ -103,9 +106,47 @@ impl CleaningMemoryStore {
         self
     }
 
+    /// Active ou désactive la connexion exclusive.
+    ///
+    /// Si `true`, toute nouvelle connexion invalide automatiquement les sessions
+    /// existantes du même utilisateur — un seul appareil connecté à la fois.
+    pub fn with_exclusive_login(mut self, exclusive: bool) -> Self {
+        self.exclusive_login = exclusive;
+        self
+    }
+
     /// Taille estimée actuelle du store en octets.
     pub fn size_bytes(&self) -> usize {
         self.size_bytes.load(Ordering::Relaxed)
+    }
+
+    /// Invalide toutes les sessions actives d'un utilisateur.
+    ///
+    /// Utilisé pour implémenter la connexion exclusive (un seul appareil à la fois).
+    /// La session courante (nouvelle connexion) ne doit pas encore contenir `user_id`
+    /// au moment de l'appel — elle est donc préservée.
+    pub async fn invalidate_user_sessions(&self, user_id: i32) {
+        let mut guard = self.data.lock().await;
+        let mut freed = 0usize;
+        let to_delete: Vec<Id> = guard
+            .iter()
+            .filter(|(_, r)| {
+                r.data
+                    .get(crate::utils::constante::SESSION_USER_ID_KEY)
+                    .and_then(|v| v.as_i64())
+                    .map(|id| id == user_id as i64)
+                    .unwrap_or(false)
+            })
+            .map(|(id, _)| *id)
+            .collect();
+        for id in to_delete {
+            if let Some(r) = guard.remove(&id) {
+                freed += estimate_size(&r);
+            }
+        }
+        if freed > 0 {
+            self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
+        }
     }
 
     /// Spawne la tâche Tokio de cleanup périodique.
@@ -242,6 +283,44 @@ impl SessionStore for CleaningMemoryStore {
         let mut guard = self.data.lock().await;
         let old_size = guard.get(&record.id).map(estimate_size).unwrap_or(0);
         let new_size = estimate_size(record);
+
+        // Connexion exclusive : si user_id apparaît pour la première fois sur cette session,
+        // invalider toutes les autres sessions du même utilisateur.
+        if self.exclusive_login {
+            let had_user = guard
+                .get(&record.id)
+                .and_then(|r| r.data.get(crate::utils::constante::SESSION_USER_ID_KEY))
+                .is_some();
+            if let Some(user_id) = record
+                .data
+                .get(crate::utils::constante::SESSION_USER_ID_KEY)
+                .and_then(|v| v.as_i64())
+            {
+                if !had_user {
+                    let mut freed = 0usize;
+                    let to_delete: Vec<Id> = guard
+                        .iter()
+                        .filter(|(id, r)| {
+                            **id != record.id
+                                && r.data
+                                    .get(crate::utils::constante::SESSION_USER_ID_KEY)
+                                    .and_then(|v| v.as_i64())
+                                    .map(|id| id == user_id)
+                                    .unwrap_or(false)
+                        })
+                        .map(|(id, _)| *id)
+                        .collect();
+                    for id in to_delete {
+                        if let Some(r) = guard.remove(&id) {
+                            freed += estimate_size(&r);
+                        }
+                    }
+                    if freed > 0 {
+                        self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
+                    }
+                }
+            }
+        }
 
         if new_size > MAX_SESSION_RECORD_SIZE {
             tracing::warn!(
