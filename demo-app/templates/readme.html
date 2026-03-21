@@ -1,5 +1,17 @@
 {% extends "index.html" %}
 
+{% block meta %}
+<meta name="description" content="{% if lang == 'fr' %}Runique — framework web Rust inspiré de Django. Présentation, installation et liens vers la documentation.{% else %}Runique — a Django-inspired Rust web framework. Overview, installation, and documentation links.{% endif %}">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Runique">
+<meta property="og:title" content="{% if lang == 'fr' %}README — Runique{% else %}README — Runique{% endif %}">
+<meta property="og:description" content="{% if lang == 'fr' %}Runique — framework web Rust inspiré de Django.{% else %}Runique — a Django-inspired Rust web framework.{% endif %}">
+<meta property="og:url" content="https://runique-production.up.railway.app/readme/{{ lang }}">
+<meta property="og:image" content="https://runique-production.up.railway.app/media/toshiro.avif">
+<link rel="canonical" href="https://runique-production.up.railway.app/readme/{{ lang }}">
+{% endblock %}
+
 {% block style %}
     {{ super() }}
     <link rel="stylesheet" href='{% static "css/doc.css" %}'>

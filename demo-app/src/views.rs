@@ -15,7 +15,7 @@ use runique::prelude::*;
 pub async fn index(mut request: Request) -> AppResult<Response> {
     context_update!(request => {
         "title"       => "Bienvenue sur Runique",
-        "description" => "Un framework web inspiré de Django",
+        "description" => "Runique — framework web Rust inspiré de Django, construit sur Axum, SeaORM et Tera. Formulaires typés, sécurité, ORM, admin généré.",
         "status"      => "Status: Framework en cours de développement...",
         "backend"     => "Rust , Axum",
         "template"    => "Moteur de template: Tera",
@@ -255,6 +255,23 @@ pub async fn roadmap(mut request: Request) -> AppResult<Response> {
         "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/ROADMAP.md",
     });
     request.render("info/cards.html")
+}
+
+// ─── Sitemap ──────────────────────────────────────────────────────────────────
+
+pub async fn sitemap_xml(_: Request) -> Response {
+    let candidates = ["demo-app/sitemap.xml", "sitemap.xml", "/app/sitemap.xml"];
+    let xml = candidates
+        .iter()
+        .find_map(|p| std::fs::read_to_string(p).ok())
+        .unwrap_or_else(|| "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"></urlset>".to_string());
+
+    (
+        StatusCode::OK,
+        [("content-type", "application/xml; charset=utf-8")],
+        xml,
+    )
+        .into_response()
 }
 
 // ─── Readme ───────────────────────────────────────────────────────────────────

@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if title %}{{ title }}{% endif %}</title>
+    <title>{% if title %}{{ title }} — Runique{% else %}Runique{% endif %}</title>
+
+    {% block meta %}
+    <meta name="description" content="{% if description %}{{ description }}{% else %}Runique — framework web Rust inspiré de Django, basé sur Axum, SeaORM et Tera.{% endif %}">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Runique">
+    <meta property="og:title" content="{% if title %}{{ title }} — Runique{% else %}Runique{% endif %}">
+    <meta property="og:description" content="{% if description %}{{ description }}{% else %}Runique — framework web Rust inspiré de Django, basé sur Axum, SeaORM et Tera.{% endif %}">
+    <meta property="og:image" content="https://runique-production.up.railway.app/media/toshiro.avif">
+    {% endblock %}
+
     {% block style %}
         <link rel="stylesheet" href='{% static "css/variables.css" %}'>
         <link rel="stylesheet" href='{% static "css/main.css" %}'>

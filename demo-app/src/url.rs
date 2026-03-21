@@ -78,6 +78,9 @@ pub fn routes() -> Router {
         "/erreurs/500"                   => view! { force_server_error },     name = "force_500",
         "/erreurs/429"                   => view! { force_to_many_requests }, name = "force_429",
 
+        // Sitemap
+        "/sitemap.xml"                   => view! { sitemap_xml },           name = "sitemap_xml",
+
         // Readme
         "/readme/fr"                     => view! { readme_fr },             name = "readme_fr",
         "/readme/en"                     => view! { readme_en },             name = "readme_en",
