@@ -66,9 +66,9 @@ let user = users::Entity::find_by_id(user_id)
 
 | Section | Description |
 | --- | --- |
-| [Requêtes CRUD](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/requetes/requetes.md) | SELECT, COUNT, WHERE, INSERT, UPDATE, DELETE |
-| [Avancé](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/avance/avance.md) | Transactions, relations |
+| [Requêtes CRUD](/docs/fr/orm/requetes) | SELECT, COUNT, WHERE, INSERT, UPDATE, DELETE |
+| [Avancé](/docs/fr/orm/avance) | Transactions, relations |
 
 ## Retour au sommaire
 
-- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md)
+- [ORM](/docs/fr/orm)

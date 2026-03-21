@@ -55,11 +55,11 @@ Better feedback during generation: Rust compilation errors exposed directly in t
 
 | Section | Description |
 | --- | --- |
-| [Setup](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/setup/setup.md) | Wire the admin into an existing project, create a superuser |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/cli.md) | `runique start` command, general workflow |
-| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/permission/permissions.md) | Roles, `is_staff` / `is_superuser`, runtime check |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/templates.md) | Template hierarchy, blocks, visual override |
+| [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
+| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
+| [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
+| [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
 
 ## Back to summary
 
-- [Admin Summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
+- [Admin Summary](/docs/en/admin)

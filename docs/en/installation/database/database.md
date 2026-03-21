@@ -21,7 +21,7 @@ DATABASE_URL=sqlite:runique.db?mode=rwc
 cargo run -p demo-app
 ```
 
-SQLite will automatically create the `runique.db` file.
+SQLite by default, PostgreSQL recommended for production.
 
 ---
 
@@ -107,9 +107,9 @@ The CLI guides through an interactive wizard: hash algorithm, username, email, p
 
 | Section | Description |
 | --- | --- |
-| [Prerequisites](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/prerequisites/prerequisites.md) | Initial setup |
-| [Migrations](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/migrations/migrations.md) | Migration workflow |
+| [Prerequisites](/docs/en/installation/prerequisites) | Initial setup |
+| [Migrations](/docs/en/installation/migrations) | Migration workflow |
 
 ## Back to summary
 
-- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
+- [Installation](/docs/en/installation)

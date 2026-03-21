@@ -88,9 +88,9 @@ These variables control automatic redirects in the middlewares:
 
 | Section | Description |
 | --- | --- |
-| [User model](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/model/model.md) | Built-in model, `RuniqueUser` trait |
-| [Middlewares & CurrentUser](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/middleware/middleware.md) | Route protection |
+| [User model](/docs/en/auth/model) | Built-in model, `RuniqueUser` trait |
+| [Middlewares & CurrentUser](/docs/en/auth/middleware) | Route protection |
 
 ## Back to summary
 
-- [Authentication](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md)
+- [Authentication](/docs/en/auth)

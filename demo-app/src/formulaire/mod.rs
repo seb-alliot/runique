@@ -31,6 +31,18 @@ pub use user::{RegisterForm, UserEditForm};
 pub mod blog;
 pub use blog::BlogForm;
 
+pub mod doc_section;
+pub use doc_section::DocSectionForm;
+
+pub mod doc_page;
+pub use doc_page::DocPageForm;
+
+pub mod doc_block;
+pub use doc_block::DocBlockForm;
+
+pub mod site_config;
+pub use site_config::SiteConfigForm;
+
 pub mod username;
 pub use username::UsernameForm;
 

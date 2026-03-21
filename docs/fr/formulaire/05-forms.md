@@ -3,18 +3,18 @@
 ## Sommaire
 
 - [Vue d'ensemble](#vue-densemble)
-- [Extracteur Prisme](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/prisme/prisme.md)
-- [Trait RuniqueForm](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/trait/trait.md)
+- [Extracteur Prisme](/docs/fr/formulaire/prisme)
+- [Trait RuniqueForm](/docs/fr/formulaire/trait)
   - Structure de base
   - Méthodes du trait
   - Pipeline `is_valid()`
-- [Helpers de conversion typée](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md)
-- [Types de champs](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/champs/champs.md)
+- [Helpers de conversion typée](/docs/fr/formulaire/helpers)
+- [Types de champs](/docs/fr/formulaire/champs)
   - TextField, NumericField, BooleanField, ChoiceField, RadioField…
   - Récapitulatif
-- [Erreurs de base de données](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/erreurs/erreurs.md)
-- [Rendu dans les templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/templates/templates.md)
-- [Exemple complet & pièges courants](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/exemple/exemple.md)
+- [Erreurs de base de données](/docs/fr/formulaire/erreurs)
+- [Rendu dans les templates](/docs/fr/formulaire/templates)
+- [Exemple complet & pièges courants](/docs/fr/formulaire/exemple)
 
 ---
 
@@ -33,4 +33,4 @@ Les formulaires sont extraits automatiquement des requêtes via l'extracteur **P
 
 ## Prochaines étapes
 
-← [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md) →
+← [**Routing**](/docs/fr/routing) | [**Templates**](/docs/fr/template) →

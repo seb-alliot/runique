@@ -2,6 +2,8 @@ pub mod auth;
 pub mod blog;
 mod cards;
 pub mod contribution;
+pub mod doc;
+pub mod doc_seed;
 pub mod forms;
 mod pages;
 

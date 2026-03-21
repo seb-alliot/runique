@@ -94,7 +94,7 @@ authenticated?
 
 ## Notes
 
-- `is_active` and `roles` are planned on the roadmap — see [Roadmap](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/evolution/evolution.md).
+- `is_active` and `roles` are planned on the roadmap — see [Roadmap](/docs/en/admin/evolution).
 - The `admin!` macro defines only declarative rules; the enforcement logic lives in the middlewares.
 - Per-CRUD-operation granularity (list/create/edit/delete) is not supported in the current version.
 
@@ -104,11 +104,11 @@ authenticated?
 
 | Section | Description |
 | --- | --- |
-| [Setup](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/setup/setup.md) | Wire the admin into an existing project, create a superuser |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/cli.md) | `runique start` command, general workflow |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/templates.md) | Template hierarchy, blocks, visual override |
-| [Roadmap](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/evolution/evolution.md) | Planned features and beta status |
+| [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
+| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
+| [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
+| [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |
 
 ## Back to summary
 
-- [Admin Summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
+- [Admin Summary](/docs/en/admin)

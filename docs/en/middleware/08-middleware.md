@@ -6,12 +6,12 @@ Runique includes configurable security middlewares automatically applied in the 
 
 | Module | Description |
 | --- | --- |
-| [CSRF Protection](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csrf/csrf.md) | Token, Double Submit Cookie, AJAX |
-| [Content Security Policy](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/csp.md) | Nonce, profiles, headers |
-| [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/sessions/sessions.md) | Store, durations, access in handlers |
-| [Hosts & Cache](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/hosts-cache/hosts-cache.md) | Allowed Hosts, Cache-Control, security headers |
-| [Builder & Configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/builder/builder.md) | Classic Builder, Intelligent Builder, environment variables |
-| [Rate Limiting](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/rate-limit/rate-limit.md) | Per-IP, per-route rate limiting, configurable |
+| [CSRF Protection](/docs/en/middleware/csrf) | Token, Double Submit Cookie, AJAX |
+| [Content Security Policy](/docs/en/middleware/csp) | Nonce, profiles, headers |
+| [Sessions](/docs/en/middleware/sessions) | Store, durations, access in handlers |
+| [Hosts & Cache](/docs/en/middleware/hosts-cache) | Allowed Hosts, Cache-Control, security headers |
+| [Builder & Configuration](/docs/en/middleware/builder) | Classic Builder, Intelligent Builder, environment variables |
+| [Rate Limiting](/docs/en/middleware/rate-limit) | Per-IP, per-route rate limiting, configurable |
 
 ## Execution Stack
 
@@ -32,4 +32,4 @@ Incoming request
 
 ## Next Steps
 
-← [**ORM & Database**](https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md) | [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md) →
+← [**ORM & Database**](/docs/en/orm) | [**Flash Messages**](/docs/en/flash) →

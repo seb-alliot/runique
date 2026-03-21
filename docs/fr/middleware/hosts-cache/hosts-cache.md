@@ -59,9 +59,9 @@ Headers de cache activés pour les performances.
 
 | Section | Description |
 | --- | --- |
-| [CSP & headers](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/csp.md) | Content Security Policy |
-| [Builder](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/builder/builder.md) | Configuration du builder |
+| [CSP & headers](/docs/fr/middleware/csp) | Content Security Policy |
+| [Builder](/docs/fr/middleware/builder) | Configuration du builder |
 
 ## Retour au sommaire
 
-- [Middleware & Sécurité](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md)
+- [Middleware & Sécurité](/docs/fr/middleware)

@@ -95,9 +95,9 @@ cargo install sea-orm-cli
 
 | Section | Description |
 | --- | --- |
-| [Database](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/database/database.md) | SQLite, PostgreSQL |
-| [Migrations](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/migrations/migrations.md) | Migration workflow |
+| [Database](/docs/en/installation/database) | SQLite, PostgreSQL |
+| [Migrations](/docs/en/installation/migrations) | Migration workflow |
 
 ## Back to summary
 
-- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md)
+- [Installation](/docs/en/installation)

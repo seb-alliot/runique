@@ -1,6 +1,6 @@
 # Rendu dans les templates
 
-[← Erreurs de base de données](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/erreurs/erreurs.md)
+[← Erreurs de base de données](/docs/fr/formulaire/erreurs)
 
 ---
 
@@ -56,4 +56,4 @@ Les formulaires sérialisent automatiquement `errors`, `form_errors`, `html`, `r
 
 ---
 
-← [**Erreurs de base de données**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/erreurs/erreurs.md) | [**Exemple complet**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/exemple/exemple.md) →
+← [**Erreurs de base de données**](/docs/fr/formulaire/erreurs) | [**Exemple complet**](/docs/fr/formulaire/exemple) →

@@ -112,9 +112,9 @@ This limitation will be addressed in **v2.0** with the refactoring of the field 
 
 | Section | Description |
 | --- | --- |
-| [DSL & AST](https://github.com/seb-alliot/runique/blob/main/docs/en/model/dsl/dsl.md) | `model!` syntax, types, options |
-| [Generation & ModelSchema](https://github.com/seb-alliot/runique/blob/main/docs/en/model/generation/generation.md) | Generated code |
+| [DSL & AST](/docs/en/model/dsl) | `model!` syntax, types, options |
+| [Generation & ModelSchema](/docs/en/model/generation) | Generated code |
 
 ## Back to summary
 
-- [Models](https://github.com/seb-alliot/runique/blob/main/docs/en/model/12-model.md)
+- [Models](/docs/en/model)

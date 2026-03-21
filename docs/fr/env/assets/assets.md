@@ -17,9 +17,9 @@
 
 | Section | Description |
 | --- | --- |
-| [Application & Serveur](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/application/application.md) | DEBUG, IP_SERVER, PORT, DB, Redirections |
-| [Sécurité & sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/securite/securite.md) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
+| [Application & Serveur](/docs/fr/env/application) | DEBUG, IP_SERVER, PORT, DB, Redirections |
+| [Sécurité & sessions](/docs/fr/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 
 ## Retour au sommaire
 
-- [Variables d'environnement](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/15-env.md)
+- [Variables d'environnement](/docs/fr/env)

@@ -45,18 +45,18 @@ Inscrits directement dans `admin_template.html` — **impossibles à supprimer**
 
 | Section | Description |
 | --- | --- |
-| [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | variables injectées par le backend dans chaque template
-| [Surcharge](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
-| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/csrf/csrf.md) | token CSRF, `csrf.js`, checklist login custom |
+| [Clés de contexte](/docs/fr/admin/template) | variables injectées par le backend dans chaque template
+| [Surcharge](/docs/fr/admin/template) | remplacer le layout ou un composant CRUD
+| [CSRF](/docs/fr/admin/template) | token CSRF, `csrf.js`, checklist login custom |
 
 ## Voir aussi
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Commande `runique start`, workflow général |
-| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md) | Axes d'évolution et état bêta |
+| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
+| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
+| [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
 
 ## Revenir au menu
 

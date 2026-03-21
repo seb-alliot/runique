@@ -4,6 +4,7 @@ use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
 use crate::utils::aliases::{ARlockmap, JsonMap, TResult};
 use crate::utils::trad::tf;
+use pulldown_cmark::{Options, Parser, html};
 use tera::{Tera, Value};
 
 // Filtre pour masquer une valeur sensible avec des bullets (nombre de caractères réel)
@@ -24,6 +25,19 @@ fn csrf_filter(value: &Value, _: &JsonMap) -> TResult {
     );
 
     Ok(Value::String(html))
+}
+
+// Filtre markdown → HTML (tables, strikethrough, heading ids)
+fn markdown_filter(value: &Value, _: &JsonMap) -> TResult {
+    let md = value.as_str().unwrap_or("");
+    let mut opts = Options::empty();
+    opts.insert(Options::ENABLE_TABLES);
+    opts.insert(Options::ENABLE_STRIKETHROUGH);
+    opts.insert(Options::ENABLE_HEADING_ATTRIBUTES);
+    let parser = Parser::new_ext(md, opts);
+    let mut output = String::new();
+    html::push_html(&mut output, parser);
+    Ok(Value::String(output))
 }
 
 // Fonction générique interne pour éviter la répétition
@@ -58,6 +72,7 @@ pub fn register_asset_filters(
     tera.register_filter("runique_media", register_filter(runique_media_url));
     tera.register_filter("form", form_filter);
     tera.register_filter("csrf_field", csrf_filter);
+    tera.register_filter("markdown", markdown_filter);
     tera.register_function("csrf_token", CsrfTokenFunction);
     tera.register_function("nonce", nonce_function);
     tera.register_function("link", LinkFunction { url_registry });

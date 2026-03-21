@@ -115,9 +115,9 @@ pub async fn upload_image(
 
 | Section | Description |
 | --- | --- |
-| [Formulaires](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/formulaires/formulaires.md) | CRUD avec formulaires |
-| [Autres exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/autres/autres.md) | Messages, API REST, template de base |
+| [Formulaires](/docs/fr/exemple/formulaires) | CRUD avec formulaires |
+| [Autres exemples](/docs/fr/exemple/autres) | Messages, API REST, template de base |
 
 ## Retour au sommaire
 
-- [Exemples](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md)
+- [Exemples](/docs/fr/exemple)

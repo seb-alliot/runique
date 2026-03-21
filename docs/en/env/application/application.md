@@ -75,9 +75,9 @@
 
 | Section | Description |
 | --- | --- |
-| [Assets & media](https://github.com/seb-alliot/runique/blob/main/docs/en/env/assets/assets.md) | Static files, media, templates |
-| [Security & sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/env/security/security.md) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
+| [Assets & media](/docs/en/env/assets) | Static files, media, templates |
+| [Security & sessions](/docs/en/env/security) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 
 ## Back to summary
 
-- [Environment Variables](https://github.com/seb-alliot/runique/blob/main/docs/en/env/15-env.md)
+- [Environment Variables](/docs/en/env)

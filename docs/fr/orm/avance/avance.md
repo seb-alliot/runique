@@ -112,9 +112,9 @@ async fn delete_user(
 
 | Section | Description |
 | --- | --- |
-| [Manager & helpers](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/manager/manager.md) | `impl_objects!`, helpers |
-| [Requêtes CRUD](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/requetes/requetes.md) | SELECT, INSERT, UPDATE, DELETE |
+| [Manager & helpers](/docs/fr/orm/manager) | `impl_objects!`, helpers |
+| [Requêtes CRUD](/docs/fr/orm/requetes) | SELECT, INSERT, UPDATE, DELETE |
 
 ## Retour au sommaire
 
-- [ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md)
+- [ORM](/docs/fr/orm)

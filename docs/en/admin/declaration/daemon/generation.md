@@ -62,9 +62,9 @@ In this mode, `src/admins/` is no longer watched or overwritten. Changes persist
 
 | Section | Description |
 | --- | --- |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/cli.md) | How `runique start` works |
-| [Macro `admin!`](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/macro/macro.md) | Declaring administrable resources |
+| [CLI](/docs/en/admin/declaration) | How `runique start` works |
+| [Macro `admin!`](/docs/en/admin/declaration) | Declaring administrable resources |
 
 ## Back to summary
 
-- [Admin Summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
+- [Admin Summary](/docs/en/admin)

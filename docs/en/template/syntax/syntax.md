@@ -140,9 +140,9 @@ request.render("my_page.html")
 
 | Section | Description |
 | --- | --- |
-| [Django-like tags](https://github.com/seb-alliot/runique/blob/main/docs/en/template/tags/tags.md) | Syntactic sugar |
-| [Filters & functions](https://github.com/seb-alliot/runique/blob/main/docs/en/template/filters/filters.md) | Low-level filters |
+| [Django-like tags](/docs/en/template/tags) | Syntactic sugar |
+| [Filters & functions](/docs/en/template/filters) | Low-level filters |
 
 ## Back to summary
 
-- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)
+- [Templates](/docs/en/template)

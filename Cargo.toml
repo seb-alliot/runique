@@ -79,6 +79,8 @@ password-hash = "0.6.0"
 rand = "0.10.0"
 ammonia = "4.1.2"
 
+# Documentation
+pulldown-cmark = "0.12"
 
 # CSRF
 hmac = "0.12"

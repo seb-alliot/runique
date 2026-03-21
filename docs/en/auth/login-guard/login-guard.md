@@ -162,4 +162,4 @@ pub async fn login(/* ... */) -> impl IntoResponse {
 
 ---
 
-← [**Protection Middlewares**](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/middleware/middleware.md) | [**Complete Example**](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/exemple/exemple.md) →
+← [**Protection Middlewares**](/docs/en/auth/middleware) | [**Complete Example**](/docs/en/auth/exemple) →

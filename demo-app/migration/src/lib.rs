@@ -16,6 +16,10 @@ mod m20260320_143527_create_form_field_table;
 mod m20260320_143527_create_page_doc_link_table;
 mod m20260320_151115_alter_demo_category_table;
 mod m20260320_163000_alter_form_field_table;
+mod m20260321_000000_create_doc_section_table;
+mod m20260321_000001_create_doc_page_table;
+mod m20260321_000002_create_doc_block_table;
+mod m20260321_000003_create_site_config_table;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -42,6 +46,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20260320_143527_create_page_doc_link_table::Migration),
             Box::new(m20260320_151115_alter_demo_category_table::Migration),
             Box::new(m20260320_163000_alter_form_field_table::Migration),
+            Box::new(m20260321_000000_create_doc_section_table::Migration),
+            Box::new(m20260321_000001_create_doc_page_table::Migration),
+            Box::new(m20260321_000002_create_doc_block_table::Migration),
+            Box::new(m20260321_000003_create_site_config_table::Migration),
         ]
     }
 }

@@ -91,7 +91,7 @@ let user = users::Entity::objects
     .await?;
 ```
 
-Voir le [guide ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md) pour plus de détails.
+Voir le [guide ORM](/docs/fr/orm) pour plus de détails.
 
 ---
 
@@ -99,9 +99,9 @@ Voir le [guide ORM](https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/
 
 | Section | Description |
 | --- | --- |
-| [Extracteurs](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/extracteurs/extracteurs.md) | Path, Query, Prisme, Json |
-| [Réponses](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/reponses/reponses.md) | Types de réponses |
+| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, Prisme, Json |
+| [Réponses](/docs/fr/routing/reponses) | Types de réponses |
 
 ## Retour au sommaire
 
-- [Routage](https://github.com/seb-alliot/runique/blob/main/docs/fr/routing/04-routing.md)
+- [Routage](/docs/fr/routing)

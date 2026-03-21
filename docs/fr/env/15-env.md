@@ -8,9 +8,9 @@ Toutes les clés configurables via `.env`. Les valeurs indiquées sont les défa
 
 | Section | Contenu |
 | --- | --- |
-| [Application & Serveur](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/application/application.md) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB, Redirections |
-| [Assets & médias](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/assets/assets.md) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR et URLs associées |
-| [Sécurité & sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/securite/securite.md) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
+| [Application & Serveur](/docs/fr/env/application) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB, Redirections |
+| [Assets & médias](/docs/fr/env/assets) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR et URLs associées |
+| [Sécurité & sessions](/docs/fr/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 
 ---
 
@@ -24,4 +24,4 @@ Toutes les clés configurables via `.env`. Les valeurs indiquées sont les défa
 
 ## Prochaines étapes
 
-← [**Sessions**](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md)
+← [**Sessions**](/docs/fr/session)

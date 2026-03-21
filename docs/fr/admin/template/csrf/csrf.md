@@ -119,12 +119,12 @@ Si le template de login est personnalisé (hors `admin_template.html`), les troi
 
 | Section | Description |
 | --- | --- |
-| [Clés de contexte](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/clef/context.md) | variables injectées par le backend dans chaque template
-| [Surcharge](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md) | remplacer le layout ou un composant CRUD
+| [Clés de contexte](/docs/fr/admin/template) | variables injectées par le backend dans chaque template
+| [Surcharge](/docs/fr/admin/template) | remplacer le layout ou un composant CRUD
 
 ## Revenir au sommaire
 
 | Section | Description |
 | --- | --- |
-| [Sommaire template](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Admin
-| [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) | Sommaire template
+| [Sommaire template](/docs/fr/admin/template) | Admin
+| [Sommaire](/docs/fr/admin) | Sommaire template

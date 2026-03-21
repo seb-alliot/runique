@@ -70,4 +70,4 @@ Seconds remaining until the window resets for this key. Returns `0` if the windo
 
 ---
 
-← [**Builder & Configuration**](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/builder/builder.md) | [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md) →
+← [**Builder & Configuration**](/docs/en/middleware/builder) | [**Flash Messages**](/docs/en/flash) →

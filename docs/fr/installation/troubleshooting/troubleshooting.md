@@ -63,9 +63,9 @@ pre-commit run --all-files
 
 | Section | Description |
 | --- | --- |
-| [Prérequis](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/prerequis/prerequis.md) | Setup initial |
-| [Base de données](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/base-de-donnees/base-de-donnees.md) | SQLite, PostgreSQL |
+| [Prérequis](/docs/fr/installation/prerequis) | Setup initial |
+| [Base de données](/docs/fr/installation/base-de-donnees) | SQLite, PostgreSQL |
 
 ## Retour au sommaire
 
-- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md)
+- [Installation](/docs/fr/installation)

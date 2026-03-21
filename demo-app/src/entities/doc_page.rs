@@ -1,0 +1,15 @@
+use runique::prelude::*;
+
+model! {
+    DocPage,
+    table: "doc_page",
+    pk: id => i32,
+    fields: {
+        section_id: i32 [required],
+        slug: String [required],
+        lang: String [required],
+        title: String [required],
+        lead: String [nullable],
+        sort_order: i32 [required],
+    }
+}

@@ -51,9 +51,9 @@ runique migration status --migrations migration/src
 
 | Section | Description |
 | --- | --- |
-| [Base de données](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/base-de-donnees/base-de-donnees.md) | SQLite, PostgreSQL |
-| [CLI Runique](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/cli/cli.md) | Commandes disponibles |
+| [Base de données](/docs/fr/installation/base-de-donnees) | SQLite, PostgreSQL |
+| [CLI Runique](/docs/fr/installation/cli) | Commandes disponibles |
 
 ## Retour au sommaire
 
-- [Installation](https://github.com/seb-alliot/runique/blob/main/docs/fr/installation/01-installation.md)
+- [Installation](/docs/fr/installation)

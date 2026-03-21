@@ -1,6 +1,6 @@
 # RuniqueForm trait
 
-[← Prisme extractor](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/prisme/prisme.md)
+[← Prisme extractor](/docs/en/formulaire/prisme)
 
 ---
 
@@ -258,4 +258,4 @@ impl BlogForm {
 
 ---
 
-← [**Prisme extractor**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/prisme/prisme.md) | [**Typed conversion helpers**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md) →
+← [**Prisme extractor**](/docs/en/formulaire/prisme) | [**Typed conversion helpers**](/docs/en/formulaire/helpers) →

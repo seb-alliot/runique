@@ -49,11 +49,11 @@ pub async fn handler(request: Request) -> AppResult<Response> {
 
 | Section | Description |
 | --- | --- |
-| [Key concepts](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/concepts/concepts.md) | `RuniqueEngine`, `Request`, `Prisme<T>` |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/macros/macros.md) | Context, flash, routing, error macros |
-| [Tera tags & filters](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/tera/tera.md) | Django-like tags, filters, functions |
-| [Request lifecycle](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/lifecycle/lifecycle.md) | Lifecycle, best practices |
+| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Macros](/docs/en/architecture/macros) | Context, flash, routing, error macros |
+| [Tera tags & filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
+| [Request lifecycle](/docs/en/architecture/lifecycle) | Lifecycle, best practices |
 
 ## Back to summary
 
-- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
+- [Architecture](/docs/en/architecture)

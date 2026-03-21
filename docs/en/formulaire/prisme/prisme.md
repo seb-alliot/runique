@@ -1,6 +1,6 @@
 # Prisme extractor
 
-[← Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md)
+[← Forms](/docs/en/formulaire)
 
 ---
 
@@ -31,4 +31,4 @@ pub async fn register(
 
 ---
 
-← [**Forms**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md) | [**RuniqueForm trait**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/trait/trait.md) →
+← [**Forms**](/docs/en/formulaire) | [**RuniqueForm trait**](/docs/en/formulaire/trait) →

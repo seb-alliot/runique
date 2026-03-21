@@ -108,9 +108,9 @@ Renders the entire form: all HTML fields, validation errors, the CSRF token, and
 
 | Section | Description |
 | --- | --- |
-| [Filters & functions](https://github.com/seb-alliot/runique/blob/main/docs/en/template/filters/filters.md) | Low-level Tera filters |
-| [Tera syntax](https://github.com/seb-alliot/runique/blob/main/docs/en/template/syntax/syntax.md) | Inheritance, loops, conditions |
+| [Filters & functions](/docs/en/template/filters) | Low-level Tera filters |
+| [Tera syntax](/docs/en/template/syntax) | Inheritance, loops, conditions |
 
 ## Back to summary
 
-- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md)
+- [Templates](/docs/en/template)

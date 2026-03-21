@@ -91,9 +91,9 @@ user.can_admin(&["editor"])       // → bool
 
 | Section | Description |
 | --- | --- |
-| [User model](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/model/model.md) | Built-in model, `RuniqueUser` trait |
-| [Session helpers](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/session/session.md) | `login`, `logout`, checks |
+| [User model](/docs/en/auth/model) | Built-in model, `RuniqueUser` trait |
+| [Session helpers](/docs/en/auth/session) | `login`, `logout`, checks |
 
 ## Back to summary
 
-- [Authentication](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md)
+- [Authentication](/docs/en/auth)

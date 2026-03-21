@@ -11,12 +11,12 @@ Runique fournit un système de messages flash pour les notifications utilisateur
 
 | Section | Contenu |
 | --- | --- |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/macros/macros.md) | `success!`, `error!`, `info!`, `warning!`, `flash_now!`, différences, quand utiliser |
-| [Handlers](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/handlers/handlers.md) | Utilisation dans les handlers, comportement flash (une seule lecture) |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/templates/templates.md) | Tag `{% messages %}`, placement, personnalisation |
+| [Macros](/docs/fr/flash/macros) | `success!`, `error!`, `info!`, `warning!`, `flash_now!`, différences, quand utiliser |
+| [Handlers](/docs/fr/flash/handlers) | Utilisation dans les handlers, comportement flash (une seule lecture) |
+| [Templates](/docs/fr/flash/templates) | Tag `{% messages %}`, placement, personnalisation |
 
 ---
 
 ## Prochaines étapes
 
-← [**Middleware & Security**](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md) | [**Exemples pratiques**](https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/10-examples.md) →
+← [**Middleware & Security**](/docs/fr/middleware) | [**Exemples pratiques**](/docs/fr/exemple) →

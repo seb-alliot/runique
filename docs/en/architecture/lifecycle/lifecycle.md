@@ -60,11 +60,11 @@ context_update!(request => {
 
 | Section | Description |
 | --- | --- |
-| [Key concepts](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/concepts/concepts.md) | `RuniqueEngine`, `Request`, `Prisme<T>` |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/macros/macros.md) | Context, flash, routing, error macros |
-| [Tera tags & filters](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/tera/tera.md) | Django-like tags, filters, functions |
-| [Middleware stack](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/middleware/middleware.md) | Slot order, dependency injection |
+| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Macros](/docs/en/architecture/macros) | Context, flash, routing, error macros |
+| [Tera tags & filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
+| [Middleware stack](/docs/en/architecture/middleware) | Slot order, dependency injection |
 
 ## Back to summary
 
-- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
+- [Architecture](/docs/en/architecture)

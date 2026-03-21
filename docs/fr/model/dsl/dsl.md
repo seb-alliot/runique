@@ -140,9 +140,9 @@ Actions FK disponibles : `cascade`, `restrict`, `set_null`, `set_default` (défa
 
 | Section | Description |
 | --- | --- |
-| [Génération & ModelSchema](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/generation/generation.md) | Code généré, `ModelSchema` |
-| [Formulaires & enjeux](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/formulaires/formulaires.md) | `#[form(...)]` |
+| [Génération & ModelSchema](/docs/fr/model/generation) | Code généré, `ModelSchema` |
+| [Formulaires & enjeux](/docs/fr/model/formulaires) | `#[form(...)]` |
 
 ## Retour au sommaire
 
-- [Models](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md)
+- [Models](/docs/fr/model)

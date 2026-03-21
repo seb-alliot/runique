@@ -75,9 +75,9 @@
 
 | Section | Description |
 | --- | --- |
-| [Assets & médias](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/assets/assets.md) | Fichiers statiques, médias, templates |
-| [Sécurité & sessions](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/securite/securite.md) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
+| [Assets & médias](/docs/fr/env/assets) | Fichiers statiques, médias, templates |
+| [Sécurité & sessions](/docs/fr/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |
 
 ## Retour au sommaire
 
-- [Variables d'environnement](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/15-env.md)
+- [Variables d'environnement](/docs/fr/env)

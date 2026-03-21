@@ -10,12 +10,12 @@ Les données sont perdues au redémarrage du serveur. Pour la persistance, utili
 
 | Section | Contenu |
 | --- | --- |
-| [Store & watermarks](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/store/store.md) | `CleaningMemoryStore`, low/high watermarks, estimation mémoire |
-| [Protection](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/protection/protection.md) | Protection automatique (`user_id`), manuelle (`session_active`), cas d'usage panier |
-| [Usage & configuration](https://github.com/seb-alliot/runique/blob/main/docs/fr/session/usage/usage.md) | Accès à la session dans les handlers, `.env`, builder |
+| [Store & watermarks](/docs/fr/session/store) | `CleaningMemoryStore`, low/high watermarks, estimation mémoire |
+| [Protection](/docs/fr/session/protection) | Protection automatique (`user_id`), manuelle (`session_active`), cas d'usage panier |
+| [Usage & configuration](/docs/fr/session/usage) | Accès à la session dans les handlers, `.env`, builder |
 
 ---
 
 ## Prochaines étapes
 
-← [**Authentification**](https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md) | [**Variables d'environnement**](https://github.com/seb-alliot/runique/blob/main/docs/fr/env/15-env.md) →
+← [**Authentification**](/docs/fr/auth) | [**Variables d'environnement**](/docs/fr/env) →

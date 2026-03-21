@@ -112,9 +112,9 @@ Cette limitation sera levée en **v2.0** avec la refactorisation du système de 
 
 | Section | Description |
 | --- | --- |
-| [DSL & AST](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/dsl/dsl.md) | Syntaxe `model!`, types, options |
-| [Génération & ModelSchema](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/generation/generation.md) | Code généré |
+| [DSL & AST](/docs/fr/model/dsl) | Syntaxe `model!`, types, options |
+| [Génération & ModelSchema](/docs/fr/model/generation) | Code généré |
 
 ## Retour au sommaire
 
-- [Models](https://github.com/seb-alliot/runique/blob/main/docs/fr/model/12-model.md)
+- [Models](/docs/fr/model)

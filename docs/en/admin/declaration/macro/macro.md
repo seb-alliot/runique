@@ -38,7 +38,7 @@ The macro is parsed by the daemon (`runique start`) which generates the `admin_r
 | `model` (positional) | type path | e.g. `users::Model` |
 | `form` (positional) | type path | Runique form type for create/edit |
 | `title` | `&str` | Title displayed in the interface |
-| `permissions` | `[&str; N]` | Roles declared for this resource (⚠️ not enforced — see [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/permission/permissions.md)) |
+| `permissions` | `[&str; N]` | Roles declared for this resource (⚠️ not enforced — see [Permissions](/docs/en/admin/permission)) |
 
 ### Optional — behaviour
 
@@ -167,9 +167,9 @@ Missing required fields also produce compile-time errors, not runtime errors.
 
 | Section | Description |
 | --- | --- |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/cli.md) | How `runique start` works |
-| [Daemon & generation](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/daemon/generation.md) | Generated files |
+| [CLI](/docs/en/admin/declaration) | How `runique start` works |
+| [Daemon & generation](/docs/en/admin/declaration) | Generated files |
 
 ## Back to summary
 
-- [Admin Summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
+- [Admin Summary](/docs/en/admin)

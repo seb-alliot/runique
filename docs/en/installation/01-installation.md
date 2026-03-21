@@ -6,14 +6,14 @@ Complete guide to installing and configuring a Runique project.
 
 | Module | Description |
 | --- | --- |
-| [Prerequisites & Initial Setup](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/prerequisites/prerequisites.md)| Rust, Git, clone the project, build, run |
-| [Database](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/database/database.md) | SQLite (dev), PostgreSQL (prod) |
-| [Migrations](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/migrations/migrations.md) | `makemigrations`, `migrate up/down/status` |
-| [Runique CLI](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/cli/cli.md) | `create-superuser`, `new`, `start` |
-| [Troubleshooting](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/troubleshooting/troubleshooting.md) | Common errors and solutions |
+| [Prerequisites & Initial Setup](/docs/en/installation/prerequisites)| Rust, Git, clone the project, build, run |
+| [Database](/docs/en/installation/database) | SQLite (dev), PostgreSQL (prod) |
+| [Migrations](/docs/en/installation/migrations) | `makemigrations`, `migrate up/down/status` |
+| [Runique CLI](/docs/en/installation/cli) | `create-superuser`, `new`, `start` |
+| [Troubleshooting](/docs/en/installation/troubleshooting) | Common errors and solutions |
 
 ## Next Steps
 
-→ [**Architecture**](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md) | [**Configuration**](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md) →
+→ [**Architecture**](/docs/en/architecture) | [**Configuration**](/docs/en/configuration) →
 
 

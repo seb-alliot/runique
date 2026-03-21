@@ -1,3 +1,4 @@
+use crate::backend::doc::{doc_index, doc_page, doc_section_index};
 use crate::backend::{
     auth::{find_user_by_username, get_profile_user, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
@@ -286,6 +287,30 @@ pub async fn middleware_hosts(mut request: Request) -> AppResult<Response> {
 
 pub async fn middleware_https(mut request: Request) -> AppResult<Response> {
     demo_code_page("middleware_https", &mut request).await
+}
+
+// ─── Documentation ────────────────────────────────────────────────────────────
+
+pub async fn docs_index_fr(mut request: Request) -> AppResult<Response> {
+    doc_index("fr", &mut request).await
+}
+
+pub async fn docs_index_en(mut request: Request) -> AppResult<Response> {
+    doc_index("en", &mut request).await
+}
+
+pub async fn docs_section(
+    Path((lang, section)): Path<(String, String)>,
+    mut request: Request,
+) -> AppResult<Response> {
+    doc_section_index(&lang, &section, &mut request).await
+}
+
+pub async fn docs_page(
+    Path((lang, section, page)): Path<(String, String, String)>,
+    mut request: Request,
+) -> AppResult<Response> {
+    doc_page(&lang, &section, &page, &mut request).await
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────

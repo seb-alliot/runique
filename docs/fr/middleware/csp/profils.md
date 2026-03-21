@@ -120,4 +120,4 @@ RuniqueApp::new()
 
 ## Retour
 
-- [CSP — Vue d'ensemble](https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/csp.md)
+- [CSP — Vue d'ensemble](/docs/fr/middleware/csp)

@@ -98,7 +98,7 @@ impl UserEntity for users::Entity {
 .with_admin(|a| a.auth(DefaultAdminAuth::<users::Entity>::new()))
 ```
 
-To connect authentication to the admin panel, see also [11-Admin.md](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md).
+To connect authentication to the admin panel, see also [11-Admin.md](/docs/en/admin).
 
 ---
 
@@ -106,10 +106,10 @@ To connect authentication to the admin panel, see also [11-Admin.md](https://git
 
 | Section | Description |
 | --- | --- |
-| [User model](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/model/model.md) | Built-in model, `RuniqueUser` trait |
-| [Session helpers](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/session/session.md) | `login`, `logout`, checks |
-| [Middlewares & CurrentUser](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/middleware/middleware.md) | Route protection |
+| [User model](/docs/en/auth/model) | Built-in model, `RuniqueUser` trait |
+| [Session helpers](/docs/en/auth/session) | `login`, `logout`, checks |
+| [Middlewares & CurrentUser](/docs/en/auth/middleware) | Route protection |
 
 ## Back to summary
 
-- [Authentication](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md)
+- [Authentication](/docs/en/auth)

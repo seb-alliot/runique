@@ -102,4 +102,4 @@ Content-Security-Policy: Page's settings blocked the loading of a resource
 
 ## Back
 
-- [CSP — Overview](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/csp.md)
+- [CSP — Overview](/docs/en/middleware/csp)

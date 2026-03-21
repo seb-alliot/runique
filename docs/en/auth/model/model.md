@@ -86,9 +86,9 @@ impl RuniqueUser for users::Model {
 
 | Section | Description |
 | --- | --- |
-| [Session helpers](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/session/session.md) | `login`, `logout`, checks |
-| [Middlewares & CurrentUser](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/middleware/middleware.md) | Route protection |
+| [Session helpers](/docs/en/auth/session) | `login`, `logout`, checks |
+| [Middlewares & CurrentUser](/docs/en/auth/middleware) | Route protection |
 
 ## Back to summary
 
-- [Authentication](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md)
+- [Authentication](/docs/en/auth)

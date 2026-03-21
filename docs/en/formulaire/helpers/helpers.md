@@ -1,6 +1,6 @@
 # Typed conversion helpers
 
-[← RuniqueForm trait](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/trait/trait.md)
+[← RuniqueForm trait](/docs/en/formulaire/trait)
 
 ---
 
@@ -129,4 +129,4 @@ pub async fn edit(
 
 ---
 
-← [**RuniqueForm trait**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/trait/trait.md) | [**Field types**](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/fields/fields.md) →
+← [**RuniqueForm trait**](/docs/en/formulaire/trait) | [**Field types**](/docs/en/formulaire/fields) →

@@ -23,6 +23,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
     let db: DatabaseConnection = db_config.connect().await?;
 
+    backend::doc_seed::seed_docs(&db).await;
+
     builder::new(config)
         .routes(url::routes())
         .with_database(db)

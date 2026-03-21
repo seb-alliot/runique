@@ -108,9 +108,9 @@ Rend l'intégralité du formulaire : tous les champs HTML, les erreurs de valida
 
 | Section | Description |
 | --- | --- |
-| [Filtres & fonctions](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/filtres/filtres.md) | Filtres Tera bas niveau |
-| [Syntaxe Tera](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/syntaxe/syntaxe.md) | Héritage, boucles, conditions |
+| [Filtres & fonctions](/docs/fr/template/filtres) | Filtres Tera bas niveau |
+| [Syntaxe Tera](/docs/fr/template/syntaxe) | Héritage, boucles, conditions |
 
 ## Retour au sommaire
 
-- [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/template/06-templates.md)
+- [Templates](/docs/fr/template)

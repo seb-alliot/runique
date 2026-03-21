@@ -67,9 +67,9 @@ pub async fn checkout_complete(request: Request) -> AppResult<Response> {
 
 | Section | Description |
 | --- | --- |
-| [Store & watermarks](https://github.com/seb-alliot/runique/blob/main/docs/en/session/store/store.md) | CleaningMemoryStore, purge mechanisms |
-| [Usage & configuration](https://github.com/seb-alliot/runique/blob/main/docs/en/session/usage/usage.md) | Access and configuration |
+| [Store & watermarks](/docs/en/session/store) | CleaningMemoryStore, purge mechanisms |
+| [Usage & configuration](/docs/en/session/usage) | Access and configuration |
 
 ## Back to summary
 
-- [Sessions](https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md)
+- [Sessions](/docs/en/session)

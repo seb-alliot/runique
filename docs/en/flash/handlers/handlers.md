@@ -84,9 +84,9 @@ Flash messages stored in the session are **automatically consumed** upon display
 
 | Section | Description |
 | --- | --- |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/macros/macros.md) | All flash macros + differences |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/templates/templates.md) | Displaying messages in templates |
+| [Macros](/docs/en/flash/macros) | All flash macros + differences |
+| [Templates](/docs/en/flash/templates) | Displaying messages in templates |
 
 ## Back to summary
 
-- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md)
+- [Flash Messages](/docs/en/flash)

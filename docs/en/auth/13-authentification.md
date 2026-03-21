@@ -6,12 +6,12 @@ Runique provides a complete and extensible session-based authentication system.
 
 | Module | Description |
 | --- | --- |
-| [User Model](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/modele/modele.md) | `RuniqueUser`, built-in, custom trait |
-| [Session Helpers](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/session/session.md) | `login`, `logout`, `is_authenticated` |
-| [Protection Middlewares](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/middleware/middleware.md) | `login_required`, `redirect_if_authenticated`, `load_user_middleware` |
-| [Complete Example](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/exemple/exemple.md) | Complete Login / Logout handlers |
-| [LoginGuard](https://github.com/seb-alliot/runique/blob/main/docs/en/auth/login-guard/login-guard.md) | Brute-force protection per username |
+| [User Model](/docs/en/auth/modele) | `RuniqueUser`, built-in, custom trait |
+| [Session Helpers](/docs/en/auth/session) | `login`, `logout`, `is_authenticated` |
+| [Protection Middlewares](/docs/en/auth/middleware) | `login_required`, `redirect_if_authenticated`, `load_user_middleware` |
+| [Complete Example](/docs/en/auth/exemple) | Complete Login / Logout handlers |
+| [LoginGuard](/docs/en/auth/login-guard) | Brute-force protection per username |
 
 ## Next Steps
 
-← [**Flash Messages**](https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md) | [**Examples**](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md) →
+← [**Flash Messages**](/docs/en/flash) | [**Examples**](/docs/en/exemple) →

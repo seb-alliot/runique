@@ -50,10 +50,10 @@ let app = RuniqueApp::builder(config)
 
 | Section | Description |
 | --- | --- |
-| [CSRF](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csrf/csrf.md) | CSRF protection |
-| [CSP & headers](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/csp.md) | Content Security Policy |
-| [Hosts & cache](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/hosts-cache/hosts-cache.md) | Host validation |
+| [CSRF](/docs/en/middleware/csrf) | CSRF protection |
+| [CSP & headers](/docs/en/middleware/csp) | Content Security Policy |
+| [Hosts & cache](/docs/en/middleware/hosts-cache) | Host validation |
 
 ## Back to summary
 
-- [Middleware & Security](https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md)
+- [Middleware & Security](/docs/en/middleware)

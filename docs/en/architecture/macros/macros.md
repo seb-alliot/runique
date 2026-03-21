@@ -47,11 +47,11 @@ Runique provides a set of macros to simplify development.
 
 | Section | Description |
 | --- | --- |
-| [Key concepts](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/concepts/concepts.md) | `RuniqueEngine`, `Request`, `Prisme<T>` |
-| [Tera tags & filters](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/tera/tera.md) | Django-like tags, filters, functions |
-| [Middleware stack](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/middleware/middleware.md) | Slot order, dependency injection |
-| [Request lifecycle](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/lifecycle/lifecycle.md) | Lifecycle, best practices |
+| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Tera tags & filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
+| [Middleware stack](/docs/en/architecture/middleware) | Slot order, dependency injection |
+| [Request lifecycle](/docs/en/architecture/lifecycle) | Lifecycle, best practices |
 
 ## Back to summary
 
-- [Architecture](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/02-architecture.md)
+- [Architecture](/docs/en/architecture)

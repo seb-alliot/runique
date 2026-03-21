@@ -1,6 +1,6 @@
 # Erreurs de base de données
 
-[← Types de champs](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/champs/champs.md)
+[← Types de champs](/docs/fr/formulaire/champs)
 
 ---
 
@@ -26,4 +26,4 @@ Si le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est
 
 ---
 
-← [**Types de champs**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/champs/champs.md) | [**Rendu dans les templates**](https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/templates/templates.md) →
+← [**Types de champs**](/docs/fr/formulaire/champs) | [**Rendu dans les templates**](/docs/fr/formulaire/templates) →

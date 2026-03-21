@@ -6,6 +6,51 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
+## [1.1.52] - À venir
+
+### Correctifs
+
+* **Champ boolean — case décochée traitée comme absente :**
+  Un champ boolean décoché est désormais considéré comme `false` et non comme absent.
+  La validation `required` n'exige plus que la case soit cochée — elle vérifie uniquement la présence du champ.
+
+* **Mot de passe — retiré de la vue d'édition admin :**
+  Le champ mot de passe n'est plus affiché dans la vue d'édition de l'admin.
+  La modification du mot de passe sera gérée via un formulaire dédié de réinitialisation par email.
+
+### Ajouté
+
+* **Invalidation de session :**
+  La possibilité de rendre une session unique est désormais disponible via le builder de middleware — désactivé par défaut.
+  Lorsqu'activé, seule la session la plus récente de l'utilisateur reste valide.
+
+* **Vue admin — permissions par rôle :**
+  L'ajout de permission d'accès dans la vue admin est fonctionnel.
+  La documentation détaillera la configuration en détail.
+
+* **Filtre Tera `| markdown` :**
+  Un filtre `markdown` est désormais intégré au framework — propulsé par `pulldown-cmark`.
+  Utilisation : `{{ variable | markdown }}` dans n'importe quel template. Le préprocesseur injecte automatiquement `| safe`, aucun échappement manuel n'est nécessaire.
+
+* **Système de documentation piloté par la base de données (demo-app) :**
+  La documentation est désormais stockée dans PostgreSQL et servie dynamiquement par l'app Runique.
+  Le contenu est structuré en sections → pages → blocs (un bloc par heading `##`).
+  Une fonction de seed s'exécute une seule fois au démarrage et importe tous les fichiers `.md` depuis `docs/fr/` et `docs/en/`.
+  Une table `site_config` stocke les valeurs dynamiques (version actuelle, date de release, URLs) injectables dans les templates.
+  L'interface admin permet d'éditer chaque bloc individuellement sans toucher aux fichiers.
+
+---
+
+## [1.1.51] - 2026-03-20
+
+### Correctifs
+
+* **Version `derive_form` incorrecte :**
+  L'ordre de publication a été inversé — `runique` 1.1.50 a été publié avec `derive_form` 1.1.33 au lieu de la 1.1.34 attendue.
+  Republié avec la bonne dépendance.
+
+---
+
 ## [1.1.50] - 2026-03-20
 
 ### Correctifs

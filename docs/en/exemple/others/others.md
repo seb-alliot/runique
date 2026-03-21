@@ -119,10 +119,10 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 
 | Section | Description |
 | --- | --- |
-| [Minimal application](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/minimal/minimal.md) | Simple starting point |
-| [Forms](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/forms/forms.md) | CRUD with forms |
-| [Upload](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/upload/upload.md) | File upload |
+| [Minimal application](/docs/en/exemple/minimal) | Simple starting point |
+| [Forms](/docs/en/exemple/forms) | CRUD with forms |
+| [Upload](/docs/en/exemple/upload) | File upload |
 
 ## Back to summary
 
-- [Examples](https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/10-examples.md)
+- [Examples](/docs/en/exemple)

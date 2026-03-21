@@ -111,9 +111,9 @@ return request.render("form.html");
 
 | Section | Description |
 | --- | --- |
-| [Handlers](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/handlers/handlers.md) | Utilisation dans les handlers |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/templates/templates.md) | Affichage dans les templates |
+| [Handlers](/docs/fr/flash/handlers) | Utilisation dans les handlers |
+| [Templates](/docs/fr/flash/templates) | Affichage dans les templates |
 
 ## Retour au sommaire
 
-- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md)
+- [Flash Messages](/docs/fr/flash)

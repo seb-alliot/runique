@@ -684,7 +684,8 @@ footer p {
 /* =========================
     RESPONSIVE
    ========================= */
-@media (max-width: 900px) {
+/* Tablette (≤ 1024px) */
+@media (max-width: 1024px) {
     header { height: 210px; }
     header img { opacity: 0.55; }
     header::after {
@@ -700,7 +701,13 @@ footer p {
     footer a { margin: 0 0.5rem; font-size: 0.85rem; }
 }
 
-@media (max-width: 480px) {
+/* Footer burger button — caché sur desktop */
+.footer-burger {
+    display: none;
+}
+
+/* Mobile (≤ 600px) */
+@media (max-width: 600px) {
     header { height: 150px; }
     header img { opacity: 0.65; }
     header::after {
@@ -712,14 +719,66 @@ footer p {
     .content p  { font-size: 0.85rem; margin-bottom: 0.5rem; }
     [class^="message-"] { font-size: 0.85rem; padding: 0.6rem 0.8rem; }
     footer { padding: 1rem 0.5rem; }
-    footer a { display: inline-block; margin: 0.3rem 0.4rem; font-size: 0.8rem; }
     footer p { margin-top: 0.6rem; font-size: 0.75rem; }
+
+    .footer-burger {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        padding: 0.35rem 0.75rem;
+        cursor: pointer;
+        margin-bottom: 0.75rem;
+        transition: border-color 0.2s, color 0.2s;
+    }
+
+    .footer-burger:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .footer-links {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        margin-bottom: 0.75rem;
+        width: 100%;
+        max-width: 320px;
+        text-align: left;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .footer-links.open {
+        display: grid;
+    }
+
+    footer a {
+        margin: 0;
+        font-size: 0.85rem;
+        padding: 0.45rem 0.75rem;
+        border-bottom: 1px solid var(--border-light);
+        border-right: 1px solid var(--border-light);
+    }
+
+    .footer-links a:nth-child(even) {
+        border-right: none;
+    }
+
+    .footer-links a:nth-last-child(-n+2) {
+        border-bottom: none;
+    }
 }
 
+/* Petit mobile (≤ 360px) */
 @media (max-width: 360px) {
     .content h1 { font-size: 1rem; }
     .content     { padding: 0.75rem; }
-    footer a     { display: block; margin: 0.4rem 0; }
 }
 
 

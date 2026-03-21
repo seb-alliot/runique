@@ -49,18 +49,18 @@ Le daemon effectue une **génération initiale au démarrage** — il n'est pas 
 
 | Section | Description |
 | --- | --- |
-| [Daemon & génération](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/daemon/generation.md) | Watcher, fichiers
-| [Macro `admin!`](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/macro/macro.md) | Déclaration des ressources administrables
+| [Daemon & génération](/docs/fr/admin/declaration) | Watcher, fichiers
+| [Macro `admin!`](/docs/fr/admin/declaration) | Déclaration des ressources administrables
 
 ## Voir aussi
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/setup/setup.md) | Câbler l'admin dans un projet existant, créer un superuser |
-| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/templates.md) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [Évolutions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/evolution/evolution.md) | Axes d'évolution et état bêta |
+| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
+| [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
+| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |
+| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
 
 ## Revenir au Sommaire
 
-- [Sommaire](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md) - Sommaire Admin
+- [Sommaire](/docs/fr/admin) - Sommaire Admin

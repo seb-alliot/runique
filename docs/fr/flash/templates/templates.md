@@ -72,9 +72,9 @@ Pour personnaliser l'affichage, bouclez manuellement sur `messages` :
 
 | Section | Description |
 | --- | --- |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/macros/macros.md) | Toutes les macros flash |
-| [Handlers](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/handlers/handlers.md) | Utilisation dans les handlers |
+| [Macros](/docs/fr/flash/macros) | Toutes les macros flash |
+| [Handlers](/docs/fr/flash/handlers) | Utilisation dans les handlers |
 
 ## Retour au sommaire
 
-- [Flash Messages](https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md)
+- [Flash Messages](/docs/fr/flash)

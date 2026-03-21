@@ -38,7 +38,7 @@ La macro est parsée par le daemon (`runique start`) qui génère la fonction `a
 | `model` (position) | chemin de type | Ex: `users::Model` |
 | `form` (position) | chemin de type | Type du formulaire Runique associé |
 | `title` | `&str` | Titre affiché dans l'interface |
-| `permissions` | `[&str; N]` | Rôles déclarés pour cette ressource (⚠️ non appliqués — voir [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/permission/permissions.md)) |
+| `permissions` | `[&str; N]` | Rôles déclarés pour cette ressource (⚠️ non appliqués — voir [Permissions](/docs/fr/admin/permission)) |
 
 ### Optionnels — comportement
 
@@ -167,9 +167,9 @@ Les champs obligatoires manquants produisent également des erreurs à la compil
 
 | Section | Description |
 | --- | --- |
-| [CLI](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/cli.md) | Fonctionnement de `runique start`
-| [Daemon & génération](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/declaration/daemon/generation.md) | Fichiers générés
+| [CLI](/docs/fr/admin/declaration) | Fonctionnement de `runique start`
+| [Daemon & génération](/docs/fr/admin/declaration) | Fichiers générés
 
 ## Revenir au sommaire
 
-- [Sommaire Admin](https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/11-Admin.md)
+- [Sommaire Admin](/docs/fr/admin)

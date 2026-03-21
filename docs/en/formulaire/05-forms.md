@@ -3,18 +3,18 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Prisme extractor](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/prisme/prisme.md)
-- [RuniqueForm trait](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/trait/trait.md)
+- [Prisme extractor](/docs/en/formulaire/prisme)
+- [RuniqueForm trait](/docs/en/formulaire/trait)
   - Base structure
   - Trait methods
   - `is_valid()` pipeline
-- [Typed conversion helpers](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md)
-- [Field types](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/fields/fields.md)
+- [Typed conversion helpers](/docs/en/formulaire/helpers)
+- [Field types](/docs/en/formulaire/fields)
   - TextField, NumericField, BooleanField, ChoiceField, RadioField…
   - Summary table
-- [Database errors](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/errors/errors.md)
-- [Template rendering](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/templates/templates.md)
-- [Full example & common pitfalls](https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/example/example.md)
+- [Database errors](/docs/en/formulaire/errors)
+- [Template rendering](/docs/en/formulaire/templates)
+- [Full example & common pitfalls](/docs/en/formulaire/example)
 
 ---
 
@@ -31,4 +31,4 @@ Forms are automatically extracted from requests via the **Prisme** extractor, ha
 
 ## Next steps
 
-← [**Routing**](https://github.com/seb-alliot/runique/blob/main/docs/en/routing/04-routing.md) | [**Templates**](https://github.com/seb-alliot/runique/blob/main/docs/en/template/06-templates.md) →
+← [**Routing**](/docs/en/routing) | [**Templates**](/docs/en/template) →

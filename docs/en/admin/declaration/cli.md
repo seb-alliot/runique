@@ -49,18 +49,18 @@ The daemon performs an **initial generation on startup** — there is no need to
 
 | Section | Description |
 | --- | --- |
-| [Daemon & generation](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/daemon/generation.md) | Watcher, generated files |
-| [Macro `admin!`](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/declaration/macro/macro.md) | Declaring administrable resources |
+| [Daemon & generation](/docs/en/admin/declaration) | Watcher, generated files |
+| [Macro `admin!`](/docs/en/admin/declaration) | Declaring administrable resources |
 
 ## See also
 
 | Section | Description |
 | --- | --- |
-| [Setup](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/setup/setup.md) | Wire the admin into an existing project, create a superuser |
-| [Permissions](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/permission/permissions.md) | Roles, `is_staff` / `is_superuser`, runtime check |
-| [Templates](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/templates.md) | Template hierarchy, blocks, visual override |
-| [Roadmap](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/evolution/evolution.md) | Planned features and beta status |
+| [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |
+| [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
+| [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
+| [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |
 
 ## Back to summary
 
-- [Admin Summary](https://github.com/seb-alliot/runique/blob/main/docs/en/admin/11-Admin.md)
+- [Admin Summary](/docs/en/admin)

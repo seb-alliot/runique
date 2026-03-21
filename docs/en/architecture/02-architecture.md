@@ -52,7 +52,8 @@ mod views;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = RuniqueConfig::from_env();
-    let db = DatabaseConfig::from_env()?.build().connect().await?;
+    let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
+    let db: DatabaseConnection = db_config.connect().await?;
 
     password_init(PasswordConfig::auto());
 
@@ -185,14 +186,14 @@ runique/src/
 
 | Section | Content |
 | --- | --- |
-| [Core Concepts](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/concepts/concepts.md) | `RuniqueEngine`, `Request`, `Prisme<T>` |
-| [Macros](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/macros/macros.md) | Context, flash, routing, and error macros |
-| [Tera Tags & Filters](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/tera/tera.md) | Django-like tags, filters, functions |
-| [Middleware Stack](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/middleware/middleware.md) | Slot order and dependency injection |
-| [Request Lifecycle](https://github.com/seb-alliot/runique/blob/main/docs/en/architecture/lifecycle/lifecycle.md) | Lifecycle and best practices |
+| [Core Concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Macros](/docs/en/architecture/macros) | Context, flash, routing, and error macros |
+| [Tera Tags & Filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
+| [Middleware Stack](/docs/en/architecture/middleware) | Slot order and dependency injection |
+| [Request Lifecycle](/docs/en/architecture/lifecycle) | Lifecycle and best practices |
 
 ---
 
 ## Next Steps
 
-← [Installation](https://github.com/seb-alliot/runique/blob/main/docs/en/installation/01-installation.md) | [**Configuration**](https://github.com/seb-alliot/runique/blob/main/docs/en/configuration/03-configuration.md) →
+← [Installation](/docs/en/installation) | [**Configuration**](/docs/en/configuration) →
