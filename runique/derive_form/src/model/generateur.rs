@@ -178,18 +178,18 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
                     // Si vide → NotSet (ne pas écraser lors d'un edit sans nouveau mot de passe).
                     if is_nullable {
                         quote! {
-                            #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
                                 Some(v) => ::sea_orm::ActiveValue::Set(
-                                    Some(::runique::utils::password::hash(v).unwrap_or_else(|_| v.clone()))
+                                    Some(::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone()))
                                 ),
                                 None => ::sea_orm::ActiveValue::Set(None),
                             },
                         }
                     } else {
                         quote! {
-                            #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
                                 Some(v) => ::sea_orm::ActiveValue::Set(
-                                    ::runique::utils::password::hash(v).unwrap_or_else(|_| v.clone())
+                                    ::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone())
                                 ),
                                 None => ::sea_orm::ActiveValue::NotSet,
                             },
@@ -198,13 +198,13 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
                 } else if is_nullable {
                     quote! {
                         #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).filter(|v| !v.is_empty()).cloned()
+                            __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
                         ),
                     }
                 } else {
                     quote! {
                         #fname: ::sea_orm::ActiveValue::Set(
-                            __data.get(#fname_str).cloned().unwrap_or_default()
+                            __data.get(#fname_str).map(|v| v.trim().to_string()).unwrap_or_default()
                         ),
                     }
                 }

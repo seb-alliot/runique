@@ -10,6 +10,10 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ### Correctifs
 
+* **Vue admin — trim automatique sur les entrées en base :**
+  Les champs texte et mots de passe soumis via la vue admin sont désormais passés sous `.trim()` avant sauvegarde en base.
+  Évite toute différence d'entrée en base due à un espace involontaire en début ou fin de valeur.
+
 * **Champ boolean — case décochée traitée comme absente :**
   Un champ boolean décoché est désormais considéré comme `false` et non comme absent.
   La validation `required` n'exige plus que la case soit cochée — elle vérifie uniquement la présence du champ.
@@ -19,6 +23,10 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
   La modification du mot de passe sera gérée via un formulaire dédié de réinitialisation par email.
 
 ### Ajouté
+
+* **Vue admin — pagination configurable :**
+  La taille de page dans la vue liste est désormais configurable via le builder admin : `.page_size(15)`.
+  La valeur par défaut reste 10. La pagination s'affiche automatiquement dès que le nombre de résultats dépasse la limite.
 
 * **Invalidation de session :**
   La possibilité de rendre une session unique est désormais disponible via le builder de middleware — désactivé par défaut.
