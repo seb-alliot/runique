@@ -41,11 +41,15 @@ pub fn is_debug() -> bool {
     matches!(*ENV, RuniqueEnv::Development)
 }
 
-/// Génère un token de 4 chiffres basé sur les nanosecondes au démarrage.
-/// Utilisé comme cache-buster pour les assets statiques.
-pub fn css_token() -> String {
+/// Token de 4 chiffres calculé une seule fois au démarrage.
+/// Utilisé comme cache-buster pour les assets statiques (`?v=XXXX`).
+static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| (d.subsec_nanos() % 9000 + 1000).to_string())
         .unwrap_or_else(|_| "1000".to_string())
+});
+
+pub fn css_token() -> String {
+    CSS_TOKEN.clone()
 }
