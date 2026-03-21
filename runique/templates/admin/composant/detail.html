@@ -50,7 +50,7 @@
                 {% elif value == false %}
                   <span class="badge badge-neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
                 {% elif value %}
-                  {{ value }}
+                  {% if value is string %}{{ value | escape }}{% else %}{{ value }}{% endif %}
                 {% else %}
                   <span class="text-muted">—</span>
                 {% endif %}
