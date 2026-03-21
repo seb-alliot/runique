@@ -15,7 +15,7 @@ use runique::prelude::*;
 pub async fn index(mut request: Request) -> AppResult<Response> {
     context_update!(request => {
         "title"       => "Bienvenue sur Runique",
-        "description" => "Runique — framework web Rust inspiré de Django, construit sur Axum, SeaORM et Tera. Formulaires typés, sécurité, ORM, admin généré.",
+        "description" => "Runique — framework web Rust inspiré de Django. Formulaires typés, sécurité intégrée (CSRF, CSP), SeaORM, Tera templates et admin généré.",
         "status"      => "Status: Framework en cours de développement...",
         "backend"     => "Rust , Axum",
         "template"    => "Moteur de template: Tera",
