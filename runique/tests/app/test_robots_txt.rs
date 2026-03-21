@@ -107,7 +107,6 @@ async fn test_robots_txt_respecte_prefix_custom() {
 /// .no_robots_txt() désactive la route — le contenu robots.txt n'est pas servi.
 #[tokio::test]
 async fn test_robots_txt_absent_avec_no_robots_txt() {
-    use axum::body::to_bytes;
     use axum::http::{Request, StatusCode};
     use tower::ServiceExt;
 

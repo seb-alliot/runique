@@ -257,6 +257,47 @@ pub async fn roadmap(mut request: Request) -> AppResult<Response> {
     request.render("info/cards.html")
 }
 
+// ─── Readme ───────────────────────────────────────────────────────────────────
+
+fn find_readme(candidates: &[&str]) -> String {
+    for path in candidates {
+        if let Ok(content) = std::fs::read_to_string(path) {
+            return content;
+        }
+    }
+    "README introuvable.".to_string()
+}
+
+pub async fn readme_fr(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    let content = find_readme(&[
+        "docs/fr/README.fr.md",
+        "../docs/fr/README.fr.md",
+        "/app/docs/fr/README.fr.md",
+    ]);
+    context_update!(request => {
+        "title"   => "README — Français",
+        "content" => &content,
+        "lang"    => "fr",
+    });
+    request.render("readme.html")
+}
+
+pub async fn readme_en(mut request: Request) -> AppResult<Response> {
+    inject_auth(&mut request).await;
+    let content = find_readme(&[
+        "docs/en/README.md",
+        "../docs/en/README.md",
+        "/app/docs/en/README.md",
+    ]);
+    context_update!(request => {
+        "title"   => "README — English",
+        "content" => &content,
+        "lang"    => "en",
+    });
+    request.render("readme.html")
+}
+
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
 pub async fn middleware_hub(mut request: Request) -> AppResult<Response> {

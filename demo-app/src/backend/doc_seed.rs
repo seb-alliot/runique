@@ -131,8 +131,8 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
         if is_nav_block {
             // Retire le heading "## Sommaire" pour ne garder que la liste
             let list_content = intro
-                .splitn(2, '\n')
-                .nth(1)
+                .split_once('\n')
+                .map(|x| x.1)
                 .unwrap_or("")
                 .trim()
                 .to_string();
@@ -296,7 +296,7 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
                             let name = e.file_name();
                             let name = name.to_string_lossy();
                             name.ends_with(".md")
-                                && name.chars().next().map_or(false, |c| c.is_ascii_digit())
+                                && name.chars().next().is_some_and(|c| c.is_ascii_digit())
                         })
                         .unwrap_or(false)
                 })
@@ -317,7 +317,9 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
                 .map(|c| extract_title(&c))
                 .unwrap_or_else(|| {
                     let mut s = section_slug.clone();
-                    s.get_mut(0..1).map(|c| c.make_ascii_uppercase());
+                    if let Some(c) = s.get_mut(0..1) {
+                        c.make_ascii_uppercase()
+                    }
                     s
                 });
 
@@ -360,7 +362,7 @@ async fn seed_section_pages(
     for entry in entries {
         let path = entry.path();
 
-        if path.is_file() && path.extension().map_or(false, |e| e == "md") {
+        if path.is_file() && path.extension().is_some_and(|e| e == "md") {
             // Fichier index de la section (NN-nom.md)
             let content = match fs::read_to_string(&path) {
                 Ok(c) => strip_github_anchors(&c),
@@ -387,7 +389,7 @@ async fn seed_section_pages(
                 .and_then(|mut d| {
                     d.find(|e| {
                         e.as_ref()
-                            .map(|e| e.path().extension().map_or(false, |x| x == "md"))
+                            .map(|e| e.path().extension().is_some_and(|x| x == "md"))
                             .unwrap_or(false)
                     })
                 })
@@ -430,9 +432,9 @@ async fn seed_site_config(db: &DatabaseConnection) {
 
     for (key, value, description) in &entries {
         let row = site_config::ActiveModel {
-            key: Set(format!("{key}")),
-            value: Set(format!("{value}")),
-            description: Set(Some(format!("{description}"))),
+            key: Set(std::string::ToString::to_string(key)),
+            value: Set(std::string::ToString::to_string(value)),
+            description: Set(Some(std::string::ToString::to_string(description))),
             ..Default::default()
         };
         if let Err(e) = row.insert(db).await {

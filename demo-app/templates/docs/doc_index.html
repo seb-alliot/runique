@@ -16,12 +16,29 @@
         <a href='{% link "doc_index_en" %}' class="btn {% if lang == 'en' %}btn-primary{% else %}btn-secondary{% endif %}">English</a>
     </div>
 
-    <div class="doc-sections-grid">
-        {% for section in sections %}
-        <a href="/docs/{{ lang }}/{{ section.slug }}" class="doc-section-card">
-            <h2>{{ section.title }}</h2>
-        </a>
-        {% endfor %}
+    <div class="doc-index-section">
+        <h2 class="doc-index-section-title">README</h2>
+        <div class="doc-sections-grid">
+            <a href="/readme/fr" class="doc-section-card">
+                <h2>README — Français</h2>
+                <p>Vue d'ensemble du projet en français</p>
+            </a>
+            <a href="/readme/en" class="doc-section-card">
+                <h2>README — English</h2>
+                <p>Project overview in English</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="doc-index-section">
+        <h2 class="doc-index-section-title">{% if lang == 'fr' %}Sections{% else %}Sections{% endif %}</h2>
+        <div class="doc-sections-grid">
+            {% for section in sections %}
+            <a href="/docs/{{ lang }}/{{ section.slug }}" class="doc-section-card">
+                <h2>{{ section.title }}</h2>
+            </a>
+            {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %}

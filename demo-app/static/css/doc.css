@@ -17,6 +17,27 @@
     margin-bottom: 2rem;
 }
 
+.doc-index-section {
+    margin-bottom: 2rem;
+}
+
+.doc-index-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.doc-section-card p {
+    font-size: 0.82rem;
+    color: var(--text-muted, #888);
+    margin: 0.25rem 0 0;
+}
+
 .doc-sections-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -163,7 +184,11 @@
     padding-left: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.6rem;
+}
+
+.doc-toc li {
+    line-height: 1.7;
 }
 
 .doc-toc a {
@@ -234,11 +259,14 @@
 .doc-block-content ol {
     padding-left: 1.25rem;
     margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
 }
 
 .doc-block-content li {
     padding-inline-start: 1px;
-    margin-bottom: 0.25rem;
+    line-height: 1.7;
 }
 
 .doc-block-content pre {
@@ -273,6 +301,55 @@
 .doc-block-content th {
     background: var(--surface, rgba(255,255,255,0.04));
     font-weight: 600;
+}
+
+/* ── Readme ─────────────────────────────────────────────────── */
+
+.readme-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.readme-bar-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.readme-lang-switch {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.readme-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 2.5rem;
+}
+
+.readme-container ul {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem 2rem;
+    padding-left: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+    .readme-container ul {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .readme-container {
+        padding: 1.25rem 1rem;
+    }
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */
