@@ -1,4 +1,8 @@
 pub use sea_orm_migration::prelude::*;
+mod m20260321_193132_create_doc_page_table;
+mod m20260321_193132_create_doc_block_table;
+mod m20260321_193132_create_doc_section_table;
+mod m20260321_193132_create_site_config_table;
 mod m20260318_153933_create_blog_table;
 mod m20260318_153933_create_contributions_table;
 mod m20260318_153933_create_eihwaz_users_table;
@@ -50,6 +54,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20260321_000001_create_doc_page_table::Migration),
             Box::new(m20260321_000002_create_doc_block_table::Migration),
             Box::new(m20260321_000003_create_site_config_table::Migration),
+            Box::new(m20260321_193132_create_site_config_table::Migration),
+            Box::new(m20260321_193132_create_doc_section_table::Migration),
+            Box::new(m20260321_193132_create_doc_block_table::Migration),
+            Box::new(m20260321_193132_create_doc_page_table::Migration),
         ]
     }
 }
