@@ -317,9 +317,21 @@ impl RuniqueAppBuilder {
         let router = router.unwrap_or_default();
 
         let router = if self.admin.enabled {
+            let admin_prefix = self.admin.config.prefix.trim_end_matches('/').to_string();
+            let robots_txt = self.admin.robots_txt;
             let admin_router = build_admin_router(self.admin);
             add_urls(&engine);
-            router.merge(admin_router)
+            let mut r = router.merge(admin_router);
+            if robots_txt {
+                r = r.route(
+                    "/robots.txt",
+                    axum::routing::get(move || {
+                        let body = format!("User-agent: *\nDisallow: {}/\n", admin_prefix);
+                        async move { body }
+                    }),
+                );
+            }
+            r
         } else {
             router
         };
