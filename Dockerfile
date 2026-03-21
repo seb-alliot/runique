@@ -49,6 +49,7 @@ COPY --from=builder /usr/src/app/runique/templates/ /app/runique/templates/
 COPY --from=builder /usr/src/app/demo-app/static/ /app/static/
 COPY --from=builder /usr/src/app/demo-app/templates/ /app/templates/
 COPY --from=builder /usr/src/app/demo-app/media/ /app/media/
+COPY --from=builder /usr/src/app/demo-app/sitemap.xml /app/sitemap.xml
 
 # 4. Copie des fichiers sources nécessaires au runtime (Entities & Migrations)
 COPY --from=builder /usr/src/app/demo-app/migration/ /app/migration/
