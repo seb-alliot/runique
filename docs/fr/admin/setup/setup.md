@@ -86,10 +86,17 @@ builder::new(config)
 
 | Méthode | Rôle |
 | --- | --- |
+| `.prefix("/admin")` | Préfixe des routes admin (défaut : `/admin`) |
 | `.site_title("…")` | Titre affiché dans l'interface |
 | `.auth(RuniqueAdminAuth::new())` | Authentification admin (par défaut) |
 | `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |
 | `.with_state(…)` | État partagé généré par le daemon |
+| `.no_robots_txt()` | Désactive le `/robots.txt` automatique |
+
+> **robots.txt automatique** — Quand l'admin est actif, Runique génère automatiquement
+> une route `/robots.txt` contenant `Disallow: /admin/` pour exclure l'interface
+> des moteurs de recherche. Le préfixe configuré via `.prefix()` est respecté.
+> Utilisez `.no_robots_txt()` si vous souhaitez gérer ce fichier vous-même.
 
 ---
 

@@ -13,6 +13,7 @@ use axum::Router;
 pub struct AdminStaging {
     pub config: AdminConfig,
     pub enabled: bool,
+    pub robots_txt: bool,
     pub route_admin: Option<Router>,
     pub state: Option<Arc<PrototypeAdminState>>,
 }
@@ -22,9 +23,16 @@ impl AdminStaging {
         Self {
             config: AdminConfig::new(),
             enabled: false,
+            robots_txt: true,
             route_admin: None,
             state: None,
         }
+    }
+
+    /// Désactive la génération automatique du `/robots.txt` (activé par défaut).
+    pub fn no_robots_txt(mut self) -> Self {
+        self.robots_txt = false;
+        self
     }
 
     pub fn routes(mut self, router: Router) -> Self {
@@ -49,6 +57,12 @@ impl AdminStaging {
 
     pub fn site_url(mut self, url: &str) -> Self {
         self.config = self.config.site_url(url);
+        self
+    }
+
+    /// Définit le préfixe des routes admin (défaut : `/admin`).
+    pub fn prefix(mut self, prefix: &str) -> Self {
+        self.config = self.config.prefix(prefix);
         self
     }
 
