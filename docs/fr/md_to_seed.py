@@ -20,14 +20,14 @@ Usage :
 import re
 from pathlib import Path
 
-COUR_DIR = Path(__file__).parent.parent / "docs" / "fr" / "cour"
+COUR_DIR = Path(__file__).parent / "cour"
 OUT_FILE = Path(__file__).parent / "seed_cours.sql"
 
 # Correspondance slug fichier → id dans la table cour (doit matcher le seed)
 COUR_IDS = {
     "cargo-dependances":        1,
-    "variables-et-fonctions":   2,
-    "structures-et-controle":   3,
+    "variables-et-fonctions":  2,
+    "structures-et-controle":  3,
     "structures-enums":    4,
     "pattern-matching":    5,
     "collections":         6,

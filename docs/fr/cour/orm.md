@@ -2,7 +2,7 @@
 
 Extension ORM avec Traits, Génériques et Macros 
 
-Framework Rusti - Documentation Complète 
+Framework Runique - Documentation Complète 
 
 ### Objectif du cours
 
@@ -228,7 +228,7 @@ Notre solution utilise trois composants principaux qui travaillent ensemble :
 **==> picture [328 x 211] intentionally omitted <==**
 
 **----- Start of picture text -----**<br>
-IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   User (entité SeaORM)                    I<br>I   + impl_objects!(Entity)                 I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   Objects<User>                           I<br>I   - Constante créée par la macro          I<br>I   - Méthodes: filter(), exclude(), etc.   I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   RustiQueryBuilder<User>                 I<br>I   - Encapsule Select<User>                I<br>I   - Méthodes chainables                   I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   SeaORM Select<User>                     I<br>I   - Query SQL réelle                      I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>**----- End of picture text -----**<br>
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   User (entité SeaORM)                    I<br>I   + impl_objects!(Entity)                 I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   Objects<User>                           I<br>I   - Constante créée par la macro          I<br>I   - Méthodes: filter(), exclude(), etc.   I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   RuniqueQueryBuilder<User>                 I<br>I   - Encapsule Select<User>                I<br>I   - Méthodes chainables                   I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I<br>M<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>I   SeaORM Select<User>                     I<br>I   - Query SQL réelle                      I<br>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII<br>**----- End of picture text -----**<br>
 
 ## Flux de données :
 
@@ -281,7 +281,7 @@ impl<E: EntityTrait> Objects<E> {
 ```
 
 ```
-    pub fn filter<C>(&self, condition: C) -> RustiQueryBuilder<E>
+    pub fn filter<C>(&self, condition: C) -> RuniqueQueryBuilder<E>
     //            ^^ C peut être n'importe quoi convertible en Condition
     where
 ```
@@ -303,7 +303,7 @@ impl<E: EntityTrait> Objects<E> {
 ```
         // 2. L'envelopper dans notre QueryBuilder
         // 3. Appliquer le filtre
-        RustiQueryBuilder::new(query).filter(condition.into())
+        RuniqueQueryBuilder::new(query).filter(condition.into())
         //                                              ^^^^^^ Conversion auto
     }
 ```
@@ -316,16 +316,16 @@ I **Analogie :** `Objects<E>` est comme une **télécommande** pour contrôler `
 
 ## 4.2 - query.rs (le QueryBuilder)
 
-Le `RustiQueryBuilder` encapsule la query SeaORM et permet de chaîner les méthodes. 
+Le `RuniqueQueryBuilder` encapsule la query SeaORM et permet de chaîner les méthodes. 
 
 ```
-pub struct RustiQueryBuilder<E: EntityTrait> {
+pub struct RuniqueQueryBuilder<E: EntityTrait> {
     select: Select<E>,  // La vraie query SeaORM
 }
 ```
 
 ```
-impl<E: EntityTrait> RustiQueryBuilder<E> {
+impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     pub fn new(select: Select<E>) -> Self {
         Self { select }
     }
@@ -418,7 +418,7 @@ impl Entity {
 Le trait `Into<Condition>` permet la conversion automatique des expressions SeaORM en conditions. 
 
 ```
-pub fn filter<C>(&self, condition: C) -> RustiQueryBuilder<E>
+pub fn filter<C>(&self, condition: C) -> RuniqueQueryBuilder<E>
 where
 ```
 
