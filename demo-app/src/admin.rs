@@ -1,12 +1,12 @@
 use crate::entities::{
-    blog, changelog_entry, code_example, demo_category, demo_page, demo_section, doc_block,
-    doc_page, doc_section, form_field, known_issue, page_doc_link, roadmap_entry, site_config,
-    users,
+    blog, changelog_entry, chapitre, code_example, cour, cour_block, demo_category, demo_page,
+    demo_section, doc_block, doc_page, doc_section, form_field, known_issue, page_doc_link,
+    roadmap_entry, site_config, users,
 };
 use crate::formulaire::{
-    BlogForm, ChangelogEntryForm, CodeExampleForm, DemoCategoryForm, DemoPageForm, DemoSectionForm,
-    DocBlockForm, DocPageForm, DocSectionForm, FormFieldForm, KnownIssueForm, PageDocLinkForm,
-    RegisterForm, RoadmapEntryForm, SiteConfigForm,
+    BlogForm, ChangelogEntryForm, ChapitreForm, CodeExampleForm, CourBlockForm, CourForm,
+    DemoCategoryForm, DemoPageForm, DemoSectionForm, DocBlockForm, DocPageForm, DocSectionForm,
+    FormFieldForm, KnownIssueForm, PageDocLinkForm, RegisterForm, RoadmapEntryForm, SiteConfigForm,
 };
 
 admin! {
@@ -88,5 +88,34 @@ admin! {
     site_config: site_config::Model => SiteConfigForm {
         title: "Configuration site",
         permissions: ["admin"]
+    }
+    cour: cour::Model => CourForm {
+        title: "Cours",
+        permissions: ["admin"],
+        list_display: [
+            ["slug", "Slug"],
+            ["theme", "Thème"],
+            ["difficulte", "Difficulté"],
+            ["ordre", "Ordre"],
+        ],
+        list_filter: [
+            ["theme", "Thème"],
+            ["difficulte", "Difficulté"],
+        ]
+    }
+    chapitre: chapitre::Model => ChapitreForm {
+        title: "Chapitres",
+        permissions: ["admin"],
+        list_filter: [
+            ["cour_id", "Cours", 10],
+        ]
+    }
+    cour_block: cour_block::Model => CourBlockForm {
+        title: "Cours — Blocs",
+        permissions: ["admin"],
+        list_filter: [
+            ["chapitre_id", "Chapitre", 10],
+            ["block_type", "Type", 5],
+        ]
     }
 }

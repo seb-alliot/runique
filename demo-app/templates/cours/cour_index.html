@@ -1,0 +1,55 @@
+{% extends "index.html" %}
+
+{% block meta %}
+<meta name="description" content="Cours Rust — du débutant à l'expert, organisés par thème.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cours Rust — Runique">
+<meta property="og:description" content="Cours Rust organisés par thème et niveau de difficulté.">
+{% endblock %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/cours.css" %}'>
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+<div class="cours-index-container">
+
+    <div class="cours-index-hero">
+        <h1>Cours Rust</h1>
+        <p class="cours-index-lead">Du débutant à l'expert — parcours structurés par thème.</p>
+    </div>
+
+    {% set themes_vus = [] %}
+
+    {% for niveau in niveaux %}
+    <section class="cours-niveau-section">
+        <h2 class="cours-niveau-titre">
+            <span class="cours-niveau-badge cours-niveau-badge-{{ niveau.slug }}">{{ niveau.label }}</span>
+        </h2>
+
+        <div class="cours-grid">
+            {% for cour in cours %}
+            {% if cour.theme == niveau.theme %}
+            <a href="/cours/{{ cour.slug }}" class="cours-card">
+                <div class="cours-card-body">
+                    <h3>{{ cour.title }}</h3>
+                    {% if cour.lead %}
+                    <p class="cours-card-lead">{{ cour.lead }}</p>
+                    {% endif %}
+                </div>
+                <div class="cours-card-footer">
+                    <span class="cours-tag">{{ cour.theme }}</span>
+                </div>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+
+</div>
+{% endblock %}

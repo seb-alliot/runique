@@ -1,8 +1,17 @@
+pub mod chapitre;
+pub use chapitre::ChapitreForm;
+
 pub mod changelog_entry;
 pub use changelog_entry::ChangelogEntryForm;
 
 pub mod code_example;
 pub use code_example::CodeExampleForm;
+
+pub mod cour;
+pub use cour::CourForm;
+
+pub mod cour_block;
+pub use cour_block::CourBlockForm;
 
 pub mod demo_category;
 pub use demo_category::DemoCategoryForm;
@@ -53,7 +62,7 @@ pub mod login;
 pub use login::LoginForm;
 
 pub mod contribution;
-pub use contribution::ContributionForm;
+pub use contribution::{ContributionForm, contribution_type_choices};
 
 pub mod search_demo;
 pub use search_demo::SearchDemoForm;

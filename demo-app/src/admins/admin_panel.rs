@@ -6,7 +6,10 @@ use runique::prelude::*;
 
 use crate::entities::blog;
 use crate::entities::changelog_entry;
+use crate::entities::chapitre;
 use crate::entities::code_example;
+use crate::entities::cour;
+use crate::entities::cour_block;
 use crate::entities::demo_category;
 use crate::entities::demo_page;
 use crate::entities::demo_section;
@@ -355,6 +358,72 @@ struct SiteConfigAdminFormDynWrapper(pub site_config::AdminForm);
 
 #[async_trait]
 impl DynForm for SiteConfigAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper pour cour::AdminForm ──
+struct CourAdminFormDynWrapper(pub cour::AdminForm);
+
+#[async_trait]
+impl DynForm for CourAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper pour chapitre::AdminForm ──
+struct ChapitreAdminFormDynWrapper(pub chapitre::AdminForm);
+
+#[async_trait]
+impl DynForm for ChapitreAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        self.0.save(db).await
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper pour cour_block::AdminForm ──
+struct CourBlockAdminFormDynWrapper(pub cour_block::AdminForm);
+
+#[async_trait]
+impl DynForm for CourBlockAdminFormDynWrapper {
     async fn is_valid(&mut self) -> bool {
         self.0.is_valid().await
     }
@@ -2165,6 +2234,505 @@ pub fn admin_register() -> AdminRegistry {
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
             .with_count_fn(count_fn),
+    );
+
+    // ── Ressource : cour ──
+    let meta = AdminResource::new(
+        "cour",
+        "crate::entities::cour::Model",
+        "AdminForm",
+        "Cours",
+        vec!["admin".to_string()],
+    );
+    let form_builder: FormBuilder =
+        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+            Box::pin(async move {
+                let form = cour::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(CourAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        });
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = cour::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            Ok(rows
+                .into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect())
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { cour::Entity::find().count(&*db).await })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let row = cour::Entity::find_by_id(id).one(&*db).await?;
+            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            cour::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            cour::admin_from_form(&data, None)
+                .insert(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            cour::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("slug", "Slug"),
+                ("theme", "Thème"),
+                ("difficulte", "Difficulté"),
+                ("ordre", "Ordre"),
+            ])
+            .list_filter(vec![
+                ("theme", "Thème", 10u64),
+                ("difficulte", "Difficulté", 10u64),
+            ]),
+    );
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
+        Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
+            let page_size_theme = 10u64;
+            let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
+            let count_stmt_theme = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT theme)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .to_owned();
+            let count_row_theme = db.query_one(&count_stmt_theme).await.unwrap_or(None);
+            let total_theme = count_row_theme
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_theme = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(theme AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .order_by(Alias::new("theme"), Order::Asc)
+                .limit(page_size_theme)
+                .offset(cur_page_theme * page_size_theme)
+                .to_owned();
+            let rows_theme = db.query_all(&stmt_theme).await.unwrap_or_default();
+            let vals_theme: Vec<String> = rows_theme
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert("theme".to_string(), (vals_theme, total_theme));
+            let page_size_difficulte = 10u64;
+            let cur_page_difficulte = pages.get("difficulte").copied().unwrap_or(0);
+            let count_stmt_difficulte = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT difficulte)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("difficulte")).is_not_null())
+                .to_owned();
+            let count_row_difficulte = db.query_one(&count_stmt_difficulte).await.unwrap_or(None);
+            let total_difficulte = count_row_difficulte
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_difficulte = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(difficulte AS TEXT)"))
+                .from(Alias::new(cour::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("difficulte")).is_not_null())
+                .order_by(Alias::new("difficulte"), Order::Asc)
+                .limit(page_size_difficulte)
+                .offset(cur_page_difficulte * page_size_difficulte)
+                .to_owned();
+            let rows_difficulte = db.query_all(&stmt_difficulte).await.unwrap_or_default();
+            let vals_difficulte: Vec<String> = rows_difficulte
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert(
+                "difficulte".to_string(),
+                (vals_difficulte, total_difficulte),
+            );
+            Ok(result)
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_count_fn(count_fn)
+            .with_filter_fn(filter_fn),
+    );
+
+    // ── Ressource : chapitre ──
+    let meta = AdminResource::new(
+        "chapitre",
+        "crate::entities::chapitre::Model",
+        "AdminForm",
+        "Chapitres",
+        vec!["admin".to_string()],
+    );
+    let form_builder: FormBuilder =
+        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+            Box::pin(async move {
+                let form = chapitre::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(ChapitreAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        });
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = chapitre::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            Ok(rows
+                .into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect())
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { chapitre::Entity::find().count(&*db).await })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let row = chapitre::Entity::find_by_id(id).one(&*db).await?;
+            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            chapitre::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            chapitre::admin_from_form(&data, None)
+                .insert(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            chapitre::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let meta = meta.display(DisplayConfig::new().list_filter(vec![("cour_id", "Cours", 10u64)]));
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
+        Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
+            let page_size_cour_id = 10u64;
+            let cur_page_cour_id = pages.get("cour_id").copied().unwrap_or(0);
+            let count_stmt_cour_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT cour_id)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("cour_id")).is_not_null())
+                .to_owned();
+            let count_row_cour_id = db.query_one(&count_stmt_cour_id).await.unwrap_or(None);
+            let total_cour_id = count_row_cour_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_cour_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(cour_id AS TEXT)"))
+                .from(Alias::new(chapitre::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("cour_id")).is_not_null())
+                .order_by(Alias::new("cour_id"), Order::Asc)
+                .limit(page_size_cour_id)
+                .offset(cur_page_cour_id * page_size_cour_id)
+                .to_owned();
+            let rows_cour_id = db.query_all(&stmt_cour_id).await.unwrap_or_default();
+            let vals_cour_id: Vec<String> = rows_cour_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert("cour_id".to_string(), (vals_cour_id, total_cour_id));
+            Ok(result)
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_count_fn(count_fn)
+            .with_filter_fn(filter_fn),
+    );
+
+    // ── Ressource : cour_block ──
+    let meta = AdminResource::new(
+        "cour_block",
+        "crate::entities::cour_block::Model",
+        "AdminForm",
+        "Cours — Blocs",
+        vec!["admin".to_string()],
+    );
+    let form_builder: FormBuilder =
+        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+            Box::pin(async move {
+                let form = cour_block::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(CourBlockAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        });
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = cour_block::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            Ok(rows
+                .into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect())
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { cour_block::Entity::find().count(&*db).await })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let row = cour_block::Entity::find_by_id(id).one(&*db).await?;
+            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            cour_block::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            cour_block::admin_from_form(&data, None)
+                .insert(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            cour_block::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let meta = meta.display(DisplayConfig::new().list_filter(vec![
+        ("chapitre_id", "Chapitre", 10u64),
+        ("block_type", "Type", 5u64),
+    ]));
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
+        Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
+            let page_size_chapitre_id = 10u64;
+            let cur_page_chapitre_id = pages.get("chapitre_id").copied().unwrap_or(0);
+            let count_stmt_chapitre_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT chapitre_id)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("chapitre_id")).is_not_null())
+                .to_owned();
+            let count_row_chapitre_id = db.query_one(&count_stmt_chapitre_id).await.unwrap_or(None);
+            let total_chapitre_id = count_row_chapitre_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_chapitre_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(chapitre_id AS TEXT)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("chapitre_id")).is_not_null())
+                .order_by(Alias::new("chapitre_id"), Order::Asc)
+                .limit(page_size_chapitre_id)
+                .offset(cur_page_chapitre_id * page_size_chapitre_id)
+                .to_owned();
+            let rows_chapitre_id = db.query_all(&stmt_chapitre_id).await.unwrap_or_default();
+            let vals_chapitre_id: Vec<String> = rows_chapitre_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert(
+                "chapitre_id".to_string(),
+                (vals_chapitre_id, total_chapitre_id),
+            );
+            let page_size_block_type = 5u64;
+            let cur_page_block_type = pages.get("block_type").copied().unwrap_or(0);
+            let count_stmt_block_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT block_type)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .to_owned();
+            let count_row_block_type = db.query_one(&count_stmt_block_type).await.unwrap_or(None);
+            let total_block_type = count_row_block_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_block_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(block_type AS TEXT)"))
+                .from(Alias::new(cour_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .order_by(Alias::new("block_type"), Order::Asc)
+                .limit(page_size_block_type)
+                .offset(cur_page_block_type * page_size_block_type)
+                .to_owned();
+            let rows_block_type = db.query_all(&stmt_block_type).await.unwrap_or_default();
+            let vals_block_type: Vec<String> = rows_block_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert(
+                "block_type".to_string(),
+                (vals_block_type, total_block_type),
+            );
+            Ok(result)
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_count_fn(count_fn)
+            .with_filter_fn(filter_fn),
     );
 
     registry

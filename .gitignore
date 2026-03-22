@@ -25,5 +25,6 @@ tmpclaude-*
 # Fichier perso
 /commande.txt
 /AUDIT.md
+/check.ps1
 demo-app/seed.sql
 demo-app/PROGRESS.md

@@ -1,5 +1,5 @@
 use crate::entities::contribution::Entity as ContributionEntity;
-use crate::formulaire::ContributionForm;
+use crate::formulaire::{ContributionForm, contribution_type_choices};
 use runique::prelude::*;
 
 pub async fn list_contributions(
@@ -29,6 +29,12 @@ pub async fn handle_contribution_submit(
     if !is_authenticated(&request.session).await {
         return Ok(Redirect::to("/login").into_response());
     }
+    form.get_form_mut().field(
+        &ChoiceField::new("contribution_type")
+            .label("Type de contribution")
+            .choices(contribution_type_choices()),
+    );
+
     if request.is_get() {
         context_update!(request => { "title" => "Soumettre une contribution", "contribution_form" => &*form });
         return request.render(template);
@@ -37,7 +43,7 @@ pub async fn handle_contribution_submit(
         let user_id = get_user_id(&request.session).await.unwrap_or(0);
         match save_contribution(form, &request.engine.db, user_id).await {
             Ok(_) => {
-                success!(request.notices => "Contribution sauvegardée !");
+                success!(request.notices => "Merci pour votre contribution !");
                 return Ok(Redirect::to("/").into_response());
             }
             Err(err) => {

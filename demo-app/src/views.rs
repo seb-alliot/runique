@@ -1,3 +1,4 @@
+use crate::backend::cours::{cours_detail, cours_index};
 use crate::backend::doc::{doc_index, doc_page, doc_section_index};
 use crate::backend::{
     auth::{find_user_by_username, get_profile_user, handle_inscription, handle_login},
@@ -354,6 +355,19 @@ pub async fn middleware_hosts(mut request: Request) -> AppResult<Response> {
 
 pub async fn middleware_https(mut request: Request) -> AppResult<Response> {
     demo_code_page("middleware_https", &mut request).await
+}
+
+// ─── Cours ────────────────────────────────────────────────────────────────────
+
+pub async fn view_cours_index(mut request: Request) -> AppResult<Response> {
+    cours_index(&mut request).await
+}
+
+pub async fn view_cours_detail(
+    Path(slug): Path<String>,
+    mut request: Request,
+) -> AppResult<Response> {
+    cours_detail(&slug, &mut request).await
 }
 
 // ─── Documentation ────────────────────────────────────────────────────────────
