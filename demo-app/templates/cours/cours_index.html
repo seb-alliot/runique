@@ -1,0 +1,45 @@
+{% extends "index.html" %}
+
+{% block meta %}
+<meta name="description" content="Cours Rust — Du débutant à l'avancé, tous les cours pour maîtriser Rust.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cours Rust — Runique">
+<meta property="og:description" content="Cours Rust — Du débutant à l'avancé.">
+{% endblock %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/cours.css" %}'>
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+<div class="cours-index-container">
+    <h1>Cours Rust</h1>
+    <p class="cours-index-lead">Du débutant à l'avancé — tous les cours pour maîtriser Rust.</p>
+
+    {% for niveau in niveaux %}
+    {% set niveau_cours = cours | filter(attribute="difficulte", value=niveau) %}
+    {% if niveau_cours %}
+    <section class="cours-niveau-section cours-niveau-section--{{ niveau }}">
+        <h2>
+            {% if niveau == "debutant" %}Débutant
+            {% elif niveau == "intermediaire" %}Intermédiaire
+            {% elif niveau == "avance" %}Avancé
+            {% else %}Runique
+            {% endif %}
+        </h2>
+        <div class="cours-grid">
+            {% for c in niveau_cours %}
+            <a href="/cours/{{ c.slug }}" class="cours-card">
+                <h3>{{ c.title }}</h3>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endblock %}

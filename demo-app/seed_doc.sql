@@ -1,1444 +1,1307 @@
-\encoding utf8
-
--- ============================================================
--- Runique demo-app — seed complet
--- PostgreSQL — idempotent (DELETE + INSERT)
--- ============================================================
-
--- Suppression dans l'ordre (enfants d'abord)
-DELETE FROM doc_block;
-DELETE FROM doc_page;
-DELETE FROM doc_section;
-DELETE FROM page_doc_link;
-DELETE FROM code_example;
-DELETE FROM form_field;
-DELETE FROM demo_section;
-DELETE FROM demo_page;
-DELETE FROM demo_category;
-DELETE FROM known_issue;
-
--- ============================================================
--- demo_category
--- ============================================================
-INSERT INTO demo_category (id, title, back_link_url, back_link_label, sort_order) VALUES
-(1, 'Démarrage',        NULL,            NULL,            1),
-(2, 'Authentification', NULL,            NULL,            2),
-(3, 'Formulaires',      '/formulaires',  'Formulaires',   3),
-(4, 'Database',         NULL,            NULL,            4),
-(5, 'Framework',        NULL,            NULL,            5),
-(6, 'Administration',   NULL,            NULL,            6);
-
--- ============================================================
--- demo_page
--- ============================================================
-INSERT INTO demo_page (id, category_id, slug, title, lead, page_type, sort_order) VALUES
-(1,  1, 'installation_demo',     'Installation',           'Prérequis, .env, commandes CLI, démarrage rapide.',                                                                'code',   1),
-(2,  1, 'configuration_demo',    'Configuration builder',  'RuniqueApp::builder(), middlewares, secrets, assets.',                                                             'code',   2),
-(3,  1, 'migrations_demo',       'Migrations',             'macro model!, makemigrations, migration up/down/status.',                                                          'code',   3),
-(4,  1, 'comparatif_demo',       'Comparatif Django',      'Equivalences routes, vues, formulaires, ORM, securite.',                                                           'code',   4),
-(5,  2, 'inscription',           'Inscription',            'Formulaire base modele, validation, hash mot de passe.',                                                           'form',   1),
-(6,  2, 'login',                 'Authentification',       'Login / logout, sessions, protection des routes.',                                                                 'form',   2),
-(7,  2, 'profil',                'Profil utilisateur',     'Session active, donnees utilisateur, deconnexion.',                                                                'custom', 3),
-(8,  3, 'formulaires_hub',       'Formulaires',            'Declaration, champs disponibles, rendu Tera.',                                                                     'custom', 1),
-(9,  3, 'formulaires_champs',    'Declaration des champs', 'Deux façons de declarer un champ — manuellement via register_fields, ou via la macro proc #[form].',               'code',   2),
-(10, 3, 'formulaires_helpers',   'Helpers',                'Acces aux valeurs de formulaire et aux parametres d''URL — helpers types et acces whiteliste.',                    'custom', 3),
-(11, 3, 'formulaires_templates', 'Rendu templates',        'Tags Tera pour le rendu des formulaires.',                                                                         'code',   4),
-(12, 3, 'upload_image',          'Upload fichier',         'Image, validation taille et extension.',                                                                           'form',   5),
-(13, 4, 'orm_demo',              'ORM — Requetes',         'objects, filter, paginate, relations, create/update/delete.',                                                      'code',   1),
-(14, 4, 'database_demo',         'Base de donnees',        'DatabaseConfig, from_env, from_url, pool, timeouts.',                                                              'code',   2),
-(15, 4, 'model_demo',            'Modeles & Schemas',      'Definir un modele, types, contraintes, relations, migrations.',                                                    'code',   3),
-(16, 5, 'router_demo',           'Routeur',                'urlpatterns!, parametres de chemin, liens nommes.',                                                                'code',   1),
-(17, 5, 'template_demo',         'Templates & Tags',       'Tags Tera — static, link, media, messages, form.xxx.',                                                            'code',   2),
-(18, 5, 'middleware_hub',        'Middlewares',            'CSRF, CSP, Rate Limiter, Login Guard, Host Validation, HTTPS.',                                                    'custom', 3),
-(19, 5, 'about',                 'Messages flash',         'success!, info!, warning!, error! — macros de messages flash.',                                                    'custom', 4),
-(20, 5, 'i18n_demo',             'Internationalisation',   'Langue des templates Runique — 9 langues disponibles.',                                                            'code',   5),
-(21, 5, 'session_demo',          'Sessions',               'MemoryStore, limites memoire, nettoyage periodique automatique.',                                                  'code',   6),
-(22, 5, 'macros_demo',           'Macros',                 'context_update!, context!, impl_from_error!',                                                                      'code',   7),
-(23, 5, 'propos_template_error', 'Pages d''erreur',        '404, 500, 429 — verification des pages Runique.',                                                                  'custom', 8),
-(24, 5, 'middleware_csrf',       'CSRF',                   'Protection CSRF — Prisme, contrat POST vers handler.',                                                             'code',   9),
-(25, 5, 'middleware_csp',        'CSP',                    'Content Security Policy — builder, directives.',                                                                   'code',  10),
-(26, 5, 'middleware_hosts',      'Host Validation',        'Validation des hotes autorises.',                                                                                  'code',  11),
-(27, 5, 'middleware_https',      'HTTPS Redirect',         'Redirection HTTP vers HTTPS automatique.',                                                                         'code',  12),
-(28, 5, 'middleware_login_guard','Login Guard',             'Protection contre les tentatives de connexion repetees.',                                                          'code',  13),
-(29, 5, 'middleware_rate_limit', 'Rate Limit',             'Limitation de requetes par IP avec fenetre glissante.',                                                            'code',  14),
-(30, 6, 'admin_hub',             'Administration',         'CRUD auto-genere, permissions, tableau de bord, surcharge templates.',                                             'custom', 1),
-(31, 6, 'admin_declaration',     'Declaration admin',      'Declarer une ressource dans le panneau admin.',                                                                    'code',   2),
-(32, 6, 'admin_setup',           'Configuration admin',    'Activer et configurer le panneau admin.',                                                                          'code',   3),
-(33, 6, 'admin_surcharge',       'Surcharge templates',    'Personnaliser les templates du panneau admin.',                                                                    'custom', 4);
-
--- ============================================================
--- code_example
--- ============================================================
-
--- inscription (page_id=5)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(5, 'formulaire/user.rs', 'rust', $$// Dériver un formulaire depuis le modele utilisateur
-#[form(schema = eihwaz_users_schema,
-       fields = [username, email, password])]
-pub struct RegisterForm;
-
-#[async_trait]
-impl RuniqueForm for RegisterForm {
-    impl_form_access!(model);
-
-    async fn clean(&mut self) -> Result<(), StrMap> {
-        let mut errors = StrMap::new();
-        if self.get_string("username").len() < 3 {
-            errors.insert("username".into(), "3 caracteres minimum".into());
-        }
-        if !self.get_string("email").contains('@') {
-            errors.insert("email".into(), "adresse email invalide".into());
-        }
-        if self.get_string("password").len() < 10 {
-            errors.insert("password".into(), "10 caracteres minimum".into());
-        }
-        if errors.is_empty() { Ok(()) } else { Err(errors) }
-    }
-}$$, 'formulaire', 1),
-
-(5, 'handler', 'rust', $$pub async fn soumission_inscription(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
-    if request.is_post() && form.is_valid().await {
-        match form.save(&request.engine.db).await {
-            Ok(user) => {
-                auth_login(&request.session, user.id, &user.username).await.ok();
-                return Ok(Redirect::to("/profil").into_response());
-            }
-            Err(err) => form.get_form_mut().database_error(&err),
-        }
-    }
-    context_update!(request => { "inscription_form" => &form });
-    request.render("auth/inscription.html")
-}$$, 'handler', 2),
-
-(5, 'inscription.html', 'html', $$<form method="post" action="/inscription">
-    {# Rendu complet — CSRF inclus automatiquement #}
-    {% form.inscription_form %}
-    <button type="submit">S''inscrire</button>
-</form>
-
-{# Rendu champ par champ — CSRF toujours inclus automatiquement #}
-<form method="post" action="/inscription">
-    {% form.inscription_form.username %}
-    {% form.inscription_form.email %}
-    {% form.inscription_form.password %}
-    <button type="submit">S''inscrire</button>
-</form>$$, 'template', 3);
-
--- login (page_id=6)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(6, 'formulaire/login.rs', 'rust', $$// Formulaire manuel — pas de modele, pas de clean
-pub struct LoginForm {
-    pub form: Forms,
-}
-
-impl RuniqueForm for LoginForm {
-    fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::text("username")
-                .label("Nom d'utilisateur")
-                .required(),
-        );
-        form.field(
-            &TextField::password("password")
-                .label("Mot de passe")
-                .required(),
-        );
-    }
-
-    // Pas de clean — impl_form_access!() suffit
-    impl_form_access!();
-}$$, 'formulaire', 1),
-
-(6, 'handler', 'rust', $$pub async fn login(
-    mut request: Request,
-    Prisme(form): Prisme<LoginForm>,
-) -> AppResult<Response> {
-    if request.is_post() {
-        let user_opt = UserEntity::find()
-            .filter(Column::Username.eq(&username))
-            .one(&db).await?;
-
-        match user_opt {
-            Some(user) if verify(&password, &user.password) => {
-                auth_login(&session, user.id, &user.username).await;
-                return Ok(Redirect::to("/profil").into_response());
-            }
-            _ => {}
-        }
-    }
-    request.render("auth/login.html")
-}$$, 'handler', 2);
-
--- upload_image (page_id=12)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(12, 'formulaire/image.rs', 'rust', $$use runique::prelude::*;
-
-pub struct ImageForm {
-    pub form: Forms,
-}
-
-impl RuniqueForm for ImageForm {
-    impl_form_access!();
-
-    fn register_fields(form: &mut Forms) {
-        form.field(
-            &FileField::image("image")
-                .label("Choisissez une image")
-                .upload_to("media/uploads/images")
-                .required()
-                .max_size_mb(5)
-                .max_files(3)
-                .max_dimensions(1920, 1080)
-                .allowed_extensions(vec!["png", "jpg", "jpeg", "gif"]),
-        );
-    }
-}$$, 'formulaire', 1),
-
-(12, 'Types de FileField', 'rust', $$// Images : jpg jpeg png gif webp avif
-FileField::image("avatar")
-
-// Documents : pdf doc docx txt odt
-FileField::document("cv")
-
-// Tout type de fichier
-FileField::any("fichier")
-
-// Extensions personnalisees
-FileField::any("data")
-    .allowed_extensions(vec!["csv", "json"])$$, NULL, 2),
-
-(12, 'Chemin d''upload', 'rust', $$// Chemin fixe dans le code
-FileField::image("photo")
-    .upload_to("media/uploads/photos")
-
-// Depuis la variable MEDIA_ROOT dans .env
-FileField::image("photo")
-    .upload_to_env()
-
-// Sans upload_to → MEDIA_ROOT directement$$, NULL, 3),
-
-(12, 'handler', 'rust', $$pub async fn upload_image_submit(
-    mut request: Request,
-    Prisme(mut form): Prisme<ImageForm>,
-) -> AppResult<Response> {
-    if request.is_post() {
-        if form.is_valid().await {
-            success!(request.notices => "Fichier uploade avec succes !");
-        } else {
-            error!(request.notices => "Erreur de validation");
-        }
-        return Ok(Redirect::to("/upload-image").into_response());
-    }
-    context_update!(request => { "image_form" => &form });
-    request.render("forms/upload_image.html")
-}$$, 'handler', 4);
-
--- formulaires_champs (page_id=9)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(9, 'Declaration manuelle — register_fields', 'rust', $$use runique::prelude::*;
-
-#[derive(Serialize, Debug, Clone)]
-#[serde(transparent)]
-pub struct MonForm {
-    pub form: Forms,
-}
-
-impl RuniqueForm for MonForm {
-    fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("username")
-            .label("Nom d'utilisateur"));
-
-        form.field(&TextField::email("email")
-            .label("Adresse email"));
-
-        form.field(&TextField::password("password")
-            .label("Mot de passe")
-            .min_length(8, "8 caracteres minimum"));
-
-        form.field(&NumericField::integer("age")
-            .label("Age")
-            .min(0.0, "Valeur positive"));
-
-        form.field(&BooleanField::new("actif")
-            .label("Compte actif"));
-
-        let roles = vec![
-            ChoiceOption::new("admin", "Administrateur"),
-            ChoiceOption::new("user", "Utilisateur"),
-        ];
-        form.field(&ChoiceField::new("role")
-            .label("Role")
-            .choices(roles));
-    }
-}$$, 'formulaire', 1),
-
-(9, 'Macro proc #[form] — base sur un schema DB', 'rust', $$use crate::entities::contribution::schema as contribution;
-use runique::prelude::*;
-
-// Les champs sont lus depuis le schema SeaORM
-// — types, contraintes, nullable deduits automatiquement
-#[form(schema = contribution, fields = [title, content])]
-pub struct ContributionForm;
-
-#[async_trait]
-impl RuniqueForm for ContributionForm {
-    impl_form_access!(model);
-
-    async fn clean(&mut self) -> Result<(), StrMap> {
-        let title = self.get_string("title");
-        let mut errors = StrMap::new();
-
-        if title.len() < 5 {
-            errors.insert(
-                "title".to_string(),
-                "5 caracteres minimum".to_string(),
-            );
-        }
-
-        if errors.is_empty() { Ok(()) }
-        else { Err(errors) }
-    }
-}$$, 'formulaire', 2),
-
-(9, 'Difference cle', 'rust', $$// Manuel — controle total, sans entite DB
-// -> ideal pour formulaires de contact, login, recherche
-
-// #[form] — branche sur le schema SeaORM
-// -> ideal pour CRUD, ModelForm Django-like
-// -> form.save(&db).await? disponible automatiquement$$, NULL, 3);
-
--- formulaires_helpers (page_id=10)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(10, 'Helpers POST — apres is_valid()', 'rust', $$// Valeur par defaut si le champ est vide
-form.get_string("username")     // -> String  ("" si vide)
-form.get_i32("age")             // -> i32     (0 par defaut)
-form.get_f64("price")           // -> f64     (gere , -> .)
-form.get_bool("active")         // -> bool    (true/1/on -> true)
-form.get_uuid("ref")            // -> Uuid    (Uuid::nil() si vide)
-
-// Option — None si vide
-form.get_option("bio")          // -> Option<String>
-form.get_option_i32("age")      // -> Option<i32>
-form.get_option_f64("note")     // -> Option<f64>
-form.get_option_bool("news")    // -> Option<bool>
-form.get_option_uuid("id")      // -> Option<Uuid>$$, 'handler', 1),
-
-(10, 'clear() — vider le formulaire apres traitement', 'rust', $$// Re-rendre le formulaire vide apres succes (sans redirect)
-if form.is_valid().await {
-    let path = form.cleaned_string("image"); // 1. lire avant clear
-    // sauvegarder...
-    form.clear();                            // 2. vider
-    context_update!(request => { "upload_form" => &form });
-    return request.render(template);         // 3. form vide affiche
-}
-
-// Avec redirect (PRG) : clear() inutile
-// la nouvelle requete GET cree une instance fraiche automatiquement$$, 'handler', 2),
-
-(10, 'Helpers date / heure', 'rust', $$form.get_naive_date("birthday")
-form.get_naive_time("meeting")
-form.get_naive_datetime("event_start")
-form.get_datetime_utc("created_at")
-
-// Variantes Option
-form.get_option_naive_date("birthday")
-form.get_option_naive_datetime("event_start")
-form.get_option_datetime_utc("created_at")$$, 'handler', 3),
-
-(10, 'Acces brut aux parametres d''URL — depuis Request', 'rust', $$// Route declaree : "/article/{id}"
-let id   = request.path_param("id");  // Option<&str>
-
-// Query string : /article/42?page=2
-let page = request.from_url("page"); // Option<&str>$$, 'handler', 4),
-
-(10, 'cleaned_*() — whiteliste, type, toutes sources', 'rust', $$// Priorite : POST -> path param -> query param
-// None si le champ n''est pas declare dans le formulaire
-
-form.cleaned_string("search")    // Option<String>
-form.cleaned_i32("page")         // Option<i32>
-form.cleaned_i64("id")           // Option<i64>
-form.cleaned_f64("price")        // Option<f64>  (gere , -> .)
-form.cleaned_bool("active")      // Option<bool>
-form.cleaned_string("is_admin")  // None — champ inconnu$$, 'handler', 5),
-
-(10, 'Exemple reel — recherche GET /blog/liste?search=rust', 'rust', $$// views.rs — filtre articles selon query string
-pub async fn blog_list(
-    mut request: Request,
-    Prisme(form): Prisme<SearchDemoForm>,
-) -> AppResult<Response> {
-    let search = form.cleaned_string("search");
-
-    let mut query = BlogEntity::find();
-    if let Some(ref term) = search {
-        query = query.filter(
-            Condition::any()
-                .add(Column::Title.contains(term))
-                .add(Column::Summary.contains(term)),
-        );
-    }
-    // ...
-}
-
-// Exemple reel : recherche user /view-user?username=alice
-let username = form.cleaned_string("username").unwrap_or_default();$$, 'handler', 6);
-
--- middleware_rate_limit (page_id=29)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(29, 'Application sur une route — urls.rs', 'rust', $$use runique::macros::routeur::register_url::register_pending;
-use runique::prelude::*;
-use std::sync::Arc;
-
-pub fn routes() -> Router {
-    let limiter = Arc::new(
-        RateLimiter::new()
-            .max_requests(5)
-            .retry_after(60),
-    );
-
-    // register_pending est requis pour que {% link 'nom_route' %}
-    // fonctionne dans les templates Tera.
-    register_pending("upload_image", "/upload-image");
-
-    let upload_route = Router::new()
-        .route("/upload-image", view!(upload_handler))
-        .route_layer(middleware::from_fn_with_state(limiter, rate_limit_middleware));
-
-    urlpatterns! {
-        // autres routes...
-    }.merge(upload_route)
-}$$, 'urls', 1),
-
-(29, 'Exemples de configuration', 'rust', $$// 5 requetes par minute
-RateLimiter::new().max_requests(5).retry_after(60)
-
-// 3 requetes par 5 minutes
-RateLimiter::new().max_requests(3).retry_after(300)
-
-// 100 requetes par minute (defaut : 60/60)
-RateLimiter::new().max_requests(100).retry_after(60)$$, NULL, 2),
-
-(29, 'Fonctionnement', 'text', $$// Fenetre glissante par adresse IP.
-// Compteur reinitialise apres retry_after secondes.
-
-// Reponse quand la limite est depassee :
-HTTP/1.1 429 Too Many Requests
-Retry-After: 42
-
-// Le header Retry-After indique
-// le delai avant la prochaine fenetre.$$, NULL, 3),
-
-(29, 'Ordre dans le builder', 'text', $$// Les middlewares custom s''inserent au slot 20+.
-// Ils s''executent AVANT la session et le CSRF.
-
-Extensions(0)
-  -> ErrorHandler(10)
-  -> RateLimiter(20)   // ici
-  -> Cache(40)
-  -> Session(50)
-  -> CSRF(60)
-  -> routes$$, NULL, 4);
-
--- installation_demo (page_id=1)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(1, 'Cargo.toml — workspace', 'toml', $$[workspace]
-members = ["monapp", "monapp/migration"]
-resolver = "2"
-
-[workspace.package]
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.85"
-
-[workspace.dependencies]
-runique  = { version = "1.1.50", features = ["orm", "postgres"] }
-tokio    = { version = "1", features = ["full"] }
-serde    = { version = "1", features = ["derive"] }$$, 'Cargo.toml', 1),
-
-(1, '.env', 'bash', $$SECRET_KEY=une_cle_secrete_longue_et_aleatoire
-DATABASE_URL=postgres://user:password@localhost:5432/ma_base
-DEBUG=true$$, '.env', 2),
-
-(1, 'Commandes CLI', 'bash', $$# Installer le CLI
-cargo install runique
-
-# Generer le projet
-runique new mon-projet
-
-# Demarrer le serveur (hot reload templates en DEBUG)
-runique start
-
-# Migrations
-runique makemigrations
-runique migrate up
-runique migrate down
-runique migrate status$$, 'terminal', 3);
-
--- configuration_demo (page_id=2)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(2, 'main.rs — builder complet', 'rust', $$use runique::prelude::*;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    init_logging();
-    password_init(PasswordConfig::auto_with(Manual::Argon2));
-    set_lang(Lang::Fr);
-
-    let config = RuniqueConfig::from_env();
-    let db     = DatabaseConfig::from_env()?.build().connect().await?;
-
-    RuniqueApp::builder(config)
-        .routes(url::routes())
-        .with_database(db)
-        .statics()
-        .middleware(|m| {
-            m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
-             .with_session_cleanup_interval(5)
-             .with_allowed_hosts(|h| {
-                 h.enabled(!is_debug())
-                  .host("monsite.fr")
-                  .host("www.monsite.fr")
-             })
-             .with_csp(|c| {
-                 c.policy(SecurityPolicy::strict())
-                  .with_upgrade_insecure(!is_debug())
-                  .images(vec!["''self''", "data:"])
-             })
-        })
-        .with_admin(|a| {
-            a.site_title("Administration")
-             .auth(RuniqueAdminAuth::new())
-             .routes(admins::routes("/admin"))
-        })
-        .build().await?
-        .run().await?;
-
-    Ok(())
-}$$, 'main.rs', 1),
-
-(2, 'RuniqueConfig — variables .env', 'bash', $$# Obligatoires
-SECRET_KEY=cle_secrete_256_bits
-DATABASE_URL=postgres://user:pass@localhost/db
-
-# Optionnels
-DEBUG=true           # active le hot reload templates + traces debug
-HOST=127.0.0.1       # defaut 127.0.0.1
-PORT=3000            # defaut 3000$$, '.env', 2),
-
-(2, 'Middleware — options disponibles', 'rust', $$m.with_session_duration(Duration::hours(24))
- .with_session_memory_limit(soft, hard)   // octets
- .with_session_cleanup_interval(minutes)
-
- .with_allowed_hosts(|h| h.host("...").enabled(true))
- .with_csp(|c| c.policy(SecurityPolicy::strict()))
- .with_https_redirect(true)$$, 'builder', 3);
-
--- migrations_demo (page_id=3)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(3, 'Declarer un modele — macro model!', 'rust', $$use runique::prelude::*;
-
-model! {
-    Article,
-    table: "article",
-    pk: id => i32,
-    fields: {
-        title:      String   [required, max_len(255)],
-        content:    text     [required],
-        author_id:  i32      [required, fk(eihwaz_users.id, cascade)],
-        published:  bool     [required, default(false)],
-        created_at: datetime [auto_now],
-        updated_at: datetime [auto_now_update],
-    }
-}$$, 'entities/article.rs', 1),
-
-(3, 'Commandes migration', 'bash', $$# Generer les fichiers de migration depuis les entites
-runique makemigrations
-
-# Appliquer toutes les migrations en attente
-runique migrate up
-
-# Annuler la derniere migration
-runique migrate down
-
-# Voir l''etat des migrations
-runique migrate status$$, 'terminal', 2),
-
-(3, 'Fichier de migration genere', 'rust', $$use sea_orm_migration::prelude::*;
-
-#[derive(DeriveMigrationName)]
-pub struct Migration;
-
-#[async_trait::async_trait]
-impl MigrationTrait for Migration {
-    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.create_table(
-            Table::create()
-                .table(Alias::new("article"))
-                .if_not_exists()
-                .col(ColumnDef::new(Alias::new("id")).integer().not_null()
-                    .auto_increment().primary_key())
-                .col(ColumnDef::new(Alias::new("title")).string().not_null())
-                .col(ColumnDef::new(Alias::new("content")).text().not_null())
-                .col(ColumnDef::new(Alias::new("published")).boolean().not_null()
-                    .default(false))
-                .to_owned(),
-        ).await
-    }
-
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(Alias::new("article")).to_owned()).await
-    }
-}$$, 'migration generee', 3);
-
--- comparatif_demo (page_id=4)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(4, 'Routes', 'rust', $$-- Django (urls.py)
-urlpatterns = [
-    path("articles/",      views.article_list, name="article_list"),
-    path("articles/<id>/", views.article_detail, name="article_detail"),
-]
-
--- Runique (url.rs)
-urlpatterns! {
-    "/articles"      => view! { article_list },   name = "article_list",
-    "/articles/{id}" => view! { article_detail }, name = "article_detail",
-}$$, 'urls', 1),
-
-(4, 'Vues', 'rust', $$-- Django (views.py)
-def article_list(request):
-    articles = Article.objects.all()
-    return render(request, "articles.html", {"articles": articles})
-
--- Runique (views.rs)
-pub async fn article_list(mut request: Request) -> AppResult<Response> {
-    let db = request.engine.db.clone();
-    let articles = article::Entity::find().all(&*db).await.unwrap_or_default();
-    context_update!(request => { "articles" => &articles });
-    request.render("articles.html")
-}$$, 'views', 2),
-
-(4, 'Modeles', 'rust', $$-- Django (models.py)
-class Article(models.Model):
-    title   = models.CharField(max_length=255)
-    content = models.TextField()
-    author  = models.ForeignKey(User, on_delete=models.CASCADE)
-
--- Runique (entities/article.rs)
-model! {
-    Article,
-    table: "article",
-    pk: id => i32,
-    fields: {
-        title:     String [required, max_len(255)],
-        content:   text   [required],
-        author_id: i32    [required, fk(eihwaz_users.id, cascade)],
-    }
-}$$, 'models', 3),
-
-(4, 'Formulaires', 'rust', $$-- Django (forms.py)
-class ArticleForm(ModelForm):
-    class Meta:
-        model  = Article
-        fields = ["title", "content"]
-
--- Runique (formulaire/article.rs)
-#[form(schema = article, fields = [title, content])]
-pub struct ArticleForm;
-
-#[async_trait]
-impl RuniqueForm for ArticleForm {
-    impl_form_access!(model);
-}$$, 'forms', 4),
-
-(4, 'Configuration', 'rust', $$-- Django (settings.py)
-SECRET_KEY = "..."
-DATABASES  = { "default": { "ENGINE": "django.db.backends.postgresql", ... } }
-DEBUG      = True
-
--- Runique (.env + main.rs)
-SECRET_KEY=...
-DATABASE_URL=postgres://user:pass@localhost/db
-DEBUG=true
-
-// main.rs
-let config = RuniqueConfig::from_env();
-let db     = DatabaseConfig::from_env()?.build().connect().await?;$$, 'settings', 5);
-
--- formulaires_templates (page_id=11)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(11, 'Rendu complet du formulaire', 'html', $$<form method="POST" action="/inscription">
-    {# Rendu de tous les champs + CSRF automatique #}
-    {% form.inscription_form %}
-    <button type="submit">S''inscrire</button>
-</form>$$, 'template', 1),
-
-(11, 'Rendu champ par champ', 'html', $$<form method="POST" action="/inscription">
-    {# CSRF toujours inclus automatiquement — champ par champ ou rendu complet #}
-    {% form.inscription_form.username %}
-    {% form.inscription_form.email %}
-    {% form.inscription_form.password %}
-
-    <button type="submit">S''inscrire</button>
-</form>$$, 'template', 2),
-
-(11, 'Messages flash dans template', 'html', $${# Tag Runique — rendu automatique des messages #}
-{% messages %}
-
-{# Structure generee (message.html interne) : #}
-{% if messages %}
-    {% messages }
-{% endif %}$$, 'template', 3);
-
--- orm_demo (page_id=13)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(13, 'Requetes de base — SeaORM', 'rust', $$let db = request.engine.db.clone();
-
-// Tous les enregistrements
-let articles = article::Entity::find()
-    .all(&*db).await.unwrap_or_default();
-
-// Avec filtre
-let article = article::Entity::find()
-    .filter(article::Column::Slug.eq("mon-article"))
-    .one(&*db).await.unwrap_or(None);
-
-// Par cle primaire
-let article = article::Entity::find_by_id(42)
-    .one(&*db).await.unwrap_or(None);
-
-// Tri + limite
-let recent = article::Entity::find()
-    .order_by_desc(article::Column::CreatedAt)
-    .limit(10)
-    .all(&*db).await.unwrap_or_default();$$, 'handler', 1),
-
-(13, 'Style Django — macro impl_objects!', 'rust', $$// Dans entities/article.rs
-model! { Article, ... }
-impl_objects!(Entity);   // active le manager objects
-
-// Dans views.rs
-let all     = Article::objects.all().all(&db).await?;
-let actifs  = Article::objects.filter(Column::Published.eq(true)).all(&db).await?;
-let count   = Article::objects.count(&db).await?;
-let found   = Article::objects.get(&db, 42).await?;        // Err si absent
-let opt     = Article::objects.get_optional(&db, 99).await?; // None si absent
-let or_404  = Article::objects.get_or_404(&db, id, &request, "Introuvable").await?;$$, 'handler', 2),
-
-(13, 'Create / Update / Delete', 'rust', $$use sea_orm::ActiveValue::Set;
-use crate::entities::article::ActiveModel;
-
-// Creer
-let new_article = ActiveModel {
-    title:     Set("Mon article".to_string()),
-    content:   Set("Contenu...".to_string()),
-    published: Set(false),
-    ..Default::default()
-};
-let saved = new_article.insert(&*db).await?;
-
-// Modifier
-let mut article: ActiveModel = found.into();
-article.title = Set("Nouveau titre".to_string());
-article.update(&*db).await?;
-
-// Supprimer
-article::Entity::delete_by_id(42).exec(&*db).await?;$$, 'handler', 3);
-
--- database_demo (page_id=14)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(14, 'DatabaseConfig — depuis .env', 'rust', $$// .env
-// DATABASE_URL=postgres://user:pass@localhost:5432/mabase
-
-let config = DatabaseConfig::from_env()?
-    .min_connections(1)
-    .max_connections(20)
-    .build();
-
-let db: DatabaseConnection = config.connect().await?;$$, 'main.rs', 1),
-
-(14, 'DatabaseConfig — depuis URL directe', 'rust', $$let config = DatabaseConfig::from_url(
-    "postgres://user:pass@localhost:5432/mabase"
-)?
-.max_connections(50)
-.connect_timeout(Duration::from_secs(10))
-.build();
-
-let db = config.connect().await?;$$, 'main.rs', 2),
-
-(14, 'Moteurs supportes', 'text', $$postgres://  ou  postgresql://   → PostgreSQL
-mysql://                          → MySQL
-mariadb://                        → MariaDB
-sqlite://                         → SQLite
-
-// Feature flags Cargo.toml
-runique = { version = "1.1.50", features = ["orm", "postgres"] }
-runique = { version = "1.1.50", features = ["orm", "mysql"] }
-runique = { version = "1.1.50", features = ["orm", "sqlite"] }$$, NULL, 3);
-
--- model_demo (page_id=15)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(15, 'macro model! — tous les types', 'rust', $$use runique::prelude::*;
-
-model! {
-    Produit,
-    table: "produit",
-    pk: id => i32,
-    fields: {
-        // Types de base
-        nom:        String   [required, max_len(255)],
-        slug:       String   [required, unique, max_len(255)],
-        description: text    [nullable],
-        prix:       f64      [required],
-        stock:      i32      [required, default(0)],
-        actif:      bool     [required, default(true)],
-
-        // Cle etrangere
-        categorie_id: i32    [required, fk(categorie.id, cascade)],
-
-        // Timestamps automatiques
-        created_at: datetime [auto_now],
-        updated_at: datetime [auto_now_update],
-    }
-}$$, 'entities/produit.rs', 1),
-
-(15, 'Modificateurs disponibles', 'text', $$[required]               champ NOT NULL
-[nullable]               champ NULL
-[unique]                 contrainte UNIQUE
-[max_len(N)]             VARCHAR(N)
-[default(valeur)]        valeur par defaut SQL
-[auto_now]               CURRENT_TIMESTAMP a la creation
-[auto_now_update]        CURRENT_TIMESTAMP a chaque modification
-[fk(table.col, cascade)] cle etrangere avec ON DELETE CASCADE
-[fk(table.col, null)]    cle etrangere avec ON DELETE SET NULL$$, NULL, 2),
-
-(15, 'Activer le manager objects', 'rust', $$model! {
-    Article,
-    table: "article",
-    pk: id => i32,
-    fields: { title: String [required] }
-}
-
-// Active Article::objects.all(), .filter(), .get(), etc.
-impl_objects!(Entity);$$, 'entities/article.rs', 3);
-
--- router_demo (page_id=16)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(16, 'urlpatterns! — declaration des routes', 'rust', $$use runique::prelude::*;
-use crate::views::*;
-
-pub fn routes() -> Router {
-    urlpatterns! {
-        "/"                 => view! { index },          name = "index",
-        "/articles"         => view! { article_list },   name = "article_list",
-        "/articles/{id}"    => view! { article_detail }, name = "article_detail",
-        "/articles/{id}/edit" => view! { article_edit }, name = "article_edit",
-        "/inscription"      => view! { inscription },    name = "inscription",
-    }
-}$$, 'url.rs', 1),
-
-(16, 'Lire un parametre de chemin', 'rust', $$// Route : "/articles/{id}"
-pub async fn article_detail(mut request: Request) -> AppResult<Response> {
-    let id = request.path_param("id")
-        .and_then(|s| s.parse::<i32>().ok())
-        .unwrap_or(0);
-
-    let db = request.engine.db.clone();
-    let article = article::Entity::find_by_id(id)
-        .one(&*db).await.unwrap_or(None);
-
-    context_update!(request => { "article" => &article });
-    request.render("article/detail.html")
-}$$, 'handler', 2),
-
-(16, 'Liens nommes dans les templates', 'html', $${# Route simple — pretraite en {{ link(link=''index'') }} #}
-<a href='{% link "index" %}'>Accueil</a>
-
-{# Parametre de route — pretraite en {{ link(link=''article_detail'', id=article.id) }} #}
-<a href='{% link "article_detail" id=article.id %}'>{{ article.title }}</a>
-
-{# Sans query — URL propre #}
-<a href='{% link "article_list" %}'>Tous les articles</a>
-
-{# Avec query — pretraite en {{ link(link=''article_list'', query={page: 2}) }} #}
-<a href='{% link "article_list" query={page: 2} %}'>Page suivante</a>$$, 'template', 3);
-
--- template_demo (page_id=17)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(17, 'Fichiers statiques et media', 'html', $${# Fichiers dans static/ #}
-<link rel="stylesheet" href="{% static "css/style.css" %}">
-<script src="{% static "js/app.js" %}"></script>
-
-{# Fichiers dans media/ (uploads utilisateur) #}
-<img src="{% media article.image %}" alt="...">$$, 'template', 1),
-
-(17, 'CSRF + nonce CSP', 'html', $$<form method="POST">
-    {# CSRF automatique — inclus dans tout rendu de formulaire Runique #}
-    {% form.mon_form %}
-    ...
-</form>
-
-{# Nonce CSP — pour les scripts inline autorises #}
-<script nonce="{{ csp_nonce }}">
-    console.log(''autorise par la CSP'');
-</script>$$, 'template', 2),
-
-(17, 'Messages flash', 'html', $${# Dans le template — tag Runique #}
-{% messages %}
-
-{# Dans le handler Rust #}
-success!(request.notices => "Enregistre !");
-error!(request.notices   => "Erreur.");
-info!(request.notices    => "Info.");
-warning!(request.notices => "Attention.");$$, 'template', 3),
-
-(17, 'Heritage de templates', 'html', $${# base.html — template parent #}
-<html>
-<body>
-    {% block content %}{% endblock %}
-</body>
-</html>
-
-{# page.html — template enfant #}
-{% extends "base.html" %}
-{% block content %}
-    <h1>Mon contenu</h1>
-{% endblock %}$$, 'template', 4);
-
--- i18n_demo (page_id=20)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(20, 'Configuration de la langue', 'rust', $$use runique::prelude::*;
-
-// Dans main() — avant de demarrer le serveur
-set_lang(Lang::Fr);    // Français
-set_lang(Lang::En);    // Anglais (defaut)
-set_lang(Lang::De);    // Allemand
-set_lang(Lang::Es);    // Espagnol
-set_lang(Lang::It);    // Italien
-set_lang(Lang::Pt);    // Portugais
-set_lang(Lang::Ja);    // Japonais
-set_lang(Lang::Zh);    // Chinois
-set_lang(Lang::Ru);    // Russe$$, 'main.rs', 1),
-
-(20, 'Langues disponibles', 'text', $$Lang::Fr  — Français
-Lang::En  — English    (defaut)
-Lang::De  — Deutsch
-Lang::Es  — Español
-Lang::It  — Italiano
-Lang::Pt  — Português
-Lang::Ja  — 日本語
-Lang::Zh  — 中文
-Lang::Ru  — Русский
-
-// Autodetection depuis locale navigateur
-let lang = Lang::from("fr-FR");  // → Lang::Fr
-let lang = Lang::from("en-US");  // → Lang::En$$, NULL, 2),
-
-(20, 'Traductions dans les templates', 'html', $${# Cle de traduction simple #}
-{{ ''forms.required'' | t }}
-{# → "Ce champ est obligatoire" (Fr) #}
-{# → "This field is required"   (En) #}
-
-{# Cle avec parametre numerique #}
-{{ ''forms.too_short'' | t(n=8) }}
-{# → "8 caracteres minimum" #}$$, 'template', 3);
-
--- session_demo (page_id=21)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(21, 'Configuration dans le builder', 'rust', $$RuniqueApp::builder(config)
-    .middleware(|m| {
-        m
-        // Limites memoire : soft 5 Mo, hard 10 Mo
-        .with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
-
-        // Nettoyage automatique toutes les 5 minutes
-        .with_session_cleanup_interval(5)
-
-        // Duree de vie des sessions (defaut : 24h)
-        .with_session_duration(Duration::hours(12))
-    })$$, 'main.rs', 1),
-
-(21, 'Lecture / ecriture dans un handler', 'rust', $$pub async fn mon_handler(mut request: Request) -> AppResult<Response> {
-    // Lire
-    let user_id = request.session
-        .get::<i32>("user_id").await
-        .ok().flatten();
-
-    // Ecrire
-    request.session.insert("user_id", 42).await.ok();
-    request.session.insert("username", "alice").await.ok();
-
-    // Supprimer une cle
-    request.session.remove::<i32>("user_id").await.ok();
-
-    // Invalider la session entiere (deconnexion)
-    request.session.flush().await.ok();
-
-    request.render("profil.html")
-}$$, 'handler', 2);
-
--- macros_demo (page_id=22)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(22, 'context_update! — injecter des variables Tera', 'rust', $$pub async fn ma_vue(mut request: Request) -> AppResult<Response> {
-    let articles = vec!["Article 1", "Article 2"];
-
-    // Injecter dans le contexte Tera
-    context_update!(request => {
-        "title"    => "Ma page",
-        "articles" => &articles,
-        "count"    => articles.len(),
-    });
-
-    request.render("ma_page.html")
-}$$, 'handler', 1),
-
-(22, 'Macros flash — messages utilisateur', 'rust', $$// Dans un handler
-success!(request.notices => "Enregistre avec succes !");
-error!(request.notices   => "Une erreur est survenue.");
-info!(request.notices    => "Verification en cours...");
-warning!(request.notices => "Attention : session bientot expiree.");
-
-// flash_now! — message injecte directement dans le contexte
-context_update!(request => {
-    "messages" => flash_now!(success => "Cree !"),
-});$$, 'handler', 2),
-
-(22, 'impl_from_error! — convertir des erreurs', 'rust', $$// Convertit automatiquement DbErr et autres en AppError
-impl_from_error!(
-    sea_orm::DbErr      => database_error,
-    std::io::Error      => internal_error,
-    serde_json::Error   => serialization_error,
-);
-
-// Permet d''utiliser ? dans les handlers
-pub async fn handler(mut request: Request) -> AppResult<Response> {
-    let article = Article::find_by_id(1).one(&*db).await?; // DbErr converti
-    Ok(request.render("page.html")?)
-}$$, 'handler', 3);
-
--- middleware_csrf (page_id=24)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(24, 'Contrat POST — Prisme extractor', 'rust', $$// Tout formulaire POST doit passer par Prisme<T>
-// Prisme valide le token CSRF avant d''entrer dans le handler.
-pub async fn inscription(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
-    if request.is_post() && form.is_valid().await {
-        // Traitement securise — le CSRF a ete valide
-        return Ok(Redirect::to("/profil").into_response());
-    }
-    context_update!(request => { "form" => &form });
-    request.render("auth/inscription.html")
-}$$, 'handler', 1),
-
-(24, 'Token CSRF dans le template', 'html', $$<form method="POST" action="{% link "inscription" %}">
-    {# Rendu complet — CSRF inclus automatiquement #}
-    {% form.inscription_form %}
-    <button type="submit">S''inscrire</button>
-</form>
-
-{# Rendu champ par champ — CSRF toujours inclus automatiquement #}
-<form method="POST" action="{% link "inscription" %}">
-    {% form.inscription_form.username %}
-    {% form.inscription_form.password %}
-    <button type="submit">S''inscrire</button>
-</form>$$, 'template', 2),
-
-(24, 'Fonctionnement interne', 'text', $$// GET  → token genere, stocke en session, injecte dans le contexte Tera
-// POST → Prisme extrait le token du body, compare en constant-time
-//        (via subtle::ConstantTimeEq pour eviter les timing attacks)
-
-// Si le token est invalide ou absent :
-//   → formulaire vide + message d''erreur CSRF
-//   → le handler n''est jamais execute
-
-// Le token est lie a la session — il change a chaque nouvelle session.$$, NULL, 3);
-
--- middleware_csp (page_id=25)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(25, 'Configuration dans le builder', 'rust', $$RuniqueApp::builder(config)
-    .middleware(|m| {
-        m.with_csp(|c| {
-            c.policy(SecurityPolicy::strict())
-             .with_header_security(true)        // X-Frame-Options, X-Content-Type, etc.
-             .with_upgrade_insecure(!is_debug()) // HTTP → HTTPS en prod
-             .images(vec!["''self''", "data:"])  // Autorise data: pour les images
-        })
-    })$$, 'main.rs', 1),
-
-(25, 'Politiques predefinies', 'rust', $$// Strict : bloque tout ce qui n''est pas explicitement autorise
-SecurityPolicy::strict()
-
-// Permissive : pour les phases de dev / migration
-SecurityPolicy::permissive()
-
-// Header genere (strict) :
-// Content-Security-Policy:
-//   default-src ''self'';
-//   script-src ''self'' ''nonce-abc123'';
-//   style-src ''self'';
-//   img-src ''self'' data:;
-//   object-src ''none'';
-//   frame-ancestors ''none'';
-//   upgrade-insecure-requests$$, NULL, 2),
-
-(25, 'Nonce CSP pour scripts inline', 'html', $${# Le nonce est regenere a chaque requete.
-   Il est injecte automatiquement dans le header CSP. #}
-<script nonce="{{ csp_nonce }}">
-    // Ce script inline est autorise par la CSP
-    document.querySelector(''form'').addEventListener(''submit'', ...);
-</script>$$, 'template', 3);
-
--- middleware_hosts (page_id=26)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(26, 'Configuration dans le builder', 'rust', $$RuniqueApp::builder(config)
-    .middleware(|m| {
-        m.with_allowed_hosts(|h| {
-            h.enabled(!is_debug())  // desactive en dev, actif en prod
-             .host("monsite.fr")
-             .host("www.monsite.fr")
-             .host("monsite.up.railway.app")
-        })
-    })$$, 'main.rs', 1),
-
-(26, 'Comportement', 'text', $$// Si le header Host de la requete ne correspond
-// a aucun hote autorise :
-//   → 400 Bad Request
-
-// Comparaison : insensible a la casse, normalisation IPv6
-// Wildcards :
-//   .example.com  →  accepte foo.example.com, bar.example.com
-//   (ne correspond pas a example.com sans sous-domaine)
-
-// Desactive quand enabled(false) — toutes les requetes passent.$$, NULL, 2);
-
--- middleware_https (page_id=27)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(27, 'Activer la redirection HTTPS', 'rust', $$RuniqueApp::builder(config)
-    .middleware(|m| {
-        m.with_csp(|c| {
-            c.policy(SecurityPolicy::strict())
-             // Active "upgrade-insecure-requests" dans le header CSP
-             // + redirection 301 HTTP → HTTPS
-             .with_upgrade_insecure(!is_debug())
-        })
-    })$$, 'main.rs', 1),
-
-(27, 'Prerequis — proxy inverse', 'text', $$// Runique doit etre derriere un reverse proxy (Nginx, Caddy, Railway...)
-// qui termine le TLS et transmet les requetes en HTTP.
-
-// Le proxy doit envoyer le header :
-//   X-Forwarded-Proto: https
-
-// Exemple Nginx :
-//   proxy_set_header X-Forwarded-Proto $scheme;
-
-// Sans proxy TLS, with_upgrade_insecure(true) n''a pas d''effet visible.$$, NULL, 2);
-
--- middleware_login_guard (page_id=28)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(28, 'Creer un LoginGuard', 'rust', $$use runique::prelude::*;
-use std::sync::Arc;
-
-// Dans main() ou dans le module de routes
-let guard = Arc::new(
-    LoginGuard::new()
-        .max_attempts(5)    // tentatives avant verrouillage
-        .lockout_secs(300), // 5 minutes de verrouillage
-);
-
-// Nettoyer les entrees expirees regulierement
-guard.spawn_cleanup(tokio::time::Duration::from_secs(60));$$, 'main.rs', 1),
-
-(28, 'Utilisation dans le handler de login', 'rust', $$pub async fn login(
-    mut request: Request,
-    Prisme(form): Prisme<LoginForm>,
-    State(guard): State<Arc<LoginGuard>>,
-) -> AppResult<Response> {
-    let username = form.get_string("username");
-    let ip       = request.client_ip().unwrap_or_default();
-
-    // Cle par username si rempli, sinon par IP
-    if guard.is_locked_for(&username, &ip) {
-        let secs = guard.retry_after_secs_for(&username, &ip);
-        warning!(request.notices => format!("Compte bloque. Reessayez dans {secs}s."));
-        return request.render("auth/login.html");
-    }
-
-    if request.is_post() {
-        match authenticate(&username, &password, &db).await {
-            Some(user) => {
-                guard.record_success_for(&username, &ip);
-                auth_login(&request.session, user.id, &user.username).await;
-                return Ok(Redirect::to("/profil").into_response());
-            }
-            None => {
-                guard.record_failure_for(&username, &ip);
-                error!(request.notices => "Identifiants incorrects.");
-            }
-        }
-    }
-    request.render("auth/login.html")
-}$$, 'handler', 2);
-
--- admin_declaration (page_id=31)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(31, 'admin.rs — macro admin!', 'rust', $$use crate::entities::{users, blog, article};
-use crate::formulaire::{RegisterForm, BlogForm, ArticleForm};
-
-// Ce fichier est la SOURCE pour "runique start"
-// qui regenere src/admin/generated.rs automatiquement.
-admin! {
-    users: users::Model => RegisterForm {
-        title: "Utilisateurs",
-        permissions: ["admin"]
-    }
-    blog: blog::Model => BlogForm {
-        title: "Articles de blog",
-        permissions: ["admin"]
-    }
-    article: article::Model => ArticleForm {
-        title: "Articles",
-        permissions: ["admin"]
-    }
-}$$, 'admin.rs', 1),
-
-(31, 'Regles de la macro admin!', 'text', $$// Syntaxe :
-// nom_ressource: entite::Model => FormType {
-//     title: "Libelle dans le menu",
-//     permissions: ["role1", "role2"],
-// }
-
-// nom_ressource  →  segment d''URL (/admin/nom_ressource/)
-// entite::Model  →  modele SeaORM genere par model!
-// FormType       →  formulaire qui implemente RuniqueForm
-// permissions    →  roles autorises a acceder a cette ressource
-
-// runique start regenere src/admin/generated.rs a chaque demarrage.$$, NULL, 2);
-
--- admin_setup (page_id=32)
-INSERT INTO code_example (page_id, title, language, code, context, sort_order) VALUES
-(32, 'Activer l''admin dans le builder', 'rust', $$RuniqueApp::builder(config)
-    .with_admin(|a| {
-        a.site_title("Mon Administration")
-         .auth(RuniqueAdminAuth::new())
-         .routes(admins::routes("/admin"))
-         // Dashboard personnalise (optionnel)
-         .templates(|t| t.with_dashboard("admin/mon_dashboard.html"))
-         .with_state(admins::admin_state())
-    })$$, 'main.rs', 1),
-
-(32, 'Authentification admin — RuniqueAdminAuth', 'rust', $$// RuniqueAdminAuth verifie que l''utilisateur connecte
-// a le role declare dans permissions de la ressource.
-
-// Personnaliser l''auth (optionnel) :
-pub struct MonAdminAuth;
-
-#[async_trait]
-impl AdminAuth for MonAdminAuth {
-    async fn is_authorized(&self, session: &Session, role: &str) -> bool {
-        let user_role = session.get::<String>("role").await.ok().flatten();
-        user_role.as_deref() == Some(role)
-    }
-}
-
-// Dans le builder :
-.auth(MonAdminAuth)$$, 'admins/auth.rs', 2),
-
-(32, 'URL generees automatiquement', 'text', $$// Pour chaque ressource declaree dans admin! :
-GET    /admin/                    → tableau de bord
-GET    /admin/article/            → liste
-GET    /admin/article/create/     → formulaire de creation
-POST   /admin/article/create/     → traitement creation
-GET    /admin/article/{id}/edit/  → formulaire d''edition
-POST   /admin/article/{id}/edit/  → traitement edition
-POST   /admin/article/{id}/delete/ → suppression$$, NULL, 3);
-
--- ============================================================
--- page_doc_link (doc FR/EN uniquement — back link via demo_category)
--- ============================================================
-INSERT INTO page_doc_link (page_id, label, url, link_type, sort_order) VALUES
--- installation
-(1,  'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md',                   'doc_fr', 1),
-(1,  'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md',                   'doc_en', 2),
--- configuration
-(2,  'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/02-configuration.md',                  'doc_fr', 1),
-(2,  'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/02-configuration.md',                  'doc_en', 2),
--- upload_image
-(12, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/upload/upload.md', 'doc_fr', 1),
-(12, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/upload/upload.md', 'doc_en', 2),
--- migrations
-(3,  'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/03-migrations.md',                     'doc_fr', 1),
-(3,  'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/03-migrations.md',                     'doc_en', 2),
--- auth
-(5,  'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md',          'doc_fr', 1),
-(5,  'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md',          'doc_en', 2),
-(6,  'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md',          'doc_fr', 1),
-(6,  'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md',          'doc_en', 2),
--- formulaires
-(9,  'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md',               'doc_fr', 1),
-(9,  'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md',               'doc_en', 2),
-(10, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md',        'doc_fr', 1),
-(10, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md',        'doc_en', 2),
--- orm / db / model
-(13, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md',                        'doc_fr', 1),
-(13, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md',                        'doc_en', 2),
-(14, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/06-database.md',                   'doc_fr', 1),
-(14, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/orm/06-database.md',                   'doc_en', 2),
-(15, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/04-models.md',                     'doc_fr', 1),
-(15, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/orm/04-models.md',                     'doc_en', 2),
--- middlewares
-(24, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csrf/csrf.md',               'doc_fr', 1),
-(24, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csrf/csrf.md',               'doc_en', 2),
-(25, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/csp.md',                 'doc_fr', 1),
-(25, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/csp.md',                 'doc_en', 2),
-(26, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/allowed-hosts/allowed-hosts.md', 'doc_fr', 1),
-(26, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/allowed-hosts/allowed-hosts.md', 'doc_en', 2),
-(27, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/https/https.md',             'doc_fr', 1),
-(27, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/https/https.md',             'doc_en', 2),
-(28, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/login-guard/login-guard.md', 'doc_fr', 1),
-(28, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/login-guard/login-guard.md', 'doc_en', 2),
-(29, 'Doc FR', 'https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/rate-limit/rate-limit.md',   'doc_fr', 1),
-(29, 'Doc EN', 'https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/rate-limit/rate-limit.md',   'doc_en', 2);
-
--- ============================================================
--- form_field (page_id=9 — formulaires_champs)
--- ============================================================
-INSERT INTO form_field (page_id, name, field_type, description, example, html_preview, sort_order) VALUES
-(9, 'TextField::text',      'TextField',    'Champ texte simple — une ligne.',
- $$TextField::text("username").label("Nom d''utilisateur").required()$$,
- $p$<div class="field-preview"><label>Nom d'utilisateur</label><input type="text" placeholder="John Doe"></div>$p$, 1),
-
-(9, 'TextField::email',     'TextField',    'Email — converti en minuscules automatiquement.',
- $$TextField::email("email").label("Adresse email").required()$$,
- $p$<div class="field-preview"><label>Adresse email</label><input type="email" placeholder="exemple@email.com"></div>$p$, 2),
-
-(9, 'TextField::password',  'TextField',    'Mot de passe — haché via Argon2 par défaut. Désactiver avec .no_hash().',
- $$TextField::password("password").min_length(10, "10 caractères minimum").no_hash()$$,
- $p$<div class="field-preview"><label>Mot de passe</label><input type="password" placeholder="••••••••••"></div>$p$, 3),
-
-(9, 'TextField::textarea',  'TextField',    'Zone de texte multi-ligne.',
- $$TextField::textarea("bio").label("Biographie").rows(5)$$,
- $p$<div class="field-preview"><label>Biographie</label><textarea rows="3" placeholder="Votre texte..."></textarea></div>$p$, 4),
-
-(9, 'TextField::richtext',  'TextField',    'Texte riche — sanitisé côté serveur.',
- $$TextField::richtext("content").label("Contenu").required()$$,
- $p$<div class="field-preview"><label>Contenu</label><textarea rows="4" placeholder="<p>Texte riche sanitisé...</p>"></textarea></div>$p$, 5),
-
-(9, 'TextField::url',       'TextField',    'URL — validée côté serveur.',
- $$TextField::url("website").label("Site web")$$,
- $p$<div class="field-preview"><label>Site web</label><input type="url" placeholder="https://exemple.com"></div>$p$, 6),
-
-(9, 'NumericField::integer', 'NumericField', 'Entier — validation min/max.',
- $$NumericField::integer("age").min(0.0, "Positif").max(120.0, "Max 120").label("Âge")$$,
- $p$<div class="field-preview"><label>Âge</label><input type="number" step="1" placeholder="42" min="0" max="120"></div>$p$, 7),
-
-(9, 'NumericField::float',   'NumericField', 'Nombre décimal.',
- $$NumericField::float("price").min(0.0, "Positif").label("Prix")$$,
- $p$<div class="field-preview"><label>Prix</label><input type="number" step="0.01" placeholder="3.14" min="0"></div>$p$, 8),
-
-(9, 'NumericField::percent', 'NumericField', 'Pourcentage — restreint entre 0 et 100.',
- $$NumericField::percent("discount").label("Réduction (%)")$$,
- $p$<div class="field-preview"><label>Réduction (%)</label><input type="number" min="0" max="100" step="1" placeholder="75"></div>$p$, 9),
-
-(9, 'NumericField::range',   'NumericField', 'Curseur — min, max, valeur par défaut.',
- $$NumericField::range("volume", 0.0, 100.0, 50.0).label("Volume")$$,
- $p$<div class="field-preview"><label>Volume</label><input type="range" min="0" max="100" value="50" class="fp-range"><span class="fp-range-val">50</span></div>$p$, 10),
-
-(9, 'BooleanField::new',    'BooleanField', 'Case à cocher — renvoie true/false.',
- $$BooleanField::new("accept").label("J''accepte les conditions").required()$$,
- $p$<div class="field-preview"><label class="fp-row"><input type="checkbox"> J'accepte les conditions</label></div>$p$, 11),
-
-(9, 'BooleanField::radio',  'BooleanField', 'Bouton radio Oui/Non.',
- $$BooleanField::radio("newsletter").label("S''abonner").checked()$$,
- $p$<div class="field-preview"><label class="fp-row"><input type="radio" checked> S'abonner à la newsletter</label></div>$p$, 12),
-
-(9, 'ChoiceField::new',     'ChoiceField',  'Liste déroulante — options statiques ou dynamiques.',
- $$let opts = vec![ChoiceOption::new("fr", "France"), ChoiceOption::new("be", "Belgique")];
-ChoiceField::new("country").label("Pays").choices(opts).required()$$,
- $p$<div class="field-preview"><label>Pays</label><select><option value="">---</option><option value="fr">France</option><option value="be">Belgique</option><option value="ch">Suisse</option></select></div>$p$, 13),
-
-(9, 'RadioField::new',      'ChoiceField',  'Groupe de boutons radio.',
- $$RadioField::new("role").label("Rôle")
-    .add_choice("admin", "Administrateur")
-    .add_choice("user", "Utilisateur")$$,
- $p$<div class="field-preview"><label>Rôle</label><div class="fp-col"><label class="fp-row"><input type="radio" name="role_p" value="admin"> Administrateur</label><label class="fp-row"><input type="radio" name="role_p" value="user" checked> Utilisateur</label></div></div>$p$, 14),
-
-(9, 'CheckboxField::new',   'ChoiceField',  'Cases à cocher multiples — retourne Vec<String>.',
- $$CheckboxField::new("tags").label("Catégories")
-    .add_choice("rust", "Rust").add_choice("web", "Web")$$,
- $p$<div class="field-preview"><label>Catégories</label><div class="fp-col"><label class="fp-row"><input type="checkbox" value="rust" checked> Rust</label><label class="fp-row"><input type="checkbox" value="web"> Web</label></div></div>$p$, 15),
-
-(9, 'DateField::new',       'DateField',    'Date — format YYYY-MM-DD.',
- $$DateField::new("birth_date").label("Date de naissance").required()$$,
- $p$<div class="field-preview"><label>Date de naissance</label><input type="date"></div>$p$, 16),
-
-(9, 'TimeField::new',       'DateField',    'Heure — format HH:MM.',
- $$TimeField::new("meeting_time").label("Heure du rendez-vous")$$,
- $p$<div class="field-preview"><label>Heure du rendez-vous</label><input type="time"></div>$p$, 17),
-
-(9, 'DateTimeField::new',   'DateField',    'Date et heure combinées.',
- $$DateTimeField::new("event_start").label("Début de l''événement").required()$$,
- $p$<div class="field-preview"><label>Début de l'événement</label><input type="datetime-local"></div>$p$, 18),
-
-(9, 'FileField::image',     'FileField',    'Image — jpg jpeg png gif webp avif. Validation dimensions possible.',
- $$FileField::image("avatar").upload_to("media/uploads").max_size_mb(5).max_dimensions(500, 500)$$,
- $p$<div class="field-preview"><label>Avatar</label><input type="file" accept="image/*"></div>$p$, 19),
-
-(9, 'FileField::document',  'FileField',    'Document — pdf doc docx txt odt.',
- $$FileField::document("cv").upload_to("media/docs").max_size_mb(10).required()$$,
- $p$<div class="field-preview"><label>CV</label><input type="file" accept=".pdf,.doc,.docx,.txt,.odt"></div>$p$, 20),
-
-(9, 'FileField::any',       'FileField',    'Tout type de fichier — extensions personnalisables.',
- $$FileField::any("data").allowed_extensions(vec!["csv", "json"]).upload_to("media/imports")$$,
- $p$<div class="field-preview"><label>Fichier de données</label><input type="file" accept=".csv,.json"></div>$p$, 21),
-
-(9, 'SlugField::new',       'SpecialField', 'Slug URL-friendly — validé côté serveur.',
- $$SlugField::new("slug").label("Slug").required()$$,
- $p$<div class="field-preview"><label>Slug</label><input type="text" pattern="[a-z0-9-]+" placeholder="mon-article-en-slug"></div>$p$, 22),
-
-(9, 'ColorField::new',      'SpecialField', 'Sélecteur de couleur hex.',
- $$ColorField::new("theme_color").label("Couleur").default_color("#3b82f6")$$,
- $p$<div class="field-preview"><label>Couleur</label><input type="color" value="#3b82f6"></div>$p$, 23),
-
-(9, 'UUIDField::new',       'SpecialField', 'UUID — validé côté serveur.',
- $$UUIDField::new("ref_id").label("Référence").required()$$,
- $p$<div class="field-preview"><label>Référence</label><input type="text" placeholder="550e8400-e29b-41d4-a716-446655440000"></div>$p$, 24),
-
-(9, 'JSONField::new',       'SpecialField', 'Textarea JSON — validé côté serveur.',
- $$JSONField::new("config").label("Configuration JSON").rows(10)$$,
- $p$<div class="field-preview"><label>Configuration JSON</label><textarea rows="3" placeholder='{"cle": "valeur"}'></textarea></div>$p$, 25),
-
-(9, 'IPAddressField::new',  'SpecialField', 'Adresse IP — IPv4 ou IPv6.',
- $$IPAddressField::new("server_ip").label("IP serveur").ipv4_only().required()$$,
- $p$<div class="field-preview"><label>IP serveur</label><input type="text" placeholder="192.168.1.1"></div>$p$, 26),
-
-(9, 'HiddenField::new',     'HiddenField',  'Champ caché — valeur soumise sans rendu visible.',
- $$HiddenField::new("redirect_to")$$,
- $p$<div class="field-preview"><code class="fp-muted">&lt;input type="hidden" value="..."&gt;</code><span class="fp-small"> — invisible dans le rendu final</span></div>$p$, 27);
--- ============================================================
--- known_issue
--- ============================================================
-INSERT INTO known_issue (version, title, description, issue_type, sort_order) VALUES
-('1.1.49', 'Upload de fichiers',
- 'Les validations d''upload (taille, dimensions) ne sont pas encore appliquees. Les fichiers sont envoyes avant verification, ce qui peut entrainer des uploads inutiles et des erreurs cote client.',
- 'Fix', 1),
-('1.1.50', 'DX',
- 'Cargo watch non present. Le rechargement des templates en dev est actif seulement si DEBUG=true.',
- 'Manquant', 2),
-('1.1.50', 'Tracing des erreurs en mode DEBUG',
- 'Le tracing est complet. Aucun parametrage individuel possible actuellement.',
- 'Manquant', 3),
-('1.1.50', 'Session',
- 'Invalidation automatique des sessions. Deconnexion d''un utilisateur deja connecte sur un autre appareil.',
- 'Manquant', 4);
-
--- ============================================================
--- Reset sequences
--- ============================================================
-SELECT setval('demo_category_id_seq', (SELECT MAX(id) FROM demo_category));
-SELECT setval('demo_page_id_seq',     (SELECT MAX(id) FROM demo_page));
-SELECT setval('code_example_id_seq',  (SELECT MAX(id) FROM code_example));
-SELECT setval('page_doc_link_id_seq', (SELECT MAX(id) FROM page_doc_link));
+--
+-- PostgreSQL database dump
+--
+
+\restrict jZHfBIoSChTyL69Lj2eANjbgfNrG53udcEcXxl3Pbaz49CdTtom3yOakaqdwVK7
+
+-- Dumped from database version 18.3 (Debian 18.3-1.pgdg13+1)
+-- Dumped by pg_dump version 18.3
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Data for Name: blog; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.blog (id, title, email, website, summary, content) FROM stdin;
+\.
+
+
+--
+-- Data for Name: changelog_entry; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.changelog_entry (id, version, release_date, category, title, description, sort_order) FROM stdin;
+11	1.1.49	2026-03-19	Fix	is_valid() bloquait tous les formulaires	Suppression de set_expected_value() dans Forms::new(). Le CSRF est deja valide en amont dans Prisme — la double validation invalidait chaque soumission meme avec des donnees correctes.	1
+6	1.1.50	2026-03-20	Fix	FileField — validation des restrictions	Les fichiers invalides sont supprimes du disque si la validation echoue. Les soumissions sans fichier ne creent plus de fichier orphelin. upload_to() applique le chemin exact, le deplacement se fait dans finalize() uniquement si la validation passe.	1
+7	1.1.50	2026-03-20	Feature	derive_form — option file()	Les modeles peuvent declarer un champ fichier dans le DSL : image: String [file(image, "media/uploads")]. Types disponibles : image, document, any.	2
+8	1.1.50	2026-03-20	Ajouté	RuniqueForm::clear() + Forms::clear_values()	Vide toutes les valeurs des champs (hors CSRF) et remet submitted a false. Necessite &mut self — appelable depuis un handler ou depuis save(&mut self).	3
+9	1.1.50	2026-03-20	Fix	Formulaire upload — dialog navigateur (PRG)	Le handler redirige systematiquement apres chaque POST. Supprime le dialog "Voulez-vous renvoyer les donnees ?" au rechargement de page.	4
+12	1.1.49	2026-03-19	Fix	Makemigrations — ordre FK et updated_at	Les nouvelles tables sont triees topologiquement avant generation. updated_at genere ON UPDATE CURRENT_TIMESTAMP (MySQL) ou un trigger (PostgreSQL). Le diff detecte les colonnes qui ont gagne ou perdu DEFAULT CURRENT_TIMESTAMP.	2
+14	1.1.51	20/03/2026	Fix	Version derive_form -> Runique	L'ordre de publication a ete inverser, publiant runique 1.1.50 avec la mauvaise version de derive_form 1.1.33 au lieux de 1.1.34	4
+21	1.1.53	2026/03/21 -> a venir	Fix	Surcharge template admin	Remettre en place la surcharge de template via le builder dans l’admin, et séparer la logique de la démo.	4
+15	1.1.52	2026/03/21	Ajouté	Invalidation de session	La possiblité de rendre une session unique sera disponible via le builder de middleware, désactivé par défaut	3
+17	1.1.52	2026/03/21	Ajouté	Role vue admin	L'ajout de permission d'accès dans la vue admin est fonctionnel, la documentation le detaillera plus en details	4
+16	1.1.52	2026/03/21	Fix	Password	Le champ mot de passe est retiré de la vue d'édition admin. La modification du mot de passe sera gérée via un formulaire dédié de réinitialisation par email.	2
+13	1.1.52	2026/03/21	Fix	Boolean field	Un champ boolean décoché est désormais considéré comme false et non comme absent — la validation required n'exige plus que la case soit cochée.	1
+18	1.1.53	2026/03/21 -> a venir	Ajouté	Versionning Css	Versionning du css basé sur un token a 4 chiffre stocker dans un LazyLock a chaque rebuild	1
+19	1.1.53	2026/03/21 -> a venir	Ajouté	pagination	La pagination via le builder et fonctionnel en demo-local	2
+20	1.1.53	2026/03/21 -> a venir	Fix	trim	Les mots de passe et autres entrées en base de données sont nativement passés par un `trim`, évitant toute différence d’entrée liée à un espace involontaire.	3
+\.
+
+
+--
+-- Data for Name: code_example; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.code_example (id, page_id, title, language, code, context, sort_order) FROM stdin;
+1	5	formulaire/user.rs	rust	// Dériver un formulaire depuis le modele utilisateur\n#[form(schema = eihwaz_users_schema,\n       fields = [username, email, password])]\npub struct RegisterForm;\n\n#[async_trait]\nimpl RuniqueForm for RegisterForm {\n    impl_form_access!(model);\n\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let mut errors = StrMap::new();\n        if self.get_string("username").len() < 3 {\n            errors.insert("username".into(), "3 caracteres minimum".into());\n        }\n        if !self.get_string("email").contains('@') {\n            errors.insert("email".into(), "adresse email invalide".into());\n        }\n        if self.get_string("password").len() < 10 {\n            errors.insert("password".into(), "10 caracteres minimum".into());\n        }\n        if errors.is_empty() { Ok(()) } else { Err(errors) }\n    }\n}	formulaire	1
+2	5	handler	rust	pub async fn soumission_inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_post() && form.is_valid().await {\n        match form.save(&request.engine.db).await {\n            Ok(user) => {\n                auth_login(&request.session, user.id, &user.username).await.ok();\n                return Ok(Redirect::to("/profil").into_response());\n            }\n            Err(err) => form.get_form_mut().database_error(&err),\n        }\n    }\n    context_update!(request => { "inscription_form" => &form });\n    request.render("auth/inscription.html")\n}	handler	2
+3	5	inscription.html	html	<form method="post" action="/inscription">\n    {# Rendu complet — CSRF inclus automatiquement #}\n    {% form.inscription_form %}\n    <button type="submit">S''inscrire</button>\n</form>\n\n{# Rendu champ par champ — CSRF toujours inclus automatiquement #}\n<form method="post" action="/inscription">\n    {% form.inscription_form.username %}\n    {% form.inscription_form.email %}\n    {% form.inscription_form.password %}\n    <button type="submit">S''inscrire</button>\n</form>	template	3
+4	6	formulaire/login.rs	rust	// Formulaire manuel — pas de modele, pas de clean\npub struct LoginForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for LoginForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Nom d'utilisateur")\n                .required(),\n        );\n        form.field(\n            &TextField::password("password")\n                .label("Mot de passe")\n                .required(),\n        );\n    }\n\n    // Pas de clean — impl_form_access!() suffit\n    impl_form_access!();\n}	formulaire	1
+5	6	handler	rust	pub async fn login(\n    mut request: Request,\n    Prisme(form): Prisme<LoginForm>,\n) -> AppResult<Response> {\n    if request.is_post() {\n        let user_opt = UserEntity::find()\n            .filter(Column::Username.eq(&username))\n            .one(&db).await?;\n\n        match user_opt {\n            Some(user) if verify(&password, &user.password) => {\n                auth_login(&session, user.id, &user.username).await;\n                return Ok(Redirect::to("/profil").into_response());\n            }\n            _ => {}\n        }\n    }\n    request.render("auth/login.html")\n}	handler	2
+6	12	formulaire/image.rs	rust	use runique::prelude::*;\n\npub struct ImageForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for ImageForm {\n    impl_form_access!();\n\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &FileField::image("image")\n                .label("Choisissez une image")\n                .upload_to("media/uploads/images")\n                .required()\n                .max_size_mb(5)\n                .max_files(3)\n                .max_dimensions(1920, 1080)\n                .allowed_extensions(vec!["png", "jpg", "jpeg", "gif"]),\n        );\n    }\n}	formulaire	1
+7	12	Types de FileField	rust	// Images : jpg jpeg png gif webp avif\nFileField::image("avatar")\n\n// Documents : pdf doc docx txt odt\nFileField::document("cv")\n\n// Tout type de fichier\nFileField::any("fichier")\n\n// Extensions personnalisees\nFileField::any("data")\n    .allowed_extensions(vec!["csv", "json"])	\N	2
+8	12	Chemin d'upload	rust	// Chemin fixe dans le code\nFileField::image("photo")\n    .upload_to("media/uploads/photos")\n\n// Depuis la variable MEDIA_ROOT dans .env\nFileField::image("photo")\n    .upload_to_env()\n\n// Sans upload_to → MEDIA_ROOT directement	\N	3
+9	12	handler	rust	pub async fn upload_image_submit(\n    mut request: Request,\n    Prisme(mut form): Prisme<ImageForm>,\n) -> AppResult<Response> {\n    if request.is_post() {\n        if form.is_valid().await {\n            success!(request.notices => "Fichier uploade avec succes !");\n        } else {\n            error!(request.notices => "Erreur de validation");\n        }\n        return Ok(Redirect::to("/upload-image").into_response());\n    }\n    context_update!(request => { "image_form" => &form });\n    request.render("forms/upload_image.html")\n}	handler	4
+10	9	Declaration manuelle — register_fields	rust	use runique::prelude::*;\n\n#[derive(Serialize, Debug, Clone)]\n#[serde(transparent)]\npub struct MonForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for MonForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(&TextField::text("username")\n            .label("Nom d'utilisateur"));\n\n        form.field(&TextField::email("email")\n            .label("Adresse email"));\n\n        form.field(&TextField::password("password")\n            .label("Mot de passe")\n            .min_length(8, "8 caracteres minimum"));\n\n        form.field(&NumericField::integer("age")\n            .label("Age")\n            .min(0.0, "Valeur positive"));\n\n        form.field(&BooleanField::new("actif")\n            .label("Compte actif"));\n\n        let roles = vec![\n            ChoiceOption::new("admin", "Administrateur"),\n            ChoiceOption::new("user", "Utilisateur"),\n        ];\n        form.field(&ChoiceField::new("role")\n            .label("Role")\n            .choices(roles));\n    }\n}	formulaire	1
+11	9	Macro proc #[form] — base sur un schema DB	rust	use crate::entities::contribution::schema as contribution;\nuse runique::prelude::*;\n\n// Les champs sont lus depuis le schema SeaORM\n// — types, contraintes, nullable deduits automatiquement\n#[form(schema = contribution, fields = [title, content])]\npub struct ContributionForm;\n\n#[async_trait]\nimpl RuniqueForm for ContributionForm {\n    impl_form_access!(model);\n\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let title = self.get_string("title");\n        let mut errors = StrMap::new();\n\n        if title.len() < 5 {\n            errors.insert(\n                "title".to_string(),\n                "5 caracteres minimum".to_string(),\n            );\n        }\n\n        if errors.is_empty() { Ok(()) }\n        else { Err(errors) }\n    }\n}	formulaire	2
+12	9	Difference cle	rust	// Manuel — controle total, sans entite DB\n// -> ideal pour formulaires de contact, login, recherche\n\n// #[form] — branche sur le schema SeaORM\n// -> ideal pour CRUD, ModelForm Django-like\n// -> form.save(&db).await? disponible automatiquement	\N	3
+29	3	Declarer un modele — macro model!	rust	use runique::prelude::*;\n\nmodel! {\n    Article,\n    table: "article",\n    pk: id => i32,\n    fields: {\n        title:      String   [required, max_len(255)],\n        content:    text     [required],\n        author_id:  i32      [required, fk(eihwaz_users.id, cascade)],\n        published:  bool     [required, default(false)],\n        created_at: datetime [auto_now],\n        updated_at: datetime [auto_now_update],\n    }\n}	entities/article.rs	1
+13	10	Helpers POST — apres is_valid()	rust	// Valeur par defaut si le champ est vide\nform.get_string("username")     // -> String  ("" si vide)\nform.get_i32("age")             // -> i32     (0 par defaut)\nform.get_f64("price")           // -> f64     (gere , -> .)\nform.get_bool("active")         // -> bool    (true/1/on -> true)\nform.get_uuid("ref")            // -> Uuid    (Uuid::nil() si vide)\n\n// Option — None si vide\nform.get_option("bio")          // -> Option<String>\nform.get_option_i32("age")      // -> Option<i32>\nform.get_option_f64("note")     // -> Option<f64>\nform.get_option_bool("news")    // -> Option<bool>\nform.get_option_uuid("id")      // -> Option<Uuid>	handler	1
+14	10	clear() — vider le formulaire apres traitement	rust	// Re-rendre le formulaire vide apres succes (sans redirect)\nif form.is_valid().await {\n    let path = form.cleaned_string("image"); // 1. lire avant clear\n    // sauvegarder...\n    form.clear();                            // 2. vider\n    context_update!(request => { "upload_form" => &form });\n    return request.render(template);         // 3. form vide affiche\n}\n\n// Avec redirect (PRG) : clear() inutile\n// la nouvelle requete GET cree une instance fraiche automatiquement	handler	2
+15	10	Helpers date / heure	rust	form.get_naive_date("birthday")\nform.get_naive_time("meeting")\nform.get_naive_datetime("event_start")\nform.get_datetime_utc("created_at")\n\n// Variantes Option\nform.get_option_naive_date("birthday")\nform.get_option_naive_datetime("event_start")\nform.get_option_datetime_utc("created_at")	handler	3
+16	10	Acces brut aux parametres d'URL — depuis Request	rust	// Route declaree : "/article/{id}"\nlet id   = request.path_param("id");  // Option<&str>\n\n// Query string : /article/42?page=2\nlet page = request.from_url("page"); // Option<&str>	handler	4
+17	10	cleaned_*() — whiteliste, type, toutes sources	rust	// Priorite : POST -> path param -> query param\n// None si le champ n''est pas declare dans le formulaire\n\nform.cleaned_string("search")    // Option<String>\nform.cleaned_i32("page")         // Option<i32>\nform.cleaned_i64("id")           // Option<i64>\nform.cleaned_f64("price")        // Option<f64>  (gere , -> .)\nform.cleaned_bool("active")      // Option<bool>\nform.cleaned_string("is_admin")  // None — champ inconnu	handler	5
+18	10	Exemple reel — recherche GET /blog/liste?search=rust	rust	// views.rs — filtre articles selon query string\npub async fn blog_list(\n    mut request: Request,\n    Prisme(form): Prisme<SearchDemoForm>,\n) -> AppResult<Response> {\n    let search = form.cleaned_string("search");\n\n    let mut query = BlogEntity::find();\n    if let Some(ref term) = search {\n        query = query.filter(\n            Condition::any()\n                .add(Column::Title.contains(term))\n                .add(Column::Summary.contains(term)),\n        );\n    }\n    // ...\n}\n\n// Exemple reel : recherche user /view-user?username=alice\nlet username = form.cleaned_string("username").unwrap_or_default();	handler	6
+19	29	Application sur une route — urls.rs	rust	use runique::macros::routeur::register_url::register_pending;\nuse runique::prelude::*;\nuse std::sync::Arc;\n\npub fn routes() -> Router {\n    let limiter = Arc::new(\n        RateLimiter::new()\n            .max_requests(5)\n            .retry_after(60),\n    );\n\n    // register_pending est requis pour que {% link 'nom_route' %}\n    // fonctionne dans les templates Tera.\n    register_pending("upload_image", "/upload-image");\n\n    let upload_route = Router::new()\n        .route("/upload-image", view!(upload_handler))\n        .route_layer(middleware::from_fn_with_state(limiter, rate_limit_middleware));\n\n    urlpatterns! {\n        // autres routes...\n    }.merge(upload_route)\n}	urls	1
+20	29	Exemples de configuration	rust	// 5 requetes par minute\nRateLimiter::new().max_requests(5).retry_after(60)\n\n// 3 requetes par 5 minutes\nRateLimiter::new().max_requests(3).retry_after(300)\n\n// 100 requetes par minute (defaut : 60/60)\nRateLimiter::new().max_requests(100).retry_after(60)	\N	2
+21	29	Fonctionnement	text	// Fenetre glissante par adresse IP.\n// Compteur reinitialise apres retry_after secondes.\n\n// Reponse quand la limite est depassee :\nHTTP/1.1 429 Too Many Requests\nRetry-After: 42\n\n// Le header Retry-After indique\n// le delai avant la prochaine fenetre.	\N	3
+22	29	Ordre dans le builder	text	// Les middlewares custom s''inserent au slot 20+.\n// Ils s''executent AVANT la session et le CSRF.\n\nExtensions(0)\n  -> ErrorHandler(10)\n  -> RateLimiter(20)   // ici\n  -> Cache(40)\n  -> Session(50)\n  -> CSRF(60)\n  -> routes	\N	4
+23	1	Cargo.toml — workspace	toml	[workspace]\nmembers = ["monapp", "monapp/migration"]\nresolver = "2"\n\n[workspace.package]\nversion = "0.1.0"\nedition = "2024"\nrust-version = "1.85"\n\n[workspace.dependencies]\nrunique  = { version = "1.1.50", features = ["orm", "postgres"] }\ntokio    = { version = "1", features = ["full"] }\nserde    = { version = "1", features = ["derive"] }	Cargo.toml	1
+24	1	.env	bash	SECRET_KEY=une_cle_secrete_longue_et_aleatoire\nDATABASE_URL=postgres://user:password@localhost:5432/ma_base\nDEBUG=true	.env	2
+25	1	Commandes CLI	bash	# Installer le CLI\ncargo install runique\n\n# Generer le projet\nrunique new mon-projet\n\n# Demarrer le serveur (hot reload templates en DEBUG)\nrunique start\n\n# Migrations\nrunique makemigrations\nrunique migrate up\nrunique migrate down\nrunique migrate status	terminal	3
+26	2	main.rs — builder complet	rust	use runique::prelude::*;\n\n#[tokio::main]\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\n    init_logging();\n    password_init(PasswordConfig::auto_with(Manual::Argon2));\n    set_lang(Lang::Fr);\n\n    let config = RuniqueConfig::from_env();\n    let db     = DatabaseConfig::from_env()?.build().connect().await?;\n\n    RuniqueApp::builder(config)\n        .routes(url::routes())\n        .with_database(db)\n        .statics()\n        .middleware(|m| {\n            m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)\n             .with_session_cleanup_interval(5)\n             .with_allowed_hosts(|h| {\n                 h.enabled(!is_debug())\n                  .host("monsite.fr")\n                  .host("www.monsite.fr")\n             })\n             .with_csp(|c| {\n                 c.policy(SecurityPolicy::strict())\n                  .with_upgrade_insecure(!is_debug())\n                  .images(vec!["''self''", "data:"])\n             })\n        })\n        .with_admin(|a| {\n            a.site_title("Administration")\n             .auth(RuniqueAdminAuth::new())\n             .routes(admins::routes("/admin"))\n        })\n        .build().await?\n        .run().await?;\n\n    Ok(())\n}	main.rs	1
+27	2	RuniqueConfig — variables .env	bash	# Obligatoires\nSECRET_KEY=cle_secrete_256_bits\nDATABASE_URL=postgres://user:pass@localhost/db\n\n# Optionnels\nDEBUG=true           # active le hot reload templates + traces debug\nHOST=127.0.0.1       # defaut 127.0.0.1\nPORT=3000            # defaut 3000	.env	2
+28	2	Middleware — options disponibles	rust	m.with_session_duration(Duration::hours(24))\n .with_session_memory_limit(soft, hard)   // octets\n .with_session_cleanup_interval(minutes)\n\n .with_allowed_hosts(|h| h.host("...").enabled(true))\n .with_csp(|c| c.policy(SecurityPolicy::strict()))\n .with_https_redirect(true)	builder	3
+30	3	Commandes migration	bash	# Generer les fichiers de migration depuis les entites\nrunique makemigrations\n\n# Appliquer toutes les migrations en attente\nrunique migrate up\n\n# Annuler la derniere migration\nrunique migrate down\n\n# Voir l''etat des migrations\nrunique migrate status	terminal	2
+31	3	Fichier de migration genere	rust	use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {\n        manager.create_table(\n            Table::create()\n                .table(Alias::new("article"))\n                .if_not_exists()\n                .col(ColumnDef::new(Alias::new("id")).integer().not_null()\n                    .auto_increment().primary_key())\n                .col(ColumnDef::new(Alias::new("title")).string().not_null())\n                .col(ColumnDef::new(Alias::new("content")).text().not_null())\n                .col(ColumnDef::new(Alias::new("published")).boolean().not_null()\n                    .default(false))\n                .to_owned(),\n        ).await\n    }\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {\n        manager.drop_table(Table::drop().table(Alias::new("article")).to_owned()).await\n    }\n}	migration generee	3
+32	4	Routes	rust	-- Django (urls.py)\nurlpatterns = [\n    path("articles/",      views.article_list, name="article_list"),\n    path("articles/<id>/", views.article_detail, name="article_detail"),\n]\n\n-- Runique (url.rs)\nurlpatterns! {\n    "/articles"      => view! { article_list },   name = "article_list",\n    "/articles/{id}" => view! { article_detail }, name = "article_detail",\n}	urls	1
+33	4	Vues	rust	-- Django (views.py)\ndef article_list(request):\n    articles = Article.objects.all()\n    return render(request, "articles.html", {"articles": articles})\n\n-- Runique (views.rs)\npub async fn article_list(mut request: Request) -> AppResult<Response> {\n    let db = request.engine.db.clone();\n    let articles = article::Entity::find().all(&*db).await.unwrap_or_default();\n    context_update!(request => { "articles" => &articles });\n    request.render("articles.html")\n}	views	2
+34	4	Modeles	rust	-- Django (models.py)\nclass Article(models.Model):\n    title   = models.CharField(max_length=255)\n    content = models.TextField()\n    author  = models.ForeignKey(User, on_delete=models.CASCADE)\n\n-- Runique (entities/article.rs)\nmodel! {\n    Article,\n    table: "article",\n    pk: id => i32,\n    fields: {\n        title:     String [required, max_len(255)],\n        content:   text   [required],\n        author_id: i32    [required, fk(eihwaz_users.id, cascade)],\n    }\n}	models	3
+35	4	Formulaires	rust	-- Django (forms.py)\nclass ArticleForm(ModelForm):\n    class Meta:\n        model  = Article\n        fields = ["title", "content"]\n\n-- Runique (formulaire/article.rs)\n#[form(schema = article, fields = [title, content])]\npub struct ArticleForm;\n\n#[async_trait]\nimpl RuniqueForm for ArticleForm {\n    impl_form_access!(model);\n}	forms	4
+36	4	Configuration	rust	-- Django (settings.py)\nSECRET_KEY = "..."\nDATABASES  = { "default": { "ENGINE": "django.db.backends.postgresql", ... } }\nDEBUG      = True\n\n-- Runique (.env + main.rs)\nSECRET_KEY=...\nDATABASE_URL=postgres://user:pass@localhost/db\nDEBUG=true\n\n// main.rs\nlet config = RuniqueConfig::from_env();\nlet db     = DatabaseConfig::from_env()?.build().connect().await?;	settings	5
+37	11	Rendu complet du formulaire	html	<form method="POST" action="/inscription">\n    {# Rendu de tous les champs + CSRF automatique #}\n    {% form.inscription_form %}\n    <button type="submit">S''inscrire</button>\n</form>	template	1
+38	11	Rendu champ par champ	html	<form method="POST" action="/inscription">\n    {# CSRF toujours inclus automatiquement — champ par champ ou rendu complet #}\n    {% form.inscription_form.username %}\n    {% form.inscription_form.email %}\n    {% form.inscription_form.password %}\n\n    <button type="submit">S''inscrire</button>\n</form>	template	2
+39	11	Messages flash dans template	html	{# Tag Runique — rendu automatique des messages #}\n{% messages %}\n\n{# Structure generee (message.html interne) : #}\n{% if messages %}\n    {% messages }\n{% endif %}	template	3
+40	13	Requetes de base — SeaORM	rust	let db = request.engine.db.clone();\n\n// Tous les enregistrements\nlet articles = article::Entity::find()\n    .all(&*db).await.unwrap_or_default();\n\n// Avec filtre\nlet article = article::Entity::find()\n    .filter(article::Column::Slug.eq("mon-article"))\n    .one(&*db).await.unwrap_or(None);\n\n// Par cle primaire\nlet article = article::Entity::find_by_id(42)\n    .one(&*db).await.unwrap_or(None);\n\n// Tri + limite\nlet recent = article::Entity::find()\n    .order_by_desc(article::Column::CreatedAt)\n    .limit(10)\n    .all(&*db).await.unwrap_or_default();	handler	1
+41	13	Style Django — macro impl_objects!	rust	// Dans entities/article.rs\nmodel! { Article, ... }\nimpl_objects!(Entity);   // active le manager objects\n\n// Dans views.rs\nlet all     = Article::objects.all().all(&db).await?;\nlet actifs  = Article::objects.filter(Column::Published.eq(true)).all(&db).await?;\nlet count   = Article::objects.count(&db).await?;\nlet found   = Article::objects.get(&db, 42).await?;        // Err si absent\nlet opt     = Article::objects.get_optional(&db, 99).await?; // None si absent\nlet or_404  = Article::objects.get_or_404(&db, id, &request, "Introuvable").await?;	handler	2
+42	13	Create / Update / Delete	rust	use sea_orm::ActiveValue::Set;\nuse crate::entities::article::ActiveModel;\n\n// Creer\nlet new_article = ActiveModel {\n    title:     Set("Mon article".to_string()),\n    content:   Set("Contenu...".to_string()),\n    published: Set(false),\n    ..Default::default()\n};\nlet saved = new_article.insert(&*db).await?;\n\n// Modifier\nlet mut article: ActiveModel = found.into();\narticle.title = Set("Nouveau titre".to_string());\narticle.update(&*db).await?;\n\n// Supprimer\narticle::Entity::delete_by_id(42).exec(&*db).await?;	handler	3
+43	14	DatabaseConfig — depuis .env	rust	// .env\n// DATABASE_URL=postgres://user:pass@localhost:5432/mabase\n\nlet config = DatabaseConfig::from_env()?\n    .min_connections(1)\n    .max_connections(20)\n    .build();\n\nlet db: DatabaseConnection = config.connect().await?;	main.rs	1
+44	14	DatabaseConfig — depuis URL directe	rust	let config = DatabaseConfig::from_url(\n    "postgres://user:pass@localhost:5432/mabase"\n)?\n.max_connections(50)\n.connect_timeout(Duration::from_secs(10))\n.build();\n\nlet db = config.connect().await?;	main.rs	2
+45	14	Moteurs supportes	text	postgres://  ou  postgresql://   → PostgreSQL\nmysql://                          → MySQL\nmariadb://                        → MariaDB\nsqlite://                         → SQLite\n\n// Feature flags Cargo.toml\nrunique = { version = "1.1.50", features = ["orm", "postgres"] }\nrunique = { version = "1.1.50", features = ["orm", "mysql"] }\nrunique = { version = "1.1.50", features = ["orm", "sqlite"] }	\N	3
+78	32	Activer l'admin dans le builder	rust	RuniqueApp::builder(config)\n    .with_admin(|a| {\n        a.site_title("Mon Administration")\n         .auth(RuniqueAdminAuth::new())\n         .routes(admins::routes("/admin"))\n         // Dashboard personnalise (optionnel)\n         .templates(|t| t.with_dashboard("admin/mon_dashboard.html"))\n         .with_state(admins::admin_state())\n    })	main.rs	1
+46	15	macro model! — tous les types	rust	use runique::prelude::*;\n\nmodel! {\n    Produit,\n    table: "produit",\n    pk: id => i32,\n    fields: {\n        // Types de base\n        nom:        String   [required, max_len(255)],\n        slug:       String   [required, unique, max_len(255)],\n        description: text    [nullable],\n        prix:       f64      [required],\n        stock:      i32      [required, default(0)],\n        actif:      bool     [required, default(true)],\n\n        // Cle etrangere\n        categorie_id: i32    [required, fk(categorie.id, cascade)],\n\n        // Timestamps automatiques\n        created_at: datetime [auto_now],\n        updated_at: datetime [auto_now_update],\n    }\n}	entities/produit.rs	1
+47	15	Modificateurs disponibles	text	[required]               champ NOT NULL\n[nullable]               champ NULL\n[unique]                 contrainte UNIQUE\n[max_len(N)]             VARCHAR(N)\n[default(valeur)]        valeur par defaut SQL\n[auto_now]               CURRENT_TIMESTAMP a la creation\n[auto_now_update]        CURRENT_TIMESTAMP a chaque modification\n[fk(table.col, cascade)] cle etrangere avec ON DELETE CASCADE\n[fk(table.col, null)]    cle etrangere avec ON DELETE SET NULL	\N	2
+48	15	Activer le manager objects	rust	model! {\n    Article,\n    table: "article",\n    pk: id => i32,\n    fields: { title: String [required] }\n}\n\n// Active Article::objects.all(), .filter(), .get(), etc.\nimpl_objects!(Entity);	entities/article.rs	3
+49	16	urlpatterns! — declaration des routes	rust	use runique::prelude::*;\nuse crate::views::*;\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/"                 => view! { index },          name = "index",\n        "/articles"         => view! { article_list },   name = "article_list",\n        "/articles/{id}"    => view! { article_detail }, name = "article_detail",\n        "/articles/{id}/edit" => view! { article_edit }, name = "article_edit",\n        "/inscription"      => view! { inscription },    name = "inscription",\n    }\n}	url.rs	1
+50	16	Lire un parametre de chemin	rust	// Route : "/articles/{id}"\npub async fn article_detail(mut request: Request) -> AppResult<Response> {\n    let id = request.path_param("id")\n        .and_then(|s| s.parse::<i32>().ok())\n        .unwrap_or(0);\n\n    let db = request.engine.db.clone();\n    let article = article::Entity::find_by_id(id)\n        .one(&*db).await.unwrap_or(None);\n\n    context_update!(request => { "article" => &article });\n    request.render("article/detail.html")\n}	handler	2
+51	16	Liens nommes dans les templates	html	{# Route simple — pretraite en {{ link(link=''index'') }} #}\n<a href='{% link "index" %}'>Accueil</a>\n\n{# Parametre de route — pretraite en {{ link(link=''article_detail'', id=article.id) }} #}\n<a href='{% link "article_detail" id=article.id %}'>{{ article.title }}</a>\n\n{# Sans query — URL propre #}\n<a href='{% link "article_list" %}'>Tous les articles</a>\n\n{# Avec query — pretraite en {{ link(link=''article_list'', query={page: 2}) }} #}\n<a href='{% link "article_list" query={page: 2} %}'>Page suivante</a>	template	3
+52	17	Fichiers statiques et media	html	{# Fichiers dans static/ #}\n<link rel="stylesheet" href="{% static "css/style.css" %}">\n<script src="{% static "js/app.js" %}"></script>\n\n{# Fichiers dans media/ (uploads utilisateur) #}\n<img src="{% media article.image %}" alt="...">	template	1
+53	17	CSRF + nonce CSP	html	<form method="POST">\n    {# CSRF automatique — inclus dans tout rendu de formulaire Runique #}\n    {% form.mon_form %}\n    ...\n</form>\n\n{# Nonce CSP — pour les scripts inline autorises #}\n<script nonce="{{ csp_nonce }}">\n    console.log(''autorise par la CSP'');\n</script>	template	2
+54	17	Messages flash	html	{# Dans le template — tag Runique #}\n{% messages %}\n\n{# Dans le handler Rust #}\nsuccess!(request.notices => "Enregistre !");\nerror!(request.notices   => "Erreur.");\ninfo!(request.notices    => "Info.");\nwarning!(request.notices => "Attention.");	template	3
+55	17	Heritage de templates	html	{# base.html — template parent #}\n<html>\n<body>\n    {% block content %}{% endblock %}\n</body>\n</html>\n\n{# page.html — template enfant #}\n{% extends "base.html" %}\n{% block content %}\n    <h1>Mon contenu</h1>\n{% endblock %}	template	4
+56	20	Configuration de la langue	rust	use runique::prelude::*;\n\n// Dans main() — avant de demarrer le serveur\nset_lang(Lang::Fr);    // Français\nset_lang(Lang::En);    // Anglais (defaut)\nset_lang(Lang::De);    // Allemand\nset_lang(Lang::Es);    // Espagnol\nset_lang(Lang::It);    // Italien\nset_lang(Lang::Pt);    // Portugais\nset_lang(Lang::Ja);    // Japonais\nset_lang(Lang::Zh);    // Chinois\nset_lang(Lang::Ru);    // Russe	main.rs	1
+57	20	Langues disponibles	text	Lang::Fr  — Français\nLang::En  — English    (defaut)\nLang::De  — Deutsch\nLang::Es  — Español\nLang::It  — Italiano\nLang::Pt  — Português\nLang::Ja  — 日本語\nLang::Zh  — 中文\nLang::Ru  — Русский\n\n// Autodetection depuis locale navigateur\nlet lang = Lang::from("fr-FR");  // → Lang::Fr\nlet lang = Lang::from("en-US");  // → Lang::En	\N	2
+58	20	Traductions dans les templates	html	{# Cle de traduction simple #}\n{{ ''forms.required'' | t }}\n{# → "Ce champ est obligatoire" (Fr) #}\n{# → "This field is required"   (En) #}\n\n{# Cle avec parametre numerique #}\n{{ ''forms.too_short'' | t(n=8) }}\n{# → "8 caracteres minimum" #}	template	3
+59	21	Configuration dans le builder	rust	RuniqueApp::builder(config)\n    .middleware(|m| {\n        m\n        // Limites memoire : soft 5 Mo, hard 10 Mo\n        .with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)\n\n        // Nettoyage automatique toutes les 5 minutes\n        .with_session_cleanup_interval(5)\n\n        // Duree de vie des sessions (defaut : 24h)\n        .with_session_duration(Duration::hours(12))\n    })	main.rs	1
+60	21	Lecture / ecriture dans un handler	rust	pub async fn mon_handler(mut request: Request) -> AppResult<Response> {\n    // Lire\n    let user_id = request.session\n        .get::<i32>("user_id").await\n        .ok().flatten();\n\n    // Ecrire\n    request.session.insert("user_id", 42).await.ok();\n    request.session.insert("username", "alice").await.ok();\n\n    // Supprimer une cle\n    request.session.remove::<i32>("user_id").await.ok();\n\n    // Invalider la session entiere (deconnexion)\n    request.session.flush().await.ok();\n\n    request.render("profil.html")\n}	handler	2
+61	22	context_update! — injecter des variables Tera	rust	pub async fn ma_vue(mut request: Request) -> AppResult<Response> {\n    let articles = vec!["Article 1", "Article 2"];\n\n    // Injecter dans le contexte Tera\n    context_update!(request => {\n        "title"    => "Ma page",\n        "articles" => &articles,\n        "count"    => articles.len(),\n    });\n\n    request.render("ma_page.html")\n}	handler	1
+62	22	Macros flash — messages utilisateur	rust	// Dans un handler\nsuccess!(request.notices => "Enregistre avec succes !");\nerror!(request.notices   => "Une erreur est survenue.");\ninfo!(request.notices    => "Verification en cours...");\nwarning!(request.notices => "Attention : session bientot expiree.");\n\n// flash_now! — message injecte directement dans le contexte\ncontext_update!(request => {\n    "messages" => flash_now!(success => "Cree !"),\n});	handler	2
+63	22	impl_from_error! — convertir des erreurs	rust	// Convertit automatiquement DbErr et autres en AppError\nimpl_from_error!(\n    sea_orm::DbErr      => database_error,\n    std::io::Error      => internal_error,\n    serde_json::Error   => serialization_error,\n);\n\n// Permet d''utiliser ? dans les handlers\npub async fn handler(mut request: Request) -> AppResult<Response> {\n    let article = Article::find_by_id(1).one(&*db).await?; // DbErr converti\n    Ok(request.render("page.html")?)\n}	handler	3
+64	24	Contrat POST — Prisme extractor	rust	// Tout formulaire POST doit passer par Prisme<T>\n// Prisme valide le token CSRF avant d''entrer dans le handler.\npub async fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_post() && form.is_valid().await {\n        // Traitement securise — le CSRF a ete valide\n        return Ok(Redirect::to("/profil").into_response());\n    }\n    context_update!(request => { "form" => &form });\n    request.render("auth/inscription.html")\n}	handler	1
+65	24	Token CSRF dans le template	html	<form method="POST" action="{% link "inscription" %}">\n    {# Rendu complet — CSRF inclus automatiquement #}\n    {% form.inscription_form %}\n    <button type="submit">S''inscrire</button>\n</form>\n\n{# Rendu champ par champ — CSRF toujours inclus automatiquement #}\n<form method="POST" action="{% link "inscription" %}">\n    {% form.inscription_form.username %}\n    {% form.inscription_form.password %}\n    <button type="submit">S''inscrire</button>\n</form>	template	2
+66	24	Fonctionnement interne	text	// GET  → token genere, stocke en session, injecte dans le contexte Tera\n// POST → Prisme extrait le token du body, compare en constant-time\n//        (via subtle::ConstantTimeEq pour eviter les timing attacks)\n\n// Si le token est invalide ou absent :\n//   → formulaire vide + message d''erreur CSRF\n//   → le handler n''est jamais execute\n\n// Le token est lie a la session — il change a chaque nouvelle session.	\N	3
+67	25	Configuration dans le builder	rust	RuniqueApp::builder(config)\n    .middleware(|m| {\n        m.with_csp(|c| {\n            c.policy(SecurityPolicy::strict())\n             .with_header_security(true)        // X-Frame-Options, X-Content-Type, etc.\n             .with_upgrade_insecure(!is_debug()) // HTTP → HTTPS en prod\n             .images(vec!["''self''", "data:"])  // Autorise data: pour les images\n        })\n    })	main.rs	1
+68	25	Politiques predefinies	rust	// Strict : bloque tout ce qui n''est pas explicitement autorise\nSecurityPolicy::strict()\n\n// Permissive : pour les phases de dev / migration\nSecurityPolicy::permissive()\n\n// Header genere (strict) :\n// Content-Security-Policy:\n//   default-src ''self'';\n//   script-src ''self'' ''nonce-abc123'';\n//   style-src ''self'';\n//   img-src ''self'' data:;\n//   object-src ''none'';\n//   frame-ancestors ''none'';\n//   upgrade-insecure-requests	\N	2
+69	25	Nonce CSP pour scripts inline	html	{# Le nonce est regenere a chaque requete.\n   Il est injecte automatiquement dans le header CSP. #}\n<script nonce="{{ csp_nonce }}">\n    // Ce script inline est autorise par la CSP\n    document.querySelector(''form'').addEventListener(''submit'', ...);\n</script>	template	3
+70	26	Configuration dans le builder	rust	RuniqueApp::builder(config)\n    .middleware(|m| {\n        m.with_allowed_hosts(|h| {\n            h.enabled(!is_debug())  // desactive en dev, actif en prod\n             .host("monsite.fr")\n             .host("www.monsite.fr")\n             .host("monsite.up.railway.app")\n        })\n    })	main.rs	1
+71	26	Comportement	text	// Si le header Host de la requete ne correspond\n// a aucun hote autorise :\n//   → 400 Bad Request\n\n// Comparaison : insensible a la casse, normalisation IPv6\n// Wildcards :\n//   .example.com  →  accepte foo.example.com, bar.example.com\n//   (ne correspond pas a example.com sans sous-domaine)\n\n// Desactive quand enabled(false) — toutes les requetes passent.	\N	2
+72	27	Activer la redirection HTTPS	rust	RuniqueApp::builder(config)\n    .middleware(|m| {\n        m.with_csp(|c| {\n            c.policy(SecurityPolicy::strict())\n             // Active "upgrade-insecure-requests" dans le header CSP\n             // + redirection 301 HTTP → HTTPS\n             .with_upgrade_insecure(!is_debug())\n        })\n    })	main.rs	1
+73	27	Prerequis — proxy inverse	text	// Runique doit etre derriere un reverse proxy (Nginx, Caddy, Railway...)\n// qui termine le TLS et transmet les requetes en HTTP.\n\n// Le proxy doit envoyer le header :\n//   X-Forwarded-Proto: https\n\n// Exemple Nginx :\n//   proxy_set_header X-Forwarded-Proto $scheme;\n\n// Sans proxy TLS, with_upgrade_insecure(true) n''a pas d''effet visible.	\N	2
+74	28	Creer un LoginGuard	rust	use runique::prelude::*;\nuse std::sync::Arc;\n\n// Dans main() ou dans le module de routes\nlet guard = Arc::new(\n    LoginGuard::new()\n        .max_attempts(5)    // tentatives avant verrouillage\n        .lockout_secs(300), // 5 minutes de verrouillage\n);\n\n// Nettoyer les entrees expirees regulierement\nguard.spawn_cleanup(tokio::time::Duration::from_secs(60));	main.rs	1
+75	28	Utilisation dans le handler de login	rust	pub async fn login(\n    mut request: Request,\n    Prisme(form): Prisme<LoginForm>,\n    State(guard): State<Arc<LoginGuard>>,\n) -> AppResult<Response> {\n    let username = form.get_string("username");\n    let ip       = request.client_ip().unwrap_or_default();\n\n    // Cle par username si rempli, sinon par IP\n    if guard.is_locked_for(&username, &ip) {\n        let secs = guard.retry_after_secs_for(&username, &ip);\n        warning!(request.notices => format!("Compte bloque. Reessayez dans {secs}s."));\n        return request.render("auth/login.html");\n    }\n\n    if request.is_post() {\n        match authenticate(&username, &password, &db).await {\n            Some(user) => {\n                guard.record_success_for(&username, &ip);\n                auth_login(&request.session, user.id, &user.username).await;\n                return Ok(Redirect::to("/profil").into_response());\n            }\n            None => {\n                guard.record_failure_for(&username, &ip);\n                error!(request.notices => "Identifiants incorrects.");\n            }\n        }\n    }\n    request.render("auth/login.html")\n}	handler	2
+76	31	admin.rs — macro admin!	rust	use crate::entities::{users, blog, article};\nuse crate::formulaire::{RegisterForm, BlogForm, ArticleForm};\n\n// Ce fichier est la SOURCE pour "runique start"\n// qui regenere src/admin/generated.rs automatiquement.\nadmin! {\n    users: users::Model => RegisterForm {\n        title: "Utilisateurs",\n        permissions: ["admin"]\n    }\n    blog: blog::Model => BlogForm {\n        title: "Articles de blog",\n        permissions: ["admin"]\n    }\n    article: article::Model => ArticleForm {\n        title: "Articles",\n        permissions: ["admin"]\n    }\n}	admin.rs	1
+77	31	Regles de la macro admin!	text	// Syntaxe :\n// nom_ressource: entite::Model => FormType {\n//     title: "Libelle dans le menu",\n//     permissions: ["role1", "role2"],\n// }\n\n// nom_ressource  →  segment d''URL (/admin/nom_ressource/)\n// entite::Model  →  modele SeaORM genere par model!\n// FormType       →  formulaire qui implemente RuniqueForm\n// permissions    →  roles autorises a acceder a cette ressource\n\n// runique start regenere src/admin/generated.rs a chaque demarrage.	\N	2
+79	32	Authentification admin — RuniqueAdminAuth	rust	// RuniqueAdminAuth verifie que l''utilisateur connecte\n// a le role declare dans permissions de la ressource.\n\n// Personnaliser l''auth (optionnel) :\npub struct MonAdminAuth;\n\n#[async_trait]\nimpl AdminAuth for MonAdminAuth {\n    async fn is_authorized(&self, session: &Session, role: &str) -> bool {\n        let user_role = session.get::<String>("role").await.ok().flatten();\n        user_role.as_deref() == Some(role)\n    }\n}\n\n// Dans le builder :\n.auth(MonAdminAuth)	admins/auth.rs	2
+80	32	URL generees automatiquement	text	// Pour chaque ressource declaree dans admin! :\nGET    /admin/                    → tableau de bord\nGET    /admin/article/            → liste\nGET    /admin/article/create/     → formulaire de creation\nPOST   /admin/article/create/     → traitement creation\nGET    /admin/article/{id}/edit/  → formulaire d''edition\nPOST   /admin/article/{id}/edit/  → traitement edition\nPOST   /admin/article/{id}/delete/ → suppression	\N	3
+\.
+
+
+--
+-- Data for Name: contributions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.contributions (id, user_id, title, content, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: demo_category; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.demo_category (id, title, sort_order, back_link_url, back_link_label) FROM stdin;
+1	Démarrage	1	\N	\N
+2	Authentification	2	\N	\N
+3	Formulaires	3	/formulaires	Formulaires
+4	Database	4	\N	\N
+5	Framework	5	\N	\N
+6	Administration	6	\N	\N
+\.
+
+
+--
+-- Data for Name: demo_page; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.demo_page (id, category_id, slug, title, lead, page_type, sort_order) FROM stdin;
+1	1	installation_demo	Installation	Prérequis, .env, commandes CLI, démarrage rapide.	code	1
+2	1	configuration_demo	Configuration builder	RuniqueApp::builder(), middlewares, secrets, assets.	code	2
+3	1	migrations_demo	Migrations	macro model!, makemigrations, migration up/down/status.	code	3
+4	1	comparatif_demo	Comparatif Django	Equivalences routes, vues, formulaires, ORM, securite.	code	4
+5	2	inscription	Inscription	Formulaire base modele, validation, hash mot de passe.	form	1
+6	2	login	Authentification	Login / logout, sessions, protection des routes.	form	2
+7	2	profil	Profil utilisateur	Session active, donnees utilisateur, deconnexion.	custom	3
+8	3	formulaires_hub	Formulaires	Declaration, champs disponibles, rendu Tera.	custom	1
+9	3	formulaires_champs	Declaration des champs	Deux façons de declarer un champ — manuellement via register_fields, ou via la macro proc #[form].	code	2
+10	3	formulaires_helpers	Helpers	Acces aux valeurs de formulaire et aux parametres d'URL — helpers types et acces whiteliste.	custom	3
+11	3	formulaires_templates	Rendu templates	Tags Tera pour le rendu des formulaires.	code	4
+12	3	upload_image	Upload fichier	Image, validation taille et extension.	form	5
+13	4	orm_demo	ORM — Requetes	objects, filter, paginate, relations, create/update/delete.	code	1
+14	4	database_demo	Base de donnees	DatabaseConfig, from_env, from_url, pool, timeouts.	code	2
+15	4	model_demo	Modeles & Schemas	Definir un modele, types, contraintes, relations, migrations.	code	3
+16	5	router_demo	Routeur	urlpatterns!, parametres de chemin, liens nommes.	code	1
+17	5	template_demo	Templates & Tags	Tags Tera — static, link, media, messages, form.xxx.	code	2
+18	5	middleware_hub	Middlewares	CSRF, CSP, Rate Limiter, Login Guard, Host Validation, HTTPS.	custom	3
+19	5	about	Messages flash	success!, info!, warning!, error! — macros de messages flash.	custom	4
+20	5	i18n_demo	Internationalisation	Langue des templates Runique — 9 langues disponibles.	code	5
+21	5	session_demo	Sessions	MemoryStore, limites memoire, nettoyage periodique automatique.	code	6
+22	5	macros_demo	Macros	context_update!, context!, impl_from_error!	code	7
+23	5	propos_template_error	Pages d'erreur	404, 500, 429 — verification des pages Runique.	custom	8
+24	5	middleware_csrf	CSRF	Protection CSRF — Prisme, contrat POST vers handler.	code	9
+25	5	middleware_csp	CSP	Content Security Policy — builder, directives.	code	10
+26	5	middleware_hosts	Host Validation	Validation des hotes autorises.	code	11
+27	5	middleware_https	HTTPS Redirect	Redirection HTTP vers HTTPS automatique.	code	12
+28	5	middleware_login_guard	Login Guard	Protection contre les tentatives de connexion repetees.	code	13
+29	5	middleware_rate_limit	Rate Limit	Limitation de requetes par IP avec fenetre glissante.	code	14
+30	6	admin_hub	Administration	CRUD auto-genere, permissions, tableau de bord, surcharge templates.	custom	1
+31	6	admin_declaration	Declaration admin	Declarer une ressource dans le panneau admin.	code	2
+32	6	admin_setup	Configuration admin	Activer et configurer le panneau admin.	code	3
+33	6	admin_surcharge	Surcharge templates	Personnaliser les templates du panneau admin.	custom	4
+\.
+
+
+--
+-- Data for Name: demo_section; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.demo_section (id, page_id, title, content, sort_order) FROM stdin;
+\.
+
+
+--
+-- Data for Name: doc_block; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.doc_block (id, page_id, heading, content, block_type, sort_order) FROM stdin;
+1	1	Exemple minimal	```rust\nadmin! {\n    users: users::Model => RegisterForm {\n        title: "Utilisateurs",\n        permissions: ["admin", "staff"]\n    }\n}\n```	code	0
+2	1	\N	| Fichier | Contenu |\n| --- | --- |\n| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |\n| [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |\n| [Daemon & génération](/docs/fr/admin/declaration) | Fichiers générés, comportement du watcher |\n| [Macro `admin!`](/docs/fr/admin/declaration) | Syntaxe complète, champs obligatoires et optionnels |\n| [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |\n| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |\n| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |	sommaire	1
+3	1	Revenir au menu	- [Readme Francais](https://github.com/seb-alliot/runique/blob/main/README.fr.md)	text	2
+4	2	Détection de l'admin dans `main.rs`	Au démarrage, `runique start` lit `src/main.rs` et recherche la présence de `.with_admin(` :\n\n```rust\n// src/main.rs\nRuniqueApp::builder(config)\n    .with_admin(|a| a.routes(admins::routes("/admin")))\n    // ...\n```\n\nLa détection se fait par simple recherche de chaîne dans le fichier source.\n**Elle fonctionne même si la ligne est commentée** (`// .with_admin(...)`).\n\n| Résultat de la détection | Comportement |\n| --- | --- |\n| `.with_admin(` trouvé | Daemon + `cargo run` lancés |\n| Absent | Message d'information, arrêt propre |\n\n> Le chemin vers `main.rs` est configurable : `runique start --main src/main.rs`\n\n---	code	0
+5	2	Ce qui se passe si `.with_admin(` est détecté	`runique start` lance **deux processus simultanément** :\n\n1. **Le daemon admin** — thread séparé qui surveille `src/admin.rs` et régénère `src/admins/` à chaque modification\n2. **`cargo run`** — lance le serveur applicatif (bloquant jusqu'à arrêt du programme)\n\n```text\nrunique start\n  ├── thread daemon → watch(src/admin.rs) [génération initiale immédiate]\n  └── cargo run     → serveur HTTP (bloquant)\n```\n\nLe daemon effectue une **génération initiale au démarrage** — il n'est pas nécessaire de modifier `src/admin.rs` pour que le code soit produit.\n\n---	code	1
+6	2	Autre section	| Section | Description |\n| --- | --- |\n| [Daemon & génération](/docs/fr/admin/declaration) | Watcher, fichiers\n| [Macro `admin!`](/docs/fr/admin/declaration) | Déclaration des ressources administrables	text	2
+7	2	Revenir au Sommaire	- [Sommaire](/docs/fr/admin) - Sommaire Admin	text	3
+8	3	Permissions granulaires par opération CRUD	Actuellement les permissions s'appliquent uniformément à toutes les opérations.\nL'objectif est de permettre :\n\n```rust\nadmin! {\n    users: users::Model => UserForm {\n        title: "Utilisateurs",\n        permissions: {\n            list:   ["staff", "admin"],\n            create: ["admin"],\n            edit:   ["admin"],\n            delete: ["admin"],\n        }\n    }\n}\n```\n\n---	code	0
+9	3	Filtres et recherche dans la liste	Ajout de filtres déclaratifs sur la vue `list` :\n\n```rust\nadmin! {\n    users: users::Model => UserForm {\n        title: "Utilisateurs",\n        filters: ["username", "is_active"],\n        search: ["username", "email"],\n    }\n}\n```\n\n---	code	1
+10	3	Relations et champs calculés	Support des relations SeaORM dans les vues detail/edit (affichage des entités liées).\n\n---	text	2
+11	3	Amélioration du retour d'erreur du daemon	Meilleur feedback lors de la génération : erreurs de compilation Rust exposées directement dans le terminal avec contexte.	text	3
+12	3	Revenir au sommaire	- [Sommaire Admin](/docs/fr/admin)	text	4
+13	4	Champs de contrôle d'accès	| Champ | Type | État | Rôle |\n| --- | --- | --- | --- |\n| `is_staff` | `bool` | ✅ Actif | Autorise l'accès à l'interface admin |\n| `is_superuser` | `bool` | ✅ Actif | Accès total, bypass toutes les vérifications |\n| `is_active` | `bool` | ⏳ En développement | Prévu pour bloquer les comptes désactivés |\n| `roles` | `Option<Vec<String>>` | ✅ Actif | Rôles utilisateur — accessibles dans les templates via `current_user.roles` |\n\n---	text	0
+14	4	Ce qui est réellement appliqué aujourd'hui	### Entrée dans l'admin\n\nLe middleware vérifie uniquement `is_staff` et `is_superuser` :\n\n```\nis_staff = true  OU  is_superuser = true  →  accès accordé\nles deux = false                           →  redirection /admin/login\n```\n\n### is_superuser\n\nUn utilisateur avec `is_superuser = true` bypass **toutes** les vérifications — entrée admin et permissions par ressource.\n\n---	code	1
+15	4	Ce qui est déclaré mais pas encore appliqué	### is_active\n\nLe champ existe dans le modèle `users` mais n'est pas encore vérifié par le middleware admin. Un compte avec `is_active = false` peut toujours se connecter si `is_staff` ou `is_superuser` est `true`.\n\n### roles\n\nLe champ `roles` est disponible dans tous les templates admin via `current_user.roles`.\n\n#### Saisie dans l'interface admin\n\nLes rôles se saisissent en texte libre, séparés par des virgules :\n\n```\neditor\neditor, moderator\nadmin, editor\n```\n\n#### Utilisation dans les templates\n\n```html\n{% if current_user and "editor" in current_user.roles %}\n    <a href="...">Modifier</a>\n{% endif %}\n```\n\n`is_superuser = true` bypass toujours les conditions de rôle — un superuser voit tout.\n\n#### Permissions par ressource (déclaratives)\n\nLa macro `admin!` permet de déclarer des rôles autorisés par ressource :\n\n```rust\nadmin! {\n    articles: articles::Model => ArticleForm {\n        title: "Articles",\n        permissions: ["editor", "admin"]\n    }\n}\n```\n\nLa structure `ResourcePermissions` et la fonction `check_permission()` existent dans le code, mais **ne sont pas appelées** dans les handlers CRUD générés. Les permissions sont stockées sans être vérifiées à ce stade.\n\n---	code	2
+16	4	Logique d'accès actuelle (état réel)	```\nauthentifié ?\n  └─ non → redirection /admin/login\n  └─ oui → is_staff OU is_superuser ?\n               └─ aucun → redirection /admin/login\n               └─ is_superuser → AUTORISÉ (accès total)\n               └─ is_staff seulement → AUTORISÉ (sans vérification de rôle)\n```\n\n---	code	3
+17	4	Notes	- `is_active` et `roles` sont prévus dans la roadmap — voir [Évolutions](/docs/fr/admin/evolution).\n- La macro `admin!` définit uniquement les règles déclaratives ; la logique d'application est dans les middlewares.\n- La granularité par opération CRUD (list/create/edit/delete) n'est pas supportée dans la version actuelle.\n\n---	text	4
+18	4	Revenir au sommaire	- [Sommaire Admin](/docs/fr/admin)	text	5
+19	5	Prérequis	- Un projet Runique fonctionnel avec une base de données configurée\n- Un modèle `users` avec les champs `is_staff` et `is_superuser` (générés par `model!`)\n- Le binaire `runique` installé (`cargo install runique` ou `cargo build` du workspace)\n\n---	text	0
+43	10	Macros d'erreur	| Macro | Description |\n| ----- | ----------- |\n| `impl_from_error!` | Génère `From<Error>` pour `AppError` |\n\n---	text	3
+20	5	Étape 1 — Créer `src/admin.rs`	Ce fichier déclare les ressources administrables via la macro `admin!` :\n\n```rust\n// src/admin.rs\nuse crate::entities::{users, articles};\nuse crate::formulaire::{RegisterForm, ArticleForm};\n\nadmin! {\n    users: users::Model => RegisterForm {\n        title: "Utilisateurs",\n        permissions: ["admin"]\n    },\n    articles: articles::Model => ArticleForm {\n        title: "Articles",\n        permissions: ["admin"]\n    }\n}\n```\n\n---	code	1
+22	5	Étape 3 — Déclarer le module dans `src/main.rs`	```rust\nmod admin;\nmod admins;  // module généré par runique start\n```\n\n---	code	3
+24	5	Étape 5 — Créer un superuser	```bash\nrunique create-superuser\n```\n\nSuit un assistant interactif pour créer le premier compte admin (`is_superuser = true`).\n\n---	code	5
+26	5	Revenir au sommaire	- [Sommaire Admin](/docs/fr/admin)	text	7
+28	6	Blocks disponibles	| Block | Rôle |\n| --- | --- |\n| `{% block title %}` | Titre de la page (`<title>`) |\n| `{% block extra_css %}` | CSS supplémentaires dans `<head>` |\n| `{% block layout %}` | Wraps l'ensemble du layout (sidebar + main) |\n| `{% block sidebar %}` | Barre latérale de navigation |\n| `{% block topbar %}` | Barre supérieure (breadcrumb, logout) |\n| `{% block breadcrumb %}` | Fil d'Ariane (défini dans `admin_base`) |\n| `{% block messages %}` | Zone de messages flash — contient `{% messages %}` par défaut |\n| `{% block content %}` | Contenu principal de la page |\n| `{% block extra_js %}` | Scripts JS supplémentaires avant `</body>` |\n\n### Éléments hors-blocks (toujours présents)\n\nInscrits directement dans `admin_template.html` — **impossibles à supprimer** par surcharge :\n\n- `<meta name="csrf-token" content="{{ csrf_token }}">` dans `<head>`\n- `<script src="{{ "js/csrf.js" | runique_static }}" defer></script>` avant `</body>`\n\n---	text	1
+30	6	Revenir au menu	- [Sommaire](https://github.com/seb-alliot/runique/blob/main/README.fr.md)	text	3
+32	7	Rôle de chaque fichier	**`main.rs`** — Configure et lance l'application via le builder :\n\n```rust\n#[macro_use]\nextern crate runique;\nuse runique::prelude::*;\n\nmod entities;\nmod formulaire;\nmod urls;\nmod views;\n\n#[tokio::main]\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\n    let config = RuniqueConfig::from_env();\n    let db_config = DatabaseConfig::from_env()?.min_connections(1).build();\n    let db: DatabaseConnection = db_config.connect().await?;\n\n    password_init(PasswordConfig::auto());\n\n    RuniqueApp::builder(config)\n        .routes(urls::routes())\n        .with_database(db)\n        .statics()\n        .build()\n        .await?\n        .run()\n        .await?;\n\n    Ok(())\n}\n```\n\n**`urls.rs`** — Déclare les routes via `urlpatterns!` :\n\n```rust\nuse runique::prelude::*;\nuse crate::views;\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ views::index }, name = "index",\n        "/register" => view!{ views::register }, name = "register",\n    }\n}\n```\n\n**`views.rs`** — Handlers de requêtes :\n\n```rust\npub async fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => { "title" => "Accueil" });\n    request.render("index.html")\n}\n```\n\n**`formulaire/`** — Formulaires typés :\n\n```rust\npub struct RegisterForm { pub form: Forms }\n\nimpl RuniqueForm for RegisterForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(&TextField::text("username").label("Nom").required());\n        form.field(&TextField::email("email").label("Email").required());\n    }\n    impl_form_access!();\n}\n```\n\n**`admin.rs`** — Déclaration de la vue admin (fichiers générés dans `src/admins/`) :\n\n```rust\nadmin! {\n    users: users::Model => RegisterForm {\n        title: "Utilisateurs",\n        permissions: ["admin"],\n    }\n}\n```\n\n---	code	1
+34	7	\N	| Section | Contenu |\n| --- | --- |\n| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |\n| [Macros](/docs/fr/architecture/macros) | Macros de contexte, flash, routage, erreur |\n| [Tags & filtres Tera](/docs/fr/architecture/tera) | Tags Django-like, filtres, fonctions |\n| [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |\n| [Lifecycle d'une requête](/docs/fr/architecture/lifecycle) | Cycle de vie, bonnes pratiques |\n\n---	sommaire	3
+36	8	2. Request — L'extracteur principal	`Request` est l'extracteur central de Runique. Il remplace l'ancien `TemplateContext` et contient tout le nécessaire :\n\n```rust\npub struct Request {\n    pub engine: AEngine,       // Arc<RuniqueEngine>\n    pub session: Session,      // Session tower-sessions\n    pub notices: Message,      // Flash messages\n    pub csrf_token: CsrfToken, // Token CSRF\n    pub context: Context,      // Contexte Tera\n    pub method: Method,        // Méthode HTTP\n}\n```\n\n**Usage dans un handler :**\n\n```rust\npub async fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => {\n        "title" => "Accueil",\n    });\n    request.render("index.html")\n}\n```\n\n**Méthodes :**\n\n- `request.render("template.html")` — Rendu avec le contexte courant\n- `request.is_get()` / `request.is_post()` — Vérification de la méthode HTTP\n\n---	code	1
+38	9	\N	## Cycle de vie\n\n```text\n1. Requête HTTP arrive\n2. Middlewares traversés (order des slots)\n3. Extensions injectées (Engine, Tera, Config)\n4. Session chargée, CSRF vérifié\n5. Handler appelé avec extracteurs (Request, Prisme<T>)\n6. Handler retourne AppResult<Response>\n7. Middlewares traversés en sens inverse\n8. Réponse HTTP envoyée\n```\n\n---	code	0
+40	10	Macros de contexte	| Macro | Description | Exemple |\n| ----- | ----------- | ------- |\n| `context!` | Créer un contexte Tera | `context!("title" => "Page")` |\n| `context_update!` | Ajouter au contexte d'une Request | `context_update!(request => { "key" => value })` |\n\n---	text	0
+42	10	Macros de routage	| Macro | Description | Exemple |\n| ----- | ----------- | ------- |\n| `urlpatterns!` | Définir des routes avec noms | `urlpatterns!("/" => view!{...}, name = "index")` |\n| `view!` | Handler pour toutes méthodes HTTP | `view!{ GET => handler, POST => handler2 }` |\n| `impl_objects!` | Manager Django-like pour SeaORM | `impl_objects!(Entity)` |\n\n---	text	2
+44	11	\N	## Ordre des slots\n\nRunique applique les middlewares dans un **ordre optimal** via le système de slots :\n\n```text\nRequête entrante\n    ↓\n1. Extensions (slot 0)     → Injection Tera, Config, Engine\n2. ErrorHandler (slot 10)  → Capture et rendu des erreurs\n3. Custom (slot 20+)       → Middlewares personnalisés\n4. CSP (slot 30)           → Content Security Policy & headers\n5. Cache (slot 40)         → No-cache en développement\n6. Session (slot 50)       → Gestion des sessions\n7. CSRF (slot 60)          → Protection CSRF\n8. Host (slot 70)          → Validation Allowed Hosts\n    ↓\nHandler (votre code)\n    ↓\nRéponse sortante (middlewares en sens inverse)\n```\n\n> **Important** : Avec Axum, le dernier `.layer()` appliqué est le premier exécuté. Le Builder Intelligent gère cet ordre automatiquement.\n\n---	code	0
+91	23	Format des clés	Les clés suivent la notation pointée `"section.sous_section.clé"` qui correspond à la hiérarchie du JSON de traduction.\n\n```text\n"forms.required"       → { "forms": { "required": "..." } }\n"forms.too_short"      → { "forms": { "too_short": "Trop court (min {})" } }\n"error.not_found"      → { "error": { "not_found": "..." } }\n```\n\nLe `{}` dans une valeur est remplacé séquentiellement par les arguments passés à `tf`.\n\n---	code	2
+21	5	Étape 2 — Générer `src/admins/` avec le daemon	```bash\nrunique start\n```\n\nLe daemon lit `src/admin.rs`, génère `src/admins/` et lance `cargo run`.\nLe dossier `src/admins/` est créé automatiquement — ne pas le modifier manuellement.\n\n```text\nsrc/admins/\n  ├── README.md\n  ├── mod.rs\n  └── admin_panel.rs\n```\n\n> Si `src/admins/` existe déjà depuis une génération précédente, `runique start` le régénère.\n\n---	code	2
+23	5	Étape 4 — Câbler `.with_admin()` dans le builder	```rust\nuse runique::app::builder::RuniqueAppBuilder as builder;\n\nbuilder::new(config)\n    .routes(url::routes())\n    .with_database(db)\n    .with_admin(|a| {\n        a.site_title("Administration")\n         .auth(RuniqueAdminAuth::new())\n         .routes(admins::routes("/admin"))\n         .with_state(admins::admin_state())\n    })\n    .build()\n    .await?\n    .run()\n    .await?;\n```\n\n| Méthode | Rôle |\n| --- | --- |\n| `.prefix("/admin")` | Préfixe des routes admin (défaut : `/admin`) |\n| `.site_title("…")` | Titre affiché dans l'interface |\n| `.auth(RuniqueAdminAuth::new())` | Authentification admin (par défaut) |\n| `.routes(admins::routes("/admin"))` | Monte les routes CRUD sous `/admin` |\n| `.with_state(…)` | État partagé généré par le daemon |\n| `.no_robots_txt()` | Désactive le `/robots.txt` automatique |\n\n> **robots.txt automatique** — Quand l'admin est actif, Runique génère automatiquement\n> une route `/robots.txt` contenant `Disallow: /admin/` pour exclure l'interface\n> des moteurs de recherche. Le préfixe configuré via `.prefix()` est respecté.\n> Utilisez `.no_robots_txt()` si vous souhaitez gérer ce fichier vous-même.\n\n---	code	4
+25	5	Accès à l'interface	Une fois le serveur démarré, l'interface est disponible à :\n\n```text\nhttp://localhost:{PORT}/admin/\n```\n\nLa page `/admin/login` redirige vers le dashboard si les identifiants sont valides.\n\n---	code	6
+27	6	\N	## Hiérarchie en 3 niveaux\n\n```\nadmin_template.html   ← niveau 1 : contrat (blocks définis, éléments fixes)\n        ↓ extends\nadmin_base.html            ← niveau 2 : layout visuel par défaut\n        ↓ extends\nlist.html / create.html …  ← niveau 3 : composants CRUD\n```\n\n**Niveau 1 — `admin_template.html`** : éléments hors-blocks garantis (CSRF, messages). Ne pas surcharger directement.\n\n**Niveau 2 — `admin_base.html`** : layout par défaut (sidebar, topbar, styles). C'est ce fichier que le dev remplace pour changer l'apparence.\n\n**Niveau 3 — composants** : pages CRUD qui héritent du niveau 2 et remplissent `{% block content %}`.\n\n---	code	0
+29	6	Sous-sections	| Section | Description |\n| --- | --- |\n| [Clés de contexte](/docs/fr/admin/template) | variables injectées par le backend dans chaque template\n| [Surcharge](/docs/fr/admin/template) | remplacer le layout ou un composant CRUD\n| [CSRF](/docs/fr/admin/template) | token CSRF, `csrf.js`, checklist login custom |	text	2
+31	7	Structure type	```text\nmon-projet/\n├── src/\n│   ├── entities/          # Déclaration des model\n│   │   ├── users.rs       # Utilise l'ast de runique pour la cli makemigrations\n│   │   └── blog.rs        # Le cli est non compatible avec les struct basique\n│   │\n│   ├── formulaire/        # Déclaration des formulaire\n│   │   ├── inscription.rs # Utilisation du moteur de formulaire\n│   │   └── blog.rs        # ou de macro pro attribu\n│   │\n│   ├── main.rs            # Point d'entrée — RuniqueApp builder\n│   ├── admin.rs           # Déclaration admin!{} (si admin activé, necessaire pour la cli runique start)\n│   ├── urls.rs            # urlpatterns! — table de routage\n│   ├── views.rs           # Handlers (fonctions async)\n│   └──  forms.rs          # Structs RuniqueForm (ou dossier forms/)\n│\n├── templates/             # Templates Tera (.html)\n├── static/                # Fichiers statiques (CSS, JS, images)\n│   └── media/             # Uploads (FileField)\n│                          # Media peux etre dans un autre dossier\n│\n├── migration/             # Migrations SeaORM\n│   └── src/\n│       └── lib.rs\n├── .env                   # Variables d'environnement\n└── Cargo.toml\n```\n\n---	code	0
+33	7	Démarrer un nouveau projet	```bash\nrunique new mon-projet\ncd mon-projet\nrunique start\n```\n\n`runique new` génère la structure minimale décrite ci-dessus. Voici ce que chaque fichier t'appartient de modifier ou non :\n\n| Fichier / dossier | À modifier | Rôle |\n| --- | --- | --- |\n| `src/main.rs` | Oui | Configure le builder et déclare les modules |\n| `src/urls.rs` | Oui | Table de routage |\n| `src/views.rs` | Oui | Handlers de requêtes |\n| `src/entities/` | Oui | Déclarations de modèles (AST Runique, compatible `makemigrations`) |\n| `src/formulaire/` | Oui | Formulaires et validation |\n| `src/admin.rs` | Oui (si admin) | Déclaration `admin!{}`, requis pour `runique start` |\n| `src/admins/` | **Non** | Généré par le daemon — ne pas modifier à la main |\n| `templates/` | Oui | Templates Tera |\n| `static/` | Oui | CSS, JS, images |\n| `migration/` | Non (sauf ajout de tables) | Migrations SeaORM |\n| `.env` | Oui | Variables d'environnement |\n\n> `runique start` surveille `src/admin.rs` et régénère `src/admins/` à chaque changement. Pour une app sans vue admin, `cargo run` suffit.\n\n---	code	2
+35	8	\N	## 1. RuniqueEngine\n\n**État principal** partagé de l'application :\n\n```rust\npub struct RuniqueEngine {\n    pub db: Arc<DatabaseConnection>,\n    pub tera: Arc<Tera>,\n    pub config: Arc<RuniqueConfig>,\n}\n```\n\nInjecté comme Extension Axum, accessible dans chaque handler via `request.engine`.\n\n---	code	0
+37	8	3. `Prisme<T>` — Extracteur de formulaire	```rust\npub async fn handler(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_post() && form.is_valid().await {\n        let user = form.save(&request.engine.db).await?;\n        success!(request.notices => "Utilisateur créé !");\n        return Ok(Redirect::to("/").into_response());\n    }\n\n    context_update!(request => {\n        "form" => &form,\n    });\n    request.render("form.html")\n}\n```\n\nAutomatiquement :\n\n1. Parse le body de la requête\n2. Crée une instance du formulaire\n3. Injecte le token CSRF\n4. Remplit les données soumises\n\n---	code	2
+39	9	Bonnes pratiques	### 1. Cloner les Arc\n\n```rust\nlet db = request.engine.db.clone();\n```\n\n### 2. Formulaires = copies par requête\n\n```rust\nPrisme(mut form): Prisme<MyForm>\n// Chaque requête = formulaire isolé, zéro concurrence\n```\n\n### 3. `context_update!` pour le contexte\n\n```rust\ncontext_update!(request => {\n    "title" => "Ma page",\n    "data" => &my_data,\n});\n```\n\n### 4. Flash messages pour les redirections\n\n```rust\nsuccess!(request.notices => "Action réussie !");\nreturn Ok(Redirect::to("/").into_response());\n```\n\n### 5. `flash_now!` pour les rendus directs\n\n```rust\ncontext_update!(request => {\n    "messages" => flash_now!(error => "Erreur de validation"),\n});\n```\n\n---	code	1
+41	10	Macros flash messages	| Macro | Description | Exemple |\n| ----- | ----------- | ------- |\n| `success!` | Message de succès (session) | `success!(request.notices => "OK !")` |\n| `error!` | Message d'erreur (session) | `error!(request.notices => "Erreur")` |\n| `info!` | Message info (session) | `info!(request.notices => "Info")` |\n| `warning!` | Avertissement (session) | `warning!(request.notices => "Attention")` |\n| `flash_now!` | Message immédiat (sans session) | `flash_now!(error => "Erreurs")` |\n\n---	text	1
+45	11	Injection de dépendances	Via les **Extensions Axum**, injectées automatiquement par le middleware Extensions :\n\n```rust\n// Enregistré automatiquement par le builder :\n// Extension(engine)  → Arc<RuniqueEngine>\n// Extension(tera)    → Arc<Tera>\n// Extension(config)  → Arc<RuniqueConfig>\n\n// Accessible dans les handlers via Request :\npub async fn handler(request: Request) -> AppResult<Response> {\n    let db = request.engine.db.clone();\n    let config = &request.engine.config;\n    // ...\n}\n```\n\n---	code	1
+47	12	Filtres Tera	| Filtre | Description |\n| ------ | ----------- |\n| `static` | Préfixe URL statique de l'app |\n| `media` | Préfixe URL média de l'app |\n| `form` | Rendu de formulaire complet ou par champ |\n| `csrf_field` | Génère un input hidden CSRF |\n\n---	text	1
+49	13	\N	| Module | Description |\n| --- | --- |\n| [Modèle utilisateur](/docs/fr/auth/modele) | `RuniqueUser`, built-in, trait custom |\n| [Helpers de session](/docs/fr/auth/session) | `login`, `logout`, `is_authenticated` |\n| [Middlewares de protection](/docs/fr/auth/middleware) | `login_required`, `redirect_if_authenticated`, `load_user_middleware` |\n| [Exemple complet](/docs/fr/auth/exemple) | Login / Logout handler complet |\n| [LoginGuard](/docs/fr/auth/login-guard) | Protection brute-force par username |	sommaire	0
+51	14	Authentification pour l'AdminPanel	### Avec le User built-in (zéro config)\n\n```rust\nuse runique::middleware::auth::RuniqueAdminAuth;\n\n.with_admin(|a| a.auth(RuniqueAdminAuth::new()))\n```\n\n### Avec un modèle custom\n\n```rust\nuse runique::middleware::auth::{DefaultAdminAuth, UserEntity};\n\n// 1. Implémenter UserEntity sur votre entité\nimpl UserEntity for users::Entity {\n    type Model = users::Model;\n\n    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {\n        users::Entity::find()\n            .filter(users::Column::Username.eq(username))\n            .one(db)\n            .await\n            .ok()\n            .flatten()\n    }\n\n    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model> {\n        users::Entity::find()\n            .filter(users::Column::Email.eq(email))\n            .one(db)\n            .await\n            .ok()\n            .flatten()\n    }\n}\n\n// 2. Passer DefaultAdminAuth à la config admin\n.with_admin(|a| a.auth(DefaultAdminAuth::<users::Entity>::new()))\n```\n\nPour brancher l'authentification au panneau d'administration, voir aussi [11-Admin.md](/docs/fr/admin).\n\n---	code	1
+53	15	Pourquoi dans le handler et pas en middleware ?	Un middleware s'exécute avant le handler et ne peut pas lire le body sans le consommer.\n`Prisme` extrait le formulaire une seule fois — le username n'est disponible qu'après cette extraction.\n\nLa session connaît l'état d'authentification, mais au moment du login l'utilisateur n'est pas encore connecté : `session.username` serait toujours `"anonym"` sur cette route, ce qui ne protège pas le compte ciblé.\n\n| Source | Disponible en middleware | Fiable pour LoginGuard |\n| --- | --- | --- |\n| Adresse IP | ✅ | ✅ (utilisée par `effective_key` pour anonym) |\n| Username (session) | ✅ | ❌ (toujours anonym sur `/login`) |\n| Username (form body) | ❌ (consomme le body) | ✅ (via `Prisme` dans le handler) |\n\n---	text	1
+55	15	API	### `LoginGuard::new()`\n\nCrée un LoginGuard avec les valeurs par défaut (5 tentatives / 300 s).\n\n### `.max_attempts(max: u32)`\n\nNombre d'échecs avant verrouillage du compte.\n\n### `.lockout_secs(secs: u64)`\n\nDurée du verrouillage en secondes.\n\n### `LoginGuard::effective_key(username, ip) -> Cow<str>`\n\nRetourne la clé à utiliser selon le contexte :\n\n- Username non vide → clé par username (protection compte ciblé)\n- Username vide ou absent → `"anonym:{ip}"` (protection anonyme par IP)\n\nGarantit que deux IPs anonymes différentes ont des compteurs indépendants — bloquer `"anonym:1.2.3.4"` n'affecte pas `"anonym:5.6.7.8"`.\n\n> **Pourquoi pas une clé `"anonym"` globale ?** Une seule tentative abusive suffirait à verrouiller tous les utilisateurs anonymes du monde entier. La clé par IP isole chaque attaquant.\n\n### `record_failure(key)`\n\nIncrémente le compteur d'échecs pour cette clé. À appeler après chaque authentification échouée.\n\n### `record_success(key)`\n\nRéinitialise le compteur. À appeler après une connexion réussie.\n\n### `is_locked(key) -> bool`\n\nRetourne `true` si le nombre d'échecs dépasse `max_attempts` et que le délai de verrouillage n'est pas écoulé.\n\n### `attempts(key) -> u32`\n\nNombre d'échecs en cours pour cette clé.\n\n### `remaining_lockout_secs(key) -> Option<u64>`\n\nSecondes restantes avant déverrouillage. `None` si non verrouillé.\n\n---	text	3
+57	16	\N	## `login_required` — protéger une route\n\nRedirige vers `REDIRECT_ANONYMOUS` si l'utilisateur n'est pas connecté.\n\n```rust\nuse runique::middleware::auth::login_required;\n\nlet protected = Router::new()\n    .route("/dashboard", get(dashboard))\n    .layer(axum::middleware::from_fn(login_required));\n```\n\n---	code	0
+59	16	`load_user_middleware` — charger le contexte utilisateur	Injecte un `CurrentUser` dans les extensions de la requête. Permet d'accéder aux informations de l'utilisateur dans vos handlers.\n\n```rust\nuse runique::middleware::auth::load_user_middleware;\n\nlet app = Router::new()\n    .route("/profile", get(profile))\n    .layer(axum::middleware::from_fn(load_user_middleware));\n```\n\nAccès dans un handler :\n\n```rust\nuse runique::middleware::auth::CurrentUser;\nuse runique::context::RequestExtensions;\n\nasync fn profile(req: RuniqueRequest) -> impl IntoResponse {\n    if let Some(user) = req.extensions().current_user() {\n        println!("Connecté : {}", user.username);\n    }\n}\n```\n\n---	code	2
+61	17	\N	## Modèle built-in\n\nRunique inclut un modèle utilisateur prêt à l'emploi, sans aucune configuration.\n\n**Table générée :** `eihwaz_users`\n\n| Champ | Type | Description |\n|---------------|----------|----------------------------------------|\n| `id` | `i32` | Clé primaire |\n| `username` | `String` | Nom d'utilisateur unique |\n| `email` | `String` | Adresse email |\n| `password` | `String` | Hash Argon2 — jamais en clair |\n| `is_active` | `bool` | Compte actif |\n| `is_staff` | `bool` | Accès au panneau admin (limité) |\n| `is_superuser` | `bool` | Accès complet, bypass toutes les règles |\n| `roles` | `JSON` | Rôles personnalisés ex. `["editor"]` |\n| `created_at` | datetime | Date de création |\n| `updated_at` | datetime | Date de mise à jour |\n\nPour créer le premier superutilisateur :\n\n```bash\nrunique create-superuser\n```\n\nPour accéder au modèle depuis votre code :\n\n```rust\nuse runique::prelude::user::{Model, ActiveModel};\n```\n\n---	code	0
+63	18	\N	## Import\n\n```rust\nuse runique::middleware::auth::{\n    login, login_staff, logout,\n    is_authenticated, get_user_id, get_username,\n};\n```\n\n---	code	0
+65	18	Déconnexion	```rust\nlogout(&session).await?;\n```\n\n---	code	2
+67	18	Variables d'environnement	Ces variables contrôlent les redirections automatiques des middlewares :\n\n| Variable | Défaut | Description |\n| --- | --- | --- |\n| `REDIRECT_ANONYMOUS` | `/` | Cible de redirection pour les utilisateurs non connectés |\n| `USER_CONNECTED_URL` | `/` | Cible de redirection pour les utilisateurs déjà connectés |\n\n---	text	4
+160	40	IPAddressField — Adresse IP	```rust\n// IPv4 + IPv6\nform.field(&IPAddressField::new("server_ip").label("IP du serveur"));\n\n// IPv4 uniquement\nform.field(&IPAddressField::new("gateway").label("Passerelle").ipv4_only());\n\n// IPv6 uniquement\nform.field(&IPAddressField::new("ipv6").label("Adresse IPv6").ipv6_only());\n```\n\n---	code	13
+46	12	\N	## Tags Django-like (syntaxe sucrée)\n\n| Tag | Transformé en | Description |\n| --- | ------------- | ----------- |\n| `{% static "..." %}` | `{{ "..." \\| static }}` | URL d'un fichier statique |\n| `{% media "..." %}` | `{{ "..." \\| media }}` | URL d'un fichier média |\n| `{% csrf %}` | `{% include "csrf/..." %}` | Champ CSRF caché |\n| `{% messages %}` | `{% include "message/..." %}` | Affichage messages flash |\n| `{% csp_nonce %}` | `{% include "csp/..." %}` | Attribut nonce CSP |\n| `{% link "name" %}` | `{{ link(link='name') }}` | URL d'une route nommée |\n| `{% form.xxx %}` | `{{ xxx \\| form \\| safe }}` | Rendu formulaire complet |\n| `{% form.xxx.field %}` | `{{ xxx \\| form(field='field') \\| safe }}` | Rendu d'un champ |\n\n---	text	0
+48	12	Fonctions Tera	| Fonction | Description |\n| -------- | ----------- |\n| `csrf()` | Génère un champ CSRF depuis le contexte |\n| `nonce()` | Retourne le nonce CSP |\n| `link(link='...')` | Résolution d'URL nommée |\n\n---	text	2
+50	14	\N	## Exemple complet — Login / Logout\n\n```rust\nuse runique::middleware::auth::{login_staff, logout};\nuse runique::utils::password::verify;\nuse runique::prelude::*;\n\npub async fn login_post(\n    mut request: Request,\n    Prisme(mut form): Prisme<LoginForm>,\n) -> AppResult<Response> {\n    if request.is_post() && form.is_valid().await {\n        // 1. Chercher l'utilisateur par username\n        let username = form.get_form().get_string("username");\n        let user = users::Entity::objects\n            .filter(users::Column::Username.eq(&username))\n            .first(&*request.engine.db)\n            .await?;\n\n        if let Some(user) = user {\n            // 2. Vérifier le mot de passe (en clair vs hash)\n            let password = form.get_form().get_string("password");\n            if verify(&password, &user.password) {\n                // 3. Ouvrir la session\n                login_staff(\n                    &request.session,\n                    user.id,\n                    &user.username,\n                    user.is_staff,\n                    user.is_superuser,\n                    user.roles(),\n                ).await?;\n                return Ok(Redirect::to("/dashboard").into_response());\n            }\n        }\n\n        // Identifiants invalides\n        context_update!(request => {\n            "login_form" => &form,\n            "messages" => flash_now!(error => "Identifiants invalides"),\n        });\n    } else {\n        context_update!(request => { "login_form" => &form });\n    }\n\n    request.render("login.html")\n}\n\npub async fn logout_view(mut request: Request) -> AppResult<Response> {\n    logout(&request.session).await.ok();\n    Ok(Redirect::to("/login").into_response())\n}\n```\n\n---	code	0
+52	15	Usage complet avec `effective_key`	`effective_key` détermine automatiquement la bonne clé selon que l'utilisateur a soumis un username ou non :\n\n- Username soumis → clé par compte (protection ciblée)\n- Username vide → `"anonym:{ip}"` (protection par IP, compteurs indépendants)\n\n```rust\nuse runique::prelude::*;\n\nstatic GUARD: LazyLock<LoginGuard> = LazyLock::new(|| {\n    LoginGuard::new()\n        .max_attempts(5)\n        .lockout_secs(300)\n});\n\npub async fn login(\n    session: Session,\n    State(db): State<DatabaseConnection>,\n    Prisme(form): Prisme<LoginForm>,\n) -> impl IntoResponse {\n    let username = form.username();\n    let ip = /* extraire l'IP depuis les headers */;\n\n    // username soumis → "alice"  |  username vide → "anonym:1.2.3.4"\n    let key = LoginGuard::effective_key(&username, &ip);\n\n    if GUARD.is_locked(&key) {\n        let remaining = GUARD.remaining_lockout_secs(&key).unwrap_or(0);\n        return (StatusCode::TOO_MANY_REQUESTS, format!("Réessayez dans {remaining}s")).into_response();\n    }\n\n    match authenticate(&username, &form.password(), &db).await {\n        Some(user) => {\n            GUARD.record_success(&key);\n            login(&session, user.id, &user.username).await.unwrap();\n            Redirect::to("/dashboard").into_response()\n        }\n        None => {\n            GUARD.record_failure(&key);\n            (StatusCode::UNAUTHORIZED, "Identifiants invalides").into_response()\n        }\n    }\n}\n```\n\n---	code	0
+54	15	Configuration	```rust\nLoginGuard::new().max_attempts(5).lockout_secs(300)    // 5 échecs → blocage 5 minutes\nLoginGuard::new().max_attempts(3).lockout_secs(900)    // 3 échecs → blocage 15 minutes\nLoginGuard::new().max_attempts(10).lockout_secs(3600)  // 10 échecs → blocage 1 heure\n```\n\n---	code	2
+56	15	Combinaison avec le rate limiting IP	Les deux mécanismes couvrent des vecteurs d'attaque différents et sont complémentaires :\n\n| | `RateLimiter` | `LoginGuard` |\n| --- | --- | --- |\n| Clé | Adresse IP | Username ou `anonym:{ip}` |\n| Où | Middleware (automatique) | Handler (manuel) |\n| Cible | Toutes les routes | Login uniquement |\n| Protège contre | Volume d'attaque par IP | Brute-force par compte |\n| Faux positifs | Possible (NAT) | Aucun (par compte) |\n\n```rust\nstatic IP_LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new().max_requests(10).window_secs(60));\nstatic GUARD:      LazyLock<LoginGuard>  = LazyLock::new(|| LoginGuard::new().max_attempts(5).lockout_secs(300));\n\npub async fn login(/* ... */) -> impl IntoResponse {\n    // 1. Volume par IP → RateLimiter (middleware ou manuel)\n    if !IP_LIMITER.is_allowed(&ip) { /* 429 */ }\n\n    // 2. Brute-force par compte ou IP anonyme → LoginGuard\n    let key = LoginGuard::effective_key(&username, &ip);\n    if GUARD.is_locked(&key) { /* 429 */ }\n\n    // 3. Authentification\n    match authenticate(&username, &password, &db).await {\n        Some(user) => { GUARD.record_success(&key); /* ... */ }\n        None       => { GUARD.record_failure(&key); /* ... */ }\n    }\n}\n```\n\n---\n\n← [**Middlewares de protection**](/docs/fr/auth/middleware) | [**Exemple complet**](/docs/fr/auth/exemple) →	code	4
+58	16	`redirect_if_authenticated` — page login/register	Redirige vers `USER_CONNECTED_URL` si l'utilisateur est déjà connecté. Utile pour éviter qu'un utilisateur connecté accède à `/login`.\n\n```rust\nuse runique::middleware::auth::redirect_if_authenticated;\n\nlet public = Router::new()\n    .route("/login", get(login_page).post(login_post))\n    .layer(axum::middleware::from_fn(redirect_if_authenticated));\n```\n\n---	code	1
+60	16	CurrentUser	Structure injectée par `load_user_middleware` dans les extensions de requête.\n\n```rust\npub struct CurrentUser {\n    pub id: i32,\n    pub username: String,\n    pub is_staff: bool,\n    pub is_superuser: bool,\n    pub roles: Vec<String>,\n}\n```\n\n### Méthodes disponibles\n\n```rust\n// Vérifier un rôle précis\nuser.has_role("editor")           // → bool\n\n// Vérifier au moins un rôle parmi une liste\nuser.has_any_role(&["editor", "moderator"])  // → bool\n\n// Accès à l'admin (is_staff || is_superuser)\nuser.can_access_admin()           // → bool\n\n// Vérifier une permission admin (is_superuser bypass tout)\nuser.can_admin(&["editor"])       // → bool\n```\n\n---	code	3
+80	19	Ce qui manque encore à Runique (résumé)	- Flux auth complet (activation email, reset password)\n- Intégration email native\n- Upload fichier robuste (validation MIME, resize)\n- Pagination admin + `list_display` + filtres\n- Permissions runtime dans l'admin\n- Équivalent `django-simple-history`\n- NoSQL natif (hors scope, brancher `mongodb`)\n- `request.path_param()` / `request.query_param()` — actuellement via extractors Axum bruts (voir [roadmap](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param))	text	12
+82	21	Exemple minimal	```rust\nlet app = RuniqueApp::builder(config)\n    .routes(url::routes())\n    .with_database(db)\n    .statics()\n    .build()\n    .await?;\n\napp.run().await?;\n```\n\n---	code	0
+62	17	Trait RuniqueUser	Si vous utilisez votre propre modèle utilisateur à la place du built-in, vous devez implémenter `RuniqueUser`.\n\n```rust\nuse runique::middleware::auth::RuniqueUser;\n\nimpl RuniqueUser for users::Model {\n    fn user_id(&self) -> i32        { self.id }\n    fn username(&self) -> &str      { &self.username }\n    fn email(&self) -> &str         { &self.email }\n    fn password_hash(&self) -> &str { &self.password }\n    fn is_active(&self) -> bool     { self.is_active }\n    fn is_staff(&self) -> bool      { self.is_staff }\n    fn is_superuser(&self) -> bool  { self.is_superuser }\n\n    // Optionnel — rôles personnalisés\n    fn roles(&self) -> Vec<String> {\n        self.roles.clone().unwrap_or_default()\n    }\n\n    // Optionnel — logique d'accès admin sur mesure\n    fn can_access_admin(&self) -> bool {\n        self.is_active() && (self.is_staff() || self.is_superuser())\n    }\n}\n```\n\n### Méthodes obligatoires\n\n| Méthode | Retour | Description |\n|------------------|-------------|--------------------------------|\n| `user_id()` | `i32` | Identifiant unique |\n| `username()` | `&str` | Nom d'utilisateur |\n| `email()` | `&str` | Adresse email |\n| `password_hash()` | `&str` | Hash du mot de passe |\n| `is_active()` | `bool` | Compte actif |\n| `is_staff()` | `bool` | Accès admin limité |\n| `is_superuser()` | `bool` | Accès admin complet |\n\n### Méthodes avec valeur par défaut\n\n| Méthode | Défaut | Description |\n|--------------------|-------------------------------------|------------------------------|\n| `roles()` | `vec![]` | Rôles personnalisés |\n| `can_access_admin()` | `is_active && (is_staff \\|\\| is_superuser)` | Logique d'accès admin |\n\n---	code	1
+64	18	Connexion	```rust\n// Utilisateur classique — is_staff et is_superuser valent false par défaut\nlogin(&session, user.id, &user.username).await?;\n\n// Utilisateur staff/admin — avec droits et rôles personnalisés\nlogin_staff(\n    &session,\n    user.id,\n    &user.username,\n    user.is_staff,\n    user.is_superuser,\n    user.roles(),\n).await?;\n```\n\n### Connexion exclusive\n\nPour n'autoriser qu'un seul appareil connecté à la fois, activer via le builder :\n\n```rust\nRuniqueApp::builder(config)\n    .middleware(|m| m.with_exclusive_login(true))\n```\n\n`login` et `login_staff` invalident alors automatiquement toutes les sessions existantes\nde l'utilisateur à chaque nouvelle connexion. Aucun changement dans les handlers.\n\n> Désactivé par défaut (`false`). Sans effet si un store externe est utilisé.\n\n---	code	1
+66	18	Vérifications	```rust\n// L'utilisateur est-il connecté ?\nif is_authenticated(&session).await {\n    // ...\n}\n\n// Récupérer l'ID en session\nif let Some(user_id) = get_user_id(&session).await {\n    // ...\n}\n\n// Récupérer le username en session\nif let Some(username) = get_username(&session).await {\n    // ...\n}\n```\n\n---	code	3
+68	19	\N	## CLI\n\n| Commande | Django | Runique |\n|----------|--------|---------|\n| Créer un projet | `django-admin startproject nom` | `runique new nom` |\n| Créer une app | `python manage.py startapp nom` | — |\n| Migrations (générer) | `python manage.py makemigrations` | `runique makemigrations` |\n| Migrations (appliquer) | `python manage.py migrate` | `runique migration up` (wrapper `sea-orm-cli migrate up`) |\n| Migrations (annuler) | `python manage.py migrate app 0001` | `runique migration down --files ...` (wrapper `sea-orm-cli migrate down`) |\n| Statut migrations | — | `runique migration status` (wrapper `sea-orm-cli migrate status`) |\n| Créer superuser | `python manage.py createsuperuser` | `runique create-superuser` |\n| Démarrer les services | `python manage.py runserver` | `cargo run` — `runique start` uniquement pour initialiser/renouveler la vue admin |\n\n---	text	0
+70	19	Vues / Handlers	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| Vue fonction | `def ma_vue(request)` | `async fn ma_vue(...)` |\n| Vue classe | `class MaVue(View)` | — |\n| Accès session | `request.session` | `request.session` via `context::template::Request` (ou `Session` extractor axum directement) |\n| Accès DB | `Model.objects.get(...)` | sea-orm query builders |\n| Rendu template | `render(request, "template.html", ctx)` | `request.render("template.html")` — contexte déjà dans `request.context` |\n| Redirect | `redirect("nom_url")` | `Redirect::to("/url")` ou `reverse(&engine, "nom")` / `reverse_with_parameters(...)` (prelude) |\n| Messages flash | `messages.success(request, "...")` | `success!(message => "...")` — macros `success!`, `error!`, `info!`, `warning!` (prelude) |\n\n---	text	2
+72	19	Templates	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| Moteur | Django Template Language | Tera (syntaxe Jinja2) |\n| Héritage | `{% extends %}` / `{% block %}` | idem Tera |\n| Fichiers statiques | `{% load static %}` `{% static "file" %}` | `{% static "file" %}` natif |\n| Fichiers media | `{{ MEDIA_URL }}file` | `{% media "file" %}` natif |\n| URL reverse | `{% url "nom" %}` | `{% link "nom" %}` |\n| CSRF | `{% csrf_token %}` | `{% csrf %}` |\n| Messages | `{% for m in messages %}` | `{% messages %}` |\n| Internationalisation | `{% trans "..." %}` | `{{ t("section.clé") }}` |\n\n---	text	4
+74	19	Authentification	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| Login / Logout | `authenticate()` + `login()` | `login()`, `login_staff()`, `logout()` — `LoginGuard` = middleware anti-brute force |\n| Vérif authentification | `request.user.is_authenticated` | `is_authenticated(&session).await` |\n| Utilisateur courant | `request.user` | `CurrentUser` (injecté via `load_user_middleware`) |\n| Protection route | `@login_required` | middleware `login_required` |\n| Redirection si connecté | manuel | middleware `redirect_if_authenticated` |\n| Sessions | natif | tower-sessions |\n| Protection brute force | `django-axes` (tiers) | `LoginGuard` natif (tentatives + lockout) |\n| Hashage mot de passe | PBKDF2 / argon2 | argon2, bcrypt, scrypt, custom (détection automatique à la vérification) |\n| Activation compte email | natif (`auth`) | **manquant** |\n| Reset password | natif | **manquant** (prévu via `lettre`) |\n| Déconnexion forcée toutes sessions | oui | **manquant** |\n\n---	text	6
+76	19	Vue Admin	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| Activation | `admin.site.register(Model)` | macro `admin!{}` + `runique start` |\n| List / Create / Edit / Detail / Delete | natif | natif |\n| Pagination liste | natif | **manquant** |\n| `list_display` | natif | **manquant** |\n| Recherche / filtres | natif | **manquant** |\n| Templates personnalisables | oui | oui (hiérarchie Tera) |\n| Permissions par ressource | natif | stockées, non injectées dans le contexte Tera |\n| Création compte admin | `createsuperuser` | `runique create-superuser` |\n| Compte admin depuis l'app | non | non (identique) |\n\n---	text	8
+78	19	Internationalisation	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| Langues supportées | illimitées (fichiers `.po`) | 9 (`en`, `fr`, `it`, `es`, `de`, `pt`, `ja`, `zh`, `ru`) |\n| Détection auto langue | `LocaleMiddleware` | `LANG` / `LC_ALL` env |\n| Fallback | oui | oui (`Lang::En`) |\n| Traductions framework | `.po`/`.mo` | fichiers JSON (14 sections, compilés dans le binaire) |\n| `t("clé")` | `_("...")` | `t("section.clé")` → `Cow<'static, str>` |\n\n---	text	10
+69	19	Routing	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| Déclaration des routes | `urls.py` avec `path()` | `url.rs` avec macro `urlpatterns!{}` |\n| Routes dynamiques | `path('users/<int:id>/', view)` | `"/users/{id}"` dans `urlpatterns!` |\n| Namespaces | `app_name` + `include()` | `Router::new().nest("/prefix", ...)` |\n| Reverse URL | `{% url "nom_vue" %}` natif | `{% link "nom_vue" %}` → Tera function custom |\n| Récupérer un paramètre de chemin | `kwargs['id']` via `request.resolver_match` | `Path(id): Path<i32>` en paramètre de vue (extractor Axum) — `request.path_param("id")` [prévu](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param) |\n| Récupérer un query param | `request.GET.get('key')` | `Query(params): Query<HashMap<...>>` en paramètre de vue — `request.query_param("key")` [prévu](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param) |\n\n---	text	1
+71	19	Formulaires	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| Définition | `class MonForm(forms.Form)` / `class MonForm(ModelForm)` | `#[derive(RuniqueForm)] struct MonForm` (équivalent `ModelForm`) |\n| Validation | `form.is_valid()` | `form.is_valid().await` |\n| Champs disponibles | CharField, EmailField, etc. | TextField, EmailField, PasswordField, HiddenField, etc. (liste fixe, pas de widget custom) |\n| Rendu HTML | `{{ form.as_p }}` | `{% form.nom_form %}` (formulaire entier) ou `{% form.nom_form.champ %}` (champ individuel) |\n| CSRF intégré | automatique | automatique — injecté par le filtre Tera `form_filter` avant le premier champ |\n| Sauvegarde | `form.save()` | `form.save(&db).await` |\n| Validation async | non | oui (accès DB possible) |\n| Formulaires fichier | `FileField` | Multipart partiel |\n\n---	text	3
+73	19	ORM / Base de données	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| ORM | Django ORM natif | sea-orm |\n| Définition modèle | `class User(models.Model)` | entité sea-orm (struct Rust) dans `src/entities/` (dossier imposé, lu par le parser) |\n| Migrations auto | oui (détection changements) | `runique makemigrations` (détection changements depuis entités) |\n| QuerySet chaînable | `User.objects.filter(...).order_by(...)` | sea-orm Select builder |\n| Relations | ForeignKey, ManyToMany, OneToOne | Relations sea-orm |\n| Transactions | `with transaction.atomic()` | `db.transaction(...)` sea-orm |\n| Multi-DB | oui | PostgreSQL, MySQL, SQLite |\n| NoSQL | via packages tiers | via crates tierces (ex. `mongodb`) |\n| Re-export | — | `runique::sea_orm` + `sea_query` |\n\n---	text	5
+75	19	Sécurité	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| CSRF | natif | natif (constant-time via `subtle`) |\n| CSP | `django-csp` (tiers) | natif (`use_nonce: true` par défaut) |\n| HSTS | `SECURE_HSTS_SECONDS` | natif (`max-age=31536000; includeSubDomains`) |\n| SameSite cookies | configurable | `Strict` par défaut |\n| HttpOnly cookies | par défaut | toujours `true` |\n| Validation hôtes | `ALLOWED_HOSTS` | `RUNIQUE_ALLOWED_HOSTS` + `RUNIQUE_ENABLE_HOST_VALIDATION` |\n| Rate limiting | `django-ratelimit` (tiers) | `RateLimiter` natif |\n| Sanitisation inputs | — | middleware sanitize natif |\n| Secret key générée | manuel | `runique new` génère 32 bytes hex automatiquement |\n\n---	text	7
+77	19	Email	| Fonctionnalité | Django | Runique |\n|----------------|--------|---------|\n| Envoi email | `send_mail()` natif | **manquant** — `lettre` à brancher |\n| Templates email | natif | **manquant** |\n| Backend SMTP/console | configurable | — |\n\n---	text	9
+79	19	Performance & Déploiement	| Aspect | Django | Runique |\n|--------|--------|---------|\n| Runtime | CPython (GIL) | Tokio async Rust |\n| Serveur prod | Gunicorn + Nginx | binaire compilé (Axum/Hyper) |\n| Empreinte mémoire | ~50–100 MB | ~5–15 MB |\n| Compilation | — | `cargo build --release` |\n| Docker | oui | oui |\n| Déploiement | fly.io, Heroku, Azure, etc. | idem (binaire statique = plus simple) |\n\n---	text	11
+81	20	\N	| Module | Description |\n| --- | --- |\n| [Variables d'environnement](/docs/fr/configuration/variables) | Serveur, DB, assets, sécurité, fichier `.env` complet |\n| [Accès dans le code](/docs/fr/configuration/code) | `RuniqueConfig`, validation, config conditionnelle |\n| [Builder](/docs/fr/configuration/builder) | Builder classique, Builder Intelligent, méthodes, valeurs par défaut |\n| [Mots de passe](/docs/fr/configuration/password) | `PasswordConfig` : Auto, Manual, Delegated, Custom — `password_init()`, `hash()`, `verify()` |\n| [Internationalisation (i18n)](/docs/fr/configuration/i18n) | Langues, `set_lang()`, `t()`, `tf()`, variable `LANG`, fallback |	sommaire	0
+83	21	Méthodes disponibles	### Base de données\n\n```rust\n// Option 1 : connexion directe (DatabaseConnection)\nlet db_config = DatabaseConfig::from_env()?.build();\nlet db = db_config.connect().await?;\n\nlet app = RuniqueApp::builder(config)\n    .with_database(db)       // prend une DatabaseConnection\n    .routes(router)\n    .build()\n    .await?;\n\n// Option 2 : connexion déférée (DatabaseConfig)\nlet db_config = DatabaseConfig::from_env()?.build();\n\nlet app = RuniqueApp::builder(config)\n    .with_database_config(db_config)  // connexion lors du .build()\n    .routes(router)\n    .build()\n    .await?;\n```\n\n### Routes\n\n```rust\nuse runique::{urlpatterns, view};\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ GET => views::index }, name = "index",\n        "/about" => view!{ GET => views::about }, name = "about",\n    }\n}\n\nlet app = RuniqueApp::builder(config)\n    .routes(routes())\n    .build()\n    .await?;\n```\n\n### Gestion des erreurs\n\n```rust\nlet app = RuniqueApp::builder(config)\n    .with_error_handler(true)   // Active le handler d'erreurs (défaut : true)\n    .routes(router)\n    .build()\n    .await?;\n```\n\n### Middlewares\n\nToute la configuration des middlewares passe par `.middleware(|m| { ... })` où `m` est un `MiddlewareStaging` :\n\n```rust\nlet app = RuniqueApp::builder(config)\n    .routes(router)\n    .middleware(|m| {\n        m.with_csp(true)                // Active le Content Security Policy\n         .with_host_validation(true)    // Active la validation des hosts\n         .with_cache(true)              // Active le no-cache en dev\n         .with_debug_errors(true)       // Active les erreurs détaillées\n    })\n    .build()\n    .await?;\n```\n\nLa validation des hosts s'active uniquement via `with_allowed_hosts(vec![...])` dans le builder — sans cet appel, la validation est désactivée. Aucune variable `.env` ne contrôle ce comportement.\n\n> **`is_debug()`** — helper global disponible via `use runique::prelude::*`. Retourne `true` si `DEBUG=true` dans `.env`. Lu une seule fois au démarrage (`LazyLock`), disponible partout sans paramètre.\n\n### Durée de session\n\n```rust\nuse tower_sessions::cookie::time::Duration;\n\nlet app = RuniqueApp::builder(config)\n    .with_session_duration(Duration::hours(2))  // Par défaut : 24h\n    .routes(router)\n    .build()\n    .await?;\n```\n\nOu via `.middleware()` pour les options avancées :\n\n```rust\n.middleware(|m| {\n    m.with_session_duration(Duration::hours(2))\n     .with_anonymous_session_duration(Duration::minutes(5))\n     .with_session_memory_limit(128 * 1024 * 1024, 256 * 1024 * 1024)\n})\n```\n\n### Fichiers statiques\n\n```rust\nlet app = RuniqueApp::builder(config)\n    .statics()     // Active les fichiers statiques\n    // ou\n    .no_statics()  // Désactive explicitement\n    .build()\n    .await?;\n```\n\n---	code	1
+85	22	\N	## Charger la configuration\n\n```rust\nuse runique::config_runique::RuniqueConfig;\n\nlet config = RuniqueConfig::from_env();\n\nprintln!("Debug: {}", config.debug);\nprintln!("Port: {}", config.port);\nprintln!("DB: {}", config.database_url);\n```\n\n---	code	0
+87	22	Configuration conditionnelle	```rust\nif template.engine.config.debug {\n    // Mode debug: logs détaillés, templates rechargés\n} else {\n    // Mode production: cache templates, pas de logs sensibles\n}\n\nif template.engine.config.security.allowed_hosts.contains("*") {\n    // ⚠️ Attention: tous les hosts sont autorisés (danger en production!)\n}\n```\n\n---	code	2
+89	23	Langues supportées	| Variante `Lang` | Code | Exemples de locales reconnues |\n| --- | --- | --- |\n| `Lang::Fr` | `fr` | `fr`, `fr-FR`, `fr-CA`, `fr-BE`, `fr-CH` |\n| `Lang::En` | `en` | `en`, `en-US`, `en-GB`, `en-CA` |\n| `Lang::De` | `de` | `de`, `de-DE`, `de-AT`, `de-CH` |\n| `Lang::Es` | `es` | `es`, `es-ES`, `es-MX`, `es-AR` |\n| `Lang::It` | `it` | `it`, `it-IT`, `it-CH` |\n| `Lang::Pt` | `pt` | `pt`, `pt-PT`, `pt-BR` |\n| `Lang::Ja` | `ja` | `ja`, `ja-JP` |\n| `Lang::Zh` | `zh` | `zh`, `zh-CN`, `zh-TW`, `zh-HK` |\n| `Lang::Ru` | `ru` | `ru`, `ru-RU`, `ru-BY`, `ru-UA` |\n\nLa langue par défaut est `Lang::En` si aucune configuration explicite n'est fournie.\n\n---	text	0
+84	21	Valeurs par défaut	| Configuration | Défaut | Notes |\n|--------------|--------|-------|\n| **Session duration** | 24 heures | |\n| **Session store** | `MemoryStore` | |\n| **CSRF protection** | ✅ Toujours activé | Non désactivable |\n| **Error handler** | ✅ Activé | |\n| **CSP** | Debug: ❌ / Prod: ✅ | Selon le mode |\n| **Host validation** | Debug: ❌ / Prod: ✅ | Selon le mode |\n| **Cache control** | ✅ Activé | No-cache en debug |\n| **Static files** | ❌ Désactivé | Appeler `.statics()` |\n| **Hot reload admin** | Selon `DEBUG` | Automatique via `is_debug()` |\n| **Niveau de log** | Selon `DEBUG` | `debug` si `DEBUG=true`, `warn` sinon |\n\n---	text	2
+86	22	Accès dans un handler	```rust\nuse runique::config_runique::RuniqueConfig;\n\nasync fn my_handler(template: TemplateContext) -> Response {\n    let config = &template.engine.config;\n\n    println!("Debug mode: {}", config.debug);\n    println!("Port: {}", config.server.port);\n    println!("IP: {}", config.server.ip_server);\n    println!("Allowed hosts: {:?}", config.security.allowed_hosts);\n    println!("Secret key: {}", config.security.secrete_key);\n}\n```\n\n---	code	1
+88	22	Validation de configuration	La configuration est validée au startup :\n\n```rust\nlet config = RuniqueConfig::from_env()\n    .expect("Configuration invalide");\n\n// Retourne Err() si :\n// - DATABASE_URL manquant\n// - SECRETE_KEY manquant\n// - Variables invalides\n```\n\n---	code	3
+90	23	API disponible	```rust\nuse runique::utils::trad::{set_lang, current_lang, t, tf, Lang};\n\n// Définir la langue globale\nset_lang(Lang::Fr);\n\n// Lire la langue active\nlet lang = current_lang(); // → Lang::Fr\n\n// Traduire une clé\nlet msg = t("forms.required"); // → "Ce champ est obligatoire"\n\n// Traduire une clé avec paramètres (remplace {} par les arguments)\nlet msg = tf("forms.too_short", &[3]); // → "Trop court (min 3)"\n```\n\n| Fonction | Signature | Description |\n| --- | --- | --- |\n| `set_lang` | `fn set_lang(lang: Lang)` | Définit la langue globale de l'application |\n| `current_lang` | `fn current_lang() -> Lang` | Retourne la langue active (défaut : `En`) |\n| `t` | `fn t(key: &str) -> Cow<'static, str>` | Traduit une clé simple |\n| `tf` | `fn tf<T: Display>(key: &str, args: &[T]) -> String` | Traduit une clé avec substitutions `{}` |\n\n---	code	1
+92	23	Comportement de fallback	Si une clé est absente dans la langue cible, Runique applique le fallback suivant :\n\n1. Cherche la clé dans la langue configurée (ex : `Lang::Fr`)\n2. Si absente, essaie `Lang::En`\n3. Si toujours absente, retourne la clé brute (ex : `"forms.required"`)\n\nCe mécanisme garantit qu'une traduction incomplète ne provoque jamais de panique.\n\n---	text	3
+94	23	Variable `LANG` pour la CLI	La CLI `runique` lit la variable d'environnement `LANG` (ou `LC_ALL` / `LC_MESSAGES` en fallback) pour choisir sa propre langue d'affichage.\n\n> **Important :** `LANG` dans `.env` ne s'applique qu'à la CLI (`runique start`, `runique new`, etc.).\n> La langue de l'application web est contrôlée par `set_lang()` dans `main.rs`.\n\n**Priorité pour la CLI :**\n\n1. Variable `LANG` dans `.env` (chargé via `dotenvy`)\n2. Variable `LANG` / `LC_ALL` / `LC_MESSAGES` du système\n3. `En` par défaut si aucune variable n'est définie ou reconnue\n\n```ini\n# .env — CLI uniquement\nLANG=fr\n```\n\nLes locales complètes sont normalisées automatiquement : `fr_FR.UTF-8` est interprété comme `fr`.\n\n---	code	5
+96	24	Modes disponibles	### `Auto` — Hachage automatique (recommandé)\n\nRunique détecte si la valeur est déjà hachée et n'applique le hachage qu'une seule fois. L'algorithme est configurable.\n\n```rust\n// Argon2 par défaut\npassword_init(PasswordConfig::auto());\n\n// Choisir l'algorithme\npassword_init(PasswordConfig::auto_with(Manual::Bcrypt));\npassword_init(PasswordConfig::auto_with(Manual::Scrypt));\n```\n\nAlgorithmes supportés : `Manual::Argon2`, `Manual::Bcrypt`, `Manual::Scrypt`.\n\n### `Manual` — Hachage explicite\n\nLe hachage n'est **pas** appliqué automatiquement dans `finalize()`. C'est le développeur qui appelle `hash()` manuellement.\n\n```rust\npassword_init(PasswordConfig::manual(Manual::Argon2));\n```\n\n> À utiliser si tu veux contrôler précisément quand et comment le mot de passe est haché.\n\n### `Delegated` — Authentification externe (OAuth / SSO)\n\nAucun mot de passe n'est géré par Runique. L'authentification est déléguée à un fournisseur externe.\n\n```rust\nuse runique::prelude::{External};\n\npassword_init(PasswordConfig::oauth(External::GoogleOAuth));\npassword_init(PasswordConfig::oauth(External::Microsoft));\npassword_init(PasswordConfig::oauth(External::Ldap("ldap://...".to_string())));\n```\n\nFournisseurs disponibles : `GoogleOAuth`, `Microsoft`, `Apple`, `Ldap(url)`, `Saml(url)`, `Custom { name, authorize_url, token_url }`.\n\n### `Custom` — Handler personnalisé\n\nImplémente le trait `PasswordHandler` pour brancher ta propre logique de hachage/vérification.\n\n```rust\nuse runique::prelude::{PasswordHandler, PasswordConfig};\n\nstruct MyHasher;\n\nimpl PasswordHandler for MyHasher {\n    fn name(&self) -> &str { "my_hasher" }\n    fn transform(&self, input: &str) -> Result<String, String> {\n        // logique de hachage\n        Ok(format!("hashed:{}", input))\n    }\n    fn verify(&self, input: &str, stored: &str) -> bool {\n        stored == format!("hashed:{}", input)\n    }\n    // ...\n}\n\npassword_init(PasswordConfig::custom(MyHasher));\n```\n\n---	code	1
+98	24	Dans les formulaires	Les champs `TextField::password()` sont hachés automatiquement dans `finalize()` en mode `Auto`. En mode `Manual` ou `Delegated`, aucun hachage automatique n'a lieu.\n\nVoir → [Types de champs — TextField](/docs/fr/formulaire/champs)\n\n---\n\n← [**Builder**](/docs/fr/configuration/builder)	text	3
+100	25	Base de données	### Connexion\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `DB_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |\n| `DB_ENGINE` | `sqlite` | `postgres`, `mysql`, `mariadb`, `sqlite` |\n| `DB_USER` | — | Utilisateur DB (requis sauf SQLite) |\n| `DB_PASSWORD` | — | Mot de passe DB (requis sauf SQLite) |\n| `DB_HOST` | `localhost` | Host DB |\n| `DB_PORT` | `5432` / `3306` | Port DB (défaut selon le moteur) |\n| `DB_NAME` | `local_base.sqlite` | Nom de la base de données |\n\n### Pool de connexions\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `DB_MAX_CONNECTIONS` | `100` | Taille maximale du pool |\n| `DB_MIN_CONNECTIONS` | `20` | Taille minimale du pool |\n\n### Timeouts\n\n| Variable | Défaut | Unité | Description |\n|----------|--------|-------|-------------|\n| `DB_CONNECT_TIMEOUT` | `2` | secondes | Timeout d'établissement de connexion |\n| `DB_ACQUIRE_TIMEOUT` | `500` | millisecondes | Timeout d'acquisition depuis le pool |\n| `DB_IDLE_TIMEOUT` | `300` | secondes | Durée d'inactivité avant fermeture |\n| `DB_MAX_LIFETIME` | `3600` | secondes | Durée de vie maximale d'une connexion |\n\n### Logging\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `DB_LOGGING` | `false` | Active les logs SQL (`true`, `1`, `yes`) |\n\n**PostgreSQL (URL directe) :**\n\n```env\nDB_URL=postgres://user:password@localhost:5432/dbname\n```\n\n**PostgreSQL (variables composantes) :**\n\n```env\nDB_ENGINE=postgres\nDB_USER=postgres\nDB_PASSWORD=secret\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=runique\n```\n\n**SQLite (dev) :**\n\n```env\nDB_ENGINE=sqlite\nDB_NAME=runique.db\n```\n\n**Pool personnalisé :**\n\n```env\nDB_MAX_CONNECTIONS=50\nDB_MIN_CONNECTIONS=5\nDB_CONNECT_TIMEOUT=5\nDB_IDLE_TIMEOUT=600\nDB_LOGGING=true\n```\n\n---	code	1
+102	25	Sécurité	| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `SECRETE_KEY` | *(requis)* | Clé secrète CSRF (⚠️ CHANGE EN PROD!) |\n| `ALLOWED_HOSTS` | `*` | Hosts autorisés (comma-separated) |\n\n**ALLOWED_HOSTS patterns :**\n\n- `localhost` — exact match\n- `*` — wildcard tous les hosts (DANGER en production !)\n- `.example.com` — match `example.com` et `*.example.com`\n\n```env\nSECRETE_KEY=your_secret_key_change_this_in_production\nALLOWED_HOSTS=localhost,127.0.0.1,example.com,.api.example.com\n```\n\n---	code	3
+104	25	Générer une clé secrète	```bash\n# Python\npython3 -c "import secrets; print(secrets.token_urlsafe(32))"\n\n# OpenSSL\nopenssl rand -base64 32\n```\n\n---	code	5
+93	23	Configuration dans `main.rs`	Appelle `set_lang()` avant la construction du builder, typiquement juste après le chargement de la configuration :\n\n```rust\nuse runique::prelude::*;\nuse runique::utils::trad::{set_lang, Lang};\n\n#[tokio::main]\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\n    let config = RuniqueConfig::from_env();\n\n    // Définir la langue de l'application\n    set_lang(Lang::Fr);\n\n    RuniqueApp::builder(config)\n        .routes(urls::routes())\n        .with_database(db)\n        .build()\n        .await?\n        .run()\n        .await?;\n\n    Ok(())\n}\n```\n\nLa langue définie ici s'applique aux messages visibles par l'utilisateur : validation de formulaires et messages d'erreur. Les logs internes (`tracing::warn!`) sont hardcodés en français dans le source et ne sont pas traduits.\n\n---	code	4
+95	24	Initialisation dans `main.rs`	```rust\nuse runique::prelude::{password_init, PasswordConfig, Manual};\n\n#[tokio::main]\nasync fn main() {\n    // Argon2 automatique (défaut recommandé)\n    password_init(PasswordConfig::auto());\n\n    RuniqueApp::new()\n        // ...\n        .run()\n        .await;\n}\n```\n\n> Si `password_init()` n'est pas appelé, Argon2 est utilisé par défaut.\n\n---	code	0
+97	24	Utilisation dans le code	```rust\nuse runique::prelude::{hash, verify};\n\n// Hacher un mot de passe (utilise la config globale)\nlet hashed = hash("mon_mdp")?;\n\n// Vérifier un mot de passe contre un hash stocké\nlet ok = verify("mon_mdp", &user.password_hash);\n```\n\nCes fonctions utilisent automatiquement la `PasswordConfig` initialisée au démarrage.\n\n---	code	2
+99	25	\N	## Serveur\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `IP_SERVER` | `127.0.0.1` | Adresse IP écoute |\n| `PORT` | `3000` | Port serveur |\n| `DEBUG` | `true` | Mode debug (templates, logs, etc.) |\n\n> **⚠️ Production :** Définir `DEBUG=false` explicitement. En mode debug, les pages d'erreur détaillées sont visibles, révélant potentiellement des informations sensibles. De plus, compiler avec `cargo build --release` désactive automatiquement les assertions debug, mais `DEBUG=true` peut outrepasser cela.\n\n---	text	0
+101	25	Templates & Assets	| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `TEMPLATES_DIR` | `templates` | Répertoire templates |\n| `STATICFILES_DIRS` | `static` | Répertoire assets statiques |\n| `MEDIA_ROOT` | `media` | Répertoire médias (uploads) |\n\n```env\nTEMPLATES_DIR=templates\nSTATICFILES_DIRS=static:demo-app/static\nMEDIA_ROOT=uploads\n```\n\n---	code	2
+103	25	Fichier .env complet	```env\n# ============================================================================\n# SERVER CONFIGURATION\n# ============================================================================\nIP_SERVER=127.0.0.1\nPORT=3000\nDEBUG=true\n\n# ============================================================================\n# DATABASE CONFIGURATION\n# ============================================================================\nDATABASE_URL=postgres://postgres:password@localhost:5432/runique\nDB_ENGINE=postgres\nDB_USER=postgres\nDB_PASSWORD=password\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=runique\n\n# SQLite (Development only)\n# DATABASE_URL=sqlite:runique.db?mode=rwc\n\n# ============================================================================\n# TEMPLATES & STATIC FILES\n# ============================================================================\nTEMPLATES_DIR=templates\nSTATICFILES_DIRS=static\nMEDIA_ROOT=media\n\n# ============================================================================\n# SECURITY\n# ============================================================================\nSECRETE_KEY=your_secret_key_here_change_in_production\nALLOWED_HOSTS=localhost,127.0.0.1\n```\n\n---	code	4
+105	25	Modes d'environnement	### Production\n\n```env\nDEBUG=false\nPORT=443\nIP_SERVER=0.0.0.0\nSECRETE_KEY=<généré dynamiquement>\nALLOWED_HOSTS=example.com,www.example.com,.api.example.com\nDATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique\n```\n\n### Développement\n\n```env\nDEBUG=true\nPORT=3000\nIP_SERVER=127.0.0.1\nSECRETE_KEY=any_dev_key\nALLOWED_HOSTS=*\nDATABASE_URL=sqlite:runique.db?mode=rwc\n```\n\n### Testing\n\n```env\nDEBUG=true\nSECRETE_KEY=test_key\nALLOWED_HOSTS=localhost,127.0.0.1\nDATABASE_URL=sqlite::memory:\n```\n\n---	code	6
+107	26	Internationalisation (CLI)	| Variable | Défaut | Description |\n| --- | --- | --- |\n| `LANG` | locale système | Langue de la CLI (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priorité : `.env` > locale système (`LC_ALL`, `LC_MESSAGES`) > `en` |\n\n---	text	1
+109	27	Serveur	| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `IP_SERVER` | `127.0.0.1` | Adresse IP d'écoute |\n| `PORT` | `3000` | Port d'écoute |\n| `SECRET_KEY` | `default_secret_key` | Clé secrète (CSRF, signatures) — **à changer en production** |\n\n---	text	1
+111	27	Redirections	| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `REDIRECT_ANONYMOUS` | `/` | URL de redirection pour les visiteurs non connectés |\n| `LOGGING_URL` | `/` | URL de redirection vers la page de login |\n| `USER_CONNECTED_URL` | `/` | URL de redirection après connexion |\n\n---	text	3
+113	29	\N	## Middlewares\n\n| Variable | Défaut | Description |\n| --- | --- | --- |\n| `RUNIQUE_ENABLE_CACHE` | `true` (prod) / `false` (dev) | Headers de cache HTTP |\n\n> **CSP** — Configurée exclusivement via le builder (`.with_csp(...)`). Voir [CSP](/docs/fr/middleware/csp).\n> **Host validation** — Configurée exclusivement via le builder (`.with_allowed_hosts([...])`). Voir [Host Validation](/docs/fr/middleware/hosts).\n\n---	text	0
+115	30	\N	| Module | Description |\n| --- | --- |\n| [Application minimale](/docs/fr/exemple/minimal) | `main.rs`, `url.rs`, `views.rs`, template de base |\n| [Formulaires CRUD](/docs/fr/exemple/formulaires) | Inscription, recherche d'entité, gestion des erreurs |\n| [Upload de fichier](/docs/fr/exemple/upload) | `FileField`, handler d'upload, template multipart |\n| [Autres exemples](/docs/fr/exemple/autres) | Flash messages, API REST, template de base, résumé des patterns |	sommaire	0
+117	31	API REST	### Routes API\n\n```rust\npub fn routes() -> Router {\n    urlpatterns! {\n        "/api/users" => view!{ api_list_users }, name = "api_users",\n    }\n}\n```\n\n### Handler API JSON\n\n```rust\nuse axum::Json;\nuse serde_json::json;\n\npub async fn api_list_users(request: Request) -> AppResult<Response> {\n    let users = users::Entity::find()\n        .all(&*request.engine.db)\n        .await?;\n\n    Ok(Json(json!({\n        "status": "success",\n        "count": users.len(),\n        "data": users\n    })).into_response())\n}\n```\n\n---	code	1
+119	31	Résumé des patterns	| Pattern | Quand l'utiliser |\n|---------|-----------------|\n| `request.render("template.html")` | Rendu HTML standard |\n| `Redirect::to("/").into_response()` | Après une action réussie (POST) |\n| `context_update!(request => {...})` | Injecter des variables dans le template |\n| `success!(request.notices => "...")` | Message flash avant redirect |\n| `flash_now!(error => "...")` | Message immédiat (pas de redirect) |\n| `form.is_valid().await` | Valider un formulaire Prisme |\n| `form.save(&db).await` | Sauvegarder en base de données |\n| `form.get_form_mut().database_error(&err)` | Afficher une erreur DB dans le formulaire |\n\n---	text	3
+106	26	\N	| Section | Contenu |\n| --- | --- |\n| [Application & Serveur](/docs/fr/env/application) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB, Redirections |\n| [Assets & médias](/docs/fr/env/assets) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR et URLs associées |\n| [Sécurité & sessions](/docs/fr/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |\n\n---	sommaire	0
+108	27	\N	## Application\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `DEBUG` | `false` | Interrupteur global dev/prod — lu **une seule fois** au démarrage via `LazyLock`. Active : niveau de log `debug`, pages d'erreur détaillées, hot reload templates admin. En production (`false`) : niveau `warn`, erreurs génériques. |\n| `BASE_DIR` | `.` | Répertoire racine de l'application |\n| `PROJECT_NAME` | `myproject` | Nom du projet (utilisé pour `root_urlconf`) |\n| `TIME_ZONE` | `UTC` | Fuseau horaire (pas encore implémenté) |\n| `DEFAULT_AUTO_FIELD` | — | Type de champ auto par défaut pour les modèles |\n| `LANG` | locale système | Langue de la CLI (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priorité : `.env` > locale système (`LC_ALL`, `LC_MESSAGES`) > `en` |\n\n---	text	0
+110	27	Base de données	### Connexion\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `DB_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |\n| `DB_ENGINE` | `sqlite` | Moteur : `postgres`, `mysql`, `mariadb`, `sqlite` |\n| `DB_USER` | — | Utilisateur (requis sauf SQLite) |\n| `DB_PASSWORD` | — | Mot de passe (requis sauf SQLite) |\n| `DB_HOST` | `localhost` | Host |\n| `DB_PORT` | `5432` / `3306` | Port (défaut selon le moteur) |\n| `DB_NAME` | `local_base.sqlite` | Nom de la base de données |\n\n### Pool de connexions\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `DB_MAX_CONNECTIONS` | `100` | Taille maximale du pool |\n| `DB_MIN_CONNECTIONS` | `20` | Taille minimale du pool |\n\n### Timeouts\n\n| Variable | Défaut | Unité | Description |\n|----------|--------|-------|-------------|\n| `DB_CONNECT_TIMEOUT` | `2` | secondes | Timeout d'établissement de connexion |\n| `DB_ACQUIRE_TIMEOUT` | `500` | millisecondes | Timeout d'acquisition depuis le pool |\n| `DB_IDLE_TIMEOUT` | `300` | secondes | Durée d'inactivité avant fermeture |\n| `DB_MAX_LIFETIME` | `3600` | secondes | Durée de vie maximale d'une connexion |\n\n### Logging SQL\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `DB_LOGGING` | `false` | Active les logs SQL (`true`, `1`, `yes`) |\n\n---	text	2
+112	28	\N	## Fichiers statiques et médias\n\n| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `STATICFILES_DIRS` | `static` | Dossier des fichiers statiques |\n| `STATIC_URL` | `/static` | Préfixe URL pour les fichiers statiques |\n| `MEDIA_ROOT` | `media` | Dossier des fichiers médias uploadés |\n| `MEDIA_URL` | `/media` | Préfixe URL pour les médias |\n| `TEMPLATES_DIR` | — | Dossier des templates Tera |\n| `STATICFILES` | `default_storage` | Backend de stockage |\n\n---	text	0
+114	29	Sessions	Les limites mémoire et l'intervalle de cleanup sont configurés via le builder — voir [Sessions](/docs/fr/session).\n\n---	text	1
+116	31	\N	## Flash messages — tous les types\n\n```rust\npub async fn demo_messages(mut request: Request) -> AppResult<Response> {\n    success!(request.notices => "Ceci est un message de succès.");\n    info!(request.notices => "Ceci est un message d'information.");\n    warning!(request.notices => "Ceci est un message d'avertissement.");\n    error!(request.notices => "Ceci est un message d'erreur.");\n\n    context_update!(request => {\n        "title" => "Démo messages",\n    });\n    request.render("demo.html")\n}\n```\n\n```html\n{% extends "base.html" %}\n\n{% block content %}\n    <h1>{{ title }}</h1>\n    {% messages %}\n    <p>Les messages ci-dessus viennent de la session flash.</p>\n{% endblock %}\n```\n\n---	code	0
+118	31	Template de base complet	```html\n<!-- templates/base.html -->\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>{% block title %}Mon App{% endblock %}</title>\n    <link rel="stylesheet" href='{% static "css/main.css" %}'>\n    {% block extra_css %}{% endblock %}\n</head>\n<body>\n    <header>\n        <nav>\n            <a href='{% link "index" %}'>Accueil</a>\n            <a href='{% link "about" %}'>À propos</a>\n            <a href='{% link "inscription" %}'>Inscription</a>\n        </nav>\n    </header>\n\n    {% messages %}\n\n    <main>\n        {% block content %}{% endblock %}\n    </main>\n\n    <footer>\n        <p>&copy; 2026 — Propulsé par Runique</p>\n    </footer>\n\n    {% block extra_js %}{% endblock %}\n</body>\n</html>\n```\n\n---	code	2
+120	32	\N	## Formulaire d'inscription\n\n### Formulaire manuel (sans modèle)\n\n```rust\n// src/forms.rs\nuse runique::prelude::*;\n\npub struct RegisterForm {\n    pub form: Forms,\n}\n\n#[async_trait]\nimpl RuniqueForm for RegisterForm {\n    impl_form_access!();\n\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Nom d'utilisateur")\n                .required()\n                .min_length(3, "Minimum 3 caractères")\n                .max_length(50, "Maximum 50 caractères")\n        );\n        form.field(\n            &TextField::email("email")\n                .label("Email")\n                .required()\n        );\n        form.field(\n            &TextField::password("password")\n                .label("Mot de passe")\n                .required()\n                .min_length(8, "Minimum 8 caractères")\n        );\n    }\n\n    // Validation métier — appelée automatiquement par is_valid()\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let mut errors = StrMap::new();\n        if !self.get_string("email").contains('@') {\n            errors.insert("email".to_string(), "Email invalide".to_string());\n        }\n        if errors.is_empty() { Ok(()) } else { Err(errors) }\n    }\n}\n```\n\n### Formulaire basé sur un modèle\n\n`#[form(...)]` génère la struct et `impl ModelForm`.\nLe dev écrit `impl RuniqueForm` avec `impl_form_access!(model)` :\n\n```rust\nuse runique::prelude::*;\n\n#[form(schema = users_schema, fields = [username, email, password])]\npub struct RegisterForm;\n\n#[async_trait]\nimpl RuniqueForm for RegisterForm {\n    impl_form_access!(model);\n\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let mut errors = StrMap::new();\n        if self.get_string("username").len() < 3 {\n            errors.insert("username".to_string(), "Minimum 3 caractères".to_string());\n        }\n        if !self.get_string("email").contains('@') {\n            errors.insert("email".to_string(), "Email invalide".to_string());\n        }\n        if self.get_string("password").len() < 10 {\n            errors.insert("password".to_string(), "Minimum 10 caractères".to_string());\n        }\n        if errors.is_empty() { Ok(()) } else { Err(errors) }\n    }\n}\n```\n\n> `#[async_trait]` est requis uniquement quand on override `clean` ou `clean_field`.\n> Sans override async, `impl RuniqueForm { impl_form_access!(model); }` suffit.\n\n---	code	0
+122	32	Template inscription	```html\n{% extends "base.html" %}\n\n{% block content %}\n    <h1>{{ title }}</h1>\n    {% messages %}\n\n    <form method="post" action='{% link "inscription" %}'>\n        {% form.inscription_form %}\n        <button type="submit">S'inscrire</button>\n    </form>\n{% endblock %}\n```\n\n---	code	2
+124	33	\N	## Arborescence\n\n```\nmon_app/\n├── Cargo.toml\n├── .env\n├── src/\n│   ├── main.rs\n│   ├── url.rs\n│   └── views.rs\n├── templates/\n│   └── index.html\n└── static/\n    └── css/\n        └── main.css\n```\n\n---	code	0
+126	33	url.rs	```rust\nuse crate::views;\nuse runique::prelude::*;\nuse runique::{urlpatterns, view};\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ GET => views::index }, name = "index",\n        "/about" => view!{ GET => views::about }, name = "about",\n    }\n}\n```\n\n---	code	2
+128	33	templates/index.html	```html\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="UTF-8">\n    <title>{{ title }}</title>\n    <link rel="stylesheet" href='{% static "css/main.css" %}'>\n</head>\n<body>\n    {% messages %}\n    <h1>{{ title }}</h1>\n    <p>{{ message }}</p>\n    <a href='{% link "about" %}'>À propos</a>\n</body>\n</html>\n```\n\n---	code	4
+130	34	Configurer le chemin d'upload	`upload_to` accepte trois formes :\n\n```rust\n// 1 — chemin direct\nFileField::image("avatar").upload_to("media/avatars")\n\n// 2 — lit MEDIA_ROOT depuis .env (recommandé)\nFileField::image("img").upload_to_env()\n\n// 3 — depuis une StaticConfig existante\nlet config = StaticConfig::from_env();\nFileField::image("img").upload_to(&config)\n```\n\nLe chemin `.env` :\n\n```env\nMEDIA_ROOT=media/\n```\n\n---	code	1
+121	32	Handler inscription	```rust\npub async fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    let template = "inscription_form.html";\n\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Inscription",\n            "inscription_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            let user = form.save(&request.engine.db).await.map_err(|err| {\n                form.get_form_mut().database_error(&err);\n                AppError::from(err)\n            })?;\n\n            success!(request.notices => format!("Bienvenue {} !", user.username));\n            return Ok(Redirect::to("/").into_response());\n        }\n\n        context_update!(request => {\n            "title" => "Erreur de validation",\n            "inscription_form" => &form,\n            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),\n        });\n        return request.render(template);\n    }\n\n    request.render(template)\n}\n```\n\n---	code	1
+123	32	Recherche et affichage d'entité	### Formulaire de recherche\n\n```rust\npub struct UsernameForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for UsernameForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Username")\n                .required()\n                .placeholder("Search a user")\n        );\n    }\n    impl_form_access!();\n}\n```\n\n### Handler de recherche\n\n```rust\npub async fn info_user(\n    mut request: Request,\n    Prisme(mut form): Prisme<UsernameForm>,\n) -> AppResult<Response> {\n    let template = "profile/view_user.html";\n\n    if request.is_get() && form.is_valid().await {\n        let username = form.get_form().get_value("username").unwrap_or_default();\n        let db = request.engine.db.clone();\n\n        let user_opt = UserEntity::find()\n            .filter(user::Column::Username.eq(&username))\n            .one(&*db)\n            .await\n            .unwrap_or(None);\n\n        match user_opt {\n            Some(user) => {\n                context_update!(request => {\n                    "title" => "Vue utilisateur",\n                    "found_user" => &user,  // ⚠️ NE PAS nommer "user" → collision avec le form\n                    "user" => &form,\n                    "messages" => flash_now!(success => "Utilisateur trouvé !"),\n                });\n            }\n            None => {\n                context_update!(request => {\n                    "title" => "Vue utilisateur",\n                    "user" => &form,\n                    "messages" => flash_now!(warning => "Utilisateur introuvable"),\n                });\n            }\n        }\n\n        return request.render(template);\n    }\n\n    context_update!(request => { "title" => "Rechercher un utilisateur", "user" => &form });\n    request.render(template)\n}\n```\n\n---	code	3
+125	33	main.rs	```rust\n#[macro_use]\nextern crate runique;\n\nmod url;\nmod views;\n\nuse runique::prelude::*;\n\n#[tokio::main]\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\n\n    password_init(PasswordConfig::auto_with(Manual::Argon2));\n\n    let config = RuniqueConfig::from_env();\n\n    let db_config = DatabaseConfig::from_env()?.build();\n    let db = db_config.connect().await?;\n\n    RuniqueApp::builder(config)\n        .routes(url::routes())\n        .with_database(db)\n        .statics()\n        .build()\n        .await?\n        .run()\n        .await?;\n\n    Ok(())\n}\n```\n\n---	code	1
+127	33	views.rs	```rust\nuse runique::prelude::*;\n\npub async fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => {\n        "title" => "Accueil",\n        "message" => "Bienvenue sur mon app Runique !",\n    });\n    request.render("index.html")\n}\n\npub async fn about(mut request: Request) -> AppResult<Response> {\n    context_update!(request => {\n        "title" => "À propos",\n    });\n    request.render("about.html")\n}\n```\n\n---	code	3
+129	34	\N	## Formulaire d'upload\n\n```rust\npub struct ImageForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for ImageForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &FileField::image("image")\n                .label("Image")\n                .upload_to_env()        // lit MEDIA_ROOT depuis .env\n                .max_size_mb(5)\n                .max_files(1)\n                .max_dimensions(1920, 1080)\n                .allowed_extensions(vec!["jpg", "png", "webp", "avif"])\n        );\n    }\n    impl_form_access!();\n}\n```\n\n---	code	0
+131	34	Extensions disponibles	```rust\nFileField::image("img")     // jpg jpeg png gif webp avif\nFileField::document("doc")  // pdf doc docx odt\nFileField::any("f")         // pas de filtre\n\n// Extensions personnalisées :\nFileField::any("data").allowed_extensions(vec!["csv", "json"])\n```\n\n---	code	2
+133	34	Template d'upload	```html\n{% extends "base.html" %}\n\n{% block content %}\n    <h1>{{ title }}</h1>\n\n    <form method="post" enctype="multipart/form-data">\n        {% form.image_form %}\n        <button type="submit">Uploader</button>\n    </form>\n{% endblock %}\n```\n\n---	code	4
+135	36	\N	## Pattern avec redirection (messages flash)\n\n```rust\npub async fn soumission_inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_post() {\n        if form.is_valid().await {\n            let user = form.save(&request.engine.db).await.map_err(|err| {\n                form.get_form_mut().database_error(&err);\n                AppError::from(err)\n            })?;\n\n            // ✅ Message flash → affiché après le redirect\n            success!(request.notices => format!(\n                "Bienvenue {}, votre compte est créé !",\n                user.username\n            ));\n            return Ok(Redirect::to("/").into_response());\n        }\n\n        // ❌ Validation échouée → message immédiat (pas de redirect)\n        context_update!(request => {\n            "title" => "Erreur de validation",\n            "inscription_form" => &form,\n            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),\n        });\n        return request.render("inscription_form.html");\n    }\n\n    // GET → afficher le formulaire\n    context_update!(request => {\n        "title" => "Inscription",\n        "inscription_form" => &form,\n    });\n    request.render("inscription_form.html")\n}\n```\n\n---	code	0
+137	36	Comportement flash (une seule lecture)	Les messages flash stockés en session sont **consommés automatiquement** lors de l'affichage :\n\n```\n1. POST /inscription\n   → success!("Bienvenue !")\n   → Redirect::to("/")\n\n2. GET /\n   → Les messages sont lus depuis la session\n   → Affichés dans le template\n   → Supprimés de la session\n\n3. GET / (reload)\n   → Plus de messages (déjà consommés)\n```\n\n---	code	2
+161	40	HiddenField — Champ caché	Champ invisible dans le formulaire HTML (`<input type="hidden">`). Deux usages principaux : passer des données techniques sans les montrer à l'utilisateur, ou valider un token CSRF manuellement.\n\n```rust\n// Champ caché générique (ex: ID d'une entité liée)\nform.field(\n    &HiddenField::new("entity_id")\n        .label("ID entité"),\n);\n\n// Champ CSRF interne (géré automatiquement par Runique — pour usage avancé)\nform.field(&HiddenField::new_csrf());\n```\n\n> Dans les formulaires Runique standards, le CSRF est géré automatiquement via `{% csrf %}` dans le template. Vous n'avez pas besoin de `HiddenField::new_csrf()` sauf si vous construisez un formulaire entièrement personnalisé.\n\n---	code	14
+132	34	Handler d'upload	```rust\npub async fn upload_image(\n    mut request: Request,\n    Prisme(mut form): Prisme<ImageForm>,\n) -> AppResult<Response> {\n    let template = "forms/upload_image.html";\n\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Uploader un fichier",\n            "image_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    if request.is_post() && form.is_valid().await {\n        success!(request.notices => "Fichier uploadé avec succès !");\n        return Ok(Redirect::to("/").into_response());\n    }\n\n    context_update!(request => {\n        "title" => "Erreur",\n        "image_form" => &form,\n    });\n    request.render(template)\n}\n```\n\n---	code	3
+134	35	\N	| Section | Contenu |\n| --- | --- |\n| [Macros](/docs/fr/flash/macros) | `success!`, `error!`, `info!`, `warning!`, `flash_now!`, différences, quand utiliser |\n| [Handlers](/docs/fr/flash/handlers) | Utilisation dans les handlers, comportement flash (une seule lecture) |\n| [Templates](/docs/fr/flash/templates) | Tag `{% messages %}`, placement, personnalisation |\n\n---	sommaire	0
+136	36	Plusieurs types de messages	```rust\npub async fn about(mut request: Request) -> AppResult<Response> {\n    success!(request.notices => "Ceci est un message de succès.");\n    info!(request.notices => "Ceci est un message d'information.");\n    warning!(request.notices => "Ceci est un message d'avertissement.");\n    error!(request.notices => "Ceci est un message d'erreur.");\n\n    context_update!(request => {\n        "title" => "À propos",\n    });\n    request.render("about/about.html")\n}\n```\n\n---	code	1
+138	37	\N	## Macros de redirection\n\nCes macros stockent les messages en session via `request.notices`. Ils s'affichent **après la prochaine redirection** (pattern Post/Redirect/Get).\n\n### success!\n\n```rust\nsuccess!(request.notices => "Utilisateur créé avec succès !");\nsuccess!(request.notices => format!("Bienvenue {} !", username));\n\n// Plusieurs messages en une fois\nsuccess!(request.notices => "Créé", "Email envoyé", "Bienvenue !");\n```\n\n### error!\n\n```rust\nerror!(request.notices => "Une erreur s'est produite");\nerror!(request.notices => format!("Erreur : {}", e));\n```\n\n### info!\n\n```rust\ninfo!(request.notices => "Veuillez vérifier votre email");\n```\n\n### warning!\n\n```rust\nwarning!(request.notices => "Cette action ne peut pas être annulée");\n```\n\n> Chaque macro appelle `.success()`, `.error()`, `.info()` ou `.warning()` sur `request.notices` (de type `Message`).\n\n---	code	0
+140	37	Différence flash vs flash_now	| | `success!` / `error!` / etc. | `flash_now!` |\n|---|---|---|\n| **Stockage** | Session | Mémoire (Vec) |\n| **Affichage** | Après redirect | Requête courante |\n| **Durée de vie** | Jusqu'à la prochaine lecture | Requête unique |\n| **Usage typique** | Post/Redirect/Get | Ré-affichage formulaire |\n| **Injection contexte** | Automatique | Manuelle (`"messages" => flash_now!(...)`) |\n\n---	text	2
+142	38	\N	## Tag automatique {% messages %}\n\nLa balise `{% messages %}` affiche automatiquement tous les messages :\n\n```html\n{% messages %}\n```\n\nElle inclut le template interne `message/message_include.html` qui génère :\n\n```html\n{% if messages %}\n    <div class="flash-messages">\n        {% for message in messages %}\n        <div class="message message-{{ message.level }}">\n            {{ message.content }}\n        </div>\n        {% endfor %}\n    </div>\n{% endif %}\n```\n\n---	code	0
+144	38	Personnalisation de l'affichage	Pour personnaliser l'affichage, bouclez manuellement sur `messages` :\n\n```html\n{% if messages %}\n    {% for msg in messages %}\n        <div class="alert alert-{{ msg.level }}" role="alert">\n            <strong>\n                {% if msg.level == "success" %}✅\n                {% elif msg.level == "error" %}❌\n                {% elif msg.level == "warning" %}⚠️\n                {% elif msg.level == "info" %}ℹ️\n                {% endif %}\n            </strong>\n            {{ msg.content }}\n        </div>\n    {% endfor %}\n{% endif %}\n```\n\n---	code	2
+146	39	Vue d'ensemble	Runique fournit un système de formulaires puissant, inspiré de Django. Il existe **deux approches** :\n\n1. **Manuelle** — Définir les champs via le trait `RuniqueForm`.\n2. **Automatique** — Dériver un formulaire depuis un schéma `model!` avec `#[form(...)]`.\n\nLes formulaires sont extraits automatiquement des requêtes via l'extracteur **Prisme**, gèrent la validation (y compris via le crate `validator` pour les emails/URLs), le CSRF, le hachage Argon2 des mots de passe, et peuvent être sauvegardés directement en base de données.\n\n---	text	1
+148	40	NumericField — Champs numériques	5 variantes via l'enum `NumericConfig` :\n\n```rust\n// Entier avec bornes\nform.field(\n    &NumericField::integer("age")\n        .label("Âge")\n        .min(0.0, "Min 0")\n        .max(150.0, "Max 150"),\n);\n\n// Nombre flottant\nform.field(&NumericField::float("price").label("Prix"));\n\n// Nombre décimal avec précision\nform.field(\n    &NumericField::decimal("amount")\n        .label("Montant")\n        .digits(2, 4),  // min 2, max 4 chiffres après la virgule\n);\n\n// Pourcentage (0–100 par défaut)\nform.field(&NumericField::percent("rate").label("Taux"));\n\n// Range slider avec min, max, valeur par défaut\nform.field(\n    &NumericField::range("volume", 0.0, 100.0, 50.0)\n        .label("Volume")\n        .step(5.0),\n);\n```\n\n**Options :** `.min(val, msg)`, `.max(val, msg)`, `.step(val)`, `.digits(min, max)`, `.label(l)`, `.placeholder(p)`\n\n---	code	1
+150	40	ChoiceField — Select / Dropdown	```rust\nuse runique::forms::fields::choice::ChoiceOption;\n\nlet choices = vec![\n    ChoiceOption::new("fr", "France"),\n    ChoiceOption::new("be", "Belgique"),\n    ChoiceOption::new("ch", "Suisse"),\n];\n\n// Select simple\nform.field(\n    &ChoiceField::new("country")\n        .label("Pays")\n        .choices(choices.clone())\n        .required(),\n);\n\n// Select multiple\nform.field(\n    &ChoiceField::new("languages")\n        .label("Langues")\n        .choices(choices)\n        .multiple(),\n);\n```\n\n> La validation vérifie automatiquement que la valeur soumise fait partie des choix déclarés.\n\n---	code	3
+152	40	CheckboxField — Checkboxes multiples	```rust\nform.field(\n    &CheckboxField::new("hobbies")\n        .label("Loisirs")\n        .choices(vec![\n            ChoiceOption::new("sport", "Sport"),\n            ChoiceOption::new("musique", "Musique"),\n            ChoiceOption::new("lecture", "Lecture"),\n        ]),\n);\n```\n\n> Les valeurs soumises sont au format `"val1,val2,val3"`. La validation vérifie que chaque valeur existe dans les choix.\n\n---	code	5
+154	40	DurationField — Durée	```rust\nform.field(\n    &DurationField::new("timeout")\n        .label("Délai (secondes)")\n        .min_seconds(60, "Minimum 1 minute")\n        .max_seconds(3600, "Maximum 1 heure"),\n);\n```\n\n---	code	7
+156	40	ColorField — Sélecteur de couleur	```rust\nform.field(\n    &ColorField::new("theme_color")\n        .label("Couleur du thème")\n        .default_color("#3498db"),  // Valide le format #RGB ou #RRGGBB\n);\n```\n\n---	code	9
+158	40	UUIDField	```rust\nform.field(\n    &UUIDField::new("external_id")\n        .label("ID externe")\n        .placeholder("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"),\n);\n```\n\n---	code	11
+199	52	❌ Erreur de compilation "sea_orm"	```bash\n# Nettoyer et reconstruire\ncargo clean\ncargo build\n```\n\n---	code	3
+139	37	Macro flash_now! — Messages immédiats	`flash_now!` crée un `Vec<FlashMessage>` pour affichage **immédiat** dans la requête courante. Idéal pour les cas où il n'y a pas de redirection (par exemple, ré-affichage du formulaire après une erreur de validation).\n\n```rust\n// Un seul message\nlet msgs = flash_now!(error => "Veuillez corriger les erreurs");\n\n// Plusieurs messages\nlet msgs = flash_now!(warning => "Champ A incorrect", "Champ B manquant");\n```\n\n### Types disponibles\n\n| Type | Classe CSS générée |\n|------|-------------------|\n| `success` | `message-success` |\n| `error` | `message-error` |\n| `info` | `message-info` |\n| `warning` | `message-warning` |\n\n### Injection dans le contexte\n\n`flash_now!` retourne un vecteur à injecter manuellement dans le contexte :\n\n```rust\ncontext_update!(request => {\n    "title" => "Erreur de validation",\n    "form" => &form,\n    "messages" => flash_now!(error => "Veuillez corriger les erreurs"),\n});\n```\n\n---	code	1
+141	37	Quand utiliser quoi ?	### Utilisez les macros flash (session)\n\n```rust\n// Après une action réussie avec redirection\nsuccess!(request.notices => "Sauvegardé !");\nreturn Ok(Redirect::to("/").into_response());\n```\n\n### Utilisez flash_now! (immédiat)\n\n```rust\n// Erreur de validation → ré-afficher la page sans redirect\ncontext_update!(request => {\n    "form" => &form,\n    "messages" => flash_now!(error => "Formulaire invalide"),\n});\nreturn request.render("form.html");\n```\n\n---	code	3
+143	38	Placement recommandé	Placez `{% messages %}` dans votre template de base, juste avant le contenu principal :\n\n```html\n<!-- base.html -->\n<body>\n    <header>...</header>\n\n    {% messages %}\n\n    <main>\n        {% block content %}{% endblock %}\n    </main>\n\n    <footer>...</footer>\n</body>\n```\n\n---	code	1
+145	39	\N	- [Vue d'ensemble](#vue-densemble)\n- [Extracteur Prisme](/docs/fr/formulaire/prisme)\n- [Trait RuniqueForm](/docs/fr/formulaire/trait)\n  - Structure de base\n  - Méthodes du trait\n  - Pipeline `is_valid()`\n- [Helpers de conversion typée](/docs/fr/formulaire/helpers)\n- [Types de champs](/docs/fr/formulaire/champs)\n  - TextField, NumericField, BooleanField, ChoiceField, RadioField…\n  - Récapitulatif\n- [Erreurs de base de données](/docs/fr/formulaire/erreurs)\n- [Rendu dans les templates](/docs/fr/formulaire/templates)\n- [Exemple complet & pièges courants](/docs/fr/formulaire/exemple)\n\n---	sommaire	0
+147	40	TextField — Champs texte	Le `TextField` gère 6 formats spéciaux via l'enum `SpecialFormat` :\n\n```rust\n// Texte simple\nform.field(&TextField::text("username").label("Nom").required());\n\n// Email — validé via `validator::ValidateEmail`\nform.field(&TextField::email("email").label("Email").required());\n\n// URL — validée via `validator::ValidateUrl`\nform.field(&TextField::url("website").label("Site web"));\n\n// Mot de passe — hachage Argon2 automatique dans finalize(), jamais ré-affiché en HTML\nform.field(\n    &TextField::password("password")\n        .label("Mot de passe")\n        .required()\n        .min_length(8, "Min 8 caractères"),\n);\n\n// Textarea\nform.field(&TextField::textarea("summary").label("Résumé"));\n\n// RichText — sanitisation XSS automatique avant validation\nform.field(&TextField::richtext("content").label("Contenu"));\n```\n\n**Options du builder :**\n\n```rust\nTextField::text("nom")\n    .label("Mon champ")              // Label affiché\n    .placeholder("Entrez...")        // Placeholder\n    .required()                       // Obligatoire (message par défaut)\n    .min_length(3, "Trop court")     // Longueur min avec message\n    .max_length(100, "Trop long")    // Longueur max avec message\n    .readonly("Lecture seule")       // Lecture seule\n    .disabled("Désactivé")          // Désactivé\n```\n\n**Comportements automatiques par format :**\n\n| Format | Validation | Transformation |\n| --- | --- | --- |\n| `Email` | `validator::ValidateEmail` | Conversion en lowercase |\n| `Url` | `validator::ValidateUrl` | — |\n| `Password` | Standard | Hachage Argon2 dans `finalize()`, valeur vidée au `render()` |\n| `RichText` | Standard | Sanitisation XSS (`sanitize()`) avant validation |\n| `Csrf` | Token session | — |\n\n**Utilitaires mot de passe :**\n\nLe hachage et la vérification sont délégués à `PasswordConfig`, initialisé au démarrage via `password_init()` :\n\n```rust\nuse runique::prelude::{hash, verify};\n\n// Hacher manuellement (ex: création de compte hors formulaire)\nlet hashed = hash("mon_mot_de_passe")?;\n\n// Vérifier un mot de passe clair contre un hash stocké en DB (ex: connexion)\nlet ok = verify("mdp_clair", &user.password_hash);\nif !ok {\n    // mot de passe incorrect\n}\n```\n\n> Le hachage automatique dans `finalize()` détecte si la valeur commence déjà par `$argon2` pour éviter un double hachage. Dans un formulaire de **connexion**, n'utilisez pas `is_valid()` pour vérifier le mot de passe — récupérez d'abord l'utilisateur en DB, puis appelez `verify()` manuellement.\n>\n> Voir → [Configuration des mots de passe](/docs/fr/configuration/password) pour tous les modes (`Auto`, `Manual`, `Delegated`, `Custom`) et la configuration dans `main.rs`.\n\n---	code	0
+149	40	BooleanField — Cases à cocher / Radio simple	```rust\n// Checkbox simple\nform.field(\n    &BooleanField::new("accept_terms")\n        .label("J'accepte les conditions")\n        .required(),\n);\n\n// Radio simple (oui/non)\nform.field(&BooleanField::radio("newsletter").label("Newsletter"));\n\n// Pré-coché\nform.field(&BooleanField::new("remember_me").label("Se souvenir").checked());\n```\n\n---	code	2
+151	40	RadioField — Boutons radio	```rust\nform.field(\n    &RadioField::new("gender")\n        .label("Genre")\n        .choices(vec![\n            ChoiceOption::new("m", "Masculin"),\n            ChoiceOption::new("f", "Féminin"),\n            ChoiceOption::new("o", "Autre"),\n        ])\n        .required(),\n);\n```\n\n---	code	4
+153	40	DateField, TimeField, DateTimeField — Date / Heure	```rust\nuse chrono::NaiveDate;\n\n// Date (format: YYYY-MM-DD)\nform.field(\n    &DateField::new("birthday")\n        .label("Date de naissance")\n        .min(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap(), "Trop ancien")\n        .max(NaiveDate::from_ymd_opt(2010, 12, 31).unwrap(), "Trop récent"),\n);\n\n// Heure (format: HH:MM)\nform.field(&TimeField::new("meeting_time").label("Heure du RDV"));\n\n// Date + Heure (format: YYYY-MM-DDTHH:MM)\nform.field(&DateTimeField::new("event_start").label("Début de l'événement"));\n```\n\n---	code	6
+155	40	FileField — Upload de fichiers	```rust\n// Image avec contraintes complètes — dossier explicite\nform.field(\n    &FileField::image("avatar")\n        .label("Photo de profil")\n        .upload_to("uploads/avatars")   // → uploads/avatars/\n        .max_size_mb(5)\n        .max_files(1)\n        .max_dimensions(1920, 1080)\n        .allowed_extensions(vec!["png", "jpg", "jpeg", "webp", "avif"]),\n);\n\n// Image — dossier automatique depuis MEDIA_ROOT (.env)\n// Les fichiers vont dans {MEDIA_ROOT}/{nom_du_champ}/  ex: media/photo/\nform.field(\n    &FileField::image("photo")\n        .label("Photo")\n        .upload_to_env()\n        .max_size_mb(5),\n);\n\n// Sans upload_to — fichiers stockés directement dans MEDIA_ROOT\nform.field(\n    &FileField::image("image")\n        .label("Image")\n        .max_size_mb(5),\n);\n\n// Document\nform.field(\n    &FileField::document("cv")\n        .label("CV")\n        .upload_to("uploads/cv")\n        .max_size_mb(10),\n);\n\n// Fichier quelconque (multi-fichiers)\nform.field(\n    &FileField::any("attachments")\n        .label("Pièces jointes")\n        .max_files(5),\n);\n```\n\n**Destination des fichiers :**\n\n| Méthode | Destination |\n| --- | --- |\n| `.upload_to("uploads/images")` | `uploads/images/` (chemin exact) |\n| `.upload_to_env()` | `{MEDIA_ROOT}/{nom_du_champ}/` (depuis `.env`) |\n| *(aucune)* | `MEDIA_ROOT` directement (pas de sous-dossier) |\n\nLe déplacement vers la destination finale s'effectue dans `finalize()`, **uniquement si la validation passe**. Le dossier est créé automatiquement s'il n'existe pas encore.\n\n> **Sécurité** : les fichiers `.svg` sont **toujours refusés** par défaut (risque XSS). La validation d'image utilise le crate `image` pour vérifier le format réel du fichier. Les fichiers vides (aucun fichier sélectionné) sont ignorés proprement — le champ `required` fonctionne correctement.\n\n### Fichiers JS associés\n\n```rust\nfn register_fields(form: &mut Forms) {\n    // ... champs ...\n    form.add_js(&["js/mon_script.js", "js/autre.js"]);\n}\n```\n\nLes fichiers JS sont inclus automatiquement dans le rendu HTML du formulaire.\n\n---	code	8
+157	40	SlugField — Slug URL-friendly	```rust\nform.field(\n    &SlugField::new("slug")\n        .label("Slug")\n        .placeholder("mon-article-url")\n        .allow_unicode(),  // Optionnel : autorise les caractères unicode\n);\n```\n\n> Validation : lettres, chiffres, tirets, underscores uniquement. Ne peut pas commencer ou finir par un tiret.\n\n---	code	10
+159	40	JSONField — Textarea avec validation JSON	```rust\nform.field(\n    &JSONField::new("metadata")\n        .label("Métadonnées")\n        .placeholder(r#"{"clé": "valeur"}"#)\n        .rows(10),  // Nombre de lignes du textarea\n);\n```\n\n---	code	12
+162	40	Récapitulatif des types de champs	| Struct           | Constructeurs                                                              | Validation spéciale                                           |\n| ---------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |\n| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()`     | Email/URL via `validator`, Argon2, sanitisation XSS           |\n| `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`                | Bornes min/max, précision décimale                            |\n| `BooleanField`   | `new()`, `radio()`                                                         | Requis = doit être coché                                      |\n| `ChoiceField`    | `new()` + `.multiple()`                                                    | Valeur dans les choix déclarés                                |\n| `RadioField`     | `new()`                                                                    | Valeur dans les choix déclarés                                |\n| `CheckboxField`  | `new()`                                                                    | Toutes les valeurs dans les choix                             |\n| `DateField`      | `new()`                                                                    | Format `YYYY-MM-DD`, bornes min/max                           |\n| `TimeField`      | `new()`                                                                    | Format `HH:MM`, bornes min/max                                |\n| `DateTimeField`  | `new()`                                                                    | Format `YYYY-MM-DDTHH:MM`, bornes min/max                     |\n| `DurationField`  | `new()`                                                                    | Secondes, bornes min/max                                      |\n| `FileField`      | `image()`, `document()`, `any()`                                           | Extensions, taille, dimensions, anti-SVG                      |\n| `ColorField`     | `new()`                                                                    | Format `#RRGGBB` ou `#RGB`                                    |\n| `SlugField`      | `new()`                                                                    | ASCII/unicode, pas de tiret en début/fin                      |\n| `UUIDField`      | `new()`                                                                    | Format UUID valide                                            |\n| `JSONField`      | `new()`                                                                    | JSON valide via `serde_json`                                  |\n| `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()`                                  | IPv4/IPv6 via `std::net::IpAddr`                              |\n| `HiddenField`    | `new()`, `new_csrf()`                                                      | Token CSRF si `name == "csrf_token"`                          |\n\n---\n\n← [**Helpers de conversion**](/docs/fr/formulaire/helpers) | [**Erreurs de base de données**](/docs/fr/formulaire/erreurs) →	text	15
+164	42	Exemple complet : inscription avec sauvegarde	```rust\nuse runique::prelude::*;\n\n#[derive(Serialize, Debug, Clone)]\n#[serde(transparent)]\npub struct RegisterForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for RegisterForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Nom d'utilisateur")\n                .required(),\n        );\n\n        form.field(\n            &TextField::email("email")\n                .label("Email")\n                .required(),\n        );\n\n        form.field(\n            &TextField::password("password")\n                .label("Mot de passe")\n                .required()\n                .min_length(8, "Minimum 8 caractères"),\n        );\n    }\n\n    impl_form_access!();\n}\n\nimpl RegisterForm {\n    pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {\n        use sea_orm::Set;\n        let model = users::ActiveModel {\n            username: Set(self.form.get_string("username")),\n            email: Set(self.form.get_string("email")),\n            // Le mot de passe est déjà haché en Argon2 après is_valid()\n            password: Set(self.form.get_string("password")),\n            ..Default::default()\n        };\n        model.insert(db).await\n    }\n}\n```\n\n### Handler GET/POST\n\n```rust\npub async fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    let template = "profile/register_form.html";\n\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Inscription",\n            "register_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            match form.save(&request.engine.db).await {\n                Ok(_) => {\n                    success!(request.notices => "Inscription réussie !");\n                    return Ok(Redirect::to("/").into_response());\n                }\n                Err(err) => {\n                    form.database_error(&err);\n                }\n            }\n        }\n\n        context_update!(request => {\n            "title" => "Erreur",\n            "register_form" => &form,\n            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),\n        });\n        return request.render(template);\n    }\n\n    request.render(template)\n}\n```\n\n---	code	0
+166	42	⚠️ Pièges courants	### 1. Collision de noms de variables template\n\nSi votre template utilise `{% form.user %}`, la variable `user` dans le contexte **doit** être un formulaire, pas un Model SeaORM :\n\n```rust\n// ❌ ERREUR — db_user est un Model, pas un formulaire\ncontext_update!(request => { "user" => &db_user });\n\n// ✅ CORRECT — séparer les noms\ncontext_update!(request => {\n    "user_form" => &form,\n    "found_user" => &db_user,\n});\n```\n\n### 2. Oublier le `mut` sur form\n\n```rust\n//  Ne peut pas appeler is_valid()\nPrisme(form): Prisme<MyForm>\n\n//  Correct\nPrisme(mut form): Prisme<MyForm>\n```\n\n### 3. Comparer des mots de passe après `is_valid()`\n\n```rust\n/// main.rs ->\n/// avec cette configuration ->\npassword_init(PasswordConfig::auto_with(Manual::Argon2));\n\n// Après is_valid(), les mots de passe sont hachés !\nlet mdp = form.get_form().get_string("password");\n// mdp == "$argon2id$v=19$m=..." 😱\n\n// Comparer dans clean(), AVANT la finalisation\nasync fn clean(&mut self) -> Result<(), StrMap> {\n    let mdp1 = self.form.get_string("password");\n    let mdp2 = self.form.get_string("password_confirm");\n    if mdp1 != mdp2 { /* erreur */ }\n    Ok(())\n}\n```\n\n---\n\n← [**Rendu dans les templates**](/docs/fr/formulaire/templates) | [**Formulaires**](/docs/fr/formulaire) →	code	2
+168	43	Conversions Option	```rust\nform.get_option("bio")           // -> Option<String> (None si vide)\nform.get_option_i32("age")       // -> Option<i32>\nform.get_option_i64("score")     // -> Option<i64>\nform.get_option_f64("note")      // -> Option<f64> (gère , → .)\nform.get_option_bool("news")     // -> Option<bool>\n```	code	1
+170	43	Conversions UUID	```rust\nform.get_uuid("external_id")         // -> Uuid (Uuid::nil() si vide)\nform.get_option_uuid("external_id")  // -> Option<Uuid>\n```	code	3
+172	43	Accès aux paramètres d'URL	### Depuis `Request` — accès brut\n\n```rust\n// Paramètre de route : /article/{id}\nlet id = request.path_param("id");       // Option<&str>\n\n// Paramètre de query string : ?page=2\nlet page = request.from_url("page");     // Option<&str>\n```\n\n### Depuis le formulaire — `cleaned_*()` whitelisté et typé\n\nLes variantes `cleaned_*` couvrent **toutes les sources** (POST, path param, query param) dans cet ordre de priorité. Elles retournent `None` si le champ n'est pas déclaré dans le formulaire.\n\n```rust\nform.cleaned_string("search")   // Option<String>\nform.cleaned_i32("page")        // Option<i32>\nform.cleaned_i64("id")          // Option<i64>\nform.cleaned_u32("quantity")    // Option<u32>\nform.cleaned_u64("ref")         // Option<u64>\nform.cleaned_f32("ratio")       // Option<f32>  (gère , → .)\nform.cleaned_f64("price")       // Option<f64>  (gère , → .)\nform.cleaned_bool("active")     // Option<bool> (true/1/on → true)\n\n// Champ non déclaré → None garanti, aucune fuite possible\nform.cleaned_string("is_admin") // None\n```\n\nCas concret — pré-remplir un champ depuis l'URL (`GET /edit?title=Mon+Article`) :\n\n```rust\npub async fn edit(\n    mut request: Request,\n    Prisme(mut form): Prisme<ArticleForm>,\n) -> AppResult<Response> {\n    if request.is_get() {\n        if let Some(t) = form.cleaned_string("title") {\n            form.get_form_mut().add_value("title", &t);\n        }\n    }\n\n    if request.is_post() && form.is_valid().await {\n        form.save(&request.engine.db).await?;\n        return Ok(Redirect::to("/articles").into_response());\n    }\n\n    context_update!(request => { "form" => &form });\n    request.render("edit.html")\n}\n```\n\n> **Sécurité** — `cleaned_*()` est liée au schéma du formulaire : un attaquant ne peut pas injecter un paramètre URL arbitraire (`?is_admin=true`) qui ne soit pas un champ déclaré. Fonctionne aussi bien avec `#[form(...)]` qu'avec les formulaires classiques.\n\n---\n\n← [**Trait RuniqueForm**](/docs/fr/formulaire/trait) | [**Types de champs**](/docs/fr/formulaire/champs) →	code	5
+174	45	Formulaire complet	```html\n<form method="post">\n  {% form.inscription_form %}\n  <button type="submit">S'inscrire</button>\n</form>\n```\n\nRend automatiquement : tous les champs, les labels, les erreurs de validation, le token CSRF et les scripts JS.\n\n---	code	0
+176	45	Erreurs globales	```html\n{% if inscription_form.form_errors %}\n<div class="alert alert-danger">\n  {% for msg in inscription_form.form_errors %}\n  <p>{{ msg }}</p>\n  {% endfor %}\n</div>\n{% endif %}\n```\n\n> `form_errors` → `Vec<String>` — erreurs non liées à un champ (ex: "Identifiants invalides").\n> `errors` → map `{ field_name: message }` — erreurs par champ + erreurs globales sous la clé `global`.\n\n---	code	2
+178	46	Structure de base	Chaque formulaire contient un champ `form: Forms` et implémente le trait `RuniqueForm` :\n\n```rust\nuse runique::prelude::*;\n\n#[derive(Serialize, Debug, Clone)]\n#[serde(transparent)]\npub struct UsernameForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for UsernameForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Nom d'utilisateur")\n                .required()\n                .placeholder("Entrez un nom d'utilisateur"),\n        );\n    }\n\n    impl_form_access!();\n}\n```\n\n> **💡 `impl_form_access!()`** génère automatiquement `from_form()`, `get_form()` et `get_form_mut()`. Si votre champ ne s'appelle pas `form`, passez le nom en argument : `impl_form_access!(formulaire)`.\n\n<details>\n<summary>Équivalent sans macro (pour référence)</summary>\n\n```rust\nfn from_form(form: Forms) -> Self {\n    Self { form }\n}\nfn get_form(&self) -> &Forms {\n    &self.form\n}\nfn get_form_mut(&mut self) -> &mut Forms {\n    &mut self.form\n}\n```\n\n</details>\n\n---	code	0
+554	155	Builder configuration	```rust\nlet app = RuniqueApp::builder(config)\n    // Session lifetime\n    .with_session_duration(time::Duration::hours(2))\n    // Custom watermarks\n    .with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)\n    // Cleanup interval\n    .with_session_cleanup_interval(30)\n    .build()\n    .await?;\n```\n\n---	code	3
+163	41	\N	[← Types de champs](/docs/fr/formulaire/champs)\n\n---\n\nLa méthode `database_error()` analyse automatiquement les erreurs DB pour remonter l'erreur au bon champ :\n\n```rust\nmatch form.save(&request.engine.db).await {\n    Ok(_) => { /* succès */ }\n    Err(err) => {\n        form.database_error(&err);\n        // L'erreur est positionnée sur le champ concerné\n    }\n}\n```\n\n**Formats d'erreur supportés :**\n\n- **PostgreSQL** : `UNIQUE constraint`, `Key (field)=(value)`\n- **SQLite** : `UNIQUE constraint failed: table.field`\n- **MySQL** : `Duplicate entry ... for key 'table.field'`\n\nSi le champ est identifié, l'erreur apparaît sur ce champ (ex: « Ce email est déjà utilisé »). Sinon, elle est ajoutée aux erreurs globales.\n\n---\n\n← [**Types de champs**](/docs/fr/formulaire/champs) | [**Rendu dans les templates**](/docs/fr/formulaire/templates) →	code	0
+165	42	Formulaire d'édition — mode PATCH	En mode `PATCH`, `fill()` relâche automatiquement le `required` sur les champs `Password`. Cela permet de proposer un formulaire d'édition où le mot de passe est optionnel : s'il est laissé vide, l'ancien hash est conservé.\n\n```rust\npub async fn modifier_profil(\n    mut request: Request,\n    Prisme(mut form): Prisme<EditProfileForm>,\n) -> AppResult<Response> {\n    let template = "profile/edit.html";\n    let user = get_current_user(&request).await?;\n\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Modifier le profil",\n            "edit_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    // En PATCH : le champ password n'est plus requis automatiquement\n    if request.is_patch() {\n        if form.is_valid().await {\n            let new_password = form.get_form().get_option("password");\n\n            let mut active: users::ActiveModel = user.into();\n            active.username = Set(form.get_form().get_string("username"));\n\n            // Si le champ password est rempli → nouveau hash ; sinon → inchangé\n            if let Some(pwd) = new_password {\n                active.password = Set(pwd); // déjà haché par finalize()\n            }\n\n            active.update(&request.engine.db).await?;\n            success!(request.notices => "Profil mis à jour !");\n            return Ok(Redirect::to("/profil").into_response());\n        }\n\n        context_update!(request => {\n            "title" => "Erreur",\n            "edit_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    request.render(template)\n}\n```\n\n> **💡** Le mode PATCH est détecté automatiquement par `fill()` via la méthode HTTP. Aucune configuration supplémentaire n'est nécessaire.\n\n---	code	1
+167	43	Conversions directes	```rust\nform.get_string("username")     // -> String ("" si vide)\nform.get_i32("age")              // -> i32 (0 par défaut)\nform.get_i64("count")            // -> i64 (0 par défaut)\nform.get_u32("quantity")         // -> u32 (0 par défaut)\nform.get_u64("id")               // -> u64 (0 par défaut)\nform.get_f32("ratio")            // -> f32 (gère , → .)\nform.get_f64("price")            // -> f64 (gère , → .)\nform.get_bool("active")          // -> bool (true/1/on → true)\n```	code	0
+169	43	Conversions Date / Heure	```rust\nform.get_naive_date("birthday")           // -> NaiveDate (default si vide)\nform.get_naive_time("meeting_time")       // -> NaiveTime (default si vide)\nform.get_naive_datetime("event_start")    // -> NaiveDateTime (default si vide)\nform.get_datetime_utc("created_at")       // -> DateTime<Utc> (Utc::now() si vide)\n\nform.get_option_naive_date("birthday")        // -> Option<NaiveDate>\nform.get_option_naive_time("meeting_time")    // -> Option<NaiveTime>\nform.get_option_naive_datetime("event_start") // -> Option<NaiveDateTime>\nform.get_option_datetime_utc("created_at")    // -> Option<DateTime<Utc>>\n```	code	2
+171	43	Utilisation dans save()	```rust\nimpl RegisterForm {\n    pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {\n        let model = users::ActiveModel {\n            username: Set(self.form.get_string("username")),\n            email: Set(self.form.get_string("email")),\n            password: Set(self.form.get_string("password")),\n            age: Set(self.form.get_i32("age")),\n            website: Set(self.form.get_option("website")),  // Option<String>\n            ..Default::default()\n        };\n        model.insert(db).await\n    }\n}\n```\n\n> **💡** Les helpers float (`get_f32`, `get_f64`, `get_option_f64`) convertissent automatiquement la virgule en point (`19,99` → `19.99`) pour les locales françaises.\n\n---	code	4
+173	44	\N	[← Formulaires](/docs/fr/formulaire)\n\n---\n\n`Prisme<T>` est un extracteur Axum qui orchestre un pipeline complet en coulisses :\n\n1. **Sentinel** — Vérifie les règles d'accès (login, rôles) via `GuardRules`.\n2. **Aegis** — Extraction unique du body (multipart, urlencoded, json) normalisée en `HashMap`.\n3. **CSRF Gate** — Vérifie le token CSRF dans les données parsées.\n4. **Construction** — Crée le formulaire `T`, remplit les champs et lance la validation.\n\n```rust\nuse runique::prelude::*;\n\npub async fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_post() {\n        if form.is_valid().await {\n            // Formulaire valide → traitement\n        }\n    }\n    // ...\n}\n```\n\n> **💡** Le développeur écrit simplement `Prisme(mut form)` — tout le pipeline sécurité est transparent.\n\n---\n\n← [**Formulaires**](/docs/fr/formulaire) | [**Trait RuniqueForm**](/docs/fr/formulaire/trait) →	code	0
+175	45	Champ par champ	```html\n<form method="post">\n  {% csrf %}\n  <div class="row">\n    <div class="col-6">{% form.inscription_form.username %}</div>\n    <div class="col-6">{% form.inscription_form.email %}</div>\n  </div>\n  {% form.inscription_form.password %}\n  <button type="submit">S'inscrire</button>\n</form>\n```\n\n---	code	1
+177	45	Données de champ en JSON	Les formulaires sérialisent automatiquement `errors`, `form_errors`, `html`, `rendered_fields`, `fields` et `js_files`.\n\n---\n\n← [**Erreurs de base de données**](/docs/fr/formulaire/erreurs) | [**Exemple complet**](/docs/fr/formulaire/exemple) →	text	3
+179	46	Méthodes du trait RuniqueForm	**Cycle de vie du formulaire (ordre d'appel) :**\n\n```text\nregister_fields()       → déclare les champs\n        ↓\nbuild() / build_with_data()  → construit l'instance\n        ↓\nis_valid()              → pipeline de validation\n    ↓  validate() par champ (requis, format, longueur…)\n    ↓  clean_field(name) par champ  [optionnel — règle métier unitaire]\n    ↓  clean()                      [optionnel — validation croisée]\n    ↓  finalize()                   (hash Argon2, transformations finales)\n        ↓\nsave() / database_error()    → persistance ou gestion d'erreur DB\n        ↓\nclear()                 → [optionnel] vide le formulaire après traitement\n```\n\n**Référence des méthodes :**\n\n**`register_fields(form)`** — Déclare les champs du formulaire.\n\n**`from_form(form)`** — Construit l'instance depuis un `Forms`.\n\n**`get_form()` / `get_form_mut()`** — Accesseurs vers le `Forms` interne.\n\n**`clean_field(name)`** *(optionnel)* — Validation métier par champ individuel. Retourne `bool`. Appelée après `validate()` pour chaque champ.\n\n**`clean()`** *(optionnel)* — Validation croisée entre plusieurs champs. Retourne `Result<(), StrMap>`. Appelée une fois que tous les champs sont valides.\n\n**`is_valid()`** — Orchestre le pipeline complet. Peut être appelé sur GET comme sur POST : retourne `false` sans poser d'erreurs si aucune donnée n'a été soumise (premier affichage), valide normalement sinon.\n\n**`is_submitted()`** — Retourne `true` si le formulaire a reçu des données (POST, ou GET avec query params non vides).\n\n**`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ.\n\n**`clear()`** — Vide toutes les valeurs des champs (hors CSRF) et remet `submitted` à `false`. À appeler après avoir lu les données nettoyées, avant un redirect ou un re-rendu vide.\n\n**`build(tera, csrf_token)`** — Construit un formulaire vide.\n\n**`build_with_data(data, tera, csrf)`** — Construit, remplit et valide.\n\n---	code	1
+180	46	`is_valid()` — appel sur GET et POST	`is_valid()` est conçu pour être appelé indifféremment sur GET et POST :\n\n- **Premier GET (formulaire vide)** — `is_valid()` retourne `false`, aucune erreur n'est posée sur les champs. Le template affiche un formulaire propre.\n- **GET avec query params (formulaire de recherche)** — `is_valid()` valide normalement. Permet de faire des recherches via GET sans code supplémentaire.\n- **POST** — comportement standard : valide, pose les erreurs sur les champs si invalide.\n\n```rust\n// Handler GET+POST unifié — fonctionne sans if/else sur la méthode\npub async fn search(\n    mut request: Request,\n    Prisme(mut form): Prisme<SearchForm>,\n) -> AppResult<Response> {\n    if form.is_valid().await {\n        let query = form.get_string("q");\n        // lancer la recherche...\n    }\n    // Premier GET : is_valid() == false, aucune erreur → formulaire vide\n    // GET soumis invalide : is_valid() == false, erreurs affichées\n    context_update!(request => { "search_form" => &form });\n    request.render("search.html")\n}\n```\n\n> **`is_submitted()`** est disponible si tu as besoin de distinguer explicitement "premier affichage" de "formulaire soumis sans données valides".\n\n---	code	2
+182	46	`clean_field` — validation métier par champ	`clean_field` est appelée pour chaque champ après sa validation standard. Elle permet d'implémenter une règle métier sur un champ précis (unicité, format personnalisé, valeur interdite…).\n\n- Retourne `true` si le champ est valide, `false` sinon\n- En cas d'échec, poser l'erreur manuellement sur le champ via `set_error()`\n- **N'est pas invoquée** si le champ requis est déjà vide (la validation standard échoue d'abord)\n\n```rust\n#[async_trait::async_trait]\nimpl RuniqueForm for UsernameForm {\n    // ...\n\n    async fn clean_field(&mut self, name: &str) -> bool {\n        if name == "username" {\n            let val = self.get_form().get_string("username");\n            if val.to_lowercase().contains("admin") {\n                if let Some(f) = self.get_form_mut().fields.get_mut("username") {\n                    f.set_error("Le nom 'admin' est réservé".to_string());\n                }\n                return false;\n            }\n        }\n        true\n    }\n}\n```\n\n> **💡** `clean_field` est idéale pour les règles isolées sur un champ : valeur interdite, format personnalisé, vérification d'unicité légère. Pour les règles qui impliquent plusieurs champs à la fois, utilisez `clean()`.\n>\n> **⚠️ Ne pas appeler `clean_field` depuis `clean`** : le pipeline garantit que `clean_field` s'est déjà exécuté pour chaque champ avant l'appel de `clean`. Rappeler `clean_field` depuis `clean` serait redondant et risquerait de poser une erreur en double sur un champ. De plus, `clean` n'est invoquée que si tous les `clean_field` ont retourné `true` — depuis `clean`, tous les champs sont déjà individuellement valides.\n\n---	code	4
+184	46	`clear()` — vider le formulaire après traitement	`clear()` vide toutes les valeurs des champs (hors token CSRF) et remet `submitted` à `false`.\n\nAccessible partout où `self` est `&mut Self` — dans un handler ou dans une méthode du formulaire lui-même.\n\n### Depuis un handler\n\n```rust\nif form.is_valid().await {\n    let path = form.cleaned_string("image"); // 1. lire avant clear\n    // sauvegarder en DB...\n    form.clear();                            // 2. vider\n    success!(request.notices => "Fichier uploadé !");\n    context_update!(request => { "image_form" => &form });\n    return request.render(template);         // 3. re-rendre avec formulaire vide\n}\n```\n\n### Depuis le formulaire lui-même (`save(&mut self)`)\n\nPasser `save` en `&mut self` permet d'encapsuler le clear directement — le handler n'a rien à faire :\n\n```rust\nimpl BlogForm {\n    pub async fn save(\n        &mut self,\n        db: &DatabaseConnection,\n    ) -> Result<blog::Model, DbErr> {\n        let record = blog::ActiveModel {\n            title: Set(self.form.get_string("title")),\n            // ...\n            ..Default::default()\n        };\n        let result = record.insert(db).await;\n        if result.is_ok() {\n            self.clear(); // vide automatiquement après succès\n        }\n        result\n    }\n}\n```\n\n### Où `clear()` ne peut pas être appelé\n\n- Dans une méthode `&self` (lecture seule) — ne compile pas\n- Dans `clean()` ou `clean_field()` — s'exécutent **pendant** `is_valid()`, avant que les données soient lues par `save()` ; appeler `clear()` ici viderait le formulaire avant la sauvegarde\n\n> **💡 Avec redirect (PRG)** : si le handler redirige après succès (`Redirect::to(...)`), `clear()` n'est pas nécessaire — la nouvelle requête GET crée automatiquement une instance fraîche et vide.\n\n---\n\n← [**Extracteur Prisme**](/docs/fr/formulaire/prisme) | [**Helpers de conversion**](/docs/fr/formulaire/helpers) →	code	6
+186	48	\N	## SQLite (Développement)\n\n### 1. Modifier `demo-app/Cargo.toml`\n\n```toml\n[dependencies]\nrunique = { version = "1.1.52", features = ["orm", "sqlite"] }\n```\n\n### 2. Mettre à jour `.env`\n\n```env\nDATABASE_URL=sqlite:runique.db?mode=rwc\n```\n\n### 3. Relancer\n\n```bash\ncargo run -p demo-app\n```\n\nSQLite par défaut, PostgreSQL recommandé en production.\n\n---	code	0
+188	48	Créer un superutilisateur	Après avoir appliqué les migrations, crée le premier compte admin :\n\n```bash\nrunique create-superuser\n```\n\nLe CLI guide à travers un wizard interactif : algorithme de hash, nom d'utilisateur, email, mot de passe, puis confirmation avant création.\n\n---	code	2
+190	49	Toutes les commandes	```bash\nrunique new <nom>                                                    # Créer un nouveau projet\nrunique start [--main src/main.rs] [--admin src/admin.rs]           # Lancer avec daemon admin\nrunique makemigrations --entities src/entities --migrations migration/src  # Générer les migrations\nrunique migration up|down|status --migrations migration/src         # Gérer les migrations\nrunique create-superuser                                            # Créer un superutilisateur\n```\n\n---	code	1
+192	50	Autres commandes de migration	```bash\nsea-orm-cli migrate down --migration-dir migration/src   # Annuler la dernière migration\nsea-orm-cli migrate status --migration-dir migration/src # Voir l’état des migrations\n```\n\n---	code	1
+194	51	\N	## Prérequis\n\n- **Rust 1.85+** — [Installer rustup](https://rustup.rs/)\n- **PostgreSQL 12+** (ou SQLite pour dev)\n- **Git**\n\n### Vérifier les versions\n\n```bash\nrustc --version    # Rust 1.85+\ncargo --version    # Cargo 1.85+\npostgres --version # PostgreSQL 12+\n```\n\n---	code	0
+196	52	\N	## ❌ "Connection refused" PostgreSQL\n\n```bash\n# Vérifier que PostgreSQL est running\nsudo systemctl status postgresql\n\n# Ou macOS :\nbrew services list\n```\n\n---	code	0
+198	52	❌ Feature SQLite non activée	Vérifier que la feature est activée dans `Cargo.toml` :\n\n```toml\nrunique = { version = "1.1.52", features = ["orm", "postgres"] }\n```\n\n---	code	2
+200	52	Pre-commit hooks (optionnel)	```bash\n# Installer pre-commit\npip install pre-commit\n\n# Setup hooks\npre-commit install\n\n# Test hooks\npre-commit run --all-files\n```\n\n---	code	4
+288	80	{% form.xxx.champ %} — Rendu d'un champ isolé	```html\n<form method="post" action="/inscription">\n    <div class="row">\n        <div class="col">{% form.inscription_form.username %}</div>\n        <div class="col">{% form.inscription_form.email %}</div>\n    </div>\n    {% form.inscription_form.password %}\n    <button type="submit">S'inscrire</button>\n</form>\n```\n\n**Transformé en :** `{{ inscription_form | form(field='username') | safe }}`\n\n---	code	7
+181	46	Pipeline de validation `is_valid()`	L'appel `form.is_valid().await` déclenche **4 étapes dans l'ordre** (uniquement si le formulaire est soumis) :\n\n1. **Validation des champs** — Chaque champ exécute son `validate()` : requis, longueur, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`…)\n2. **`clean_field(name)`** — Validation métier par champ, appelée pour chaque champ après l'étape 1 (uniquement si la validation standard a réussi)\n3. **`clean()`** — Validation croisée sur l'ensemble du formulaire (ex: `mdp1 == mdp2`) ; les mots de passe sont encore en clair à cette étape\n4. **`finalize()`** — Transformations finales (hachage Argon2 automatique des champs `Password`)\n\n---	text	3
+183	46	`clean` — validation croisée	`clean` est appelée une fois que **tous** les champs ont passé leur validation (standard + `clean_field`). Elle permet de croiser les valeurs de plusieurs champs.\n\n- Retourne `Ok(())` si le formulaire est valide\n- Retourne `Err(StrMap)` avec une map `{ "nom_du_champ" => "message d'erreur" }` en cas d'échec\n\n```rust\n#[async_trait::async_trait]\nimpl RuniqueForm for RegisterForm {\n    // ...\n\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let mdp1 = self.form.get_string("password");\n        let mdp2 = self.form.get_string("password_confirm");\n\n        if mdp1 != mdp2 {\n            let mut errors = StrMap::new();\n            errors.insert(\n                "password_confirm".to_string(),\n                "Les mots de passe ne correspondent pas".to_string(),\n            );\n            return Err(errors);\n        }\n        Ok(())\n    }\n}\n```\n\n> **⚠️ Important** : Les champs `Password` sont **hachés automatiquement** lors de `finalize()` par défaut (Argon2), sauf si `password_init` est appelé dans `main.rs` avec `PasswordConfig::Manual`, `Delegated` ou `Custom`.\n> Utilisez `clean()` pour toute comparaison de mots de passe en clair — c'est la seule étape où ils sont encore lisibles.\n\n---	code	5
+185	47	\N	| Module | Description |\n| --- | --- |\n| [Prérequis & setup initial](/docs/fr/installation/prerequis) | Rust, Git, cloner le projet, compiler, lancer |\n| [Base de données](/docs/fr/installation/base-de-donnees) | SQLite (dev), PostgreSQL (prod) |\n| [Migrations](/docs/fr/installation/migrations) | `makemigrations`, `migrate up/down/status` |\n| [CLI Runique](/docs/fr/installation/cli) | `create-superuser`, `new`, `start` |\n| [Troubleshooting](/docs/fr/installation/troubleshooting) | Erreurs courantes et solutions |	sommaire	0
+187	48	PostgreSQL (Production)	### 1. Installer PostgreSQL\n\n**macOS :**\n\n```bash\nbrew install postgresql\nbrew services start postgresql\n```\n\n**Linux (Debian/Ubuntu) :**\n\n```bash\nsudo apt-get install postgresql postgresql-contrib\nsudo systemctl start postgresql\n```\n\n**Windows :**\n\n- [Télécharger l'installer](https://www.postgresql.org/download/windows/)\n- Suivre l'assistant d'installation\n\n### 2. Créer l'utilisateur et la base de données\n\n```sql\n-- Connecter en tant qu'admin\npsql -U postgres\n\n-- Créer l'utilisateur\nCREATE USER runique_user WITH PASSWORD 'secure_password';\n\n-- Créer la base de données\nCREATE DATABASE runique OWNER runique_user;\n\n-- Accorder les permissions\nGRANT ALL PRIVILEGES ON DATABASE runique TO runique_user;\nGRANT ALL PRIVILEGES ON SCHEMA public TO runique_user;\n```\n\n### 3. Configurer `.env`\n\n```env\nIP_SERVER=127.0.0.1\nPORT=3000\nDEBUG=true\nSECRET_KEY=votre-cle-secrete-a-changer-en-production\nALLOWED_HOSTS=localhost,127.0.0.1\n\nDB_ENGINE=postgres\nDB_USER=runique_user\nDB_PASSWORD=secure_password\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=runique\nDATABASE_URL=postgres://runique_user:secure_password@localhost:5432/runique\n```\n\n### 4. Vérifier la connexion\n\n```bash\npsql -U runique_user -d runique -h localhost\n```\n\n---	code	1
+189	49	\N	## Créer un superutilisateur\n\n```bash\nrunique create-superuser\n```\n\nUne interface en ligne de commande pour créer des superutilisateurs, lancer le serveur et gérer les migrations.\n\n```\n=== Créer un superutilisateur ===  [Ctrl+C pour quitter]\n\n[1/5] Algorithme de hachage :\n  1) Argon2  (recommandé)\n  2) Bcrypt\n  3) Scrypt\n  4) Custom provider\nChoix [1-4] (défaut: 1) :\n\n[2/5] Username :\n[3/5] Email :\n[4/5] Mot de passe :\n[5/5] Confirmer le mot de passe :\n\n──────────────────────────────────\n  Algorithme : Argon2\n  Username   : admin\n  Email      : admin@example.com\n  Mot de passe : ••••••••\n──────────────────────────────────\n[Entrée] Confirmer  [A] Changer l'algo  [Ctrl+C] Annuler\n```\n\n**Navigation :** `ESC` revient à l'étape précédente à tout moment.\n\n> Le CLI s'exécute sans runtime applicatif — il n'a pas accès à la `PasswordConfig` configurée dans `main.rs`. L'algorithme est choisi explicitement à chaque exécution.\n>\n> Pour le cas `Custom`, fournissez un binaire ou script qui lit le mot de passe sur **stdin** et retourne le hash sur **stdout**.\n\n---	code	0
+191	50	\N	## Workflow en deux étapes\n\n### 1. Générer les fichiers de migration\n\n`runique makemigrations` lit vos entités déclarées dans `src/entities` et génère les fichiers de migration correspondants :\n\n```bash\nrunique makemigrations --entities src/entities --migrations migration/src\n```\n\n### 2. Appliquer les migrations\n\nVia le CLI SeaORM (recommandé) :\n\n```bash\nsea-orm-cli migrate up --migration-dir migration/src\n```\n\n---	code	0
+193	50	Wrapper Runique (avancé)	Les commandes suivantes existent dans le CLI Runique mais **contournent le suivi chronologique de SeaORM** :\n\n```bash\nrunique migration up --migrations migration/src\nrunique migration down --migrations migration/src\nrunique migration status --migrations migration/src\n```\n\n> ⚠️ Ces commandes ne mettent pas à jour la table de suivi de SeaORM. Utiliser uniquement en connaissance de cause — préférer `sea-orm-cli` pour le workflow normal.\n\n---\n\n> ⚠️ `runique makemigrations` est le seul outil à utiliser pour **générer** les fichiers de migration. Ne pas utiliser `sea-orm-cli migrate generate` : le système Runique maintient un ordre chronologique et des snapshots que la CLI SeaORM ne connaît pas.\n\n---	code	2
+195	51	Installation du Projet	### 1. Cloner le repository\n\n```bash\ngit clone https://github.com/seb-alliot/runique.git\ncd runique\n```\n\n### 2. Configuration .env\n\nCréer un fichier `.env` dans le répertoire `demo-app/` :\n\n```env\n# Server\nIP_SERVER=127.0.0.1\nPORT=3000\nDEBUG=true\n\n# Database (PostgreSQL)\nDB_ENGINE=postgres\nDB_USER=postgres\nDB_PASSWORD=your_password_here\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=runique\nDATABASE_URL=postgres://postgres:your_password_here@localhost:5432/runique\n\n# Templates & Static Files\nTEMPLATES_DIR=templates\nSTATICFILES_DIRS=static\nMEDIA_ROOT=media\n\n# Security\nSECRET_KEY=your_secret_key_change_in_production\n```\n\n### 3. Compiler le projet\n\n```bash\ncargo build\n\n# Ou pour le mode release (optimisé) :\ncargo build --release\n```\n\n### 4. Lancer le serveur\n\n```bash\ncargo run -p demo-app\n```\n\n**Output attendu :**\n\n```\n🦀 Runique Framework opérationnel\n   Serveur lancé sur http://127.0.0.1:3000\n```\n\n### Outils recommandés\n\n```bash\n# Rust analyzer pour l'IDE\nrustup component add rust-analyzer\n\n# Linter & formatter\nrustup component add clippy rustfmt\n\n# SeaORM CLI (requis pour les migrations)\ncargo install sea-orm-cli\n```\n\n---	code	1
+197	52	❌ "Permission denied" sur la base de données	```bash\n# Vérifier les permissions\npsql -U postgres -d runique -c "\\dp"\n\n# Réappliquer les permissions\nGRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;\n```\n\n---	code	1
+201	53	\N	| Module | Description |\n| --- | --- |\n| [Protection CSRF](/docs/fr/middleware/csrf) | Token, Double Submit Cookie, AJAX |\n| [Content Security Policy](/docs/fr/middleware/csp) | Nonce, profils, headers |\n| [Sessions](/docs/fr/middleware/sessions) | Store, durées, accès dans les handlers |\n| [Hosts & Cache](/docs/fr/middleware/hosts-cache) | Allowed Hosts, Cache-Control, headers de sécurité |\n| [Builder & configuration](/docs/fr/middleware/builder) | Builder classique, Builder Intelligent, variables d'env |\n| [Rate Limiting](/docs/fr/middleware/rate-limit) | Limitation de débit par IP, par route, configurable |	sommaire	0
+203	54	\N	`RuniqueApp::builder(config)` est l'unique point d'entrée. Toute la configuration des middlewares passe par `.middleware(|m| { ... })`.	text	0
+205	54	Conditionnel selon l'environnement	```rust\n.middleware(|m| {\n    m.with_csp(|c| {\n          c.policy(SecurityPolicy::strict())\n           .with_upgrade_insecure(!is_debug())\n       })\n     .with_allowed_hosts(|h| {\n          h.enabled(!is_debug())  // désactivé en dev, actif en prod\n           .host("monsite.fr")\n       })\n})\n```\n\n> En mode `DEBUG=true`, `is_debug()` retourne `true` — les guards de sécurité peuvent être désactivés conditionnellement.\n\n---	code	2
+207	55	Activation	### CSP seul (sans headers de sécurité additionnels)\n\n```rust\n.middleware(|m| {\n    m.with_csp(|c| c)\n})\n```\n\n### CSP + tous les headers de sécurité\n\n```rust\n.middleware(|m| {\n    m.with_csp(|c| {\n        c.with_header_security(true)\n         .with_nonce(true)\n    })\n})\n```\n\n### Preset strict complet\n\n```rust\n.middleware(|m| {\n    m.with_csp(|c| {\n        c.policy(SecurityPolicy::strict())\n         .with_header_security(true)\n    })\n})\n```\n\n---	code	1
+209	55	Retour	- [CSP — Vue d'ensemble](/docs/fr/middleware/csp)	text	3
+211	56	Dans les formulaires HTML manuels	```html\n<form method="post" action="/submit">\n    {% csrf %}\n    <input type="text" name="data">\n    <button type="submit">Envoyer</button>\n</form>\n```\n\n---	code	1
+213	57	\N	## Validation des Hosts (Allowed Hosts)\n\n### Fonctionnement\n\n- Compare le header `Host` de la requête contre `ALLOWED_HOSTS`\n- Bloque les requêtes avec un host non autorisé (HTTP 400)\n- Protection contre les attaques Host Header Injection\n\n### Configuration `.env`\n\n```env\n# Hosts autorisés (séparés par des virgules)\nALLOWED_HOSTS=localhost,127.0.0.1,example.com\n\n# Patterns supportés :\n# localhost       → match exact\n# .example.com   → match example.com ET *.example.com\n# *              → TOUS les hosts (⚠️ DANGEREUX en production !)\n```\n\n### Mode debug\n\nEn `DEBUG=true`, la validation des hosts est **désactivée par défaut** pour faciliter le développement.\n\n---	code	0
+215	57	Variables d'environnement liées à la sécurité	| Variable | Défaut | Description |\n|----------|--------|-------------|\n| `SECRETE_KEY` | *(requis)* | Clé secrète pour le CSRF |\n| `ALLOWED_HOSTS` | `*` | Hosts autorisés |\n| `DEBUG` | `true` | Mode debug (affecte cache, hosts) |\n| `RUNIQUE_ENABLE_HOST_VALIDATION` | *(auto)* | Force la validation des hosts |\n| `RUNIQUE_ENABLE_CACHE` | *(auto)* | Force le contrôle cache |\n\n---	text	2
+217	58	Configuration	```rust\nRateLimiter::new().max_requests(5).retry_after(60)    // 5 requêtes par minute\nRateLimiter::new().max_requests(3).retry_after(300)   // 3 requêtes par 5 minutes\nRateLimiter::new().max_requests(100).retry_after(60)  // 100 requêtes par minute\n```\n\n---	code	1
+219	58	API	### `RateLimiter::new()`\n\nCrée un rate limiter avec les valeurs par défaut (60 req / 60 s).\n\n### `.max_requests(max: u32)`\n\nNombre de requêtes autorisées dans la fenêtre.\n\n### `.retry_after(secs: u64)`\n\nDurée de la fenêtre en secondes.\n\n### `is_allowed(key: &str) -> bool`\n\nRetourne `true` si la clé est sous la limite, `false` sinon.\n\n### `retry_after_secs(key: &str) -> u64`\n\nSecondes restantes avant réinitialisation de la fenêtre pour cette clé. Retourne `0` si la fenêtre est déjà expirée ou si la clé est inconnue. Utilisé pour remplir le header `Retry-After` dans les réponses 429.\n\n---\n\n← [**Builder & configuration**](/docs/fr/middleware/builder) | [**Flash Messages**](/docs/fr/flash) →	text	3
+221	59	Configuration	```rust\n// Durée de session personnalisée\nlet app = RuniqueApp::builder(config)\n    .with_session_duration(time::Duration::hours(2))\n    .build()\n    .await?;\n```\n\n### Store personnalisé (production)\n\n```rust\n// Exemple avec un store Redis\nlet app = RuniqueApp::builder(config)\n    .middleware(|m| m.with_session_store(RedisStore::new(client)))\n    .build()\n    .await?;\n```\n\n---	code	1
+223	60	\N	| Section | Contenu |\n| --- | --- |\n| [DSL & AST](/docs/fr/model/dsl) | Macros exposées, syntaxe `model!`, AST interne, types et options de champs |\n| [Génération & ModelSchema](/docs/fr/model/generation) | Code généré, `ModelSchema`, `to_migration()`, `fill_form()` |\n| [Formulaires & enjeux](/docs/fr/model/formulaires) | `#[form(...)]`, enjeux techniques, ordre de lecture |\n\n---	sommaire	0
+225	61	DSL `model! { ... }` : structure attendue	Le parseur attend une structure stricte :\n\n1. nom du modèle,\n2. `table: "..."`,\n3. `pk: id => i32|i64|uuid`,\n4. `fields: { ... }`,\n5. `relations: { ... }` optionnel,\n6. `meta: { ... }` optionnel.\n\nExemple concret :\n\n```rust\nuse runique::prelude::*;\n\nmodel! {\n    User,\n    table: "users",\n    pk: id => i32,\n    fields: {\n        username: String [required, max_len(150), unique],\n        email: String [required, unique],\n        password: String [required],\n        is_active: bool,\n        team_id: i32 [required],\n        created_at: datetime [auto_now],\n    },\n    relations: {\n        has_many: Post,\n        belongs_to: Team via team_id,\n    },\n}\n```\n\n---	code	0
+227	62	\N	## Lien avec les formulaires via `#[form(...)]`\n\nLa macro attribut `#[form(...)]` attend :\n\n- `schema = chemin_fonction` (obligatoire)\n- `fields = [..]` (optionnel)\n- `exclude = [..]` (optionnel)\n\nElle génère uniquement :\n\n- la struct avec `form: Forms`\n- `impl ModelForm` (`schema()`, `fields()`, `exclude()`)\n\nLe dev écrit ensuite `impl RuniqueForm` avec `impl_form_access!(model)` :\n\n```rust\nuse runique::prelude::*;\n\n#[form(schema = user_schema, fields = [username, email])]\npub struct UserForm;\n\nimpl RuniqueForm for UserForm {\n    impl_form_access!(model);\n}\n```\n\n### Avec validation métier (`clean`)\n\nOverrider `clean` directement dans `impl RuniqueForm` — comme Django.\n`#[async_trait]` est requis uniquement quand on override une méthode async :\n\n```rust\n#[form(schema = user_schema, fields = [username, email, password])]\npub struct RegisterForm;\n\n#[async_trait]\nimpl RuniqueForm for RegisterForm {\n    impl_form_access!(model);\n\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let mut errors = StrMap::new();\n        if self.get_string("username").len() < 3 {\n            errors.insert("username".to_string(), "Minimum 3 caractères".to_string());\n        }\n        if !self.get_string("email").contains('@') {\n            errors.insert("email".to_string(), "Email invalide".to_string());\n        }\n        if errors.is_empty() { Ok(()) } else { Err(errors) }\n    }\n}\n```\n\n> `is_valid()` appelle automatiquement `clean` après la validation structurelle.\n> Les erreurs retournées sont attachées aux champs et affichées inline dans le template.\n\n---	code	0
+202	53	Stack d'exécution	```text\nRequête entrante\n    ↓\n1. Extensions (slot 0)     → Injection Engine, Tera, Config\n2. ErrorHandler (slot 10)  → Capture et rendu des erreurs\n3. Custom (slot 20+)       → Vos middlewares personnalisés\n4. CSP (slot 30)           → Content Security Policy & headers\n5. Cache (slot 40)         → No-cache en développement\n6. Session (slot 50)       → Gestion des sessions\n7. CSRF (slot 60)          → Protection Cross-Site Request Forgery\n8. Host (slot 70)          → Validation des hosts autorisés\n    ↓\nHandler (votre code)\n```	code	1
+204	54	Exemple complet	```rust\nlet app = RuniqueApp::builder(config)\n    .routes(url::routes())\n    .with_database(db)\n    .middleware(|m| {\n        m.with_csp(|c| {\n              c.policy(SecurityPolicy::strict())\n               .with_header_security(true)\n           })\n         .with_allowed_hosts(|h| {\n              h.enabled(true)\n               .host("monsite.fr")\n               .host("www.monsite.fr")\n           })\n         .with_cache(true)\n    })\n    .statics()\n    .build()\n    .await?;\n```\n\n---	code	1
+206	55	Headers injectés	| Header | Valeur | Protection |\n| --- | --- | --- |\n| `Content-Security-Policy` | Dynamique (avec nonce par requête) | Restreint les sources autorisées pour scripts, styles, images, etc. |\n| `X-Content-Type-Options` | `nosniff` | Empêche le navigateur de deviner le type MIME — bloque les attaques MIME sniffing |\n| `X-Frame-Options` | `DENY` | Interdit l'intégration de la page dans une iframe — protège contre le clickjacking |\n| `X-XSS-Protection` | `1; mode=block` | Active le filtre XSS des navigateurs legacy (IE/Edge ancien) |\n| `Referrer-Policy` | `strict-origin-when-cross-origin` | Envoie le referrer complet en same-origin, seulement l'origine en cross-origin, rien en HTTP→HTTPS |\n| `Permissions-Policy` | `geolocation=(), microphone=(), camera=()` | Désactive l'accès à la géolocalisation, au micro et à la caméra |\n| `Cross-Origin-Embedder-Policy` | `require-corp` | Exige que les ressources cross-origin soient explicitement autorisées (CORP) |\n| `Cross-Origin-Opener-Policy` | `same-origin` | Isole le contexte de navigation — empêche les attaques cross-origin via `window.opener` |\n| `Cross-Origin-Resource-Policy` | `same-origin` | Interdit le chargement des ressources depuis d'autres origines |\n| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS pendant 1 an, sous-domaines inclus (HSTS) |\n\n---	text	0
+208	55	Notes	**HSTS (`Strict-Transport-Security`)** — Ce header est toujours envoyé, même si l'application tourne en HTTP derrière un reverse proxy. Le navigateur le respecte uniquement sur les connexions HTTPS. En production, assurez-vous que votre proxy (nginx, Caddy, Cloudflare…) termine le TLS.\n\n**COEP (`Cross-Origin-Embedder-Policy: require-corp`)** — Ce header est requis pour utiliser `SharedArrayBuffer` et certaines APIs haute performance. Il peut bloquer le chargement de ressources cross-origin (images, scripts, fonts) qui ne renvoient pas le header `Cross-Origin-Resource-Policy`. Si vous chargez des ressources depuis des CDN tiers, vérifiez leur compatibilité ou désactivez COEP via une `SecurityPolicy` personnalisée.\n\n**`X-XSS-Protection`** — Header legacy, ignoré par les navigateurs modernes (Chrome, Firefox). Conservé pour la compatibilité avec les navigateurs plus anciens.\n\n---	text	2
+210	56	Dans les formulaires Runique	Quand vous utilisez `{% form.xxx %}`, le CSRF est **inclus automatiquement**. Pas besoin de l'ajouter manuellement.\n\n---	text	0
+212	56	Pour les requêtes AJAX	```javascript\nconst csrfToken = document.querySelector('[name="csrf_token"]').value;\n\nfetch('/api/endpoint', {\n    method: 'POST',\n    headers: {\n        'Content-Type': 'application/json',\n        'X-CSRF-Token': csrfToken\n    },\n    body: JSON.stringify(data)\n});\n```\n\n---	code	2
+214	57	Cache-Control	### Mode développement (`DEBUG=true`)\n\nHeaders `no-cache` ajoutés pour forcer le rechargement :\n\n```\nCache-Control: no-cache, no-store, must-revalidate\nPragma: no-cache\n```\n\n### Mode production (`DEBUG=false`)\n\nHeaders de cache activés pour les performances.\n\n---	code	1
+216	58	Usage	```rust\nuse runique::prelude::*;\n\nstatic LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| {\n    RateLimiter::new()\n        .max_requests(10)\n        .retry_after(60)\n});\n\npub async fn login(/* ... */) -> impl IntoResponse {\n    if !LIMITER.is_allowed(&ip) {\n        return StatusCode::TOO_MANY_REQUESTS.into_response();\n    }\n    // ...\n}\n```\n\n---	code	0
+218	58	Comportement	- La clé de limitation est l'**adresse IP** de la requête\n- Supporte les headers `X-Forwarded-For` et `X-Real-IP` (reverse proxy)\n- Fenêtre **fixe** : le compteur repart à zéro après `retry_after` secondes\n- Réponse `429 Too Many Requests` quand la limite est dépassée, avec header `Retry-After: <secondes>`\n\n> **⚠️ Sécurité :** Ce middleware fait confiance aux headers `X-Forwarded-For` et `X-Real-IP`. Assurez-vous que votre reverse proxy (nginx, etc.) contrôle ces headers et ne les laisse pas être forgés par les clients. Sans proxy de confiance, un attaquant peut contourner le rate limiting en modifiant ces headers.\n\n---	text	2
+220	59	Durées de session	| Durée | Usage |\n|-------|-------|\n| `Duration::minutes(30)` | Sessions courtes (sécurité) |\n| `Duration::hours(2)` | Usage standard |\n| `Duration::hours(24)` | Défaut Runique |\n| `Duration::days(7)` | "Se souvenir de moi" |\n\n---	text	0
+222	59	Accès à la session dans les handlers	```rust\npub async fn dashboard(request: Request) -> AppResult<Response> {\n    // Lire une valeur de session\n    let user_id: Option<i32> = request.session\n        .get("user_id")\n        .await\n        .ok()\n        .flatten();\n\n    // Écrire une valeur\n    let _ = request.session.insert("last_visit", "2026-02-06").await;\n}\n```\n\n> Pour le système de sessions complet avec watermarks, voir [Sessions](/docs/fr/session).\n\n---	code	2
+224	60	Ordre recommandé de lecture	1. Ce document (`12-model.md`)\n2. [ORM](/docs/fr/orm) pour l'usage DB\n3. [Formulaires](/docs/fr/formulaire) pour l'intégration Prisme et rendu	text	1
+226	61	AST interne (ce qui est parsé)	La DSL est convertie en AST `Model` avec notamment :\n\n- `name`, `table`, `pk`\n- `fields: Vec<FieldDef>`\n- `relations: Vec<RelationDef>`\n- `meta: Option<MetaDef>`\n\n### Types pris en charge\n\n- texte : `String`, `text`, `char`, `varchar(n)`, `var_binary(n)`\n- numériques : `i8/i16/i32/i64/u32/u64/f32/f64`, `decimal(p,s)`, `decimal`\n- date/temps : `date`, `time`, `datetime`, `timestamp`, `timestamp_tz`, `interval`\n- autres : `bool`, `uuid`, `json`, `json_binary`, `binary(n)`, `binary`, `blob`, `enum(A, B, ...)`, `inet`, `cidr`, `mac_address`\n\n### Options de champ\n\n- `required`, `nullable`, `unique`, `readonly`\n- `max_len(n)`, `min_len(n)`, `max(n)`, `min(n)`, `max_f(n)`, `min_f(n)`\n- `auto_now`, `auto_now_update`\n- `label(...)`, `help(...)`, `select_as(...)`\n- `file(kind)`, `file(kind, "chemin/upload")` — champ fichier (voir ci-dessous)\n\n### Champs fichier — `file()`\n\nUn champ `String` peut être déclaré comme champ fichier avec l'option `file()`. Le formulaire auto-généré (`AdminForm`) utilisera alors un `FileField` au lieu d'un `TextField`.\n\n```rust\nmodel! {\n    Article,\n    table: "articles",\n    pk: id => i32,\n    fields: {\n        titre: String [required],\n\n        // image — dossier explicite\n        image: String [file(image, "media/articles")],\n\n        // document — dossier auto depuis MEDIA_ROOT + nom du champ\n        fichier: String [file(document)],\n\n        // tout type de fichier\n        piece_jointe: String [file(any, "media/uploads")],\n    },\n}\n```\n\n**Types disponibles :**\n\n| Valeur | Extensions autorisées par défaut | Correspondance |\n| --- | --- | --- |\n| `image` | `jpg jpeg png gif webp avif` | `FileField::image()` |\n| `document` | `pdf doc docx txt odt` | `FileField::document()` |\n| `any` | aucun filtre | `FileField::any()` |\n\n**Chemin d'upload :**\n\n| Syntaxe | Destination |\n| --- | --- |\n| `file(image, "media/articles")` | `media/articles/` (chemin exact) |\n| `file(image)` | `{MEDIA_ROOT}/{nom_du_champ}/` (lit `MEDIA_ROOT` depuis `.env`) |\n\n> Les fichiers invalides sont supprimés du disque si la validation échoue. Le dossier de destination est créé automatiquement lors du premier upload valide.\n\n### Relations\n\nLes relations sont déclarées dans un bloc `relations: { ... }` optionnel après `fields`.\n\n| Syntaxe | Contrainte DB | Description |\n| --- | --- | --- |\n| `belongs_to: Model via fk_field,` | ✅ `FOREIGN KEY` générée | Clé étrangère vers `model.id` |\n| `belongs_to: Model via fk_field [cascade],` | ✅ `ON DELETE CASCADE` | FK avec on_delete cascade |\n| `belongs_to: Model via fk_field [cascade, restrict],` | ✅ | FK avec on_delete + on_update |\n| `has_many: Model,` | ❌ (code uniquement) | Relation 1-N |\n| `has_one: Model,` | ❌ (code uniquement) | Relation 1-1 |\n| `many_to_many: Model via pivot_table,` | ❌ (code uniquement) | Relation N-N |\n\nActions FK disponibles : `cascade`, `restrict`, `set_null`, `set_default` (défaut : `no_action`).\n\n> `belongs_to` génère automatiquement une `FOREIGN KEY` dans la migration. La colonne FK (`fk_field`) doit être déclarée dans `fields`.\n\n### Meta\n\n> Le bloc `meta` est réservé aux futures versions (ordering, verbose_name, etc.). Il est parsé sans erreur mais ignoré.\n\n---	code	1
+229	63	\N	## Génération produite par `model!(...)`\n\nAprès parsing AST, la génération construit entre autres :\n\n- une fonction `schema() -> ModelSchema`\n- le modèle SeaORM (code généré)\n- les relations associées\n\nLa fonction `schema()` générée suit ce pattern :\n\n```rust\npub fn schema() -> runique::migration::schema::ModelSchema {\n    runique::migration::ModelSchema::new("User")\n        .table_name("users")\n        // pk, colonnes, FK, relations, meta...\n        .build()\n        .unwrap()\n}\n```\n\n---	code	0
+231	64	\N	| Module | Description |\n| --- | --- |\n| [Manager & helpers](/docs/fr/orm/manager) | `impl_objects!`, `all()`, `filter()`, `get()`, `get_or_404()` |\n| [Requêtes CRUD](/docs/fr/orm/requetes) | SELECT, INSERT, UPDATE, DELETE, COUNT |\n| [Avancé](/docs/fr/orm/avance) | Transactions, relations, pattern CRUD complet |	sommaire	0
+233	65	Relations	### One-to-Many\n\n```rust\nlet user = users::Entity::objects.get_optional(&*db, 1).await?;\n\nif let Some(user) = user {\n    let posts = user.find_related(posts::Entity)\n        .all(&*db)\n        .await?;\n}\n```\n\n### Many-to-Many\n\n```rust\nlet user = users::Entity::objects.get_optional(&*db, 1).await?;\n\nif let Some(user) = user {\n    let roles = user.find_related(roles::Entity)\n        .all(&*db)\n        .await?;\n}\n```\n\n---	code	1
+228	62	Enjeux techniques	### Avantages\n\n- Contrat unique modèle/schéma centralisé\n- Génération cohérente migration + formulaire\n- Réduction de duplication de définition de champs\n- `clean` est l'override officiel du trait — uniforme entre formulaires manuels et basés modèle\n\n### Points d'attention\n\n- DSL stricte : erreur de syntaxe = erreur de macro au build\n- `fields`/`exclude` mal alignés avec le schéma => erreurs de génération/exécution\n- `#[async_trait]` requis sur `impl RuniqueForm` uniquement quand on override `clean` ou `clean_field`\n\n### Limitation connue — surcharge de champ non prise en charge\n\n> **La surcharge individuelle d'un champ auto-généré par `#[form(...)]` ou `model!` n'est pas encore prise en charge.**\n\nIl n'est pas possible aujourd'hui de personnaliser un seul champ (ex: ajouter `.max_size_mb(5)` ou changer le label) sans réécrire l'intégralité de `register_fields` à la main, ce qui annule le bénéfice de la macro.\n\n**Contournement actuel :** écrire un formulaire manuel complet et déclarer les champs explicitement.\n\n```rust\n// ❌ Pas encore possible\n#[form(schema = article_schema)]\npub struct ArticleForm;\n\nimpl RuniqueForm for ArticleForm {\n    impl_form_access!(model);\n    // surcharger juste le champ image → impossible sans tout réécrire\n}\n\n// ✅ Contournement : formulaire manuel\nimpl RuniqueForm for ArticleForm {\n    impl_form_access!();\n    fn register_fields(form: &mut Forms) {\n        form.field(&TextField::text("titre").label("Titre").required());\n        form.field(\n            &FileField::image("image")\n                .upload_to("media/articles")\n                .max_size_mb(5),\n        );\n    }\n}\n```\n\nCette limitation sera levée en **v2.0** avec la refactorisation du système de champs en widgets, qui permettra de déclarer et surcharger n'importe quel champ directement depuis le modèle.\n\n---	code	1
+230	63	Rôle de `ModelSchema`	`ModelSchema` est la source de vérité structurelle (table, PK, colonnes, FK, relations, index).\n\n### Méthodes importantes côté runtime\n\n- `to_migration()` : génère le statement de migration\n- `fill_form(form, fields, exclude)` : remplit un formulaire à partir du schéma\n\n### Comportement de `fill_form`\n\n- la PK est toujours exclue,\n- si `fields` est fourni : whitelist prioritaire (ordre conservé),\n- sinon `exclude` sert de blacklist.\n\n---	text	1
+232	65	\N	## Transactions\n\n```rust\nuse sea_orm::TransactionTrait;\n\nlet mut transaction = db.begin().await?;\n\nlet user = users::ActiveModel {\n    email: Set("test@example.com".to_string()),\n    ..Default::default()\n}.insert(&mut *transaction).await?;\n\nlet profile = profiles::ActiveModel {\n    user_id: Set(user.id),\n    ..Default::default()\n}.insert(&mut *transaction).await?;\n\ntransaction.commit().await?;\n```\n\n---	code	0
+234	65	Pattern CRUD complet	```rust\nuse demo_app::entities::users;\nuse runique::prelude::*;\nuse axum::extract::Path;\n\nasync fn list_users(request: Request) -> AppResult<Response> {\n    let users = users::Entity::find()\n        .all(&*request.engine.db)\n        .await?;\n\n    Ok(Json(json!({ "users": users })).into_response())\n}\n\nasync fn get_user(\n    Path(id): Path<i32>,\n    request: Request,\n) -> AppResult<Response> {\n    match users::Entity::find_by_id(id).one(&*request.engine.db).await? {\n        Some(user) => Ok(Json(json!({ "user": user })).into_response()),\n        None => Ok(StatusCode::NOT_FOUND.into_response()),\n    }\n}\n\nasync fn create_user(\n    mut request: Request,\n    Json(payload): Json<CreateUserRequest>,\n) -> AppResult<Response> {\n    let user = users::ActiveModel {\n        email: Set(payload.email),\n        username: Set(payload.username),\n        ..Default::default()\n    }.insert(&*request.engine.db).await?;\n\n    success!(request.notices => "Utilisateur créé!");\n    Ok((StatusCode::CREATED, Json(json!({ "user": user }))).into_response())\n}\n\nasync fn delete_user(\n    Path(id): Path<i32>,\n    mut request: Request,\n) -> AppResult<Response> {\n    let result = users::Entity::delete_by_id(id)\n        .exec(&*request.engine.db)\n        .await?;\n\n    if result.rows_affected > 0 {\n        success!(request.notices => "Utilisateur supprimé");\n        Ok(Redirect::to("/users").into_response())\n    } else {\n        Ok(StatusCode::NOT_FOUND.into_response())\n    }\n}\n```\n\n---	code	2
+236	66	Sans macro (SeaORM natif)	```rust\n// Tous les enregistrements\nlet all_users = users::Entity::find().all(&*db).await?;\n\n// Avec filtre\nlet active_users = users::Entity::find()\n    .filter(users::Column::Active.eq(true))\n    .all(&*db)\n    .await?;\n\n// Un seul résultat par ID\nlet user = users::Entity::find_by_id(user_id)\n    .one(&*db)\n    .await?;\n```\n\n---	code	1
+238	67	\N	## SELECT — Récupérer\n\n```rust\n// Tous les enregistrements\nlet users: Vec<users::Model> = users::Entity::objects\n    .all()\n    .all(&*db)\n    .await?;\n\n// Avec limite et offset\nlet users = users::Entity::objects\n    .all()\n    .limit(10)\n    .offset(0)\n    .all(&*db)\n    .await?;\n\n// Avec tri\nuse sea_orm::Order;\nlet users = users::Entity::objects\n    .all()\n    .order_by_asc(users::Column::Name)\n    .all(&*db)\n    .await?;\n```\n\n---	code	0
+240	67	WHERE — Filtrage	```rust\nuse sea_orm::ColumnTrait;\n\n// Égalité\nlet user = users::Entity::objects\n    .filter(users::Column::Email.eq("test@example.com"))\n    .first(&*db)\n    .await?;\n\n// Comparaisons\nlet users = users::Entity::objects\n    .filter(users::Column::Age.gt(18))\n    .all(&*db)\n    .await?;\n\n// Multiples conditions\nlet users = users::Entity::objects\n    .filter(users::Column::Active.eq(true))\n    .filter(users::Column::Age.gte(18))\n    .all(&*db)\n    .await?;\n\n// OU\nlet users = users::Entity::objects\n    .filter(\n        users::Column::Email.eq("a@test.com")\n            .or(users::Column::Email.eq("b@test.com"))\n    )\n    .all(&*db)\n    .await?;\n```\n\n---	code	2
+242	67	UPDATE — Modifier	```rust\nuse sea_orm::{Set, Unchanged};\n\nlet mut user = users::Entity::find_by_id(1)\n    .one(&*db)\n    .await?\n    .ok_or("User not found")?;\n\nlet mut user = user.into_active_model();\nuser.email = Set("newemail@example.com".to_string());\n\nlet updated = user.update(&*db).await?;\n```\n\n---	code	4
+244	68	\N	| Section | Contenu |\n| --- | --- |\n| [Macros](/docs/fr/routing/macros) | `urlpatterns!`, `view!`, `impl_objects!` |\n| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, Prisme, Json |\n| [Réponses](/docs/fr/routing/reponses) | HTML, Redirect, JSON, StatusCode, structure complète |\n\n---	sommaire	0
+246	69	Query — Paramètres de requête	```rust\nuse axum::extract::Query;\n\n#[derive(Deserialize)]\npub struct PaginationQuery {\n    page: Option<u32>,\n    limit: Option<u32>,\n}\n\nasync fn list(\n    Query(query): Query<PaginationQuery>,\n    mut request: Request,\n) -> AppResult<Response> {\n    let page = query.page.unwrap_or(1);\n    let limit = query.limit.unwrap_or(10);\n    // ...\n}\n```\n\n---	code	1
+248	69	Json — Corps JSON	```rust\nuse axum::Json;\n\n#[derive(Deserialize)]\npub struct CreateUserRequest {\n    username: String,\n    email: String,\n}\n\nasync fn create_api(\n    Json(payload): Json<CreateUserRequest>,\n) -> impl IntoResponse {\n    // payload.username, payload.email\n}\n```\n\n---	code	3
+286	80	{% link %} — Liens vers des routes nommées	```html\n<a href='{% link "index" %}'>Accueil</a>\n<a href='{% link "user_detail" id="42" %}'>Profil utilisateur</a>\n```\n\n**Transformé en :** `{{ link(link='index') }}`\n\n---	code	5
+556	157	\N	## Asset filters\n\n| Filter | Description | Example |\n|--------|-------------|---------|\n| `static` | App static URL prefix | `{{ "css/main.css" \\| static }}` |\n| `media` | App media URL prefix | `{{ "photo.jpg" \\| media }}` |\n\n---	text	0
+235	66	\N	## SeaORM + Objects Manager\n\nRunique utilise **SeaORM** avec un manager Django-like via la macro `impl_objects!`.\n\nLa macro est **générée automatiquement** par le daemon dans chaque fichier d'entité (`runique makemigrations`). Aucune déclaration manuelle nécessaire.\n\n> **Note** : `impl_objects!` est du sucre syntaxique pur. Elle ne modifie pas les requêtes générées — le SQL produit est identique à du SeaORM natif.\n\n```rust\nuse demo_app::entities::users;\n\n// Récupérer tous les users\nlet all_users = users::Entity::objects\n    .all()\n    .all(&*db)\n    .await?;\n\n// Avec filtre\nlet active_users = users::Entity::objects\n    .filter(users::Column::Active.eq(true))\n    .all(&*db)\n    .await?;\n\n// Un seul résultat\nlet user = users::Entity::objects\n    .filter(users::Column::Id.eq(user_id))\n    .first(&*db)\n    .await?;\n```\n\n---	code	0
+237	66	Helpers disponibles	- `all()` : point d'entrée pour chaîner `filter`, `order_by_asc/desc`, `limit`, `offset`.\n- `filter(...)` / `exclude(...)` : ajoutent des conditions.\n- `first(db)` / `count(db)` : exécutent la requête.\n- `get(db, id)` / `get_optional(db, id)` : accès direct par clé primaire.\n- `get_or_404(db, ctx, msg)` : retourne une réponse 404/500 avec rendu Tera si manquant.\n\n---	text	2
+239	67	COUNT — Compter	```rust\nlet count = users::Entity::objects\n    .filter(users::Column::Active.eq(true))\n    .count(&*db)\n    .await?;\n```\n\n---	code	1
+241	67	INSERT — Créer	```rust\nuse sea_orm::Set;\n\nlet new_user = users::ActiveModel {\n    email: Set("john@example.com".to_string()),\n    username: Set("john".to_string()),\n    password: Set(hash_password("password123")),\n    ..Default::default()\n};\n\nlet user = new_user.insert(&*db).await?;\n```\n\n---	code	3
+243	67	DELETE — Supprimer	```rust\n// Supprimer un seul\nlet result = users::Entity::delete_by_id(1)\n    .exec(&*db)\n    .await?;\n\n// Supprimer multiples\nlet result = users::Entity::delete_many()\n    .filter(users::Column::Active.eq(false))\n    .exec(&*db)\n    .await?;\n```\n\n---	code	5
+245	69	\N	## Path — Paramètres d'URL\n\n```rust\nuse axum::extract::Path;\n\n// Simple\nasync fn user_detail(\n    Path(id): Path<i32>,\n    mut request: Request,\n) -> AppResult<Response> {\n    // id = 42 pour /users/42\n}\n\n// Multiple\n#[derive(Deserialize)]\npub struct UserPostPath {\n    user_id: i32,\n    post_id: i32,\n}\n\nasync fn user_post(\n    Path(params): Path<UserPostPath>,\n    mut request: Request,\n) -> AppResult<Response> {\n    // params.user_id, params.post_id\n}\n```\n\n---	code	0
+247	69	Prisme — Formulaires	```rust\nuse runique::prelude::*;\n\nasync fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if form.is_valid().await {\n        form.save(&request.engine.db).await?;\n    }\n    // ...\n}\n```\n\n---	code	2
+249	70	\N	## Macro urlpatterns!\n\nDéfinir les routes de l'application avec des noms pour la résolution d'URL :\n\n```rust\nuse crate::views;\nuse runique::prelude::*;\nuse runique::{urlpatterns, view};\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ views::index }, name = "index",\n        "/users" => view! { views::user_list }, name = "users",\n        "/users/:id" => view!{ views::user_detail }, name = "user_detail",\n        "/users/:id/delete" => view!{views::delete_user }, name = "user_delete",\n    }\n}\n```\n\n### Avec noms (recommandé)\n\nLes noms permettent la résolution d'URL dans les templates via `{% link "nom" %}` :\n\n```rust\nurlpatterns! {\n    "/" => view!{ views::index }, name = "index",\n    "/users/:id" => view!{ views::user_detail }, name = "user_detail",\n}\n```\n\n```html\n<a href='{% link "index" %}'>Accueil</a>\n<a href='{% link "user_detail" id="42" %}'>Profil</a>\n```\n\n### Sans noms\n\n```rust\nurlpatterns! {\n    "/" => view!{ views::index },\n    "/about" => view!{ views::about },\n}\n```\n\n---	code	0
+251	70	Macro impl_objects! (bonus)	`impl_objects!` est **générée automatiquement** par le daemon dans chaque fichier d'entité. Elle ajoute un manager Django-like utilisable directement dans les handlers :\n\n```rust\nuse crate::entities::users;\n\nlet user = users::Entity::objects\n    .filter(users::Column::Username.eq("john"))\n    .first(&db)\n    .await?;\n```\n\nVoir le [guide ORM](/docs/fr/orm) pour plus de détails.\n\n---	code	2
+253	71	Redirect	```rust\nuse axum::response::Redirect;\n\nasync fn after_submit(request: Request) -> AppResult<Response> {\n    success!(request.notices => "Sauvegardé !");\n    Ok(Redirect::to("/").into_response())\n}\n```\n\n---	code	1
+255	71	Status Code	```rust\nuse axum::http::StatusCode;\n\nasync fn not_found() -> StatusCode {\n    StatusCode::NOT_FOUND\n}\n```\n\n---	code	3
+257	71	Structure complète d'une app	```rust\n// src/url.rs\nuse crate::views;\nuse runique::prelude::*;\nuse runique::{urlpatterns, view};\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ views::index }, name = "index",\n        "/about" => view! { views::about }, name = "about",\n        "/inscription" => view! { views::soumission_inscription }, name = "inscription",\n    }\n}\n```\n\n```rust\n// src/views.rs\nuse runique::prelude::*;\n\npub async fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => { "title" => "Accueil" });\n    request.render("index.html")\n}\n\npub async fn about(mut request: Request) -> AppResult<Response> {\n    success!(request.notices => "Bienvenue !");\n    context_update!(request => { "title" => "À propos" });\n    request.render("about/about.html")\n}\n\npub async fn soumission_inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Inscription",\n            "inscription_form" => &form,\n        });\n        return request.render("inscription_form.html");\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            let user = form.save(&request.engine.db).await.map_err(|err| {\n                form.get_form_mut().database_error(&err);\n                AppError::from(err)\n            })?;\n            success!(request.notices => format!("Bienvenue {} !", user.username));\n            return Ok(Redirect::to("/").into_response());\n        }\n\n        context_update!(request => {\n            "title" => "Erreur",\n            "inscription_form" => &form,\n            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),\n        });\n        return request.render("inscription_form.html");\n    }\n\n    request.render("inscription_form.html")\n}\n```\n\n---	code	5
+259	73	Protection manuelle — `session_active`	Pour protéger une session anonyme à valeur (panier, formulaire multi-étapes, wizard), utilisez `protect_session` :\n\n```rust\nuse runique::middleware::auth::protect_session;\n\n// Protège la session pendant 30 minutes\nprotect_session(&session, 60 * 30).await?;\n```\n\nLa clé `session_active` stocke un timestamp Unix futur. La protection expire automatiquement à cette date — aucune clé à nettoyer manuellement.\n\nPour retirer la protection explicitement :\n\n```rust\nuse runique::middleware::auth::unprotect_session;\n\nunprotect_session(&session).await?;\n```\n\n### Logique de protection\n\n```\nis_protected(record) = true si :\n  - record contient "user_id"\n  - OU record contient "session_active" avec un timestamp futur\n```\n\n---	code	0
+250	70	Macro view!	Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé avec `request.is_get()` / `request.is_post()`) :\n\n```rust\n// Dans les routes\n"/inscription" => view!{ views::inscription }, name = "inscription",\n```\n\n```rust\n// Dans le handler\npub async fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_get() {\n        context_update!(request => { "form" => &form });\n        return request.render("form.html");\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            // ...\n        }\n    }\n\n    request.render("form.html")\n}\n```\n\n---	code	1
+252	71	\N	## HTML Template (le plus courant)\n\n```rust\nasync fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => {\n        "title" => "Accueil",\n    });\n    request.render("index.html")\n}\n```\n\n---	code	0
+254	71	JSON	```rust\nuse axum::Json;\nuse serde_json::json;\n\nasync fn api_list() -> Json<serde_json::Value> {\n    Json(json!({\n        "status": "success",\n        "data": [1, 2, 3]\n    }))\n}\n```\n\n---	code	2
+256	71	Tuple Response	```rust\nasync fn created(Json(data): Json<Data>) -> (StatusCode, Json<Data>) {\n    (StatusCode::CREATED, Json(data))\n}\n```\n\n---	code	4
+258	72	\N	| Section | Contenu |\n| --- | --- |\n| [Store & watermarks](/docs/fr/session/store) | `CleaningMemoryStore`, low/high watermarks, estimation mémoire |\n| [Protection](/docs/fr/session/protection) | Protection automatique (`user_id`), manuelle (`session_active`), cas d'usage panier |\n| [Usage & configuration](/docs/fr/session/usage) | Accès à la session dans les handlers, `.env`, builder |\n\n---	sommaire	0
+260	73	Cas d'usage — protection d'un panier	```rust\npub async fn add_to_cart(request: Request, item: Item) -> AppResult<Response> {\n    // Ajouter l'article au panier\n    request.session.insert("cart", &cart).await?;\n\n    // Protéger la session 2h contre le cleanup d'urgence\n    protect_session(&request.session, 60 * 60 * 2).await?;\n\n    Ok(redirect("/cart"))\n}\n\npub async fn checkout_complete(request: Request) -> AppResult<Response> {\n    // Vider le panier et retirer la protection\n    request.session.remove::<Cart>("cart").await?;\n    unprotect_session(&request.session).await?;\n\n    Ok(redirect("/confirmation"))\n}\n```\n\n---	code	1
+262	74	Système de watermarks	### Low watermark (128 Mo par défaut)\n\nLorsque la taille totale du store dépasse ce seuil, un cleanup non-bloquant est lancé en arrière-plan via `tokio::spawn`. Il supprime les sessions **anonymes expirées** sans interrompre la requête en cours.\n\n### High watermark (256 Mo par défaut)\n\nLorsque la taille dépasse ce seuil au moment de créer une session :\n\n1. **Passe 1** — supprime les sessions anonymes expirées\n2. **Passe 2** — si toujours dépassé, supprime toutes les sessions expirées (y compris authentifiées)\n3. **Refus** — si toujours dépassé, retourne `503 Service Unavailable`\n\nLes sessions protégées ne sont jamais sacrifiées en passe 1.\n\n---	text	1
+264	75	Configuration `.env`	```rust,ignore\n.middleware(|m| {\n    m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)\n     .with_session_cleanup_interval(5)\n})\n```\n\n---	code	1
+266	75	Configuration via le builder	```rust\nlet app = RuniqueApp::builder(config)\n    // Durée de vie des sessions\n    .with_session_duration(time::Duration::hours(2))\n    // Watermarks personnalisés\n    .with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)\n    // Intervalle de cleanup\n    .with_session_cleanup_interval(30)\n    .build()\n    .await?;\n```\n\n---	code	3
+268	77	\N	## Filtres d'assets\n\n| Filtre | Description | Exemple |\n|--------|-------------|---------|\n| `static` | Préfixe URL statique de l'app | `{{ "css/main.css" \\| static }}` |\n| `media` | Préfixe URL média de l'app | `{{ "photo.jpg" \\| media }}` |\n\n---	text	0
+270	77	Filtre de formulaire	| Filtre | Description | Exemple |\n|--------|-------------|---------|\n| `form` | Rendu complet du formulaire | `{{ form.nom_form \\| form \\| safe }}` |\n| `form(field='xxx')` | Rendu d'un seul champ | `{{ form.nom_form \\| form(field='email') \\| safe }}` |\n| `csrf_field` | Génère un input hidden CSRF | `{{ csrf_token \\| csrf_field \\| safe }}` |\n\n---	text	2
+272	78	\N	## Gestion des erreurs de formulaire\n\n### Affichage automatique (via {% form.xxx %})\n\nQuand vous utilisez `{% form.inscription_form %}`, les erreurs de validation sont **rendues automatiquement** sous chaque champ concerné.\n\n### Affichage manuel des erreurs globales\n\n```html\n{% if inscription_form.errors %}\n    <div class="alert alert-warning">\n        <ul>\n            {% for field_name, error_msg in inscription_form.errors %}\n                <li><strong>{{ field_name }} :</strong> {{ error_msg }}</li>\n            {% endfor %}\n        </ul>\n    </div>\n{% endif %}\n```\n\n---	code	0
+274	78	Variables auto-injectées	Ces variables sont automatiquement disponibles dans tous les templates :\n\n| Variable | Type | Description |\n|----------|------|-------------|\n| `csrf_token` | `String` | Token CSRF de la session |\n| `csp_nonce` | `String` | Nonce CSP pour les scripts/styles inline |\n| `messages` | `Vec<FlashMessage>` | Messages flash de la session précédente |\n| `debug` | `bool` | Mode debug actif ou non |\n\n---	text	2
+276	79	\N	## Héritage de Templates\n\n### Template parent (base.html)\n\n```html\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="UTF-8">\n    <title>{% block title %}Mon Site{% endblock %}</title>\n    <link rel="stylesheet" href='{% static "css/main.css" %}'>\n</head>\n<body>\n    <header>\n        <nav>\n            <a href='{% link "index" %}'>Accueil</a>\n            <a href='{% link "about" %}'>À propos</a>\n        </nav>\n    </header>\n\n    {% messages %}\n\n    <main>\n        {% block content %}{% endblock %}\n    </main>\n\n    <footer>\n        <p>&copy; 2026 Mon App</p>\n    </footer>\n</body>\n</html>\n```\n\n### Template enfant (index.html)\n\n```html\n{% extends "base.html" %}\n\n{% block title %}Accueil{% endblock %}\n\n{% block content %}\n    <h2>{{ title }}</h2>\n    <p>{{ description }}</p>\n\n    {% if items %}\n        <ul>\n            {% for item in items %}\n                <li>{{ item }}</li>\n            {% endfor %}\n        </ul>\n    {% endif %}\n{% endblock %}\n```\n\n---	code	0
+278	79	Conditions	```html\n{% if user %}\n    <p>Bienvenue, {{ user.name }} !</p>\n{% elif guest %}\n    <p>Bienvenue, visiteur !</p>\n{% else %}\n    <p>Veuillez vous connecter.</p>\n{% endif %}\n\n<!-- Tests combinés -->\n{% if user and user.is_active %}\n    <span class="badge">Actif</span>\n{% endif %}\n\n{% if posts | length > 0 %}\n    <p>{{ posts | length }} articles trouvés.</p>\n{% endif %}\n```\n\n---	code	2
+280	79	Macro context_update!	```rust\ncontext_update!(request => {\n    "title" => "Ma page",\n    "user" => &form,\n    "items" => &vec!["a", "b", "c"],\n});\n\nrequest.render("ma_page.html")\n```\n\n---	code	4
+282	80	{% media %} — Fichiers médias (uploads)	```html\n<img src='{% media "avatars/photo.jpg" %}' alt="Photo de profil">\n```\n\n**Transformé en :** `{{ "avatars/photo.jpg" | media }}` → `/media/avatars/photo.jpg`\n\n---	code	1
+284	80	{% messages %} — Flash messages	```html\n{% messages %}\n```\n\n**Transformé en :** `{% include "message/message_include.html" %}`\n\n---	code	3
+261	74	\N	## CleaningMemoryStore\n\n### Pourquoi\n\nLe `MemoryStore` de tower-sessions n'implémente pas de nettoyage des sessions expirées. Sans purge, chaque requête d'un bot sans cookies crée une session qui ne sera jamais supprimée — la mémoire croît indéfiniment.\n\n`CleaningMemoryStore` résout ce problème avec trois mécanismes :\n\n| Mécanisme | Déclencheur | Comportement |\n|-----------|-------------|--------------|\n| Timer périodique | Toutes les 60s (configurable) | Supprime toutes les sessions expirées |\n| Low watermark | 128 Mo (configurable) | Purge asynchrone des sessions anonymes expirées |\n| High watermark | 256 Mo (configurable) | Purge synchrone d'urgence + refus (503) si insuffisant |\n\n### Estimation de la taille\n\nChaque record est estimé à : `24 octets (UUID + expiry) + taille JSON des données`.\n\nUne alerte est loggée si un record dépasse 50 Ko (image ou fichier stocké en session par erreur).\n\n---	text	0
+263	75	\N	## Accès à la session dans les handlers\n\n```rust\npub async fn handler(request: Request) -> AppResult<Response> {\n    // Lire\n    let user_id: Option<i32> = request.session.get("user_id").await.ok().flatten();\n\n    // Écrire\n    request.session.insert("cart_id", 42).await?;\n\n    // Supprimer une clé\n    request.session.remove::<i32>("cart_id").await?;\n\n    // Détruire la session entière\n    request.session.flush().await?;\n}\n```\n\n---	code	0
+265	75	Sécurité des cookies par défaut	Les cookies de session sont configurés avec les attributs de sécurité suivants par défaut :\n\n| Attribut | Valeur | Description |\n| --- | --- | --- |\n| `HttpOnly` | `true` | Toujours activé — inaccessible au JavaScript |\n| `SameSite` | `Strict` | Bloque les requêtes cross-site |\n| `Secure` | `true` en production | HTTPS uniquement (désactivé en debug) |\n\nCes valeurs sont appliquées automatiquement par le builder et ne peuvent pas être modifiées sans toucher au framework.\n\n---	text	2
+267	76	\N	| Module | Description |\n| --- | --- |\n| [Tags Django-like](/docs/fr/template/tags) | `{% static %}`, `{% csrf %}`, `{% messages %}`, `{% form.xxx %}` |\n| [Filtres & fonctions](/docs/fr/template/filtres) | Filtres d'assets, de formulaire, fonctions Tera |\n| [Syntaxe Tera](/docs/fr/template/syntaxe) | Héritage, boucles, conditions, macros, `context_update!` |\n| [Formulaires & contexte](/docs/fr/template/formulaires) | Erreurs, variables auto-injectées, pièges courants |	sommaire	0
+269	77	Filtre Markdown	| Filtre     | Description                                      | Exemple                          |\n|------------|--------------------------------------------------|----------------------------------|\n| `markdown` | Convertit du Markdown en HTML (safe automatique) | `{{ page.content \\| markdown }}` |\n\n> Le préprocesseur Runique injecte automatiquement `\\| safe` — inutile de l'ajouter manuellement.\n\n---	text	1
+271	77	Fonctions Tera	| Fonction | Description | Exemple |\n|----------|-------------|---------|\n| `csrf()` | Génère un champ CSRF depuis le contexte | `{{ csrf() }}` |\n| `nonce()` | Retourne le nonce CSP | `{{ nonce() }}` |\n| `link(link='...')` | Résolution d'URL nommée | `{{ link(link='index') }}` |\n\n---	text	3
+273	78	Exemple complet : page avec formulaire	```rust\n// Handler Rust\npub async fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Inscription",\n            "inscription_form" => &form,\n        });\n        return request.render("inscription.html");\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            let user = form.save(&request.engine.db).await.map_err(|err| {\n                form.get_form_mut().database_error(&err);\n                AppError::from(err)\n            })?;\n            success!(request.notices => format!("Bienvenue {} !", user.username));\n            return Ok(Redirect::to("/").into_response());\n        }\n\n        context_update!(request => {\n            "title" => "Erreur de validation",\n            "inscription_form" => &form,\n            "messages" => flash_now!(error => "Veuillez corriger les erreurs"),\n        });\n        return request.render("inscription.html");\n    }\n\n    request.render("inscription.html")\n}\n```\n\n```html\n{% extends "base.html" %}\n\n{% block title %}{{ title }}{% endblock %}\n\n{% block content %}\n    <h1>{{ title }}</h1>\n    {% messages %}\n    <form method="post" action="/inscription">\n        {% form.inscription_form %}\n        <button type="submit" class="btn btn-primary">S'inscrire</button>\n    </form>\n{% endblock %}\n```\n\n---	code	1
+275	78	Piège courant : collision de noms de variables	Quand vous utilisez `{% form.user %}`, la variable `user` **doit être un formulaire Prisme** :\n\n```rust\n// ❌ ERREUR : "user" est un Model SeaORM, pas un formulaire\ncontext_update!(request => {\n    "user" => &db_user,  // le filtre form va crasher !\n});\n\n// ✅ CORRECT : séparer le formulaire et l'entité DB\ncontext_update!(request => {\n    "user" => &form,           // formulaire → {% form.user %} fonctionne\n    "found_user" => &db_user,  // Model → {{ found_user.email }}\n});\n```\n\n---	code	3
+277	79	Boucles	```html\n<!-- Boucle simple -->\n<ul>\n{% for item in items %}\n    <li>{{ item.name }} - {{ item.price }}€</li>\n{% endfor %}\n</ul>\n\n<!-- Avec index -->\n{% for item in items %}\n    <div class="item-{{ loop.index }}">{{ item }}</div>\n{% endfor %}\n\n<!-- Avec first/last -->\n{% for item in items %}\n    {% if loop.first %}<ul>{% endif %}\n    <li>{{ item }}</li>\n    {% if loop.last %}</ul>{% endif %}\n{% endfor %}\n```\n\n---	code	1
+279	79	Macros Tera (dans les templates)	```html\n{% macro render_user(user) %}\n    <div class="user-card">\n        <h3>{{ user.name }}</h3>\n        <p>{{ user.email }}</p>\n    </div>\n{% endmacro %}\n\n<!-- Utilisation : -->\n{% for u in users %}\n    {{ self::render_user(user=u) }}\n{% endfor %}\n```\n\n---	code	3
+281	80	{% static %} — Assets statiques	```html\n<link rel="stylesheet" href='{% static "css/main.css" %}'>\n<script src='{% static "js/app.js" %}'></script>\n<img src='{% static "images/logo.png" %}' alt="Logo">\n```\n\n**Transformé en :** `{{ "css/main.css" | static }}` → `/static/css/main.css`\n\n---	code	0
+283	80	{% csrf %} — Protection CSRF	```html\n<form method="post" action="/inscription">\n    {% csrf %}\n    <button type="submit">Envoyer</button>\n</form>\n```\n\n**Transformé en :** `{% include "csrf/csrf_field.html" %}`\n\n> Non nécessaire dans les formulaires Runique (`{% form.xxx %}`) — le token CSRF est injecté automatiquement.\n\n---	code	2
+285	80	{% csp_nonce %} — Nonce CSP	```html\n<script {% csp_nonce %}>\n    console.log("Script sécurisé avec nonce CSP");\n</script>\n```\n\n**Transformé en :** `{% include "csp/csp_nonce.html" %}`\n\n---	code	4
+287	80	{% form.xxx %} — Rendu de formulaire complet	```html\n<form method="post" action="/inscription">\n    {% form.inscription_form %}\n    <button type="submit">S'inscrire</button>\n</form>\n```\n\n**Transformé en :** `{{ inscription_form | form | safe }}`\n\nRend l'intégralité du formulaire : tous les champs HTML, les erreurs de validation, le token CSRF, et les scripts JS nécessaires.\n\n---	code	6
+289	81	Minimal example	```rust\nadmin! {\n    users: users::Model => RegisterForm {\n        title: "Users",\n        permissions: ["admin", "staff"]\n    }\n}\n```	code	0
+291	81	Back to menu	- [English Readme](https://github.com/seb-alliot/runique/blob/main/README.md)	text	2
+290	81	\N	| File | Contents |\n| --- | --- |\n| [Setup](/docs/en/admin/setup) | Wire the admin into an existing project, create a superuser |\n| [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |\n| [Daemon & generation](/docs/en/admin/declaration) | Generated files, watcher behaviour |\n| [Macro `admin!`](/docs/en/admin/declaration) | Full syntax, required and optional fields |\n| [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |\n| [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |\n| [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |	sommaire	1
+292	82	Detecting the admin in `main.rs`	On startup, `runique start` reads `src/main.rs` and looks for the presence of `.with_admin(`:\n\n```rust\n// src/main.rs\nRuniqueApp::builder(config)\n    .with_admin(|a| a.routes(admins::routes("/admin")))\n    // ...\n```\n\nDetection is done by simple string search in the source file.\n**It works even if the line is commented out** (`// .with_admin(...)`).\n\n| Detection result | Behaviour |\n| --- | --- |\n| `.with_admin(` found | Daemon + `cargo run` launched |\n| Absent | Info message, clean exit |\n\n> The path to `main.rs` is configurable: `runique start --main src/main.rs`\n\n---	code	0
+294	82	Related sections	| Section | Description |\n| --- | --- |\n| [Daemon & generation](/docs/en/admin/declaration) | Watcher, generated files |\n| [Macro `admin!`](/docs/en/admin/declaration) | Declaring administrable resources |	text	2
+296	83	Filters and search on the list view	Adding declarative filters on the `list` view:\n\n```rust\nadmin! {\n    users: users::Model => UserForm {\n        title: "Users",\n        filters: ["username", "is_active"],\n        search: ["username", "email"],\n    }\n}\n```\n\n---	code	1
+298	83	Improved daemon error feedback	Better feedback during generation: Rust compilation errors exposed directly in the terminal with context.	text	3
+300	84	What is actually enforced today	### Entering the admin\n\nThe middleware checks only `is_staff` and `is_superuser`:\n\n```\nis_staff = true  OR  is_superuser = true  →  access granted\nboth = false                               →  redirect to /admin/login\n```\n\n### is_superuser\n\nA user with `is_superuser = true` bypasses **all** checks — admin entry and per-resource permissions.\n\n---	code	1
+302	84	Current access logic (actual state)	```\nauthenticated?\n  └─ no  → redirect to /admin/login\n  └─ yes → is_staff OR is_superuser?\n               └─ neither → redirect to /admin/login\n               └─ is_superuser → GRANTED (full access)\n               └─ is_staff only → GRANTED (no role check)\n```\n\n---	code	3
+304	85	Prerequisites	- A working Runique project with a configured database\n- A `users` model with `is_staff` and `is_superuser` fields (generated by `model!`)\n- The `runique` binary installed (`cargo install runique` or `cargo build` from the workspace)\n\n---	text	0
+306	85	Step 2 — Generate `src/admins/` with the daemon	```bash\nrunique start\n```\n\nThe daemon reads `src/admin.rs`, generates `src/admins/` and launches `cargo run`.\nThe `src/admins/` folder is created automatically — do not edit it manually.\n\n```text\nsrc/admins/\n  ├── README.md\n  ├── mod.rs\n  └── admin_panel.rs\n```\n\n> If `src/admins/` already exists from a previous generation, `runique start` regenerates it.\n\n---	code	2
+308	85	Step 4 — Wire `.with_admin()` in the builder	```rust\nuse runique::app::builder::RuniqueAppBuilder as builder;\n\nbuilder::new(config)\n    .routes(url::routes())\n    .with_database(db)\n    .with_admin(|a| {\n        a.site_title("Administration")\n         .auth(RuniqueAdminAuth::new())\n         .routes(admins::routes("/admin"))\n         .with_state(admins::admin_state())\n    })\n    .build()\n    .await?\n    .run()\n    .await?;\n```\n\n| Method | Role |\n| --- | --- |\n| `.prefix("/admin")` | Admin route prefix (default: `/admin`) |\n| `.site_title("…")` | Title displayed in the interface |\n| `.auth(RuniqueAdminAuth::new())` | Admin authentication (default) |\n| `.routes(admins::routes("/admin"))` | Mounts CRUD routes under `/admin` |\n| `.with_state(…)` | Shared state generated by the daemon |\n| `.no_robots_txt()` | Disables the automatic `/robots.txt` |\n\n> **Automatic robots.txt** — When the admin panel is active, Runique automatically\n> serves a `/robots.txt` route containing `Disallow: /admin/` to exclude the interface\n> from search engines. The prefix configured via `.prefix()` is respected.\n> Use `.no_robots_txt()` if you want to manage this file yourself.\n\n---	code	4
+310	85	Accessing the interface	Once the server is running, the interface is available at:\n\n```text\nhttp://localhost:{PORT}/admin/\n```\n\nThe `/admin/login` page redirects to the dashboard if credentials are valid.\n\n---	code	6
+312	86	Available blocks	| Block | Role |\n| --- | --- |\n| `{% block title %}` | Page title (`<title>`) |\n| `{% block extra_css %}` | Additional CSS in `<head>` |\n| `{% block layout %}` | Wraps the entire layout (sidebar + main) |\n| `{% block sidebar %}` | Navigation sidebar |\n| `{% block topbar %}` | Top bar (breadcrumb, logout) |\n| `{% block breadcrumb %}` | Breadcrumb (defined in `admin_base`) |\n| `{% block messages %}` | Flash message area — contains `{% messages %}` by default |\n| `{% block content %}` | Main page content |\n| `{% block extra_js %}` | Additional JS scripts before `</body>` |\n\n### Elements outside blocks (always present)\n\nWritten directly in `admin_template.html` — **cannot be removed** by overriding:\n\n- `<meta name="csrf-token" content="{{ csrf_token }}">` in `<head>`\n- `<script src="{{ "js/csrf.js" | runique_static }}" defer></script>` before `</body>`\n\n---	text	1
+314	86	Back to menu	- [Admin Summary](/docs/en/admin)	text	3
+316	87	Role of each file	**`main.rs`** — Configures and starts the application via the builder:\n\n```rust\n#[macro_use]\nextern crate runique;\nuse runique::prelude::*;\n\nmod entities;\nmod formulaire;\nmod urls;\nmod views;\n\n#[tokio::main]\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\n    let config = RuniqueConfig::from_env();\n    let db_config = DatabaseConfig::from_env()?.min_connections(1).build();\n    let db: DatabaseConnection = db_config.connect().await?;\n\n    password_init(PasswordConfig::auto());\n\n    RuniqueApp::builder(config)\n        .routes(urls::routes())\n        .with_database(db)\n        .statics()\n        .build()\n        .await?\n        .run()\n        .await?;\n\n    Ok(())\n}\n```\n\n**`urls.rs`** — Declares routes via `urlpatterns!`:\n\n```rust\nuse runique::prelude::*;\nuse crate::views;\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ views::index }, name = "index",\n        "/register" => view!{ views::register }, name = "register",\n    }\n}\n```\n\n**`views.rs`** — Request handlers:\n\n```rust\npub async fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => { "title" => "Home" });\n    request.render("index.html")\n}\n```\n\n**`formulaire/`** — Typed forms:\n\n```rust\npub struct RegisterForm { pub form: Forms }\n\nimpl RuniqueForm for RegisterForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(&TextField::text("username").label("Username").required());\n        form.field(&TextField::email("email").label("Email").required());\n    }\n    impl_form_access!();\n}\n```\n\n**`admin.rs`** — Admin view declaration (files generated into `src/admins/`):\n\n```rust\nadmin! {\n    users: users::Model => RegisterForm {\n        title: "Users",\n        permissions: ["admin"],\n    }\n}\n```\n\n---	code	1
+293	82	What happens when `.with_admin(` is detected	`runique start` launches **two processes simultaneously**:\n\n1. **The admin daemon** — a separate thread that watches `src/admin.rs` and regenerates `src/admins/` on every change\n2. **`cargo run`** — launches the application server (blocking until program exit)\n\n```text\nrunique start\n  ├── daemon thread → watch(src/admin.rs) [immediate initial generation]\n  └── cargo run     → HTTP server (blocking)\n```\n\nThe daemon performs an **initial generation on startup** — there is no need to modify `src/admin.rs` for code to be produced.\n\n---	code	1
+295	83	Granular permissions per CRUD operation	Currently permissions apply uniformly to all operations.\nThe goal is to allow:\n\n```rust\nadmin! {\n    users: users::Model => UserForm {\n        title: "Users",\n        permissions: {\n            list:   ["staff", "admin"],\n            create: ["admin"],\n            edit:   ["admin"],\n            delete: ["admin"],\n        }\n    }\n}\n```\n\n---	code	0
+297	83	Relations and computed fields	SeaORM relation support in detail/edit views (display of related entities).\n\n---	text	2
+299	84	Access control fields	| Field | Type | Status | Role |\n| --- | --- | --- | --- |\n| `is_staff` | `bool` | ✅ Active | Grants access to the admin interface |\n| `is_superuser` | `bool` | ✅ Active | Full access, bypasses all checks |\n| `is_active` | `bool` | ⏳ In development | Planned to block disabled accounts |\n| `roles` | `Option<Vec<String>>` | ✅ Active | User roles — accessible in templates via `current_user.roles` |\n\n---	text	0
+301	84	What is declared but not yet enforced	### is_active\n\nThe field exists in the `users` model but is not yet checked by the admin middleware. An account with `is_active = false` can still log in if `is_staff` or `is_superuser` is `true`.\n\n### roles\n\nThe `roles` field is available in all admin templates via `current_user.roles`.\n\n#### Setting roles in the admin interface\n\nRoles are entered as free text, comma-separated:\n\n```\neditor\neditor, moderator\nadmin, editor\n```\n\n#### Using roles in templates\n\n```html\n{% if current_user and "editor" in current_user.roles %}\n    <a href="...">Edit</a>\n{% endif %}\n```\n\n`is_superuser = true` always bypasses role conditions — a superuser sees everything.\n\n#### Per-resource permissions (declarative)\n\nThe `admin!` macro allows declaring allowed roles per resource:\n\n```rust\nadmin! {\n    articles: articles::Model => ArticleForm {\n        title: "Articles",\n        permissions: ["editor", "admin"]\n    }\n}\n```\n\nThe `ResourcePermissions` structure and the `check_permission()` function exist in the code, but **are not called** in the generated CRUD handlers. Permissions are stored without being checked at this stage.\n\n---	code	2
+303	84	Notes	- `is_active` and `roles` are planned on the roadmap — see [Roadmap](/docs/en/admin/evolution).\n- The `admin!` macro defines only declarative rules; the enforcement logic lives in the middlewares.\n- Per-CRUD-operation granularity (list/create/edit/delete) is not supported in the current version.\n\n---	text	4
+305	85	Step 1 — Create `src/admin.rs`	This file declares administrable resources via the `admin!` macro:\n\n```rust\n// src/admin.rs\nuse crate::entities::{users, articles};\nuse crate::forms::{RegisterForm, ArticleForm};\n\nadmin! {\n    users: users::Model => RegisterForm {\n        title: "Users",\n        permissions: ["admin"]\n    },\n    articles: articles::Model => ArticleForm {\n        title: "Articles",\n        permissions: ["admin"]\n    }\n}\n```\n\n---	code	1
+307	85	Step 3 — Declare the module in `src/main.rs`	```rust\nmod admin;\nmod admins;  // module generated by runique start\n```\n\n---	code	3
+309	85	Step 5 — Create a superuser	```bash\nrunique create-superuser\n```\n\nFollows an interactive wizard to create the first admin account (`is_superuser = true`).\n\n---	code	5
+311	86	\N	## 3-level hierarchy\n\n```\nadmin_template.html   ← level 1: contract (defined blocks, fixed elements)\n        ↓ extends\nadmin_base.html            ← level 2: default visual layout\n        ↓ extends\nlist.html / create.html …  ← level 3: CRUD components\n```\n\n**Level 1 — `admin_template.html`**: elements outside blocks guaranteed (CSRF, messages). Do not override directly.\n\n**Level 2 — `admin_base.html`**: default layout (sidebar, topbar, styles). This is the file the developer replaces to change the appearance.\n\n**Level 3 — components**: CRUD pages that extend level 2 and fill `{% block content %}`.\n\n---	code	0
+313	86	Sub-sections	| Section | Description |\n| --- | --- |\n| [Context keys](/docs/en/admin/template) | Variables injected by the backend into each template |\n| [Override](/docs/en/admin/template) | Replace the layout or a CRUD component |\n| [CSRF](/docs/en/admin/template) | CSRF token, `csrf.js`, custom login checklist |	text	2
+315	87	Project structure	```text\nmy-project/\n├── src/\n│   ├── entities/          # Model declarations\n│   │   ├── users.rs       # Uses Runique AST for the makemigrations CLI\n│   │   └── blog.rs        # CLI is not compatible with plain structs\n│   │\n│   ├── formulaire/        # Form declarations\n│   │   ├── inscription.rs # Using the form engine\n│   │   └── blog.rs        # or proc-attribute macros\n│   │\n│   ├── main.rs            # Entry point — RuniqueApp builder\n│   ├── admin.rs           # admin!{} declaration (if admin enabled, required for runique start)\n│   ├── urls.rs            # urlpatterns! — routing table\n│   ├── views.rs           # Handlers (async functions)\n│   └── forms.rs           # RuniqueForm structs (or forms/ folder)\n│\n├── templates/             # Tera templates (.html)\n├── static/                # Static files (CSS, JS, images)\n│   └── media/             # Uploads (FileField)\n│                          # media/ can be placed in another folder\n│\n├── migration/             # SeaORM migrations\n│   └── src/\n│       └── lib.rs\n├── .env                   # Environment variables\n└── Cargo.toml\n```\n\n---	code	0
+317	87	Starting a new project	```bash\nrunique new my-project\ncd my-project\nrunique start\n```\n\n`runique new` generates the minimal structure above. What to edit and what to leave alone:\n\n| File / folder | Edit? | Role |\n| --- | --- | --- |\n| `src/main.rs` | Yes | Configures the builder and declares modules |\n| `src/urls.rs` | Yes | Routing table |\n| `src/views.rs` | Yes | Request handlers |\n| `src/entities/` | Yes | Model declarations (Runique AST, compatible with `makemigrations`) |\n| `src/formulaire/` | Yes | Forms and validation |\n| `src/admin.rs` | Yes (if admin) | `admin!{}` declaration, required for `runique start` |\n| `src/admins/` | **No** | Generated by the daemon — do not edit manually |\n| `templates/` | Yes | Tera templates |\n| `static/` | Yes | CSS, JS, images |\n| `migration/` | No (unless adding tables) | SeaORM migrations |\n| `.env` | Yes | Environment variables |\n\n> `runique start` watches `src/admin.rs` and regenerates `src/admins/` on every change. For apps without an admin view, `cargo run` is sufficient.\n\n---	code	2
+558	157	Form filter	| Filter | Description | Example |\n|--------|-------------|---------|\n| `form` | Full form rendering | `{{ form.my_form \\| form \\| safe }}` |\n| `form(field='xxx')` | Single field rendering | `{{ form.my_form \\| form(field='email') \\| safe }}` |\n| `csrf_field` | Generates a hidden CSRF input | `{{ csrf_token \\| csrf_field \\| safe }}` |\n\n---	text	2
+318	87	Framework internal structure	```text\nrunique/src/\n├── app/                    # App Builder, Templates & Intelligent Builder\n│   ├── builder.rs          # RuniqueAppBuilder with slots\n│   ├── error_build.rs      # Build errors\n│   ├── templates.rs        # TemplateLoader (Tera)\n│   └── staging/            # Staging structs\n│       ├── core_staging.rs\n│       ├── middleware_staging.rs\n│       └── static_staging.rs\n├── config/                 # Configuration & Settings\n├── context/                # Request Context & Tera tools\n│   ├── request.rs          # Request struct (extractor)\n│   └── tera/               # Tera filters and functions\n├── db/                     # ORM & Database\n├── engine/                 # RuniqueEngine\n├── errors/                 # Error handling\n├── flash/                  # Flash messages\n├── forms/                  # Form system\n├── macros/                 # Utility macros\n│   ├── context_macro/      # context!, context_update!\n│   ├── flash_message/      # success!, error!, info!, warning!, flash_now!\n│   └── router/             # urlpatterns!, view!, impl_objects!\n├── middleware/             # Middleware (Security)\n│   └── security/           # CSRF, CSP, Host, Cache, Error Handler\n├── utils/                  # Utilities\n├── lib.rs\n└── prelude.rs\n```\n\n---	code	3
+320	88	\N	## 1. RuniqueEngine\n\nThe application's main **shared state**:\n\n```rust\npub struct RuniqueEngine {\n    pub db: Arc<DatabaseConnection>,\n    pub tera: Arc<Tera>,\n    pub config: Arc<RuniqueConfig>,\n}\n```\n\nInjected as an Axum Extension, accessible in every handler via `request.engine`.\n\n---	code	0
+322	88	3. `Prisme<T>` — Form Extractor	```rust\npub async fn handler(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_post() && form.is_valid().await {\n        let user = form.save(&request.engine.db).await?;\n        success!(request.notices => "User created!");\n        return Ok(Redirect::to("/").into_response());\n    }\n\n    context_update!(request => {\n        "form" => &form,\n    });\n    request.render("form.html")\n}\n```\n\nAutomatically:\n\n1. Parses the request body\n2. Creates a form instance\n3. Injects the CSRF token\n4. Fills in submitted data\n\n---	code	2
+324	89	Best Practices	### 1. Clone Arcs\n\n```rust\nlet db = request.engine.db.clone();\n```\n\n### 2. Forms = per-request copies\n\n```rust\nPrisme(mut form): Prisme<MyForm>\n// Each request = isolated form, zero concurrency\n```\n\n### 3. `context_update!` for context\n\n```rust\ncontext_update!(request => {\n    "title" => "My page",\n    "data" => &my_data,\n});\n```\n\n### 4. Flash messages for redirects\n\n```rust\nsuccess!(request.notices => "Action successful!");\nreturn Ok(Redirect::to("/").into_response());\n```\n\n### 5. `flash_now!` for direct rendering\n\n```rust\ncontext_update!(request => {\n    "messages" => flash_now!(error => "Validation error"),\n});\n```\n\n---	code	1
+326	90	Flash Message Macros	| Macro | Description | Example |\n| ----- | ----------- | ------- |\n| `success!` | Success message (session) | `success!(request.notices => "OK!")` |\n| `error!` | Error message (session) | `error!(request.notices => "Error")` |\n| `info!` | Info message (session) | `info!(request.notices => "Info")` |\n| `warning!` | Warning (session) | `warning!(request.notices => "Warning")` |\n| `flash_now!` | Immediate message (no session) | `flash_now!(error => "Errors")` |\n\n---	text	1
+328	90	Error Macros	| Macro | Description |\n| ----- | ----------- |\n| `impl_from_error!` | Generates `From<Error>` for `AppError` |\n\n---	text	3
+330	91	Dependency Injection	Via **Axum Extensions**, automatically injected by the Extensions middleware:\n\n```rust\n// Automatically registered by the builder:\n// Extension(engine)  → Arc<RuniqueEngine>\n// Extension(tera)    → Arc<Tera>\n// Extension(config)  → Arc<RuniqueConfig>\n\n// Accessible inside handlers via Request:\npub async fn handler(request: Request) -> AppResult<Response> {\n    let db = request.engine.db.clone();\n    let config = &request.engine.config;\n    // ...\n}\n```\n\n---	code	1
+332	92	Tera Filters	| Filter | Description |\n| ------ | ----------- |\n| `static` | App static URL prefix |\n| `media` | App media URL prefix |\n| `form` | Render full form or specific field |\n| `csrf_field` | Generate a hidden CSRF input |\n\n---	text	1
+334	93	\N	| Module | Description |\n| --- | --- |\n| [User Model](/docs/en/auth/modele) | `RuniqueUser`, built-in, custom trait |\n| [Session Helpers](/docs/en/auth/session) | `login`, `logout`, `is_authenticated` |\n| [Protection Middlewares](/docs/en/auth/middleware) | `login_required`, `redirect_if_authenticated`, `load_user_middleware` |\n| [Complete Example](/docs/en/auth/exemple) | Complete Login / Logout handlers |\n| [LoginGuard](/docs/en/auth/login-guard) | Brute-force protection per username |	sommaire	0
+336	94	Authentication for the AdminPanel	### With the built-in User (zero config)\n\n```rust\nuse runique::middleware::auth::RuniqueAdminAuth;\n\n.with_admin(|a| a.auth(RuniqueAdminAuth::new()))\n```\n\n### With a custom model\n\n```rust\nuse runique::middleware::auth::{DefaultAdminAuth, UserEntity};\n\n// 1. Implement UserEntity on your entity\nimpl UserEntity for users::Entity {\n    type Model = users::Model;\n\n    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {\n        users::Entity::find()\n            .filter(users::Column::Username.eq(username))\n            .one(db)\n            .await\n            .ok()\n            .flatten()\n    }\n\n    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model> {\n        users::Entity::find()\n            .filter(users::Column::Email.eq(email))\n            .one(db)\n            .await\n            .ok()\n            .flatten()\n    }\n}\n\n// 2. Pass DefaultAdminAuth to the admin config\n.with_admin(|a| a.auth(DefaultAdminAuth::<users::Entity>::new()))\n```\n\nTo connect authentication to the admin panel, see also [11-Admin.md](/docs/en/admin).\n\n---	code	1
+338	95	Why in the handler and not middleware?	A middleware runs before the handler and cannot read the body without consuming it.\n`Prisme` extracts the form exactly once — the username is only available after that extraction.\n\nThe session knows the authentication state, but at login time the user is not yet authenticated: `session.username` would always be `"anonym"` on this route, which does not protect the targeted account.\n\n| Source | Available in middleware | Reliable for LoginGuard |\n| --- | --- | --- |\n| IP address | ✅ | ✅ (used by `effective_key` for anon) |\n| Username (session) | ✅ | ❌ (always anon on `/login`) |\n| Username (form body) | ❌ (consumes the body) | ✅ (via `Prisme` in the handler) |\n\n---	text	1
+366	100	\N	| Module | Description |\n| --- | --- |\n| [Environment Variables](/docs/en/configuration/variables) | Server, DB, assets, security, complete `.env` file |\n| [Access in Code](/docs/en/configuration/code) | `RuniqueConfig`, validation, conditional configuration |\n| [Builder](/docs/en/configuration/builder) | Classic Builder, Intelligent Builder, methods, default values |\n| [Passwords](/docs/en/configuration/password) | `PasswordConfig`: Auto, Manual, Delegated, Custom — `password_init()`, `hash()`, `verify()` |\n| [Internationalisation (i18n)](/docs/en/configuration/i18n) | Languages, `set_lang()`, `t()`, `tf()`, `LANG` variable, fallback |	sommaire	0
+319	87	\N	| Section | Content |\n| --- | --- |\n| [Core Concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |\n| [Macros](/docs/en/architecture/macros) | Context, flash, routing, and error macros |\n| [Tera Tags & Filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |\n| [Middleware Stack](/docs/en/architecture/middleware) | Slot order and dependency injection |\n| [Request Lifecycle](/docs/en/architecture/lifecycle) | Lifecycle and best practices |\n\n---	sommaire	4
+321	88	2. Request — The Main Extractor	`Request` is Runique's central extractor. It replaces the former `TemplateContext` and contains everything required:\n\n```rust\npub struct Request {\n    pub engine: AEngine,       // Arc<RuniqueEngine>\n    pub session: Session,      // tower-sessions session\n    pub notices: Message,      // Flash messages\n    pub csrf_token: CsrfToken, // CSRF token\n    pub context: Context,      // Tera context\n    pub method: Method,        // HTTP method\n}\n```\n\n**Usage inside a handler:**\n\n```rust\npub async fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => {\n        "title" => "Home",\n    });\n    request.render("index.html")\n}\n```\n\n**Methods:**\n\n- `request.render("template.html")` — Render with the current context\n- `request.is_get()` / `request.is_post()` — Check the HTTP method\n\n---	code	1
+323	89	\N	## Lifecycle\n\n```text\n1. HTTP request arrives\n2. Middlewares traversed (slot order)\n3. Extensions injected (Engine, Tera, Config)\n4. Session loaded, CSRF verified\n5. Handler called with extractors (Request, Prisme<T>)\n6. Handler returns AppResult<Response>\n7. Middlewares traversed in reverse order\n8. HTTP response sent\n```\n\n---	code	0
+325	90	Context Macros	| Macro | Description | Example |\n| ----- | ----------- | ------- |\n| `context!` | Create a Tera context | `context!("title" => "Page")` |\n| `context_update!` | Add to a Request's context | `context_update!(request => { "key" => value })` |\n\n---	text	0
+327	90	Routing Macros	| Macro | Description | Example |\n| ----- | ----------- | ------- |\n| `urlpatterns!` | Define named routes | `urlpatterns!("/" => view!{...}, name = "index")` |\n| `view!` | Handler for all HTTP methods | `view!{ GET => handler, POST => handler2 }` |\n| `impl_objects!` | Django-like manager for SeaORM | `impl_objects!(Entity)` |\n\n---	text	2
+329	91	\N	## Slot Order\n\nRunique applies middlewares in an **optimal order** using the slot system:\n\n```text\nIncoming request\n    ↓\n1. Extensions (slot 0)     → Inject Tera, Config, Engine\n2. ErrorHandler (slot 10)  → Capture and render errors\n3. Custom (slot 20+)       → Custom middlewares\n4. CSP (slot 30)           → Content Security Policy & headers\n5. Cache (slot 40)         → No-cache in development\n6. Session (slot 50)       → Session management\n7. CSRF (slot 60)          → CSRF protection\n8. Host (slot 70)          → Allowed Hosts validation\n    ↓\nHandler (your code)\n    ↓\nOutgoing response (middlewares in reverse order)\n```\n\n> **Important**: With Axum, the last `.layer()` applied is executed first. The Intelligent Builder manages this order automatically.\n\n---	code	0
+331	92	\N	## Django-like Tags (syntactic sugar)\n\n| Tag | Transformed into | Description |\n| --- | ------------- | ----------- |\n| `{% static "..." %}` | `{{ "..." \\| static }}` | Static file URL |\n| `{% media "..." %}` | `{{ "..." \\| media }}` | Media file URL |\n| `{% csrf %}` | `{% include "csrf/..." %}` | Hidden CSRF field |\n| `{% messages %}` | `{% include "message/..." %}` | Display flash messages |\n| `{% csp_nonce %}` | `{% include "csp/..." %}` | CSP nonce attribute |\n| `{% link "name" %}` | `{{ link(link='name') }}` | Named route URL |\n| `{% form.xxx %}` | `{{ xxx \\| form \\| safe }}` | Full form rendering |\n| `{% form.xxx.field %}` | `{{ xxx \\| form(field='field') \\| safe }}` | Single field rendering |\n\n---	text	0
+333	92	Tera Functions	| Function | Description |\n| -------- | ----------- |\n| `csrf()` | Generate a CSRF field from context |\n| `nonce()` | Return the CSP nonce |\n| `link(link='...')` | Named URL resolution |\n\n---	text	2
+335	94	\N	## Full Example — Login / Logout\n\n```rust\nuse runique::middleware::auth::{login_staff, logout};\nuse runique::utils::password::verify;\nuse runique::prelude::*;\n\npub async fn login_post(\n    mut request: Request,\n    Prisme(mut form): Prisme<LoginForm>,\n) -> AppResult<Response> {\n    if request.is_post() && form.is_valid().await {\n        // 1. Find the user by username\n        let username = form.get_form().get_string("username");\n        let user = users::Entity::objects\n            .filter(users::Column::Username.eq(&username))\n            .first(&*request.engine.db)\n            .await?;\n\n        if let Some(user) = user {\n            // 2. Verify the password (plain text vs hash)\n            let password = form.get_form().get_string("password");\n            if verify(&password, &user.password) {\n                // 3. Open the session\n                login_staff(\n                    &request.session,\n                    user.id,\n                    &user.username,\n                    user.is_staff,\n                    user.is_superuser,\n                    user.roles(),\n                ).await?;\n                return Ok(Redirect::to("/dashboard").into_response());\n            }\n        }\n\n        // Invalid credentials\n        context_update!(request => {\n            "login_form" => &form,\n            "messages" => flash_now!(error => "Invalid credentials"),\n        });\n    } else {\n        context_update!(request => { "login_form" => &form });\n    }\n\n    request.render("login.html")\n}\n\npub async fn logout_view(mut request: Request) -> AppResult<Response> {\n    logout(&request.session).await.ok();\n    Ok(Redirect::to("/login").into_response())\n}\n```\n\n---	code	0
+337	95	Full usage with `effective_key`	`effective_key` automatically determines the right key based on whether a username was submitted:\n\n- Username submitted → key by account (targeted protection)\n- Empty username → `"anonym:{ip}"` (per-IP protection, independent counters)\n\n```rust\nuse runique::prelude::*;\n\nstatic GUARD: LazyLock<LoginGuard> = LazyLock::new(|| {\n    LoginGuard::new()\n        .max_attempts(5)\n        .lockout_secs(300)\n});\n\npub async fn login(\n    session: Session,\n    State(db): State<DatabaseConnection>,\n    Prisme(form): Prisme<LoginForm>,\n) -> impl IntoResponse {\n    let username = form.username();\n    let ip = /* extract IP from headers */;\n\n    // username submitted → "alice"  |  empty username → "anonym:1.2.3.4"\n    let key = LoginGuard::effective_key(&username, &ip);\n\n    if GUARD.is_locked(&key) {\n        let remaining = GUARD.remaining_lockout_secs(&key).unwrap_or(0);\n        return (StatusCode::TOO_MANY_REQUESTS, format!("Try again in {remaining}s")).into_response();\n    }\n\n    match authenticate(&username, &form.password(), &db).await {\n        Some(user) => {\n            GUARD.record_success(&key);\n            login(&session, user.id, &user.username).await.unwrap();\n            Redirect::to("/dashboard").into_response()\n        }\n        None => {\n            GUARD.record_failure(&key);\n            (StatusCode::UNAUTHORIZED, "Invalid credentials").into_response()\n        }\n    }\n}\n```\n\n---	code	0
+339	95	Configuration	```rust\nLoginGuard::new().max_attempts(5).lockout_secs(300)    // 5 failures → 5 minute lockout\nLoginGuard::new().max_attempts(3).lockout_secs(900)    // 3 failures → 15 minute lockout\nLoginGuard::new().max_attempts(10).lockout_secs(3600)  // 10 failures → 1 hour lockout\n```\n\n---	code	2
+340	95	API	### `LoginGuard::new()`\n\nCreates a LoginGuard with default values (5 attempts / 300 s).\n\n### `.max_attempts(max: u32)`\n\nNumber of failures before account lockout.\n\n### `.lockout_secs(secs: u64)`\n\nLockout duration in seconds.\n\n### `LoginGuard::effective_key(username, ip) -> Cow<str>`\n\nReturns the key to use based on context:\n\n- Non-empty username → key by username (targeted account protection)\n- Empty or missing username → `"anonym:{ip}"` (anonymous protection per IP)\n\nGuarantees that two different anonymous IPs have independent counters — locking `"anonym:1.2.3.4"` does not affect `"anonym:5.6.7.8"`.\n\n> **Why not a global `"anonym"` key?** A single abusive attempt would lock out every anonymous user worldwide. The per-IP key isolates each attacker.\n\n### `record_failure(key)`\n\nIncrements the failure counter for this key. Call after each failed authentication attempt.\n\n### `record_success(key)`\n\nResets the counter. Call after a successful login.\n\n### `is_locked(key) -> bool`\n\nReturns `true` if the failure count exceeds `max_attempts` and the lockout duration has not elapsed.\n\n### `attempts(key) -> u32`\n\nCurrent failure count for this key.\n\n### `remaining_lockout_secs(key) -> Option<u64>`\n\nSeconds remaining until unlock. `None` if not locked.\n\n---	text	3
+342	96	\N	## `login_required` — protect a route\n\nRedirects to `REDIRECT_ANONYMOUS` if the user is not logged in.\n\n```rust\nuse runique::middleware::auth::login_required;\n\nlet protected = Router::new()\n    .route("/dashboard", get(dashboard))\n    .layer(axum::middleware::from_fn(login_required));\n```\n\n---	code	0
+344	96	`load_user_middleware` — load user context	Injects a `CurrentUser` into request extensions, making user information available in all handlers down the chain.\n\n```rust\nuse runique::middleware::auth::load_user_middleware;\n\nlet app = Router::new()\n    .route("/profile", get(profile))\n    .layer(axum::middleware::from_fn(load_user_middleware));\n```\n\nAccess in a handler:\n\n```rust\nuse runique::middleware::auth::CurrentUser;\nuse runique::context::RequestExtensions;\n\nasync fn profile(req: RuniqueRequest) -> impl IntoResponse {\n    if let Some(user) = req.extensions().current_user() {\n        println!("Logged in as: {}", user.username);\n    }\n}\n```\n\n---	code	2
+346	97	\N	## Built-in Model\n\nRunique includes a ready-to-use user model that requires no configuration.\n\n**Generated table:** `eihwaz_users`\n\n| Field | Type | Description |\n|---------------|----------|----------------------------------------|\n| `id` | `i32` | Primary key |\n| `username` | `String` | Unique username |\n| `email` | `String` | Email address |\n| `password` | `String` | Argon2 hash — never stored in plain text |\n| `is_active` | `bool` | Account active |\n| `is_staff` | `bool` | Admin panel access (limited) |\n| `is_superuser` | `bool` | Full access, bypasses all rules |\n| `roles` | `JSON` | Custom roles e.g. `["editor"]` |\n| `created_at` | datetime | Creation timestamp |\n| `updated_at` | datetime | Last update timestamp |\n\nTo create the first superuser:\n\n```bash\nrunique create-superuser\n```\n\nTo access the model from your code:\n\n```rust\nuse runique::prelude::user::{Model, ActiveModel};\n```\n\n---	code	0
+348	98	\N	## Import\n\n```rust\nuse runique::middleware::auth::{\n    login, login_staff, logout,\n    is_authenticated, get_user_id, get_username,\n};\n```\n\n---	code	0
+350	98	Logout	```rust\nlogout(&session).await?;\n```\n\n---	code	2
+352	98	Environment Variables	These variables control automatic redirects in the middlewares:\n\n| Variable | Default | Description |\n| --- | --- | --- |\n| `REDIRECT_ANONYMOUS` | `/` | Redirect target for unauthenticated users |\n| `USER_CONNECTED_URL` | `/` | Redirect target for already-authenticated users |\n\n---	text	4
+354	99	Routing	| Feature | Django | Runique |\n|---------|--------|---------|\n| Route declaration | `urls.py` with `path()` | `url.rs` with axum `Router` |\n| Dynamic routes | `path('users/<int:id>/', view)` | `.route("/users/:id", get(view))` |\n| Namespaces | `app_name` + `include()` | `Router::new().nest("/prefix", ...)` |\n| Reverse URL | `{% url "view_name" %}` native | `{% link "name" %}` → custom Tera function |\n\n---	text	1
+356	99	Forms	| Feature | Django | Runique |\n|---------|--------|---------|\n| Definition | `class MyForm(forms.Form)` / `class MyForm(ModelForm)` | `#[derive(RuniqueForm)] struct MyForm` (equivalent to `ModelForm`) |\n| Validation | `form.is_valid()` | `form.is_valid().await` |\n| Available fields | CharField, EmailField, etc. | TextField, EmailField, PasswordField, HiddenField, etc. (fixed list, no custom widget) |\n| HTML rendering | `{{ form.as_p }}` | `{% form.my_form %}` (full form) or `{% form.my_form.field %}` (individual field) |\n| CSRF included | automatic | automatic — injected by Tera `form_filter` before the first field |\n| Save | `form.save()` | `form.save(&db).await` |\n| Async validation | no | yes (DB access possible) |\n| File forms | `FileField` | Multipart partial |\n\n---	text	3
+358	99	ORM / Database	| Feature | Django | Runique |\n|---------|--------|---------|\n| ORM | Django ORM native | sea-orm |\n| Model definition | `class User(models.Model)` | sea-orm entity (Rust struct) in `src/entities/` (required folder, read by the parser) |\n| Auto migrations | yes (change detection) | `runique makemigrations` (change detection from entities) |\n| Chainable QuerySet | `User.objects.filter(...).order_by(...)` | sea-orm Select builder |\n| Relations | ForeignKey, ManyToMany, OneToOne | sea-orm relations |\n| Transactions | `with transaction.atomic()` | `db.transaction(...)` sea-orm |\n| Multi-DB | yes | PostgreSQL, MySQL, SQLite |\n| NoSQL | via third-party packages | via third-party crates (e.g. `mongodb`) |\n| Re-export | — | `runique::sea_orm` + `sea_query` |\n\n---	text	5
+360	99	Security	| Feature | Django | Runique |\n|---------|--------|---------|\n| CSRF | native | native (constant-time via `subtle`) |\n| CSP | `django-csp` (third-party) | native (`use_nonce: true` by default) |\n| HSTS | `SECURE_HSTS_SECONDS` | native (`max-age=31536000; includeSubDomains`) |\n| SameSite cookies | configurable | `Strict` by default |\n| HttpOnly cookies | by default | always `true` |\n| Host validation | `ALLOWED_HOSTS` | `RUNIQUE_ALLOWED_HOSTS` + `RUNIQUE_ENABLE_HOST_VALIDATION` |\n| Rate limiting | `django-ratelimit` (third-party) | `RateLimiter` native |\n| Input sanitization | — | native sanitize middleware |\n| Secret key generation | manual | `runique new` generates 32 bytes hex automatically |\n\n---	text	7
+362	99	Email	| Feature | Django | Runique |\n|---------|--------|---------|\n| Send email | `send_mail()` native | **missing** — plug `lettre` |\n| Email templates | native | **missing** |\n| SMTP/console backend | configurable | — |\n\n---	text	9
+364	99	Performance & Deployment	| Aspect | Django | Runique |\n|--------|--------|---------|\n| Runtime | CPython (GIL) | Tokio async Rust |\n| Production server | Gunicorn + Nginx | compiled binary (Axum/Hyper) |\n| Memory footprint | ~50–100 MB | ~5–15 MB |\n| Compilation | — | `cargo build --release` |\n| Docker | yes | yes |\n| Deployment | fly.io, Heroku, Azure, etc. | same (static binary = simpler) |\n\n---	text	11
+394	107	Server	| Variable | Default | Description |\n|----------|---------|-------------|\n| `IP_SERVER` | `127.0.0.1` | Listening IP address |\n| `PORT` | `3000` | Listening port |\n| `SECRET_KEY` | `default_secret_key` | Secret key (CSRF, signatures) — **must be changed in production** |\n\n---	text	1
+341	95	Combining with IP Rate Limiting	Both mechanisms cover different attack vectors and are complementary:\n\n| | `RateLimiter` | `LoginGuard` |\n| --- | --- | --- |\n| Key | IP address | Username or `anonym:{ip}` |\n| Where | Middleware (automatic) | Handler (manual) |\n| Target | All routes | Login only |\n| Protects against | Volume attack per IP | Brute-force per account |\n| False positives | Possible (NAT) | None (per account) |\n\n```rust\nstatic IP_LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new().max_requests(10).window_secs(60));\nstatic GUARD:      LazyLock<LoginGuard>  = LazyLock::new(|| LoginGuard::new().max_attempts(5).lockout_secs(300));\n\npub async fn login(/* ... */) -> impl IntoResponse {\n    // 1. Volume per IP → RateLimiter (middleware or manual)\n    if !IP_LIMITER.is_allowed(&ip) { /* 429 */ }\n\n    // 2. Brute-force per account or anonymous IP → LoginGuard\n    let key = LoginGuard::effective_key(&username, &ip);\n    if GUARD.is_locked(&key) { /* 429 */ }\n\n    // 3. Authentication\n    match authenticate(&username, &password, &db).await {\n        Some(user) => { GUARD.record_success(&key); /* ... */ }\n        None       => { GUARD.record_failure(&key); /* ... */ }\n    }\n}\n```\n\n---\n\n← [**Protection Middlewares**](/docs/en/auth/middleware) | [**Complete Example**](/docs/en/auth/exemple) →	code	4
+343	96	`redirect_if_authenticated` — login/register pages	Redirects to `USER_CONNECTED_URL` if the user is already logged in. Useful to prevent authenticated users from reaching `/login`.\n\n```rust\nuse runique::middleware::auth::redirect_if_authenticated;\n\nlet public = Router::new()\n    .route("/login", get(login_page).post(login_post))\n    .layer(axum::middleware::from_fn(redirect_if_authenticated));\n```\n\n---	code	1
+345	96	CurrentUser	Struct injected by `load_user_middleware` into request extensions.\n\n```rust\npub struct CurrentUser {\n    pub id: i32,\n    pub username: String,\n    pub is_staff: bool,\n    pub is_superuser: bool,\n    pub roles: Vec<String>,\n}\n```\n\n### Available Methods\n\n```rust\n// Check a specific role\nuser.has_role("editor")           // → bool\n\n// Check for at least one role from a list\nuser.has_any_role(&["editor", "moderator"])  // → bool\n\n// Admin panel access (is_staff || is_superuser)\nuser.can_access_admin()           // → bool\n\n// Check admin permission (is_superuser bypasses everything)\nuser.can_admin(&["editor"])       // → bool\n```\n\n---	code	3
+347	97	RuniqueUser Trait	If you use your own user model instead of the built-in one, you must implement `RuniqueUser`.\n\n```rust\nuse runique::middleware::auth::RuniqueUser;\n\nimpl RuniqueUser for users::Model {\n    fn user_id(&self) -> i32        { self.id }\n    fn username(&self) -> &str      { &self.username }\n    fn email(&self) -> &str         { &self.email }\n    fn password_hash(&self) -> &str { &self.password }\n    fn is_active(&self) -> bool     { self.is_active }\n    fn is_staff(&self) -> bool      { self.is_staff }\n    fn is_superuser(&self) -> bool  { self.is_superuser }\n\n    // Optional — custom roles\n    fn roles(&self) -> Vec<String> {\n        self.roles.clone().unwrap_or_default()\n    }\n\n    // Optional — custom admin access logic\n    fn can_access_admin(&self) -> bool {\n        self.is_active() && (self.is_staff() || self.is_superuser())\n    }\n}\n```\n\n### Required Methods\n\n| Method | Return | Description |\n|------------------|-------------|--------------------------------|\n| `user_id()` | `i32` | Unique identifier |\n| `username()` | `&str` | Username |\n| `email()` | `&str` | Email address |\n| `password_hash()` | `&str` | Password hash |\n| `is_active()` | `bool` | Account is active |\n| `is_staff()` | `bool` | Limited admin access |\n| `is_superuser()` | `bool` | Full admin access |\n\n### Methods With Default Implementation\n\n| Method | Default | Description |\n|--------------------|-------------------------------------|------------------------------|\n| `roles()` | `vec![]` | Custom roles |\n| `can_access_admin()` | `is_active && (is_staff \\|\\| is_superuser)` | Admin access logic |\n\n---	code	1
+349	98	Login	```rust\n// Regular user — is_staff and is_superuser default to false\nlogin(&session, user.id, &user.username).await?;\n\n// Staff/admin user — with explicit rights and custom roles\nlogin_staff(\n    &session,\n    user.id,\n    &user.username,\n    user.is_staff,\n    user.is_superuser,\n    user.roles(),\n).await?;\n```\n\n### Exclusive login\n\nTo allow only one active session per user at a time, enable via the builder:\n\n```rust\nRuniqueApp::builder(config)\n    .middleware(|m| m.with_exclusive_login(true))\n```\n\n`login` and `login_staff` will then automatically invalidate all existing sessions\nfor the user on each new login. No changes required in handlers.\n\n> Disabled by default (`false`). No effect when using an external session store.\n\n---	code	1
+351	98	Checks	```rust\n// Is the user authenticated?\nif is_authenticated(&session).await {\n    // ...\n}\n\n// Get user ID from session\nif let Some(user_id) = get_user_id(&session).await {\n    // ...\n}\n\n// Get username from session\nif let Some(username) = get_username(&session).await {\n    // ...\n}\n```\n\n---	code	3
+353	99	\N	## CLI\n\n| Command | Django | Runique |\n|---------|--------|---------|\n| Create a project | `django-admin startproject name` | `runique new name` |\n| Create an app | `python manage.py startapp name` | — |\n| Generate migrations | `python manage.py makemigrations` | `runique makemigrations` (detects changes from entities) |\n| Apply migrations | `python manage.py migrate` | `runique migration up` (wraps `sea-orm-cli migrate up`) |\n| Rollback migrations | `python manage.py migrate app 0001` | `runique migration down --files ...` (wraps `sea-orm-cli migrate down`) |\n| Migration status | — | `runique migration status` (wraps `sea-orm-cli migrate status`) |\n| Create superuser | `python manage.py createsuperuser` | `runique create-superuser` |\n| Start services | `python manage.py runserver` | `cargo run` — `runique start` only to initialize/refresh the admin view |\n\n---	text	0
+355	99	Views / Handlers	| Feature | Django | Runique |\n|---------|--------|---------|\n| Function view | `def my_view(request)` | `async fn my_view(...)` |\n| Class-based view | `class MyView(View)` | — |\n| Session access | `request.session` | `request.session` via `context::template::Request` (or `Session` axum extractor directly) |\n| DB access | `Model.objects.get(...)` | sea-orm query builders |\n| Template rendering | `render(request, "template.html", ctx)` | `request.render("template.html")` — context already in `request.context` |\n| Redirect | `redirect("url_name")` | `Redirect::to("/url")` or `reverse(&engine, "name")` / `reverse_with_parameters(...)` (prelude) |\n| Flash messages | `messages.success(request, "...")` | `success!(message => "...")` — macros `success!`, `error!`, `info!`, `warning!` (prelude) |\n\n---	text	2
+357	99	Templates	| Feature | Django | Runique |\n|---------|--------|---------|\n| Engine | Django Template Language | Tera (Jinja2 syntax) |\n| Inheritance | `{% extends %}` / `{% block %}` | same in Tera |\n| Static files | `{% load static %}` `{% static "file" %}` | `{% static "file" %}` native |\n| Media files | `{{ MEDIA_URL }}file` | `{% media "file" %}` native |\n| Reverse URL | `{% url "name" %}` | `{% link "name" %}` |\n| CSRF | `{% csrf_token %}` | `{% csrf %}` |\n| Messages | `{% for m in messages %}` | `{% messages %}` |\n| Internationalization | `{% trans "..." %}` | `{{ t("section.key") }}` |\n\n---	text	4
+359	99	Authentication	| Feature | Django | Runique |\n|---------|--------|---------|\n| Login / Logout | `authenticate()` + `login()` | `login()`, `login_staff()`, `logout()` — `LoginGuard` = brute-force middleware |\n| Auth check | `request.user.is_authenticated` | `is_authenticated(&session).await` |\n| Current user | `request.user` | `CurrentUser` (injected via `load_user_middleware`) |\n| Route protection | `@login_required` | `login_required` middleware |\n| Redirect if authenticated | manual | `redirect_if_authenticated` middleware |\n| Sessions | native | tower-sessions |\n| Brute-force protection | `django-axes` (third-party) | `LoginGuard` native (attempts + lockout) |\n| Password hashing | PBKDF2 / argon2 | argon2, bcrypt, scrypt, custom (auto-detected at verification) |\n| Email account activation | native (`auth`) | **missing** |\n| Password reset | native | **missing** (planned via `lettre`) |\n| Force logout all sessions | yes | **missing** |\n\n---	text	6
+361	99	Admin View	| Feature | Django | Runique |\n|---------|--------|---------|\n| Activation | `admin.site.register(Model)` | `admin!{}` macro + `runique start` |\n| List / Create / Edit / Detail / Delete | native | native |\n| List pagination | native | **missing** |\n| `list_display` | native | **missing** |\n| Search / filters | native | **missing** |\n| Customizable templates | yes | yes (Tera hierarchy) |\n| Per-resource permissions | native | stored, not injected into Tera context |\n| Admin account creation | `createsuperuser` | `runique create-superuser` |\n| Admin account from the app | no | no (same) |\n\n---	text	8
+363	99	Internationalization	| Feature | Django | Runique |\n|---------|--------|---------|\n| Supported languages | unlimited (`.po` files) | 9 (`en`, `fr`, `it`, `es`, `de`, `pt`, `ja`, `zh`, `ru`) |\n| Auto language detection | `LocaleMiddleware` | `LANG` / `LC_ALL` env |\n| Fallback | yes | yes (`Lang::En`) |\n| Framework translations | `.po`/`.mo` | JSON files (14 sections, compiled into the binary) |\n| `t("key")` | `_("...")` | `t("section.key")` → `Cow<'static, str>` |\n\n---	text	10
+365	99	What Runique is still missing (summary)	- Full auth flow (email activation, password reset)\n- Native email integration\n- Robust file upload (MIME validation, resize)\n- Admin pagination + `list_display` + filters\n- Runtime permissions in admin\n- Equivalent to `django-simple-history`\n- Native NoSQL (out of scope, plug `mongodb`)	text	12
+367	101	Minimal example	```rust\nlet app = RuniqueApp::builder(config)\n    .routes(url::routes())\n    .with_database(db)\n    .statics()\n    .build()\n    .await?;\n\napp.run().await?;\n```\n\n---	code	0
+369	101	Default values	| Configuration | Default | Notes |\n|--------------|---------|-------|\n| **Session duration** | 24 hours | |\n| **Session store** | `MemoryStore` | |\n| **CSRF protection** | ✅ Always enabled | Cannot be disabled |\n| **Error handler** | ✅ Enabled | |\n| **CSP** | Debug: ❌ / Prod: ✅ | Depends on mode |\n| **Host validation** | Debug: ❌ / Prod: ✅ | Depends on mode |\n| **Cache control** | ✅ Enabled | No-cache in debug |\n| **Static files** | ❌ Disabled | Call `.statics()` |\n| **Admin hot reload** | Follows `DEBUG` | Automatic via `is_debug()` |\n| **Log level** | Follows `DEBUG` | `debug` if `DEBUG=true`, `warn` otherwise |\n\n---	text	2
+371	102	Access in a handler	```rust\nuse runique::config_runique::RuniqueConfig;\n\nasync fn my_handler(template: TemplateContext) -> Response {\n    let config = &template.engine.config;\n\n    println!("Debug mode: {}", config.debug);\n    println!("Port: {}", config.server.port);\n    println!("IP: {}", config.server.ip_server);\n    println!("Allowed hosts: {:?}", config.security.allowed_hosts);\n    println!("Secret key: {}", config.security.secrete_key);\n}\n```\n\n---	code	1
+373	102	Configuration validation	Configuration is validated at startup:\n\n```rust\nlet config = RuniqueConfig::from_env()\n    .expect("Invalid configuration");\n\n// Returns Err() if:\n// - DATABASE_URL is missing\n// - SECRETE_KEY is missing\n// - Variables are invalid\n```\n\n---	code	3
+375	103	Available API	```rust\nuse runique::utils::trad::{set_lang, current_lang, t, tf, Lang};\n\n// Set the global language\nset_lang(Lang::Fr);\n\n// Read the active language\nlet lang = current_lang(); // → Lang::Fr\n\n// Translate a key\nlet msg = t("forms.required"); // → "This field is required"\n\n// Translate a key with parameters (replaces {} with arguments)\nlet msg = tf("forms.too_short", &[3]); // → "Too short (min 3)"\n```\n\n| Function | Signature | Description |\n| --- | --- | --- |\n| `set_lang` | `fn set_lang(lang: Lang)` | Sets the global application language |\n| `current_lang` | `fn current_lang() -> Lang` | Returns the active language (default: `En`) |\n| `t` | `fn t(key: &str) -> Cow<'static, str>` | Translates a simple key |\n| `tf` | `fn tf<T: Display>(key: &str, args: &[T]) -> String` | Translates a key with `{}` substitutions |\n\n---	code	1
+377	103	Fallback behaviour	If a key is missing in the target language, Runique applies the following fallback:\n\n1. Look up the key in the configured language (e.g. `Lang::Fr`)\n2. If absent, try `Lang::En`\n3. If still absent, return the raw key (e.g. `"forms.required"`)\n\nThis mechanism guarantees that an incomplete translation never causes a panic.\n\n---	text	3
+379	103	`LANG` variable for the CLI	The `runique` CLI reads the `LANG` environment variable (or `LC_ALL` / `LC_MESSAGES` as fallback) to choose its own display language.\n\n> **Important:** `LANG` in `.env` only applies to the CLI (`runique start`, `runique new`, etc.).\n> The web application language is controlled by `set_lang()` in `main.rs`.\n\n**Priority for the CLI:**\n\n1. `LANG` variable in `.env` (loaded via `dotenvy`)\n2. System `LANG` / `LC_ALL` / `LC_MESSAGES` variable\n3. `En` by default if no variable is defined or recognised\n\n```ini\n# .env — CLI only\nLANG=fr\n```\n\nFull locale strings are normalised automatically: `fr_FR.UTF-8` is interpreted as `fr`.\n\n---	code	5
+396	107	Redirects	| Variable | Default | Description |\n|----------|---------|-------------|\n| `REDIRECT_ANONYMOUS` | `/` | Redirect URL for unauthenticated visitors |\n| `LOGGING_URL` | `/` | Redirect URL to the login page |\n| `USER_CONNECTED_URL` | `/` | Redirect URL after login |\n\n---	text	3
+398	109	\N	## Middlewares\n\n| Variable | Default | Description |\n| --- | --- | --- |\n| `RUNIQUE_ENABLE_CACHE` | `true` (prod) / `false` (dev) | HTTP cache headers |\n\n> **CSP** — Configured exclusively via the builder (`.with_csp(...)`). See [CSP](/docs/en/middleware/csp).\n> **Host validation** — Configured exclusively via the builder (`.with_allowed_hosts([...])`). See [Host Validation](/docs/en/middleware/hosts).\n\n---	text	0
+400	110	\N	| Module | Description |\n| --- | --- |\n| [Minimal Application](/docs/en/exemple/minimal) | `main.rs`, `url.rs`, `views.rs`, base template |\n| [CRUD Forms](/docs/en/exemple/forms) | Registration, entity search, error handling |\n| [File Upload](/docs/en/exemple/upload) | `FileField`, upload handler, multipart template |\n| [Other Examples](/docs/en/exemple/others) | Flash messages, REST API, base template, pattern summary |	sommaire	0
+571	160	{% csrf %} — CSRF protection	```html\n<form method="post" action="/signup">\n    {% csrf %}\n    <button type="submit">Submit</button>\n</form>\n```\n\n**Transformed into:** `{% include "csrf/csrf_field.html" %}`\n\n> Not required inside Runique forms (`{% form.xxx %}`) — the CSRF token is injected automatically.\n\n---	code	2
+368	101	Available methods	### Database\n\n```rust\n// Option 1: direct connection (DatabaseConnection)\nlet db_config = DatabaseConfig::from_env()?.build();\nlet db = db_config.connect().await?;\n\nlet app = RuniqueApp::builder(config)\n    .with_database(db)       // takes a DatabaseConnection\n    .routes(router)\n    .build()\n    .await?;\n\n// Option 2: deferred connection (DatabaseConfig)\nlet db_config = DatabaseConfig::from_env()?.build();\n\nlet app = RuniqueApp::builder(config)\n    .with_database_config(db_config)  // connection happens at .build()\n    .routes(router)\n    .build()\n    .await?;\n```\n\n### Routes\n\n```rust\nuse runique::{urlpatterns, view};\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ GET => views::index }, name = "index",\n        "/about" => view!{ GET => views::about }, name = "about",\n    }\n}\n\nlet app = RuniqueApp::builder(config)\n    .routes(routes())\n    .build()\n    .await?;\n```\n\n### Error handling\n\n```rust\nlet app = RuniqueApp::builder(config)\n    .with_error_handler(true)   // Enable error handler (default: true)\n    .routes(router)\n    .build()\n    .await?;\n```\n\n### Middlewares\n\nAll middleware configuration goes through `.middleware(|m| { ... })` where `m` is a `MiddlewareStaging`:\n\n```rust\nlet app = RuniqueApp::builder(config)\n    .routes(router)\n    .middleware(|m| {\n        m.with_csp(true)                // Enable Content Security Policy\n         .with_host_validation(true)    // Enable host validation\n         .with_cache(true)              // Enable no-cache in dev\n         .with_debug_errors(true)       // Enable detailed errors\n    })\n    .build()\n    .await?;\n```\n\nHost validation is enabled exclusively via `with_allowed_hosts(vec![...])` in the builder — without this call, validation is disabled. No `.env` variable controls this behaviour.\n\n> **`is_debug()`** — global helper available via `use runique::prelude::*`. Returns `true` if `DEBUG=true` in `.env`. Read once at startup (`LazyLock`), available everywhere without passing a parameter.\n\n### Session duration\n\n```rust\nuse tower_sessions::cookie::time::Duration;\n\nlet app = RuniqueApp::builder(config)\n    .with_session_duration(Duration::hours(2))  // Default: 24h\n    .routes(router)\n    .build()\n    .await?;\n```\n\nOr via `.middleware()` for advanced options:\n\n```rust\n.middleware(|m| {\n    m.with_session_duration(Duration::hours(2))\n     .with_anonymous_session_duration(Duration::minutes(5))\n     .with_session_memory_limit(128 * 1024 * 1024, 256 * 1024 * 1024)\n})\n```\n\n### Static files\n\n```rust\nlet app = RuniqueApp::builder(config)\n    .statics()     // Enable static files\n    // or\n    .no_statics()  // Explicitly disable\n    .build()\n    .await?;\n```\n\n---	code	1
+370	102	\N	## Loading the configuration\n\n```rust\nuse runique::config_runique::RuniqueConfig;\n\nlet config = RuniqueConfig::from_env();\n\nprintln!("Debug: {}", config.debug);\nprintln!("Port: {}", config.port);\nprintln!("DB: {}", config.database_url);\n```\n\n---	code	0
+372	102	Conditional configuration	```rust\nif template.engine.config.debug {\n    // Debug mode: detailed logs, templates reloaded\n} else {\n    // Production mode: template cache, no sensitive logs\n}\n\nif template.engine.config.security.allowed_hosts.contains("*") {\n    // ⚠️ Warning: all hosts are allowed (dangerous in production!)\n}\n```\n\n---	code	2
+374	103	Supported languages	| `Lang` variant | Code | Recognised locale examples |\n| --- | --- | --- |\n| `Lang::Fr` | `fr` | `fr`, `fr-FR`, `fr-CA`, `fr-BE`, `fr-CH` |\n| `Lang::En` | `en` | `en`, `en-US`, `en-GB`, `en-CA` |\n| `Lang::De` | `de` | `de`, `de-DE`, `de-AT`, `de-CH` |\n| `Lang::Es` | `es` | `es`, `es-ES`, `es-MX`, `es-AR` |\n| `Lang::It` | `it` | `it`, `it-IT`, `it-CH` |\n| `Lang::Pt` | `pt` | `pt`, `pt-PT`, `pt-BR` |\n| `Lang::Ja` | `ja` | `ja`, `ja-JP` |\n| `Lang::Zh` | `zh` | `zh`, `zh-CN`, `zh-TW`, `zh-HK` |\n| `Lang::Ru` | `ru` | `ru`, `ru-RU`, `ru-BY`, `ru-UA` |\n\nThe default language is `Lang::En` when no explicit configuration is provided.\n\n---	text	0
+376	103	Key format	Keys follow dot notation `"section.sub_section.key"` matching the hierarchy of the translation JSON.\n\n```text\n"forms.required"       → { "forms": { "required": "..." } }\n"forms.too_short"      → { "forms": { "too_short": "Too short (min {})" } }\n"error.not_found"      → { "error": { "not_found": "..." } }\n```\n\nEach `{}` in a value is replaced sequentially by the arguments passed to `tf`.\n\n---	code	2
+378	103	Configuration in `main.rs`	Call `set_lang()` before building the app, typically right after loading the configuration:\n\n```rust\nuse runique::prelude::*;\nuse runique::utils::trad::{set_lang, Lang};\n\n#[tokio::main]\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\n    let config = RuniqueConfig::from_env();\n\n    // Set the application language\n    set_lang(Lang::Fr);\n\n    RuniqueApp::builder(config)\n        .routes(urls::routes())\n        .with_database(db)\n        .build()\n        .await?\n        .run()\n        .await?;\n\n    Ok(())\n}\n```\n\nThe language set here applies to user-facing messages: form validation and error messages. Internal logs (`tracing::warn!`) are hardcoded in French in the source and are not translated.\n\n---	code	4
+380	104	Initialization in `main.rs`	```rust\nuse runique::prelude::{password_init, PasswordConfig, Manual};\n\n#[tokio::main]\nasync fn main() {\n    // Argon2 automatic mode (recommended default)\n    password_init(PasswordConfig::auto());\n\n    RuniqueApp::new()\n        // ...\n        .run()\n        .await;\n}\n```\n\n> If `password_init()` is not called, Argon2 is used by default.\n\n---	code	0
+382	104	Usage in code	```rust\nuse runique::prelude::{hash, verify};\n\n// Hash a password (uses the global config)\nlet hashed = hash("my_password")?;\n\n// Verify a password against a stored hash\nlet ok = verify("my_password", &user.password_hash);\n```\n\nThese functions automatically use the `PasswordConfig` initialized at startup.\n\n---	code	2
+384	105	\N	## Server\n\n| Variable | Default | Description |\n|----------|---------|-------------|\n| `IP_SERVER` | `127.0.0.1` | Listening IP address |\n| `PORT` | `3000` | Server port |\n| `DEBUG` | `true` | Debug mode (templates, logs, etc.) |\n\n> **⚠️ Production:** Set `DEBUG=false` explicitly. In debug mode, detailed error pages are visible, potentially revealing sensitive information. Also, compiling with `cargo build --release` automatically disables debug assertions, but `DEBUG=true` may override this.\n\n---	text	0
+386	105	Templates & Assets	| Variable | Default | Description |\n|----------|---------|-------------|\n| `TEMPLATES_DIR` | `templates` | Templates directory |\n| `STATICFILES_DIRS` | `static` | Static assets directory |\n| `MEDIA_ROOT` | `media` | Media directory (uploads) |\n\n```env\nTEMPLATES_DIR=templates\nSTATICFILES_DIRS=static:demo-app/static\nMEDIA_ROOT=uploads\n```\n\n---	code	2
+388	105	Complete .env file	```env\n# ============================================================================\n# SERVER CONFIGURATION\n# ============================================================================\nIP_SERVER=127.0.0.1\nPORT=3000\nDEBUG=true\n\n# ============================================================================\n# DATABASE CONFIGURATION\n# ============================================================================\nDATABASE_URL=postgres://postgres:password@localhost:5432/runique\nDB_ENGINE=postgres\nDB_USER=postgres\nDB_PASSWORD=password\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=runique\n\n# SQLite (Development only)\n# DATABASE_URL=sqlite:runique.db?mode=rwc\n\n# ============================================================================\n# TEMPLATES & STATIC FILES\n# ============================================================================\nTEMPLATES_DIR=templates\nSTATICFILES_DIRS=static\nMEDIA_ROOT=media\n\n# ============================================================================\n# SECURITY\n# ============================================================================\nSECRETE_KEY=your_secret_key_here_change_in_production\nALLOWED_HOSTS=localhost,127.0.0.1\n```\n\n---	code	4
+390	105	Environment modes	### Production\n\n```env\nDEBUG=false\nPORT=443\nIP_SERVER=0.0.0.0\nSECRETE_KEY=<dynamically generated>\nALLOWED_HOSTS=example.com,www.example.com,.api.example.com\nDATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique\n```\n\n### Development\n\n```env\nDEBUG=true\nPORT=3000\nIP_SERVER=127.0.0.1\nSECRETE_KEY=any_dev_key\nALLOWED_HOSTS=*\nDATABASE_URL=sqlite:runique.db?mode=rwc\n```\n\n### Testing\n\n```env\nDEBUG=true\nSECRETE_KEY=test_key\nALLOWED_HOSTS=localhost,127.0.0.1\nDATABASE_URL=sqlite::memory:\n```\n\n---	code	6
+392	106	Internationalisation (CLI)	| Variable | Default | Description |\n| --- | --- | --- |\n| `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `.env` > system locale (`LC_ALL`, `LC_MESSAGES`) > `en` |\n\n---	text	1
+381	104	Available modes	### `Auto` — Automatic hashing (recommended)\n\nRunique detects whether a value is already hashed and only hashes it once. The algorithm is configurable.\n\n```rust\n// Argon2 by default\npassword_init(PasswordConfig::auto());\n\n// Choose the algorithm\npassword_init(PasswordConfig::auto_with(Manual::Bcrypt));\npassword_init(PasswordConfig::auto_with(Manual::Scrypt));\n```\n\nSupported algorithms: `Manual::Argon2`, `Manual::Bcrypt`, `Manual::Scrypt`.\n\n### `Manual` — Explicit hashing\n\nHashing is **not** applied automatically in `finalize()`. The developer calls `hash()` manually.\n\n```rust\npassword_init(PasswordConfig::manual(Manual::Argon2));\n```\n\n> Use this when you need precise control over when and how the password is hashed.\n\n### `Delegated` — External authentication (OAuth / SSO)\n\nNo password is managed by Runique. Authentication is delegated to an external provider.\n\n```rust\nuse runique::prelude::External;\n\npassword_init(PasswordConfig::oauth(External::GoogleOAuth));\npassword_init(PasswordConfig::oauth(External::Microsoft));\npassword_init(PasswordConfig::oauth(External::Ldap("ldap://...".to_string())));\n```\n\nAvailable providers: `GoogleOAuth`, `Microsoft`, `Apple`, `Ldap(url)`, `Saml(url)`, `Custom { name, authorize_url, token_url }`.\n\n### `Custom` — Custom handler\n\nImplement the `PasswordHandler` trait to plug in your own hashing/verification logic.\n\n```rust\nuse runique::prelude::{PasswordHandler, PasswordConfig};\n\nstruct MyHasher;\n\nimpl PasswordHandler for MyHasher {\n    fn name(&self) -> &str { "my_hasher" }\n    fn transform(&self, input: &str) -> Result<String, String> {\n        Ok(format!("hashed:{}", input))\n    }\n    fn verify(&self, input: &str, stored: &str) -> bool {\n        stored == format!("hashed:{}", input)\n    }\n    // ...\n}\n\npassword_init(PasswordConfig::custom(MyHasher));\n```\n\n---	code	1
+383	104	In forms	`TextField::password()` fields are automatically hashed in `finalize()` in `Auto` mode. In `Manual` or `Delegated` mode, no automatic hashing occurs.\n\nSee → [Field types — TextField](/docs/en/formulaire/fields)\n\n---\n\n← [**Builder**](/docs/en/configuration/builder)	text	3
+385	105	Database	| Variable | Default | Description |\n|----------|---------|-------------|\n| `DATABASE_URL` | — | Full connection string |\n| `DB_ENGINE` | `postgres` | `postgres`, `sqlite`, `mysql` |\n| `DB_USER` | `postgres` | DB user |\n| `DB_PASSWORD` | — | DB password |\n| `DB_HOST` | `localhost` | DB host |\n| `DB_PORT` | `5432` | DB port |\n| `DB_NAME` | `runique` | Database name |\n\n**PostgreSQL:**\n\n```env\nDATABASE_URL=postgres://user:password@localhost:5432/dbname\nDB_ENGINE=postgres\nDB_USER=postgres\nDB_PASSWORD=secret\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=runique\n```\n\n**SQLite (dev):**\n\n```env\nDATABASE_URL=sqlite:runique.db?mode=rwc\n```\n\n---	code	1
+387	105	Security	| Variable | Default | Description |\n|----------|---------|-------------|\n| `SECRETE_KEY` | *(required)* | CSRF secret key (⚠️ CHANGE IN PROD!) |\n| `ALLOWED_HOSTS` | `*` | Allowed hosts (comma-separated) |\n\n**ALLOWED_HOSTS patterns:**\n\n- `localhost` — exact match\n- `*` — wildcard all hosts (DANGEROUS in production!)\n- `.example.com` — matches `example.com` and `*.example.com`\n\n```env\nSECRETE_KEY=your_secret_key_change_this_in_production\nALLOWED_HOSTS=localhost,127.0.0.1,example.com,.api.example.com\n```\n\n---	code	3
+389	105	Generate a secret key	```bash\n# Python\npython3 -c "import secrets; print(secrets.token_urlsafe(32))"\n\n# OpenSSL\nopenssl rand -base64 32\n```\n\n---	code	5
+391	106	\N	| Section | Content |\n| --- | --- |\n| [Application & Server](/docs/en/env/application) | DEBUG, BASE_DIR, IP_SERVER, PORT, SECRET_KEY, DB, Redirects |\n| [Assets & Media](/docs/en/env/assets) | STATICFILES_DIRS, MEDIA_ROOT, TEMPLATES_DIR and associated URLs |\n| [Security & Sessions](/docs/en/env/securite) | ALLOWED_HOSTS, CSP, Middlewares, Sessions |\n\n---	sommaire	0
+393	107	\N	## Application\n\n| Variable | Default | Description |\n|----------|---------|-------------|\n| `DEBUG` | `false` | Global dev/prod switch — read **once** at startup via `LazyLock`. Enables: `debug` log level, detailed error pages, admin template hot reload. In production (`false`): `warn` level, generic errors. |\n| `BASE_DIR` | `.` | Application root directory |\n| `PROJECT_NAME` | `myproject` | Project name (used for `root_urlconf`) |\n| `TIME_ZONE` | `UTC` | Timezone (not yet implemented) |\n| `DEFAULT_AUTO_FIELD` | — | Default auto field type for models |\n| `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `.env` > system locale (`LC_ALL`, `LC_MESSAGES`) > `en` |\n\n---	text	0
+395	107	Database	### Connection\n\n| Variable | Default | Description |\n|----------|---------|-------------|\n| `DB_URL` | — | Full connection URL (takes priority over all component variables) |\n| `DB_ENGINE` | `sqlite` | Engine: `postgres`, `mysql`, `mariadb`, `sqlite` |\n| `DB_USER` | — | Username (required except for SQLite) |\n| `DB_PASSWORD` | — | Password (required except for SQLite) |\n| `DB_HOST` | `localhost` | Host |\n| `DB_PORT` | `5432` / `3306` | Port (default depends on engine) |\n| `DB_NAME` | `local_base.sqlite` | Database name |\n\n### Connection pool\n\n| Variable | Default | Description |\n|----------|---------|-------------|\n| `DB_MAX_CONNECTIONS` | `100` | Maximum pool size |\n| `DB_MIN_CONNECTIONS` | `20` | Minimum pool size |\n\n### Timeouts\n\n| Variable | Default | Unit | Description |\n|----------|---------|------|-------------|\n| `DB_CONNECT_TIMEOUT` | `2` | seconds | Connection establishment timeout |\n| `DB_ACQUIRE_TIMEOUT` | `500` | milliseconds | Pool acquire timeout |\n| `DB_IDLE_TIMEOUT` | `300` | seconds | Idle connection lifetime |\n| `DB_MAX_LIFETIME` | `3600` | seconds | Maximum connection lifetime |\n\n### SQL Logging\n\n| Variable | Default | Description |\n|----------|---------|-------------|\n| `DB_LOGGING` | `false` | Enable SQL query logging (`true`, `1`, `yes`) |\n\n---	text	2
+397	108	\N	## Static Files and Media\n\n| Variable | Default | Description |\n|----------|---------|-------------|\n| `STATICFILES_DIRS` | `static` | Static files directory |\n| `STATIC_URL` | `/static` | URL prefix for static files |\n| `MEDIA_ROOT` | `media` | Uploaded media files directory |\n| `MEDIA_URL` | `/media` | URL prefix for media files |\n| `TEMPLATES_DIR` | — | Tera templates directory |\n| `STATICFILES` | `default_storage` | Storage backend |\n\n---	text	0
+399	109	Sessions	Session memory limits and cleanup interval are configured via the builder — see [Sessions](/docs/en/session).\n\n---	text	1
+401	110	Back to the Index	← [**Flash Messages**](/docs/en/flash) | [**README**](https://github.com/seb-alliot/runique/blob/main/README.md) →	text	1
+430	118	Custom Display	To fully customize rendering, manually loop over `messages`:\n\n```html\n{% if messages %}\n    {% for msg in messages %}\n        <div class="alert alert-{{ msg.level }}" role="alert">\n            <strong>\n                {% if msg.level == "success" %}✅\n                {% elif msg.level == "error" %}❌\n                {% elif msg.level == "warning" %}⚠️\n                {% elif msg.level == "info" %}ℹ️\n                {% endif %}\n            </strong>\n            {{ msg.content }}\n        </div>\n    {% endfor %}\n{% endif %}\n```\n\n---	code	2
+573	160	{% csp_nonce %} — CSP nonce	```html\n<script {% csp_nonce %}>\n    console.log("Script secured with CSP nonce");\n</script>\n```\n\n**Transformed into:** `{% include "csp/csp_nonce.html" %}`\n\n---	code	4
+402	111	\N	## Registration form\n\n### Manual form (without model)\n\n```rust\n// src/forms.rs\nuse runique::prelude::*;\n\npub struct RegisterForm {\n    pub form: Forms,\n}\n\n#[async_trait]\nimpl RuniqueForm for RegisterForm {\n    impl_form_access!();\n\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Username")\n                .required()\n                .min_length(3, "Minimum 3 characters")\n                .max_length(50, "Maximum 50 characters")\n        );\n        form.field(\n            &TextField::email("email")\n                .label("Email")\n                .required()\n        );\n        form.field(\n            &TextField::password("password")\n                .label("Password")\n                .required()\n                .min_length(8, "Minimum 8 characters")\n        );\n    }\n\n    // Business validation — called automatically by is_valid()\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let mut errors = StrMap::new();\n        if !self.get_string("email").contains('@') {\n            errors.insert("email".to_string(), "Invalid email".to_string());\n        }\n        if errors.is_empty() { Ok(()) } else { Err(errors) }\n    }\n}\n```\n\n### Model-based form\n\n`#[form(...)]` generates the struct and `impl ModelForm`.\nThe developer writes `impl RuniqueForm` with `impl_form_access!(model)`:\n\n```rust\nuse runique::prelude::*;\n\n#[form(schema = users_schema, fields = [username, email, password])]\npub struct RegisterForm;\n\n#[async_trait]\nimpl RuniqueForm for RegisterForm {\n    impl_form_access!(model);\n\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let mut errors = StrMap::new();\n        if self.get_string("username").len() < 3 {\n            errors.insert("username".to_string(), "Minimum 3 characters".to_string());\n        }\n        if !self.get_string("email").contains('@') {\n            errors.insert("email".to_string(), "Invalid email".to_string());\n        }\n        if self.get_string("password").len() < 10 {\n            errors.insert("password".to_string(), "Minimum 10 characters".to_string());\n        }\n        if errors.is_empty() { Ok(()) } else { Err(errors) }\n    }\n}\n```\n\n> `#[async_trait]` is required only when overriding `clean` or `clean_field`.\n> Without async override, `impl RuniqueForm { impl_form_access!(model); }` is enough.\n\n---	code	0
+404	111	Registration template	```html\n{% extends "base.html" %}\n\n{% block content %}\n    <h1>{{ title }}</h1>\n    {% messages %}\n\n    <form method="post" action='{% link "signup" %}'>\n        {% form.signup_form %}\n        <button type="submit">Sign up</button>\n    </form>\n{% endblock %}\n```\n\n---	code	2
+406	112	\N	## Project tree\n\n```\nmy_app/\n├── Cargo.toml\n├── .env\n├── src/\n│   ├── main.rs\n│   ├── url.rs\n│   └── views.rs\n├── templates/\n│   └── index.html\n└── static/\n    └── css/\n        └── main.css\n```\n\n---	code	0
+408	112	url.rs	```rust\nuse crate::views;\nuse runique::prelude::*;\nuse runique::{urlpatterns, view};\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ GET => views::index }, name = "index",\n        "/about" => view!{ GET => views::about }, name = "about",\n    }\n}\n```\n\n---	code	2
+410	112	templates/index.html	```html\n<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <title>{{ title }}</title>\n    <link rel="stylesheet" href='{% static "css/main.css" %}'>\n</head>\n<body>\n    {% messages %}\n    <h1>{{ title }}</h1>\n    <p>{{ message }}</p>\n    <a href='{% link "about" %}'>About</a>\n</body>\n</html>\n```\n\n---	code	4
+412	113	REST API	### API routes\n\n```rust\npub fn routes() -> Router {\n    urlpatterns! {\n        "/api/users" => view!{ api_list_users }, name = "api_users",\n    }\n}\n```\n\n### JSON API handler\n\n```rust\nuse axum::Json;\nuse serde_json::json;\n\npub async fn api_list_users(request: Request) -> AppResult<Response> {\n    let users = users::Entity::find()\n        .all(&*request.engine.db)\n        .await?;\n\n    Ok(Json(json!({\n        "status": "success",\n        "count": users.len(),\n        "data": users\n    })).into_response())\n}\n```\n\n---	code	1
+414	113	Pattern summary	| Pattern | When to use |\n|---------|-------------|\n| `request.render("template.html")` | Standard HTML rendering |\n| `Redirect::to("/").into_response()` | After a successful action (POST) |\n| `context_update!(request => {...})` | Inject variables into the template |\n| `success!(request.notices => "...")` | Flash message before redirect |\n| `flash_now!(error => "...")` | Immediate message (no redirect) |\n| `form.is_valid().await` | Validate a Prisme form |\n| `form.save(&db).await` | Persist to the database |\n| `form.get_form_mut().database_error(&err)` | Display a DB error inside the form |\n\n---	text	3
+416	114	Configuring the upload path	`upload_to` accepts three forms:\n\n```rust\n// 1 — direct path\nFileField::image("avatar").upload_to("media/avatars")\n\n// 2 — reads MEDIA_ROOT from .env (recommended)\nFileField::image("img").upload_to_env()\n\n// 3 — from an existing StaticConfig\nlet config = StaticConfig::from_env();\nFileField::image("img").upload_to(&config)\n```\n\n`.env` configuration:\n\n```env\nMEDIA_ROOT=media/\n```\n\n---	code	1
+418	114	Upload handler	```rust\npub async fn upload_image(\n    mut request: Request,\n    Prisme(mut form): Prisme<ImageForm>,\n) -> AppResult<Response> {\n    let template = "forms/upload_image.html";\n\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Upload a file",\n            "image_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    if request.is_post() && form.is_valid().await {\n        success!(request.notices => "File uploaded successfully!");\n        return Ok(Redirect::to("/").into_response());\n    }\n\n    context_update!(request => {\n        "title" => "Error",\n        "image_form" => &form,\n    });\n    request.render(template)\n}\n```\n\n---	code	3
+420	115	\N	| Section | Content |\n| --- | --- |\n| [Macros](/docs/en/flash/macros) | `success!`, `error!`, `info!`, `warning!`, `flash_now!`, differences, when to use |\n| [Handlers](/docs/en/flash/handlers) | Usage in handlers, flash behavior (single read) |\n| [Templates](/docs/en/flash/templates) | `{% messages %}` tag, placement, customization |\n\n---	sommaire	0
+422	116	Multiple Message Types	```rust\npub async fn about(mut request: Request) -> AppResult<Response> {\n    success!(request.notices => "This is a success message.");\n    info!(request.notices => "This is an informational message.");\n    warning!(request.notices => "This is a warning message.");\n    error!(request.notices => "This is an error message.");\n\n    context_update!(request => {\n        "title" => "About",\n    });\n    request.render("about/about.html")\n}\n```\n\n---	code	1
+424	117	\N	## Redirect Macros\n\nThese macros store messages in the session via `request.notices`. They are displayed **after the next redirect** (Post/Redirect/Get pattern).\n\n### success!\n\n```rust\nsuccess!(request.notices => "User created successfully!");\nsuccess!(request.notices => format!("Welcome {}!", username));\n\n// Multiple messages at once\nsuccess!(request.notices => "Created", "Email sent", "Welcome!");\n```\n\n### error!\n\n```rust\nerror!(request.notices => "An error occurred");\nerror!(request.notices => format!("Error: {}", e));\n```\n\n### info!\n\n```rust\ninfo!(request.notices => "Please check your email");\n```\n\n### warning!\n\n```rust\nwarning!(request.notices => "This action cannot be undone");\n```\n\n> Each macro calls `.success()`, `.error()`, `.info()`, or `.warning()` on `request.notices` (of type `Message`).\n\n---	code	0
+426	117	Difference: Flash vs Flash Now	| | `success!` / `error!` / etc. | `flash_now!` |\n|---|---|---|\n| **Storage** | Session | Memory (Vec) |\n| **Display** | After redirect | Current request |\n| **Lifetime** | Until next read | Single request |\n| **Typical use** | Post/Redirect/Get | Re-render form |\n| **Context injection** | Automatic | Manual (`"messages" => flash_now!(...)`) |\n\n---	text	2
+428	118	\N	## Automatic {% messages %} Tag\n\nThe `{% messages %}` tag automatically renders all messages:\n\n```html\n{% messages %}\n```\n\nIt includes the internal template `message/message_include.html`, which generates:\n\n```html\n{% if messages %}\n    <div class="flash-messages">\n        {% for message in messages %}\n        <div class="message message-{{ message.level }}">\n            {{ message.content }}\n        </div>\n        {% endfor %}\n    </div>\n{% endif %}\n```\n\n---	code	0
+575	160	{% form.xxx %} — Full form rendering	```html\n<form method="post" action="/signup">\n    {% form.signup_form %}\n    <button type="submit">Sign up</button>\n</form>\n```\n\n**Transformed into:** `{{ signup_form | form | safe }}`\n\nRenders the entire form: all HTML fields, validation errors, the CSRF token, and required JS scripts.\n\n---	code	6
+403	111	Registration handler	```rust\npub async fn signup(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    let template = "signup_form.html";\n\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Sign Up",\n            "signup_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            let user = form.save(&request.engine.db).await.map_err(|err| {\n                form.get_form_mut().database_error(&err);\n                AppError::from(err)\n            })?;\n\n            success!(request.notices => format!("Welcome {}!", user.username));\n            return Ok(Redirect::to("/").into_response());\n        }\n\n        context_update!(request => {\n            "title" => "Validation Error",\n            "signup_form" => &form,\n            "messages" => flash_now!(error => "Please fix the errors"),\n        });\n        return request.render(template);\n    }\n\n    request.render(template)\n}\n```\n\n---	code	1
+405	111	Search and display an entity	### Search form\n\n```rust\npub struct UsernameForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for UsernameForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Username")\n                .required()\n                .placeholder("Search a user")\n        );\n    }\n    impl_form_access!();\n}\n```\n\n### Search handler\n\n```rust\npub async fn info_user(\n    mut request: Request,\n    Prisme(mut form): Prisme<UsernameForm>,\n) -> AppResult<Response> {\n    let template = "profile/view_user.html";\n\n    if request.is_get() && form.is_valid().await {\n        let username = form.get_form().get_value("username").unwrap_or_default();\n        let db = request.engine.db.clone();\n\n        let user_opt = UserEntity::find()\n            .filter(user::Column::Username.eq(&username))\n            .one(&*db)\n            .await\n            .unwrap_or(None);\n\n        match user_opt {\n            Some(user) => {\n                context_update!(request => {\n                    "title" => "User view",\n                    "found_user" => &user,  // ⚠️ DO NOT name it "user" → collision with the form\n                    "user" => &form,\n                    "messages" => flash_now!(success => "User found!"),\n                });\n            }\n            None => {\n                context_update!(request => {\n                    "title" => "User view",\n                    "user" => &form,\n                    "messages" => flash_now!(warning => "User not found"),\n                });\n            }\n        }\n\n        return request.render(template);\n    }\n\n    context_update!(request => { "title" => "Search a user", "user" => &form });\n    request.render(template)\n}\n```\n\n---	code	3
+407	112	main.rs	```rust\n#[macro_use]\nextern crate runique;\n\nmod url;\nmod views;\n\nuse runique::prelude::*;\n\n#[tokio::main]\nasync fn main() -> Result<(), Box<dyn std::error::Error>> {\n\n    password_init(PasswordConfig::auto_with(Manual::Argon2));\n\n    let config = RuniqueConfig::from_env();\n\n    let db_config = DatabaseConfig::from_env()?.build();\n    let db = db_config.connect().await?;\n\n    RuniqueApp::builder(config)\n        .routes(url::routes())\n        .with_database(db)\n        .statics()\n        .build()\n        .await?\n        .run()\n        .await?;\n\n    Ok(())\n}\n```\n\n---	code	1
+409	112	views.rs	```rust\nuse runique::prelude::*;\n\npub async fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => {\n        "title" => "Home",\n        "message" => "Welcome to my Runique app!",\n    });\n    request.render("index.html")\n}\n\npub async fn about(mut request: Request) -> AppResult<Response> {\n    context_update!(request => {\n        "title" => "About",\n    });\n    request.render("about.html")\n}\n```\n\n---	code	3
+411	113	\N	## Flash messages — all types\n\n```rust\npub async fn demo_messages(mut request: Request) -> AppResult<Response> {\n    success!(request.notices => "This is a success message.");\n    info!(request.notices => "This is an informational message.");\n    warning!(request.notices => "This is a warning message.");\n    error!(request.notices => "This is an error message.");\n\n    context_update!(request => {\n        "title" => "Messages demo",\n    });\n    request.render("demo.html")\n}\n```\n\n```html\n{% extends "base.html" %}\n\n{% block content %}\n    <h1>{{ title }}</h1>\n    {% messages %}\n    <p>The messages above come from the flash session.</p>\n{% endblock %}\n```\n\n---	code	0
+413	113	Complete base template	```html\n<!-- templates/base.html -->\n<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>{% block title %}My App{% endblock %}</title>\n    <link rel="stylesheet" href='{% static "css/main.css" %}'>\n    {% block extra_css %}{% endblock %}\n</head>\n<body>\n    <header>\n        <nav>\n            <a href='{% link "index" %}'>Home</a>\n            <a href='{% link "about" %}'>About</a>\n            <a href='{% link "signup" %}'>Sign up</a>\n        </nav>\n    </header>\n\n    {% messages %}\n\n    <main>\n        {% block content %}{% endblock %}\n    </main>\n\n    <footer>\n        <p>&copy; 2026 — Powered by Runique</p>\n    </footer>\n\n    {% block extra_js %}{% endblock %}\n</body>\n</html>\n```\n\n---	code	2
+415	114	\N	## Upload form\n\n```rust\npub struct ImageForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for ImageForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &FileField::image("image")\n                .label("Image")\n                .upload_to_env()        // reads MEDIA_ROOT from .env\n                .max_size_mb(5)\n                .max_files(1)\n                .max_dimensions(1920, 1080)\n                .allowed_extensions(vec!["jpg", "png", "webp", "avif"])\n        );\n    }\n    impl_form_access!();\n}\n```\n\n---	code	0
+417	114	Available field types	```rust\nFileField::image("img")     // jpg jpeg png gif webp avif\nFileField::document("doc")  // pdf doc docx odt\nFileField::any("f")         // no extension filter\n\n// Custom extensions:\nFileField::any("data").allowed_extensions(vec!["csv", "json"])\n```\n\n---	code	2
+419	114	Upload template	```html\n{% extends "base.html" %}\n\n{% block content %}\n    <h1>{{ title }}</h1>\n\n    <form method="post" enctype="multipart/form-data">\n        {% form.image_form %}\n        <button type="submit">Upload</button>\n    </form>\n{% endblock %}\n```\n\n---	code	4
+432	119	Overview	Runique provides a powerful form system inspired by Django. There are **two approaches**:\n\n1. **Manual** — Define fields via the `RuniqueForm` trait.\n2. **Automatic** — Derive a form from a `model!` schema with `#[form(...)]`.\n\nForms are automatically extracted from requests via the **Prisme** extractor, handle validation (including via the `validator` crate for emails/URLs), CSRF, Argon2 password hashing, and can be saved directly to the database.\n\n---	text	1
+560	158	\N	## Form error handling\n\n### Automatic display (via `{% form.xxx %}`)\n\nWhen using `{% form.signup_form %}`, validation errors are **automatically rendered** under each relevant field.\n\n### Manual display of global errors\n\n```html\n{% if signup_form.errors %}\n    <div class="alert alert-warning">\n        <ul>\n            {% for field_name, error_msg in signup_form.errors %}\n                <li><strong>{{ field_name }}:</strong> {{ error_msg }}</li>\n            {% endfor %}\n        </ul>\n    </div>\n{% endif %}\n```\n\n---	code	0
+421	116	\N	## Pattern with Redirect (Flash Messages)\n\n```rust\npub async fn submit_signup(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_post() {\n        if form.is_valid().await {\n            let user = form.save(&request.engine.db).await.map_err(|err| {\n                form.get_form_mut().database_error(&err);\n                AppError::from(err)\n            })?;\n\n            // ✅ Flash message → displayed after redirect\n            success!(request.notices => format!(\n                "Welcome {}, your account has been created!",\n                user.username\n            ));\n            return Ok(Redirect::to("/").into_response());\n        }\n\n        // ❌ Validation failed → immediate message (no redirect)\n        context_update!(request => {\n            "title" => "Validation error",\n            "signup_form" => &form,\n            "messages" => flash_now!(error => "Please fix the errors"),\n        });\n        return request.render("signup_form.html");\n    }\n\n    // GET → display form\n    context_update!(request => {\n        "title" => "Sign up",\n        "signup_form" => &form,\n    });\n    request.render("signup_form.html")\n}\n```\n\n---	code	0
+423	116	Flash Behavior (Single Read)	Flash messages stored in the session are **automatically consumed** upon display:\n\n```\n1. POST /signup\n   → success!("Welcome!")\n   → Redirect::to("/")\n\n2. GET /\n   → Messages read from session\n   → Displayed in template\n   → Removed from session\n\n3. GET / (reload)\n   → No messages (already consumed)\n```\n\n---	code	2
+425	117	flash_now! Macro — Immediate Messages	`flash_now!` creates a `Vec<FlashMessage>` for **immediate display** in the current request. Ideal when there is no redirect (for example, re-rendering a form after validation errors).\n\n```rust\n// Single message\nlet msgs = flash_now!(error => "Please fix the errors");\n\n// Multiple messages\nlet msgs = flash_now!(warning => "Field A is incorrect", "Field B is missing");\n```\n\n### Available Types\n\n| Type | Generated CSS Class |\n|------|---------------------|\n| `success` | `message-success` |\n| `error` | `message-error` |\n| `info` | `message-info` |\n| `warning` | `message-warning` |\n\n### Injecting into the context\n\n`flash_now!` returns a vector that must be manually injected into the context:\n\n```rust\ncontext_update!(request => {\n    "title" => "Validation error",\n    "form" => &form,\n    "messages" => flash_now!(error => "Please fix the errors"),\n});\n```\n\n---	code	1
+427	117	When to Use Which?	### Use flash macros (session)\n\n```rust\n// After a successful action with redirect\nsuccess!(request.notices => "Saved!");\nreturn Ok(Redirect::to("/").into_response());\n```\n\n### Use flash_now! (immediate)\n\n```rust\n// Validation error → re-render page without redirect\ncontext_update!(request => {\n    "form" => &form,\n    "messages" => flash_now!(error => "Invalid form"),\n});\nreturn request.render("form.html");\n```\n\n---	code	3
+429	118	Recommended Placement	Place `{% messages %}` in your base template, just before the main content:\n\n```html\n<!-- base.html -->\n<body>\n    <header>...</header>\n\n    {% messages %}\n\n    <main>\n        {% block content %}{% endblock %}\n    </main>\n\n    <footer>...</footer>\n</body>\n```\n\n---	code	1
+431	119	\N	- [Overview](#overview)\n- [Prisme extractor](/docs/en/formulaire/prisme)\n- [RuniqueForm trait](/docs/en/formulaire/trait)\n  - Base structure\n  - Trait methods\n  - `is_valid()` pipeline\n- [Typed conversion helpers](/docs/en/formulaire/helpers)\n- [Field types](/docs/en/formulaire/fields)\n  - TextField, NumericField, BooleanField, ChoiceField, RadioField…\n  - Summary table\n- [Database errors](/docs/en/formulaire/errors)\n- [Template rendering](/docs/en/formulaire/templates)\n- [Full example & common pitfalls](/docs/en/formulaire/example)\n\n---	sommaire	0
+433	120	\N	[← Field types](/docs/en/formulaire/fields)\n\n---\n\nThe `database_error()` method automatically analyzes DB errors to attach the error to the correct field:\n\n```rust\nmatch form.save(&request.engine.db).await {\n    Ok(_) => { /* success */ }\n    Err(err) => {\n        form.database_error(&err);\n        // The error is set on the relevant field\n    }\n}\n```\n\n**Supported error formats:**\n\n- **PostgreSQL**: `UNIQUE constraint`, `Key (field)=(value)`\n- **SQLite**: `UNIQUE constraint failed: table.field`\n- **MySQL**: `Duplicate entry ... for key 'table.field'`\n\nIf the field is identified, the error appears on that field (e.g. "This email is already used"). Otherwise, it is added to global errors.\n\n---\n\n← [**Field types**](/docs/en/formulaire/fields) | [**Template rendering**](/docs/en/formulaire/templates) →	code	0
+435	121	Edit form — PATCH mode	In `PATCH` mode, `fill()` automatically relaxes the `required` constraint on `Password` fields. This allows an edit form where the password is optional: if left empty, the existing hash is preserved.\n\n```rust\npub async fn edit_profile(\n    mut request: Request,\n    Prisme(mut form): Prisme<EditProfileForm>,\n) -> AppResult<Response> {\n    let template = "profile/edit.html";\n    let user = get_current_user(&request).await?;\n\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Edit profile",\n            "edit_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    // In PATCH mode: the password field is no longer automatically required\n    if request.is_patch() {\n        if form.is_valid().await {\n            let new_password = form.get_form().get_option("password");\n\n            let mut active: users::ActiveModel = user.into();\n            active.username = Set(form.get_form().get_string("username"));\n\n            // If the password field is filled → new hash; otherwise → unchanged\n            if let Some(pwd) = new_password {\n                active.password = Set(pwd); // already hashed by finalize()\n            }\n\n            active.update(&request.engine.db).await?;\n            success!(request.notices => "Profile updated!");\n            return Ok(Redirect::to("/profile").into_response());\n        }\n\n        context_update!(request => {\n            "title" => "Error",\n            "edit_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    request.render(template)\n}\n```\n\n> **💡** PATCH mode is detected automatically by `fill()` via the HTTP method. No additional configuration is needed.\n\n---	code	1
+457	123	Usage in save()	```rust\nimpl RegisterForm {\n    pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {\n        let model = users::ActiveModel {\n            username: Set(self.form.get_string("username")),\n            email: Set(self.form.get_string("email")),\n            password: Set(self.form.get_string("password")),\n            age: Set(self.form.get_i32("age")),\n            website: Set(self.form.get_option("website")),  // Option<String>\n            ..Default::default()\n        };\n        model.insert(db).await\n    }\n}\n```\n\n> **💡** Float helpers (`get_f32`, `get_f64`, `get_option_f64`) automatically convert commas to dots (`19,99` → `19.99`) for French locales.\n\n---	code	4
+562	158	Auto-injected variables	These variables are automatically available in all templates:\n\n| Variable | Type | Description |\n|----------|------|-------------|\n| `csrf_token` | `String` | Session CSRF token |\n| `csp_nonce` | `String` | CSP nonce for inline scripts/styles |\n| `messages` | `Vec<FlashMessage>` | Flash messages from the previous session |\n| `debug` | `bool` | Debug mode status |\n\n---	text	2
+434	121	Full example: signup with persistence	```rust\nuse runique::prelude::*;\n\n#[derive(Serialize, Debug, Clone)]\n#[serde(transparent)]\npub struct RegisterForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for RegisterForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Username")\n                .required(),\n        );\n\n        form.field(\n            &TextField::email("email")\n                .label("Email")\n                .required(),\n        );\n\n        form.field(\n            &TextField::password("password")\n                .label("Password")\n                .required()\n                .min_length(8, "Minimum 8 characters"),\n        );\n    }\n\n    impl_form_access!();\n}\n\nimpl RegisterForm {\n    pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {\n        use sea_orm::Set;\n        let model = users::ActiveModel {\n            username: Set(self.form.get_string("username")),\n            email: Set(self.form.get_string("email")),\n            // The password is already Argon2-hashed after is_valid()\n            password: Set(self.form.get_string("password")),\n            ..Default::default()\n        };\n        model.insert(db).await\n    }\n}\n```\n\n### GET/POST handler\n\n```rust\npub async fn register(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    let template = "profile/register_form.html";\n\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Sign up",\n            "register_form" => &form,\n        });\n        return request.render(template);\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            match form.save(&request.engine.db).await {\n                Ok(_) => {\n                    success!(request.notices => "Registration successful!");\n                    return Ok(Redirect::to("/").into_response());\n                }\n                Err(err) => {\n                    form.database_error(&err);\n                }\n            }\n        }\n\n        context_update!(request => {\n            "title" => "Error",\n            "register_form" => &form,\n            "messages" => flash_now!(error => "Please correct the errors"),\n        });\n        return request.render(template);\n    }\n\n    request.render(template)\n}\n```\n\n---	code	0
+436	121	⚠️ Common pitfalls	### 1. Template variable name collision\n\nIf your template uses `{% form.user %}`, the `user` variable in the context **must** be a form, not a SeaORM Model:\n\n```rust\n// ❌ ERROR — db_user is a Model, not a form\ncontext_update!(request => { "user" => &db_user });\n\n// ✅ CORRECT — separate names\ncontext_update!(request => {\n    "user_form" => &form,\n    "found_user" => &db_user,\n});\n```\n\n### 2. Forgetting `mut` on form\n\n```rust\n//  Cannot call is_valid()\nPrisme(form): Prisme<MyForm>\n\n//  Correct\nPrisme(mut form): Prisme<MyForm>\n```\n\n### 3. Comparing passwords after `is_valid()`\n\n```rust\n/// main.rs ->\n/// with this configuration ->\npassword_init(PasswordConfig::auto_with(Manual::Argon2));\n\n// After is_valid(), passwords are hashed!\nlet pwd = form.get_form().get_string("password");\n// pwd == "$argon2id$v=19$m=..." 😱\n\n// Compare in clean(), BEFORE finalization\nasync fn clean(&mut self) -> Result<(), StrMap> {\n    let pwd1 = self.form.get_string("password");\n    let pwd2 = self.form.get_string("password_confirm");\n    if pwd1 != pwd2 { /* error */ }\n    Ok(())\n}\n```\n\n---\n\n← [**Template rendering**](/docs/en/formulaire/templates) | [**Forms**](/docs/en/formulaire) →	code	2
+438	122	NumericField — Numeric fields	5 variants via the `NumericConfig` enum:\n\n```rust\n// Integer with bounds\nform.field(\n    &NumericField::integer("age")\n        .label("Age")\n        .min(0.0, "Min 0")\n        .max(150.0, "Max 150"),\n);\n\n// Float number\nform.field(&NumericField::float("price").label("Price"));\n\n// Decimal with precision\nform.field(\n    &NumericField::decimal("amount")\n        .label("Amount")\n        .digits(2, 4),  // min 2, max 4 digits after the decimal separator\n);\n\n// Percentage (0–100 by default)\nform.field(&NumericField::percent("rate").label("Rate"));\n\n// Range slider with min, max, default value\nform.field(\n    &NumericField::range("volume", 0.0, 100.0, 50.0)\n        .label("Volume")\n        .step(5.0),\n);\n```\n\n**Options:** `.min(val, msg)`, `.max(val, msg)`, `.step(val)`, `.digits(min, max)`, `.label(l)`, `.placeholder(p)`\n\n---	code	1
+440	122	ChoiceField — Select / Dropdown	```rust\nuse runique::forms::fields::choice::ChoiceOption;\n\nlet choices = vec![\n    ChoiceOption::new("fr", "France"),\n    ChoiceOption::new("be", "Belgium"),\n    ChoiceOption::new("ch", "Switzerland"),\n];\n\n// Single select\nform.field(\n    &ChoiceField::new("country")\n        .label("Country")\n        .choices(choices.clone())\n        .required(),\n);\n\n// Multiple select\nform.field(\n    &ChoiceField::new("languages")\n        .label("Languages")\n        .choices(choices)\n        .multiple(),\n);\n```\n\n> Validation automatically checks that the submitted value is among the declared choices.\n\n---	code	3
+442	122	CheckboxField — Multiple checkboxes	```rust\nform.field(\n    &CheckboxField::new("hobbies")\n        .label("Hobbies")\n        .choices(vec![\n            ChoiceOption::new("sport", "Sports"),\n            ChoiceOption::new("music", "Music"),\n            ChoiceOption::new("reading", "Reading"),\n        ]),\n);\n```\n\n> Submitted values are in the form `"val1,val2,val3"`. Validation checks that each value exists in the choices.\n\n---	code	5
+444	122	DurationField — Duration	```rust\nform.field(\n    &DurationField::new("timeout")\n        .label("Delay (seconds)")\n        .min_seconds(60, "Minimum 1 minute")\n        .max_seconds(3600, "Maximum 1 hour"),\n);\n```\n\n---	code	7
+446	122	ColorField — Color picker	```rust\nform.field(\n    &ColorField::new("theme_color")\n        .label("Theme color")\n        .default_color("#3498db"),  // Validates #RGB or #RRGGBB format\n);\n```\n\n---	code	9
+448	122	UUIDField	```rust\nform.field(\n    &UUIDField::new("external_id")\n        .label("External ID")\n        .placeholder("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"),\n);\n```\n\n---	code	11
+450	122	IPAddressField — IP address	```rust\n// IPv4 + IPv6\nform.field(&IPAddressField::new("server_ip").label("Server IP"));\n\n// IPv4 only\nform.field(&IPAddressField::new("gateway").label("Gateway").ipv4_only());\n\n// IPv6 only\nform.field(&IPAddressField::new("ipv6").label("IPv6 address").ipv6_only());\n```\n\n---	code	13
+452	122	Field types summary	| Struct           | Constructors                                                           | Special validation                                  |\n| ---------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |\n| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization |\n| `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`            | Min/max bounds, decimal precision                   |\n| `BooleanField`   | `new()`, `radio()`                                                     | Required = must be checked                          |\n| `ChoiceField`    | `new()` + `.multiple()`                                                | Value must be in declared choices                   |\n| `RadioField`     | `new()`                                                                | Value must be in declared choices                   |\n| `CheckboxField`  | `new()`                                                                | All values must be in choices                       |\n| `DateField`      | `new()`                                                                | `YYYY-MM-DD` format, min/max bounds                 |\n| `TimeField`      | `new()`                                                                | `HH:MM` format, min/max bounds                      |\n| `DateTimeField`  | `new()`                                                                | `YYYY-MM-DDTHH:MM` format, min/max bounds           |\n| `DurationField`  | `new()`                                                                | Seconds, min/max bounds                             |\n| `FileField`      | `image()`, `document()`, `any()`                                       | Extensions, size, dimensions, anti-SVG              |\n| `ColorField`     | `new()`                                                                | `#RRGGBB` or `#RGB` format                          |\n| `SlugField`      | `new()`                                                                | ASCII/unicode, no hyphen at start/end               |\n| `UUIDField`      | `new()`                                                                | Valid UUID format                                   |\n| `JSONField`      | `new()`                                                                | Valid JSON via `serde_json`                         |\n| `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()`                              | IPv4/IPv6 via `std::net::IpAddr`                    |\n| `HiddenField`    | `new()`, `new_csrf()`                                                  | CSRF token validation if `name == "csrf_token"`     |\n\n---\n\n← [**Typed conversion helpers**](/docs/en/formulaire/helpers) | [**Database errors**](/docs/en/formulaire/errors) →	text	15
+454	123	Option conversions	```rust\nform.get_option("bio")           // -> Option<String> (None if empty)\nform.get_option_i32("age")       // -> Option<i32>\nform.get_option_i64("score")     // -> Option<i64>\nform.get_option_f64("note")      // -> Option<f64> (handles , → .)\nform.get_option_bool("news")     // -> Option<bool>\n```	code	1
+456	123	UUID conversions	```rust\nform.get_uuid("external_id")         // -> Uuid (Uuid::nil() if empty)\nform.get_option_uuid("external_id")  // -> Option<Uuid>\n```	code	3
+477	130	\N	## Two-Step Workflow\n\n### 1. Generate Migration Files\n\n`runique makemigrations` reads your entities declared in `src/entities` and generates the corresponding migration files:\n\n```bash\nrunique makemigrations --entities src/entities --migrations migration/src\n```\n\n### 2. Apply Migrations\n\nVia the SeaORM CLI (recommended):\n\n```bash\nsea-orm-cli migrate up --migration-dir migration/src\n```\n\n---	code	0
+437	122	TextField — Text fields	`TextField` supports 6 special formats via the `SpecialFormat` enum:\n\n```rust\n// Plain text\nform.field(&TextField::text("username").label("Name").required());\n\n// Email — validated via `validator::ValidateEmail`\nform.field(&TextField::email("email").label("Email").required());\n\n// URL — validated via `validator::ValidateUrl`\nform.field(&TextField::url("website").label("Website"));\n\n// Password — automatic Argon2 hashing in finalize(), never re-displayed in HTML\nform.field(\n    &TextField::password("password")\n        .label("Password")\n        .required()\n        .min_length(8, "Min 8 characters"),\n);\n\n// Textarea\nform.field(&TextField::textarea("summary").label("Summary"));\n\n// RichText — automatic XSS sanitization before validation\nform.field(&TextField::richtext("content").label("Content"));\n```\n\n**Builder options:**\n\n```rust\nTextField::text("name")\n    .label("My field")              // Display label\n    .placeholder("Enter...")        // Placeholder\n    .required()                     // Required (default message)\n    .min_length(3, "Too short")     // Min length with message\n    .max_length(100, "Too long")    // Max length with message\n    .readonly("Read-only")          // Read-only\n    .disabled("Disabled")           // Disabled\n```\n\n**Automatic behavior per format:**\n\n| Format     | Validation                 | Transformation                                           |\n| ---------- | -------------------------- | -------------------------------------------------------- |\n| `Email`    | `validator::ValidateEmail` | Lowercased                                               |\n| `Url`      | `validator::ValidateUrl`   | —                                                        |\n| `Password` | Standard                   | Argon2 hash in `finalize()`, value cleared on `render()` |\n| `RichText` | Standard                   | XSS sanitization (`sanitize()`) before validation        |\n| `Csrf`     | Session token              | —                                                        |\n\n**Password utilities:**\n\nHashing and verification are delegated to `PasswordConfig`, initialized at startup via `password_init()`:\n\n```rust\nuse runique::prelude::{hash, verify};\n\n// Hash manually (e.g. account creation outside a form)\nlet hashed = hash("my_password")?;\n\n// Verify a plain password against a stored hash (e.g. login)\nlet ok = verify("plain_pwd", &user.password_hash);\nif !ok {\n    // incorrect password\n}\n```\n\n> Automatic hashing in `finalize()` detects if the value already starts with `$argon2` to avoid double hashing. In a **login** form, do not rely on `is_valid()` to check the password — fetch the user from the DB first, then call `verify()` manually.\n\n---	code	0
+439	122	BooleanField — Checkboxes / Single radio	```rust\n// Simple checkbox\nform.field(\n    &BooleanField::new("accept_terms")\n        .label("I accept the terms")\n        .required(),\n);\n\n// Single radio (yes/no)\nform.field(&BooleanField::radio("newsletter").label("Newsletter"));\n\n// Pre-checked\nform.field(&BooleanField::new("remember_me").label("Remember me").checked());\n```\n\n---	code	2
+441	122	RadioField — Radio buttons	```rust\nform.field(\n    &RadioField::new("gender")\n        .label("Gender")\n        .choices(vec![\n            ChoiceOption::new("m", "Male"),\n            ChoiceOption::new("f", "Female"),\n            ChoiceOption::new("o", "Other"),\n        ])\n        .required(),\n);\n```\n\n---	code	4
+443	122	DateField, TimeField, DateTimeField — Date / Time	```rust\nuse chrono::NaiveDate;\n\n// Date (format: YYYY-MM-DD)\nform.field(\n    &DateField::new("birthday")\n        .label("Birth date")\n        .min(NaiveDate::from_ymd_opt(1900, 1, 1).unwrap(), "Too old")\n        .max(NaiveDate::from_ymd_opt(2010, 12, 31).unwrap(), "Too recent"),\n);\n\n// Time (format: HH:MM)\nform.field(&TimeField::new("meeting_time").label("Meeting time"));\n\n// Date + Time (format: YYYY-MM-DDTHH:MM)\nform.field(&DateTimeField::new("event_start").label("Event start"));\n```\n\n---	code	6
+445	122	FileField — File uploads	```rust\n// Image with full constraints — explicit directory\nform.field(\n    &FileField::image("avatar")\n        .label("Profile picture")\n        .upload_to("uploads/avatars")   // → uploads/avatars/\n        .max_size_mb(5)\n        .max_files(1)\n        .max_dimensions(1920, 1080)\n        .allowed_extensions(vec!["png", "jpg", "jpeg", "webp", "avif"]),\n);\n\n// Image — automatic directory from MEDIA_ROOT (.env)\n// Files go to {MEDIA_ROOT}/{field_name}/  e.g. media/photo/\nform.field(\n    &FileField::image("photo")\n        .label("Photo")\n        .upload_to_env()\n        .max_size_mb(5),\n);\n\n// Without upload_to — files stored directly in MEDIA_ROOT\nform.field(\n    &FileField::image("image")\n        .label("Image")\n        .max_size_mb(5),\n);\n\n// Document\nform.field(\n    &FileField::document("cv")\n        .label("Resume")\n        .upload_to("uploads/cv")\n        .max_size_mb(10),\n);\n\n// Any file (multi-file)\nform.field(\n    &FileField::any("attachments")\n        .label("Attachments")\n        .max_files(5),\n);\n```\n\n**File destination:**\n\n| Method | Destination |\n| --- | --- |\n| `.upload_to("uploads/images")` | `uploads/images/` (exact path) |\n| `.upload_to_env()` | `{MEDIA_ROOT}/{field_name}/` (from `.env`) |\n| *(none)* | `MEDIA_ROOT` directly (no subdirectory) |\n\nThe move to the final destination happens in `finalize()`, **only if validation passes**. The directory is created automatically if it does not already exist.\n\n> **Security**: `.svg` files are **always rejected** by default (XSS risk). Image validation uses the `image` crate to check the real file format. Empty submissions (no file selected) are handled correctly — the `required` constraint works as expected.\n\n### Associated JS files\n\n```rust\nfn register_fields(form: &mut Forms) {\n    // ... fields ...\n    form.add_js(&["js/my_script.js", "js/other.js"]);\n}\n```\n\nJS files are automatically included in the form's HTML rendering.\n\n---	code	8
+447	122	SlugField — URL-friendly slug	```rust\nform.field(\n    &SlugField::new("slug")\n        .label("Slug")\n        .placeholder("my-url-article")\n        .allow_unicode(),  // Optional: allow unicode characters\n);\n```\n\n> Validation: letters, digits, hyphens, underscores only. Cannot start or end with a hyphen.\n\n---	code	10
+449	122	JSONField — Textarea with JSON validation	```rust\nform.field(\n    &JSONField::new("metadata")\n        .label("Metadata")\n        .placeholder(r#"{"key": "value"}"#)\n        .rows(10),  // Number of textarea rows\n);\n```\n\n---	code	12
+451	122	HiddenField — Hidden field	An invisible field in the HTML form (`<input type="hidden">`). Two main uses: pass technical data without showing it to the user, or manually validate a CSRF token.\n\n```rust\n// Generic hidden field (e.g. linked entity ID)\nform.field(\n    &HiddenField::new("entity_id")\n        .label("Entity ID"),\n);\n\n// Internal CSRF field (managed automatically by Runique — advanced use only)\nform.field(&HiddenField::new_csrf());\n```\n\n> In standard Runique forms, CSRF is handled automatically via `{% csrf %}` in the template. You don't need `HiddenField::new_csrf()` unless you are building a fully custom form.\n\n---	code	14
+453	123	Direct conversions	```rust\nform.get_string("username")     // -> String ("" if empty)\nform.get_i32("age")              // -> i32 (0 by default)\nform.get_i64("count")            // -> i64 (0 by default)\nform.get_u32("quantity")         // -> u32 (0 by default)\nform.get_u64("id")               // -> u64 (0 by default)\nform.get_f32("ratio")            // -> f32 (handles , → .)\nform.get_f64("price")            // -> f64 (handles , → .)\nform.get_bool("active")          // -> bool (true/1/on → true)\n```	code	0
+455	123	Date / Time conversions	```rust\nform.get_naive_date("birthday")           // -> NaiveDate (default if empty)\nform.get_naive_time("meeting_time")       // -> NaiveTime (default if empty)\nform.get_naive_datetime("event_start")    // -> NaiveDateTime (default if empty)\nform.get_datetime_utc("created_at")       // -> DateTime<Utc> (Utc::now() if empty)\n\nform.get_option_naive_date("birthday")        // -> Option<NaiveDate>\nform.get_option_naive_time("meeting_time")    // -> Option<NaiveTime>\nform.get_option_naive_datetime("event_start") // -> Option<NaiveDateTime>\nform.get_option_datetime_utc("created_at")    // -> Option<DateTime<Utc>>\n```	code	2
+565	159	Loops	```html\n<!-- Simple loop -->\n<ul>\n{% for item in items %}\n    <li>{{ item.name }} - {{ item.price }}€</li>\n{% endfor %}\n</ul>\n\n<!-- With index -->\n{% for item in items %}\n    <div class="item-{{ loop.index }}">{{ item }}</div>\n{% endfor %}\n\n<!-- With first/last -->\n{% for item in items %}\n    {% if loop.first %}<ul>{% endif %}\n    <li>{{ item }}</li>\n    {% if loop.last %}</ul>{% endif %}\n{% endfor %}\n```\n\n---	code	1
+458	123	URL parameter access	### From `Request` — raw access\n\n```rust\n// Route parameter: /article/{id}\nlet id = request.path_param("id");       // Option<&str>\n\n// Query string parameter: ?page=2\nlet page = request.from_url("page");     // Option<&str>\n```\n\n### From the form — `cleaned_*()` whitelisted and typed\n\nThe `cleaned_*` variants cover **all sources** (POST, path param, query param) in that priority order. They return `None` if the field is not declared in the form.\n\n```rust\nform.cleaned_string("search")   // Option<String>\nform.cleaned_i32("page")        // Option<i32>\nform.cleaned_i64("id")          // Option<i64>\nform.cleaned_u32("quantity")    // Option<u32>\nform.cleaned_u64("ref")         // Option<u64>\nform.cleaned_f32("ratio")       // Option<f32>  (handles , → .)\nform.cleaned_f64("price")       // Option<f64>  (handles , → .)\nform.cleaned_bool("active")     // Option<bool> (true/1/on → true)\n\n// Unknown field → guaranteed None, no leakage possible\nform.cleaned_string("is_admin") // None\n```\n\nPractical example — pre-fill a field from the URL (`GET /edit?title=My+Article`):\n\n```rust\npub async fn edit(\n    mut request: Request,\n    Prisme(mut form): Prisme<ArticleForm>,\n) -> AppResult<Response> {\n    if request.is_get() {\n        if let Some(t) = form.cleaned_string("title") {\n            form.get_form_mut().add_value("title", &t);\n        }\n    }\n\n    if request.is_post() && form.is_valid().await {\n        form.save(&request.engine.db).await?;\n        return Ok(Redirect::to("/articles").into_response());\n    }\n\n    context_update!(request => { "form" => &form });\n    request.render("edit.html")\n}\n```\n\n> **Security** — `cleaned_*()` is bound to the form schema: an attacker cannot inject an arbitrary URL parameter (`?is_admin=true`) that is not a declared field. Works with both `#[form(...)]` and classic forms.\n\n---\n\n← [**RuniqueForm trait**](/docs/en/formulaire/trait) | [**Field types**](/docs/en/formulaire/fields) →	code	5
+460	125	Full form	```html\n<form method="post">\n    {% form.register_form %}\n    <button type="submit">Sign up</button>\n</form>\n```\n\nAutomatically renders: all fields, labels, validation errors, CSRF token, and JS scripts.\n\n---	code	0
+462	125	Global errors	```html\n{% if register_form.form_errors %}\n    <div class="alert alert-danger">\n        {% for msg in register_form.form_errors %}\n            <p>{{ msg }}</p>\n        {% endfor %}\n    </div>\n{% endif %}\n```\n\n> `form_errors` → `Vec<String>` — errors not tied to a specific field (e.g. "Invalid credentials").\n> `errors` → map `{ field_name: message }` — per-field errors + global errors under the `global` key.\n\n---	code	2
+464	126	Base structure	Each form contains a `form: Forms` field and implements the `RuniqueForm` trait:\n\n```rust\nuse runique::prelude::*;\n\n#[derive(Serialize, Debug, Clone)]\n#[serde(transparent)]\npub struct UsernameForm {\n    pub form: Forms,\n}\n\nimpl RuniqueForm for UsernameForm {\n    fn register_fields(form: &mut Forms) {\n        form.field(\n            &TextField::text("username")\n                .label("Username")\n                .required()\n                .placeholder("Enter a username"),\n        );\n    }\n\n    impl_form_access!();\n}\n```\n\n> **💡 `impl_form_access!()`** automatically generates `from_form()`, `get_form()` and `get_form_mut()`. If your field is not named `form`, pass the name as an argument: `impl_form_access!(formulaire)`.\n\n<details>\n<summary>Equivalent without the macro (for reference)</summary>\n\n```rust\nfn from_form(form: Forms) -> Self {\n    Self { form }\n}\nfn get_form(&self) -> &Forms {\n    &self.form\n}\nfn get_form_mut(&mut self) -> &mut Forms {\n    &mut self.form\n}\n```\n\n</details>\n\n---	code	0
+466	126	`is_valid()` — calling on GET and POST	`is_valid()` is designed to be called regardless of the HTTP method:\n\n- **First GET (empty form)** — returns `false`, no errors set on fields. The template renders a clean empty form.\n- **GET with query params (search form)** — validates normally, enabling GET-based searches without extra code.\n- **POST** — standard behavior: validates and sets field errors if invalid.\n\n```rust\n// Unified GET+POST handler — no method branching needed\npub async fn search(\n    mut request: Request,\n    Prisme(mut form): Prisme<SearchForm>,\n) -> AppResult<Response> {\n    if form.is_valid().await {\n        let query = form.get_string("q");\n        // run the search...\n    }\n    // First GET: is_valid() == false, no errors → clean empty form\n    // Submitted GET invalid: is_valid() == false, errors shown\n    context_update!(request => { "search_form" => &form });\n    request.render("search.html")\n}\n```\n\n> **`is_submitted()`** is available when you need to explicitly distinguish "first page load" from "form submitted with invalid data".\n\n---	code	2
+468	126	`clean_field` — per-field business validation	`clean_field` is called for each field after its standard validation. Use it to implement a business rule on a specific field (reserved value, custom format, lightweight uniqueness check…).\n\n- Returns `true` if the field is valid, `false` otherwise\n- On failure, set the error manually on the field via `set_error()`\n- **Not called** if the required field is already empty (standard validation fails first)\n\n```rust\n#[async_trait::async_trait]\nimpl RuniqueForm for UsernameForm {\n    // ...\n\n    async fn clean_field(&mut self, name: &str) -> bool {\n        if name == "username" {\n            let val = self.get_form().get_string("username");\n            if val.to_lowercase().contains("admin") {\n                if let Some(f) = self.get_form_mut().fields.get_mut("username") {\n                    f.set_error("The name 'admin' is reserved".to_string());\n                }\n                return false;\n            }\n        }\n        true\n    }\n}\n```\n\n> **💡** `clean_field` is ideal for isolated rules on a single field. For rules that involve multiple fields at once, use `clean()`.\n>\n> **⚠️ Do not call `clean_field` from within `clean`**: the pipeline guarantees that `clean_field` has already run for every field before `clean` is called. Calling it again would be redundant and could set a duplicate error on a field. Furthermore, `clean` is only invoked if all `clean_field` calls returned `true` — so from within `clean`, all fields are already individually valid.\n\n---	code	4
+479	130	Runique Wrapper (advanced)	The following commands exist in the Runique CLI but **bypass SeaORM's chronological tracking**:\n\n```bash\nrunique migration up --migrations migration/src\nrunique migration down --migrations migration/src\nrunique migration status --migrations migration/src\n```\n\n> ⚠️ These commands do not update SeaORM's migration tracking table. Use only if you know what you are doing — prefer `sea-orm-cli` for the normal workflow.\n\n---\n\n> ⚠️ `runique makemigrations` is the only tool to use for **generating** migration files. Do not use `sea-orm-cli migrate generate`: the Runique system maintains a chronological order and snapshots that the SeaORM CLI is not aware of.\n\n---	code	2
+567	159	Tera macros (inside templates)	```html\n{% macro render_user(user) %}\n    <div class="user-card">\n        <h3>{{ user.name }}</h3>\n        <p>{{ user.email }}</p>\n    </div>\n{% endmacro %}\n\n<!-- Usage: -->\n{% for u in users %}\n    {{ self::render_user(user=u) }}\n{% endfor %}\n```\n\n---	code	3
+569	160	{% static %} — Static assets	```html\n<link rel="stylesheet" href='{% static "css/main.css" %}'>\n<script src='{% static "js/app.js" %}'></script>\n<img src='{% static "images/logo.png" %}' alt="Logo">\n```\n\n**Transformed into:** `{{ "css/main.css" | static }}` → `/static/css/main.css`\n\n---	code	0
+459	124	\N	[← Forms](/docs/en/formulaire)\n\n---\n\n`Prisme<T>` is an Axum extractor that orchestrates a full pipeline behind the scenes:\n\n1. **Sentinel** — Verifies access rules (login, roles) via `GuardRules`.\n2. **Aegis** — Single body extraction (multipart, urlencoded, json) normalized into a `HashMap`.\n3. **CSRF Gate** — Verifies the CSRF token in parsed data.\n4. **Construction** — Builds the form `T`, fills fields, and runs validation.\n\n```rust\nuse runique::prelude::*;\n\npub async fn register(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_post() {\n        if form.is_valid().await {\n            // Valid form → processing\n        }\n    }\n    // ...\n}\n```\n\n> **💡** The developer simply writes `Prisme(mut form)` — the entire security pipeline is transparent.\n\n---\n\n← [**Forms**](/docs/en/formulaire) | [**RuniqueForm trait**](/docs/en/formulaire/trait) →	code	0
+461	125	Field by field	```html\n<form method="post">\n    {% csrf %}\n    <div class="row">\n        <div class="col-6">{% form.register_form.username %}</div>\n        <div class="col-6">{% form.register_form.email %}</div>\n    </div>\n    {% form.register_form.password %}\n    <button type="submit">Sign up</button>\n</form>\n```\n\n---	code	1
+463	125	Field data as JSON	Forms automatically serialize `errors`, `form_errors`, `html`, `rendered_fields`, `fields` and `js_files`.\n\n---\n\n← [**Database errors**](/docs/en/formulaire/errors) | [**Full example**](/docs/en/formulaire/example) →	text	3
+465	126	RuniqueForm trait methods	**Form lifecycle (call order):**\n\n```text\nregister_fields()            → declare fields\n        ↓\nbuild() / build_with_data()  → build the instance\n        ↓\nis_valid()                   → validation pipeline\n    ↓  validate() per field  (required, format, length…)\n    ↓  clean_field(name)     [optional — per-field business rule]\n    ↓  clean()               [optional — cross-field validation]\n    ↓  finalize()            (Argon2 hashing, final transforms)\n        ↓\nsave() / database_error()    → persistence or DB error handling\n        ↓\nclear()                      → [optional] empty the form after processing\n```\n\n**Method reference:**\n\n**`register_fields(form)`** — Declare the form fields.\n\n**`from_form(form)`** — Build the instance from a `Forms`.\n\n**`get_form()` / `get_form_mut()`** — Accessors for the internal `Forms`.\n\n**`clean_field(name)`** *(optional)* — Per-field business validation. Returns `bool`. Called after `validate()` for each field.\n\n**`clean()`** *(optional)* — Cross-field validation. Returns `Result<(), StrMap>`. Called once all fields are valid.\n\n**`is_valid()`** — Orchestrates the full pipeline. Safe to call on both GET and POST: returns `false` without setting field errors if no data has been submitted (first page load), validates normally otherwise.\n\n**`is_submitted()`** — Returns `true` if the form received data (POST, or GET with non-empty query params).\n\n**`database_error(&err)`** — Parses a DB error and attaches it to the correct field.\n\n**`clear()`** — Clears all field values (except CSRF) and resets `submitted` to `false`. Call it after reading cleaned data, before a redirect or empty re-render.\n\n**`build(tera, csrf_token)`** — Build an empty form.\n\n**`build_with_data(data, tera, csrf)`** — Build, fill, and validate.\n\n---	code	1
+467	126	`is_valid()` validation pipeline	Calling `form.is_valid().await` triggers **4 steps in order** (only if the form is submitted):\n\n1. **Field validation** — Each field runs `validate()`: required, length, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`, …)\n2. **`clean_field(name)`** — Per-field business validation, called for each field after step 1 (only if standard validation passed)\n3. **`clean()`** — Cross-field validation (e.g. `pwd1 == pwd2`); passwords are still plain text at this step\n4. **`finalize()`** — Final transformations (automatic Argon2 hashing for `Password` fields)\n\n---	text	3
+469	126	`clean` — cross-field validation	`clean` is called once **all** fields have passed validation (standard + `clean_field`). Use it to cross-check values across fields.\n\n- Returns `Ok(())` if the form is valid\n- Returns `Err(StrMap)` with a map `{ "field_name" => "error message" }` on failure\n\n```rust\n#[async_trait::async_trait]\nimpl RuniqueForm for RegisterForm {\n    // ...\n\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let pwd1 = self.form.get_string("password");\n        let pwd2 = self.form.get_string("password_confirm");\n\n        if pwd1 != pwd2 {\n            let mut errors = StrMap::new();\n            errors.insert(\n                "password_confirm".to_string(),\n                "Passwords do not match".to_string(),\n            );\n            return Err(errors);\n        }\n        Ok(())\n    }\n}\n```\n\n> **⚠️ Important**: `Password` fields are **automatically hashed** during `finalize()` by default (Argon2), unless `password_init` is called in `main.rs` with `PasswordConfig::Manual`, `Delegated`, or `Custom`.\n> Use `clean()` for any password comparison — it is the only step where they are still readable.\n\n---	code	5
+471	127	\N	| Module | Description |\n| --- | --- |\n| [Prerequisites & Initial Setup](/docs/en/installation/prerequisites)| Rust, Git, clone the project, build, run |\n| [Database](/docs/en/installation/database) | SQLite (dev), PostgreSQL (prod) |\n| [Migrations](/docs/en/installation/migrations) | `makemigrations`, `migrate up/down/status` |\n| [Runique CLI](/docs/en/installation/cli) | `create-superuser`, `new`, `start` |\n| [Troubleshooting](/docs/en/installation/troubleshooting) | Common errors and solutions |	sommaire	0
+473	128	All Commands	```bash\nrunique new <name>                                                    # Create a new project\nrunique start [--main src/main.rs] [--admin src/admin.rs]           # Start with admin daemon\nrunique makemigrations --entities src/entities --migrations migration/src  # Generate migrations\nrunique migration up|down|status --migrations migration/src         # Manage migrations\nrunique create-superuser                                            # Create a superuser\n```\n\n---	code	1
+475	129	PostgreSQL (Production)	### 1. Install PostgreSQL\n\n**macOS:**\n\n```bash\nbrew install postgresql\nbrew services start postgresql\n```\n\n**Linux (Debian/Ubuntu):**\n\n```bash\nsudo apt-get install postgresql postgresql-contrib\nsudo systemctl start postgresql\n```\n\n**Windows:**\n\n- [Download the installer](https://www.postgresql.org/download/windows/)\n- Follow the installation wizard\n\n### 2. Create the User and Database\n\n```sql\n-- Connect as admin\npsql -U postgres\n\n-- Create the user\nCREATE USER runique_user WITH PASSWORD 'secure_password';\n\n-- Create the database\nCREATE DATABASE runique OWNER runique_user;\n\n-- Grant permissions\nGRANT ALL PRIVILEGES ON DATABASE runique TO runique_user;\nGRANT ALL PRIVILEGES ON SCHEMA public TO runique_user;\n```\n\n### 3. Configure `.env`\n\n```env\nIP_SERVER=127.0.0.1\nPORT=3000\nDEBUG=true\nSECRET_KEY=your-secret-key-change-in-production\nALLOWED_HOSTS=localhost,127.0.0.1\n\nDB_ENGINE=postgres\nDB_USER=runique_user\nDB_PASSWORD=secure_password\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=runique\nDATABASE_URL=postgres://runique_user:secure_password@localhost:5432/runique\n```\n\n### 4. Verify the Connection\n\n```bash\npsql -U runique_user -d runique -h localhost\n```\n\n---	code	1
+470	126	`clear()` — empty the form after processing	`clear()` resets all field values (except the CSRF token) and sets `submitted` back to `false`.\n\nAvailable anywhere `self` is `&mut Self` — from a handler or from a method on the form itself.\n\n### From a handler\n\n```rust\nif form.is_valid().await {\n    let path = form.cleaned_string("image"); // 1. read before clear\n    // save to DB...\n    form.clear();                            // 2. empty\n    success!(request.notices => "File uploaded!");\n    context_update!(request => { "image_form" => &form });\n    return request.render(template);         // 3. re-render with empty form\n}\n```\n\n### From the form itself (`save(&mut self)`)\n\nDeclaring `save` with `&mut self` lets you encapsulate the clear inside — the handler does nothing extra:\n\n```rust\nimpl BlogForm {\n    pub async fn save(\n        &mut self,\n        db: &DatabaseConnection,\n    ) -> Result<blog::Model, DbErr> {\n        let record = blog::ActiveModel {\n            title: Set(self.form.get_string("title")),\n            // ...\n            ..Default::default()\n        };\n        let result = record.insert(db).await;\n        if result.is_ok() {\n            self.clear(); // automatically empty after success\n        }\n        result\n    }\n}\n```\n\n### Where `clear()` cannot be called\n\n- In a `&self` method (immutable) — does not compile\n- In `clean()` or `clean_field()` — these run **during** `is_valid()`, before `save()` reads the data; calling `clear()` here would wipe the form before it is saved\n\n> **💡 With redirect (PRG)**: if the handler redirects after success (`Redirect::to(...)`), `clear()` is not needed — the new GET request automatically creates a fresh empty instance.\n\n---\n\n← [**Prisme extractor**](/docs/en/formulaire/prisme) | [**Typed conversion helpers**](/docs/en/formulaire/helpers) →	code	6
+472	128	\N	## Create a Superuser\n\nCommand-line interface to create superusers, start the server and manage migrations.\n\n```bash\nrunique create-superuser\n```\n\n```\n=== Create Superuser ===  [Ctrl+C to quit]\n\n[1/5] Hash algorithm:\n  1) Argon2  (recommended)\n  2) Bcrypt\n  3) Scrypt\n  4) Custom provider\nChoice [1-4] (default: 1):\n\n[2/5] Username:\n[3/5] Email:\n[4/5] Password:\n[5/5] Confirm password:\n\n──────────────────────────────────\n  Algorithm : Argon2\n  Username  : admin\n  Email     : admin@example.com\n  Password  : ••••••••\n──────────────────────────────────\n[Enter] Confirm  [A] Change algorithm  [Ctrl+C] Cancel\n```\n\n**Navigation:** `ESC` goes back to the previous step at any time.\n\n> The CLI runs without the application runtime — it has no access to the `PasswordConfig` configured in `main.rs`. The algorithm is chosen explicitly at each run.\n>\n> For the `Custom` case, provide a binary or script that reads the password from **stdin** and returns the hash on **stdout**.\n\n---	code	0
+474	129	\N	## SQLite (Development)\n\n### 1. Modify `demo-app/Cargo.toml`\n\n```toml\n[dependencies]\nrunique = { version = "1.1.52", features = ["orm", "sqlite"] }\n```\n\n### 2. Update `.env`\n\n```env\nDATABASE_URL=sqlite:runique.db?mode=rwc\n```\n\n### 3. Restart\n\n```bash\ncargo run -p demo-app\n```\n\nSQLite by default, PostgreSQL recommended for production.\n\n---	code	0
+476	129	Create a superuser	After applying migrations, create the first admin account:\n\n```bash\nrunique create-superuser\n```\n\nThe CLI guides through an interactive wizard: hash algorithm, username, email, password, then a confirmation step before creation.\n\n---	code	2
+478	130	Other Migration Commands	```bash\nsea-orm-cli migrate down --migration-dir migration/src   # Revert the last migration\nsea-orm-cli migrate status --migration-dir migration/src # Check migration status\n```\n\n---	code	1
+480	131	\N	## Prerequisites\n\n- **Rust 1.85+** — [Install rustup](https://rustup.rs/)\n- **PostgreSQL 12+** (or SQLite for development)\n- **Git**\n\n### Check Versions\n\n```bash\nrustc --version    # Rust 1.85+\ncargo --version    # Cargo 1.85+\npostgres --version # PostgreSQL 12+\n```\n\n---	code	0
+482	132	\N	## "Connection refused" PostgreSQL\n\n```bash\n# Check that PostgreSQL is running\nsudo systemctl status postgresql\n\n# Or on macOS:\nbrew services list\n```\n\n---	code	0
+484	132	SQLite Feature Not Enabled	Make sure the feature is enabled in `Cargo.toml`:\n\n```toml\nrunique = { version = "1.1.52", features = ["orm", "postgres"] }\n```\n\n---	code	2
+486	132	Pre-commit Hooks (optional)	```bash\n# Install pre-commit\npip install pre-commit\n\n# Setup hooks\npre-commit install\n\n# Test hooks\npre-commit run --all-files\n```\n\n---	code	4
+488	133	Execution Stack	```text\nIncoming request\n↓\n1. Extensions (slot 0)     → Inject Engine, Tera, Config\n2. ErrorHandler (slot 10)  → Capture and render errors\n3. Custom (slot 20+)       → Your custom middlewares\n4. CSP (slot 30)           → Content Security Policy & headers\n5. Cache (slot 40)         → No-cache in development\n6. Session (slot 50)       → Session management\n7. CSRF (slot 60)          → Cross-Site Request Forgery protection\n8. Host (slot 70)          → Allowed host validation\n   ↓\n   Handler (your code)\n```	code	1
+490	134	Full example	```rust\nlet app = RuniqueApp::builder(config)\n    .routes(url::routes())\n    .with_database(db)\n    .middleware(|m| {\n        m.with_csp(|c| {\n              c.policy(SecurityPolicy::strict())\n               .with_header_security(true)\n           })\n         .with_allowed_hosts(|h| {\n              h.enabled(true)\n               .host("mysite.com")\n               .host("www.mysite.com")\n           })\n         .with_cache(true)\n    })\n    .statics()\n    .build()\n    .await?;\n```\n\n---	code	1
+492	135	Profile comparison	| Directive | `default()` | `strict()` | `permissive()` |\n| --- | :-----------: | :----------: | :--------------: |\n| `default-src` | `'self'` | `'self'` | `'self'` |\n| `script-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` + `'unsafe-eval'` |\n| `style-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` |\n| `img-src` | `'self'` | `'self'` | `'self'` + `data:` + `https:` |\n| `font-src` | `'self'` | `'self'` | `'self'` + `data:` |\n| `object-src` | `'none'` | `'none'` | `'self'` |\n| `media-src` | `'self'` | `'self'` | `'self'` + `https:` |\n| `frame-src` | `'none'` | `'none'` | `'self'` |\n| `connect-src` | `'self'` | `'self'` | `'self'` |\n| `frame-ancestors` | `'none'` | `'none'` | `'self'` |\n| `base-uri` | `'self'` | `'self'` | `'self'` |\n| `form-action` | `'self'` | `'self'` | `'self'` |\n| `upgrade-insecure-requests` | ❌ | ✅ | ❌ |\n| Nonce | ✅ active | ✅ active | ❌ disabled |\n\n---	text	0
+494	135	`SecurityPolicy::strict()`	More restrictive than `default()`: adds `upgrade-insecure-requests` and enforces the nonce. Use in production for maximum security.\n\n```rust,ignore\nRuniqueApp::new()\n    .middleware(|m| {\n        m.with_csp(|c| {\n            c.policy(SecurityPolicy::strict())\n             .with_header_security(true)\n        })\n    })\n    .build()\n    .await?;\n```\n\n---	code	2
+520	145	\N	## Transactions\n\n```rust\nuse sea_orm::TransactionTrait;\n\nlet mut transaction = db.begin().await?;\n\nlet user = users::ActiveModel {\n    email: Set("test@example.com".to_string()),\n    ..Default::default()\n}.insert(&mut *transaction).await?;\n\nlet profile = profiles::ActiveModel {\n    user_id: Set(user.id),\n    ..Default::default()\n}.insert(&mut *transaction).await?;\n\ntransaction.commit().await?;\n```\n\n---	code	0
+481	131	Project Installation	### 1. Clone the Repository\n\n```bash\ngit clone https://github.com/seb-alliot/runique.git\ncd runique\n```\n\n### 2. Configure .env\n\nCreate a `.env` file inside the `demo-app/` directory:\n\n```env\n# Server\nIP_SERVER=127.0.0.1\nPORT=3000\nDEBUG=true\n\n# Database (PostgreSQL)\nDB_ENGINE=postgres\nDB_USER=postgres\nDB_PASSWORD=your_password_here\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=runique\nDATABASE_URL=postgres://postgres:your_password_here@localhost:5432/runique\n\n# Templates & Static Files\nTEMPLATES_DIR=templates\nSTATICFILES_DIRS=static\nMEDIA_ROOT=media\n\n# Security\nSECRETE_KEY=your_secret_key_change_in_production\nRUNIQUE_ALLOWED_HOSTS=localhost,127.0.0.1\n```\n\n### 3. Build the Project\n\n```bash\ncargo build\n\n# Or for release mode (optimized):\ncargo build --release\n```\n\n### 4. Start the Server\n\n```bash\ncargo run -p demo-app\n```\n\n**Expected output:**\n\n```\n🦀 Runique Framework operational\n   Server running at http://127.0.0.1:3000\n```\n\n### Recommended Tools\n\n```bash\n# Rust analyzer for IDE\nrustup component add rust-analyzer\n\n# Linter & formatter\nrustup component add clippy rustfmt\n\n# SeaORM CLI (required for migrations)\ncargo install sea-orm-cli\n```\n\n---	code	1
+483	132	"Permission denied" on the Database	```bash\n# Check permissions\npsql -U postgres -d runique -c "\\dp"\n\n# Reapply permissions\nGRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;\n```\n\n---	code	1
+485	132	Compilation Error "sea_orm"	```bash\n# Clean and rebuild\ncargo clean\ncargo build\n```\n\n---	code	3
+487	133	\N	| Module | Description |\n| --- | --- |\n| [CSRF Protection](/docs/en/middleware/csrf) | Token, Double Submit Cookie, AJAX |\n| [Content Security Policy](/docs/en/middleware/csp) | Nonce, profiles, headers |\n| [Sessions](/docs/en/middleware/sessions) | Store, durations, access in handlers |\n| [Hosts & Cache](/docs/en/middleware/hosts-cache) | Allowed Hosts, Cache-Control, security headers |\n| [Builder & Configuration](/docs/en/middleware/builder) | Classic Builder, Intelligent Builder, environment variables |\n| [Rate Limiting](/docs/en/middleware/rate-limit) | Per-IP, per-route rate limiting, configurable |	sommaire	0
+489	134	\N	`RuniqueApp::builder(config)` is the single entry point. All middleware configuration goes through `.middleware(|m| { ... })`.	text	0
+491	134	Conditional by environment	```rust\n.middleware(|m| {\n    m.with_csp(|c| {\n          c.policy(SecurityPolicy::strict())\n           .with_upgrade_insecure(!is_debug())\n       })\n     .with_allowed_hosts(|h| {\n          h.enabled(!is_debug())  // disabled in dev, active in prod\n           .host("mysite.com")\n       })\n})\n```\n\n> In `DEBUG=true` mode, `is_debug()` returns `true` — security guards can be conditionally disabled.\n\n---	code	2
+493	135	`SecurityPolicy::default()`	Recommended policy for production. All inline scripts and styles are allowed **only via nonce**. No external images or fonts.\n\n```rust,ignore\nRuniqueApp::new()\n    .middleware(|m| {\n        m.with_csp(|c| c)\n    })\n    .build()\n    .await?;\n```\n\n---	code	1
+495	135	`SecurityPolicy::permissive()`	Relaxed policy for development or legacy integrations. **Do not use in production.**\n\n- `'unsafe-inline'` and `'unsafe-eval'` enabled → CSP no longer protects against XSS\n- Nonce disabled\n- `data:` and `https:` allowed for images and fonts\n- `frame-ancestors 'self'` instead of `'none'`\n\n```rust,ignore\nRuniqueApp::new()\n    .middleware(|m| {\n        m.with_csp(|c| {\n            c.policy(SecurityPolicy::permissive())\n        })\n    })\n    .build()\n    .await?;\n```\n\n---	code	3
+497	135	Back	- [CSP — Overview](/docs/en/middleware/csp)	text	5
+499	136	In manual HTML forms	```html\n<form method="post" action="/submit">\n    {% csrf %}\n    <input type="text" name="data">\n    <button type="submit">Send</button>\n</form>\n```\n\n---	code	1
+501	137	\N	## Host Validation (Allowed Hosts)\n\n### How it works\n\n- Compares the request `Host` header against `ALLOWED_HOSTS`\n- Blocks requests with a non-allowed host (HTTP 400)\n- Protects against Host Header Injection attacks\n\n### `.env` Configuration\n\n```env\n# Allowed hosts (comma-separated)\nALLOWED_HOSTS=localhost,127.0.0.1,example.com\n\n# Supported patterns:\n# localhost       → exact match\n# .example.com   → matches example.com AND *.example.com\n# *              → ALL hosts (⚠️ DANGEROUS in production!)\n```\n\n### Debug mode\n\nWith `DEBUG=true`, host validation is **disabled by default** to make development easier.\n\n---	code	0
+503	137	Security-related environment variables	| Variable | Default | Description |\n|----------|--------|-------------|\n| `SECRETE_KEY` | *(required)* | Secret key for CSRF |\n| `ALLOWED_HOSTS` | `*` | Allowed hosts |\n| `DEBUG` | `true` | Debug mode (affects cache, hosts) |\n| `RUNIQUE_ENABLE_HOST_VALIDATION` | *(auto)* | Force host validation |\n| `RUNIQUE_ENABLE_CACHE` | *(auto)* | Force cache control |\n\n---	text	2
+505	138	Configuration	```rust\nRateLimiter::new().max_requests(5).retry_after(60)    // 5 requests per minute\nRateLimiter::new().max_requests(3).retry_after(300)   // 3 requests per 5 minutes\nRateLimiter::new().max_requests(100).retry_after(60)  // 100 requests per minute\n```\n\n---	code	1
+507	138	API	### `RateLimiter::new()`\n\nCreates a rate limiter with default values (60 req / 60 s).\n\n### `.max_requests(max: u32)`\n\nNumber of requests allowed in the window.\n\n### `.retry_after(secs: u64)`\n\nWindow duration in seconds.\n\n### `is_allowed(key: &str) -> bool`\n\nReturns `true` if the key is under the limit, `false` otherwise.\n\n### `retry_after_secs(key: &str) -> u64`\n\nSeconds remaining until the window resets for this key. Returns `0` if the window has already expired or the key is unknown. Used to populate the `Retry-After` header in 429 responses.\n\n---\n\n← [**Builder & Configuration**](/docs/en/middleware/builder) | [**Flash Messages**](/docs/en/flash) →	text	3
+509	139	Configuration	```rust\n// Custom session duration\nlet app = RuniqueApp::builder(config)\n    .with_session_duration(time::Duration::hours(2))\n    .build()\n    .await?;\n```\n\n### Custom store (production)\n\n```rust\n// Example with a Redis store\nlet app = RuniqueApp::builder(config)\n    .middleware(|m| m.with_session_store(RedisStore::new(client)))\n    .build()\n    .await?;\n```\n\n---	code	1
+511	140	\N	| Section | Content |\n| --- | --- |\n| [DSL & AST](/docs/en/model/dsl) | Exposed macros, `model!` syntax, internal AST, field types and options |\n| [Generation & ModelSchema](/docs/en/model/generation) | Generated code, `ModelSchema`, `to_migration()`, `fill_form()` |\n| [Forms & Challenges](/docs/en/model/formulaires) | `#[form(...)]`, technical considerations, reading order |\n\n---	sommaire	0
+513	141	`model! { ... }` DSL: expected structure	The parser expects a strict structure:\n\n1. model name,\n2. `table: "..."`,\n3. `pk: id => i32|i64|uuid`,\n4. `fields: { ... }`,\n5. `relations: { ... }` (optional),\n6. `meta: { ... }` (optional).\n\nConcrete example:\n\n```rust\nuse runique::prelude::*;\n\nmodel! {\n    User,\n    table: "users",\n    pk: id => i32,\n    fields: {\n        username: String [required, max_len(150), unique],\n        email: String [required, unique],\n        password: String [required],\n        is_active: bool,\n        team_id: i32 [required],\n        created_at: datetime [auto_now],\n    },\n    relations: {\n        has_many: Post,\n        belongs_to: Team via team_id,\n    },\n}\n```\n\n---	code	0
+496	135	Custom policy	For a fully custom policy, use the builder methods directly:\n\n```rust,ignore\nRuniqueApp::new()\n    .middleware(|m| {\n        m.with_csp(|c| {\n            c.scripts(vec!["'self'", "https://cdn.example.com"])\n             .images(vec!["'self'", "data:"])\n             .with_nonce(true)\n        })\n    })\n    .build()\n    .await?;\n```\n\nOr build a `SecurityPolicy` manually for advanced cases:\n\n```rust,ignore\nuse runique::middleware::SecurityPolicy;\n\nlet policy = SecurityPolicy {\n    script_src: vec!["'self'".into(), "https://cdn.example.com".into()],\n    img_src: vec!["'self'".into(), "data:".into()],\n    ..SecurityPolicy::default()\n};\n\nRuniqueApp::new()\n    .middleware(|m| {\n        m.with_csp(|c| c.policy(policy))\n    })\n    .build()\n    .await?;\n```\n\n---	code	4
+498	136	In Runique forms	When you use `{% form.xxx %}`, CSRF is **included automatically**. No need to add it manually.\n\n---	text	0
+500	136	For AJAX requests	```javascript\nconst csrfToken = document.querySelector('[name="csrf_token"]').value;\n\nfetch('/api/endpoint', {\n    method: 'POST',\n    headers: {\n        'Content-Type': 'application/json',\n        'X-CSRF-Token': csrfToken\n    },\n    body: JSON.stringify(data)\n});\n```\n\n---	code	2
+502	137	Cache-Control	### Development mode (`DEBUG=true`)\n\n`no-cache` headers are added to force reloads:\n\n```\nCache-Control: no-cache, no-store, must-revalidate\nPragma: no-cache\n```\n\n### Production mode (`DEBUG=false`)\n\nCaching headers are enabled for performance.\n\n---	code	1
+504	138	Usage	```rust\nuse runique::prelude::*;\n\nstatic LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| {\n    RateLimiter::new()\n        .max_requests(10)\n        .retry_after(60)\n});\n\npub async fn login(/* ... */) -> impl IntoResponse {\n    if !LIMITER.is_allowed(&ip) {\n        return StatusCode::TOO_MANY_REQUESTS.into_response();\n    }\n    // ...\n}\n```\n\n---	code	0
+506	138	Behavior	- The rate limit key is the request's **IP address**\n- Supports `X-Forwarded-For` and `X-Real-IP` headers (reverse proxy)\n- **Fixed window**: the counter resets after `retry_after` seconds\n- Returns `429 Too Many Requests` when the limit is exceeded, with a `Retry-After: <seconds>` header\n\n> **⚠️ Security:** This middleware trusts `X-Forwarded-For` and `X-Real-IP` headers. Ensure your reverse proxy (nginx, etc.) controls these headers and does not allow them to be forged by clients. Without a trusted proxy, an attacker can bypass rate limiting by modifying these headers.\n\n---	text	2
+508	139	Session durations	| Duration | Use case |\n|-------|-------|\n| `Duration::minutes(30)` | Short sessions (security) |\n| `Duration::hours(2)` | Standard usage |\n| `Duration::hours(24)` | Runique default |\n| `Duration::days(7)` | "Remember me" |\n\n---	text	0
+510	139	Accessing session data in handlers	```rust\npub async fn dashboard(request: Request) -> AppResult<Response> {\n    // Read a session value\n    let user_id: Option<i32> = request.session\n        .get("user_id")\n        .await\n        .ok()\n        .flatten();\n\n    // Write a value\n    let _ = request.session.insert("last_visit", "2026-02-06").await;\n}\n```\n\n> For the full session system with watermarks, see [Sessions](/docs/en/session).\n\n---	code	2
+512	140	Recommended Reading Order	1. This document (`12-model.md`)\n2. [ORM](/docs/en/orm) for database usage\n3. [Forms](/docs/en/formulaire) for Prisme integration and rendering	text	1
+514	141	Internal AST (what is parsed)	The DSL is converted into an internal `Model` AST structure, including:\n\n- `name`, `table`, `pk`\n- `fields: Vec<FieldDef>`\n- `relations: Vec<RelationDef>`\n- `meta: Option<MetaDef>`\n\n### Supported types\n\n- text: `String`, `text`, `char`, `varchar(n)`, `var_binary(n)`\n- numeric: `i8/i16/i32/i64/u32/u64/f32/f64`, `decimal(p,s)`, `decimal`\n- date/time: `date`, `time`, `datetime`, `timestamp`, `timestamp_tz`, `interval`\n- other: `bool`, `uuid`, `json`, `json_binary`, `binary(n)`, `binary`, `blob`, `enum(A, B, ...)`, `inet`, `cidr`, `mac_address`\n\n### Field options\n\n- `required`, `nullable`, `unique`, `readonly`\n- `max_len(n)`, `min_len(n)`, `max(n)`, `min(n)`, `max_f(n)`, `min_f(n)`\n- `auto_now`, `auto_now_update`\n- `label(...)`, `help(...)`, `select_as(...)`\n- `file(kind)`, `file(kind, "upload/path")` — file field (see below)\n\n### File fields — `file()`\n\nA `String` field can be declared as a file field using the `file()` option. The auto-generated form (`AdminForm`) will then use a `FileField` instead of a `TextField`.\n\n```rust\nmodel! {\n    Article,\n    table: "articles",\n    pk: id => i32,\n    fields: {\n        title: String [required],\n\n        // image — explicit directory\n        image: String [file(image, "media/articles")],\n\n        // document — auto directory from MEDIA_ROOT + field name\n        file: String [file(document)],\n\n        // any file type\n        attachment: String [file(any, "media/uploads")],\n    },\n}\n```\n\n**Available kinds:**\n\n| Value | Default allowed extensions | Maps to |\n| --- | --- | --- |\n| `image` | `jpg jpeg png gif webp avif` | `FileField::image()` |\n| `document` | `pdf doc docx txt odt` | `FileField::document()` |\n| `any` | no filter | `FileField::any()` |\n\n**Upload path:**\n\n| Syntax | Destination |\n| --- | --- |\n| `file(image, "media/articles")` | `media/articles/` (exact path) |\n| `file(image)` | `{MEDIA_ROOT}/{field_name}/` (reads `MEDIA_ROOT` from `.env`) |\n\n> Invalid files are deleted from disk if validation fails. The destination directory is created automatically on the first valid upload.\n\n### Relations\n\nRelations are declared in an optional `relations: { ... }` block after `fields`.\n\n| Syntax | DB constraint | Description |\n| --- | --- | --- |\n| `belongs_to: Model via fk_field,` | ✅ `FOREIGN KEY` generated | Foreign key to `model.id` |\n| `belongs_to: Model via fk_field [cascade],` | ✅ `ON DELETE CASCADE` | FK with on_delete cascade |\n| `belongs_to: Model via fk_field [cascade, restrict],` | ✅ | FK with on_delete + on_update |\n| `has_many: Model,` | ❌ (code only) | 1-N relation |\n| `has_one: Model,` | ❌ (code only) | 1-1 relation |\n| `many_to_many: Model via pivot_table,` | ❌ (code only) | N-N relation |\n\nAvailable FK actions: `cascade`, `restrict`, `set_null`, `set_default` (default: `no_action`).\n\n> `belongs_to` automatically generates a `FOREIGN KEY` in the migration. The FK column (`fk_field`) must be declared in `fields`.\n\n### Meta\n\n> The `meta` block is reserved for future versions (ordering, verbose_name, etc.). It is parsed without error but currently ignored.\n\n---	code	1
+516	142	Technical considerations	### Advantages\n\n- Single model/schema contract, centralized\n- Coherent generation of migrations + forms\n- Reduced duplication of field definitions\n- `clean` is the official trait override — uniform between manual and model-based forms\n\n### Points of attention\n\n- Strict DSL: a syntax error causes a macro build error\n- Misaligned `fields`/`exclude` with the schema can cause generation or runtime errors\n- `#[async_trait]` required on `impl RuniqueForm` only when overriding `clean` or `clean_field`\n\n### Known limitation — field override not yet supported\n\n> **Overriding an individual field auto-generated by `#[form(...)]` or `model!` is not yet supported.**\n\nIt is currently not possible to customize a single field (e.g. add `.max_size_mb(5)` or change the label) without rewriting the entire `register_fields` by hand, which defeats the purpose of the macro.\n\n**Current workaround:** write a fully manual form and declare all fields explicitly.\n\n```rust\n// ❌ Not yet possible\n#[form(schema = article_schema)]\npub struct ArticleForm;\n\nimpl RuniqueForm for ArticleForm {\n    impl_form_access!(model);\n    // override just the image field → impossible without rewriting everything\n}\n\n// ✅ Workaround: manual form\nimpl RuniqueForm for ArticleForm {\n    impl_form_access!();\n    fn register_fields(form: &mut Forms) {\n        form.field(&TextField::text("title").label("Title").required());\n        form.field(\n            &FileField::image("image")\n                .upload_to("media/articles")\n                .max_size_mb(5),\n        );\n    }\n}\n```\n\nThis limitation will be addressed in **v2.0** with the refactoring of the field system into widgets, which will allow declaring and overriding any field directly from the model.\n\n---	code	1
+518	143	Role of `ModelSchema`	`ModelSchema` is the structural source of truth (table, PK, columns, FK, relations, indexes).\n\n### Important runtime methods\n\n- `to_migration()`: generates the migration statement\n- `fill_form(form, fields, exclude)`: populates a form from the schema\n\n### `fill_form` behavior\n\n- the primary key is always excluded,\n- if `fields` is provided: it acts as a whitelist (order preserved),\n- otherwise `exclude` acts as a blacklist.\n\n---	text	1
+515	142	\N	## Link with forms via `#[form(...)]`\n\nThe `#[form(...)]` attribute macro expects:\n\n- `schema = function_path` (required)\n- `fields = [..]` (optional)\n- `exclude = [..]` (optional)\n\nIt generates only:\n\n- a struct containing `form: Forms`\n- `impl ModelForm` (`schema()`, `fields()`, `exclude()`)\n\nThe developer then writes `impl RuniqueForm` with `impl_form_access!(model)`:\n\n```rust\nuse runique::prelude::*;\n\n#[form(schema = user_schema, fields = [username, email])]\npub struct UserForm;\n\nimpl RuniqueForm for UserForm {\n    impl_form_access!(model);\n}\n```\n\n### With business validation (`clean`)\n\nOverride `clean` directly in `impl RuniqueForm` — just like Django.\n`#[async_trait]` is only required when overriding an async method:\n\n```rust\n#[form(schema = user_schema, fields = [username, email, password])]\npub struct RegisterForm;\n\n#[async_trait]\nimpl RuniqueForm for RegisterForm {\n    impl_form_access!(model);\n\n    async fn clean(&mut self) -> Result<(), StrMap> {\n        let mut errors = StrMap::new();\n        if self.get_string("username").len() < 3 {\n            errors.insert("username".to_string(), "Minimum 3 characters".to_string());\n        }\n        if !self.get_string("email").contains('@') {\n            errors.insert("email".to_string(), "Invalid email".to_string());\n        }\n        if errors.is_empty() { Ok(()) } else { Err(errors) }\n    }\n}\n```\n\n> `is_valid()` automatically calls `clean` after structural validation.\n> Returned errors are attached to fields and displayed inline in the template.\n\n---	code	0
+517	143	\N	## Code generated by `model!(...)`\n\nAfter parsing the AST, the macro generates, among other things:\n\n- a `schema() -> ModelSchema` function\n- the SeaORM model (generated code)\n- associated relations\n\nThe generated `schema()` function follows this pattern:\n\n```rust\npub fn schema() -> runique::migration::schema::ModelSchema {\n    runique::migration::ModelSchema::new("User")\n        .table_name("users")\n        // pk, columns, FK, relations, meta...\n        .build()\n        .unwrap()\n}\n```\n\n---	code	0
+519	144	\N	| Module | Description |\n| --- | --- |\n| [Manager & Helpers](/docs/en/orm/manager) | `impl_objects!`, `all()`, `filter()`, `get()`, `get_or_404()` |\n| [CRUD Queries](/docs/en/orm/queries) | SELECT, INSERT, UPDATE, DELETE, COUNT |\n| [Advanced](/docs/en/orm/advanced) | Transactions, relations, complete CRUD pattern |	sommaire	0
+521	145	Relations	### One-to-Many\n\n```rust\nlet user = users::Entity::objects.get_optional(&*db, 1).await?;\n\nif let Some(user) = user {\n    let posts = user.find_related(posts::Entity)\n        .all(&*db)\n        .await?;\n}\n```\n\n### Many-to-Many\n\n```rust\nlet user = users::Entity::objects.get_optional(&*db, 1).await?;\n\nif let Some(user) = user {\n    let roles = user.find_related(roles::Entity)\n        .all(&*db)\n        .await?;\n}\n```\n\n---	code	1
+523	146	\N	## SeaORM + Objects Manager\n\nRunique uses **SeaORM** with a Django-like manager via the `impl_objects!` macro.\n\nThe macro is **automatically generated** by the daemon in each entity file (`runique makemigrations`). No manual declaration needed.\n\n> **Note**: `impl_objects!` is pure syntactic sugar. It does not modify the generated queries — the SQL produced is identical to native SeaORM.\n\n```rust\nuse demo_app::entities::users;\n\n// Retrieve all users\nlet all_users = users::Entity::objects\n    .all()\n    .all(&*db)\n    .await?;\n\n// With filter\nlet active_users = users::Entity::objects\n    .filter(users::Column::Active.eq(true))\n    .all(&*db)\n    .await?;\n\n// Single result\nlet user = users::Entity::objects\n    .filter(users::Column::Id.eq(user_id))\n    .first(&*db)\n    .await?;\n```\n\n---	code	0
+525	146	Available helpers	- `all()`: entry point for chaining `filter`, `order_by_asc/desc`, `limit`, `offset`.\n- `filter(...)` / `exclude(...)`: add conditions.\n- `first(db)` / `count(db)`: execute the query.\n- `get(db, id)` / `get_optional(db, id)`: direct primary key access.\n- `get_or_404(db, ctx, msg)`: returns a 404/500 response with Tera rendering if missing.\n\n---	text	2
+527	147	COUNT — Count records	```rust\nlet count = users::Entity::objects\n    .filter(users::Column::Active.eq(true))\n    .count(&*db)\n    .await?;\n```\n\n---	code	1
+529	147	INSERT — Create	```rust\nuse sea_orm::Set;\n\nlet new_user = users::ActiveModel {\n    email: Set("john@example.com".to_string()),\n    username: Set("john".to_string()),\n    password: Set(hash_password("password123")),\n    ..Default::default()\n};\n\nlet user = new_user.insert(&*db).await?;\n```\n\n---	code	3
+531	147	DELETE — Remove	```rust\n// Delete single record\nlet result = users::Entity::delete_by_id(1)\n    .exec(&*db)\n    .await?;\n\n// Delete multiple records\nlet result = users::Entity::delete_many()\n    .filter(users::Column::Active.eq(false))\n    .exec(&*db)\n    .await?;\n```\n\n---	code	5
+533	149	\N	## Path — URL parameters\n\n```rust\nuse axum::extract::Path;\n\n// Simple\nasync fn user_detail(\n    Path(id): Path<i32>,\n    mut request: Request,\n) -> AppResult<Response> {\n    // id = 42 for /users/42\n}\n\n// Multiple\n#[derive(Deserialize)]\npub struct UserPostPath {\n    user_id: i32,\n    post_id: i32,\n}\n\nasync fn user_post(\n    Path(params): Path<UserPostPath>,\n    mut request: Request,\n) -> AppResult<Response> {\n    // params.user_id, params.post_id\n}\n```\n\n---	code	0
+535	149	Prisme — Forms	```rust\nuse runique::prelude::*;\n\nasync fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if form.is_valid().await {\n        form.save(&request.engine.db).await?;\n    }\n    // ...\n}\n```\n\n---	code	2
+537	150	\N	## Macro urlpatterns!\n\nDefine application routes with names for URL resolution:\n\n```rust\nuse crate::views;\nuse runique::prelude::*;\nuse runique::{urlpatterns, view};\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ views::index }, name = "index",\n        "/users" => view! { views::user_list }, name = "users",\n        "/users/:id" => view!{ views::user_detail }, name = "user_detail",\n        "/users/:id/delete" => view!{views::delete_user }, name = "user_delete",\n    }\n}\n```\n\n### With names (recommended)\n\nNames allow URL resolution in templates via `{% link "name" %}`:\n\n```rust\nurlpatterns! {\n    "/" => view!{ views::index }, name = "index",\n    "/users/:id" => view!{ views::user_detail }, name = "user_detail",\n}\n```\n\n```html\n<a href='{% link "index" %}'>Home</a>\n<a href='{% link "user_detail" id="42" %}'>Profile</a>\n```\n\n### Without names\n\n```rust\nurlpatterns! {\n    "/" => view!{ views::index },\n    "/about" => view!{ views::about },\n}\n```\n\n---	code	0
+539	150	Macro impl_objects! (bonus)	`impl_objects!` is **automatically generated** by the daemon in each entity file. It adds a Django-like manager usable directly in handlers:\n\n```rust\nuse crate::entities::users;\n\nlet user = users::Entity::objects\n    .filter(users::Column::Username.eq("john"))\n    .first(&db)\n    .await?;\n```\n\nSee the [ORM guide](/docs/en/orm) for more details.\n\n---	code	2
+541	151	Redirect	```rust\nuse axum::response::Redirect;\n\nasync fn after_submit(request: Request) -> AppResult<Response> {\n    success!(request.notices => "Saved!");\n    Ok(Redirect::to("/").into_response())\n}\n```\n\n---	code	1
+543	151	Status Code	```rust\nuse axum::http::StatusCode;\n\nasync fn not_found() -> StatusCode {\n    StatusCode::NOT_FOUND\n}\n```\n\n---	code	3
+522	145	Complete CRUD pattern	```rust\nuse demo_app::entities::users;\nuse runique::prelude::*;\nuse axum::extract::Path;\n\nasync fn list_users(request: Request) -> AppResult<Response> {\n    let users = users::Entity::find()\n        .all(&*request.engine.db)\n        .await?;\n\n    Ok(Json(json!({ "users": users })).into_response())\n}\n\nasync fn get_user(\n    Path(id): Path<i32>,\n    request: Request,\n) -> AppResult<Response> {\n    match users::Entity::find_by_id(id).one(&*request.engine.db).await? {\n        Some(user) => Ok(Json(json!({ "user": user })).into_response()),\n        None => Ok(StatusCode::NOT_FOUND.into_response()),\n    }\n}\n\nasync fn create_user(\n    mut request: Request,\n    Json(payload): Json<CreateUserRequest>,\n) -> AppResult<Response> {\n    let user = users::ActiveModel {\n        email: Set(payload.email),\n        username: Set(payload.username),\n        ..Default::default()\n    }.insert(&*request.engine.db).await?;\n\n    success!(request.notices => "User created!");\n    Ok((StatusCode::CREATED, Json(json!({ "user": user }))).into_response())\n}\n\nasync fn delete_user(\n    Path(id): Path<i32>,\n    mut request: Request,\n) -> AppResult<Response> {\n    let result = users::Entity::delete_by_id(id)\n        .exec(&*request.engine.db)\n        .await?;\n\n    if result.rows_affected > 0 {\n        success!(request.notices => "User deleted");\n        Ok(Redirect::to("/users").into_response())\n    } else {\n        Ok(StatusCode::NOT_FOUND.into_response())\n    }\n}\n```\n\n---	code	2
+524	146	Without the macro (native SeaORM)	```rust\n// All records\nlet all_users = users::Entity::find().all(&*db).await?;\n\n// With filter\nlet active_users = users::Entity::find()\n    .filter(users::Column::Active.eq(true))\n    .all(&*db)\n    .await?;\n\n// Single result by ID\nlet user = users::Entity::find_by_id(user_id)\n    .one(&*db)\n    .await?;\n```\n\n---	code	1
+526	147	\N	## SELECT — Retrieve\n\n```rust\n// All records\nlet users: Vec<users::Model> = users::Entity::objects\n    .all()\n    .all(&*db)\n    .await?;\n\n// With limit and offset\nlet users = users::Entity::objects\n    .all()\n    .limit(10)\n    .offset(0)\n    .all(&*db)\n    .await?;\n\n// With ordering\nuse sea_orm::Order;\nlet users = users::Entity::objects\n    .all()\n    .order_by_asc(users::Column::Name)\n    .all(&*db)\n    .await?;\n```\n\n---	code	0
+528	147	WHERE — Filtering	```rust\nuse sea_orm::ColumnTrait;\n\n// Equality\nlet user = users::Entity::objects\n    .filter(users::Column::Email.eq("test@example.com"))\n    .first(&*db)\n    .await?;\n\n// Comparisons\nlet users = users::Entity::objects\n    .filter(users::Column::Age.gt(18))\n    .all(&*db)\n    .await?;\n\n// Multiple conditions\nlet users = users::Entity::objects\n    .filter(users::Column::Active.eq(true))\n    .filter(users::Column::Age.gte(18))\n    .all(&*db)\n    .await?;\n\n// OR\nlet users = users::Entity::objects\n    .filter(\n        users::Column::Email.eq("a@test.com")\n            .or(users::Column::Email.eq("b@test.com"))\n    )\n    .all(&*db)\n    .await?;\n```\n\n---	code	2
+530	147	UPDATE — Modify	```rust\nuse sea_orm::{Set, Unchanged};\n\nlet mut user = users::Entity::find_by_id(1)\n    .one(&*db)\n    .await?\n    .ok_or("User not found")?;\n\nlet mut user = user.into_active_model();\nuser.email = Set("newemail@example.com".to_string());\n\nlet updated = user.update(&*db).await?;\n```\n\n---	code	4
+532	148	\N	| Section | Content |\n| --- | --- |\n| [Macros](/docs/en/routing/macros) | `urlpatterns!`, `view!`, `impl_objects!` |\n| [Extractors](/docs/en/routing/extracteurs) | Path, Query, Prisme, Json |\n| [Responses](/docs/en/routing/responses)| HTML, Redirect, JSON, StatusCode, complete structure |\n\n---	sommaire	0
+534	149	Query — Query parameters	```rust\nuse axum::extract::Query;\n\n#[derive(Deserialize)]\npub struct PaginationQuery {\n    page: Option<u32>,\n    limit: Option<u32>,\n}\n\nasync fn list(\n    Query(query): Query<PaginationQuery>,\n    mut request: Request,\n) -> AppResult<Response> {\n    let page = query.page.unwrap_or(1);\n    let limit = query.limit.unwrap_or(10);\n    // ...\n}\n```\n\n---	code	1
+536	149	Json — JSON body	```rust\nuse axum::Json;\n\n#[derive(Deserialize)]\npub struct CreateUserRequest {\n    username: String,\n    email: String,\n}\n\nasync fn create_api(\n    Json(payload): Json<CreateUserRequest>,\n) -> impl IntoResponse {\n    // payload.username, payload.email\n}\n```\n\n---	code	3
+538	150	Macro view!	A single handler handles GET and POST as well as PUT and DELETE (recommended pattern with `request.is_get()` / `request.is_post()`):\n\n```rust\n// In routes\n"/inscription" => view!{ views::inscription }, name = "inscription",\n```\n\n```rust\n// In handler\npub async fn inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_get() {\n        context_update!(request => { "form" => &form });\n        return request.render("form.html");\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            // ...\n        }\n    }\n\n    request.render("form.html")\n}\n```\n\n---	code	1
+540	151	\N	## HTML Template (most common)\n\n```rust\nasync fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => {\n        "title" => "Home",\n    });\n    request.render("index.html")\n}\n```\n\n---	code	0
+542	151	JSON	```rust\nuse axum::Json;\nuse serde_json::json;\n\nasync fn api_list() -> Json<serde_json::Value> {\n    Json(json!({\n        "status": "success",\n        "data": [1, 2, 3]\n    }))\n}\n```\n\n---	code	2
+544	151	Tuple Response	```rust\nasync fn created(Json(data): Json<Data>) -> (StatusCode, Json<Data>) {\n    (StatusCode::CREATED, Json(data))\n}\n```\n\n---	code	4
+546	152	\N	| Section | Content |\n| --- | --- |\n| [Store & Watermarks](/docs/en/session/store) | `CleaningMemoryStore`, low/high watermarks, memory estimation |\n| [Protection](/docs/en/session/protection) | Automatic protection (`user_id`), manual (`session_active`), shopping cart use cases |\n| [Usage & Configuration](/docs/en/session/usage) | Session access in handlers, `.env`, builder |\n\n---	sommaire	0
+548	153	Use case — protecting a shopping cart	```rust\npub async fn add_to_cart(request: Request, item: Item) -> AppResult<Response> {\n    // Add item to cart\n    request.session.insert("cart", &cart).await?;\n\n    // Protect the session for 2 hours against emergency cleanup\n    protect_session(&request.session, 60 * 60 * 2).await?;\n\n    Ok(redirect("/cart"))\n}\n\npub async fn checkout_complete(request: Request) -> AppResult<Response> {\n    // Clear cart and remove protection\n    request.session.remove::<Cart>("cart").await?;\n    unprotect_session(&request.session).await?;\n\n    Ok(redirect("/confirmation"))\n}\n```\n\n---	code	1
+550	154	Watermark system	### Low watermark (128 MB default)\n\nWhen the total store size exceeds this threshold, a non-blocking background cleanup is launched via `tokio::spawn`. It removes **expired anonymous sessions** without blocking the current request.\n\n### High watermark (256 MB default)\n\nWhen the size exceeds this threshold at session creation time:\n\n1. **Pass 1** — removes expired anonymous sessions\n2. **Pass 2** — if still exceeded, removes all expired sessions (including authenticated)\n3. **Refusal** — if still exceeded, returns `503 Service Unavailable`\n\nProtected sessions are never sacrificed in pass 1.\n\n---	text	1
+552	155	`.env` configuration	```rust,ignore\n.middleware(|m| {\n    m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)\n     .with_session_cleanup_interval(5)\n})\n```\n\n---	code	1
+545	151	Full app structure	```rust\n// src/url.rs\nuse crate::views;\nuse runique::prelude::*;\nuse runique::{urlpatterns, view};\n\npub fn routes() -> Router {\n    urlpatterns! {\n        "/" => view!{ views::index }, name = "index",\n        "/about" => view! { views::about }, name = "about",\n        "/inscription" => view! { views::soumission_inscription }, name = "inscription",\n    }\n}\n```\n\n```rust\n// src/views.rs\nuse runique::prelude::*;\n\npub async fn index(mut request: Request) -> AppResult<Response> {\n    context_update!(request => { "title" => "Home" });\n    request.render("index.html")\n}\n\npub async fn about(mut request: Request) -> AppResult<Response> {\n    success!(request.notices => "Welcome!");\n    context_update!(request => { "title" => "About" });\n    request.render("about/about.html")\n}\n\npub async fn soumission_inscription(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Sign up",\n            "inscription_form" => &form,\n        });\n        return request.render("inscription_form.html");\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            let user = form.save(&request.engine.db).await.map_err(|err| {\n                form.get_form_mut().database_error(&err);\n                AppError::from(err)\n            })?;\n            success!(request.notices => format!("Welcome {}!", user.username));\n            return Ok(Redirect::to("/").into_response());\n        }\n\n        context_update!(request => {\n            "title" => "Error",\n            "inscription_form" => &form,\n            "messages" => flash_now!(error => "Please fix the errors"),\n        });\n        return request.render("inscription_form.html");\n    }\n\n    request.render("inscription_form.html")\n}\n```\n\n---	code	5
+547	153	Manual protection — `session_active`	To protect a high-value anonymous session (cart, multi-step form, wizard), use `protect_session`:\n\n```rust\nuse runique::middleware::auth::protect_session;\n\n// Protect the session for 30 minutes\nprotect_session(&session, 60 * 30).await?;\n```\n\nThe `session_active` key stores a future Unix timestamp. Protection expires automatically at that date — no manual cleanup needed.\n\nTo remove protection explicitly:\n\n```rust\nuse runique::middleware::auth::unprotect_session;\n\nunprotect_session(&session).await?;\n```\n\n### Protection logic\n\n```\nis_protected(record) = true if:\n  - record contains "user_id"\n  - OR record contains "session_active" with a future timestamp\n```\n\n---	code	0
+549	154	\N	## CleaningMemoryStore\n\n### Why\n\nThe tower-sessions `MemoryStore` does not implement cleanup of expired sessions. Without purging, every request from a bot without cookies creates a session that is never deleted — memory grows unboundedly.\n\n`CleaningMemoryStore` solves this with three mechanisms:\n\n| Mechanism | Trigger | Behavior |\n|-----------|---------|----------|\n| Periodic timer | Every 60s (configurable) | Deletes all expired sessions |\n| Low watermark | 128 MB (configurable) | Async purge of expired anonymous sessions |\n| High watermark | 256 MB (configurable) | Synchronous emergency purge + 503 refusal if still exceeded |\n\n### Size estimation\n\nEach record is estimated as: `24 bytes (UUID + expiry) + JSON length of session data`.\n\nA warning is logged if a record exceeds 50 KB (image or file accidentally stored in session).\n\n---	text	0
+551	155	\N	## Accessing the session in handlers\n\n```rust\npub async fn handler(request: Request) -> AppResult<Response> {\n    // Read\n    let user_id: Option<i32> = request.session.get("user_id").await.ok().flatten();\n\n    // Write\n    request.session.insert("cart_id", 42).await?;\n\n    // Remove a key\n    request.session.remove::<i32>("cart_id").await?;\n\n    // Destroy the entire session\n    request.session.flush().await?;\n}\n```\n\n---	code	0
+553	155	Cookie security defaults	Session cookies are configured with the following security attributes by default:\n\n| Attribute | Value | Description |\n| --- | --- | --- |\n| `HttpOnly` | `true` | Always enabled — inaccessible to JavaScript |\n| `SameSite` | `Strict` | Blocks cross-site requests |\n| `Secure` | `true` in production | HTTPS only (disabled in debug mode) |\n\nThese defaults are set automatically by the builder and cannot be overridden without modifying the framework.\n\n---	text	2
+555	156	\N	| Module | Description |\n| --- | --- |\n| [Django-like Tags](/docs/en/template/tags) | `{% static %}`, `{% csrf %}`, `{% messages %}`, `{% form.xxx %}` |\n| [Filters & Functions](/docs/en/template/filters) | Asset filters, form filters, Tera functions |\n| [Tera Syntax](/docs/en/template/syntax) | Inheritance, loops, conditions, macros, `context_update!` |\n| [Forms & Context](/docs/en/template/forms) | Errors, auto-injected variables, common pitfalls |	sommaire	0
+557	157	Markdown filter	| Filter     | Description                                        | Example                          |\n|------------|----------------------------------------------------|----------------------------------|\n| `markdown` | Converts Markdown to HTML (automatically safe)     | `{{ page.content \\| markdown }}` |\n\n> Runique's preprocessor automatically injects `\\| safe` — no need to add it manually.\n\n---	text	1
+559	157	Tera functions	| Function | Description | Example |\n|----------|-------------|---------|\n| `csrf()` | Generates a CSRF field from context | `{{ csrf() }}` |\n| `nonce()` | Returns the CSP nonce | `{{ nonce() }}` |\n| `link(link='...')` | Named URL resolution | `{{ link(link='index') }}` |\n\n---	text	3
+561	158	Complete example: page with a form	```rust\n// Rust handler\npub async fn signup(\n    mut request: Request,\n    Prisme(mut form): Prisme<RegisterForm>,\n) -> AppResult<Response> {\n    if request.is_get() {\n        context_update!(request => {\n            "title" => "Sign Up",\n            "signup_form" => &form,\n        });\n        return request.render("signup.html");\n    }\n\n    if request.is_post() {\n        if form.is_valid().await {\n            let user = form.save(&request.engine.db).await.map_err(|err| {\n                form.get_form_mut().database_error(&err);\n                AppError::from(err)\n            })?;\n            success!(request.notices => format!("Welcome {}!", user.username));\n            return Ok(Redirect::to("/").into_response());\n        }\n\n        context_update!(request => {\n            "title" => "Validation Error",\n            "signup_form" => &form,\n            "messages" => flash_now!(error => "Please fix the errors"),\n        });\n        return request.render("signup.html");\n    }\n\n    request.render("signup.html")\n}\n```\n\n```html\n{% extends "base.html" %}\n\n{% block title %}{{ title }}{% endblock %}\n\n{% block content %}\n    <h1>{{ title }}</h1>\n    {% messages %}\n    <form method="post" action="/signup">\n        {% form.signup_form %}\n        <button type="submit" class="btn btn-primary">Sign up</button>\n    </form>\n{% endblock %}\n```\n\n---	code	1
+563	158	Common pitfall: variable name collision	When using `{% form.user %}`, the variable `user` **must be a Prisme form**:\n\n```rust\n// ❌ ERROR: "user" is a SeaORM Model, not a form\ncontext_update!(request => {\n    "user" => &db_user,  // the form filter will crash!\n});\n\n// ✅ CORRECT: separate form and DB entity\ncontext_update!(request => {\n    "user" => &form,           // form → {% form.user %} works\n    "found_user" => &db_user,  // Model → {{ found_user.email }}\n});\n```\n\n---	code	3
+564	159	\N	## Template inheritance\n\n### Parent template (base.html)\n\n```html\n<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <title>{% block title %}My Site{% endblock %}</title>\n    <link rel="stylesheet" href='{% static "css/main.css" %}'>\n</head>\n<body>\n    <header>\n        <nav>\n            <a href='{% link "index" %}'>Home</a>\n            <a href='{% link "about" %}'>About</a>\n        </nav>\n    </header>\n\n    {% messages %}\n\n    <main>\n        {% block content %}{% endblock %}\n    </main>\n\n    <footer>\n        <p>&copy; 2026 My App</p>\n    </footer>\n</body>\n</html>\n```\n\n### Child template (index.html)\n\n```html\n{% extends "base.html" %}\n\n{% block title %}Home{% endblock %}\n\n{% block content %}\n    <h2>{{ title }}</h2>\n    <p>{{ description }}</p>\n\n    {% if items %}\n        <ul>\n            {% for item in items %}\n                <li>{{ item }}</li>\n            {% endfor %}\n        </ul>\n    {% endif %}\n{% endblock %}\n```\n\n---	code	0
+566	159	Conditions	```html\n{% if user %}\n    <p>Welcome, {{ user.name }}!</p>\n{% elif guest %}\n    <p>Welcome, visitor!</p>\n{% else %}\n    <p>Please log in.</p>\n{% endif %}\n\n<!-- Combined tests -->\n{% if user and user.is_active %}\n    <span class="badge">Active</span>\n{% endif %}\n\n{% if posts | length > 0 %}\n    <p>{{ posts | length }} posts found.</p>\n{% endif %}\n```\n\n---	code	2
+568	159	`context_update!` macro	```rust\ncontext_update!(request => {\n    "title" => "My page",\n    "user" => &form,\n    "items" => &vec!["a", "b", "c"],\n});\n\nrequest.render("my_page.html")\n```\n\n---	code	4
+570	160	{% media %} — Media files (uploads)	```html\n<img src='{% media "avatars/photo.jpg" %}' alt="Profile photo">\n```\n\n**Transformed into:** `{{ "avatars/photo.jpg" | media }}` → `/media/avatars/photo.jpg`\n\n---	code	1
+572	160	{% messages %} — Flash messages	```html\n{% messages %}\n```\n\n**Transformed into:** `{% include "message/message_include.html" %}`\n\n---	code	3
+574	160	{% link %} — Named route links	```html\n<a href='{% link "index" %}'>Home</a>\n<a href='{% link "user_detail" id="42" %}'>User profile</a>\n```\n\n**Transformed into:** `{{ link(link='index') }}`\n\n---	code	5
+576	160	{% form.xxx.field %} — Single field rendering	```html\n<form method="post" action="/signup">\n    <div class="row">\n        <div class="col">{% form.signup_form.username %}</div>\n        <div class="col">{% form.signup_form.email %}</div>\n    </div>\n    {% form.signup_form.password %}\n    <button type="submit">Sign up</button>\n</form>\n```\n\n**Transformed into:** `{{ signup_form | form(field='username') | safe }}`\n\n---	code	7
+\.
+
+
+--
+-- Data for Name: doc_page; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.doc_page (id, section_id, slug, lang, title, lead, sort_order) FROM stdin;
+1	1	admin-index	fr	Admin Runique	L'administration Runique génère un CRUD complet à partir d'une macro déclarative (`admin!`).	0
+2	1	admin-declaration	fr	`runique start`	La commande `runique start` est le point d'entrée du workflow admin.	1
+3	1	admin-evolution	fr	Évolutions prévues	Fonctionnalités envisagées pour les versions futures de l'admin Runique.	2
+4	1	admin-permission	fr	Rôles et permissions	\N	3
+5	1	admin-setup	fr	Mise en place de l'admin	Guide pas à pas pour activer l'interface d'administration dans un projet Runique existant.	4
+6	1	admin-template	fr	Système de templates admin	\N	5
+7	2	architecture-index	fr	Architecture d'un projet Runique	Un projet Runique est une crate binaire Rust standard. `runique new` génère la structure de base, que tu fais évoluer selon tes besoins.	0
+8	2	architecture-concepts	fr	Concepts clés	\N	1
+9	2	architecture-lifecycle	fr	Lifecycle d'une requête	\N	2
+10	2	architecture-macros	fr	Macros Rust	Runique fournit un ensemble de macros pour simplifier le développement.	3
+11	2	architecture-middleware	fr	Stack Middleware	\N	4
+12	2	architecture-tera	fr	Tags et filtres Tera	\N	5
+13	3	auth-index	fr	Authentification	Runique fournit un système d'authentification par session complet et extensible.	0
+14	3	auth-exemple	fr	Exemple complet & AdminPanel	\N	1
+15	3	auth-login-guard	fr	LoginGuard — Protection contre le brute-force	`LoginGuard` suit les tentatives de connexion échouées **par username**, indépendamment de l'adresse IP.	2
+16	3	auth-middleware	fr	Middlewares de protection & CurrentUser	\N	3
+17	3	auth-modele	fr	Modèle utilisateur	\N	4
+18	3	auth-session	fr	Helpers de session	\N	5
+19	4	comparatif-index	fr	Comparatif Runique vs Django	\N	0
+20	5	configuration-index	fr	Configuration	Toute la configuration est facilitée via `.env` et est chargée dans une struct `RuniqueConfig`.	0
+21	5	configuration-builder	fr	Configuration Programmatique — Builder	`RuniqueApp::builder(config)` retourne un `RuniqueAppBuilder`. C'est le seul builder — il n'y a pas deux versions séparées.	1
+22	5	configuration-code	fr	Accès à la configuration dans le code	\N	2
+23	5	configuration-i18n	fr	Internationalisation (i18n)	Runique intègre un système d'internationalisation léger, sans dépendance externe.	3
+24	5	configuration-password	fr	Configuration des mots de passe	`PasswordConfig` configure la stratégie de hachage et de vérification des mots de passe pour toute l'application. Elle s'initialise **une seule fois** au démarrage via `password_init()`.	4
+25	5	configuration-variables	fr	Variables d'environnement	\N	5
+26	6	env-index	fr	Variables d'environnement	Toutes les clés configurables via `.env`. Les valeurs indiquées sont les défauts appliqués si la variable est absente.	0
+27	6	env-application	fr	Application, Serveur & Base de données	\N	1
+28	6	env-assets	fr	Assets & médias	\N	2
+29	6	env-securite	fr	Sécurité, Middlewares, CSP & Sessions	\N	3
+30	7	exemple-index	fr	Exemples Pratiques	Exemples concrets couvrant les cas d'usage les plus courants de Runique.	0
+31	7	exemple-autres	fr	Autres exemples	\N	1
+32	7	exemple-formulaires	fr	CRUD avec formulaires	\N	2
+33	7	exemple-minimal	fr	Application minimale	\N	3
+34	7	exemple-upload	fr	Upload de fichier	\N	4
+35	8	flash-index	fr	Flash Messages	Runique fournit un système de messages flash pour les notifications utilisateur. Il existe **deux types** de messages :	0
+36	8	flash-handlers	fr	Utilisation dans les handlers	\N	1
+37	8	flash-macros	fr	Macros flash	\N	2
+38	8	flash-templates	fr	Affichage dans les templates	\N	3
+39	9	formulaire-index	fr	Formulaires	\N	0
+40	9	formulaire-champs	fr	Types de champs	\N	1
+41	9	formulaire-erreurs	fr	Erreurs de base de données	La méthode `database_error()` analyse automatiquement les erreurs DB pour remonter l'erreur au bon champ :	2
+42	9	formulaire-exemple	fr	Exemple complet & pièges courants	\N	3
+43	9	formulaire-helpers	fr	Helpers de conversion typée	Les valeurs de formulaire sont stockées en `String`. Plutôt que de parser manuellement, utilisez les helpers typés sur `Forms` :	4
+44	9	formulaire-prisme	fr	Extracteur Prisme	`Prisme<T>` est un extracteur Axum qui orchestre un pipeline complet en coulisses :	5
+45	9	formulaire-templates	fr	Rendu dans les templates	\N	6
+46	9	formulaire-trait	fr	Trait RuniqueForm	\N	7
+47	10	installation-index	fr	Installation & Setup	Guide complet pour installer et configurer un projet Runique.	0
+48	10	installation-base-de-donnees	fr	Configuration Base de Données	\N	1
+49	10	installation-cli	fr	CLI Runique	\N	2
+50	10	installation-migrations	fr	Migrations (SeaORM)	\N	3
+51	10	installation-prerequis	fr	Prérequis & Setup initial	\N	4
+52	10	installation-troubleshooting	fr	Troubleshooting	\N	5
+53	11	middleware-index	fr	Middleware & Sécurité	Runique intègre des middlewares de sécurité configurables appliqués automatiquement dans l'ordre optimal via le système de slots.	0
+54	11	middleware-builder	fr	Configuration du Builder	`RuniqueApp::builder(config)` est l'unique point d'entrée. Toute la configuration des middlewares passe par `.middleware(|m| { ... })`.	1
+55	11	middleware-csp	fr	Headers de sécurité	Le middleware `security_headers_middleware` injecte automatiquement un ensemble de headers de sécurité à chaque réponse, en plus du header CSP. Il s'active via `.with_header_security(true)` dans le builder.	2
+56	11	middleware-csrf	fr	Protection CSRF	\N	3
+57	11	middleware-hosts-cache	fr	Validation des hosts & Cache-Control	\N	4
+58	11	middleware-rate-limit	fr	Rate Limiting	Le rate limiter de Runique est granulaire : chaque handler peut avoir ses propres limites, appliquées directement dans le code.	5
+59	11	middleware-sessions	fr	Sessions (middleware)	\N	6
+60	12	model-index	fr	Models et AST (`model!`)	La macro `model!` génère les entités SeaORM, les schémas de migration et les formulaires associés à partir d'une DSL déclarative.	0
+61	12	model-dsl	fr	DSL `model!` & AST	\N	1
+62	12	model-formulaires	fr	Lien avec les formulaires & enjeux techniques	\N	2
+63	12	model-generation	fr	Génération & ModelSchema	\N	3
+64	13	orm-index	fr	ORM & Base de Données	Runique utilise **SeaORM** avec un manager Django-like via la macro `impl_objects!`.	0
+66	13	orm-manager	fr	Manager & helpers SeaORM	\N	2
+69	14	routing-extracteurs	fr	Extracteurs de paramètres	\N	1
+70	14	routing-macros	fr	Macros de routage	\N	2
+73	15	session-protection	fr	Protection des sessions	\N	1
+74	15	session-store	fr	Store & watermarks	\N	2
+75	15	session-usage	fr	Accès à la session & configuration	\N	3
+76	16	template-index	fr	Templates	Runique utilise **Tera** comme moteur de templates, avec une couche de syntaxe inspirée de Django.	0
+80	16	template-tags	fr	Tags Django-like	Runique pré-traite les templates pour transformer une syntaxe Django-like en syntaxe Tera standard.	4
+81	17	admin-index	en	Runique Admin	Runique's admin generates a full CRUD interface from a declarative macro (`admin!`).	0
+83	17	admin-evolution	en	Planned features	Features planned for future versions of the Runique admin.	2
+84	17	admin-permission	en	Roles and permissions	\N	3
+86	17	admin-template	en	Admin template system	\N	5
+87	18	architecture-index	en	Architecture of a Runique Project	A Runique project is a standard Rust binary crate. `runique new` generates the base structure, which you evolve as needed.	0
+89	18	architecture-lifecycle	en	Request Lifecycle	\N	2
+90	18	architecture-macros	en	Rust Macros	Runique provides a set of macros to simplify development.	3
+91	18	architecture-middleware	en	Middleware Stack	\N	4
+92	18	architecture-tera	en	Tera Tags and Filters	\N	5
+94	19	auth-example	en	Full Example & AdminPanel	\N	1
+95	19	auth-login-guard	en	LoginGuard — Brute-force Protection	`LoginGuard` tracks failed login attempts **per username**, independently of the IP address.	2
+99	20	comparatif-index	en	Runique vs Django — Feature Comparison	\N	0
+101	21	configuration-builder	en	Programmatic Configuration — Builder	`RuniqueApp::builder(config)` returns a `RuniqueAppBuilder`. There is only one builder — there are no two separate versions.	1
+106	22	env-index	en	Environment Variables	All configuration keys available through `.env`. The listed values are the defaults applied if the variable is missing.	0
+107	22	env-application	en	Application, Server & Database	\N	1
+108	22	env-assets	en	Assets & Media	\N	2
+113	23	exemple-others	en	Other examples	\N	3
+114	23	exemple-upload	en	File upload	\N	4
+116	24	flash-handlers	en	Usage in Handlers	\N	1
+119	25	formulaire-index	en	Forms	\N	0
+120	25	formulaire-errors	en	Database errors	The `database_error()` method automatically analyzes DB errors to attach the error to the correct field:	1
+122	25	formulaire-fields	en	Field types	\N	3
+123	25	formulaire-helpers	en	Typed conversion helpers	Form values are stored as `String`. Instead of parsing manually, use the typed helpers on `Forms`:	4
+124	25	formulaire-prisme	en	Prisme extractor	`Prisme<T>` is an Axum extractor that orchestrates a full pipeline behind the scenes:	5
+127	26	installation-index	en	Installation & Setup	Complete guide to installing and configuring a Runique project.	0
+130	26	installation-migrations	en	Migrations (SeaORM)	\N	3
+133	27	middleware-index	en	Middleware & Security	Runique includes configurable security middlewares automatically applied in the optimal order through the slot system.	0
+134	27	middleware-builder	en	Builder Configuration	`RuniqueApp::builder(config)` is the single entry point. All middleware configuration goes through `.middleware(|m| { ... })`.	1
+137	27	middleware-hosts-cache	en	Host Validation & Cache-Control	\N	4
+140	28	model-index	en	Models and AST (`model!`)	The `model!` macro generates SeaORM entities, migration schemas, and associated forms from a declarative DSL.	0
+141	28	model-dsl	en	`model!` DSL & AST	\N	1
+142	28	model-forms	en	Link with forms & technical considerations	\N	2
+143	28	model-generation	en	Generation & ModelSchema	\N	3
+144	29	orm-index	en	ORM & Database	Runique uses **SeaORM** with a Django-like manager provided through the `impl_objects!` macro.	0
+146	29	orm-manager	en	Manager & SeaORM helpers	\N	2
+149	30	routing-extractors	en	Parameter Extractors	\N	1
+150	30	routing-macros	en	Routing Macros	\N	2
+153	31	session-protection	en	Session protection	\N	1
+154	31	session-store	en	Store & watermarks	\N	2
+155	31	session-usage	en	Session access & configuration	\N	3
+156	32	template-index	en	Templates	Runique uses **Tera** as its template engine, with a Django-inspired syntax layer.	0
+160	32	template-tags	en	Django-like tags	Runique pre-processes templates to transform Django-like syntax into standard Tera syntax.	4
+65	13	orm-avance	fr	Avancé — Transactions, Relations & Pattern complet	\N	1
+67	13	orm-requetes	fr	Requêtes CRUD	\N	3
+68	14	routing-index	fr	Routage	Runique fournit un système de routage déclaratif via les macros `urlpatterns!` et `view!`, avec résolution d'URL nommée dans les templates.	0
+71	14	routing-reponses	fr	Retourner des réponses	\N	3
+72	15	session-index	fr	Sessions	Runique utilise `CleaningMemoryStore` comme store de session par défaut — un wrapper autour d'un `HashMap` en mémoire qui ajoute purge automatique, protection par watermarks et protection des sessions à valeur.	0
+77	16	template-filtres	fr	Filtres & fonctions Tera	\N	1
+78	16	template-formulaires	fr	Formulaires, contexte & pièges	\N	2
+79	16	template-syntaxe	fr	Syntaxe Tera	\N	3
+82	17	admin-declaration	en	`runique start`	The `runique start` command is the entry point of the admin workflow.	1
+85	17	admin-setup	en	Admin setup	Step-by-step guide to enable the admin interface in an existing Runique project.	4
+88	18	architecture-concepts	en	Key Concepts	\N	1
+93	19	auth-index	en	Authentication	Runique provides a complete and extensible session-based authentication system.	0
+96	19	auth-middleware	en	Protection Middlewares & CurrentUser	\N	3
+97	19	auth-model	en	User Model	\N	4
+98	19	auth-session	en	Session Helpers	\N	5
+100	21	configuration-index	en	Configuration	All configuration is handled through `.env` and loaded into a `RuniqueConfig` struct.	0
+102	21	configuration-code	en	Accessing Configuration in Code	\N	2
+103	21	configuration-i18n	en	Internationalisation (i18n)	Runique includes a lightweight i18n system with no external dependencies.	3
+104	21	configuration-password	en	Password configuration	`PasswordConfig` defines the hashing and verification strategy for the entire application. It is initialized **once** at startup via `password_init()`.	4
+105	21	configuration-variables	en	Environment Variables	\N	5
+109	22	env-security	en	Security, Middlewares, CSP & Sessions	\N	3
+110	23	exemple-index	en	Practical Examples	Concrete examples covering the most common Runique use cases.	0
+111	23	exemple-forms	en	CRUD with forms	\N	1
+112	23	exemple-minimal	en	Minimal application	\N	2
+115	24	flash-index	en	Flash Messages	Runique provides a flash message system for user notifications. There are **two types** of messages:	0
+117	24	flash-macros	en	Flash Macros	\N	2
+118	24	flash-templates	en	Displaying Messages in Templates	\N	3
+121	25	formulaire-example	en	Full example & common pitfalls	\N	2
+125	25	formulaire-templates	en	Template rendering	\N	6
+126	25	formulaire-trait	en	RuniqueForm trait	\N	7
+128	26	installation-cli	en	Runique CLI	\N	1
+129	26	installation-database	en	Database Configuration	\N	2
+131	26	installation-prerequisites	en	Prerequisites & Initial Setup	\N	4
+132	26	installation-troubleshooting	en	Troubleshooting	\N	5
+135	27	middleware-csp	en	CSP Profiles	Runique provides three built-in profiles, usable via `.policy(...)` in the builder.	2
+136	27	middleware-csrf	en	CSRF Protection	\N	3
+138	27	middleware-rate-limit	en	Rate Limiting	Runique's rate limiter is granular: each handler can have its own limits, declared directly in the code.	5
+139	27	middleware-sessions	en	Sessions (middleware)	\N	6
+145	29	orm-advanced	en	Advanced — Transactions, Relations & Complete Pattern	\N	1
+147	29	orm-queries	en	CRUD Queries	\N	3
+148	30	routing-index	en	Routing	Runique provides a declarative routing system via the `urlpatterns!` and `view!` macros, with named URL resolution in templates.	0
+151	30	routing-responses	en	Returning Responses	\N	3
+152	31	session-index	en	Sessions	Runique uses `CleaningMemoryStore` as the default session store — a wrapper around an in-memory `HashMap` that adds automatic cleanup, watermark protection, and protection for valuable sessions.	0
+157	32	template-filters	en	Tera filters & functions	\N	1
+158	32	template-forms	en	Forms, context & pitfalls	\N	2
+159	32	template-syntax	en	Tera syntax	\N	3
+\.
+
+
+--
+-- Data for Name: doc_section; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.doc_section (id, slug, lang, title, sort_order) FROM stdin;
+1	admin	fr	Admin Runique	11
+2	architecture	fr	Architecture d'un projet Runique	2
+3	auth	fr	Authentification	13
+4	comparatif	fr	Comparatif	99
+5	configuration	fr	Configuration	3
+6	env	fr	Variables d'environnement	15
+7	exemple	fr	Exemples Pratiques	10
+8	flash	fr	Flash Messages	9
+9	formulaire	fr	Formulaires	5
+10	installation	fr	Installation & Setup	1
+11	middleware	fr	Middleware & Sécurité	8
+12	model	fr	Models et AST (`model!`)	12
+13	orm	fr	ORM & Base de Données	7
+14	routing	fr	Routage	4
+15	session	fr	Sessions	14
+16	template	fr	Templates	6
+17	admin	en	Runique Admin	11
+18	architecture	en	Architecture of a Runique Project	2
+19	auth	en	Authentication	13
+20	comparatif	en	Comparatif	99
+21	configuration	en	Configuration	3
+22	env	en	Environment Variables	15
+23	exemple	en	Practical Examples	10
+24	flash	en	Flash Messages	9
+25	formulaire	en	Forms	5
+26	installation	en	Installation & Setup	1
+27	middleware	en	Middleware & Security	8
+28	model	en	Models and AST (`model!`)	12
+29	orm	en	ORM & Database	7
+30	routing	en	Routing	4
+31	session	en	Sessions	14
+32	template	en	Templates	6
+\.
+
+
+--
+-- Data for Name: eihwaz_users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.eihwaz_users (id, username, email, password, is_active, is_staff, is_superuser, roles, created_at, updated_at) FROM stdin;
+2	Itsuki	alliotsebastien04@gmail.com	$argon2id$v=19$m=19456,t=2,p=1$BaQ26LeeIpl+KwaqjpiPFQ$1Uy7AG8qGxIVQY0b/3z08ELJPz7/H5Ohtj9bIM/b+LQ	t	t	t	Developper de runique	2026-03-18 15:42:05.993601	2026-03-18 15:42:05.993601
+3	test	test@test.com	$argon2id$v=19$m=19456,t=2,p=1$KhMXIGArheQEPIhbyaKtJA$e44IDsX9Qm0t4GiQfWyGa3ICUNlri4LPWjcjOZTciJI	t	f	f	\N	2026-03-18 19:44:28.91088	2026-03-18 19:44:28.910881
+5	demo-admin	admin-demo@demo.com	$argon2id$v=19$m=19456,t=2,p=1$VhJT8Hz2QczElC/r6m66Fw$+JBoKOmve2yISMlu4kpIdcnPq4Q23HPZygsBeydbrX8	t	t	f	\N	2026-03-21 00:16:36.440171	2026-03-21 00:16:36.440171
+\.
+
+
+--
+-- Data for Name: form_field; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.form_field (id, page_id, name, field_type, description, example, sort_order, html_preview) FROM stdin;
+1	9	TextField::text	TextField	Champ texte simple — une ligne.	TextField::text("username").label("Nom d''utilisateur").required()	1	<div class="field-preview"><label>Nom d'utilisateur</label><input type="text" placeholder="John Doe"></div>
+2	9	TextField::email	TextField	Email — converti en minuscules automatiquement.	TextField::email("email").label("Adresse email").required()	2	<div class="field-preview"><label>Adresse email</label><input type="email" placeholder="exemple@email.com"></div>
+3	9	TextField::password	TextField	Mot de passe — haché via Argon2 par défaut. Désactiver avec .no_hash().	TextField::password("password").min_length(10, "10 caractères minimum").no_hash()	3	<div class="field-preview"><label>Mot de passe</label><input type="password" placeholder="••••••••••"></div>
+4	9	TextField::textarea	TextField	Zone de texte multi-ligne.	TextField::textarea("bio").label("Biographie").rows(5)	4	<div class="field-preview"><label>Biographie</label><textarea rows="3" placeholder="Votre texte..."></textarea></div>
+5	9	TextField::richtext	TextField	Texte riche — sanitisé côté serveur.	TextField::richtext("content").label("Contenu").required()	5	<div class="field-preview"><label>Contenu</label><textarea rows="4" placeholder="<p>Texte riche sanitisé...</p>"></textarea></div>
+6	9	TextField::url	TextField	URL — validée côté serveur.	TextField::url("website").label("Site web")	6	<div class="field-preview"><label>Site web</label><input type="url" placeholder="https://exemple.com"></div>
+7	9	NumericField::integer	NumericField	Entier — validation min/max.	NumericField::integer("age").min(0.0, "Positif").max(120.0, "Max 120").label("Âge")	7	<div class="field-preview"><label>Âge</label><input type="number" step="1" placeholder="42" min="0" max="120"></div>
+8	9	NumericField::float	NumericField	Nombre décimal.	NumericField::float("price").min(0.0, "Positif").label("Prix")	8	<div class="field-preview"><label>Prix</label><input type="number" step="0.01" placeholder="3.14" min="0"></div>
+9	9	NumericField::percent	NumericField	Pourcentage — restreint entre 0 et 100.	NumericField::percent("discount").label("Réduction (%)")	9	<div class="field-preview"><label>Réduction (%)</label><input type="number" min="0" max="100" step="1" placeholder="75"></div>
+10	9	NumericField::range	NumericField	Curseur — min, max, valeur par défaut.	NumericField::range("volume", 0.0, 100.0, 50.0).label("Volume")	10	<div class="field-preview"><label>Volume</label><input type="range" min="0" max="100" value="50" class="fp-range"><span class="fp-range-val">50</span></div>
+11	9	BooleanField::new	BooleanField	Case à cocher — renvoie true/false.	BooleanField::new("accept").label("J''accepte les conditions").required()	11	<div class="field-preview"><label class="fp-row"><input type="checkbox"> J'accepte les conditions</label></div>
+12	9	BooleanField::radio	BooleanField	Bouton radio Oui/Non.	BooleanField::radio("newsletter").label("S''abonner").checked()	12	<div class="field-preview"><label class="fp-row"><input type="radio" checked> S'abonner à la newsletter</label></div>
+13	9	ChoiceField::new	ChoiceField	Liste déroulante — options statiques ou dynamiques.	let opts = vec![ChoiceOption::new("fr", "France"), ChoiceOption::new("be", "Belgique")];\nChoiceField::new("country").label("Pays").choices(opts).required()	13	<div class="field-preview"><label>Pays</label><select><option value="">---</option><option value="fr">France</option><option value="be">Belgique</option><option value="ch">Suisse</option></select></div>
+14	9	RadioField::new	ChoiceField	Groupe de boutons radio.	RadioField::new("role").label("Rôle")\n    .add_choice("admin", "Administrateur")\n    .add_choice("user", "Utilisateur")	14	<div class="field-preview"><label>Rôle</label><div class="fp-col"><label class="fp-row"><input type="radio" name="role_p" value="admin"> Administrateur</label><label class="fp-row"><input type="radio" name="role_p" value="user" checked> Utilisateur</label></div></div>
+15	9	CheckboxField::new	ChoiceField	Cases à cocher multiples — retourne Vec<String>.	CheckboxField::new("tags").label("Catégories")\n    .add_choice("rust", "Rust").add_choice("web", "Web")	15	<div class="field-preview"><label>Catégories</label><div class="fp-col"><label class="fp-row"><input type="checkbox" value="rust" checked> Rust</label><label class="fp-row"><input type="checkbox" value="web"> Web</label></div></div>
+16	9	DateField::new	DateField	Date — format YYYY-MM-DD.	DateField::new("birth_date").label("Date de naissance").required()	16	<div class="field-preview"><label>Date de naissance</label><input type="date"></div>
+17	9	TimeField::new	DateField	Heure — format HH:MM.	TimeField::new("meeting_time").label("Heure du rendez-vous")	17	<div class="field-preview"><label>Heure du rendez-vous</label><input type="time"></div>
+18	9	DateTimeField::new	DateField	Date et heure combinées.	DateTimeField::new("event_start").label("Début de l''événement").required()	18	<div class="field-preview"><label>Début de l'événement</label><input type="datetime-local"></div>
+19	9	FileField::image	FileField	Image — jpg jpeg png gif webp avif. Validation dimensions possible.	FileField::image("avatar").upload_to("media/uploads").max_size_mb(5).max_dimensions(500, 500)	19	<div class="field-preview"><label>Avatar</label><input type="file" accept="image/*"></div>
+20	9	FileField::document	FileField	Document — pdf doc docx txt odt.	FileField::document("cv").upload_to("media/docs").max_size_mb(10).required()	20	<div class="field-preview"><label>CV</label><input type="file" accept=".pdf,.doc,.docx,.txt,.odt"></div>
+21	9	FileField::any	FileField	Tout type de fichier — extensions personnalisables.	FileField::any("data").allowed_extensions(vec!["csv", "json"]).upload_to("media/imports")	21	<div class="field-preview"><label>Fichier de données</label><input type="file" accept=".csv,.json"></div>
+22	9	SlugField::new	SpecialField	Slug URL-friendly — validé côté serveur.	SlugField::new("slug").label("Slug").required()	22	<div class="field-preview"><label>Slug</label><input type="text" pattern="[a-z0-9-]+" placeholder="mon-article-en-slug"></div>
+23	9	ColorField::new	SpecialField	Sélecteur de couleur hex.	ColorField::new("theme_color").label("Couleur").default_color("#3b82f6")	23	<div class="field-preview"><label>Couleur</label><input type="color" value="#3b82f6"></div>
+24	9	UUIDField::new	SpecialField	UUID — validé côté serveur.	UUIDField::new("ref_id").label("Référence").required()	24	<div class="field-preview"><label>Référence</label><input type="text" placeholder="550e8400-e29b-41d4-a716-446655440000"></div>
+25	9	JSONField::new	SpecialField	Textarea JSON — validé côté serveur.	JSONField::new("config").label("Configuration JSON").rows(10)	25	<div class="field-preview"><label>Configuration JSON</label><textarea rows="3" placeholder='{"cle": "valeur"}'></textarea></div>
+26	9	IPAddressField::new	SpecialField	Adresse IP — IPv4 ou IPv6.	IPAddressField::new("server_ip").label("IP serveur").ipv4_only().required()	26	<div class="field-preview"><label>IP serveur</label><input type="text" placeholder="192.168.1.1"></div>
+27	9	HiddenField::new	HiddenField	Champ caché — valeur soumise sans rendu visible.	HiddenField::new("redirect_to")	27	<div class="field-preview"><code class="fp-muted">&lt;input type="hidden" value="..."&gt;</code><span class="fp-small"> — invisible dans le rendu final</span></div>
+\.
+
+
+--
+-- Data for Name: known_issue; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.known_issue (id, version, title, description, issue_type, sort_order) FROM stdin;
+9	1.1.50	Tracing des erreurs en mode DEBUG 	Le tracing est complet. Aucun parametrage individuel possible actuellement. 	Manquant	2
+\.
+
+
+--
+-- Data for Name: page_doc_link; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.page_doc_link (id, page_id, label, url, link_type, sort_order) FROM stdin;
+1	1	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/01-installation.md	doc_fr	1
+2	1	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/01-installation.md	doc_en	2
+3	2	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/02-configuration.md	doc_fr	1
+4	2	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/02-configuration.md	doc_en	2
+5	12	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/exemple/upload/upload.md	doc_fr	1
+6	12	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/exemple/upload/upload.md	doc_en	2
+7	3	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/03-migrations.md	doc_fr	1
+8	3	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/03-migrations.md	doc_en	2
+9	5	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md	doc_fr	1
+10	5	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md	doc_en	2
+11	6	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/auth/13-authentification.md	doc_fr	1
+12	6	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/auth/13-authentification.md	doc_en	2
+13	9	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md	doc_fr	1
+14	9	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md	doc_en	2
+15	10	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md	doc_fr	1
+16	10	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md	doc_en	2
+17	13	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md	doc_fr	1
+18	13	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md	doc_en	2
+19	14	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/06-database.md	doc_fr	1
+20	14	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/orm/06-database.md	doc_en	2
+21	15	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/04-models.md	doc_fr	1
+22	15	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/orm/04-models.md	doc_en	2
+23	24	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csrf/csrf.md	doc_fr	1
+24	24	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csrf/csrf.md	doc_en	2
+25	25	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/csp/csp.md	doc_fr	1
+26	25	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/csp/csp.md	doc_en	2
+27	26	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/allowed-hosts/allowed-hosts.md	doc_fr	1
+28	26	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/allowed-hosts/allowed-hosts.md	doc_en	2
+29	27	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/https/https.md	doc_fr	1
+30	27	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/https/https.md	doc_en	2
+31	28	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/login-guard/login-guard.md	doc_fr	1
+32	28	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/login-guard/login-guard.md	doc_en	2
+33	29	Doc FR	https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/rate-limit/rate-limit.md	doc_fr	1
+34	29	Doc EN	https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/rate-limit/rate-limit.md	doc_en	2
+\.
+
+
+--
+-- Data for Name: roadmap_entry; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.roadmap_entry (id, status, title, description, link_url, link_label, sort_order, link_url_2, link_label_2) FROM stdin;
+29	planned	DX	Cargo watch non present. Le rechargement des templates en dev est actif seulement si DEBUG=true.	\N	\N	14	\N	\N
+30	future	formulaire	Refonte du système vers une pratique en widget	\N	\N	15	\N	\N
+31	future	Refactorisation — systeme de champs en widget 	L'option file() est une solution pragmatique. La direction long terme est une refactorisation du systeme de champs en widget (a la Django) : chaque champ du modele pourra declarer son type de rendu independamment de son type SQL	\N	\N	16	\N	\N
+16	active	Couverture de tests	Objectif ~85 % minimum — actuellement a ~82 %.	https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md	Voir la couverture actuelle	3	\N	\N
+17	active	Bug(s) et correctif(s)	Detection et correction des bugs. Si vous avez rencontre un comportement inattendu, n'hesitez pas a ouvrir une issue ou a contribuer une PR !	/problemes-connus	Problemes connus	4	/changelog	Changelog
+18	planned	request.path_param / query_param	Acces aux parametres directement depuis request, sans declarer d'extractors Axum en parametre de vue.	\N	\N	5	\N	\N
+19	planned	Tracing log	Activation via builder — choix granulaire des evenements a tracer : erreurs (log_error), requetes DB (log_db), securite (log_security), etc.	\N	\N	6	\N	\N
+20	planned	Permissions runtime admin	Verification des roles par ressource a chaque requete admin.	\N	\N	7	\N	\N
+21	planned	Validation au boot	Refus du demarrage en production si la configuration est incoherente ou incomplete.	\N	\N	8	\N	\N
+22	future	axum-server — TLS natif	Remplacement de Nginx par axum-server — TLS integre, binaire autonome en production sans dependance externe.	\N	\N	9	\N	\N
+23	future	Email natif	Envoi d'emails via lettre, templates email, backend SMTP configurable.	\N	\N	10	\N	\N
+24	future	Flux auth complet	Activation de compte par email, reset de mot de passe.	\N	\N	11	\N	\N
+25	future	Bulk actions admin	Suppression en lot, actions custom declarees par ressource.	\N	\N	12	\N	\N
+26	future	Historique admin	Log des actions CRUD par utilisateur — qui a modifie quoi et quand.	\N	\N	13	\N	\N
+14	active	Fonctionnalité	Vue admin -> Pagination, tri par colonne, recherche, list_display configurable par ressource.	\N	\N	1	\N	\N
+15	active	CSRF secure-by-default	Forcer l'application du contrat POST -> Prisme -> handler pour toutes les mutations.	\N	\N	2	\N	\N
+27	planned	Session 	Invalidation automatique des sessions. Deconnexion d'un utilisateur déjà connecté sur un autre appareil. 	\N	\N	14	\N	\N
+\.
+
+
+--
+-- Data for Name: seaql_migrations; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.seaql_migrations (version, applied_at) FROM stdin;
+m20260318_153933_create_blog_table	1773848425
+m20260318_153933_create_contributions_table	1773848425
+m20260318_153933_create_users_booster_table	1773848426
+m20260318_153933_create_test_all_fields_table	1773848426
+m20260318_153933_create_eihwaz_users_table	1773848427
+m20260320_122444_create_known_issue_table	1774010242
+m20260320_122444_create_roadmap_entry_table	1774010242
+m20260320_122444_create_changelog_entry_table	1774010243
+m20260320_130926_alter_roadmap_entry_table	1774012216
+m20260320_143527_create_demo_page_table	1774028642
+m20260320_143527_create_demo_section_table	1774028643
+m20260320_143527_create_demo_category_table	1774028644
+m20260320_143527_create_code_example_table	1774028644
+m20260320_143527_create_form_field_table	1774028645
+m20260320_143527_create_page_doc_link_table	1774028645
+m20260320_151115_alter_demo_category_table	1774028646
+m20260320_163000_alter_form_field_table	1774028647
+m20260321_000000_create_doc_section_table	1774102457
+m20260321_000001_create_doc_page_table	1774102458
+m20260321_000002_create_doc_block_table	1774102459
+m20260321_000003_create_site_config_table	1774102459
+\.
+
+
+--
+-- Data for Name: site_config; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.site_config (id, key, value, description) FROM stdin;
+1	runique_version	1.1.52	Version actuelle de Runique
+2	release_date	2026-03-21	Date de la dernière release
+3	github_url	https://github.com/seb-alliot/runique	URL du dépôt GitHub
+4	crates_url	https://crates.io/crates/runique	URL sur crates.io
+\.
+
+
+--
+-- Data for Name: test_all_fields; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.test_all_fields (id, f_text, f_email, f_url, f_password, f_textarea, f_richtext, f_integer, f_float, f_decimal, f_percent, f_range, f_checkbox, f_radio_single, f_select, f_select_multiple, f_radio_group, f_checkbox_group, f_date, f_time, f_datetime, f_duration, f_file_image, f_file_document, f_file_any, f_color, f_slug, f_uuid, f_json, f_ip, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: users_booster; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.users_booster (id, username, email, password, bio, website, is_active) FROM stdin;
+\.
+
+
+--
+-- Name: blog_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.blog_id_seq', 1, false);
+
+
+--
+-- Name: changelog_entry_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.changelog_entry_id_seq', 21, true);
+
+
+--
+-- Name: code_example_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.code_example_id_seq', 80, true);
+
+
+--
+-- Name: contributions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.contributions_id_seq', 1, false);
+
+
+--
+-- Name: demo_category_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.demo_category_id_seq', 6, true);
+
+
+--
+-- Name: demo_page_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.demo_page_id_seq', 33, true);
+
+
+--
+-- Name: demo_section_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.demo_section_id_seq', 1, false);
+
+
+--
+-- Name: doc_block_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.doc_block_id_seq', 576, true);
+
+
+--
+-- Name: doc_page_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.doc_page_id_seq', 160, true);
+
+
+--
+-- Name: doc_section_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.doc_section_id_seq', 32, true);
+
+
+--
+-- Name: eihwaz_users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.eihwaz_users_id_seq', 5, true);
+
+
+--
+-- Name: form_field_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.form_field_id_seq', 27, true);
+
+
+--
+-- Name: known_issue_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.known_issue_id_seq', 9, true);
+
+
+--
+-- Name: page_doc_link_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.page_doc_link_id_seq', 34, true);
+
+
+--
+-- Name: roadmap_entry_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.roadmap_entry_id_seq', 31, true);
+
+
+--
+-- Name: site_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.site_config_id_seq', 4, true);
+
+
+--
+-- Name: users_booster_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.users_booster_id_seq', 1, false);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict jZHfBIoSChTyL69Lj2eANjbgfNrG53udcEcXxl3Pbaz49CdTtom3yOakaqdwVK7
+

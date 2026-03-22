@@ -1,7 +1,14 @@
 use crate::entities::contribution::schema as contribution;
 use runique::prelude::*;
 
-#[form(schema = contribution, fields = [title, content])]
+pub fn contribution_type_choices() -> Vec<ChoiceOption> {
+    vec![
+        ChoiceOption::new("runique", "Contribution au framework Runique"),
+        ChoiceOption::new("cours", "Proposition de cours"),
+    ]
+}
+
+#[form(schema = contribution, fields = [contribution_type, title, content])]
 pub struct ContributionForm;
 
 #[async_trait]
@@ -42,6 +49,7 @@ impl ContributionForm {
     ) -> Result<crate::entities::contribution::Model, DbErr> {
         let new_contribution = crate::entities::contribution::ActiveModel {
             user_id: Set(user_id),
+            contribution_type: Set(self.form.get_string("contribution_type")),
             title: Set(self.form.get_string("title")),
             content: Set(self.form.get_string("content")),
             ..Default::default()

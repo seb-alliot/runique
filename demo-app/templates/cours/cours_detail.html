@@ -1,0 +1,99 @@
+{% extends "index.html" %}
+
+{% block meta %}
+<meta name="description" content="{{ cour.title }} — Cours Rust sur Runique.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ cour.title }} — Runique">
+<meta property="og:description" content="{{ cour.title }} — Cours Rust.">
+{% endblock %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href='{% static "css/doc.css" %}'>
+    <link rel="stylesheet" href='{% static "css/cours.css" %}'>
+    <link rel="stylesheet" href='{% static "css/highlight-github-dark.min.css" %}'>
+{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+
+<div class="doc-mobile-bar">
+    <span class="doc-mobile-bar-title">{{ cour.title }}</span>
+    <button class="doc-hamburger" id="doc-hamburger-btn" aria-label="Navigation">☰</button>
+</div>
+
+<div class="doc-sidebar-overlay" id="doc-sidebar-overlay"></div>
+
+<div class="doc-layout">
+
+    <aside class="doc-sidebar" id="doc-sidebar">
+        <div class="doc-sidebar-header">
+            <a href="/cours" class="doc-back-link">← Cours Rust</a>
+            <h3>{{ cour.title }}</h3>
+            <span class="cours-badge cours-badge--{{ cour.difficulte }}">{{ cour.difficulte }}</span>
+        </div>
+        <nav class="doc-sidebar-nav">
+            {% for chapitre in chapitres %}
+            <a href="#chapitre-{{ chapitre.slug }}" class="doc-nav-link">
+                {{ chapitre.title }}
+            </a>
+            {% endfor %}
+        </nav>
+    </aside>
+
+    <main class="doc-content">
+        <h1>{{ cour.title }}</h1>
+
+        {% for chapitre in chapitres %}
+        <section id="chapitre-{{ chapitre.slug }}" class="cours-chapitre">
+            <h2>{{ chapitre.title }}</h2>
+
+            {% if chapitre.lead %}
+            <div class="doc-lead">{{ chapitre.lead | markdown }}</div>
+            {% endif %}
+
+            {% for bloc in blocs %}
+            {% if bloc.chapitre_id == chapitre.id %}
+            <div class="doc-block doc-block-{{ bloc.block_type }}">
+                {% if bloc.heading %}
+                <h3 id="{{ bloc.heading | slugify }}">{{ bloc.heading }}</h3>
+                {% endif %}
+                <div class="doc-block-content">
+                    {{ bloc.content | markdown }}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </section>
+        {% endfor %}
+    </main>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}" src='{% static "js/highlight.min.js" %}'></script>
+<script nonce="{{ csp_nonce }}">
+hljs.highlightAll();
+
+(function () {
+    var btn = document.getElementById('doc-hamburger-btn');
+    var sidebar = document.getElementById('doc-sidebar');
+    var overlay = document.getElementById('doc-sidebar-overlay');
+    if (!btn) return;
+
+    function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('open'); }
+    function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+
+    btn.addEventListener('click', function () {
+        sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    });
+    overlay.addEventListener('click', closeSidebar);
+    sidebar.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', closeSidebar);
+    });
+})();
+</script>
+{% endblock %}

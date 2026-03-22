@@ -24,6 +24,12 @@ mod m20260321_193132_create_doc_block_table;
 mod m20260321_193132_create_doc_page_table;
 mod m20260321_193132_create_doc_section_table;
 mod m20260321_193132_create_site_config_table;
+mod m20260322_000000_create_cour_table;
+mod m20260322_000001_alter_cour_table;
+mod m20260322_000002_alter_cour_table;
+mod m20260322_000003_create_chapitre_table;
+mod m20260322_000004_create_cour_block_table;
+mod m20260322_000006_alter_contributions_type;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -58,6 +64,12 @@ impl MigratorTrait for Migrator {
             Box::new(m20260321_193132_create_doc_section_table::Migration),
             Box::new(m20260321_193132_create_doc_block_table::Migration),
             Box::new(m20260321_193132_create_doc_page_table::Migration),
+            Box::new(m20260322_000000_create_cour_table::Migration),
+            Box::new(m20260322_000001_alter_cour_table::Migration),
+            Box::new(m20260322_000002_alter_cour_table::Migration),
+            Box::new(m20260322_000003_create_chapitre_table::Migration),
+            Box::new(m20260322_000004_create_cour_block_table::Migration),
+            Box::new(m20260322_000006_alter_contributions_type::Migration),
         ]
     }
 }
