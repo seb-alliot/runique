@@ -1,8 +1,4 @@
 pub use sea_orm_migration::prelude::*;
-mod m20260322_224016_alter_contributions_table;
-mod m20260322_224016_create_chapitre_table;
-mod m20260322_224016_create_cour_block_table;
-mod m20260322_224016_create_cour_table;
 mod m20260318_153933_create_blog_table;
 mod m20260318_153933_create_contributions_table;
 mod m20260318_153933_create_eihwaz_users_table;
@@ -74,10 +70,6 @@ impl MigratorTrait for Migrator {
             Box::new(m20260322_000003_create_chapitre_table::Migration),
             Box::new(m20260322_000004_create_cour_block_table::Migration),
             Box::new(m20260322_000006_alter_contributions_type::Migration),
-            Box::new(m20260322_224016_create_cour_table::Migration),
-            Box::new(m20260322_224016_create_cour_block_table::Migration),
-            Box::new(m20260322_224016_create_chapitre_table::Migration),
-            Box::new(m20260322_224016_alter_contributions_table::Migration),
         ]
     }
 }

@@ -286,6 +286,11 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
             continue;
         }
 
+        // Les cours ont leur propre table — on les exclut du seed doc
+        if section_slug == "cour" {
+            continue;
+        }
+
         // Trouve le fichier index (NN-nom.md) dans le dossier section
         let index_file = fs::read_dir(&path)
             .ok()
@@ -449,12 +454,6 @@ async fn seed_site_config(db: &DatabaseConnection) {
 /// Ne s'exécute que si les tables doc_section sont vides.
 pub async fn seed_docs(db: &DatabaseConnection) {
     seed_site_config(db).await;
-
-    let count = doc_section::Entity::find().count(db).await.unwrap_or(0);
-
-    if count > 0 {
-        return;
-    }
 
     let docs_root = match find_docs_root() {
         Some(p) => p,
