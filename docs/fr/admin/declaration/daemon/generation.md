@@ -31,7 +31,9 @@ src/admins/
 Contient pour chaque ressource déclarée dans `admin!` :
 
 - Un wrapper `DynForm` autour du formulaire Runique concret
-- Les closures `list_fn`, `get_fn`, `create_fn`, `update_fn`, `delete_fn`, `count_fn`
+- Les closures CRUD : `list_fn`, `get_fn`, `create_fn`, `update_fn`, `delete_fn`, `count_fn`
+- Si `list_filter` est déclaré : une closure `filter_fn` par champ, qui charge les valeurs distinctes depuis la base (jusqu'à 100)
+- La configuration d'affichage (colonnes visibles, taille de page filtre) transmise via `.display(…)` sur le `ResourceEntry`
 - La fonction `admin_register()` qui construit le `HashMap<String, ResourceEntry>` chargé au boot
 
 ### `mod.rs`

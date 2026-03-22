@@ -132,8 +132,8 @@ pub struct DisplayConfig {
     /// Nombre d'entrées par page
     pub pagination: usize,
 
-    /// Filtres sidebar : [(col_sql, label_affiché)]
-    pub list_filter: Vec<(String, String)>,
+    /// Filtres sidebar : [(col_sql, label_affiché, limit_par_page)]
+    pub list_filter: Vec<(String, String, u64)>,
 }
 
 impl DisplayConfig {
@@ -170,11 +170,11 @@ impl DisplayConfig {
         self
     }
 
-    /// Filtres sidebar : [("col_sql", "Label"), ...]
-    pub fn list_filter(mut self, filters: Vec<(&str, &str)>) -> Self {
+    /// Filtres sidebar : [("col_sql", "Label", limit_par_page), ...]
+    pub fn list_filter(mut self, filters: Vec<(&str, &str, u64)>) -> Self {
         self.list_filter = filters
             .iter()
-            .map(|(c, l)| (c.to_string(), l.to_string()))
+            .map(|(c, l, limit)| (c.to_string(), l.to_string(), *limit))
             .collect();
         self
     }

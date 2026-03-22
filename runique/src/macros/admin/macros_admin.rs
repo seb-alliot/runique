@@ -7,7 +7,7 @@ macro_rules! admin {
                 permissions: [ $($perm:literal),* $(,)? ]
                 $(, edit_form: $edit_form_path:path)?
                 $(, list_display: [ $([$display_col:literal, $display_label:literal]),* $(,)? ])?
-                $(, list_filter: [ $([$filter_col:literal, $filter_label:literal]),* $(,)? ])?
+                $(, list_filter: [ $([$filter_col:literal, $filter_label:literal $(, $entry_limit:literal)?]),* $(,)? ])?
                 $(,)?
             }
         )*

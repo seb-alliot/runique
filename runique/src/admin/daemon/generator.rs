@@ -463,7 +463,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             let filter_str = r
                 .list_filter
                 .iter()
-                .map(|(col, label)| format!("(\"{}\", \"{}\")", col, label))
+                .map(|(col, label, limit)| format!("(\"{}\", \"{}\", {}u64)", col, label, limit))
                 .collect::<Vec<_>>()
                 .join(", ");
             display_chain.push_str(&format!(".list_filter(vec![{}])", filter_str));
@@ -473,7 +473,10 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
 
     // FilterFn closure (valeurs distinctes par colonne configurée)
     if !r.list_filter.is_empty() {
-        let _ = writeln!(out, "    let filter_fn: FilterFn = Arc::new(|db: ADb| {{");
+        let _ = writeln!(
+            out,
+            "    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {{"
+        );
         let _ = writeln!(out, "        Box::pin(async move {{");
         let _ = writeln!(
             out,
@@ -485,23 +488,57 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         );
         let _ = writeln!(
             out,
-            "            let mut result: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();"
+            "            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> = std::collections::HashMap::new();"
         );
-        for (col, _label) in &r.list_filter {
+        for (col, _label, limit) in &r.list_filter {
             let _ = writeln!(
                 out,
-                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).order_by(Alias::new(\"{col}\"), Order::Asc).to_owned();",
+                "            let page_size_{col} = {limit}u64;",
+                col = col,
+                limit = limit
+            );
+            let _ = writeln!(
+                out,
+                "            let cur_page_{col} = pages.get(\"{col}\").copied().unwrap_or(0);",
+                col = col
+            );
+            let _ = writeln!(
+                out,
+                "            let count_stmt_{col} = Query::select().expr(Expr::cust(\"COUNT(DISTINCT {col})\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).to_owned();",
                 col = col,
                 module = module
             );
             let _ = writeln!(
                 out,
-                "            let rows_{col} = db.query_all(&stmt_{col}).await.unwrap_or_default();",
+                "            let count_row_{col} = match db.query_one(&count_stmt_{col}).await {{ Ok(r) => r, Err(e) => {{ tracing::error!(\"[runique admin] list_filter `{key}.{col}` : colonne introuvable en DB — {{}}\", e); None }} }};",
+                col = col,
+                key = key
+            );
+            let _ = writeln!(
+                out,
+                "            let total_{col} = count_row_{col}.and_then(|r| r.try_get_by_index::<i64>(0).ok()).unwrap_or(0) as u64;",
                 col = col
             );
             let _ = writeln!(
                 out,
-                "            result.insert(\"{col}\".to_string(), rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect());",
+                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).order_by(Alias::new(\"{col}\"), Order::Asc).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
+                col = col,
+                module = module
+            );
+            let _ = writeln!(
+                out,
+                "            let rows_{col} = match db.query_all(&stmt_{col}).await {{ Ok(r) => r, Err(e) => {{ tracing::error!(\"[runique admin] list_filter `{key}.{col}` : colonne introuvable en DB — {{}}\", e); vec![] }} }};",
+                col = col,
+                key = key
+            );
+            let _ = writeln!(
+                out,
+                "            let vals_{col}: Vec<String> = rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect();",
+                col = col
+            );
+            let _ = writeln!(
+                out,
+                "            result.insert(\"{col}\".to_string(), (vals_{col}, total_{col}));",
                 col = col
             );
         }

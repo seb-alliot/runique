@@ -9,7 +9,7 @@ Ce document liste toutes les variables disponibles dans le contexte Tera lorsqu'
 Ces variables sont injectées sur **toutes les routes** par l'extracteur `Request` du framework, avant même que les handlers admin s'exécutent.
 
 | Variable | Type Rust | Description |
-|---|---|---|
+| --- | --- | --- |
 | `debug` | `bool` | Mode debug activé ou non |
 | `csrf_token` | `String` | Token CSRF masqué — à inclure dans les formulaires POST |
 | `csp_nonce` | `&str` | Nonce CSP pour les balises `<script>` et `<style>` |
@@ -31,13 +31,15 @@ Ces variables sont injectées sur **toutes les routes** par l'extracteur `Reques
 Ces variables sont injectées sur **toutes les vues CRUD admin** via `inject_context`, après l'extracteur.
 
 | Variable | Type | Description |
-|---|---|---|
+| --- | --- | --- |
+| `lang` | `String` | Code de langue courant (ex: `"fr"`) |
 | `site_title` | `String` | Titre du site configuré dans `AdminConfig` |
+| `site_url` | `String` | URL de base du site configurée dans `AdminConfig` |
 | `resource_key` | `&str` | Clé de la ressource courante (ex: `"users"`) |
 | `current_resource` | `&str` | Identique à `resource_key` |
 | `resource` | `AdminResource` | Métadonnées complètes de la ressource courante (voir ci-dessous) |
 | `resources` | `Vec<AdminResource>` | Toutes les ressources enregistrées dans le registre |
-| `lang` | `String` | Code de langue courant (ex: `"fr"`) |
+| `registered_roles` | `Vec<String>` | Tous les rôles enregistrés via `register_roles()` |
 
 > Les clés déclarées dans `extra: {}` du bloc `admin!{}` sont également injectées **en tant que variables Tera de premier niveau**.
 > Exemple : `extra: { "icon" => "user" }` → `{{ icon }}` (accessible directement) ET `{{ resource.extra_context.icon }}`.
@@ -45,7 +47,7 @@ Ces variables sont injectées sur **toutes les vues CRUD admin** via `inject_con
 ### Structure `AdminResource`
 
 | Champ Tera | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `resource.key` | `&str` | Clé unique de la ressource (`"users"`) |
 | `resource.title` | `&str` | Titre lisible (`"Utilisateurs"`) |
 | `resource.model_path` | `&str` | Chemin du modèle SeaORM (`"crate::entities::users::Model"`) |
@@ -68,7 +70,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 ### Section `base`
 
 | Variable Tera | Clé i18n |
-|---|---|
+| --- | --- |
 | `admin_base_title` | `admin.base.title` |
 | `admin_base_breadcrumb` | `admin.base.breadcrumb` |
 | `admin_base_toggle` | `admin.base.toggle` |
@@ -77,7 +79,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 ### Section `list`
 
 | Variable Tera | Clé i18n |
-|---|---|
+| --- | --- |
 | `admin_list_breadcrumb_admin` | `admin.list.breadcrumb_admin` |
 | `admin_list_entries_count` | `admin.list.entries_count` |
 | `admin_list_btn_create` | `admin.list.btn_create` |
@@ -96,7 +98,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 ### Section `create`
 
 | Variable Tera | Clé i18n |
-|---|---|
+| --- | --- |
 | `admin_create_title` | `admin.create.title` |
 | `admin_create_breadcrumb` | `admin.create.breadcrumb` |
 | `admin_create_card_info` | `admin.create.card_info` |
@@ -107,7 +109,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 ### Section `edit`
 
 | Variable Tera | Clé i18n |
-|---|---|
+| --- | --- |
 | `admin_edit_title` | `admin.edit.title` |
 | `admin_edit_breadcrumb` | `admin.edit.breadcrumb` |
 | `admin_edit_card_info` | `admin.edit.card_info` |
@@ -118,7 +120,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 ### Section `detail`
 
 | Variable Tera | Clé i18n |
-|---|---|
+| --- | --- |
 | `admin_detail_title` | `admin.detail.title` |
 | `admin_detail_breadcrumb` | `admin.detail.breadcrumb` |
 | `admin_detail_entry_label` | `admin.detail.entry_label` |
@@ -130,7 +132,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 ### Section `delete`
 
 | Variable Tera | Clé i18n |
-|---|---|
+| --- | --- |
 | `admin_delete_title` | `admin.delete.title` |
 | `admin_delete_breadcrumb` | `admin.delete.breadcrumb` |
 | `admin_delete_heading` | `admin.delete.heading` |
@@ -150,7 +152,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 > `inject_context` n'est **pas** appelé — les variables `resource`, `resources`, `resource_key` ne sont pas disponibles.
 
 | Variable | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `site_title` | `String` | Titre du site |
 | `lang` | `String` | Code de langue courant |
 | `csrf_token` | `String` | Token CSRF (injecté par l'extracteur de base) |
@@ -208,7 +210,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 > `inject_context` n'est **pas** appelé. La variable `current_resource` est explicitement `None`.
 
 | Variable | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `site_title` | `String` | Titre du site |
 | `lang` | `String` | Code de langue courant |
 | `resources` | `Vec<AdminResource>` | Toutes les ressources enregistrées |
@@ -281,11 +283,61 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 
 **Route :** `GET /admin/{resource}/list`
 
+### Pagination
+
 | Variable | Type | Description |
-|---|---|---|
-| `entries` | `Vec<Value>` | Enregistrements sérialisés en JSON |
-| `total` | `usize` | Nombre total d'entrées |
+| --- | --- | --- |
+| `entries` | `Vec<Value>` | Enregistrements de la page courante, sérialisés en JSON |
+| `total` | `u64` | Nombre total d'entrées |
+| `page` | `u64` | Page courante (commence à 1) |
+| `page_count` | `u64` | Nombre total de pages |
+| `has_prev` | `bool` | Il existe une page précédente |
+| `has_next` | `bool` | Il existe une page suivante |
+| `prev_page` | `u64` | Numéro de la page précédente |
+| `next_page` | `u64` | Numéro de la page suivante |
 | `current_page` | `&str` | Vaut `"list"` |
+
+### Colonnes
+
+| Variable | Type | Description |
+| --- | --- | --- |
+| `visible_columns` | `Vec<String>` | Noms des colonnes à afficher (depuis `list_display` ou toutes sauf `id`/`password`) |
+| `column_labels` | `HashMap<String, String>` | Label par colonne — vide si `list_display` non configuré, sinon `{ "col" => "Label" }` |
+
+### Tri
+
+| Variable | Type | Description |
+| --- | --- | --- |
+| `sort_by` | `String` | Colonne de tri active — chaîne vide si aucun tri |
+| `sort_dir` | `String` | Direction : `"asc"` ou `"desc"` |
+| `sort_dir_toggle` | `String` | Direction opposée à `sort_dir` — pratique pour les liens d'en-tête |
+
+### Recherche
+
+| Variable | Type | Description |
+| --- | --- | --- |
+| `search` | `String` | Terme de recherche courant — chaîne vide si aucune recherche |
+
+### Filtres sidebar
+
+| Variable | Type | Description |
+| --- | --- | --- |
+| `filter_values` | `HashMap<String, Vec<String>>` | Valeurs distinctes par colonne de filtre (depuis `list_filter`) |
+| `active_filters` | `HashMap<String, String>` | Filtre actif par colonne — `""` si aucun filtre actif sur cette colonne |
+| `filter_qs` | `String` | Fragment query string des filtres actifs — à inclure dans les liens de pagination |
+| `filter_page_size` | `u64` | Nombre de valeurs affichées par page dans la sidebar filtre (depuis `list_filter_limit`) |
+
+> **Note :** `active_filters` est pré-rempli pour **toutes** les colonnes de `list_filter` (valeur `""` si inactif). Tera lève une erreur si on accède à une clé absente — cette pré-initialisation l'évite.
+
+### Clés obligatoires pour la surcharge
+
+Référencées via `runique::utils::constante::admin_ctx::list::REQUIRED` :
+
+```text
+entries, total, page, page_count, has_prev, has_next,
+prev_page, next_page, visible_columns,
+sort_by, sort_dir, sort_dir_toggle, search
+```
 
 > Les variables i18n de la section `list` sont listées dans les variables globales ci-dessus.
 
@@ -343,7 +395,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 **Route :** `GET /admin/{resource}/create`
 
 | Variable | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `form_fields` | `Forms` | Formulaire généré par Prisme — rendu via `{% form.field_name %}` ou `form_fields.html` |
 | `is_edit` | `bool` | Vaut `false` |
 
@@ -380,7 +432,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 **Route :** `GET /admin/{resource}/{id}/edit`
 
 | Variable | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `form_fields` | `Forms` | Formulaire pré-rempli avec les données existantes |
 | `is_edit` | `bool` | Vaut `true` |
 | `object_id` | `String` | ID de l'entrée en cours d'édition |
@@ -417,7 +469,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 **Route :** `GET /admin/{resource}/{id}/detail`
 
 | Variable | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `entry` | `Value` *(optionnel)* | Enregistrement sérialisé en JSON — absent si `get_fn` non configurée |
 | `object_id` | `String` | ID de l'entrée |
 
@@ -456,7 +508,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 **Route :** `GET /admin/{resource}/{id}/delete`
 
 | Variable | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `entry` | `Value` *(optionnel)* | Enregistrement sérialisé en JSON — absent si `get_fn` non configurée |
 | `object_id` | `String` | ID de l'entrée à supprimer |
 

@@ -167,19 +167,42 @@
           {% set col = filter_entry[0] %}
           {% set label = filter_entry[1] %}
           {% set values = filter_values[col] %}
+          {% set meta = filter_meta[col] %}
           {% if values and values | length > 0 %}
-          <div class="filter-group">
-            <div class="filter-group-title">{{ label }}</div>
-            {% if active_filters[col] %}
-            <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1" class="filter-option filter-clear">✕ Tout</a>
-            {% endif %}
-            {% for val in values %}
-              {% set is_active = active_filters[col] == val %}
-              <a href="?filter_{{ col }}={{ val | urlencode }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
-                 class="filter-option {% if is_active %}filter-active{% endif %}">
-                {{ val }}
-              </a>
-            {% endfor %}
+          <div class="filter-group" data-filter-col="{{ col }}">
+            <button class="filter-group-title" type="button" aria-expanded="true">
+              {{ label }}
+              <svg class="filter-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div class="filter-group-body">
+              {% if active_filters[col] %}
+              <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1" class="filter-option filter-clear">✕ Tout</a>
+              {% endif %}
+              {% for val in values %}
+                {% set is_active = active_filters[col] == val %}
+                <a href="?filter_{{ col }}={{ val | urlencode }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                   class="filter-option {% if is_active %}filter-active{% endif %}">
+                  {{ val }}
+                </a>
+              {% endfor %}
+              {% if meta.total_pages > 1 %}
+              <div class="filter-pagination">
+                {% if meta.has_prev %}
+                  <a href="?{{ meta.prev_qs }}&page=1" class="filter-page-btn">&#8249;</a>
+                {% else %}
+                  <span class="filter-page-btn disabled">&#8249;</span>
+                {% endif %}
+                <span class="filter-page-info">{{ meta.current_page + 1 }} / {{ meta.total_pages }}</span>
+                {% if meta.has_next %}
+                  <a href="?{{ meta.next_qs }}&page=1" class="filter-page-btn">&#8250;</a>
+                {% else %}
+                  <span class="filter-page-btn disabled">&#8250;</span>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
           </div>
           {% endif %}
         {% endfor %}
@@ -212,6 +235,32 @@
               var isCollapsed = layout.classList.toggle('filter-collapsed');
               chevron.style.transform = isCollapsed ? 'rotate(180deg)' : '';
               localStorage.setItem(FILTER_KEY, isCollapsed ? '1' : '0');
+          });
+      })();
+
+      // ── Repli/dépli individuel par groupe de filtre ──
+      (function() {
+          var RESOURCE = '{{ resource.key }}';
+          document.querySelectorAll('.filter-group').forEach(function(group) {
+              var col  = group.dataset.filterCol;
+              var btn  = group.querySelector('.filter-group-title');
+              var body = group.querySelector('.filter-group-body');
+              var chevron = btn.querySelector('.filter-group-chevron');
+              var KEY = 'runique_fg_' + RESOURCE + '_' + col;
+
+              if (localStorage.getItem(KEY) === '0') {
+                  body.style.display = 'none';
+                  chevron.style.transform = 'rotate(-90deg)';
+                  btn.setAttribute('aria-expanded', 'false');
+              }
+
+              btn.addEventListener('click', function() {
+                  var open = body.style.display === 'none';
+                  body.style.display = open ? '' : 'none';
+                  chevron.style.transform = open ? '' : 'rotate(-90deg)';
+                  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                  localStorage.setItem(KEY, open ? '1' : '0');
+              });
           });
       })();
   </script>

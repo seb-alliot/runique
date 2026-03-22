@@ -16,6 +16,15 @@ admin! {
         permissions: ["admin"],
         id_type: I32,                                        // I32 | I64 | Uuid
         edit_form: crate::formulaire::UserEditForm,          // formulaire distinct pour l'édition
+        list_display: [                                      // colonnes visibles dans la vue liste
+            ["username", "Nom d'utilisateur"],
+            ["email", "Email"],
+            ["is_active", "Actif"],
+        ],
+        list_filter: [                                       // filtres dans la barre latérale
+            ["is_active", "Actif"],                          // défaut : 10 valeurs par page
+            ["is_superuser", "Superuser", 5],                // limite explicite par colonne
+        ],
         extra: {
             "icon" => "user",
             "color" => "#3b82f6"
@@ -46,6 +55,8 @@ La macro est parsée par le daemon (`runique start`) qui génère la fonction `a
 | --- | --- | --- |
 | `id_type` | `I32` | Type de la clé primaire dans les routes — `I32`, `I64`, `Uuid` |
 | `edit_form` | *(même que `form`)* | Formulaire distinct pour l'édition |
+| `list_display` | *(vide — toutes colonnes)* | Colonnes visibles et leurs libellés dans la vue liste |
+| `list_filter` | *(vide — pas de sidebar)* | Champs disponibles dans la barre de filtre latérale (limite optionnelle par colonne en 3ème élément, défaut `10`) |
 | `extra` | *(vide)* | Variables supplémentaires injectées dans les templates Tera de cette ressource |
 
 #### `id_type`
@@ -81,6 +92,58 @@ admin! {
 ```
 
 Lorsque déclaré, la vue edit utilise `edit_form` ; la vue create continue d'utiliser le formulaire principal. La méthode `save()` du wrapper edit retourne `Ok(())` — la persistance est assurée par `update_fn` via `admin_from_form`.
+
+#### `list_display`
+
+Déclare les colonnes affichées dans la vue liste et leurs libellés :
+
+```rust
+admin! {
+    users: users::Model => RegisterForm {
+        title: "Utilisateurs",
+        permissions: ["admin"],
+        list_display: [
+            ["username", "Nom d'utilisateur"],
+            ["email", "Email"],
+            ["is_superuser", "Superuser"],
+            ["is_active", "Actif"],
+        ]
+    }
+}
+```
+
+Chaque entrée est une paire `["nom_colonne", "Libellé"]`. Le nom de colonne doit correspondre à un champ de l'entité SeaORM.
+
+Si `list_display` est absent, **toutes les colonnes** de l'entité sont affichées (comportement par défaut).
+
+Les colonnes sont injectées dans le contexte Tera sous les clés `visible_columns` (noms) et `column_labels` (libellés correspondants).
+
+#### `list_filter`
+
+Déclare les champs disponibles dans la barre de filtre latérale :
+
+```rust
+admin! {
+    doc_page: doc_page::Model => DocPageForm {
+        title: "Doc — Pages",
+        permissions: ["admin"],
+        list_filter: [
+            ["lang", "Langue"],          // défaut : 10 valeurs par page
+            ["block_type", "Type", 5],   // limite explicite : 5 valeurs par page
+        ]
+    }
+}
+```
+
+Chaque entrée est un triplet `["nom_colonne", "Libellé", limite_optionnelle]`. Le 3ème élément est optionnel — si absent, la limite par défaut est `10` valeurs par page.
+
+Pour chaque champ, le daemon génère une requête qui charge les valeurs distinctes depuis la base avec pagination serveur (`LIMIT` / `OFFSET`). La navigation `‹ 1/N ›` dans la sidebar recharge la page via des paramètres `fp_{colonne}` dans l'URL, sans JavaScript.
+
+La barre latérale s'affiche uniquement si au moins un filtre est déclaré. Si `list_filter` est absent, la mise en page reste en colonne unique.
+
+> Ne pas utiliser `list_filter` sur des clés étrangères (FK) ou des colonnes `id` — la valeur brute (`35`, `128`…) n'est pas lisible. Bons candidats : booléens, énumérations, codes courts (`lang`, `status`, `block_type`).
+
+Les filtres actifs sont transmis à la requête SQL et injectés dans le contexte Tera sous les clés `filter_values`, `active_filters` et `filter_meta`. Voir [contexte de la vue liste](/docs/fr/admin/template/clef/context) pour le détail.
 
 #### `extra`
 
@@ -137,6 +200,8 @@ La macro `admin!` couvre uniquement les **métadonnées de registre** :
 - les rôles autorisés (uniformément sur toutes les opérations CRUD)
 - le type de la clé primaire (`id_type`)
 - un formulaire distinct pour l'édition (`edit_form`)
+- les colonnes visibles dans la vue liste (`list_display`)
+- les filtres de la barre latérale (`list_filter`) avec limite optionnelle par colonne
 - des variables Tera supplémentaires par ressource (`extra`)
 
 ## Ce qui n'est pas déclarable
@@ -146,7 +211,7 @@ La macro `admin!` couvre uniquement les **métadonnées de registre** :
 | Permissions par opération CRUD | Non supporté — les rôles s'appliquent globalement |
 | Règles conditionnelles | Relève de la logique métier, à écrire dans le code généré |
 | Rendu HTML / templates | Séparation des responsabilités |
-| Filtres ou relations complexes | Trop spécifique pour être déclaratif |
+| Relations complexes / JOINs | Trop spécifique pour être déclaratif |
 | Logique d'authentification | Gérée par les middlewares admin |
 
 ---

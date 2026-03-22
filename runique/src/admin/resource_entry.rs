@@ -11,8 +11,9 @@ pub use crate::admin::resource::{ColumnFilter, CrudOperation, DisplayConfig};
 use crate::utils::aliases::{ADb, ATera, StrMap};
 
 /// Direction de tri pour la vue liste admin.
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize)]
 pub enum SortDir {
+    #[default]
     Asc,
     Desc,
 }
@@ -30,12 +31,6 @@ impl SortDir {
             SortDir::Asc => "desc",
             SortDir::Desc => "asc",
         }
-    }
-}
-
-impl Default for SortDir {
-    fn default() -> Self {
-        SortDir::Asc
     }
 }
 
@@ -79,10 +74,16 @@ pub type CountFn =
     Arc<dyn Fn(ADb, Option<String>) -> BoxFuture<'static, Result<u64, DbErr>> + Send + Sync>;
 
 /// Closure retournant les valeurs distinctes de chaque colonne configurée dans list_filter.
-/// Retourne : HashMap<col_sql, Vec<valeur_texte>>
+/// Paramètre : page courante par colonne (0-based).
+/// Retourne : HashMap<col_sql, (valeurs_de_la_page, total_distinct)>
 pub type FilterFn = Arc<
-    dyn Fn(ADb) -> BoxFuture<'static, Result<std::collections::HashMap<String, Vec<String>>, DbErr>>
-        + Send
+    dyn Fn(
+            ADb,
+            std::collections::HashMap<String, u64>,
+        ) -> BoxFuture<
+            'static,
+            Result<std::collections::HashMap<String, (Vec<String>, u64)>, DbErr>,
+        > + Send
         + Sync,
 >;
 

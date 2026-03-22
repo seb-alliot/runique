@@ -488,78 +488,72 @@ pub fn admin_register() -> AdminRegistry {
                 ("is_active", "Actif"),
             ])
             .list_filter(vec![
-                ("is_superuser", "Superuser"),
-                ("is_active", "Actif"),
-                ("username", "Nom d'utilisateur"),
-                ("email", "Email"),
+                ("is_superuser", "Superuser", 10u64),
+                ("is_active", "Actif", 10u64),
             ]),
     );
-    let filter_fn: FilterFn = Arc::new(|db: ADb| {
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
             use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            let mut result: std::collections::HashMap<String, Vec<String>> =
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
+            let page_size_is_superuser = 10u64;
+            let cur_page_is_superuser = pages.get("is_superuser").copied().unwrap_or(0);
+            let count_stmt_is_superuser = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT is_superuser)"))
+                .from(Alias::new(users::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("is_superuser")).is_not_null())
+                .to_owned();
+            let count_row_is_superuser =
+                db.query_one(&count_stmt_is_superuser).await.unwrap_or(None);
+            let total_is_superuser = count_row_is_superuser
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
             let stmt_is_superuser = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(is_superuser AS TEXT)"))
                 .from(Alias::new(users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_superuser")).is_not_null())
                 .order_by(Alias::new("is_superuser"), Order::Asc)
+                .limit(page_size_is_superuser)
+                .offset(cur_page_is_superuser * page_size_is_superuser)
                 .to_owned();
             let rows_is_superuser = db.query_all(&stmt_is_superuser).await.unwrap_or_default();
+            let vals_is_superuser: Vec<String> = rows_is_superuser
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
             result.insert(
                 "is_superuser".to_string(),
-                rows_is_superuser
-                    .iter()
-                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
-                    .collect(),
+                (vals_is_superuser, total_is_superuser),
             );
+            let page_size_is_active = 10u64;
+            let cur_page_is_active = pages.get("is_active").copied().unwrap_or(0);
+            let count_stmt_is_active = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT is_active)"))
+                .from(Alias::new(users::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("is_active")).is_not_null())
+                .to_owned();
+            let count_row_is_active = db.query_one(&count_stmt_is_active).await.unwrap_or(None);
+            let total_is_active = count_row_is_active
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
             let stmt_is_active = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(is_active AS TEXT)"))
                 .from(Alias::new(users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_active")).is_not_null())
                 .order_by(Alias::new("is_active"), Order::Asc)
+                .limit(page_size_is_active)
+                .offset(cur_page_is_active * page_size_is_active)
                 .to_owned();
             let rows_is_active = db.query_all(&stmt_is_active).await.unwrap_or_default();
-            result.insert(
-                "is_active".to_string(),
-                rows_is_active
-                    .iter()
-                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
-                    .collect(),
-            );
-            let stmt_username = Query::select()
-                .distinct()
-                .expr(Expr::cust("CAST(username AS TEXT)"))
-                .from(Alias::new(users::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("username")).is_not_null())
-                .order_by(Alias::new("username"), Order::Asc)
-                .to_owned();
-            let rows_username = db.query_all(&stmt_username).await.unwrap_or_default();
-            result.insert(
-                "username".to_string(),
-                rows_username
-                    .iter()
-                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
-                    .collect(),
-            );
-            let stmt_email = Query::select()
-                .distinct()
-                .expr(Expr::cust("CAST(email AS TEXT)"))
-                .from(Alias::new(users::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("email")).is_not_null())
-                .order_by(Alias::new("email"), Order::Asc)
-                .to_owned();
-            let rows_email = db.query_all(&stmt_email).await.unwrap_or_default();
-            result.insert(
-                "email".to_string(),
-                rows_email
-                    .iter()
-                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
-                    .collect(),
-            );
+            let vals_is_active: Vec<String> = rows_is_active
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert("is_active".to_string(), (vals_is_active, total_is_active));
             Ok(result)
         })
     });
@@ -1819,45 +1813,39 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let meta = meta.display(
-        DisplayConfig::new().list_filter(vec![("lang", "Langue"), ("section_id", "Section")]),
-    );
-    let filter_fn: FilterFn = Arc::new(|db: ADb| {
+    let meta = meta.display(DisplayConfig::new().list_filter(vec![("lang", "Langue", 10u64)]));
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
             use sea_orm::sea_query::{Alias, Expr, Order, Query};
             use sea_orm::{ConnectionTrait, ExprTrait};
-            let mut result: std::collections::HashMap<String, Vec<String>> =
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
+            let page_size_lang = 10u64;
+            let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
+            let count_stmt_lang = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT lang)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .to_owned();
+            let count_row_lang = db.query_one(&count_stmt_lang).await.unwrap_or(None);
+            let total_lang = count_row_lang
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
             let stmt_lang = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(lang AS TEXT)"))
                 .from(Alias::new(doc_page::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("lang")).is_not_null())
                 .order_by(Alias::new("lang"), Order::Asc)
+                .limit(page_size_lang)
+                .offset(cur_page_lang * page_size_lang)
                 .to_owned();
             let rows_lang = db.query_all(&stmt_lang).await.unwrap_or_default();
-            result.insert(
-                "lang".to_string(),
-                rows_lang
-                    .iter()
-                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
-                    .collect(),
-            );
-            let stmt_section_id = Query::select()
-                .distinct()
-                .expr(Expr::cust("CAST(section_id AS TEXT)"))
-                .from(Alias::new(doc_page::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("section_id")).is_not_null())
-                .order_by(Alias::new("section_id"), Order::Asc)
-                .to_owned();
-            let rows_section_id = db.query_all(&stmt_section_id).await.unwrap_or_default();
-            result.insert(
-                "section_id".to_string(),
-                rows_section_id
-                    .iter()
-                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
-                    .collect(),
-            );
+            let vals_lang: Vec<String> = rows_lang
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert("lang".to_string(), (vals_lang, total_lang));
             Ok(result)
         })
     });
@@ -1967,6 +1955,102 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
+    let meta = meta.display(DisplayConfig::new().list_filter(vec![
+        ("page_id", "page", 10u64),
+        ("block_type", "type", 5u64),
+        ("heading", "En-tête", 1u64),
+    ]));
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
+        Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
+            let page_size_page_id = 10u64;
+            let cur_page_page_id = pages.get("page_id").copied().unwrap_or(0);
+            let count_stmt_page_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT page_id)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .to_owned();
+            let count_row_page_id = db.query_one(&count_stmt_page_id).await.unwrap_or(None);
+            let total_page_id = count_row_page_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_page_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(page_id AS TEXT)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("page_id")).is_not_null())
+                .order_by(Alias::new("page_id"), Order::Asc)
+                .limit(page_size_page_id)
+                .offset(cur_page_page_id * page_size_page_id)
+                .to_owned();
+            let rows_page_id = db.query_all(&stmt_page_id).await.unwrap_or_default();
+            let vals_page_id: Vec<String> = rows_page_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert("page_id".to_string(), (vals_page_id, total_page_id));
+            let page_size_block_type = 5u64;
+            let cur_page_block_type = pages.get("block_type").copied().unwrap_or(0);
+            let count_stmt_block_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT block_type)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .to_owned();
+            let count_row_block_type = db.query_one(&count_stmt_block_type).await.unwrap_or(None);
+            let total_block_type = count_row_block_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_block_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(block_type AS TEXT)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("block_type")).is_not_null())
+                .order_by(Alias::new("block_type"), Order::Asc)
+                .limit(page_size_block_type)
+                .offset(cur_page_block_type * page_size_block_type)
+                .to_owned();
+            let rows_block_type = db.query_all(&stmt_block_type).await.unwrap_or_default();
+            let vals_block_type: Vec<String> = rows_block_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert(
+                "block_type".to_string(),
+                (vals_block_type, total_block_type),
+            );
+            let page_size_heading = 1u64;
+            let cur_page_heading = pages.get("heading").copied().unwrap_or(0);
+            let count_stmt_heading = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT heading)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("heading")).is_not_null())
+                .to_owned();
+            let count_row_heading = db.query_one(&count_stmt_heading).await.unwrap_or(None);
+            let total_heading = count_row_heading
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_heading = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(heading AS TEXT)"))
+                .from(Alias::new(doc_block::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("heading")).is_not_null())
+                .order_by(Alias::new("heading"), Order::Asc)
+                .limit(page_size_heading)
+                .offset(cur_page_heading * page_size_heading)
+                .to_owned();
+            let rows_heading = db.query_all(&stmt_heading).await.unwrap_or_default();
+            let vals_heading: Vec<String> = rows_heading
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            result.insert("heading".to_string(), (vals_heading, total_heading));
+            Ok(result)
+        })
+    });
+
     registry.register(
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
@@ -1974,7 +2058,8 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
-            .with_count_fn(count_fn),
+            .with_count_fn(count_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Ressource : site_config ──
