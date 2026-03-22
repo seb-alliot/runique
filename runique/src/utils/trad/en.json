@@ -281,7 +281,8 @@
         "confirm_delete": "Really delete?",
         "empty_title": "No entries",
         "empty_desc": "Start by creating an item.",
-        "btn_create_first": "Create the first"
+        "btn_create_first": "Create the first",
+        "search_placeholder": "Search..."
       },
       "create": {
         "title": "Create",

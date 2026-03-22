@@ -282,7 +282,8 @@
         "confirm_delete": "Действительно удалить?",
         "empty_title": "Нет записей",
         "empty_desc": "Начните с создания элемента.",
-        "btn_create_first": "Создать первый"
+        "btn_create_first": "Создать первый",
+        "search_placeholder": "Поиск..."
         },
         "create": {
         "title": "Создать",

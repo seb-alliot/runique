@@ -272,7 +272,7 @@ fn test_boolean_required_not_checked_fails() {
     let mut field = BooleanField::new("cgu").required();
     field.set_value("false");
     assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "You must accept this field");
+    assert_eq!(field.error().unwrap(), "This field is required");
 }
 
 #[test]

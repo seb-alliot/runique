@@ -35,7 +35,12 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Alias::new("doc_section")).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("doc_section"))
+                    .if_exists()
+                    .to_owned(),
+            )
             .await?;
         Ok(())
     }

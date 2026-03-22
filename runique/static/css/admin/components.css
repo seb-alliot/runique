@@ -319,3 +319,104 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
+
+/* ── Filter sidebar ── */
+.filter-sidebar-header {
+    height: var(--topbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.75rem 0 1.1rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+
+.filter-sidebar-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity var(--transition);
+}
+
+.filter-sidebar-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.filter-sidebar-body::-webkit-scrollbar { width: 4px; }
+.filter-sidebar-body::-webkit-scrollbar-track { background: transparent; }
+.filter-sidebar-body::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+.admin-filter-sidebar {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - 4rem);
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition);
+}
+
+.filter-group {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.filter-sidebar-body > .filter-group:last-child {
+    border-bottom: none;
+}
+
+.filter-group-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 0 1.1rem 0.4rem;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    padding: 0.45rem 1rem;
+    margin: 0.1rem 0.5rem;
+    border-radius: var(--radius);
+    font-size: 0.88rem;
+    color: var(--text-sidebar);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background var(--transition), color var(--transition);
+}
+
+.filter-option:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+.filter-option.filter-active {
+    background: var(--bg-active);
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.filter-option.filter-clear {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 0.15rem;
+}
+
+.filter-option.filter-clear:hover {
+    color: var(--danger);
+    background: var(--danger-light);
+}

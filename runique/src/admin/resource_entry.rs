@@ -10,14 +10,55 @@ use crate::admin::resource::AdminResource;
 pub use crate::admin::resource::{ColumnFilter, CrudOperation, DisplayConfig};
 use crate::utils::aliases::{ADb, ATera, StrMap};
 
+/// Direction de tri pour la vue liste admin.
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub enum SortDir {
+    Asc,
+    Desc,
+}
+
+impl SortDir {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SortDir::Asc => "asc",
+            SortDir::Desc => "desc",
+        }
+    }
+
+    pub fn toggle(&self) -> &'static str {
+        match self {
+            SortDir::Asc => "desc",
+            SortDir::Desc => "asc",
+        }
+    }
+}
+
+impl Default for SortDir {
+    fn default() -> Self {
+        SortDir::Asc
+    }
+}
+
+/// Paramètres passés à `ListFn` : pagination, tri, recherche, filtres colonne.
+#[derive(Debug, Clone)]
+pub struct ListParams {
+    pub offset: u64,
+    pub limit: u64,
+    pub sort_by: Option<String>,
+    pub sort_dir: SortDir,
+    pub search: Option<String>,
+    /// Filtres exacts par colonne : [(col_sql, valeur)]
+    pub column_filters: Vec<(String, String)>,
+}
+
 /// Closure construisant un form typé depuis des données brutes.
 pub type FormBuilder = Arc<
     dyn Fn(StrMap, ATera, String, Method) -> BoxFuture<'static, Box<dyn DynForm>> + Send + Sync,
 >;
 
-/// Closure retournant une page d'entrées d'une ressource (offset, limit).
+/// Closure retournant une page d'entrées d'une ressource.
 pub type ListFn =
-    Arc<dyn Fn(ADb, u64, u64) -> BoxFuture<'static, Result<Vec<Value>, DbErr>> + Send + Sync>;
+    Arc<dyn Fn(ADb, ListParams) -> BoxFuture<'static, Result<Vec<Value>, DbErr>> + Send + Sync>;
 
 /// Closure retournant une entrée par son id sous forme de `Value`.
 pub type GetFn =
@@ -33,8 +74,17 @@ pub type UpdateFn =
 /// Closure créant une nouvelle entrée depuis les données du formulaire validé.
 pub type CreateFn = Arc<dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
-/// Closure retournant le nombre total d'entrées d'une ressource.
-pub type CountFn = Arc<dyn Fn(ADb) -> BoxFuture<'static, Result<u64, DbErr>> + Send + Sync>;
+/// Closure retournant le nombre total d'entrées (avec terme de recherche optionnel).
+pub type CountFn =
+    Arc<dyn Fn(ADb, Option<String>) -> BoxFuture<'static, Result<u64, DbErr>> + Send + Sync>;
+
+/// Closure retournant les valeurs distinctes de chaque colonne configurée dans list_filter.
+/// Retourne : HashMap<col_sql, Vec<valeur_texte>>
+pub type FilterFn = Arc<
+    dyn Fn(ADb) -> BoxFuture<'static, Result<std::collections::HashMap<String, Vec<String>>, DbErr>>
+        + Send
+        + Sync,
+>;
 
 /// Entrée du registre admin : métadonnées + closures CRUD.
 pub struct ResourceEntry {
@@ -47,6 +97,7 @@ pub struct ResourceEntry {
     pub update_fn: Option<UpdateFn>,
     pub create_fn: Option<CreateFn>,
     pub count_fn: Option<CountFn>,
+    pub filter_fn: Option<FilterFn>,
 }
 
 impl ResourceEntry {
@@ -61,6 +112,7 @@ impl ResourceEntry {
             update_fn: None,
             create_fn: None,
             count_fn: None,
+            filter_fn: None,
         }
     }
 
@@ -96,6 +148,11 @@ impl ResourceEntry {
 
     pub fn with_count_fn(mut self, f: CountFn) -> Self {
         self.count_fn = Some(f);
+        self
+    }
+
+    pub fn with_filter_fn(mut self, f: FilterFn) -> Self {
+        self.filter_fn = Some(f);
         self
     }
 }

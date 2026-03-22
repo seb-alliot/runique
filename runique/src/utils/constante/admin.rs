@@ -40,6 +40,7 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.list.empty_title",
     "admin.list.empty_desc",
     "admin.list.btn_create_first",
+    "admin.list.search_placeholder",
     // create
     "admin.create.title",
     "admin.create.breadcrumb",

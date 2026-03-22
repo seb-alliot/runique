@@ -281,7 +281,8 @@
         "confirm_delete": "Realmente excluir?",
         "empty_title": "Nenhuma entrada",
         "empty_desc": "Comece criando um item.",
-        "btn_create_first": "Criar o primeiro"
+        "btn_create_first": "Criar o primeiro",
+        "search_placeholder": "Pesquisar..."
         },
         "create": {
         "title": "Criar",

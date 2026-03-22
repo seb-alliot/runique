@@ -49,6 +49,12 @@ pub struct ResourceDef {
 
     /// Clés custom pour le contexte Tera (via extra: { "k" => "v" })
     pub extra_context: Vec<(String, String)>,
+
+    /// Filtres sidebar : [("col_sql", "Label affiché")]
+    pub list_filter: Vec<(String, String)>,
+
+    /// Colonnes visibles dans la liste avec labels : [("col", "Label")]
+    pub list_display: Vec<(String, String)>,
 }
 
 /// Résultat du parsing de src/admin.rs
@@ -168,6 +174,8 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             extra_context: body.extra_context,
             edit_form_type: body.edit_form_type,
             id_type: body.id_type,
+            list_filter: body.list_filter,
+            list_display: body.list_display,
         });
 
         // Virgule optionnelle entre ressources
@@ -188,6 +196,8 @@ struct ResourceBody {
     extra_context: Vec<(String, String)>,
     edit_form_type: Option<String>,
     id_type: String,
+    list_filter: Vec<(String, String)>,
+    list_display: Vec<(String, String)>,
 }
 
 fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
@@ -205,6 +215,8 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         extra_context: Vec::new(),
         edit_form_type: None,
         id_type: "I32".to_string(),
+        list_filter: Vec::new(),
+        list_display: Vec::new(),
     };
 
     while iter.peek().is_some() {
@@ -247,6 +259,12 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
             "extra" => {
                 body.extra_context = parse_extra_map(&mut iter)?;
             }
+            "list_filter" => {
+                body.list_filter = parse_list_filter(&mut iter)?;
+            }
+            "list_display" => {
+                body.list_display = parse_list_display(&mut iter)?;
+            }
             other => {
                 skip_until_punct(&mut iter, ',');
                 eprintln!("  Unknown field in admin!{{}}: '{}'", other);
@@ -262,6 +280,61 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
     }
 
     Ok(body)
+}
+
+/// Parse list_display: [["col", "Label"], ...]
+fn parse_list_display(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
+    parse_str_pair_array(iter, "list_display")
+}
+
+/// Parse list_filter: [["col_sql", "Label"], ...]
+fn parse_list_filter(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
+    parse_str_pair_array(iter, "list_filter")
+}
+
+/// Parseur générique pour [["str1", "str2"], ...] — utilisé par list_display et list_filter
+fn parse_str_pair_array(
+    iter: &mut TokenIter,
+    field: &str,
+) -> Result<Vec<(String, String)>, String> {
+    use proc_macro2::TokenTree;
+
+    match iter.next() {
+        Some(TokenTree::Group(outer)) => {
+            let mut pairs = Vec::new();
+            let mut inner = outer.stream().into_iter().peekable();
+            while inner.peek().is_some() {
+                match inner.next() {
+                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+                    Some(TokenTree::Group(pair)) => {
+                        let mut t = pair.stream().into_iter().peekable();
+                        let col = parse_string_literal(&mut t)?;
+                        match t.next() {
+                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {}
+                            _ => {
+                                return Err(format!(
+                                    "Expected ',' between col and label in {}",
+                                    field
+                                ));
+                            }
+                        }
+                        let label = parse_string_literal(&mut t)?;
+                        pairs.push((col, label));
+                    }
+                    Some(other) => {
+                        return Err(format!(
+                            "Expected [col, label] in {}, found: {}",
+                            field, other
+                        ));
+                    }
+                    None => break,
+                }
+            }
+            Ok(pairs)
+        }
+        Some(other) => Err(format!("Expected [...] for {}, found: {}", field, other)),
+        None => Err(format!("Expected [...] for {}, end of file", field)),
+    }
 }
 
 /// Parse extra: { "key" => "value", ... }

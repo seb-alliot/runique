@@ -113,8 +113,8 @@ pub enum ColumnFilter {
     #[default]
     All,
 
-    /// Affiche uniquement les colonnes spécifiées
-    Include(Vec<String>),
+    /// Affiche uniquement les colonnes spécifiées avec leurs labels : (col_sql, label_affiché)
+    Include(Vec<(String, String)>),
 
     /// Affiche toutes les colonnes sauf celles spécifiées
     Exclude(Vec<String>),
@@ -131,6 +131,9 @@ pub struct DisplayConfig {
 
     /// Nombre d'entrées par page
     pub pagination: usize,
+
+    /// Filtres sidebar : [(col_sql, label_affiché)]
+    pub list_filter: Vec<(String, String)>,
 }
 
 impl DisplayConfig {
@@ -139,6 +142,7 @@ impl DisplayConfig {
             icon: None,
             columns: ColumnFilter::All,
             pagination: 25,
+            list_filter: Vec::new(),
         }
     }
 
@@ -152,13 +156,26 @@ impl DisplayConfig {
         self
     }
 
-    pub fn columns_include(mut self, cols: Vec<&str>) -> Self {
-        self.columns = ColumnFilter::Include(cols.iter().map(|s| s.to_string()).collect());
+    pub fn columns_include(mut self, cols: Vec<(&str, &str)>) -> Self {
+        self.columns = ColumnFilter::Include(
+            cols.iter()
+                .map(|(c, l)| (c.to_string(), l.to_string()))
+                .collect(),
+        );
         self
     }
 
     pub fn columns_exclude(mut self, cols: Vec<&str>) -> Self {
         self.columns = ColumnFilter::Exclude(cols.iter().map(|s| s.to_string()).collect());
+        self
+    }
+
+    /// Filtres sidebar : [("col_sql", "Label"), ...]
+    pub fn list_filter(mut self, filters: Vec<(&str, &str)>) -> Self {
+        self.list_filter = filters
+            .iter()
+            .map(|(c, l)| (c.to_string(), l.to_string()))
+            .collect();
         self
     }
 }

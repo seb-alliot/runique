@@ -281,7 +281,8 @@
         "confirm_delete": "本当に削除しますか？",
         "empty_title": "エントリがありません",
         "empty_desc": "最初に項目を作成してください。",
-        "btn_create_first": "最初の項目を作成"
+        "btn_create_first": "最初の項目を作成",
+        "search_placeholder": "検索..."
         },
         "create": {
         "title": "作成",

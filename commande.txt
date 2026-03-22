@@ -60,3 +60,13 @@ railway shell
 taskkill /F /IM demo-app.exe
 
 cargo clean --target-dir
+
+// Nourire la db en local
+$env:PGPASSWORD="Passowrd"; & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -h localhost -p 5432 -U postgres -d runique -f seed_doc.sql
+
+// dump railway
+& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" "postgresql://postgres:uouXbGVylFlPKWDWizDFIvXiTuXuwcac@yamabiko.proxy.rlwy.net:33690/railway" --data-only -f dump_railway_data.sql
+
+// appliquer le push du dump
+
+$env:PGPASSWORD="Studietudiant1."; & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -h localhost -p 5432 -U postgres -d runique -f dump_railway_data.sql

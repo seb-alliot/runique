@@ -2,6 +2,7 @@
 //! Couvre : register_asset_filters, mask_filter, csrf_filter, register_filter
 
 use runique::context::register_asset_filters;
+use runique::utils::env::css_token;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tera::{Context, Tera};
@@ -126,7 +127,7 @@ fn test_static_filter_genere_url_correcte() {
     let mut ctx = Context::new();
     ctx.insert("file", "style.css");
     let result = tera.render("t", &ctx).unwrap();
-    assert_eq!(result, "/static/style.css");
+    assert_eq!(result, format!("/static/style.css?v={}", css_token()));
 }
 
 #[test]
@@ -136,7 +137,7 @@ fn test_static_filter_fichier_avec_slash_initial() {
     let mut ctx = Context::new();
     ctx.insert("file", "/style.css");
     let result = tera.render("t", &ctx).unwrap();
-    assert_eq!(result, "/static/style.css");
+    assert_eq!(result, format!("/static/style.css?v={}", css_token()));
 }
 
 #[test]
@@ -146,7 +147,7 @@ fn test_static_filter_chemin_avec_sous_dossier() {
     let mut ctx = Context::new();
     ctx.insert("file", "css/main.css");
     let result = tera.render("t", &ctx).unwrap();
-    assert_eq!(result, "/static/css/main.css");
+    assert_eq!(result, format!("/static/css/main.css?v={}", css_token()));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -175,7 +176,7 @@ fn test_runique_static_filter_genere_url_correcte() {
     let mut ctx = Context::new();
     ctx.insert("file", "app.js");
     let result = tera.render("t", &ctx).unwrap();
-    assert_eq!(result, "/runique-static/app.js");
+    assert_eq!(result, format!("/runique-static/app.js?v={}", css_token()));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -214,5 +215,5 @@ fn test_static_base_url_trailing_slash_normalise() {
     let mut ctx = Context::new();
     ctx.insert("file", "style.css");
     let result = tera.render("t", &ctx).unwrap();
-    assert_eq!(result, "/static/style.css");
+    assert_eq!(result, format!("/static/style.css?v={}", css_token()));
 }

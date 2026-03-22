@@ -1,6 +1,7 @@
 // AUTO-admin_panel — DO NOT EDIT MANUALLY
 // admin_panel by `runique start` from src/admin.rs
 
+use runique::admin::resource_entry::FilterFn;
 use runique::prelude::*;
 
 use crate::entities::blog;
@@ -393,11 +394,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = users::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = users::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -407,8 +425,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { users::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { users::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -460,6 +479,91 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("username", "Nom d'utilisateur"),
+                ("email", "Email"),
+                ("is_superuser", "Superuser"),
+                ("is_active", "Actif"),
+            ])
+            .list_filter(vec![
+                ("is_superuser", "Superuser"),
+                ("is_active", "Actif"),
+                ("username", "Nom d'utilisateur"),
+                ("email", "Email"),
+            ]),
+    );
+    let filter_fn: FilterFn = Arc::new(|db: ADb| {
+        Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            let mut result: std::collections::HashMap<String, Vec<String>> =
+                std::collections::HashMap::new();
+            let stmt_is_superuser = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(is_superuser AS TEXT)"))
+                .from(Alias::new(users::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("is_superuser")).is_not_null())
+                .order_by(Alias::new("is_superuser"), Order::Asc)
+                .to_owned();
+            let rows_is_superuser = db.query_all(&stmt_is_superuser).await.unwrap_or_default();
+            result.insert(
+                "is_superuser".to_string(),
+                rows_is_superuser
+                    .iter()
+                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                    .collect(),
+            );
+            let stmt_is_active = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(is_active AS TEXT)"))
+                .from(Alias::new(users::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("is_active")).is_not_null())
+                .order_by(Alias::new("is_active"), Order::Asc)
+                .to_owned();
+            let rows_is_active = db.query_all(&stmt_is_active).await.unwrap_or_default();
+            result.insert(
+                "is_active".to_string(),
+                rows_is_active
+                    .iter()
+                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                    .collect(),
+            );
+            let stmt_username = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(username AS TEXT)"))
+                .from(Alias::new(users::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("username")).is_not_null())
+                .order_by(Alias::new("username"), Order::Asc)
+                .to_owned();
+            let rows_username = db.query_all(&stmt_username).await.unwrap_or_default();
+            result.insert(
+                "username".to_string(),
+                rows_username
+                    .iter()
+                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                    .collect(),
+            );
+            let stmt_email = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(email AS TEXT)"))
+                .from(Alias::new(users::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("email")).is_not_null())
+                .order_by(Alias::new("email"), Order::Asc)
+                .to_owned();
+            let rows_email = db.query_all(&stmt_email).await.unwrap_or_default();
+            result.insert(
+                "email".to_string(),
+                rows_email
+                    .iter()
+                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                    .collect(),
+            );
+            Ok(result)
+        })
+    });
+
     registry.register(
         ResourceEntry::new(meta, form_builder)
             .with_edit_form_builder(edit_form_builder)
@@ -468,7 +572,8 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
-            .with_count_fn(count_fn),
+            .with_count_fn(count_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Ressource : blog ──
@@ -487,11 +592,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = blog::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = blog::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -501,8 +623,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { blog::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { blog::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -571,11 +694,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = changelog_entry::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = changelog_entry::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -585,7 +725,7 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
         Box::pin(async move { changelog_entry::Entity::find().count(&*db).await })
     });
 
@@ -659,11 +799,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = roadmap_entry::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = roadmap_entry::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -673,7 +830,7 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
         Box::pin(async move { roadmap_entry::Entity::find().count(&*db).await })
     });
 
@@ -747,11 +904,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = known_issue::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = known_issue::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -761,8 +935,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { known_issue::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { known_issue::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -834,11 +1009,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = demo_category::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = demo_category::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -848,7 +1040,7 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
         Box::pin(async move { demo_category::Entity::find().count(&*db).await })
     });
 
@@ -921,11 +1113,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = demo_page::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = demo_page::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -935,8 +1144,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { demo_page::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { demo_page::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -1008,11 +1218,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = demo_section::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = demo_section::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -1022,8 +1249,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { demo_section::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { demo_section::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -1095,11 +1323,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = code_example::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = code_example::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -1109,8 +1354,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { code_example::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { code_example::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -1182,11 +1428,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = page_doc_link::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = page_doc_link::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -1196,7 +1459,7 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
         Box::pin(async move { page_doc_link::Entity::find().count(&*db).await })
     });
 
@@ -1269,11 +1532,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = form_field::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = form_field::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -1283,8 +1563,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { form_field::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { form_field::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -1356,11 +1637,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = doc_section::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = doc_section::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -1370,8 +1668,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { doc_section::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { doc_section::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -1442,11 +1741,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = doc_page::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = doc_page::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -1456,8 +1772,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { doc_page::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { doc_page::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -1502,6 +1819,49 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
+    let meta = meta.display(
+        DisplayConfig::new().list_filter(vec![("lang", "Langue"), ("section_id", "Section")]),
+    );
+    let filter_fn: FilterFn = Arc::new(|db: ADb| {
+        Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Order, Query};
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            let mut result: std::collections::HashMap<String, Vec<String>> =
+                std::collections::HashMap::new();
+            let stmt_lang = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(lang AS TEXT)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("lang")).is_not_null())
+                .order_by(Alias::new("lang"), Order::Asc)
+                .to_owned();
+            let rows_lang = db.query_all(&stmt_lang).await.unwrap_or_default();
+            result.insert(
+                "lang".to_string(),
+                rows_lang
+                    .iter()
+                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                    .collect(),
+            );
+            let stmt_section_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(section_id AS TEXT)"))
+                .from(Alias::new(doc_page::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("section_id")).is_not_null())
+                .order_by(Alias::new("section_id"), Order::Asc)
+                .to_owned();
+            let rows_section_id = db.query_all(&stmt_section_id).await.unwrap_or_default();
+            result.insert(
+                "section_id".to_string(),
+                rows_section_id
+                    .iter()
+                    .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                    .collect(),
+            );
+            Ok(result)
+        })
+    });
+
     registry.register(
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
@@ -1509,7 +1869,8 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
-            .with_count_fn(count_fn),
+            .with_count_fn(count_fn)
+            .with_filter_fn(filter_fn),
     );
 
     // ── Ressource : doc_block ──
@@ -1528,11 +1889,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = doc_block::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = doc_block::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -1542,8 +1920,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { doc_block::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { doc_block::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -1615,11 +1994,28 @@ pub fn admin_register() -> AdminRegistry {
             })
         });
 
-    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
-            let rows = site_config::Entity::find()
-                .offset(offset)
-                .limit(limit)
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = site_config::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
                 .all(&*db)
                 .await?;
             Ok(rows
@@ -1629,8 +2025,9 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb| Box::pin(async move { site_config::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { site_config::Entity::find().count(&*db).await })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
