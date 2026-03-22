@@ -210,8 +210,8 @@ pub mod prelude {
     pub use crate::admin::template::{AdminTemplate, PathAdminTemplate};
     pub use crate::admin::{
         AdminRegistry, CountFn, CreateFn, DeleteFn, DynForm, FormBuilder, GetFn, ListFn,
-        PrototypeAdminState, ResourceEntry, UpdateFn, admin_get, admin_get_id, admin_post,
-        admin_post_id,
+        ListParams, PrototypeAdminState, ResourceEntry, SortDir, UpdateFn, admin_get, admin_get_id,
+        admin_post, admin_post_id,
     };
     pub use futures_util::future::BoxFuture;
 }

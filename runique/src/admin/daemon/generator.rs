@@ -42,6 +42,7 @@ fn write_admin_panel(resources: &[ResourceDef], dir: &Path) -> Result<(), String
     let _ = writeln!(out, "// admin_panel by `runique start` from src/admin.rs");
     let _ = writeln!(out);
     let _ = writeln!(out, "use runique::prelude::*;");
+    let _ = writeln!(out, "use runique::admin::resource_entry::FilterFn;");
     let _ = writeln!(out);
 
     // Imports des entités (AdminForm est généré par model! dans chaque module)
@@ -294,13 +295,44 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out);
     let _ = writeln!(
         out,
-        "    let list_fn: ListFn = Arc::new(|db: ADb, offset: u64, limit: u64| {{"
+        "    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
         out,
-        "            let rows = {}::Entity::find().offset(offset).limit(limit).all(&*db).await?;",
+        "            use sea_orm::{{QueryFilter, sea_query::{{Alias, Expr, Order}}}};"
+    );
+    let _ = writeln!(
+        out,
+        "            let mut query = {}::Entity::find();",
         module
+    );
+    let _ = writeln!(out, "            if let Some(ref col) = params.sort_by {{");
+    let _ = writeln!(
+        out,
+        "                let order = if params.sort_dir == SortDir::Desc {{ Order::Desc }} else {{ Order::Asc }};"
+    );
+    let _ = writeln!(
+        out,
+        "                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);"
+    );
+    let _ = writeln!(out, "            }}");
+    let _ = writeln!(
+        out,
+        "            for (col, val) in &params.column_filters {{"
+    );
+    let _ = writeln!(
+        out,
+        "                let escaped = val.replace('\\'', \"''\");"
+    );
+    let _ = writeln!(
+        out,
+        "                query = query.filter(Expr::cust(format!(\"CAST({{}} AS TEXT) = '{{}}'\", col, escaped)));"
+    );
+    let _ = writeln!(out, "            }}");
+    let _ = writeln!(
+        out,
+        "            let rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;"
     );
     let _ = writeln!(out, "            Ok(rows.into_iter()");
     let _ = writeln!(
@@ -313,7 +345,10 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out);
 
     // CountFn closure
-    let _ = writeln!(out, "    let count_fn: CountFn = Arc::new(|db: ADb| {{");
+    let _ = writeln!(
+        out,
+        "    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {{"
+    );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
         out,
@@ -412,6 +447,70 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let _ = writeln!(out);
     }
 
+    // DisplayConfig avec list_display et/ou list_filter si configurés
+    if !r.list_display.is_empty() || !r.list_filter.is_empty() {
+        let mut display_chain = "DisplayConfig::new()".to_string();
+        if !r.list_display.is_empty() {
+            let cols_str = r
+                .list_display
+                .iter()
+                .map(|(c, l)| format!("(\"{}\", \"{}\")", c, l))
+                .collect::<Vec<_>>()
+                .join(", ");
+            display_chain.push_str(&format!(".columns_include(vec![{}])", cols_str));
+        }
+        if !r.list_filter.is_empty() {
+            let filter_str = r
+                .list_filter
+                .iter()
+                .map(|(col, label)| format!("(\"{}\", \"{}\")", col, label))
+                .collect::<Vec<_>>()
+                .join(", ");
+            display_chain.push_str(&format!(".list_filter(vec![{}])", filter_str));
+        }
+        let _ = writeln!(out, "    let meta = meta.display({});", display_chain);
+    }
+
+    // FilterFn closure (valeurs distinctes par colonne configurée)
+    if !r.list_filter.is_empty() {
+        let _ = writeln!(out, "    let filter_fn: FilterFn = Arc::new(|db: ADb| {{");
+        let _ = writeln!(out, "        Box::pin(async move {{");
+        let _ = writeln!(
+            out,
+            "            use sea_orm::{{ConnectionTrait, ExprTrait}};"
+        );
+        let _ = writeln!(
+            out,
+            "            use sea_orm::sea_query::{{Query, Alias, Expr, Order}};"
+        );
+        let _ = writeln!(
+            out,
+            "            let mut result: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();"
+        );
+        for (col, _label) in &r.list_filter {
+            let _ = writeln!(
+                out,
+                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).order_by(Alias::new(\"{col}\"), Order::Asc).to_owned();",
+                col = col,
+                module = module
+            );
+            let _ = writeln!(
+                out,
+                "            let rows_{col} = db.query_all(&stmt_{col}).await.unwrap_or_default();",
+                col = col
+            );
+            let _ = writeln!(
+                out,
+                "            result.insert(\"{col}\".to_string(), rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect());",
+                col = col
+            );
+        }
+        let _ = writeln!(out, "            Ok(result)");
+        let _ = writeln!(out, "        }})");
+        let _ = writeln!(out, "    }});");
+        let _ = writeln!(out);
+    }
+
     let _ = writeln!(out, "    registry.register(");
     let has_edit_form = r.edit_form_type.is_some();
     if has_edit_form {
@@ -429,6 +528,9 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "            .with_create_fn(create_fn)");
     let _ = writeln!(out, "            .with_update_fn(update_fn)");
     let _ = writeln!(out, "            .with_count_fn(count_fn)");
+    if !r.list_filter.is_empty() {
+        let _ = writeln!(out, "            .with_filter_fn(filter_fn)");
+    }
     let _ = writeln!(out, "    );");
     let _ = writeln!(out);
 

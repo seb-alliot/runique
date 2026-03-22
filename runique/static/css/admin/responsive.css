@@ -56,3 +56,12 @@
     .stats-grid { grid-template-columns: 1fr; }
     .table-actions { flex-wrap: wrap; }
 }
+
+@media (max-width: 768px) {
+    .admin-list-layout {
+        grid-template-columns: 1fr;
+    }
+    .admin-filter-sidebar {
+        position: static;
+    }
+}

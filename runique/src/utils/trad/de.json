@@ -281,7 +281,8 @@
         "confirm_delete": "Wirklich löschen?",
         "empty_title": "Keine Einträge",
         "empty_desc": "Beginnen Sie mit der Erstellung eines Elements.",
-        "btn_create_first": "Ersten erstellen"
+        "btn_create_first": "Ersten erstellen",
+        "search_placeholder": "Suchen..."
         },
         "create": {
         "title": "Erstellen",

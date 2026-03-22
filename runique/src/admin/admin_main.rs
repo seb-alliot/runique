@@ -19,6 +19,8 @@ use serde_json::Value;
 
 use crate::admin::AdminRegistry;
 use crate::admin::config::AdminConfig;
+use crate::admin::resource::ColumnFilter;
+use crate::admin::resource_entry::{ListParams, SortDir};
 use crate::admin::trad::insert_admin_messages;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
@@ -94,7 +96,31 @@ pub async fn admin_get(
                 .and_then(|p| p.parse::<u64>().ok())
                 .unwrap_or(1)
                 .max(1);
-            handle_list(&mut req, entry, &state, page).await
+            let sort_by = params.get("sort_by").filter(|s| !s.is_empty()).cloned();
+            let sort_dir = match params.get("sort_dir").map(|s| s.as_str()) {
+                Some("desc") => SortDir::Desc,
+                _ => SortDir::Asc,
+            };
+            let search = params.get("search").filter(|s| !s.is_empty()).cloned();
+            let column_filters: Vec<(String, String)> = params
+                .iter()
+                .filter_map(|(k, v)| {
+                    k.strip_prefix("filter_")
+                        .filter(|_| !v.is_empty())
+                        .map(|col| (col.to_string(), v.clone()))
+                })
+                .collect();
+            handle_list(
+                &mut req,
+                entry,
+                &state,
+                page,
+                sort_by,
+                sort_dir,
+                search,
+                column_filters,
+            )
+            .await
         }
         "create" => handle_create_get(&mut req, entry, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -246,26 +272,46 @@ async fn handle_list(
     entry: &crate::admin::ResourceEntry,
     state: &PrototypeAdminState,
     page: u64,
+    sort_by: Option<String>,
+    sort_dir: SortDir,
+    search: Option<String>,
+    column_filters: Vec<(String, String)>,
 ) -> AppResult<Response> {
     let page_size = state.config.page_size;
     let offset = (page - 1) * page_size;
 
-    let (entries_result, count_result) = tokio::join!(
+    let list_params = ListParams {
+        offset,
+        limit: page_size,
+        sort_by: sort_by.clone(),
+        sort_dir: sort_dir.clone(),
+        search: search.clone(),
+        column_filters: column_filters.clone(),
+    };
+
+    let (entries_result, count_result, filter_values_result) = tokio::join!(
         async {
             match &entry.list_fn {
-                Some(f) => f(req.engine.db.clone(), offset, page_size).await,
+                Some(f) => f(req.engine.db.clone(), list_params).await,
                 None => Ok(Vec::new()),
             }
         },
         async {
             match &entry.count_fn {
-                Some(f) => f(req.engine.db.clone()).await,
+                Some(f) => f(req.engine.db.clone(), search.clone()).await,
                 None => Ok(0u64),
+            }
+        },
+        async {
+            match &entry.filter_fn {
+                Some(f) => f(req.engine.db.clone()).await.unwrap_or_default(),
+                None => std::collections::HashMap::new(),
             }
         }
     );
     let entries = entries_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
     let count = count_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+    let filter_values = filter_values_result;
     // Si count_fn absent, estime le total depuis la page courante (évite la pagination cassée)
     let total = if entry.count_fn.is_some() {
         count
@@ -274,7 +320,67 @@ async fn handle_list(
     };
 
     let page_count = (total + page_size - 1) / page_size;
-    let page = page.min(page_count.max(1)); // clampe la page demandée à la plage valide
+    let page = page.min(page_count.max(1));
+
+    // Colonnes visibles : toutes sauf id/password, filtrées par DisplayConfig
+    let all_cols: Vec<String> = entries
+        .first()
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            obj.keys()
+                .filter(|k| *k != "id" && !k.starts_with("password"))
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let (visible_columns, column_labels): (Vec<String>, std::collections::HashMap<String, String>) =
+        match &entry.meta.display.columns {
+            ColumnFilter::All => (all_cols, std::collections::HashMap::new()),
+            ColumnFilter::Include(cols) => {
+                let filtered: Vec<(String, String)> = cols
+                    .iter()
+                    .filter(|(c, _)| all_cols.contains(c))
+                    .cloned()
+                    .collect();
+                let labels = filtered
+                    .iter()
+                    .map(|(c, l)| (c.clone(), l.clone()))
+                    .collect();
+                (filtered.into_iter().map(|(c, _)| c).collect(), labels)
+            }
+            ColumnFilter::Exclude(excluded) => (
+                all_cols
+                    .into_iter()
+                    .filter(|c| !excluded.contains(c))
+                    .collect(),
+                std::collections::HashMap::new(),
+            ),
+        };
+
+    // Validation whitelist : sort_by doit être une colonne visible ou "id"
+    let safe_sort_by = sort_by
+        .filter(|s| s == "id" || visible_columns.contains(s))
+        .unwrap_or_default();
+
+    // active_filters : toutes les colonnes list_filter initialisées à "" puis écrasées si actives
+    // (évite l'erreur Tera "key not found" lors de l'accès active_filters[col])
+    let mut active_filters: std::collections::HashMap<String, String> = entry
+        .meta
+        .display
+        .list_filter
+        .iter()
+        .map(|(col, _)| (col.clone(), String::new()))
+        .collect();
+    for (col, val) in &column_filters {
+        active_filters.insert(col.clone(), val.clone());
+    }
+
+    // filter_qs : query string à ajouter aux liens de pagination / recherche
+    let filter_qs: String = column_filters
+        .iter()
+        .map(|(col, val)| format!("&filter_{}={}", col, urlencoding::encode(val)))
+        .collect();
 
     req.context.insert("lang", &current_lang().code());
     req.context.insert("entries", &entries);
@@ -286,6 +392,15 @@ async fn handle_list(
     req.context.insert("prev_page", &(page.saturating_sub(1)));
     req.context.insert("next_page", &(page + 1));
     req.context.insert("current_page", "list");
+    req.context.insert("visible_columns", &visible_columns);
+    req.context.insert("column_labels", &column_labels);
+    req.context.insert("sort_by", &safe_sort_by);
+    req.context.insert("sort_dir", &sort_dir.as_str());
+    req.context.insert("sort_dir_toggle", &sort_dir.toggle());
+    req.context.insert("search", &search.unwrap_or_default());
+    req.context.insert("filter_values", &filter_values);
+    req.context.insert("active_filters", &active_filters);
+    req.context.insert("filter_qs", &filter_qs);
 
     let template = entry
         .meta

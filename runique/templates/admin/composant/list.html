@@ -26,96 +26,193 @@
     </a>
     {% endif %}
   </div>
-  <div class="card">
-    {% if entries is defined and entries | length > 0 %}
-      <div class="admin-table-wrapper">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>{% if admin_list_th_id %}{{ admin_list_th_id }}{% endif %}</th>
-              {% for key, value in entries | first %}
-                {% if key != "id" and key != "password" and key != "password_hash" %}
-                  <th>{{ key }}</th>
-                {% endif %}
-              {% endfor %}
-              <th class="th-right">{% if admin_list_th_actions %}{{ admin_list_th_actions }}{% endif %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for entry in entries %}
-              <tr>
-                <td><span class="id-badge">#{{ entry.id }}</span></td>
-                {% for key, value in entry %}
-                  {% if key != "id" and key != "password" and key != "password_hash" %}
-                    <td>
-                      {% if value == true %}
-                        <span class="badge badge-green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
-                      {% elif value == false %}
-                        <span class="badge badge-neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
-                      {% elif value %}
-                        {% if value is string %}{{ value | escape }}{% else %}{{ value }}{% endif %}
-                      {% else %}
-                        <span class="text-muted">—</span>
-                      {% endif %}
-                    </td>
-                  {% endif %}
-                {% endfor %}
-                <td>
-                  <div class="table-actions table-actions-end">
-                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-secondary">{% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% endif %}</a>
-                    {% set_global can_modify = false %}
-                    {% if current_user %}
-                      {% if current_user.is_superuser %}{% set_global can_modify = true %}
-                      {% else %}{% for role in current_user.roles %}{% if role in resource.permissions.edit %}{% set_global can_modify = true %}{% endif %}{% endfor %}{% endif %}
-                    {% endif %}
-                    {% if current_user and can_modify %}
-                    <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-secondary">{% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% endif %}</a>
-                    <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline">
-                      <button type="submit" class="btn btn-sm btn-danger" 
-                              data-confirm-delete="{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% else %}Vraiment supprimer ?{% endif %}">
-                        {% if admin_list_btn_delete %}{{ admin_list_btn_delete }}{% endif %}
-                      </button>
-                    </form>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="empty-state">
-        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-          <rect x="9" y="3" width="6" height="4" rx="1"/>
+
+  {# ── Barre de recherche ── #}
+  <form method="GET" action="" class="admin-search-form">
+    <div class="admin-search-wrapper">
+      <input
+        type="text"
+        name="search"
+        value="{{ search }}"
+        placeholder="{% if admin_list_search_placeholder %}{{ admin_list_search_placeholder }}{% else %}Search...{% endif %}"
+        class="admin-search-input"
+      >
+      {% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
+      {% if sort_dir %}<input type="hidden" name="sort_dir" value="{{ sort_dir }}">{% endif %}
+      {% for col, val in active_filters %}<input type="hidden" name="filter_{{ col }}" value="{{ val | escape }}">{% endfor %}
+      <button type="submit" class="btn btn-secondary admin-search-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <p class="empty-state-title">{% if admin_list_empty_title %}{{ admin_list_empty_title }}{% endif %}</p>
-        <p class="empty-state-desc">{% if admin_list_empty_desc %}{{ admin_list_empty_desc }}{% endif %}</p>
-        {% if can_create %}<a href="/admin/{{ resource.key }}/create" class="btn btn-primary mt-sm">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>{% endif %}
+      </button>
+      {% if search %}
+      <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{{ filter_qs }}" class="btn btn-secondary">✕</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {# ── Layout : tableau + sidebar filtres droite ── #}
+  {% set has_filters = resource.display.list_filter | length > 0 %}
+  <div class="{% if has_filters %}admin-list-layout{% endif %}">
+
+    {# ── Colonne principale : card + pagination ── #}
+    <div>
+      <div class="card">
+        {% if entries is defined and entries | length > 0 %}
+          <div class="admin-table-wrapper">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>
+                    <a href="?sort_by=id&sort_dir={% if sort_by == "id" %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1" class="th-sort-link">
+                      {% if admin_list_th_id %}{{ admin_list_th_id }}{% endif %}
+                      {% if sort_by == "id" %}<span class="sort-indicator">{% if sort_dir == "asc" %}▲{% else %}▼{% endif %}</span>{% endif %}
+                    </a>
+                  </th>
+                  {% for col in visible_columns %}
+                    <th>
+                      <a href="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1" class="th-sort-link">
+                        {% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col }}{% endif %}
+                        {% if sort_by == col %}<span class="sort-indicator">{% if sort_dir == "asc" %}▲{% else %}▼{% endif %}</span>{% endif %}
+                      </a>
+                    </th>
+                  {% endfor %}
+                  <th class="th-right">{% if admin_list_th_actions %}{{ admin_list_th_actions }}{% endif %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entry in entries %}
+                  <tr>
+                    <td><span class="id-badge">#{{ entry.id }}</span></td>
+                    {% for col in visible_columns %}
+                      {% set value = entry[col] %}
+                      <td>
+                        {% if value == true %}
+                          <span class="badge badge-green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
+                        {% elif value == false %}
+                          <span class="badge badge-neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
+                        {% elif value %}
+                          {% if value is string %}{{ value | escape }}{% else %}{{ value }}{% endif %}
+                        {% else %}
+                          <span class="text-muted">—</span>
+                        {% endif %}
+                      </td>
+                    {% endfor %}
+                    <td>
+                      <div class="table-actions table-actions-end">
+                        <a href="/admin/{{ resource.key }}/{{ entry.id }}/detail" class="btn btn-sm btn-secondary">{% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% endif %}</a>
+                        {% set_global can_modify = false %}
+                        {% if current_user %}
+                          {% if current_user.is_superuser %}{% set_global can_modify = true %}
+                          {% else %}{% for role in current_user.roles %}{% if role in resource.permissions.edit %}{% set_global can_modify = true %}{% endif %}{% endfor %}{% endif %}
+                        {% endif %}
+                        {% if current_user and can_modify %}
+                        <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-sm btn-secondary">{% if admin_list_btn_edit %}{{ admin_list_btn_edit }}{% endif %}</a>
+                        <form method="POST" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline">
+                          <button type="submit" class="btn btn-sm btn-danger"
+                                  data-confirm-delete="{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% else %}Vraiment supprimer ?{% endif %}">
+                            {% if admin_list_btn_delete %}{{ admin_list_btn_delete }}{% endif %}
+                          </button>
+                        </form>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+            </svg>
+            <p class="empty-state-title">{% if admin_list_empty_title %}{{ admin_list_empty_title }}{% endif %}</p>
+            <p class="empty-state-desc">{% if admin_list_empty_desc %}{{ admin_list_empty_desc }}{% endif %}</p>
+            {% if can_create %}<a href="/admin/{{ resource.key }}/create" class="btn btn-primary mt-sm">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>{% endif %}
+          </div>
+        {% endif %}
       </div>
+      {% if page_count is defined and page_count > 1 %}
+      <div class="pagination">
+        {% if has_prev %}
+          <a href="?page={{ prev_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}" class="btn btn-sm btn-secondary">&laquo;</a>
+        {% else %}
+          <span class="btn btn-sm btn-secondary disabled">&laquo;</span>
+        {% endif %}
+        <span class="pagination-info">{{ page }} / {{ page_count }}</span>
+        {% if has_next %}
+          <a href="?page={{ next_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}" class="btn btn-sm btn-secondary">&raquo;</a>
+        {% else %}
+          <span class="btn btn-sm btn-secondary disabled">&raquo;</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Sidebar filtres (droite) ── #}
+    {% if has_filters %}
+    <aside class="admin-filter-sidebar" id="filterSidebar">
+      <div class="filter-sidebar-header">
+        <span class="filter-sidebar-title">Filtres</span>
+        <button class="sidebar-toggle" id="filterToggle" title="Masquer les filtres">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+      <div class="filter-sidebar-body">
+        {% for filter_entry in resource.display.list_filter %}
+          {% set col = filter_entry[0] %}
+          {% set label = filter_entry[1] %}
+          {% set values = filter_values[col] %}
+          {% if values and values | length > 0 %}
+          <div class="filter-group">
+            <div class="filter-group-title">{{ label }}</div>
+            {% if active_filters[col] %}
+            <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1" class="filter-option filter-clear">✕ Tout</a>
+            {% endif %}
+            {% for val in values %}
+              {% set is_active = active_filters[col] == val %}
+              <a href="?filter_{{ col }}={{ val | urlencode }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                 class="filter-option {% if is_active %}filter-active{% endif %}">
+                {{ val }}
+              </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </aside>
     {% endif %}
-  </div>
-  {% if page_count is defined and page_count > 1 %}
-  <div class="pagination">
-    {% if has_prev %}
-      <a href="?page={{ prev_page }}" class="btn btn-sm btn-secondary">&laquo;</a>
-    {% else %}
-      <span class="btn btn-sm btn-secondary disabled">&laquo;</span>
-    {% endif %}
-    <span class="pagination-info">{{ page }} / {{ page_count }}</span>
-    {% if has_next %}
-      <a href="?page={{ next_page }}" class="btn btn-sm btn-secondary">&raquo;</a>
-    {% else %}
-      <span class="btn btn-sm btn-secondary disabled">&raquo;</span>
-    {% endif %}
-  </div>
-  {% endif %}
+
+  </div>{# fin admin-list-layout #}
   <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
   <script nonce="{{ csp_nonce }}">
       var adminActions = new AdminActions({
           deleteMessage: "{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% else %}Vraiment supprimer ?{% endif %}"
       });
       adminActions.init();
+
+      (function() {
+          var sidebar = document.getElementById('filterSidebar');
+          if (!sidebar) return;
+          var toggle   = document.getElementById('filterToggle');
+          var chevron  = toggle.querySelector('svg');
+          var layout   = sidebar.closest('.admin-list-layout');
+          var FILTER_KEY = 'runique_admin_filter_collapsed';
+
+          if (localStorage.getItem(FILTER_KEY) === '1') {
+              layout.classList.add('filter-collapsed');
+              chevron.style.transform = 'rotate(180deg)';
+          }
+
+          toggle.addEventListener('click', function() {
+              var isCollapsed = layout.classList.toggle('filter-collapsed');
+              chevron.style.transform = isCollapsed ? 'rotate(180deg)' : '';
+              localStorage.setItem(FILTER_KEY, isCollapsed ? '1' : '0');
+          });
+      })();
   </script>
 {% endblock %}

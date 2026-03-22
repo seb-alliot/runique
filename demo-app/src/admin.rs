@@ -14,6 +14,19 @@ admin! {
         title: "Utilisateurs",
         permissions: ["admin"],
         edit_form: crate::formulaire::UserEditForm,
+        list_display: [
+            ["username", "Nom d'utilisateur"],
+            ["email", "Email"],
+            ["is_superuser", "Superuser"],
+            ["is_active", "Actif"],
+        ],
+        list_filter: [
+            ["is_superuser", "Superuser"],
+            ["is_active", "Actif"],
+            ["username", "Nom d'utilisateur"],
+            ["email", "Email"],
+        ],
+
     }
     blog: blog::Model => BlogForm {
         title: "Articles",
@@ -61,7 +74,11 @@ admin! {
     }
     doc_page: doc_page::Model => DocPageForm {
         title: "Doc — Pages",
-        permissions: ["admin"]
+        permissions: ["admin"],
+        list_filter: [
+            ["lang", "Langue"],
+            ["section_id", "Section"],
+        ]
     }
     doc_block: doc_block::Model => DocBlockForm {
         title: "Doc — Blocs",

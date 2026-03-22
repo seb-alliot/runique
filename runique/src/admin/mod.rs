@@ -23,7 +23,8 @@ pub use resource::{
     AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
 };
 pub use resource_entry::{
-    CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ResourceEntry, UpdateFn,
+    CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ListParams, ResourceEntry, SortDir,
+    UpdateFn,
 };
 pub use roles::{get_roles, register_roles};
 pub use router::AdminState;

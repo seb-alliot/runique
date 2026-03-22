@@ -281,7 +281,8 @@
         "confirm_delete": "Eliminare davvero?",
         "empty_title": "Nessuna voce",
         "empty_desc": "Inizia creando un elemento.",
-        "btn_create_first": "Crea il primo"
+        "btn_create_first": "Crea il primo",
+        "search_placeholder": "Cerca..."
         },
         "create": {
         "title": "Crea",

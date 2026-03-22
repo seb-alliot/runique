@@ -6,6 +6,8 @@ macro_rules! admin {
                 title: $title:literal ,
                 permissions: [ $($perm:literal),* $(,)? ]
                 $(, edit_form: $edit_form_path:path)?
+                $(, list_display: [ $([$display_col:literal, $display_label:literal]),* $(,)? ])?
+                $(, list_filter: [ $([$filter_col:literal, $filter_label:literal]),* $(,)? ])?
                 $(,)?
             }
         )*
@@ -17,7 +19,6 @@ macro_rules! admin {
                 fn _check_types() {
                     fn _model(_: &$($model)::+) {}
                     fn _form(_: &$form) {}
-                    $(fn _edit_form(_: &$edit_form_path) {})?
                 }
             };
         )*

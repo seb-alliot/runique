@@ -213,7 +213,6 @@ ul { list-style: none; }
     border-radius: var(--radius);
     color: var(--text-muted);
     transition: all var(--transition);
-    flex-shrink: 0;
 }
 
 .sidebar-toggle:hover {
@@ -320,3 +319,19 @@ ul { list-style: none; }
     color: var(--text-muted);
     margin-top: 0.2rem;
 }
+
+/* ── Filter sidebar layout ── */
+.admin-list-layout {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    gap: 1.5rem;
+    align-items: start;
+    transition: grid-template-columns var(--transition);
+}
+
+.admin-list-layout.filter-collapsed {
+    grid-template-columns: 1fr 36px;
+}
+
+.admin-list-layout.filter-collapsed .filter-sidebar-body { display: none; }
+.admin-list-layout.filter-collapsed .filter-sidebar-title { opacity: 0; width: 0; }

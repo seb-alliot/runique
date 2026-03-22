@@ -281,7 +281,8 @@
         "confirm_delete": "确定要删除吗？",
         "empty_title": "无条目",
         "empty_desc": "请先创建一个项目。",
-        "btn_create_first": "创建第一个"
+        "btn_create_first": "创建第一个",
+        "search_placeholder": "搜索..."
         },
         "create": {
         "title": "创建",

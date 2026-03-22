@@ -152,7 +152,7 @@ async fn admin_dashboard(
     let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
         for (key, entry) in &state.registry.resources {
             if let Some(count_fn) = &entry.count_fn {
-                if let Ok(n) = (count_fn)(db.clone()).await {
+                if let Ok(n) = (count_fn)(db.clone(), None).await {
                     resource_counts.insert(key.clone(), n);
                 }
             }
