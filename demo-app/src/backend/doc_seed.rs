@@ -194,15 +194,6 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
     blocks
 }
 
-async fn section_exists(lang: &str, slug: &str, db: &DatabaseConnection) -> bool {
-    doc_section::Entity::find()
-        .filter(doc_section::Column::Lang.eq(lang))
-        .filter(doc_section::Column::Slug.eq(slug))
-        .one(db)
-        .await
-        .unwrap_or(None)
-        .is_some()
-}
 
 async fn insert_page_with_blocks(
     section_id: i32,
@@ -212,20 +203,6 @@ async fn insert_page_with_blocks(
     sort_order: i32,
     db: &DatabaseConnection,
 ) {
-    // Vérifie si la page existe déjà
-    let exists = doc_page::Entity::find()
-        .filter(doc_page::Column::SectionId.eq(section_id))
-        .filter(doc_page::Column::Slug.eq(slug))
-        .filter(doc_page::Column::Lang.eq(lang))
-        .one(db)
-        .await
-        .unwrap_or(None)
-        .is_some();
-
-    if exists {
-        return;
-    }
-
     let title = extract_title(content);
     let lead = extract_lead(content);
 
@@ -313,37 +290,33 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
             .map(|f| extract_order(&f.file_name().to_string_lossy()))
             .unwrap_or(99);
 
-        // Crée la section si elle n'existe pas
-        if !section_exists(lang, &section_slug, db).await {
-            // Titre depuis le fichier index ou depuis le slug
-            let title = index_file
-                .as_ref()
-                .and_then(|f| fs::read_to_string(f.path()).ok())
-                .map(|c| extract_title(&c))
-                .unwrap_or_else(|| {
-                    let mut s = section_slug.clone();
-                    if let Some(c) = s.get_mut(0..1) {
-                        c.make_ascii_uppercase()
-                    }
-                    s
-                });
-
-            let section = doc_section::ActiveModel {
-                slug: Set(section_slug.clone()),
-                lang: Set(lang.to_string()),
-                title: Set(title),
-                sort_order: Set(sort_order),
-                ..Default::default()
-            };
-
-            match section.insert(db).await {
-                Ok(s) => {
-                    tracing::info!("doc_seed: section créée — {lang}/{section_slug}");
-                    seed_section_pages(&section_slug, lang, s.id, &path, db).await;
+        let title = index_file
+            .as_ref()
+            .and_then(|f| fs::read_to_string(f.path()).ok())
+            .map(|c| extract_title(&c))
+            .unwrap_or_else(|| {
+                let mut s = section_slug.clone();
+                if let Some(c) = s.get_mut(0..1) {
+                    c.make_ascii_uppercase()
                 }
-                Err(e) => {
-                    tracing::warn!("doc_seed: erreur section {section_slug}: {e}");
-                }
+                s
+            });
+
+        let section = doc_section::ActiveModel {
+            slug: Set(section_slug.clone()),
+            lang: Set(lang.to_string()),
+            title: Set(title),
+            sort_order: Set(sort_order),
+            ..Default::default()
+        };
+
+        match section.insert(db).await {
+            Ok(s) => {
+                tracing::info!("doc_seed: section créée — {lang}/{section_slug}");
+                seed_section_pages(&section_slug, lang, s.id, &path, db).await;
+            }
+            Err(e) => {
+                tracing::warn!("doc_seed: erreur section {section_slug}: {e}");
             }
         }
     }
@@ -450,10 +423,23 @@ async fn seed_site_config(db: &DatabaseConnection) {
     tracing::info!("doc_seed: site_config initialisé");
 }
 
-/// Point d'entrée principal.
-/// Ne s'exécute que si les tables doc_section sont vides.
+/// Point d'entrée principal. Vide et re-seede doc_section/page/block à chaque démarrage.
 pub async fn seed_docs(db: &DatabaseConnection) {
     seed_site_config(db).await;
+
+    // Nettoyage complet avant re-seed (ordre FK : block → page → section)
+    let stmts = [
+        "DELETE FROM doc_block",
+        "DELETE FROM doc_page",
+        "DELETE FROM doc_section",
+    ];
+    for sql in &stmts {
+        if let Err(e) = db.execute_unprepared(sql).await
+        {
+            tracing::warn!("doc_seed: erreur nettoyage ({sql}): {e}");
+            return;
+        }
+    }
 
     let docs_root = match find_docs_root() {
         Some(p) => p,
