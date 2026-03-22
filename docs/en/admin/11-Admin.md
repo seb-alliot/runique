@@ -23,6 +23,7 @@ admin! {
 | [CLI](/docs/en/admin/declaration) | `runique start` command, general workflow |
 | [Daemon & generation](/docs/en/admin/declaration) | Generated files, watcher behaviour |
 | [Macro `admin!`](/docs/en/admin/declaration) | Full syntax, required and optional fields |
+| [List view](/docs/en/admin/list) | Pagination, sorting, search, `list_display`, `list_filter` |
 | [Permissions](/docs/en/admin/permission) | Roles, `is_staff` / `is_superuser`, runtime check |
 | [Templates](/docs/en/admin/template) | Template hierarchy, blocks, visual override |
 | [Roadmap](/docs/en/admin/evolution) | Planned features and beta status |

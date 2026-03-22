@@ -23,10 +23,7 @@ admin! {
         list_filter: [
             ["is_superuser", "Superuser"],
             ["is_active", "Actif"],
-            ["username", "Nom d'utilisateur"],
-            ["email", "Email"],
-        ],
-
+        ]
     }
     blog: blog::Model => BlogForm {
         title: "Articles",
@@ -77,12 +74,16 @@ admin! {
         permissions: ["admin"],
         list_filter: [
             ["lang", "Langue"],
-            ["section_id", "Section"],
         ]
     }
     doc_block: doc_block::Model => DocBlockForm {
         title: "Doc — Blocs",
-        permissions: ["admin"]
+        permissions: ["admin"],
+        list_filter: [
+            ["page_id", "page", 10],
+            ["block_type", "type", 5],
+            ["heading", "En-tête", 1],
+        ]
     }
     site_config: site_config::Model => SiteConfigForm {
         title: "Configuration site",

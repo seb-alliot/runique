@@ -319,6 +319,7 @@
         "btn_cancel": "← Annuler",
         "btn_confirm": "Oui, supprimer définitivement",
         "success": "Entrée supprimée avec succès !",
+        "not_found": "Ressource introuvable.",
         "warning": {
           "title": "Attention !",
           "desc": "Vous êtes sur le point de supprimer l'entrée",

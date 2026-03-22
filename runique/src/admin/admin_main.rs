@@ -27,8 +27,24 @@ use crate::errors::error::ErrorContext;
 use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
+use crate::utils::constante::admin_ctx::{
+    common as ctx_common, create as ctx_create, detail as ctx_detail, edit as ctx_edit,
+    list as list_ctx,
+};
 use crate::utils::trad::{current_lang, t};
+use std::collections::HashMap;
 use subtle::ConstantTimeEq;
+
+// ─── ListQuery — paramètres de la vue liste admin ─────────────
+
+struct ListQuery {
+    page: u64,
+    sort_by: Option<String>,
+    sort_dir: SortDir,
+    search: Option<String>,
+    column_filters: Vec<(String, String)>,
+    filter_pages: HashMap<String, u64>,
+}
 
 // ─── Extracteur AdminBody ─────────────────────────────────────
 //
@@ -110,17 +126,23 @@ pub async fn admin_get(
                         .map(|col| (col.to_string(), v.clone()))
                 })
                 .collect();
-            handle_list(
-                &mut req,
-                entry,
-                &state,
+            let filter_pages: HashMap<String, u64> = params
+                .iter()
+                .filter_map(|(k, v)| {
+                    let col = k.strip_prefix("fp_")?;
+                    let page = v.parse::<u64>().ok()?;
+                    Some((col.to_string(), page))
+                })
+                .collect();
+            let query = ListQuery {
                 page,
                 sort_by,
                 sort_dir,
                 search,
                 column_filters,
-            )
-            .await
+                filter_pages,
+            };
+            handle_list(&mut req, entry, &state, query).await
         }
         "create" => handle_create_get(&mut req, entry, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -143,7 +165,7 @@ pub async fn admin_post(
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
     inject_context(&mut req, &state, entry);
-    req.context.insert("lang", &current_lang().code());
+    req.context.insert(ctx_common::LANG, &current_lang().code());
 
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &state).await,
@@ -165,7 +187,7 @@ pub async fn admin_get_id(
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
     inject_context(&mut req, &state, entry);
-    req.context.insert("lang", &current_lang().code());
+    req.context.insert(ctx_common::LANG, &current_lang().code());
     match action.as_str() {
         "detail" => handle_detail(&mut req, entry, id, &state).await,
         "edit" => handle_edit_get(&mut req, entry, id, &state).await,
@@ -190,7 +212,7 @@ pub async fn admin_post_id(
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
     inject_context(&mut req, &state, entry);
-    req.context.insert("lang", &current_lang().code());
+    req.context.insert(ctx_common::LANG, &current_lang().code());
 
     match action.as_str() {
         "edit" => handle_edit_post(&mut req, entry, id, body, &state).await,
@@ -215,13 +237,16 @@ fn inject_context(
     insert_admin_messages(&mut req.context, "delete");
     insert_admin_messages(&mut req.context, "base");
 
-    req.context.insert("site_title", &state.config.site_title);
-    req.context.insert("site_url", &state.config.site_url);
-    req.context.insert("resource_key", entry.meta.key);
-    req.context.insert("current_resource", entry.meta.key);
-    req.context.insert("resource", &entry.meta);
+    req.context
+        .insert(ctx_common::SITE_TITLE, &state.config.site_title);
+    req.context
+        .insert(ctx_common::SITE_URL, &state.config.site_url);
+    req.context.insert(ctx_common::RESOURCE_KEY, entry.meta.key);
+    req.context
+        .insert(ctx_common::CURRENT_RESOURCE, entry.meta.key);
+    req.context.insert(ctx_common::RESOURCE, &entry.meta);
     req.context.insert(
-        "resources",
+        ctx_common::RESOURCES,
         &state.registry.all().map(|e| &e.meta).collect::<Vec<_>>(),
     );
 
@@ -230,7 +255,8 @@ fn inject_context(
     }
 
     let registered_roles = crate::admin::get_roles();
-    req.context.insert("registered_roles", &registered_roles);
+    req.context
+        .insert(ctx_common::REGISTERED_ROLES, &registered_roles);
 }
 
 /// Vérifie le token CSRF depuis le body du formulaire.
@@ -271,12 +297,16 @@ async fn handle_list(
     req: &mut Request,
     entry: &crate::admin::ResourceEntry,
     state: &PrototypeAdminState,
-    page: u64,
-    sort_by: Option<String>,
-    sort_dir: SortDir,
-    search: Option<String>,
-    column_filters: Vec<(String, String)>,
+    query: ListQuery,
 ) -> AppResult<Response> {
+    let ListQuery {
+        page,
+        sort_by,
+        sort_dir,
+        search,
+        column_filters,
+        filter_pages,
+    } = query;
     let page_size = state.config.page_size;
     let offset = (page - 1) * page_size;
 
@@ -289,7 +319,7 @@ async fn handle_list(
         column_filters: column_filters.clone(),
     };
 
-    let (entries_result, count_result, filter_values_result) = tokio::join!(
+    let (entries_result, count_result, filter_result) = tokio::join!(
         async {
             match &entry.list_fn {
                 Some(f) => f(req.engine.db.clone(), list_params).await,
@@ -304,14 +334,25 @@ async fn handle_list(
         },
         async {
             match &entry.filter_fn {
-                Some(f) => f(req.engine.db.clone()).await.unwrap_or_default(),
-                None => std::collections::HashMap::new(),
+                Some(f) => f(req.engine.db.clone(), filter_pages.clone())
+                    .await
+                    .unwrap_or_default(),
+                None => HashMap::new(),
             }
         }
     );
     let entries = entries_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
     let count = count_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
-    let filter_values = filter_values_result;
+
+    // Séparer valeurs et totaux distincts par colonne
+    let filter_values: HashMap<String, Vec<String>> = filter_result
+        .iter()
+        .map(|(k, (vals, _))| (k.clone(), vals.clone()))
+        .collect();
+    let filter_totals: HashMap<String, u64> = filter_result
+        .into_iter()
+        .map(|(k, (_, total))| (k, total))
+        .collect();
     // Si count_fn absent, estime le total depuis la page courante (évite la pagination cassée)
     let total = if entry.count_fn.is_some() {
         count
@@ -319,7 +360,7 @@ async fn handle_list(
         offset + entries.len() as u64
     };
 
-    let page_count = (total + page_size - 1) / page_size;
+    let page_count = total.div_ceil(page_size);
     let page = page.min(page_count.max(1));
 
     // Colonnes visibles : toutes sauf id/password, filtrées par DisplayConfig
@@ -334,9 +375,9 @@ async fn handle_list(
         })
         .unwrap_or_default();
 
-    let (visible_columns, column_labels): (Vec<String>, std::collections::HashMap<String, String>) =
+    let (visible_columns, column_labels): (Vec<String>, HashMap<String, String>) =
         match &entry.meta.display.columns {
-            ColumnFilter::All => (all_cols, std::collections::HashMap::new()),
+            ColumnFilter::All => (all_cols, HashMap::new()),
             ColumnFilter::Include(cols) => {
                 let filtered: Vec<(String, String)> = cols
                     .iter()
@@ -354,7 +395,7 @@ async fn handle_list(
                     .into_iter()
                     .filter(|c| !excluded.contains(c))
                     .collect(),
-                std::collections::HashMap::new(),
+                HashMap::new(),
             ),
         };
 
@@ -365,42 +406,128 @@ async fn handle_list(
 
     // active_filters : toutes les colonnes list_filter initialisées à "" puis écrasées si actives
     // (évite l'erreur Tera "key not found" lors de l'accès active_filters[col])
-    let mut active_filters: std::collections::HashMap<String, String> = entry
+    let mut active_filters: HashMap<String, String> = entry
         .meta
         .display
         .list_filter
         .iter()
-        .map(|(col, _)| (col.clone(), String::new()))
+        .map(|(col, _, _)| (col.clone(), String::new()))
         .collect();
     for (col, val) in &column_filters {
         active_filters.insert(col.clone(), val.clone());
     }
 
-    // filter_qs : query string à ajouter aux liens de pagination / recherche
-    let filter_qs: String = column_filters
+    // filter_qs : query string ajouté aux liens de pagination / tri / recherche
+    // Inclut les filtres actifs ET les pages de sidebar (fp_*) pour les préserver
+    let filter_qs: String = {
+        let mut parts: Vec<String> = column_filters
+            .iter()
+            .map(|(col, val)| format!("&filter_{}={}", col, urlencoding::encode(val)))
+            .collect();
+        for (col, page) in &filter_pages {
+            if *page > 0 {
+                parts.push(format!("&fp_{}={}", col, page));
+            }
+        }
+        parts.concat()
+    };
+
+    // filter_meta : prev/next QS précalculés par colonne pour la pagination sidebar
+    let base_qs: Vec<String> = {
+        let mut parts = vec![];
+        if !safe_sort_by.is_empty() {
+            parts.push(format!("sort_by={}", safe_sort_by));
+        }
+        if sort_dir == SortDir::Desc {
+            parts.push("sort_dir=desc".to_string());
+        }
+        if let Some(ref s) = search {
+            parts.push(format!("search={}", urlencoding::encode(s)));
+        }
+        for (col, val) in &column_filters {
+            parts.push(format!("filter_{}={}", col, urlencoding::encode(val)));
+        }
+        parts
+    };
+    let filter_meta: HashMap<String, serde_json::Value> = entry
+        .meta
+        .display
+        .list_filter
         .iter()
-        .map(|(col, val)| format!("&filter_{}={}", col, urlencoding::encode(val)))
+        .map(|(col, _, col_limit)| {
+            let cur_page = filter_pages.get(col).copied().unwrap_or(0);
+            let total_distinct = filter_totals.get(col).copied().unwrap_or(0);
+            let total_pages = total_distinct.div_ceil(*col_limit);
+            let total_pages = total_pages.max(1);
+            let has_prev = cur_page > 0;
+            let has_next = cur_page + 1 < total_pages;
+
+            let build_qs = |fp_override: Option<u64>| -> String {
+                let mut parts = base_qs.clone();
+                for (other_col, other_page) in &filter_pages {
+                    if other_col != col && *other_page > 0 {
+                        parts.push(format!("fp_{}={}", other_col, other_page));
+                    }
+                }
+                if let Some(fp) = fp_override {
+                    if fp > 0 {
+                        parts.push(format!("fp_{}={}", col, fp));
+                    }
+                }
+                parts.join("&")
+            };
+
+            let prev_qs = if has_prev {
+                build_qs(Some(cur_page - 1))
+            } else {
+                String::new()
+            };
+            let next_qs = if has_next {
+                build_qs(Some(cur_page + 1))
+            } else {
+                String::new()
+            };
+
+            let meta = serde_json::json!({
+                "current_page": cur_page,
+                "total_pages": total_pages,
+                "has_prev": has_prev,
+                "has_next": has_next,
+                "prev_qs": prev_qs,
+                "next_qs": next_qs,
+            });
+            (col.clone(), meta)
+        })
         .collect();
 
-    req.context.insert("lang", &current_lang().code());
-    req.context.insert("entries", &entries);
-    req.context.insert("total", &total);
-    req.context.insert("page", &page);
-    req.context.insert("page_count", &page_count);
-    req.context.insert("has_prev", &(page > 1));
-    req.context.insert("has_next", &(page < page_count));
-    req.context.insert("prev_page", &(page.saturating_sub(1)));
-    req.context.insert("next_page", &(page + 1));
-    req.context.insert("current_page", "list");
-    req.context.insert("visible_columns", &visible_columns);
-    req.context.insert("column_labels", &column_labels);
-    req.context.insert("sort_by", &safe_sort_by);
-    req.context.insert("sort_dir", &sort_dir.as_str());
-    req.context.insert("sort_dir_toggle", &sort_dir.toggle());
-    req.context.insert("search", &search.unwrap_or_default());
-    req.context.insert("filter_values", &filter_values);
-    req.context.insert("active_filters", &active_filters);
-    req.context.insert("filter_qs", &filter_qs);
+    macro_rules! ctx {
+        ($($key:expr => $val:expr),* $(,)?) => {
+            $( req.context.insert($key, &$val); )*
+        };
+    }
+
+    ctx! {
+        list_ctx::LANG              => current_lang().code(),
+        list_ctx::ENTRIES           => entries,
+        list_ctx::TOTAL             => total,
+        list_ctx::PAGE              => page,
+        list_ctx::PAGE_COUNT        => page_count,
+        list_ctx::HAS_PREV          => (page > 1),
+        list_ctx::HAS_NEXT          => (page < page_count),
+        list_ctx::PREV_PAGE         => page.saturating_sub(1),
+        list_ctx::NEXT_PAGE         => (page + 1),
+        "current_page"              => "list",
+        list_ctx::VISIBLE_COLUMNS   => visible_columns,
+        list_ctx::COLUMN_LABELS     => column_labels,
+        list_ctx::SORT_BY           => safe_sort_by,
+        list_ctx::SORT_DIR          => sort_dir.as_str(),
+        list_ctx::SORT_DIR_TOGGLE   => sort_dir.toggle(),
+        list_ctx::SEARCH            => search.unwrap_or_default(),
+        list_ctx::FILTER_VALUES     => filter_values,
+        list_ctx::ACTIVE_FILTERS    => active_filters,
+        list_ctx::FILTER_QS         => filter_qs,
+        list_ctx::FILTER_META       => filter_meta,
+    }
 
     let template = entry
         .meta
@@ -419,9 +546,9 @@ async fn handle_create_get(
     let csrf = req.csrf_token.as_str().to_string();
     let form = (entry.form_builder)(StrMap::new(), tera, csrf, axum::http::Method::GET).await;
 
-    req.context.insert("form_fields", form.get_form());
-    req.context.insert("is_edit", &false);
-    req.context.insert("lang", &current_lang().code());
+    req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
+    req.context.insert(ctx_create::IS_EDIT, &false);
+    req.context.insert(ctx_common::LANG, &current_lang().code());
     let template = entry
         .meta
         .template_create
@@ -460,9 +587,9 @@ async fn handle_create_post(
         .into_response());
     }
 
-    req.context.insert("form_fields", form.get_form());
-    req.context.insert("is_edit", &false);
-    req.context.insert("lang", &current_lang().code());
+    req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
+    req.context.insert(ctx_create::IS_EDIT, &false);
+    req.context.insert(ctx_common::LANG, &current_lang().code());
     let template = entry
         .meta
         .template_create
@@ -485,9 +612,9 @@ async fn handle_detail(
     };
 
     if let Some(v) = &object {
-        req.context.insert("entry", v);
+        req.context.insert(ctx_detail::ENTRY, v);
     }
-    req.context.insert("object_id", &id);
+    req.context.insert(ctx_detail::OBJECT_ID, &id);
     let template = entry
         .meta
         .template_detail
@@ -521,9 +648,9 @@ async fn handle_edit_get(
         .unwrap_or(&entry.form_builder);
     let form = (builder)(data, tera, csrf, axum::http::Method::GET).await;
 
-    req.context.insert("form_fields", form.get_form());
-    req.context.insert("is_edit", &true);
-    req.context.insert("object_id", &id);
+    req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
+    req.context.insert(ctx_edit::IS_EDIT, &true);
+    req.context.insert(ctx_edit::OBJECT_ID, &id);
     let template = entry
         .meta
         .template_edit
@@ -569,9 +696,9 @@ async fn handle_edit_post(
         .into_response());
     }
 
-    req.context.insert("form_fields", form.get_form());
-    req.context.insert("is_edit", &true);
-    req.context.insert("object_id", &id);
+    req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
+    req.context.insert(ctx_edit::IS_EDIT, &true);
+    req.context.insert(ctx_edit::OBJECT_ID, &id);
     let template = entry
         .meta
         .template_edit
@@ -594,9 +721,9 @@ async fn handle_delete_get(
     };
 
     if let Some(v) = &object {
-        req.context.insert("entry", v);
+        req.context.insert(ctx_detail::ENTRY, v);
     }
-    req.context.insert("object_id", &id);
+    req.context.insert(ctx_detail::OBJECT_ID, &id);
     let template = entry
         .meta
         .template_delete
@@ -613,7 +740,7 @@ async fn handle_delete_post(
 ) -> AppResult<Response> {
     let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {
         Box::new(AppError::new(ErrorContext::not_found(
-            "delete_fn non configurée pour cette ressource",
+            t("admin.delete.not_found").as_ref(),
         )))
     })?;
 

@@ -86,7 +86,7 @@
     "session_write_error": "Session write error"
   },
   "error": {
-    "source": "Source: {}" ,
+    "source": "Source: {}",
     "AppError": "Application error",
     "build": "Build error: {}",
     "internal": "Internal error",
@@ -238,131 +238,132 @@
     "debug_header_value": "Value"
   },
   "admin": {
-      "login": {
-        "title": "Login",
-        "subtitle": "Sign in to access the admin panel",
-        "label_username": "Username",
-        "label_password": "Password",
-        "btn_submit": "Sign in",
-        "error_session": "Error while opening session.",
-        "error_credentials": "Incorrect credentials or insufficient rights."
+    "login": {
+      "title": "Login",
+      "subtitle": "Sign in to access the admin panel",
+      "label_username": "Username",
+      "label_password": "Password",
+      "btn_submit": "Sign in",
+      "error_session": "Error while opening session.",
+      "error_credentials": "Incorrect credentials or insufficient rights."
+    },
+    "logout": {
+      "success": "Successfully logged out."
+    },
+    "access": {
+      "no_auth_handler": "No authentication handler configured. Call .auth(MyAuth) on AdminConfig.",
+      "insufficient_rights": "Insufficient rights to access administration"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Application overview",
+      "card_resources": "Resources",
+      "th_resource": "Resource",
+      "th_key": "Key",
+      "th_permissions": "Permissions",
+      "th_actions": "Actions",
+      "btn_list": "List",
+      "btn_create": "Create",
+      "empty_title": "No resources registered",
+      "empty_desc": "Declare your resources in src/admin.rs with the admin!{{}} macro then run runique start"
+    },
+    "list": {
+      "breadcrumb_admin": "Administration",
+      "entries_count": "entry(ies)",
+      "btn_create": "Create",
+      "th_id": "id",
+      "th_actions": "Actions",
+      "bool_true": "Yes",
+      "bool_false": "No",
+      "btn_detail": "Detail",
+      "btn_edit": "Edit",
+      "btn_delete": "Delete",
+      "confirm_delete": "Really delete?",
+      "empty_title": "No entries",
+      "empty_desc": "Start by creating an item.",
+      "btn_create_first": "Create the first",
+      "search_placeholder": "Search..."
+    },
+    "create": {
+      "title": "Create",
+      "breadcrumb": "Create",
+      "card_info": "Information",
+      "no_fields": "No fields available at the moment.",
+      "btn_cancel": "Cancel",
+      "btn_submit": "Create",
+      "success": "Entry created successfully!"
+    },
+    "edit": {
+      "title": "Edit",
+      "breadcrumb": "Edit",
+      "card_info": "Information",
+      "no_fields": "No fields available at the moment.",
+      "btn_cancel": "Cancel",
+      "btn_submit": "Save",
+      "success": "Entry updated successfully!"
+    },
+    "detail": {
+      "title": "Detail",
+      "breadcrumb": "Detail",
+      "entry_label": "Entry",
+      "btn_list": "← List",
+      "btn_edit": "Edit",
+      "btn_delete": "Delete",
+      "confirm_delete": "Delete this entry?"
+    },
+    "delete": {
+      "title": "Delete",
+      "breadcrumb": "Delete",
+      "heading": "Confirm deletion",
+      "btn_cancel": "← Cancel",
+      "success": "Entry deleted successfully!",
+      "btn_confirm": "Yes, delete permanently",
+      "warning": {
+        "title": "Warning!",
+        "desc": "You are about to delete the entry",
+        "of": "from resource",
+        "irreversible": "This action is irreversible."
       },
-      "logout": {
-        "success": "Successfully logged out."
-      },
-      "access": {
-        "no_auth_handler": "No authentication handler configured. Call .auth(MyAuth) on AdminConfig.",
-        "insufficient_rights": "Insufficient rights to access administration"
-      },
-      "dashboard": {
-        "title": "Dashboard",
-        "subtitle": "Application overview",
-        "card_resources": "Resources",
-        "th_resource": "Resource",
-        "th_key": "Key",
-        "th_permissions": "Permissions",
-        "th_actions": "Actions",
-        "btn_list": "List",
-        "btn_create": "Create",
-        "empty_title": "No resources registered",
-        "empty_desc": "Declare your resources in src/admin.rs with the admin!{{}} macro then run runique start"
-      },
-      "list": {
-        "breadcrumb_admin": "Administration",
-        "entries_count": "entry(ies)",
-        "btn_create": "Create",
-        "th_id": "id",
-        "th_actions": "Actions",
-        "bool_true": "Yes",
-        "bool_false": "No",
-        "btn_detail": "Detail",
-        "btn_edit": "Edit",
-        "btn_delete": "Delete",
-        "confirm_delete": "Really delete?",
-        "empty_title": "No entries",
-        "empty_desc": "Start by creating an item.",
-        "btn_create_first": "Create the first",
-        "search_placeholder": "Search..."
-      },
-      "create": {
-        "title": "Create",
-        "breadcrumb": "Create",
-        "card_info": "Information",
-        "no_fields": "No fields available at the moment.",
-        "btn_cancel": "Cancel",
-        "btn_submit": "Create",
-        "success": "Entry created successfully!"
-      },
-      "edit": {
-        "title": "Edit",
-        "breadcrumb": "Edit",
-        "card_info": "Information",
-        "no_fields": "No fields available at the moment.",
-        "btn_cancel": "Cancel",
-        "btn_submit": "Save",
-        "success": "Entry updated successfully!"
-      },
-      "detail": {
-        "title": "Detail",
-        "breadcrumb": "Detail",
-        "entry_label": "Entry",
-        "btn_list": "← List",
-        "btn_edit": "Edit",
-        "btn_delete": "Delete",
-        "confirm_delete": "Delete this entry?"
-      },
-      "delete": {
-        "title": "Delete",
-        "breadcrumb": "Delete",
-        "heading": "Confirm deletion",
-        "btn_cancel": "← Cancel",
-        "success": "Entry deleted successfully!",
-        "btn_confirm": "Yes, delete permanently",
-        "warning": {
-          "title": "Warning!",
-          "desc": "You are about to delete the entry",
-          "of": "from resource",
-          "irreversible": "This action is irreversible."
-        }
-      },
-      "base": {
-        "title": "Administration",
-        "breadcrumb": "Admin",
-        "toggle": "Collapse menu",
-        "logout_title": "Logout"
-      },
-      "superuser": {
-        "title": "=== Create Superuser ===",
-        "algo_prompt": "[1/5] Hashing algorithm",
-        "algo_argon2": "Argon2 (recommended)",
-        "algo_bcrypt": "Bcrypt",
-        "algo_scrypt": "Scrypt",
-        "algo_custom": "Custom provider",
-        "provider_path": "Provider path",
-        "invalid_path": "Invalid path.",
-        "username_prompt": "[2/5] Username",
-        "username_empty": "Username cannot be empty.",
-        "username_taken": "A user with this name already exists.",
-        "email_prompt": "[3/5] Email",
-        "email_invalid": "Invalid email.",
-        "email_taken": "A user with this email already exists.",
-        "password_prompt": "[4/5] Password",
-        "password_too_short": "Password must be at least 10 characters.",
-        "confirm_prompt": "[5/5] Confirm password",
-        "password_mismatch": "Passwords do not match. Please try again.",
-        "review_algo": "  Algorithm   : {}",
-        "review_username": "  Username    : {}",
-        "review_email": "  Email       : {}",
-        "review_password": "  Password    : ••••••••",
-        "review_action": "Action",
-        "confirm_create": "Confirm and create",
-        "change_algo": "Change algorithm",
-        "modify_password": "Modify password",
-        "success": "✓ Superuser created successfully!",
-        "id_line": "  ID       : {}",
-        "username_line": "  Username : {}",
-        "email_line": "  Email    : {}"
-      }
+      "not_found": "Resource not found."
+    },
+    "base": {
+      "title": "Administration",
+      "breadcrumb": "Admin",
+      "toggle": "Collapse menu",
+      "logout_title": "Logout"
+    },
+    "superuser": {
+      "title": "=== Create Superuser ===",
+      "algo_prompt": "[1/5] Hashing algorithm",
+      "algo_argon2": "Argon2 (recommended)",
+      "algo_bcrypt": "Bcrypt",
+      "algo_scrypt": "Scrypt",
+      "algo_custom": "Custom provider",
+      "provider_path": "Provider path",
+      "invalid_path": "Invalid path.",
+      "username_prompt": "[2/5] Username",
+      "username_empty": "Username cannot be empty.",
+      "username_taken": "A user with this name already exists.",
+      "email_prompt": "[3/5] Email",
+      "email_invalid": "Invalid email.",
+      "email_taken": "A user with this email already exists.",
+      "password_prompt": "[4/5] Password",
+      "password_too_short": "Password must be at least 10 characters.",
+      "confirm_prompt": "[5/5] Confirm password",
+      "password_mismatch": "Passwords do not match. Please try again.",
+      "review_algo": "  Algorithm   : {}",
+      "review_username": "  Username    : {}",
+      "review_email": "  Email       : {}",
+      "review_password": "  Password    : ••••••••",
+      "review_action": "Action",
+      "confirm_create": "Confirm and create",
+      "change_algo": "Change algorithm",
+      "modify_password": "Modify password",
+      "success": "✓ Superuser created successfully!",
+      "id_line": "  ID       : {}",
+      "username_line": "  Username : {}",
+      "email_line": "  Email    : {}"
+    }
   },
   "makemigrations": {
     "scanning": "Scanning entities in '{}'...",

@@ -50,8 +50,8 @@ pub struct ResourceDef {
     /// Clés custom pour le contexte Tera (via extra: { "k" => "v" })
     pub extra_context: Vec<(String, String)>,
 
-    /// Filtres sidebar : [("col_sql", "Label affiché")]
-    pub list_filter: Vec<(String, String)>,
+    /// Filtres sidebar : [("col_sql", "Label affiché", limit_par_page)]
+    pub list_filter: Vec<(String, String, u64)>,
 
     /// Colonnes visibles dans la liste avec labels : [("col", "Label")]
     pub list_display: Vec<(String, String)>,
@@ -196,7 +196,7 @@ struct ResourceBody {
     extra_context: Vec<(String, String)>,
     edit_form_type: Option<String>,
     id_type: String,
-    list_filter: Vec<(String, String)>,
+    list_filter: Vec<(String, String, u64)>,
     list_display: Vec<(String, String)>,
 }
 
@@ -287,9 +287,59 @@ fn parse_list_display(iter: &mut TokenIter) -> Result<Vec<(String, String)>, Str
     parse_str_pair_array(iter, "list_display")
 }
 
-/// Parse list_filter: [["col_sql", "Label"], ...]
-fn parse_list_filter(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
-    parse_str_pair_array(iter, "list_filter")
+/// Parse list_filter: [["col_sql", "Label"], ...] ou [["col_sql", "Label", 10], ...]
+fn parse_list_filter(iter: &mut TokenIter) -> Result<Vec<(String, String, u64)>, String> {
+    use proc_macro2::TokenTree;
+
+    match iter.next() {
+        Some(TokenTree::Group(outer)) => {
+            let mut entries = Vec::new();
+            let mut inner = outer.stream().into_iter().peekable();
+            while inner.peek().is_some() {
+                match inner.next() {
+                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+                    Some(TokenTree::Group(pair)) => {
+                        let mut t = pair.stream().into_iter().peekable();
+                        let col = parse_string_literal(&mut t)?;
+                        match t.next() {
+                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {}
+                            _ => return Err("Expected ',' after col in list_filter".to_string()),
+                        }
+                        let label = parse_string_literal(&mut t)?;
+                        // 3ème élément optionnel : limit
+                        let limit = match t.next() {
+                            Some(TokenTree::Punct(p)) if p.as_char() == ',' => {
+                                // virgule présente → lire le literal
+                                parse_integer_literal(&mut t).unwrap_or(10)
+                            }
+                            _ => 10, // pas de 3ème élément → défaut 10
+                        };
+                        entries.push((col, label, limit));
+                    }
+                    Some(other) => {
+                        return Err(format!(
+                            "Expected [col, label] in list_filter, found: {}",
+                            other
+                        ));
+                    }
+                    None => break,
+                }
+            }
+            Ok(entries)
+        }
+        other => Err(format!("Expected [...] for list_filter, got {:?}", other)),
+    }
+}
+
+fn parse_integer_literal(iter: &mut TokenIter) -> Result<u64, String> {
+    use proc_macro2::TokenTree;
+    match iter.next() {
+        Some(TokenTree::Literal(lit)) => lit
+            .to_string()
+            .parse::<u64>()
+            .map_err(|_| format!("Expected integer literal, got '{}'", lit)),
+        other => Err(format!("Expected integer literal, got {:?}", other)),
+    }
 }
 
 /// Parseur générique pour [["str1", "str2"], ...] — utilisé par list_display et list_filter
