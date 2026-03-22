@@ -22,7 +22,7 @@ Décembre 2025
 
 7. Erreurs courantes et solutions 
 
-8. Exemples concrets avec Rusti 
+8. Exemples concrets avec Runique 
 
 9. Best practices 
 
@@ -223,7 +223,7 @@ Dans Axum et Tokio, les traits Send et Sync sont cruciaux car les futures peuven
 ## Pourquoi Sync est nécessaire dans les traits
 
 ```
-// Trait pour formulaires Rusti
+// Trait pour formulaires Runique
 ```
 
 **`pub trait FormulaireTrait: Send + Sync {  //`** ← **`Sync important !`** 
@@ -368,7 +368,7 @@ struct MyStruct {
 }
 ```
 
-## 8. Exemples concrets avec Rusti
+## 8. Exemples concrets avec Runique
 
 ## Exemple 1 : Trait de formulaire correct
 
