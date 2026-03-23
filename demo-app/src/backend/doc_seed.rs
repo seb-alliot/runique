@@ -194,7 +194,6 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
     blocks
 }
 
-
 async fn insert_page_with_blocks(
     section_id: i32,
     slug: &str,
@@ -434,8 +433,7 @@ pub async fn seed_docs(db: &DatabaseConnection) {
         "DELETE FROM doc_section",
     ];
     for sql in &stmts {
-        if let Err(e) = db.execute_unprepared(sql).await
-        {
+        if let Err(e) = db.execute_unprepared(sql).await {
             tracing::warn!("doc_seed: erreur nettoyage ({sql}): {e}");
             return;
         }

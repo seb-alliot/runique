@@ -34,7 +34,12 @@
     /* -- color-card -- */
     --card-color: #fca5a5;
 
-    --shadow-message: rgba(255, 255, 255, 0.03)
+    --shadow-message: rgba(255, 255, 255, 0.03);
+
+    /* ── Code blocks ── */
+    --bg-code:        #161b22;
+    --bg-code-inline: rgba(255,255,255,0.08);
+    --text-code:      #e6edf3;
 }
 
 /* ── Mode clair ── */
@@ -65,4 +70,9 @@
 
     --card-color: #fca5a5;
     --shadow-message: rgba(0, 0, 0, 0.04);
+
+    /* ── Code blocks (toujours sombres, comme GitHub) ── */
+    --bg-code:        #161b22;
+    --bg-code-inline: rgba(0,0,0,0.07);
+    --text-code:      #e6edf3;
 }

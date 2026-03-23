@@ -27,6 +27,8 @@ INSERT INTO cour (id, slug, lang, title, theme, difficulte, sort_order, ordre) V
 (15, 'smart-pointers',      'fr', 'Smart pointers',         'Mémoire & sûreté', 'intermediaire', 7, 15),
 (16, 'send-sync',           'fr', 'Send & Sync',            'Mémoire & sûreté', 'intermediaire', 8, 16),
 (17, 'traits-avances',      'fr', 'Traits avancés',         'Avancé',           'avance',        1, 17),
+(27, 'traits-basics',       'fr', 'Traits — Les bases',      'Avancé',           'avance',        8, 27),
+(28, 'concurrence',         'fr', 'Concurrence & état partagé', 'Avancé',        'avance',        9, 28),
 (18, 'macros-declaratives',  'fr', 'Macros déclaratives',                 'Avancé', 'avance', 2, 18),
 (23, 'macros-export',        'fr', 'Macros — Visibilité et export',      'Avancé', 'avance', 3, 23),
 (24, 'macros-derive',        'fr', 'Macros procédurales — Derive',       'Avancé', 'avance', 4, 24),
@@ -8877,6 +8879,1070 @@ ma_macro!(...)        → Function-like proc macro
 | Validation à la compilation | Function-like |
 | Génération de code depuis données externes | Function-like |$BLK11378$, 'table', 3),
 (11379, 439, NULL, $BLK11379$Dans Runique, `derive_form` est une **derive macro** — elle génère les méthodes de formulaire depuis la définition de struct. `admin!`, `model!`, `view!` sont des **`macro_rules!`** classiques — assez puissantes pour leur usage sans nécessiter une proc-macro.$BLK11379$, 'text', 4);
+
+-- traits-basics.md (cour_id=27)
+INSERT INTO chapitre (id, cour_id, slug, title, lead, sort_order) VALUES
+(440, 27, 'traits-basics-1-quest-ce-quun-trait', '1. Qu''est-ce qu''un trait', NULL, 1),
+(441, 27, 'traits-basics-2-definir-un-trait', '2. Définir un trait', NULL, 2),
+(442, 27, 'traits-basics-3-implementer-un-trait-sur-une-struct', '3. Implémenter un trait sur une struct', NULL, 3),
+(443, 27, 'traits-basics-4-implementation-par-defaut', '4. Implémentation par défaut', NULL, 4),
+(444, 27, 'traits-basics-5-impl-trait-en-parametre-et-en-retour', '5. `impl Trait` en paramètre et en retour', NULL, 5),
+(445, 27, 'traits-basics-6-les-derives-communes', '6. Les derives communes', NULL, 6),
+(446, 27, 'traits-basics-7-impl-multiple-et-coherence', '7. Impl multiple et cohérence', NULL, 7),
+(447, 27, 'traits-basics-8-exercices-pratiques', '8. Exercices pratiques', NULL, 8),
+(448, 27, 'traits-basics-9-aide-memoire', '9. Aide-mémoire', NULL, 9);
+INSERT INTO cour_block (id, chapitre_id, heading, content, block_type, sort_order) VALUES
+(11380, 440, NULL, $BLK11380$Un **trait** est un contrat : il définit un ensemble de méthodes qu'un type doit implémenter.
+C'est l'équivalent des interfaces dans d'autres langages, avec des fonctionnalités en plus.$BLK11380$, 'text', 1),
+(11381, 440, NULL, $BLK11381$```rust
+// Un trait définit un comportement
+trait Saluer {
+    fn saluer(&self) -> String;
+}
+
+// N'importe quel type peut l'implémenter
+struct Francais;
+struct Japonais;
+
+impl Saluer for Francais {
+    fn saluer(&self) -> String {
+        "Bonjour !".to_string()
+    }
+}
+
+impl Saluer for Japonais {
+    fn saluer(&self) -> String {
+        "Konnichiwa !".to_string()
+    }
+}
+
+// Utilisation polymorphique
+fn accueillir(personne: &impl Saluer) {
+    println!("{}", personne.saluer());
+}
+```$BLK11381$, 'code', 2),
+(11382, 440, NULL, $BLK11382$Les traits permettent de :
+- Écrire du code générique réutilisable
+- Définir des interfaces sans héritage
+- Garantir des comportements à la compilation$BLK11382$, 'text', 3),
+(11383, 440, NULL, $BLK11383$---$BLK11383$, 'text', 4),
+(11384, 441, NULL, $BLK11384$Un trait déclare des signatures de méthodes. Les types qui l'implémentent doivent fournir le corps.$BLK11384$, 'text', 1),
+(11385, 441, NULL, $BLK11385$```rust
+trait Forme {
+    // Méthode requise — pas de corps
+    fn aire(&self) -> f64;
+
+    // Méthode requise
+    fn perimetre(&self) -> f64;
+
+    // Méthode avec implémentation par défaut
+    fn description(&self) -> String {
+        format!("Aire : {:.2}, Périmètre : {:.2}", self.aire(), self.perimetre())
+    }
+}
+```$BLK11385$, 'code', 2),
+(11386, 441, NULL, $BLK11386$Un trait peut aussi définir des **méthodes associées** (sans `&self`) :$BLK11386$, 'text', 3),
+(11387, 441, NULL, $BLK11387$```rust
+trait Creable {
+    fn nouveau() -> Self;
+}
+
+struct Compteur {
+    valeur: u32,
+}
+
+impl Creable for Compteur {
+    fn nouveau() -> Self {
+        Compteur { valeur: 0 }
+    }
+}
+
+let c = Compteur::nouveau();
+```$BLK11387$, 'code', 4),
+(11388, 441, NULL, $BLK11388$---$BLK11388$, 'text', 5),
+(11389, 442, NULL, $BLK11389$La syntaxe est `impl NomTrait for NomType`.$BLK11389$, 'text', 1),
+(11390, 442, NULL, $BLK11390$```rust
+struct Rectangle {
+    largeur: f64,
+    hauteur: f64,
+}
+
+struct Cercle {
+    rayon: f64,
+}
+
+impl Forme for Rectangle {
+    fn aire(&self) -> f64 {
+        self.largeur * self.hauteur
+    }
+
+    fn perimetre(&self) -> f64 {
+        2.0 * (self.largeur + self.hauteur)
+    }
+}
+
+impl Forme for Cercle {
+    fn aire(&self) -> f64 {
+        std::f64::consts::PI * self.rayon * self.rayon
+    }
+
+    fn perimetre(&self) -> f64 {
+        2.0 * std::f64::consts::PI * self.rayon
+    }
+
+    // On peut surcharger la méthode par défaut
+    fn description(&self) -> String {
+        format!("Cercle r={} — aire {:.2}", self.rayon, self.aire())
+    }
+}
+
+fn main() {
+    let r = Rectangle { largeur: 4.0, hauteur: 3.0 };
+    let c = Cercle { rayon: 5.0 };
+
+    println!("{}", r.description()); // méthode par défaut
+    println!("{}", c.description()); // méthode surchargée
+}
+```$BLK11390$, 'code', 2),
+(11391, 442, NULL, $BLK11391$---$BLK11391$, 'text', 3),
+(11392, 443, NULL, $BLK11392$Une implémentation par défaut s'applique automatiquement si le type ne la redéfinit pas.
+Elle peut appeler d'autres méthodes du même trait.$BLK11392$, 'text', 1),
+(11393, 443, NULL, $BLK11393$```rust
+trait Resumable {
+    // Méthode à implémenter obligatoirement
+    fn auteur(&self) -> &str;
+
+    fn titre(&self) -> &str;
+
+    // Méthode par défaut qui s'appuie sur les deux précédentes
+    fn resume(&self) -> String {
+        format!("« {} » par {}", self.titre(), self.auteur())
+    }
+}
+
+struct Article {
+    titre: String,
+    auteur: String,
+    contenu: String,
+}
+
+impl Resumable for Article {
+    fn auteur(&self) -> &str {
+        &self.auteur
+    }
+
+    fn titre(&self) -> &str {
+        &self.titre
+    }
+
+    // resume() non redéfini → utilise la version par défaut
+}
+
+struct Tweet {
+    utilisateur: String,
+    message: String,
+}
+
+impl Resumable for Tweet {
+    fn auteur(&self) -> &str {
+        &self.utilisateur
+    }
+
+    fn titre(&self) -> &str {
+        &self.message
+    }
+
+    // Surcharge la méthode par défaut
+    fn resume(&self) -> String {
+        format!("@{} : {}", self.utilisateur, self.message)
+    }
+}
+
+let article = Article {
+    titre: "Rust en production".to_string(),
+    auteur: "Alice".to_string(),
+    contenu: "...".to_string(),
+};
+
+println!("{}", article.resume()); // « Rust en production » par Alice
+```$BLK11393$, 'code', 2),
+(11394, 443, NULL, $BLK11394$---$BLK11394$, 'text', 3),
+(11395, 444, NULL, $BLK11395$`impl Trait` est un raccourci syntaxique pour les trait bounds. Il rend le code plus lisible.$BLK11395$, 'text', 1),
+(11396, 444, 'En paramètre', $BLK11396$```rust
+use std::fmt::Display;
+
+// Syntaxe impl Trait (raccourci)
+fn afficher(valeur: impl Display) {
+    println!("{valeur}");
+}
+
+// Équivalent avec générique explicite
+fn afficher_generique<T: Display>(valeur: T) {
+    println!("{valeur}");
+}
+
+// Plusieurs paramètres — chacun peut être un type différent
+fn comparer(a: impl Display, b: impl Display) {
+    println!("{a} vs {b}");
+}
+
+// Avec plusieurs bounds
+fn afficher_debug(valeur: impl Display + std::fmt::Debug) {
+    println!("Display: {valeur}  Debug: {valeur:?}");
+}
+```$BLK11396$, 'code', 2),
+(11397, 444, 'En retour', $BLK11397$`impl Trait` en position de retour cache le type concret tout en gardant le dispatch statique.
+
+```rust
+// Le type exact de l'itérateur est caché
+fn nombres_pairs(limite: u32) -> impl Iterator<Item = u32> {
+    (0..limite).filter(|n| n % 2 == 0)
+}
+
+// Utile pour retourner des closures
+fn multiplicateur(facteur: i32) -> impl Fn(i32) -> i32 {
+    move |x| x * facteur
+}
+
+let doubler = multiplicateur(2);
+println!("{}", doubler(5)); // 10
+```
+
+> **Limite :** avec `impl Trait` en retour, tous les chemins de code doivent retourner le **même type concret**. Pour retourner des types différents, utilisez `Box<dyn Trait>`.
+
+```rust
+// Ceci ne compile PAS — deux types concrets différents
+// fn animal(chien: bool) -> impl Animal {
+//     if chien { Chien } else { Chat }
+// }
+
+// Solution : Box<dyn Trait>
+fn animal(chien: bool) -> Box<dyn Animal> {
+    if chien { Box::new(Chien) } else { Box::new(Chat) }
+}
+```
+
+---$BLK11397$, 'text', 3),
+(11398, 445, NULL, $BLK11398$L'attribut `#[derive(...)]` génère automatiquement des implémentations de traits standard.$BLK11398$, 'text', 1),
+(11399, 445, '`Debug`', $BLK11399$Permet l'affichage avec `{:?}` et `{:#?}` (pretty-print).
+
+```rust
+#[derive(Debug)]
+struct Utilisateur {
+    nom: String,
+    age: u32,
+    actif: bool,
+}
+
+let u = Utilisateur { nom: "Alice".to_string(), age: 30, actif: true };
+
+println!("{:?}", u);   // Utilisateur { nom: "Alice", age: 30, actif: true }
+println!("{:#?}", u);  // version indenté multi-ligne
+```$BLK11399$, 'text', 2),
+(11400, 445, '`Clone` et `Copy`', $BLK11400$```rust
+// Clone — copie explicite via .clone()
+#[derive(Debug, Clone)]
+struct Config {
+    host: String,
+    port: u16,
+}
+
+let config1 = Config { host: "localhost".to_string(), port: 8080 };
+let config2 = config1.clone(); // copie indépendante
+
+// Copy — copie implicite (types légers, sans heap)
+// Copy nécessite Clone
+#[derive(Debug, Clone, Copy)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+let p1 = Point { x: 1.0, y: 2.0 };
+let p2 = p1; // copié, pas déplacé
+
+println!("{p1:?}"); // p1 est toujours valide
+println!("{p2:?}");
+```
+
+> **Règle :** `Copy` ne peut s'appliquer qu'aux types dont tous les champs sont `Copy`. `String`, `Vec`, `Box` ne peuvent pas être `Copy` car ils possèdent de la mémoire sur le tas.$BLK11400$, 'code', 3),
+(11401, 445, '`PartialEq` et `Eq`', $BLK11401$```rust
+#[derive(Debug, PartialEq)]
+struct Coordonnee {
+    x: i32,
+    y: i32,
+}
+
+let a = Coordonnee { x: 1, y: 2 };
+let b = Coordonnee { x: 1, y: 2 };
+let c = Coordonnee { x: 3, y: 4 };
+
+assert!(a == b);
+assert!(a != c);
+
+// Eq garantit la réflexivité totale (a == a toujours vrai)
+// f64 implémente PartialEq mais pas Eq (NaN != NaN)
+#[derive(Debug, PartialEq, Eq)]
+struct Id(u64);
+```$BLK11401$, 'code', 4),
+(11402, 445, '`Hash`', $BLK11402$`Hash` est nécessaire pour utiliser un type comme clé de `HashMap` ou dans un `HashSet`.
+Il requiert `PartialEq` (et recommande `Eq`).
+
+```rust
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct CleComposee {
+    categorie: String,
+    identifiant: u32,
+}
+
+let mut map: HashMap<CleComposee, String> = HashMap::new();
+
+map.insert(
+    CleComposee { categorie: "utilisateur".to_string(), identifiant: 42 },
+    "Alice".to_string(),
+);
+
+let cle = CleComposee { categorie: "utilisateur".to_string(), identifiant: 42 };
+println!("{:?}", map.get(&cle)); // Some("Alice")
+```
+
+---$BLK11402$, 'text', 5),
+(11403, 446, 'Plusieurs traits sur un même type', $BLK11403$Un type peut implémenter autant de traits que nécessaire.
+
+```rust
+use std::fmt;
+
+#[derive(Clone)]
+struct Vecteur2D {
+    x: f64,
+    y: f64,
+}
+
+impl Vecteur2D {
+    fn norme(&self) -> f64 {
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+}
+
+impl fmt::Display for Vecteur2D {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+impl fmt::Debug for Vecteur2D {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Vecteur2D {{ x: {}, y: {} }}", self.x, self.y)
+    }
+}
+
+impl PartialEq for Vecteur2D {
+    fn eq(&self, other: &Self) -> bool {
+        (self.x - other.x).abs() < f64::EPSILON
+            && (self.y - other.y).abs() < f64::EPSILON
+    }
+}
+
+impl std::ops::Add for Vecteur2D {
+    type Output = Vecteur2D;
+
+    fn add(self, other: Vecteur2D) -> Vecteur2D {
+        Vecteur2D {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+```$BLK11403$, 'text', 1),
+(11404, 446, 'La règle de cohérence (orphan rule)', $BLK11404$Rust impose une contrainte : pour implémenter un trait sur un type, **au moins l'un des deux** doit être défini dans le crate courant.
+
+```rust
+// OK — MonType est dans notre crate
+impl Display for MonType { ... }
+
+// OK — MonTrait est dans notre crate
+impl MonTrait for String { ... }
+
+// INTERDIT — ni Display ni Vec ne sont dans notre crate
+// impl Display for Vec<i32> { ... }
+```
+
+Pour contourner cette règle, on utilise le **newtype pattern** :
+
+```rust
+// Wrapper local autour d'un type externe
+struct MesNombres(Vec<i32>);
+
+impl fmt::Display for MesNombres {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s: Vec<String> = self.0.iter().map(|n| n.to_string()).collect();
+        write!(f, "[{}]", s.join(", "))
+    }
+}
+
+let liste = MesNombres(vec![1, 2, 3]);
+println!("{liste}"); // [1, 2, 3]
+```
+
+---$BLK11404$, 'text', 2),
+(11405, 447, 'Exercice 1 — Trait `Convertible`', $BLK11405$Créez un trait `Convertible` avec une méthode `en_chaine(&self) -> String` et implémentez-le
+pour `f64`, une struct `Temperature` et une struct `Couleur { r: u8, g: u8, b: u8 }`.
+
+```rust
+trait Convertible {
+    fn en_chaine(&self) -> String;
+}
+
+impl Convertible for f64 {
+    fn en_chaine(&self) -> String {
+        format!("{:.2}", self)
+    }
+}
+
+struct Temperature {
+    celsius: f64,
+}
+
+impl Convertible for Temperature {
+    fn en_chaine(&self) -> String {
+        format!("{:.1}°C", self.celsius)
+    }
+}
+
+struct Couleur {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
+impl Convertible for Couleur {
+    fn en_chaine(&self) -> String {
+        format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
+    }
+}
+
+// Test
+let t = Temperature { celsius: 36.6 };
+let c = Couleur { r: 255, g: 128, b: 0 };
+println!("{}", t.en_chaine()); // 36.6°C
+println!("{}", c.en_chaine()); // #FF8000
+```$BLK11405$, 'text', 1),
+(11406, 447, 'Exercice 2 — Tri générique', $BLK11406$Écrivez une fonction `plus_grand` générique qui fonctionne avec tout type comparable et affichable.
+
+```rust
+use std::fmt::Display;
+
+fn plus_grand<T>(liste: &[T]) -> Option<&T>
+where
+    T: PartialOrd + Display,
+{
+    let mut max = liste.first()?;
+    for item in liste.iter() {
+        if item > max {
+            max = item;
+        }
+    }
+    Some(max)
+}
+
+let nombres = vec![34, 50, 25, 100, 65];
+let lettres = vec!['y', 'm', 'a', 'q'];
+
+println!("{:?}", plus_grand(&nombres)); // Some(100)
+println!("{:?}", plus_grand(&lettres)); // Some('y')
+```
+
+---$BLK11406$, 'text', 2),
+(11407, 448, NULL, $BLK11407$| Syntaxe | Signification |
+|---|---|
+| `trait Foo { fn bar(&self); }` | Définir un trait |
+| `impl Foo for MaStruct { ... }` | Implémenter un trait |
+| `fn f(x: impl Foo)` | Paramètre avec trait bound |
+| `fn f() -> impl Foo` | Retour avec type opaque |
+| `fn f<T: Foo>(x: T)` | Générique explicite |
+| `where T: Foo + Bar` | Clause where (bounds multiples) |
+| `#[derive(Debug, Clone)]` | Implémentation automatique |$BLK11407$, 'table', 1),
+(11408, 448, NULL, $BLK11408$**Derives et leurs usages :**$BLK11408$, 'text', 2),
+(11409, 448, NULL, $BLK11409$| Derive | Permet |
+|---|---|
+| `Debug` | `{:?}` et `{:#?}` |
+| `Clone` | `.clone()` explicite |
+| `Copy` | Copie implicite (types légers) |
+| `PartialEq` | `==` et `!=` |
+| `Eq` | Égalité totale (+ `PartialEq`) |
+| `Hash` | Clé de `HashMap` / `HashSet` |
+| `Default` | `T::default()` |
+| `PartialOrd` / `Ord` | `<`, `>`, tri |$BLK11409$, 'table', 3),
+(11410, 448, NULL, $BLK11410$**Points clés à retenir :**$BLK11410$, 'text', 4),
+(11411, 448, NULL, $BLK11411$- Un trait = un contrat de comportement
+- `impl Trait` en paramètre = syntaxe courte pour un bound
+- `impl Trait` en retour = type concret opaque (statique, pas de box)
+- `Box<dyn Trait>` = dispatch dynamique (pour types hétérogènes)
+- La règle de cohérence protège l'écosystème des conflits
+- `Copy` requiert `Clone`, et tous les champs doivent être `Copy`$BLK11411$, 'list', 5);
+
+-- concurrence.md (cour_id=28)
+INSERT INTO chapitre (id, cour_id, slug, title, lead, sort_order) VALUES
+(449, 28, 'concurrence-1-pourquoi-la-concurrence-est-difficile', '1. Pourquoi la concurrence est difficile', NULL, 1),
+(450, 28, 'concurrence-2-mutext-exclusion-mutuelle', '2. `Mutex<T>` — exclusion mutuelle', NULL, 2),
+(451, 28, 'concurrence-3-rwlockt-lecture-ecriture', '3. `RwLock<T>` — lecture/écriture', NULL, 3),
+(452, 28, 'concurrence-4-arct-reference-comptee-thread-safe', '4. `Arc<T>` — référence comptée thread-safe', NULL, 4),
+(453, 28, 'concurrence-5-arcmutext-pattern-classique', '5. `Arc<Mutex<T>>` — pattern classique', NULL, 5),
+(454, 28, 'concurrence-6-lazylockt-initialisation-paresseuse', '6. `LazyLock<T>` — initialisation paresseuse', NULL, 6),
+(455, 28, 'concurrence-7-oncelockt-valeur-initialisee-une-seule-fois', '7. `OnceLock<T>` — valeur initialisée une seule fois', NULL, 7),
+(456, 28, 'concurrence-8-comparaison-et-quand-utiliser-quoi', '8. Comparaison et quand utiliser quoi', NULL, 8),
+(457, 28, 'concurrence-9-exemples-concrets-avec-runique', '9. Exemples concrets avec Runique', NULL, 9),
+(458, 28, 'concurrence-10-exercices-pratiques', '10. Exercices pratiques', NULL, 10),
+(459, 28, 'concurrence-11-aide-memoire', '11. Aide-mémoire', NULL, 11);
+INSERT INTO cour_block (id, chapitre_id, heading, content, block_type, sort_order) VALUES
+(11412, 449, NULL, $BLK11412$En programmation concurrente, plusieurs threads accèdent aux mêmes données simultanément.
+Cela génère deux catégories de bugs :$BLK11412$, 'text', 1),
+(11413, 449, NULL, $BLK11413$**Data race** — deux threads modifient la même mémoire sans synchronisation. Le résultat est
+imprévisible et peut être différent à chaque exécution.$BLK11413$, 'text', 2),
+(11414, 449, NULL, $BLK11414$**Deadlock** — deux threads attendent chacun un verrou que l'autre détient. Ils se bloquent
+mutuellement pour toujours.$BLK11414$, 'text', 3),
+(11415, 449, NULL, $BLK11415$```rust
+// Ce code ne compile PAS — Rust empêche le data race à la compilation
+use std::thread;
+
+let mut compteur = 0;
+
+thread::spawn(|| compteur += 1); // erreur : compteur emprunté depuis un autre thread
+thread::spawn(|| compteur += 1); // erreur : idem
+```$BLK11415$, 'code', 4),
+(11416, 449, NULL, $BLK11416$Rust résout ces problèmes grâce aux traits `Send` et `Sync` vérifiés à la compilation,
+et aux primitives de synchronisation de la bibliothèque standard.$BLK11416$, 'text', 5),
+(11417, 449, NULL, $BLK11417$---$BLK11417$, 'text', 6),
+(11418, 450, NULL, $BLK11418$`Mutex<T>` (*Mutual Exclusion*) garantit qu'un seul thread à la fois peut accéder aux données.
+Pour lire ou modifier la valeur, il faut d'abord acquérir le **verrou**.$BLK11418$, 'text', 1),
+(11419, 450, NULL, $BLK11419$```rust
+use std::sync::Mutex;
+
+let m = Mutex::new(5);
+
+{
+    // lock() bloque jusqu'à ce que le verrou soit disponible
+    let mut val = m.lock().unwrap();
+    *val += 1;
+    println!("{val}"); // 6
+} // le verrou est libéré ici automatiquement (drop du MutexGuard)
+
+// On peut de nouveau accéder
+println!("{:?}", m.lock().unwrap()); // 6
+```$BLK11419$, 'code', 2),
+(11420, 450, 'Gestion des erreurs avec `lock()`', $BLK11420$`lock()` retourne `Err` si un thread a paniqué en tenant le verrou (*poisoned mutex*).
+
+```rust
+use std::sync::Mutex;
+
+let mutex = Mutex::new(vec![1, 2, 3]);
+
+match mutex.lock() {
+    Ok(mut guard) => {
+        guard.push(4);
+        println!("{:?}", *guard);
+    }
+
+    Err(poisoned) => {
+        // Récupérer quand même les données
+        let mut guard = poisoned.into_inner();
+        guard.push(99);
+        println!("Récupéré : {:?}", *guard);
+    }
+}
+```$BLK11420$, 'text', 3),
+(11421, 450, '`try_lock()` — tentative non bloquante', $BLK11421$```rust
+use std::sync::Mutex;
+
+let mutex = Mutex::new(0);
+
+match mutex.try_lock() {
+    Ok(mut val) => *val += 1,
+    Err(_) => println!("Verrou occupé, on continue"),
+}
+```
+
+---$BLK11421$, 'code', 4),
+(11422, 451, NULL, $BLK11422$`RwLock<T>` (*Read-Write Lock*) permet **plusieurs lecteurs simultanés** ou **un seul écrivain**.
+C'est plus efficace que `Mutex` quand les lectures sont fréquentes et les écritures rares.$BLK11422$, 'text', 1),
+(11423, 451, NULL, $BLK11423$```rust
+use std::sync::RwLock;
+
+let verrou = RwLock::new(vec![1, 2, 3]);
+
+// Plusieurs lectures simultanées — OK
+let lecture1 = verrou.read().unwrap();
+let lecture2 = verrou.read().unwrap();
+println!("{:?} {:?}", *lecture1, *lecture2);
+drop(lecture1);
+drop(lecture2);
+
+// Écriture exclusive — bloque si des lecteurs sont actifs
+{
+    let mut ecriture = verrou.write().unwrap();
+    ecriture.push(4);
+} // verrou d'écriture libéré
+
+println!("{:?}", verrou.read().unwrap()); // [1, 2, 3, 4]
+```$BLK11423$, 'code', 2),
+(11424, 451, 'Différence avec `Mutex`', $BLK11424$```rust
+// Mutex : un seul accès à la fois, même pour la lecture
+// RwLock : plusieurs lecteurs simultanés, un seul écrivain
+
+// Choisir selon le ratio lecture/écriture :
+// - Beaucoup de lectures, peu d'écritures → RwLock
+// - Équilibré ou données petites → Mutex (moins de surcharge)
+```
+
+---$BLK11424$, 'code', 3),
+(11425, 452, NULL, $BLK11425$`Arc<T>` (*Atomically Reference Counted*) permet à **plusieurs threads de posséder** la même
+valeur. Chaque clone incrémente un compteur atomique ; la valeur est libérée quand le compteur
+atteint zéro.$BLK11425$, 'text', 1),
+(11426, 452, NULL, $BLK11426$```rust
+use std::sync::Arc;
+use std::thread;
+
+let donnees = Arc::new(vec![1, 2, 3, 4, 5]);
+let mut handles = vec![];
+
+for i in 0..3 {
+    let clone = Arc::clone(&donnees);
+
+    let handle = thread::spawn(move || {
+        println!("Thread {i} : {:?}", clone);
+    });
+
+    handles.push(handle);
+}
+
+for h in handles {
+    h.join().unwrap();
+}
+
+// donnees est toujours accessible ici
+println!("Total : {}", donnees.len());
+```$BLK11426$, 'code', 2),
+(11427, 452, NULL, $BLK11427$> `Arc<T>` seul ne permet que la lecture. Pour modifier les données partagées entre threads,
+> combinez avec `Mutex<T>` ou `RwLock<T>`.$BLK11427$, 'warning', 3),
+(11428, 452, NULL, $BLK11428$```rust
+// Rc<T> vs Arc<T>
+use std::rc::Rc;
+use std::sync::Arc;
+
+let rc  = Rc::new(42);   // thread unique — compteur ordinaire, plus rapide
+let arc = Arc::new(42);  // multi-thread — compteur atomique, légèrement plus lent
+
+// Rc ne peut PAS être envoyé entre threads (erreur de compilation)
+// Arc peut traverser les frontières de threads
+```$BLK11428$, 'code', 4),
+(11429, 452, NULL, $BLK11429$---$BLK11429$, 'text', 5),
+(11430, 453, NULL, $BLK11430$C'est la combinaison standard pour **partager et modifier** des données entre plusieurs threads.$BLK11430$, 'text', 1),
+(11431, 453, NULL, $BLK11431$```rust
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+let compteur = Arc::new(Mutex::new(0));
+let mut handles = vec![];
+
+for _ in 0..10 {
+    let clone = Arc::clone(&compteur);
+
+    let handle = thread::spawn(move || {
+        let mut val = clone.lock().unwrap();
+        *val += 1;
+    });
+
+    handles.push(handle);
+}
+
+for h in handles {
+    h.join().unwrap();
+}
+
+println!("Résultat : {}", compteur.lock().unwrap()); // 10
+```$BLK11431$, 'code', 2),
+(11432, 453, 'Pattern avec état applicatif', $BLK11432$```rust
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+#[derive(Clone)]
+struct Cache {
+    donnees: Arc<Mutex<HashMap<String, String>>>,
+}
+
+impl Cache {
+    fn new() -> Self {
+        Cache {
+            donnees: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn inserer(&self, cle: &str, valeur: &str) {
+        let mut map = self.donnees.lock().unwrap();
+        map.insert(cle.to_string(), valeur.to_string());
+    }
+
+    fn obtenir(&self, cle: &str) -> Option<String> {
+        let map = self.donnees.lock().unwrap();
+        map.get(cle).cloned()
+    }
+}
+
+let cache = Cache::new();
+let cache2 = cache.clone(); // partage le même Arc intérieur
+
+cache.inserer("cle1", "valeur1");
+println!("{:?}", cache2.obtenir("cle1")); // Some("valeur1")
+```
+
+---$BLK11432$, 'code', 3),
+(11433, 454, NULL, $BLK11433$`LazyLock<T>` (stable depuis Rust 1.80) initialise une valeur **la première fois qu'on y accède**,
+de façon thread-safe. Idéal pour les ressources globales coûteuses à initialiser.$BLK11433$, 'text', 1),
+(11434, 454, NULL, $BLK11434$```rust
+use std::sync::LazyLock;
+use std::collections::HashMap;
+
+// Initialisé au premier accès, jamais avant
+static CODES_PAYS: LazyLock<HashMap<&str, &str>> = LazyLock::new(|| {
+    let mut m = HashMap::new();
+    m.insert("FR", "France");
+    m.insert("DE", "Allemagne");
+    m.insert("JP", "Japon");
+    m
+});
+
+fn main() {
+    // La HashMap est créée ici, au premier accès
+    println!("{:?}", CODES_PAYS.get("FR")); // Some("France")
+    println!("{:?}", CODES_PAYS.get("JP")); // Some("Japon")
+}
+```$BLK11434$, 'code', 2),
+(11435, 454, 'Comparaison avec `once_cell` (avant Rust 1.80)', $BLK11435$```rust
+// Avant Rust 1.80, on utilisait la crate once_cell
+// once_cell::sync::Lazy est identique à std::sync::LazyLock
+
+// Depuis Rust 1.80, LazyLock est dans la stdlib — pas de dépendance externe nécessaire
+use std::sync::LazyLock;
+
+static CONFIG: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("APP_CONFIG").unwrap_or_else(|_| "defaut".to_string())
+});
+```$BLK11435$, 'code', 3),
+(11436, 454, '`LazyLock` avec un type complexe', $BLK11436$```rust
+use std::sync::LazyLock;
+
+struct Connexion {
+    url: String,
+}
+
+impl Connexion {
+    fn nouvelle(url: &str) -> Self {
+        println!("Connexion établie vers {url}");
+        Connexion { url: url.to_string() }
+    }
+
+    fn ping(&self) -> bool {
+        println!("Ping vers {}", self.url);
+        true
+    }
+}
+
+static DB: LazyLock<Connexion> = LazyLock::new(|| {
+    Connexion::nouvelle("postgres://localhost/mabase")
+});
+
+// La connexion n'est créée que lors du premier appel à DB
+fn main() {
+    println!("Démarrage...");
+    DB.ping(); // connexion créée ici
+    DB.ping(); // déjà initialisé, réutilisé directement
+}
+```
+
+---$BLK11436$, 'code', 4),
+(11437, 455, NULL, $BLK11437$`OnceLock<T>` est similaire à `LazyLock` mais l'initialisation est **manuelle** — vous choisissez
+quand et comment initialiser la valeur.$BLK11437$, 'text', 1),
+(11438, 455, NULL, $BLK11438$```rust
+use std::sync::OnceLock;
+
+static INSTANCE: OnceLock<String> = OnceLock::new();
+
+fn obtenir_instance() -> &'static String {
+    INSTANCE.get_or_init(|| {
+        println!("Initialisation unique...");
+        "valeur globale".to_string()
+    })
+}
+
+fn main() {
+    println!("{}", obtenir_instance()); // initialise
+    println!("{}", obtenir_instance()); // réutilise, pas de réinitialisation
+}
+```$BLK11438$, 'code', 2),
+(11439, 455, 'Initialisation depuis une fonction externe', $BLK11439$```rust
+use std::sync::OnceLock;
+
+static PORT: OnceLock<u16> = OnceLock::new();
+
+fn configurer(port: u16) -> Result<(), u16> {
+    PORT.set(port) // retourne Err(port) si déjà initialisé
+}
+
+fn port() -> u16 {
+    *PORT.get().expect("port non configuré")
+}
+
+fn main() {
+    configurer(8080).unwrap();
+
+    match configurer(9090) {
+        Ok(_)  => println!("configuré"),
+        Err(p) => println!("déjà initialisé avec {p}"),
+    }
+
+    println!("Port actif : {}", port()); // 8080
+}
+```$BLK11439$, 'code', 3),
+(11440, 455, 'Différence `LazyLock` vs `OnceLock`', $BLK11440$```rust
+// LazyLock — initialisation automatique à la closure définie à la déclaration
+static A: LazyLock<String> = LazyLock::new(|| "automatique".to_string());
+
+// OnceLock — initialisation manuelle, peut être faite depuis n'importe où
+static B: OnceLock<String> = OnceLock::new();
+
+fn main() {
+    let _ = &*A;              // A s'initialise ici
+    B.set("manuel".to_string()).unwrap(); // B initialisé explicitement
+}
+```
+
+---$BLK11440$, 'code', 4),
+(11441, 456, NULL, $BLK11441$| Type | Thread-safe | Propriétaires | Mutation | Cas d'usage |
+|---|---|---|---|---|
+| `Mutex<T>` | ✅ | 1 | oui (lock exclusif) | Compteur, état partagé |
+| `RwLock<T>` | ✅ | 1 | oui (1 écrivain ou N lecteurs) | Cache lu souvent, écrit rarement |
+| `Arc<T>` | ✅ | N | non (seul) | Partage en lecture seule |
+| `Arc<Mutex<T>>` | ✅ | N | oui (lock) | État partagé entre threads |
+| `Arc<RwLock<T>>` | ✅ | N | oui (lock) | Config partagée, lectures fréquentes |
+| `LazyLock<T>` | ✅ | — | non (init une fois) | Ressource globale paresseuse |
+| `OnceLock<T>` | ✅ | — | non (init une fois) | Valeur globale initialisée manuellement |$BLK11441$, 'table', 1),
+(11442, 456, NULL, $BLK11442$**Règles pratiques :**$BLK11442$, 'text', 2),
+(11443, 456, NULL, $BLK11443$- Vous partagez entre threads sans modifier → `Arc<T>`
+- Vous partagez et modifiez → `Arc<Mutex<T>>`
+- Lectures très fréquentes, écritures rares → `Arc<RwLock<T>>`
+- Ressource globale à initialiser une seule fois → `LazyLock<T>` ou `OnceLock<T>`
+- Thread unique avec mutation partagée → `Rc<RefCell<T>>`$BLK11443$, 'list', 3),
+(11444, 456, NULL, $BLK11444$---$BLK11444$, 'text', 4),
+(11445, 457, NULL, $BLK11445$Dans Runique, plusieurs primitives de concurrence sont utilisées pour gérer l'état global
+du framework (environnement, token CSS, configuration de session, nettoyage de tâches).$BLK11445$, 'text', 1),
+(11446, 457, '`LazyLock` pour l''environnement global', $BLK11446$```rust
+use std::sync::LazyLock;
+
+// Lecture du .env une seule fois au démarrage
+static ENV: LazyLock<RuniqueEnv> = LazyLock::new(|| {
+    dotenvy::dotenv().ok();
+    match std::env::var("DEBUG").as_deref() {
+        Ok("true") => RuniqueEnv::Development,
+        _          => RuniqueEnv::Production,
+    }
+});
+
+pub fn is_debug() -> bool {
+    matches!(*ENV, RuniqueEnv::Development)
+}
+
+pub fn css_token() -> String {
+    static TOKEN: LazyLock<String> = LazyLock::new(|| {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .subsec_millis();
+        format!("{:04}", ts % 10_000)
+    });
+    TOKEN.clone()
+}
+```$BLK11446$, 'code', 2),
+(11447, 457, '`Arc<Mutex<T>>` pour le nettoyage de sessions', $BLK11447$```rust
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::time::Instant;
+
+#[derive(Clone)]
+struct SessionStore {
+    donnees: Arc<Mutex<HashMap<String, (Vec<u8>, Instant)>>>,
+}
+
+impl SessionStore {
+    fn new() -> Self {
+        SessionStore {
+            donnees: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn nettoyer_expirees(&self, duree_max: std::time::Duration) {
+        let mut map = self.donnees.lock().unwrap();
+        let maintenant = Instant::now();
+
+        map.retain(|_cle, (_valeur, horodatage)| {
+            maintenant.duration_since(*horodatage) < duree_max
+        });
+    }
+}
+```$BLK11447$, 'code', 3),
+(11448, 457, '`Arc<RwLock<T>>` pour une configuration partagée', $BLK11448$```rust
+use std::sync::{Arc, RwLock};
+
+#[derive(Clone)]
+struct AppConfig {
+    interne: Arc<RwLock<ConfigInterne>>,
+}
+
+struct ConfigInterne {
+    page_size: usize,
+    site_title: String,
+}
+
+impl AppConfig {
+    fn page_size(&self) -> usize {
+        // Lecture légère — plusieurs threads peuvent lire simultanément
+        self.interne.read().unwrap().page_size
+    }
+
+    fn definir_page_size(&self, taille: usize) {
+        // Écriture exclusive
+        self.interne.write().unwrap().page_size = taille;
+    }
+}
+```
+
+---$BLK11448$, 'code', 4),
+(11449, 458, 'Exercice 1 — Compteur concurrent', $BLK11449$Implémentez un compteur thread-safe que plusieurs threads peuvent incrémenter simultanément.
+
+```rust
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn compteur_concurrent(nb_threads: usize, increments: usize) -> usize {
+    let compteur = Arc::new(Mutex::new(0usize));
+    let mut handles = vec![];
+
+    for _ in 0..nb_threads {
+        let c = Arc::clone(&compteur);
+
+        handles.push(thread::spawn(move || {
+            for _ in 0..increments {
+                *c.lock().unwrap() += 1;
+            }
+        }));
+    }
+
+    for h in handles {
+        h.join().unwrap();
+    }
+
+    *compteur.lock().unwrap()
+}
+
+fn main() {
+    let resultat = compteur_concurrent(8, 100);
+    println!("Résultat : {resultat}"); // toujours 800
+}
+```$BLK11449$, 'text', 1),
+(11450, 458, 'Exercice 2 — Cache avec `RwLock`', $BLK11450$Implémentez un cache thread-safe utilisant `RwLock` pour maximiser les lectures concurrentes.
+
+```rust
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
+
+struct CacheRW<K, V> {
+    donnees: Arc<RwLock<HashMap<K, V>>>,
+}
+
+impl<K, V> CacheRW<K, V>
+where
+    K: Eq + std::hash::Hash + Clone,
+    V: Clone,
+{
+    fn new() -> Self {
+        CacheRW { donnees: Arc::new(RwLock::new(HashMap::new())) }
+    }
+
+    fn inserer(&self, cle: K, valeur: V) {
+        self.donnees.write().unwrap().insert(cle, valeur);
+    }
+
+    fn obtenir(&self, cle: &K) -> Option<V> {
+        self.donnees.read().unwrap().get(cle).cloned()
+    }
+
+    fn taille(&self) -> usize {
+        self.donnees.read().unwrap().len()
+    }
+}
+```$BLK11450$, 'text', 2),
+(11451, 458, 'Exercice 3 — Singleton avec `OnceLock`', $BLK11451$Implémentez un pattern singleton thread-safe pour une configuration d'application.
+
+```rust
+use std::sync::OnceLock;
+
+struct AppSettings {
+    port: u16,
+    debug: bool,
+    max_connexions: usize,
+}
+
+static SETTINGS: OnceLock<AppSettings> = OnceLock::new();
+
+fn init_settings(port: u16, debug: bool, max_connexions: usize) {
+    SETTINGS.set(AppSettings { port, debug, max_connexions })
+        .expect("Settings déjà initialisés");
+}
+
+fn settings() -> &'static AppSettings {
+    SETTINGS.get().expect("Settings non initialisés — appeler init_settings d'abord")
+}
+
+fn main() {
+    init_settings(8080, true, 100);
+
+    println!("Port : {}", settings().port);
+    println!("Debug : {}", settings().debug);
+}
+```
+
+---$BLK11451$, 'text', 3),
+(11452, 459, NULL, $BLK11452$| Primitive | Import | Usage principal |
+|---|---|---|
+| `Mutex<T>` | `std::sync::Mutex` | Accès exclusif (lecture + écriture) |
+| `RwLock<T>` | `std::sync::RwLock` | N lecteurs OU 1 écrivain |
+| `Arc<T>` | `std::sync::Arc` | Propriété partagée entre threads |
+| `LazyLock<T>` | `std::sync::LazyLock` | Global initialisé paresseusement |
+| `OnceLock<T>` | `std::sync::OnceLock` | Global initialisé une seule fois |$BLK11452$, 'table', 1),
+(11453, 459, NULL, $BLK11453$**Patterns fréquents :**$BLK11453$, 'text', 2),
+(11454, 459, NULL, $BLK11454$```rust
+// Partagé + mutable entre threads
+let etat = Arc::new(Mutex::new(valeur));
+
+// Partagé + mutable, lectures fréquentes
+let config = Arc::new(RwLock::new(valeur));
+
+// Global paresseux
+static X: LazyLock<T> = LazyLock::new(|| { ... });
+
+// Global initialisé manuellement
+static Y: OnceLock<T> = OnceLock::new();
+Y.set(valeur).unwrap();
+```$BLK11454$, 'code', 3),
+(11455, 459, NULL, $BLK11455$**Points clés :**$BLK11455$, 'text', 4),
+(11456, 459, NULL, $BLK11456$- `Mutex` bloque tous les accès — simple, sûr, légèrement moins performant sous forte lecture
+- `RwLock` autorise plusieurs lectures simultanées — gain réel si lectures >> écritures
+- `Arc` ne permet pas la mutation seul — combinez avec `Mutex` ou `RwLock`
+- `LazyLock` remplace `once_cell::sync::Lazy` depuis Rust 1.80
+- `OnceLock` remplace `once_cell::sync::OnceCell` depuis Rust 1.70
+- Un `Mutex` verrouillé dans un `await` peut bloquer des threads Tokio — préférez `tokio::sync::Mutex` en code async$BLK11456$, 'list', 5);
 
 -- Reset séquences
 SELECT setval('chapitre_id_seq', (SELECT MAX(id) FROM chapitre));

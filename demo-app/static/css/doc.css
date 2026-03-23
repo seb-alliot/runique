@@ -78,7 +78,8 @@
 /* ── Sidebar ────────────────────────────────────────────────── */
 
 .doc-sidebar {
-    border-right: 1px solid var(--border, #333);
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
     padding: 1.5rem 1rem;
     position: sticky;
     top: 0;
@@ -99,7 +100,7 @@
 }
 
 .doc-back-link:hover {
-    color: var(--primary, #4f9cf9);
+    color: var(--accent);
 }
 
 .doc-sidebar-header h3 {
@@ -122,17 +123,17 @@
     border-radius: 6px;
     text-decoration: none;
     font-size: 0.9rem;
-    color: var(--text, #ccc);
+    color: var(--text-main);
     transition: background 0.15s;
 }
 
 .doc-nav-link:hover {
-    background: var(--surface-hover, rgba(255,255,255,0.05));
+    background: var(--bg-base);
 }
 
 .doc-nav-link.active {
-    background: var(--primary-muted, rgba(79, 156, 249, 0.15));
-    color: var(--primary, #4f9cf9);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
     font-weight: 600;
 }
 
@@ -270,15 +271,17 @@
 }
 
 .doc-block-content pre {
-    background: var(--surface, #1a1a2e);
+    background: var(--bg-code);
     border-radius: 6px;
     padding: 1rem;
     overflow-x: auto;
     font-size: 0.85rem;
+    color: var(--text-code);
 }
 
 .doc-block-content code:not(pre code) {
-    background: var(--surface, rgba(255,255,255,0.08));
+    background: var(--bg-code-inline);
+    color: var(--text-main);
     padding: 0.1em 0.35em;
     border-radius: 3px;
     font-size: 0.85em;

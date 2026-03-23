@@ -124,7 +124,8 @@ railway shell                 => ouvrir un shell dans l'environnement Railway
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" "postgresql://postgres:uouXbGVylFlPKWDWizDFIvXiTuXuwcac@yamabiko.proxy.rlwy.net:33690/railway" -f seed_doc.sql
 
 // avec sea orm directement
-DATABASE_URL="postgresql://postgres:uouXbGVylFlPKWDWizDFIvXiTuXuwcac@yamabiko.proxy.rlwy.net:33690/railway" sea-orm-cli migrate up -d demo-app/migration/ 2>&1
+$env:DATABASE_URL="postgresql://postgres:uouXbGVylFlPKWDWizDFIvXiTuXuwcac@yamabiko.proxy.rlwy.net:33690/railway"
+sea-orm-cli migrate up -d demo-app/migration/
 
 // Dump des données Railway en local :
 & "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" "postgresql://postgres:uouXbGVylFlPKWDWizDFIvXiTuXuwcac@yamabiko.proxy.rlwy.net:33690/railway" --data-only -f dump_railway_data.sql
