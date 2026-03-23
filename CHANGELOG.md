@@ -48,6 +48,12 @@ All notable changes to this project will be documented in this file.
   A `site_config` table stores dynamic values (current version, release date, URLs) injectable into templates.
   The admin panel allows editing each block individually without touching any files.
 
+* **Built-in password reset flow:**
+  Password reset is now a built-in framework feature, configurable via the builder API.
+  Two flows: `/forgot-password` (email request) and `/reset-password/{token}/{email}` (password update).
+  Templates are embedded and overridable. Rate limiting is applied automatically.
+  Usage: `.with_password_reset::<BuiltinUserEntity>(|pr| pr)`
+
 ---
 
 ## [1.1.51] - 2026-03-20

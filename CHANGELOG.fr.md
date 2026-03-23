@@ -47,6 +47,12 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
   Une table `site_config` stocke les valeurs dynamiques (version actuelle, date de release, URLs) injectables dans les templates.
   L'interface admin permet d'éditer chaque bloc individuellement sans toucher aux fichiers.
 
+* **Flow de réinitialisation de mot de passe intégré :**
+  La réinitialisation de mot de passe est désormais une fonctionnalité native du framework, configurable via le builder API.
+  Deux flows : `/forgot-password` (demande par email) et `/reset-password/{token}/{email}` (mise à jour du mot de passe).
+  Les templates sont embarqués et surchargeables. Le rate limiting est appliqué automatiquement.
+  Utilisation : `.with_password_reset::<BuiltinUserEntity>(|pr| pr)`
+
 ---
 
 ## [1.1.51] - 2026-03-20
