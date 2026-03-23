@@ -34,7 +34,7 @@ pub struct SecurityPolicy {
 impl Default for SecurityPolicy {
     fn default() -> Self {
         Self {
-            default_src: vec!["'self'".into()],
+            default_src: vec!["'none'".into()],
             script_src: vec!["'self'".into()],
             style_src: vec!["'self'".into()],
             // Uniquement `'self'` par défaut.
@@ -62,7 +62,7 @@ impl Default for SecurityPolicy {
 impl SecurityPolicy {
     pub fn strict() -> Self {
         Self {
-            default_src: vec!["'self'".into()],
+            default_src: vec!["'none'".into()],
             script_src: vec!["'self'".into()],
             style_src: vec!["'self'".into()],
             img_src: vec!["'self'".into()],
@@ -81,7 +81,7 @@ impl SecurityPolicy {
 
     pub fn permissive() -> Self {
         Self {
-            default_src: vec!["'self'".into()],
+            default_src: vec!["'none'".into()],
             script_src: vec![
                 "'self'".into(),
                 "'unsafe-inline'".into(),
