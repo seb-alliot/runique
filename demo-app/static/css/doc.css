@@ -262,7 +262,6 @@
     margin-bottom: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
 }
 
 .doc-block-content li {

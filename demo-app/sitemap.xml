@@ -4,13 +4,113 @@
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
             http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-<!-- created with Free Online Sitemap Generator www.xml-sitemaps.com -->
 
+<!-- Pages principales -->
+<url><loc>https://runique-production.up.railway.app/</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/about</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/roadmap</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/changelog</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/problemes-connus</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/rgpd</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/contribution</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
 
-<url>
-  <loc>https://runique-production.up.railway.app/</loc>
-  <lastmod>2026-03-21T15:42:42+00:00</lastmod>
-</url>
+<!-- Blog -->
+<url><loc>https://runique-production.up.railway.app/blog/liste</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
 
+<!-- README -->
+<url><loc>https://runique-production.up.railway.app/readme/fr</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/readme/en</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+
+<!-- Documentation -->
+<url><loc>https://runique-production.up.railway.app/docs/fr</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/installation</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/configuration</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/routing</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/template</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/formulaire</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/model</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/orm</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/auth</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/middleware</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/session</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/flash</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/admin</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/env</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/architecture</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/comparatif</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/fr/exemple</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/installation</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/configuration</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/routing</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/template</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/formulaire</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/model</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/orm</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/auth</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/middleware</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/session</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/flash</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/admin</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/env</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/architecture</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/comparatif</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/docs/en/exemple</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+
+<!-- Pages démo -->
+<url><loc>https://runique-production.up.railway.app/installation</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/migrations</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/templates</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/configuration</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/orm</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/comparatif</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/routeur</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/modeles</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/macros</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/database</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/i18n</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/session</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/formulaires</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/formulaires/champs</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/formulaires/rendu</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/formulaires/helpers</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/middleware</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/middleware/csrf</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/middleware/csp</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/middleware/rate-limiter</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/middleware/login-guard</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/middleware/host-validation</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/middleware/https</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+
+<!-- Cours Rust -->
+<url><loc>https://runique-production.up.railway.app/cours</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/cargo-dependances</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/variables-fonctions</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/structures-controle</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/structures-enums</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/pattern-matching</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/collections</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/modules</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/tests-rust</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/closures-iterateurs</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/gestion-erreurs</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/generics</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/type-aliases</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/lifetimes</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/box-dynamiques</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/smart-pointers</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/send-sync</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/traits-avances</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/traits-basics</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/macros-declaratives</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/macros-export</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/macros-derive</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/macros-attribut</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/macros-function-like</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/async-tokio</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/concurrence</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/orm-seaorm</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/filtre-admin</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
+<url><loc>https://runique-production.up.railway.app/cours/middleware-ordre</loc><lastmod>2026-03-23T00:00:00+00:00</lastmod></url>
 
 </urlset>
