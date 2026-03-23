@@ -314,6 +314,13 @@
       "btn_delete": "削除",
       "confirm_delete": "このエントリを削除しますか？"
     },
+    "reset_password": {
+      "btn": "Reset password",
+      "success_email": "Reset link sent to {}.",
+      "success_link": "Reset link (mailer not configured): {}",
+      "error_no_email": "No email field found for this user.",
+      "error_send": "Error sending email: {}"
+    },
     "delete": {
       "title": "削除",
       "breadcrumb": "削除",
@@ -399,5 +406,21 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "Downステートメントが見つかりません。",
     "executing": "実行中: {}"
+  },
+  "reset": {
+    "forgot_title": "パスワードを忘れた",
+    "reset_title": "新しいパスワード",
+    "success_title": "パスワードがリセットされました",
+    "email_label": "メールアドレス",
+    "new_password_label": "新しいパスワード",
+    "confirm_label": "パスワードの確認",
+    "email_mismatch": "メールアドレスがリンクと一致しません。",
+    "invalid_link": "無効なリンクです。",
+    "invalid_or_expired": "リセットリンクが無効または期限切れです。",
+    "password_min_length": "パスワードは{}文字以上である必要があります。",
+    "password_mismatch": "パスワードが一致しません。",
+    "check_inbox": "このアドレスがアカウントに関連付けられている場合、リセットメールが届きます。",
+    "email_subject": "パスワードリセットのご案内",
+    "email_body": "<p>{0} 様、</p><p>以下のリンクをクリックしてパスワードをリセットしてください（1時間有効）：</p><p><a href=\"{1}\">{2}</a></p>"
   }
 }

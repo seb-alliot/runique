@@ -314,6 +314,13 @@
       "btn_delete": "Eliminar",
       "confirm_delete": "¿Eliminar esta entrada?"
     },
+    "reset_password": {
+      "btn": "Reset password",
+      "success_email": "Reset link sent to {}.",
+      "success_link": "Reset link (mailer not configured): {}",
+      "error_no_email": "No email field found for this user.",
+      "error_send": "Error sending email: {}"
+    },
     "delete": {
       "title": "Eliminar",
       "breadcrumb": "Eliminar",
@@ -399,5 +406,21 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "No se encontraron instrucciones down.",
     "executing": "Ejecutando: {}"
+  },
+  "reset": {
+    "forgot_title": "Contraseña olvidada",
+    "reset_title": "Nueva contraseña",
+    "success_title": "Contraseña restablecida",
+    "email_label": "Dirección de correo electrónico",
+    "new_password_label": "Nueva contraseña",
+    "confirm_label": "Confirmar contraseña",
+    "email_mismatch": "La dirección de correo no coincide con el enlace.",
+    "invalid_link": "Enlace inválido.",
+    "invalid_or_expired": "El enlace de restablecimiento es inválido o ha expirado.",
+    "password_min_length": "La contraseña debe tener al menos {} caracteres.",
+    "password_mismatch": "Las contraseñas no coinciden.",
+    "check_inbox": "Si esta dirección está asociada a una cuenta, recibirá un correo de restablecimiento.",
+    "email_subject": "Restablecer contraseña",
+    "email_body": "<p>Hola {0},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante 1 hora):</p><p><a href=\"{1}\">{2}</a></p>"
   }
 }

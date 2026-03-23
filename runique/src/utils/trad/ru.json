@@ -315,6 +315,13 @@
       "btn_delete": "Удалить",
       "confirm_delete": "Удалить эту запись?"
     },
+    "reset_password": {
+      "btn": "Reset password",
+      "success_email": "Reset link sent to {}.",
+      "success_link": "Reset link (mailer not configured): {}",
+      "error_no_email": "No email field found for this user.",
+      "error_send": "Error sending email: {}"
+    },
     "delete": {
       "title": "Удалить",
       "breadcrumb": "Удалить",
@@ -400,5 +407,21 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "Инструкции down не найдены.",
     "executing": "Выполняется: {}"
+  },
+  "reset": {
+    "forgot_title": "Забыли пароль",
+    "reset_title": "Новый пароль",
+    "success_title": "Пароль сброшен",
+    "email_label": "Адрес электронной почты",
+    "new_password_label": "Новый пароль",
+    "confirm_label": "Подтвердите пароль",
+    "email_mismatch": "Адрес электронной почты не соответствует ссылке.",
+    "invalid_link": "Недействительная ссылка.",
+    "invalid_or_expired": "Ссылка для сброса недействительна или истекла.",
+    "password_min_length": "Пароль должен содержать не менее {} символов.",
+    "password_mismatch": "Пароли не совпадают.",
+    "check_inbox": "Если этот адрес связан с аккаунтом, вы получите письмо для сброса пароля.",
+    "email_subject": "Сброс пароля",
+    "email_body": "<p>Здравствуйте, {0},</p><p>Перейдите по ссылке ниже для сброса пароля (действительна 1 час):</p><p><a href=\"{1}\">{2}</a></p>"
   }
 }

@@ -312,6 +312,13 @@
       "btn_delete": "Löschen",
       "confirm_delete": "Diesen Eintrag löschen?"
     },
+    "reset_password": {
+      "btn": "Reset password",
+      "success_email": "Reset link sent to {}.",
+      "success_link": "Reset link (mailer not configured): {}",
+      "error_no_email": "No email field found for this user.",
+      "error_send": "Error sending email: {}"
+    },
     "delete": {
       "title": "Löschen",
       "breadcrumb": "Löschen",
@@ -396,5 +403,21 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "Keine Down-Anweisungen gefunden.",
     "executing": "Ausführen: {}"
+  },
+  "reset": {
+    "forgot_title": "Passwort vergessen",
+    "reset_title": "Neues Passwort",
+    "success_title": "Passwort zurückgesetzt",
+    "email_label": "E-Mail-Adresse",
+    "new_password_label": "Neues Passwort",
+    "confirm_label": "Passwort bestätigen",
+    "email_mismatch": "Die E-Mail-Adresse stimmt nicht mit dem Link überein.",
+    "invalid_link": "Ungültiger Link.",
+    "invalid_or_expired": "Der Reset-Link ist ungültig oder abgelaufen.",
+    "password_min_length": "Das Passwort muss mindestens {} Zeichen lang sein.",
+    "password_mismatch": "Die Passwörter stimmen nicht überein.",
+    "check_inbox": "Falls diese Adresse mit einem Konto verknüpft ist, erhalten Sie eine Reset-E-Mail.",
+    "email_subject": "Passwort zurücksetzen",
+    "email_body": "<p>Hallo {0},</p><p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig für 1 Stunde):</p><p><a href=\"{1}\">{2}</a></p>"
   }
 }

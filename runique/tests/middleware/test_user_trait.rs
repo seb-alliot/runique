@@ -145,6 +145,14 @@ impl UserEntity for MockUserEntity {
     async fn find_by_email(_db: &DatabaseConnection, _email: &str) -> Option<Self::Model> {
         None
     }
+
+    async fn update_password(
+        _db: &DatabaseConnection,
+        _email: &str,
+        _new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr> {
+        Ok(())
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════

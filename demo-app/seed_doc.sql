@@ -1300,6 +1300,16 @@ SELECT pg_catalog.setval('public.users_booster_id_seq', 1, false);
 
 
 --
+-- Thèmes des sections de documentation
+--
+UPDATE doc_section SET theme = 'demarrage' WHERE slug IN ('installation', 'architecture', 'configuration', 'env');
+UPDATE doc_section SET theme = 'web'       WHERE slug IN ('routing', 'formulaire', 'flash', 'template');
+UPDATE doc_section SET theme = 'database'  WHERE slug IN ('orm', 'model');
+UPDATE doc_section SET theme = 'security'  WHERE slug IN ('middleware', 'auth', 'session');
+UPDATE doc_section SET theme = 'admin'     WHERE slug = 'admin';
+UPDATE doc_section SET theme = 'autres'    WHERE theme IS NULL;
+
+--
 -- PostgreSQL database dump complete
 --
 

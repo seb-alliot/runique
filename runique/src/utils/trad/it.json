@@ -314,6 +314,13 @@
       "btn_delete": "Elimina",
       "confirm_delete": "Eliminare questa voce?"
     },
+    "reset_password": {
+      "btn": "Reset password",
+      "success_email": "Reset link sent to {}.",
+      "success_link": "Reset link (mailer not configured): {}",
+      "error_no_email": "No email field found for this user.",
+      "error_send": "Error sending email: {}"
+    },
     "delete": {
       "title": "Elimina",
       "breadcrumb": "Elimina",
@@ -399,5 +406,21 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "Nessuna istruzione down trovata.",
     "executing": "Esecuzione: {}"
+  },
+  "reset": {
+    "forgot_title": "Password dimenticata",
+    "reset_title": "Nuova password",
+    "success_title": "Password reimpostata",
+    "email_label": "Indirizzo email",
+    "new_password_label": "Nuova password",
+    "confirm_label": "Conferma password",
+    "email_mismatch": "L'indirizzo email non corrisponde al link.",
+    "invalid_link": "Link non valido.",
+    "invalid_or_expired": "Il link di reimpostazione non è valido o è scaduto.",
+    "password_min_length": "La password deve contenere almeno {} caratteri.",
+    "password_mismatch": "Le password non coincidono.",
+    "check_inbox": "Se questo indirizzo è associato a un account, riceverà un'email di reimpostazione.",
+    "email_subject": "Reimpostazione password",
+    "email_body": "<p>Ciao {0},</p><p>Clicca sul link seguente per reimpostare la password (valido per 1 ora):</p><p><a href=\"{1}\">{2}</a></p>"
   }
 }

@@ -51,9 +51,10 @@
 }
 
 .doc-index-subsection {
-    padding-left: 1.5rem;
+    padding-left: 1rem;
     border-left: 2px solid var(--border, #333);
     margin: 0.5rem 0;
+    margin-left: 1.5rem;
 }
 
 

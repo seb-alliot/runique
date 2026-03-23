@@ -119,6 +119,7 @@ impl TemplateLoader {
             .iter()
             .chain(ERROR_CORPS.iter())
             .chain(FIELD_TEMPLATES.iter())
+            .chain(AUTH_TEMPLATES.iter())
             .chain(ADMIN_TEMPLATES.iter())
         {
             let processed = Self::process_content(content.to_string());
