@@ -205,7 +205,10 @@
     "array_eof": "Se esperaba [...] para los permisos, fin del archivo",
     "role_required": "Se requiere al menos un rol en permissions: [...]",
     "punct_expected": "Se esperaba '{}', encontrado: {}",
-    "punct_eof": "Se esperaba '{}', fin del archivo"
+    "punct_eof": "Se esperaba '{}', fin del archivo",
+    "title_required": "admin!: 'title' es obligatorio",
+    "permissions_required": "admin!: 'permissions' es obligatorio",
+    "list_display_exclude_exclusive": "admin!: 'list_display' y 'list_exclude' son mutuamente excluyentes"
   },
   "TemplateMessage": {
     "debug_info_title": "Información de depuración",

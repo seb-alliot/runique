@@ -205,7 +205,10 @@
     "array_eof": "Array [...] atteso per i permessi, fine del file",
     "role_required": "È richiesto almeno un ruolo in permissions: [...]",
     "punct_expected": "'{}' atteso, trovato: {}",
-    "punct_eof": "'{}' atteso, fine del file"
+    "punct_eof": "'{}' atteso, fine del file",
+    "title_required": "admin!: 'title' è obbligatorio",
+    "permissions_required": "admin!: 'permissions' è obbligatorio",
+    "list_display_exclude_exclusive": "admin!: 'list_display' e 'list_exclude' sono mutuamente esclusivi"
   },
   "TemplateMessage": {
     "debug_info_title": "Informazioni di debug",

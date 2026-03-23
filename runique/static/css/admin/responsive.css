@@ -9,6 +9,7 @@
         top: 0;
         left: 0;
         height: 100%;
+        width: 200px;
         transform: translateX(-100%);
         transition: transform var(--transition), width var(--transition);
         z-index: 200;
@@ -46,9 +47,19 @@
 
     .stats-grid { grid-template-columns: 1fr 1fr; }
 
+    .admin-content { padding-bottom: 4rem; }
+
     .pagination {
-        flex-direction: column;
-        align-items: flex-start;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+        z-index: 140;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 0.6rem 1rem;
     }
 }
 
@@ -57,11 +68,120 @@
     .table-actions { flex-wrap: wrap; }
 }
 
+/* ── Barre recherche + bouton filtres ── */
+.admin-search-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.admin-search-row .admin-search-form { flex: 1; }
+
+/* Badge filtre actif */
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 9px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+}
+
+/* Bouton icône filtre — masqué sur desktop */
+.mobile-filter-toggle {
+    display: none;
+    position: relative;
+}
+
+/* Overlay backdrop */
+.filter-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 198;
+}
+
+.filter-sidebar-overlay.active { display: block; }
+
+/* Utilitaires mobile show/hide */
+.btn-show-mobile { display: none; }
+
 @media (max-width: 768px) {
-    .admin-list-layout {
-        grid-template-columns: 1fr;
+    .btn-hide-mobile { display: none !important; }
+    .btn-show-mobile { display: flex; }
+
+    /* Actions page détail — barre fixe en bas */
+    .page-actions {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 150;
+        gap: 0.5rem;
     }
+
+    /* Bouton fermer sidebar filtre : masquer le chevron, afficher × */
+    #filterToggle svg { display: none; }
+    #filterToggle::after { content: '✕'; font-size: 1rem; line-height: 1; }
+
+    /* .row-menu dropdown ouvert vers le haut depuis le bas */
+    .page-actions .row-menu-dropdown {
+        top: auto;
+        bottom: calc(100% + 4px);
+        right: 0;
+    }
+
+    /* Form-actions fixées en bas */
+    .form-actions-sticky {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 0.75rem 1rem;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+        z-index: 150;
+        justify-content: flex-end;
+    }
+
+    .mobile-filter-toggle { display: flex; }
+
+    /* Forcer colonne unique même si filter-collapsed est actif (spécificité plus haute) */
+    .admin-list-layout,
+    .admin-list-layout.filter-collapsed { grid-template-columns: 1fr; }
+
+    /* Sidebar filtre : overlay depuis la droite, identique à la sidebar principale */
     .admin-filter-sidebar {
-        position: static;
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: 200px;
+        max-height: none;
+        border-radius: 0;
+        border-left: 1px solid var(--border);
+        border-right: none;
+        transform: translateX(100%);
+        transition: transform var(--transition);
+        z-index: 200;
+        overflow-y: auto;
+    }
+
+    .admin-filter-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .admin-filter-sidebar .filter-sidebar-body {
+        max-height: none;
+        overflow-y: visible;
     }
 }

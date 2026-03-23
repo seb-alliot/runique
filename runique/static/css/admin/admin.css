@@ -494,6 +494,7 @@ ul { list-style: none; }
 
 .admin-table tr:last-child td { border-bottom: none; }
 
+
 .admin-table tbody tr {
     transition: background var(--transition);
 }

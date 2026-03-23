@@ -216,13 +216,12 @@ admin! {
             ["slug", "Slug"],
             ["lang", "Langue"],
             ["title", "Titre"],
+            ["theme", "Thème"],
             ["sort_order", "Ordre d'affichage"],
         ],
         list_filter: [
-            ["slug", "Slug", 10],
             ["lang", "Langue", 10],
-            ["title", "Titre", 10],
-            ["sort_order", "Ordre d'affichage", 10],
+            ["theme", "Thème", 10],
         ]
     }
     doc_page: doc_page::Model => DocPageForm {

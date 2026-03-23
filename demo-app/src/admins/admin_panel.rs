@@ -3519,14 +3519,10 @@ pub fn admin_register() -> AdminRegistry {
                 ("slug", "Slug"),
                 ("lang", "Langue"),
                 ("title", "Titre"),
+                ("theme", "Thème"),
                 ("sort_order", "Ordre d'affichage"),
             ])
-            .list_filter(vec![
-                ("slug", "Slug", 10u64),
-                ("lang", "Langue", 10u64),
-                ("title", "Titre", 10u64),
-                ("sort_order", "Ordre d'affichage", 10u64),
-            ]),
+            .list_filter(vec![("lang", "Langue", 10u64), ("theme", "Thème", 10u64)]),
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
         Box::pin(async move {
@@ -3534,32 +3530,6 @@ pub fn admin_register() -> AdminRegistry {
             use sea_orm::{ConnectionTrait, ExprTrait};
             let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
                 std::collections::HashMap::new();
-            let page_size_slug = 10u64;
-            let cur_page_slug = pages.get("slug").copied().unwrap_or(0);
-            let count_stmt_slug = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT slug)"))
-                .from(Alias::new(doc_section::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("slug")).is_not_null())
-                .to_owned();
-            let count_row_slug = db.query_one(&count_stmt_slug).await.unwrap_or(None);
-            let total_slug = count_row_slug
-                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
-                .unwrap_or(0) as u64;
-            let stmt_slug = Query::select()
-                .distinct()
-                .expr(Expr::cust("CAST(slug AS TEXT)"))
-                .from(Alias::new(doc_section::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("slug")).is_not_null())
-                .order_by(Alias::new("slug"), Order::Asc)
-                .limit(page_size_slug)
-                .offset(cur_page_slug * page_size_slug)
-                .to_owned();
-            let rows_slug = db.query_all(&stmt_slug).await.unwrap_or_default();
-            let vals_slug: Vec<String> = rows_slug
-                .iter()
-                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
-                .collect();
-            result.insert("slug".to_string(), (vals_slug, total_slug));
             let page_size_lang = 10u64;
             let cur_page_lang = pages.get("lang").copied().unwrap_or(0);
             let count_stmt_lang = Query::select()
@@ -3586,61 +3556,32 @@ pub fn admin_register() -> AdminRegistry {
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
             result.insert("lang".to_string(), (vals_lang, total_lang));
-            let page_size_title = 10u64;
-            let cur_page_title = pages.get("title").copied().unwrap_or(0);
-            let count_stmt_title = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT title)"))
+            let page_size_theme = 10u64;
+            let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
+            let count_stmt_theme = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT theme)"))
                 .from(Alias::new(doc_section::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .and_where(Expr::col(Alias::new("theme")).is_not_null())
                 .to_owned();
-            let count_row_title = db.query_one(&count_stmt_title).await.unwrap_or(None);
-            let total_title = count_row_title
+            let count_row_theme = db.query_one(&count_stmt_theme).await.unwrap_or(None);
+            let total_theme = count_row_theme
                 .and_then(|r| r.try_get_by_index::<i64>(0).ok())
                 .unwrap_or(0) as u64;
-            let stmt_title = Query::select()
+            let stmt_theme = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .expr(Expr::cust("CAST(theme AS TEXT)"))
                 .from(Alias::new(doc_section::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("title")).is_not_null())
-                .order_by(Alias::new("title"), Order::Asc)
-                .limit(page_size_title)
-                .offset(cur_page_title * page_size_title)
+                .and_where(Expr::col(Alias::new("theme")).is_not_null())
+                .order_by(Alias::new("theme"), Order::Asc)
+                .limit(page_size_theme)
+                .offset(cur_page_theme * page_size_theme)
                 .to_owned();
-            let rows_title = db.query_all(&stmt_title).await.unwrap_or_default();
-            let vals_title: Vec<String> = rows_title
+            let rows_theme = db.query_all(&stmt_theme).await.unwrap_or_default();
+            let vals_theme: Vec<String> = rows_theme
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            result.insert("title".to_string(), (vals_title, total_title));
-            let page_size_sort_order = 10u64;
-            let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
-            let count_stmt_sort_order = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT sort_order)"))
-                .from(Alias::new(doc_section::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
-                .to_owned();
-            let count_row_sort_order = db.query_one(&count_stmt_sort_order).await.unwrap_or(None);
-            let total_sort_order = count_row_sort_order
-                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
-                .unwrap_or(0) as u64;
-            let stmt_sort_order = Query::select()
-                .distinct()
-                .expr(Expr::cust("CAST(sort_order AS TEXT)"))
-                .from(Alias::new(doc_section::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("sort_order")).is_not_null())
-                .order_by(Alias::new("sort_order"), Order::Asc)
-                .limit(page_size_sort_order)
-                .offset(cur_page_sort_order * page_size_sort_order)
-                .to_owned();
-            let rows_sort_order = db.query_all(&stmt_sort_order).await.unwrap_or_default();
-            let vals_sort_order: Vec<String> = rows_sort_order
-                .iter()
-                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
-                .collect();
-            result.insert(
-                "sort_order".to_string(),
-                (vals_sort_order, total_sort_order),
-            );
+            result.insert("theme".to_string(), (vals_theme, total_theme));
             Ok(result)
         })
     });

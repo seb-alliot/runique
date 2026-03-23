@@ -10,7 +10,7 @@
   <header class="page-header">
     <h1>{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}</h1>
   </header>
-  <div class="card card-form">
+  <div class="card card-form" data-admin-auto-init>
     <div class="card-header">
       <h2>{% if admin_edit_card_info %}{{ admin_edit_card_info }}{% endif %}</h2>
     </div>
@@ -23,7 +23,7 @@
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
           {% endif %}
         </div>
-        <div class="form-actions">
+        <div class="form-actions form-actions-sticky">
           <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
           <button type="submit" class="btn btn-primary">{% if admin_edit_btn_submit %}{{ admin_edit_btn_submit }}{% endif %}</button>
         </div>
@@ -34,10 +34,4 @@
 {% block extra_js %}
 {{ super() }}
   <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
-  <script nonce="{{ csp_nonce }}">
-      var adminActions = new AdminActions({
-          deleteMessage: "{% if admin_list_confirm_delete %}{{ admin_list_confirm_delete }}{% else %}Vraiment supprimer ?{% endif %}"
-      });
-      adminActions.init();
-  </script>
-  {% endblock %}
+{% endblock %}

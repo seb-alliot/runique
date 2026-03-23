@@ -205,7 +205,10 @@
     "array_eof": "Tableau [...] attendu pour les permissions, fin de fichier",
     "role_required": "Au moins un rôle requis dans permissions: [...]",
     "punct_expected": "'{}' attendu, trouvé : {}",
-    "punct_eof": "'{}' attendu, fin de fichier"
+    "punct_eof": "'{}' attendu, fin de fichier",
+    "title_required": "admin!: 'title' est requis",
+    "permissions_required": "admin!: 'permissions' est requis",
+    "list_display_exclude_exclusive": "admin!: 'list_display' et 'list_exclude' sont mutuellement exclusifs"
   },
   "TemplateMessage": {
     "debug_info_title": "Informations de debug",

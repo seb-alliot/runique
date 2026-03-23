@@ -22,15 +22,87 @@
 }
 
 .doc-index-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border, #333);
+    padding: 0.55rem 0;
+    margin-bottom: 0.75rem;
+    border-radius: 0;
+    cursor: pointer;
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--text-muted, #888);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.4rem;
-    border-bottom: 1px solid var(--border, #333);
+    letter-spacing: 0.08em;
+    color: var(--text-muted, #888);
+    transition: color 0.2s;
 }
+
+.doc-index-section-title:hover {
+    color: var(--text-main, #fff);
+}
+
+.doc-section-chevron {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.doc-index-subsection {
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--border, #333);
+    margin: 0.5rem 0;
+}
+
+
+.doc-subsection-title {
+    font-size: 0.68rem;
+}
+
+.doc-index-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.25rem 0;
+}
+
+.doc-index-nav-link {
+    display: block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    transition: background 0.15s;
+}
+
+.doc-index-nav-link:hover {
+    background: var(--bg-base);
+    color: var(--accent);
+}
+
+/* Couleurs niveaux cours */
+.doc-index-section-title.doc-diff--debutant      { color: #22c55e; }
+.doc-index-section-title.doc-diff--intermediaire { color: #f59e0b; }
+.doc-index-section-title.doc-diff--avance        { color: #a855f7; }
+.doc-index-section-title.doc-diff--specifique    { color: #38bdf8; }
+.doc-index-section-title.doc-diff--fr            { color: #60a5fa; }
+.doc-index-section-title.doc-diff--en            { color: #34d399; }
+
+/* Couleurs sous-thèmes documentation */
+.doc-index-section-title.doc-theme--demarrage { color: #22c55e; }
+.doc-index-section-title.doc-theme--web       { color: #38bdf8; }
+.doc-index-section-title.doc-theme--database  { color: #f59e0b; }
+.doc-index-section-title.doc-theme--security  { color: #f87171; }
+.doc-index-section-title.doc-theme--admin     { color: #a855f7; }
+.doc-index-section-title.doc-theme--autres    { color: #94a3b8; }
+
+/* Couleurs titres principaux */
+.doc-index-section-title.doc-section--readme        { color: #f97316; }
+.doc-index-section-title.doc-section--documentation { color: #4f9cf9; }
+.doc-index-section-title.doc-section--cours         { color: #a855f7; }
 
 .doc-section-card p {
     font-size: 0.82rem;
@@ -63,6 +135,7 @@
     font-size: 1rem;
     margin: 0;
 }
+
 
 /* ── Doc page layout ────────────────────────────────────────── */
 
@@ -419,7 +492,10 @@
         background: none;
         border: 1px solid var(--border, #333);
         border-radius: 6px;
-        padding: 0.4rem 0.6rem;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
         cursor: pointer;
         color: var(--text, #ccc);
         font-size: 1rem;

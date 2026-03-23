@@ -205,7 +205,10 @@
     "array_eof": "Array [...] für Berechtigungen erwartet, Ende der Datei",
     "role_required": "Mindestens eine Rolle in permissions: [...] erforderlich",
     "punct_expected": "'{}' erwartet, gefunden: {}",
-    "punct_eof": "'{}' erwartet, Ende der Datei"
+    "punct_eof": "'{}' erwartet, Ende der Datei",
+    "title_required": "admin!: 'title' ist erforderlich",
+    "permissions_required": "admin!: 'permissions' ist erforderlich",
+    "list_display_exclude_exclusive": "admin!: 'list_display' und 'list_exclude' schließen sich gegenseitig aus"
   },
   "TemplateMessage": {
     "debug_info_title": "Debug-Informationen",

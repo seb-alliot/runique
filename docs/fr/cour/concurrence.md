@@ -24,8 +24,9 @@
 7. [OnceLock<T> — valeur initialisée une seule fois](#7-oncelockt--valeur-initialisée-une-seule-fois)
 8. [Comparaison et quand utiliser quoi](#8-comparaison-et-quand-utiliser-quoi)
 9. [Exemples concrets avec Runique](#9-exemples-concrets-avec-runique)
-10. [Exercices pratiques](#10-exercices-pratiques)
-11. [Aide-mémoire](#11-aide-mémoire)
+10. [Piège — stores partagés sans cleanup](#10-piège--stores-partagés-sans-cleanup)
+11. [Exercices pratiques](#11-exercices-pratiques)
+12. [Aide-mémoire](#12-aide-mémoire)
 
 ---
 
@@ -528,7 +529,99 @@ impl AppConfig {
 
 ---
 
-## 10. Exercices pratiques
+## 10. Piège — stores partagés sans cleanup
+
+Un store partagé qui grossit sans limite est un piège classique en production.
+
+### Le problème
+
+```rust
+// ⚠️ Ce store grossit indéfiniment si personne ne nettoie
+static STORE: LazyLock<Arc<Mutex<HashMap<String, Session>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
+
+fn ajouter_session(id: String, session: Session) {
+    STORE.lock().unwrap().insert(id, session);
+}
+
+// Les sessions expirées restent en mémoire pour toujours
+// → OOM silencieux en prod après quelques jours/semaines
+```
+
+### Pourquoi c'est silencieux
+
+- Pas d'erreur, pas de panic — juste une RAM qui monte lentement
+- En développement, le process redémarre souvent → le problème ne se voit pas
+- En prod avec peu de trafic, ça peut prendre des semaines avant de crasher
+
+### La solution générique — thread de nettoyage
+
+```rust
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
+use std::thread;
+
+struct Store {
+    donnees: Arc<Mutex<HashMap<String, (Vec<u8>, Instant)>>>,
+}
+
+impl Store {
+    fn new() -> Self {
+        Self {
+            donnees: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    // Lance un thread de nettoyage en arrière-plan
+    fn spawn_cleanup(&self, ttl: Duration, intervalle: Duration) {
+        let donnees = Arc::clone(&self.donnees);
+
+        thread::spawn(move || loop {
+            thread::sleep(intervalle);
+
+            let maintenant = Instant::now();
+            donnees
+                .lock()
+                .unwrap()
+                .retain(|_, (_, horodatage)| {
+                    maintenant.duration_since(*horodatage) < ttl
+                });
+        });
+    }
+}
+```
+
+### Ce que Runique fait
+
+Runique intègre ce pattern directement dans ses builders. Le cleanup est automatiquement configuré et lancé au démarrage :
+
+```rust
+// Sessions : limite mémoire + nettoyage toutes les 5 minutes
+builder::new(config)
+    .middleware(|m| {
+        m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
+            .with_session_cleanup_interval(5)
+    })
+
+// Rate limiter : nettoyage intégré au spawn_cleanup
+RateLimiter::new()
+    .max_requests(100)
+    .retry_after(60)
+    .spawn_cleanup(Duration::from_secs(60))
+
+// Login guard : même pattern
+LoginGuard::new()
+    .max_attempts(5)
+    .lockout_secs(300)
+    .spawn_cleanup(Duration::from_secs(60))
+```
+
+> **Règle** : tout `Arc<Mutex<HashMap>>` qui reçoit des insertions doit avoir un thread de nettoyage. Si ce n'est pas le cas, c'est un bug latent.
+
+---
+
+## 11. Exercices pratiques
 
 ### Exercice 1 — Compteur concurrent
 

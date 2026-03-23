@@ -29,32 +29,95 @@
     </div>
 
     <div class="doc-index-section">
-        <h2 class="doc-index-section-title">README</h2>
-        <div class="doc-sections-grid">
-            <a href="/readme/fr" class="doc-section-card">
-                <h2>README — Français</h2>
-                <p>Vue d'ensemble du projet en français</p>
-            </a>
-            <a href="/readme/en" class="doc-section-card">
-                <h2>README — English</h2>
-                <p>Project overview in English</p>
-            </a>
-            <a href="/cours" class="doc-section-card">
-                <h2>Cours Rust</h2>
-                <p>Du débutant à l'avancé — 21 cours structurés par thème</p>
-            </a>
+        <button class="doc-index-section-title doc-section--readme" type="button" data-section="readme" aria-expanded="true">
+            README
+            <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="doc-section-readme">
+            <div class="doc-index-subsection">
+                <button class="doc-index-section-title doc-subsection-title doc-diff--fr" type="button" data-section="readme-fr" aria-expanded="true">
+                    Français
+                    <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="doc-index-nav" id="doc-section-readme-fr">
+                    <a href="/readme/fr" class="doc-index-nav-link">README — Français</a>
+                </div>
+            </div>
+            <div class="doc-index-subsection">
+                <button class="doc-index-section-title doc-subsection-title doc-diff--en" type="button" data-section="readme-en" aria-expanded="true">
+                    English
+                    <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="doc-index-nav" id="doc-section-readme-en">
+                    <a href="/readme/en" class="doc-index-nav-link">README — English</a>
+                </div>
+            </div>
         </div>
     </div>
 
+    {% if sections | length > 0 %}
     <div class="doc-index-section">
-        <h2 class="doc-index-section-title">{% if lang == 'fr' %}Sections{% else %}Sections{% endif %}</h2>
-        <div class="doc-sections-grid">
-            {% for section in sections %}
-            <a href="/docs/{{ lang }}/{{ section.slug }}" class="doc-section-card">
-                <h2>{{ section.title }}</h2>
-            </a>
+        <button class="doc-index-section-title doc-section--documentation" type="button" data-section="documentation" aria-expanded="true">
+            Documentation
+            <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="doc-section-documentation">
+            {% for key in ["demarrage", "web", "database", "security", "admin", "autres"] %}
+                {% set group_sections = sections | filter(attribute="theme", value=key) %}
+                {% if group_sections | length > 0 %}
+                <div class="doc-index-subsection">
+                    <button class="doc-index-section-title doc-subsection-title doc-theme--{{ key }}" type="button" data-section="sub-{{ key }}" aria-expanded="true">
+                        {% if key == "demarrage" %}{% if lang == "fr" %}Démarrage{% else %}Getting Started{% endif %}
+                        {% elif key == "web" %}Routing & Web
+                        {% elif key == "database" %}{% if lang == "fr" %}Base de données{% else %}Database{% endif %}
+                        {% elif key == "security" %}{% if lang == "fr" %}Sécurité & Auth{% else %}Security & Auth{% endif %}
+                        {% elif key == "admin" %}Admin
+                        {% else %}{% if lang == "fr" %}Divers{% else %}Misc{% endif %}
+                        {% endif %}
+                        <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="doc-index-nav" id="doc-section-sub-{{ key }}">
+                        {% for section in group_sections %}
+                        <a href="/docs/{{ lang }}/{{ section.slug }}" class="doc-index-nav-link">{{ section.title }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             {% endfor %}
         </div>
     </div>
+    {% endif %}
+
+    {% if cours_themes | length > 0 %}
+    <div class="doc-index-section">
+        <button class="doc-index-section-title doc-section--cours" type="button" data-section="cours" aria-expanded="true">
+            {% if lang == "fr" %}Cours{% else %}Courses{% endif %}
+            <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="doc-section-cours">
+            {% for diff in cours_difficultes %}
+                {% set diff_cours = cours | filter(attribute="difficulte", value=diff) %}
+                {% if diff_cours | length > 0 %}
+                <div class="doc-index-subsection">
+                    <button class="doc-index-section-title doc-subsection-title doc-diff--{{ diff | lower }}" type="button" data-section="cours-{{ diff | lower }}" aria-expanded="true">
+                        {{ diff }}
+                        <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="doc-index-nav" id="doc-section-cours-{{ diff | lower }}">
+                        {% for c in diff_cours %}
+                        <a href="/cours/{{ c.slug }}" class="doc-index-nav-link">{{ c.title }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src='{% static "js/doc-index.js" %}'></script>
 {% endblock %}

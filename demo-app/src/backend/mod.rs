@@ -2,6 +2,7 @@ pub mod auth;
 pub mod blog;
 mod cards;
 pub mod contribution;
+pub mod cour_seed;
 pub mod cours;
 pub mod doc;
 pub mod doc_seed;

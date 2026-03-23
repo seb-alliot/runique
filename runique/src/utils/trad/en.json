@@ -205,7 +205,10 @@
     "array_eof": "Expected [...] for permissions, end of file",
     "role_required": "At least one role required in permissions: [...]",
     "punct_expected": "Expected '{}', found: {}",
-    "punct_eof": "Expected '{}', end of file"
+    "punct_eof": "Expected '{}', end of file",
+    "title_required": "admin!: 'title' is required",
+    "permissions_required": "admin!: 'permissions' is required",
+    "list_display_exclude_exclusive": "admin!: 'list_display' and 'list_exclude' are mutually exclusive"
   },
   "TemplateMessage": {
     "debug_info_title": "Debug Information",

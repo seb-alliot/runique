@@ -1,7 +1,12 @@
-<button class="footer-burger" id="footer-burger-btn" aria-label="Liens du pied de page">
+<div class="nav-overlay" id="nav-overlay"></div>
+<button class="footer-burger" id="footer-burger-btn" aria-label="Liens de navigation">
     <span class="footer-burger-icon">☰</span> Liens
 </button>
 <nav class="footer-links" id="footer-links">
+  <div class="footer-links-header">
+    <span>Navigation</span>
+    <button class="footer-links-close" id="footer-links-close" type="button" aria-label="Fermer">✕</button>
+  </div>
     <a href="{% link 'index' %}">Revenir à l'accueil</a>
     <a href="{% link 'login' %}">Se connecter</a>
     <a href="{% link 'profil' %}">Mon profil</a>
@@ -12,5 +17,6 @@
     <a href="{% link 'rgpd' %}">Confidentialité</a>
     <a href="https://github.com/seb-alliot/runique" target="_blank">GitHub</a>
     <a href="https://crates.io/crates/runique" target="_blank">Crates.io</a>
+
 </nav>
 <p>Créé par <strong>Itsuki</strong> avec <a href="https://github.com/seb-alliot/runique" target="_blank">Runique</a> &mdash; &copy; 2026</p>

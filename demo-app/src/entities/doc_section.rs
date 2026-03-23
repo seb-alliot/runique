@@ -9,5 +9,6 @@ model! {
         lang: String [required],
         title: String [required],
         sort_order: i32 [required],
+        theme: String [nullable],
     }
 }

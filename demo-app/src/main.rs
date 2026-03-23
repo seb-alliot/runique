@@ -24,6 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db: DatabaseConnection = db_config.connect().await?;
 
     backend::doc_seed::seed_docs(&db).await;
+    backend::cour_seed::seed_cours(&db).await;
 
     builder::new(config)
         .routes(url::routes())

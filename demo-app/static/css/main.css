@@ -26,7 +26,7 @@ main {
    ========================= */
 #theme-toggle {
     position: fixed;
-    bottom: 1.25rem;
+    bottom: 2rem;
     right: 1.25rem;
     z-index: 100;
     background: var(--bg-surface);
@@ -745,6 +745,21 @@ footer p {
     display: none;
 }
 
+/* Overlay nav (mobile) */
+.nav-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 198;
+}
+.nav-overlay.active { display: block; }
+
+/* Header interne du panel nav */
+.footer-links-header {
+    display: none;
+}
+
 /* Mobile (≤ 600px) */
 @media (max-width: 600px) {
     header { height: 150px; }
@@ -760,19 +775,23 @@ footer p {
     footer { padding: 1rem 0.5rem; }
     footer p { margin-top: 0.6rem; font-size: 0.75rem; }
 
+    /* Bouton burger — barre pleine largeur en haut du footer */
     .footer-burger {
-        display: inline-flex;
+        display: flex;
+        justify-content: center;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.5rem;
+        width: calc(100% + 1rem);
+        margin: -1rem -0.5rem 0.75rem;
         background: none;
-        border: 1px solid var(--border);
-        border-radius: 6px;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
         color: var(--text-muted);
         font-size: 0.85rem;
-        padding: 0.35rem 0.75rem;
+        padding: 0.6rem 1rem;
         cursor: pointer;
-        margin-bottom: 0.75rem;
-        transition: border-color 0.2s, color 0.2s;
+        transition: background 0.2s, color 0.2s;
     }
 
     .footer-burger:hover {
@@ -780,36 +799,65 @@ footer p {
         color: var(--accent);
     }
 
+    /* Panel slide depuis la droite */
     .footer-links {
-        display: none;
-        grid-template-columns: 1fr 1fr;
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: 200px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 200;
+        background: var(--bg-surface);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        align-items: stretch;
         gap: 0;
-        margin: 0 auto 0.75rem;
-        width: 100%;
-        max-width: 320px;
-        text-align: left;
-        border: 1px solid var(--border-light);
-        border-radius: 6px;
-        overflow: hidden;
+        overflow-y: auto;
     }
 
     .footer-links.open {
-        display: grid;
+        transform: translateX(0);
     }
 
+    /* Header interne du panel */
+    .footer-links-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    .footer-links-close {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 0.25rem;
+        line-height: 1;
+    }
+
+    .footer-links-close:hover { color: var(--text-primary); }
+
+    /* Liens dans le panel */
     footer a {
         margin: 0;
-        font-size: 0.85rem;
-        padding: 0.45rem 0.75rem;
+        font-size: 0.9rem;
+        padding: 0.65rem 1rem;
         border-bottom: 1px solid var(--border-light);
-        border-right: 1px solid var(--border-light);
     }
 
-    .footer-links a:nth-child(even) {
-        border-right: none;
-    }
-
-    .footer-links a:nth-last-child(-n+2) {
+    .footer-links a:last-child {
         border-bottom: none;
     }
 }

@@ -49,6 +49,7 @@ cargo build --workspace
 cargo test --workspace
 ```
 
+
 Detailed guide: [Installation](https://runique-production.up.railway.app/docs/en/installation)
 
 ---
@@ -186,8 +187,11 @@ Full reference: [Environment variables](https://runique-production.up.railway.ap
 - [Admin beta](https://runique-production.up.railway.app/docs/en/admin)
 - [Sessions](https://runique-production.up.railway.app/docs/en/session)
 - [Environment variables](https://runique-production.up.railway.app/docs/en/env)
-
 ---
+
+## Project status
+
+For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md).
 
 ## Resources
 

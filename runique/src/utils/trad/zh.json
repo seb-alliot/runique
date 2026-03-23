@@ -205,7 +205,10 @@
     "array_eof": "权限列表应为 [...] 格式，但已到达文件末尾",
     "role_required": "permissions: [...] 中至少需要指定一个角色",
     "punct_expected": "应为 '{}'，实际得到：{}",
-    "punct_eof": "应为 '{}'，但已到达文件末尾"
+    "punct_eof": "应为 '{}'，但已到达文件末尾",
+    "title_required": "admin!: 'title' 是必填项",
+    "permissions_required": "admin!: 'permissions' 是必填项",
+    "list_display_exclude_exclusive": "admin!: 'list_display' 和 'list_exclude' 互斥"
   },
   "TemplateMessage": {
     "debug_info_title": "调试信息",
