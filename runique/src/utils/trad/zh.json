@@ -314,6 +314,13 @@
       "btn_delete": "删除",
       "confirm_delete": "删除此条目？"
     },
+    "reset_password": {
+      "btn": "Reset password",
+      "success_email": "Reset link sent to {}.",
+      "success_link": "Reset link (mailer not configured): {}",
+      "error_no_email": "No email field found for this user.",
+      "error_send": "Error sending email: {}"
+    },
     "delete": {
       "title": "删除",
       "breadcrumb": "删除",
@@ -399,5 +406,21 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "未找到down语句。",
     "executing": "正在执行: {}"
+  },
+  "reset": {
+    "forgot_title": "忘记密码",
+    "reset_title": "新密码",
+    "success_title": "密码已重置",
+    "email_label": "电子邮件地址",
+    "new_password_label": "新密码",
+    "confirm_label": "确认密码",
+    "email_mismatch": "电子邮件地址与链接不匹配。",
+    "invalid_link": "无效链接。",
+    "invalid_or_expired": "重置链接无效或已过期。",
+    "password_min_length": "密码必须至少包含{}个字符。",
+    "password_mismatch": "两次输入的密码不一致。",
+    "check_inbox": "如果此地址与帐户关联，您将收到一封重置邮件。",
+    "email_subject": "密码重置请求",
+    "email_body": "<p>您好 {0}，</p><p>请点击以下链接重置您的密码（有效期1小时）：</p><p><a href=\"{1}\">{2}</a></p>"
   }
 }

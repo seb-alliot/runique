@@ -202,6 +202,7 @@ pub async fn admin_get_id(
 #[allow(private_interfaces)]
 pub async fn admin_post_id(
     mut req: Request,
+    headers: axum::http::HeaderMap,
     Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     AdminBody(body): AdminBody,
@@ -217,6 +218,7 @@ pub async fn admin_post_id(
     match action.as_str() {
         "edit" => handle_edit_post(&mut req, entry, id, body, &state).await,
         "delete" => handle_delete_post(&mut req, entry, id, &state).await,
+        "reset-password" => handle_reset_password(&mut req, entry, id, &headers, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Action inconnue",
         )))),
@@ -755,4 +757,109 @@ async fn handle_delete_post(
         entry.meta.key
     ))
     .into_response())
+}
+
+// ─── Reset password ──────────────────────────────────────────────────────────
+
+async fn handle_reset_password(
+    req: &mut Request,
+    entry: &crate::admin::ResourceEntry,
+    id: String,
+    headers: &axum::http::HeaderMap,
+    state: &PrototypeAdminState,
+) -> AppResult<Response> {
+    // Récupère l'entrée pour extraire l'email
+    let object = match &entry.get_fn {
+        Some(f) => f(req.engine.db.clone(), id.clone())
+            .await
+            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?,
+        None => None,
+    };
+
+    let detail_url = format!(
+        "{}/{}/{}/detail",
+        state.config.prefix.trim_end_matches('/'),
+        entry.meta.key,
+        id
+    );
+
+    let fields = object.as_ref().and_then(|v| v.as_object());
+
+    let email = fields
+        .and_then(|m| m.get("email"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    let Some(email) = email else {
+        req.notices
+            .error(t("admin.reset_password.error_no_email"))
+            .await;
+        return Ok(Redirect::to(&detail_url).into_response());
+    };
+
+    let username = fields
+        .and_then(|m| m.get("username").or_else(|| m.get("name")))
+        .and_then(|v| v.as_str())
+        .unwrap_or(&email);
+
+    let token = crate::utils::reset_token::generate(&email);
+    let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
+
+    let reset_url = if let Some(base) = &state.config.reset_password_url {
+        format!(
+            "{}/{}/{}",
+            base.trim_end_matches('/'),
+            token,
+            encrypted_email
+        )
+    } else {
+        let host = headers
+            .get(axum::http::header::HOST)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("localhost");
+        format!(
+            "http://{}/reset-password/{}/{}",
+            host, token, encrypted_email
+        )
+    };
+
+    // Envoi par email si mailer configuré, sinon affiche le lien dans le flash
+    if crate::utils::mailer_configured() {
+        let body = format!(
+            "<p>Bonjour {username},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
+        );
+        match crate::utils::Email::new()
+            .to(email.clone())
+            .subject(t("admin.reset_password.btn"))
+            .html(body)
+            .send()
+            .await
+        {
+            Ok(_) => {
+                req.notices
+                    .success(crate::utils::trad::tf(
+                        "admin.reset_password.success_email",
+                        &[&email],
+                    ))
+                    .await;
+            }
+            Err(e) => {
+                req.notices
+                    .error(crate::utils::trad::tf(
+                        "admin.reset_password.error_send",
+                        &[&e],
+                    ))
+                    .await;
+            }
+        }
+    } else {
+        req.notices
+            .success(crate::utils::trad::tf(
+                "admin.reset_password.success_link",
+                &[&reset_url],
+            ))
+            .await;
+    }
+
+    Ok(Redirect::to(&detail_url).into_response())
 }

@@ -118,6 +118,10 @@ pub mod prelude {
     // ========================================================================
     // MIDDLEWARE
     // ========================================================================
+    pub use crate::middleware::auth::{
+        ForgotPasswordForm, PasswordResetAdapter, PasswordResetConfig, PasswordResetForm,
+        handle_forgot_password, handle_password_reset,
+    };
     pub use crate::middleware::{
         allowed_hosts::*,
         auth::*,

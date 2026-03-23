@@ -34,6 +34,15 @@ pub struct AdminConfig {
 
     /// Nombre d'entrées par page dans la vue liste (défaut : 10)
     pub page_size: u64,
+
+    /// URL de base pour la réinitialisation de mot de passe (défaut : None)
+    /// Le token sera ajouté automatiquement : `{reset_password_url}/{token}`
+    ///
+    /// En production avec mailer, doit être une URL absolue :
+    /// `"https://monsite.fr/reset-password"`
+    ///
+    /// Si None, le lien est affiché dans le flash message (dev sans mailer).
+    pub reset_password_url: Option<String>,
 }
 
 impl Clone for AdminConfig {
@@ -47,6 +56,7 @@ impl Clone for AdminConfig {
             auth: self.auth.clone(),
             templates: self.templates.clone(),
             page_size: self.page_size,
+            reset_password_url: self.reset_password_url.clone(),
         }
     }
 }
@@ -76,6 +86,7 @@ impl AdminConfig {
             auth: None,
             templates: AdminTemplate::new(),
             page_size: 10,
+            reset_password_url: None,
         }
     }
 
@@ -101,6 +112,27 @@ impl AdminConfig {
 
     pub fn site_url(mut self, url: &str) -> Self {
         self.site_url = url.to_string();
+        self
+    }
+
+    /// URL de base pour le reset de mot de passe côté projet.
+    /// Le token sera ajouté automatiquement : `{url}/{token}`
+    ///
+    /// En production (avec mailer), passer une URL absolue :
+    /// ```rust,ignore
+    /// .with_admin(|a| a.reset_password_url("https://monsite.fr/reset-password"))
+    /// ```
+    ///
+    /// Pour lire depuis l'environnement dans `main.rs` :
+    /// ```rust,ignore
+    /// let reset_url = std::env::var("RESET_PASSWORD_URL").ok();
+    /// .with_admin(|a| {
+    ///     let a = match &reset_url { Some(u) => a.reset_password_url(u), None => a };
+    ///     a
+    /// })
+    /// ```
+    pub fn reset_password_url(mut self, url: &str) -> Self {
+        self.reset_password_url = Some(url.to_string());
         self
     }
 

@@ -50,6 +50,15 @@ pub trait UserEntity: Send + Sync + 'static {
     async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model>;
     /// Recherche un utilisateur par email en base
     async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model>;
+
+    /// Met à jour le mot de passe d'un utilisateur identifié par son email.
+    ///
+    /// `new_hash` est déjà haché (le formulaire Prisme hash automatiquement les champs password).
+    async fn update_password(
+        db: &DatabaseConnection,
+        email: &str,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr>;
 }
 
 // ═══════════════════════════════════════════════════════════════

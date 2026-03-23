@@ -9,7 +9,10 @@
 //   .with_admin(|a| a.auth(RuniqueAdminAuth::new()))
 // ═══════════════════════════════════════════════════════════════
 
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    entity::prelude::*,
+};
 
 use crate::impl_objects;
 pub use crate::middleware::auth::default_auth::UserEntity;
@@ -118,6 +121,23 @@ impl UserEntity for BuiltinUserEntity {
             .await
             .ok()
             .flatten()
+    }
+
+    async fn update_password(
+        db: &DatabaseConnection,
+        email: &str,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr> {
+        let user = Entity::find()
+            .filter(Column::Email.eq(email))
+            .one(db)
+            .await?
+            .ok_or(sea_orm::DbErr::RecordNotFound("User not found".into()))?;
+
+        let mut active: ActiveModel = user.into();
+        active.password = Set(new_hash.to_string());
+        active.update(db).await?;
+        Ok(())
     }
 }
 

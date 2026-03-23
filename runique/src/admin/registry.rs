@@ -1,20 +1,21 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use crate::admin::resource_entry::ResourceEntry;
 
-/// Registre des ressources admin — HashMap clé → ResourceEntry.
+/// Registre des ressources admin — IndexMap clé → ResourceEntry.
 ///
 /// Alimenté par le code généré par le daemon (`src/admins/generated.rs`).
 /// Partagé en lecture seule via `Arc<AdminRegistry>` dans l'état Axum.
+/// L'ordre d'insertion (ordre dans `generated.rs`) est préservé.
 #[derive(Default)]
 pub struct AdminRegistry {
-    pub resources: HashMap<String, ResourceEntry>,
+    pub resources: IndexMap<String, ResourceEntry>,
 }
 
 impl AdminRegistry {
     pub fn new() -> Self {
         Self {
-            resources: HashMap::new(),
+            resources: IndexMap::new(),
         }
     }
 

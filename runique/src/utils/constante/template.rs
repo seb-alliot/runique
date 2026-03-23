@@ -34,6 +34,11 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_string", "field_html/base_string.html"),
 ];
 
+pub const AUTH_TEMPLATES: &[(&str, &str)] = tpls![
+    ("auth/forgot_password.html", "auth/forgot_password.html"),
+    ("auth/reset_password.html", "auth/reset_password.html"),
+];
+
 pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     ("admin/admin_template", "admin/admin_template.html"),
     ("admin_base", "admin/admin_base.html"),

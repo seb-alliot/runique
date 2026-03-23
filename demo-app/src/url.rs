@@ -4,7 +4,6 @@ use runique::prelude::*;
 
 pub fn routes() -> Router {
     let limiter = Arc::new(RateLimiter::new().max_requests(5).retry_after(60));
-
     register_pending("upload_image", "/upload-image");
     let upload_route = Router::new()
         .route("/upload-image", view!(upload_image_submit))

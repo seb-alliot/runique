@@ -314,6 +314,13 @@
       "btn_delete": "Excluir",
       "confirm_delete": "Excluir esta entrada?"
     },
+    "reset_password": {
+      "btn": "Reset password",
+      "success_email": "Reset link sent to {}.",
+      "success_link": "Reset link (mailer not configured): {}",
+      "error_no_email": "No email field found for this user.",
+      "error_send": "Error sending email: {}"
+    },
     "delete": {
       "title": "Excluir",
       "breadcrumb": "Excluir",
@@ -399,5 +406,21 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "Nenhuma instrução down encontrada.",
     "executing": "Executando: {}"
+  },
+  "reset": {
+    "forgot_title": "Esqueceu a senha",
+    "reset_title": "Nova senha",
+    "success_title": "Senha redefinida",
+    "email_label": "Endereço de email",
+    "new_password_label": "Nova senha",
+    "confirm_label": "Confirmar senha",
+    "email_mismatch": "O endereço de email não corresponde ao link.",
+    "invalid_link": "Link inválido.",
+    "invalid_or_expired": "O link de redefinição é inválido ou expirou.",
+    "password_min_length": "A senha deve ter pelo menos {} caracteres.",
+    "password_mismatch": "As senhas não coincidem.",
+    "check_inbox": "Se este endereço estiver associado a uma conta, você receberá um email de redefinição.",
+    "email_subject": "Redefinição de senha",
+    "email_body": "<p>Olá {0},</p><p>Clique no link a seguir para redefinir sua senha (válido por 1 hora):</p><p><a href=\"{1}\">{2}</a></p>"
   }
 }

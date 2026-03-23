@@ -98,6 +98,9 @@ validator.workspace = true
 # Documentation
 pulldown-cmark.workspace = true
 
+# Envoie d'email
+lettre.workspace = true
+
 # CSRF
 hmac.workspace = true
 sha2.workspace = true

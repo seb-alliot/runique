@@ -7,6 +7,9 @@ use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
 use crate::macros::add_urls;
 use crate::middleware::HostPolicy;
+use crate::middleware::auth::{
+    PasswordResetAdapter, PasswordResetConfig, PasswordResetStaging, UserEntity,
+};
 use crate::utils::aliases::{new, new_serve};
 
 use super::error_build::BuildError;
@@ -70,6 +73,7 @@ pub struct RuniqueAppBuilder {
     statics: StaticStaging,
     router: Option<Router>,
     admin: AdminStaging,
+    password_reset: Option<PasswordResetStaging>,
 }
 
 impl RuniqueAppBuilder {
@@ -87,6 +91,7 @@ impl RuniqueAppBuilder {
             statics: StaticStaging::new(),
             router: None,
             admin: AdminStaging::new(),
+            password_reset: None,
         }
     }
 
@@ -196,6 +201,24 @@ impl RuniqueAppBuilder {
         self
     }
 
+    /// Configure le mailer SMTP manuellement
+    ///
+    /// ```rust,ignore
+    /// builder::new(config)
+    ///     .with_mailer(MailerConfig { host: "smtp.example.com".into(), port: 587, ... })
+    /// ```
+    pub fn with_mailer(self, config: crate::utils::mailer::MailerConfig) -> Self {
+        crate::utils::mailer::mailer_init(config);
+        self
+    }
+
+    /// Configure le mailer depuis les variables d'environnement
+    /// (SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_PORT, SMTP_STARTTLS)
+    pub fn with_mailer_from_env(self) -> Self {
+        crate::utils::mailer::mailer_init_from_env();
+        self
+    }
+
     /// Raccourci : active le service de fichiers statiques (activé par défaut)
     pub fn statics(mut self) -> Self {
         self.statics = self.statics.enable();
@@ -223,6 +246,41 @@ impl RuniqueAppBuilder {
     /// ```
     pub fn with_admin(mut self, f: impl FnOnce(AdminStaging) -> AdminStaging) -> Self {
         self.admin = f(self.admin.enable());
+        self
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RESET PASSWORD
+    // ═══════════════════════════════════════════════════════════
+
+    /// Active le flow reset password built-in pour une entité donnée.
+    ///
+    /// Enregistre automatiquement deux routes :
+    ///   - `{config.forgot_route}` — formulaire email (étape 1)
+    ///   - `{config.reset_route}/{token}/{encrypted_email}` — nouveau mdp (étape 2)
+    ///
+    /// Exemple minimal (entité built-in) :
+    /// ```rust,ignore
+    /// .with_password_reset::<BuiltinUserEntity>(|pr| pr)
+    /// ```
+    ///
+    /// Avec config personnalisée :
+    /// ```rust,ignore
+    /// .with_password_reset::<MyEntity>(|pr| pr
+    ///     .forgot_route("/mot-de-passe-oublie")
+    ///     .reset_route("/reinitialiser")
+    ///     .base_url("https://monsite.fr")
+    /// )
+    /// ```
+    pub fn with_password_reset<E: UserEntity + 'static>(
+        mut self,
+        f: impl FnOnce(PasswordResetConfig) -> PasswordResetConfig,
+    ) -> Self {
+        let config = f(PasswordResetConfig::default());
+        self.password_reset = Some(PasswordResetStaging {
+            handler: Box::new(PasswordResetAdapter::<E>::new()),
+            config,
+        });
         self
     }
 
@@ -315,6 +373,16 @@ impl RuniqueAppBuilder {
         // ═══════════════════════════════════════
 
         let router = router.unwrap_or_default();
+
+        // ═══════════════════════════════════════
+        // ÉTAPE 4b.1 : RESET PASSWORD (avant middleware, comme admin)
+        // ═══════════════════════════════════════
+        let router = if let Some(pr) = self.password_reset {
+            let pr_router = pr.handler.build_router(std::sync::Arc::new(pr.config));
+            router.merge(pr_router)
+        } else {
+            router
+        };
 
         let router = if self.admin.enabled {
             let admin_prefix = self.admin.config.prefix.trim_end_matches('/').to_string();

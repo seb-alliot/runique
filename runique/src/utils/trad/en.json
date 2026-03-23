@@ -314,6 +314,13 @@
       "btn_delete": "Delete",
       "confirm_delete": "Delete this entry?"
     },
+    "reset_password": {
+      "btn": "Reset password",
+      "success_email": "Reset link sent to {}.",
+      "success_link": "Reset link (mailer not configured): {}",
+      "error_no_email": "No email field found for this user.",
+      "error_send": "Error sending email: {}"
+    },
     "delete": {
       "title": "Delete",
       "breadcrumb": "Delete",
@@ -367,6 +374,22 @@
       "username_line": "  Username : {}",
       "email_line": "  Email    : {}"
     }
+  },
+  "reset": {
+    "forgot_title": "Forgot password",
+    "reset_title": "New password",
+    "success_title": "Password reset",
+    "email_label": "Email address",
+    "new_password_label": "New password",
+    "confirm_label": "Confirm password",
+    "email_mismatch": "The email address does not match the link.",
+    "invalid_link": "Invalid link.",
+    "invalid_or_expired": "Reset link is invalid or expired.",
+    "password_min_length": "Password must be at least {} characters.",
+    "password_mismatch": "Passwords do not match.",
+    "check_inbox": "If this address is associated with an account, you will receive a reset email.",
+    "email_subject": "Password reset request",
+    "email_body": "<p>Hello {0},</p><p>Click the link below to reset your password (valid for 1 hour):</p><p><a href=\"{1}\">{2}</a></p>"
   },
   "makemigrations": {
     "scanning": "Scanning entities in '{}'...",

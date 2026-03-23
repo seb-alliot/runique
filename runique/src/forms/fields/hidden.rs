@@ -24,7 +24,7 @@ impl HiddenField {
     /// Constructeur générique pour un champ caché
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "hidden", "base_hidden"),
+            base: FieldConfig::new(name, "hidden", "base_string"),
             expected_value: None,
         }
     }
@@ -76,6 +76,9 @@ impl FormField for HiddenField {
     fn render(&self, tera: &Arc<Tera>) -> Result<String, String> {
         let mut context = Context::new();
         context.insert("field", &self.base);
+        context.insert("input_type", &self.base.type_field);
+        context.insert("readonly", &serde_json::json!({"choice": false}));
+        context.insert("disabled", &serde_json::json!({"choice": false}));
 
         tera.render(&self.base.template_name, &context)
             .map_err(|e| {

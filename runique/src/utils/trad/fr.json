@@ -315,6 +315,13 @@
         "btn_delete": "Supprimer",
         "confirm_delete": "Supprimer cette entrée ?"
       },
+      "reset_password": {
+        "btn": "Réinitialiser le mot de passe",
+        "success_email": "Lien de réinitialisation envoyé à {}.",
+        "success_link": "Lien de réinitialisation (mailer non configuré) : {}",
+        "error_no_email": "Aucun champ email trouvé pour cet utilisateur.",
+        "error_send": "Erreur lors de l'envoi de l'email : {}"
+      },
       "delete": {
         "title": "Supprimer",
         "breadcrumb": "Supprimer",
@@ -368,6 +375,22 @@
         "username_line": "  Utilisateur : {}",
         "email_line": "  Email       : {}"
       }
+  },
+  "reset": {
+    "forgot_title": "Mot de passe oublié",
+    "reset_title": "Nouveau mot de passe",
+    "success_title": "Mot de passe réinitialisé",
+    "email_label": "Adresse email",
+    "new_password_label": "Nouveau mot de passe",
+    "confirm_label": "Confirmer le mot de passe",
+    "email_mismatch": "L'adresse email ne correspond pas au lien.",
+    "invalid_link": "Lien invalide.",
+    "invalid_or_expired": "Lien de réinitialisation invalide ou expiré.",
+    "password_min_length": "Le mot de passe doit contenir au moins {} caractères.",
+    "password_mismatch": "Les mots de passe ne correspondent pas.",
+    "check_inbox": "Si cette adresse est associée à un compte, vous recevrez un email de réinitialisation.",
+    "email_subject": "Réinitialisation de votre mot de passe",
+    "email_body": "<p>Bonjour {0},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{1}\">{2}</a></p>"
   },
   "makemigrations": {
     "scanning": "Scan des entités dans '{}'...",

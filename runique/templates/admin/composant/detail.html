@@ -20,6 +20,16 @@
         {% else %}{% for role in current_user.roles %}{% if role in resource.permissions.edit %}{% set_global can_modify = true %}{% endif %}{% endfor %}{% endif %}
       {% endif %}
       {% if current_user and can_modify %}
+      {% set has_password = false %}
+      {% for key, value in entry %}{% if key == "password" or key == "password_hash" %}{% set_global has_password = true %}{% endif %}{% endfor %}
+      {% if has_password %}
+      <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/reset-password" class="form-inline btn-hide-mobile">
+        <button type="submit" class="btn btn-secondary btn-hide-mobile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-right:0.4rem"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          {% if admin_detail_btn_reset_password %}{{ admin_detail_btn_reset_password }}{% else %}Réinitialiser le mot de passe{% endif %}
+        </button>
+      </form>
+      {% endif %}
       <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary btn-hide-mobile">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
       <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline btn-hide-mobile">
           <button type="submit" class="btn btn-sm btn-danger"
@@ -38,6 +48,15 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             {% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}
           </a>
+          {% if has_password %}
+          <div class="row-menu-separator"></div>
+          <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/reset-password">
+            <button type="submit" class="row-menu-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              {% if admin_detail_btn_reset_password %}{{ admin_detail_btn_reset_password }}{% else %}Réinitialiser{% endif %}
+            </button>
+          </form>
+          {% endif %}
           <div class="row-menu-separator"></div>
           <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete">
             <button type="submit" class="row-menu-item row-menu-danger"
