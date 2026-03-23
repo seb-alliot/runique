@@ -521,7 +521,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).order_by(Alias::new(\"{col}\"), Order::Asc).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
+                "            let stmt_{col} = Query::select().distinct().expr(Expr::cust(\"CAST({col} AS TEXT)\")).from(Alias::new({module}::Entity.table_name())).and_where(Expr::col(Alias::new(\"{col}\")).is_not_null()).limit(page_size_{col}).offset(cur_page_{col} * page_size_{col}).to_owned();",
                 col = col,
                 module = module
             );
@@ -533,7 +533,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
             );
             let _ = writeln!(
                 out,
-                "            let vals_{col}: Vec<String> = rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect();",
+                "            let mut vals_{col}: Vec<String> = rows_{col}.iter().filter_map(|r| r.try_get_by_index::<String>(0).ok()).collect(); vals_{col}.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {{ (Ok(x), Ok(y)) => x.cmp(&y), _ => a.cmp(b) }});",
                 col = col
             );
             let _ = writeln!(

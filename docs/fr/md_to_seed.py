@@ -51,6 +51,8 @@ COUR_IDS = {
     "orm":                 20,
     "cours-filtre-admin":  21,
     "middleware-ordre":    22,
+    "traits-basics":      27,
+    "concurrence":        28,
 }
 
 
@@ -285,6 +287,8 @@ INSERT INTO cour (id, slug, lang, title, theme, difficulte, sort_order, ordre) V
 (15, 'smart-pointers',      'fr', 'Smart pointers',         'Mémoire & sûreté', 'intermediaire', 7, 15),
 (16, 'send-sync',           'fr', 'Send & Sync',            'Mémoire & sûreté', 'intermediaire', 8, 16),
 (17, 'traits-avances',      'fr', 'Traits avancés',         'Avancé',           'avance',        1, 17),
+(27, 'traits-basics',       'fr', 'Traits — Les bases',      'Avancé',           'avance',        8, 27),
+(28, 'concurrence',         'fr', 'Concurrence & état partagé', 'Avancé',        'avance',        9, 28),
 (18, 'macros-declaratives',  'fr', 'Macros déclaratives',                 'Avancé', 'avance', 2, 18),
 (23, 'macros-export',        'fr', 'Macros — Visibilité et export',      'Avancé', 'avance', 3, 23),
 (24, 'macros-derive',        'fr', 'Macros procédurales — Derive',       'Avancé', 'avance', 4, 24),
