@@ -6,7 +6,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
-## [1.1.52] - À venir
+## [1.1.53] - À venir
 
 ### Correctifs
 
@@ -148,7 +148,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 * **Site de démonstration**
 
   * Un site vitrine de Runique est désormais disponible :
-    [https://runique-production.up.railway.app/](https://runique-production.up.railway.app/)
+    [https://runique.io/](https://runique.io/)
 
 ---
 

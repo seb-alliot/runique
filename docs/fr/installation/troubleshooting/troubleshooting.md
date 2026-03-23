@@ -29,7 +29,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO runique_user;
 Vérifier que la feature est activée dans `Cargo.toml` :
 
 ```toml
-runique = { version = "1.1.52", features = ["orm", "postgres"] }
+runique = { version = "1.1.53", features = ["orm", "postgres"] }
 ```
 
 ---

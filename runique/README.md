@@ -3,16 +3,16 @@
 ![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.52-blue)
+![Version](https://img.shields.io/badge/version-1.1.53-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
-[![Runique](https://img.shields.io/badge/Live-Demo-brightgreen)](https://runique-production.up.railway.app)
+[![Runique](https://img.shields.io/badge/Live-Demo-brightgreen)](https://runique.io)
 
 Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
 
 > Current state: active development. The framework source of truth is the `runique` crate.
 > `demo-app` is used as a validation/testing application for framework behavior.
 
-🌍 **Languages**: English | [Français](https://runique-production.up.railway.app/readme/fr)
+🌍 **Languages**: English | [Français](https://runique.io/readme/fr)
 
 ---
 
@@ -22,7 +22,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **1.1.52**.
+Workspace version (source of truth): **1.1.53**.
 
 ---
 
@@ -50,7 +50,7 @@ cargo test --workspace
 ```
 
 
-Detailed guide: [Installation](https://runique-production.up.railway.app/docs/en/installation)
+Detailed guide: [Installation](https://runique.io/docs/en/installation)
 
 ---
 
@@ -108,7 +108,7 @@ Current beta limits:
 - generated folder overwrite (`src/admins/`)
 - iterative hardening still in progress
 
-Admin docs: [Admin](https://runique-production.up.railway.app/docs/en/admin)
+Admin docs: [Admin](https://runique.io/docs/en/admin)
 
 ---
 
@@ -151,7 +151,7 @@ cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summa
 - `protect_session(&session, duration_secs)` — marks an anonymous session as untouchable until a given timestamp
 - `user_id` key — automatically protects authenticated sessions
 
-Full reference: [Sessions](https://runique-production.up.railway.app/docs/en/session)
+Full reference: [Sessions](https://runique.io/docs/en/session)
 
 ---
 
@@ -167,26 +167,26 @@ SECRET_KEY=your-secret-key
 DATABASE_URL=sqlite://db.sqlite3
 ```
 
-Full reference: [Environment variables](https://runique-production.up.railway.app/docs/en/env)
+Full reference: [Environment variables](https://runique.io/docs/en/env)
 
 ---
 
 ## Documentation
 
-- [Installation](https://runique-production.up.railway.app/docs/en/installation)
-- [Architecture](https://runique-production.up.railway.app/docs/en/architecture)
-- [Configuration](https://runique-production.up.railway.app/docs/en/configuration)
-- [Routing](https://runique-production.up.railway.app/docs/en/routing)
-- [Forms](https://runique-production.up.railway.app/docs/en/formulaire)
-- [Model/Schema](https://runique-production.up.railway.app/docs/en/model)
-- [Templates](https://runique-production.up.railway.app/docs/en/template)
-- [ORM](https://runique-production.up.railway.app/docs/en/orm)
-- [Middlewares](https://runique-production.up.railway.app/docs/en/middleware)
-- [Flash Messages](https://runique-production.up.railway.app/docs/en/flash)
-- [Examples](https://runique-production.up.railway.app/docs/en/exemple)
-- [Admin beta](https://runique-production.up.railway.app/docs/en/admin)
-- [Sessions](https://runique-production.up.railway.app/docs/en/session)
-- [Environment variables](https://runique-production.up.railway.app/docs/en/env)
+- [Installation](https://runique.io/docs/en/installation)
+- [Architecture](https://runique.io/docs/en/architecture)
+- [Configuration](https://runique.io/docs/en/configuration)
+- [Routing](https://runique.io/docs/en/routing)
+- [Forms](https://runique.io/docs/en/formulaire)
+- [Model/Schema](https://runique.io/docs/en/model)
+- [Templates](https://runique.io/docs/en/template)
+- [ORM](https://runique.io/docs/en/orm)
+- [Middlewares](https://runique.io/docs/en/middleware)
+- [Flash Messages](https://runique.io/docs/en/flash)
+- [Examples](https://runique.io/docs/en/exemple)
+- [Admin beta](https://runique.io/docs/en/admin)
+- [Sessions](https://runique.io/docs/en/session)
+- [Environment variables](https://runique.io/docs/en/env)
 ---
 
 ## Project status
@@ -195,8 +195,8 @@ For the detailed, continuously updated state report, see [PROJECT_STATUS.md](htt
 
 ## Resources
 
-- [Changelog](https://runique-production.up.railway.app/changelog)
-- [Runique vs Django — Feature Comparison](https://runique-production.up.railway.app/docs/en/comparatif)
+- [Changelog](https://runique.io/changelog)
+- [Runique vs Django — Feature Comparison](https://runique.io/docs/en/comparatif)
 - [Crates.io](https://crates.io/crates/runique)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 

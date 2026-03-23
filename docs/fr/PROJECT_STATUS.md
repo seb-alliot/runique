@@ -13,7 +13,7 @@ Ce document consolide l'état réel du dépôt à partir des sources de référe
 
 ## 🧾 Snapshot (au 15 mars 2026)
 
-- **Version workspace** : `1.1.52`
+- **Version workspace** : `1.1.53`
 - **Licence** : MIT
 - **Branche de travail** : `i18n` → merge dans `main` pour publication
 - **Tests reportés** : **~1 600 / ~1 600** ✅
@@ -147,7 +147,7 @@ Fichiers critiques encore bas selon `couverture_test.md` :
 
 ## 🆕 Changements récents
 
-Voir `CHANGELOG.md` pour le détail complet. Points clés de `[1.1.52]` :
+Voir `CHANGELOG.md` pour le détail complet. Points clés de `[1.1.53]` :
 
 - CSP entièrement migrée vers builder (variables d'env supprimées)
 - CSRF masqué (protection BREACH), comparaisons temps constant
