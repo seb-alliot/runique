@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [1.1.52] - Unreleased
+## [1.1.53] - Unreleased
 
 ### Fixed
 
@@ -149,7 +149,7 @@ All notable changes to this project will be documented in this file.
 * **Showcase Website**
 
   * A demonstration website for Runique is now available:
-    [https://runique-production.up.railway.app/](https://runique-production.up.railway.app/)
+    [https://runique.io/](https://runique.io/)
 
 ---
 

@@ -403,7 +403,7 @@ async fn seed_site_config(db: &DatabaseConnection) {
     }
 
     let entries = [
-        ("runique_version", "1.1.52", "Version actuelle de Runique"),
+        ("runique_version", "1.1.53", "Version actuelle de Runique"),
         ("release_date", "2026-03-21", "Date de la dernière release"),
         (
             "github_url",

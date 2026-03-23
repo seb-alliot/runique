@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     h.enabled(!is_debug())
                         .host("localhost:3000")
                         .host("127.0.0.1:3000")
-                        .host("runique-production.up.railway.app")
+                        .host("runique.io")
                 })
                 .with_csp(|c| {
                     c.policy(SecurityPolicy::strict())

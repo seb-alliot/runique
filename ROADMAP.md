@@ -255,7 +255,7 @@ Rendre Runique autonome en production — binaire compilé + TLS natif, sans Ngi
 
 ## 8. Publication crates.io
 
-**Status :** 🟡 Processus à documenter — version actuelle **1.1.52** publiée
+**Status :** 🟡 Processus à documenter — version actuelle **1.1.53** publiée
 
 ### Processus de release
 

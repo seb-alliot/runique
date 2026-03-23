@@ -7,13 +7,13 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "1.1.52"
+version = "1.1.53"
 edition = "2024"
 rust-version = "1.85"
 authors = ["Itsuki"]
 license = "MIT"
 repository = "https://github.com/seb-alliot/runique"
-homepage = "https://runique-production.up.railway.app/"
+homepage = "https://runique.io/"
 
 [workspace.dependencies]
 # Framework web
