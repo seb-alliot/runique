@@ -205,7 +205,10 @@
     "array_eof": "Array [...] esperado para permissões, fim do arquivo",
     "role_required": "Pelo menos uma função necessária em permissions: [...]",
     "punct_expected": "'{}' esperado, encontrado: {}",
-    "punct_eof": "'{}' esperado, fim do arquivo"
+    "punct_eof": "'{}' esperado, fim do arquivo",
+    "title_required": "admin!: 'title' é obrigatório",
+    "permissions_required": "admin!: 'permissions' é obrigatório",
+    "list_display_exclude_exclusive": "admin!: 'list_display' e 'list_exclude' são mutuamente exclusivos"
   },
   "TemplateMessage": {
     "debug_info_title": "Informações de debug",

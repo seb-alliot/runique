@@ -56,10 +56,15 @@
     // Expose globalement
     window.AdminActions = AdminActions;
 
-    // Auto-init si data-auto-init présent
-    document.addEventListener('DOMContentLoaded', function() {
+    // Auto-init si data-admin-auto-init présent (fonctionne même si DOM déjà prêt)
+    function tryAutoInit() {
         if (document.querySelector('[data-admin-auto-init]')) {
             new AdminActions().init();
         }
-    });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryAutoInit);
+    } else {
+        tryAutoInit();
+    }
 })();

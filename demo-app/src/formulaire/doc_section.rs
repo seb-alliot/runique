@@ -1,7 +1,7 @@
 use crate::entities::doc_section::schema as doc_section;
 use runique::prelude::*;
 
-#[form(schema = doc_section, fields = [slug, lang, title, sort_order])]
+#[form(schema = doc_section, fields = [slug, lang, title, sort_order, theme])]
 pub struct DocSectionForm;
 
 #[async_trait]

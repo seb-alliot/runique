@@ -14,6 +14,7 @@
 //       }
 //   }
 
+use crate::utils::trad::{t, tf};
 use proc_macro2::TokenStream;
 use syn::{Macro, parse_file, visit::Visit};
 
@@ -55,6 +56,9 @@ pub struct ResourceDef {
 
     /// Colonnes visibles dans la liste avec labels : [("col", "Label")]
     pub list_display: Vec<(String, String)>,
+
+    /// Colonnes exclues de la liste : ["col1", "col2"]
+    pub list_exclude: Vec<String>,
 }
 
 /// Résultat du parsing de src/admin.rs
@@ -176,6 +180,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             id_type: body.id_type,
             list_filter: body.list_filter,
             list_display: body.list_display,
+            list_exclude: body.list_exclude,
         });
 
         // Virgule optionnelle entre ressources
@@ -198,6 +203,7 @@ struct ResourceBody {
     id_type: String,
     list_filter: Vec<(String, String, u64)>,
     list_display: Vec<(String, String)>,
+    list_exclude: Vec<String>,
 }
 
 fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
@@ -217,6 +223,7 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         id_type: "I32".to_string(),
         list_filter: Vec::new(),
         list_display: Vec::new(),
+        list_exclude: Vec::new(),
     };
 
     while iter.peek().is_some() {
@@ -265,6 +272,9 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
             "list_display" => {
                 body.list_display = parse_list_display(&mut iter)?;
             }
+            "list_exclude" => {
+                body.list_exclude = parse_list_exclude(&mut iter)?;
+            }
             other => {
                 skip_until_punct(&mut iter, ',');
                 eprintln!("  Unknown field in admin!{{}}: '{}'", other);
@@ -273,10 +283,13 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
     }
 
     if body.title.is_empty() {
-        return Err("Missing 'title' field in admin!{} declaration".to_string());
+        return Err(t("parser.title_required").to_string());
     }
     if body.permissions.is_empty() {
-        return Err("Missing 'permissions' field in admin!{} declaration".to_string());
+        return Err(t("parser.permissions_required").to_string());
+    }
+    if !body.list_display.is_empty() && !body.list_exclude.is_empty() {
+        return Err(t("parser.list_display_exclude_exclusive").to_string());
     }
 
     Ok(body)
@@ -285,6 +298,44 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
 /// Parse list_display: [["col", "Label"], ...]
 fn parse_list_display(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
     parse_str_pair_array(iter, "list_display")
+}
+
+/// Parse list_exclude: ["col1", "col2", ...]
+fn parse_list_exclude(iter: &mut TokenIter) -> Result<Vec<String>, String> {
+    use proc_macro2::TokenTree;
+
+    match iter.next() {
+        Some(TokenTree::Group(outer)) => {
+            let mut cols = Vec::new();
+            let mut inner = outer.stream().into_iter().peekable();
+            while inner.peek().is_some() {
+                match inner.next() {
+                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+                    Some(TokenTree::Literal(lit)) => {
+                        let s = lit.to_string();
+                        if s.starts_with('"') && s.ends_with('"') {
+                            cols.push(s[1..s.len() - 1].to_string());
+                        } else {
+                            return Err(format!(
+                                "Expected string literal in list_exclude, found: {}",
+                                s
+                            ));
+                        }
+                    }
+                    Some(other) => {
+                        return Err(format!(
+                            "Expected string literal in list_exclude, found: {}",
+                            other
+                        ));
+                    }
+                    None => break,
+                }
+            }
+            Ok(cols)
+        }
+        Some(other) => Err(format!("Expected [...] for list_exclude, got {:?}", other)),
+        None => Err("Expected [...] for list_exclude, end of file".to_string()),
+    }
 }
 
 /// Parse list_filter: [["col_sql", "Label"], ...] ou [["col_sql", "Label", 10], ...]
@@ -508,11 +559,11 @@ fn parse_string_literal(iter: &mut TokenIter) -> Result<String, String> {
             if s.starts_with('"') && s.ends_with('"') {
                 Ok(s[1..s.len() - 1].to_string())
             } else {
-                Err(format!("Expected string literal, found: {}", s))
+                Err(tf("parser.string_expected", &[&s]))
             }
         }
-        Some(other) => Err(format!("Expected string literal, found: {}", other)),
-        None => Err("Expected string literal, end of file".to_string()),
+        Some(other) => Err(tf("parser.string_expected", &[&other.to_string()])),
+        None => Err(t("parser.string_eof").to_string()),
     }
 }
 
@@ -550,13 +601,13 @@ fn parse_permissions_array(iter: &mut TokenIter) -> Result<Vec<String>, String> 
             }
 
             if roles.is_empty() {
-                Err("At least one role required in permissions: [...]".to_string())
+                Err(t("parser.role_required").to_string())
             } else {
                 Ok(roles)
             }
         }
-        Some(other) => Err(format!("Expected [...] for permissions, found: {}", other)),
-        None => Err("Expected [...] for permissions, end of file".to_string()),
+        Some(other) => Err(tf("parser.array_expected", &[&other.to_string()])),
+        None => Err(t("parser.array_eof").to_string()),
     }
 }
 
@@ -566,8 +617,11 @@ fn expect_punct(iter: &mut TokenIter, expected: char) -> Result<(), String> {
 
     match iter.next() {
         Some(TokenTree::Punct(p)) if p.as_char() == expected => Ok(()),
-        Some(other) => Err(format!("Expected '{}', found: {}", expected, other)),
-        None => Err(format!("Expected '{}', end of file", expected)),
+        Some(other) => Err(tf(
+            "parser.punct_expected",
+            &[&expected.to_string(), &other.to_string()],
+        )),
+        None => Err(tf("parser.punct_eof", &[&expected.to_string()])),
     }
 }
 

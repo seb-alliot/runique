@@ -447,8 +447,8 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let _ = writeln!(out);
     }
 
-    // DisplayConfig avec list_display et/ou list_filter si configurés
-    if !r.list_display.is_empty() || !r.list_filter.is_empty() {
+    // DisplayConfig avec list_display, list_exclude et/ou list_filter si configurés
+    if !r.list_display.is_empty() || !r.list_exclude.is_empty() || !r.list_filter.is_empty() {
         let mut display_chain = "DisplayConfig::new()".to_string();
         if !r.list_display.is_empty() {
             let cols_str = r
@@ -458,6 +458,15 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
                 .collect::<Vec<_>>()
                 .join(", ");
             display_chain.push_str(&format!(".columns_include(vec![{}])", cols_str));
+        }
+        if !r.list_exclude.is_empty() {
+            let cols_str = r
+                .list_exclude
+                .iter()
+                .map(|c| format!("\"{}\"", c))
+                .collect::<Vec<_>>()
+                .join(", ");
+            display_chain.push_str(&format!(".columns_exclude(vec![{}])", cols_str));
         }
         if !r.list_filter.is_empty() {
             let filter_str = r

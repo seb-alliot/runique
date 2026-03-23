@@ -205,7 +205,10 @@
     "array_eof": "権限のための [...] を期待していましたが、ファイルの終端に達しました",
     "role_required": "permissions: [...] には少なくとも1つのロールが必要です",
     "punct_expected": "'{}' を期待していましたが、見つかったもの: {}",
-    "punct_eof": "'{}' を期待していましたが、ファイルの終端に達しました"
+    "punct_eof": "'{}' を期待していましたが、ファイルの終端に達しました",
+    "title_required": "admin!: 'title' は必須です",
+    "permissions_required": "admin!: 'permissions' は必須です",
+    "list_display_exclude_exclusive": "admin!: 'list_display' と 'list_exclude' は同時に使用できません"
   },
   "TemplateMessage": {
     "debug_info_title": "デバッグ情報",

@@ -1,4 +1,4 @@
-use crate::entities::{doc_block, doc_page, doc_section};
+use crate::entities::{cour, doc_block, doc_page, doc_section};
 use runique::prelude::*;
 
 pub async fn doc_index(lang: &str, request: &mut Request) -> AppResult<Response> {
@@ -12,10 +12,33 @@ pub async fn doc_index(lang: &str, request: &mut Request) -> AppResult<Response>
         .await
         .unwrap_or_default();
 
+    let mut cours_difficultes: Vec<String> = cour::Entity::find()
+        .filter(cour::Column::Lang.eq(lang))
+        .select_only()
+        .column(cour::Column::Difficulte)
+        .distinct()
+        .into_tuple::<String>()
+        .all(&*db)
+        .await
+        .unwrap_or_default();
+
+    let order = ["debutant", "intermediaire", "avance", "specifique"];
+    cours_difficultes.sort_by_key(|d| order.iter().position(|&o| o == d.as_str()).unwrap_or(99));
+
+    let cours = cour::Entity::find()
+        .filter(cour::Column::Lang.eq(lang))
+        .order_by_asc(cour::Column::SortOrder)
+        .all(&*db)
+        .await
+        .unwrap_or_default();
+
     context_update!(request => {
-        "title"    => &format!("Documentation — {}", lang.to_uppercase()),
-        "sections" => &sections,
-        "lang"     => lang,
+        "title"              => &format!("Documentation — {}", lang.to_uppercase()),
+        "sections"           => &sections,
+        "cours_themes"       => &cours_difficultes,
+        "cours_difficultes"  => &cours_difficultes,
+        "cours"              => &cours,
+        "lang"               => lang,
     });
 
     request.render("docs/doc_index.html")

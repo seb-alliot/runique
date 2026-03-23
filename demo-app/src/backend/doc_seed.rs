@@ -301,11 +301,21 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
                 s
             });
 
+        let theme = match section_slug.as_str() {
+            "installation" | "architecture" | "configuration" | "env" => "demarrage",
+            "routing" | "formulaire" | "flash" | "template" => "web",
+            "orm" | "model" => "database",
+            "middleware" | "auth" | "session" => "security",
+            "admin" => "admin",
+            _ => "autres",
+        };
+
         let section = doc_section::ActiveModel {
             slug: Set(section_slug.clone()),
             lang: Set(lang.to_string()),
             title: Set(title),
             sort_order: Set(sort_order),
+            theme: Set(Some(theme.to_string())),
             ..Default::default()
         };
 

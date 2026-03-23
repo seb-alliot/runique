@@ -205,7 +205,10 @@
     "array_eof": "Ожидался массив [...] для разрешений, конец файла",
     "role_required": "Требуется хотя бы одна роль в permissions: [...]",
     "punct_expected": "Ожидалось '{}', найдено: {}",
-    "punct_eof": "Ожидалось '{}', конец файла"
+    "punct_eof": "Ожидалось '{}', конец файла",
+    "title_required": "admin!: 'title' обязателен",
+    "permissions_required": "admin!: 'permissions' обязателен",
+    "list_display_exclude_exclusive": "admin!: 'list_display' и 'list_exclude' взаимно исключают друг друга"
   },
   "TemplateMessage": {
     "debug_info_title": "Отладочная информация",

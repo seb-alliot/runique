@@ -77,6 +77,23 @@
 .card-body { padding: 1.25rem; }
 
 /* ───────────────────────────────────────────────
+   Barre de recherche
+   ─────────────────────────────────────────────── */
+
+.admin-search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-search-input {
+    flex: 1;
+    max-width: 360px;
+}
+
+.admin-search-btn { flex-shrink: 0; }
+
+/* ───────────────────────────────────────────────
    Table
    ─────────────────────────────────────────────── */
 
@@ -110,6 +127,34 @@
 }
 
 .admin-table tr:last-child td { border-bottom: none; }
+
+/* Cellules de données : tronquées et dépliables au clic */
+.admin-table td.td-data {
+    max-width: 260px;
+    cursor: pointer;
+    user-select: none;
+    vertical-align: top;
+}
+
+.admin-table td.td-data .td-content {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
+}
+
+.admin-table td.td-data.expanded {
+    max-width: 400px;
+    white-space: normal;
+}
+
+.admin-table td.td-data.expanded .td-content {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+    word-break: break-word;
+}
 
 .admin-table tbody tr { transition: background var(--transition); }
 .admin-table tbody tr:hover { background: var(--bg-hover); }
@@ -263,6 +308,89 @@
 .empty-state-desc   { font-size: 0.85rem; max-width: 300px; }
 
 /* ───────────────────────────────────────────────
+   Kebab menu (actions ligne tableau)
+   ─────────────────────────────────────────────── */
+
+.td-actions {
+    width: 36px;
+    padding: 0 0.25rem !important;
+    vertical-align: middle;
+}
+
+.row-menu {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.row-menu-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: none;
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+}
+
+.row-menu-trigger:hover,
+.row-menu-trigger.active {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+.row-menu-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    min-width: 140px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    z-index: 100;
+    overflow: hidden;
+}
+
+.row-menu-dropdown.open { display: block; }
+
+.row-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.875rem;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+    white-space: nowrap;
+}
+
+.row-menu-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+.row-menu-danger { color: var(--danger); }
+.row-menu-danger:hover { background: var(--danger-light); color: var(--danger); }
+
+.row-menu-separator {
+    height: 1px;
+    background: var(--border);
+    margin: 0.25rem 0;
+}
+
+/* ───────────────────────────────────────────────
    Delete zone (confirmation suppression)
    ─────────────────────────────────────────────── */
 
@@ -367,21 +495,36 @@
 }
 
 .filter-group {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.filter-sidebar-body > .filter-group:last-child {
-    border-bottom: none;
+    padding: 0.15rem 0;
 }
 
 .filter-group-title {
-    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0.55rem 1rem;
+    margin: 0.1rem 0;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--text-muted);
-    padding: 0 1.1rem 0.4rem;
+    color: var(--text-sidebar);
+    transition: background var(--transition), color var(--transition);
+}
+
+.filter-group-title:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+.filter-group-chevron {
+    flex-shrink: 0;
+    transition: transform var(--transition);
 }
 
 .filter-option {
