@@ -143,6 +143,48 @@ $env:PGPASSWORD="Passowrd"; & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -h l
 
 
 // ============================================================
+//  VPS  (147.79.118.162 — runique.io)
+// ============================================================
+
+// Connexion SSH
+ssh root@147.79.118.162
+
+// Déployer une nouvelle version
+cd /var/www/runique
+git pull
+cargo build --release --manifest-path demo-app/Cargo.toml
+systemctl restart runique
+
+// Statut du service
+systemctl status runique
+
+// Logs en direct
+journalctl -u runique -f
+
+// Redémarrer / arrêter / démarrer
+systemctl restart runique
+systemctl stop runique
+systemctl start runique
+
+// PostgreSQL
+sudo -u postgres psql                                          => shell psql
+sudo -u postgres psql -c "ALTER USER runique WITH PASSWORD 'nouveaumdp';"
+sudo -u postgres pg_restore -d runique /tmp/dump.dump          => restaurer un dump
+
+// Dump depuis Railway (pg_dump v18 requis)
+/usr/lib/postgresql/18/bin/pg_dump "postgresql://..." -Fc -f /tmp/dump.dump
+
+// Certbot / HTTPS
+certbot renew --dry-run                                        => tester le renouvellement
+systemctl status certbot.timer                                 => vérifier le timer auto
+
+// Nginx
+nginx -t                                                       => tester la config
+systemctl reload nginx
+nano /etc/nginx/sites-available/runique
+
+
+// ============================================================
 //  UTILITAIRES WINDOWS
 // ============================================================
 
