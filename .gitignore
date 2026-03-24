@@ -23,8 +23,12 @@ tmpclaude-*
 /.claude/
 
 # Fichier perso
-/commande.txt
-/AUDIT.md
-/check.ps1
+commande.txt
+AUDIT.md
+audit.ps1
+check.ps1
+CLAUDE.md
+Dockerfile
+reflexion.md
 demo-app/seed.sql
 demo-app/PROGRESS.md

@@ -86,8 +86,9 @@ pub fn routes() -> Router {
         "/readme/en"                     => view! { readme_en },             name = "readme_en",
 
         // Cours Rust
-        "/cours"         => view! { view_cours_index },  name = "cours_index",
-        "/cours/{slug}"  => view! { view_cours_detail }, name = "cours_detail",
+        "/cours"                    => view! { view_cours_index },    name = "cours_index",
+        "/cours/{slug}"             => view! { view_cours_detail },   name = "cours_detail",
+        "/cours/{slug}/exercice"    => view! { view_cours_exercice }, name = "cours_exercice",
 
         // Documentation
         "/docs/fr"                       => view! { docs_index_fr },         name = "doc_index_fr",

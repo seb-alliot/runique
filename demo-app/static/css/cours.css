@@ -197,3 +197,225 @@
     .cours-nav-chapitres { flex-direction: column; }
     .cours-nav-btn { max-width: 100%; }
 }
+
+/* ═══════════════════════════════════════
+    IA PANEL
+   ═══════════════════════════════════════ */
+
+/* ── Bouton déclencheur ── */
+
+.ia-trigger-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.ia-trigger-btn:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--bg-surface) 85%, var(--accent));
+}
+
+.ia-trigger-btn--full {
+    width: 100%;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.ia-sidebar-action {
+    padding: 0 1rem 1rem;
+}
+
+/* ── Mobile bar actions ── */
+
+.doc-mobile-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ── Layout split ── */
+
+.doc-content {
+    display: contents;
+}
+
+.doc-content.ia-active {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+.cours-content-inner {
+    overflow-y: auto;
+    padding: 2rem 2.5rem;
+    min-height: 0;
+}
+
+@media (max-width: 768px) {
+    .doc-content.ia-active {
+        grid-template-columns: 1fr;
+        grid-template-rows: 70vh 30vh;
+        height: calc(100vh - 3rem);
+    }
+
+    .cours-content-inner {
+        padding: 1rem;
+    }
+}
+
+/* ── Panel ── */
+
+.ia-panel {
+    display: none;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+    background: var(--bg-surface);
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ia-panel--visible {
+    display: flex;
+}
+
+@media (max-width: 768px) {
+    .ia-panel {
+        border-left: none;
+        border-top: 1px solid var(--border);
+    }
+}
+
+/* ── Header panel ── */
+
+.ia-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.ia-panel-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.ia-panel-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+
+.ia-panel-close:hover {
+    color: var(--text-main);
+}
+
+/* ── Messages ── */
+
+.ia-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.ia-message {
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.ia-message--system  { background: var(--bg-base); color: var(--text-muted); }
+.ia-message--user    { background: color-mix(in srgb, var(--bg-surface) 60%, var(--accent)); align-self: flex-end; max-width: 85%; }
+.ia-message--ia      { background: var(--bg-base); border: 1px solid var(--border); }
+.ia-message--success { background: #0f2e1a; color: #6ee7b7; }
+.ia-message--error   { background: #2e0f0f; color: #fca5a5; }
+.ia-message--action  { background: none; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* ── Boutons d'action ── */
+
+.ia-action-btn {
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.ia-action-btn:hover { border-color: var(--accent); }
+
+.ia-action-btn--secondary {
+    color: var(--text-muted);
+}
+
+.ia-link {
+    color: var(--accent);
+    text-decoration: underline;
+    font-size: 0.875rem;
+}
+
+/* ── Zone de saisie ── */
+
+.ia-input-area {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.ia-textarea {
+    flex: 1;
+    resize: none;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-main);
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    font-family: inherit;
+    line-height: 1.4;
+    transition: border-color 0.15s;
+}
+
+.ia-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.ia-send-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    align-self: flex-end;
+}
+
+.ia-send-btn:hover    { opacity: 0.85; }
+.ia-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
