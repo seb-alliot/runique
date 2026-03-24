@@ -4,12 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 fn find_ia_dir() -> Option<PathBuf> {
-    let candidates = [
-        "docs/ia",
-        "../docs/ia",
-        "../../docs/ia",
-        "/app/docs/ia",
-    ];
+    let candidates = ["docs/ia", "../docs/ia", "../../docs/ia", "/app/docs/ia"];
     for candidate in &candidates {
         let p = PathBuf::from(candidate);
         if p.is_dir() {
@@ -95,7 +90,10 @@ pub async fn seed_ia(db: &DatabaseConnection) {
         }
     };
 
-    tracing::info!("ia_seed: contrainte_ia insérée (id={})", inserted_contrainte.id);
+    tracing::info!(
+        "ia_seed: contrainte_ia insérée (id={})",
+        inserted_contrainte.id
+    );
 
     // Création des CourIa pour chaque cours français
     let cours = cour::Entity::find()

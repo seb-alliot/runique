@@ -1,10 +1,11 @@
-use crate::backend::cours::{cours_detail, cours_exercice, cours_index, ExerciceInput};
-use crate::backend::doc::{doc_index, doc_page, doc_section_index};
 use crate::backend::{
     auth::{find_user_by_username, get_profile_user, handle_inscription, handle_login},
     blog::{get_article, handle_blog_save, list_articles},
     contribution::{handle_contribution_submit, list_contributions},
-    demo_code_page, fetch_changelog, fetch_known_issues, fetch_roadmap,
+    cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
+    demo_code_page,
+    doc::{doc_index, doc_page, doc_section_index},
+    fetch_changelog, fetch_known_issues, fetch_roadmap,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
     inject_auth,
 };

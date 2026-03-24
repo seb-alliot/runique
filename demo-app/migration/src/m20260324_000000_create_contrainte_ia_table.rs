@@ -18,7 +18,11 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Alias::new("contrainte_ia")).text().not_null())
+                    .col(
+                        ColumnDef::new(Alias::new("contrainte_ia"))
+                            .text()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Alias::new("lang")).string().not_null())
                     .to_owned(),
             )

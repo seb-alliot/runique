@@ -20,9 +20,17 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Alias::new("context")).text().not_null())
                     .col(ColumnDef::new(Alias::new("contraintes")).text().not_null())
-                    .col(ColumnDef::new(Alias::new("contrainte_id")).integer().not_null())
+                    .col(
+                        ColumnDef::new(Alias::new("contrainte_id"))
+                            .integer()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Alias::new("cour_id")).integer().not_null())
-                    .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
+                    .col(
+                        ColumnDef::new(Alias::new("sort_order"))
+                            .integer()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .from(Alias::new("cour_ia"), Alias::new("contrainte_id"))
