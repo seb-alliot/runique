@@ -31,6 +31,8 @@ mod m20260322_000003_create_chapitre_table;
 mod m20260322_000004_create_cour_block_table;
 mod m20260322_000006_alter_contributions_type;
 mod m20260323_000007_add_theme_to_doc_section;
+mod m20260324_000000_create_contrainte_ia_table;
+mod m20260324_000001_create_cour_ia_table;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -72,6 +74,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260322_000004_create_cour_block_table::Migration),
             Box::new(m20260322_000006_alter_contributions_type::Migration),
             Box::new(m20260323_000007_add_theme_to_doc_section::Migration),
+            Box::new(m20260324_000000_create_contrainte_ia_table::Migration),
+            Box::new(m20260324_000001_create_cour_ia_table::Migration),
         ]
     }
 }

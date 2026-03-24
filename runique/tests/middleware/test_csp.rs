@@ -16,7 +16,7 @@ use runique::utils::aliases::AEngine;
 #[test]
 fn test_security_policy_default() {
     let policy = SecurityPolicy::default();
-    assert!(policy.default_src.contains(&"'self'".to_string()));
+    assert!(policy.default_src.contains(&"'none'".to_string()));
     assert!(policy.script_src.contains(&"'self'".to_string()));
     assert!(policy.style_src.contains(&"'self'".to_string()));
     assert!(policy.img_src.contains(&"'self'".to_string()));
@@ -42,7 +42,7 @@ fn test_security_policy_permissive() {
 fn test_csp_config_default_policy() {
     // CspConfig::default() demarre avec SecurityPolicy::default()
     let csp = CspConfig::default();
-    assert!(csp.get_policy().default_src.contains(&"'self'".to_string()));
+    assert!(csp.get_policy().default_src.contains(&"'none'".to_string()));
     assert!(!csp.header_security_enabled());
 }
 

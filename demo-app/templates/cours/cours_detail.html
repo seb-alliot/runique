@@ -21,7 +21,10 @@
 
 <div class="doc-mobile-bar">
     <span class="doc-mobile-bar-title">{{ cour.title }}</span>
-    <button class="doc-hamburger" id="doc-hamburger-btn" aria-label="Navigation">☰</button>
+    <div class="doc-mobile-bar-actions">
+        <button class="ia-trigger-btn" id="ia-open-btn" title="Runique exercice">⚡</button>
+        <button class="doc-hamburger" id="doc-hamburger-btn" aria-label="Navigation">☰</button>
+    </div>
 </div>
 
 <div class="doc-sidebar-overlay" id="doc-sidebar-overlay"></div>
@@ -41,59 +44,72 @@
             </a>
             {% endfor %}
         </nav>
+        <div class="ia-sidebar-action">
+            <button class="ia-trigger-btn ia-trigger-btn--full" id="ia-open-btn-sidebar">
+                ⚡ Runique exercice
+            </button>
+        </div>
     </aside>
 
-    <main class="doc-content">
-        <h1>{{ cour.title }}</h1>
+    <div class="doc-content" id="doc-content">
 
-        {% for chapitre in chapitres %}
-        <section id="chapitre-{{ chapitre.slug }}" class="cours-chapitre">
-            <h2>{{ chapitre.title }}</h2>
+        <main class="cours-content-inner" id="cours-content-inner">
+            <h1>{{ cour.title }}</h1>
 
-            {% if chapitre.lead %}
-            <div class="doc-lead">{{ chapitre.lead | markdown }}</div>
-            {% endif %}
+            {% for chapitre in chapitres %}
+            <section id="chapitre-{{ chapitre.slug }}" class="cours-chapitre">
+                <h2>{{ chapitre.title }}</h2>
 
-            {% for bloc in blocs %}
-            {% if bloc.chapitre_id == chapitre.id %}
-            <div class="doc-block doc-block-{{ bloc.block_type }}">
-                {% if bloc.heading %}
-                <h3 id="{{ bloc.heading | slugify }}">{{ bloc.heading }}</h3>
+                {% if chapitre.lead %}
+                <div class="doc-lead">{{ chapitre.lead | markdown }}</div>
                 {% endif %}
-                <div class="doc-block-content">
-                    {{ bloc.content | markdown }}
+
+                {% for bloc in blocs %}
+                {% if bloc.chapitre_id == chapitre.id %}
+                <div class="doc-block doc-block-{{ bloc.block_type }}">
+                    {% if bloc.heading %}
+                    <h3 id="{{ bloc.heading | slugify }}">{{ bloc.heading }}</h3>
+                    {% endif %}
+                    <div class="doc-block-content">
+                        {{ bloc.content | markdown }}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </section>
+            {% endfor %}
+        </main>
+
+        <div class="ia-panel" id="ia-panel">
+            <div class="ia-panel-header">
+                <span class="ia-panel-title">⚡ Runique exercice</span>
+                <button class="ia-panel-close" id="ia-close-btn" title="Fermer">✕</button>
+            </div>
+
+            <div class="ia-messages" id="ia-messages">
+                <div class="ia-message ia-message--system">
+                    Dites <strong>bonjour</strong> pour commencer un exercice sur ce cours.
                 </div>
             </div>
-            {% endif %}
-            {% endfor %}
-        </section>
-        {% endfor %}
-    </main>
+
+            <div class="ia-input-area">
+                <textarea
+                    id="ia-input"
+                    class="ia-textarea"
+                    placeholder="Votre message..."
+                    rows="2"
+                    maxlength="500"
+                ></textarea>
+                <button class="ia-send-btn" id="ia-send-btn">Envoyer</button>
+            </div>
+        </div>
+
+    </div>
 
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ csp_nonce }}" src='{% static "js/highlight.min.js" %}'></script>
-<script nonce="{{ csp_nonce }}">
-hljs.highlightAll();
-
-(function () {
-    var btn = document.getElementById('doc-hamburger-btn');
-    var sidebar = document.getElementById('doc-sidebar');
-    var overlay = document.getElementById('doc-sidebar-overlay');
-    if (!btn) return;
-
-    function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('open'); }
-    function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
-
-    btn.addEventListener('click', function () {
-        sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
-    });
-    overlay.addEventListener('click', closeSidebar);
-    sidebar.querySelectorAll('a').forEach(function (a) {
-        a.addEventListener('click', closeSidebar);
-    });
-})();
-</script>
+<script nonce="{{ csp_nonce }}" src='{% static "js/cour_ia.js" %}'></script>
 {% endblock %}

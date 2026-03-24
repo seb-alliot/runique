@@ -1,4 +1,4 @@
-use crate::backend::cours::{cours_detail, cours_index};
+use crate::backend::cours::{cours_detail, cours_exercice, cours_index, ExerciceInput};
 use crate::backend::doc::{doc_index, doc_page, doc_section_index};
 use crate::backend::{
     auth::{find_user_by_username, get_profile_user, handle_inscription, handle_login},
@@ -368,6 +368,14 @@ pub async fn view_cours_detail(
     mut request: Request,
 ) -> AppResult<Response> {
     cours_detail(&slug, &mut request).await
+}
+
+pub async fn view_cours_exercice(
+    Path(slug): Path<String>,
+    mut request: Request,
+    Json(input): Json<ExerciceInput>,
+) -> AppResult<Response> {
+    cours_exercice(&slug, input, &mut request).await
 }
 
 // ─── Documentation ────────────────────────────────────────────────────────────

@@ -25,6 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     backend::doc_seed::seed_docs(&db).await;
     backend::cour_seed::seed_cours(&db).await;
+    backend::ia_seed::seed_ia(&db).await;
 
     builder::new(config)
         .routes(url::routes())

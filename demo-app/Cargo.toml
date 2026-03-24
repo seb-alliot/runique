@@ -10,7 +10,8 @@ edition = "2024"
 # en local
 runique = { path = "../runique", features = ["orm", "postgres"] }
 
-serde ="1"
+serde = { version = "1", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json"] }
 
 chrono = "0.4"
 tracing-subscriber = "0.3.22"
