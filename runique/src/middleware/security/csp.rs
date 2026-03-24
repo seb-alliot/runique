@@ -269,7 +269,7 @@ pub async fn security_headers_middleware(
 
     headers.insert(
         "strict-transport-security",
-        HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
     );
 
     response
