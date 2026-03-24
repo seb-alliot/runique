@@ -3,11 +3,11 @@ pub mod blog;
 mod cards;
 pub mod contribution;
 pub mod cour_seed;
-pub mod ia_seed;
 pub mod cours;
 pub mod doc;
 pub mod doc_seed;
 pub mod forms;
+pub mod ia_seed;
 mod pages;
 
 pub use cards::*;

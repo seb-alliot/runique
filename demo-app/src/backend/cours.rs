@@ -48,16 +48,22 @@ struct GroqChoiceMessage {
 }
 
 async fn groq_call(system_prompt: &str, user_message: &str) -> Result<String, String> {
-    let api_key = std::env::var("GROQ_API_KEY")
-        .map_err(|_| "GROQ_API_KEY manquant dans .env".to_string())?;
+    let api_key =
+        std::env::var("GROQ_API_KEY").map_err(|_| "GROQ_API_KEY manquant dans .env".to_string())?;
 
     let client = reqwest::Client::new();
 
     let body = GroqRequest {
         model: GROQ_MODEL.to_string(),
         messages: vec![
-            GroqMessage { role: "system".to_string(), content: system_prompt.to_string() },
-            GroqMessage { role: "user".to_string(),   content: user_message.to_string() },
+            GroqMessage {
+                role: "system".to_string(),
+                content: system_prompt.to_string(),
+            },
+            GroqMessage {
+                role: "user".to_string(),
+                content: user_message.to_string(),
+            },
         ],
         max_tokens: GROQ_MAX_TOKENS,
         temperature: 0.3,
@@ -155,7 +161,9 @@ pub async fn cours_exercice(
     let message = input.message.trim().to_string();
     if message.len() > MAX_INPUT_LEN {
         let body = ExerciceResponse {
-            response: "Je suis uniquement disponible pour évaluer ta réponse à l'exercice en cours.".to_string(),
+            response:
+                "Je suis uniquement disponible pour évaluer ta réponse à l'exercice en cours."
+                    .to_string(),
             attempt: 0,
             status: "fixed_reply".to_string(),
         };
@@ -194,15 +202,17 @@ pub async fn cours_exercice(
 
     // ── État session ────────────────────────────────────────────
     let session_exercise_key = format!("ia_exercise_{}", slug);
-    let session_attempt_key  = format!("ia_attempt_{}", slug);
+    let session_attempt_key = format!("ia_attempt_{}", slug);
 
-    let stored_exercise: Option<String> = request.session
+    let stored_exercise: Option<String> = request
+        .session
         .get::<String>(&session_exercise_key)
         .await
         .ok()
         .flatten();
 
-    let attempt: i32 = request.session
+    let attempt: i32 = request
+        .session
         .get::<i32>(&session_attempt_key)
         .await
         .ok()
@@ -213,9 +223,7 @@ pub async fn cours_exercice(
     let system_prompt = &contrainte.contrainte_ia;
     let context = format!(
         "{}\n\n---\nContenu du cours :\n{}\n\nContraintes spécifiques :\n{}",
-        system_prompt,
-        cour_ia.context,
-        cour_ia.contraintes,
+        system_prompt, cour_ia.context, cour_ia.contraintes,
     );
 
     let user_message = match &stored_exercise {
@@ -237,8 +245,7 @@ pub async fn cours_exercice(
                     "L'utilisateur a soumis la réponse suivante à l'exercice : \
                      [{}] \
                      Évalue uniquement si cette réponse est correcte par rapport à l'exercice posé : {}",
-                    message,
-                    exercise
+                    message, exercise
                 )
             }
         }
@@ -253,25 +260,46 @@ pub async fn cours_exercice(
                 response: "Service temporairement indisponible. Veuillez réessayer.".to_string(),
                 attempt,
                 status: "fixed_reply".to_string(),
-            }).into_response());
+            })
+            .into_response());
         }
     };
 
     // ── Mise à jour session ─────────────────────────────────────
     let (status, new_attempt) = if stored_exercise.is_none() {
         // Stocker l'exercice généré et reset attempt
-        request.session.insert(&session_exercise_key, &ai_response).await.ok();
-        request.session.insert(&session_attempt_key, 1_i32).await.ok();
+        request
+            .session
+            .insert(&session_exercise_key, &ai_response)
+            .await
+            .ok();
+        request
+            .session
+            .insert(&session_attempt_key, 1_i32)
+            .await
+            .ok();
         ("exercise".to_string(), 1)
     } else if attempt >= 3 {
         // Correction fournie — reset session
-        request.session.remove::<String>(&session_exercise_key).await.ok();
-        request.session.remove::<i32>(&session_attempt_key).await.ok();
+        request
+            .session
+            .remove::<String>(&session_exercise_key)
+            .await
+            .ok();
+        request
+            .session
+            .remove::<i32>(&session_attempt_key)
+            .await
+            .ok();
         ("correction".to_string(), 0)
     } else {
         // Incrémenter tentative
         let new_attempt = attempt + 1;
-        request.session.insert(&session_attempt_key, new_attempt).await.ok();
+        request
+            .session
+            .insert(&session_attempt_key, new_attempt)
+            .await
+            .ok();
         // TODO : détecter correct/incorrect depuis ai_response
         ("incorrect".to_string(), new_attempt)
     };
