@@ -1,6 +1,8 @@
 use crate::middleware::auth::user::{ActiveModel, BuiltinUserEntity, UserEntity};
-use crate::utils::password::{BaseHash, Manual};
-use crate::utils::trad::{t, tf};
+use crate::utils::{
+    password::{BaseHash, Manual},
+    trad::{t, tf},
+};
 use anyhow::Result;
 use dialoguer::{Input, Password, Select, theme::ColorfulTheme};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};

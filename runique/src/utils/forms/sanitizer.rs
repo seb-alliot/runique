@@ -1,7 +1,6 @@
 use crate::utils::constante::parse::{ALLOWED_ATTRS, ALLOWED_TAGS, RICH_CONTENT_FIELDS};
 use ammonia::Builder;
-use std::collections::HashSet;
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 /// Builder ammonia pré-configuré — initialisé une seule fois, réutilisé à chaque requête.
 static RICH_BUILDER: LazyLock<Builder<'static>> = LazyLock::new(|| {

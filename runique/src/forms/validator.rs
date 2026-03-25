@@ -1,5 +1,7 @@
-use crate::utils::aliases::{FieldsMap, StrMap};
-use crate::utils::trad::t;
+use crate::utils::{
+    aliases::{FieldsMap, StrMap},
+    trad::t,
+};
 use std::fmt;
 
 #[derive(Debug, Clone)]

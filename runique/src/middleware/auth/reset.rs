@@ -13,9 +13,6 @@
 //   handle_password_reset::<MyEntity>(&mut req, &mut form, token, encrypted_email, "my/tpl.html").await
 // ═══════════════════════════════════════════════════════════════
 
-use std::marker::PhantomData;
-use std::sync::Arc;
-
 use axum::{
     Router,
     extract::{Path, State},
@@ -23,20 +20,22 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use serde::Serialize;
+use std::{marker::PhantomData, sync::Arc};
 
 use async_trait::async_trait;
 
 use crate::context::template::Request;
-use crate::context_update;
 use crate::forms::{
     Forms, Prisme,
     field::RuniqueForm,
     fields::{hidden::HiddenField, text::TextField},
 };
-use crate::impl_form_access;
 use crate::middleware::auth::{RuniqueUser, UserEntity, logout};
-use crate::utils::aliases::{AppResult, StrMap};
-use crate::utils::trad::{t, tf};
+use crate::utils::{
+    aliases::{AppResult, StrMap},
+    trad::{t, tf},
+};
+use crate::{context_update, impl_form_access};
 
 // ─── ForgotPasswordForm ───────────────────────────────────────────────────────
 //

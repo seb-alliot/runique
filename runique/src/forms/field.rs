@@ -1,10 +1,11 @@
 // --- Common definitions for form fields ---
-pub use crate::forms::base::FormField;
-use crate::forms::form::Forms;
-use crate::forms::renderer::FormRenderer;
-use crate::forms::validator::ValidationError;
-use crate::utils::aliases::{ATera, StrMap};
-use crate::utils::trad::t;
+pub use crate::forms::{
+    base::FormField, form::Forms, renderer::FormRenderer, validator::ValidationError,
+};
+use crate::utils::{
+    aliases::{ATera, StrMap},
+    trad::t,
+};
 use async_trait::async_trait;
 use axum::http::Method;
 use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};

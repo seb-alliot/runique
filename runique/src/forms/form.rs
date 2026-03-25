@@ -1,16 +1,23 @@
-use crate::forms::base::FormField;
-use crate::forms::fields::HiddenField;
-use crate::forms::generic::GenericField;
-use crate::forms::renderer::FormRenderer;
-use crate::forms::validator::{FormValidator, ValidationError};
+use crate::forms::{
+    base::FormField,
+    fields::HiddenField,
+    generic::GenericField,
+    renderer::FormRenderer,
+    validator::{FormValidator, ValidationError},
+};
+
 use crate::middleware::errors::error::html_escape;
-use crate::utils::aliases::{FieldsMap, StrMap};
-use crate::utils::constante::CSRF_TOKEN_KEY;
-use crate::utils::trad::{t, tf};
+use crate::utils::{
+    aliases::{FieldsMap, StrMap},
+    constante::CSRF_TOKEN_KEY,
+    trad::{t, tf},
+};
 use axum::http::Method;
 use indexmap::IndexMap;
-use serde::Serialize;
-use serde::ser::{SerializeStruct, Serializer};
+use serde::{
+    Serialize,
+    ser::{SerializeStruct, Serializer},
+};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 

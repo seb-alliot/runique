@@ -1,6 +1,8 @@
 use crate::forms::base::FormField;
-use crate::utils::aliases::{ATera, FieldsMap};
-use crate::utils::trad::tf;
+use crate::utils::{
+    aliases::{ATera, FieldsMap},
+    trad::tf,
+};
 use tracing::{debug, trace, warn};
 
 #[derive(Clone)]

@@ -1,10 +1,12 @@
-use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField, TextConfig};
 pub use crate::forms::generic::GenericField;
-use crate::forms::options::LengthConstraint;
-use crate::utils::password::PasswordConfig;
-use crate::utils::trad::{t, tf};
-
-use crate::utils::password::PasswordService;
+use crate::forms::{
+    base::{CommonFieldConfig, FieldConfig, FormField, TextConfig},
+    options::LengthConstraint,
+};
+use crate::utils::{
+    password::{PasswordConfig, PasswordService},
+    trad::{t, tf},
+};
 use serde::Serialize;
 use std::sync::Arc;
 use tera::{Context, Tera};

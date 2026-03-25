@@ -1,13 +1,13 @@
-use crate::forms::extractor::Prisme;
-use crate::forms::field::RuniqueForm;
-use crate::utils::aliases::{StrMap, StrVecMap};
-use crate::utils::constante::CSRF_TOKEN_KEY;
-use crate::utils::middleware::csrf::unmask_csrf_token;
-use crate::utils::trad::t;
-use axum::http::Method;
-use axum::response::Response;
-use std::collections::HashMap;
-use std::sync::Arc;
+use crate::forms::{extractor::Prisme, field::RuniqueForm};
+use crate::utils::{
+    aliases::{StrMap, StrVecMap},
+    constante::CSRF_TOKEN_KEY,
+    middleware::csrf::unmask_csrf_token,
+    trad::t,
+};
+
+use axum::{http::Method, response::Response};
+use std::{collections::HashMap, sync::Arc};
 use subtle::ConstantTimeEq;
 use tera::Tera;
 

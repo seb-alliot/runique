@@ -1,5 +1,4 @@
-use sea_query::ColumnType;
-use sea_query::IntoIden;
+use sea_query::{ColumnType, IntoIden};
 
 /// Definition of a simple column
 #[derive(Debug, Clone)]

@@ -18,8 +18,7 @@ use std::marker::PhantomData;
 
 use sea_orm::DatabaseConnection;
 
-use crate::middleware::auth::RuniqueUser;
-use crate::middleware::auth::{AdminAuth, AdminLoginResult};
+use crate::middleware::auth::{AdminAuth, AdminLoginResult, RuniqueUser};
 use crate::utils::password;
 
 /// Trait côté base de données : comment récupérer un user par username.

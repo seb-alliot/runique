@@ -104,7 +104,7 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find()).exclude(condition.into())
     }
 
-    // === NOUVEAU : filtre vectoriel ===
+    // === NOUVEAU : filtre vectoriel simplifier ===
     pub fn filter_many<C, V, I>(&self, filters: I) -> RuniqueQueryBuilder<E>
     where
         C: ColumnTrait,

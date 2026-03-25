@@ -1,10 +1,14 @@
 #![doc = include_str!("../../../doc-tests/i18n/switch_lang.md")]
 
 use serde_json::Value;
-use std::borrow::Cow;
-use std::fmt::Display;
-use std::sync::LazyLock;
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::{
+    borrow::Cow,
+    fmt::Display,
+    sync::{
+        LazyLock,
+        atomic::{AtomicU8, Ordering},
+    },
+};
 
 /// Languages supported by Runique
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]

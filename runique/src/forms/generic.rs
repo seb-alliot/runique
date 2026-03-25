@@ -1,8 +1,9 @@
-use crate::define_enum_kind;
-use crate::delegate_to_kind;
-use crate::forms::base::{CommonFieldConfig, FormField};
-use crate::forms::fields::*;
+use crate::forms::{
+    base::{CommonFieldConfig, FormField},
+    fields::*,
+};
 use crate::utils::aliases::ATera;
+use crate::{define_enum_kind, delegate_to_kind};
 use serde::Serialize;
 use serde_json::Value;
 

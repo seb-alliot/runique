@@ -1,8 +1,7 @@
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend};
-use std::fs;
-use std::path::Path;
+use std::{fs, path::Path};
 
 // ============================================================
 // Public API

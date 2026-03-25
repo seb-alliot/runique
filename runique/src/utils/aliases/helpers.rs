@@ -1,6 +1,8 @@
 use crate::utils::aliases::ARlockmap;
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 use tower_http::services::ServeDir;
 
 /// Crée un nouvel `Arc` autour d'une valeur.

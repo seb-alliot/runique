@@ -1,7 +1,9 @@
 use crate::config::RuniqueConfig;
-use crate::utils::aliases::{StrMap, StrVecMap};
-use crate::utils::parse_html::parse_multipart;
-use crate::utils::trad::{t, tf};
+use crate::utils::{
+    aliases::{StrMap, StrVecMap},
+    parse_html::parse_multipart,
+    trad::{t, tf},
+};
 use axum::{
     body::Body,
     extract::{FromRequest, Multipart},
@@ -9,8 +11,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use http_body_util::BodyExt;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tracing::warn;
 
 /// Aegis : extraction unique du body (multipart/urlencoded/json) et normalisation.

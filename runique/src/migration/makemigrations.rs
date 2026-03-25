@@ -3,8 +3,10 @@ use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use std::fs;
-use std::io::{self, Write};
-use std::path::Path;
+use std::{
+    io::{self, Write},
+    path::Path,
+};
 
 pub use crate::utils::*;
 

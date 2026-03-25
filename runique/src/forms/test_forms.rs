@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use crate::forms::base::FormField;
-    use crate::forms::field::RuniqueForm;
-    use crate::forms::fields::boolean::BooleanField;
-    use crate::forms::fields::number::NumericField;
-    use crate::forms::fields::text::TextField;
-    use crate::forms::form::Forms;
+    use crate::forms::{
+        base::FormField,
+        field::RuniqueForm,
+        fields::{boolean::BooleanField, number::NumericField, text::TextField},
+        form::Forms,
+    };
     use crate::utils::aliases::StrMap;
     use axum::http::Method;
     use std::collections::HashMap;

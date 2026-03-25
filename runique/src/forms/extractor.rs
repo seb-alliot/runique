@@ -1,7 +1,11 @@
-use crate::forms::field::RuniqueForm;
-use crate::forms::prisme::{aegis, csrf_gate, sentinel};
-use crate::utils::aliases::{ARuniqueConfig, ATera, StrMap, StrVecMap};
-use crate::utils::trad::t;
+use crate::forms::{
+    field::RuniqueForm,
+    prisme::{aegis, csrf_gate, sentinel},
+};
+use crate::utils::{
+    aliases::{ARuniqueConfig, ATera, StrMap, StrVecMap},
+    trad::t,
+};
 
 use axum::{
     body::Body,

@@ -1,11 +1,11 @@
-use crate::utils::aliases::StrVecMap;
-use crate::utils::trad::t;
-use axum::extract::Multipart;
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
+use crate::{utils::aliases::StrVecMap, utils::trad::t};
+use axum::{
+    extract::Multipart,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use futures_util::StreamExt;
-use std::collections::HashMap;
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
