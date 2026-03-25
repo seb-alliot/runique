@@ -60,7 +60,7 @@ use crate::context::template::Request;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
-use sea_orm::{Condition, DatabaseConnection, DbErr, EntityTrait};
+use sea_orm::{ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait};
 use std::marker::PhantomData;
 
 /// Django-style ORM manager for entities
@@ -87,6 +87,9 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find())
     }
 
+    // Dans impl<E: EntityTrait> Objects<E>
+
+    // === EXISTANT (garde tes filter/exclude actuels) ===
     pub fn filter<C>(&self, condition: C) -> RuniqueQueryBuilder<E>
     where
         C: Into<Condition>,
@@ -99,6 +102,25 @@ impl<E: EntityTrait> Objects<E> {
         C: Into<Condition>,
     {
         RuniqueQueryBuilder::new(E::find()).exclude(condition.into())
+    }
+
+    // === NOUVEAU : filtre vectoriel ===
+    pub fn filter_many<C, V, I>(&self, filters: I) -> RuniqueQueryBuilder<E>
+    where
+        C: ColumnTrait,
+        V: Into<sea_orm::Value>,
+        I: IntoIterator<Item = (C, V)>,
+    {
+        RuniqueQueryBuilder::new(E::find()).filter_many(filters)
+    }
+
+    pub fn exclude_many<C, V, I>(&self, filters: I) -> RuniqueQueryBuilder<E>
+    where
+        C: ColumnTrait,
+        V: Into<sea_orm::Value>,
+        I: IntoIterator<Item = (C, V)>,
+    {
+        RuniqueQueryBuilder::new(E::find()).exclude_many(filters)
     }
 
     pub async fn get(

@@ -38,7 +38,7 @@ pub async fn handle_blog_save(request: &mut Request, blog: &mut BlogForm) -> App
     crate::backend::inject_auth(request).await;
     let template = "blog/blog.html";
     if request.is_get() {
-        context_update!(request => { "title" => "Créer un article de blog", "blog_form" => &*blog });
+        context_update!(request => { "title" => "Créer un article de blog", "blog_form" => &blog });
         return request.render(template);
     }
     if request.is_post() && blog.is_valid().await {
@@ -49,7 +49,7 @@ pub async fn handle_blog_save(request: &mut Request, blog: &mut BlogForm) -> App
             }
             Err(err) => {
                 blog.get_form_mut().database_error(&err);
-                context_update!(request => { "title" => "Erreur base de données", "blog_form" => &*blog });
+                context_update!(request => { "title" => "Erreur base de données", "blog_form" => &blog });
                 return request.render(template);
             }
         }

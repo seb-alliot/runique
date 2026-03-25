@@ -249,7 +249,7 @@
 
 .doc-content.ia-active {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 1fr;
     min-height: 0;
     flex: 1;
     overflow: hidden;
@@ -414,7 +414,6 @@
     font-size: 0.875rem;
     cursor: pointer;
     transition: opacity 0.15s;
-    align-self: flex-end;
 }
 
 .ia-send-btn:hover    { opacity: 0.85; }

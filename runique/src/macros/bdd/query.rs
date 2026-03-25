@@ -57,8 +57,8 @@ use crate::db::DatabaseConfig;
 /// ```
 use axum::response::IntoResponse;
 use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, Select,
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, ExprTrait, QueryFilter,
+    QueryOrder, QuerySelect, Select,
 };
 use std::sync::Arc;
 
@@ -83,6 +83,9 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self.query.all(db).await
     }
 
+    // Dans impl<E: EntityTrait> RuniqueQueryBuilder<E>
+
+    // === EXISTANT (garde tes filter/exclude actuels) ===
     pub fn filter<C>(mut self, condition: C) -> Self
     where
         C: Into<Condition>,
@@ -96,6 +99,31 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         C: Into<Condition>,
     {
         self.query = self.query.filter(condition.into().not());
+        self
+    }
+
+    // === NOUVEAU : version vectoriel, synthax simplifier ===
+    pub fn filter_many<C, V, I>(mut self, filters: I) -> Self
+    where
+        C: ColumnTrait,
+        V: Into<sea_orm::Value>,
+        I: IntoIterator<Item = (C, V)>,
+    {
+        for (col, val) in filters {
+            self.query = self.query.filter(col.eq(val));
+        }
+        self
+    }
+
+    pub fn exclude_many<C, V, I>(mut self, filters: I) -> Self
+    where
+        C: ColumnTrait,
+        V: Into<sea_orm::Value>,
+        I: IntoIterator<Item = (C, V)>,
+    {
+        for (col, val) in filters {
+            self.query = self.query.filter(col.eq(val).not());
+        }
         self
     }
 

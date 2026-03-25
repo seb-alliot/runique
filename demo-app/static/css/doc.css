@@ -142,10 +142,9 @@
 
 .doc-layout {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: clamp(150px, 20vw, 300px) 1fr;
     gap: 0;
     min-height: calc(100vh - 120px);
-    max-width: 1200px;
     margin: 0 auto;
 }
 
@@ -157,7 +156,6 @@
     padding: 1.5rem 1rem;
     position: sticky;
     top: 0;
-    height: 100vh;
     overflow-y: auto;
 }
 
@@ -213,10 +211,7 @@
 
 /* ── Contenu ────────────────────────────────────────────────── */
 
-.doc-content {
-    padding: 2rem 2.5rem;
-    max-width: 1000px;
-}
+
 
 .doc-content h1 {
     font-size: 1.8rem;
@@ -426,6 +421,7 @@
     .readme-container {
         padding: 1.25rem 1rem;
     }
+    
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */
@@ -464,6 +460,22 @@
     max-width: 100%;
 }
 
+@media (max-width: 900px) {
+    /* Sidebar masquée par défaut sur mobile */
+    .doc-sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 220px;
+        height: 100vh;
+        z-index: 200;
+        background: var(--bg, #0f0f1a);
+        border-right: 1px solid var(--border, #333);
+        padding: 1.5rem 1rem;
+        overflow-y: auto;
+        transition: left 0.25s ease;
+    }
+}
 @media (max-width: 1024px) {
     /* Barre mobile avec hamburger */
     .doc-mobile-bar {
@@ -477,7 +489,9 @@
         top: 0;
         z-index: 100;
     }
-
+    .ia-messages {
+        max-height: 70vh;
+    }
     .doc-mobile-bar-title {
         font-size: 0.9rem;
         font-weight: 600;
@@ -520,7 +534,6 @@
         position: fixed;
         top: 0;
         left: -280px;
-        width: 280px;
         height: 100vh;
         z-index: 200;
         background: var(--bg, #0f0f1a);
@@ -548,11 +561,16 @@
     }
 
     .doc-content {
-        padding: 1.25rem 1rem;
         max-width: 100%;
     }
 
     .doc-content h1 {
         font-size: 1.4rem;
+    }
+}
+
+@media (min-width: 1025px) {
+        .ia-messages {
+        max-height: 80vh;
     }
 }
