@@ -2,8 +2,7 @@ use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;
 use serde_json::json;
-use std::net::IpAddr;
-use std::sync::Arc;
+use std::{net::IpAddr, sync::Arc};
 use tera::{Context, Tera};
 use uuid::Uuid;
 

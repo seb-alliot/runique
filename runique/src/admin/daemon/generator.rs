@@ -1,7 +1,5 @@
 use crate::admin::daemon::parser::ResourceDef;
-use std::fmt::Write;
-use std::fs;
-use std::path::Path;
+use std::{fmt::Write, fs, path::Path};
 
 /// Génère `src/admins/admin_panel.rs` — seul fichier produit par le daemon.
 ///

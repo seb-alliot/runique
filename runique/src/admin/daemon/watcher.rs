@@ -8,14 +8,15 @@
 //     → génère src/admin/generated.rs
 // ═══════════════════════════════════════════════════════════════
 
-use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use std::fs;
-use std::path::Path;
-use std::sync::mpsc;
-use std::time::{Duration, Instant};
-
 use crate::admin::daemon::{generate, parse_admin_file};
 use crate::utils::trad::{t, tf};
+use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use std::{
+    fs,
+    path::Path,
+    sync::mpsc,
+    time::{Duration, Instant},
+};
 
 /// Démarre la surveillance de admin_path et régénère à chaque modification
 ///

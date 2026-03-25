@@ -1,7 +1,6 @@
 // runique/src/middleware/allowed_hosts.rs
 
-use crate::utils::aliases::AEngine;
-use crate::utils::trad::t;
+use crate::utils::{aliases::AEngine, trad::t};
 use axum::{
     body::Body,
     extract::State,

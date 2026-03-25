@@ -1,6 +1,4 @@
 // === password/hasher.rs ===
-use serde::{Deserialize, Serialize};
-
 use argon2::{
     Argon2,
     password_hash::{
@@ -13,6 +11,7 @@ use scrypt::{Scrypt, password_hash::SaltString as ScryptSaltString};
 
 use crate::utils::trad::{t, tf};
 use dyn_clone::DynClone;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 pub trait PasswordHasher: Send + Sync + DynClone + Debug {

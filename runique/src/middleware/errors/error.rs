@@ -1,5 +1,7 @@
-use crate::utils::aliases::{ARuniqueConfig, ATera, StrMap};
-use crate::utils::error::DEBUG_MESSAGE_KEYS;
+use crate::utils::{
+    aliases::{ARuniqueConfig, ATera, StrMap},
+    error::DEBUG_MESSAGE_KEYS,
+};
 use crate::{
     config::RuniqueConfig,
     errors::error::{ErrorContext, ErrorType, RuniqueError},

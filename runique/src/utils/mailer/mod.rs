@@ -2,7 +2,7 @@ use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor, message::header::ContentType,
     transport::smtp::authentication::Credentials,
 };
-use std::sync::OnceLock;
+use std::{env::var, sync::OnceLock};
 
 // === Config globale ===
 
@@ -20,17 +20,15 @@ pub struct MailerConfig {
 
 impl MailerConfig {
     pub fn from_env() -> Option<Self> {
-        let host = std::env::var("SMTP_HOST").ok()?;
-        let username = std::env::var("SMTP_USER").ok()?;
-        let password = std::env::var("SMTP_PASS").ok()?;
-        let from = std::env::var("SMTP_FROM").unwrap_or_else(|_| username.clone());
-        let port = std::env::var("SMTP_PORT")
+        let host = var("SMTP_HOST").ok()?;
+        let username = var("SMTP_USER").ok()?;
+        let password = var("SMTP_PASS").ok()?;
+        let from = var("SMTP_FROM").unwrap_or_else(|_| username.clone());
+        let port = var("SMTP_PORT")
             .ok()
             .and_then(|p| p.parse().ok())
             .unwrap_or(587);
-        let starttls = std::env::var("SMTP_STARTTLS")
-            .map(|v| v == "true")
-            .unwrap_or(true);
+        let starttls = var("SMTP_STARTTLS").map(|v| v == "true").unwrap_or(true);
         Some(Self {
             host,
             port,

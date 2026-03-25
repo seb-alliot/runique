@@ -1,8 +1,10 @@
 use crate::context::RequestExtensions;
 use crate::middleware::auth::is_authenticated;
-use crate::utils::aliases::{AEngine, JsonMap, TResult};
-use crate::utils::constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY};
-use crate::utils::csrf::{CsrfContext, CsrfToken};
+use crate::utils::{
+    aliases::{AEngine, JsonMap, TResult},
+    constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY},
+    csrf::{CsrfContext, CsrfToken},
+};
 use axum::{
     body::Body,
     extract::State,

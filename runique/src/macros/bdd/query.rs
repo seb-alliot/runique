@@ -202,6 +202,17 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
     }
 }
 
+pub trait Queryable {
+    fn objects() -> RuniqueQueryBuilder<Self>
+    where
+        Self: Sized + EntityTrait,
+    {
+        RuniqueQueryBuilder::new(Self::find())
+    }
+}
+
+impl<T: EntityTrait> Queryable for T {}
+
 // =====================================================
 // Tests SQLite activés avec feature "sqlite"
 // =====================================================

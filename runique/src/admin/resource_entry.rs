@@ -5,9 +5,10 @@ use futures_util::future::BoxFuture;
 use sea_orm::DbErr;
 use serde_json::Value;
 
-use crate::admin::dyn_form::DynForm;
-use crate::admin::resource::AdminResource;
-pub use crate::admin::resource::{ColumnFilter, CrudOperation, DisplayConfig};
+pub use crate::admin::{
+    dyn_form::DynForm,
+    resource::{AdminResource, ColumnFilter, CrudOperation, DisplayConfig},
+};
 use crate::utils::aliases::{ADb, ATera, StrMap};
 
 /// Direction de tri pour la vue liste admin.

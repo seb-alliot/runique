@@ -2,15 +2,10 @@ use crate::config::app::RuniqueConfig;
 use crate::context::template::AppError;
 use crate::engine::RuniqueEngine;
 use crate::middleware::auth::CurrentUser;
-use crate::prelude::HostPolicy;
-use crate::prelude::SecurityPolicy;
-use crate::utils::csp_nonce::CspNonce;
-use crate::utils::csrf::CsrfToken;
+use crate::prelude::{HostPolicy, SecurityPolicy};
+use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
-use std::result::Result;
-use std::sync::Arc;
-use std::sync::RwLock;
+use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};
 use tera::{Result as TeraResult, Tera, Value};
 use tower_sessions::{SessionManagerLayer, SessionStore};
 

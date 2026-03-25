@@ -1,6 +1,5 @@
 use crate::context::RequestExtensions;
-use crate::utils::aliases::AEngine;
-use crate::utils::csp_nonce::CspNonce;
+use crate::utils::{aliases::AEngine, csp_nonce::CspNonce};
 use axum::{
     body::Body,
     extract::State,

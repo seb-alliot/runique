@@ -5,9 +5,25 @@
 //   /admin/{resource}/{action}          → admin_get / admin_post
 //   /admin/{resource}/{id}/{action}     → admin_get_id / admin_post_id
 // ═══════════════════════════════════════════════════════════════
-
-use std::sync::Arc;
-
+use crate::admin::{
+    AdminRegistry,
+    config::AdminConfig,
+    resource::ColumnFilter,
+    resource_entry::{ListParams, SortDir},
+    trad::insert_admin_messages,
+};
+use crate::context::template::{AppError, Request};
+use crate::errors::error::ErrorContext;
+use crate::flash_now;
+use crate::forms::prisme::aegis;
+use crate::utils::{
+    aliases::{ARuniqueConfig, AppResult, StrMap},
+    constante::admin_ctx::{
+        common as ctx_common, create as ctx_create, detail as ctx_detail, edit as ctx_edit,
+        list as list_ctx,
+    },
+    trad::{current_lang, t},
+};
 use axum::{
     Extension,
     body::Body,
@@ -16,23 +32,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use serde_json::Value;
-
-use crate::admin::AdminRegistry;
-use crate::admin::config::AdminConfig;
-use crate::admin::resource::ColumnFilter;
-use crate::admin::resource_entry::{ListParams, SortDir};
-use crate::admin::trad::insert_admin_messages;
-use crate::context::template::{AppError, Request};
-use crate::errors::error::ErrorContext;
-use crate::flash_now;
-use crate::forms::prisme::aegis;
-use crate::utils::aliases::{ARuniqueConfig, AppResult, StrMap};
-use crate::utils::constante::admin_ctx::{
-    common as ctx_common, create as ctx_create, detail as ctx_detail, edit as ctx_edit,
-    list as list_ctx,
-};
-use crate::utils::trad::{current_lang, t};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use subtle::ConstantTimeEq;
 
 // ─── ListQuery — paramètres de la vue liste admin ─────────────
