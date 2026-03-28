@@ -59,7 +59,7 @@
     }
 
     // ── Sidebar filtres globale (desktop uniquement) ──
-    if (!isMobile && localStorage.getItem(FILTER_KEY) === '1') {
+    if (!isMobile && sessionStorage.getItem(FILTER_KEY) === '1') {
         layout.classList.add('filter-collapsed');
         chevron.style.transform = 'rotate(180deg)';
     }
@@ -68,7 +68,7 @@
         if (isMobile) { closeFilterPanel(); return; }
         const isCollapsed = layout.classList.toggle('filter-collapsed');
         chevron.style.transform = isCollapsed ? 'rotate(180deg)' : '';
-        localStorage.setItem(FILTER_KEY, isCollapsed ? '1' : '0');
+        sessionStorage.setItem(FILTER_KEY, isCollapsed ? '1' : '0');
     });
 
     // ── Groupes de filtres individuels ──
@@ -80,10 +80,10 @@
         const body    = group.querySelector('.filter-group-body');
         const grpChev = btn.querySelector('.filter-group-chevron');
         const KEY     = 'runique_fg_' + RESOURCE + '_' + col;
-        const stored  = localStorage.getItem(KEY);
+        const stored  = sessionStorage.getItem(KEY);
 
-        // Mobile : replié par défaut sauf préférence explicite ; desktop : ouvert par défaut
-        const shouldCollapse = isMobile ? stored !== '1' : stored === '0';
+        // Replié par défaut sauf préférence explicite (sessionStorage)
+        const shouldCollapse = stored !== '1';
         if (shouldCollapse) {
             body.style.display = 'none';
             grpChev.style.transform = 'rotate(-90deg)';
@@ -95,7 +95,7 @@
             body.style.display = open ? '' : 'none';
             grpChev.style.transform = open ? '' : 'rotate(-90deg)';
             btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-            localStorage.setItem(KEY, open ? '1' : '0');
+            sessionStorage.setItem(KEY, open ? '1' : '0');
         });
     });
 })();

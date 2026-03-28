@@ -7,7 +7,7 @@ use crate::backend::{
     doc::{doc_index, doc_page, doc_section_index},
     fetch_changelog, fetch_known_issues, fetch_roadmap,
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
-    inject_auth,
+    inject_globals,
 };
 use crate::formulaire::*;
 use runique::prelude::*;
@@ -15,6 +15,7 @@ use runique::prelude::*;
 // ─── Index ────────────────────────────────────────────────────────────────────
 
 pub async fn index(mut request: Request) -> AppResult<Response> {
+    inject_globals(&mut request).await;
     context_update!(request => {
         "title"       => "Bienvenue sur Runique",
         "description" => "Runique — framework web Rust inspiré de Django. Formulaires typés, sécurité intégrée (CSRF, CSP), SeaORM, Tera templates et admin généré.",
@@ -51,7 +52,7 @@ pub async fn deconnexion(request: Request) -> AppResult<Response> {
 }
 
 pub async fn profil(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Connectez-vous pour accéder à votre profil.");
         return Ok(Redirect::to("/login").into_response());
@@ -72,7 +73,7 @@ pub async fn info_user(
     mut request: Request,
     Prisme(mut form): Prisme<UsernameForm>,
 ) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let template = "profile/view_user.html";
     if request.is_get() && form.is_valid().await {
         let username_val = form.cleaned_string("username").unwrap_or_default();
@@ -108,7 +109,7 @@ pub async fn blog_list(
     mut request: Request,
     Prisme(form): Prisme<SearchDemoForm>,
 ) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let search = form.cleaned_string("search");
     let articles = list_articles(&request.engine.db, search.as_deref()).await;
     context_update!(request => {
@@ -128,7 +129,7 @@ pub async fn blog_save(
 }
 
 pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     match get_article(&request.engine.db, id).await {
         Some(a) => {
             context_update!(request => { "title" => &a.title, "article" => &a });
@@ -151,14 +152,14 @@ pub async fn upload_image_submit(
 }
 
 pub async fn test_fields(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let field_groups = get_field_groups(&request.engine.db).await;
     context_update!(request => { "title" => "Champs disponibles", "field_groups" => &field_groups });
     request.render("forms/field_test.html")
 }
 
 pub async fn formulaires_hub(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     context_update!(request => { "title" => "Formulaires" });
     request.render("formulaires/index.html")
 }
@@ -175,7 +176,7 @@ pub async fn formulaires_helpers(
     mut request: Request,
     Prisme(form): Prisme<SearchDemoForm>,
 ) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let data = extract_helpers_data(&request, form.cleaned_string("search"));
     context_update!(request => {
         "title"          => "Helpers & accès URL",
@@ -196,7 +197,7 @@ pub async fn contribution_submit(
 }
 
 pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let contributions = list_contributions(&request.engine.db).await;
     context_update!(request => { "title" => "Contributions", "contributions" => &contributions });
     request.render("contribution/contribution_list.html")
@@ -205,7 +206,7 @@ pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
 // ─── Info / Statique ──────────────────────────────────────────────────────────
 
 pub async fn about(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     success!(request.notices => "Action réussie.");
     info!(request.notices => "Message d'information.");
     warning!(request.notices => "Attention requise.");
@@ -218,13 +219,13 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn rgpd(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     context_update!(request => { "title" => "Politique de confidentialité" });
     request.render("rgpd/rgpd.html")
 }
 
 pub async fn changelog(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let sections = fetch_changelog(&request.engine.db).await;
     context_update!(request => {
         "title"          => "Changelog",
@@ -236,7 +237,7 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let sections = fetch_known_issues(&request.engine.db).await;
     context_update!(request => {
         "title"          => "Problèmes connus",
@@ -248,7 +249,7 @@ pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn roadmap(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let sections = fetch_roadmap(&request.engine.db).await;
     context_update!(request => {
         "title"          => "Ce qui arrive",
@@ -297,7 +298,7 @@ fn find_readme(candidates: &[&str]) -> String {
 }
 
 pub async fn readme_fr(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let content = find_readme(&[
         "docs/fr/README.fr.md",
         "../docs/fr/README.fr.md",
@@ -312,7 +313,7 @@ pub async fn readme_fr(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn readme_en(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     let content = find_readme(&[
         "docs/en/README.md",
         "../docs/en/README.md",
@@ -329,7 +330,7 @@ pub async fn readme_en(mut request: Request) -> AppResult<Response> {
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
 pub async fn middleware_hub(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     context_update!(request => { "title" => "Middlewares" });
     request.render("middleware/index.html")
 }
@@ -406,7 +407,7 @@ pub async fn docs_page(
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 pub async fn admin_hub(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     context_update!(request => { "title" => "Administration" });
     request.render("admin/hub.html")
 }
@@ -420,13 +421,13 @@ pub async fn admin_setup(mut request: Request) -> AppResult<Response> {
 }
 
 pub async fn surcharge_exemple(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     context_update!(request => { "title" => "Exemple — template de surcharge" });
     request.render("admin/surcharge_exemple.html")
 }
 
 pub async fn admin_surcharge(mut request: Request) -> AppResult<Response> {
-    inject_auth(&mut request).await;
+    inject_globals(&mut request).await;
     context_update!(request => { "title" => "Surcharge de templates" });
     request.render("admin/surcharge.html")
 }

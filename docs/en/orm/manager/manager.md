@@ -62,12 +62,84 @@ let user = users::Entity::find_by_id(user_id)
 
 ---
 
+## `search!` macro — Filter DSL
+
+For common cases, the `search!` macro provides a more concise syntax than native SeaORM chaining:
+
+```rust
+use runique::search;
+
+// Equivalent to objects.filter(Col::Active.eq(true))
+let active = search!(users::Entity => Active = true)
+    .all(&*db).await?;
+
+// Multi-condition (AND)
+let results = search!(users::Entity =>
+    Active = true,
+    Age >= 18,
+    Status = ("active" | "verified"),
+)
+.limit(20)
+.all(&*db)
+.await?;
+```
+
+See [CRUD Queries — search! macro](/docs/en/orm/queries#search-macro--filter-dsl) for the full reference.
+
+---
+
+## Access via form — `FormEntity`
+
+When a form is annotated with `#[form(model = Entity)]`, Runique automatically generates:
+
+- The `FormEntity` trait implementation (linking the form to its entity)
+- A `pub const objects` constant on the form, identical to `Entity::objects`
+
+```rust
+#[form(schema = user_schema, model = users::Entity)]
+pub struct UserForm;
+
+// Access objects via the form — equivalent to users::Entity::objects
+let user = UserForm::objects
+    .filter(users::Column::Id.eq(id))
+    .first(&*db)
+    .await?;
+
+let all = UserForm::objects
+    .all()
+    .all(&*db)
+    .await?;
+```
+
+The `@Form` syntax in `search!` automatically delegates to the linked entity:
+
+```rust
+// Equivalent to search!(users::Entity => Active = true)
+let active = search!(@UserForm => Active = true)
+    .all(&*db).await?;
+
+// All search! syntaxes are supported
+let results = search!(@UserForm =>
+    Active = true,
+    Age >= 18,
+    Status = ("active" | "verified"),
+)
+.limit(20)
+.all(&*db)
+.await?;
+```
+
+> The `FormEntity` trait is defined in `runique::forms`. It is implemented automatically — no manual declaration required.
+
+---
+
 ## See also
 
 | Section | Description |
 | --- | --- |
 | [CRUD Queries](/docs/en/orm/queries) | SELECT, COUNT, WHERE, INSERT, UPDATE, DELETE |
 | [Advanced](/docs/en/orm/advanced) | Transactions, relations |
+| [Forms](/docs/en/model/forms/forms) | `#[form(model = ...)]`, `FormEntity`, `Form::objects` |
 
 ## Back to summary
 

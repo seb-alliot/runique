@@ -24,7 +24,7 @@ pub async fn handle_contribution_submit(
     request: &mut Request,
     form: &mut ContributionForm,
 ) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     let template = "contribution/contribution_form.html";
     if !is_authenticated(&request.session).await {
         return Ok(Redirect::to("/login").into_response());

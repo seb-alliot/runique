@@ -41,7 +41,7 @@ pub async fn handle_upload_image(
     request: &mut Request,
     form: &mut ImageForm,
 ) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     let template = "forms/upload_image.html";
     let db = request.engine.db.clone();
     let (code_examples, doc_links) = fetch_upload_data(&db).await;

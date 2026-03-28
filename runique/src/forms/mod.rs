@@ -23,3 +23,16 @@ pub use options::*;
 pub use prisme::*;
 pub use renderer::*;
 pub use validator::*;
+
+/// Associe un formulaire à une entité SeaORM.
+///
+/// Généré automatiquement par `#[form(schema = ..., model = EntityPath)]`.
+/// Permet d'utiliser le formulaire comme porte d'entrée des requêtes :
+///
+/// ```rust,ignore
+/// search!(@UserForm => Username = "alice")
+/// UserForm::objects.get(&db, id).await?
+/// ```
+pub trait FormEntity {
+    type Entity: sea_orm::EntityTrait;
+}

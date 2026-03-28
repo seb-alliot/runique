@@ -17,6 +17,7 @@ pub mod form_field;
 pub mod known_issue;
 pub mod page_doc_link;
 pub mod roadmap_entry;
+pub mod runique_release;
 pub mod site_config;
 pub mod test_all_field;
 pub mod users;

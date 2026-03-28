@@ -15,6 +15,7 @@ struct FormAttrs {
     schema: Path,
     fields: Option<Vec<Ident>>,
     exclude: Option<Vec<Ident>>,
+    model: Option<Path>,
 }
 
 impl Parse for FormAttrs {
@@ -22,6 +23,7 @@ impl Parse for FormAttrs {
         let mut schema: Option<Path> = None;
         let mut fields: Option<Vec<Ident>> = None;
         let mut exclude: Option<Vec<Ident>> = None;
+        let mut model: Option<Path> = None;
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -45,6 +47,9 @@ impl Parse for FormAttrs {
                         content.parse_terminated(Ident::parse, Token![,])?;
                     exclude = Some(idents.into_iter().collect());
                 }
+                "model" => {
+                    model = Some(input.parse::<Path>()?);
+                }
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -65,6 +70,7 @@ impl Parse for FormAttrs {
             schema,
             fields,
             exclude,
+            model,
         })
     }
 }
@@ -80,6 +86,20 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
 
     let fields_expr = ident_list_to_expr(attrs.fields);
     let exclude_expr = ident_list_to_expr(attrs.exclude);
+
+    let model_impls = if let Some(model_path) = attrs.model {
+        quote! {
+            impl ::runique::forms::FormEntity for #name {
+                type Entity = #model_path;
+            }
+            impl #name {
+                pub const objects: ::runique::macros::bdd::objects::Objects<#model_path> =
+                    ::runique::macros::bdd::objects::Objects::new();
+            }
+        }
+    } else {
+        quote! {}
+    };
 
     let expanded = quote! {
         #[derive(::runique::serde::Serialize, Debug, Clone)]
@@ -100,6 +120,7 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
             }
         }
 
+        #model_impls
     };
 
     TokenStream::from(expanded)

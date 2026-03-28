@@ -11,9 +11,7 @@ model! {
         content: String [required],
         created_at: datetime [auto_now],
     },
+    relations: {
+        belongs_to: EihwazUsers via user_id [cascade],
+    }
 }
-// bug d'ordre de generation
-// Si la table est creer avant la relation produit une erreur de cle etrangere
-// relations: {
-//     belongs_to: EihwazUsers via user_id [cascade],
-// }

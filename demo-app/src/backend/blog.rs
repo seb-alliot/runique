@@ -35,7 +35,7 @@ pub async fn save_blog(
 }
 
 pub async fn handle_blog_save(request: &mut Request, blog: &mut BlogForm) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     let template = "blog/blog.html";
     if request.is_get() {
         context_update!(request => { "title" => "Créer un article de blog", "blog_form" => &blog });

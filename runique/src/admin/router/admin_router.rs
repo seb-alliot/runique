@@ -60,7 +60,6 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
         &format!("{}/", prefix) => get(admin_dashboard), name = "admin_dashboard",
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
         &format!("{}/logout", prefix) => get(admin_logout), name = "admin_logout",
-        &format!("{}/toggle-template", prefix) => get(admin_toggle_template), name = "admin_toggle_template",
     };
 
     // Routes CRUD générées (protégées aussi)
@@ -93,50 +92,20 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     router
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Système de bascule de template — USAGE DEMO
-//
-// Cette mécanique permet à un dev de proposer deux rendus du même dashboard :
-//   - le template Runique (défaut, toujours présent)
-//   - un template custom fourni via `.templates(|t| t.with_dashboard(...))`
-//
-// Le bouton de bascule n'est visible dans l'UI que si `has_custom_template = true`,
-// c'est-à-dire uniquement quand un template custom a été configuré.
-// En usage normal (sans surcharge), ce code est inactif.
-//
-// ── À SUPPRIMER AVANT PUBLICATION ────────────────────────────────────────────
-//
-// Dans ce fichier (admin_router.rs) :
-//   - la constante ADMIN_TEMPLATE_SESSION_KEY
-//   - la route GET `/admin/toggle-template` dans protected_router
-//   - le handler `admin_toggle_template`
-//   - dans `admin_dashboard` : les variables `has_custom`, `use_custom`,
-//     la sélection de template conditionnelle,
-//     et les insertions `has_custom_template` + `template_is_custom` dans le contexte
-//
-// Dans demo-app/src/main.rs :
-//   - `.templates(|t| t.with_dashboard("admin/test_dashboard.html"))`
-//
-// Dans runique/templates/admin/composant/dashboard.html :
-//   - le bloc `{% if has_custom_template %}` avec le bouton de bascule
-// ─────────────────────────────────────────────────────────────────────────────
-const ADMIN_TEMPLATE_SESSION_KEY: &str = "admin_template_custom";
+/// Clé de session pour la surcharge runtime du template dashboard.
+///
+/// Un dev peut stocker un nom de template Tera dans cette clé pour remplacer
+/// temporairement le template configuré via `.with_dashboard()`.
+/// Si absente ou vide, `resolve()` s'applique normalement.
+///
+/// ## Exemple (dans un handler custom) :
+/// ```rust,ignore
+/// session.insert(ADMIN_TEMPLATE_SESSION_KEY, "admin/dashboard").await?;
+/// ```
+pub const ADMIN_TEMPLATE_SESSION_KEY: &str = "admin_template_override";
 
 async fn admin_dashboard_redirect() -> Response {
     Redirect::permanent("/admin/").into_response()
-}
-
-async fn admin_toggle_template(
-    session: Session,
-    Extension(admin): Extension<Arc<AdminState>>,
-) -> Response {
-    let current: bool = session
-        .get(ADMIN_TEMPLATE_SESSION_KEY)
-        .await
-        .unwrap_or(None)
-        .unwrap_or(false);
-    let _ = session.insert(ADMIN_TEMPLATE_SESSION_KEY, !current).await;
-    Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
 }
 
 async fn admin_dashboard(
@@ -162,16 +131,11 @@ async fn admin_dashboard(
         Vec::new()
     };
 
-    let has_custom = admin.config.templates.dashboard.dev.is_some();
-    let use_custom: bool = if has_custom {
-        req.session
-            .get(ADMIN_TEMPLATE_SESSION_KEY)
-            .await
-            .unwrap_or(None)
-            .unwrap_or(false)
-    } else {
-        false
-    };
+    let session_override: Option<String> = req
+        .session
+        .get(ADMIN_TEMPLATE_SESSION_KEY)
+        .await
+        .unwrap_or(None);
 
     insert_admin_messages(&mut req.context, "dashboard");
     insert_admin_messages(&mut req.context, "base");
@@ -183,14 +147,11 @@ async fn admin_dashboard(
         .insert("current_page", "dashboard")
         .insert("lang", current_lang().code())
         .insert("current_resource", &Option::<String>::None)
-        .insert("has_custom_template", has_custom)
-        .insert("template_is_custom", use_custom);
+        .insert("admin_has_session_override", session_override.is_some());
 
-    let template = if use_custom {
-        admin.config.templates.dashboard.dev.as_deref().unwrap()
-    } else {
-        admin.config.templates.dashboard.runique
-    };
+    let template = session_override
+        .as_deref()
+        .unwrap_or_else(|| admin.config.templates.dashboard.resolve());
 
     req.render(template)
 }
@@ -276,5 +237,14 @@ async fn admin_login_post(
 
 async fn admin_logout(session: Session, Extension(admin): Extension<Arc<AdminState>>) -> Response {
     let _ = session.delete().await;
-    Redirect::to(&format!("{}/login?from=logout", admin.config.prefix)).into_response()
+    let login_url = format!("{}/login?from=logout", admin.config.prefix);
+    axum::response::Html(format!(
+        r#"<script>
+            Object.keys(sessionStorage)
+                .filter(function(k){{return k.startsWith('runique_fg_');}})
+                .forEach(function(k){{sessionStorage.removeItem(k);}});
+            location.replace("{login_url}");
+        </script>"#
+    ))
+    .into_response()
 }

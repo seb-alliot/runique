@@ -4,25 +4,33 @@
 
 ### Fonctionnement
 
-- Compare le header `Host` de la requête contre `ALLOWED_HOSTS`
+- Compare le header `Host` de la requête contre la liste des hosts autorisés
 - Bloque les requêtes avec un host non autorisé (HTTP 400)
 - Protection contre les attaques Host Header Injection
 
-### Configuration `.env`
+### Configuration via le builder
 
-```env
-# Hosts autorisés (séparés par des virgules)
-ALLOWED_HOSTS=localhost,127.0.0.1,example.com
+La validation des hosts se configure dans `main.rs` via le builder — il n'y a pas de variable d'environnement pour cela :
 
-# Patterns supportés :
-# localhost       → match exact
-# .example.com   → match example.com ET *.example.com
-# *              → TOUS les hosts (⚠️ DANGEREUX en production !)
+```rust
+.middleware(|m| {
+    m.with_allowed_hosts(|h| {
+        h.enabled(!is_debug())
+         .host("example.com")
+         .host(".api.example.com")  // match example.com ET *.example.com
+    })
+})
 ```
+
+### Patterns supportés
+
+- `"localhost"` — match exact
+- `".example.com"` — match `example.com` et `*.example.com`
+- `"*"` — tous les hosts (⚠️ dangereux en production)
 
 ### Mode debug
 
-En `DEBUG=true`, la validation des hosts est **désactivée par défaut** pour faciliter le développement.
+En `DEBUG=true`, on passe généralement `.enabled(!is_debug())` pour désactiver la validation en développement.
 
 ---
 
@@ -32,7 +40,7 @@ En `DEBUG=true`, la validation des hosts est **désactivée par défaut** pour f
 
 Headers `no-cache` ajoutés pour forcer le rechargement :
 
-```
+```http
 Cache-Control: no-cache, no-store, must-revalidate
 Pragma: no-cache
 ```
@@ -40,18 +48,6 @@ Pragma: no-cache
 ### Mode production (`DEBUG=false`)
 
 Headers de cache activés pour les performances.
-
----
-
-## Variables d'environnement liées à la sécurité
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `SECRETE_KEY` | *(requis)* | Clé secrète pour le CSRF |
-| `ALLOWED_HOSTS` | `*` | Hosts autorisés |
-| `DEBUG` | `true` | Mode debug (affecte cache, hosts) |
-| `RUNIQUE_ENABLE_HOST_VALIDATION` | *(auto)* | Force la validation des hosts |
-| `RUNIQUE_ENABLE_CACHE` | *(auto)* | Force le contrôle cache |
 
 ---
 

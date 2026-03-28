@@ -174,7 +174,6 @@ All behavior is configurable via `.env`. Key variables:
 
 ```env
 SECRET_KEY=your-secret-key
-ALLOWED_HOSTS=localhost,example.com
 DATABASE_URL=sqlite://db.sqlite3
 ```
 

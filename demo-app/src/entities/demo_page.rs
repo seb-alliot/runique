@@ -11,5 +11,8 @@ model! {
         lead: String [nullable],
         page_type: String [required],
         sort_order: i32 [required],
+    },
+    relations: {
+        belongs_to: DemoCategory via category_id [cascade],
     }
 }

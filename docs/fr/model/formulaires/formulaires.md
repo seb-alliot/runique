@@ -7,11 +7,13 @@ La macro attribut `#[form(...)]` attend :
 - `schema = chemin_fonction` (obligatoire)
 - `fields = [..]` (optionnel)
 - `exclude = [..]` (optionnel)
+- `model = Entity` (optionnel) — lie le formulaire à une entité SeaORM
 
-Elle génère uniquement :
+Elle génère :
 
 - la struct avec `form: Forms`
 - `impl ModelForm` (`schema()`, `fields()`, `exclude()`)
+- si `model` est présent : `impl FormEntity` + `pub const objects`
 
 Le dev écrit ensuite `impl RuniqueForm` avec `impl_form_access!(model)` :
 
@@ -24,6 +26,66 @@ pub struct UserForm;
 impl RuniqueForm for UserForm {
     impl_form_access!(model);
 }
+```
+
+### Avec `model` — accès ORM depuis le formulaire
+
+En ajoutant `model = Entity`, le formulaire devient un point d'entrée direct pour les requêtes ORM, sans passer par l'entité.
+
+```rust
+#[form(schema = user_schema, model = users::Entity)]
+pub struct UserForm;
+
+#[form(schema = blog_schema, model = blog::Entity)]
+pub struct BlogForm;
+
+#[form(schema = document_schema, model = document::Entity)]
+pub struct DocumentForm;
+```
+
+Cela génère automatiquement :
+
+```rust
+impl FormEntity for UserForm {
+    type Entity = users::Entity;
+}
+impl UserForm {
+    pub const objects: Objects<users::Entity> = Objects::new();
+}
+```
+
+**Accès ORM direct via le formulaire :**
+
+```rust
+// Tous les enregistrements
+let users = UserForm::objects.all().all(&db).await?;
+
+// Avec filtre
+let user = UserForm::objects
+    .filter(users::Column::Email.eq("alice@example.com"))
+    .first(&db)
+    .await?;
+
+// Via la macro search!
+let results = search!(@UserForm => Username = "alice").all(&db).await?;
+let adults  = search!(@UserForm => Age >= 18).all(&db).await?;
+
+// Toutes les syntaxes search! sont supportées
+let results = search!(@BlogForm =>
+    Status = ("published" | "featured"),
+    AuthorId = author_id,
+)
+.order_by_desc(blog::Column::CreatedAt)
+.limit(10)
+.all(&db)
+.await?;
+```
+
+> `model` est compatible avec `fields` et `exclude` — ils peuvent être combinés librement.
+
+```rust
+#[form(schema = user_schema, fields = [username, email], model = users::Entity)]
+pub struct UserForm;
 ```
 
 ### Avec validation métier (`clean`)
@@ -114,6 +176,7 @@ Cette limitation sera levée en **v2.0** avec la refactorisation du système de 
 | --- | --- |
 | [DSL & AST](/docs/fr/model/dsl) | Syntaxe `model!`, types, options |
 | [Génération & ModelSchema](/docs/fr/model/generation) | Code généré |
+| [Requêtes CRUD](/docs/fr/orm/requetes) | Référence complète `search!` |
 
 ## Retour au sommaire
 

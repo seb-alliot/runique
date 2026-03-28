@@ -4,25 +4,33 @@
 
 ### How it works
 
-- Compares the request `Host` header against `ALLOWED_HOSTS`
+- Compares the request `Host` header against the list of allowed hosts
 - Blocks requests with a non-allowed host (HTTP 400)
 - Protects against Host Header Injection attacks
 
-### `.env` Configuration
+### Configuration via the builder
 
-```env
-# Allowed hosts (comma-separated)
-ALLOWED_HOSTS=localhost,127.0.0.1,example.com
+Host validation is configured in `main.rs` via the builder — there is no environment variable for this:
 
-# Supported patterns:
-# localhost       → exact match
-# .example.com   → matches example.com AND *.example.com
-# *              → ALL hosts (⚠️ DANGEROUS in production!)
+```rust
+.middleware(|m| {
+    m.with_allowed_hosts(|h| {
+        h.enabled(!is_debug())
+         .host("example.com")
+         .host(".api.example.com")  // matches example.com AND *.example.com
+    })
+})
 ```
+
+### Supported patterns
+
+- `"localhost"` — exact match
+- `".example.com"` — matches `example.com` and `*.example.com`
+- `"*"` — all hosts (⚠️ dangerous in production)
 
 ### Debug mode
 
-With `DEBUG=true`, host validation is **disabled by default** to make development easier.
+In `DEBUG=true`, typically use `.enabled(!is_debug())` to disable validation during development.
 
 ---
 
@@ -32,7 +40,7 @@ With `DEBUG=true`, host validation is **disabled by default** to make developmen
 
 `no-cache` headers are added to force reloads:
 
-```
+```http
 Cache-Control: no-cache, no-store, must-revalidate
 Pragma: no-cache
 ```
@@ -40,18 +48,6 @@ Pragma: no-cache
 ### Production mode (`DEBUG=false`)
 
 Caching headers are enabled for performance.
-
----
-
-## Security-related environment variables
-
-| Variable | Default | Description |
-|----------|--------|-------------|
-| `SECRETE_KEY` | *(required)* | Secret key for CSRF |
-| `ALLOWED_HOSTS` | `*` | Allowed hosts |
-| `DEBUG` | `true` | Debug mode (affects cache, hosts) |
-| `RUNIQUE_ENABLE_HOST_VALIDATION` | *(auto)* | Force host validation |
-| `RUNIQUE_ENABLE_CACHE` | *(auto)* | Force cache control |
 
 ---
 

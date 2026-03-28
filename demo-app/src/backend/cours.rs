@@ -18,8 +18,8 @@ const GROQ_API_URL: &str = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL: &str = "llama-3.3-70b-versatile";
 const GROQ_MAX_TOKENS: u32 = 512;
 
-#[derive(serde::Serialize)]
-struct GroqMessage {
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct ConversationMessage {
     role: String,
     content: String,
 }
@@ -27,7 +27,7 @@ struct GroqMessage {
 #[derive(serde::Serialize)]
 struct GroqRequest {
     model: String,
-    messages: Vec<GroqMessage>,
+    messages: Vec<ConversationMessage>,
     max_tokens: u32,
     temperature: f32,
 }
@@ -47,24 +47,21 @@ struct GroqChoiceMessage {
     content: String,
 }
 
-async fn groq_call(system_prompt: &str, user_message: &str) -> Result<String, String> {
+async fn groq_call(system_prompt: &str, history: &[ConversationMessage]) -> Result<String, String> {
     let api_key =
         std::env::var("GROQ_API_KEY").map_err(|_| "GROQ_API_KEY manquant dans .env".to_string())?;
 
     let client = reqwest::Client::new();
 
+    let mut messages = vec![ConversationMessage {
+        role: "system".to_string(),
+        content: system_prompt.to_string(),
+    }];
+    messages.extend_from_slice(history);
+
     let body = GroqRequest {
         model: GROQ_MODEL.to_string(),
-        messages: vec![
-            GroqMessage {
-                role: "system".to_string(),
-                content: system_prompt.to_string(),
-            },
-            GroqMessage {
-                role: "user".to_string(),
-                content: user_message.to_string(),
-            },
-        ],
+        messages,
         max_tokens: GROQ_MAX_TOKENS,
         temperature: 0.3,
     };
@@ -92,7 +89,7 @@ async fn groq_call(system_prompt: &str, user_message: &str) -> Result<String, St
 }
 
 pub async fn cours_index(request: &mut Request) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
     let cours = cour::Entity::find()
@@ -114,7 +111,7 @@ pub async fn cours_index(request: &mut Request) -> AppResult<Response> {
 }
 
 pub async fn cours_detail(slug: &str, request: &mut Request) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
     let Some(cour) = cour::Entity::find()
@@ -159,7 +156,7 @@ pub async fn cours_exercice(
 ) -> AppResult<Response> {
     // ── Validation input ────────────────────────────────────────
     let message = input.message.trim().to_string();
-    if message.len() > MAX_INPUT_LEN {
+    if message.is_empty() || message.len() > MAX_INPUT_LEN {
         let body = ExerciceResponse {
             response:
                 "Je suis uniquement disponible pour évaluer ta réponse à l'exercice en cours."
@@ -200,59 +197,47 @@ pub async fn cours_exercice(
         return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
     };
 
-    // ── État session ────────────────────────────────────────────
-    let session_exercise_key = format!("ia_exercise_{}", slug);
-    let session_attempt_key = format!("ia_attempt_{}", slug);
+    // ── Session ─────────────────────────────────────────────────
+    let history_key = format!("ia_history_{}", slug);
+    let attempt_key = format!("ia_attempt_{}", slug);
 
-    let stored_exercise: Option<String> = request
+    let mut history: Vec<ConversationMessage> = request
         .session
-        .get::<String>(&session_exercise_key)
+        .get::<Vec<ConversationMessage>>(&history_key)
         .await
         .ok()
-        .flatten();
+        .flatten()
+        .unwrap_or_default();
 
     let attempt: i32 = request
         .session
-        .get::<i32>(&session_attempt_key)
+        .get::<i32>(&attempt_key)
         .await
         .ok()
         .flatten()
         .unwrap_or(0);
 
-    // ── Assemblage du prompt ────────────────────────────────────
-    let system_prompt = &contrainte.contrainte_ia;
-    let context = format!(
+    // ── Assemblage du prompt système ────────────────────────────
+    let system_prompt = format!(
         "{}\n\n---\nContenu du cours :\n{}\n\nContraintes spécifiques :\n{}",
-        system_prompt, cour_ia.context, cour_ia.contraintes,
+        contrainte.contrainte_ia, cour_ia.context, cour_ia.contraintes,
     );
 
-    let user_message = match &stored_exercise {
-        None => {
-            // Premier message — initialisation
-            "L'utilisateur souhaite commencer un exercice.".to_string()
-        }
-        Some(exercise) => {
-            if attempt >= 3 {
-                // Demande de correction après 3 échecs
-                format!(
-                    "L'utilisateur demande la correction après 3 échecs. \
-                     Fournis uniquement la réponse à l'exercice posé : {}",
-                    exercise
-                )
-            } else {
-                // Tentative de réponse
-                format!(
-                    "L'utilisateur a soumis la réponse suivante à l'exercice : \
-                     [{}] \
-                     Évalue uniquement si cette réponse est correcte par rapport à l'exercice posé : {}",
-                    message, exercise
-                )
-            }
-        }
+    // ── Ajout du message utilisateur à l'historique ─────────────
+    // Le message est encapsulé pour éviter les injections de prompt.
+    let safe_content = if history.is_empty() {
+        "L'utilisateur souhaite commencer un exercice.".to_string()
+    } else {
+        format!("Réponse de l'utilisateur : [{}]", message)
     };
 
-    // ── Appel API Groq ──────────────────────────────────────────
-    let ai_response = match groq_call(&context, &user_message).await {
+    history.push(ConversationMessage {
+        role: "user".to_string(),
+        content: safe_content,
+    });
+
+    // ── Appel API Groq avec historique complet ──────────────────
+    let ai_response = match groq_call(&system_prompt, &history).await {
         Ok(r) => r,
         Err(e) => {
             tracing::warn!("groq_call error: {e}");
@@ -265,50 +250,45 @@ pub async fn cours_exercice(
         }
     };
 
-    // ── Mise à jour session ─────────────────────────────────────
-    let (status, new_attempt) = if stored_exercise.is_none() {
-        // Stocker l'exercice généré et reset attempt
-        request
-            .session
-            .insert(&session_exercise_key, &ai_response)
-            .await
-            .ok();
-        request
-            .session
-            .insert(&session_attempt_key, 1_i32)
-            .await
-            .ok();
-        ("exercise".to_string(), 1)
-    } else if attempt >= 3 {
-        // Correction fournie — reset session
-        request
-            .session
-            .remove::<String>(&session_exercise_key)
-            .await
-            .ok();
-        request
-            .session
-            .remove::<i32>(&session_attempt_key)
-            .await
-            .ok();
-        ("correction".to_string(), 0)
-    } else {
-        // Incrémenter tentative
-        let new_attempt = attempt + 1;
-        request
-            .session
-            .insert(&session_attempt_key, new_attempt)
-            .await
-            .ok();
-        // TODO : détecter correct/incorrect depuis ai_response
-        ("incorrect".to_string(), new_attempt)
-    };
+    // ── Ajout réponse IA à l'historique ─────────────────────────
+    history.push(ConversationMessage {
+        role: "assistant".to_string(),
+        content: ai_response.clone(),
+    });
 
-    let body = ExerciceResponse {
+    // ── Détection du statut ─────────────────────────────────────
+    let trimmed = ai_response.trim().to_lowercase();
+    let (status, new_attempt, reset) =
+        if trimmed.starts_with("correct") && !trimmed.starts_with("incorrect") {
+            ("correct".to_string(), 0, true)
+        } else if trimmed.starts_with("incorrect") {
+            let new_attempt = attempt + 1;
+            ("incorrect".to_string(), new_attempt, false)
+        } else if attempt >= 3 {
+            // Correction fournie après 3 échecs
+            ("correction".to_string(), 0, true)
+        } else {
+            // Phase setup : sélection de type ou génération d'exercice
+            ("exercise".to_string(), attempt, false)
+        };
+
+    // ── Mise à jour session ─────────────────────────────────────
+    if reset {
+        request
+            .session
+            .remove::<Vec<ConversationMessage>>(&history_key)
+            .await
+            .ok();
+        request.session.remove::<i32>(&attempt_key).await.ok();
+    } else {
+        request.session.insert(&history_key, &history).await.ok();
+        request.session.insert(&attempt_key, new_attempt).await.ok();
+    }
+
+    Ok(Json(ExerciceResponse {
         response: ai_response,
         attempt: new_attempt,
         status,
-    };
-
-    Ok(Json(body).into_response())
+    })
+    .into_response())
 }

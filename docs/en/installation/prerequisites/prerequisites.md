@@ -4,30 +4,40 @@
 
 - **Rust 1.85+** — [Install rustup](https://rustup.rs/)
 - **PostgreSQL 12+** (or SQLite for development)
-- **Git**
 
 ### Check Versions
 
 ```bash
 rustc --version    # Rust 1.85+
 cargo --version    # Cargo 1.85+
-postgres --version # PostgreSQL 12+
 ```
 
 ---
 
-## Project Installation
+## Installation
 
-### 1. Clone the Repository
+### 1. Install Rust
 
 ```bash
-git clone https://github.com/seb-alliot/runique.git
-cd runique
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-### 2. Configure .env
+### 2. Install the Runique CLI
 
-Create a `.env` file inside the `demo-app/` directory:
+```bash
+cargo install runique
+```
+
+### 3. Create a New Project
+
+```bash
+runique new my-project
+cd my-project
+```
+
+### 4. Configure the Environment
+
+Create a `.env` file at the project root:
 
 ```env
 # Server
@@ -41,8 +51,8 @@ DB_USER=postgres
 DB_PASSWORD=your_password_here
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=runique
-DATABASE_URL=postgres://postgres:your_password_here@localhost:5432/runique
+DB_NAME=my-project
+DATABASE_URL=postgres://postgres:your_password_here@localhost:5432/my-project
 
 # Templates & Static Files
 TEMPLATES_DIR=templates
@@ -50,23 +60,13 @@ STATICFILES_DIRS=static
 MEDIA_ROOT=media
 
 # Security
-SECRETE_KEY=your_secret_key_change_in_production
-RUNIQUE_ALLOWED_HOSTS=localhost,127.0.0.1
+SECRET_KEY=your_secret_key_change_in_production
 ```
 
-### 3. Build the Project
+### 5. Start the Server
 
 ```bash
-cargo build
-
-# Or for release mode (optimized):
-cargo build --release
-```
-
-### 4. Start the Server
-
-```bash
-cargo run -p demo-app
+cargo run
 ```
 
 **Expected output:**
@@ -76,7 +76,11 @@ cargo run -p demo-app
    Server running at http://127.0.0.1:3000
 ```
 
-### Recommended Tools
+> `runique start` is reserved for projects using the administration panel — it starts the admin daemon alongside the server. For a project without admin, `cargo run` is sufficient.
+
+---
+
+## Recommended Tools
 
 ```bash
 # Rust analyzer for IDE
@@ -97,6 +101,7 @@ cargo install sea-orm-cli
 | --- | --- |
 | [Database](/docs/en/installation/database) | SQLite, PostgreSQL |
 | [Migrations](/docs/en/installation/migrations) | Migration workflow |
+| [Runique CLI](/docs/en/installation/cli) | All available commands |
 
 ## Back to summary
 

@@ -5,24 +5,28 @@
 //   /admin/{resource}/{action}          → admin_get / admin_post
 //   /admin/{resource}/{id}/{action}     → admin_get_id / admin_post_id
 // ═══════════════════════════════════════════════════════════════
-use crate::admin::{
-    AdminRegistry,
-    config::AdminConfig,
-    resource::ColumnFilter,
-    resource_entry::{ListParams, SortDir},
-    trad::insert_admin_messages,
-};
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::utils::{
+    CSRF_TOKEN_KEY,
     aliases::{ARuniqueConfig, AppResult, StrMap},
     constante::admin_ctx::{
         common as ctx_common, create as ctx_create, detail as ctx_detail, edit as ctx_edit,
         list as list_ctx,
     },
     trad::{current_lang, t},
+};
+use crate::{
+    admin::{
+        AdminRegistry,
+        config::AdminConfig,
+        resource::ColumnFilter,
+        resource_entry::{ListParams, SortDir},
+        trad::insert_admin_messages,
+    },
+    utils::admin_ctx::list::{PAGE, SORT_BY, SORT_DIR},
 };
 use axum::{
     Extension,
@@ -108,12 +112,12 @@ pub async fn admin_get(
     match action.as_str() {
         "list" => {
             let page = params
-                .get("page")
+                .get(PAGE)
                 .and_then(|p| p.parse::<u64>().ok())
                 .unwrap_or(1)
                 .max(1);
-            let sort_by = params.get("sort_by").filter(|s| !s.is_empty()).cloned();
-            let sort_dir = match params.get("sort_dir").map(|s| s.as_str()) {
+            let sort_by = params.get(SORT_BY).filter(|s| !s.is_empty()).cloned();
+            let sort_dir = match params.get(SORT_DIR).map(|s| s.as_str()) {
                 Some("desc") => SortDir::Desc,
                 _ => SortDir::Asc,
             };
@@ -232,12 +236,9 @@ fn inject_context(
     state: &PrototypeAdminState,
     entry: &crate::admin::ResourceEntry,
 ) {
-    insert_admin_messages(&mut req.context, "list");
-    insert_admin_messages(&mut req.context, "create");
-    insert_admin_messages(&mut req.context, "edit");
-    insert_admin_messages(&mut req.context, "detail");
-    insert_admin_messages(&mut req.context, "delete");
-    insert_admin_messages(&mut req.context, "base");
+    for item in ["list", "create", "edit", "detail", "delete", "base"] {
+        insert_admin_messages(&mut req.context, item);
+    }
 
     req.context
         .insert(ctx_common::SITE_TITLE, &state.config.site_title);
@@ -265,7 +266,7 @@ fn inject_context(
 /// Le middleware délègue la validation de form à Prisme — on la fait manuellement ici.
 fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     let valid = body
-        .get("csrf_token")
+        .get(CSRF_TOKEN_KEY)
         .map(|s| bool::from(s.as_bytes().ct_eq(session_token.as_bytes())))
         .unwrap_or(false);
     if !valid {

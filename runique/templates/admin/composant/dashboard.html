@@ -10,8 +10,8 @@
         <h1 class="page-title">{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</h1>
         <p class="page-subtitle">{% if admin_dashboard_subtitle %}{{ admin_dashboard_subtitle }}{% endif %}</p>
     </div>
-    {% if has_custom_template %}
-    <a href="/admin/toggle-template" class="btn btn-primary btn-sm">Template custom →</a>
+    {% if admin_has_session_override %}
+    <a href="/admin/toggle-template" class="btn btn-secondary btn-sm">← Template configuré</a>
     {% endif %}
 </div>
 <div class="stats-grid">

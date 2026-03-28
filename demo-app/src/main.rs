@@ -5,6 +5,7 @@ use prelude::*;
 mod admin;
 mod admins;
 mod backend;
+mod demo_toggle;
 mod entities;
 mod formulaire;
 mod url;
@@ -23,9 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
     let db: DatabaseConnection = db_config.connect().await?;
 
-    backend::doc_seed::seed_docs(&db).await;
-    backend::cour_seed::seed_cours(&db).await;
-    backend::ia_seed::seed_ia(&db).await;
+    backend::run_seeds(&db).await;
 
     builder::new(config)
         .routes(url::routes())
@@ -55,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_admin(|a| {
             a.site_title("Administration")
                 .auth(RuniqueAdminAuth::new())
-                .routes(admins::routes("/admin"))
+                .routes(admins::routes("/admin").merge(demo_toggle::router("/admin")))
                 .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
                 .with_state(admins::admin_state())
                 .page_size(15)

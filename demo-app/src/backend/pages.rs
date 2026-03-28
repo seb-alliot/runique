@@ -33,7 +33,7 @@ pub async fn fetch_page_examples(
 }
 
 pub async fn demo_code_page(slug: &str, request: &mut Request) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
 
     let db = request.engine.db.clone();
 

@@ -62,12 +62,84 @@ let user = users::Entity::find_by_id(user_id)
 
 ---
 
+## Macro `search!` — DSL de filtrage
+
+Pour les cas courants, la macro `search!` offre une syntaxe plus concise que le chaînage SeaORM :
+
+```rust
+use runique::search;
+
+// Equivalent à objects.filter(Col::Active.eq(true))
+let actifs = search!(users::Entity => Active = true)
+    .all(&*db).await?;
+
+// Multi-conditions (AND)
+let results = search!(users::Entity =>
+    Active = true,
+    Age >= 18,
+    Status = ("active" | "verified"),
+)
+.limit(20)
+.all(&*db)
+.await?;
+```
+
+Voir [Requêtes CRUD — Macro search!](/docs/fr/orm/requetes#macro-search--dsl-de-filtrage) pour la référence complète.
+
+---
+
+## Accès via formulaire — `FormEntity`
+
+Lorsqu'un form est annoté avec `#[form(model = Entity)]`, Runique génère automatiquement :
+
+- L'implémentation du trait `FormEntity` (lien form ↔ entité)
+- Une constante `pub const objects` sur le form, identique à `Entity::objects`
+
+```rust
+#[form(schema = user_schema, model = users::Entity)]
+pub struct UserForm;
+
+// Accès objects via le form — équivalent à users::Entity::objects
+let user = UserForm::objects
+    .filter(users::Column::Id.eq(id))
+    .first(&*db)
+    .await?;
+
+let all = UserForm::objects
+    .all()
+    .all(&*db)
+    .await?;
+```
+
+La syntaxe `@Form` dans `search!` délègue automatiquement à l'entité liée :
+
+```rust
+// Équivalent à search!(users::Entity => Active = true)
+let actifs = search!(@UserForm => Active = true)
+    .all(&*db).await?;
+
+// Toutes les syntaxes search! sont supportées
+let results = search!(@UserForm =>
+    Active = true,
+    Age >= 18,
+    Status = ("active" | "verified"),
+)
+.limit(20)
+.all(&*db)
+.await?;
+```
+
+> Le trait `FormEntity` est défini dans `runique::forms`. Il est implémenté automatiquement — aucune déclaration manuelle requise.
+
+---
+
 ## Voir aussi
 
 | Section | Description |
 | --- | --- |
 | [Requêtes CRUD](/docs/fr/orm/requetes) | SELECT, COUNT, WHERE, INSERT, UPDATE, DELETE |
 | [Avancé](/docs/fr/orm/avance) | Transactions, relations |
+| [Formulaires](/docs/fr/model/formulaires/formulaires) | `#[form(model = ...)]`, `FormEntity`, `Form::objects` |
 
 ## Retour au sommaire
 

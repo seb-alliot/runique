@@ -72,7 +72,6 @@ IP_SERVER=127.0.0.1
 PORT=3000
 DEBUG=true
 SECRET_KEY=your-secret-key-change-in-production
-ALLOWED_HOSTS=localhost,127.0.0.1
 
 DB_ENGINE=postgres
 DB_USER=runique_user

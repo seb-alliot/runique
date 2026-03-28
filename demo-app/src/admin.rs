@@ -1,12 +1,13 @@
 use crate::entities::{
     blog, changelog_entry, chapitre, code_example, cour, cour_block, demo_category, demo_page,
     demo_section, doc_block, doc_page, doc_section, form_field, known_issue, page_doc_link,
-    roadmap_entry, site_config, users,
+    roadmap_entry, runique_release, site_config, users,
 };
 use crate::formulaire::{
     BlogForm, ChangelogEntryForm, ChapitreForm, CodeExampleForm, CourBlockForm, CourForm,
     DemoCategoryForm, DemoPageForm, DemoSectionForm, DocBlockForm, DocPageForm, DocSectionForm,
-    FormFieldForm, KnownIssueForm, PageDocLinkForm, RegisterForm, RoadmapEntryForm, SiteConfigForm,
+    FormFieldForm, KnownIssueForm, PageDocLinkForm, RegisterForm, RoadmapEntryForm,
+    RuniqueReleaseForm, SiteConfigForm,
 };
 
 admin! {
@@ -318,6 +319,18 @@ admin! {
             ["block_type", "Type", 10],
             ["heading", "En-tête", 10],
             ["sort_order", "Ordre", 10],
+        ]
+    }
+    runique_release: runique_release::Model => RuniqueReleaseForm {
+        title: "Releases Runique",
+        permissions: ["admin"],
+        list_display: [
+            ["version", "Version"],
+            ["github_url", "GitHub"],
+            ["crates_url", "Crates.io"],
+        ],
+        list_filter: [
+            ["version", "Version", 10],
         ]
     }
 }

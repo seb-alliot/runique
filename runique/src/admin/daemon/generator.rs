@@ -491,7 +491,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         );
         let _ = writeln!(
             out,
-            "            use sea_orm::sea_query::{{Query, Alias, Expr, Order}};"
+            "            use sea_orm::sea_query::{{Query, Alias, Expr}};"
         );
         let _ = writeln!(
             out,

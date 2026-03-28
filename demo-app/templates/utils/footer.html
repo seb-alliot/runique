@@ -1,22 +1,12 @@
-<div class="nav-overlay" id="nav-overlay"></div>
-<button class="footer-burger" id="footer-burger-btn" aria-label="Liens de navigation">
-    <span class="footer-burger-icon">☰</span> Liens
-</button>
-<nav class="footer-links" id="footer-links">
-  <div class="footer-links-header">
-    <span>Navigation</span>
-    <button class="footer-links-close" id="footer-links-close" type="button" aria-label="Fermer">✕</button>
-  </div>
-    <a href="{% link 'index' %}">Revenir à l'accueil</a>
-    <a href="{% link 'login' %}">Se connecter</a>
-    <a href="{% link 'profil' %}">Mon profil</a>
-    <a href="{% link 'roadmap' %}">Roadmap</a>
-    <a href="{% link 'changelog' %}">Changelog</a>
-    <a href="{% link 'contribution_list' %}">Contribuer au projet ?</a>
-    <a href="{% link 'doc_index_fr' %}">Documentation</a>
-    <a href="{% link 'rgpd' %}">Confidentialité</a>
-    <a href="https://github.com/seb-alliot/runique" target="_blank">GitHub</a>
-    <a href="https://crates.io/crates/runique" target="_blank">Crates.io</a>
-
-</nav>
-<p>Créé par <strong>Itsuki</strong> avec <a href="https://github.com/seb-alliot/runique" target="_blank">Runique</a> &mdash; &copy; 2026</p>
+<div class="footer-content">
+    <div class="footer-links">
+        <a href="{% link 'rgpd' %}">Confidentialité</a>
+        <a href="{% link 'roadmap' %}">Roadmap</a>
+        <a href="{% link 'changelog' %}">Changelog</a>
+        {% if runique_release %}
+        <a href="{{ runique_release.github_url }}" target="_blank">GitHub</a>
+        <a href="{{ runique_release.crates_url }}" target="_blank">Crates.io</a>
+        {% endif %}
+    </div>
+    <p>Créé par <strong>Itsuki</strong> avec {% if runique_release %}<a href="{{ runique_release.github_url }}" target="_blank">Runique</a>{% else %}Runique{% endif %} &mdash; &copy; 2026</p>
+</div>

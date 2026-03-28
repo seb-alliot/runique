@@ -21,10 +21,30 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .from(Alias::new("chapitre"), Alias::new("cour_id"))
+                    .to(Alias::new("cour"), Alias::new("id"))
+                    .on_delete(ForeignKeyAction::Cascade)
+                    .on_update(ForeignKeyAction::NoAction)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_foreign_key(
+                ForeignKey::drop()
+                    .table(Alias::new("chapitre"))
+                    .name("chapitre_cour_id_cour_fkey")
+                    .to_owned(),
+            )
+            .await?;
+
         manager
             .drop_table(Table::drop().table(Alias::new("chapitre"))
                 .to_owned())

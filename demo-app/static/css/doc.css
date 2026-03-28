@@ -441,6 +441,7 @@
     word-break: break-word;
     min-width: 0;
     overflow-x: hidden;
+    padding: 2rem 1.5rem;
 }
 
 .doc-block-content pre {

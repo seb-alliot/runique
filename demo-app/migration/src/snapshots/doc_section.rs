@@ -16,6 +16,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("lang")).string().not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
+                    .col(ColumnDef::new(Alias::new("theme")).string().null())
                     .to_owned(),
             )
             .await?;
