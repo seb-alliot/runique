@@ -76,7 +76,9 @@
     "unique_field_taken": "This {} is already taken.",
     "unique_value_taken": "Field '{}' value is already taken.",
     "unique_constraint_violated": "A uniqueness constraint was violated.",
-    "db_error": "DB error: {}"
+    "db_error": "DB error: {}",
+    "text_field_too_large": "Text field too large (max 1 MB)",
+    "upload_too_large": "File upload too large (max {}MB)"
   },
   "csrf": {
     "missing": "CSRF token missing",

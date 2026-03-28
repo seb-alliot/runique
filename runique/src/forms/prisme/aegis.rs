@@ -50,7 +50,13 @@ where
         })?;
 
         let upload_dir = std::path::Path::new(&config.static_files.media_root);
-        parsed = parse_multipart(multipart, upload_dir).await?;
+        parsed = parse_multipart(
+            multipart,
+            upload_dir,
+            config.static_files.max_upload_mb,
+            config.static_files.max_text_field_kb,
+        )
+        .await?;
     } else {
         let bytes = req
             .into_body()

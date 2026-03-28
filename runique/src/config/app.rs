@@ -4,7 +4,9 @@ use crate::config::{
 };
 use crate::middleware::MiddlewareConfig;
 use crate::utils::password::PasswordConfig;
+use crate::utils::runique_log::RuniqueLog;
 use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RuniqueConfig {
     pub server: ServerConfig,
@@ -13,6 +15,9 @@ pub struct RuniqueConfig {
     pub password: PasswordConfig,
     pub static_files: StaticConfig,
     pub app: AppSettings,
+    /// Configuration des logs par catégorie — initialisée via `.with_log()`.
+    #[serde(skip)]
+    pub log: RuniqueLog,
     pub base_dir: String,
     pub debug: bool,
 }
@@ -32,6 +37,7 @@ impl RuniqueConfig {
 
             base_dir: std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string()),
             debug: matches!(std::env::var("DEBUG").as_deref(), Ok("true") | Ok("1")),
+            log: RuniqueLog::default(),
         }
     }
 }

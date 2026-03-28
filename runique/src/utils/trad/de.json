@@ -76,7 +76,9 @@
     "unique_field_taken": "Dieses {} wird bereits verwendet.",
     "unique_value_taken": "Der Wert des Feldes '{}' wird bereits verwendet.",
     "unique_constraint_violated": "Eine Eindeutigkeitsbeschränkung wurde verletzt.",
-    "db_error": "DB-Fehler: {}"
+    "db_error": "DB-Fehler: {}",
+    "text_field_too_large": "Textfeld zu gross (max 1 MB)",
+    "upload_too_large": "Datei-Upload zu gross (max {}MB)"
   },
   "csrf": {
     "missing": "CSRF-Token fehlt",

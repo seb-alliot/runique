@@ -76,7 +76,9 @@
     "unique_field_taken": "此 {} 已被占用",
     "unique_value_taken": "字段 '{}' 的值已被占用",
     "unique_constraint_violated": "违反了唯一性约束",
-    "db_error": "数据库错误：{}"
+    "db_error": "数据库错误：{}",
+    "text_field_too_large": "文本字段过大（最大1MB）",
+    "upload_too_large": "文件上传过大（最大{}MB）"
   },
   "csrf": {
     "missing": "缺少 CSRF 令牌",

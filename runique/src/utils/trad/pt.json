@@ -76,7 +76,9 @@
     "unique_field_taken": "Este {} já está em uso.",
     "unique_value_taken": "O valor do campo '{}' já está em uso.",
     "unique_constraint_violated": "Uma restrição de unicidade foi violada.",
-    "db_error": "Erro de banco de dados: {}"
+    "db_error": "Erro de banco de dados: {}",
+    "text_field_too_large": "Campo de texto muito grande (max 1 MB)",
+    "upload_too_large": "Upload muito grande (max {}MB)"
   },
   "csrf": {
     "missing": "Token CSRF ausente",

@@ -76,7 +76,9 @@
     "unique_field_taken": "Ce {} est déjà utilisé.",
     "unique_value_taken": "La valeur du champ '{}' est déjà utilisée.",
     "unique_constraint_violated": "Une contrainte d'unicité a été violée.",
-    "db_error": "Erreur DB : {}"
+    "db_error": "Erreur DB : {}",
+    "text_field_too_large": "Champ texte trop volumineux (max 1 Mo)",
+    "upload_too_large": "Fichier trop volumineux (max {}Mo)"
   },
   "csrf": {
     "missing": "Token CSRF manquant",
@@ -86,7 +88,7 @@
     "session_write_error": "Erreur d'écriture de session"
   },
   "error": {
-    "source": "Source: {}" ,
+    "source": "Source: {}",
     "AppError": "Erreur d'application",
     "build": "Erreur de build: {}",
     "internal": "Erreur interne",
@@ -241,140 +243,140 @@
     "debug_header_value": "Valeur"
   },
   "admin": {
-      "login": {
-        "title": "Connexion",
-        "subtitle": "Connectez-vous pour accéder au panneau d'administration",
-        "label_username": "Nom d'utilisateur",
-        "label_password": "Mot de passe",
-        "btn_submit": "Se connecter",
-        "error_session": "Erreur lors de l'ouverture de session.",
-        "error_credentials": "Identifiants incorrects ou droits insuffisants."
-      },
-      "logout": {
-        "success": "Déconnexion réussie."
-      },
-      "access": {
-        "no_auth_handler": "Aucun handler d'authentification configuré. Appelez .auth(MyAuth) sur AdminConfig.",
-        "insufficient_rights": "Droits insuffisants pour accéder à l'administration"
-      },
-      "dashboard": {
-        "title": "Tableau de bord",
-        "subtitle": "Vue d'ensemble de l'application",
-        "card_resources": "Ressources",
-        "th_resource": "Ressource",
-        "th_key": "Clé",
-        "th_permissions": "Permissions",
-        "th_actions": "Actions",
-        "btn_list": "Liste",
-        "btn_create": "Créer",
-        "see_list": "Voir la liste →",
-        "empty_title": "Aucune ressource enregistrée",
-        "empty_desc": "Déclarez vos ressources dans src/admin.rs avec le macro admin!{{}} puis lancez runique start"
-      },
-      "list": {
-        "breadcrumb_admin": "Administration",
-        "entries_count": "entrée(s)",
-        "btn_create": "Créer",
-        "th_id": "id",
-        "th_actions": "Actions",
-        "bool_true": "Oui",
-        "bool_false": "Non",
-        "btn_detail": "Détail",
-        "btn_edit": "Modifier",
-        "btn_delete": "Supprimer",
-        "confirm_delete": "Vraiment supprimer ?",
-        "empty_title": "Aucune entrée",
-        "empty_desc": "Commencez par créer un élément.",
-        "btn_create_first": "Créer le premier",
-        "search_placeholder": "Rechercher..."
-      },
-      "create": {
-        "title": "Créer",
-        "breadcrumb": "Créer",
-        "card_info": "Informations",
-        "no_fields": "Aucun champ disponible pour le moment.",
-        "btn_cancel": "Annuler",
-        "btn_submit": "Créer",
-        "success": "Entrée créée avec succès !"
-      },
-      "edit": {
-        "title": "Modifier",
-        "breadcrumb": "Modifier",
-        "card_info": "Informations",
-        "no_fields": "Aucun champ disponible pour le moment.",
-        "btn_cancel": "Annuler",
-        "btn_submit": "Enregistrer",
-        "success": "Entrée mise à jour avec succès !"
-      },
-      "detail": {
-        "title": "Détail",
-        "breadcrumb": "Détail",
-        "entry_label": "Entrée",
-        "btn_list": "← Liste",
-        "btn_edit": "Modifier",
-        "btn_delete": "Supprimer",
-        "confirm_delete": "Supprimer cette entrée ?"
-      },
-      "reset_password": {
-        "btn": "Réinitialiser le mot de passe",
-        "success_email": "Lien de réinitialisation envoyé à {}.",
-        "success_link": "Lien de réinitialisation (mailer non configuré) : {}",
-        "error_no_email": "Aucun champ email trouvé pour cet utilisateur.",
-        "error_send": "Erreur lors de l'envoi de l'email : {}"
-      },
-      "delete": {
-        "title": "Supprimer",
-        "breadcrumb": "Supprimer",
-        "heading": "Confirmer la suppression",
-        "btn_cancel": "← Annuler",
-        "btn_confirm": "Oui, supprimer définitivement",
-        "success": "Entrée supprimée avec succès !",
-        "not_found": "Ressource introuvable.",
-        "warning": {
-          "title": "Attention !",
-          "desc": "Vous êtes sur le point de supprimer l'entrée",
-          "of": "de la ressource",
-          "irreversible": "Cette action est irréversible."
-        }
-      },
-      "base": {
-        "title": "Administration",
-        "breadcrumb": "Admin",
-        "toggle": "Réduire le menu",
-        "logout_title": "Déconnexion"
-      },
-      "superuser": {
-        "title": "=== Créer un superutilisateur ===",
-        "algo_prompt": "[1/5] Algorithme de hachage",
-        "algo_argon2": "Argon2 (recommandé)",
-        "algo_bcrypt": "Bcrypt",
-        "algo_scrypt": "Scrypt",
-        "algo_custom": "Fournisseur personnalisé",
-        "provider_path": "Chemin du fournisseur",
-        "invalid_path": "Chemin invalide.",
-        "username_prompt": "[2/5] Nom d'utilisateur",
-        "username_empty": "Le nom d'utilisateur ne peut pas être vide.",
-        "username_taken": "Un utilisateur avec ce nom existe déjà.",
-        "email_prompt": "[3/5] Email",
-        "email_invalid": "Email invalide.",
-        "email_taken": "Un utilisateur avec cet email existe déjà.",
-        "password_prompt": "[4/5] Mot de passe",
-        "password_too_short": "Le mot de passe doit contenir au moins 10 caractères.",
-        "confirm_prompt": "[5/5] Confirmer le mot de passe",
-        "password_mismatch": "Les mots de passe ne correspondent pas. Veuillez réessayer.",
-        "review_algo": "  Algorithme  : {}",
-        "review_username": "  Utilisateur : {}",
-        "review_email": "  Email       : {}",
-        "review_password": "  Mot de passe : ••••••••",
-        "review_action": "Action",
-        "confirm_create": "Confirmer et créer",
-        "change_algo": "Changer d'algorithme",
-        "modify_password": "Modifier le mot de passe",
-        "success": "✓ Superutilisateur créé avec succès !",
-        "id_line": "  ID          : {}",
-        "username_line": "  Utilisateur : {}",
-        "email_line": "  Email       : {}"
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Connectez-vous pour accéder au panneau d'administration",
+      "label_username": "Nom d'utilisateur",
+      "label_password": "Mot de passe",
+      "btn_submit": "Se connecter",
+      "error_session": "Erreur lors de l'ouverture de session.",
+      "error_credentials": "Identifiants incorrects ou droits insuffisants."
+    },
+    "logout": {
+      "success": "Déconnexion réussie."
+    },
+    "access": {
+      "no_auth_handler": "Aucun handler d'authentification configuré. Appelez .auth(MyAuth) sur AdminConfig.",
+      "insufficient_rights": "Droits insuffisants pour accéder à l'administration"
+    },
+    "dashboard": {
+      "title": "Tableau de bord",
+      "subtitle": "Vue d'ensemble de l'application",
+      "card_resources": "Ressources",
+      "th_resource": "Ressource",
+      "th_key": "Clé",
+      "th_permissions": "Permissions",
+      "th_actions": "Actions",
+      "btn_list": "Liste",
+      "btn_create": "Créer",
+      "see_list": "Voir la liste →",
+      "empty_title": "Aucune ressource enregistrée",
+      "empty_desc": "Déclarez vos ressources dans src/admin.rs avec le macro admin!{{}} puis lancez runique start"
+    },
+    "list": {
+      "breadcrumb_admin": "Administration",
+      "entries_count": "entrée(s)",
+      "btn_create": "Créer",
+      "th_id": "id",
+      "th_actions": "Actions",
+      "bool_true": "Oui",
+      "bool_false": "Non",
+      "btn_detail": "Détail",
+      "btn_edit": "Modifier",
+      "btn_delete": "Supprimer",
+      "confirm_delete": "Vraiment supprimer ?",
+      "empty_title": "Aucune entrée",
+      "empty_desc": "Commencez par créer un élément.",
+      "btn_create_first": "Créer le premier",
+      "search_placeholder": "Rechercher..."
+    },
+    "create": {
+      "title": "Créer",
+      "breadcrumb": "Créer",
+      "card_info": "Informations",
+      "no_fields": "Aucun champ disponible pour le moment.",
+      "btn_cancel": "Annuler",
+      "btn_submit": "Créer",
+      "success": "Entrée créée avec succès !"
+    },
+    "edit": {
+      "title": "Modifier",
+      "breadcrumb": "Modifier",
+      "card_info": "Informations",
+      "no_fields": "Aucun champ disponible pour le moment.",
+      "btn_cancel": "Annuler",
+      "btn_submit": "Enregistrer",
+      "success": "Entrée mise à jour avec succès !"
+    },
+    "detail": {
+      "title": "Détail",
+      "breadcrumb": "Détail",
+      "entry_label": "Entrée",
+      "btn_list": "← Liste",
+      "btn_edit": "Modifier",
+      "btn_delete": "Supprimer",
+      "confirm_delete": "Supprimer cette entrée ?"
+    },
+    "reset_password": {
+      "btn": "Réinitialiser le mot de passe",
+      "success_email": "Lien de réinitialisation envoyé à {}.",
+      "success_link": "Lien de réinitialisation (mailer non configuré) : {}",
+      "error_no_email": "Aucun champ email trouvé pour cet utilisateur.",
+      "error_send": "Erreur lors de l'envoi de l'email : {}"
+    },
+    "delete": {
+      "title": "Supprimer",
+      "breadcrumb": "Supprimer",
+      "heading": "Confirmer la suppression",
+      "btn_cancel": "← Annuler",
+      "btn_confirm": "Oui, supprimer définitivement",
+      "success": "Entrée supprimée avec succès !",
+      "not_found": "Ressource introuvable.",
+      "warning": {
+        "title": "Attention !",
+        "desc": "Vous êtes sur le point de supprimer l'entrée",
+        "of": "de la ressource",
+        "irreversible": "Cette action est irréversible."
       }
+    },
+    "base": {
+      "title": "Administration",
+      "breadcrumb": "Admin",
+      "toggle": "Réduire le menu",
+      "logout_title": "Déconnexion"
+    },
+    "superuser": {
+      "title": "=== Créer un superutilisateur ===",
+      "algo_prompt": "[1/5] Algorithme de hachage",
+      "algo_argon2": "Argon2 (recommandé)",
+      "algo_bcrypt": "Bcrypt",
+      "algo_scrypt": "Scrypt",
+      "algo_custom": "Fournisseur personnalisé",
+      "provider_path": "Chemin du fournisseur",
+      "invalid_path": "Chemin invalide.",
+      "username_prompt": "[2/5] Nom d'utilisateur",
+      "username_empty": "Le nom d'utilisateur ne peut pas être vide.",
+      "username_taken": "Un utilisateur avec ce nom existe déjà.",
+      "email_prompt": "[3/5] Email",
+      "email_invalid": "Email invalide.",
+      "email_taken": "Un utilisateur avec cet email existe déjà.",
+      "password_prompt": "[4/5] Mot de passe",
+      "password_too_short": "Le mot de passe doit contenir au moins 10 caractères.",
+      "confirm_prompt": "[5/5] Confirmer le mot de passe",
+      "password_mismatch": "Les mots de passe ne correspondent pas. Veuillez réessayer.",
+      "review_algo": "  Algorithme  : {}",
+      "review_username": "  Utilisateur : {}",
+      "review_email": "  Email       : {}",
+      "review_password": "  Mot de passe : ••••••••",
+      "review_action": "Action",
+      "confirm_create": "Confirmer et créer",
+      "change_algo": "Changer d'algorithme",
+      "modify_password": "Modifier le mot de passe",
+      "success": "✓ Superutilisateur créé avec succès !",
+      "id_line": "  ID          : {}",
+      "username_line": "  Utilisateur : {}",
+      "email_line": "  Email       : {}"
+    }
   },
   "reset": {
     "forgot_title": "Mot de passe oublié",
