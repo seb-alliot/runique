@@ -11,6 +11,7 @@ use crate::middleware::auth::{
     PasswordResetAdapter, PasswordResetConfig, PasswordResetStaging, UserEntity,
 };
 use crate::utils::aliases::{new, new_serve};
+use crate::utils::runique_log::{RuniqueLog, log_init};
 
 use super::error_build::BuildError;
 use super::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
@@ -138,6 +139,26 @@ impl RuniqueAppBuilder {
     #[cfg(feature = "orm")]
     pub fn with_database_config(mut self, config: DatabaseConfig) -> Self {
         self.core = self.core.with_database_config(config);
+        self
+    }
+
+    /// Configure les logs Runique par catégorie.
+    ///
+    /// Chaque catégorie est désactivée par défaut. Appeler la méthode
+    /// correspondante avec un niveau tracing active la catégorie.
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// use tracing::Level;
+    ///
+    /// RuniqueApp::builder(config)
+    ///     .with_log(|l| l
+    ///         .csrf(Level::WARN)
+    ///         .exclusive_login(Level::INFO)
+    ///     )
+    /// ```
+    pub fn with_log(mut self, f: impl FnOnce(RuniqueLog) -> RuniqueLog) -> Self {
+        self.config.log = f(RuniqueLog::new());
         self
     }
 
@@ -342,6 +363,7 @@ impl RuniqueAppBuilder {
             .map_err(|e| BuildError::template(e.to_string()))?);
 
         let config = new(config);
+        log_init(config.log.clone());
         crate::utils::password::password_init(config.password.clone());
 
         // B. Engine (cœur de l'application)

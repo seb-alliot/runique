@@ -288,7 +288,8 @@ fn value_to_strmap(v: Value) -> StrMap {
                 Value::String(s) => s,
                 Value::Number(n) => n.to_string(),
                 Value::Bool(b) => b.to_string(),
-                other => other.to_string(),
+                // Arrays et objets imbriqués ne peuvent pas pré-remplir un champ plat
+                Value::Array(_) | Value::Object(_) => continue,
             };
             map.insert(k, s);
         }
@@ -339,7 +340,12 @@ async fn handle_list(
             match &entry.filter_fn {
                 Some(f) => f(req.engine.db.clone(), filter_pages.clone())
                     .await
-                    .unwrap_or_default(),
+                    .unwrap_or_else(|e| {
+                        if let Some(level) = crate::utils::runique_log::get_log().filter_fn {
+                            crate::runique_log!(level, resource = entry.meta.key, error = %e, "filter_fn a échoué — liste retournée sans filtres sidebar");
+                        }
+                        HashMap::new()
+                    }),
                 None => HashMap::new(),
             }
         }

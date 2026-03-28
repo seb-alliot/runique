@@ -113,6 +113,59 @@ Ou via `.middleware()` pour les options avancées :
 })
 ```
 
+### Logs framework
+
+Toutes les catégories de logs internes à Runique sont **désactivées par défaut**. Tout passe par `.with_log(|l| ...)` — la closure reçoit un `RuniqueLog` vide et retourne la configuration finale.
+
+Chaque catégorie prend un `tracing::Level` (TRACE, DEBUG, INFO, WARN, ERROR).
+
+```rust
+use tracing::Level;
+
+// Contrôle fin par catégorie
+RuniqueApp::builder(config)
+    .with_log(|l| l
+        .csrf(Level::WARN)
+        .session(Level::WARN)
+        .db(Level::INFO)
+    )
+    .routes(router)
+    .build()
+    .await?;
+```
+
+#### `.dev()` — tout activer en développement
+
+Preset qui active toutes les catégories au niveau `DEBUG`. Sans effet si `DEBUG` n'est pas `true` dans `.env` — peut être utilisé inconditionnellement.
+
+```rust
+// Dev uniquement (no-op si DEBUG != true)
+RuniqueApp::builder(config)
+    .with_log(|l| l.dev())
+    .routes(router)
+    .build()
+    .await?;
+
+// Dev avec surcharge
+RuniqueApp::builder(config)
+    .with_log(|l| l.dev().db(Level::INFO))
+    .routes(router)
+    .build()
+    .await?;
+```
+
+#### Catégories disponibles
+
+| Catégorie        | Ce qui est journalisé                                      |
+| ---------------- | ---------------------------------------------------------- |
+| `csrf`           | Token CSRF détecté dans une URL GET (nettoyage silencieux) |
+| `exclusive_login`| Sessions invalidées lors d'une connexion exclusive         |
+| `filter_fn`      | Échec d'une `filter_fn` dans la vue liste admin            |
+| `roles`          | Erreurs d'accès au registre des rôles admin                |
+| `password_init`  | `password_init()` appelé plusieurs fois                    |
+| `session`        | Watermarks mémoire, records volumineux, erreurs cleanup    |
+| `db`             | Connexion DB en cours / connexion établie                  |
+
 ### Fichiers statiques
 
 ```rust
@@ -129,7 +182,7 @@ let app = RuniqueApp::builder(config)
 ## Valeurs par défaut
 
 | Configuration | Défaut | Notes |
-|--------------|--------|-------|
+| ------------ | ------ | ----- |
 | **Session duration** | 24 heures | |
 | **Session store** | `MemoryStore` | |
 | **CSRF protection** | ✅ Toujours activé | Non désactivable |
@@ -139,7 +192,7 @@ let app = RuniqueApp::builder(config)
 | **Cache control** | ✅ Activé | No-cache en debug |
 | **Static files** | ❌ Désactivé | Appeler `.statics()` |
 | **Hot reload admin** | Selon `DEBUG` | Automatique via `is_debug()` |
-| **Niveau de log** | Selon `DEBUG` | `debug` si `DEBUG=true`, `warn` sinon |
+| **Logs framework** | ❌ Désactivés | Activer via `.with_log(\|l\| ...)` |
 
 ---
 

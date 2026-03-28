@@ -17,6 +17,12 @@ pub struct StaticConfig {
     pub static_url: String,
     pub media_url: String,
     pub staticfiles: String,
+    /// Taille maximale d'un fichier uploadé en Mo (env: RUNIQUE_MAX_UPLOAD_MB, défaut: 100).
+    /// Protection DoS au niveau du streaming — la limite par champ (`FileField::max_size_mb`)
+    /// reste le contrôle fonctionnel.
+    pub max_upload_mb: u64,
+    /// Taille maximale d'un champ texte multipart en Ko (env: RUNIQUE_MAX_TEXT_FIELD_KB, défaut: 1024).
+    pub max_text_field_kb: usize,
 }
 
 impl StaticConfig {
@@ -42,6 +48,14 @@ impl StaticConfig {
         let media_url = std::env::var("MEDIA_URL").unwrap_or_else(|_| "/media".to_string());
         let staticfiles =
             std::env::var("STATICFILES").unwrap_or_else(|_| "default_storage".to_string());
+        let max_upload_mb = std::env::var("RUNIQUE_MAX_UPLOAD_MB")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(100);
+        let max_text_field_kb = std::env::var("RUNIQUE_MAX_TEXT_FIELD_KB")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(1024);
         Self {
             base_dir,
             static_runique_path,
@@ -55,6 +69,8 @@ impl StaticConfig {
             static_url,
             media_url,
             staticfiles,
+            max_upload_mb,
+            max_text_field_kb,
         }
     }
 }

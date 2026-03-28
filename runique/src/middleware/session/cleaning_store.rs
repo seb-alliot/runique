@@ -157,7 +157,9 @@ impl CleaningMemoryStore {
             loop {
                 interval.tick().await;
                 if let Err(e) = store.delete_expired().await {
-                    tracing::error!("session cleanup error: {e}");
+                    if let Some(level) = crate::utils::runique_log::get_log().session {
+                        crate::runique_log!(level, "session cleanup error: {e}");
+                    }
                 }
             }
         });
@@ -183,10 +185,13 @@ impl CleaningMemoryStore {
 
         if freed > 0 {
             self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
-            tracing::warn!(
-                "Low watermark: {} octets libérés (sessions anonymes expirées)",
-                freed
-            );
+            if let Some(level) = crate::utils::runique_log::get_log().session {
+                crate::runique_log!(
+                    level,
+                    "Low watermark: {} octets libérés (sessions anonymes expirées)",
+                    freed
+                );
+            }
         }
     }
 }
@@ -242,19 +247,25 @@ impl SessionStore for CleaningMemoryStore {
                     }
                 }
                 self.size_bytes.fetch_sub(freed2, Ordering::Relaxed);
-                tracing::error!(
-                    "High watermark: {} + {} octets libérés en urgence",
-                    freed,
-                    freed2
-                );
+                if let Some(level) = crate::utils::runique_log::get_log().session {
+                    crate::runique_log!(
+                        level,
+                        "High watermark: {} + {} octets libérés en urgence",
+                        freed,
+                        freed2
+                    );
+                }
             }
 
             // Toujours au-dessus → refus
             if self.size_bytes.load(Ordering::Relaxed) >= self.high_watermark {
-                tracing::error!(
-                    "Session store saturé ({} octets), nouvelle session refusée",
-                    self.size_bytes()
-                );
+                if let Some(level) = crate::utils::runique_log::get_log().session {
+                    crate::runique_log!(
+                        level,
+                        "Session store saturé ({} octets), nouvelle session refusée",
+                        self.size_bytes()
+                    );
+                }
                 return Err(session_store::Error::Backend(
                     "session store capacity exceeded".into(),
                 ));
@@ -268,10 +279,13 @@ impl SessionStore for CleaningMemoryStore {
 
         let size = estimate_size(record);
         if size > MAX_SESSION_RECORD_SIZE {
-            tracing::warn!(
-                "Session record volumineux ({} octets) — évitez de stocker des fichiers ou images en session",
-                size
-            );
+            if let Some(level) = crate::utils::runique_log::get_log().session {
+                crate::runique_log!(
+                    level,
+                    "Session record volumineux ({} octets) — évitez de stocker des fichiers ou images en session",
+                    size
+                );
+            }
         }
 
         guard.insert(record.id, record.clone());
@@ -317,16 +331,28 @@ impl SessionStore for CleaningMemoryStore {
                     }
                     if freed > 0 {
                         self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
+                        if let Some(level) = crate::utils::runique_log::get_log().exclusive_login {
+                            crate::runique_log!(
+                                level,
+                                user_id = user_id,
+                                "exclusive_login: {} session(s) invalidée(s) pour l'utilisateur {}",
+                                freed,
+                                user_id
+                            );
+                        }
                     }
                 }
             }
         }
 
         if new_size > MAX_SESSION_RECORD_SIZE {
-            tracing::warn!(
-                "Session record volumineux ({} octets) — évitez de stocker des fichiers ou images en session",
-                new_size
-            );
+            if let Some(level) = crate::utils::runique_log::get_log().session {
+                crate::runique_log!(
+                    level,
+                    "Session record volumineux ({} octets) — évitez de stocker des fichiers ou images en session",
+                    new_size
+                );
+            }
         }
 
         guard.insert(record.id, record.clone());

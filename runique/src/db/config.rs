@@ -346,7 +346,9 @@ impl DatabaseConfig {
     /// - Returns an error if the driver is not enabled (missing Cargo feature)
     /// - Returns an error if the connection fails
     pub async fn connect(&self) -> Result<DatabaseConnection, DbErr> {
-        tracing::info!("  Connecting to {} database...", self.engine.name());
+        if let Some(level) = crate::utils::runique_log::get_log().db {
+            crate::runique_log!(level, "  Connecting to {} database...", self.engine.name());
+        }
 
         // Vérification que le driver est activé
         verify_database_driver(&self.engine).map_err(DbErr::Custom)?;
@@ -372,7 +374,13 @@ impl DatabaseConfig {
 
         match Database::connect(opt).await {
             Ok(conn) => {
-                tracing::info!("Database connected successfully ({})", self.engine.name());
+                if let Some(level) = crate::utils::runique_log::get_log().db {
+                    crate::runique_log!(
+                        level,
+                        "Database connected successfully ({})",
+                        self.engine.name()
+                    );
+                }
                 Ok(conn)
             }
             Err(e) => {

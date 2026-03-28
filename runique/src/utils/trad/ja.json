@@ -76,7 +76,9 @@
     "unique_field_taken": "{} はすでに使用されています。",
     "unique_value_taken": "フィールド '{}' の値はすでに使用されています。",
     "unique_constraint_violated": "一意制約が違反されました。",
-    "db_error": "データベースエラー: {}"
+    "db_error": "データベースエラー: {}",
+    "text_field_too_large": "テキストフィールドが大きすぎます（最大1MB）",
+    "upload_too_large": "ファイルが大きすぎます（最大{}MB）"
   },
   "csrf": {
     "missing": "CSRFトークンがありません",

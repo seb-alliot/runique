@@ -216,6 +216,16 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
     if !path.is_file() {
         return Err(format!("Provider is not a file: '{}'", provider_path));
     }
+    if path.is_symlink() {
+        return Err(format!(
+            "Provider path is a symbolic link, which is not allowed: '{}'",
+            provider_path
+        ));
+    }
+
+    use std::sync::mpsc;
+    use std::thread;
+    const PROVIDER_TIMEOUT_SECS: u64 = 10;
 
     let mut child = Command::new(path)
         .stdin(Stdio::piped())
@@ -228,9 +238,22 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
             .write_all(password.as_bytes())
             .map_err(|e| format!("Error writing to stdin: {}", e))?;
     }
+    // Fermeture explicite de stdin pour signaler EOF au processus enfant
+    drop(child.stdin.take());
 
-    let output = child
-        .wait_with_output()
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        let _ = tx.send(child.wait_with_output());
+    });
+
+    let output = rx
+        .recv_timeout(std::time::Duration::from_secs(PROVIDER_TIMEOUT_SECS))
+        .map_err(|_| {
+            format!(
+                "Provider '{}' timed out after {} seconds",
+                provider_path, PROVIDER_TIMEOUT_SECS
+            )
+        })?
         .map_err(|e| format!("Error waiting for provider: {}", e))?;
 
     if !output.status.success() {

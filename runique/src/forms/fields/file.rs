@@ -51,7 +51,6 @@ fn is_valid_path(path: &str) -> bool {
     if path.to_lowercase().ends_with(".svg") {
         return false;
     }
-
     match ImageReader::open(p) {
         Ok(reader) => reader.with_guessed_format().is_ok(),
         Err(_) => false,

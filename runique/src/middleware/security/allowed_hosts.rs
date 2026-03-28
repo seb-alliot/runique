@@ -49,9 +49,9 @@ impl HostPolicy {
             let allowed_host = normalize_host(allowed);
 
             if let Some(suffix) = allowed_host.strip_prefix('.') {
-                host == suffix
-                    || (host.ends_with(allowed_host)
-                        && host.as_bytes()[host.len() - allowed_host.len()] == b'.')
+                // `allowed_host` commence par '.' → ends_with garantit déjà que
+                // le caractère de jonction est '.'. Le check d'index est redondant.
+                host == suffix || host.ends_with(allowed_host)
             } else {
                 allowed_host == host
             }

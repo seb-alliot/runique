@@ -17,7 +17,7 @@ use tower::ServiceExt;
 
 async fn multipart_handler(multipart: Multipart) -> impl IntoResponse {
     let upload_dir = std::env::temp_dir().join("runique_test_upload");
-    match parse_multipart(multipart, &upload_dir).await {
+    match parse_multipart(multipart, &upload_dir, 100, 1024).await {
         Ok(data) => {
             // Retourne le nombre de champs parsés dans le body
             let count = data.len().to_string();

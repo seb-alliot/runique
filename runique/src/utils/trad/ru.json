@@ -76,7 +76,9 @@
     "unique_field_taken": "Этот {} уже используется.",
     "unique_value_taken": "Значение поля '{}' уже используется.",
     "unique_constraint_violated": "Нарушено ограничение уникальности.",
-    "db_error": "Ошибка БД: {}"
+    "db_error": "Ошибка БД: {}",
+    "text_field_too_large": "Поле слишком большое (макс 1 МБ)",
+    "upload_too_large": "Файл слишком большой (макс {}МБ)"
   },
   "csrf": {
     "missing": "Отсутствует CSRF токен",

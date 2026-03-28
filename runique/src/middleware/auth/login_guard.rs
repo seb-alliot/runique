@@ -119,12 +119,13 @@ impl LoginGuard {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
-        if let Some((attempts, last)) = store.get(username) {
-            if *attempts >= self.max_attempts {
-                return last.elapsed() < Duration::from_secs(self.lockout_secs);
-            }
-        }
-        false
+        // Lecture unifiée : même chemin de code qu'un username connu ou inconnu
+        // → réduit la fuite de timing permettant l'énumération d'usernames.
+        let (attempts, last) = store
+            .get(username)
+            .map(|(a, t)| (*a, *t))
+            .unwrap_or((0, Instant::now()));
+        attempts >= self.max_attempts && last.elapsed() < Duration::from_secs(self.lockout_secs)
     }
 
     /// Nombre d'échecs en cours pour ce username

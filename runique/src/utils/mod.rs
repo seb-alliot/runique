@@ -8,6 +8,7 @@ pub mod mailer;
 pub mod middleware;
 pub mod password;
 pub mod reset_token;
+pub mod runique_log;
 pub mod trad;
 pub mod url_params;
 
@@ -20,4 +21,5 @@ pub use init_error::init_logging;
 pub use mailer::{Email, MailerConfig, mailer_configured, mailer_init, mailer_init_from_env};
 pub use middleware::*;
 pub use password::*;
+pub use runique_log::{RuniqueLog, get_log, log_init};
 pub use url_params::UrlParams;

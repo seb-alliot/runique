@@ -52,9 +52,6 @@ http-body-util = "0.1"
 base64 = "0.22.1"
 uuid = { version = "1.19.0", features = ["v4"] }
 futures-util = "0.3.31"
-phone_number = "0.1.1"
-country = "0.5.0"
-postal-code = "0.3.0"
 dyn-clone = "1.0.20"
 image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
