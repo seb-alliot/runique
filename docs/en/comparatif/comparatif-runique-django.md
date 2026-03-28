@@ -113,7 +113,7 @@
 | HSTS | `SECURE_HSTS_SECONDS` | native (`max-age=31536000; includeSubDomains`) |
 | SameSite cookies | configurable | `Strict` by default |
 | HttpOnly cookies | by default | always `true` |
-| Host validation | `ALLOWED_HOSTS` | `RUNIQUE_ALLOWED_HOSTS` + `RUNIQUE_ENABLE_HOST_VALIDATION` |
+| Host validation | `ALLOWED_HOSTS` | `.with_allowed_hosts(...)` in the builder |
 | Rate limiting | `django-ratelimit` (third-party) | `RateLimiter` native |
 | Input sanitization | — | native sanitize middleware |
 | Secret key generation | manual | `runique new` generates 32 bytes hex automatically |

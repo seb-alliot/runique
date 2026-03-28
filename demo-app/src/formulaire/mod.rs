@@ -49,6 +49,9 @@ pub use doc_page::DocPageForm;
 pub mod doc_block;
 pub use doc_block::DocBlockForm;
 
+pub mod runique_release;
+pub use runique_release::RuniqueReleaseForm;
+
 pub mod site_config;
 pub use site_config::SiteConfigForm;
 

@@ -13,8 +13,6 @@
     <link rel="stylesheet" href='{% static "css/cours.css" %}'>
 {% endblock %}
 
-{% block header %}{% endblock %}
-
 {% block content %}
 <div class="cours-index-container">
     <h1>Cours Rust</h1>
@@ -30,6 +28,7 @@
             {% elif niveau == "avance" %}Avancé
             {% else %}Runique
             {% endif %}
+            {% if niveau == "runique" or niveau == "avance" %}<span class="cours-beta-badge">Bêta</span>{% endif %}
         </h2>
         <div class="cours-grid">
             {% for c in niveau_cours %}

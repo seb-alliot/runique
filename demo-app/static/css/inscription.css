@@ -170,55 +170,60 @@ form {
 }
 
 /* =========================
-    BOUTON
+    BOUTON SUBMIT
    ========================= */
 
-form button, .text-center a {
+form button {
     margin-top: 1rem;
     width: 100%;
     display: block;
     text-align: center;
-    background: linear-gradient(135deg, var(--accent), var(--accent-indigo));
+    background: var(--accent);
     color: #fff;
-    border: none;
-    padding: 0.8rem 1rem;
-    border-radius: 1rem;
-    font-weight: 700;
-    font-size: 0.95rem;
+    border: 1px solid var(--accent);
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: all 0.25s ease;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    transition: opacity 0.15s;
     box-sizing: border-box;
 }
 
-form button:hover, .text-center:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
-    filter: brightness(1.05);
-}
+form button:hover { opacity: 0.88; }
+form button:active { opacity: 0.75; }
 
-form button:active, .text-center:active {
-    transform: translateY(0);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
-}
-
-.text-center:hover {
-    box-shadow: none;
-}
+/* =========================
+    LIENS SECONDAIRES
+   ========================= */
 
 .text-center {
     width: 100%;
     max-width: 400px;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: 1.5rem;
-    margin: var(--margin-top) auto;
+    gap: 0.6rem;
+    padding: 1rem 0;
+    margin: 0 auto;
 }
 
 .text-center a {
-    color: #fff;
+    display: block;
+    text-align: center;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
     text-decoration: none;
+    border: 1px solid var(--border);
+    background: transparent;
+    transition: border-color 0.15s, color 0.15s;
+    box-sizing: border-box;
+}
+
+.text-center a:hover {
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 #form {
@@ -249,22 +254,6 @@ form button:active, .text-center:active {
     margin-top: 1rem;
 }
 
-/* Lien retour */
-.text-center > a:last-child {
-    background: transparent;
-    border: 1px solid var(--border-light);
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    padding: 0.6rem 1rem;
-    border-radius: 1rem;
-    text-align: center;
-    transition: all 0.2s ease;
-}
-
-.text-center > a:last-child:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-}
 
 /* Notice RGPD */
 .rgpd-notice {

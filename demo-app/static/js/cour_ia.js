@@ -1,92 +1,111 @@
-// cours-ia.js
 hljs.highlightAll();
 
+// ── Sidebar mobile ────────────────────────────────────────────────────────────
 (function () {
-    // ── Sidebar mobile ────────────────────────────────
-    var btn     = document.getElementById('doc-hamburger-btn');
-    var sidebar = document.getElementById('doc-sidebar');
-    var overlay = document.getElementById('doc-sidebar-overlay');
+    const btn     = document.getElementById('doc-hamburger-btn');
+    const sidebar = document.getElementById('doc-sidebar');
+    const overlay = document.getElementById('doc-sidebar-overlay');
     if (!btn) return;
 
-    function openSidebar()  { sidebar.classList.add('open');    overlay.classList.add('open'); }
-    function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+    const openSidebar  = () => { sidebar.classList.add('open');    overlay.classList.add('open'); };
+    const closeSidebar = () => { sidebar.classList.remove('open'); overlay.classList.remove('open'); };
 
-    btn.addEventListener('click', function () {
+    btn.addEventListener('click', () => {
         sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
     });
     overlay.addEventListener('click', closeSidebar);
-    sidebar.querySelectorAll('a').forEach(function (a) {
-        a.addEventListener('click', closeSidebar);
-    });
+    sidebar.querySelectorAll('a').forEach(a => a.addEventListener('click', closeSidebar));
 })();
 
+// ── Panel IA ──────────────────────────────────────────────────────────────────
 (function () {
-    // ── Variables dynamiques (à injecter depuis le template si nécessaire) ──
-    var CSRF_TOKEN  = window.COUR_CSRF_TOKEN;  // définir via template : <script>window.COUR_CSRF_TOKEN="{{ csrf_token }}"</script>
-    var COURS_SLUG  = window.COUR_SLUG;        // idem : <script>window.COUR_SLUG="{{ cour.slug }}"</script>
-    var ENDPOINT    = '/cours/' + COURS_SLUG + '/exercice';
+    let csrfToken = null;
+    const coursSlug  = window.COUR_SLUG;
+    const endpoint   = '/cours/' + coursSlug + '/exercice';
 
-    var docContent  = document.getElementById('doc-content');
-    var iaPanel     = document.getElementById('ia-panel');
-    var iaMessages  = document.getElementById('ia-messages');
-    var iaInput     = document.getElementById('ia-input');
-    var iaSendBtn   = document.getElementById('ia-send-btn');
-    var iaOpenBtn   = document.getElementById('ia-open-btn');
-    var iaOpenBtnSidebar = document.getElementById('ia-open-btn-sidebar');
-    var iaCloseBtn  = document.getElementById('ia-close-btn');
+    // Récupère le token CSRF depuis le header de réponse de la page courante
+    fetch(window.location.href, { method: 'HEAD' })
+        .then(res => { csrfToken = res.headers.get('x-csrf-token'); })
+        .catch(() => {});
 
-    var attempt     = 0;
-    var isLoading   = false;
+    const docContent       = document.getElementById('doc-content');
+    const iaPanel          = document.getElementById('ia-panel');
+    const iaPanelHeader    = document.getElementById('ia-panel-header');
+    const iaMessages       = document.getElementById('ia-messages');
+    const iaInput          = document.getElementById('ia-input');
+    const iaSendBtn        = document.getElementById('ia-send-btn');
+    const iaOpenBtn        = document.getElementById('ia-open-btn');
+    const iaOpenBtnSidebar = document.getElementById('ia-open-btn-sidebar');
+    const iaCloseBtn       = document.getElementById('ia-close-btn');
+    const iaMinimizeBtn    = document.getElementById('ia-minimize-btn');
 
-    // ── Ouvrir / fermer le panel ────────────────────────
-    function openPanel() {
+    let attempt   = 0;
+    let isLoading = false;
+
+    // ── Ouvrir / fermer / réduire ─────────────────────────────────────────────
+    const openPanel = () => {
         docContent.classList.add('ia-active');
         iaPanel.classList.add('ia-panel--visible');
         iaInput.focus();
-    }
+    };
 
-    function closePanel() {
+    const closePanel = () => {
         docContent.classList.remove('ia-active');
         iaPanel.classList.remove('ia-panel--visible');
-    }
+        iaPanel.classList.remove('ia-panel--minimized');
+    };
 
-    if (iaOpenBtn)         iaOpenBtn.addEventListener('click', openPanel);
-    if (iaOpenBtnSidebar)  iaOpenBtnSidebar.addEventListener('click', openPanel);
-    if (iaCloseBtn)        iaCloseBtn.addEventListener('click', closePanel);
+    const minimizePanel = () => iaPanel.classList.add('ia-panel--minimized');
 
-    // ── Gestion messages ───────────────────────────────
-    function addMessage(text, type) {
-        var div = document.createElement('div');
+    const restorePanel = () => {
+        iaPanel.classList.remove('ia-panel--minimized');
+        iaInput.focus();
+    };
+
+    if (iaOpenBtn)        iaOpenBtn.addEventListener('click', openPanel);
+    if (iaOpenBtnSidebar) iaOpenBtnSidebar.addEventListener('click', openPanel);
+    if (iaCloseBtn)       iaCloseBtn.addEventListener('click', closePanel);
+    if (iaMinimizeBtn)    iaMinimizeBtn.addEventListener('click', minimizePanel);
+
+    iaPanelHeader.addEventListener('click', e => {
+        if (iaPanel.classList.contains('ia-panel--minimized') &&
+            e.target !== iaCloseBtn && e.target !== iaMinimizeBtn) {
+            restorePanel();
+        }
+    });
+
+    // ── Messages ──────────────────────────────────────────────────────────────
+    const addMessage = (text, type) => {
+        const div = document.createElement('div');
         div.className = 'ia-message ia-message--' + type;
         div.innerHTML = text;
         iaMessages.appendChild(div);
         iaMessages.scrollTop = iaMessages.scrollHeight;
-    }
+    };
 
-    function setLoading(state) {
+    const setLoading = state => {
         isLoading = state;
         iaSendBtn.disabled = state;
         iaSendBtn.textContent = state ? '...' : 'Envoyer';
-    }
+    };
 
-    // ── Envoi message ───────────────────────────────────
-    function sendMessage() {
+    // ── Envoi ─────────────────────────────────────────────────────────────────
+    const sendMessage = () => {
         if (isLoading) return;
-
-        var message = iaInput.value.trim();
+        const message = iaInput.value.trim();
         if (!message) return;
 
         addMessage(message, 'user');
         iaInput.value = '';
         setLoading(true);
 
-        fetch(ENDPOINT, {
+        fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': CSRF_TOKEN,
+                'X-CSRF-Token': csrfToken,
             },
-            body: JSON.stringify({ message: message }),
+            body: JSON.stringify({ message }),
         })
         .then(res => res.json())
         .then(data => {
@@ -107,8 +126,8 @@ hljs.highlightAll();
                         resetSession();
                     });
                     break;
-                case 'incorrect':
-                    var msg = '✗ Incorrect.';
+                case 'incorrect': {
+                    let msg = '✗ Incorrect.';
                     if (attempt >= 3) {
                         msg += ' <strong>3 tentatives échouées.</strong>';
                         addMessage(msg, 'error');
@@ -124,42 +143,39 @@ hljs.highlightAll();
                         addMessage(msg, 'error');
                     }
                     break;
+                }
             }
         })
         .catch(() => {
             setLoading(false);
             addMessage('Erreur de connexion. Veuillez réessayer.', 'system');
         });
-    }
+    };
 
-    function askCorrection() {
+    const askCorrection = () => {
         addMessage('Correction demandée.', 'user');
         setLoading(true);
-        fetch(ENDPOINT, {
+        fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': CSRF_TOKEN,
+                'X-CSRF-Token': csrfToken,
             },
             body: JSON.stringify({ message: 'correction' }),
         })
         .then(res => res.json())
-        .then(data => {
-            setLoading(false);
-            addMessage(data.response, 'ia');
-        })
-        .catch(() => { setLoading(false); });
-    }
+        .then(data => { setLoading(false); addMessage(data.response, 'ia'); })
+        .catch(() => setLoading(false));
+    };
 
-    function resetSession() {
+    const resetSession = () => {
         attempt = 0;
         iaMessages.innerHTML =
             '<div class="ia-message ia-message--system">Dites <strong>bonjour</strong> pour commencer un nouvel exercice.</div>';
-    }
+    };
 
-    // ── Événements ──────────────────────────────────────
     iaSendBtn.addEventListener('click', sendMessage);
-    iaInput.addEventListener('keydown', function (e) {
+    iaInput.addEventListener('keydown', e => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendMessage();

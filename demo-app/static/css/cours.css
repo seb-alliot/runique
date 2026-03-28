@@ -251,8 +251,13 @@
     display: grid;
     grid-template-columns: 2fr 1fr;
     min-height: 0;
-    flex: 1;
     overflow: hidden;
+}
+
+/* Contraint le layout au viewport quand le panel est ouvert */
+.doc-layout:has(.ia-active) {
+    height: 100vh;
+    overflow: clip;
 }
 
 .cours-content-inner {
@@ -262,14 +267,45 @@
 }
 
 @media (max-width: 768px) {
+    /* Sur mobile le panel devient un overlay fixe — le layout ne change pas */
     .doc-content.ia-active {
-        grid-template-columns: 1fr;
-        grid-template-rows: 70vh 30vh;
-        height: calc(100vh - 3rem);
+        display: contents;
     }
 
     .cours-content-inner {
         padding: 1rem;
+    }
+
+    /* Overlay plein écran */
+    .ia-panel--visible {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        border-left: none;
+        border-top: none;
+    }
+
+    /* État minimisé : barre collée en bas */
+    .ia-panel--minimized {
+        inset: auto 0 0 0;
+        height: auto;
+        border-top: 2px solid var(--accent);
+        cursor: pointer;
+    }
+
+    .ia-panel--minimized .ia-messages,
+    .ia-panel--minimized .ia-input-area {
+        display: none;
+    }
+
+    #ia-minimize-btn {
+        display: inline-flex;
+    }
+}
+
+@media (min-width: 769px) {
+    #ia-minimize-btn {
+        display: none;
     }
 }
 
@@ -309,6 +345,12 @@
 .ia-panel-title {
     font-size: 0.9rem;
     font-weight: 600;
+}
+
+.ia-panel-actions {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
 }
 
 .ia-panel-close {

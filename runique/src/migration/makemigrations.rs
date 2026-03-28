@@ -128,7 +128,7 @@ fn topological_sort_changes(
         .map(|c| c.table_name.clone())
         .collect();
 
-    // Dépendances : table → tables dont elle dépend (parmi les nouvelles tables)
+    // deps[A] = {B} : A a une FK vers B, donc B doit être créée avant A
     let mut deps: HashMap<String, HashSet<String>> = HashMap::new();
     for change in &changes {
         if !change.is_new_table {
@@ -142,32 +142,25 @@ fn topological_sort_changes(
         }
     }
 
-    // Algorithme de Kahn
-    let mut in_degree: HashMap<String, usize> = HashMap::new();
+    // dependents[B] = [A] : quand B est traité, on peut décrémenter l'in_degree de A
     let mut dependents: HashMap<String, Vec<String>> = HashMap::new();
-
     for (table, table_deps) in &deps {
-        in_degree.entry(table.clone()).or_insert(0);
         for dep in table_deps {
-            *in_degree.entry(dep.clone()).or_insert(0) += 0; // assure l'entrée
             dependents
                 .entry(dep.clone())
                 .or_default()
                 .push(table.clone());
         }
-        for dep in table_deps {
-            *in_degree.get_mut(dep).unwrap_or(&mut 0) += 0;
-        }
     }
 
-    // in_degree correct : compter combien de tables dépendent de chacune
+    // in_degree[A] = nombre de prérequis de A (tables que A attend via FK)
+    // Les tables sans prérequis (in_degree == 0) sont traitées en premier.
     let mut in_degree: HashMap<String, usize> = new_tables.iter().map(|t| (t.clone(), 0)).collect();
-    for table_deps in deps.values() {
-        for dep in table_deps {
-            *in_degree.entry(dep.clone()).or_insert(0) += 1;
-        }
+    for (table, table_deps) in &deps {
+        *in_degree.entry(table.clone()).or_insert(0) += table_deps.len();
     }
 
+    // Algorithme de Kahn : commence par les tables sans prérequis (ex. B référencée par A)
     let mut queue: VecDeque<String> = in_degree
         .iter()
         .filter(|(_, d)| **d == 0)
@@ -190,7 +183,6 @@ fn topological_sort_changes(
         }
     }
 
-    // Tables non nouvelles : conserver leur ordre original à la fin
     let mut result: Vec<crate::migration::utils::types::Changes> =
         Vec::with_capacity(changes.len());
     let mut by_name: HashMap<String, crate::migration::utils::types::Changes> = changes
@@ -198,13 +190,13 @@ fn topological_sort_changes(
         .map(|c| (c.table_name.clone(), c))
         .collect();
 
-    // Nouvelles tables triées topologiquement
+    // Nouvelles tables dans l'ordre topologique (référencées en premier)
     for name in sorted_names {
         if let Some(c) = by_name.remove(&name) {
             result.push(c);
         }
     }
-    // Restants (alter + éventuels cycles)
+    // Restants (ALTER + éventuels cycles)
     result.extend(by_name.into_values());
     result
 }
@@ -317,77 +309,118 @@ pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Res
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
     let db_kind = detect_db_kind();
 
-    // ── tri topologique des nouvelles tables ─────────────────────────────────
-    // Les tables référencées par FK doivent être créées AVANT les tables qui
-    // les référencent, car sea-orm exécute les migrations dans l'ordre de lib.rs.
+    // ── tri topologique : tables référencées créées avant celles qui les référencent
     all_changes = topological_sort_changes(all_changes);
 
-    // ── write files ──────────────────────────────────────────────────────────
+    // ── Phase 1 : planification — aucune écriture ────────────────────────────
+    let mut files_to_write: Vec<(String, String)> = Vec::new(); // (path, content)
+    let mut extra_dirs: Vec<String> = Vec::new();
+    let mut lib_modules: Vec<String> = Vec::new();
+
     for change in &all_changes {
         let schema = schemas
             .iter()
             .find(|s| s.table_name == change.table_name)
             .unwrap();
 
-        // Snapshot always updated (DbKind::Other — pas de SQL DB-spécifique dans le diff)
-        let snap_path = snapshot_file_path(migrations_path, &change.table_name);
-        fs::write(
-            &snap_path,
+        // Snapshot (toujours mis à jour, sans SQL DB-spécifique)
+        files_to_write.push((
+            snapshot_file_path(migrations_path, &change.table_name),
             generate_create_file(schema, &crate::migration::utils::types::DbKind::Other),
-        )
-        .with_context(|| format!("Failed to write snapshot: {}", snap_path))?;
+        ));
 
         if change.is_new_table {
-            // Timestamped SeaORM file — immutable, executed by sea-orm-cli
             let module_name = seaorm_create_module_name(&timestamp, &change.table_name);
             let seaorm_path =
                 seaorm_create_file_path(migrations_path, &timestamp, &change.table_name);
-
-            fs::write(&seaorm_path, generate_create_file(schema, &db_kind))
-                .with_context(|| format!("Failed to write: {}", seaorm_path))?;
-
-            println!(" {}", tf("makemigrations.generated", &[&seaorm_path]));
-            update_migration_lib(migrations_path, &module_name)?;
+            files_to_write.push((seaorm_path, generate_create_file(schema, &db_kind)));
+            lib_modules.push(module_name);
         } else {
-            println!(" {}", tf("makemigrations.snapshot_updated", &[&snap_path]));
+            extra_dirs.push(table_applied_dir(migrations_path, &change.table_name));
+            extra_dirs.push(batch_up_dir(migrations_path, &change.table_name));
+            extra_dirs.push(batch_down_dir(migrations_path, &change.table_name));
 
-            // ALTER file in applied/<table>/
-            let table_dir = table_applied_dir(migrations_path, &change.table_name);
-            fs::create_dir_all(&table_dir)?;
+            let module_name = seaorm_alter_module_name(&timestamp, &change.table_name);
+            let seaorm_path =
+                seaorm_alter_file_path(migrations_path, &timestamp, &change.table_name);
+            files_to_write.push((seaorm_path, generate_alter_file(change)));
+            lib_modules.push(module_name);
 
-            let alter_path = alter_file_path(migrations_path, &change.table_name, &timestamp);
-            if !change.is_new_table {
-                let module_name = seaorm_alter_module_name(&timestamp, &change.table_name);
-                let seaorm_path =
-                    seaorm_alter_file_path(migrations_path, &timestamp, &change.table_name);
+            files_to_write.push((
+                alter_file_path(migrations_path, &change.table_name, &timestamp),
+                generate_alter_file(change),
+            ));
+            files_to_write.push((
+                batch_up_path(migrations_path, &change.table_name, &timestamp),
+                generate_batch_up_file(&[change], &timestamp),
+            ));
+            files_to_write.push((
+                batch_down_path(migrations_path, &change.table_name, &timestamp),
+                generate_batch_down_file(&[change], &timestamp),
+            ));
+        }
+    }
 
-                fs::write(&seaorm_path, generate_alter_file(change)).with_context(|| {
-                    format!("Failed to write SeaORM alter migration: {}", seaorm_path)
-                })?;
+    // ── Phase 2 : création des répertoires (idempotent) ──────────────────────
+    for dir in &extra_dirs {
+        fs::create_dir_all(dir)?;
+    }
 
-                println!("{}", tf("makemigrations.seaorm_alter", &[&seaorm_path]));
+    // ── Phase 3 : écriture atomique ──────────────────────────────────────────
+    // Sauvegarde de lib.rs pour rollback en cas d'erreur partielle.
+    let lib_file = lib_path(migrations_path);
+    let lib_backup: Option<String> = if Path::new(&lib_file).exists() {
+        Some(fs::read_to_string(&lib_file)?)
+    } else {
+        None
+    };
 
-                update_migration_lib(migrations_path, &module_name)?;
+    let mut written: Vec<String> = Vec::new();
+
+    let write_result: Result<()> = (|| {
+        for (path, content) in &files_to_write {
+            fs::write(path, content).with_context(|| format!("Failed to write: {}", path))?;
+            written.push(path.clone());
+        }
+        for module_name in &lib_modules {
+            update_migration_lib(migrations_path, module_name)?;
+        }
+        Ok(())
+    })();
+
+    if let Err(e) = write_result {
+        eprintln!(
+            "\n[makemigrations] Erreur : {}. Annulation des fichiers générés...",
+            e
+        );
+        for path in &written {
+            if let Err(re) = fs::remove_file(path) {
+                eprintln!(
+                    "  avertissement : impossible de supprimer {} : {}",
+                    path, re
+                );
+            } else {
+                eprintln!("  supprimé : {}", path);
             }
-            fs::write(&alter_path, generate_alter_file(change))
-                .with_context(|| format!("Failed to write: {}", alter_path))?;
-            println!(" {}", tf("makemigrations.generated", &[&alter_path]));
+        }
+        match lib_backup {
+            Some(content) => {
+                let _ = fs::write(&lib_file, content);
+                eprintln!("  lib.rs restauré");
+            }
+            None => {
+                let _ = fs::remove_file(&lib_file);
+            }
+        }
+        return Err(e);
+    }
 
-            // Batch up/down per table in applied/by_time/<table>/
-            let up_dir = batch_up_dir(migrations_path, &change.table_name);
-            let down_dir = batch_down_dir(migrations_path, &change.table_name);
-            fs::create_dir_all(&up_dir)?;
-            fs::create_dir_all(&down_dir)?;
-
-            let up_path = batch_up_path(migrations_path, &change.table_name, &timestamp);
-            fs::write(&up_path, generate_batch_up_file(&[change], &timestamp))
-                .with_context(|| format!("Failed to write batch up: {}", up_path))?;
-            println!(" {}", tf("makemigrations.batch_up", &[&up_path]));
-
-            let down_path = batch_down_path(migrations_path, &change.table_name, &timestamp);
-            fs::write(&down_path, generate_batch_down_file(&[change], &timestamp))
-                .with_context(|| format!("Failed to write batch down: {}", down_path))?;
-            println!(" {}", tf("makemigrations.batch_down", &[&down_path]));
+    // ── Rapport ───────────────────────────────────────────────────────────────
+    for (path, _) in &files_to_write {
+        if path.contains("snapshot") {
+            println!(" {}", tf("makemigrations.snapshot_updated", &[path]));
+        } else {
+            println!(" {}", tf("makemigrations.generated", &[path]));
         }
     }
 

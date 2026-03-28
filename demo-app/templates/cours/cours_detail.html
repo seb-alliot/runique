@@ -81,9 +81,12 @@
         </main>
 
         <div class="ia-panel" id="ia-panel">
-            <div class="ia-panel-header">
+            <div class="ia-panel-header" id="ia-panel-header">
                 <span class="ia-panel-title">⚡ Runique exercice</span>
-                <button class="ia-panel-close" id="ia-close-btn" title="Fermer">✕</button>
+                <div class="ia-panel-actions">
+                    <button class="ia-panel-close" id="ia-minimize-btn" title="Réduire">⋮</button>
+                    <button class="ia-panel-close" id="ia-close-btn" title="Fermer">✕</button>
+                </div>
             </div>
 
             <div class="ia-messages" id="ia-messages">
@@ -110,6 +113,9 @@
 {% endblock %}
 
 {% block scripts %}
+<script nonce="{{ csp_nonce }}">
+    window.COUR_SLUG = "{{ cour.slug }}";
+</script>
 <script nonce="{{ csp_nonce }}" src='{% static "js/highlight.min.js" %}'></script>
 <script nonce="{{ csp_nonce }}" src='{% static "js/cour_ia.js" %}'></script>
 {% endblock %}

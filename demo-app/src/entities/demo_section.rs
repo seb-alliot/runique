@@ -9,5 +9,8 @@ model! {
         title: String [required],
         content: String [nullable],
         sort_order: i32 [required],
+    },
+    relations: {
+        belongs_to: DemoPage via page_id [cascade],
     }
 }

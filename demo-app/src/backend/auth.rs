@@ -45,7 +45,7 @@ pub async fn handle_inscription(
     request: &mut Request,
     form: &mut RegisterForm,
 ) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
     }
@@ -84,7 +84,7 @@ pub async fn handle_inscription(
 }
 
 pub async fn handle_login(request: &mut Request, form: &LoginForm) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
     }

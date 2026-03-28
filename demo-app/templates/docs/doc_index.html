@@ -88,32 +88,6 @@
     </div>
     {% endif %}
 
-    {% if cours_themes | length > 0 %}
-    <div class="doc-index-section">
-        <button class="doc-index-section-title doc-section--cours" type="button" data-section="cours" aria-expanded="true">
-            {% if lang == "fr" %}Cours{% else %}Courses{% endif %}
-            <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div id="doc-section-cours">
-            {% for diff in cours_difficultes %}
-                {% set diff_cours = cours | filter(attribute="difficulte", value=diff) %}
-                {% if diff_cours | length > 0 %}
-                <div class="doc-index-subsection">
-                    <button class="doc-index-section-title doc-subsection-title doc-diff--{{ diff | lower }}" type="button" data-section="cours-{{ diff | lower }}" aria-expanded="true">
-                        {{ diff }}
-                        <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
-                    </button>
-                    <div class="doc-index-nav" id="doc-section-cours-{{ diff | lower }}">
-                        {% for c in diff_cours %}
-                        <a href="/cours/{{ c.slug }}" class="doc-index-nav-link">{{ c.title }}</a>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}
 

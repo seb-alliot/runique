@@ -147,9 +147,12 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
-    pub async fn count(self, db: &DatabaseConnection) -> Result<u64, DbErr> {
-        let items = self.query.all(db).await?;
-        Ok(items.len() as u64)
+    pub async fn count(self, db: &DatabaseConnection) -> Result<u64, DbErr>
+    where
+        E::Model: Sync,
+    {
+        use sea_orm::PaginatorTrait;
+        self.query.count(db).await
     }
 
     pub async fn first(self, db: &DatabaseConnection) -> Result<Option<E::Model>, DbErr> {

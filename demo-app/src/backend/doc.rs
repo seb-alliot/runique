@@ -2,7 +2,7 @@ use crate::entities::{cour, doc_block, doc_page, doc_section};
 use runique::prelude::*;
 
 pub async fn doc_index(lang: &str, request: &mut Request) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
     let sections = doc_section::Entity::find()
@@ -50,7 +50,7 @@ pub async fn doc_page(
     page_slug: &str,
     request: &mut Request,
 ) -> AppResult<Response> {
-    crate::backend::inject_auth(request).await;
+    crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
     let section = doc_section::Entity::find()

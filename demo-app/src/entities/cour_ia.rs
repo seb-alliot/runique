@@ -11,8 +11,4 @@ model! {
         cour_id: i32 [required],
         sort_order: i32 [required],
     }
-    relations: {
-        belongs_to: ContrainteIa via contrainte_id [cascade],
-        belongs_to: Cour via cour_id [cascade],
-    }
 }

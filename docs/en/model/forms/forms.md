@@ -7,11 +7,13 @@ The `#[form(...)]` attribute macro expects:
 - `schema = function_path` (required)
 - `fields = [..]` (optional)
 - `exclude = [..]` (optional)
+- `model = Entity` (optional) — links the form to a SeaORM entity
 
-It generates only:
+It generates:
 
 - a struct containing `form: Forms`
 - `impl ModelForm` (`schema()`, `fields()`, `exclude()`)
+- if `model` is present: `impl FormEntity` + `pub const objects`
 
 The developer then writes `impl RuniqueForm` with `impl_form_access!(model)`:
 
@@ -24,6 +26,66 @@ pub struct UserForm;
 impl RuniqueForm for UserForm {
     impl_form_access!(model);
 }
+```
+
+### With `model` — ORM access from the form
+
+Adding `model = Entity` makes the form a direct entry point for ORM queries, without going through the entity type.
+
+```rust
+#[form(schema = user_schema, model = users::Entity)]
+pub struct UserForm;
+
+#[form(schema = blog_schema, model = blog::Entity)]
+pub struct BlogForm;
+
+#[form(schema = document_schema, model = document::Entity)]
+pub struct DocumentForm;
+```
+
+This automatically generates:
+
+```rust
+impl FormEntity for UserForm {
+    type Entity = users::Entity;
+}
+impl UserForm {
+    pub const objects: Objects<users::Entity> = Objects::new();
+}
+```
+
+**Direct ORM access via the form:**
+
+```rust
+// All records
+let users = UserForm::objects.all().all(&db).await?;
+
+// With filter
+let user = UserForm::objects
+    .filter(users::Column::Email.eq("alice@example.com"))
+    .first(&db)
+    .await?;
+
+// Via the search! macro
+let results = search!(@UserForm => Username = "alice").all(&db).await?;
+let adults  = search!(@UserForm => Age >= 18).all(&db).await?;
+
+// All search! operators are supported
+let results = search!(@BlogForm =>
+    Status = ("published" | "featured"),
+    AuthorId = author_id,
+)
+.order_by_desc(blog::Column::CreatedAt)
+.limit(10)
+.all(&db)
+.await?;
+```
+
+> `model` is compatible with `fields` and `exclude` — they can be freely combined.
+
+```rust
+#[form(schema = user_schema, fields = [username, email], model = users::Entity)]
+pub struct UserForm;
 ```
 
 ### With business validation (`clean`)
@@ -114,6 +176,7 @@ This limitation will be addressed in **v2.0** with the refactoring of the field 
 | --- | --- |
 | [DSL & AST](/docs/en/model/dsl) | `model!` syntax, types, options |
 | [Generation & ModelSchema](/docs/en/model/generation) | Generated code |
+| [CRUD Queries](/docs/en/orm/queries) | Full `search!` reference |
 
 ## Back to summary
 

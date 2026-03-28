@@ -11,5 +11,8 @@ model! {
         code: String [required],
         context: String [nullable],
         sort_order: i32 [required],
+    },
+    relations: {
+        belongs_to: DemoPage via page_id [cascade],
     }
 }

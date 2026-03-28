@@ -142,9 +142,12 @@ impl<E: EntityTrait> Objects<E> {
         E::find_by_id(id).one(db).await
     }
 
-    pub async fn count(&self, db: &DatabaseConnection) -> Result<u64, DbErr> {
-        let items = E::find().all(db).await?;
-        Ok(items.len() as u64)
+    pub async fn count(&self, db: &DatabaseConnection) -> Result<u64, DbErr>
+    where
+        E::Model: Sync,
+    {
+        use sea_orm::PaginatorTrait;
+        E::find().count(db).await
     }
     pub async fn get_or_404(
         &self,

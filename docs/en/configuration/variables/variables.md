@@ -65,18 +65,16 @@ MEDIA_ROOT=uploads
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SECRETE_KEY` | *(required)* | CSRF secret key (⚠️ CHANGE IN PROD!) |
-| `ALLOWED_HOSTS` | `*` | Allowed hosts (comma-separated) |
-
-**ALLOWED_HOSTS patterns:**
-
-- `localhost` — exact match
-- `*` — wildcard all hosts (DANGEROUS in production!)
-- `.example.com` — matches `example.com` and `*.example.com`
 
 ```env
 SECRETE_KEY=your_secret_key_change_this_in_production
-ALLOWED_HOSTS=localhost,127.0.0.1,example.com,.api.example.com
 ```
+
+> Allowed hosts are configured in the builder (`main.rs`), not via an environment variable:
+>
+> ```rust
+> .with_allowed_hosts(|h| h.enabled(true).host("example.com"))
+> ```
 
 ---
 
@@ -115,7 +113,6 @@ MEDIA_ROOT=media
 # SECURITY
 # ============================================================================
 SECRETE_KEY=your_secret_key_here_change_in_production
-ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
 ---
@@ -141,7 +138,6 @@ DEBUG=false
 PORT=443
 IP_SERVER=0.0.0.0
 SECRETE_KEY=<dynamically generated>
-ALLOWED_HOSTS=example.com,www.example.com,.api.example.com
 DATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique
 ```
 
@@ -152,7 +148,6 @@ DEBUG=true
 PORT=3000
 IP_SERVER=127.0.0.1
 SECRETE_KEY=any_dev_key
-ALLOWED_HOSTS=*
 DATABASE_URL=sqlite:runique.db?mode=rwc
 ```
 
@@ -161,7 +156,6 @@ DATABASE_URL=sqlite:runique.db?mode=rwc
 ```env
 DEBUG=true
 SECRETE_KEY=test_key
-ALLOWED_HOSTS=localhost,127.0.0.1
 DATABASE_URL=sqlite::memory:
 ```
 

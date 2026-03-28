@@ -11,5 +11,8 @@ model! {
         title: String [required],
         lead: String [nullable],
         sort_order: i32 [required],
+    },
+    relations: {
+        belongs_to: DocSection via section_id [cascade],
     }
 }

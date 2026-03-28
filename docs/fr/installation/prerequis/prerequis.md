@@ -3,69 +3,72 @@
 ## Prérequis
 
 - **Rust 1.85+** — [Installer rustup](https://rustup.rs/)
-- **PostgreSQL 12+** (ou SQLite pour dev)
-- **Git**
+- **PostgreSQL 12+** (ou SQLite pour le développement)
 
 ### Vérifier les versions
 
 ```bash
 rustc --version    # Rust 1.85+
 cargo --version    # Cargo 1.85+
-postgres --version # PostgreSQL 12+
 ```
 
 ---
 
-## Installation du Projet
+## Installation
 
-### 1. Cloner le repository
+### 1. Installer Rust
 
 ```bash
-git clone https://github.com/seb-alliot/runique.git
-cd runique
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-### 2. Configuration .env
+### 2. Installer la CLI Runique
 
-Créer un fichier `.env` dans le répertoire `demo-app/` :
+```bash
+cargo install runique
+```
+
+### 3. Créer un nouveau projet
+
+```bash
+runique new mon-projet
+cd mon-projet
+```
+
+### 4. Configurer l'environnement
+
+Créer un fichier `.env` à la racine du projet :
 
 ```env
-# Server
+# Serveur
 IP_SERVER=127.0.0.1
 PORT=3000
 DEBUG=true
 
-# Database (PostgreSQL)
+# Base de données (PostgreSQL)
 DB_ENGINE=postgres
 DB_USER=postgres
 DB_PASSWORD=your_password_here
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=runique
-DATABASE_URL=postgres://postgres:your_password_here@localhost:5432/runique
+DB_NAME=mon-projet
+DATABASE_URL=postgres://postgres:your_password_here@localhost:5432/mon-projet
 
 # Templates & Static Files
 TEMPLATES_DIR=templates
 STATICFILES_DIRS=static
 MEDIA_ROOT=media
 
-# Security
+# Sécurité
 SECRET_KEY=your_secret_key_change_in_production
+
+# Les hosts autorisés se configurent dans le builder (main.rs), pas en variable d'env
 ```
 
-### 3. Compiler le projet
+### 5. Lancer le serveur
 
 ```bash
-cargo build
-
-# Ou pour le mode release (optimisé) :
-cargo build --release
-```
-
-### 4. Lancer le serveur
-
-```bash
-cargo run -p demo-app
+cargo run
 ```
 
 **Output attendu :**
@@ -75,7 +78,11 @@ cargo run -p demo-app
    Serveur lancé sur http://127.0.0.1:3000
 ```
 
-### Outils recommandés
+> `runique start` est réservé aux projets utilisant le panneau d'administration — il active le daemon admin en parallèle. Pour un projet sans admin, `cargo run` suffit.
+
+---
+
+## Outils recommandés
 
 ```bash
 # Rust analyzer pour l'IDE
@@ -96,6 +103,7 @@ cargo install sea-orm-cli
 | --- | --- |
 | [Base de données](/docs/fr/installation/base-de-donnees) | SQLite, PostgreSQL |
 | [Migrations](/docs/fr/installation/migrations) | Workflow de migration |
+| [CLI Runique](/docs/fr/installation/cli) | Toutes les commandes disponibles |
 
 ## Retour au sommaire
 

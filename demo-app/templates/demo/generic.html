@@ -15,17 +15,17 @@
     {% endif %}
 
     {% if code_examples %}
-    <div class="demo-layout">
-        {% for example in code_examples %}
-        <div class="demo-code">
-            <div class="demo-code-title">
-                {{ example.title }}
-                {% if example.context %}
-                <span class="demo-code-badge">{{ example.context }}</span>
-                {% endif %}
+    <div class="hero-code" style="max-width: 100%; margin-bottom: 2rem;">
+        <div class="hero-code-header">
+            <span class="hero-code-dots">● ● ●</span>
+            <div class="hero-code-tabs" role="tablist">
+                {% for example in code_examples %}
+                <button class="hero-tab{% if loop.first %} active{% endif %}" data-tab="{{ loop.index0 }}" role="tab">{{ example.title }}</button>
+                {% endfor %}
             </div>
-            <pre><code class="language-{{ example.language }}">{{ example.code }}</code></pre>
         </div>
+        {% for example in code_examples %}
+        <pre class="hero-code-body hero-tab-panel{% if loop.first %} active{% endif %}" data-panel="{{ loop.index0 }}"><code class="language-{{ example.language }}">{{ example.code }}</code></pre>
         {% endfor %}
     </div>
     {% endif %}
@@ -48,9 +48,6 @@
     {% endif %}
 
     <div class="back-link">
-        {% for link in doc_links %}
-        <a href="{{ link.url }}" target="_blank" class="btn btn-secondary">{{ link.label }}</a>
-        {% endfor %}
         {% if category and category.back_link_url %}
         <a href="{{ category.back_link_url }}">{{ category.back_link_label }}</a>
         {% else %}

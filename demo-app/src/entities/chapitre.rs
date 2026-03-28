@@ -10,5 +10,8 @@ model! {
         title: String [required],
         lead: String [nullable],
         sort_order: i32 [required],
+    },
+    relations: {
+        belongs_to: Cour via cour_id [cascade],
     }
 }

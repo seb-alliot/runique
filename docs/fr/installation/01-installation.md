@@ -6,7 +6,7 @@ Guide complet pour installer et configurer un projet Runique.
 
 | Module | Description |
 | --- | --- |
-| [Prérequis & setup initial](/docs/fr/installation/prerequis) | Rust, Git, cloner le projet, compiler, lancer |
+| [Prérequis & setup initial](/docs/fr/installation/prerequis) | Rust, `cargo install runique`, créer un projet, lancer |
 | [Base de données](/docs/fr/installation/base-de-donnees) | SQLite (dev), PostgreSQL (prod) |
 | [Migrations](/docs/fr/installation/migrations) | `makemigrations`, `migrate up/down/status` |
 | [CLI Runique](/docs/fr/installation/cli) | `create-superuser`, `new`, `start` |

@@ -10,5 +10,8 @@ model! {
         url: String [required],
         link_type: String [required],
         sort_order: i32 [required],
+    },
+    relations: {
+        belongs_to: DemoPage via page_id [cascade],
     }
 }
