@@ -1,4 +1,5 @@
 // Dans src/tera_function/form_filter.rs
+use crate::middleware::errors::error::html_escape;
 use crate::utils::aliases::JsonMap;
 use crate::utils::aliases::TResult;
 use tera::Value;
@@ -116,7 +117,12 @@ fn render_scripts(value: &Value) -> Option<String> {
     let scripts: Vec<String> = files
         .iter()
         .filter_map(|f| f.as_str())
-        .map(|file| format!(r#"<script src="/static/{}" defer></script>"#, file))
+        .map(|file| {
+            format!(
+                r#"<script src="/static/{}" defer></script>"#,
+                html_escape(file)
+            )
+        })
         .collect();
 
     if scripts.is_empty() {
