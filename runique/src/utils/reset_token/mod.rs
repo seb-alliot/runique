@@ -72,7 +72,7 @@ pub fn encrypt_email(token: &str, email: &str) -> String {
         let mut block_input = [0u8; 36];
         block_input[..32].copy_from_slice(&enc_key);
         block_input[32..].copy_from_slice(&(block_idx as u32).to_le_bytes());
-        let keystream: [u8; 32] = Sha256::digest(&block_input).into();
+        let keystream: [u8; 32] = Sha256::digest(block_input).into();
         for (b, k) in chunk.iter().zip(keystream.iter()) {
             ciphertext.push(b ^ k);
         }
@@ -125,7 +125,7 @@ pub fn decrypt_email(token: &str, encoded: &str) -> Option<String> {
         let mut block_input = [0u8; 36];
         block_input[..32].copy_from_slice(&enc_key);
         block_input[32..].copy_from_slice(&(block_idx as u32).to_le_bytes());
-        let keystream: [u8; 32] = Sha256::digest(&block_input).into();
+        let keystream: [u8; 32] = Sha256::digest(block_input).into();
         for (b, k) in chunk.iter().zip(keystream.iter()) {
             plaintext.push(b ^ k);
         }
