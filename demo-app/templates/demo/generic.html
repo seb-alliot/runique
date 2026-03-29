@@ -15,7 +15,7 @@
     {% endif %}
 
     {% if code_examples %}
-    <div class="hero-code" style="max-width: 100%; margin-bottom: 2rem;">
+    <div class="hero-code hero-code-full">
         <div class="hero-code-header">
             <span class="hero-code-dots">● ● ●</span>
             <div class="hero-code-tabs" role="tablist">
@@ -31,7 +31,7 @@
     {% endif %}
 
     {% if form_fields %}
-    <div class="roadmap-section" style="margin-top: 2rem;">
+    <div class="roadmap-section">
         <h2>Champs disponibles</h2>
         {% for field in form_fields %}
         <details class="field-details">

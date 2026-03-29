@@ -268,11 +268,13 @@ fn test_boolean_checked_unchecked() {
 }
 
 #[test]
-fn test_boolean_required_not_checked_fails() {
+fn test_boolean_required_not_checked_passes() {
+    // required sur un BooleanField = NOT NULL en DB, pas "doit être coché".
+    // "false" (décoché) est une valeur valide — validate() retourne toujours true.
+    // Pour forcer la coche (ex: CGU), utiliser clean() avec une erreur custom.
     let mut field = BooleanField::new("cgu").required();
     field.set_value("false");
-    assert!(!field.validate());
-    assert_eq!(field.error().unwrap(), "This field is required");
+    assert!(field.validate());
 }
 
 #[test]

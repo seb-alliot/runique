@@ -7,7 +7,7 @@
         <a href="{% link 'blog_info' %}" class="btn btn-primary">+ Nouvel article</a>
     </div>
 
-    <form method="get" action="{% link 'blog_list' %}" style="margin-bottom:1.5rem; display:flex; gap:0.5rem;">
+    <form method="get" action="{% link 'blog_list' %}" class="search-bar">
         {% form.search_form.search %}
         <button type="submit" class="btn btn-secondary">Rechercher</button>
         {% if search %}

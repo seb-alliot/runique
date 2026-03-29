@@ -8,11 +8,11 @@
 {% block content %}
 <div class="container">
     <h1>{{ title }}</h1>
-    <p class="lead" style="text-align:center; margin-bottom: 2rem;">
+    <p class="lead lead-mb">
         Accès aux valeurs de formulaire et aux paramètres d'URL — helpers typés et accès whitelisté.
     </p>
     <!-- Démo live -->
-    <div class="demo-section" style="margin-top: 2rem;">
+    <div class="demo-section section-top">
         <h2>Démo live</h2>
         <p>
             Route active : <code>/formulaires/helpers/<strong>{{ path_id | default(value="—") }}</strong></code>
@@ -21,10 +21,10 @@
             &nbsp;·&nbsp;
             <code>cleaned_string("search")</code> : <strong>{{ cleaned_search | default(value="—") }}</strong>
         </p>
-        <p style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+        <p class="hint-text">
             Testez en modifiant l'URL :
         </p>
-        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem;">
+        <div class="flex-row-wrap">
             <a href="/formulaires/helpers/rust" class="btn btn-secondary">
                 /helpers/<strong>rust</strong>
             </a>
@@ -32,7 +32,7 @@
                 /helpers/<strong>rust</strong>?search=framework
             </a>
             <a href="/formulaires/helpers/rust?search=framework&is_admin=true" class="btn btn-secondary">
-                +is_admin=true <span style="font-size:0.8rem; opacity:0.7">(ignoré — hors whitelist)</span>
+                +is_admin=true <span class="label-sm">(ignoré — hors whitelist)</span>
             </a>
         </div>
     </div>
@@ -137,7 +137,7 @@ form.<span class="fn_">cleaned_string</span>(<span class="st">"is_admin"</span>)
 
     </div>
 
-    <div class="back-link" style="margin-top: 2rem;">
+    <div class="back-link">
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md" target="_blank" class="btn btn-secondary">Doc FR</a>
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md" target="_blank" class="btn btn-secondary">Doc EN</a>
         <a href="{% link 'formulaires_hub' %}">← Formulaires</a>
