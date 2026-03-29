@@ -144,7 +144,7 @@
     display: grid;
     grid-template-columns: clamp(150px, 20vw, 300px) 1fr;
     gap: 0;
-    min-height: calc(100vh - 120px);
+    min-height: 100vh;
     margin: 0 auto;
 }
 
@@ -435,7 +435,9 @@
 .doc-layout {
     overflow-x: hidden;
 }
-
+.doc-padding {
+    padding: 1rem;
+}
 .doc-content {
     overflow-wrap: break-word;
     word-break: break-word;
