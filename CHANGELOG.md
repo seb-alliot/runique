@@ -23,7 +23,19 @@ All notable changes to this project will be documented in this file.
   The password field is no longer shown in the admin edit view.
   Password changes will be handled through a dedicated reset form sent by email.
 
+* **Admin generator — unused `Order` import removed:**
+  The admin panel generator no longer emits an unused `Order` import, eliminating compiler warnings on generated files.
+
 ### Added
+
+* **Hero banner — image overlay layout:**
+  The index page hero now uses an image-based layout: the banner image fills the full width with the text (name, tagline, CTA) overlaid on the left via an absolute-positioned gradient layer.
+  A `<picture>` element serves a dedicated mobile crop at ≤ 600px.
+  The version badge has been moved from the hero to the navigation bar, next to the logo.
+
+* **`get_user` context helper (demo-app):**
+  A `get_user(&mut request)` async helper injects the authenticated username into the Tera context in one call.
+  Internally delegates to `get_username` from `auth_session`.
 
 * **Admin view — configurable pagination:**
   Page size in the list view is now configurable via the admin builder: `.page_size(15)`.
