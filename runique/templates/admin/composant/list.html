@@ -31,13 +31,13 @@
     {% include "admin/list_partial" %}
   </div>
 
-  <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
-  <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-kebab.js" | runique_static }}"></script>
-  <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-list.js" | runique_static }}"></script>
+  <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
+  <script {% csp %} src="{{ "js/admin/admin-kebab.js" | runique_static }}"></script>
+  <script {% csp %} src="{{ "js/admin/admin-list.js" | runique_static }}"></script>
 {% endblock %}
 
 {% block extra_js %}
 {{ super() }}
-<script nonce="{{ csp_nonce }}">htmx = { config: { allowEval: false } };</script>
-<script nonce="{{ csp_nonce }}" src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
+<script {% csp %}>htmx = { config: { allowEval: false } };</script>
+<script {% csp %} src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
 {% endblock %}

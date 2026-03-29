@@ -91,5 +91,5 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
+    <script {% csp %} src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
 {% endblock %}

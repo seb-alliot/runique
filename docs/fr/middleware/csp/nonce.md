@@ -20,19 +20,19 @@ Content-Security-Policy: script-src 'self' 'nonce-r4nd0m...'; style-src 'self' '
 
 ## Usage dans les templates
 
-### Tag Tera (recommandé)
+### Tag Runique (recommandé)
 
 ```html
-<script {% csp_nonce %}>
+<script {% csp %}>
     console.log("Script sécurisé par nonce");
 </script>
 
-<style {% csp_nonce %}>
+<style {% csp %}>
     body { margin: 0; }
 </style>
 ```
 
-Le tag `{% csp_nonce %}` génère `nonce="r4nd0m..."` directement.
+Le tag `{% csp %}` génère `nonce="r4nd0m..."` directement.
 
 ### Variable directe
 
@@ -45,7 +45,7 @@ Le tag `{% csp_nonce %}` génère `nonce="r4nd0m..."` directement.
 ### Transmission à du JavaScript
 
 ```html
-<script {% csp_nonce %}>
+<script {% csp %}>
     // Stocker le nonce pour les scripts dynamiques si nécessaire
     window.__nonce = "{{ csp_nonce }}";
 </script>

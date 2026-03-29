@@ -49,10 +49,10 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 
 ---
 
-## {% csp_nonce %} — CSP nonce
+## {% csp %} — CSP nonce
 
 ```html
-<script {% csp_nonce %}>
+<script {% csp %}>
     console.log("Script secured with CSP nonce");
 </script>
 ```

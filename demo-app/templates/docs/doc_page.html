@@ -101,8 +101,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ csp_nonce }}" src='{% static "js/highlight.min.js" %}'></script>
-<script nonce="{{ csp_nonce }}">
+<script {% csp %} src='{% static "js/highlight.min.js" %}'></script>
+<script {% csp %}>
 hljs.highlightAll();
 
 // Sidebar mobile

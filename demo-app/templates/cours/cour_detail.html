@@ -106,6 +106,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ csp_nonce }}" src='{% static "js/highlight.min.js" %}'></script>
-<script nonce="{{ csp_nonce }}" src='{% static "js/cour_detail.js" %}'></script>
+<script {% csp %} src='{% static "js/highlight.min.js" %}'></script>
+<script {% csp %} src='{% static "js/cour_detail.js" %}'></script>
 {% endblock %}
