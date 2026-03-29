@@ -152,8 +152,7 @@ pub async fn parse_multipart(
     // Commit : déplacer tous les fichiers du tmp vers leur destination finale.
     // tmp_dir est dans upload_dir → même filesystem → rename atomique garanti.
     for (tmp_path, final_path, field_name) in pending_files {
-        if let Err(_) = tokio::fs::rename(&tmp_path, &final_path).await {
-            let _ = tokio::fs::remove_dir_all(&tmp_dir).await;
+        if tokio::fs::rename(&tmp_path, &final_path).await.is_err() {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 t("forms.file_write_error").to_string(),
