@@ -5,9 +5,10 @@
  *   - bouton burger filtre (mobile)
  *   - repli/dépli de la sidebar filtres (desktop)
  *   - repli/dépli individuel des groupes de filtres
+ *   - re-init automatique après swap HTMX
  */
 
-(function () {
+function initAdminList() {
     'use strict';
 
     // ── AdminActions ──
@@ -98,4 +99,20 @@
             sessionStorage.setItem(KEY, open ? '1' : '0');
         });
     });
-})();
+}
+
+window.initAdminList = initAdminList;
+
+// Init au chargement initial
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminList);
+} else {
+    initAdminList();
+}
+
+// Re-init après chaque swap HTMX sur #list-content
+document.body.addEventListener('htmx:afterSwap', function (e) {
+    if (e.target.id === 'list-content') {
+        initAdminList();
+    }
+});

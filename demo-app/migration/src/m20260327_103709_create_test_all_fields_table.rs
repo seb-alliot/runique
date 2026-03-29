@@ -1,3 +1,4 @@
+use sea_orm::DbBackend;
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -74,27 +75,32 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        manager.get_connection().execute_unprepared(
-            "CREATE OR REPLACE FUNCTION set_updated_at_test_all_fields() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;"
-        ).await?;
-        manager.get_connection().execute_unprepared(
-            "CREATE TRIGGER trg_test_all_fields_updated_at BEFORE UPDATE ON test_all_fields FOR EACH ROW EXECUTE PROCEDURE set_updated_at_test_all_fields();"
-        ).await?;
+        // Triggers updated_at — PostgreSQL uniquement (SQLite ne supporte pas les fonctions PL/pgSQL)
+        if manager.get_database_backend() != DbBackend::Sqlite {
+            manager.get_connection().execute_unprepared(
+                "CREATE OR REPLACE FUNCTION set_updated_at_test_all_fields() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;"
+            ).await?;
+            manager.get_connection().execute_unprepared(
+                "CREATE TRIGGER trg_test_all_fields_updated_at BEFORE UPDATE ON test_all_fields FOR EACH ROW EXECUTE PROCEDURE set_updated_at_test_all_fields();"
+            ).await?;
+        }
 
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .get_connection()
-            .execute_unprepared(
-                "DROP TRIGGER IF EXISTS trg_test_all_fields_updated_at ON test_all_fields;",
-            )
-            .await?;
-        manager
-            .get_connection()
-            .execute_unprepared("DROP FUNCTION IF EXISTS set_updated_at_test_all_fields();")
-            .await?;
+        if manager.get_database_backend() != DbBackend::Sqlite {
+            manager
+                .get_connection()
+                .execute_unprepared(
+                    "DROP TRIGGER IF EXISTS trg_test_all_fields_updated_at ON test_all_fields;",
+                )
+                .await?;
+            manager
+                .get_connection()
+                .execute_unprepared("DROP FUNCTION IF EXISTS set_updated_at_test_all_fields();")
+                .await?;
+        }
 
         manager
             .drop_table(

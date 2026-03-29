@@ -1,6 +1,5 @@
 use crate::context::RequestExtensions;
 use crate::middleware::auth::is_authenticated;
-use crate::utils::runique_log::get_log;
 use crate::utils::{
     aliases::{AEngine, JsonMap, TResult},
     constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY},
@@ -60,14 +59,11 @@ pub async fn csrf_middleware(
                     format!("{}?{}", uri.path(), clean_query)
                 };
 
-                // Nettoyage silencieux : on modifie l'URI de la requête en place
-                // sans rediriger — pas de round-trip, pas de 302 dans les logs.
-                if let Some(level) = get_log().csrf {
-                    let path = uri.path();
-                    crate::runique_log!(level, path = %path, "csrf_token détecté dans une URL GET — nettoyage silencieux de l'URI");
-                }
-                if let Ok(clean_uri) = new_uri.parse::<axum::http::Uri>() {
-                    *req.uri_mut() = clean_uri;
+                if let Ok(location) = HeaderValue::from_str(&new_uri) {
+                    let mut res = (StatusCode::FOUND, "").into_response();
+                    res.headers_mut()
+                        .insert(axum::http::header::LOCATION, location);
+                    return res;
                 }
             }
         }

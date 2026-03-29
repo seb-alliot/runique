@@ -45,6 +45,7 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     ("admin/login", "admin/composant/login.html"),
     ("admin/dashboard", "admin/composant/dashboard.html"),
     ("admin/list", "admin/composant/list.html"),
+    ("admin/list_partial", "admin/composant/list_partial.html"),
     ("admin/create", "admin/composant/create.html"),
     ("admin/edit", "admin/composant/edit.html"),
     ("admin/detail", "admin/composant/detail.html"),

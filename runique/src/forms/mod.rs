@@ -8,8 +8,6 @@ pub mod model_form;
 pub mod options;
 pub mod prisme;
 pub mod renderer;
-#[cfg(test)]
-mod test_forms;
 pub mod validator;
 
 pub use base::*;

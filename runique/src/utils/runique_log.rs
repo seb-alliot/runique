@@ -1,21 +1,27 @@
 use std::sync::OnceLock;
 use tracing::Level;
+use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
 
-/// Configuration des logs Runique par catégorie.
+/// Configuration unifiée des logs Runique.
 ///
-/// Chaque catégorie est désactivée par défaut (`None`).
-/// Appeler la méthode correspondante avec un niveau active la catégorie.
+/// Contrôle à la fois le niveau du subscriber tracing global et les catégories
+/// internes du framework.
 ///
 /// # Exemple
 /// ```rust,ignore
 /// RuniqueApp::builder(config)
 ///     .with_log(|l| l
+///         .subscriber_level("info")   // optionnel — défaut : debug/warn selon DEBUG env
 ///         .csrf(Level::WARN)
-///         .exclusive_login(Level::INFO)
+///         .session(Level::INFO)
 ///     )
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct RuniqueLog {
+    /// Niveau du subscriber tracing. `RUST_LOG` a priorité si défini.
+    /// Par défaut : `"debug"` si `DEBUG=true`, sinon `"warn"`.
+    subscriber_level: Option<String>,
+
     /// Détecte un csrf_token dans une URL GET (nettoyage silencieux).
     pub csrf: Option<Level>,
     /// Trace l'invalidation de sessions lors d'une connexion exclusive.
@@ -35,6 +41,35 @@ pub struct RuniqueLog {
 impl RuniqueLog {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Surcharge le niveau du subscriber tracing.
+    /// `RUST_LOG` a toujours la priorité sur cette valeur.
+    pub fn subscriber_level(mut self, level: impl Into<String>) -> Self {
+        self.subscriber_level = Some(level.into());
+        self
+    }
+
+    /// Initialise le subscriber tracing global.
+    /// Appelé automatiquement par `build()` — sans effet si déjà initialisé.
+    pub fn init_subscriber(&self) {
+        let default = self.subscriber_level.as_deref().unwrap_or_else(|| {
+            if crate::utils::env::is_debug() {
+                "debug"
+            } else {
+                "warn"
+            }
+        });
+
+        let filter = std::env::var("RUST_LOG")
+            .map(EnvFilter::new)
+            .unwrap_or_else(|_| EnvFilter::new(default));
+
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_span_events(FmtSpan::CLOSE)
+            .try_init()
+            .ok();
     }
 
     pub fn csrf(mut self, level: Level) -> Self {

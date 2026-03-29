@@ -218,6 +218,17 @@ impl Forms {
                 field.set_value(value);
             }
         }
+        // Normalise les checkboxes/radios absentes du POST → "false".
+        // Un navigateur n'envoie pas les cases décochées : sans cette normalisation,
+        // leur valeur resterait "" et get_string().is_empty() retournerait true à tort.
+        if allow_password {
+            for field in self.fields.values_mut() {
+                if matches!(field.field_type(), "checkbox" | "radio") && field.value().is_empty() {
+                    field.set_value("false");
+                }
+            }
+        }
+
         // A POST/PUT/PATCH is always a submission, even if all fields are empty.
         // A GET with query params is only "submitted" if at least one param is non-empty.
         self.submitted = allow_password || has_data;

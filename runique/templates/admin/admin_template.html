@@ -39,7 +39,7 @@
 
 {% endblock %}
 
-<script nonce="{{ csrf_token }}" src="{{ "js/csrf.js" | runique_static }}" defer></script>
+<script nonce="{{ csp_nonce }}" src="{{ "js/csrf.js" | runique_static }}" defer></script>
 
 {% block extra_js %}{% endblock %}
 <footer>

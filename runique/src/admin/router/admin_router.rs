@@ -238,13 +238,5 @@ async fn admin_login_post(
 async fn admin_logout(session: Session, Extension(admin): Extension<Arc<AdminState>>) -> Response {
     let _ = session.delete().await;
     let login_url = format!("{}/login?from=logout", admin.config.prefix);
-    axum::response::Html(format!(
-        r#"<script>
-            Object.keys(sessionStorage)
-                .filter(function(k){{return k.startsWith('runique_fg_');}})
-                .forEach(function(k){{sessionStorage.removeItem(k);}});
-            location.replace("{login_url}");
-        </script>"#
-    ))
-    .into_response()
+    Redirect::to(&login_url).into_response()
 }

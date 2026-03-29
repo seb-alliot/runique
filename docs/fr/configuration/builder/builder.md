@@ -115,9 +115,11 @@ Ou via `.middleware()` pour les options avancées :
 
 ### Logs framework
 
-Toutes les catégories de logs internes à Runique sont **désactivées par défaut**. Tout passe par `.with_log(|l| ...)` — la closure reçoit un `RuniqueLog` vide et retourne la configuration finale.
+`RuniqueLog` centralise toute la configuration des logs : le niveau du subscriber tracing global **et** les catégories internes du framework.
 
-Chaque catégorie prend un `tracing::Level` (TRACE, DEBUG, INFO, WARN, ERROR).
+Le subscriber est initialisé automatiquement par `build()` — **aucun appel à `init_logging()` n'est nécessaire dans `main.rs`**.
+
+Tout passe par `.with_log(|l| ...)` — la closure reçoit un `RuniqueLog` vide et retourne la configuration finale.
 
 ```rust
 use tracing::Level;
@@ -129,6 +131,18 @@ RuniqueApp::builder(config)
         .session(Level::WARN)
         .db(Level::INFO)
     )
+    .routes(router)
+    .build()
+    .await?;
+```
+
+#### `subscriber_level` — niveau du subscriber
+
+Par défaut : `"debug"` si `DEBUG=true` dans `.env`, sinon `"warn"`. La variable `RUST_LOG` a toujours la priorité.
+
+```rust
+RuniqueApp::builder(config)
+    .with_log(|l| l.subscriber_level("info"))
     .routes(router)
     .build()
     .await?;
@@ -146,9 +160,9 @@ RuniqueApp::builder(config)
     .build()
     .await?;
 
-// Dev avec surcharge
+// Dev avec surcharge du niveau subscriber
 RuniqueApp::builder(config)
-    .with_log(|l| l.dev().db(Level::INFO))
+    .with_log(|l| l.dev().subscriber_level("info").db(Level::INFO))
     .routes(router)
     .build()
     .await?;

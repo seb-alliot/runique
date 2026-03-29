@@ -1,6 +1,7 @@
 <div class="form-field boolean-field">
     {% if field.label %}
     <label class="field-label{% if field.error %} field-error{% endif %}">
+    {% endif %}
         <input
             type="{{ input_type }}"
             name="{{ field.name }}"
@@ -11,10 +12,8 @@
             {% if readonly.choice %}readonly{% endif %}
             {% if disabled.choice %}disabled{% endif %}
         >
+    {% if field.label %}
         <span class="checkbox-label">{{ field.label }}</span>
-        {% if field.is_required.choice %}
-            <span class="required-indicator" title="{{ field.is_required.message | default(value='Requis') }}"></span>
-        {% endif %}
     </label>
     {% endif %}
 

@@ -1,0 +1,5 @@
+[build]
+jobs = 16
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "debuginfo=0"]
