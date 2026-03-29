@@ -1,13 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use crate::forms::{
-        base::FormField,
-        field::RuniqueForm,
-        fields::{boolean::BooleanField, number::NumericField, text::TextField},
-        form::Forms,
-    };
-    use crate::utils::aliases::StrMap;
     use axum::http::Method;
+    use runique::{
+        forms::{
+            base::FormField,
+            field::RuniqueForm,
+            fields::{boolean::BooleanField, number::NumericField, text::TextField},
+            form::Forms,
+        },
+        utils::aliases::StrMap,
+    };
     use std::collections::HashMap;
 
     // ── TextField ────────────────────────────────────────────────────────────────
@@ -220,9 +222,9 @@ mod tests {
     #[test]
     fn test_boolean_required_unchecked() {
         let mut field = BooleanField::new("accept").required();
-        field.set_value("false");
-        assert!(!field.validate());
-        assert!(field.error().is_some());
+        field.set_value("false"); // Une valeur est présente (false), donc valide
+        assert!(field.validate());
+        assert!(field.error().is_none());
     }
 
     #[test]

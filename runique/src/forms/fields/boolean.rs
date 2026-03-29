@@ -55,11 +55,10 @@ impl BooleanField {
 
 impl FormField for BooleanField {
     fn validate(&mut self) -> bool {
+        // Un champ booléen est toujours valide : "true" ou "false" (décoché = false).
+        // required = NOT NULL en DB, pas "doit être coché".
+        // Pour forcer la coche (ex: CGU), utiliser clean() avec une erreur custom.
         self.clear_error();
-        if self.base.is_required.choice && self.base.value != "true" {
-            self.set_error(crate::utils::trad::t("forms.required").to_string());
-            return false;
-        }
         true
     }
 

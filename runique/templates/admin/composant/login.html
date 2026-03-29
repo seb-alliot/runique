@@ -35,7 +35,7 @@
                 <form class="login-form" method="POST" action="/admin/login">
                     {% csrf %}
                     <div class="form-group">
-                        <label class="form-label required" for="username">{% if admin_login_label_username %}{{ admin_login_label_username }}{% endif %}</label>
+                        <label class="form-label" for="username">{% if admin_login_label_username %}{{ admin_login_label_username }}{% endif %}</label>
                         <input
                             class="form-input {% if errors.username %}error{% endif %}"
                             type="text"
@@ -50,7 +50,7 @@
                         {% endif %}
                     </div>
                     <div class="form-group">
-                        <label class="form-label required" for="password">{% if admin_login_label_password %}{{ admin_login_label_password }}{% endif %}</label>
+                        <label class="form-label" for="password">{% if admin_login_label_password %}{{ admin_login_label_password }}{% endif %}</label>
                         <input
                             class="form-input {% if errors.password %}error{% endif %}"
                             type="password"
@@ -68,7 +68,7 @@
                 </form>
             </div>
         </div>
-        <script>
+        <script nonce="{{ csp_nonce }}">
             Object.keys(sessionStorage)
                 .filter(function(k) { return k.startsWith('runique_fg_'); })
                 .forEach(function(k) { sessionStorage.removeItem(k); });

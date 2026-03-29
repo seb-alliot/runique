@@ -2,9 +2,6 @@
     {% if field.label %}
     <label for="id_{{ field.name }}" class="field-label{% if field.error %} field-error{% endif %}">
         {{ field.label }}
-        {% if field.is_required.choice %}
-            <span class="required-indicator" title="{{ field.is_required.message | default(value='Requis') }}">*</span>
-        {% endif %}
     </label>
     {% endif %}
 

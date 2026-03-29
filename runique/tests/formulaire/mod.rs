@@ -15,6 +15,7 @@ pub mod test_bool_choice;
 pub mod test_choice_fields;
 pub mod test_csrf_gate;
 pub mod test_datetime_fields;
+pub mod test_forms;
 pub mod test_generic_field;
 pub mod test_hidden_field;
 pub mod test_integration;

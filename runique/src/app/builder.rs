@@ -324,6 +324,11 @@ impl RuniqueAppBuilder {
     /// 4. **Application** des fichiers statiques (si activés)
     pub async fn build(mut self) -> Result<RuniqueApp, BuildError> {
         // ═══════════════════════════════════════
+        // ÉTAPE 0 : TRACING (avant tout le reste)
+        // ═══════════════════════════════════════
+        self.config.log.init_subscriber();
+
+        // ═══════════════════════════════════════
         // ÉTAPE 1 : VALIDATION (comme Prisme)
         // ═══════════════════════════════════════
         self.validate()?;

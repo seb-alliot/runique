@@ -1,4 +1,4 @@
-j/**
+/**
  * admin-actions.js
  * Gestion des confirmations admin - Compatible CSP
  * Usage: <script src="admin-actions.js" nonce="TON_NONCE"></script>

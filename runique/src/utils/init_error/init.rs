@@ -1,19 +1,8 @@
-use crate::utils::env::is_debug;
-use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
+use crate::utils::runique_log::RuniqueLog;
 
+/// Initialise le subscriber tracing avec les paramètres par défaut.
+/// Utilisé par le CLI Runique — les applications web n'ont pas à l'appeler
+/// (le builder le fait automatiquement via `RuniqueLog::init_subscriber`).
 pub fn init_logging() {
-    let level = if is_debug() { "debug" } else { "warn" };
-
-    let filter = std::env::var("RUST_LOG")
-        .map(EnvFilter::new)
-        .unwrap_or_else(|_| EnvFilter::new(level));
-
-    if tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .with_span_events(FmtSpan::CLOSE)
-        .try_init()
-        .is_err()
-    {
-        eprintln!("Logger already initialized");
-    }
+    RuniqueLog::default().init_subscriber();
 }

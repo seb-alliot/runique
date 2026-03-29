@@ -35,7 +35,9 @@ impl Default for SecurityPolicy {
         Self {
             default_src: vec!["'none'".into()],
             script_src: vec!["'self'".into()],
-            style_src: vec!["'self'".into()],
+            // 'unsafe-inline' requis pour les bibliothèques comme htmx qui injectent
+            // des styles inline (ex: style="display:none") sans nonce.
+            style_src: vec!["'self'".into(), "'unsafe-inline'".into()],
             // Uniquement `'self'` par défaut.
             // Pour autoriser les images base64 inline (avatars, éditeurs rich-text),
             // ajoutez `data:` via la variable d'env :
@@ -63,7 +65,7 @@ impl SecurityPolicy {
         Self {
             default_src: vec!["'none'".into()],
             script_src: vec!["'self'".into()],
-            style_src: vec!["'self'".into()],
+            style_src: vec!["'self'".into(), "'unsafe-inline'".into()],
             img_src: vec!["'self'".into()],
             font_src: vec!["'self'".into()],
             connect_src: vec!["'self'".into()],
@@ -118,12 +120,10 @@ impl SecurityPolicy {
         }
 
         if !self.style_src.is_empty() {
-            let mut style_sources = self.style_src.clone();
-            if let Some(n) = nonce.filter(|n| !n.is_empty()) {
-                style_sources.push(format!("'nonce-{}'", n));
-                style_sources.retain(|s| s != "'unsafe-inline'");
-            }
-            directives.push(format!("style-src {}", style_sources.join(" ")));
+            // Le nonce n'est pas appliqué à style-src : aucun template n'utilise
+            // <style nonce="...">, et son injection retire 'unsafe-inline', ce qui
+            // bloque les styles inline d'htmx et les @import CSS externes.
+            directives.push(format!("style-src {}", self.style_src.join(" ")));
         }
 
         if !self.img_src.is_empty() {

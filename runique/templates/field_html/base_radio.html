@@ -3,9 +3,6 @@
     <fieldset class="radio-fieldset{% if field.error %} field-error{% endif %}">
         <legend class="field-label">
             {{ field.label }}
-            {% if field.is_required.choice %}
-                <span class="required-indicator" title="{{ field.is_required.message | default(value='Requis') }}"></span>
-            {% endif %}
         </legend>
 
         {% for choice in choices %}

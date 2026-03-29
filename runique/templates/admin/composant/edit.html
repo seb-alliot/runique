@@ -18,7 +18,7 @@
       <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/edit">
         <div class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
-            {{ form_fields.html | safe }}
+            {{ form_fields.html }}
           {% else %}
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
           {% endif %}

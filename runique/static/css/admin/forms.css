@@ -17,10 +17,6 @@
     color: var(--text-main);
 }
 
-.form-label.required::after {
-    content: " *";
-    color: var(--danger);
-}
 
 .form-input,
 .form-select,
@@ -181,11 +177,6 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     margin-top: 0.2rem;
 }
 
-.required-indicator::after {
-    content: " *";
-    color: var(--danger);
-    font-size: 0.75rem;
-}
 
 /* ───────────────────────────────────────────────
    Vue détail — dl/dt/dd

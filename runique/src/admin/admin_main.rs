@@ -101,6 +101,7 @@ pub async fn admin_get(
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Query(params): Query<StrMap>,
+    headers: axum::http::HeaderMap,
 ) -> AppResult<Response> {
     let entry = state
         .registry
@@ -146,7 +147,8 @@ pub async fn admin_get(
                 column_filters,
                 filter_pages,
             };
-            handle_list(&mut req, entry, &state, query).await
+            let is_htmx = headers.contains_key("hx-request");
+            handle_list(&mut req, entry, &state, query, is_htmx).await
         }
         "create" => handle_create_get(&mut req, entry, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -302,6 +304,7 @@ async fn handle_list(
     entry: &crate::admin::ResourceEntry,
     state: &PrototypeAdminState,
     query: ListQuery,
+    is_htmx: bool,
 ) -> AppResult<Response> {
     let ListQuery {
         page,
@@ -538,11 +541,15 @@ async fn handle_list(
         list_ctx::FILTER_META       => filter_meta,
     }
 
-    let template = entry
-        .meta
-        .template_list
-        .as_deref()
-        .unwrap_or_else(|| state.config.templates.list.resolve());
+    let template = if is_htmx {
+        "admin/list_partial"
+    } else {
+        entry
+            .meta
+            .template_list
+            .as_deref()
+            .unwrap_or_else(|| state.config.templates.list.resolve())
+    };
     req.render(template)
 }
 

@@ -15,7 +15,6 @@ use runique::app::builder::RuniqueAppBuilder as builder;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    init_logging();
     password_init(PasswordConfig::auto_with(Manual::Argon2));
     set_lang(Lang::Fr);
 

@@ -77,6 +77,9 @@ pub trait RuniqueForm: Sized + Send + Sync {
             .ok()
     }
     /// `bool` — `true` pour `"true"`, `"1"`, `"on"` (insensible à la casse).
+    /// Retourne `None` si le champ n'existe pas dans le formulaire.
+    /// Note : `fill()` normalise les checkboxes/radios décochées vers `"false"`,
+    /// donc cette méthode retourne toujours `Some(_)` pour un champ boolean soumis.
     fn cleaned_bool(&self, name: &str) -> Option<bool> {
         let v = cleaned_value(self.get_form(), name)?;
         Some(matches!(v.to_lowercase().as_str(), "true" | "1" | "on"))
