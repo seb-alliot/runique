@@ -2,17 +2,25 @@
    HERO
    ══════════════════════════════════════════ #}
 <section class="hero">
-    <div class="hero-inner">
-        {% if runique_release %}<div class="hero-badge">⚡ v{{ runique_release.version }} — Stable</div>{% endif %}
-        <h1 class="hero-title">
-            Framework Web <strong>Rust</strong><br>
-            <span class="hero-accent">inspiré de Django</span>
-        </h1>
-        <p class="hero-sub">Axum · SeaORM · Tera · CSRF natif · Admin intégré</p>
-        <div class="hero-cta">
-            <a href="{% link 'doc_index_en' %}" class="hero-btn hero-btn--primary">Documentation →</a>
-            <a href="/cours" class="hero-btn hero-btn--secondary">Cours Rust</a>
+    <div class="hero-visual">
+        <picture>
+            <source srcset="{% media "runique_320.avif" %}" media="(max-width: 600px)">
+            <img src="{% media "runique_ecran.avif" %}" alt="Runique — Rust portant Django sur de nouveaux horizons" class="hero-banner">
+        </picture>
+        <div class="hero-visual-text">
+            <span class="hero-name">Runique</span>
+            <span>Un Framework web</span>
+            <h1 class="hero-title">
+                <span class="hero-accent">inspiré de Django</span>
+            </h1>
+            <p class="hero-sub">Axum · SeaORM · Tera · CSRF natif · Admin intégré</p>
+            <div class="hero-cta">
+                <a href="{% link 'doc_index_en' %}" class="hero-btn hero-btn--primary">Documentation →</a>
+                <a href="/cours" class="hero-btn hero-btn--secondary">Cours Rust</a>
+            </div>
         </div>
+    </div>
+    <div class="hero-inner">
         <div class="hero-code" id="hero-code">
             <div class="hero-code-header">
                 <span class="hero-code-dots">● ● ●</span>
@@ -37,7 +45,7 @@
             <pre class="hero-code-body hero-tab-panel" data-panel="route"><code><span class="hc-fn">urlpatterns!</span>[
     <span class="hc-fn">path</span>(<span class="hc-str">"/"</span>,           views::<span class="hc-fn">index</span>,   <span class="hc-str">"index"</span>),
     <span class="hc-fn">path</span>(<span class="hc-str">"/users"</span>,      views::<span class="hc-fn">list</span>,    <span class="hc-str">"user_list"</span>),
-    <span class="hc-fn">path</span>(<span class="hc-str">"/users/:id"</span>, views::<span class="hc-fn">detail</span>,  <span class="hc-str">"user_detail"</span>),
+    <span class="hc-fn">path</span>(<span class="hc-str">"/users/:id"</span>,  views::<span class="hc-fn">detail</span>,  <span class="hc-str">"user_detail"</span>),
 ]
 
 <span class="hc-cm">// Handler — DB accessible via request.engine.db</span>

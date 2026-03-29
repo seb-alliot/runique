@@ -39,4 +39,7 @@ pub async fn inject_globals(request: &mut Request) {
     if let Some(ref r) = release {
         request.context.insert("runique_release", r);
     }
+    if let Some(username) = get_username(&request.session).await {
+        context_update!(request => { "username" => username });
+    }
 }
