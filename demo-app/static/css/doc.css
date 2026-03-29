@@ -441,7 +441,6 @@
     word-break: break-word;
     min-width: 0;
     overflow-x: hidden;
-    padding: 2rem 1.5rem;
 }
 
 .doc-block-content pre {
@@ -483,7 +482,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.75rem 1rem;
+        padding: 0.9rem 1rem;
         border-bottom: 1px solid var(--border, #333);
         background: var(--bg, #0f0f1a);
         position: sticky;
@@ -491,7 +490,7 @@
         z-index: 100;
     }
     .ia-messages {
-        max-height: 70vh;
+        max-height: 75vh;
     }
     .doc-mobile-bar-title {
         font-size: 0.9rem;
@@ -570,8 +569,8 @@
     }
 }
 
-@media (min-width: 1025px) {
+@media (min-width: 1024px) {
         .ia-messages {
-        max-height: 80vh;
+        max-height: 75vh;
     }
 }

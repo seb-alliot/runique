@@ -6,7 +6,7 @@ btn.textContent = saved === 'dark' ? '🌙' : '☀️';
 
 // ── Drag sur appui prolongé ───────────────────────────────────────────────────
 
-const LONG_PRESS_MS = 1500;
+const LONG_PRESS_MS = 500;
 
 let longPressTimer = null;
 let dragging = false;

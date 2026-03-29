@@ -20,7 +20,7 @@
         <link rel="stylesheet" href='{% static "css/variables.css" %}'>
         <link rel="stylesheet" href='{% static "css/main.css" %}'>
     {% endblock %}
-    <link rel="icon" type="image/png" href='{% media "favicon/favicon.ico" %}'>
+    <link rel="icon" type="image/png" href='{% media "favicon/favicon_runique.ico" %}'>
 </head>
 <body>
 
@@ -36,6 +36,7 @@
     {% block header %}
     <nav class="site-nav" id="site-nav">
         <a href="{% link 'index' %}" class="site-nav-logo">⚡ Runique</a>
+        {% if runique_release %}<span class="site-nav-version">v{{ runique_release.version }}</span>{% endif %}
         <div class="site-nav-links">
             <a href="{% link 'doc_index_en' %}">Documentation</a>
             <a href="/cours">Cours</a>
@@ -44,7 +45,7 @@
             <a href="{% link 'contribution_list' %}">Contribuer</a>
         </div>
         <div class="site-nav-actions">
-            <a href="{% link 'login' %}" class="site-nav-link-action">Connexion</a>
+            <a href="{% link 'login' %}" class="site-nav-link-action">{% if username %}{{ username }}{% else %}Connexion{% endif %}</a>
             <a href="https://github.com/seb-alliot/runique" target="_blank" class="site-nav-btn">GitHub</a>
         </div>
         <button class="site-nav-toggle" id="site-nav-toggle" aria-label="Menu">☰</button>

@@ -13,11 +13,10 @@ use crate::formulaire::*;
 use runique::prelude::*;
 
 // ─── Index ────────────────────────────────────────────────────────────────────
-
 pub async fn index(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     context_update!(request => {
-        "title"       => "Bienvenue sur Runique",
+        "title"       => "Bienvenue sur Runique un framework web",
         "description" => "Runique — framework web Rust inspiré de Django. Formulaires typés, sécurité intégrée (CSRF, CSP), SeaORM, Tera templates et admin généré.",
         "status"      => "Status: Framework en cours de développement...",
         "backend"     => "Rust , Axum",

@@ -262,7 +262,7 @@
 
 .cours-content-inner {
     overflow-y: auto;
-    padding: 2rem 2.5rem;
+    padding: 2rem 1.5rem;
     min-height: 0;
 }
 
@@ -270,10 +270,6 @@
     /* Sur mobile le panel devient un overlay fixe — le layout ne change pas */
     .doc-content.ia-active {
         display: contents;
-    }
-
-    .cours-content-inner {
-        padding: 1rem;
     }
 
     /* Overlay plein écran */
@@ -423,7 +419,7 @@
 .ia-input-area {
     display: flex;
     gap: 0.5rem;
-    padding: 0.75rem;
+    padding: 0.5rem;
     border-top: 1px solid var(--border);
     flex-shrink: 0;
 }
