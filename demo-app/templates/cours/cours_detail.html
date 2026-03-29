@@ -113,9 +113,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ csp_nonce }}">
+<script {% csp %}>
     window.COUR_SLUG = "{{ cour.slug }}";
 </script>
-<script nonce="{{ csp_nonce }}" src='{% static "js/highlight.min.js" %}'></script>
-<script nonce="{{ csp_nonce }}" src='{% static "js/cour_ia.js" %}'></script>
+<script {% csp %} src='{% static "js/highlight.min.js" %}'></script>
+<script {% csp %} src='{% static "js/cour_ia.js" %}'></script>
 {% endblock %}

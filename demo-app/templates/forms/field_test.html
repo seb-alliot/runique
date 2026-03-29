@@ -59,7 +59,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script nonce="{{ csp_nonce }}" src='{% static "js/highlight.min.js" %}'></script>
-<script nonce="{{ csp_nonce }}">hljs.highlightAll();</script>
-<script nonce="{{ csp_nonce }}" src='{% static "js/field_test.js" %}'></script>
+<script {% csp %} src='{% static "js/highlight.min.js" %}'></script>
+<script {% csp %}>hljs.highlightAll();</script>
+<script {% csp %} src='{% static "js/field_test.js" %}'></script>
 {% endblock %}

@@ -62,7 +62,7 @@ impl TemplateLoader {
         // Remplacements simples (DSL Runique)
         content = content.replace("{% csrf %}", r#"{% include "csrf" %}"#);
         content = content.replace("{% messages %}", r#"{% include "message" %}"#);
-        content = content.replace("{{ csp }}", r#"{% include "csp" %}"#);
+        content = content.replace("{% csp %}", r#"{% include "csp" %}"#);
 
         // Traitement Formulaires (Champs isolés)
         content = FORM_FIELD_REGEX

@@ -78,7 +78,7 @@
             {% include "utils/footer.html" %}
         {% endblock %}
     </footer>
-    <script nonce="{{ csp_nonce }}" src='{% static "js/theme.js" %}'></script>
-    <script nonce="{{ csp_nonce }}" src='{% static "js/site_nav.js" %}'></script>
+    <script {% csp %} src='{% static "js/theme.js" %}'></script>
+    <script {% csp %} src='{% static "js/site_nav.js" %}'></script>
     {% block scripts %}{% endblock %}
 </body>

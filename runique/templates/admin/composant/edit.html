@@ -33,5 +33,5 @@
 {% endblock %}
 {% block extra_js %}
 {{ super() }}
-  <script nonce="{{ csp_nonce }}" src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
+  <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
 {% endblock %}

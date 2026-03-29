@@ -7,7 +7,6 @@
 //! | `test_url_function`      | LinkFunction : résolution d'URLs nommées  |
 
 pub mod test_app_error;
-pub mod test_csp_function;
 pub mod test_request_extensions;
 pub mod test_runique_context;
 pub mod test_static_tera;

@@ -1,4 +1,3 @@
-use crate::context::tera::csp::nonce_function;
 use crate::context::tera::form::form_filter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
@@ -87,6 +86,5 @@ pub fn register_asset_filters(
     tera.register_filter("csrf_field", csrf_filter);
     tera.register_filter("markdown", markdown_filter);
     tera.register_function("csrf_token", CsrfTokenFunction);
-    tera.register_function("nonce", nonce_function);
     tera.register_function("link", LinkFunction { url_registry });
 }

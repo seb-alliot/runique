@@ -43,7 +43,7 @@ Pour personnaliser :
 Dans vos templates :
 
 ```html
-<script {% csp_nonce %}>
+<script {% csp %}>
     // Ce script est autorisé par le nonce CSP
     console.log("OK");
 </script>

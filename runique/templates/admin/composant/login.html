@@ -68,7 +68,7 @@
                 </form>
             </div>
         </div>
-        <script nonce="{{ csp_nonce }}">
+        <script {% csp %}>
             Object.keys(sessionStorage)
                 .filter(function(k) { return k.startsWith('runique_fg_'); })
                 .forEach(function(k) { sessionStorage.removeItem(k); });

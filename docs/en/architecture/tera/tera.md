@@ -8,7 +8,7 @@
 | `{% media "..." %}` | `{{ "..." \| media }}` | Media file URL |
 | `{% csrf %}` | `{% include "csrf/..." %}` | Hidden CSRF field |
 | `{% messages %}` | `{% include "message/..." %}` | Display flash messages |
-| `{% csp_nonce %}` | `{% include "csp/..." %}` | CSP nonce attribute |
+| `{% csp %}` | `{% include "csp/..." %}` | CSP nonce attribute |
 | `{% link "name" %}` | `{{ link(link='name') }}` | Named route URL |
 | `{% form.xxx %}` | `{{ xxx \| form \| safe }}` | Full form rendering |
 | `{% form.xxx.field %}` | `{{ xxx \| form(field='field') \| safe }}` | Single field rendering |
