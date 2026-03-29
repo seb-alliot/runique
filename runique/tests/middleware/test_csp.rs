@@ -82,9 +82,14 @@ fn test_to_header_value_contains_all_directives() {
 fn test_to_header_value_removes_unsafe_inline_with_nonce() {
     let policy = SecurityPolicy::default();
     let header = policy.to_header_value(Some("mynonce"));
-    // Le nonce est injecté et 'unsafe-inline' est retiré
+    // Le nonce est injecté dans script-src et 'unsafe-inline' y est retiré.
+    // style-src conserve 'unsafe-inline' intentionnellement (htmx, default()).
     assert!(header.contains("'nonce-mynonce'"));
-    assert!(!header.contains("'unsafe-inline'"));
+    let script_src = header
+        .split(';')
+        .find(|d| d.trim_start().starts_with("script-src"))
+        .unwrap_or("");
+    assert!(!script_src.contains("'unsafe-inline'"));
 }
 
 #[test]

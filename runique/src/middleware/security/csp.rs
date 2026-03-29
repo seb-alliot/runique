@@ -1,5 +1,20 @@
 use crate::context::RequestExtensions;
 use crate::utils::{aliases::AEngine, csp_nonce::CspNonce};
+
+/// Hashes des styles inline injectés par htmx (version embarquée : 2.0.4).
+///
+/// Ces hashes sont déterministes : SHA-256 de la valeur exacte du style injecté
+/// (ex: `display:none`). Ils ne changent pas pour une valeur donnée, mais doivent
+/// être mis à jour si la version d'htmx change et injecte des valeurs différentes.
+///
+/// Référence : `runique/templates/admin/composant/list.html`
+/// → `https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js`
+///
+/// Pour ajouter un hash manquant : le navigateur l'indique dans la console CSP.
+pub const HTMX_STYLE_HASHES: &[&str] = &[
+    "'unsafe-hashes'",
+    "'sha256-bsV5JivYxvGywDAZ22EZJKBFip65Ng9xoJVLbBg7bdo='",
+];
 use axum::{
     body::Body,
     extract::State,
@@ -65,7 +80,7 @@ impl SecurityPolicy {
         Self {
             default_src: vec!["'none'".into()],
             script_src: vec!["'self'".into()],
-            style_src: vec!["'self'".into(), "'unsafe-inline'".into()],
+            style_src: vec!["'self'".into()],
             img_src: vec!["'self'".into()],
             font_src: vec!["'self'".into()],
             connect_src: vec!["'self'".into()],
@@ -103,6 +118,20 @@ impl SecurityPolicy {
         }
     }
 
+    /// Ajoute les hashes de styles inline connus d'htmx à `style_src`.
+    ///
+    /// Appelé automatiquement par le builder quand `.with_admin()` est activé.
+    /// Évite d'ouvrir `'unsafe-inline'` sur `style-src` tout en permettant
+    /// les styles injectés dynamiquement par htmx.
+    pub fn merge_htmx_hashes(&mut self) {
+        for hash in HTMX_STYLE_HASHES {
+            let s = hash.to_string();
+            if !self.style_src.contains(&s) {
+                self.style_src.push(s);
+            }
+        }
+    }
+
     pub fn to_header_value(&self, nonce: Option<&str>) -> String {
         let mut directives = Vec::new();
 
@@ -120,9 +149,10 @@ impl SecurityPolicy {
         }
 
         if !self.style_src.is_empty() {
-            // Le nonce n'est pas appliqué à style-src : aucun template n'utilise
-            // <style nonce="...">, et son injection retire 'unsafe-inline', ce qui
-            // bloque les styles inline d'htmx et les @import CSS externes.
+            // Le nonce n'est pas appliqué à style-src.
+            // strict() n'inclut pas 'unsafe-inline' : tous les styles doivent
+            // être dans des fichiers CSS externes. Les templates utilisant htmx
+            // (ex : admin) doivent utiliser default() ou permissive() à la place.
             directives.push(format!("style-src {}", self.style_src.join(" ")));
         }
 
