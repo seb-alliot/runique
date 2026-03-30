@@ -657,18 +657,17 @@ main {
     line-height: 1.5;
 }
 
-@media (max-width: 768px) {
-    .features-grid { grid-template-columns: repeat(2, 1fr); }
-}
 
 @media (max-width: 480px) {
     .features-grid { grid-template-columns: 1fr; }
     .features { padding: 3rem 1rem; }
+}
+@media (max-width: 768px) {
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
     .stack-strip {
         grid-template-columns: 1fr 1fr; 
     }
 }
-
 /* =========================
     DÉMO — SECTIONS
    ========================= */
