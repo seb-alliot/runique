@@ -25,6 +25,7 @@
       <div class="form-actions">
         <a href="/admin/{{ resource.key }}/{{ object_id }}/detail" class="btn btn-secondary">{% if admin_delete_btn_cancel %}{{ admin_delete_btn_cancel }}{% endif %}</a>
         <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/delete" class="form-inline">
+          {% csrf %}
           <button type="submit" class="btn btn-danger">{% if admin_delete_btn_confirm %}{{ admin_delete_btn_confirm }}{% endif %}</button>
         </form>
       </div>

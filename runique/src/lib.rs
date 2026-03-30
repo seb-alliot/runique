@@ -103,7 +103,7 @@ pub mod prelude {
     // UTILS
     // ========================================================================
     pub use crate::macros::{
-        register_name_url, register_pending, reverse, reverse_with_parameters,
+        RouterExt, register_name_url, register_pending, reverse, reverse_with_parameters,
     };
     pub use crate::utils::csp_nonce::*;
     pub use crate::utils::csrf::*;

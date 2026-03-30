@@ -35,6 +35,8 @@ pub struct AdminState {
 struct AdminLoginData {
     username: String,
     password: String,
+    #[serde(default)]
+    csrf_token: String,
 }
 
 pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
@@ -181,6 +183,30 @@ async fn admin_login_post(
     Extension(admin): Extension<Arc<AdminState>>,
     Form(data): Form<AdminLoginData>,
 ) -> Response {
+    use crate::utils::middleware::csrf::unmask_csrf_token;
+    use subtle::ConstantTimeEq;
+
+    let csrf_valid = unmask_csrf_token(&data.csrf_token)
+        .map(|unmasked| {
+            bool::from(
+                unmasked
+                    .as_bytes()
+                    .ct_eq(req.csrf_token.as_str().as_bytes()),
+            )
+        })
+        .unwrap_or(false);
+    if !csrf_valid {
+        insert_admin_messages(&mut req.context, "login");
+        req = req
+            .insert("lang", current_lang().code())
+            .insert("site_title", &admin.config.site_title)
+            .insert("site_url", &admin.config.site_url)
+            .insert("error", t("csrf.invalid_or_missing").to_string());
+        return req
+            .render(admin.config.templates.login.resolve())
+            .unwrap_or_else(|e| e.into_response());
+    }
+
     let Some(auth) = &admin.config.auth else {
         return (
             StatusCode::NOT_IMPLEMENTED,
