@@ -137,6 +137,14 @@ main {
     margin-left: 1.5rem;
     flex: 1;
 }
+@media (min-width: 768px) and (max-width: 900px) {
+    .site-nav-links {
+        margin: 0;
+    }
+    .site-nav {
+        padding:0.5rem;
+    }
+}
 
 .site-nav-links a {
     padding: 0.35rem 0.65rem;
@@ -830,6 +838,8 @@ a {
    ========================= */
 .flash-messages {
     margin: 0.5rem;
+    display: flex;
+    justify-content: center;
 }
 
 [class^="message-"] {
