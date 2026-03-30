@@ -63,30 +63,30 @@ fn test_get_roles_un_seul_role() {
 
 #[test]
 fn test_set_roles_liste_vide_retourne_none() {
-    let result = Model::set_roles(vec![]);
+    let result = Model::set_roles(&[]);
     assert!(result.is_none());
 }
 
 #[test]
 fn test_set_roles_un_role() {
-    let result = Model::set_roles(vec!["admin".to_string()]);
+    let result = Model::set_roles(&["admin".to_string()]);
     assert!(result.is_some());
     let json: Vec<String> = serde_json::from_str(&result.unwrap()).unwrap();
-    assert_eq!(json, vec!["admin"]);
+    assert_eq!(json, &["admin"]);
 }
 
 #[test]
 fn test_set_roles_plusieurs_roles() {
-    let result = Model::set_roles(vec!["editor".to_string(), "moderator".to_string()]);
+    let result = Model::set_roles(&["editor".to_string(), "moderator".to_string()]);
     assert!(result.is_some());
     let json: Vec<String> = serde_json::from_str(&result.unwrap()).unwrap();
-    assert_eq!(json, vec!["editor", "moderator"]);
+    assert_eq!(json, &["editor", "moderator"]);
 }
 
 #[test]
 fn test_set_roles_roundtrip_avec_get_roles() {
-    let roles_in = vec!["writer".to_string(), "reviewer".to_string()];
-    let serialized = Model::set_roles(roles_in.clone()).unwrap();
+    let roles_in = &["writer".to_string(), "reviewer".to_string()];
+    let serialized = Model::set_roles(&roles_in.clone()).unwrap();
     let model = make_model(Some(&serialized));
     assert_eq!(model.get_roles(), roles_in);
 }

@@ -112,7 +112,7 @@ impl RuniqueError {
         }
     }
 
-    /// Convertit l'erreur en ErrorContext pour un rendu riche
+    /// Convertit l'erreur en `ErrorContext` pour un rendu riche
     pub fn to_error_context(&self) -> ErrorContext {
         let (status, error_type, title) = match self {
             RuniqueError::NotFound => (
@@ -250,7 +250,7 @@ impl ErrorContext {
             },
         }
     }
-
+    #[must_use]
     pub fn with_request_helper(mut self, helper: &RequestInfoHelper) -> Self {
         self.request_info = Some(RequestInfo {
             method: helper.method.clone(),
@@ -260,7 +260,7 @@ impl ErrorContext {
         });
         self
     }
-
+    #[must_use]
     fn extract_tera_line(error: &tera::Error) -> Option<usize> {
         let msg = error.to_string();
         let re = regex::Regex::new(r"line (\d+)").ok()?;
@@ -268,7 +268,6 @@ impl ErrorContext {
             .and_then(|cap| cap.get(1))
             .and_then(|m| m.as_str().parse::<usize>().ok())
     }
-
     pub fn from_tera_error(error: &tera::Error, template_name: &str, tera: &tera::Tera) -> Self {
         let mut ctx = Self::new(
             ErrorType::Template,
@@ -283,13 +282,12 @@ impl ErrorContext {
             available_templates: tera
                 .get_template_names()
                 .filter(|name| !get_internal_templates().contains(name))
-                .map(|s| s.to_string())
+                .map(std::string::ToString::to_string)
                 .collect(),
         });
         ctx.build_stack_trace(error);
         ctx
     }
-
     pub fn database(error: impl std::error::Error) -> Self {
         let mut ctx = Self::new(
             ErrorType::Database,
@@ -300,7 +298,6 @@ impl ErrorContext {
         ctx.build_stack_trace(&error);
         ctx
     }
-
     pub fn not_found(path: &str) -> Self {
         Self::new(
             ErrorType::NotFound,
@@ -309,7 +306,6 @@ impl ErrorContext {
             &tf("error.path_not_found", &[path]),
         )
     }
-
     pub fn generic(status: StatusCode, message: &str) -> Self {
         Self::new(
             ErrorType::Internal,
@@ -318,7 +314,6 @@ impl ErrorContext {
             message,
         )
     }
-
     pub fn from_anyhow(error: &anyhow::Error) -> Self {
         let mut ctx = Self::new(
             ErrorType::Internal,
@@ -327,13 +322,13 @@ impl ErrorContext {
             &error.to_string(),
         );
         // Capture le {:?} complet de l'erreur anyhow (inclut la chaîne + backtrace)
-        ctx.debug_repr = Some(format!("{:?}", error));
+        ctx.debug_repr = Some(format!("{error:?}"));
 
         for (i, cause) in error.chain().enumerate() {
             ctx.stack_trace.push(StackFrame {
                 level: i,
                 message: cause.to_string(),
-                debug_repr: Some(format!("{:?}", cause)),
+                debug_repr: Some(format!("{cause:?}")),
                 location: None,
             });
         }
@@ -344,7 +339,7 @@ impl ErrorContext {
         self.request_info = Some(RequestInfo {
             method: request.method().to_string(),
             path: request.uri().path().to_string(),
-            query: request.uri().query().map(|q| q.to_string()),
+            query: request.uri().query().map(std::string::ToString::to_string),
             headers: request
                 .headers()
                 .iter()
@@ -359,7 +354,7 @@ impl ErrorContext {
         });
         self
     }
-
+    #[must_use]
     pub fn with_details(mut self, details: &str) -> Self {
         self.details = Some(details.to_string());
         self
@@ -367,7 +362,7 @@ impl ErrorContext {
 
     pub fn build_stack_trace(&mut self, error: &dyn std::error::Error) {
         // Capture le {:?} de l'erreur racine sur l'ErrorContext
-        self.debug_repr = Some(format!("{:?}", error));
+        self.debug_repr = Some(format!("{error:?}"));
 
         let mut level = 0;
         let mut current: Option<&dyn std::error::Error> = Some(error);
@@ -375,14 +370,13 @@ impl ErrorContext {
             self.stack_trace.push(StackFrame {
                 level,
                 message: err.to_string(),
-                debug_repr: Some(format!("{:?}", err)),
+                debug_repr: Some(format!("{err:?}")),
                 location: None,
             });
             current = err.source();
             level += 1;
         }
     }
-
     pub fn from_runique_error(
         err: &RuniqueError,
         path: Option<&str>,
@@ -430,15 +424,17 @@ impl ErrorContext {
                 name: name.to_string(),
                 source: read_template_source(name),
                 line_number: ErrorContext::extract_tera_line(&tera.get_template(name).unwrap_err()),
-                available_templates: tera.get_template_names().map(|s| s.to_string()).collect(),
+                available_templates: tera
+                    .get_template_names()
+                    .map(std::string::ToString::to_string)
+                    .collect(),
             });
         }
         ctx
     }
 }
-
 pub fn read_template_source(template_name: &str) -> Option<String> {
-    let template_path = format!("templates/{}", template_name);
+    let template_path = format!("templates/{template_name}");
     std::fs::read_to_string(&template_path).ok()
 }
 

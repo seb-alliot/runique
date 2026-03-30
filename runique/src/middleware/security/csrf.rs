@@ -72,41 +72,38 @@ pub async fn csrf_middleware(
     let secret = &engine.config.server.secret_key;
 
     // Récupérer ou générer le token de session
-    let session_token: CsrfToken = match session
+    let session_token: CsrfToken = if let Some(t) = session
         .get::<CsrfToken>(CSRF_TOKEN_KEY)
         .await
         .ok()
         .flatten()
     {
-        Some(t) => {
-            if session.insert(CSRF_TOKEN_KEY, &t).await.is_err() {
-                return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
-            }
-            t
+        if session.insert(CSRF_TOKEN_KEY, &t).await.is_err() {
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
         }
-        None => {
-            let token = if is_authenticated(&session).await {
-                let user_id: i32 = session
-                    .get::<i32>(SESSION_USER_ID_KEY)
-                    .await
-                    .ok()
-                    .flatten()
-                    .unwrap_or(0);
-                CsrfToken::generate_with_context(CsrfContext::Authenticated { user_id }, secret)
-            } else {
-                let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
-                CsrfToken::generate_with_context(
-                    CsrfContext::Anonymous {
-                        session_id: &session_id,
-                    },
-                    secret,
-                )
-            };
-            if session.insert(CSRF_TOKEN_KEY, &token).await.is_err() {
-                return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
-            }
-            token
+        t
+    } else {
+        let token = if is_authenticated(&session).await {
+            let user_id: i32 = session
+                .get::<i32>(SESSION_USER_ID_KEY)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or(0);
+            CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id }, secret)
+        } else {
+            let session_id = session.id().map(|id| id.to_string()).unwrap_or_default();
+            CsrfToken::generate_with_context(
+                &CsrfContext::Anonymous {
+                    session_id: &session_id,
+                },
+                secret,
+            )
+        };
+        if session.insert(CSRF_TOKEN_KEY, &token).await.is_err() {
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Session write error").into_response();
         }
+        token
     };
 
     // Vérification CSRF **UNIQUEMENT pour les requêtes AJAX avec header**

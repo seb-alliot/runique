@@ -152,7 +152,7 @@ async fn test_up_chemin_inexistant_retourne_err() {
 #[tokio::test]
 async fn test_status_dossier_vide() {
     let dir = temp_dir("status_empty");
-    let result = status(dir.to_str().unwrap()).await;
+    let result = status(dir.to_str().unwrap());
     assert!(
         result.is_ok(),
         "status() dossier vide doit Ok: {:?}",
@@ -162,7 +162,7 @@ async fn test_status_dossier_vide() {
 
 #[tokio::test]
 async fn test_status_dossier_inexistant() {
-    let result = status("/chemin/inexistant_xyz").await;
+    let result = status("/chemin/inexistant_xyz");
     assert!(
         result.is_ok(),
         "status() sans applied/ doit Ok (affiche message)"
@@ -173,7 +173,7 @@ async fn test_status_dossier_inexistant() {
 async fn test_status_avec_applied_vide() {
     let dir = temp_dir("status_applied_empty");
     applied_dir(&dir); // crée applied/
-    let result = status(dir.to_str().unwrap()).await;
+    let result = status(dir.to_str().unwrap());
     assert!(
         result.is_ok(),
         "status() avec applied/ vide doit Ok: {:?}",
@@ -193,7 +193,7 @@ async fn test_status_avec_table_et_fichiers() {
     )
     .unwrap();
 
-    let result = status(dir.to_str().unwrap()).await;
+    let result = status(dir.to_str().unwrap());
     assert!(
         result.is_ok(),
         "status() avec fichiers doit Ok: {:?}",
@@ -213,7 +213,7 @@ async fn test_status_avec_by_time() {
     )
     .unwrap();
 
-    let result = status(dir.to_str().unwrap()).await;
+    let result = status(dir.to_str().unwrap());
     assert!(
         result.is_ok(),
         "status() avec by_time doit Ok: {:?}",

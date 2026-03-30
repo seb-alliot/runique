@@ -34,10 +34,9 @@ pub fn is_localhost(req: &Request<Body>) -> bool {
     req.headers()
         .get(header::HOST)
         .and_then(|h| h.to_str().ok())
-        .map(|host| {
+        .is_some_and(|host| {
             host.starts_with("localhost")
                 || host.starts_with("127.0.0.1")
                 || host.starts_with("[::1]")
         })
-        .unwrap_or(false)
 }

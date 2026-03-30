@@ -11,13 +11,14 @@ pub fn new<T>(value: T) -> Arc<T> {
     Arc::new(value)
 }
 
-/// Crée un nouveau registre partagé (ARlockmap).
+/// Crée un nouveau registre partagé (`ARlockmap`).
 #[doc = include_str!("../../../doc-tests/aliases/aliases_new_registry.md")]
+#[must_use]
 pub fn new_registry() -> ARlockmap {
     Arc::new(RwLock::new(HashMap::new()))
 }
 
-/// Crée un service ServeDir pour servir des fichiers statiques.
+/// Crée un service `ServeDir` pour servir des fichiers statiques.
 ///
 /// # Exemple
 ///

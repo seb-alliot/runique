@@ -56,7 +56,7 @@ pub async fn parse_multipart(
         };
 
         // --- Champ fichier ---
-        if let Some(filename) = field.file_name().map(|s| s.to_string()) {
+        if let Some(filename) = field.file_name().map(std::string::ToString::to_string) {
             // Aucun fichier sélectionné (filename="" + body vide) — ignorer
             if filename.is_empty() {
                 while field.next().await.is_some() {}
@@ -91,7 +91,7 @@ pub async fn parse_multipart(
                     if written > max_file_bytes {
                         return Err((
                             StatusCode::PAYLOAD_TOO_LARGE,
-                            tf("forms.upload_too_large", &[&max_upload_mb]).to_string(),
+                            tf("forms.upload_too_large", &[&max_upload_mb]).clone(),
                         )
                             .into_response());
                     }
@@ -179,6 +179,6 @@ fn sanitize_filename(filename: &str) -> String {
     if ext.is_empty() {
         uuid
     } else {
-        format!("{}.{}", uuid, ext)
+        format!("{uuid}.{ext}")
     }
 }

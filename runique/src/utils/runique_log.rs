@@ -22,7 +22,7 @@ pub struct RuniqueLog {
     /// Par défaut : `"debug"` si `DEBUG=true`, sinon `"warn"`.
     subscriber_level: Option<String>,
 
-    /// Détecte un csrf_token dans une URL GET (nettoyage silencieux).
+    /// Détecte un `csrf_token` dans une URL GET (nettoyage silencieux).
     pub csrf: Option<Level>,
     /// Trace l'invalidation de sessions lors d'une connexion exclusive.
     pub exclusive_login: Option<Level>,
@@ -45,6 +45,7 @@ impl RuniqueLog {
 
     /// Surcharge le niveau du subscriber tracing.
     /// `RUST_LOG` a toujours la priorité sur cette valeur.
+    #[must_use]
     pub fn subscriber_level(mut self, level: impl Into<String>) -> Self {
         self.subscriber_level = Some(level.into());
         self
@@ -61,9 +62,8 @@ impl RuniqueLog {
             }
         });
 
-        let filter = std::env::var("RUST_LOG")
-            .map(EnvFilter::new)
-            .unwrap_or_else(|_| EnvFilter::new(default));
+        let filter =
+            std::env::var("RUST_LOG").map_or_else(|_| EnvFilter::new(default), EnvFilter::new);
 
         tracing_subscriber::fmt()
             .with_env_filter(filter)
@@ -71,37 +71,37 @@ impl RuniqueLog {
             .try_init()
             .ok();
     }
-
+    #[must_use]
     pub fn csrf(mut self, level: Level) -> Self {
         self.csrf = Some(level);
         self
     }
-
+    #[must_use]
     pub fn exclusive_login(mut self, level: Level) -> Self {
         self.exclusive_login = Some(level);
         self
     }
-
+    #[must_use]
     pub fn filter_fn(mut self, level: Level) -> Self {
         self.filter_fn = Some(level);
         self
     }
-
+    #[must_use]
     pub fn roles(mut self, level: Level) -> Self {
         self.roles = Some(level);
         self
     }
-
+    #[must_use]
     pub fn password_init(mut self, level: Level) -> Self {
         self.password_init = Some(level);
         self
     }
-
+    #[must_use]
     pub fn session(mut self, level: Level) -> Self {
         self.session = Some(level);
         self
     }
-
+    #[must_use]
     pub fn db(mut self, level: Level) -> Self {
         self.db = Some(level);
         self
@@ -117,6 +117,7 @@ impl RuniqueLog {
     /// // ou avec surcharge
     /// .with_log(|l| l.dev().db(Level::INFO))
     /// ```
+    #[must_use]
     pub fn dev(self) -> Self {
         if !crate::utils::env::is_debug() {
             return self;

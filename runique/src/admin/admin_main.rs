@@ -118,7 +118,7 @@ pub async fn admin_get(
                 .unwrap_or(1)
                 .max(1);
             let sort_by = params.get(SORT_BY).filter(|s| !s.is_empty()).cloned();
-            let sort_dir = match params.get(SORT_DIR).map(|s| s.as_str()) {
+            let sort_dir = match params.get(SORT_DIR).map(String::as_str) {
                 Some("desc") => SortDir::Desc,
                 _ => SortDir::Asc,
             };

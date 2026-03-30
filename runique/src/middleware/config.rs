@@ -95,22 +95,22 @@ impl MiddlewareConfig {
     }
 
     // Méthodes chainables pour configuration fine
-
+    #[must_use]
     pub fn with_csp(mut self, enable: bool) -> Self {
         self.enable_csp = enable;
         self
     }
-
+    #[must_use]
     pub fn with_debug_errors(mut self, enable: bool) -> Self {
         self.enable_debug_errors = enable;
         self
     }
-
+    #[must_use]
     pub fn with_cache(mut self, enable: bool) -> Self {
         self.enable_cache = enable;
         self
     }
-
+    #[must_use]
     pub fn with_host_validation(mut self, enable: bool) -> Self {
         self.enable_host_validation = enable;
         self

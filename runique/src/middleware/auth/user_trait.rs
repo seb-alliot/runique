@@ -30,7 +30,7 @@ pub trait RuniqueUser: Send + Sync {
 
     /// Vérifie si l'utilisateur peut accéder à l'admin.
     ///
-    /// Par défaut : compte actif + (is_staff OU is_superuser).
+    /// Par défaut : compte actif + (`is_staff` OU `is_superuser`).
     /// Peut être surchargé pour une logique custom.
     fn can_access_admin(&self) -> bool {
         self.is_active() && (self.is_staff() || self.is_superuser())

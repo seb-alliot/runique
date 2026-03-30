@@ -18,7 +18,8 @@ pub struct CsrfToken(pub String);
 
 impl CsrfToken {
     /// Generation according to context
-    pub fn generate_with_context(ctx: CsrfContext, secret: &str) -> Self {
+    #[must_use]
+    pub fn generate_with_context(ctx: &CsrfContext, secret: &str) -> Self {
         let raw = match ctx {
             CsrfContext::Anonymous { session_id } => generation_token(secret, session_id),
             CsrfContext::Authenticated { user_id } => {
@@ -39,12 +40,14 @@ impl CsrfToken {
     }
 
     /// Access to the raw token
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
 /// HMAC-SHA256 generation for anonymous user
+#[must_use]
 pub fn generation_token(secret_key: &str, option: &str) -> String {
     let mut mac =
         HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");
@@ -63,6 +66,7 @@ pub fn generation_token(secret_key: &str, option: &str) -> String {
 }
 
 /// HMAC-SHA256 generation for authenticated user
+#[must_use]
 pub fn generation_user_token(secret_key: &str, option: &str) -> String {
     let mut mac =
         HmacSha256::new_from_slice(secret_key.as_bytes()).expect("HMAC can take key of any size");

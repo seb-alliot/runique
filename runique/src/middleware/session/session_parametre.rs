@@ -12,6 +12,7 @@ pub struct SessionConfig {
 }
 
 impl SessionConfig {
+    #[must_use]
     pub fn with_duration(mut self, duration: Duration) -> Self {
         self.duration = duration;
         self

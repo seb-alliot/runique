@@ -54,14 +54,14 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
 
     // Routes publiques (login uniquement)
     let public_router = urlpatterns! {
-        &format!("{}/login", prefix) => get(admin_login_get).post(admin_login_post), name = "admin_login",
+        &format!("{prefix}/login") => get(admin_login_get).post(admin_login_post), name = "admin_login",
     };
 
     // Routes protégées (dashboard + logout)
     let protected_router = urlpatterns! {
-        &format!("{}/", prefix) => get(admin_dashboard), name = "admin_dashboard",
+        &format!("{prefix}/") => get(admin_dashboard), name = "admin_dashboard",
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
-        &format!("{}/logout", prefix) => get(admin_logout), name = "admin_logout",
+        &format!("{prefix}/logout") => get(admin_logout), name = "admin_logout",
     };
 
     // Routes CRUD générées (protégées aussi)
@@ -164,7 +164,7 @@ async fn admin_login_get(
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> AppResult<Response> {
     use crate::middleware::auth::is_admin_authenticated;
-    let from_logout = params.get("from").map(|v| v == "logout").unwrap_or(false);
+    let from_logout = params.get("from").is_some_and(|v| v == "logout");
     if !from_logout && is_admin_authenticated(&req.session).await {
         return Ok(Redirect::to(&format!("{}/", admin.config.prefix)).into_response());
     }
@@ -204,7 +204,7 @@ async fn admin_login_post(
             .insert("error", t("csrf.invalid_or_missing").to_string());
         return req
             .render(admin.config.templates.login.resolve())
-            .unwrap_or_else(|e| e.into_response());
+            .unwrap_or_else(axum::response::IntoResponse::into_response);
     }
 
     let Some(auth) = &admin.config.auth else {
@@ -219,45 +219,41 @@ async fn admin_login_post(
         .authenticate(&data.username, &data.password, &req.engine.db)
         .await;
 
-    match result {
-        Some(user) => {
-            if login_staff(
-                &req.session,
-                user.user_id,
-                &user.username,
-                user.is_staff,
-                user.is_superuser,
-                user.roles,
-            )
-            .await
-            .is_err()
-            {
-                insert_admin_messages(&mut req.context, "login");
-                insert_admin_messages(&mut req.context, "base");
-                req = req
-                    .insert("lang", current_lang().code())
-                    .insert("site_title", &admin.config.site_title)
-                    .insert("site_url", &admin.config.site_url)
-                    .insert("error", t("admin.login.error_session").to_string());
-                return req
-                    .render(admin.config.templates.login.resolve())
-                    .unwrap_or_else(|e| e.into_response());
-            }
-
-            Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
-        }
-
-        None => {
+    if let Some(user) = result {
+        if login_staff(
+            &req.session,
+            user.user_id,
+            &user.username,
+            user.is_staff,
+            user.is_superuser,
+            user.roles,
+        )
+        .await
+        .is_err()
+        {
             insert_admin_messages(&mut req.context, "login");
             insert_admin_messages(&mut req.context, "base");
             req = req
                 .insert("lang", current_lang().code())
                 .insert("site_title", &admin.config.site_title)
                 .insert("site_url", &admin.config.site_url)
-                .insert("error", t("admin.login.error_credentials").to_string());
-            req.render(admin.config.templates.login.resolve())
-                .unwrap_or_else(|e| e.into_response())
+                .insert("error", t("admin.login.error_session").to_string());
+            return req
+                .render(admin.config.templates.login.resolve())
+                .unwrap_or_else(axum::response::IntoResponse::into_response);
         }
+
+        Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
+    } else {
+        insert_admin_messages(&mut req.context, "login");
+        insert_admin_messages(&mut req.context, "base");
+        req = req
+            .insert("lang", current_lang().code())
+            .insert("site_title", &admin.config.site_title)
+            .insert("site_url", &admin.config.site_url)
+            .insert("error", t("admin.login.error_credentials").to_string());
+        req.render(admin.config.templates.login.resolve())
+            .unwrap_or_else(axum::response::IntoResponse::into_response)
     }
 }
 

@@ -41,7 +41,7 @@ pub async fn error_handler_middleware(
     let request_helper = RequestInfoHelper {
         method: request.method().to_string(),
         path: request.uri().path().to_string(),
-        query: request.uri().query().map(|q| q.to_string()),
+        query: request.uri().query().map(std::string::ToString::to_string),
         headers: request
             .headers()
             .iter()
@@ -73,7 +73,7 @@ pub async fn error_handler_middleware(
 
         // --- Rendu selon mode debug ou production ---
         if config.debug {
-            return render_debug_error_from_context(&tera, &config, error_ctx, csrf_token);
+            return render_debug_error_from_context(&tera, &config, &error_ctx, csrf_token);
         } else {
             return match error_ctx.error_type {
                 ErrorType::NotFound => render_404(&tera, &config, csrf_token),
@@ -86,7 +86,7 @@ pub async fn error_handler_middleware(
     response
 }
 
-/// Construit le ErrorContext depuis la réponse
+/// Construit le `ErrorContext` depuis la réponse
 fn build_error_context(
     response: &Response,
     request_helper: &RequestInfoHelper,
@@ -210,7 +210,7 @@ fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
 /// Insère tous les messages de debug dans le contexte (itératif)
 fn insert_debug_messages(context: &mut Context) {
     for key in DEBUG_MESSAGE_KEYS {
-        let translation_key = format!("TemplateMessage.{}", key);
+        let translation_key = format!("TemplateMessage.{key}");
         context.insert(*key, &t(&translation_key));
     }
 }
@@ -218,14 +218,14 @@ fn insert_debug_messages(context: &mut Context) {
 fn render_debug_error_from_context(
     tera: &Tera,
     config: &RuniqueConfig,
-    error_ctx: ErrorContext,
+    error_ctx: &ErrorContext,
     csrf_token: Option<String>,
 ) -> Response {
-    let mut context = match Context::from_serialize(&error_ctx) {
+    let mut context = match Context::from_serialize(error_ctx) {
         Ok(ctx) => ctx,
         Err(e) => {
             error!("Failed to serialize error context: {}", e);
-            return critical_error_html(&format!("Serialization Error: {}", e));
+            return critical_error_html(&format!("Serialization Error: {e}"));
         }
     };
 
@@ -241,7 +241,7 @@ fn render_debug_error_from_context(
             .into_response(),
         Err(e) => {
             error!("Failed to render debug template: {}", e);
-            critical_error_html(&format!("Tera Rendering Error: {}", e))
+            critical_error_html(&format!("Tera Rendering Error: {e}"))
         }
     }
 }

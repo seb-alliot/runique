@@ -94,7 +94,6 @@ impl SecurityPolicy {
             use_nonce: true,
         }
     }
-
     pub fn permissive() -> Self {
         Self {
             default_src: vec!["'none'".into()],
@@ -131,7 +130,7 @@ impl SecurityPolicy {
             }
         }
     }
-
+    #[must_use]
     pub fn to_header_value(&self, nonce: Option<&str>) -> String {
         let mut directives = Vec::new();
 
@@ -142,7 +141,7 @@ impl SecurityPolicy {
         if !self.script_src.is_empty() {
             let mut script_sources = self.script_src.clone();
             if let Some(n) = nonce.filter(|n| !n.is_empty()) {
-                script_sources.push(format!("'nonce-{}'", n));
+                script_sources.push(format!("'nonce-{n}'"));
                 script_sources.retain(|s| s != "'unsafe-inline'");
             }
             directives.push(format!("script-src {}", script_sources.join(" ")));
@@ -321,8 +320,7 @@ pub async fn https_redirect_middleware(
         .headers()
         .get("x-forwarded-proto")
         .and_then(|v| v.to_str().ok())
-        .map(|v| v.eq_ignore_ascii_case("https"))
-        .unwrap_or(false);
+        .is_some_and(|v| v.eq_ignore_ascii_case("https"));
 
     if is_https {
         return next.run(req).await;
@@ -339,7 +337,7 @@ pub async fn https_redirect_middleware(
     let https_url = format!(
         "https://{}{}",
         host,
-        uri.path_and_query().map(|pq| pq.as_str()).unwrap_or("")
+        uri.path_and_query().map_or("", |pq| pq.as_str())
     );
 
     // Rediriger avec 301

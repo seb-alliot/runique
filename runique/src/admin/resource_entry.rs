@@ -20,13 +20,14 @@ pub enum SortDir {
 }
 
 impl SortDir {
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             SortDir::Asc => "asc",
             SortDir::Desc => "desc",
         }
     }
-
+    #[must_use]
     pub fn toggle(&self) -> &'static str {
         match self {
             SortDir::Asc => "desc",
@@ -43,7 +44,7 @@ pub struct ListParams {
     pub sort_by: Option<String>,
     pub sort_dir: SortDir,
     pub search: Option<String>,
-    /// Filtres exacts par colonne : [(col_sql, valeur)]
+    /// Filtres exacts par colonne : [(`col_sql`, `valeur`)]
     pub column_filters: Vec<(String, String)>,
 }
 
@@ -74,9 +75,9 @@ pub type CreateFn = Arc<dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbE
 pub type CountFn =
     Arc<dyn Fn(ADb, Option<String>) -> BoxFuture<'static, Result<u64, DbErr>> + Send + Sync>;
 
-/// Closure retournant les valeurs distinctes de chaque colonne configurée dans list_filter.
+/// Closure retournant les valeurs distinctes de chaque colonne configurée dans `list_filter`.
 /// Paramètre : page courante par colonne (0-based).
-/// Retourne : HashMap<col_sql, (valeurs_de_la_page, total_distinct)>
+/// Retourne : `HashMap`<`col_sql`, (`valeurs_de_la_page`, `total_distinct`)>
 pub type FilterFn = Arc<
     dyn Fn(
             ADb,
@@ -117,42 +118,42 @@ impl ResourceEntry {
             filter_fn: None,
         }
     }
-
+    #[must_use]
     pub fn with_edit_form_builder(mut self, f: FormBuilder) -> Self {
         self.edit_form_builder = Some(f);
         self
     }
-
+    #[must_use]
     pub fn with_list_fn(mut self, f: ListFn) -> Self {
         self.list_fn = Some(f);
         self
     }
-
+    #[must_use]
     pub fn with_get_fn(mut self, f: GetFn) -> Self {
         self.get_fn = Some(f);
         self
     }
-
+    #[must_use]
     pub fn with_delete_fn(mut self, f: DeleteFn) -> Self {
         self.delete_fn = Some(f);
         self
     }
-
+    #[must_use]
     pub fn with_update_fn(mut self, f: UpdateFn) -> Self {
         self.update_fn = Some(f);
         self
     }
-
+    #[must_use]
     pub fn with_create_fn(mut self, f: CreateFn) -> Self {
         self.create_fn = Some(f);
         self
     }
-
+    #[must_use]
     pub fn with_count_fn(mut self, f: CountFn) -> Self {
         self.count_fn = Some(f);
         self
     }
-
+    #[must_use]
     pub fn with_filter_fn(mut self, f: FilterFn) -> Self {
         self.filter_fn = Some(f);
         self

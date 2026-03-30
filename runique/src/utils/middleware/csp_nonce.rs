@@ -7,6 +7,7 @@ use rand::RngExt;
 pub struct CspNonce(String);
 
 impl CspNonce {
+    #[must_use]
     pub fn generate() -> Self {
         let mut rng = rand::rng();
         let mut bytes = [0u8; 16]; // 16 bytes = 128 bits
@@ -14,9 +15,11 @@ impl CspNonce {
         let nonce = CspNonce::base64_encode(&bytes);
         CspNonce(nonce)
     }
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
+    #[must_use]
     pub fn base64_encode(data: &[u8]) -> String {
         use base64::Engine;
         let engine = base64::engine::general_purpose::STANDARD;

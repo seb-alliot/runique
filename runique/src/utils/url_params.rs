@@ -13,10 +13,11 @@ impl<'a> UrlParams<'a> {
     }
 
     /// Cherche dans path d'abord, puis query.
+    #[must_use]
     pub fn get(&self, key: &str) -> Option<&str> {
         self.path
             .get(key)
             .or_else(|| self.query.get(key))
-            .map(|s| s.as_str())
+            .map(String::as_str)
     }
 }

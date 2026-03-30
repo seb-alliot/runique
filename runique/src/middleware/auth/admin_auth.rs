@@ -27,7 +27,7 @@ pub struct AdminLoginResult {
 /// - Le compte est inactif
 /// - L'utilisateur n'a pas les droits admin
 ///
-/// ## Implémentation rapide avec DefaultAdminAuth :
+/// ## Implémentation rapide avec `DefaultAdminAuth` :
 /// ```rust,ignore
 /// use runique::middleware::auth::DefaultAdminAuth;
 ///

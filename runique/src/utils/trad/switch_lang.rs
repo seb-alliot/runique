@@ -38,6 +38,7 @@ pub fn current_lang() -> Lang {
 }
 
 /// Traduit une clé avec la langue globale.
+#[must_use]
 pub fn t(key: &str) -> Cow<'static, str> {
     current_lang().get(key)
 }
@@ -59,7 +60,6 @@ impl From<&str> for Lang {
 
         match normalized.as_str() {
             "fr" | "fr-fr" | "fr-ca" | "fr-be" | "fr-ch" => Lang::Fr,
-            "en" | "en-us" | "en-gb" | "en-ca" => Lang::En,
             "it" | "it-it" | "it-ch" => Lang::It,
             "es" | "es-es" | "es-mx" | "es-ar" | "es-co" | "es-cl" => Lang::Es,
             "de" | "de-de" | "de-at" | "de-ch" => Lang::De,
@@ -104,11 +104,12 @@ impl Lang {
             6 => Lang::Ja,
             7 => Lang::Zh,
             8 => Lang::Ru,
-            _ => Lang::En,
+            9_u8..=u8::MAX => todo!(),
         }
     }
 
     /// Returns the language code (for file names)
+    #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
             Lang::Fr => "fr",
@@ -124,42 +125,42 @@ impl Lang {
     }
 
     /// Loads the translation JSON for this language
-    fn load_json(&self) -> &'static Value {
+    fn load_json(self) -> &'static Value {
         static FR: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("fr.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'fr.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'fr.json': {e}"))
         });
         static EN: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("en.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'en.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'en.json': {e}"))
         });
         static IT: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("it.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'it.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'it.json': {e}"))
         });
         static ES: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("es.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'es.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'es.json': {e}"))
         });
         static DE: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("de.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'de.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'de.json': {e}"))
         });
         static PT: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("pt.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'pt.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'pt.json': {e}"))
         });
         static JA: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("ja.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'ja.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'ja.json': {e}"))
         });
         static ZH: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("zh.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'zh.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'zh.json': {e}"))
         });
         static RU: LazyLock<Value> = LazyLock::new(|| {
             serde_json::from_str(include_str!("ru.json"))
-                .unwrap_or_else(|e| panic!("Invalid translation file 'ru.json': {}", e))
+                .unwrap_or_else(|e| panic!("Invalid translation file 'ru.json': {e}"))
         });
 
         match self {
@@ -176,6 +177,7 @@ impl Lang {
     }
 
     /// Retrieves a translated message by its key (e.g., "forms.required")
+    #[must_use]
     pub fn get(&self, key: &str) -> Cow<'static, str> {
         if let Some(s) = self.lookup(key) {
             return s;
@@ -188,7 +190,7 @@ impl Lang {
         Cow::Owned(key.to_string())
     }
 
-    fn lookup(&self, key: &str) -> Option<Cow<'static, str>> {
+    fn lookup(self, key: &str) -> Option<Cow<'static, str>> {
         let json = self.load_json();
         let mut current = json;
         for part in key.split('.') {
@@ -198,7 +200,7 @@ impl Lang {
     }
 
     /// Retrieves a message with parameters (replaces {} with args)
-    pub fn format<T: Display>(&self, key: &str, args: &[T]) -> String {
+    pub fn format<T: Display>(self, key: &str, args: &[T]) -> String {
         let template = self.get(key);
         let mut result = template.to_string();
 

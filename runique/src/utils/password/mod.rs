@@ -42,7 +42,7 @@ impl BaseHash {
             Manual::Custom(hasher) => hasher.hash(password),
         }
     }
-
+    #[must_use]
     pub fn verify(&self, password: &str, hash: &str) -> bool {
         if hash.starts_with("$argon2") {
             self.verify_argon2(password, hash)
@@ -54,7 +54,7 @@ impl BaseHash {
             false
         }
     }
-
+    #[must_use]
     pub fn detect_algorithm(&self, hash: &str) -> Option<&'static str> {
         if hash.starts_with("$argon2") {
             Some("argon2")
@@ -76,7 +76,7 @@ impl BaseHash {
         argon2
             .hash_password(password.as_bytes(), &salt)
             .map(|h| h.to_string())
-            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_owned())
+            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).clone())
     }
 
     fn verify_argon2(&self, password: &str, hash: &str) -> bool {
@@ -93,7 +93,7 @@ impl BaseHash {
             return Err(t("forms.password_empty").into_owned());
         }
         bcrypt_hash(password, DEFAULT_COST)
-            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_owned())
+            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).clone())
     }
 
     fn verify_bcrypt(&self, password: &str, hash: &str) -> bool {
@@ -110,7 +110,7 @@ impl BaseHash {
         Scrypt
             .hash_password(password.as_bytes(), &salt)
             .map(|h| h.to_string())
-            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_owned())
+            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).clone())
     }
 
     fn verify_scrypt(&self, password: &str, hash: &str) -> bool {
@@ -236,18 +236,15 @@ impl PasswordConfig {
     pub fn auto() -> Self {
         Self::Auto(AutoConfig::default())
     }
-
     pub fn auto_with(algorithm: Manual) -> Self {
         Self::Auto(AutoConfig {
             algorithm,
             ..Default::default()
         })
     }
-
     pub fn manual(algorithm: Manual) -> Self {
         Self::Manual(algorithm)
     }
-
     pub fn oauth(provider: External) -> Self {
         Self::Delegated(provider)
     }
@@ -335,7 +332,7 @@ impl PasswordService {
             PasswordConfig::Delegated(_) => Err("Pas de hashage en mode délégué".to_string()),
         }
     }
-
+    #[must_use]
     pub fn verify(&self, password: &str, hash: &str) -> bool {
         match &self.config {
             PasswordConfig::Auto(_) | PasswordConfig::Manual(_) => {
@@ -345,7 +342,7 @@ impl PasswordService {
             PasswordConfig::Delegated(_) => false,
         }
     }
-
+    #[must_use]
     pub fn is_algorithm_current(&self, hash: &str) -> bool {
         match &self.config {
             PasswordConfig::Auto(config) => {
@@ -360,7 +357,7 @@ impl PasswordService {
             _ => true,
         }
     }
-
+    #[must_use]
     pub fn is_already_hashed(&self, value: &str) -> bool {
         value.starts_with("$argon2id$")
             || value.starts_with("$argon2i$")
@@ -397,7 +394,7 @@ pub fn hash(password: &str) -> Result<String, String> {
     let svc = PasswordService::new(password_get());
     svc.hash(password)
 }
-
+#[must_use]
 pub fn verify(password: &str, hash: &str) -> bool {
     let svc = PasswordService::new(password_get());
     svc.verify(password, hash)
