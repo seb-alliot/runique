@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,12 +7,12 @@
     <title>{% if title %}{{ title }} — Runique{% else %}Runique{% endif %}</title>
 
     {% block meta %}
-    <meta name="description" content="{% if description %}{{ description }}{% else %}Runique — framework web Rust inspiré de Django, basé sur Axum, SeaORM et Tera.{% endif %}">
+    <meta name="description" content="{% if description %}{{ description }}{% else %}Runique — Rust web framework inspired by Django, based on Axum, SeaORM and Tera.{% endif %}">
     <meta name="robots" content="index, follow">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Runique">
     <meta property="og:title" content="{% if title %}{{ title }} — Runique{% else %}Runique{% endif %}">
-    <meta property="og:description" content="{% if description %}{{ description }}{% else %}Runique — framework web Rust inspiré de Django, basé sur Axum, SeaORM et Tera.{% endif %}">
+    <meta property="og:description" content="{% if description %}{{ description }}{% else %}Runique — Rust web framework inspired by Django, based on Axum, SeaORM and Tera.{% endif %}">
     <meta property="og:image" content="https://runique-production.up.railway.app/media/toshiro.avif">
     {% endblock %}
 
@@ -27,23 +27,23 @@
 
     {% if debug %}
         <div class="debug-banner">
-            <strong>Debug Mode Activé</strong>
+            <strong>Debug Mode Enabled</strong>
         </div>
     {% endif %}
 
 
-    <button id="theme-toggle" aria-label="Basculer le thème" title="Basculer clair/sombre">🌙</button>
+    <button id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">🌙</button>
 
     {% block header %}
     <nav class="site-nav" id="site-nav">
-        <a href="{% link 'index' %}" class="site-nav-logo">⚡ Runique</a>
+        <a href="{% link 'index' %}" class="site-nav-logo"> Runique</a>
         {% if runique_release %}<span class="site-nav-version">v{{ runique_release.version }}</span>{% endif %}
         <div class="site-nav-links">
             <a href="{% link 'doc_index_en' %}">Documentation</a>
-            <a href="/cours">Cours</a>
+            <a href="/cours">Courses</a>
             <a href="{% link 'roadmap' %}">Roadmap</a>
             <a href="{% link 'changelog' %}">Changelog</a>
-            <a href="{% link 'contribution_list' %}">Contribuer</a>
+            <a href="{% link 'contribution_list' %}">Contribute</a>
         </div>
         <div class="site-nav-actions">
             {% if current_user %}
@@ -52,7 +52,7 @@
                 {% endif %}
                 <a href="{% link 'logout' %}" class="site-nav-link-action">{{ current_user.username }}</a>
             {% else %}
-                <a href="{% link 'login' %}" class="site-nav-link-action">Connexion</a>
+                <a href="{% link 'login' %}" class="site-nav-link-action">Login</a>
             {% endif %}
         </div>
         <button class="site-nav-toggle" id="site-nav-toggle" aria-label="Menu">☰</button>
@@ -60,15 +60,15 @@
     <div class="site-nav-overlay" id="site-nav-overlay"></div>
     <div class="site-nav-panel" id="site-nav-panel">
         <div class="site-nav-panel-header">
-            <span>⚡ Runique</span>
+            <span>  Runique</span>
             <button class="site-nav-panel-close" id="site-nav-panel-close">✕</button>
         </div>
         <a href="{% link 'doc_index_en' %}">Documentation</a>
-        <a href="/cours">Cours</a>
+        <a href="/cours">Courses</a>
         <a href="{% link 'roadmap' %}">Roadmap</a>
         <a href="{% link 'changelog' %}">Changelog</a>
-        <a href="{% link 'contribution_list' %}">Contribuer</a>
-        <a href="{% link 'login' %}">Connexion</a>
+        <a href="{% link 'contribution_list' %}">Contribute</a>
+        <a href="{% link 'login' %}">Login</a>
         {% if runique_release %}
         <a href="{{ runique_release.github_url }}" target="_blank">GitHub</a>
         <a href="{{ runique_release.crates_url }}" target="_blank">Crates.io</a>
@@ -90,3 +90,4 @@
     <script {% csp %} src='{% static "js/site_nav.js" %}'></script>
     {% block scripts %}{% endblock %}
 </body>
+</html>

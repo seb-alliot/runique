@@ -62,7 +62,7 @@
         {% set sommaire_blocks = blocks | filter(attribute="block_type", value="sommaire") %}
         {% if sommaire_blocks %}
         <nav class="doc-toc">
-            <strong>Dans cette page</strong>
+            <strong>On this page</strong>
             {% for s in sommaire_blocks %}
             {{ s.content | markdown }}
             {% endfor %}
@@ -71,7 +71,7 @@
         {% set headings = blocks | filter(attribute="heading") %}
         {% if headings %}
         <nav class="doc-toc">
-            <strong>Dans cette page</strong>
+            <strong>On this page</strong>
             <ul>
                 {% for block in blocks %}
                 {% if block.heading %}

@@ -4,14 +4,14 @@
 <div class="content">
     <div class="blog-header">
         <h1>{{ title }}</h1>
-        <a href="{% link 'blog_info' %}" class="btn btn-primary">+ Nouvel article</a>
+        <a href="{% link 'blog_info' %}" class="btn btn-primary">+ New article</a>
     </div>
 
     <form method="get" action="{% link 'blog_list' %}" class="search-bar">
         {% form.search_form.search %}
-        <button type="submit" class="btn btn-secondary">Rechercher</button>
+        <button type="submit" class="btn btn-secondary">Search</button>
         {% if search %}
-            <a href="{% link 'blog_list' %}" class="btn btn-secondary">✕ Effacer</a>
+            <a href="{% link 'blog_list' %}" class="btn btn-secondary">✕ Clear</a>
         {% endif %}
     </form>
 
@@ -24,7 +24,7 @@
                             <a href="{% link 'blog_detail' id=article.id %}">{{ article.title }}</a>
                         </h2>
                         <span class="blog-card-meta">
-                            Par {{ article.email }}
+                            By {{ article.email }}
                             {% if article.created_at %}· {{ article.created_at }}{% endif %}
                         </span>
                     </div>
@@ -36,7 +36,7 @@
                             </a>
                         {% endif %}
                         <a href="{% link 'blog_detail' id=article.id %}" class="btn-secondary btn-sm">
-                            Lire la suite →
+                            Read more →
                         </a>
                     </div>
                 </article>
@@ -44,15 +44,15 @@
         </div>
     {% else %}
         <div class="empty-state">
-            <p>Aucun article pour l'instant.</p>
-            <a href="{% link 'blog_info' %}" class="btn btn-primary">Écrire le premier article</a>
+            <p>No articles yet.</p>
+            <a href="{% link 'blog_info' %}" class="btn btn-primary">Write the first article</a>
         </div>
     {% endif %}
 
     <div class="back-link">
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc FR</a>
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc EN</a>
-        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md " target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md " target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'index' %}">← Back to home</a>
     </div>
 </div>
 {% endblock %}

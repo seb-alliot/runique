@@ -17,7 +17,7 @@
 
     {% if auth_error %}
         <div class="alert alert-danger">
-            Nom d'utilisateur ou mot de passe incorrect.
+            Incorrect username or password.
         </div>
     {% endif %}
 
@@ -26,15 +26,15 @@
         <div class="form-container demo-form-panel">
             <form id="login_form" method="post" action='{% link "login" %}'>
                 {% form.login_form %}
-                <button type="submit" class="btn btn-primary btn-submit">Se connecter</button>
+                <button type="submit" class="btn btn-primary btn-submit">Sign in</button>
             </form>
 
             <div class="text-center mt-3">
                 <div class="signup-prompt">
-                    <p>Pas encore de compte ?</p>
-                    <a href='{% link "inscription" %}'>S'inscrire</a>
+                    <p>No account yet?</p>
+                    <a href='{% link "inscription" %}'>Sign up</a>
                 </div>
-                <a href='{% link "index" %}'>← Retour à l'accueil</a>
+                <a href='{% link "index" %}'>← Back to home</a>
             </div>
         </div>
 

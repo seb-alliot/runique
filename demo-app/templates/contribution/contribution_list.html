@@ -4,7 +4,7 @@
 <div class="content">
     <div class="blog-header">
         <h1>{{ title }}</h1>
-        <a href="{% link 'contribution' %}" class="btn btn-primary">+ Nouvelle contribution</a>
+        <a href="{% link 'contribution' %}" class="btn btn-primary">+ New contribution</a>
     </div>
 
     {% if contributions %}
@@ -13,7 +13,7 @@
                 <article class="blog-card">
                     <div class="blog-card-header">
                         <h2 class="blog-card-title">{{ contribution.title }}</h2>
-                        <span class="blog-card-meta">par utilisateur #{{ contribution.user_id }}</span>
+                        <span class="blog-card-meta">by user #{{ contribution.user_id }}</span>
                     </div>
                     <p class="blog-card-summary">{{ contribution.content }}</p>
                 </article>
@@ -21,16 +21,16 @@
         </div>
     {% else %}
         <div class="empty-state">
-            <p>Aucune contribution pour le moment.</p>
-            <a href="{% link 'contribution' %}" class="btn btn-primary">Soyez le premier !</a>
+            <p>No contributions yet.</p>
+            <a href="{% link 'contribution' %}" class="btn btn-primary">Be the first!</a>
         </div>
     {% endif %}
 
     <div class="back-link">
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc ORM FR</a>
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc ORM EN</a>
-        <a href="https://github.com/seb-alliot/runique/blob/main/CONTRIBUTING.md" target="_blank" class="btn btn-secondary">Contribuer</a>
-        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/CONTRIBUTING.md" target="_blank" class="btn btn-secondary">Contribute</a>
+        <a href="{% link 'index' %}">← Back to home</a>
     </div>
 </div>
 {% endblock %}
