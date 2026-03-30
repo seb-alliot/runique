@@ -36,11 +36,11 @@
         <div id="doc-section-readme">
             <div class="doc-index-subsection">
                 <button class="doc-index-section-title doc-subsection-title doc-diff--fr" type="button" data-section="readme-fr" aria-expanded="true">
-                    Français
+                    French
                     <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 <div class="doc-index-nav" id="doc-section-readme-fr">
-                    <a href="/readme/fr" class="doc-index-nav-link">README — Français</a>
+                    <a href="/readme/fr" class="doc-index-nav-link">README — French</a>
                 </div>
             </div>
             <div class="doc-index-subsection">
@@ -67,12 +67,12 @@
                 {% if group_sections | length > 0 %}
                 <div class="doc-index-subsection">
                     <button class="doc-index-section-title doc-subsection-title doc-theme--{{ key }}" type="button" data-section="sub-{{ key }}" aria-expanded="true">
-                        {% if key == "demarrage" %}{% if lang == "fr" %}Démarrage{% else %}Getting Started{% endif %}
+                        {% if key == "demarrage" %}{% if lang == "fr" %}Getting Started{% else %}Getting Started{% endif %}
                         {% elif key == "web" %}Routing & Web
-                        {% elif key == "database" %}{% if lang == "fr" %}Base de données{% else %}Database{% endif %}
-                        {% elif key == "security" %}{% if lang == "fr" %}Sécurité & Auth{% else %}Security & Auth{% endif %}
+                        {% elif key == "database" %}{% if lang == "fr" %}Database{% else %}Database{% endif %}
+                        {% elif key == "security" %}{% if lang == "fr" %}Security & Auth{% else %}Security & Auth{% endif %}
                         {% elif key == "admin" %}Admin
-                        {% else %}{% if lang == "fr" %}Divers{% else %}Misc{% endif %}
+                        {% else %}{% if lang == "fr" %}Misc{% else %}Misc{% endif %}
                         {% endif %}
                         <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>

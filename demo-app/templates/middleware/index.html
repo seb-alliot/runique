@@ -4,40 +4,40 @@
 <div class="container">
     <h1>{{ title }}</h1>
     <p class="lead lead-mb">
-        Les middlewares Runique se branchent via le builder — ordre d'exécution garanti par le framework.
+        Runique middlewares connect via the builder — execution order guaranteed by the framework.
     </p>
 
     <div class="demo-cards">
         <a href="{% link 'middleware_csrf' %}" class="feature-card">
             <h3>CSRF</h3>
-            <p>Protection automatique — transparent dans les formulaires via Prisme</p>
+            <p>Automatic protection — transparent in forms via Prisme</p>
         </a>
         <a href="{% link 'middleware_csp' %}" class="feature-card">
             <h3>CSP</h3>
-            <p>Content Security Policy — directives, nonce, profils prédéfinis</p>
+            <p>Content Security Policy — directives, nonce, predefined profiles</p>
         </a>
         <a href="{% link 'middleware_rate_limit' %}" class="feature-card">
             <h3>Rate Limiter</h3>
-            <p>Limitation de requêtes par IP avec fenêtre glissante</p>
+            <p>Request limiting per IP with sliding window</p>
         </a>
         <a href="{% link 'middleware_login_guard' %}" class="feature-card">
             <h3>Login Guard</h3>
-            <p>Anti brute-force par username — lockout configurable</p>
+            <p>Anti brute-force by username — configurable lockout</p>
         </a>
         <a href="{% link 'middleware_hosts' %}" class="feature-card">
             <h3>Host Validation</h3>
-            <p>Validation des hôtes autorisés — wildcards, ports, IPv6</p>
+            <p>Allowed hosts validation — wildcards, ports, IPv6</p>
         </a>
         <a href="{% link 'middleware_https' %}" class="feature-card">
             <h3>HTTPS</h3>
-            <p>Redirection HTTP → HTTPS et headers de sécurité (HSTS)</p>
+            <p>HTTP → HTTPS redirection and security headers (HSTS)</p>
         </a>
     </div>
 
     <div class="back-link">
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md" target="_blank" class="btn btn-secondary">Doc FR</a>
-        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md" target="_blank" class="btn btn-secondary">Doc EN</a>
-        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/middleware/08-middleware.md " target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/middleware/08-middleware.md " target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link 'index' %}">← Back to home</a>
     </div>
 </div>
 {% endblock %}

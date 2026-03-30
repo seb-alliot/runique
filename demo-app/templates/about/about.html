@@ -10,31 +10,31 @@
 
 {% block content %}
 <div class="content about">
-    <h1>Messages flash</h1>
+    <h1>Flash Messages</h1>
     <p class="lead">
-        Notifications de session stockées côté serveur, affichées une seule fois après redirection.
+        Server-side session notifications, displayed once after redirect.
     </p>
 
     <div class="demo-layout">
 
         <div class="demo-form-panel">
             <p class="about-intro">
-                Cliquez sur le bouton pour injecter les 4 types de messages et les voir s'afficher.
+                Click the button to inject all 4 message types and see them displayed.
             </p>
 
             <a href="{% link 'about' %}" class="btn btn-primary btn-submit">
-                Afficher les messages
+                Show messages
             </a>
 
             {% messages %}
 
             <div class="about-levels">
-                <h3>4 niveaux disponibles</h3>
+                <h3>4 available levels</h3>
                 <ul>
-                    <li><strong class="msg-success">Success</strong> — action réussie, sauvegarde, connexion</li>
-                    <li><strong class="msg-info">Info</strong> — information neutre</li>
-                    <li><strong class="msg-warning">Warning</strong> — attention requise</li>
-                    <li><strong class="msg-error">Error</strong> — erreur, accès refusé</li>
+                    <li><strong class="msg-success">Success</strong> — successful action, save, login</li>
+                    <li><strong class="msg-info">Info</strong> — neutral information</li>
+                    <li><strong class="msg-warning">Warning</strong> — attention required</li>
+                    <li><strong class="msg-error">Error</strong> — error, access denied</li>
                 </ul>
             </div>
         </div>
@@ -44,31 +44,31 @@
             <pre><code><span class="kw">pub async fn</span> <span class="fn_">about</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
-    <span class="mc">success!</span>(request.notices => <span class="st">"Action réussie."</span>);
-    <span class="mc">info!</span>(request.notices => <span class="st">"Message d'information."</span>);
-    <span class="mc">warning!</span>(request.notices => <span class="st">"Attention requise."</span>);
-    <span class="mc">error!</span>(request.notices => <span class="st">"Une erreur est survenue."</span>);
+    <span class="mc">success!</span>(request.notices => <span class="st">"Action successful."</span>);
+    <span class="mc">info!</span>(request.notices => <span class="st">"Information message."</span>);
+    <span class="mc">warning!</span>(request.notices => <span class="st">"Attention required."</span>);
+    <span class="mc">error!</span>(request.notices => <span class="st">"An error occurred."</span>);
 
     request.<span class="fn_">render</span>(<span class="st">"about/about.html"</span>)
 }</code></pre>
 
             <div class="demo-code-title">views.rs — pattern redirect typique</div>
-            <pre><code><span class="cm">// Après une action : ajouter + rediriger</span>
+            <pre><code><span class="cm">// After an action: add + redirect</span>
 <span class="kw">pub async fn</span> <span class="fn_">create_post</span>(
     request: <span class="ty">Request</span>,
     <span class="ty">Prisme</span>(<span class="kw">mut</span> form): <span class="ty">Prisme</span>&lt;<span class="ty">BlogForm</span>&gt;,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
     <span class="kw">if</span> request.<span class="fn_">is_post</span>() && form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
         form.<span class="fn_">save</span>(&db).<span class="kw">await</span>?;
-        <span class="mc">success!</span>(request.notices => <span class="st">"Article publié !"</span>);
+        <span class="mc">success!</span>(request.notices => <span class="st">"Article published!"</span>);
         <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/blog"</span>).<span class="fn_">into_response</span>());
     }
     request.<span class="fn_">render</span>(<span class="st">"blog/blog.html"</span>)
 }</code></pre>
 
-            <div class="demo-code-title">flash_now! — message immédiat sans session</div>
-            <pre><code><span class="cm">// Affiche le message sur la page courante (pas de redirect)</span>
-<span class="mc">flash_now!</span>(error => request, <span class="st">"Formulaire invalide."</span>);</code></pre>
+            <div class="demo-code-title">flash_now! — immediate message without session</div>
+            <pre><code><span class="cm">// Display the message on the current page (no redirect)</span>
+<span class="mc">flash_now!</span>(error => request, <span class="st">"Invalid form."</span>);</code></pre>
 
             <div class="demo-code-title">index.html — affichage dans le template</div>
             <pre><code><span class="cm">&lt;!-- dans le layout de base --&gt;</span>
@@ -85,7 +85,7 @@
     <div class="back-link">
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/flash/09-flash-messages.md" target="_blank" class="btn btn-secondary">Doc FR</a>
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/flash/09-flash-messages.md" target="_blank" class="btn btn-secondary">Doc EN</a>
-        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+        <a href="{% link 'index' %}">← Back to home</a>
     </div>
 </div>
 {% endblock %}

@@ -10,17 +10,17 @@
 <div class="container">
     <h1>{{ title }}</h1>
     <p class="lead">
-        Interface d'administration auto-générée à partir de vos modèles.
+        Auto-generated administration interface from your models.
     </p>
 
     <div class="demo-sections">
 
         <div class="demo-section">
-            <h2>Démo live</h2>
+            <h2>Live demo</h2>
             <div class="demo-cards">
                 <a href="{% link 'admin_login' %}" class="feature-card feature-card-admin">
-                    <h3>Accéder à l'admin</h3>
-                    <p>CRUD auto-généré, permissions, tableau de bord personnalisé</p>
+                    <h3>Access the admin</h3>
+                    <p>Auto-generated CRUD, permissions, custom dashboard</p>
                     <div class="admin-credentials">
                         <span>admin-demo</span>
                         <span class="cred-sep">/</span>
@@ -35,18 +35,18 @@
             <div class="demo-cards">
 
                 <a href="{% link 'admin_declaration' %}" class="feature-card">
-                    <h3>Déclaration — <code>impl_admin!</code></h3>
-                    <p>Déclarer un modèle dans l'admin, champs, permissions</p>
+                    <h3>Declaration — <code>impl_admin!</code></h3>
+                    <p>Declare a model in the admin, fields, permissions</p>
                 </a>
 
                 <a href="{% link 'admin_setup' %}" class="feature-card">
                     <h3>Configuration &amp; CLI</h3>
-                    <p>Setup, <code>runique start</code>, génération du panneau admin</p>
+                    <p>Setup, <code>runique start</code>, admin panel generation</p>
                 </a>
 
                 <a href="{% link 'admin_surcharge' %}" class="feature-card">
-                    <h3>Surcharge de templates <span>(beta)</span></h3>
-                    <p>Personnaliser les templates admin : dashboard, liste, formulaire</p>
+                    <h3>Template override <span>(beta)</span></h3>
+                    <p>Customize admin templates: dashboard, list, form</p>
                 </a>
 
             </div>
@@ -55,7 +55,7 @@
     </div>
 
     <div class="back-link">
-        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+        <a href="{% link 'index' %}">← Back to home</a>
     </div>
 </div>
 {% endblock %}

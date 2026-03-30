@@ -19,13 +19,13 @@
     <div id="form" class="demo-form-panel">
         <form method="post" action="/inscription">
             {% form.inscription_form %}
-            <button type="submit">S'inscrire</button>
+            <button type="submit">Sign up</button>
         </form>
 
         <div class="text-center mt-3">
-            <a href='{% link "login" %}'>Déjà un compte ? Se connecter</a>
-            <a href="/">← Retour à l'accueil</a>
-            <p class="rgpd-notice">Site de démonstration — une adresse email factice est acceptée. <a href="{% link 'rgpd' %}">Confidentialité</a>.</p>
+            <a href='{% link "login" %}'>Already have an account? Sign in</a>
+            <a href="/">← Back to home</a>
+            <p class="rgpd-notice">Demo site — a fake email address is accepted. <a href="{% link 'rgpd' %}">Privacy</a>.</p>
         </div>
     </div>
 

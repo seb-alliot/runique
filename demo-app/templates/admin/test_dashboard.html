@@ -15,7 +15,7 @@
 <div class="breadcrumb">
     <span>Admin</span>
     <span class="breadcrumb-sep">/</span>
-    <span>Tableau de bord</span>
+    <span>Dashboard</span>
 </div>
 {% endblock %}
 
@@ -23,10 +23,10 @@
 
 <div class="page-header">
     <div>
-        <h1 class="page-title">Tableau de bord</h1>
-        <p class="page-subtitle">Vue d'ensemble de l'application</p>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Application overview</p>
     </div>
-    <a href="/admin/toggle-template" class="btn btn-secondary btn-sm">← Template par défaut</a>
+    <a href="/admin/toggle-template" class="btn btn-secondary btn-sm">← Default template</a>
 </div>
 
 <div class="stats-grid">
@@ -34,7 +34,7 @@
     <a href="/admin/{{ resource.key }}/list" class="stat-card">
         <div class="stat-label">{{ resource.title }}</div>
         <div class="stat-value">{{ resource_counts[resource.key] | default(value="0") }}</div>
-        <div class="stat-meta">Voir la liste →</div>
+        <div class="stat-meta">View list →</div>
     </a>
     {% endfor %}
 
@@ -48,10 +48,10 @@
                     <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
                     <line x1="8" y1="12" x2="16" y2="12"/>
                 </svg>
-                <p class="empty-state-title">Aucune ressource enregistrée</p>
+                <p class="empty-state-title">No resources registered</p>
                 <p class="empty-state-desc">
-                    Déclarez vos ressources dans <code>src/admin.rs</code> avec le macro <code>admin!{}</code>
-                    puis lancez <code>runique start</code>.
+                    Declare your resources in <code>src/admin.rs</code> using the <code>admin!{}</code> macro
+                    then run <code>runique start</code>.
                 </p>
             </div>
         </div>
@@ -63,14 +63,14 @@
 {% if resources %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Ressources</h2>
+        <h2 class="card-title">Resources</h2>
     </div>
     <div class="admin-table-wrapper">
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Ressource</th>
-                    <th>Clé</th>
+                    <th>Resource</th>
+                    <th>Key</th>
                     <th>Permissions</th>
                     <th>Actions</th>
                 </tr>
@@ -88,7 +88,7 @@
                     <td>
                         <div class="table-actions">
                             <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">Liste</a>
-                            <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">Créer</a>
+                            <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">Create</a>
                         </div>
                     </td>
                 </tr>

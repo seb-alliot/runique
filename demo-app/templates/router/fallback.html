@@ -4,26 +4,26 @@
 <div class="container">
     <h1>{{ title }}</h1>
     <p class="lead lead-mb">
-        Vous trouverez ici les 4 pages d'erreurs prevue par runique.
+        You will find here the 4 error pages provided by Runique.
     </p>
 
     <div class="demo-cards">
         <a href="{% link 'force_404' %}" class="feature-card">
-            <h3>404 - Page non trouvée</h3>
-            <p>Protection automatique — transparent dans les formulaires via Prisme</p>
+            <h3>404 - Page Not Found</h3>
+            <p>Automatic protection — transparent in forms via Prisme</p>
         </a>
         <a href="{% link 'force_500' %}" class="feature-card">
-            <h3>500 - Erreur interne du serveur</h3>
-            <p>Content Security Policy — directives, nonce, profils prédéfinis</p>
+            <h3>500 - Internal Server Error</h3>
+            <p>Content Security Policy — directives, nonce, predefined profiles</p>
         </a>
         <a href="{% link 'force_429' %}" class="feature-card">
-            <h3>429 - Trop de requêtes</h3>
-            <p>Limitation de requêtes par IP avec fenêtre glissante</p>
+            <h3>429 - Too Many Requests</h3>
+            <p>Rate limiting per IP with sliding window</p>
         </a>
     </div>
 
     <div class="back-link">
-        <a href="{% link 'index' %}">← Retour à l'accueil</a>
+        <a href="{% link 'index' %}">← Back to home</a>
     </div>
 </div>
 {% endblock %}

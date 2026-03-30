@@ -11,7 +11,7 @@
     {% endblock %}
     </div>
     <div class="profile-card">
-        <h1>Mon profil</h1>
+        <h1>My profile</h1>
 
         {% if profile_user %}
             <div class="profile-info">
@@ -20,7 +20,7 @@
                 </div>
                 <div class="profile-details">
                     <div class="profile-row">
-                        <span class="label">Nom d'utilisateur</span>
+                        <span class="label">Username</span>
                         <span class="value">{{ profile_user.username }}</span>
                     </div>
                     <div class="profile-row">
@@ -28,42 +28,42 @@
                         <span class="value">{{ profile_user.email }}</span>
                     </div>
                     <div class="profile-row">
-                        <span class="label">Compte actif</span>
-                        <span class="value">{% if profile_user.is_active %}✅ Oui{% else %}❌ Non{% endif %}</span>
+                        <span class="label">Active account</span>
+                        <span class="value">{% if profile_user.is_active %}✅ Yes{% else %}❌ No{% endif %}</span>
                     </div>
                     {% if profile_user.is_staff %}
                         <div class="profile-row">
-                            <span class="label">Rôle</span>
+                            <span class="label">Role</span>
                             <span class="value badge-staff">Staff</span>
                         </div>
                     {% endif %}
                     {% if profile_user.is_superuser %}
                         <div class="profile-row">
-                            <span class="label">Rôle</span>
+                            <span class="label">Role</span>
                             <span class="value badge-admin">Superuser</span>
                         </div>
                     {% endif %}
                     {% if profile_user.created_at %}
                         <div class="profile-row">
-                            <span class="label">Membre depuis</span>
+                            <span class="label">Member since</span>
                             <span class="value">{{ profile_user.created_at | date(format="%d/%m/%Y") }}</span>
                         </div>
                     {% endif %}
                 </div>
             </div>
         {% else %}
-            <p>Impossible de charger les informations du profil.</p>
+            <p>Unable to load profile information.</p>
         {% endif %}
 
         <div class="profile-actions">
-            <a href='{% link "blog_info" %}' class="btn btn-primary">Écrire un article</a>
-            <a href='{% link "index" %}' class="btn btn-secondary">Retour à l'accueil</a>
+            <a href='{% link "blog_info" %}' class="btn btn-primary">Write an article</a>
+            <a href='{% link "index" %}' class="btn btn-secondary">Back to home</a>
             <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/session/14-sessions.md" target="_blank" class="btn btn-secondary">Doc FR</a>
             <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/session/14-sessions.md" target="_blank" class="btn btn-secondary">Doc EN</a>
             {# CSP strict : utiliser class="form-inline" plutôt que style="display:inline" #}
             <form method="post" action='{% link "logout" %}' class="form-inline">
                 {% csrf %}
-                <button type="submit" class="btn btn-danger">Se déconnecter</button>
+                <button type="submit" class="btn btn-danger">Sign out</button>
             </form>
         </div>
     </div>

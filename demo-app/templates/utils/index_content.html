@@ -5,18 +5,18 @@
     <div class="hero-visual">
         <picture>
             <source srcset="{% media "runique_320.avif" %}" media="(max-width: 600px)">
-            <img src="{% media "runique_ecran.avif" %}" alt="Runique — Rust portant Django sur de nouveaux horizons" class="hero-banner">
+            <img src="{% media "runique_ecran.avif" %}" alt="Runique — Rust carrying Django to new horizons" class="hero-banner">
         </picture>
         <div class="hero-visual-text">
             <span class="hero-name">Runique</span>
-            <span>Un Framework web</span>
+            <span>A web framework</span>
             <h1 class="hero-title">
-                <span class="hero-accent">inspiré de Django</span>
+                <span class="hero-accent">inspired by Django</span>
             </h1>
-            <p class="hero-sub">Axum · SeaORM · Tera · CSRF natif · Admin intégré</p>
+            <p class="hero-sub">Axum · SeaORM · Tera · Native CSRF · Built-in Admin</p>
             <div class="hero-cta">
                 <a href="{% link 'doc_index_en' %}" class="hero-btn hero-btn--primary">Documentation →</a>
-                <a href="/cours" class="hero-btn hero-btn--secondary">Cours Rust</a>
+                <a href="/cours" class="hero-btn hero-btn--secondary">Rust Courses</a>
             </div>
         </div>
     </div>
@@ -58,18 +58,18 @@
                     <button class="hero-tab active" data-tab="orm"       role="tab">ORM</button>
                     <button class="hero-tab"        data-tab="route"     role="tab">Route</button>
                     <button class="hero-tab"        data-tab="admin"     role="tab">Admin</button>
-                    <button class="hero-tab"        data-tab="securite"  role="tab">Sécurité</button>
+                    <button class="hero-tab"        data-tab="securite"  role="tab">Security</button>
                 </div>
             </div>
 
             <pre class="hero-code-body hero-tab-panel active" data-panel="orm"><code><span class="hc-attr">#[form(schema = user_schema, model = users::Entity)]</span>
 <span class="hc-kw">pub struct</span> <span class="hc-ty">UserForm</span>;
 
-<span class="hc-cm">// Recherche typée via le form</span>
+<span class="hc-cm">// Typed search via form</span>
 <span class="hc-fn">search!</span>(<span class="hc-attr">@UserForm</span> <span class="hc-op">=></span> Username <span class="hc-op">=</span> <span class="hc-str">"alice"</span>)
     .all(<span class="hc-op">&amp;</span>db).<span class="hc-fn">await</span>?;
 
-<span class="hc-cm">// Accès direct via objects</span>
+<span class="hc-cm">// Direct access via objects</span>
 <span class="hc-ty">UserForm</span>::objects.<span class="hc-fn">filter</span>(...).<span class="hc-fn">first</span>(<span class="hc-op">&amp;</span>db).<span class="hc-fn">await</span>?;</code></pre>
 
             <pre class="hero-code-body hero-tab-panel" data-panel="route"><code><span class="hc-fn">urlpatterns!</span>[
@@ -94,22 +94,22 @@
     .<span class="hc-fn">build</span>().<span class="hc-fn">await</span>?
     .<span class="hc-fn">run</span>().<span class="hc-fn">await</span>?
 
-<span class="hc-cm">// CRUD auto-généré depuis vos modèles SeaORM</span></code></pre>
+<span class="hc-cm">// Auto-generated CRUD from your SeaORM models</span></code></pre>
                 <div class="hero-terminal">
                     <span class="hero-terminal-prompt">$</span>
                     <span class="hero-terminal-cmd">runique start</span>
-                    <span class="hero-terminal-out">→ Admin disponible sur /admin</span>
+                    <span class="hero-terminal-out">→ Admin available at /admin</span>
                 </div>
             </div>
 
             <pre class="hero-code-body hero-tab-panel" data-panel="securite"><code>.<span class="hc-fn">middleware</span>(|m| {
     m.<span class="hc-fn">with_csp</span>(|c| c.<span class="hc-fn">policy</span>(<span class="hc-ty">SecurityPolicy</span>::<span class="hc-fn">strict</span>()))
-     .<span class="hc-fn">with_allowed_hosts</span>(|h| h.<span class="hc-fn">host</span>(<span class="hc-str">"monsite.fr"</span>))
+     .<span class="hc-fn">with_allowed_hosts</span>(|h| h.<span class="hc-fn">host</span>(<span class="hc-str">"mysite.com"</span>))
      .<span class="hc-fn">with_session_memory_limit</span>(<span class="hc-kw">5</span> <span class="hc-op">*</span> <span class="hc-kw">1024</span> <span class="hc-op">*</span> <span class="hc-kw">1024</span>, <span class="hc-op">...</span>)
 })
 
-<span class="hc-cm">// CSRF activé par défaut — non désactivable</span>
-<span class="hc-cm">// Rate limiting, LoginGuard, Host validation intégrés</span></code></pre>
+<span class="hc-cm">// CSRF enabled by default — cannot be disabled</span>
+<span class="hc-cm">// Rate limiting, LoginGuard, Host validation built-in</span></code></pre>
         </div>
     </div>
 </section>
@@ -120,68 +120,68 @@
    ══════════════════════════════════════════ #}
 <section class="features">
     <div class="features-inner">
-        <h2 class="features-title">Tout ce dont vous avez besoin</h2>
-        <p class="features-sub">Un framework complet, sans compromis sur la sécurité.</p>
+        <h2 class="features-title">Everything you need</h2>
+        <p class="features-sub">A complete framework, without compromising on security.</p>
         <div class="features-grid">
             <a href="/docs/en/orm" class="feature-item">
                 <span class="feature-icon">⚡</span>
-                <h3>ORM Django-like</h3>
-                <p>search!, objects, migrations auto-générées depuis vos modèles Rust</p>
+                <h3>Django-like ORM</h3>
+                <p>search!, objects, auto-generated migrations from your Rust models</p>
             </a>
             <a href="/docs/en/middleware" class="feature-item">
                 <span class="feature-icon">🔒</span>
-                <h3>Sécurité native</h3>
-                <p>CSRF, CSP, rate limiting, host validation — intégrés, non optionnels</p>
+                <h3>Native Security</h3>
+                <p>CSRF, CSP, rate limiting, host validation — built-in, not optional</p>
             </a>
             <a href="/docs/en/admin" class="feature-item">
                 <span class="feature-icon">🏗</span>
-                <h3>Admin généré</h3>
-                <p>Interface CRUD auto-générée depuis vos modèles, personnalisable</p>
+                <h3>Generated Admin</h3>
+                <p>Auto-generated CRUD interface from your models, customizable</p>
             </a>
             <a href="/docs/en/formulaire" class="feature-item">
                 <span class="feature-icon">📝</span>
-                <h3>Formulaires typés</h3>
-                <p>Déclaration statique, validation automatique, upload de fichiers</p>
+                <h3>Typed Forms</h3>
+                <p>Static declaration, automatic validation, file uploads</p>
             </a>
             <a href="/docs/en/template" class="feature-item">
                 <span class="feature-icon">🧩</span>
-                <h3>Templates Tera</h3>
-                <p>Filtres custom, tags, i18n, messages flash, macros</p>
+                <h3>Tera Templates</h3>
+                <p>Custom filters, tags, i18n, flash messages, macros</p>
             </a>
             <a href="/docs/en/installation" class="feature-item">
                 <span class="feature-icon">🚀</span>
                 <h3>Axum / Tokio</h3>
-                <p>Performances Rust, async natif, zéro overhead à l'exécution</p>
+                <p>Rust performance, native async, zero runtime overhead</p>
             </a>
         </div>
     </div>
 </section>
 
 {# ══════════════════════════════════════════
-   DÉMO — SECTIONS
+   DEMO — SECTIONS
    ══════════════════════════════════════════ #}
 <section class="demo-section-wrapper">
     <div class="demo-inner">
-        <h2 class="demo-section-title">Explorer la démo</h2>
-        <p class="demo-section-sub">Chaque section est une page interactive de la demo-app.</p>
+        <h2 class="demo-section-title">Explore the demo</h2>
+        <p class="demo-section-sub">Each section is an interactive page of the demo-app.</p>
 
         <div class="demo-sections">
 
             <div class="demo-section">
                 <details>
-                    <summary><h2>Authentification</h2></summary>
+                    <summary><h2>Authentication</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link 'inscription' %}" class="feature-card">
-                            <h3>Inscription</h3>
-                            <p>Formulaire basé modèle, validation, hash mot de passe</p>
+                            <h3>Registration</h3>
+                            <p>Model-based form, validation, password hashing</p>
                         </a>
                         <a href="{% link 'login' %}" class="feature-card">
-                            <h3>Authentification</h3>
-                            <p>Login / logout, sessions, protection des routes</p>
+                            <h3>Authentication</h3>
+                            <p>Login / logout, sessions, route protection</p>
                         </a>
                         <a href="{% link 'profil' %}" class="feature-card">
-                            <h3>Profil utilisateur</h3>
-                            <p>Session active, données utilisateur, déconnexion</p>
+                            <h3>User Profile</h3>
+                            <p>Active session, user data, logout</p>
                         </a>
                     </div>
                 </details>
@@ -189,15 +189,15 @@
 
             <div class="demo-section">
                 <details>
-                    <summary><h2>Formulaires</h2></summary>
+                    <summary><h2>Forms</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link 'formulaires_hub' %}" class="feature-card">
-                            <h3>Formulaires</h3>
-                            <p>Déclaration, champs disponibles, rendu Tera</p>
+                            <h3>Forms</h3>
+                            <p>Declaration, available fields, Tera rendering</p>
                         </a>
                         <a href="{% link 'upload_image' %}" class="feature-card">
-                            <h3>Upload fichier</h3>
-                            <p>Image, validation taille et extension</p>
+                            <h3>File Upload</h3>
+                            <p>Image, size and extension validation</p>
                         </a>
                     </div>
                 </details>
@@ -208,16 +208,16 @@
                     <summary><h2>Database</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link 'orm_demo' %}" class="feature-card">
-                            <h3>ORM — Requêtes</h3>
+                            <h3>ORM — Queries</h3>
                             <p>objects, filter, paginate, relations, create/update/delete</p>
                         </a>
                         <a href="{% link 'database_demo' %}" class="feature-card">
-                            <h3>Base de données</h3>
+                            <h3>Database</h3>
                             <p>DatabaseConfig, from_env, from_url, pool, timeouts</p>
                         </a>
                         <a href="{% link 'model_demo' %}" class="feature-card">
-                            <h3>Modèles & Schémas</h3>
-                            <p>Définir un modèle, types, contraintes, relations, migrations</p>
+                            <h3>Models & Schemas</h3>
+                            <p>Define a model, types, constraints, relations, migrations</p>
                         </a>
                     </div>
                 </details>
@@ -225,23 +225,23 @@
 
             <div class="demo-section">
                 <details>
-                    <summary><h2>Démarrage</h2></summary>
+                    <summary><h2>Getting Started</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link 'installation_demo' %}" class="feature-card">
                             <h3>Installation</h3>
-                            <p>Prérequis, .env, commandes CLI, démarrage rapide</p>
+                            <p>Prerequisites, .env, CLI commands, quick start</p>
                         </a>
                         <a href="{% link 'configuration_demo' %}" class="feature-card">
-                            <h3>Configuration builder</h3>
+                            <h3>Configuration Builder</h3>
                             <p>RuniqueApp::builder(), middlewares, secrets, assets</p>
                         </a>
                         <a href="{% link 'migrations_demo' %}" class="feature-card">
                             <h3>Migrations</h3>
-                            <p>macro model!, makemigrations, migration up/down/status</p>
+                            <p>model! macro, makemigrations, migration up/down/status</p>
                         </a>
                         <a href="{% link 'comparatif_demo' %}" class="feature-card">
-                            <h3>Comparatif Django</h3>
-                            <p>Équivalences routes, vues, formulaires, ORM, sécurité</p>
+                            <h3>Django Comparison</h3>
+                            <p>Equivalences routes, views, forms, ORM, security</p>
                         </a>
                     </div>
                 </details>
@@ -252,8 +252,8 @@
                     <summary><h2>Framework</h2></summary>
                     <div class="demo-cards">
                         <a href="{% link 'router_demo' %}" class="feature-card">
-                            <h3>Routeur</h3>
-                            <p>urlpatterns!, paramètres de chemin, liens nommés</p>
+                            <h3>Router</h3>
+                            <p>urlpatterns!, path parameters, named links</p>
                         </a>
                         <a href="{% link 'template_demo' %}" class="feature-card">
                             <h3>Templates & Tags</h3>
@@ -264,24 +264,24 @@
                             <p>CSRF, CSP, Rate Limiter, Login Guard, Host Validation, HTTPS</p>
                         </a>
                         <a href="{% link 'about' %}" class="feature-card">
-                            <h3>Messages flash</h3>
+                            <h3>Flash Messages</h3>
                             <p>Success, info, warning, error</p>
                         </a>
                         <a href="{% link 'i18n_demo' %}" class="feature-card">
-                            <h3>Internationalisation</h3>
-                            <p>Langue des templates Runique — 9 langues disponibles</p>
+                            <h3>Internationalization</h3>
+                            <p>Runique template language — 9 languages available</p>
                         </a>
                         <a href="{% link 'session_demo' %}" class="feature-card">
                             <h3>Sessions</h3>
-                            <p>MemoryStore, limites mémoire, nettoyage périodique automatique</p>
+                            <p>MemoryStore, memory limits, automatic periodic cleanup</p>
                         </a>
                         <a href="{% link 'macros_demo' %}" class="feature-card">
                             <h3>Macros</h3>
                             <p>context_update!, context!, impl_from_error!</p>
                         </a>
                         <a href="{% link 'propos_template_error' %}" class="feature-card">
-                            <h3>Pages d'erreur</h3>
-                            <p>404, 500, 429 — vérification des pages Runique</p>
+                            <h3>Error Pages</h3>
+                            <p>404, 500, 429 — Runique page verification</p>
                         </a>
                     </div>
                 </details>
@@ -293,7 +293,7 @@
                     <div class="demo-cards">
                         <a href="{% link 'admin_hub' %}" class="feature-card feature-card-admin">
                             <h3>Administration</h3>
-                            <p>CRUD auto-généré, permissions, tableau de bord, surcharge templates</p>
+                            <p>Auto-generated CRUD, permissions, dashboard, template overrides</p>
                         </a>
                     </div>
                 </details>

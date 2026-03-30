@@ -32,7 +32,7 @@
 
     {% if form_fields %}
     <div class="roadmap-section">
-        <h2>Champs disponibles</h2>
+        <h2>Available fields</h2>
         {% for field in form_fields %}
         <details class="field-details">
             <summary><code>{{ field.name }}</code> — <span class="field-type">{{ field.field_type }}</span></summary>
@@ -51,7 +51,7 @@
         {% if category and category.back_link_url %}
         <a href="{{ category.back_link_url }}">{{ category.back_link_label }}</a>
         {% else %}
-        <a href="/">Accueil</a>
+        <a href="/">Home</a>
         {% endif %}
     </div>
 </div>

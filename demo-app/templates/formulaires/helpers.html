@@ -9,20 +9,20 @@
 <div class="container">
     <h1>{{ title }}</h1>
     <p class="lead lead-mb">
-        Accès aux valeurs de formulaire et aux paramètres d'URL — helpers typés et accès whitelisté.
+        Access to form values and URL parameters — typed helpers and whitelisted access.
     </p>
-    <!-- Démo live -->
+    <!-- Live demo -->
     <div class="demo-section section-top">
-        <h2>Démo live</h2>
+        <h2>Live demo</h2>
         <p>
-            Route active : <code>/formulaires/helpers/<strong>{{ path_id | default(value="—") }}</strong></code>
+            Active route: <code>/formulaires/helpers/<strong>{{ path_id | default(value="—") }}</strong></code>
             &nbsp;·&nbsp;
-            <code>from_url("search")</code> : <strong>{{ search_value | default(value="—") }}</strong>
+            <code>from_url("search")</code>: <strong>{{ search_value | default(value="—") }}</strong>
             &nbsp;·&nbsp;
-            <code>cleaned_string("search")</code> : <strong>{{ cleaned_search | default(value="—") }}</strong>
+            <code>cleaned_string("search")</code>: <strong>{{ cleaned_search | default(value="—") }}</strong>
         </p>
         <p class="hint-text">
-            Testez en modifiant l'URL :
+            Test by modifying the URL:
         </p>
         <div class="flex-row-wrap">
             <a href="/formulaires/helpers/rust" class="btn btn-secondary">
@@ -32,23 +32,23 @@
                 /helpers/<strong>rust</strong>?search=framework
             </a>
             <a href="/formulaires/helpers/rust?search=framework&is_admin=true" class="btn btn-secondary">
-                +is_admin=true <span class="label-sm">(ignoré — hors whitelist)</span>
+                +is_admin=true <span class="label-sm">(ignored — not in whitelist)</span>
             </a>
         </div>
     </div>
     <div class="demo-layout">
 
-        <!-- Helpers de conversion typée — POST -->
+        <!-- Typed conversion helpers — POST -->
         <div class="demo-code">
-            <div class="demo-code-title">Helpers POST — après is_valid()</div>
-            <pre><code><span class="cm">// Valeur par défaut si le champ est vide</span>
-form.<span class="fn_">get_string</span>(<span class="st">"username"</span>)     <span class="cm">// -> String  ("" si vide)</span>
-form.<span class="fn_">get_i32</span>(<span class="st">"age"</span>)           <span class="cm">// -> i32     (0 par défaut)</span>
-form.<span class="fn_">get_f64</span>(<span class="st">"price"</span>)         <span class="cm">// -> f64     (gère , → .)</span>
+            <div class="demo-code-title">POST Helpers — after is_valid()</div>
+            <pre><code><span class="cm">// Default value if field is empty</span>
+form.<span class="fn_">get_string</span>(<span class="st">"username"</span>)     <span class="cm">// -> String  ("" if empty)</span>
+form.<span class="fn_">get_i32</span>(<span class="st">"age"</span>)           <span class="cm">// -> i32     (0 by default)</span>
+form.<span class="fn_">get_f64</span>(<span class="st">"price"</span>)         <span class="cm">// -> f64     (handles , → .)</span>
 form.<span class="fn_">get_bool</span>(<span class="st">"active"</span>)        <span class="cm">// -> bool    (true/1/on → true)</span>
-form.<span class="fn_">get_uuid</span>(<span class="st">"ref"</span>)           <span class="cm">// -> Uuid    (Uuid::nil() si vide)</span>
+form.<span class="fn_">get_uuid</span>(<span class="st">"ref"</span>)           <span class="cm">// -> Uuid    (Uuid::nil() if empty)</span>
 
-<span class="cm">// Option — None si vide</span>
+<span class="cm">// Option — None if empty</span>
 form.<span class="fn_">get_option</span>(<span class="st">"bio"</span>)         <span class="cm">// -> Option&lt;String&gt;</span>
 form.<span class="fn_">get_option_i32</span>(<span class="st">"age"</span>)   <span class="cm">// -> Option&lt;i32&gt;</span>
 form.<span class="fn_">get_option_f64</span>(<span class="st">"note"</span>)  <span class="cm">// -> Option&lt;f64&gt;</span>
@@ -56,64 +56,64 @@ form.<span class="fn_">get_option_bool</span>(<span class="st">"news"</span>) <s
 form.<span class="fn_">get_option_uuid</span>(<span class="st">"id"</span>)   <span class="cm">// -> Option&lt;Uuid&gt;</span></code></pre>
         </div>
 
-        <!-- clear() — vider après traitement -->
+        <!-- clear() — clear after processing -->
         <div class="demo-code">
-            <div class="demo-code-title">clear() — vider le formulaire après traitement</div>
-            <pre><code><span class="cm">// Re-rendre le formulaire vide après succès (sans redirect)</span>
+            <div class="demo-code-title">clear() — clear the form after processing</div>
+            <pre><code><span class="cm">// Re-render empty form after success (without redirect)</span>
 <span class="kw">if</span> form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
-    <span class="kw">let</span> path = form.<span class="fn_">cleaned_string</span>(<span class="st">"image"</span>); <span class="cm">// 1. lire avant clear</span>
-    <span class="cm">// sauvegarder...</span>
-    form.<span class="fn_">clear</span>();                               <span class="cm">// 2. vider</span>
+    <span class="kw">let</span> path = form.<span class="fn_">cleaned_string</span>(<span class="st">"image"</span>); <span class="cm">// 1. read before clear</span>
+    <span class="cm">// save...</span>
+    form.<span class="fn_">clear</span>();                               <span class="cm">// 2. clear</span>
     <span class="mc">context_update!</span>(request => { <span class="st">"upload_form"</span> => &form });
-    <span class="kw">return</span> request.<span class="fn_">render</span>(template);            <span class="cm">// 3. form vide affiché</span>
+    <span class="kw">return</span> request.<span class="fn_">render</span>(template);            <span class="cm">// 3. empty form displayed</span>
 }
 
-<span class="cm">// Avec redirect (PRG) : clear() inutile</span>
-<span class="cm">// la nouvelle requête GET crée une instance fraîche automatiquement</span></code></pre>
+<span class="cm">// With redirect (PRG): clear() unnecessary</span>
+<span class="cm">// the new GET request creates a fresh instance automatically</span></code></pre>
         </div>
 
-        <!-- Helpers date / heure -->
+        <!-- Date / time helpers -->
         <div class="demo-code">
-            <div class="demo-code-title">Helpers date / heure</div>
+            <div class="demo-code-title">Date / time helpers</div>
             <pre><code>form.<span class="fn_">get_naive_date</span>(<span class="st">"birthday"</span>)
 form.<span class="fn_">get_naive_time</span>(<span class="st">"meeting"</span>)
 form.<span class="fn_">get_naive_datetime</span>(<span class="st">"event_start"</span>)
 form.<span class="fn_">get_datetime_utc</span>(<span class="st">"created_at"</span>)
 
-<span class="cm">// Variantes Option</span>
+<span class="cm">// Option variants</span>
 form.<span class="fn_">get_option_naive_date</span>(<span class="st">"birthday"</span>)
 form.<span class="fn_">get_option_naive_datetime</span>(<span class="st">"event_start"</span>)
 form.<span class="fn_">get_option_datetime_utc</span>(<span class="st">"created_at"</span>)</code></pre>
         </div>
 
-        <!-- Accès URL brut depuis Request -->
+        <!-- Raw URL access from Request -->
         <div class="demo-code">
-            <div class="demo-code-title">Accès brut aux paramètres d'URL — depuis Request</div>
-            <pre><code><span class="cm">// Route déclarée : "/article/{id}"</span>
+            <div class="demo-code-title">Raw URL parameter access — from Request</div>
+            <pre><code><span class="cm">// Declared route: "/article/{id}"</span>
 <span class="kw">let</span> id   = request.<span class="fn_">path_param</span>(<span class="st">"id"</span>);   <span class="cm">// Option&lt;&amp;str&gt;</span>
 
-<span class="cm">// Query string : /article/42?page=2</span>
+<span class="cm">// Query string: /article/42?page=2</span>
 <span class="kw">let</span> page = request.<span class="fn_">from_url</span>(<span class="st">"page"</span>);  <span class="cm">// Option&lt;&amp;str&gt;</span></code></pre>
         </div>
 
-        <!-- cleaned_* — whitelisté et typé -->
+        <!-- cleaned_* — whitelisted and typed -->
         <div class="demo-code">
-            <div class="demo-code-title">cleaned_*() — whitelisté, typé, toutes sources</div>
-            <pre><code><span class="cm">// Priorité : POST → path param → query param
-// None si le champ n'est pas déclaré dans le formulaire</span>
+            <div class="demo-code-title">cleaned_*() — whitelisted, typed, all sources</div>
+            <pre><code><span class="cm">// Priority: POST → path param → query param
+// None if field is not declared in the form</span>
 
 form.<span class="fn_">cleaned_string</span>(<span class="st">"search"</span>)    <span class="cm">// Option&lt;String&gt;</span>
 form.<span class="fn_">cleaned_i32</span>(<span class="st">"page"</span>)        <span class="cm">// Option&lt;i32&gt;</span>
 form.<span class="fn_">cleaned_i64</span>(<span class="st">"id"</span>)          <span class="cm">// Option&lt;i64&gt;</span>
-form.<span class="fn_">cleaned_f64</span>(<span class="st">"price"</span>)       <span class="cm">// Option&lt;f64&gt;  (gère , → .)</span>
+form.<span class="fn_">cleaned_f64</span>(<span class="st">"price"</span>)       <span class="cm">// Option&lt;f64&gt;  (handles , → .)</span>
 form.<span class="fn_">cleaned_bool</span>(<span class="st">"active"</span>)     <span class="cm">// Option&lt;bool&gt;</span>
-form.<span class="fn_">cleaned_string</span>(<span class="st">"is_admin"</span>) <span class="cm">// None — champ inconnu</span></code></pre>
+form.<span class="fn_">cleaned_string</span>(<span class="st">"is_admin"</span>) <span class="cm">// None — unknown field</span></code></pre>
         </div>
 
-        <!-- Exemple réel : recherche blog -->
+        <!-- Real example: blog search -->
         <div class="demo-code">
-            <div class="demo-code-title">Exemple réel — recherche GET /blog/liste?search=rust</div>
-            <pre><code><span class="cm">// views.rs — filtre articles selon query string</span>
+            <div class="demo-code-title">Real example — GET search /blog/list?search=rust</div>
+            <pre><code><span class="cm">// views.rs — filter articles according to query string</span>
 <span class="kw">pub async fn</span> <span class="fn_">blog_list</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
     <span class="ty">Prisme</span>(form): <span class="ty">Prisme</span>&lt;<span class="ty">SearchDemoForm</span>&gt;,
@@ -131,7 +131,7 @@ form.<span class="fn_">cleaned_string</span>(<span class="st">"is_admin"</span>)
     <span class="cm">// ...</span>
 }
 
-<span class="cm">// Exemple réel : recherche user /view-user?username=alice</span>
+<span class="cm">// Real example: user search /view-user?username=alice</span>
 <span class="kw">let</span> username = form.<span class="fn_">cleaned_string</span>(<span class="st">"username"</span>).<span class="fn_">unwrap_or_default</span>();</code></pre>
         </div>
 
@@ -140,7 +140,7 @@ form.<span class="fn_">cleaned_string</span>(<span class="st">"is_admin"</span>)
     <div class="back-link">
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/helpers/helpers.md" target="_blank" class="btn btn-secondary">Doc FR</a>
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/helpers/helpers.md" target="_blank" class="btn btn-secondary">Doc EN</a>
-        <a href="{% link 'formulaires_hub' %}">← Formulaires</a>
+        <a href="{% link 'formulaires_hub' %}">← Forms</a>
     </div>
 </div>
 {% endblock %}
