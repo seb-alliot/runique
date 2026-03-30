@@ -11,10 +11,10 @@ pub static LINK_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 pub static FORM_FIELD_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\s*%}"#).unwrap());
+    LazyLock::new(|| Regex::new(r"\{%\s*form\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\s*%}").unwrap());
 
 pub static FORM_FULL_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"\{%\s*form\.([a-zA-Z0-9_]+)\s*%}"#).unwrap());
+    LazyLock::new(|| Regex::new(r"\{%\s*form\.([a-zA-Z0-9_]+)\s*%}").unwrap());
 
 pub static MARKDOWN_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"\{\{\s*([^|{}\n]+?)\s*\|\s*markdown\s*\}\}"#).unwrap());
+    LazyLock::new(|| Regex::new(r"\{\{\s*([^|{}\n]+?)\s*\|\s*markdown\s*\}\}").unwrap());

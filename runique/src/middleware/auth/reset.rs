@@ -112,7 +112,7 @@ impl RuniqueForm for PasswordResetForm {
         if password.len() < 10 {
             errors.insert(
                 "password".to_string(),
-                tf("reset.password_min_length", &["10"]).to_string(),
+                tf("reset.password_min_length", &["10"]).clone(),
             );
         }
 
@@ -175,32 +175,32 @@ impl PasswordResetConfig {
     pub fn new() -> Self {
         Self::default()
     }
-
+    #[must_use]
     pub fn forgot_route(mut self, route: &str) -> Self {
         self.forgot_route = route.to_string();
         self
     }
-
+    #[must_use]
     pub fn reset_route(mut self, route: &str) -> Self {
         self.reset_route = route.to_string();
         self
     }
-
+    #[must_use]
     pub fn forgot_template(mut self, template: &str) -> Self {
         self.forgot_template = template.to_string();
         self
     }
-
+    #[must_use]
     pub fn reset_template(mut self, template: &str) -> Self {
         self.reset_template = template.to_string();
         self
     }
-
+    #[must_use]
     pub fn success_redirect(mut self, redirect: &str) -> Self {
         self.success_redirect = redirect.to_string();
         self
     }
-
+    #[must_use]
     pub fn base_url(mut self, url: &str) -> Self {
         self.base_url = Some(url.to_string());
         self
@@ -241,13 +241,12 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
             let token = crate::utils::reset_token::generate(&email);
             let encrypted_email = crate::utils::reset_token::encrypt_email(&token, &email);
 
-            let host = base_url.map(|u| u.to_string()).unwrap_or_else(|| {
-                let host = headers
-                    .get(axum::http::header::HOST)
-                    .and_then(|v| v.to_str().ok())
-                    .unwrap_or("localhost");
-                format!("http://{}", host)
-            });
+            let host = base_url
+                .map(std::string::ToString::to_string)
+                .unwrap_or_else(|| {
+                    let host = headers;
+                    format!("http://{host:?}")
+                });
 
             let reset_url = format!(
                 "{}/{}/{}/{}",
@@ -260,7 +259,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
             if crate::utils::mailer_configured() {
                 let username = user.username().to_string();
                 let subject = t("reset.email_subject").to_string();
-                let body = tf("reset.email_body", &[&username, &reset_url, &reset_url]).to_string();
+                let body = tf("reset.email_body", &[&username, &reset_url, &reset_url]).clone();
 
                 crate::utils::Email::new()
                     .to(email.clone())
@@ -300,15 +299,12 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
 ) -> AppResult<Response> {
     logout(&request.session).await.ok();
 
-    let email = match crate::utils::reset_token::decrypt_email(&token, &encrypted_email) {
-        Some(e) => e,
-        None => {
-            request
-                .notices
-                .error(t("reset.invalid_or_expired").to_string())
-                .await;
-            return Ok(Redirect::to("/").into_response());
-        }
+    let Some(email) = crate::utils::reset_token::decrypt_email(&token, &encrypted_email) else {
+        request
+            .notices
+            .error(t("reset.invalid_or_expired").to_string())
+            .await;
+        return Ok(Redirect::to("/").into_response());
     };
 
     if !crate::utils::reset_token::peek(&token) {
@@ -354,7 +350,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
         let new_hash = form.cleaned_string("password").unwrap_or_default();
 
         match E::update_password(&db, email_clean.trim(), &new_hash).await {
-            Ok(_) => {
+            Ok(()) => {
                 form.clear();
                 context_update!(request => {
                     "title"           => t("reset.success_title").as_ref(),
@@ -387,7 +383,7 @@ pub trait PasswordResetHandler: Send + Sync + 'static {
     fn build_router(&self, config: Arc<PasswordResetConfig>) -> Router;
 }
 
-/// Adaptateur générique : implémente PasswordResetHandler pour tout E: UserEntity.
+/// Adaptateur générique : implémente `PasswordResetHandler` pour tout E: `UserEntity`.
 pub struct PasswordResetAdapter<E: UserEntity>(PhantomData<E>);
 
 impl<E: UserEntity + 'static> PasswordResetAdapter<E> {
@@ -457,7 +453,7 @@ impl<E: UserEntity + 'static> PasswordResetHandler for PasswordResetAdapter<E> {
 
         let limiter = Arc::new(
             RateLimiter::new()
-                .max_requests(config.max_requests as u32)
+                .max_requests(u32::try_from(config.max_requests).unwrap_or(u32::MAX))
                 .retry_after(config.retry_after),
         );
 

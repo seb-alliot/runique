@@ -35,6 +35,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 // ─── Méthodes utilitaires ────────────────────────────────────────────────────
 impl Model {
+    #[must_use]
     pub fn get_roles(&self) -> Vec<String> {
         self.roles
             .as_deref()
@@ -48,8 +49,8 @@ impl Model {
             })
             .unwrap_or_default()
     }
-
-    pub fn set_roles(roles: Vec<String>) -> Option<String> {
+    #[must_use]
+    pub fn set_roles(roles: &[String]) -> Option<String> {
         if roles.is_empty() {
             None
         } else {

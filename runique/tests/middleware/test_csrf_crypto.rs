@@ -124,7 +124,7 @@ fn test_unmask_odd_length_returns_error() {
 #[test]
 fn test_csrf_token_generate_anonymous() {
     let token = CsrfToken::generate_with_context(
-        CsrfContext::Anonymous {
+        &CsrfContext::Anonymous {
             session_id: "sess_abc",
         },
         SECRET,
@@ -136,7 +136,7 @@ fn test_csrf_token_generate_anonymous() {
 #[test]
 fn test_csrf_token_generate_authenticated() {
     let token =
-        CsrfToken::generate_with_context(CsrfContext::Authenticated { user_id: 42 }, SECRET);
+        CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id: 42 }, SECRET);
     assert_eq!(token.as_str().len(), 64);
     assert!(token.as_str().chars().all(|c| c.is_ascii_hexdigit()));
 }
@@ -144,7 +144,7 @@ fn test_csrf_token_generate_authenticated() {
 #[test]
 fn test_csrf_token_masked_unmask_roundtrip() {
     let token = CsrfToken::generate_with_context(
-        CsrfContext::Anonymous {
+        &CsrfContext::Anonymous {
             session_id: "sess_xyz",
         },
         SECRET,
@@ -162,6 +162,7 @@ fn test_csrf_token_unmasked_invalid_returns_error() {
 
 #[test]
 fn test_csrf_token_as_str_returns_hex() {
-    let token = CsrfToken::generate_with_context(CsrfContext::Authenticated { user_id: 1 }, SECRET);
+    let token =
+        CsrfToken::generate_with_context(&CsrfContext::Authenticated { user_id: 1 }, SECRET);
     assert_eq!(token.as_str().len(), 64);
 }

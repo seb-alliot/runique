@@ -8,6 +8,7 @@ pub enum AutoFieldType {
 }
 
 impl AutoFieldType {
+    #[must_use]
     pub fn parse(field_str: &str) -> Self {
         match field_str {
             "runique.db.models.BigAutoField" => AutoFieldType::BigAutoField,
@@ -16,6 +17,7 @@ impl AutoFieldType {
     }
 
     /// Retourne la taille en bits (ou type Rust équivalent)
+    #[must_use]
     pub fn rust_type(&self) -> &'static str {
         match self {
             AutoFieldType::AutoField => "i32",

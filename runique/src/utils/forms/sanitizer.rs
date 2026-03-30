@@ -25,6 +25,7 @@ static RICH_BUILDER: LazyLock<Builder<'static>> = LazyLock::new(|| {
 /// - Neutralizes dangerous protocols
 /// - Usable everywhere without concern
 #[doc = include_str!("../../../doc-tests/sanitizer/sanitizer_strict.md")]
+#[must_use]
 pub fn sanitize_strict(input: &str) -> String {
     if input.is_empty() {
         return String::new();
@@ -48,7 +49,7 @@ pub fn sanitize_strict(input: &str) -> String {
 ///
 /// - Strict allow-list
 /// - No JS possible
-/// - No SVG / MathML
+/// - No SVG / `MathML`
 #[doc = include_str!("../../../doc-tests/sanitizer/sanitizer_rich.md")]
 pub fn sanitize_rich(input: &str) -> String {
     if input.is_empty() {

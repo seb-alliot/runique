@@ -23,14 +23,11 @@ impl HostPolicy {
             enabled,
         }
     }
-
+    #[must_use]
     pub fn is_host_allowed(&self, host: &str) -> bool {
         fn normalize_host(host: &str) -> &str {
             if host.starts_with('[') {
-                host.split(']')
-                    .next()
-                    .map(|h| &host[..h.len() + 1])
-                    .unwrap_or(host)
+                host.split(']').next().map_or(host, |h| &host[..=h.len()])
             } else {
                 host.split(':').next().unwrap_or(host)
             }

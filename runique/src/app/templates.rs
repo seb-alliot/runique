@@ -68,7 +68,7 @@ impl TemplateLoader {
         content = FORM_FIELD_REGEX
             .replace_all(&content, |caps: &Captures| {
                 format!(
-                    r#"{{{{ {} | form(field='{}') | safe }}}}"#,
+                    r"{{{{ {} | form(field='{}') | safe }}}}",
                     &caps[1], &caps[2]
                 )
             })
@@ -90,8 +90,8 @@ impl TemplateLoader {
                     .map(|m| m.as_str().trim())
                     .filter(|s| !s.is_empty());
                 match params {
-                    Some(p) => format!(r#"{{{{ link(link='{}', {}) }}}}"#, name, p),
-                    None => format!(r#"{{{{ link(link='{}') }}}}"#, name),
+                    Some(p) => format!(r"{{{{ link(link='{}', {}) }}}}", name, p),
+                    None => format!(r"{{{{ link(link='{}') }}}}", name),
                 }
             })
             .to_string();

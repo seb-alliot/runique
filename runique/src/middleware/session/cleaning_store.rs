@@ -33,7 +33,7 @@ const MAX_SESSION_RECORD_SIZE: usize = 50 * 1024; // 50 Ko
 // ═══════════════════════════════════════════════════════════════
 
 /// Estimation de la taille en mémoire d'un record.
-/// UUID (16o) + expiry_date (8o) + données JSON sérialisées.
+/// UUID (16o) + `expiry_date` (8o) + données JSON sérialisées.
 fn estimate_size(record: &Record) -> usize {
     24 + serde_json::to_string(&record.data)
         .map(|s| s.len())
@@ -47,16 +47,15 @@ fn is_protected(record: &Record) -> bool {
         || record
             .data
             .get("session_active")
-            .and_then(|v| v.as_i64())
-            .map(|ts| ts > OffsetDateTime::now_utc().unix_timestamp())
-            .unwrap_or(false)
+            .and_then(serde_json::Value::as_i64)
+            .is_some_and(|ts| ts > OffsetDateTime::now_utc().unix_timestamp())
 }
 
 // ═══════════════════════════════════════════════════════════════
 // CleaningMemoryStore
 // ═══════════════════════════════════════════════════════════════
 
-/// MemoryStore avec purge automatique et protection par watermarks.
+/// `MemoryStore` avec purge automatique et protection par watermarks.
 ///
 /// # Comportement
 ///
@@ -100,6 +99,7 @@ impl CleaningMemoryStore {
     ///
     /// - `low`  : déclenche un cleanup proactif (non-bloquant)
     /// - `high` : déclenche un cleanup d'urgence + refuse si insuffisant
+    #[must_use]
     pub fn with_watermarks(mut self, low: usize, high: usize) -> Self {
         self.low_watermark = low;
         self.high_watermark = high;
@@ -110,12 +110,14 @@ impl CleaningMemoryStore {
     ///
     /// Si `true`, toute nouvelle connexion invalide automatiquement les sessions
     /// existantes du même utilisateur — un seul appareil connecté à la fois.
+    #[must_use]
     pub fn with_exclusive_login(mut self, exclusive: bool) -> Self {
         self.exclusive_login = exclusive;
         self
     }
 
     /// Taille estimée actuelle du store en octets.
+    #[must_use]
     pub fn size_bytes(&self) -> usize {
         self.size_bytes.load(Ordering::Relaxed)
     }
@@ -133,9 +135,8 @@ impl CleaningMemoryStore {
             .filter(|(_, r)| {
                 r.data
                     .get(crate::utils::constante::SESSION_USER_ID_KEY)
-                    .and_then(|v| v.as_i64())
-                    .map(|id| id == user_id as i64)
-                    .unwrap_or(false)
+                    .and_then(serde_json::Value::as_i64)
+                    .is_some_and(|id| id == i64::from(user_id))
             })
             .map(|(id, _)| *id)
             .collect();
@@ -295,7 +296,7 @@ impl SessionStore for CleaningMemoryStore {
 
     async fn save(&self, record: &Record) -> session_store::Result<()> {
         let mut guard = self.data.lock().await;
-        let old_size = guard.get(&record.id).map(estimate_size).unwrap_or(0);
+        let old_size = guard.get(&record.id).map_or(0, estimate_size);
         let new_size = estimate_size(record);
 
         // Connexion exclusive : si user_id apparaît pour la première fois sur cette session,
@@ -308,7 +309,7 @@ impl SessionStore for CleaningMemoryStore {
             if let Some(user_id) = record
                 .data
                 .get(crate::utils::constante::SESSION_USER_ID_KEY)
-                .and_then(|v| v.as_i64())
+                .and_then(serde_json::Value::as_i64)
             {
                 if !had_user {
                     let mut freed = 0usize;
@@ -318,9 +319,8 @@ impl SessionStore for CleaningMemoryStore {
                             **id != record.id
                                 && r.data
                                     .get(crate::utils::constante::SESSION_USER_ID_KEY)
-                                    .and_then(|v| v.as_i64())
-                                    .map(|id| id == user_id)
-                                    .unwrap_or(false)
+                                    .and_then(serde_json::Value::as_i64)
+                                    .is_some_and(|id| id == user_id)
                         })
                         .map(|(id, _)| *id)
                         .collect();

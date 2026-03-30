@@ -40,11 +40,13 @@ pub struct CurrentUser {
 
 impl CurrentUser {
     /// Vérifie si l'utilisateur possède un rôle spécifique
+    #[must_use]
     pub fn has_role(&self, role: &str) -> bool {
         self.roles.iter().any(|r| r == role)
     }
 
     /// Vérifie si l'utilisateur possède au moins un des rôles fournis
+    #[must_use]
     pub fn has_any_role(&self, roles: &[&str]) -> bool {
         roles.iter().any(|role| self.has_role(role))
     }
@@ -53,6 +55,7 @@ impl CurrentUser {
     ///
     /// `is_superuser` → accès total
     /// `is_staff` → accès limité selon les permissions de chaque ressource
+    #[must_use]
     pub fn can_access_admin(&self) -> bool {
         self.is_staff || self.is_superuser
     }
@@ -61,6 +64,7 @@ impl CurrentUser {
     ///
     /// `is_superuser` bypass toujours → retourne `true`
     /// Sinon vérifie les rôles requis
+    #[must_use]
     pub fn can_admin(&self, required_roles: &[&str]) -> bool {
         if self.is_superuser {
             return true;
@@ -273,7 +277,7 @@ pub async fn redirect_if_authenticated(session: Session, request: Request, next:
 
 /// Middleware : charge les infos utilisateur dans les extensions
 ///
-/// Charge id, username, is_staff, is_superuser et roles depuis la session.
+/// Charge id, username, `is_staff`, `is_superuser` et roles depuis la session.
 /// Injecte un `CurrentUser` dans les extensions de la requête.
 ///
 /// ```rust,ignore

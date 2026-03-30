@@ -53,8 +53,9 @@ pub fn consume(token: &str) -> Option<String> {
 /// Chiffre l'email avec le token comme clé (CTR-SHA256 + HMAC-SHA256).
 /// Résultat : base64url, sûr dans une URL.
 ///
-/// Construction : enc_key = SHA256(token || ":enc"), keystream[i] = SHA256(enc_key || i_le32)
+/// Construction : `enc_key` = SHA256(token || ":enc"), keystream[i] = `SHA256(enc_key` || `i_le32`)
 /// Authentification : HMAC-SHA256(token, ciphertext), tag tronqué à 16 octets en préfixe.
+#[must_use]
 pub fn encrypt_email(token: &str, email: &str) -> String {
     let email_bytes = email.as_bytes();
 
@@ -71,7 +72,7 @@ pub fn encrypt_email(token: &str, email: &str) -> String {
     for (block_idx, chunk) in email_bytes.chunks(32).enumerate() {
         let mut block_input = [0u8; 36];
         block_input[..32].copy_from_slice(&enc_key);
-        block_input[32..].copy_from_slice(&(block_idx as u32).to_le_bytes());
+        block_input[32..].copy_from_slice(&u32::try_from(block_idx).expect("REASON").to_le_bytes());
         let keystream: [u8; 32] = Sha256::digest(block_input).into();
         for (b, k) in chunk.iter().zip(keystream.iter()) {
             ciphertext.push(b ^ k);
@@ -94,6 +95,7 @@ pub fn encrypt_email(token: &str, email: &str) -> String {
 
 /// Déchiffre l'email depuis une valeur base64url produite par `encrypt_email`.
 /// Retourne `None` si le décodage, l'authentification ou l'UTF-8 échoue.
+#[must_use]
 pub fn decrypt_email(token: &str, encoded: &str) -> Option<String> {
     let data = URL_SAFE_NO_PAD.decode(encoded).ok()?;
     // Minimum : 16 octets de tag + au moins 1 octet de ciphertext
@@ -124,7 +126,7 @@ pub fn decrypt_email(token: &str, encoded: &str) -> Option<String> {
     for (block_idx, chunk) in ciphertext.chunks(32).enumerate() {
         let mut block_input = [0u8; 36];
         block_input[..32].copy_from_slice(&enc_key);
-        block_input[32..].copy_from_slice(&(block_idx as u32).to_le_bytes());
+        block_input[32..].copy_from_slice(&u32::try_from(block_idx).expect("REASON").to_le_bytes());
         let keystream: [u8; 32] = Sha256::digest(block_input).into();
         for (b, k) in chunk.iter().zip(keystream.iter()) {
             plaintext.push(b ^ k);

@@ -23,13 +23,12 @@ pub fn register_roles(roles: Vec<String>) {
 
 /// Retourne une copie des rôles enregistrés.
 pub fn get_roles() -> Vec<String> {
-    match ADMIN_ROLES.read() {
-        Ok(guard) => guard.clone(),
-        Err(_) => {
-            if let Some(level) = crate::utils::runique_log::get_log().roles {
-                crate::runique_log!(level, "get_roles() : lock poisonné — rôles retournés vides");
-            }
-            Vec::new()
+    if let Ok(guard) = ADMIN_ROLES.read() {
+        guard.clone()
+    } else {
+        if let Some(level) = crate::utils::runique_log::get_log().roles {
+            crate::runique_log!(level, "get_roles() : lock poisonné — rôles retournés vides");
         }
+        Vec::new()
     }
 }

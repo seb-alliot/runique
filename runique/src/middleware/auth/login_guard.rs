@@ -44,7 +44,7 @@ pub struct LoginGuard {
 }
 
 impl LoginGuard {
-    /// Crée un LoginGuard avec les valeurs par défaut (5 tentatives / 300 s).
+    /// Crée un `LoginGuard` avec les valeurs par défaut (5 tentatives / 300 s).
     ///
     /// # Exemple
     /// ```rust,ignore
@@ -61,12 +61,14 @@ impl LoginGuard {
     }
 
     /// Nombre d'échecs avant verrouillage du compte
+    #[must_use]
     pub fn max_attempts(mut self, max: u32) -> Self {
         self.max_attempts = max;
         self
     }
 
     /// Durée du verrouillage en secondes
+    #[must_use]
     pub fn lockout_secs(mut self, secs: u64) -> Self {
         self.lockout_secs = secs;
         self
@@ -114,6 +116,7 @@ impl LoginGuard {
     }
 
     /// Retourne `true` si le compte est temporairement verrouillé
+    #[must_use]
     pub fn is_locked(&self, username: &str) -> bool {
         let store = match self.store.lock() {
             Ok(s) => s,
@@ -123,18 +126,18 @@ impl LoginGuard {
         // → réduit la fuite de timing permettant l'énumération d'usernames.
         let (attempts, last) = store
             .get(username)
-            .map(|(a, t)| (*a, *t))
-            .unwrap_or((0, Instant::now()));
+            .map_or((0, Instant::now()), |(a, t)| (*a, *t));
         attempts >= self.max_attempts && last.elapsed() < Duration::from_secs(self.lockout_secs)
     }
 
     /// Nombre d'échecs en cours pour ce username
+    #[must_use]
     pub fn attempts(&self, username: &str) -> u32 {
         let store = match self.store.lock() {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
-        store.get(username).map(|(n, _)| *n).unwrap_or(0)
+        store.get(username).map_or(0, |(n, _)| *n)
     }
 
     /// Retourne la clé effective à utiliser avec `LoginGuard`.
@@ -150,6 +153,7 @@ impl LoginGuard {
     /// let key = LoginGuard::effective_key(&username, &ip);
     /// if GUARD.is_locked(&key) { /* 429 */ }
     /// ```
+    #[must_use]
     pub fn effective_key<'a>(username: &'a str, ip: &str) -> std::borrow::Cow<'a, str> {
         if username.trim().is_empty() {
             std::borrow::Cow::Owned(format!("anonym:{ip}"))
@@ -159,6 +163,7 @@ impl LoginGuard {
     }
 
     /// Secondes restantes avant déverrouillage, ou `None` si non verrouillé
+    #[must_use]
     pub fn remaining_lockout_secs(&self, username: &str) -> Option<u64> {
         let store = match self.store.lock() {
             Ok(s) => s,

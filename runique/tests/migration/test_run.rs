@@ -97,8 +97,7 @@ async fn test_run_dossier_entites_vide() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
-    )
-    .await;
+    );
     assert!(result.is_ok(), "run() vide doit Ok: {:?}", result);
     assert!(
         !migrations.join("lib.rs").exists(),
@@ -113,7 +112,7 @@ async fn test_run_dossier_entites_vide() {
 #[tokio::test]
 async fn test_run_dossier_inexistant_retourne_err() {
     set_env("RUNIQUE_TEST", "1");
-    let result = run("/chemin/inexistant_abc123/entities", "/tmp/mig_xyz", false).await;
+    let result = run("/chemin/inexistant_abc123/entities", "/tmp/mig_xyz", false);
     assert!(result.is_err(), "dossier inexistant doit Err");
     del_env("RUNIQUE_TEST");
 }
@@ -134,7 +133,6 @@ async fn test_run_cree_snapshot() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     assert!(
@@ -158,7 +156,6 @@ async fn test_run_cree_lib_rs() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     assert!(migrations.join("lib.rs").exists(), "lib.rs doit exister");
@@ -184,7 +181,6 @@ async fn test_run_cree_fichier_seaorm_create() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     let entries: Vec<_> = fs::read_dir(&migrations)
@@ -225,7 +221,6 @@ async fn test_run_dossier_applied_cree() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     assert!(
@@ -255,7 +250,6 @@ async fn test_run_idempotent_meme_entite() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     // Deuxième run : pas de changements — doit Ok sans planter
@@ -263,8 +257,7 @@ async fn test_run_idempotent_meme_entite() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
-    )
-    .await;
+    );
     assert!(
         result.is_ok(),
         "2e run() sans changements doit Ok: {:?}",
@@ -288,14 +281,12 @@ async fn test_run_lib_rs_pas_duplique_au_second_run() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
     run(
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     let lib_content = fs::read_to_string(migrations.join("lib.rs")).unwrap();
@@ -326,7 +317,6 @@ async fn test_run_alter_ajout_colonne_nullable() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     // Étape 2 : Ajouter une colonne nullable → pas destructif
@@ -335,8 +325,7 @@ async fn test_run_alter_ajout_colonne_nullable() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
-    )
-    .await;
+    );
     assert!(
         result.is_ok(),
         "run() avec ALTER non destructif doit Ok: {:?}",
@@ -365,7 +354,6 @@ async fn test_run_alter_cree_fichier_alter() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     fs::write(entities.join("user.rs"), entity_user_with_bio()).unwrap();
@@ -374,7 +362,6 @@ async fn test_run_alter_cree_fichier_alter() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     // Un fichier *_alter_users_table.rs doit exister dans applied/users/
@@ -411,7 +398,6 @@ async fn test_run_alter_snapshot_mis_a_jour() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     fs::write(entities.join("user.rs"), entity_user_with_bio()).unwrap();
@@ -420,7 +406,6 @@ async fn test_run_alter_snapshot_mis_a_jour() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     // Snapshot doit contenir "bio"
@@ -447,8 +432,7 @@ async fn test_run_deux_entites() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
-    )
-    .await;
+    );
     assert!(result.is_ok(), "run() 2 entités doit Ok: {:?}", result);
 
     assert!(migrations.join("snapshots/users.rs").exists());
@@ -471,8 +455,7 @@ async fn test_run_trois_entites() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
-    )
-    .await;
+    );
     assert!(result.is_ok(), "run() 3 entités doit Ok: {:?}", result);
 
     let lib_content = fs::read_to_string(migrations.join("lib.rs")).unwrap();
@@ -495,7 +478,6 @@ async fn test_run_plusieurs_entites_plusieurs_runs() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     // Run 2 : 2e entité ajoutée
@@ -505,7 +487,6 @@ async fn test_run_plusieurs_entites_plusieurs_runs() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     assert!(migrations.join("snapshots/users.rs").exists());
@@ -534,8 +515,7 @@ async fn test_run_ignore_fichier_sans_macro() {
         entities.to_str().unwrap(),
         migrations.to_str().unwrap(),
         false,
-    )
-    .await;
+    );
     assert!(
         result.is_ok(),
         "fichier sans model! ne doit pas planter: {:?}",
@@ -563,7 +543,6 @@ async fn test_run_ignore_mod_rs() {
         migrations.to_str().unwrap(),
         false,
     )
-    .await
     .unwrap();
 
     // Seulement posts.rs doit avoir généré un snapshot

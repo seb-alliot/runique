@@ -44,12 +44,14 @@ impl RateLimiter {
     }
 
     /// Nombre maximal de requêtes autorisées dans la fenêtre
+    #[must_use]
     pub fn max_requests(mut self, max: u32) -> Self {
         self.max_requests = max;
         self
     }
 
     /// Durée de la fenêtre en secondes
+    #[must_use]
     pub fn retry_after(mut self, secs: u64) -> Self {
         self.window = Duration::from_secs(secs);
         self
@@ -76,6 +78,7 @@ impl RateLimiter {
 
     /// Secondes restantes avant la réinitialisation de la fenêtre pour cette clé.
     /// Retourne `0` si la clé est inconnue ou si la fenêtre est déjà expirée.
+    #[must_use]
     pub fn retry_after_secs(&self, key: &str) -> u64 {
         let store = match self.store.lock() {
             Ok(s) => s,
@@ -91,6 +94,7 @@ impl RateLimiter {
     }
 
     /// Retourne `true` si la clé est sous la limite, `false` si dépassée
+    #[must_use]
     pub fn is_allowed(&self, key: &str) -> bool {
         let mut store = match self.store.lock() {
             Ok(s) => s,

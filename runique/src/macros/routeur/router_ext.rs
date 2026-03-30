@@ -69,14 +69,14 @@ impl RouterExt for Router {
                 .retry_after(retry_after),
         );
         limiter.spawn_cleanup(tokio::time::Duration::from_secs(retry_after));
-        let mut router = self;
+        let mut r = self;
         for (path, name, handler) in routes {
             register_pending(&name, &path);
             let limited = Router::new().route(&path, handler).route_layer(
                 axum::middleware::from_fn_with_state(limiter.clone(), rate_limit_middleware),
             );
-            router = router.merge(limited);
+            r = r.merge(limited);
         }
-        router
+        r
     }
 }

@@ -43,7 +43,7 @@ pub type OAEngine = Option<AEngine>;
 pub type ARuniqueConfig = Arc<RuniqueConfig>;
 pub type OARuniqueConfig = Option<ARuniqueConfig>;
 
-/// Session Store (pour SessionBackend::Custom)
+/// Session Store (pour `SessionBackend::Custom`)
 pub type ASessionStore = Arc<dyn SessionStore + Send + Sync>;
 
 // ============================================================================
@@ -105,6 +105,6 @@ pub type AppResult<T> = Result<T, Box<AppError>>;
 /// Tera Result Type
 pub type TResult = TeraResult<Value>;
 
-/// Database Result Type (optionnel, pour SeaORM)
+/// Database Result Type (optionnel, pour `SeaORM`)
 #[cfg(feature = "orm")]
 pub type DbResult<T> = Result<T, sea_orm::DbErr>;

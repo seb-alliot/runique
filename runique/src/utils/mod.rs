@@ -1,4 +1,5 @@
 pub mod aliases;
+pub mod cli;
 pub mod config;
 pub mod constante;
 pub mod env;
@@ -13,6 +14,7 @@ pub mod trad;
 pub mod url_params;
 
 pub use aliases::*;
+pub use cli::create_new_project;
 pub use config::*;
 pub use constante::*;
 pub use env::is_debug;

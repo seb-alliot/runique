@@ -36,7 +36,7 @@ impl RuniqueConfig {
             app: AppSettings::from_env(),
 
             base_dir: std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string()),
-            debug: matches!(std::env::var("DEBUG").as_deref(), Ok("true") | Ok("1")),
+            debug: matches!(std::env::var("DEBUG").as_deref(), Ok("true" | "1")),
             log: RuniqueLog::default(),
         }
     }

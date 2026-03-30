@@ -213,7 +213,7 @@ pub fn seaorm_alter_file_path(migrations_path: &str, timestamp: &str, table: &st
         seaorm_alter_module_name(timestamp, table)
     )
 }
-pub async fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
+pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     println!(" {}", tf("makemigrations.scanning", &[entities_path]));
 
     let schemas = scan_entities(entities_path)?;

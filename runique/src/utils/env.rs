@@ -16,7 +16,7 @@ impl RuniqueEnv {
     fn from_env() -> Self {
         dotenvy::dotenv().ok();
         match std::env::var("DEBUG").as_deref() {
-            Ok("true") | Ok("1") => Self::Development,
+            Ok("true" | "1") => Self::Development,
             _ => Self::Production,
         }
     }
@@ -37,6 +37,7 @@ static ENV: LazyLock<RuniqueEnv> = LazyLock::new(RuniqueEnv::from_env);
 ///     println!("Mode développement actif");
 /// }
 /// ```
+#[must_use]
 pub fn is_debug() -> bool {
     matches!(*ENV, RuniqueEnv::Development)
 }
@@ -46,8 +47,10 @@ pub fn is_debug() -> bool {
 static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| (d.subsec_nanos() % 9000 + 1000).to_string())
-        .unwrap_or_else(|_| "1000".to_string())
+        .map_or_else(
+            |_| "1000".to_string(),
+            |d| (d.subsec_nanos() % 9000 + 1000).to_string(),
+        )
 });
 
 pub fn css_token() -> String {

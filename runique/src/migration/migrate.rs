@@ -62,7 +62,7 @@ pub async fn down(migrations_path: &str, files: Vec<String>, batch: Option<Strin
     Ok(())
 }
 
-pub async fn status(migrations_path: &str) -> Result<()> {
+pub fn status(migrations_path: &str) -> Result<()> {
     println!("{}", tf("migrate.available_for", &[migrations_path]));
     list_available(migrations_path)?;
     Ok(())
