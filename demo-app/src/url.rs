@@ -3,15 +3,6 @@ use crate::views::*;
 use runique::prelude::*;
 
 pub fn routes() -> Router {
-    let limiter = Arc::new(RateLimiter::new().max_requests(5).retry_after(60));
-    register_pending("upload_image", "/upload-image");
-    let upload_route = Router::new()
-        .route("/upload-image", view!(upload_image_submit))
-        .route_layer(middleware::from_fn_with_state(
-            limiter,
-            rate_limit_middleware,
-        ));
-
     urlpatterns! {
         "/"                              => view!{ index },                   name = "index",
 
@@ -101,5 +92,5 @@ pub fn routes() -> Router {
         "/contributions"                 => view! { contribution_list },      name = "contribution_list",
 
     }
-    .merge(upload_route)
+    .rate_limit("/upload-image", "upload_image", view!(upload_image_submit), 5, 60)
 }

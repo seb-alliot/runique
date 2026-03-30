@@ -8,6 +8,7 @@ use crate::entities::blog;
 use crate::entities::changelog_entry;
 use crate::entities::chapitre;
 use crate::entities::code_example;
+use crate::entities::contribution;
 use crate::entities::cour;
 use crate::entities::cour_block;
 use crate::entities::demo_category;
@@ -57,6 +58,28 @@ impl DynForm for UsersEditFormDynWrapper {
 
     async fn save(&mut self, _db: &DatabaseConnection) -> Result<(), DbErr> {
         Ok(()) // update_fn gère la persistance
+    }
+
+    fn get_form(&self) -> &Forms {
+        self.0.get_form()
+    }
+
+    fn get_form_mut(&mut self) -> &mut Forms {
+        self.0.get_form_mut()
+    }
+}
+
+// ── DynForm wrapper pour contribution::AdminForm ──
+struct ContributionAdminFormDynWrapper(pub contribution::AdminForm);
+
+#[async_trait]
+impl DynForm for ContributionAdminFormDynWrapper {
+    async fn is_valid(&mut self) -> bool {
+        self.0.is_valid().await
+    }
+
+    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
+        self.0.save(db).await
     }
 
     fn get_form(&self) -> &Forms {
@@ -790,6 +813,331 @@ pub fn admin_register() -> AdminRegistry {
     registry.register(
         ResourceEntry::new(meta, form_builder)
             .with_edit_form_builder(edit_form_builder)
+            .with_list_fn(list_fn)
+            .with_get_fn(get_fn)
+            .with_delete_fn(delete_fn)
+            .with_create_fn(create_fn)
+            .with_update_fn(update_fn)
+            .with_count_fn(count_fn)
+            .with_filter_fn(filter_fn),
+    );
+
+    // ── Ressource : contribution ──
+    let meta = AdminResource::new(
+        "contribution",
+        "crate::entities::contribution::Model",
+        "AdminForm",
+        "Contribution",
+        vec!["admin".to_string()],
+    );
+    let form_builder: FormBuilder =
+        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+            Box::pin(async move {
+                let form =
+                    contribution::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(ContributionAdminFormDynWrapper(form)) as Box<dyn DynForm>
+            })
+        });
+
+    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
+        Box::pin(async move {
+            use sea_orm::{
+                QueryFilter,
+                sea_query::{Alias, Expr, Order},
+            };
+            let mut query = contribution::Entity::find();
+            if let Some(ref col) = params.sort_by {
+                let order = if params.sort_dir == SortDir::Desc {
+                    Order::Desc
+                } else {
+                    Order::Asc
+                };
+                query = query.order_by(Expr::col(Alias::new(col.as_str())), order);
+            }
+            for (col, val) in &params.column_filters {
+                let escaped = val.replace('\'', "''");
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
+            }
+            let rows = query
+                .offset(params.offset)
+                .limit(params.limit)
+                .all(&*db)
+                .await?;
+            Ok(rows
+                .into_iter()
+                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .collect())
+        })
+    });
+
+    let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
+        Box::pin(async move { contribution::Entity::find().count(&*db).await })
+    });
+
+    let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            let row = contribution::Entity::find_by_id(id).one(&*db).await?;
+            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+        })
+    });
+
+    let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            contribution::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
+        Box::pin(async move {
+            contribution::admin_from_form(&data, None)
+                .insert(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+            contribution::admin_from_form(&data, Some(id))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let meta = meta.display(
+        DisplayConfig::new()
+            .columns_include(vec![
+                ("user_id", "contributeur"),
+                ("contribution_type", "type"),
+                ("title", "titre"),
+                ("content", "contenu"),
+            ])
+            .list_filter(vec![
+                ("user_id", "contributeur", 5u64),
+                ("contribution_type", "type", 5u64),
+                ("title", "titre", 5u64),
+                ("content", "contenu", 5u64),
+            ]),
+    );
+    let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {
+        Box::pin(async move {
+            use sea_orm::sea_query::{Alias, Expr, Query};
+            use sea_orm::{ConnectionTrait, ExprTrait};
+            let mut result: std::collections::HashMap<String, (Vec<String>, u64)> =
+                std::collections::HashMap::new();
+            let page_size_user_id = 5u64;
+            let cur_page_user_id = pages.get("user_id").copied().unwrap_or(0);
+            let count_stmt_user_id = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT user_id)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("user_id")).is_not_null())
+                .to_owned();
+            let count_row_user_id = match db.query_one(&count_stmt_user_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.user_id` : colonne introuvable en DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_user_id = count_row_user_id
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_user_id = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(user_id AS TEXT)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("user_id")).is_not_null())
+                .limit(page_size_user_id)
+                .offset(cur_page_user_id * page_size_user_id)
+                .to_owned();
+            let rows_user_id = match db.query_all(&stmt_user_id).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.user_id` : colonne introuvable en DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_user_id: Vec<String> = rows_user_id
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_user_id.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => x.cmp(&y),
+                _ => a.cmp(b),
+            });
+            result.insert("user_id".to_string(), (vals_user_id, total_user_id));
+            let page_size_contribution_type = 5u64;
+            let cur_page_contribution_type = pages.get("contribution_type").copied().unwrap_or(0);
+            let count_stmt_contribution_type = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT contribution_type)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("contribution_type")).is_not_null())
+                .to_owned();
+            let count_row_contribution_type = match db
+                .query_one(&count_stmt_contribution_type)
+                .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.contribution_type` : colonne introuvable en DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_contribution_type = count_row_contribution_type
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_contribution_type = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(contribution_type AS TEXT)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("contribution_type")).is_not_null())
+                .limit(page_size_contribution_type)
+                .offset(cur_page_contribution_type * page_size_contribution_type)
+                .to_owned();
+            let rows_contribution_type = match db.query_all(&stmt_contribution_type).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.contribution_type` : colonne introuvable en DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_contribution_type: Vec<String> = rows_contribution_type
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_contribution_type.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => x.cmp(&y),
+                _ => a.cmp(b),
+            });
+            result.insert(
+                "contribution_type".to_string(),
+                (vals_contribution_type, total_contribution_type),
+            );
+            let page_size_title = 5u64;
+            let cur_page_title = pages.get("title").copied().unwrap_or(0);
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .to_owned();
+            let count_row_title = match db.query_one(&count_stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.title` : colonne introuvable en DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_title = count_row_title
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_title = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(title AS TEXT)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
+                .to_owned();
+            let rows_title = match db.query_all(&stmt_title).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.title` : colonne introuvable en DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_title: Vec<String> = rows_title
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => x.cmp(&y),
+                _ => a.cmp(b),
+            });
+            result.insert("title".to_string(), (vals_title, total_title));
+            let page_size_content = 5u64;
+            let cur_page_content = pages.get("content").copied().unwrap_or(0);
+            let count_stmt_content = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT content)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .to_owned();
+            let count_row_content = match db.query_one(&count_stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.content` : colonne introuvable en DB — {}",
+                        e
+                    );
+                    None
+                }
+            };
+            let total_content = count_row_content
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
+            let stmt_content = Query::select()
+                .distinct()
+                .expr(Expr::cust("CAST(content AS TEXT)"))
+                .from(Alias::new(contribution::Entity.table_name()))
+                .and_where(Expr::col(Alias::new("content")).is_not_null())
+                .limit(page_size_content)
+                .offset(cur_page_content * page_size_content)
+                .to_owned();
+            let rows_content = match db.query_all(&stmt_content).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!(
+                        "[runique admin] list_filter `contribution.content` : colonne introuvable en DB — {}",
+                        e
+                    );
+                    vec![]
+                }
+            };
+            let mut vals_content: Vec<String> = rows_content
+                .iter()
+                .filter_map(|r| r.try_get_by_index::<String>(0).ok())
+                .collect();
+            vals_content.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+                (Ok(x), Ok(y)) => x.cmp(&y),
+                _ => a.cmp(b),
+            });
+            result.insert("content".to_string(), (vals_content, total_content));
+            Ok(result)
+        })
+    });
+
+    registry.register(
+        ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
             .with_get_fn(get_fn)
             .with_delete_fn(delete_fn)

@@ -68,6 +68,7 @@ const SLOT_SECURITY_HEADERS: u16 = 30; // CSP + security headers
 const SLOT_CACHE: u16 = 40; // Headers cache
 const SLOT_SESSION: u16 = 50; // Avant CSRF (CSRF en dépend)
 const SLOT_SESSION_UPGRADE: u16 = 55; // Après Session (lit/écrit en session)
+const SLOT_AUTH: u16 = 57; // Après Session — charge CurrentUser depuis la session
 const SLOT_CSRF: u16 = 60; // Après Session (lit/écrit en session)
 const SLOT_HOST_VALIDATION: u16 = 70; // Dernier rempart avant handler
 
@@ -623,6 +624,63 @@ impl MiddlewareStaging {
                                 }
                                 next.run(req).await
                             }
+                        },
+                    ))
+                }),
+            });
+        }
+
+        // Slot 57 : Auth — charge CurrentUser depuis la session et l'injecte dans les extensions
+        {
+            entries.push(MiddlewareEntry {
+                slot: SLOT_AUTH,
+                name: "Auth",
+                apply: Box::new(|r| {
+                    r.layer(axum::middleware::from_fn(
+                        |mut req: axum::http::Request<axum::body::Body>,
+                         next: axum::middleware::Next| async move {
+                            use crate::middleware::auth::{CurrentUser, get_user_id, get_username};
+                            use crate::utils::constante::{
+                                SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
+                                SESSION_USER_ROLES_KEY,
+                            };
+                            if let Some(session) =
+                                req.extensions().get::<tower_sessions::Session>().cloned()
+                            {
+                                if let (Some(id), Some(username)) =
+                                    (get_user_id(&session).await, get_username(&session).await)
+                                {
+                                    let is_staff = session
+                                        .get::<bool>(SESSION_USER_IS_STAFF_KEY)
+                                        .await
+                                        .ok()
+                                        .flatten()
+                                        .unwrap_or(false);
+                                    let is_superuser = session
+                                        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+                                        .await
+                                        .ok()
+                                        .flatten()
+                                        .unwrap_or(false);
+                                    let roles = session
+                                        .get::<Vec<String>>(SESSION_USER_ROLES_KEY)
+                                        .await
+                                        .ok()
+                                        .flatten()
+                                        .unwrap_or_default();
+                                    let current_user = CurrentUser {
+                                        id,
+                                        username,
+                                        is_staff,
+                                        is_superuser,
+                                        roles,
+                                    };
+                                    RequestExtensions::new()
+                                        .with_current_user(current_user)
+                                        .inject_request(&mut req);
+                                }
+                            }
+                            next.run(req).await
                         },
                     ))
                 }),

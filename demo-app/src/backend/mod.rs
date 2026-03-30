@@ -21,10 +21,11 @@ pub struct FieldGroup {
 }
 
 pub async fn inject_auth(request: &mut Request) {
-    let connected = is_authenticated(&request.session).await;
-    let username = get_username(&request.session).await;
-    request.context.insert("connected", &connected);
-    request.context.insert("current_user", &username);
+    let user = is_authenticated(&request.session).await;
+    request.context.insert("user", &user);
+    if let Some(username) = get_username(&request.session).await {
+        request.context.insert("username", &username);
+    }
 }
 
 pub async fn inject_globals(request: &mut Request) {
@@ -38,8 +39,5 @@ pub async fn inject_globals(request: &mut Request) {
 
     if let Some(ref r) = release {
         request.context.insert("runique_release", r);
-    }
-    if let Some(username) = get_username(&request.session).await {
-        context_update!(request => { "username" => username });
     }
 }

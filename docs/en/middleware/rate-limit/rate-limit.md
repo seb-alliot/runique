@@ -1,10 +1,42 @@
 # Rate Limiting
 
-Runique's rate limiter is granular: each handler can have its own limits, declared directly in the code.
+Runique provides two rate limiting approaches: **declarative** at the route level, or **fine-grained** inside the handler.
 
 ---
 
-## Usage
+## Declarative approach — route level
+
+Directly in `url.rs`, via the `RouterExt` trait:
+
+```rust
+use runique::prelude::*;
+
+pub fn routes() -> Router {
+    urlpatterns! {
+        "/" => view!{ index }, name = "index",
+        // ...
+    }
+    // Single route
+    .rate_limit("/upload-image", "upload_image", view!(upload_image_submit), 5, 60)
+}
+```
+
+Multiple routes sharing the **same counter**:
+
+```rust
+.rate_limit_many(5, 60, vec![
+    ("/upload-image".into(), "upload_image".into(), view!(upload_image_submit)),
+    ("/register".into(),     "register".into(),     view!(register)),
+])
+```
+
+> `spawn_cleanup` is called automatically — no memory leak.
+
+---
+
+## Handler approach — fine-grained logic
+
+For per-user limits, per-action logic, or a custom key:
 
 ```rust
 use runique::prelude::*;
@@ -22,6 +54,17 @@ pub async fn login(/* ... */) -> impl IntoResponse {
     // ...
 }
 ```
+
+---
+
+## When to use which?
+
+| Case                                          | Approach                      |
+| --------------------------------------------- | ----------------------------- |
+| Public route, global IP-based limit           | Declarative (`.rate_limit()`) |
+| Limit per authenticated user                  | Handler                       |
+| Different logic depending on context          | Handler                       |
+| Multiple routes sharing the same quota        | `.rate_limit_many()`          |
 
 ---
 
@@ -67,6 +110,18 @@ Returns `true` if the key is under the limit, `false` otherwise.
 ### `retry_after_secs(key: &str) -> u64`
 
 Seconds remaining until the window resets for this key. Returns `0` if the window has already expired or the key is unknown. Used to populate the `Retry-After` header in 429 responses.
+
+### `.spawn_cleanup(period: Duration)`
+
+Spawns a background task that periodically purges expired entries. Without this, the internal map grows indefinitely for each distinct IP. Call it once after building the limiter.
+
+```rust
+let limiter = RateLimiter::new().max_requests(5).retry_after(60);
+limiter.spawn_cleanup(Duration::from_secs(60));
+let limiter = Arc::new(limiter);
+```
+
+> With the declarative approach (`.rate_limit()` / `.rate_limit_many()`), `spawn_cleanup` is called automatically.
 
 ---
 

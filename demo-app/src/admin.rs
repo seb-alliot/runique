@@ -1,12 +1,12 @@
 use crate::entities::{
-    blog, changelog_entry, chapitre, code_example, cour, cour_block, demo_category, demo_page,
-    demo_section, doc_block, doc_page, doc_section, form_field, known_issue, page_doc_link,
-    roadmap_entry, runique_release, site_config, users,
+    blog, changelog_entry, chapitre, code_example, contribution, cour, cour_block, demo_category,
+    demo_page, demo_section, doc_block, doc_page, doc_section, form_field, known_issue,
+    page_doc_link, roadmap_entry, runique_release, site_config, users,
 };
 use crate::formulaire::{
-    BlogForm, ChangelogEntryForm, ChapitreForm, CodeExampleForm, CourBlockForm, CourForm,
-    DemoCategoryForm, DemoPageForm, DemoSectionForm, DocBlockForm, DocPageForm, DocSectionForm,
-    FormFieldForm, KnownIssueForm, PageDocLinkForm, RegisterForm, RoadmapEntryForm,
+    BlogForm, ChangelogEntryForm, ChapitreForm, CodeExampleForm, ContributionForm, CourBlockForm,
+    CourForm, DemoCategoryForm, DemoPageForm, DemoSectionForm, DocBlockForm, DocPageForm,
+    DocSectionForm, FormFieldForm, KnownIssueForm, PageDocLinkForm, RegisterForm, RoadmapEntryForm,
     RuniqueReleaseForm, SiteConfigForm,
 };
 
@@ -26,6 +26,22 @@ admin! {
             ["email", "Email", 10],
             ["is_superuser", "Superuser", 10],
             ["is_active", "Actif", 10],
+        ]
+    }
+    contribution: contribution::Model => ContributionForm {
+        title: "Contribution",
+        permissions: ["admin"],
+        list_display: [
+            ["user_id", "contributeur"],
+            ["contribution_type", "type"],
+            ["title", "titre"],
+            ["content", "contenu"],
+        ],
+        list_filter: [
+            ["user_id", "contributeur", 5],
+            ["contribution_type", "type", 5],
+            ["title", "titre", 5],
+            ["content", "contenu", 5],
         ]
     }
     blog: blog::Model => BlogForm {

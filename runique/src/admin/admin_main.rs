@@ -172,6 +172,7 @@ pub async fn admin_post(
 
     inject_context(&mut req, &state, entry);
     req.context.insert(ctx_common::LANG, &current_lang().code());
+    check_csrf(&body, req.csrf_token.as_str())?;
 
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &state).await,
@@ -220,6 +221,7 @@ pub async fn admin_post_id(
 
     inject_context(&mut req, &state, entry);
     req.context.insert(ctx_common::LANG, &current_lang().code());
+    check_csrf(&body, req.csrf_token.as_str())?;
 
     match action.as_str() {
         "edit" => handle_edit_post(&mut req, entry, id, body, &state).await,
@@ -269,7 +271,13 @@ fn inject_context(
 fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     let valid = body
         .get(CSRF_TOKEN_KEY)
-        .map(|s| bool::from(s.as_bytes().ct_eq(session_token.as_bytes())))
+        .map(|s| {
+            if let Ok(unmasked) = crate::utils::csrf::unmask_csrf_token(s) {
+                bool::from(unmasked.as_bytes().ct_eq(session_token.as_bytes()))
+            } else {
+                bool::from(s.as_bytes().ct_eq(session_token.as_bytes()))
+            }
+        })
         .unwrap_or(false);
     if !valid {
         return Err(Box::new(AppError::new(ErrorContext::generic(
@@ -559,7 +567,12 @@ async fn handle_create_get(
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let tera = req.engine.tera.clone();
-    let csrf = req.csrf_token.as_str().to_string();
+    let csrf = req
+        .csrf_token
+        .masked()
+        .unwrap_or_else(|_| req.csrf_token.clone())
+        .as_str()
+        .to_string();
     let form = (entry.form_builder)(StrMap::new(), tera, csrf, axum::http::Method::GET).await;
 
     req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
@@ -579,10 +592,14 @@ async fn handle_create_post(
     body: StrMap,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
-    check_csrf(&body, req.csrf_token.as_str())?;
     let body_for_create = body.clone();
     let tera = req.engine.tera.clone();
-    let csrf = req.csrf_token.as_str().to_string();
+    let csrf = req
+        .csrf_token
+        .masked()
+        .unwrap_or_else(|_| req.csrf_token.clone())
+        .as_str()
+        .to_string();
     let mut form = (entry.form_builder)(body, tera, csrf, axum::http::Method::POST).await;
 
     if form.is_valid().await {
@@ -646,7 +663,12 @@ async fn handle_edit_get(
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let tera = req.engine.tera.clone();
-    let csrf = req.csrf_token.as_str().to_string();
+    let csrf = req
+        .csrf_token
+        .masked()
+        .unwrap_or_else(|_| req.csrf_token.clone())
+        .as_str()
+        .to_string();
 
     // Pré-remplissage via get_fn si disponible
     let data = match &entry.get_fn {
@@ -682,10 +704,14 @@ async fn handle_edit_post(
     body: StrMap,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
-    check_csrf(&body, req.csrf_token.as_str())?;
     let body_for_update = body.clone();
     let tera = req.engine.tera.clone();
-    let csrf = req.csrf_token.as_str().to_string();
+    let csrf = req
+        .csrf_token
+        .masked()
+        .unwrap_or_else(|_| req.csrf_token.clone())
+        .as_str()
+        .to_string();
     let builder = entry
         .edit_form_builder
         .as_ref()

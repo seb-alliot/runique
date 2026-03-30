@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 
+const DEFAULT_SECRET_KEY: &str = "default_secret_key";
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 
 pub struct ServerConfig {
@@ -22,7 +24,16 @@ impl ServerConfig {
             ip_server: ip.clone(),
             domain_server: format!("{}:{}", ip, port),
             port,
-            secret_key: env::var("SECRET_KEY").unwrap_or_else(|_| "default_secret_key".to_string()),
+            secret_key: {
+                let key = env::var("SECRET_KEY").unwrap_or_else(|_| DEFAULT_SECRET_KEY.to_string());
+                if key == DEFAULT_SECRET_KEY {
+                    eprintln!(
+                        "[runique] WARNING: SECRET_KEY non définie — la clé par défaut est utilisée. \
+                        Les tokens CSRF ne sont pas sécurisés. Définissez SECRET_KEY dans votre .env."
+                    );
+                }
+                key
+            },
         }
     }
 }
