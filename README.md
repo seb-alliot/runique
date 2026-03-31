@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-1.1.54-blue)
 ![Crates.io](https://img.shields.io/crates/v/runique)
-[![Runique](https://img.shields.io/badge/Live-Demo-brightgreen)](https://runique.io)
+[![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
 Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
 
