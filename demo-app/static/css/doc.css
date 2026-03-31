@@ -412,16 +412,12 @@
 }
 
 @media (max-width: 600px) {
-    .readme-container ul {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 600px) {
     .readme-container {
         padding: 1.25rem 1rem;
     }
-    
+        .readme-container ul {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */
@@ -477,6 +473,25 @@
         overflow-y: auto;
         transition: left 0.25s ease;
     }
+        .doc-index-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 95%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border, #333);
+    padding: 0.55rem 0;
+    margin-bottom: 0.75rem;
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted, #888);
+    transition: color 0.2s;
+}
 }
 @media (max-width: 1024px) {
     /* Barre mobile avec hamburger */
