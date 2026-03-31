@@ -22,9 +22,7 @@ pub struct CardSection {
 }
 
 pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
-    let all = ChangelogEntryEntity::find()
-        .order_by_desc(crate::entities::changelog_entry::Column::Version)
-        .order_by_asc(crate::entities::changelog_entry::Column::SortOrder)
+    let all = search!(ChangelogEntryEntity => desc Version, asc SortOrder)
         .all(db)
         .await
         .unwrap_or_default();
@@ -64,9 +62,7 @@ pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSectio
 }
 
 pub async fn fetch_known_issues(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
-    let all = KnownIssueEntity::find()
-        .order_by_desc(crate::entities::known_issue::Column::Version)
-        .order_by_asc(crate::entities::known_issue::Column::SortOrder)
+    let all = search!(KnownIssueEntity => desc Version, asc SortOrder)
         .all(db)
         .await
         .unwrap_or_default();
@@ -106,16 +102,15 @@ pub async fn fetch_known_issues(db: &sea_orm::DatabaseConnection) -> Vec<CardSec
 }
 
 pub async fn fetch_roadmap(db: &sea_orm::DatabaseConnection) -> Vec<CardSection> {
-    let all = RoadmapEntryEntity::find()
-        .order_by_asc(crate::entities::roadmap_entry::Column::SortOrder)
+    let all = search!(RoadmapEntryEntity => asc SortOrder)
         .all(db)
         .await
         .unwrap_or_default();
 
     let status_sections = [
-        ("active", "🔧 En cours", "roadmap-active"),
-        ("planned", "📋 Prévu", "roadmap-planned"),
-        ("future", "🔭 Futur", "roadmap-future"),
+        ("active", "🔧 In progress", "roadmap-active"),
+        ("planned", "📋 Planned", "roadmap-planned"),
+        ("future", "🔭 Future", "roadmap-future"),
     ];
 
     status_sections

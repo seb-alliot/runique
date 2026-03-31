@@ -1,7 +1,7 @@
 use crate::admin::daemon::parser::ResourceDef;
 use std::{fmt::Write, fs, path::Path};
 
-/// Génère `src/admins/admin_panel.rs` — seul fichier produit par le daemon.
+/// Génère `src/admins/admin.rs` — seul fichier produit par le daemon.
 ///
 /// Contient :
 /// - Une impl `DynForm` par ressource (wrapping le `RuniqueForm` concret)
@@ -16,28 +16,28 @@ pub fn generate(resources: &[ResourceDef]) -> Result<(), String> {
         .map_err(|e| format!("Impossible de créer {}: {}", admins_dir.display(), e))?;
 
     write_readme(admins_dir)?;
-    write_admin_panel(resources, admins_dir)?;
+    write_admin(resources, admins_dir)?;
     write_mod(admins_dir)?;
 
     Ok(())
 }
 
 fn write_readme(dir: &Path) -> Result<(), String> {
-    let content = "<!-- AUTO-admin_panel — DO NOT EDIT MANUALLY\n     admin_panel by `runique start`. Any changes will be overwritten. -->\n";
+    let content = "<!-- AUTO-admin — DO NOT EDIT MANUALLY\n     admin by `runique start`. Any changes will be overwritten. -->\n";
     fs::write(dir.join("README.md"), content)
         .map_err(|e| format!("Impossible d'écrire README.md: {}", e))
 }
 
 fn write_mod(dir: &Path) -> Result<(), String> {
-    let content = "pub mod admin_panel;\npub use admin_panel::{routes, admin_state};\n";
+    let content = "pub mod admin;\npub use admin::{routes, admin_state};\n";
     fs::write(dir.join("mod.rs"), content).map_err(|e| format!("Impossible d'écrire mod.rs: {}", e))
 }
 
-fn write_admin_panel(resources: &[ResourceDef], dir: &Path) -> Result<(), String> {
+fn write_admin(resources: &[ResourceDef], dir: &Path) -> Result<(), String> {
     let mut out = String::new();
 
-    let _ = writeln!(out, "// AUTO-admin_panel — DO NOT EDIT MANUALLY");
-    let _ = writeln!(out, "// admin_panel by `runique start` from src/admin.rs");
+    let _ = writeln!(out, "// AUTO-admin — DO NOT EDIT MANUALLY");
+    let _ = writeln!(out, "// admin by `runique start` from src/admin.rs");
     let _ = writeln!(out);
     let _ = writeln!(out, "use runique::prelude::*;");
     let _ = writeln!(out, "use runique::admin::resource_entry::FilterFn;");
@@ -61,8 +61,7 @@ fn write_admin_panel(resources: &[ResourceDef], dir: &Path) -> Result<(), String
     // admin_register()
     write_admin_register(&mut out, resources)?;
 
-    fs::write(dir.join("admin_panel.rs"), out)
-        .map_err(|e| format!("Impossible d'écrire admin_panel.rs: {}", e))
+    fs::write(dir.join("admin.rs"), out).map_err(|e| format!("Impossible d'écrire admin.rs: {}", e))
 }
 
 fn write_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), String> {

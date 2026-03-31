@@ -15,7 +15,7 @@ pub async fn validate_upload(form: &mut ImageForm) -> Result<(), String> {
     } else {
         let errors = form.get_form().errors();
         let msg = if errors.is_empty() {
-            "Erreur de validation".to_string()
+            "Validation error".to_string()
         } else {
             errors.values().cloned().collect::<Vec<_>>().join(" | ")
         };
@@ -47,7 +47,7 @@ pub async fn handle_upload_image(
     let (code_examples, doc_links) = fetch_upload_data(&db).await;
     if request.is_get() {
         context_update!(request => {
-            "title"         => "Uploader un fichier",
+            "title"         => "Upload a file",
             "image_form"    => &*form,
             "code_examples" => &code_examples,
             "doc_links"     => &doc_links,
@@ -57,7 +57,7 @@ pub async fn handle_upload_image(
     if request.is_post() {
         match validate_upload(form).await {
             Ok(_) => {
-                success!(request.notices => "Fichier uploadé avec succès !");
+                success!(request.notices => "File uploaded successfully!");
             }
             Err(msg) => {
                 error!(request.notices => &msg);
@@ -69,9 +69,8 @@ pub async fn handle_upload_image(
 }
 
 pub async fn get_field_groups(db: &sea_orm::DatabaseConnection) -> Vec<FieldGroup> {
-    let page = demo_page::Entity::find()
-        .filter(demo_page::Column::Slug.eq("formulaires_champs"))
-        .one(db)
+    let page = search!(demo_page::Entity => Slug eq "formulaires_champs")
+        .first(db)
         .await
         .unwrap_or(None);
 

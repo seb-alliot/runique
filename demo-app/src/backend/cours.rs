@@ -49,7 +49,7 @@ struct GroqChoiceMessage {
 
 async fn groq_call(system_prompt: &str, history: &[ConversationMessage]) -> Result<String, String> {
     let api_key =
-        std::env::var("GROQ_API_KEY").map_err(|_| "GROQ_API_KEY manquant dans .env".to_string())?;
+        std::env::var("GROQ_API_KEY").map_err(|_| "GROQ_API_KEY missing from .env".to_string())?;
 
     let client = reqwest::Client::new();
 
@@ -85,24 +85,22 @@ async fn groq_call(system_prompt: &str, history: &[ConversationMessage]) -> Resu
         .into_iter()
         .next()
         .map(|c| c.message.content)
-        .ok_or_else(|| "Réponse vide de l'API".to_string())
+        .ok_or_else(|| "Empty API response".to_string())
 }
 
 pub async fn cours_index(request: &mut Request) -> AppResult<Response> {
     crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
-    let cours = cour::Entity::find()
-        .filter(cour::Column::Lang.eq("fr"))
-        .order_by_asc(cour::Column::Ordre)
-        .all(&*db)
+    let cours = search!(cour::Entity => Lang eq "fr", asc Ordre)
+        .all(&db)
         .await
         .unwrap_or_default();
 
     let niveaux = vec!["debutant", "intermediaire", "avance", "specifique"];
 
     context_update!(request => {
-        "title"   => "Cours Rust",
+        "title"   => "Rust Courses",
         "cours"   => &cours,
         "niveaux" => &niveaux,
     });
@@ -114,28 +112,23 @@ pub async fn cours_detail(slug: &str, request: &mut Request) -> AppResult<Respon
     crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
-    let Some(cour) = cour::Entity::find()
-        .filter(cour::Column::Slug.eq(slug))
-        .one(&*db)
+    let Some(cour) = search!(cour::Entity => Slug eq slug)
+        .first(&db)
         .await
         .unwrap_or(None)
     else {
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let chapitres = chapitre::Entity::find()
-        .filter(chapitre::Column::CourId.eq(cour.id))
-        .order_by_asc(chapitre::Column::SortOrder)
-        .all(&*db)
+    let chapitres = search!(chapitre::Entity => CourId eq cour.id, asc SortOrder)
+        .all(&db)
         .await
         .unwrap_or_default();
 
     let chapitre_ids: Vec<i32> = chapitres.iter().map(|c| c.id).collect();
 
-    let blocs = cour_block::Entity::find()
-        .filter(cour_block::Column::ChapitreId.is_in(chapitre_ids))
-        .order_by_asc(cour_block::Column::SortOrder)
-        .all(&*db)
+    let blocs = search!(cour_block::Entity => ChapitreId in (chapitre_ids), asc SortOrder)
+        .all(&db)
         .await
         .unwrap_or_default();
 
@@ -158,9 +151,8 @@ pub async fn cours_exercice(
     let message = input.message.trim().to_string();
     if message.is_empty() || message.len() > MAX_INPUT_LEN {
         let body = ExerciceResponse {
-            response:
-                "Je suis uniquement disponible pour évaluer ta réponse à l'exercice en cours."
-                    .to_string(),
+            response: "I am only available to evaluate your response to the current exercise."
+                .to_string(),
             attempt: 0,
             status: "fixed_reply".to_string(),
         };
@@ -170,27 +162,24 @@ pub async fn cours_exercice(
     // ── Chargement DB ───────────────────────────────────────────
     let db = request.engine.db.clone();
 
-    let Some(cour) = cour::Entity::find()
-        .filter(cour::Column::Slug.eq(slug))
-        .one(&*db)
+    let Some(cour) = search!(cour::Entity => Slug eq slug)
+        .first(&db)
         .await
         .unwrap_or(None)
     else {
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let Some(cour_ia) = cour_ia::Entity::find()
-        .filter(cour_ia::Column::CourId.eq(cour.id))
-        .one(&*db)
+    let Some(cour_ia) = search!(cour_ia::Entity => CourId eq cour.id)
+        .first(&db)
         .await
         .unwrap_or(None)
     else {
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let Some(contrainte) = contrainte_ia::Entity::find()
-        .filter(contrainte_ia::Column::Id.eq(cour_ia.contrainte_id))
-        .one(&*db)
+    let Some(contrainte) = search!(contrainte_ia::Entity => Id eq cour_ia.contrainte_id)
+        .first(&db)
         .await
         .unwrap_or(None)
     else {
@@ -198,8 +187,8 @@ pub async fn cours_exercice(
     };
 
     // ── Session ─────────────────────────────────────────────────
-    let history_key = format!("ia_history_{}", slug);
-    let attempt_key = format!("ia_attempt_{}", slug);
+    let history_key = format!("ia_history_{slug}");
+    let attempt_key = format!("ia_attempt_{slug}");
 
     let mut history: Vec<ConversationMessage> = request
         .session
@@ -226,9 +215,9 @@ pub async fn cours_exercice(
     // ── Ajout du message utilisateur à l'historique ─────────────
     // Le message est encapsulé pour éviter les injections de prompt.
     let safe_content = if history.is_empty() {
-        "L'utilisateur souhaite commencer un exercice.".to_string()
+        "The user wants to start an exercise.".to_string()
     } else {
-        format!("Réponse de l'utilisateur : [{}]", message)
+        format!("User response: [{message}]")
     };
 
     history.push(ConversationMessage {
@@ -242,7 +231,7 @@ pub async fn cours_exercice(
         Err(e) => {
             tracing::warn!("groq_call error: {e}");
             return Ok(Json(ExerciceResponse {
-                response: "Service temporairement indisponible. Veuillez réessayer.".to_string(),
+                response: "Service temporarily unavailable. Please try again.".to_string(),
                 attempt,
                 status: "fixed_reply".to_string(),
             })

@@ -1,33 +1,57 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// search_op! — applique un opérateur SeaORM sur une colonne et une valeur
-//
-// Note : ~~ (ILIKE) et !~~ (NOT ILIKE) sont deux tokens chacun et ne peuvent
-// pas être passés comme $op:tt — ils sont gérés par des bras dédiés.
+// search_apply_op! — mappe un nom d'opérateur Django vers une condition SeaORM
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[macro_export]
 #[doc(hidden)]
-macro_rules! search_op {
-    ($col:expr, =,  $val:expr) => {
+macro_rules! search_apply_op {
+    ($col:expr, eq,         $val:expr) => {
         $col.eq($val)
     };
-    ($col:expr, !=, $val:expr) => {
+    ($col:expr, exact,      $val:expr) => {
+        $col.eq($val)
+    };
+    ($col:expr, ne,         $val:expr) => {
         $col.ne($val)
     };
-    ($col:expr, >,  $val:expr) => {
+    ($col:expr, gt,         $val:expr) => {
         $col.gt($val)
     };
-    ($col:expr, <,  $val:expr) => {
+    ($col:expr, lt,         $val:expr) => {
         $col.lt($val)
     };
-    ($col:expr, >=, $val:expr) => {
+    ($col:expr, gte,        $val:expr) => {
         $col.gte($val)
     };
-    ($col:expr, <=, $val:expr) => {
+    ($col:expr, lte,        $val:expr) => {
         $col.lte($val)
     };
-    ($col:expr, ~,  $val:expr) => {
+    ($col:expr, like,       $val:expr) => {
         $col.like($val)
+    };
+    ($col:expr, ilike,      $val:expr) => {
+        $col.ilike($val)
+    };
+    ($col:expr, not_like,   $val:expr) => {
+        $col.not_like($val)
+    };
+    ($col:expr, not_ilike,  $val:expr) => {
+        $col.not_ilike($val)
+    };
+    ($col:expr, contains,   $val:expr) => {
+        $col.like(format!("%{}%", $val))
+    };
+    ($col:expr, icontains,  $val:expr) => {
+        $col.ilike(format!("%{}%", $val))
+    };
+    ($col:expr, startswith, $val:expr) => {
+        $col.like(format!("{}%", $val))
+    };
+    ($col:expr, endswith,   $val:expr) => {
+        $col.like(format!("%{}", $val))
+    };
+    ($col:expr, iexact,     $val:expr) => {
+        $col.ilike($val)
     };
 }
 
@@ -46,8 +70,26 @@ macro_rules! search_munch {
     ($b:expr, $entity:ty;) => {};
     ($b:expr, $entity:ty; ,) => {};
 
-    // ── +Col = [v1, v2] (IN) ─────────────────────────────────────────────────
-    ($b:expr, $entity:ty; + $col:ident = [$($val:expr),+ $(,)?] , $($rest:tt)*) => {
+    // ── Col isnull ────────────────────────────────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident isnull , $($rest:tt)*) => {
+        {
+            use sea_orm::ColumnTrait;
+            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_null());
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
+    // ── Col not_null ──────────────────────────────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident not_null , $($rest:tt)*) => {
+        {
+            use sea_orm::ColumnTrait;
+            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_not_null());
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
+    // ── Col in [v1, v2] — IN littéral ────────────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident in [$($val:expr),+ $(,)?] , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
             let conds = vec![$(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val)),+];
@@ -56,8 +98,8 @@ macro_rules! search_munch {
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
-    // ── -Col = [v1, v2] (NOT IN) ──────────────────────────────────────────────
-    ($b:expr, $entity:ty; - $col:ident = [$($val:expr),+ $(,)?] , $($rest:tt)*) => {
+    // ── Col not_in [v1, v2] — NOT IN littéral ────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident not_in [$($val:expr),+ $(,)?] , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
             let conds = vec![$(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val)),+];
@@ -66,8 +108,26 @@ macro_rules! search_munch {
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
-    // ── +Col = between(a, b) ─────────────────────────────────────────────────
-    ($b:expr, $entity:ty; + $col:ident = between($start:expr, $end:expr) , $($rest:tt)*) => {
+    // ── Col in (expr) — IN dynamique ─────────────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident in ($val:expr) , $($rest:tt)*) => {
+        {
+            use sea_orm::ColumnTrait;
+            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_in($val));
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
+    // ── Col not_in (expr) — NOT IN dynamique ─────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident not_in ($val:expr) , $($rest:tt)*) => {
+        {
+            use sea_orm::ColumnTrait;
+            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_not_in($val));
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
+    // ── Col range (a, b) — BETWEEN ───────────────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident range ($start:expr, $end:expr) , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
             $b = $b.filter(sea_orm::Condition::all([
@@ -78,8 +138,8 @@ macro_rules! search_munch {
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
-    // ── -Col = between(a, b) (NOT BETWEEN) ───────────────────────────────────
-    ($b:expr, $entity:ty; - $col:ident = between($start:expr, $end:expr) , $($rest:tt)*) => {
+    // ── Col not_range (a, b) — NOT BETWEEN ───────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident not_range ($start:expr, $end:expr) , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
             $b = $b.filter(sea_orm::Condition::any([
@@ -90,95 +150,14 @@ macro_rules! search_munch {
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
-    // ── Col = null ────────────────────────────────────────────────────────────
-    ($b:expr, $entity:ty; $col:ident = null , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_null());
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── Col != null ───────────────────────────────────────────────────────────
-    ($b:expr, $entity:ty; $col:ident != null , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.is_not_null());
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── +Col = val ────────────────────────────────────────────────────────────
-    ($b:expr, $entity:ty; + $col:ident = $val:expr , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val));
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── -Col = val ────────────────────────────────────────────────────────────
-    ($b:expr, $entity:ty; - $col:ident = $val:expr , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            $b = $b.exclude(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val));
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── [(Col1 op v1, Col2 op v2) | (Col3 op v3)] — OR de groupes AND ────────
-    ($b:expr, $entity:ty; [ $( ($($col:ident $op:tt $val:expr),+ $(,)?) )|+ ] , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            let mut outer = sea_orm::Condition::any();
-            $(
-                let mut inner = sea_orm::Condition::all();
-                $(
-                    inner = inner.add(
-                        $crate::search_op!(<$entity as sea_orm::EntityTrait>::Column::$col, $op, $val)
-                    );
-                )+
-                outer = outer.add(inner);
-            )+
-            $b = $b.filter(outer);
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── (Col1 ~~ v1 | Col2 ~~ v2) — OR ILIKE multi-colonnes ──────────────────
-    ($b:expr, $entity:ty; ($($col:ident ~ ~ $val:tt)|+) , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            let mut cond = sea_orm::Condition::any();
-            $(
-                cond = cond.add(<$entity as sea_orm::EntityTrait>::Column::$col.ilike($val));
-            )+
-            $b = $b.filter(cond);
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── (Col1 !~~ v1 | Col2 !~~ v2) — OR NOT ILIKE multi-colonnes ────────────
-    ($b:expr, $entity:ty; ($($col:ident ! ~ ~ $val:tt)|+) , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            let mut cond = sea_orm::Condition::any();
-            $(
-                cond = cond.add(<$entity as sea_orm::EntityTrait>::Column::$col.not_ilike($val));
-            )+
-            $b = $b.filter(cond);
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── (Col1 op v1 | Col2 op v2) — OR multi-colonnes ────────────────────────
-    ($b:expr, $entity:ty; ($($col:ident $op:tt $val:tt)|+) , $($rest:tt)*) => {
+    // ── or(Col1 op val, Col2 op val) — OR multi-colonnes ─────────────────────
+    ($b:expr, $entity:ty; or($($col:ident $op:ident $val:expr),+ $(,)?) , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
             let mut cond = sea_orm::Condition::any();
             $(
                 cond = cond.add(
-                    $crate::search_op!(<$entity as sea_orm::EntityTrait>::Column::$col, $op, $val)
+                    $crate::search_apply_op!(<$entity as sea_orm::EntityTrait>::Column::$col, $op, $val)
                 );
             )+
             $b = $b.filter(cond);
@@ -186,80 +165,34 @@ macro_rules! search_munch {
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
-    // ── Col ~~ (v1 | v2) — OR ILIKE même colonne ─────────────────────────────
-    ($b:expr, $entity:ty; $col:ident ~ ~ ($($val:tt)|+) , $($rest:tt)*) => {
+    // ── ! Col op val — exclusion ──────────────────────────────────────────────
+    ($b:expr, $entity:ty; ! $col:ident $op:ident $val:expr , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
-            let mut cond = sea_orm::Condition::any();
-            $(
-                cond = cond.add(<$entity as sea_orm::EntityTrait>::Column::$col.ilike($val));
-            )+
-            $b = $b.filter(cond);
+            $b = $b.exclude(
+                $crate::search_apply_op!(<$entity as sea_orm::EntityTrait>::Column::$col, $op, $val)
+            );
         }
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
-    // ── Col !~~ (v1 | v2) — OR NOT ILIKE même colonne ────────────────────────
-    ($b:expr, $entity:ty; $col:ident ! ~ ~ ($($val:tt)|+) , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            let mut cond = sea_orm::Condition::any();
-            $(
-                cond = cond.add(<$entity as sea_orm::EntityTrait>::Column::$col.not_ilike($val));
-            )+
-            $b = $b.filter(cond);
-        }
+    // ── asc Col / desc Col — tri ──────────────────────────────────────────────
+    ($b:expr, $entity:ty; asc $col:ident , $($rest:tt)*) => {
+        $b = $b.order_by_asc(<$entity as sea_orm::EntityTrait>::Column::$col);
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
-    // ── Col op (v1 | v2 | ...) — OR même colonne ─────────────────────────────
-    ($b:expr, $entity:ty; $col:ident $op:tt ($($val:tt)|+) , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            let mut cond = sea_orm::Condition::any();
-            $(
-                cond = cond.add(
-                    $crate::search_op!(<$entity as sea_orm::EntityTrait>::Column::$col, $op, $val)
-                );
-            )+
-            $b = $b.filter(cond);
-        }
+    ($b:expr, $entity:ty; desc $col:ident , $($rest:tt)*) => {
+        $b = $b.order_by_desc(<$entity as sea_orm::EntityTrait>::Column::$col);
         $crate::search_munch!($b, $entity; $($rest)*);
     };
 
-    // ── Col !~~ val (NOT ILIKE — trois tokens) ────────────────────────────────
-    ($b:expr, $entity:ty; $col:ident ! ~ ~ $val:expr , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.not_ilike($val));
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── Col ~~ val (ILIKE — deux tokens) ─────────────────────────────────────
-    ($b:expr, $entity:ty; $col:ident ~ ~ $val:expr , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.ilike($val));
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── Col !~ val (NOT LIKE — deux tokens) ───────────────────────────────────
-    ($b:expr, $entity:ty; $col:ident ! ~ $val:expr , $($rest:tt)*) => {
-        {
-            use sea_orm::ColumnTrait;
-            $b = $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.not_like($val));
-        }
-        $crate::search_munch!($b, $entity; $($rest)*);
-    };
-
-    // ── Col op val — comparaison générale ─────────────────────────────────────
-    ($b:expr, $entity:ty; $col:ident $op:tt $val:expr , $($rest:tt)*) => {
+    // ── Col op val — filtre général ───────────────────────────────────────────
+    ($b:expr, $entity:ty; $col:ident $op:ident $val:expr , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
             $b = $b.filter(
-                $crate::search_op!(<$entity as sea_orm::EntityTrait>::Column::$col, $op, $val)
+                $crate::search_apply_op!(<$entity as sea_orm::EntityTrait>::Column::$col, $op, $val)
             );
         }
         $crate::search_munch!($b, $entity; $($rest)*);
@@ -267,7 +200,25 @@ macro_rules! search_munch {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// search! — DSL de filtrage SeaORM
+// search! — DSL de filtrage SeaORM, syntaxe Django
+//
+// Opérateurs disponibles (Col op val) :
+//   eq, exact, ne, gt, lt, gte, lte
+//   like, ilike, not_like, not_ilike
+//   contains, icontains, startswith, endswith, iexact
+//
+// Formes spéciales :
+//   Col isnull           → IS NULL
+//   Col not_null         → IS NOT NULL
+//   Col in [v1, v2]      → IN (littéral)
+//   Col in (expr)        → IN (dynamique)
+//   Col not_in [v1, v2]  → NOT IN (littéral)
+//   Col not_in (expr)    → NOT IN (dynamique)
+//   Col range (a, b)     → BETWEEN a AND b
+//   Col not_range (a, b) → NOT BETWEEN
+//   or(C1 op v, C2 op v) → OR multi-colonnes
+//   ! Col op val         → exclusion (NOT)
+//   search!(Entity)      → fetch all sans filtre
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[macro_export]
@@ -277,38 +228,57 @@ macro_rules! search {
         $crate::search!(<$form as $crate::forms::FormEntity>::Entity => $($tt)+)
     }};
 
-    // ── +Col = val ────────────────────────────────────────────────────────────
-    ($entity:ty => + $col:ident = $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.eq($val))
+    // ── Fetch all ─────────────────────────────────────────────────────────────
+    ($entity:ty) => {{
+        $crate::macros::bdd::objects::Objects::<$entity>::new().all()
     }};
 
-    // ── -Col = val ────────────────────────────────────────────────────────────
-    ($entity:ty => - $col:ident = $val:expr) => {{
+    // ── Col isnull ────────────────────────────────────────────────────────────
+    ($entity:ty => $col:ident isnull) => {{
         use sea_orm::{EntityTrait, ColumnTrait};
         $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .exclude(<$entity as EntityTrait>::Column::$col.eq($val))
+            .filter(<$entity as EntityTrait>::Column::$col.is_null())
     }};
 
-    // ── +Col = [v1, v2] (IN) ─────────────────────────────────────────────────
-    ($entity:ty => + $col:ident = [$($val:expr),+ $(,)?]) => {{
+    // ── Col not_null ──────────────────────────────────────────────────────────
+    ($entity:ty => $col:ident not_null) => {{
+        use sea_orm::{EntityTrait, ColumnTrait};
+        $crate::macros::bdd::objects::Objects::<$entity>::new()
+            .filter(<$entity as EntityTrait>::Column::$col.is_not_null())
+    }};
+
+    // ── Col in [v1, v2] — IN littéral ────────────────────────────────────────
+    ($entity:ty => $col:ident in [$($val:expr),+ $(,)?]) => {{
         use sea_orm::{EntityTrait, ColumnTrait, Condition};
         let conds = vec![$(<$entity as EntityTrait>::Column::$col.eq($val)),+];
         $crate::macros::bdd::objects::Objects::<$entity>::new()
             .filter(Condition::any(conds))
     }};
 
-    // ── -Col = [v1, v2] (NOT IN) ──────────────────────────────────────────────
-    ($entity:ty => - $col:ident = [$($val:expr),+ $(,)?]) => {{
+    // ── Col not_in [v1, v2] — NOT IN littéral ────────────────────────────────
+    ($entity:ty => $col:ident not_in [$($val:expr),+ $(,)?]) => {{
         use sea_orm::{EntityTrait, ColumnTrait, Condition};
         let conds = vec![$(<$entity as EntityTrait>::Column::$col.eq($val)),+];
         $crate::macros::bdd::objects::Objects::<$entity>::new()
             .exclude(Condition::any(conds))
     }};
 
-    // ── +Col = between(a, b) ─────────────────────────────────────────────────
-    ($entity:ty => + $col:ident = between($start:expr, $end:expr)) => {{
+    // ── Col in (expr) — IN dynamique ─────────────────────────────────────────
+    ($entity:ty => $col:ident in ($val:expr)) => {{
+        use sea_orm::{EntityTrait, ColumnTrait};
+        $crate::macros::bdd::objects::Objects::<$entity>::new()
+            .filter(<$entity as EntityTrait>::Column::$col.is_in($val))
+    }};
+
+    // ── Col not_in (expr) — NOT IN dynamique ─────────────────────────────────
+    ($entity:ty => $col:ident not_in ($val:expr)) => {{
+        use sea_orm::{EntityTrait, ColumnTrait};
+        $crate::macros::bdd::objects::Objects::<$entity>::new()
+            .filter(<$entity as EntityTrait>::Column::$col.is_not_in($val))
+    }};
+
+    // ── Col range (a, b) — BETWEEN ───────────────────────────────────────────
+    ($entity:ty => $col:ident range ($start:expr, $end:expr)) => {{
         use sea_orm::{EntityTrait, ColumnTrait, Condition};
         $crate::macros::bdd::objects::Objects::<$entity>::new()
             .filter(Condition::all([
@@ -317,8 +287,8 @@ macro_rules! search {
             ]))
     }};
 
-    // ── -Col = between(a, b) (NOT BETWEEN) ───────────────────────────────────
-    ($entity:ty => - $col:ident = between($start:expr, $end:expr)) => {{
+    // ── Col not_range (a, b) — NOT BETWEEN ───────────────────────────────────
+    ($entity:ty => $col:ident not_range ($start:expr, $end:expr)) => {{
         use sea_orm::{EntityTrait, ColumnTrait, Condition};
         $crate::macros::bdd::objects::Objects::<$entity>::new()
             .filter(Condition::any([
@@ -327,154 +297,30 @@ macro_rules! search {
             ]))
     }};
 
-    // ── Col > val ─────────────────────────────────────────────────────────────
-    ($entity:ty => $col:ident > $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.gt($val))
-    }};
-
-    // ── Col < val ─────────────────────────────────────────────────────────────
-    ($entity:ty => $col:ident < $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.lt($val))
-    }};
-
-    // ── Col >= val ────────────────────────────────────────────────────────────
-    ($entity:ty => $col:ident >= $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.gte($val))
-    }};
-
-    // ── Col <= val ────────────────────────────────────────────────────────────
-    ($entity:ty => $col:ident <= $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.lte($val))
-    }};
-
-    // ── Col ~ val (LIKE) ──────────────────────────────────────────────────────
-    ($entity:ty => $col:ident ~ $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.like($val))
-    }};
-
-    // ── Col !~ val (NOT LIKE) ─────────────────────────────────────────────────
-    ($entity:ty => $col:ident ! ~ $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.not_like($val))
-    }};
-
-    // ── Col ~~ val (ILIKE) ────────────────────────────────────────────────────
-    ($entity:ty => $col:ident ~ ~ $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.ilike($val))
-    }};
-
-    // ── Col !~~ val (NOT ILIKE) ───────────────────────────────────────────────
-    ($entity:ty => $col:ident ! ~ ~ $val:expr) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.not_ilike($val))
-    }};
-
-    // ── Col = null ────────────────────────────────────────────────────────────
-    ($entity:ty => $col:ident = null) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.is_null())
-    }};
-
-    // ── Col != null ───────────────────────────────────────────────────────────
-    ($entity:ty => $col:ident != null) => {{
-        use sea_orm::{EntityTrait, ColumnTrait};
-        $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .filter(<$entity as EntityTrait>::Column::$col.is_not_null())
-    }};
-
-    // ── Col ~~ (v1 | v2) — OR ILIKE même colonne ─────────────────────────────
-    ($entity:ty => $col:ident ~ ~ ($($val:tt)|+)) => {{
-        use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        let mut cond = Condition::any();
-        $(
-            cond = cond.add(<$entity as EntityTrait>::Column::$col.ilike($val));
-        )+
-        $crate::macros::bdd::objects::Objects::<$entity>::new().filter(cond)
-    }};
-
-    // ── Col !~~ (v1 | v2) — OR NOT ILIKE même colonne ────────────────────────
-    ($entity:ty => $col:ident ! ~ ~ ($($val:tt)|+)) => {{
-        use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        let mut cond = Condition::any();
-        $(
-            cond = cond.add(<$entity as EntityTrait>::Column::$col.not_ilike($val));
-        )+
-        $crate::macros::bdd::objects::Objects::<$entity>::new().filter(cond)
-    }};
-
-    // ── Col op (v1 | v2 | ...) — OR même colonne ─────────────────────────────
-    ($entity:ty => $col:ident $op:tt ($($val:tt)|+)) => {{
+    // ── or(Col1 op val, Col2 op val) — OR multi-colonnes ─────────────────────
+    ($entity:ty => or($($col:ident $op:ident $val:expr),+ $(,)?)) => {{
         use sea_orm::{EntityTrait, ColumnTrait, Condition};
         let mut cond = Condition::any();
         $(
             cond = cond.add(
-                $crate::search_op!(<$entity as EntityTrait>::Column::$col, $op, $val)
+                $crate::search_apply_op!(<$entity as EntityTrait>::Column::$col, $op, $val)
             );
         )+
         $crate::macros::bdd::objects::Objects::<$entity>::new().filter(cond)
     }};
 
-    // ── (Col1 ~~ v1 | Col2 ~~ v2) — OR ILIKE multi-colonnes ──────────────────
-    ($entity:ty => ($($col:ident ~ ~ $val:tt)|+)) => {{
-        use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        let mut cond = Condition::any();
-        $(
-            cond = cond.add(<$entity as EntityTrait>::Column::$col.ilike($val));
-        )+
-        $crate::macros::bdd::objects::Objects::<$entity>::new().filter(cond)
+    // ── ! Col op val — exclusion ──────────────────────────────────────────────
+    ($entity:ty => ! $col:ident $op:ident $val:expr) => {{
+        use sea_orm::{EntityTrait, ColumnTrait};
+        $crate::macros::bdd::objects::Objects::<$entity>::new()
+            .exclude($crate::search_apply_op!(<$entity as EntityTrait>::Column::$col, $op, $val))
     }};
 
-    // ── (Col1 !~~ v1 | Col2 !~~ v2) — OR NOT ILIKE multi-colonnes ────────────
-    ($entity:ty => ($($col:ident ! ~ ~ $val:tt)|+)) => {{
-        use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        let mut cond = Condition::any();
-        $(
-            cond = cond.add(<$entity as EntityTrait>::Column::$col.not_ilike($val));
-        )+
-        $crate::macros::bdd::objects::Objects::<$entity>::new().filter(cond)
-    }};
-
-    // ── (Col1 op v1 | Col2 op v2) — OR multi-colonnes ────────────────────────
-    ($entity:ty => ($($col:ident $op:tt $val:tt)|+)) => {{
-        use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        let mut cond = Condition::any();
-        $(
-            cond = cond.add(
-                $crate::search_op!(<$entity as EntityTrait>::Column::$col, $op, $val)
-            );
-        )+
-        $crate::macros::bdd::objects::Objects::<$entity>::new().filter(cond)
-    }};
-
-    // ── [(Col1 op v1, Col2 op v2) | (Col3 op v3)] — OR de groupes AND ────────
-    ($entity:ty => [ $( ($($col:ident $op:tt $val:expr),+ $(,)?) )|+ ]) => {{
-        use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        let mut outer = Condition::any();
-        $(
-            let mut inner = Condition::all();
-            $(
-                inner = inner.add(
-                    $crate::search_op!(<$entity as EntityTrait>::Column::$col, $op, $val)
-                );
-            )+
-            outer = outer.add(inner);
-        )+
-        $crate::macros::bdd::objects::Objects::<$entity>::new().filter(outer)
+    // ── Col op val — condition unique ─────────────────────────────────────────
+    ($entity:ty => $col:ident $op:ident $val:expr) => {{
+        use sea_orm::{EntityTrait, ColumnTrait};
+        $crate::macros::bdd::objects::Objects::<$entity>::new()
+            .filter($crate::search_apply_op!(<$entity as EntityTrait>::Column::$col, $op, $val))
     }};
 
     // ── Multi-conditions (TT muncher) ─────────────────────────────────────────
@@ -484,41 +330,5 @@ macro_rules! search {
         let mut b = $crate::macros::bdd::objects::Objects::<$entity>::new().all();
         $crate::search_munch!(b, $entity; $($tt)+ ,);
         b
-    }};
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// search_apply! — conservé pour compatibilité (utilisé dans des contextes
-// externes éventuels). Préférer search_munch! pour les nouveaux usages.
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[macro_export]
-#[doc(hidden)]
-macro_rules! search_apply {
-    ($b:expr, $entity:ty, +, $col:ident, $val:expr) => {
-        $b.filter(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val))
-    };
-    ($b:expr, $entity:ty, -, $col:ident, $val:expr) => {
-        $b.exclude(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val))
-    };
-    ($b:expr, $entity:ty, +, $col:ident, [$($val:expr),+]) => {{
-        let conds = vec![$(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val)),+];
-        $b.filter(sea_orm::Condition::any(conds))
-    }};
-    ($b:expr, $entity:ty, -, $col:ident, [$($val:expr),+]) => {{
-        let conds = vec![$(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val)),+];
-        $b.exclude(sea_orm::Condition::any(conds))
-    }};
-    ($b:expr, $entity:ty, +, $col:ident, between($start:expr, $end:expr)) => {{
-        $b.filter(sea_orm::Condition::all([
-            <$entity as sea_orm::EntityTrait>::Column::$col.gte($start),
-            <$entity as sea_orm::EntityTrait>::Column::$col.lte($end),
-        ]))
-    }};
-    ($b:expr, $entity:ty, -, $col:ident, between($start:expr, $end:expr)) => {{
-        $b.filter(sea_orm::Condition::any([
-            <$entity as sea_orm::EntityTrait>::Column::$col.lt($start),
-            <$entity as sea_orm::EntityTrait>::Column::$col.gt($end),
-        ]))
     }};
 }

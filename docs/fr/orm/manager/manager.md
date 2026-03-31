@@ -14,19 +14,19 @@ use demo_app::entities::users;
 // Récupérer tous les users
 let all_users = users::Entity::objects
     .all()
-    .all(&*db)
+    .all(&db)
     .await?;
 
 // Avec filtre
 let active_users = users::Entity::objects
     .filter(users::Column::Active.eq(true))
-    .all(&*db)
+    .all(&db)
     .await?;
 
 // Un seul résultat
 let user = users::Entity::objects
     .filter(users::Column::Id.eq(user_id))
-    .first(&*db)
+    .first(&db)
     .await?;
 ```
 
@@ -36,12 +36,12 @@ let user = users::Entity::objects
 
 ```rust
 // Tous les enregistrements
-let all_users = users::Entity::find().all(&*db).await?;
+let all_users = users::Entity::find().all(&db).await?;
 
 // Avec filtre
 let active_users = users::Entity::find()
     .filter(users::Column::Active.eq(true))
-    .all(&*db)
+    .all(&db)
     .await?;
 
 // Un seul résultat par ID
@@ -69,18 +69,18 @@ Pour les cas courants, la macro `search!` offre une syntaxe plus concise que le 
 ```rust
 use runique::search;
 
-// Equivalent à objects.filter(Col::Active.eq(true))
-let actifs = search!(users::Entity => Active = true)
-    .all(&*db).await?;
+// Équivalent à objects.filter(Col::Active.eq(true))
+let actifs = search!(users::Entity => Active eq true)
+    .all(&db).await?;
 
 // Multi-conditions (AND)
 let results = search!(users::Entity =>
-    Active = true,
-    Age >= 18,
-    Status = ("active" | "verified"),
+    Active eq true,
+    Age gte 18,
+    Status in ["active", "verified"],
 )
 .limit(20)
-.all(&*db)
+.all(&db)
 .await?;
 ```
 
@@ -102,30 +102,30 @@ pub struct UserForm;
 // Accès objects via le form — équivalent à users::Entity::objects
 let user = UserForm::objects
     .filter(users::Column::Id.eq(id))
-    .first(&*db)
+    .first(&db)
     .await?;
 
 let all = UserForm::objects
     .all()
-    .all(&*db)
+    .all(&db)
     .await?;
 ```
 
 La syntaxe `@Form` dans `search!` délègue automatiquement à l'entité liée :
 
 ```rust
-// Équivalent à search!(users::Entity => Active = true)
-let actifs = search!(@UserForm => Active = true)
-    .all(&*db).await?;
+// Équivalent à search!(users::Entity => Active eq true)
+let actifs = search!(@UserForm => Active eq true)
+    .all(&db).await?;
 
 // Toutes les syntaxes search! sont supportées
 let results = search!(@UserForm =>
-    Active = true,
-    Age >= 18,
-    Status = ("active" | "verified"),
+    Active eq true,
+    Age gte 18,
+    Status in ["active", "verified"],
 )
 .limit(20)
-.all(&*db)
+.all(&db)
 .await?;
 ```
 

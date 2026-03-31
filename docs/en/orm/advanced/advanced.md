@@ -27,11 +27,11 @@ transaction.commit().await?;
 ### One-to-Many
 
 ```rust
-let user = users::Entity::objects.get_optional(&*db, 1).await?;
+let user = users::Entity::objects.get_optional(&db, 1).await?;
 
 if let Some(user) = user {
     let posts = user.find_related(posts::Entity)
-        .all(&*db)
+        .all(&db)
         .await?;
 }
 ```
@@ -39,11 +39,11 @@ if let Some(user) = user {
 ### Many-to-Many
 
 ```rust
-let user = users::Entity::objects.get_optional(&*db, 1).await?;
+let user = users::Entity::objects.get_optional(&db, 1).await?;
 
 if let Some(user) = user {
     let roles = user.find_related(roles::Entity)
-        .all(&*db)
+        .all(&db)
         .await?;
 }
 ```
@@ -59,7 +59,7 @@ use axum::extract::Path;
 
 async fn list_users(request: Request) -> AppResult<Response> {
     let users = users::Entity::find()
-        .all(&*request.engine.db)
+        .all(&request.engine.db)
         .await?;
 
     Ok(Json(json!({ "users": users })).into_response())
@@ -69,7 +69,7 @@ async fn get_user(
     Path(id): Path<i32>,
     request: Request,
 ) -> AppResult<Response> {
-    match users::Entity::find_by_id(id).one(&*request.engine.db).await? {
+    match users::Entity::find_by_id(id).one(&request.engine.db).await? {
         Some(user) => Ok(Json(json!({ "user": user })).into_response()),
         None => Ok(StatusCode::NOT_FOUND.into_response()),
     }
@@ -83,7 +83,7 @@ async fn create_user(
         email: Set(payload.email),
         username: Set(payload.username),
         ..Default::default()
-    }.insert(&*request.engine.db).await?;
+    }.insert(&request.engine.db).await?;
 
     success!(request.notices => "User created!");
     Ok((StatusCode::CREATED, Json(json!({ "user": user }))).into_response())
@@ -94,7 +94,7 @@ async fn delete_user(
     mut request: Request,
 ) -> AppResult<Response> {
     let result = users::Entity::delete_by_id(id)
-        .exec(&*request.engine.db)
+        .exec(&request.engine.db)
         .await?;
 
     if result.rows_affected > 0 {

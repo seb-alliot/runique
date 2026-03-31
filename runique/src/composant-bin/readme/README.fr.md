@@ -347,4 +347,4 @@ Vérifie que `migration/Cargo.toml` contient bien la section `[workspace]`
 
 ---
 
-Généré par **Runique CLI v1.1.53**
+Généré par **Runique CLI v1.1.54**

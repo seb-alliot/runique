@@ -6,25 +6,29 @@ pub async fn list_articles(
     db: &sea_orm::DatabaseConnection,
     search: Option<&str>,
 ) -> Vec<crate::entities::blog::Model> {
-    let mut query = BlogEntity::find().order_by_desc(crate::entities::blog::Column::Id);
-    if let Some(term) = search
-        && !term.is_empty()
-    {
-        use sea_orm::Condition;
-        query = query.filter(
-            Condition::any()
-                .add(crate::entities::blog::Column::Title.contains(term))
-                .add(crate::entities::blog::Column::Summary.contains(term)),
-        );
+    if let Some(term) = search.filter(|s| !s.is_empty()) {
+        search!(BlogEntity => or(Title icontains term, Summary icontains term))
+            .order_by_desc(crate::entities::blog::Column::Id)
+            .all(db)
+            .await
+            .unwrap_or_default()
+    } else {
+        search!(BlogEntity)
+            .order_by_desc(crate::entities::blog::Column::Id)
+            .all(db)
+            .await
+            .unwrap_or_default()
     }
-    query.all(db).await.unwrap_or_default()
 }
 
 pub async fn get_article(
     db: &sea_orm::DatabaseConnection,
     id: i32,
 ) -> Option<crate::entities::blog::Model> {
-    BlogEntity::find_by_id(id).one(db).await.unwrap_or(None)
+    search!(BlogEntity => Id eq id)
+        .first(db)
+        .await
+        .unwrap_or(None)
 }
 
 pub async fn save_blog(
@@ -38,26 +42,26 @@ pub async fn handle_blog_save(request: &mut Request, blog: &mut BlogForm) -> App
     crate::backend::inject_globals(request).await;
     let template = "blog/blog.html";
     if request.is_get() {
-        context_update!(request => { "title" => "Créer un article de blog", "blog_form" => &blog });
+        context_update!(request => { "title" => "Create a blog post", "blog_form" => &blog });
         return request.render(template);
     }
     if request.is_post() && blog.is_valid().await {
         match save_blog(blog, &request.engine.db).await {
             Ok(_) => {
-                success!(request.notices => "Article sauvegardé !");
+                success!(request.notices => "Article saved!");
                 return Ok(Redirect::to("/blog/liste").into_response());
             }
             Err(err) => {
                 blog.get_form_mut().database_error(&err);
-                context_update!(request => { "title" => "Erreur base de données", "blog_form" => &blog });
+                context_update!(request => { "title" => "Database error", "blog_form" => &blog });
                 return request.render(template);
             }
         }
     }
     context_update!(request => {
-        "title"     => "Erreur de validation",
+        "title"     => "Validation error",
         "blog_form" => &*blog,
-        "messages"  => flash_now!(error => "Veuillez corriger les erreurs ci-dessous"),
+        "messages"  => flash_now!(error => "Please correct the errors below"),
     });
     request.render(template)
 }

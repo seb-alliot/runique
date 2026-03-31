@@ -5,9 +5,8 @@ pub async fn fetch_page_examples(
     slug: &str,
     db: &sea_orm::DatabaseConnection,
 ) -> (Vec<code_example::Model>, Vec<page_doc_link::Model>) {
-    let page = demo_page::Entity::find()
-        .filter(demo_page::Column::Slug.eq(slug))
-        .one(db)
+    let page = search!(demo_page::Entity => Slug eq slug)
+        .first(db)
         .await
         .unwrap_or(None);
 
@@ -15,16 +14,12 @@ pub async fn fetch_page_examples(
         return (vec![], vec![]);
     };
 
-    let examples = code_example::Entity::find()
-        .filter(code_example::Column::PageId.eq(page.id))
-        .order_by_asc(code_example::Column::SortOrder)
+    let examples = search!(code_example::Entity => PageId eq page.id, asc SortOrder)
         .all(db)
         .await
         .unwrap_or_default();
 
-    let links = page_doc_link::Entity::find()
-        .filter(page_doc_link::Column::PageId.eq(page.id))
-        .order_by_asc(page_doc_link::Column::SortOrder)
+    let links = search!(page_doc_link::Entity => PageId eq page.id, asc SortOrder)
         .all(db)
         .await
         .unwrap_or_default();
@@ -37,9 +32,8 @@ pub async fn demo_code_page(slug: &str, request: &mut Request) -> AppResult<Resp
 
     let db = request.engine.db.clone();
 
-    let page = demo_page::Entity::find()
-        .filter(demo_page::Column::Slug.eq(slug))
-        .one(&*db)
+    let page = search!(demo_page::Entity => Slug eq slug)
+        .first(&db)
         .await
         .unwrap_or(None);
 
@@ -47,17 +41,13 @@ pub async fn demo_code_page(slug: &str, request: &mut Request) -> AppResult<Resp
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let code_examples = code_example::Entity::find()
-        .filter(code_example::Column::PageId.eq(page.id))
-        .order_by_asc(code_example::Column::SortOrder)
-        .all(&*db)
+    let code_examples = search!(code_example::Entity => PageId eq page.id, asc SortOrder)
+        .all(&db)
         .await
         .unwrap_or_default();
 
-    let doc_links = page_doc_link::Entity::find()
-        .filter(page_doc_link::Column::PageId.eq(page.id))
-        .order_by_asc(page_doc_link::Column::SortOrder)
-        .all(&*db)
+    let doc_links = search!(page_doc_link::Entity => PageId eq page.id, asc SortOrder)
+        .all(&db)
         .await
         .unwrap_or_default();
 

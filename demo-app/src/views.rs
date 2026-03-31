@@ -9,23 +9,14 @@ use crate::backend::{
     forms::{extract_helpers_data, get_field_groups, handle_upload_image},
     inject_globals,
 };
-use crate::formulaire::*;
+use crate::formulaire::{
+    BlogForm, ContributionForm, ImageForm, LoginForm, RegisterForm, SearchDemoForm, UsernameForm,
+};
 use runique::prelude::*;
 
 // ─── Index ────────────────────────────────────────────────────────────────────
 pub async fn index(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => {
-        "title"       => "Bienvenue sur Runique un framework web",
-        "description" => "Runique — framework web Rust inspiré de Django. Formulaires typés, sécurité intégrée (CSRF, CSP), SeaORM, Tera templates et admin généré.",
-        "status"      => "Status: Framework en cours de développement...",
-        "backend"     => "Rust , Axum",
-        "template"    => "Moteur de template: Tera",
-        "tokio"       => "Runtime asynchrone tokio",
-        "session"     => "Session: tower avec memory store, evolution prévue a l'avenir",
-        "orm"         => "ORM: sea-orm pour la gestion de la base de données",
-        "migration"   => "Migrations: système intégré via macro model!",
-    });
     request.render("index.html")
 }
 
@@ -53,14 +44,14 @@ pub async fn deconnexion(request: Request) -> AppResult<Response> {
 pub async fn profil(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     if !is_authenticated(&request.session).await {
-        warning!(request.notices => "Connectez-vous pour accéder à votre profil.");
+        warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
     }
     let user_id = get_user_id(&request.session).await;
     let username = get_username(&request.session).await;
     let user_opt = get_profile_user(user_id, &request.engine.db).await;
     context_update!(request => {
-        "title"        => "Mon profil",
+        "title"        => "My profile",
         "username"     => &username,
         "profile_user" => &user_opt,
         "connected"    => &true,
@@ -80,25 +71,25 @@ pub async fn info_user(
         match user_opt {
             Some(user) => {
                 context_update!(request => {
-                    "title"      => "Vue utilisateur",
+                    "title"      => "User view",
                     "username"   => &user.username,
                     "email"      => &user.email,
                     "found_user" => &user,
                     "user"       => &form,
-                    "messages"   => flash_now!(success => "Utilisateur trouvé !"),
+                    "messages"   => flash_now!(success => "User found!"),
                 });
             }
             None => {
                 context_update!(request => {
-                    "title"    => "Vue utilisateur",
+                    "title"    => "User view",
                     "user"     => &form,
-                    "messages" => flash_now!(warning => "Utilisateur introuvable."),
+                    "messages" => flash_now!(warning => "User not found."),
                 });
             }
         }
         return request.render(template);
     }
-    context_update!(request => { "title" => "Vue utilisateur", "user" => &form });
+    context_update!(request => { "title" => "User view", "user" => &form });
     request.render(template)
 }
 
@@ -129,15 +120,12 @@ pub async fn blog_save(
 
 pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    match get_article(&request.engine.db, id).await {
-        Some(a) => {
-            context_update!(request => { "title" => &a.title, "article" => &a });
-            request.render("blog/blog_detail.html")
-        }
-        None => {
-            warning!(request.notices => "Article introuvable.");
-            Ok(Redirect::to("/blog/liste").into_response())
-        }
+    if let Some(a) = get_article(&request.engine.db, id).await {
+        context_update!(request => { "title" => &a.title, "article" => &a });
+        request.render("blog/blog_detail.html")
+    } else {
+        warning!(request.notices => "Article not found.");
+        Ok(Redirect::to("/blog/liste").into_response())
     }
 }
 
@@ -153,13 +141,13 @@ pub async fn upload_image_submit(
 pub async fn test_fields(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     let field_groups = get_field_groups(&request.engine.db).await;
-    context_update!(request => { "title" => "Champs disponibles", "field_groups" => &field_groups });
+    context_update!(request => { "title" => "Available fields", "field_groups" => &field_groups });
     request.render("forms/field_test.html")
 }
 
 pub async fn formulaires_hub(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Formulaires" });
+    context_update!(request => { "title" => "Forms" });
     request.render("formulaires/index.html")
 }
 
@@ -178,7 +166,7 @@ pub async fn formulaires_helpers(
     inject_globals(&mut request).await;
     let data = extract_helpers_data(&request, form.cleaned_string("search"));
     context_update!(request => {
-        "title"          => "Helpers & accès URL",
+        "title"          => "Helpers & URL access",
         "path_id"        => &data.path_id,
         "search_value"   => &data.search_value,
         "cleaned_search" => &data.cleaned_search,
@@ -206,20 +194,20 @@ pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
 
 pub async fn about(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    success!(request.notices => "Action réussie.");
-    info!(request.notices => "Message d'information.");
-    warning!(request.notices => "Attention requise.");
-    error!(request.notices => "Une erreur est survenue.");
+    success!(request.notices => "Action successful.");
+    info!(request.notices => "Information message.");
+    warning!(request.notices => "Attention required.");
+    error!(request.notices => "An error occurred.");
     context_update!(request => {
-        "title"   => "À propos du Framework Runique",
-        "content" => "Runique est un framework web inspiré de Django, construit sur Axum et Tera.",
+        "title"   => "About the Runique Framework",
+        "content" => "Runique is a web framework inspired by Django, built on Axum and Tera.",
     });
     request.render("about/about.html")
 }
 
 pub async fn rgpd(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Politique de confidentialité" });
+    context_update!(request => { "title" => "Privacy Policy" });
     request.render("rgpd/rgpd.html")
 }
 
@@ -229,7 +217,7 @@ pub async fn changelog(mut request: Request) -> AppResult<Response> {
     context_update!(request => {
         "title"          => "Changelog",
         "sections"       => &sections,
-        "ext_link_label" => "CHANGELOG complet",
+        "ext_link_label" => "Full CHANGELOG",
         "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
     });
     request.render("info/cards.html")
@@ -239,9 +227,9 @@ pub async fn probleme_connu(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     let sections = fetch_known_issues(&request.engine.db).await;
     context_update!(request => {
-        "title"          => "Problèmes connus",
+        "title"          => "Known Issues",
         "sections"       => &sections,
-        "ext_link_label" => "CHANGELOG complet",
+        "ext_link_label" => "Full CHANGELOG",
         "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md",
     });
     request.render("info/cards.html")
@@ -251,9 +239,9 @@ pub async fn roadmap(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
     let sections = fetch_roadmap(&request.engine.db).await;
     context_update!(request => {
-        "title"          => "Ce qui arrive",
+        "title"          => "What's coming",
         "sections"       => &sections,
-        "ext_link_label" => "Roadmap complète",
+        "ext_link_label" => "Full Roadmap",
         "ext_link_url"   => "https://github.com/seb-alliot/runique/blob/main/ROADMAP.md",
     });
     request.render("info/cards.html")
@@ -293,7 +281,7 @@ fn find_readme(candidates: &[&str]) -> String {
             return content;
         }
     }
-    "README introuvable.".to_string()
+    "README not found.".to_string()
 }
 
 pub async fn readme_fr(mut request: Request) -> AppResult<Response> {
@@ -304,7 +292,7 @@ pub async fn readme_fr(mut request: Request) -> AppResult<Response> {
         "/app/docs/fr/README.fr.md",
     ]);
     context_update!(request => {
-        "title"   => "README — Français",
+        "title"   => "README — French",
         "content" => &content,
         "lang"    => "fr",
     });
@@ -421,13 +409,13 @@ pub async fn admin_setup(mut request: Request) -> AppResult<Response> {
 
 pub async fn surcharge_exemple(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Exemple — template de surcharge" });
+    context_update!(request => { "title" => "Example — override template" });
     request.render("admin/surcharge_exemple.html")
 }
 
 pub async fn admin_surcharge(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
-    context_update!(request => { "title" => "Surcharge de templates" });
+    context_update!(request => { "title" => "Template overrides" });
     request.render("admin/surcharge.html")
 }
 
@@ -484,12 +472,12 @@ pub async fn i18n_demo(mut request: Request) -> AppResult<Response> {
 // ─── Erreurs / CSRF ───────────────────────────────────────────────────────────
 
 pub async fn test_csrf(request: Request) -> AppResult<Response> {
-    success!(request.notices => "CSRF token validé avec succès !");
+    success!(request.notices => "CSRF token validated successfully!");
     Ok(Redirect::to("/").into_response())
 }
 
 pub async fn propos_template_error(mut request: Request) -> AppResult<Response> {
-    context_update!(request => { "title" => "Page de test d'erreur de template" });
+    context_update!(request => { "title" => "Template error test page" });
     request.render("router/fallback.html")
 }
 

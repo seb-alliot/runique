@@ -31,9 +31,8 @@ pub async fn inject_auth(request: &mut Request) {
 pub async fn inject_globals(request: &mut Request) {
     inject_auth(request).await;
 
-    let release = crate::entities::runique_release::Entity::find()
-        .order_by_desc(crate::entities::runique_release::Column::Id)
-        .one(&*request.engine.db)
+    let release = search!(crate::entities::runique_release::Entity => desc Id)
+        .first(&request.engine.db)
         .await
         .unwrap_or(None);
 

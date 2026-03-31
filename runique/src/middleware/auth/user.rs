@@ -95,7 +95,7 @@ impl UserEntity for BuiltinUserEntity {
     type Model = Model;
 
     async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {
-        search!(Entity => +Username = username)
+        search!(Entity => Username eq username)
             .first(db)
             .await
             .ok()
@@ -103,7 +103,7 @@ impl UserEntity for BuiltinUserEntity {
     }
 
     async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model> {
-        search!(Entity => +Email = email)
+        search!(Entity => Email eq email)
             .first(db)
             .await
             .ok()
@@ -115,7 +115,7 @@ impl UserEntity for BuiltinUserEntity {
         email: &str,
         new_hash: &str,
     ) -> Result<(), sea_orm::DbErr> {
-        let user = search!(Entity => +Email = email)
+        let user = search!(Entity => Email eq email)
             .first(db)
             .await?
             .ok_or(sea_orm::DbErr::RecordNotFound("User not found".into()))?;

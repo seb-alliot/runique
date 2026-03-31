@@ -27,9 +27,8 @@ pub async fn find_user_by_username(
     db: &sea_orm::DatabaseConnection,
     username: &str,
 ) -> Option<runique::prelude::user::Model> {
-    UserEntity::find()
-        .filter(runique::prelude::user::Column::Username.eq(username))
-        .one(db)
+    search!(UserEntity => Username eq username)
+        .first(db)
         .await
         .unwrap_or(None)
 }
@@ -54,7 +53,7 @@ pub async fn handle_inscription(
     let (code_examples, doc_links) = crate::backend::fetch_page_examples("inscription", &db).await;
     if request.is_get() {
         context_update!(request => {
-            "title"            => "Inscription utilisateur",
+            "title"            => "User registration",
             "inscription_form" => &*form,
             "code_examples"    => &code_examples,
             "doc_links"        => &doc_links,
@@ -67,18 +66,18 @@ pub async fn handle_inscription(
                 auth_login(&request.session, user.id, &user.username)
                     .await
                     .ok();
-                success!(request.notices => format!("Bienvenue {} ! Votre compte est créé.", user.username));
+                success!(request.notices => format!("Welcome {}! Your account has been created.", user.username));
                 return Ok(Redirect::to("/profil").into_response());
             }
             Err(err) => form.get_form_mut().database_error(&err),
         }
     }
     context_update!(request => {
-        "title"            => "Erreur de validation",
+        "title"            => "Validation error",
         "inscription_form" => &*form,
         "code_examples"    => &code_examples,
         "doc_links"        => &doc_links,
-        "messages"         => flash_now!(error => "Veuillez corriger les erreurs"),
+        "messages"         => flash_now!(error => "Please correct the errors"),
     });
     request.render(template)
 }
@@ -93,7 +92,7 @@ pub async fn handle_login(request: &mut Request, form: &LoginForm) -> AppResult<
     let (code_examples, doc_links) = crate::backend::fetch_page_examples("login", &db).await;
     if request.is_get() {
         context_update!(request => {
-            "title"         => "Connexion",
+            "title"         => "Login",
             "login_form"    => form,
             "code_examples" => &code_examples,
             "doc_links"     => &doc_links,
@@ -127,16 +126,16 @@ pub async fn handle_login(request: &mut Request, form: &LoginForm) -> AppResult<
             )
             .await
             .ok();
-            success!(request.notices => format!("Bienvenue {} !", user.username));
+            success!(request.notices => format!("Welcome {}!", user.username));
             return Ok(Redirect::to("/profil").into_response());
         }
         context_update!(request => {
-            "title"         => "Connexion",
+            "title"         => "Login",
             "login_form"    => form,
             "auth_error"    => &true,
             "code_examples" => &code_examples,
             "doc_links"     => &doc_links,
-            "messages"      => flash_now!(error => "Identifiants invalides"),
+            "messages"      => flash_now!(error => "Invalid credentials"),
         });
         return request.render(template);
     }

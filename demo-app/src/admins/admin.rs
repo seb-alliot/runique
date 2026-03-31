@@ -1,5 +1,5 @@
-// AUTO-admin_panel — DO NOT EDIT MANUALLY
-// admin_panel by `runique start` from src/admin.rs
+// AUTO-admin — DO NOT EDIT MANUALLY
+// admin by `runique start` from src/admin.rs
 
 use runique::admin::resource_entry::FilterFn;
 use runique::prelude::*;
@@ -526,7 +526,7 @@ pub fn admin_register() -> AdminRegistry {
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -546,11 +546,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-            // déballer le Result avec `?` pour propager l'erreur
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
-
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = users::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -560,7 +558,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             users::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -576,9 +574,9 @@ pub fn admin_register() -> AdminRegistry {
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             users::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -858,7 +856,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -878,9 +876,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = contribution::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -888,9 +886,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             contribution::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -909,9 +907,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             contribution::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -1182,7 +1180,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -1202,9 +1200,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = blog::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1212,9 +1210,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             blog::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -1230,9 +1228,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             blog::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -1547,7 +1545,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -1567,9 +1565,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-        let id = id
-            .parse::<i32>()
-            .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = changelog_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1577,9 +1575,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             changelog_entry::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -1598,9 +1596,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             changelog_entry::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -1652,7 +1650,7 @@ let id = id
             };
             let total_version = count_row_version
                 .and_then(|r| r.try_get_by_index::<i64>(0).ok())
-                .unwrap_or(0).cast_unsigned();
+                .unwrap_or(0) as u64;
             let stmt_version = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(version AS TEXT)"))
@@ -1973,7 +1971,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -1993,9 +1991,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = roadmap_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2003,9 +2001,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             roadmap_entry::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -2024,9 +2022,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             roadmap_entry::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -2503,7 +2501,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -2523,9 +2521,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = known_issue::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2533,9 +2531,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             known_issue::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -2554,9 +2552,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             known_issue::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -2880,7 +2878,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -2900,9 +2898,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = demo_category::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2910,9 +2908,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             demo_category::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -2931,9 +2929,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             demo_category::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -2984,7 +2982,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -3004,9 +3002,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = demo_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3014,9 +3012,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             demo_page::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -3035,9 +3033,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             demo_page::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -3407,7 +3405,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -3427,9 +3425,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = demo_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3437,9 +3435,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             demo_section::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -3458,9 +3456,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             demo_section::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -3729,7 +3727,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -3749,9 +3747,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = code_example::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3759,9 +3757,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             code_example::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -3780,9 +3778,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             code_example::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -4149,7 +4147,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -4169,9 +4167,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = page_doc_link::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -4179,9 +4177,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             page_doc_link::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -4200,9 +4198,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             page_doc_link::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -4519,7 +4517,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -4539,9 +4537,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = form_field::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -4549,9 +4547,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             form_field::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -4570,9 +4568,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             form_field::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -4997,7 +4995,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -5017,9 +5015,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = doc_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -5027,9 +5025,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             doc_section::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -5048,9 +5046,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             doc_section::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -5217,7 +5215,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -5237,9 +5235,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = doc_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -5247,9 +5245,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             doc_page::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -5268,9 +5266,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             doc_page::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -5639,7 +5637,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -5659,9 +5657,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = doc_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -5669,9 +5667,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             doc_block::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -5690,9 +5688,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             doc_block::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -6013,7 +6011,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -6033,9 +6031,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = site_config::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6043,9 +6041,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             site_config::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -6064,9 +6062,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-        let id = id
-            .parse::<i32>()
-            .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             site_config::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -6117,7 +6115,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -6137,9 +6135,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-        let id = id
-            .parse::<i32>()
-            .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = cour::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6147,9 +6145,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-    let id = id
-        .parse::<i32>()
-        .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             cour::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -6165,9 +6163,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-        let id = id
-            .parse::<i32>()
-            .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             cour::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -6585,7 +6583,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -6605,9 +6603,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-        let id = id
-            .parse::<i32>()
-            .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = chapitre::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6615,9 +6613,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             chapitre::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -6636,9 +6634,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             chapitre::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -6687,7 +6685,6 @@ let id = id
             let total_cour_id = count_row_cour_id
                 .and_then(|r| r.try_get_by_index::<i64>(0).ok())
                 .unwrap_or(0) as u64;
-
             let stmt_cour_id = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(cour_id AS TEXT)"))
@@ -6696,7 +6693,6 @@ let id = id
                 .limit(page_size_cour_id)
                 .offset(cur_page_cour_id * page_size_cour_id)
                 .to_owned();
-
             let rows_cour_id = match db.query_all(&stmt_cour_id).await {
                 Ok(r) => r,
                 Err(e) => {
@@ -6734,9 +6730,8 @@ let id = id
                 }
             };
             let total_slug = count_row_slug
-                 .and_then(|r| r.try_get_by_index::<i64>(0).ok())
-                 .unwrap_or(0).cast_unsigned();
-
+                .and_then(|r| r.try_get_by_index::<i64>(0).ok())
+                .unwrap_or(0) as u64;
             let stmt_slug = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(slug AS TEXT)"))
@@ -6781,9 +6776,9 @@ let id = id
                     None
                 }
             };
-             let total_titre = count_row_titre
+            let total_titre = count_row_titre
                 .and_then(|r| r.try_get_by_index::<i64>(0).ok())
-                 .unwrap_or(0).cast_unsigned();
+                .unwrap_or(0) as u64;
             let stmt_titre = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(titre AS TEXT)"))
@@ -6830,7 +6825,7 @@ let id = id
             };
             let total_sort_order = count_row_sort_order
                 .and_then(|r| r.try_get_by_index::<i64>(0).ok())
-                 .unwrap_or(0).cast_unsigned();
+                .unwrap_or(0) as u64;
             let stmt_sort_order = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(sort_order AS TEXT)"))
@@ -6909,7 +6904,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -6929,9 +6924,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = cour_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6939,9 +6934,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             cour_block::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -6960,9 +6955,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             cour_block::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -7237,7 +7232,7 @@ let id = id
             }
             for (col, val) in &params.column_filters {
                 let escaped = val.replace('\'', "''");
-                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
+                query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
             let rows = query
                 .offset(params.offset)
@@ -7257,9 +7252,9 @@ let id = id
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             let row = runique_release::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -7267,9 +7262,9 @@ let id = id
 
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             runique_release::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -7288,9 +7283,9 @@ let id = id
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
-let id = id
-    .parse::<i32>()
-    .map_err(|_| DbErr::Custom("id invalide".to_string()))?;
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
             runique_release::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
@@ -7384,11 +7379,11 @@ pub fn routes(prefix: &str) -> runique::axum::Router {
     let p = prefix.trim_end_matches('/');
     runique::axum::Router::new()
         .route(
-            &format!("{p}/{{resource}}/{{action}}"),
+            &format!("{}/{{resource}}/{{action}}", p),
             get(admin_get).post(admin_post),
         )
         .route(
-            &format!("{p}/{{resource}}/{{id}}/{{action}}"),
+            &format!("{}/{{resource}}/{{id}}/{{action}}", p),
             get(admin_get_id).post(admin_post_id),
         )
 }

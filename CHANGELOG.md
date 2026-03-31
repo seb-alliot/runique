@@ -7,6 +7,39 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.1.54] - Unreleased
+
+### Added
+
+* **`search!` macro — Django-style syntax rewrite:**
+  The `search!` macro now uses a syntax inspired by Django ORM, making queries more readable and easier to maintain.
+  The old `+Col = val` syntax is replaced by `Col eq val`. Symbols `~~`, `!~~`, `+`, `-` are replaced by
+  verbal operators. Internal arms reduced from ~50 to ~12 via a `search_apply_op!` dispatch macro.
+  Supported operators: `eq`, `exact`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `ilike`,
+  `not_like`, `not_ilike`, `contains`, `icontains`, `startswith`, `endswith`, `iexact`.
+  Wildcard operators (`contains`, `icontains`, `startswith`, `endswith`) automatically wrap the value with `%` — no intermediate variable needed.
+
+* **`search!` macro — integrated ordering without `Column::`:**
+  `asc Col` and `desc Col` clauses can be written directly inside the macro, without the `Column::` prefix.
+  The macro automatically resolves `<Entity as EntityTrait>::Column::Col`.
+  Example: `search!(Entity => Col eq val, asc SortOrder, desc Id)`.
+
+* **`search!` macro — new arms:**
+  * `search!(Entity)` — fetch all without filter
+  * `Col isnull` / `Col not_null` — IS NULL / IS NOT NULL
+  * `Col in (expr)` / `! Col in (expr)` — dynamic IN / NOT IN (Vec, iterator)
+  * `Col range (a, b)` / `! Col range (a, b)` — BETWEEN / NOT BETWEEN
+  * `or(Col1 op val, Col2 op val)` — multi-column OR
+
+* **`RuniqueQueryBuilder` — `.into_select()`:**
+  Exposes the inner `Select<E>` to chain `.select_only()`, `.column()`, `.distinct()`,
+  `.into_tuple::<T>()` after a `search!` filter.
+
+* **`RuniqueQueryBuilder` — `.asc()` / `.desc()` aliases:**
+  Shorter aliases for `.order_by_asc()` / `.order_by_desc()` for ordering outside the macro.
+
+---
+
 ## [1.1.53] - Unreleased
 
 ### Fixed

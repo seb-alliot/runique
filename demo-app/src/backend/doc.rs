@@ -5,30 +5,26 @@ pub async fn doc_index(lang: &str, request: &mut Request) -> AppResult<Response>
     crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
-    let sections = doc_section::Entity::find()
-        .filter(doc_section::Column::Lang.eq(lang))
-        .order_by_asc(doc_section::Column::SortOrder)
-        .all(&*db)
+    let sections = search!(doc_section::Entity => Lang eq lang, asc SortOrder)
+        .all(&db)
         .await
         .unwrap_or_default();
 
-    let mut cours_difficultes: Vec<String> = cour::Entity::find()
-        .filter(cour::Column::Lang.eq(lang))
+    let mut cours_difficultes: Vec<String> = search!(cour::Entity => Lang eq lang)
+        .into_select()
         .select_only()
         .column(cour::Column::Difficulte)
         .distinct()
         .into_tuple::<String>()
-        .all(&*db)
+        .all(db.as_ref())
         .await
         .unwrap_or_default();
 
     let order = ["debutant", "intermediaire", "avance", "specifique"];
     cours_difficultes.sort_by_key(|d| order.iter().position(|&o| o == d.as_str()).unwrap_or(99));
 
-    let cours = cour::Entity::find()
-        .filter(cour::Column::Lang.eq(lang))
-        .order_by_asc(cour::Column::SortOrder)
-        .all(&*db)
+    let cours = search!(cour::Entity => Lang eq lang, asc SortOrder)
+        .all(&db)
         .await
         .unwrap_or_default();
 
@@ -53,10 +49,8 @@ pub async fn doc_page(
     crate::backend::inject_globals(request).await;
     let db = request.engine.db.clone();
 
-    let section = doc_section::Entity::find()
-        .filter(doc_section::Column::Lang.eq(lang))
-        .filter(doc_section::Column::Slug.eq(section_slug))
-        .one(&*db)
+    let section = search!(doc_section::Entity => Lang eq lang, Slug eq section_slug)
+        .first(&db)
         .await
         .unwrap_or(None);
 
@@ -64,19 +58,15 @@ pub async fn doc_page(
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let sidebar_pages = doc_page::Entity::find()
-        .filter(doc_page::Column::SectionId.eq(section.id))
-        .filter(doc_page::Column::Lang.eq(lang))
-        .order_by_asc(doc_page::Column::SortOrder)
-        .all(&*db)
-        .await
-        .unwrap_or_default();
+    let sidebar_pages =
+        search!(doc_page::Entity => SectionId eq section.id, Lang eq lang, asc SortOrder)
+            .all(&db)
+            .await
+            .unwrap_or_default();
 
     let full_slug = format!("{section_slug}-{page_slug}");
-    let page = doc_page::Entity::find()
-        .filter(doc_page::Column::SectionId.eq(section.id))
-        .filter(doc_page::Column::Slug.eq(&full_slug))
-        .one(&*db)
+    let page = search!(doc_page::Entity => SectionId eq section.id, Slug eq full_slug)
+        .first(&db)
         .await
         .unwrap_or(None);
 
@@ -84,10 +74,8 @@ pub async fn doc_page(
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let blocks = doc_block::Entity::find()
-        .filter(doc_block::Column::PageId.eq(page.id))
-        .order_by_asc(doc_block::Column::SortOrder)
-        .all(&*db)
+    let blocks = search!(doc_block::Entity => PageId eq page.id, asc SortOrder)
+        .all(&db)
         .await
         .unwrap_or_default();
 
