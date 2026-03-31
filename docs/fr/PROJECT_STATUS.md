@@ -134,6 +134,7 @@ Fichiers critiques encore bas selon `couverture_test.md` :
 
 ### En cours
 
+- I18n -> `AtomicU8`,
 - Vue Admin bêta (permissions runtime, pagination, `js:` dans `admin!`)
 - Montée couverture vers 85%+
 
