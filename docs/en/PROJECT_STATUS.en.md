@@ -13,7 +13,7 @@ This document consolidates the actual state of the repository from the reference
 
 ## 🧾 Snapshot (as of March 15, 2026)
 
-- **Workspace version**: `1.1.53`
+- **Workspace version**: `1.1.54`
 - **License**: MIT
 - **Working branch**: `i18n` → merge into `main` for publication
 - **Tests reported**: **~1,600 / ~1,600 passed** ✅
@@ -147,7 +147,7 @@ Critical files still low according to `couverture_test.md`:
 
 ## 🆕 Recent changes
 
-See `CHANGELOG.md` for full details. Key points from `[1.1.53]`:
+See `CHANGELOG.md` for full details. Key points from `[1.1.54]`:
 
 - CSP fully migrated to builder (env vars removed)
 - Masked CSRF (BREACH protection), constant-time comparisons

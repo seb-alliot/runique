@@ -78,112 +78,113 @@ let users = users::Entity::objects
 
 ## Macro `search!` — DSL de filtrage
 
-La macro `search!` offre une syntaxe concise inspirée de Django pour construire des filtres.
+La macro `search!` offre une syntaxe inspirée de Django pour construire des filtres SeaORM.
 Elle retourne un `RuniqueQueryBuilder` chainable (`.limit()`, `.order_by_asc()`, `.all()`, etc.).
 
-### Opérateurs de base
+### Tableau de référence complet
 
-| Syntaxe | SQL généré |
-| ------- | --------- |
-| `+Col = val` | `WHERE col = val` |
-| `-Col = val` | `WHERE col != val` |
-| `Col = val` | `WHERE col = val` |
-| `Col != val` | `WHERE col != val` |
-| `Col > val` | `WHERE col > val` |
-| `Col < val` | `WHERE col < val` |
-| `Col >= val` | `WHERE col >= val` |
-| `Col <= val` | `WHERE col <= val` |
-| `Col ~ val` | `WHERE col LIKE val` |
-| `Col !~ val` | `WHERE col NOT LIKE val` |
-| `Col ~~ val` | `WHERE col ILIKE val` *(insensible à la casse)* |
-| `Col !~~ val` | `WHERE col NOT ILIKE val` |
-| `Col = null` | `WHERE col IS NULL` |
-| `Col != null` | `WHERE col IS NOT NULL` |
+| Syntaxe | SQL généré | Équivalent Django |
+| ------- | ---------- | ----------------- |
+| `search!(Entity)` | *(aucun filtre)* | `.objects.all()` |
+| `Col eq val` | `WHERE col = val` | `filter(col=val)` |
+| `Col exact val` | `WHERE col = val` | `filter(col__exact=val)` |
+| `Col ne val` | `WHERE col != val` | — |
+| `Col gt val` | `WHERE col > val` | `filter(col__gt=val)` |
+| `Col lt val` | `WHERE col < val` | `filter(col__lt=val)` |
+| `Col gte val` | `WHERE col >= val` | `filter(col__gte=val)` |
+| `Col lte val` | `WHERE col <= val` | `filter(col__lte=val)` |
+| `Col like val` | `WHERE col LIKE val` | — |
+| `Col ilike val` | `WHERE col ILIKE val` | — |
+| `Col not_like val` | `WHERE col NOT LIKE val` | — |
+| `Col not_ilike val` | `WHERE col NOT ILIKE val` | — |
+| `Col contains val` | `WHERE col LIKE '%val%'` | `filter(col__contains=val)` |
+| `Col icontains val` | `WHERE col ILIKE '%val%'` | `filter(col__icontains=val)` |
+| `Col startswith val` | `WHERE col LIKE 'val%'` | `filter(col__startswith=val)` |
+| `Col endswith val` | `WHERE col LIKE '%val'` | `filter(col__endswith=val)` |
+| `Col iexact val` | `WHERE col ILIKE val` | `filter(col__iexact=val)` |
+| `Col isnull` | `WHERE col IS NULL` | `filter(col__isnull=True)` |
+| `Col not_null` | `WHERE col IS NOT NULL` | `filter(col__isnull=False)` |
+| `Col in [v1, v2]` | `WHERE col IN (v1, v2)` *(littéral)* | `filter(col__in=[v1, v2])` |
+| `Col not_in [v1, v2]` | `WHERE col NOT IN (v1, v2)` | `exclude(col__in=[v1, v2])` |
+| `Col in (expr)` | `WHERE col IN (...)` *(Vec/itérateur)* | `filter(col__in=qs)` |
+| `Col not_in (expr)` | `WHERE col NOT IN (...)` | `exclude(col__in=qs)` |
+| `Col range (a, b)` | `WHERE col BETWEEN a AND b` | `filter(col__range=(a, b))` |
+| `Col not_range (a, b)` | `WHERE col NOT BETWEEN a AND b` | — |
+| `! Col op val` | exclusion (NOT) | `.exclude(col__op=val)` |
+| `or(C1 op v, C2 op v)` | `WHERE c1 op v OR c2 op v` | `Q(c1__op=v) \| Q(c2__op=v)` |
+
+### Fetch all
+
+```rust
+let all = search!(users::Entity)
+    .order_by_asc(users::Column::Name)
+    .all(&*db).await?;
+```
+
+### Opérateurs de base
 
 ```rust
 use runique::search;
 
-// Inclusion / exclusion
-let actifs = search!(users::Entity => +Active = true)
-    .all(&*db).await?;
+let actifs     = search!(users::Entity => Active eq true).all(&*db).await?;
+let adultes    = search!(users::Entity => Age gte 18).all(&*db).await?;
+let non_admins = search!(users::Entity => ! Level eq 99).all(&*db).await?;
 
-let sans_alice = search!(users::Entity => -Username = "alice")
-    .all(&*db).await?;
+// LIKE / ILIKE
+let rust    = search!(users::Entity => Bio like "%rust%").all(&*db).await?;
+let rust_ci = search!(users::Entity => Bio ilike "%rust%").all(&*db).await?;
 
-// Comparaisons
-let adultes    = search!(users::Entity => Age >= 18).all(&*db).await?;
-let non_admins = search!(users::Entity => Level != 99).all(&*db).await?;
+// NULL
+let sans_bio = search!(users::Entity => Bio isnull).all(&*db).await?;
+let avec_bio = search!(users::Entity => Bio not_null).all(&*db).await?;
+```
 
-// LIKE / NOT LIKE
-let rust      = search!(users::Entity => Bio ~  "%rust%").all(&*db).await?;
-let pas_spam  = search!(users::Entity => Bio !~ "%spam%").all(&*db).await?;
+### contains / icontains / startswith / endswith / iexact
 
-// ILIKE / NOT ILIKE (insensible à la casse)
-let rust_ci      = search!(users::Entity => Bio ~~  "%rust%").all(&*db).await?;
-let pas_spam_ci  = search!(users::Entity => Bio !~~ "%spam%").all(&*db).await?;
+Ces opérateurs gèrent les `%` automatiquement.
 
-// NULL / NOT NULL
-let sans_bio  = search!(users::Entity => Bio =  null).all(&*db).await?;
-let avec_bio  = search!(users::Entity => Bio != null).all(&*db).await?;
+```rust
+let rust  = search!(posts::Entity => Title contains "rust").all(&*db).await?;
+let rust_ci = search!(posts::Entity => Title icontains "rust").all(&*db).await?;
+let hello = search!(posts::Entity => Title startswith "Hello").all(&*db).await?;
+let rs    = search!(posts::Entity => Filename endswith ".rs").all(&*db).await?;
+let user  = search!(users::Entity => Username iexact "Alice").first(&*db).await?;
 ```
 
 ### IN / NOT IN
 
 ```rust
-// IN
-let selected = search!(users::Entity => +Id = [1, 2, 3])
-    .all(&*db).await?;
+// IN littéral
+let selected = search!(users::Entity => Id in [1, 2, 3]).all(&*db).await?;
 
-// NOT IN
-let others = search!(users::Entity => -Status = ["banned", "deleted"])
-    .all(&*db).await?;
+// NOT IN littéral
+let others = search!(users::Entity => Status not_in ["banned", "deleted"]).all(&*db).await?;
+
+// IN dynamique (Vec, itérateur)
+let ids: Vec<i32> = get_allowed_ids();
+let users = search!(users::Entity => Id in (ids)).all(&*db).await?;
+
+// NOT IN dynamique
+let blocked: Vec<i32> = get_blocked_ids();
+let clean = search!(users::Entity => Id not_in (blocked)).all(&*db).await?;
 ```
 
 ### BETWEEN / NOT BETWEEN
 
 ```rust
-// BETWEEN (inclusif)
-let mid = search!(users::Entity => +Age = between(18, 30))
-    .all(&*db).await?;
-
-// NOT BETWEEN
-let hors = search!(users::Entity => -Age = between(18, 30))
-    .all(&*db).await?;
+let mid  = search!(users::Entity => Age range (18, 30)).all(&*db).await?;
+let hors = search!(users::Entity => Age not_range (18, 30)).all(&*db).await?;
 ```
 
-### OR — même colonne
+### OR multi-colonnes — `or(...)`
 
 ```rust
-// Col = (v1 | v2 | v3)
-let statuts = search!(users::Entity => Status = ("active" | "pending" | "review"))
+// Recherche sur plusieurs colonnes
+let results = search!(posts::Entity => or(Title icontains "rust", Content icontains "rust"))
     .all(&*db).await?;
 
-// LIKE sur plusieurs valeurs
-let themes = search!(posts::Entity => Title ~ ("%rust%" | "%sea%"))
-    .all(&*db).await?;
-
-// ILIKE sur plusieurs valeurs (insensible à la casse)
-let themes_ci = search!(posts::Entity => Title ~~ ("%rust%" | "%sea%"))
-    .all(&*db).await?;
-
-// NOT ILIKE sur plusieurs valeurs
-let sans_spam = search!(posts::Entity => Title !~~ ("%spam%" | "%pub%"))
-    .all(&*db).await?;
-```
-
-### OR — multi-colonnes
-
-```rust
-// LIKE multi-colonnes
-let results = search!(posts::Entity => (Title ~ "%rust%" | Content ~ "%rust%"))
-    .all(&*db).await?;
-
-// ILIKE multi-colonnes (insensible à la casse)
-let results_ci = search!(posts::Entity => (Title ~~ "%rust%" | Content ~~ "%rust%"))
-    .all(&*db).await?;
-
-// NOT ILIKE multi-colonnes
-let sans_spam = search!(posts::Entity => (Title !~~ "%spam%" | Content !~~ "%spam%"))
+// Avec variable runtime
+let results = search!(posts::Entity => or(Title icontains term, Summary icontains term))
     .all(&*db).await?;
 ```
 
@@ -193,9 +194,9 @@ Séparer les conditions par des virgules — chaque condition est un AND.
 
 ```rust
 let results = search!(users::Entity =>
-    Active = true,
-    Age >= 18,
-    Status = ("active" | "verified"),
+    Active eq true,
+    Age gte 18,
+    Role in ["admin", "moderator"],
 )
 .order_by_desc(users::Column::CreatedAt)
 .limit(20)
@@ -203,41 +204,41 @@ let results = search!(users::Entity =>
 .await?;
 ```
 
-Les bras multi-conditions supportent tous les opérateurs :
+Tous les opérateurs sont disponibles en multi-conditions :
 
 ```rust
 search!(users::Entity =>
-    +Role = ["admin", "moderator"],          // IN
-    +CreatedAt = between(date_a, date_b),    // BETWEEN
-    Bio != null,                              // IS NOT NULL
-    (Title ~~ "%rust%" | Bio ~~ "%rust%"),   // OR ILIKE
+    Role in ["admin", "moderator"],        // IN littéral
+    Id in (ids_dynamiques),                // IN dynamique
+    CreatedAt range (date_a, date_b),      // BETWEEN
+    Bio not_null,                           // IS NOT NULL
+    Username icontains "alice",            // ILIKE %alice%
+    or(Title icontains q, Bio icontains q), // OR multi-colonnes
 )
 ```
 
-### OR de groupes AND — `[(...) | (...)]`
+### `.into_select()` — projection partielle
 
-Pour exprimer `(A AND B) OR (C AND D)` :
-
-```rust
-let results = search!(users::Entity => [
-    (Status = "active", Level >= 2) |
-    (Status = "vip",    Level >= 1)
-])
-.all(&*db).await?;
-```
-
-Fonctionne aussi en multi-conditions :
+Pour les cas où `select_only()`, `column()`, `distinct()` ou `into_tuple()` sont nécessaires,
+`.into_select()` expose le `Select<E>` SeaORM interne.
 
 ```rust
-search!(posts::Entity =>
-    [(Title ~ "%rust%", Status = "published") | (Title ~ "%sea%", Status = "draft")],
-    AuthorId = author_id,
-)
+// Récupérer une seule colonne distincte
+let difficultes: Vec<String> = search!(cour::Entity => Lang eq "fr")
+    .into_select()
+    .select_only()
+    .column(cour::Column::Difficulte)
+    .distinct()
+    .into_tuple::<String>()
+    .all(db.as_ref())  // ← .as_ref() obligatoire ici
+    .await?;
 ```
 
-> **Note :** `~~` et `!~~` (ILIKE) sont des opérateurs à deux tokens. Dans les patterns OR
-> multi-colonnes `(Col1 op v1 | Col2 op v2)`, tous les membres doivent utiliser le même
-> opérateur. Pour mélanger `~~` et `=` dans un même OR, utiliser le multi-conditions.
+> **Note — `.as_ref()` requis :** une fois sorti du `RuniqueQueryBuilder`, les méthodes SeaORM
+> utilisent un bound générique `C: ConnectionTrait`. `Arc<DatabaseConnection>` ne satisfait pas
+> ce bound directement — `db.as_ref()` convertit explicitement en `&DatabaseConnection`.
+> Les méthodes du `RuniqueQueryBuilder` (`.all()`, `.first()`, etc.) n'ont pas ce problème
+> car elles prennent `&DatabaseConnection` en paramètre concret.
 
 ### Via `@Form` — FormEntity
 

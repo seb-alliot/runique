@@ -30,7 +30,7 @@ async fn toggle_dashboard_template(session: Session) -> Response {
 pub fn router(prefix: &str) -> Router {
     let p = prefix.trim_end_matches('/');
     Router::new().route(
-        &format!("{}/toggle-template", p),
+        &format!("{p}/toggle-template"),
         get(toggle_dashboard_template),
     )
 }

@@ -137,6 +137,20 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
+    pub fn asc<C: ColumnTrait>(mut self, column: C) -> Self {
+        self.query = self.query.order_by_asc(column);
+        self
+    }
+
+    pub fn desc<C: ColumnTrait>(mut self, column: C) -> Self {
+        self.query = self.query.order_by_desc(column);
+        self
+    }
+
+    pub fn into_select(self) -> Select<E> {
+        self.query
+    }
+
     pub fn limit(mut self, limit: u64) -> Self {
         self.query = self.query.limit(limit);
         self

@@ -55,12 +55,11 @@ async fn build_context(cour_id: i32, db: &DatabaseConnection) -> String {
 pub async fn seed_ia(db: &DatabaseConnection) {
     tracing::info!("ia_seed: démarrage");
 
-    let ia_dir = match find_ia_dir() {
-        Some(p) => p,
-        None => {
-            tracing::warn!("ia_seed: dossier docs/ia/ introuvable, seed ignoré");
-            return;
-        }
+    let ia_dir = if let Some(p) = find_ia_dir() {
+        p
+    } else {
+        tracing::warn!("ia_seed: dossier docs/ia/ introuvable, seed ignoré");
+        return;
     };
 
     // Nettoyage (ordre FK : cour_ia → contrainte_ia)
@@ -74,12 +73,11 @@ pub async fn seed_ia(db: &DatabaseConnection) {
 
     // Lecture du system prompt français
     let contrainte_path = ia_dir.join("contrainte_fr.md");
-    let contrainte_text = match fs::read_to_string(&contrainte_path) {
-        Ok(c) => c,
-        Err(_) => {
-            tracing::warn!("ia_seed: contrainte_fr.md introuvable");
-            return;
-        }
+    let contrainte_text = if let Ok(c) = fs::read_to_string(&contrainte_path) {
+        c
+    } else {
+        tracing::warn!("ia_seed: contrainte_fr.md introuvable");
+        return;
     };
 
     let contrainte_model = contrainte_ia::ActiveModel {

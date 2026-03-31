@@ -6,6 +6,41 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
+## [1.1.54] - À venir
+
+### Ajouté
+
+* **Macro `search!` — refonte syntaxe style Django :**
+  La macro `search!` adopte une syntaxe inspirée de Django ORM, plus lisible et plus facile à maintenir.
+  L'ancienne syntaxe `+Col = val` est remplacée par `Col eq val`. Les symboles `~~`, `!~~`, `+`, `-`
+  sont remplacés par des opérateurs verbaux. Le nombre de bras internes passe de ~50 à ~12 grâce à un
+  macro de dispatch `search_apply_op!`.
+  Opérateurs supportés : `eq`, `exact`, `ne`, `gt`, `lt`, `gte`, `lte`, `like`, `ilike`,
+  `not_like`, `not_ilike`, `contains`, `icontains`, `startswith`, `endswith`, `iexact`.
+  Les opérateurs `contains`, `icontains`, `startswith`, `endswith` appliquent automatiquement les
+  wildcards `%` — aucune variable intermédiaire nécessaire.
+
+* **Macro `search!` — tri intégré sans `Column::` :**
+  Les clauses `asc Col` et `desc Col` s'écrivent directement dans la macro, sans préfixe `Column::`.
+  La macro résout automatiquement `<Entity as EntityTrait>::Column::Col`.
+  Exemple : `search!(Entity => Col eq val, asc SortOrder, desc Id)`.
+
+* **Macro `search!` — nouveaux bras :**
+  - `search!(Entity)` — fetch all sans filtre
+  - `Col isnull` / `Col not_null` — IS NULL / IS NOT NULL
+  - `Col in (expr)` / `! Col in (expr)` — IN / NOT IN dynamique (Vec, itérateur)
+  - `Col range (a, b)` / `! Col range (a, b)` — BETWEEN / NOT BETWEEN
+  - `or(Col1 op val, Col2 op val)` — OR multi-colonnes
+
+* **`RuniqueQueryBuilder` — `.into_select()` :**
+  Expose le `Select<E>` SeaORM interne pour chaîner `.select_only()`, `.column()`, `.distinct()`,
+  `.into_tuple::<T>()` après un filtre `search!`.
+
+* **`RuniqueQueryBuilder` — aliases `.asc()` / `.desc()` :**
+  Aliases de `.order_by_asc()` / `.order_by_desc()` pour les cas d'ordering externe à la macro.
+
+---
+
 ## [1.1.53] - À venir
 
 ### Correctifs
