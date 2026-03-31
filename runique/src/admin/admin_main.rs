@@ -781,7 +781,6 @@ async fn handle_delete_post(
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {
-        println!{"sa bug ici, admin_main ligne 784"}
         Box::new(AppError::new(ErrorContext::not_found(
             t("admin.delete.not_found").as_ref(),
         )))
@@ -796,7 +795,7 @@ async fn handle_delete_post(
         "{}/{}/list",
         state.config.prefix.trim_end_matches('/'),
         entry.meta.key
-    ))        
+    ))
     .into_response())
 }
 

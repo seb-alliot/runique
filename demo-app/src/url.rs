@@ -2,14 +2,14 @@ use crate::views::{
     about, admin_declaration, admin_hub, admin_setup, admin_surcharge, blog_detail, blog_list,
     blog_save, changelog, comparatif_demo, configuration_demo, contribution_list,
     contribution_submit, database_demo, deconnexion, docs_index_en, docs_index_fr, docs_page,
-    docs_section, force_not_found, force_server_error, force_to_many_requests, formulaires_champs,
-    formulaires_helpers, formulaires_hub, formulaires_templates, google_verify, i18n_demo, index,
-    info_user, installation_demo, login_user, macros_demo, middleware_csp, middleware_csrf,
-    middleware_hosts, middleware_https, middleware_hub, middleware_login_guard,
+    docs_section, erreur_502, force_not_found, force_server_error, force_to_many_requests,
+    formulaires_champs, formulaires_helpers, formulaires_hub, formulaires_templates, google_verify,
+    i18n_demo, index, info_user, installation_demo, login_user, macros_demo, middleware_csp,
+    middleware_csrf, middleware_hosts, middleware_https, middleware_hub, middleware_login_guard,
     middleware_rate_limit, migrations_demo, model_demo, orm_demo, probleme_connu, profil,
     propos_template_error, readme_en, readme_fr, rgpd, roadmap, router_demo, session_demo,
     sitemap_xml, soumission_inscription, surcharge_exemple, template_demo, test_csrf, test_fields,
-    upload_image_submit, view_cours_detail, view_cours_exercice, view_cours_index,erreur_502
+    upload_image_submit, view_cours_detail, view_cours_exercice, view_cours_index,
 };
 
 use runique::prelude::*;
