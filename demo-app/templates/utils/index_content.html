@@ -1,5 +1,5 @@
 {# ══════════════════════════════════════════
-   HERO
+   Fond écran
    ══════════════════════════════════════════ #}
 <section class="hero">
     <div class="hero-visual">
@@ -22,8 +22,8 @@
     </div>
     
     {# ══════════════════════════════════════════
-   STACK STRIP
-   ══════════════════════════════════════════ #}
+        STACK STRIP
+    ══════════════════════════════════════════ #}
 <div class="stack-strip">
     <a href="https://crates.io/crates/axum" target="_blank" class="stack-chip">
         <span class="stack-chip-label">Backend</span>
@@ -88,8 +88,8 @@
 <pre class="hero-code-body"><code><span class="hc-ty">builder</span>::<span class="hc-fn">new</span>(config)
     .<span class="hc-fn">with_admin</span>(|a| {
         a.<span class="hc-fn">site_title</span>(<span class="hc-str">"Administration"</span>)
-         .<span class="hc-fn">auth</span>(<span class="hc-ty">RuniqueAdminAuth</span>::<span class="hc-fn">new</span>())
-         .<span class="hc-fn">page_size</span>(<span class="hc-kw">15</span>)
+        .<span class="hc-fn">auth</span>(<span class="hc-ty">RuniqueAdminAuth</span>::<span class="hc-fn">new</span>())
+        .<span class="hc-fn">page_size</span>(<span class="hc-kw">15</span>)
     })
     .<span class="hc-fn">build</span>().<span class="hc-fn">await</span>?
     .<span class="hc-fn">run</span>().<span class="hc-fn">await</span>?
@@ -104,8 +104,8 @@
 
             <pre class="hero-code-body hero-tab-panel" data-panel="securite"><code>.<span class="hc-fn">middleware</span>(|m| {
     m.<span class="hc-fn">with_csp</span>(|c| c.<span class="hc-fn">policy</span>(<span class="hc-ty">SecurityPolicy</span>::<span class="hc-fn">strict</span>()))
-     .<span class="hc-fn">with_allowed_hosts</span>(|h| h.<span class="hc-fn">host</span>(<span class="hc-str">"mysite.com"</span>))
-     .<span class="hc-fn">with_session_memory_limit</span>(<span class="hc-kw">5</span> <span class="hc-op">*</span> <span class="hc-kw">1024</span> <span class="hc-op">*</span> <span class="hc-kw">1024</span>, <span class="hc-op">...</span>)
+    .<span class="hc-fn">with_allowed_hosts</span>(|h| h.<span class="hc-fn">host</span>(<span class="hc-str">"mysite.com"</span>))
+    .<span class="hc-fn">with_session_memory_limit</span>(<span class="hc-kw">5</span> <span class="hc-op">*</span> <span class="hc-kw">1024</span> <span class="hc-op">*</span> <span class="hc-kw">1024</span>, <span class="hc-op">...</span>)
 })
 
 <span class="hc-cm">// CSRF enabled by default — cannot be disabled</span>
@@ -115,9 +115,9 @@
 </section>
 
 
-{# ══════════════════════════════════════════
-   FEATURES
-   ══════════════════════════════════════════ #}
+    {# ══════════════════════════════════════════
+        FEATURES
+    ══════════════════════════════════════════ #}
 <section class="features">
     <div class="features-inner">
         <h2 class="features-title">Everything you need</h2>
@@ -157,9 +157,9 @@
     </div>
 </section>
 
-{# ══════════════════════════════════════════
-   DEMO — SECTIONS
-   ══════════════════════════════════════════ #}
+    {# ══════════════════════════════════════════
+        DEMO — SECTIONS
+    ══════════════════════════════════════════ #}
 <section class="demo-section-wrapper">
     <div class="demo-inner">
         <h2 class="demo-section-title">Explore the demo</h2>
@@ -281,7 +281,7 @@
                         </a>
                         <a href="{% link 'propos_template_error' %}" class="feature-card">
                             <h3>Error Pages</h3>
-                            <p>404, 500, 429 — Runique page verification</p>
+                            <p>404, 500, 429, 502 — Runique page verification</p>
                         </a>
                     </div>
                 </details>

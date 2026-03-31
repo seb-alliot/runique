@@ -40,7 +40,7 @@
         <nav class="doc-sidebar-nav">
             {% for chapitre in chapitres %}
             <a href="/cours/{{ cour.slug }}/{{ chapitre.slug }}"
-               class="doc-nav-link {% if chapitre.id == chapitre_courant.id %}active{% endif %}">
+                class="doc-nav-link {% if chapitre.id == chapitre_courant.id %}active{% endif %}">
                 {{ chapitre.title }}
             </a>
             {% endfor %}
