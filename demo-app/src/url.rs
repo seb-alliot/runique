@@ -9,7 +9,7 @@ use crate::views::{
     middleware_rate_limit, migrations_demo, model_demo, orm_demo, probleme_connu, profil,
     propos_template_error, readme_en, readme_fr, rgpd, roadmap, router_demo, session_demo,
     sitemap_xml, soumission_inscription, surcharge_exemple, template_demo, test_csrf, test_fields,
-    upload_image_submit, view_cours_detail, view_cours_exercice, view_cours_index,
+    upload_image_submit, view_cours_detail, view_cours_exercice, view_cours_index,erreur_502
 };
 
 use runique::prelude::*;
@@ -20,7 +20,7 @@ pub fn routes() -> Router {
 
         // Auth
         "/inscription"                   => view! { soumission_inscription }, name = "inscription",
-        "/login"                         => view! { login_user },                  name = "login",
+        "/login"                         => view! { login_user },             name = "login",
         "/logout"                        => view! { deconnexion },            name = "logout",
 
         // Profil
@@ -79,6 +79,7 @@ pub fn routes() -> Router {
         "/erreurs/404"                   =>   view! { force_not_found },      name = "force_404",
         "/erreurs/500"                   => view! { force_server_error },     name = "force_500",
         "/erreurs/429"                   => view! { force_to_many_requests }, name = "force_429",
+        "/erreurs/502"                    => view!{ erreur_502 },              name = "test-502",
 
         // Sitemap & SEO
         "/sitemap.xml"                   => view! { sitemap_xml },            name = "sitemap_xml",
