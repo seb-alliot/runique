@@ -70,8 +70,8 @@ fn test_retry_after_zero_when_unknown_key() {
 #[test]
 fn test_retry_after_nonzero_after_limit_exceeded() {
     let limiter = RateLimiter::new().max_requests(1).retry_after(60);
-    limiter.is_allowed("ip");
-    limiter.is_allowed("ip"); // dépasse la limite
+    let _ = limiter.is_allowed("ip");
+    let _ = limiter.is_allowed("ip"); // dépasse la limite
     assert!(limiter.retry_after_secs("ip") > 0);
 }
 
@@ -106,8 +106,8 @@ async fn test_middleware_blocks_over_limit() {
     );
 
     // Épuise la limite
-    limiter.is_allowed("unknown");
-    limiter.is_allowed("unknown");
+    let _ = limiter.is_allowed("unknown");
+    let _ = limiter.is_allowed("unknown");
 
     let resp = request::get(app, "/").await;
     assert_status(&resp, 429);
@@ -159,8 +159,8 @@ async fn test_middleware_429_has_retry_after_header() {
         axum::middleware::from_fn_with_state(limiter.clone(), rate_limit_middleware),
     );
 
-    limiter.is_allowed("unknown");
-    limiter.is_allowed("unknown");
+    let _ = limiter.is_allowed("unknown");
+    let _ = limiter.is_allowed("unknown");
 
     let resp = request::get(app, "/").await;
     assert_status(&resp, 429);
