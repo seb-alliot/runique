@@ -1,6 +1,3 @@
-  Voici la version optimisée pour GitHub (Markdown pur sans HTML, compatible rendu GitHub) :
-
-```markdown
 # Runique — Django-inspired Rust Framework
 
 ![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
