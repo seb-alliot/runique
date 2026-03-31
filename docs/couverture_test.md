@@ -288,4 +288,3 @@
 | `utils\trad\switch_lang.rs` | 70.97% | 90% |
 | `forms\fields\special.rs` | 77.59% | 90% |
 
-Mis à jour le 15 mars 2026
