@@ -9,9 +9,9 @@
 
     /* ── Text ── */
     --text-main:  #f9fafb;   /* texte principal */
-    --text-muted: #9ca3af;   /* texte secondaire */
-    --text-dim:   #6b7280;   /* meta, footer, labels legers */
-
+    --text-muted: #73c7fa;   /* texte secondaire */
+    --text-dim:   #ed8282;   /* meta, footer, labels legers */
+    --font-size: math;  /* base size
     /* ── Accent ── */
     --accent:         #3b82f6;  /* bleu principal */
     --accent-hover:   #2563eb;  /* bleu hover */
@@ -60,7 +60,7 @@
     --accent-indigo:  #4f46e5;
     --accent-warning: #d97706;
 
-    --border:       #d1d5db;
+    --border:       #080808;
     --border-light: #e5e7eb;
 
     --error-color:   #dc2626;
