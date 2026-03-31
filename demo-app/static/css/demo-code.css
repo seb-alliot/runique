@@ -166,7 +166,11 @@
 }
 
 .field-body p { margin: 0 0 0.5rem; }
-
+@media (max-width: 480px){
+    .field-body {
+        width: 80vw;
+    }
+}
 .field-body pre {
     margin: 0;
     padding: 0.75rem 1rem;
