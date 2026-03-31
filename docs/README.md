@@ -4,15 +4,15 @@
 ![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-1.1.54-blue)
-![Crates.io](https://img.shields.io/crates/v/runique)
-![Runique](https://runique.io/)
+[![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
+[![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
 Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
 
 > Current state: active development. The framework source of truth is the `runique` crate.
 > `demo-app` is used as a validation/testing application for framework behavior.
 
-🌍 **Languages**: [English](https://github.com/seb-alliot/runique/blob/main/README.md) | [Français](https://github.com/seb-alliot/runique/blob/main/README.fr.md)
+🌍 **Languages**: English | [Français](https://runique.io/readme/fr)
 
 ---
 
@@ -49,7 +49,8 @@ cargo build --workspace
 cargo test --workspace
 ```
 
-Detailed guide: [docs/en/01-installation.md](/docs/en/installation)
+
+Detailed guide: [Installation](https://runique.io/docs/en/installation)
 
 ---
 
@@ -78,10 +79,6 @@ async fn main() {
 - `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
 - `runique migration up|down|status --migrations migration/src`
 
-```
-
-```
-
 > ⚠️ **Warning**
 > The `makemigrations` command generates SeaORM tables while preserving the
 > chronological order of the migration system.
@@ -89,19 +86,13 @@ async fn main() {
 > to apply or manage migrations.
 > Using other commands may lead to migration desynchronization.
 
-```
-
-```
-
-## Admin beta status (bêta)
+## Admin beta status
 
 Admin daemon behavior in `start`:
 
 - checks whether `.with_admin(...)` exists in `src/main.rs`
 - starts the admin watcher when enabled
 - otherwise exits with an explicit hint
-
----
 
 Admin resources are declared in `src/admin.rs` using `admin!`.
 
@@ -117,7 +108,7 @@ Current beta limits:
 - generated folder overwrite (`src/admins/`)
 - iterative hardening still in progress
 
-Admin docs: [docs/en/11-Admin.md](/docs/en/admin)
+Admin docs: [Admin](https://runique.io/docs/en/admin)
 
 ---
 
@@ -139,32 +130,28 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-  - Reported tests: **1731/1731 passing**
-  - Coverage snapshot (`2026-03-01`, package `runique`):
+- Reported tests: **1731/1731 passing**
+- Coverage snapshot (`2026-03-01`, package `runique`):
   - Functions: **76.66%**
   - Lines: **71.04%**
   - Regions: **67.22%**
-
-Coverage command used:
 
 ```bash
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
 ```
 
-See: [couverture_test.md](https://github.com/seb-alliot/runique/blob/main/docs/couverture_test.md)
-
 ---
 
 ## Sessions
 
-`CleaningMemoryStore` replaces the default `MemoryStore` with automatic expired-session cleanup, a two-tier watermark system (128 MB / 256 MB), and priority-based protection for authenticated and high-value anonymous sessions (shopping carts, multi-step forms).
+`CleaningMemoryStore` replaces the default `MemoryStore` with automatic expired-session cleanup, a two-tier watermark system (128 MB / 256 MB), and priority-based protection for authenticated sessions.
 
 - Low watermark: background purge of expired anonymous sessions
 - High watermark: synchronous emergency purge + 503 refusal if still exceeded
 - `protect_session(&session, duration_secs)` — marks an anonymous session as untouchable until a given timestamp
 - `user_id` key — automatically protects authenticated sessions
 
-Full reference: [docs/en/14-sessions.md](/docs/en/session)
+Full reference: [Sessions](https://runique.io/docs/en/session)
 
 ---
 
@@ -173,66 +160,45 @@ Full reference: [docs/en/14-sessions.md](/docs/en/session)
 All behavior is configurable via `.env`. Key variables:
 
 ```env
+RUNIQUE_SESSION_CLEANUP_SECS=60
+RUNIQUE_SESSION_LOW_WATERMARK=134217728
+RUNIQUE_SESSION_HIGH_WATERMARK=268435456
 SECRET_KEY=your-secret-key
 DATABASE_URL=sqlite://db.sqlite3
 ```
 
-Full reference: [docs/en/15-env.md](/docs/en/env)
+Full reference: [Environment variables](https://runique.io/docs/en/env)
 
 ---
 
-## Documentation map
+## Documentation
 
-### English
-
-- [Installation](/docs/en/installation)
-- [Architecture](/docs/en/architecture)
-- [Configuration](/docs/en/configuration)
-- [Routage](/docs/en/routing)
-- [Formulaires](/docs/en/formulaire)
-- [Model/Schema](/docs/en/model)
-- [Templates](/docs/en/template)
-- [ORM](/docs/en/orm)
-- [Middlewares](/docs/en/middleware)
-- [Flash Messages](/docs/en/flash)
-- [Exemples](/docs/en/exemple)
-- [Admin bêta](/docs/en/admin)
-- [Sessions](/docs/en/session)
-- [Environment variables](/docs/en/env)
-
-### Français
-
-- [Installation](/docs/fr/installation)
-- [Architecture](/docs/fr/architecture)
-- [Configuration](/docs/fr/configuration)
-- [Routage](/docs/fr/routing)
-- [Formulaires](/docs/fr/formulaire)
-- [Model/Schema](/docs/fr/model)
-- [Templates](/docs/fr/template)
-- [ORM](/docs/fr/orm)
-- [Middlewares](/docs/fr/middleware)
-- [Flash Messages](/docs/fr/flash)
-- [Exemples](/docs/fr/exemple)
-- [Admin bêta](/docs/fr/admin)
-- [Sessions](/docs/fr/session)
-- [Variables d'environnement](/docs/fr/env)
-
+- [Installation](https://runique.io/docs/en/installation)
+- [Architecture](https://runique.io/docs/en/architecture)
+- [Configuration](https://runique.io/docs/en/configuration)
+- [Routing](https://runique.io/docs/en/routing)
+- [Forms](https://runique.io/docs/en/formulaire)
+- [Model/Schema](https://runique.io/docs/en/model)
+- [Templates](https://runique.io/docs/en/template)
+- [ORM](https://runique.io/docs/en/orm)
+- [Middlewares](https://runique.io/docs/en/middleware)
+- [Flash Messages](https://runique.io/docs/en/flash)
+- [Examples](https://runique.io/docs/en/exemple)
+- [Admin beta](https://runique.io/docs/en/admin)
+- [Sessions](https://runique.io/docs/en/session)
+- [Environment variables](https://runique.io/docs/en/env)
 ---
 
 ## Project status
 
-For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.md).
-
----
+For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md).
 
 ## Resources
 
-- [Project structure](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md)
-- [Changelog](https://github.com/seb-alliot/runique/blob/main/CHANGELOG.md)
-- [Documentation hub](https://github.com/seb-alliot/runique/blob/main/docs/en/README.md)
+- [Changelog](https://runique.io/changelog)
+- [Runique vs Django — Feature Comparison](https://runique.io/docs/en/comparatif)
+- [Crates.io](https://crates.io/crates/runique)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
-- [Benchmark](https://github.com/seb-alliot/runique/blob/main/benchmark.md)
-- [Runique vs Django — Feature Comparison](https://github.com/seb-alliot/runique/blob/main/docs/en/comparatif-runique-django.md)
 
 ---
 
