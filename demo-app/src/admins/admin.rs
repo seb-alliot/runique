@@ -1,5 +1,5 @@
-// AUTO-admin_panel — DO NOT EDIT MANUALLY
-// admin_panel by `runique start` from src/admin.rs
+// AUTO-admin — DO NOT EDIT MANUALLY
+// admin by `runique start` from src/admin.rs
 
 use runique::prelude::*;
 use runique::admin::resource_entry::FilterFn;
