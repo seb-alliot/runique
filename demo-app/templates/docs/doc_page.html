@@ -18,8 +18,6 @@
     <link rel="stylesheet" href='{% static "css/highlight-github-dark.min.css" %}'>
 {% endblock %}
 
-{% block header %}{% endblock %}
-
 {% block content %}
 
 {# ── Barre mobile (hamburger) ── #}
@@ -42,7 +40,7 @@
         <nav class="doc-sidebar-nav">
             {% for p in sidebar_pages %}
             <a href="/docs/{{ lang }}/{{ section_slug }}/{{ p.slug | replace(from=section_slug ~ "-", to="") }}"
-               class="doc-nav-link {% if p.id == page.id %}active{% endif %}">
+                class="doc-nav-link {% if p.id == page.id %}active{% endif %}">
                 {{ p.title }}
             </a>
             {% endfor %}
