@@ -12,6 +12,6 @@ model! {
         sort_order: i32 [required],
     },
     relations: {
-        belongs_to: DocPage via page_id [cascade],
+        belongs_to: doc_page via page_id [cascade],
     }
 }

@@ -1,7 +1,7 @@
 use crate::entities::{
     blog, changelog_entry, chapitre, code_example, contribution, cour, cour_block, demo_category,
-    demo_page, demo_section, doc_block, doc_page, doc_section, form_field, known_issue,
-    page_doc_link, roadmap_entry, runique_release, site_config, users,
+    demo_page, demo_section, doc_block, doc_page, doc_section, eihwaz_users, form_field,
+    known_issue, page_doc_link, roadmap_entry, runique_release, site_config,
 };
 use crate::formulaire::{
     BlogForm, ChangelogEntryForm, ChapitreForm, CodeExampleForm, ContributionForm, CourBlockForm,
@@ -11,7 +11,7 @@ use crate::formulaire::{
 };
 
 admin! {
-    users: users::Model => RegisterForm {
+    users: eihwaz_users::Model => RegisterForm {
         title: "Utilisateurs",
         permissions: ["admin"],
         edit_form: crate::formulaire::UserEditForm,

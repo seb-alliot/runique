@@ -1,4 +1,4 @@
-use crate::entities::users::schema as eihwaz_users_schema;
+use crate::entities::eihwaz_users::schema as eihwaz_users_schema;
 use runique::prelude::*;
 
 #[form(schema = eihwaz_users_schema, fields = [username, email, password])]

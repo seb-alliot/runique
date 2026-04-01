@@ -12,6 +12,6 @@ model! {
         created_at: datetime [auto_now],
     },
     relations: {
-        belongs_to: EihwazUsers via user_id [cascade],
+        belongs_to: eihwaz_users via user_id [cascade],
     }
 }

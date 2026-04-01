@@ -13,6 +13,6 @@ model! {
         sort_order: i32 [required],
     },
     relations: {
-        belongs_to: DocSection via section_id [cascade],
+        belongs_to: doc_section via section_id [cascade],
     }
 }

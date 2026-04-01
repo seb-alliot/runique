@@ -70,6 +70,38 @@ macro_rules! search_munch {
     ($b:expr, $entity:ty;) => {};
     ($b:expr, $entity:ty; ,) => {};
 
+    // ── join Relation — INNER JOIN ────────────────────────────────
+    ($b:expr, $entity:ty; join $rel:ident , $($rest:tt)*) => {
+        {
+            use sea_orm::RelationTrait;
+            $b = $b.join(
+                <$entity as sea_orm::EntityTrait>::Relation::$rel.def()  // ← un seul argument
+            );
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
+    // ── left_join Relation — LEFT JOIN ───────────────────────────
+    ($b:expr, $entity:ty; left_join $rel:ident , $($rest:tt)*) => {
+        {
+            use sea_orm::RelationTrait;
+            $b = $b.left_join(
+                <$entity as sea_orm::EntityTrait>::Relation::$rel.def()  // ← un seul argument
+            );
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
+
+    // ── mod::Col op val — filtre sur relation ─────────────────────
+    ($b:expr, $entity:ty; $mod:ident :: $col:ident $op:ident $val:expr , $($rest:tt)*) => {
+        {
+            use sea_orm::ColumnTrait;
+            $b = $b.filter(
+                $crate::search_apply_op!($mod::Column::$col, $op, $val)
+            );
+        }
+        $crate::search_munch!($b, $entity; $($rest)*);
+    };
     // ── Col isnull ────────────────────────────────────────────────────────────
     ($b:expr, $entity:ty; $col:ident isnull , $($rest:tt)*) => {
         {

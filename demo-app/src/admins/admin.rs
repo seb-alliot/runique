@@ -17,19 +17,19 @@ use crate::entities::demo_section;
 use crate::entities::doc_block;
 use crate::entities::doc_page;
 use crate::entities::doc_section;
+use crate::entities::eihwaz_users;
 use crate::entities::form_field;
 use crate::entities::known_issue;
 use crate::entities::page_doc_link;
 use crate::entities::roadmap_entry;
 use crate::entities::runique_release;
 use crate::entities::site_config;
-use crate::entities::users;
 
-// ── DynForm wrapper pour users::AdminForm ──
-struct UsersAdminFormDynWrapper(pub users::AdminForm);
+// ── DynForm wrapper pour eihwaz_users::AdminForm ──
+struct EihwazUsersAdminFormDynWrapper(pub eihwaz_users::AdminForm);
 
 #[async_trait]
-impl DynForm for UsersAdminFormDynWrapper {
+impl DynForm for EihwazUsersAdminFormDynWrapper {
     async fn is_valid(&mut self) -> bool {
         self.0.is_valid().await
     }
@@ -48,10 +48,10 @@ impl DynForm for UsersAdminFormDynWrapper {
 }
 
 // ── DynForm edit wrapper pour crate::formulaire::UserEditForm ──
-struct UsersEditFormDynWrapper(pub crate::formulaire::UserEditForm);
+struct EihwazUsersEditFormDynWrapper(pub crate::formulaire::UserEditForm);
 
 #[async_trait]
-impl DynForm for UsersEditFormDynWrapper {
+impl DynForm for EihwazUsersEditFormDynWrapper {
     async fn is_valid(&mut self) -> bool {
         self.0.is_valid().await
     }
@@ -496,7 +496,7 @@ pub fn admin_register() -> AdminRegistry {
     // ── Ressource : users ──
     let meta = AdminResource::new(
         "users",
-        "crate::entities::users::Model",
+        "crate::entities::eihwaz_users::Model",
         "AdminForm",
         "Utilisateurs",
         vec!["admin".to_string()],
@@ -504,8 +504,9 @@ pub fn admin_register() -> AdminRegistry {
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
             Box::pin(async move {
-                let form = users::AdminForm::build_with_data(&data, tera, &csrf, method).await;
-                Box::new(UsersAdminFormDynWrapper(form)) as Box<dyn DynForm>
+                let form =
+                    eihwaz_users::AdminForm::build_with_data(&data, tera, &csrf, method).await;
+                Box::new(EihwazUsersAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
         });
 
@@ -515,7 +516,7 @@ pub fn admin_register() -> AdminRegistry {
                 QueryFilter,
                 sea_query::{Alias, Expr, Order},
             };
-            let mut query = users::Entity::find();
+            let mut query = eihwaz_users::Entity::find();
             if let Some(ref col) = params.sort_by {
                 let order = if params.sort_dir == SortDir::Desc {
                     Order::Desc
@@ -541,7 +542,7 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { users::Entity::find().count(&*db).await })
+        Box::pin(async move { eihwaz_users::Entity::find().count(&*db).await })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -549,7 +550,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
-            let row = users::Entity::find_by_id(id).one(&*db).await?;
+            let row = eihwaz_users::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
     });
@@ -559,13 +560,16 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
-            users::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
+            eihwaz_users::Entity::delete_by_id(id)
+                .exec(&*db)
+                .await
+                .map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            users::admin_from_form(&data, None)
+            eihwaz_users::admin_from_form(&data, None)
                 .insert(&*db)
                 .await
                 .map(|_| ())
@@ -577,7 +581,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
-            users::admin_from_form(&data, Some(id))
+            eihwaz_users::admin_from_form(&data, Some(id))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -590,7 +594,7 @@ pub fn admin_register() -> AdminRegistry {
                 let form =
                     crate::formulaire::UserEditForm::build_with_data(&data, tera, &csrf, method)
                         .await;
-                Box::new(UsersEditFormDynWrapper(form)) as Box<dyn DynForm>
+                Box::new(EihwazUsersEditFormDynWrapper(form)) as Box<dyn DynForm>
             })
         });
 
@@ -619,7 +623,7 @@ pub fn admin_register() -> AdminRegistry {
             let cur_page_username = pages.get("username").copied().unwrap_or(0);
             let count_stmt_username = Query::select()
                 .expr(Expr::cust("COUNT(DISTINCT username)"))
-                .from(Alias::new(users::Entity.table_name()))
+                .from(Alias::new(eihwaz_users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("username")).is_not_null())
                 .to_owned();
             let count_row_username = match db.query_one(&count_stmt_username).await {
@@ -638,7 +642,7 @@ pub fn admin_register() -> AdminRegistry {
             let stmt_username = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(username AS TEXT)"))
-                .from(Alias::new(users::Entity.table_name()))
+                .from(Alias::new(eihwaz_users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("username")).is_not_null())
                 .limit(page_size_username)
                 .offset(cur_page_username * page_size_username)
@@ -666,7 +670,7 @@ pub fn admin_register() -> AdminRegistry {
             let cur_page_email = pages.get("email").copied().unwrap_or(0);
             let count_stmt_email = Query::select()
                 .expr(Expr::cust("COUNT(DISTINCT email)"))
-                .from(Alias::new(users::Entity.table_name()))
+                .from(Alias::new(eihwaz_users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("email")).is_not_null())
                 .to_owned();
             let count_row_email = match db.query_one(&count_stmt_email).await {
@@ -685,7 +689,7 @@ pub fn admin_register() -> AdminRegistry {
             let stmt_email = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(email AS TEXT)"))
-                .from(Alias::new(users::Entity.table_name()))
+                .from(Alias::new(eihwaz_users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("email")).is_not_null())
                 .limit(page_size_email)
                 .offset(cur_page_email * page_size_email)
@@ -713,7 +717,7 @@ pub fn admin_register() -> AdminRegistry {
             let cur_page_is_superuser = pages.get("is_superuser").copied().unwrap_or(0);
             let count_stmt_is_superuser = Query::select()
                 .expr(Expr::cust("COUNT(DISTINCT is_superuser)"))
-                .from(Alias::new(users::Entity.table_name()))
+                .from(Alias::new(eihwaz_users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_superuser")).is_not_null())
                 .to_owned();
             let count_row_is_superuser = match db.query_one(&count_stmt_is_superuser).await {
@@ -732,7 +736,7 @@ pub fn admin_register() -> AdminRegistry {
             let stmt_is_superuser = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(is_superuser AS TEXT)"))
-                .from(Alias::new(users::Entity.table_name()))
+                .from(Alias::new(eihwaz_users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_superuser")).is_not_null())
                 .limit(page_size_is_superuser)
                 .offset(cur_page_is_superuser * page_size_is_superuser)
@@ -763,7 +767,7 @@ pub fn admin_register() -> AdminRegistry {
             let cur_page_is_active = pages.get("is_active").copied().unwrap_or(0);
             let count_stmt_is_active = Query::select()
                 .expr(Expr::cust("COUNT(DISTINCT is_active)"))
-                .from(Alias::new(users::Entity.table_name()))
+                .from(Alias::new(eihwaz_users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_active")).is_not_null())
                 .to_owned();
             let count_row_is_active = match db.query_one(&count_stmt_is_active).await {
@@ -782,7 +786,7 @@ pub fn admin_register() -> AdminRegistry {
             let stmt_is_active = Query::select()
                 .distinct()
                 .expr(Expr::cust("CAST(is_active AS TEXT)"))
-                .from(Alias::new(users::Entity.table_name()))
+                .from(Alias::new(eihwaz_users::Entity.table_name()))
                 .and_where(Expr::col(Alias::new("is_active")).is_not_null())
                 .limit(page_size_is_active)
                 .offset(cur_page_is_active * page_size_is_active)
