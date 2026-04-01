@@ -50,7 +50,7 @@ main {
     justify-content: center;
     align-items: flex-start;
     padding: 2rem clamp(1.5rem, 8vw, 7rem);
-    background: linear-gradient(to right, rgba(0,0,0,0.72) 45%, transparent 78%);
+    background: linear-gradient(to right, rgba(0,0,0,0.72) 35%, transparent 58%);
 }
 
 /* =========================
