@@ -291,19 +291,20 @@ impl Parse for FieldOption {
                 let content;
                 syn::parenthesized!(content in input);
                 let kind_ident: Ident = content.parse()?;
-                let kind =
-                    match kind_ident.to_string().as_str() {
-                        "image" => crate::model::ast::FileKind::Image,
-                        "document" => crate::model::ast::FileKind::Document,
-                        "any" => crate::model::ast::FileKind::Any,
-                        other => return Err(syn::Error::new(
+                let kind = match kind_ident.to_string().as_str() {
+                    "image" => crate::model::ast::FileKind::Image,
+                    "document" => crate::model::ast::FileKind::Document,
+                    "any" => crate::model::ast::FileKind::Any,
+                    other => {
+                        return Err(syn::Error::new(
                             kind_ident.span(),
                             format!(
                                 "Type de fichier inconnu : '{}'. Attendu : image, document, any",
                                 other
                             ),
-                        )),
-                    };
+                        ))
+                    }
+                };
                 let upload_to = if content.peek(Token![,]) {
                     content.parse::<Token![,]>()?;
                     let s: LitStr = content.parse()?;
