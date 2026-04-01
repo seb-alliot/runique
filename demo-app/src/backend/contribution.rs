@@ -1,14 +1,19 @@
 use crate::entities::contribution::Entity as ContributionEntity;
+use crate::entities::eihwaz_users;
 use crate::formulaire::{ContributionForm, contribution_type_choices};
 use runique::prelude::*;
 
 pub async fn list_contributions(
     db: &sea_orm::DatabaseConnection,
 ) -> Vec<crate::entities::contribution::Model> {
-    search!(ContributionEntity => desc Id)
-        .all(db)
-        .await
-        .unwrap_or_default()
+    search!(ContributionEntity =>
+        join EihwazUsers,
+        eihwaz_users::Username eq "alice",
+        desc Id,
+    )
+    .all(db)
+    .await
+    .unwrap_or_default()
 }
 
 pub async fn save_contribution(

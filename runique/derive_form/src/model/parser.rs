@@ -291,15 +291,19 @@ impl Parse for FieldOption {
                 let content;
                 syn::parenthesized!(content in input);
                 let kind_ident: Ident = content.parse()?;
-                let kind = match kind_ident.to_string().as_str() {
-                    "image" => crate::model::ast::FileKind::Image,
-                    "document" => crate::model::ast::FileKind::Document,
-                    "any" => crate::model::ast::FileKind::Any,
-                    other => return Err(syn::Error::new(
-                        kind_ident.span(),
-                        format!("Type de fichier inconnu : '{}'. Attendu : image, document, any", other),
-                    )),
-                };
+                let kind =
+                    match kind_ident.to_string().as_str() {
+                        "image" => crate::model::ast::FileKind::Image,
+                        "document" => crate::model::ast::FileKind::Document,
+                        "any" => crate::model::ast::FileKind::Any,
+                        other => return Err(syn::Error::new(
+                            kind_ident.span(),
+                            format!(
+                                "Type de fichier inconnu : '{}'. Attendu : image, document, any",
+                                other
+                            ),
+                        )),
+                    };
                 let upload_to = if content.peek(Token![,]) {
                     content.parse::<Token![,]>()?;
                     let s: LitStr = content.parse()?;
@@ -410,7 +414,15 @@ impl Parse for RelationDef {
                     return Err(syn::Error::new(through_kw.span(), "Attendu : 'through'"));
                 }
                 let through: Ident = input.parse()?;
-                RelationDef::ManyToMany { model, through }
+
+                // ← nouveau : via ViaIdent
+                let via_kw: Ident = input.parse()?;
+                if via_kw != "via" {
+                    return Err(syn::Error::new(via_kw.span(), "Attendu : 'via'"));
+                }
+                let via_self: Ident = input.parse()?;
+
+                RelationDef::ManyToMany { model, through, via_self }
             }
             other => return Err(syn::Error::new(
                 kind.span(),

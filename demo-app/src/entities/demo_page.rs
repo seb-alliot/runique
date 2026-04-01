@@ -13,6 +13,6 @@ model! {
         sort_order: i32 [required],
     },
     relations: {
-        belongs_to: DemoCategory via category_id [cascade],
+        belongs_to: demo_category via category_id [cascade],
     }
 }

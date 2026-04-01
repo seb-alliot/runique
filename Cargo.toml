@@ -59,7 +59,7 @@ dyn-clone = "1.0.20"
 image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
 
-derive_form = "1.1.34"
+derive_form = { path = "runique/derive_form" }
 
 # Logging
 tracing = "0.1"

@@ -80,7 +80,10 @@ pub enum FieldOption {
     #[allow(dead_code)]
     Help(String),
     Fk(FkDef),
-    File { kind: FileKind, upload_to: Option<String> },
+    File {
+        kind: FileKind,
+        upload_to: Option<String>,
+    },
 }
 
 pub enum FileKind {
@@ -118,6 +121,7 @@ pub enum RelationDef {
     ManyToMany {
         model: syn::Ident,
         through: syn::Ident,
+        via_self: syn::Ident, // ← new macro model
     },
 }
 

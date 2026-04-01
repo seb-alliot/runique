@@ -1,4 +1,4 @@
-use crate::model::ast::{self, *};
+use crate::model::ast::*;
 use crate::model::utils::*;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -6,7 +6,7 @@ use quote::quote;
 pub fn generate(model: &ModelInput) -> TokenStream2 {
     let schema = generate_schema(model);
     let sea_model = generate_sea_model(model);
-    let relation_enum = generate_relation_enum();
+    let relation_enum = generate_relation_enum(model);
     let active_model = generate_active_model();
     let from_str_map = generate_from_str_map(model);
     let admin_form = generate_admin_form(model);

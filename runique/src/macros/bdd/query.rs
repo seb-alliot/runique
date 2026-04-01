@@ -57,8 +57,8 @@ use crate::db::DatabaseConfig;
 /// ```
 use axum::response::IntoResponse;
 use sea_orm::{
-    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, ExprTrait, QueryFilter,
-    QueryOrder, QuerySelect, Select,
+    ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, ExprTrait, JoinType,
+    QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use std::sync::Arc;
 
@@ -171,6 +171,16 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
 
     pub async fn first(self, db: &DatabaseConnection) -> Result<Option<E::Model>, DbErr> {
         self.query.one(db).await
+    }
+
+    pub fn join(mut self, rel: sea_orm::RelationDef) -> Self {
+        self.query = self.query.join(JoinType::InnerJoin, rel);
+        self
+    }
+
+    pub fn left_join(mut self, rel: sea_orm::RelationDef) -> Self {
+        self.query = self.query.join(JoinType::LeftJoin, rel);
+        self
     }
 
     pub async fn get_or_404(

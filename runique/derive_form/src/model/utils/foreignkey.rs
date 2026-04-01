@@ -87,7 +87,7 @@ fn generate_relations(model: &ModelInput) -> Vec<TokenStream2> {
                     .relation(::runique::migration::RelationDef::has_one(#model_str).as_name(#as_str))
                 }
             }
-            RelationDef::ManyToMany { model, through } => {
+            RelationDef::ManyToMany { model, through, via_self: _ } => {
                 let model_str = model.to_string().to_lowercase();
                 let through_str = through.to_string();
                 quote! {
