@@ -17,7 +17,7 @@ use tower_sessions::Session;
 
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
-use crate::middleware::auth::{load_user_middleware, login_staff, logout};
+use crate::middleware::auth::{load_user_middleware, login, logout};
 use crate::urlpatterns;
 use crate::utils::{
     aliases::AppResult,
@@ -225,13 +225,13 @@ async fn admin_login_post(
         .await;
 
     if let Some(user) = result {
-        if login_staff(
+        if login(
             &req.session,
+            &req.engine.db,
             user.user_id,
             &user.username,
             user.is_staff,
             user.is_superuser,
-            user.roles,
         )
         .await
         .is_err()

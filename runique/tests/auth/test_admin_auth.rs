@@ -13,13 +13,11 @@ fn test_admin_login_result_champs_basiques() {
         username: "admin".to_string(),
         is_staff: true,
         is_superuser: false,
-        roles: vec!["editor".to_string()],
     };
     assert_eq!(result.user_id, 42);
     assert_eq!(result.username, "admin");
     assert!(result.is_staff);
     assert!(!result.is_superuser);
-    assert_eq!(result.roles, vec!["editor"]);
 }
 
 #[test]
@@ -29,29 +27,21 @@ fn test_admin_login_result_superuser() {
         username: "root".to_string(),
         is_staff: false,
         is_superuser: true,
-        roles: vec![],
     };
     assert!(!result.is_staff);
     assert!(result.is_superuser);
-    assert!(result.roles.is_empty());
 }
 
 #[test]
-fn test_admin_login_result_roles_multiples() {
+fn test_admin_login_result_staff() {
     let result = AdminLoginResult {
         user_id: 3,
         username: "mod".to_string(),
         is_staff: true,
         is_superuser: false,
-        roles: vec![
-            "editor".to_string(),
-            "moderator".to_string(),
-            "writer".to_string(),
-        ],
     };
-    assert_eq!(result.roles.len(), 3);
-    assert!(result.roles.contains(&"editor".to_string()));
-    assert!(result.roles.contains(&"moderator".to_string()));
+    assert!(result.is_staff);
+    assert!(!result.is_superuser);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -65,14 +55,12 @@ fn test_admin_login_result_clone() {
         username: "alice".to_string(),
         is_staff: true,
         is_superuser: true,
-        roles: vec!["admin".to_string()],
     };
     let cloned = result.clone();
     assert_eq!(cloned.user_id, result.user_id);
     assert_eq!(cloned.username, result.username);
     assert_eq!(cloned.is_staff, result.is_staff);
     assert_eq!(cloned.is_superuser, result.is_superuser);
-    assert_eq!(cloned.roles, result.roles);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -86,7 +74,6 @@ fn test_admin_login_result_debug_contient_username() {
         username: "debug_user".to_string(),
         is_staff: false,
         is_superuser: false,
-        roles: vec![],
     };
     let debug = format!("{:?}", result);
     assert!(debug.contains("debug_user"));

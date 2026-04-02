@@ -5,10 +5,11 @@
 
 use axum::{Extension, Router, middleware, routing::get, routing::post};
 use runique::middleware::auth::{
-    CurrentUser, has_permission, load_user_middleware, login, login_required, login_staff,
+    CurrentUser, has_permission, load_user_middleware, login, login_required,
     redirect_if_authenticated,
 };
-use std::{net::SocketAddr, sync::OnceLock};
+use sea_orm::DatabaseConnection;
+use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 // ═══════════════════════════════════════════════════════════════
@@ -24,6 +25,11 @@ fn auth_mw_addr() -> SocketAddr {
         std::thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().expect("rt auth_mw");
             rt.block_on(async {
+                let db = sea_orm::Database::connect("sqlite::memory:")
+                    .await
+                    .expect("sqlite:memory");
+                let db: Arc<DatabaseConnection> = Arc::new(db);
+
                 let store = MemoryStore::default();
                 let session_layer = SessionManagerLayer::new(store).with_secure(false);
 
@@ -54,26 +60,24 @@ fn auth_mw_addr() -> SocketAddr {
                 let public = Router::new()
                     .route(
                         "/do_login",
-                        post(|session: Session| async move {
-                            login(&session, 1, "alice").await.unwrap();
-                            "ok"
-                        }),
+                        post(
+                            |session: Session,
+                             Extension(db): Extension<Arc<DatabaseConnection>>| async move {
+                                // is_superuser=true → has_permission("any") retourne true
+                                login(&session, &db, 1, "alice", false, true).await.unwrap();
+                                "ok"
+                            },
+                        ),
                     )
                     .route(
                         "/do_login_full",
-                        post(|session: Session| async move {
-                            login_staff(
-                                &session,
-                                2,
-                                "bob",
-                                true,
-                                false,
-                                vec!["editor".to_string()],
-                            )
-                            .await
-                            .unwrap();
-                            "ok"
-                        }),
+                        post(
+                            |session: Session,
+                             Extension(db): Extension<Arc<DatabaseConnection>>| async move {
+                                login(&session, &db, 2, "bob", true, false).await.unwrap();
+                                "ok"
+                            },
+                        ),
                     )
                     .route(
                         "/has_perm",
@@ -91,6 +95,7 @@ fn auth_mw_addr() -> SocketAddr {
                     .merge(login_page)
                     .merge(user_area)
                     .merge(public)
+                    .layer(Extension(db))
                     .layer(session_layer);
 
                 let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -221,7 +226,7 @@ async fn test_load_user_connecte_injecte_current_user() {
     let addr = auth_mw_addr();
     let c = client();
 
-    // Login complet avec bob
+    // Login avec bob
     c.post(format!("http://{addr}/do_login_full"))
         .send()
         .await
@@ -251,10 +256,11 @@ async fn test_has_permission_anonyme_false() {
 }
 
 #[tokio::test]
-async fn test_has_permission_connecte_true() {
+async fn test_has_permission_superuser_true() {
     let addr = auth_mw_addr();
     let c = client();
 
+    // do_login connecte avec is_superuser=true → bypass droits
     c.post(format!("http://{addr}/do_login"))
         .send()
         .await

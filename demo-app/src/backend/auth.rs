@@ -1,5 +1,5 @@
 use crate::formulaire::{LoginForm, RegisterForm};
-use runique::middleware::auth::{login as auth_login, login_staff};
+use runique::middleware::auth::login as auth_login;
 use runique::prelude::user::Entity as UserEntity;
 use runique::prelude::*;
 
@@ -63,9 +63,16 @@ pub async fn handle_inscription(
     if request.is_post() && form.is_valid().await {
         match register_user(form, &request.engine.db).await {
             Ok(user) => {
-                auth_login(&request.session, user.id, &user.username)
-                    .await
-                    .ok();
+                auth_login(
+                    &request.session,
+                    &request.engine.db,
+                    user.id,
+                    &user.username,
+                    false,
+                    false,
+                )
+                .await
+                .ok();
                 success!(request.notices => format!("Welcome {}! Your account has been created.", user.username));
                 return Ok(Redirect::to("/profil").into_response());
             }
@@ -104,25 +111,13 @@ pub async fn handle_login(request: &mut Request, form: &LoginForm) -> AppResult<
             && let Some(user) =
                 authenticate_user(&request.engine.db, &username_val, &password_val).await
         {
-            let roles = user
-                .roles
-                .as_deref()
-                .map(|r| {
-                    serde_json::from_str::<Vec<String>>(r).unwrap_or_else(|_| {
-                        r.split(',')
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty())
-                            .collect()
-                    })
-                })
-                .unwrap_or_default();
-            login_staff(
+            auth_login(
                 &request.session,
+                &request.engine.db,
                 user.id,
                 &user.username,
                 user.is_staff,
                 user.is_superuser,
-                roles,
             )
             .await
             .ok();
