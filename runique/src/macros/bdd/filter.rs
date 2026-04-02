@@ -134,8 +134,9 @@ macro_rules! search_munch {
     ($b:expr, $entity:ty; $col:ident not_in [$($val:expr),+ $(,)?] , $($rest:tt)*) => {
         {
             use sea_orm::ColumnTrait;
-            let conds = vec![$(<$entity as sea_orm::EntityTrait>::Column::$col.eq($val)),+];
-            $b = $b.exclude(sea_orm::Condition::any(conds));
+            $b = $b.filter(
+                <$entity as sea_orm::EntityTrait>::Column::$col.is_not_in(vec![$($val),+])
+            );
         }
         $crate::search_munch!($b, $entity; $($rest)*);
     };
@@ -289,10 +290,9 @@ macro_rules! search {
 
     // ── Col not_in [v1, v2] — NOT IN littéral ────────────────────────────────
     ($entity:ty => $col:ident not_in [$($val:expr),+ $(,)?]) => {{
-        use sea_orm::{EntityTrait, ColumnTrait, Condition};
-        let conds = vec![$(<$entity as EntityTrait>::Column::$col.eq($val)),+];
+        use sea_orm::{EntityTrait, ColumnTrait};
         $crate::macros::bdd::objects::Objects::<$entity>::new()
-            .exclude(Condition::any(conds))
+            .filter(<$entity as EntityTrait>::Column::$col.is_not_in(vec![$($val),+]))
     }};
 
     // ── Col in (expr) — IN dynamique ─────────────────────────────────────────
