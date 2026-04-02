@@ -20,7 +20,7 @@ impl SecurityConfig {
         let enforce_https = std::env::var("ENFORCE_HTTPS")
             .map(|v| v.parse().unwrap_or(false))
             .unwrap_or(false);
-        let allowed_hosts = std::env::var("ALLOWED_HOSTS")
+        let allowed_hosts: Vec<String> = std::env::var("ALLOWED_HOSTS")
             .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_else(|_| vec!["localhost".to_string(), "127.0.0.1".to_string()]);
         Self {

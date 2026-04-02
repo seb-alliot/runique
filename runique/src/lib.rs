@@ -123,14 +123,7 @@ pub mod prelude {
         handle_forgot_password, handle_password_reset,
     };
     pub use crate::middleware::{
-        allowed_hosts::*,
-        auth::*,
-        cache::*,
-        config::*,
-        csp::*,
-        csrf::*,
-        errors::*,
-        rate_limit::{RateLimiter, rate_limit_middleware},
+        allowed_hosts::*, auth::*, cache::*, config::*, csp::*, csrf::*, errors::*,
     };
 
     // ========================================================================

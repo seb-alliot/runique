@@ -42,16 +42,33 @@ pub fn is_debug() -> bool {
     matches!(*ENV, RuniqueEnv::Development)
 }
 
-/// Token de 4 chiffres calculé une seule fois au démarrage.
-/// Utilisé comme cache-buster pour les assets statiques (`?v=XXXX`).
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or_else(
-            |_| "1000".to_string(),
-            |d| (d.subsec_nanos() % 9000 + 1000).to_string(),
-        )
+    let static_dir = std::env::var("STATICFILES_DIRS").unwrap_or_else(|_| "static".to_string());
+    hash_static_files(&static_dir).unwrap_or_else(|| "1000".to_string())
 });
+
+fn hash_static_files(dir: &str) -> Option<String> {
+    let mut hasher = DefaultHasher::new();
+    let mut found = false;
+
+    for entry in walkdir::WalkDir::new(dir).sort_by_file_name() {
+        let entry = entry.ok()?;
+        let path = entry.path();
+        if path.extension().map_or(false, |e| e == "css" || e == "js") {
+            std::fs::read_to_string(path).ok()?.hash(&mut hasher);
+            found = true;
+        }
+    }
+
+    if found {
+        Some(format!("{:08x}", hasher.finish()))
+    } else {
+        None
+    }
+}
 
 pub fn css_token() -> String {
     CSS_TOKEN.clone()

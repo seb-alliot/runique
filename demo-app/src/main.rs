@@ -22,7 +22,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
     let db: DatabaseConnection = db_config.connect().await?;
-
     backend::run_seeds(&db).await;
 
     builder::new(config)
@@ -39,9 +38,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_session_cleanup_interval(5)
                 .with_allowed_hosts(|h| {
                     h.enabled(!is_debug())
+                        .host("runique.io")
                         .host("localhost:3000")
                         .host("127.0.0.1:3000")
-                        .host("runique.io")
                 })
                 .with_csp(|c| {
                     c.policy(SecurityPolicy::strict())

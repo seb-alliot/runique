@@ -138,6 +138,12 @@ where
             .map(|Path(p)| p)
             .unwrap_or_default();
 
+        let og_image =
+            std::env::var("OG_IMAGE").unwrap_or("/runique/static/favicon_runique.ico".to_string());
+        let og_image =
+            crate::utils::resolve_og_image(&engine.security_hosts, engine.config.debug, &og_image);
+        context.insert("og_image", &og_image);
+
         let query_params = parts
             .uri
             .query()

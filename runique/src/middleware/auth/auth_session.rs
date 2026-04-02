@@ -204,6 +204,7 @@ pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Er
     session
         .remove::<Vec<String>>(SESSION_USER_ROLES_KEY)
         .await?;
+    session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
     session.delete().await
 }
 
@@ -320,6 +321,9 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
 
         let extensions = RequestExtensions::new().with_current_user(current_user);
         extensions.inject_request(&mut request);
+        }
+        else {
+            let _ = session.delete().await;
     }
 
     next.run(request).await

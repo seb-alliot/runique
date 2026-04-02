@@ -58,6 +58,7 @@ postal-code = "0.3.0"
 dyn-clone = "1.0.20"
 image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
+walkdir = "2.5.0"
 
 derive_form = { path = "runique/derive_form" }
 

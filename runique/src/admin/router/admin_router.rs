@@ -15,16 +15,21 @@ use axum::{
 use serde::Deserialize;
 use tower_sessions::Session;
 
-use crate::admin::PrototypeAdminState;
-use crate::admin::config::AdminConfig;
-use crate::admin::middleware::admin_required;
-use crate::admin::trad::insert_admin_messages;
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
-use crate::middleware::auth::{load_user_middleware, login_staff};
+use crate::middleware::auth::{load_user_middleware, login_staff, logout};
 use crate::urlpatterns;
-use crate::utils::aliases::AppResult;
-use crate::utils::trad::{current_lang, t};
+use crate::utils::{
+    aliases::AppResult,
+    trad::{current_lang, t},
+};
+use crate::{
+    admin::{
+        PrototypeAdminState, config::AdminConfig, middleware::admin_required,
+        trad::insert_admin_messages,
+    },
+    flash_now,
+};
 
 #[derive(Clone)]
 pub struct AdminState {
@@ -258,7 +263,8 @@ async fn admin_login_post(
 }
 
 async fn admin_logout(session: Session, Extension(admin): Extension<Arc<AdminState>>) -> Response {
-    let _ = session.delete().await;
+    let _ = logout(&session).await;
     let login_url = format!("{}/login?from=logout", admin.config.prefix);
+    flash_now!(info => "Vous êtes deconnecté");
     Redirect::to(&login_url).into_response()
 }
