@@ -1,0 +1,42 @@
+use sea_orm::entity::prelude::*;
+
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
+#[sea_orm(table_name = "eihwaz_users_groupes")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub user_id: i32,
+    #[sea_orm(primary_key)]
+    pub groupe_id: i32,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "crate::middleware::auth::user::Entity",
+        from = "Column::UserId",
+        to = "crate::middleware::auth::user::Column::Id",
+        on_delete = "Cascade"
+    )]
+    User,
+    #[sea_orm(
+        belongs_to = "super::groupe::Entity",
+        from = "Column::GroupeId",
+        to = "super::groupe::Column::Id",
+        on_delete = "Cascade"
+    )]
+    Groupe,
+}
+
+impl Related<crate::middleware::auth::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::User.def()
+    }
+}
+
+impl Related<super::groupe::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Groupe.def()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}

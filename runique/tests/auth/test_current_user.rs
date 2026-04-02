@@ -1,57 +1,66 @@
 //! Tests — CurrentUser
-//! Couvre : has_role, has_any_role, can_access_admin, can_admin
+//! Couvre : has_droit, has_any_droit, can_access_admin, can_admin
 
+use runique::admin::Droit;
 use runique::middleware::auth::CurrentUser;
 
-fn user(is_staff: bool, is_superuser: bool, roles: Vec<&str>) -> CurrentUser {
+fn user(is_staff: bool, is_superuser: bool, droits: Vec<&str>) -> CurrentUser {
     CurrentUser {
         id: 1,
         username: "alice".to_string(),
         is_staff,
         is_superuser,
-        roles: roles.iter().map(|r| r.to_string()).collect(),
+        droits: droits
+            .iter()
+            .enumerate()
+            .map(|(i, n)| Droit {
+                id: i as i32 + 1,
+                nom: n.to_string(),
+            })
+            .collect(),
+        groupes: vec![],
     }
 }
 
-// ── has_role ──────────────────────────────────────────────────────────────────
+// ── has_droit ─────────────────────────────────────────────────────────────────
 
 #[test]
-fn test_has_role_matching() {
+fn test_has_droit_matching() {
     let u = user(false, false, vec!["editor", "moderator"]);
-    assert!(u.has_role("editor"));
-    assert!(u.has_role("moderator"));
+    assert!(u.has_droit("editor"));
+    assert!(u.has_droit("moderator"));
 }
 
 #[test]
-fn test_has_role_no_match() {
+fn test_has_droit_no_match() {
     let u = user(false, false, vec!["editor"]);
-    assert!(!u.has_role("admin"));
+    assert!(!u.has_droit("admin"));
 }
 
 #[test]
-fn test_has_role_empty_roles() {
+fn test_has_droit_empty_droits() {
     let u = user(false, false, vec![]);
-    assert!(!u.has_role("editor"));
+    assert!(!u.has_droit("editor"));
 }
 
-// ── has_any_role ──────────────────────────────────────────────────────────────
+// ── has_any_droit ─────────────────────────────────────────────────────────────
 
 #[test]
-fn test_has_any_role_one_matches() {
+fn test_has_any_droit_one_matches() {
     let u = user(false, false, vec!["editor"]);
-    assert!(u.has_any_role(&["viewer", "editor"]));
-}
-
-#[test]
-fn test_has_any_role_none_match() {
-    let u = user(false, false, vec!["editor"]);
-    assert!(!u.has_any_role(&["admin", "superuser"]));
+    assert!(u.has_any_droit(&["viewer", "editor"]));
 }
 
 #[test]
-fn test_has_any_role_empty_required() {
+fn test_has_any_droit_none_match() {
     let u = user(false, false, vec!["editor"]);
-    assert!(!u.has_any_role(&[]));
+    assert!(!u.has_any_droit(&["admin", "superuser"]));
+}
+
+#[test]
+fn test_has_any_droit_empty_required() {
+    let u = user(false, false, vec!["editor"]);
+    assert!(!u.has_any_droit(&[]));
 }
 
 // ── can_access_admin ──────────────────────────────────────────────────────────
@@ -89,19 +98,19 @@ fn test_can_admin_superuser_bypasses_all() {
 }
 
 #[test]
-fn test_can_admin_has_required_role() {
+fn test_can_admin_has_required_droit() {
     let u = user(false, false, vec!["editor"]);
     assert!(u.can_admin(&["editor"]));
 }
 
 #[test]
-fn test_can_admin_missing_required_role() {
+fn test_can_admin_missing_required_droit() {
     let u = user(false, false, vec!["viewer"]);
     assert!(!u.can_admin(&["editor", "admin"]));
 }
 
 #[test]
-fn test_can_admin_empty_roles_not_superuser() {
+fn test_can_admin_empty_droits_not_superuser() {
     let u = user(false, false, vec![]);
     assert!(!u.can_admin(&["admin"]));
 }

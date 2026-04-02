@@ -16,7 +16,6 @@ pub struct AdminLoginResult {
     pub username: String,
     pub is_staff: bool,
     pub is_superuser: bool,
-    pub roles: Vec<String>,
 }
 
 /// Trait à implémenter pour brancher la vérification du login admin

@@ -1,17 +1,16 @@
-//! Tests — Session Auth (login, login_staff, logout, is_authenticated)
-//! Bug fix vérifié : logout() ne vidait pas toutes les clés de session
+//! Tests — Session Auth (login, logout, is_authenticated)
 //!
 //! Ces tests utilisent un router Axum minimal avec MemoryStore pour créer
-//! de vraies sessions sans démarrer de serveur.
+//! de vraies sessions sans démarrer de serveur persistant.
 
 use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
-use runique::middleware::auth::{
-    get_user_id, get_username, is_authenticated, login, login_staff, logout,
-};
+use runique::admin::{Droit, Groupe};
+use runique::middleware::auth::{get_user_id, get_username, is_authenticated, login, logout};
 use runique::utils::constante::{
-    SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_ROLES_KEY,
+    SESSION_USER_DROITS_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_IS_STAFF_KEY,
+    SESSION_USER_IS_SUPERUSER_KEY,
 };
 
 use crate::helpers::{
@@ -49,7 +48,10 @@ async fn test_is_authenticated_when_no_user_in_session() {
 #[tokio::test]
 async fn test_is_authenticated_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(&session, 1, "alice").await.unwrap();
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 1, "alice", false, false)
+            .await
+            .unwrap();
         if is_authenticated(&session).await {
             "authenticated"
         } else {
@@ -66,7 +68,8 @@ async fn test_is_authenticated_after_login() {
 #[tokio::test]
 async fn test_login_sets_id_and_username() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(&session, 42, "bob").await.unwrap();
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 42, "bob", false, false).await.unwrap();
         let id = get_user_id(&session).await.unwrap_or(0);
         let username = get_username(&session).await.unwrap_or_default();
         format!("{}/{}", id, username)
@@ -76,14 +79,13 @@ async fn test_login_sets_id_and_username() {
     assert_body_str(res, "42/bob").await;
 }
 
-// ── login_staff ───────────────────────────────────────────────────────────────
+// ── login — tous les champs ───────────────────────────────────────────────────
 
 #[tokio::test]
-async fn test_login_staff_sets_all_fields() {
+async fn test_login_sets_all_fields() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login_staff(&session, 7, "admin", true, true, vec!["editor".to_string()])
-            .await
-            .unwrap();
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 7, "admin", true, true).await.unwrap();
 
         let id = get_user_id(&session).await.unwrap_or(0);
         let username = get_username(&session).await.unwrap_or_default();
@@ -99,43 +101,42 @@ async fn test_login_staff_sets_all_fields() {
             .ok()
             .flatten()
             .unwrap_or(false);
-        let roles = session
-            .get::<Vec<String>>(SESSION_USER_ROLES_KEY)
+        // droits/groupes sont vides (tables absentes en sqlite::memory:)
+        let droits = session
+            .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+        let groupes = session
+            .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
             .await
             .ok()
             .flatten()
             .unwrap_or_default();
 
         format!(
-            "{}/{}/{}/{}/{}",
+            "{}/{}/{}/{}/{}/{}",
             id,
             username,
             is_staff,
             is_su,
-            roles.join(",")
+            droits.len(),
+            groupes.len()
         )
     }
 
     let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "7/admin/true/true/editor").await;
+    assert_body_str(res, "7/admin/true/true/0/0").await;
 }
 
 // ── logout ────────────────────────────────────────────────────────────────────
-// Bug fix : logout() ne vidait pas les clés de session
 
 #[tokio::test]
 async fn test_logout_clears_session_keys() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login_staff(
-            &session,
-            1,
-            "alice",
-            true,
-            false,
-            vec!["moderator".to_string()],
-        )
-        .await
-        .unwrap();
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 1, "alice", true, false).await.unwrap();
         logout(&session).await.unwrap();
 
         let all_cleared = get_user_id(&session).await.is_none()
@@ -153,7 +154,13 @@ async fn test_logout_clears_session_keys() {
                 .flatten()
                 .is_none()
             && session
-                .get::<Vec<String>>(SESSION_USER_ROLES_KEY)
+                .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
+                .await
+                .ok()
+                .flatten()
+                .is_none()
+            && session
+                .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
                 .await
                 .ok()
                 .flatten()
@@ -173,7 +180,10 @@ async fn test_logout_clears_session_keys() {
 #[tokio::test]
 async fn test_is_not_authenticated_after_logout() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(&session, 1, "alice").await.unwrap();
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 1, "alice", false, false)
+            .await
+            .unwrap();
         logout(&session).await.unwrap();
         if is_authenticated(&session).await {
             "authenticated"
@@ -205,7 +215,10 @@ async fn test_get_user_id_returns_none_when_not_logged_in() {
 #[tokio::test]
 async fn test_get_username_after_login() {
     async fn handler(session: Session) -> impl IntoResponse {
-        login(&session, 1, "charlie").await.unwrap();
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 1, "charlie", false, false)
+            .await
+            .unwrap();
         get_username(&session).await.unwrap_or_default()
     }
 

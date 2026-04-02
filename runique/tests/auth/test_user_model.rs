@@ -1,12 +1,12 @@
 //! Tests — middleware/auth/user.rs
-//! Couvre : Model::get_roles, Model::set_roles, RuniqueUser trait
+//! Couvre : RuniqueUser trait
 
 use runique::middleware::auth::user::Model;
 use runique::middleware::auth::user_trait::RuniqueUser;
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
-fn make_model(roles: Option<&str>) -> Model {
+fn make_model() -> Model {
     Model {
         id: 1,
         username: "alice".to_string(),
@@ -15,80 +15,9 @@ fn make_model(roles: Option<&str>) -> Model {
         is_active: true,
         is_staff: false,
         is_superuser: false,
-        roles: roles.map(|s| s.to_string()),
         created_at: None,
         updated_at: None,
     }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// get_roles
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_get_roles_none_retourne_vide() {
-    let model = make_model(None);
-    assert!(model.get_roles().is_empty());
-}
-
-#[test]
-fn test_get_roles_json_valide() {
-    let model = make_model(Some(r#"["editor","moderator"]"#));
-    let roles = model.get_roles();
-    assert_eq!(roles, vec!["editor", "moderator"]);
-}
-
-#[test]
-fn test_get_roles_json_invalide_retourne_vide() {
-    // Fallback CSV : "not-json" n'est pas du JSON mais est un token CSV valide
-    let model = make_model(Some("not-json"));
-    assert_eq!(model.get_roles(), vec!["not-json"]);
-}
-
-#[test]
-fn test_get_roles_liste_vide_json() {
-    let model = make_model(Some("[]"));
-    assert!(model.get_roles().is_empty());
-}
-
-#[test]
-fn test_get_roles_un_seul_role() {
-    let model = make_model(Some(r#"["admin"]"#));
-    assert_eq!(model.get_roles(), vec!["admin"]);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// set_roles
-// ═══════════════════════════════════════════════════════════════
-
-#[test]
-fn test_set_roles_liste_vide_retourne_none() {
-    let result = Model::set_roles(&[]);
-    assert!(result.is_none());
-}
-
-#[test]
-fn test_set_roles_un_role() {
-    let result = Model::set_roles(&["admin".to_string()]);
-    assert!(result.is_some());
-    let json: Vec<String> = serde_json::from_str(&result.unwrap()).unwrap();
-    assert_eq!(json, &["admin"]);
-}
-
-#[test]
-fn test_set_roles_plusieurs_roles() {
-    let result = Model::set_roles(&["editor".to_string(), "moderator".to_string()]);
-    assert!(result.is_some());
-    let json: Vec<String> = serde_json::from_str(&result.unwrap()).unwrap();
-    assert_eq!(json, &["editor", "moderator"]);
-}
-
-#[test]
-fn test_set_roles_roundtrip_avec_get_roles() {
-    let roles_in = &["writer".to_string(), "reviewer".to_string()];
-    let serialized = Model::set_roles(&roles_in.clone()).unwrap();
-    let model = make_model(Some(&serialized));
-    assert_eq!(model.get_roles(), roles_in);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -97,61 +26,69 @@ fn test_set_roles_roundtrip_avec_get_roles() {
 
 #[test]
 fn test_runique_user_id() {
-    let model = make_model(None);
+    let model = make_model();
     assert_eq!(model.user_id(), 1);
 }
 
 #[test]
 fn test_runique_user_username() {
-    let model = make_model(None);
+    let model = make_model();
     assert_eq!(model.username(), "alice");
 }
 
 #[test]
 fn test_runique_user_email() {
-    let model = make_model(None);
+    let model = make_model();
     assert_eq!(model.email(), "alice@example.com");
 }
 
 #[test]
 fn test_runique_user_password_hash() {
-    let model = make_model(None);
+    let model = make_model();
     assert_eq!(model.password_hash(), "hashed");
 }
 
 #[test]
 fn test_runique_user_is_active() {
-    let model = make_model(None);
+    let model = make_model();
     assert!(model.is_active());
 }
 
 #[test]
 fn test_runique_user_is_staff_false() {
-    let model = make_model(None);
+    let model = make_model();
     assert!(!model.is_staff());
 }
 
 #[test]
 fn test_runique_user_is_superuser_false() {
-    let model = make_model(None);
+    let model = make_model();
     assert!(!model.is_superuser());
 }
 
 #[test]
 fn test_runique_user_is_superuser_true() {
-    let mut model = make_model(None);
+    let mut model = make_model();
     model.is_superuser = true;
     assert!(model.is_superuser());
 }
 
 #[test]
-fn test_runique_user_roles_via_trait() {
-    let model = make_model(Some(r#"["editor"]"#));
-    assert_eq!(model.roles(), vec!["editor"]);
+fn test_runique_user_roles_default_vide() {
+    // roles() retourne toujours vec![] (implémentation par défaut du trait)
+    let model = make_model();
+    assert!(model.roles().is_empty());
 }
 
 #[test]
-fn test_runique_user_roles_vide_via_trait() {
-    let model = make_model(None);
-    assert!(model.roles().is_empty());
+fn test_runique_user_can_access_admin_false() {
+    let model = make_model();
+    assert!(!model.can_access_admin());
+}
+
+#[test]
+fn test_runique_user_can_access_admin_staff() {
+    let mut model = make_model();
+    model.is_staff = true;
+    assert!(model.can_access_admin());
 }

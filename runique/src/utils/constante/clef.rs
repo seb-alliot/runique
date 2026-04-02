@@ -18,3 +18,5 @@ pub const SESSION_USER_USERNAME_KEY: &str = "username";
 pub const SESSION_USER_IS_STAFF_KEY: &str = "is_staff";
 pub const SESSION_USER_IS_SUPERUSER_KEY: &str = "is_superuser";
 pub const SESSION_USER_ROLES_KEY: &str = "roles";
+pub const SESSION_USER_DROITS_KEY: &str = "droits";
+pub const SESSION_USER_GROUPES_KEY: &str = "groupes";

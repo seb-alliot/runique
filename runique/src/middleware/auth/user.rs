@@ -21,7 +21,6 @@ pub struct Model {
     pub is_active: bool,
     pub is_staff: bool,
     pub is_superuser: bool,
-    pub roles: Option<String>,
     pub created_at: Option<chrono::NaiveDateTime>,
     pub updated_at: Option<chrono::NaiveDateTime>,
 }
@@ -29,35 +28,34 @@ pub struct Model {
 impl_objects!(Entity);
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "crate::admin::permissions::users_droits::Entity")]
+    UsersDroits,
+    #[sea_orm(has_many = "crate::admin::permissions::users_groupes::Entity")]
+    UsersGroupes,
+    #[sea_orm(has_many = "crate::middleware::session::session_db::Entity")]
+    Sessions,
+}
 
-impl ActiveModelBehavior for ActiveModel {}
-
-// ─── Méthodes utilitaires ────────────────────────────────────────────────────
-impl Model {
-    #[must_use]
-    pub fn get_roles(&self) -> Vec<String> {
-        self.roles
-            .as_deref()
-            .map(|r| {
-                serde_json::from_str(r).unwrap_or_else(|_| {
-                    r.split(',')
-                        .map(|s| s.trim().to_string())
-                        .filter(|s| !s.is_empty())
-                        .collect()
-                })
-            })
-            .unwrap_or_default()
-    }
-    #[must_use]
-    pub fn set_roles(roles: &[String]) -> Option<String> {
-        if roles.is_empty() {
-            None
-        } else {
-            serde_json::to_string(&roles).ok()
-        }
+impl Related<crate::admin::permissions::users_droits::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UsersDroits.def()
     }
 }
+
+impl Related<crate::admin::permissions::users_groupes::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UsersGroupes.def()
+    }
+}
+
+impl Related<crate::middleware::session::session_db::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Sessions.def()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
 
 // ─── RuniqueUser ─────────────────────────────────────────────────────────────
 impl RuniqueUser for Model {
@@ -81,9 +79,6 @@ impl RuniqueUser for Model {
     }
     fn is_superuser(&self) -> bool {
         self.is_superuser
-    }
-    fn roles(&self) -> Vec<String> {
-        self.get_roles()
     }
 }
 

@@ -4,6 +4,7 @@ pub mod config;
 pub mod daemon;
 pub mod dyn_form;
 pub mod middleware;
+pub mod permissions;
 pub mod registry;
 pub mod resource;
 pub mod resource_entry;
@@ -18,6 +19,7 @@ pub use cli_admin::create_superuser;
 pub use config::AdminConfig;
 pub use daemon::{generate, parse_admin_file, watch};
 pub use dyn_form::DynForm;
+pub use permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
 pub use registry::AdminRegistry;
 pub use resource::{
     AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,

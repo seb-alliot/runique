@@ -119,7 +119,6 @@ impl<E: UserEntity> AdminAuth for DefaultAdminAuth<E> {
             username: user.username().to_string(),
             is_staff: user.is_staff(),
             is_superuser: user.is_superuser(),
-            roles: user.roles(),
         })
     }
 }

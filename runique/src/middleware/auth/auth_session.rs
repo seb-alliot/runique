@@ -1,27 +1,20 @@
+use crate::admin::permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
 use crate::config::AppSettings;
 use crate::context::RequestExtensions;
 use crate::utils::constante::{
-    SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
-    SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_ROLES_KEY, SESSION_USER_USERNAME_KEY,
+    SESSION_ACTIVE_KEY, SESSION_USER_DROITS_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_ID_KEY,
+    SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
 };
 use axum::{
     extract::Request,
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
 };
+use sea_orm::DatabaseConnection;
 use tower_sessions::Session;
 
 // ═══════════════════════════════════════════════════════════════
 // CurrentUser — Utilisateur authentifié
-// ═══════════════════════════════════════════════════════════════
-//
-// Loaded from the session via `load_user_middleware`.
-// Injected into the request extensions to be
-// accessible in all handlers.
-//
-// Les champs is_staff / is_superuser / roles sont stockés
-// en session lors du login (via login) et relus
-// à chaque requête.
 // ═══════════════════════════════════════════════════════════════
 
 #[derive(Clone, Debug, serde::Serialize)]
@@ -30,46 +23,52 @@ pub struct CurrentUser {
     pub username: String,
     /// Accès au panneau d'administration (lecture / opérations limitées)
     pub is_staff: bool,
-
     /// Accès complet — bypass toutes les restrictions admin
     pub is_superuser: bool,
-
-    /// Rôles personnalisés (ex: ["editor", "moderator"])
-    pub roles: Vec<String>,
+    /// Droits directs de l'utilisateur
+    pub droits: Vec<Droit>,
+    /// Groupes de l'utilisateur (chaque groupe contient ses droits)
+    pub groupes: Vec<Groupe>,
 }
 
 impl CurrentUser {
-    /// Vérifie si l'utilisateur possède un rôle spécifique
-    #[must_use]
-    pub fn has_role(&self, role: &str) -> bool {
-        self.roles.iter().any(|r| r == role)
+    /// Droits effectifs = droits directs + droits hérités des groupes, dédupliqués.
+    pub fn droits_effectifs(&self) -> Vec<Droit> {
+        let mut droits = self.droits.clone();
+        for groupe in &self.groupes {
+            droits.extend(groupe.droits.iter().cloned());
+        }
+        droits.sort();
+        droits.dedup();
+        droits
     }
 
-    /// Vérifie si l'utilisateur possède au moins un des rôles fournis
+    /// Vérifie si l'utilisateur possède un droit spécifique (par nom).
     #[must_use]
-    pub fn has_any_role(&self, roles: &[&str]) -> bool {
-        roles.iter().any(|role| self.has_role(role))
+    pub fn has_droit(&self, nom: &str) -> bool {
+        self.droits_effectifs().iter().any(|d| d.nom == nom)
     }
 
-    /// Vérifie si l'utilisateur peut accéder au panneau d'administration
-    ///
-    /// `is_superuser` → accès total
-    /// `is_staff` → accès limité selon les permissions de chaque ressource
+    /// Vérifie si l'utilisateur possède au moins un des droits fournis.
+    #[must_use]
+    pub fn has_any_droit(&self, noms: &[&str]) -> bool {
+        noms.iter().any(|n| self.has_droit(n))
+    }
+
+    /// Vérifie si l'utilisateur peut accéder au panneau d'administration.
     #[must_use]
     pub fn can_access_admin(&self) -> bool {
         self.is_staff || self.is_superuser
     }
 
-    /// Vérifie si l'utilisateur est autorisé pour une opération admin donnée
-    ///
-    /// `is_superuser` bypass toujours → retourne `true`
-    /// Sinon vérifie les rôles requis
+    /// Vérifie les droits pour une opération admin.
+    /// `is_superuser` bypass toujours.
     #[must_use]
-    pub fn can_admin(&self, required_roles: &[&str]) -> bool {
+    pub fn can_admin(&self, required: &[&str]) -> bool {
         if self.is_superuser {
             return true;
         }
-        self.has_any_role(required_roles)
+        self.has_any_droit(required)
     }
 }
 
@@ -77,7 +76,7 @@ impl CurrentUser {
 // Helpers de session
 // ═══════════════════════════════════════════════════════════════
 
-/// Vérifie si l'utilisateur est authentifié
+/// Vérifie si l'utilisateur est authentifié.
 pub async fn is_authenticated(session: &Session) -> bool {
     session
         .get::<i32>(SESSION_USER_ID_KEY)
@@ -86,15 +85,10 @@ pub async fn is_authenticated(session: &Session) -> bool {
         .flatten()
         .is_some()
 }
-pub async fn is_admin_authenticated(session: &Session) -> bool {
-    let is_authenticated = session
-        .get::<i32>(SESSION_USER_ID_KEY)
-        .await
-        .ok()
-        .flatten()
-        .is_some();
 
-    if !is_authenticated {
+/// Vérifie si l'utilisateur est authentifié et a accès à l'admin.
+pub async fn is_admin_authenticated(session: &Session) -> bool {
+    if !is_authenticated(session).await {
         return false;
     }
 
@@ -114,12 +108,13 @@ pub async fn is_admin_authenticated(session: &Session) -> bool {
 
     is_staff || is_superuser
 }
-/// Récupère l'ID de l'utilisateur connecté
+
+/// Récupère l'ID de l'utilisateur connecté.
 pub async fn get_user_id(session: &Session) -> Option<i32> {
     session.get::<i32>(SESSION_USER_ID_KEY).await.ok().flatten()
 }
 
-/// Récupère le username de l'utilisateur connecté
+/// Récupère le username de l'utilisateur connecté.
 pub async fn get_username(session: &Session) -> Option<String> {
     session
         .get::<String>(SESSION_USER_USERNAME_KEY)
@@ -128,38 +123,28 @@ pub async fn get_username(session: &Session) -> Option<String> {
         .flatten()
 }
 
-/// Connecte un utilisateur (stocke id + username en session)
+// ═══════════════════════════════════════════════════════════════
+// Login unifié
+// ═══════════════════════════════════════════════════════════════
+
+/// Connecte un utilisateur — charge ses droits et groupes depuis la DB.
 ///
-/// `is_staff`, `is_superuser` et `roles` sont à `false` / vide par défaut.
-/// Pour les comptes staff/admin, utilisez `login_staff`.
+/// Remplace `login` et `login_staff` : point d'entrée unique.
+///
+/// ```rust,ignore
+/// login(&session, &db, user.id, &user.username, user.is_staff, user.is_superuser).await?;
+/// ```
 pub async fn login(
     session: &Session,
-    user_id: i32,
-    username: &str,
-) -> Result<(), tower_sessions::session::Error> {
-    session.insert(SESSION_USER_ID_KEY, user_id).await?;
-    session
-        .insert(SESSION_USER_USERNAME_KEY, username.to_string())
-        .await?;
-    session.insert(SESSION_USER_IS_STAFF_KEY, false).await?;
-    session.insert(SESSION_USER_IS_SUPERUSER_KEY, false).await?;
-    session
-        .insert(SESSION_USER_ROLES_KEY, Vec::<String>::new())
-        .await?;
-    Ok(())
-}
-
-/// Connecte un utilisateur avec ses droits staff/admin et ses rôles
-///
-/// À utiliser pour les comptes qui ont `is_staff`, `is_superuser` ou des `roles` personnalisés.
-pub async fn login_staff(
-    session: &Session,
+    db: &DatabaseConnection,
     user_id: i32,
     username: &str,
     is_staff: bool,
     is_superuser: bool,
-    roles: Vec<String>,
 ) -> Result<(), tower_sessions::session::Error> {
+    let droits = pull_droits_db(db, user_id).await;
+    let groupes = pull_groupes_db(db, user_id).await;
+
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
     session
         .insert(SESSION_USER_USERNAME_KEY, username.to_string())
@@ -168,32 +153,13 @@ pub async fn login_staff(
     session
         .insert(SESSION_USER_IS_SUPERUSER_KEY, is_superuser)
         .await?;
-    session.insert(SESSION_USER_ROLES_KEY, roles).await?;
+    session.insert(SESSION_USER_DROITS_KEY, &droits).await?;
+    session.insert(SESSION_USER_GROUPES_KEY, &groupes).await?;
+
     Ok(())
 }
 
-/// Connecte un utilisateur en invalidant toutes ses sessions existantes.
-///
-/// Garantit qu'un seul appareil à la fois peut être connecté avec ce compte.
-/// Si `session_store` n'est pas disponible (store externe), se comporte comme `login`.
-///
-/// # Exemple
-/// ```rust,ignore
-/// login_exclusive(&request.session, &request.engine, user.id, &user.username).await.ok();
-/// ```
-pub async fn login_exclusive(
-    session: &Session,
-    engine: &crate::engine::RuniqueEngine,
-    user_id: i32,
-    username: &str,
-) -> Result<(), tower_sessions::session::Error> {
-    if let Some(store) = engine.session_store.get() {
-        store.invalidate_user_sessions(user_id).await;
-    }
-    login(session, user_id, username).await
-}
-
-/// Déconnecte un utilisateur (supprime la session)
+/// Déconnecte un utilisateur (supprime la session).
 pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Error> {
     session.remove::<i32>(SESSION_USER_ID_KEY).await?;
     session.remove::<String>(SESSION_USER_USERNAME_KEY).await?;
@@ -202,21 +168,16 @@ pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Er
         .remove::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
         .await?;
     session
-        .remove::<Vec<String>>(SESSION_USER_ROLES_KEY)
+        .remove::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
+        .await?;
+    session
+        .remove::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
         .await?;
     session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
     session.delete().await
 }
 
-/// Protège une session anonyme contre le cleanup sous pression mémoire.
-///
-/// Utile pour les sessions avec de la valeur applicative (panier, formulaire multi-étapes).
-/// La session ne sera pas supprimée par le cleaner pendant `duration_secs` secondes.
-///
-/// # Exemple
-/// ```rust,ignore
-/// protect_session(&session, 3600).await?; // protège 1 heure
-/// ```
+/// Protège une session anonyme contre le cleanup.
 pub async fn protect_session(
     session: &Session,
     duration_secs: i64,
@@ -231,24 +192,45 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
     Ok(())
 }
 
-/// Vérifie si l'utilisateur a une permission donnée
-///
-/// Implémentation complète à brancher sur la DB selon le modèle du projet.
-pub async fn has_permission(session: &Session, _permission: &str) -> bool {
-    is_authenticated(session).await
+/// Vérifie si l'utilisateur a un droit donné.
+pub async fn has_permission(session: &Session, permission: &str) -> bool {
+    let droits = session
+        .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_default();
+
+    let groupes = session
+        .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_default();
+
+    let is_superuser = session
+        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    if is_superuser {
+        return true;
+    }
+
+    let mut all_droits = droits;
+    for g in groupes {
+        all_droits.extend(g.droits);
+    }
+    all_droits.iter().any(|d| d.nom == permission)
 }
 
 // ═══════════════════════════════════════════════════════════════
 // Middlewares Axum
 // ═══════════════════════════════════════════════════════════════
 
-/// Middleware : protège les routes (authentification requise)
-///
-/// ```rust,ignore
-/// let protected = Router::new()
-///     .route("/admin/dashboard", get(dashboard))
-///     .layer(axum::middleware::from_fn(login_required));
-/// ```
+/// Middleware : protège les routes (authentification requise).
 pub async fn login_required(session: Session, request: Request, next: Next) -> Response {
     if is_authenticated(&session).await {
         next.run(request).await
@@ -258,15 +240,7 @@ pub async fn login_required(session: Session, request: Request, next: Next) -> R
     }
 }
 
-/// Middleware : redirige les utilisateurs déjà connectés
-///
-/// Utile pour les pages login / register.
-///
-/// ```rust,ignore
-/// let public = Router::new()
-///     .route("/login", get(login_page))
-///     .layer(axum::middleware::from_fn(redirect_if_authenticated));
-/// ```
+/// Middleware : redirige les utilisateurs déjà connectés.
 pub async fn redirect_if_authenticated(session: Session, request: Request, next: Next) -> Response {
     if is_authenticated(&session).await {
         let redirect_url = AppSettings::default().user_connected;
@@ -276,16 +250,7 @@ pub async fn redirect_if_authenticated(session: Session, request: Request, next:
     }
 }
 
-/// Middleware : charge les infos utilisateur dans les extensions
-///
-/// Charge id, username, `is_staff`, `is_superuser` et roles depuis la session.
-/// Injecte un `CurrentUser` dans les extensions de la requête.
-///
-/// ```rust,ignore
-/// let app = Router::new()
-///     .route("/admin/dashboard", get(dashboard))
-///     .layer(axum::middleware::from_fn(load_user_middleware));
-/// ```
+/// Middleware : charge les infos utilisateur dans les extensions de la requête.
 pub async fn load_user_middleware(session: Session, mut request: Request, next: Next) -> Response {
     if let (Some(user_id), Some(username)) =
         (get_user_id(&session).await, get_username(&session).await)
@@ -304,8 +269,15 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
             .flatten()
             .unwrap_or(false);
 
-        let roles = session
-            .get::<Vec<String>>(SESSION_USER_ROLES_KEY)
+        let droits = session
+            .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+
+        let groupes = session
+            .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
             .await
             .ok()
             .flatten()
@@ -316,7 +288,8 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
             username,
             is_staff,
             is_superuser,
-            roles,
+            droits,
+            groupes,
         };
 
         let extensions = RequestExtensions::new().with_current_user(current_user);
