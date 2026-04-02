@@ -57,7 +57,7 @@ fn hash_static_files(dir: &str) -> Option<String> {
     for entry in walkdir::WalkDir::new(dir).sort_by_file_name() {
         let entry = entry.ok()?;
         let path = entry.path();
-        if path.extension().map_or(false, |e| e == "css" || e == "js") {
+        if path.extension().is_some_and(|e| e == "css" || e == "js") {
             std::fs::read_to_string(path).ok()?.hash(&mut hasher);
             found = true;
         }
