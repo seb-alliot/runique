@@ -321,9 +321,8 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
 
         let extensions = RequestExtensions::new().with_current_user(current_user);
         extensions.inject_request(&mut request);
-        }
-        else {
-            let _ = session.delete().await;
+    } else {
+        let _ = session.delete().await;
     }
 
     next.run(request).await

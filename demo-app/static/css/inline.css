@@ -1,6 +1,6 @@
 /* Styles migrated from template inline attributes */
 
-.lead-mb        { margin-bottom: 2rem; }
+.lead-mb        { margin: 2rem auto; }
 .text-hint      { opacity: 0.6; font-size: 0.9rem; }
 .search-bar     { margin-bottom: 1.5rem; display: flex; gap: 0.5rem; }
 .hero-code-full { max-width: 100%; margin-bottom: 2rem; }

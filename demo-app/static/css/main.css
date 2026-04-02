@@ -757,7 +757,7 @@ a {
     text-align: center;
     max-width: 600px;
     line-height: 1.7;
-    margin: 0;
+    margin: 2rem auto;
 }
 
 .lead strong {
