@@ -447,7 +447,7 @@ async fn reset_view<E: UserEntity + 'static>(
 
 impl<E: UserEntity + 'static> PasswordResetHandler for PasswordResetAdapter<E> {
     fn build_router(&self, config: Arc<PasswordResetConfig>) -> Router {
-        use crate::middleware::rate_limit::{RateLimiter, rate_limit_middleware};
+        use crate::middleware::security::rate_limit::{RateLimiter, rate_limit_middleware};
         use axum::middleware;
         use axum::routing::any;
 

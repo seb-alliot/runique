@@ -1,7 +1,6 @@
 pub mod auth;
 pub mod dev;
 pub mod errors;
-pub mod rate_limit;
 pub mod security;
 pub mod session;
 

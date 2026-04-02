@@ -81,6 +81,7 @@ country.workspace = true
 postal-code.workspace = true
 dyn-clone.workspace = true
 image.workspace = true
+walkdir.workspace = true
 
 
 # Logging
