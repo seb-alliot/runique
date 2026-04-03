@@ -59,7 +59,7 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
 
     if !Path::new(&lib).exists() {
         let content = format!(
-            "use sea_orm_migration::prelude::*;\n\n{}\n\npub struct Migrator;\n\n#[async_trait::async_trait]\nimpl MigratorTrait for Migrator {{\n    fn migrations() -> Vec<Box<dyn MigrationTrait>> {{\n        let mut migrations: Vec<Box<dyn MigrationTrait>> = vec![\n{}\n        ];\n        migrations.extend(runique::migration::builtin_migrations());\n        migrations\n    }}\n}}\n",
+            "use sea_orm_migration::prelude::*;\n\n{}\n\npub struct Migrator;\n\n#[async_trait::async_trait]\nimpl MigratorTrait for Migrator {{\n    fn migrations() -> Vec<Box<dyn MigrationTrait>> {{\n        let migrations: Vec<Box<dyn MigrationTrait>> = vec![\n{}\n        ];\n        migrations.extend(runique::migration::builtin_migrations());\n        migrations\n    }}\n}}\n",
             mod_line, box_line
         );
         fs::write(&lib, content)?;

@@ -8,22 +8,98 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     let fk_stmts = build_fk_create_stmts(schema);
     let idx_stmts = build_index_create_stmts(schema);
     let trigger_stmts = build_updated_at_trigger_stmts(schema, db_kind);
-
+    let enum_stmts = build_enum_type_stmts(schema);
+    let enum_drops = build_enum_type_drops(schema);
     let fk_drops = build_fk_drop_stmts(schema);
     let idx_drops = build_index_drop_stmts(schema);
     let trigger_drops = build_updated_at_trigger_drops(schema, db_kind);
 
+    let mut up = String::new();
+    up.push_str(&enum_stmts);
+    up.push_str("        manager\n");
+    up.push_str("            .create_table(\n");
+    up.push_str("                Table::create()\n");
+    up.push_str(&format!(
+        "                    .table(Alias::new(\"{}\"))\n",
+        schema.table_name
+    ));
+    up.push_str("                    .if_not_exists()\n");
+    up.push_str(&cols);
+    up.push_str("                    .to_owned()\n"); //
+    up.push_str("            )\n");
+    up.push_str("            .await?;\n\n");
+    up.push_str(&fk_stmts);
+    up.push_str(&idx_stmts);
+    up.push_str(&trigger_stmts);
+    up.push_str("        Ok(())\n");
+
+    let mut down = String::new();
+    down.push_str(&trigger_drops);
+    down.push_str(&fk_drops);
+    down.push_str(&idx_drops);
+    down.push_str("        manager\n");
+    down.push_str("            .drop_table(Table::drop()\n");
+    down.push_str(&format!(
+        "                .table(Alias::new(\"{}\"))\n",
+        schema.table_name
+    ));
+    down.push_str("                .to_owned())\n");
+    down.push_str("            .await?;\n");
+    down.push_str(&enum_drops);
+    down.push_str("        Ok(())\n");
+
     format!(
-        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n        manager\n            .create_table(\n                Table::create()\n                    .table(Alias::new(\"{table}\"))\n                    .if_not_exists()\n{cols}\n                    .to_owned(),\n            )\n            .await?;\n\n{fk_stmts}{idx_stmts}{trigger_stmts}        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{trigger_drops}{fk_drops}{idx_drops}        manager\n            .drop_table(Table::drop().table(Alias::new(\"{table}\"))\n                .to_owned())\n            .await?;\n        Ok(())\n    }}\n}}\n",
-        table = schema.table_name,
-        cols = cols,
-        fk_stmts = fk_stmts,
-        idx_stmts = idx_stmts,
-        trigger_stmts = trigger_stmts,
-        fk_drops = fk_drops,
-        idx_drops = idx_drops,
-        trigger_drops = trigger_drops,
+        "use sea_orm_migration::prelude::*;\n\n\
+    #[derive(DeriveMigrationName)]\n\
+    pub struct Migration;\n\n\
+    #[async_trait::async_trait]\n\
+    impl MigrationTrait for Migration {{\n\
+        async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n\
+    {up}\
+        }}\n\n\
+        async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n\
+    {down}\
+        }}\n\
+    }}\n",
+        up = up,
+        down = down,
     )
+}
+
+fn build_enum_type_stmts(schema: &ParsedSchema) -> String {
+    let mut out = String::new();
+    for col in &schema.columns {
+        if col.enum_string_values.is_empty() {
+            continue;
+        }
+        let name = col.enum_name.as_deref().unwrap_or(&col.name);
+        let variants: Vec<String> = col
+            .enum_string_values
+            .iter()
+            .map(|v| format!("'{}'", v)) // ← guillemets simples
+            .collect();
+        out.push_str(&format!(
+            "        manager.get_connection().execute_unprepared(\n            \"CREATE TYPE {name} AS ENUM ({variants})\"\n        ).await?;\n\n",
+            name = name,
+            variants = variants.join(", "),
+        ));
+    }
+    out
+}
+
+fn build_enum_type_drops(schema: &ParsedSchema) -> String {
+    let mut out = String::new();
+    for col in &schema.columns {
+        if col.enum_string_values.is_empty() {
+            continue;
+        }
+        let name = col.enum_name.as_deref().unwrap_or(&col.name);
+        out.push_str(&format!(
+            "        manager.get_connection().execute_unprepared(\n            \"DROP TYPE IF EXISTS {name}\"\n        ).await?;\n\n",
+            name = name,
+        ));
+    }
+    out
 }
 
 pub fn generate_alter_file(change: &Changes) -> String {
@@ -84,7 +160,7 @@ fn build_create_table_cols(schema: &ParsedSchema, db_kind: &DbKind) -> String {
         ));
     }
 
-    cols.trim_end().to_string()
+    cols
 }
 
 fn build_fk_create_stmts(schema: &ParsedSchema) -> String {
@@ -364,6 +440,7 @@ fn render_pk_col(pk: &ParsedColumn) -> String {
 
     let mut s = format!(
         "                    .col(ColumnDef::new(Alias::new(\"{name}\")).{ty}.not_null()",
+        // 20 espaces ici aussi
         name = pk.name,
         ty = ty
     );
@@ -377,19 +454,6 @@ fn render_pk_col(pk: &ParsedColumn) -> String {
 }
 
 fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
-    // Enum string : rendre avec les valeurs pour que le snapshot les conserve
-    let ty = if !col.enum_string_values.is_empty() {
-        let name = col.enum_name.as_deref().unwrap_or("enum");
-        let vals: Vec<String> = col
-            .enum_string_values
-            .iter()
-            .map(|v| format!("\"{}\".to_string()", v))
-            .collect();
-        format!("enum_type(\"{}\", vec![{}])", name, vals.join(", "))
-    } else {
-        col_type_to_method(&col.col_type).to_string()
-    };
-
     let null = if col.nullable {
         ".null()"
     } else {
@@ -407,15 +471,34 @@ fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
         ""
     };
 
-    format!(
-        "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}{on_update}",
-        name = col.name,
-        ty = ty,
-        null = null,
-        uniq = uniq,
-        default = default,
-        on_update = on_update,
-    )
+    if !col.enum_string_values.is_empty() {
+        let name = col.enum_name.as_deref().unwrap_or(&col.name);
+        let variants: Vec<String> = col
+            .enum_string_values
+            .iter()
+            .map(|v| format!("Alias::new(\"{}\").into_iden()", v))
+            .collect();
+
+        format!(
+            "ColumnDef::new_with_type(Alias::new(\"{name}\"), ColumnType::Enum {{ name: Alias::new(\"{enum_name}\").into_iden(), variants: vec![{variants}] }}){null}{uniq}",
+            name = col.name,
+            enum_name = name,
+            variants = variants.join(", "),
+            null = null,
+            uniq = uniq,
+        )
+    } else {
+        let ty = col_type_to_method(&col.col_type);
+        format!(
+            "ColumnDef::new(Alias::new(\"{name}\")).{ty}{null}{uniq}{default}{on_update}",
+            name = col.name,
+            ty = ty,
+            null = null,
+            uniq = uniq,
+            default = default,
+            on_update = on_update,
+        )
+    }
 }
 
 /// Génère les triggers PostgreSQL pour les colonnes `updated_at`.

@@ -5,7 +5,7 @@ pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
-    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_table(
                 Table::create()
@@ -15,18 +15,19 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("key")).string().not_null())
                     .col(ColumnDef::new(Alias::new("value")).string().not_null())
                     .col(ColumnDef::new(Alias::new("description")).string().null())
-                    .to_owned(),
+                    .to_owned()
             )
             .await?;
 
         Ok(())
-    }
+}
 
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Alias::new("site_config"))
+            .drop_table(Table::drop()
+                .table(Alias::new("site_config"))
                 .to_owned())
             .await?;
         Ok(())
-    }
+}
 }

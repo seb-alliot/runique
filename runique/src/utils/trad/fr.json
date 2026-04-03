@@ -412,6 +412,7 @@
   "migrate": {
     "applying": "Application des migrations depuis '{}'...",
     "run_hint": "Commande : sea-orm-cli migrate up",
+    "complete_up": "Migration terminé.",
     "complete": "Rollback terminé.",
     "available_for": "Fichiers de rollback disponibles pour '{}' :",
     "rolling_back_batch": "Rollback du batch : {}",

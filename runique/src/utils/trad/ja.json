@@ -395,6 +395,7 @@
   "migrate": {
     "applying": "'{}'からマイグレーションを適用中...",
     "run_hint": "実行: sea-orm-cli migrate up",
+    "complete_up": "マイグレーションが完了しました。",
     "complete": "ロールバックが完了しました。",
     "available_for": "'{}'の利用可能なロールバックファイル:",
     "rolling_back_batch": "バッチをロールバック中: {}",

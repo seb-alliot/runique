@@ -11,12 +11,27 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Alias::new("eihwaz_sessions"))
                     .if_not_exists()
-                    .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
-                    .col(ColumnDef::new(Alias::new("cookie_id")).string().not_null().unique_key())
+                    .col(
+                        ColumnDef::new(Alias::new("id"))
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("cookie_id"))
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
                     .col(ColumnDef::new(Alias::new("user_id")).integer().not_null())
                     .col(ColumnDef::new(Alias::new("session_id")).string().not_null())
                     .col(ColumnDef::new(Alias::new("session_data")).string().null())
-                    .col(ColumnDef::new(Alias::new("expires_at")).date_time().not_null())
+                    .col(
+                        ColumnDef::new(Alias::new("expires_at"))
+                            .date_time()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -46,8 +61,11 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Alias::new("eihwaz_sessions"))
-                .to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_sessions"))
+                    .to_owned(),
+            )
             .await?;
         Ok(())
     }
