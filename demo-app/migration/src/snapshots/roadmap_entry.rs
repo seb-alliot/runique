@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                     .table(Alias::new("roadmap_entry"))
                     .if_not_exists()
                     .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
-                    .col(ColumnDef::new(Alias::new("status")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("status")).enum_type("RoadmapStatus", vec!["Active".to_string(), "Planned".to_string(), "Future".to_string()]).not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("description")).string().not_null())
                     .col(ColumnDef::new(Alias::new("link_url")).string().null())

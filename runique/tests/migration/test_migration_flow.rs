@@ -5,14 +5,14 @@
 //! Ces tests reproduisent manuellement ce que `makemigrations::run()` fait,
 //! en utilisant uniquement des fonctions synchrones et des répertoires temporaires.
 
-use runique::migration::makemigrations::{
-    scan_entities, seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
-};
 use runique::migration::utils::{
     diff::{db_columns, diff_schemas},
     generators::{generate_alter_file, generate_create_file},
     paths::*,
     types::{Changes, DbKind, ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
+};
+use runique::utils::cli::makemigration::{
+    scan_entities, seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
 };
 use std::fs;
 use std::path::{Path, PathBuf};

@@ -242,7 +242,8 @@ async fn app_with_template() -> Router {
         features: MiddlewareConfig::default(),
         security_csp: Arc::new(SecurityPolicy::default()),
         security_hosts: Arc::new(HostPolicy::new(vec![], true)),
-        session_store: std::sync::OnceLock::new(),
+        session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+        session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
     });
 
     let session_layer = SessionManagerLayer::new(MemoryStore::default());

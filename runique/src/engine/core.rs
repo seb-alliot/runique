@@ -1,9 +1,9 @@
-use crate::middleware::session::CleaningMemoryStore;
+use crate::middleware::session::{CleaningMemoryStore, session_db::RuniqueSessionStore};
 use crate::utils::aliases::{
     ADb, ARlockmap, ASecurityCsp, ASecurityHosts, ATera, new, new_registry,
 };
 use axum::{Router, middleware};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, LazyLock, RwLock};
 use tera::Tera;
 
 use crate::config::RuniqueConfig;
@@ -32,10 +32,11 @@ pub struct RuniqueEngine {
     pub security_csp: ASecurityCsp,
     pub security_hosts: ASecurityHosts,
 
-    /// Store de session in-memory — disponible uniquement si CleaningMemoryStore est utilisé.
-    /// `None` si le dev a configuré un store externe (Redis, PostgreSQL…).
-    /// Utilisé par `login_exclusive` pour invalider les sessions d'un utilisateur.
-    pub session_store: OnceLock<Arc<CleaningMemoryStore>>,
+    /// Store mémoire — sessions anonymes + CSRF.
+    pub session_store: LazyLock<RwLock<Option<Arc<CleaningMemoryStore>>>>,
+
+    /// Store DB — sessions authentifiées persistantes (eihwaz_sessions).
+    pub session_db_store: LazyLock<RwLock<Option<Arc<RuniqueSessionStore>>>>,
 }
 
 impl RuniqueEngine {
@@ -54,7 +55,8 @@ impl RuniqueEngine {
             features,
             security_csp: new(security_csp),
             security_hosts: new(security_hosts),
-            session_store: OnceLock::new(),
+            session_store: LazyLock::new(|| RwLock::new(None)),
+            session_db_store: LazyLock::new(|| RwLock::new(None)),
         }
     }
 

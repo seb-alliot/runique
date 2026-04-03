@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("page_id")).integer().not_null())
                     .col(ColumnDef::new(Alias::new("heading")).string().null())
                     .col(ColumnDef::new(Alias::new("content")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("block_type")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("block_type")).enum_type("BlockType", vec!["Text".to_string(), "Code".to_string(), "Sommaire".to_string()]).not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned(),
             )

@@ -16,7 +16,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("lang")).string().not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
-                    .col(ColumnDef::new(Alias::new("theme")).string().null())
+                    .col(ColumnDef::new(Alias::new("theme")).enum_type("SectionTheme", vec!["Demarrage".to_string(), "Web".to_string(), "Database".to_string(), "Security".to_string(), "Admin".to_string(), "Autres".to_string()]).null())
                     .to_owned(),
             )
             .await?;

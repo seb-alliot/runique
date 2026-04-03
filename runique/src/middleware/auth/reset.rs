@@ -297,7 +297,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
     encrypted_email: String,
     template: &str,
 ) -> AppResult<Response> {
-    logout(&request.session).await.ok();
+    logout(&request.session, None).await.ok();
 
     let Some(email) = crate::utils::reset_token::decrypt_email(&token, &encrypted_email) else {
         request

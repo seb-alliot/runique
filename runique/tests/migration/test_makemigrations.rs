@@ -2,7 +2,7 @@
 //! Couvre : seaorm_alter_module_name, seaorm_alter_file_path,
 //!          update_migration_lib (création + mise à jour), parse_create_file
 
-use runique::migration::makemigrations::{
+use runique::utils::cli::makemigration::{
     seaorm_alter_file_path, seaorm_alter_module_name, update_migration_lib,
 };
 use std::fs;
@@ -112,14 +112,14 @@ fn test_update_migration_lib_ajoute_second_module() {
 
 #[test]
 fn test_parse_create_file_fichier_inexistant_retourne_err() {
-    use runique::migration::makemigrations::parse_create_file;
+    use runique::utils::cli::makemigration::parse_create_file;
     let result = parse_create_file("/chemin/inexistant/fichier.rs");
     assert!(result.is_err());
 }
 
 #[test]
 fn test_parse_create_file_contenu_invalide_retourne_err() {
-    use runique::migration::makemigrations::parse_create_file;
+    use runique::utils::cli::makemigration::parse_create_file;
     let dir = temp_dir("parse_invalid");
     let file_path = dir.join("invalid.rs");
     fs::write(&file_path, "ce n'est pas du rust valide !!!@@@").unwrap();
@@ -131,7 +131,7 @@ fn test_parse_create_file_contenu_invalide_retourne_err() {
 // scan_entities
 // ═══════════════════════════════════════════════════════════════
 
-use runique::migration::makemigrations::scan_entities;
+use runique::utils::cli::makemigration::scan_entities;
 
 fn entity_user() -> &'static str {
     r#"

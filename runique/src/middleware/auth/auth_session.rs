@@ -1,6 +1,10 @@
 use crate::admin::permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
 use crate::config::AppSettings;
 use crate::context::RequestExtensions;
+use crate::middleware::auth::permissions_cache::{
+    cache_permissions, evict_permissions, get_permissions,
+};
+use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::constante::{
     SESSION_ACTIVE_KEY, SESSION_USER_DROITS_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_ID_KEY,
     SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
@@ -129,10 +133,11 @@ pub async fn get_username(session: &Session) -> Option<String> {
 
 /// Connecte un utilisateur — charge ses droits et groupes depuis la DB.
 ///
-/// Remplace `login` et `login_staff` : point d'entrée unique.
+/// Si `db_store` est fourni, persiste la session en DB (multi-appareils).
+/// Si `exclusive` est `true`, invalide les autres sessions de l'utilisateur.
 ///
 /// ```rust,ignore
-/// login(&session, &db, user.id, &user.username, user.is_staff, user.is_superuser).await?;
+/// login(&session, &db, user.id, &user.username, user.is_staff, user.is_superuser, None, false).await?;
 /// ```
 pub async fn login(
     session: &Session,
@@ -141,9 +146,14 @@ pub async fn login(
     username: &str,
     is_staff: bool,
     is_superuser: bool,
+    db_store: Option<&RuniqueSessionStore>,
+    exclusive: bool,
 ) -> Result<(), tower_sessions::session::Error> {
     let droits = pull_droits_db(db, user_id).await;
     let groupes = pull_groupes_db(db, user_id).await;
+
+    // Cache mémoire — point d'accès unique pour load_user_middleware et le point 6
+    cache_permissions(user_id, droits.clone(), groupes.clone());
 
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
     session
@@ -153,14 +163,41 @@ pub async fn login(
     session
         .insert(SESSION_USER_IS_SUPERUSER_KEY, is_superuser)
         .await?;
-    session.insert(SESSION_USER_DROITS_KEY, &droits).await?;
-    session.insert(SESSION_USER_GROUPES_KEY, &groupes).await?;
+
+    // Persistance DB
+    if let Some(store) = db_store {
+        let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
+        let session_id = uuid::Uuid::new_v4().to_string();
+        let expires_at = chrono::Utc::now().naive_utc() + chrono::Duration::hours(24);
+
+        let _ = store
+            .create(&cookie_id, user_id, &session_id, expires_at)
+            .await;
+
+        if exclusive {
+            let _ = store.invalidate_other_sessions(user_id, &cookie_id).await;
+        }
+    }
 
     Ok(())
 }
 
-/// Déconnecte un utilisateur (supprime la session).
-pub async fn logout(session: &Session) -> Result<(), tower_sessions::session::Error> {
+/// Déconnecte un utilisateur — supprime la session mémoire et l'entrée DB si fournie.
+pub async fn logout(
+    session: &Session,
+    db_store: Option<&RuniqueSessionStore>,
+) -> Result<(), tower_sessions::session::Error> {
+    // Suppression DB avant de vider la session (cookie_id encore accessible)
+    if let Some(store) = db_store {
+        let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
+        let _ = store.delete(&cookie_id).await;
+    }
+
+    // Vider le cache permissions
+    if let Some(user_id) = session.get::<i32>(SESSION_USER_ID_KEY).await.ok().flatten() {
+        evict_permissions(user_id);
+    }
+
     session.remove::<i32>(SESSION_USER_ID_KEY).await?;
     session.remove::<String>(SESSION_USER_USERNAME_KEY).await?;
     session.remove::<bool>(SESSION_USER_IS_STAFF_KEY).await?;
@@ -269,19 +306,11 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
             .flatten()
             .unwrap_or(false);
 
-        let droits = session
-            .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_default();
-
-        let groupes = session
-            .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_default();
+        // Droits et groupes depuis le cache mémoire (plus rapide que la session)
+        let (droits, groupes) = match get_permissions(user_id) {
+            Some(cached) => (cached.droits.clone(), cached.groupes.clone()),
+            None => (vec![], vec![]),
+        };
 
         let current_user = CurrentUser {
             id: user_id,

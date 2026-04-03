@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("version")).string().not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("description")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("issue_type")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("issue_type")).enum_type("IssueType", vec!["Manquant".to_string(), "Ajoute".to_string(), "Fix".to_string()]).not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned(),
             )

@@ -70,6 +70,8 @@ pub async fn handle_inscription(
                     &user.username,
                     false,
                     false,
+                    None,
+                    false,
                 )
                 .await
                 .ok();
@@ -118,6 +120,8 @@ pub async fn handle_login(request: &mut Request, form: &LoginForm) -> AppResult<
                 &user.username,
                 user.is_staff,
                 user.is_superuser,
+                None,
+                false,
             )
             .await
             .ok();
