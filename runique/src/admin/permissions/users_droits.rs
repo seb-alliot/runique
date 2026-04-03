@@ -39,4 +39,25 @@ impl Related<super::droit::Entity> for Entity {
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    async fn after_save<C>(model: Model, db: &C, _insert: bool) -> Result<Model, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        super::refresh_cache_for_user(db, model.user_id).await;
+        Ok(model)
+    }
+
+    async fn after_delete<C>(self, db: &C) -> Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        if let sea_orm::ActiveValue::Set(uid) | sea_orm::ActiveValue::Unchanged(uid) =
+            self.user_id.clone()
+        {
+            super::refresh_cache_for_user(db, uid).await;
+        }
+        Ok(self)
+    }
+}

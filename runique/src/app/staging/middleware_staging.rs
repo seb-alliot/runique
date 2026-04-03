@@ -197,6 +197,7 @@ impl MiddlewareStaging {
             enable_host_validation: false,
             enable_debug_errors: true, // toujours monté — config.debug gère le contenu
             enable_cache: get_env_or("RUNIQUE_ENABLE_CACHE", defaults.enable_cache),
+            exclusive_login: false, // propagé via apply_to_router depuis self.exclusive_login
         };
 
         Self {

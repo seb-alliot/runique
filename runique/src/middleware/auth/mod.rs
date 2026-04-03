@@ -3,6 +3,7 @@ pub mod auth_session;
 pub mod default_auth;
 pub mod form;
 pub mod login_guard;
+pub mod permissions_cache;
 pub mod reset;
 pub mod user;
 pub mod user_trait;
@@ -14,6 +15,7 @@ pub use auth_session::{
 };
 
 pub use admin_auth::{AdminAuth, AdminLoginResult};
+pub use permissions_cache::{cache_permissions, evict_permissions, get_permissions};
 pub use user_trait::RuniqueUser;
 
 pub use default_auth::{DefaultAdminAuth, UserEntity};

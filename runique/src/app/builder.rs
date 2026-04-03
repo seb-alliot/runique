@@ -1,4 +1,5 @@
 use axum::Router;
+use std::sync::Arc;
 use tower_sessions::cookie::time::Duration;
 
 use super::runique_app::RuniqueApp;
@@ -10,6 +11,8 @@ use crate::middleware::HostPolicy;
 use crate::middleware::auth::{
     PasswordResetAdapter, PasswordResetConfig, PasswordResetStaging, UserEntity,
 };
+#[cfg(feature = "orm")]
+use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::aliases::{new, new_serve};
 use crate::utils::runique_log::{RuniqueLog, log_init};
 
@@ -377,7 +380,11 @@ impl RuniqueAppBuilder {
             tera: tera.clone(),
             #[cfg(feature = "orm")]
             db: new(db),
-            features: middleware.features.clone(),
+            features: {
+                let mut f = middleware.features.clone();
+                f.exclusive_login = middleware.exclusive_login;
+                f
+            },
             url_registry,
             security_csp: {
                 let mut policy = middleware.security_policy.take().unwrap_or_default();
@@ -390,7 +397,8 @@ impl RuniqueAppBuilder {
                 middleware.allowed_hosts.clone(),
                 middleware.features.enable_host_validation,
             )),
-            session_store: std::sync::OnceLock::new(),
+            session_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
+            session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         });
 
         // C. Enregistrement des URLs (urlpatterns!)
@@ -445,10 +453,22 @@ impl RuniqueAppBuilder {
         //   Extensions → Session → CSRF → CSP → Host
         // ═══════════════════════════════════════
 
+        let _exclusive_login = middleware.exclusive_login;
         let (router, session_store) =
             middleware.apply_to_router(router, config, engine.clone(), tera);
         if let Some(store) = session_store {
-            engine.session_store.set(store).ok();
+            if let Ok(mut guard) = engine.session_store.write() {
+                *guard = Some(store);
+            }
+        }
+
+        // Store DB sessions — initialisé si une DB est disponible
+        #[cfg(feature = "orm")]
+        {
+            let db_store = RuniqueSessionStore::new(engine.db.clone());
+            if let Ok(mut guard) = engine.session_db_store.write() {
+                *guard = Some(Arc::new(db_store));
+            }
         }
 
         // ═══════════════════════════════════════

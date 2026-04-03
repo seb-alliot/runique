@@ -11,7 +11,7 @@
 
 use crate::helpers::db_mariadb as db_maria;
 use crate::helpers::db_postgres as db_pg;
-use runique::migration::migrate::{down, status, up};
+use runique::utils::cli::migrate::{down, status, up};
 use serial_test::serial;
 use std::fs;
 use std::path::{Path, PathBuf};

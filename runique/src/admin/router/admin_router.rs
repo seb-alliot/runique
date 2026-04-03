@@ -13,7 +13,6 @@ use axum::{
     routing::get,
 };
 use serde::Deserialize;
-use tower_sessions::Session;
 
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
@@ -225,6 +224,13 @@ async fn admin_login_post(
         .await;
 
     if let Some(user) = result {
+        let db_store = req
+            .engine
+            .session_db_store
+            .read()
+            .ok()
+            .and_then(|g| g.as_ref().cloned());
+        let exclusive = req.engine.features.exclusive_login;
         if login(
             &req.session,
             &req.engine.db,
@@ -232,6 +238,8 @@ async fn admin_login_post(
             &user.username,
             user.is_staff,
             user.is_superuser,
+            db_store.as_deref(),
+            exclusive,
         )
         .await
         .is_err()
@@ -262,8 +270,15 @@ async fn admin_login_post(
     }
 }
 
-async fn admin_logout(session: Session, Extension(admin): Extension<Arc<AdminState>>) -> Response {
-    let _ = logout(&session).await;
+async fn admin_logout(req: Request, Extension(admin): Extension<Arc<AdminState>>) -> Response {
+    let session = &req.session;
+    let db_store = req
+        .engine
+        .session_db_store
+        .read()
+        .ok()
+        .and_then(|g| g.as_ref().cloned());
+    let _ = logout(session, db_store.as_deref()).await;
     let login_url = format!("{}/login?from=logout", admin.config.prefix);
     flash_now!(info => "Vous êtes deconnecté");
     Redirect::to(&login_url).into_response()

@@ -9,7 +9,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
     let sea_model = generate_sea_model(model);
     let relation_enum = generate_relation_enum(model);
     let active_model = generate_active_model();
-    let from_str_map = generate_from_str_map(model);
+    let from_str_map: TokenStream2 = generate_from_str_map(model);
     let admin_form = generate_admin_form(model);
 
     quote! {
@@ -485,13 +485,7 @@ fn generate_field_type(ty: &FieldType, enums: &[EnumDef]) -> TokenStream2 {
             match enum_def.map(|e| &e.backing_type) {
                 Some(EnumBackingType::I32) => quote! { .integer() },
                 Some(EnumBackingType::I64) => quote! { .big_integer() },
-                _ => {
-                    let enum_name_str = enum_name.to_string();
-                    let variants: Vec<String> = enum_def
-                        .map(|e| e.variants.iter().map(|v| v.name.to_string()).collect())
-                        .unwrap_or_default();
-                    quote! { .enum_type(#enum_name_str, vec![#(#variants.to_string()),*]) }
-                }
+                _ => quote! { .string() },
             }
         }
     }

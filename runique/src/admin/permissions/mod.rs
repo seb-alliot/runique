@@ -4,7 +4,7 @@ pub mod groupes_droits;
 pub mod users_droits;
 pub mod users_groupes;
 
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Snapshots session — stockés en JSON dans eihwaz_sessions.data
@@ -30,7 +30,7 @@ pub struct Groupe {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Charge les droits directs d'un utilisateur depuis la DB.
-pub async fn pull_droits_db(db: &DatabaseConnection, user_id: i32) -> Vec<Droit> {
+pub async fn pull_droits_db<C: ConnectionTrait>(db: &C, user_id: i32) -> Vec<Droit> {
     let rows = users_droits::Entity::find()
         .filter(users_droits::Column::UserId.eq(user_id))
         .find_also_related(droit::Entity)
@@ -48,8 +48,17 @@ pub async fn pull_droits_db(db: &DatabaseConnection, user_id: i32) -> Vec<Droit>
         .collect()
 }
 
+/// Rafraîchit le cache mémoire des permissions pour un utilisateur donné.
+/// Appelé par les signaux SeaORM après toute modification des droits/groupes.
+pub async fn refresh_cache_for_user<C: ConnectionTrait>(db: &C, user_id: i32) {
+    use crate::middleware::auth::permissions_cache::cache_permissions;
+    let droits = pull_droits_db(db, user_id).await;
+    let groupes = pull_groupes_db(db, user_id).await;
+    cache_permissions(user_id, droits, groupes);
+}
+
 /// Charge les groupes d'un utilisateur avec leurs droits depuis la DB.
-pub async fn pull_groupes_db(db: &DatabaseConnection, user_id: i32) -> Vec<Groupe> {
+pub async fn pull_groupes_db<C: ConnectionTrait>(db: &C, user_id: i32) -> Vec<Groupe> {
     let groupe_rows = users_groupes::Entity::find()
         .filter(users_groupes::Column::UserId.eq(user_id))
         .find_also_related(groupe::Entity)

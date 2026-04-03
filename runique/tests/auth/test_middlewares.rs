@@ -64,7 +64,7 @@ fn auth_mw_addr() -> SocketAddr {
                             |session: Session,
                              Extension(db): Extension<Arc<DatabaseConnection>>| async move {
                                 // is_superuser=true → has_permission("any") retourne true
-                                login(&session, &db, 1, "alice", false, true).await.unwrap();
+                                login(&session, &db, 1, "alice", false, true, None, false).await.unwrap();
                                 "ok"
                             },
                         ),
@@ -74,7 +74,7 @@ fn auth_mw_addr() -> SocketAddr {
                         post(
                             |session: Session,
                              Extension(db): Extension<Arc<DatabaseConnection>>| async move {
-                                login(&session, &db, 2, "bob", true, false).await.unwrap();
+                                login(&session, &db, 2, "bob", true, false, None, false).await.unwrap();
                                 "ok"
                             },
                         ),

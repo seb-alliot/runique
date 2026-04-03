@@ -24,6 +24,7 @@ pub struct MiddlewareConfig {
     /// Désactiver uniquement si vous gérez les erreurs manuellement dans chaque handler.
     pub enable_debug_errors: bool,
     pub enable_cache: bool,
+    pub exclusive_login: bool,
 }
 
 impl Default for MiddlewareConfig {
@@ -34,6 +35,7 @@ impl Default for MiddlewareConfig {
             enable_host_validation: true,
             enable_debug_errors: true,
             enable_cache: true,
+            exclusive_login: false,
         }
     }
 }
@@ -53,6 +55,7 @@ impl MiddlewareConfig {
             enable_host_validation: false,
             enable_debug_errors: true, // toujours monté — config.debug gère le contenu
             enable_cache: get_bool("RUNIQUE_ENABLE_CACHE", true),
+            exclusive_login: false,
         }
     }
 
@@ -64,28 +67,31 @@ impl MiddlewareConfig {
             enable_host_validation: true,
             enable_debug_errors: true,
             enable_cache: true,
+            exclusive_login: false,
         }
     }
 
     /// Configuration pour développement (plus permissif)
     pub fn development() -> Self {
         Self {
-            enable_csp: false, // CSP désactivé pour faciliter le dev
+            enable_csp: false,
             enable_header_security: false,
-            enable_host_validation: false, // Désactivé en dev (AllowedHostsValidator.debug=true anyway)
-            enable_debug_errors: true,     // Pages de debug activées
-            enable_cache: false,           // Pas de cache en dev
+            enable_host_validation: false,
+            enable_debug_errors: true,
+            enable_cache: false,
+            exclusive_login: false,
         }
     }
 
     /// Configuration pour API (minimal)
     pub fn api() -> Self {
         Self {
-            enable_csp: false, // Pas de CSP pour API
+            enable_csp: false,
             enable_header_security: false,
-            enable_host_validation: true, // Important pour API (protection SSRF)
+            enable_host_validation: true,
             enable_debug_errors: true,
             enable_cache: true,
+            exclusive_login: false,
         }
     }
 

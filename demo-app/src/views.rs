@@ -40,7 +40,7 @@ pub async fn login_user(
 }
 
 pub async fn deconnexion(request: Request) -> AppResult<Response> {
-    logout(&request.session).await.ok();
+    logout(&request.session, None).await.ok();
     Ok(Redirect::to("/").into_response())
 }
 
