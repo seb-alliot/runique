@@ -395,6 +395,7 @@
   "migrate": {
     "applying": "正在从'{}'应用迁移...",
     "run_hint": "运行: sea-orm-cli migrate up",
+    "complete_up": "迁移完成。",
     "complete": "回滚完成。",
     "available_for": "'{}'的可用回滚文件:",
     "rolling_back_batch": "正在回滚批次: {}",

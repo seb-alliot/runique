@@ -8,4 +8,3 @@ model! {
         nom: String [required, max_len(100), unique],
     }
 }
-

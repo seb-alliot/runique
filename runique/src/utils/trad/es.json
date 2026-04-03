@@ -396,6 +396,7 @@
     "applying": "Aplicando migraciones desde '{}'...",
     "run_hint": "Ejecutar: sea-orm-cli migrate up",
     "complete": "Reversión completa.",
+    "complete_up": "Migración completada.",
     "available_for": "Archivos de reversión disponibles para '{}':",
     "rolling_back_batch": "Revirtiendo lote: {}",
     "done": "Hecho: {}",

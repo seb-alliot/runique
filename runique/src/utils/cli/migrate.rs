@@ -31,7 +31,7 @@ pub async fn up(migrations_path: &str) -> Result<()> {
         );
     }
 
-    println!("{}", t("migrate.complete"));
+    println!("{}", t("migrate.complete_up"));
     Ok(())
 }
 

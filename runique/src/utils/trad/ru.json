@@ -396,6 +396,7 @@
   "migrate": {
     "applying": "Применение миграций из '{}'...",
     "run_hint": "Выполните: sea-orm-cli migrate up",
+    "complete_up": "Миграция завершена.",
     "complete": "Откат завершён.",
     "available_for": "Доступные файлы отката для '{}':",
     "rolling_back_batch": "Откат пакета: {}",
