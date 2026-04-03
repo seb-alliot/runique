@@ -92,7 +92,15 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
         ),
         (
             include_bytes!("../../composant-bin/code/users.rs"),
-            "src/entities/users.rs",
+            "src/entities/eihwaz_users.rs",
+        ),
+        (
+            include_bytes!("../../composant-bin/code/eihwaz_droit.rs"),
+            "src/entities/eihwaz_droit.rs",
+        ),
+        (
+            include_bytes!("../../composant-bin/code/eihwaz_groupe.rs"),
+            "src/entities/eihwaz_groupe.rs",
         ),
         (
             include_bytes!("../../composant-bin/template/index.html"),

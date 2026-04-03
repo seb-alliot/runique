@@ -1,10 +1,67 @@
-use crate::model::ast::*;
+use crate::model::ast::{
+    EnumBackingType, EnumDef, EnumVariant, FieldDef, FieldOption, FieldType, FkAction, FkDef,
+    MetaDef, ModelInput, PkDef, PkType, RelationDef,
+};
 use proc_macro2;
 use syn::token;
 use syn::{
     parse::{Parse, ParseStream},
     Ident, LitFloat, LitInt, LitStr, Result, Token,
 };
+
+impl Parse for EnumDef {
+    fn parse(input: ParseStream) -> Result<Self> {
+        // Status: [Active, Inactive] ou Status: String [Fix="fix"] ou Priority: i32 [Low=1]
+        let name: Ident = input.parse()?;
+        input.parse::<Token![:]>()?;
+
+        // Type optionnel : String | i32 | i64 (sinon String implicite)
+        let backing_type = if input.peek(Ident) {
+            let ty: Ident = input.fork().parse()?;
+            match ty.to_string().as_str() {
+                "String" => {
+                    input.parse::<Ident>()?;
+                    EnumBackingType::String
+                }
+                "i32" => {
+                    input.parse::<Ident>()?;
+                    EnumBackingType::I32
+                }
+                "i64" => {
+                    input.parse::<Ident>()?;
+                    EnumBackingType::I64
+                }
+                _ => EnumBackingType::String, // pas de type → String implicite
+            }
+        } else {
+            EnumBackingType::String
+        };
+
+        let content;
+        syn::bracketed!(content in input);
+        let mut variants = Vec::new();
+        while !content.is_empty() {
+            let variant_name: Ident = content.parse()?;
+            let value = if content.peek(Token![=]) {
+                content.parse::<Token![=]>()?;
+                Some(content.parse::<syn::Lit>()?)
+            } else {
+                None
+            };
+            variants.push(EnumVariant {
+                name: variant_name,
+                value,
+            });
+            let _ = content.parse::<Token![,]>();
+        }
+        let _ = input.parse::<Token![,]>();
+        Ok(EnumDef {
+            name,
+            backing_type,
+            variants,
+        })
+    }
+}
 
 // ── Parse ModelInput ──────────────────────────────────────────
 impl Parse for ModelInput {
@@ -26,6 +83,22 @@ impl Parse for ModelInput {
         input.parse::<Token![:]>()?;
         let pk = PkDef::parse(input)?;
         input.parse::<Token![,]>()?;
+
+        // enums: { ... } optionnel
+        let mut enums = Vec::new();
+        if input.peek(Ident) {
+            let peek: Ident = input.fork().parse()?;
+            if peek == "enums" {
+                input.parse::<Ident>()?;
+                input.parse::<Token![:]>()?;
+                let enum_content;
+                syn::braced!(enum_content in input);
+                while !enum_content.is_empty() {
+                    enums.push(EnumDef::parse(&enum_content)?);
+                }
+                let _ = input.parse::<Token![,]>();
+            }
+        }
 
         // fields: { ... },
         let fields_kw: Ident = input.parse()?;
@@ -73,6 +146,7 @@ impl Parse for ModelInput {
             name,
             table: table.value(),
             pk,
+            enums,
             fields,
             relations,
             meta,
@@ -128,6 +202,15 @@ impl Parse for FieldDef {
 
 impl Parse for FieldType {
     fn parse(input: ParseStream) -> Result<Self> {
+        // `enum` est un mot-clé Rust — traitement séparé
+        if input.peek(Token![enum]) {
+            input.parse::<Token![enum]>()?;
+            let content;
+            syn::parenthesized!(content in input);
+            let name: Ident = content.parse()?;
+            return Ok(FieldType::Enum(name));
+        }
+
         let ty_ident: Ident = input.parse()?;
         match ty_ident.to_string().as_str() {
             "String" => Ok(FieldType::String),
@@ -188,16 +271,6 @@ impl Parse for FieldType {
                 Ok(FieldType::VarBinary(n.base10_parse()?))
             }
             "blob" => Ok(FieldType::Blob),
-            "enum" => {
-                let content;
-                syn::parenthesized!(content in input);
-                let mut variants = Vec::new();
-                while !content.is_empty() {
-                    variants.push(content.parse::<Ident>()?);
-                    let _ = content.parse::<Token![,]>();
-                }
-                Ok(FieldType::Enum(variants))
-            }
             "inet" => Ok(FieldType::Inet),
             "cidr" => Ok(FieldType::Cidr),
             "mac_address" => Ok(FieldType::MacAddress),

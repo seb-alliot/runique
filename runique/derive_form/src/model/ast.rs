@@ -1,9 +1,27 @@
 // model_macro/src/model/ast.rs — structures qui représentent le DSL parsé
 
+pub enum EnumBackingType {
+    String,
+    I32,
+    I64,
+}
+
+pub struct EnumVariant {
+    pub name: syn::Ident,
+    pub value: Option<syn::Lit>, // None → nom utilisé comme valeur string
+}
+
+pub struct EnumDef {
+    pub name: syn::Ident,
+    pub backing_type: EnumBackingType,
+    pub variants: Vec<EnumVariant>,
+}
+
 pub struct ModelInput {
     pub name: syn::Ident,
     pub table: String,
     pub pk: PkDef,
+    pub enums: Vec<EnumDef>,
     pub fields: Vec<FieldDef>,
     pub relations: Vec<RelationDef>,
     pub meta: Option<MetaDef>,
@@ -52,7 +70,7 @@ pub enum FieldType {
     Binary(Option<u32>),
     VarBinary(u32),
     Blob,
-    Enum(Vec<syn::Ident>),
+    Enum(syn::Ident),
     Inet,
     Cidr,
     MacAddress,

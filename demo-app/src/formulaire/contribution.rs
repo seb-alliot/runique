@@ -49,7 +49,11 @@ impl ContributionForm {
     ) -> Result<crate::entities::contribution::Model, DbErr> {
         let new_contribution = crate::entities::contribution::ActiveModel {
             user_id: Set(user_id),
-            contribution_type: Set(self.form.get_string("contribution_type")),
+            contribution_type: Set(self
+                .form
+                .get_string("contribution_type")
+                .parse::<crate::entities::contribution::ContributionType>()
+                .unwrap_or_default()),
             title: Set(self.form.get_string("title")),
             content: Set(self.form.get_string("content")),
             ..Default::default()

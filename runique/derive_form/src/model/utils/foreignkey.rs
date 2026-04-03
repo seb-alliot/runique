@@ -9,7 +9,11 @@ pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
     let name = &model.name;
     let table = &model.table;
     let pk = generate_pk(&model.pk);
-    let columns: Vec<TokenStream2> = model.fields.iter().map(generate_column).collect();
+    let columns: Vec<TokenStream2> = model
+        .fields
+        .iter()
+        .map(|f| generate_column(f, &model.enums))
+        .collect();
     let fks: Vec<TokenStream2> = generate_foreign_keys(model);
     let relations: Vec<TokenStream2> = generate_relations(model);
     let meta = generate_meta(model);

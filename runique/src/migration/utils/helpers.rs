@@ -354,6 +354,22 @@ fn collect_str_args(expr: &Expr, result: &mut Vec<String>) {
                 collect_str_args(arg, result);
             }
         }
+        Expr::Macro(syn::ExprMacro { mac, .. }) => {
+            // Gère vec!["a".to_string(), "b".to_string()] et similaires
+            struct ExprList(syn::punctuated::Punctuated<Expr, syn::Token![,]>);
+            impl syn::parse::Parse for ExprList {
+                fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+                    Ok(ExprList(syn::punctuated::Punctuated::parse_terminated(
+                        input,
+                    )?))
+                }
+            }
+            if let Ok(ExprList(parsed)) = syn::parse2::<ExprList>(mac.tokens.clone()) {
+                for expr in parsed {
+                    collect_str_args(&expr, result);
+                }
+            }
+        }
         _ => {}
     }
 }

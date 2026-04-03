@@ -4,8 +4,11 @@ model! {
     RoadmapEntry,
     table: "roadmap_entry",
     pk: id => i32,
+    enums: {
+        RoadmapStatus: [Active, Planned, Future],
+    },
     fields: {
-        status: String [required],
+        status: enum(RoadmapStatus) [required],
         title: String [required],
         description: String [required],
         link_url: String [nullable],

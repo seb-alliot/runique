@@ -17,7 +17,7 @@ pub struct ParsedSchema {
     pub indexes: Vec<ParsedIndex>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct ParsedColumn {
     pub name: String,
     pub col_type: String,
@@ -28,6 +28,10 @@ pub struct ParsedColumn {
     pub updated_at: bool,
     /// Colonne avec DEFAULT CURRENT_TIMESTAMP — détecté depuis le builder ou le snapshot SeaORM.
     pub has_default_now: bool,
+    /// Nom de l'enum pour les colonnes de type enum string (utilisé dans le snapshot).
+    pub enum_name: Option<String>,
+    /// Valeurs DB actuelles pour les colonnes enum string (ex: ["Fix", "Feature", "Ajouté"]).
+    pub enum_string_values: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,6 +61,8 @@ pub struct Changes {
     pub added_indexes: Vec<ParsedIndex>,
     pub dropped_indexes: Vec<ParsedIndex>,
     pub is_new_table: bool,
+    /// Renommages de valeurs enum string : (nom_colonne, ancienne_valeur, nouvelle_valeur).
+    pub enum_renames: Vec<(String, String, String)>,
 }
 
 impl Changes {
@@ -69,5 +75,6 @@ impl Changes {
             && self.dropped_fks.is_empty()
             && self.added_indexes.is_empty()
             && self.dropped_indexes.is_empty()
+            && self.enum_renames.is_empty()
     }
 }

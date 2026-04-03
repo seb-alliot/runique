@@ -229,7 +229,9 @@ async fn insert_page_with_blocks(
             page_id: Set(page.id),
             heading: Set(heading),
             content: Set(block_content),
-            block_type: Set(block_type),
+            block_type: Set(block_type
+                .parse::<doc_block::BlockType>()
+                .unwrap_or_default()),
             sort_order: Set(i as i32),
             ..Default::default()
         };
@@ -315,7 +317,7 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
             lang: Set(lang.to_string()),
             title: Set(title),
             sort_order: Set(sort_order),
-            theme: Set(Some(theme.to_string())),
+            theme: Set(theme.parse::<doc_section::SectionTheme>().ok()),
             ..Default::default()
         };
 

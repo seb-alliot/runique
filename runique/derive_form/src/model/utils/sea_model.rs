@@ -84,6 +84,6 @@ fn field_type_to_rust(ty: &FieldType) -> TokenStream2 {
         FieldType::Inet | FieldType::Cidr | FieldType::MacAddress | FieldType::Interval => {
             quote! { String }
         }
-        FieldType::Enum(_) => quote! { String },
+        FieldType::Enum(name) => quote! { #name },
     }
 }

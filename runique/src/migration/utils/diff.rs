@@ -135,6 +135,23 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         .cloned()
         .collect();
 
+    // Enum renames : comparer les string_values par position pour les colonnes communes
+    let mut enum_renames: Vec<(String, String, String)> = Vec::new();
+    for (name, curr) in &curr_cols {
+        if curr.enum_string_values.is_empty() {
+            continue;
+        }
+        if let Some(prev) = prev_cols.get(name) {
+            for (i, new_val) in curr.enum_string_values.iter().enumerate() {
+                if let Some(old_val) = prev.enum_string_values.get(i) {
+                    if old_val != new_val {
+                        enum_renames.push((name.to_string(), old_val.clone(), new_val.clone()));
+                    }
+                }
+            }
+        }
+    }
+
     Changes {
         table_name: current.table_name.clone(),
         added_columns,
@@ -145,5 +162,6 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         added_indexes,
         dropped_indexes,
         is_new_table: false,
+        enum_renames,
     }
 }

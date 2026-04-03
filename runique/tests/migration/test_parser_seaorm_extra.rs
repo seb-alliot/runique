@@ -263,3 +263,72 @@ fn test_parse_pk_non_dans_colonnes() {
     assert!(!schema.columns.iter().any(|c| c.name == "id"));
     assert!(schema.primary_key.is_some());
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Snapshot avec enum_type (round-trip)
+// ═══════════════════════════════════════════════════════════════
+
+const TABLE_WITH_ENUM_TYPE: &str = r#"
+use sea_orm_migration::prelude::*;
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("articles"))
+                    .if_not_exists()
+                    .col(ColumnDef::new(Alias::new("id")).integer().primary_key())
+                    .col(ColumnDef::new(Alias::new("status")).enum_type("Status", vec!["Draft".to_string(), "Published".to_string(), "Archive".to_string()]).not_null())
+                    .col(ColumnDef::new(Alias::new("title")).string().not_null())
+                    .to_owned(),
+            )
+            .await?;
+        Ok(())
+    }
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager.drop_table(Table::drop().table(Alias::new("articles")).to_owned()).await?;
+        Ok(())
+    }
+}
+"#;
+
+#[test]
+fn test_parse_enum_type_colonne_presente() {
+    let schema = parse_seaorm_source(TABLE_WITH_ENUM_TYPE).expect("doit réussir");
+    assert!(schema.columns.iter().any(|c| c.name == "status"));
+}
+
+#[test]
+fn test_parse_enum_type_string_values_collectes() {
+    let schema = parse_seaorm_source(TABLE_WITH_ENUM_TYPE).expect("doit réussir");
+    let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
+    assert_eq!(status.enum_string_values.len(), 3);
+    assert!(status.enum_string_values.contains(&"Draft".to_string()));
+    assert!(status.enum_string_values.contains(&"Published".to_string()));
+    assert!(status.enum_string_values.contains(&"Archive".to_string()));
+}
+
+#[test]
+fn test_parse_enum_type_enum_name_stocke() {
+    let schema = parse_seaorm_source(TABLE_WITH_ENUM_TYPE).expect("doit réussir");
+    let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
+    assert_eq!(status.enum_name.as_deref(), Some("Status"));
+}
+
+#[test]
+fn test_parse_enum_type_col_type_enum() {
+    let schema = parse_seaorm_source(TABLE_WITH_ENUM_TYPE).expect("doit réussir");
+    let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
+    assert_eq!(status.col_type, "Enum");
+}
+
+#[test]
+fn test_parse_colonne_ordinaire_pas_de_enum_values() {
+    let schema = parse_seaorm_source(TABLE_WITH_ENUM_TYPE).expect("doit réussir");
+    let title = schema.columns.iter().find(|c| c.name == "title").unwrap();
+    assert!(title.enum_string_values.is_empty());
+    assert!(title.enum_name.is_none());
+}
