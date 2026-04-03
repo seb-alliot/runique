@@ -4,6 +4,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
 pub fn generate(model: &ModelInput) -> TokenStream2 {
+    let enums = generate_enums(model);
     let schema = generate_schema(model);
     let sea_model = generate_sea_model(model);
     let relation_enum = generate_relation_enum(model);
@@ -12,6 +13,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
     let admin_form = generate_admin_form(model);
 
     quote! {
+        #enums
         #schema
         #sea_model
         #relation_enum
@@ -19,6 +21,169 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
         #from_str_map
         #admin_form
     }
+}
+
+pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
+    model.enums.iter().map(|e| {
+        let name = &e.name;
+        let variant_names: Vec<&syn::Ident> = e.variants.iter().map(|v| &v.name).collect();
+        let variant_name_strs: Vec<String> = variant_names.iter().map(|v| v.to_string()).collect();
+        let first = &variant_names[0];
+
+        match e.backing_type {
+            EnumBackingType::String => {
+                // Valeur DB = valeur explicite ou nom du variant
+                let db_values: Vec<String> = e.variants.iter().map(|v| {
+                    match &v.value {
+                        Some(syn::Lit::Str(s)) => s.value(),
+                        Some(_) => v.name.to_string(),
+                        None => v.name.to_string(),
+                    }
+                }).collect();
+
+                quote! {
+                    #[derive(
+                        ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
+                        Clone, Debug, PartialEq,
+                        ::serde::Serialize, ::serde::Deserialize,
+                    )]
+                    #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+                    pub enum #name {
+                        #(
+                            #[sea_orm(string_value = #db_values)]
+                            #variant_names,
+                        )*
+                    }
+
+                    impl ::std::default::Default for #name {
+                        fn default() -> Self { #name::#first }
+                    }
+
+                    impl ::std::fmt::Display for #name {
+                        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                            let s = match self {
+                                #(#name::#variant_names => #db_values,)*
+                            };
+                            f.write_str(s)
+                        }
+                    }
+
+                    impl ::std::str::FromStr for #name {
+                        type Err = ();
+                        fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                            let low = s.to_ascii_lowercase();
+                            #(
+                                if low == #db_values.to_ascii_lowercase() || low == #variant_name_strs.to_ascii_lowercase() {
+                                    return ::std::result::Result::Ok(#name::#variant_names);
+                                }
+                            )*
+                            ::std::result::Result::Err(())
+                        }
+                    }
+                }
+            }
+
+            EnumBackingType::I32 => {
+                let db_values: Vec<i32> = e.variants.iter().map(|v| {
+                    match &v.value {
+                        Some(syn::Lit::Int(n)) => n.base10_parse::<i32>().unwrap_or(0),
+                        _ => 0,
+                    }
+                }).collect();
+
+                quote! {
+                    #[derive(
+                        ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
+                        Clone, Debug, PartialEq,
+                        ::serde::Serialize, ::serde::Deserialize,
+                    )]
+                    #[sea_orm(rs_type = "i32", db_type = "Integer")]
+                    pub enum #name {
+                        #(
+                            #[sea_orm(num_value = #db_values)]
+                            #variant_names,
+                        )*
+                    }
+
+                    impl ::std::default::Default for #name {
+                        fn default() -> Self { #name::#first }
+                    }
+
+                    impl ::std::fmt::Display for #name {
+                        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                            let s = match self {
+                                #(#name::#variant_names => #variant_name_strs,)*
+                            };
+                            f.write_str(s)
+                        }
+                    }
+
+                    impl ::std::str::FromStr for #name {
+                        type Err = ();
+                        fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                            let low = s.to_ascii_lowercase();
+                            #(
+                                if low == #variant_name_strs.to_ascii_lowercase() {
+                                    return ::std::result::Result::Ok(#name::#variant_names);
+                                }
+                            )*
+                            ::std::result::Result::Err(())
+                        }
+                    }
+                }
+            }
+
+            EnumBackingType::I64 => {
+                let db_values: Vec<i64> = e.variants.iter().map(|v| {
+                    match &v.value {
+                        Some(syn::Lit::Int(n)) => n.base10_parse::<i64>().unwrap_or(0),
+                        _ => 0,
+                    }
+                }).collect();
+
+                quote! {
+                    #[derive(
+                        ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
+                        Clone, Debug, PartialEq,
+                        ::serde::Serialize, ::serde::Deserialize,
+                    )]
+                    #[sea_orm(rs_type = "i64", db_type = "BigInteger")]
+                    pub enum #name {
+                        #(
+                            #[sea_orm(num_value = #db_values)]
+                            #variant_names,
+                        )*
+                    }
+
+                    impl ::std::default::Default for #name {
+                        fn default() -> Self { #name::#first }
+                    }
+
+                    impl ::std::fmt::Display for #name {
+                        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                            let s = match self {
+                                #(#name::#variant_names => #variant_name_strs,)*
+                            };
+                            f.write_str(s)
+                        }
+                    }
+
+                    impl ::std::str::FromStr for #name {
+                        type Err = ();
+                        fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                            let low = s.to_ascii_lowercase();
+                            #(
+                                if low == #variant_name_strs.to_ascii_lowercase() {
+                                    return ::std::result::Result::Ok(#name::#variant_names);
+                                }
+                            )*
+                            ::std::result::Result::Err(())
+                        }
+                    }
+                }
+            }
+        }
+    }).collect()
 }
 
 /// Génère `pub fn admin_from_form(data: &HashMap<String, String>, id: Option<PkType>) -> ActiveModel`
@@ -170,7 +335,26 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
                     }
                 }
             }
-            // String, Text, Char, Varchar, Blob, Inet, Cidr, MacAddress, Interval, Enum, Binary, VarBinary
+            FieldType::Enum(enum_name) => {
+                if is_nullable {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str)
+                                .filter(|v| !v.is_empty())
+                                .and_then(|v| v.parse::<#enum_name>().ok())
+                        ),
+                    }
+                } else {
+                    quote! {
+                        #fname: ::sea_orm::ActiveValue::Set(
+                            __data.get(#fname_str)
+                                .and_then(|v| v.parse::<#enum_name>().ok())
+                                .unwrap_or_default()
+                        ),
+                    }
+                }
+            }
+            // String, Text, Char, Varchar, Blob, Inet, Cidr, MacAddress, Interval, Binary, VarBinary
             _ => {
                 let is_password = fname_str.contains("password");
                 if is_password {
@@ -253,9 +437,9 @@ pub fn generate_pk(pk: &PkDef) -> TokenStream2 {
     }
 }
 
-pub fn generate_column(field: &FieldDef) -> TokenStream2 {
+pub fn generate_column(field: &FieldDef, enums: &[EnumDef]) -> TokenStream2 {
     let name = field.name.to_string();
-    let ty = generate_field_type(&field.ty);
+    let ty = generate_field_type(&field.ty, enums);
     let options: Vec<TokenStream2> = field.options.iter().map(generate_option).collect();
 
     quote! {
@@ -263,7 +447,7 @@ pub fn generate_column(field: &FieldDef) -> TokenStream2 {
     }
 }
 
-fn generate_field_type(ty: &FieldType) -> TokenStream2 {
+fn generate_field_type(ty: &FieldType, enums: &[EnumDef]) -> TokenStream2 {
     match ty {
         FieldType::String => quote! { .string() },
         FieldType::Text => quote! { .text() },
@@ -296,9 +480,19 @@ fn generate_field_type(ty: &FieldType) -> TokenStream2 {
         FieldType::Cidr => quote! { .cidr() },
         FieldType::MacAddress => quote! { .mac_address() },
         FieldType::Interval => quote! { .interval() },
-        FieldType::Enum(variants) => {
-            let variant_strs: Vec<String> = variants.iter().map(|v| v.to_string()).collect();
-            quote! { .enum_type("enum", vec![#(#variant_strs.to_string()),*]) }
+        FieldType::Enum(enum_name) => {
+            let enum_def = enums.iter().find(|e| e.name == *enum_name);
+            match enum_def.map(|e| &e.backing_type) {
+                Some(EnumBackingType::I32) => quote! { .integer() },
+                Some(EnumBackingType::I64) => quote! { .big_integer() },
+                _ => {
+                    let enum_name_str = enum_name.to_string();
+                    let variants: Vec<String> = enum_def
+                        .map(|e| e.variants.iter().map(|v| v.name.to_string()).collect())
+                        .unwrap_or_default();
+                    quote! { .enum_type(#enum_name_str, vec![#(#variants.to_string()),*]) }
+                }
+            }
         }
     }
 }
@@ -383,7 +577,22 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
             FieldType::Json | FieldType::JsonBinary => quote! {
                 form.field(&::runique::forms::fields::TextField::textarea(#fname_str).label(#label) #required_suffix);
             },
-            // String, Text, Char, Varchar, Uuid, Blob, Inet, Cidr, MacAddress, Interval, Enum, Binary, VarBinary
+            FieldType::Enum(enum_name) => {
+                let variants = model.enums.iter()
+                    .find(|e| e.name == *enum_name)
+                    .map(|e| e.variants.iter().map(|v| v.name.to_string()).collect::<Vec<_>>())
+                    .unwrap_or_default();
+                let choices = variants.iter().map(|v| quote! { .add_choice(#v, #v) });
+                quote! {
+                    form.field(
+                        &::runique::forms::fields::ChoiceField::new(#fname_str)
+                            .label(#label)
+                            #(#choices)*
+                            #required_suffix
+                    );
+                }
+            },
+            // String, Text, Char, Varchar, Uuid, Blob, Inet, Cidr, MacAddress, Interval, Binary, VarBinary
             _ => {
                 let is_password = fname_str.contains("password");
                 if is_password {

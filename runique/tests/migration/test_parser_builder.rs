@@ -143,6 +143,119 @@ fn test_parse_no_model_macro_returns_none() {
     assert!(result.is_none(), "Pas de macro model! → None");
 }
 
+// ── Enums dans le DSL ─────────────────────────────────────────────────────────
+
+fn enum_string_source() -> &'static str {
+    r#"
+    use runique::prelude::*;
+    model! {
+        Article,
+        table: "articles",
+        pk: id => i32,
+        enums: {
+            Status: String [Draft="Draft", Published="Published", Archived="Archive"],
+        },
+        fields: {
+            title: String,
+            status: enum(Status),
+        }
+    }
+    "#
+}
+
+fn enum_i32_source() -> &'static str {
+    r#"
+    use runique::prelude::*;
+    model! {
+        Task,
+        table: "tasks",
+        pk: id => i32,
+        enums: {
+            Priority: i32 [Low=1, Medium=2, High=3],
+        },
+        fields: {
+            name: String,
+            priority: enum(Priority),
+        }
+    }
+    "#
+}
+
+#[test]
+fn test_parse_enum_string_schema_valide() {
+    let result = parse_schema_from_source(enum_string_source());
+    assert!(result.is_some(), "model! avec enum String doit parser");
+}
+
+#[test]
+fn test_parse_enum_string_field_type_est_string() {
+    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
+    assert_eq!(status.col_type, "String", "enum String → col_type String");
+}
+
+#[test]
+fn test_parse_enum_string_values_sont_collectes() {
+    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
+    assert_eq!(status.enum_string_values.len(), 3);
+    assert!(status.enum_string_values.contains(&"Draft".to_string()));
+    assert!(status.enum_string_values.contains(&"Published".to_string()));
+    assert!(status.enum_string_values.contains(&"Archive".to_string()));
+}
+
+#[test]
+fn test_parse_enum_string_values_valeur_explicite() {
+    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
+    // "Archived" est le nom du variant mais "Archive" est la valeur DB
+    assert!(
+        status.enum_string_values.contains(&"Archive".to_string()),
+        "La valeur DB explicite 'Archive' doit être stockée, pas le nom variant"
+    );
+}
+
+#[test]
+fn test_parse_enum_string_enum_name_stocke() {
+    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
+    assert_eq!(status.enum_name.as_deref(), Some("Status"));
+}
+
+#[test]
+fn test_parse_enum_i32_field_type_est_integer() {
+    let schema = parse_schema_from_source(enum_i32_source()).unwrap();
+    let priority = schema
+        .columns
+        .iter()
+        .find(|c| c.name == "priority")
+        .unwrap();
+    assert_eq!(priority.col_type, "Integer", "enum i32 → col_type Integer");
+}
+
+#[test]
+fn test_parse_enum_i32_pas_de_string_values() {
+    // Les enums i32 n'ont pas de string_values dans le snapshot
+    let schema = parse_schema_from_source(enum_i32_source()).unwrap();
+    let priority = schema
+        .columns
+        .iter()
+        .find(|c| c.name == "priority")
+        .unwrap();
+    assert!(
+        priority.enum_string_values.is_empty(),
+        "enum i32 ne doit pas stocker de string_values"
+    );
+}
+
+#[test]
+fn test_parse_non_enum_field_pas_de_string_values() {
+    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let title = schema.columns.iter().find(|c| c.name == "title").unwrap();
+    assert!(title.enum_string_values.is_empty());
+    assert!(title.enum_name.is_none());
+}
+
 // ── Isolation entre tables ────────────────────────────────────────────────────
 
 #[test]

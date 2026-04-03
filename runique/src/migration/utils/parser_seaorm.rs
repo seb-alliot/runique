@@ -85,6 +85,13 @@ impl SeaOrmVisitor {
                     let unique = methods.contains(&"unique".to_string())
                         || methods.contains(&"unique_key".to_string());
                     let has_default_now = methods.contains(&"default".to_string());
+                    // Extraire les valeurs enum string si présentes (.enum_type("Name", vec![...]))
+                    let (enum_name, enum_string_values) =
+                        if methods.contains(&"enum_type".to_string()) {
+                            extract_enum_type_info(arg)
+                        } else {
+                            (None, Vec::new())
+                        };
                     if is_pk {
                         self.primary_key = Some(ParsedColumn {
                             name: n,
@@ -95,6 +102,8 @@ impl SeaOrmVisitor {
                             created_at: false,
                             updated_at: false,
                             has_default_now: false,
+                            enum_name: None,
+                            enum_string_values: Vec::new(),
                         });
                     } else {
                         self.columns.push(ParsedColumn {
@@ -106,6 +115,8 @@ impl SeaOrmVisitor {
                             created_at: false,
                             updated_at: false,
                             has_default_now,
+                            enum_name,
+                            enum_string_values,
                         });
                     }
                 }
@@ -162,6 +173,36 @@ impl SeaOrmVisitor {
             }
         }
     }
+}
+
+/// Extrait (enum_name, string_values) depuis une expression `.enum_type("Name", vec![...])`
+fn extract_enum_type_info(expr: &Expr) -> (Option<String>, Vec<String>) {
+    let chain = collect_chain(expr);
+    for mc in &chain {
+        if mc.method != "enum_type" {
+            continue;
+        }
+        // Premier arg : nom de l'enum (string littéral)
+        let enum_name = mc.args.first().and_then(|a| {
+            if let Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Str(s),
+                ..
+            }) = a
+            {
+                Some(s.value())
+            } else {
+                None
+            }
+        });
+        // Deuxième arg : vec![...] de strings
+        let values = if mc.args.len() >= 2 {
+            extract_all_str_args(&mc.args[1])
+        } else {
+            Vec::new()
+        };
+        return (enum_name, values);
+    }
+    (None, Vec::new())
 }
 
 fn extract_seaorm_fk(expr: &Expr) -> Option<ParsedFk> {

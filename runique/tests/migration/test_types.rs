@@ -17,12 +17,8 @@ mod types_migration {
         let col = ParsedColumn {
             name: "id".to_string(),
             col_type: "Integer".to_string(),
-            nullable: false,
             unique: true,
-            ignored: false,
-            created_at: false,
-            updated_at: false,
-            has_default_now: false,
+            ..ParsedColumn::default()
         };
         assert_eq!(col.name, "id");
         assert!(col.unique);
@@ -65,6 +61,7 @@ mod types_migration {
             added_indexes: vec![],
             dropped_indexes: vec![],
             is_new_table: false,
+            enum_renames: vec![],
         };
         assert!(changes.added_columns.is_empty());
     }

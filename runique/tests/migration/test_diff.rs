@@ -11,12 +11,7 @@ fn col(name: &str, col_type: &str) -> ParsedColumn {
     ParsedColumn {
         name: name.to_string(),
         col_type: col_type.to_string(),
-        nullable: false,
-        unique: false,
-        ignored: false,
-        created_at: false,
-        updated_at: false,
-        has_default_now: false,
+        ..ParsedColumn::default()
     }
 }
 
@@ -184,6 +179,83 @@ fn test_diff_multiple_changes() {
     assert_eq!(changes.added_columns.len(), 1, "new_field ajouté");
     assert_eq!(changes.dropped_columns.len(), 1, "old_field supprimé");
     assert!(!changes.is_empty());
+}
+
+// ── enum_renames dans diff_schemas ───────────────────────────────────────────
+
+fn col_enum(name: &str, enum_name: &str, values: &[&str]) -> ParsedColumn {
+    ParsedColumn {
+        enum_name: Some(enum_name.to_string()),
+        enum_string_values: values.iter().map(|s| s.to_string()).collect(),
+        ..col(name, "String")
+    }
+}
+
+#[test]
+fn test_diff_enum_values_identiques_pas_de_rename() {
+    let vals = &["Draft", "Published"];
+    let prev = schema("articles", "id", vec![col_enum("status", "Status", vals)]);
+    let curr = schema("articles", "id", vec![col_enum("status", "Status", vals)]);
+    let changes = diff_schemas(&prev, &curr);
+    assert!(
+        changes.enum_renames.is_empty(),
+        "Valeurs identiques → pas de rename"
+    );
+}
+
+#[test]
+fn test_diff_enum_values_changees_genere_rename() {
+    let prev = schema(
+        "articles",
+        "id",
+        vec![col_enum("status", "Status", &["Ajoute", "Fix"])],
+    );
+    let curr = schema(
+        "articles",
+        "id",
+        vec![col_enum("status", "Status", &["Ajouté", "Fix"])],
+    );
+    let changes = diff_schemas(&prev, &curr);
+    assert_eq!(changes.enum_renames.len(), 1, "Un rename attendu");
+    let (col, old_val, new_val) = &changes.enum_renames[0];
+    assert_eq!(col, "status");
+    assert_eq!(old_val, "Ajoute");
+    assert_eq!(new_val, "Ajouté");
+}
+
+#[test]
+fn test_diff_enum_plusieurs_valeurs_changees() {
+    let prev = schema(
+        "articles",
+        "id",
+        vec![col_enum("status", "Status", &["v1", "v2", "v3"])],
+    );
+    let curr = schema(
+        "articles",
+        "id",
+        vec![col_enum("status", "Status", &["V1", "V2", "v3"])],
+    );
+    let changes = diff_schemas(&prev, &curr);
+    assert_eq!(changes.enum_renames.len(), 2);
+}
+
+#[test]
+fn test_diff_enum_renames_in_changes_not_empty() {
+    let prev = schema(
+        "articles",
+        "id",
+        vec![col_enum("status", "Status", &["old"])],
+    );
+    let curr = schema(
+        "articles",
+        "id",
+        vec![col_enum("status", "Status", &["new"])],
+    );
+    let changes = diff_schemas(&prev, &curr);
+    assert!(
+        !changes.is_empty(),
+        "Des renames → changes.is_empty() == false"
+    );
 }
 
 // ── update_migration_lib ──────────────────────────────────────────────────────

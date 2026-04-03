@@ -59,7 +59,7 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
 
     if !Path::new(&lib).exists() {
         let content = format!(
-            "use sea_orm_migration::prelude::*;\n\n{}\n\npub struct Migrator;\n\n#[async_trait::async_trait]\nimpl MigratorTrait for Migrator {{\n    fn migrations() -> Vec<Box<dyn MigrationTrait>> {{\n        vec![\n{}\n        ]\n    }}\n}}\n",
+            "use sea_orm_migration::prelude::*;\n\n{}\n\npub struct Migrator;\n\n#[async_trait::async_trait]\nimpl MigratorTrait for Migrator {{\n    fn migrations() -> Vec<Box<dyn MigrationTrait>> {{\n        let mut migrations: Vec<Box<dyn MigrationTrait>> = vec![\n{}\n        ];\n        migrations.extend(runique::migration::builtin_migrations());\n        migrations\n    }}\n}}\n",
             mod_line, box_line
         );
         fs::write(&lib, content)?;
@@ -247,6 +247,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
                 added_indexes: schema.indexes.clone(),
                 dropped_indexes: vec![],
                 is_new_table: true,
+                enum_renames: vec![],
             }
         };
         if !changes.is_empty() {

@@ -15,12 +15,7 @@ fn col(name: &str, col_type: &str) -> ParsedColumn {
     ParsedColumn {
         name: name.to_string(),
         col_type: col_type.to_string(),
-        nullable: false,
-        unique: false,
-        ignored: false,
-        created_at: false,
-        updated_at: false,
-        has_default_now: false,
+        ..ParsedColumn::default()
     }
 }
 
@@ -82,6 +77,7 @@ fn simple_changes(table: &str) -> Changes {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        enum_renames: vec![],
     }
 }
 
@@ -203,6 +199,7 @@ fn test_alter_file_sans_changements() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        enum_renames: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(content.contains("pub struct Migration"));
@@ -226,9 +223,88 @@ fn test_alter_file_avec_ajout_fk() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        enum_renames: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(content.contains("author_id") || content.contains("users"));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// generate_alter_file — enum_renames → UPDATE SQL
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_alter_file_enum_rename_genere_update_up() {
+    let changes = Changes {
+        table_name: "articles".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![(
+            "status".to_string(),
+            "Ajoute".to_string(),
+            "Ajouté".to_string(),
+        )],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("Ajoute") && content.contains("Ajouté"),
+        "UP doit contenir les deux valeurs"
+    );
+    assert!(content.contains("UPDATE"), "UP doit générer un UPDATE SQL");
+}
+
+#[test]
+fn test_alter_file_enum_rename_genere_update_down() {
+    let changes = Changes {
+        table_name: "articles".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![(
+            "status".to_string(),
+            "Ajoute".to_string(),
+            "Ajouté".to_string(),
+        )],
+    };
+    let content = generate_alter_file(&changes);
+    // DOWN doit inverser : SET 'Ajoute' WHERE 'Ajouté'
+    let down_section = content.split("async fn down").nth(1).unwrap_or("");
+    assert!(
+        down_section.contains("Ajoute") || down_section.contains("Ajouté"),
+        "DOWN doit aussi contenir un UPDATE inversé"
+    );
+}
+
+#[test]
+fn test_alter_file_enum_rename_contient_nom_table() {
+    let changes = Changes {
+        table_name: "articles".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![("status".to_string(), "old".to_string(), "new".to_string())],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("articles"),
+        "Le nom de la table doit apparaître dans l'UPDATE"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════

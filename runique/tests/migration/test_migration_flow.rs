@@ -139,12 +139,7 @@ fn col(name: &str, ty: &str) -> ParsedColumn {
     ParsedColumn {
         name: name.to_string(),
         col_type: ty.to_string(),
-        nullable: false,
-        unique: false,
-        ignored: false,
-        created_at: false,
-        updated_at: false,
-        has_default_now: false,
+        ..ParsedColumn::default()
     }
 }
 
@@ -155,9 +150,7 @@ fn col_opt(name: &str, ty: &str, nullable: bool, unique: bool, ignored: bool) ->
         nullable,
         unique,
         ignored,
-        created_at: false,
-        updated_at: false,
-        has_default_now: false,
+        ..ParsedColumn::default()
     }
 }
 
@@ -474,6 +467,7 @@ fn test_flow_generate_alter_ajout_colonne() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        enum_renames: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -495,6 +489,7 @@ fn test_flow_generate_alter_suppression_colonne() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        enum_renames: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -517,6 +512,7 @@ fn test_flow_generate_alter_up_et_down_sont_inverses() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        enum_renames: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -544,6 +540,7 @@ fn test_flow_generate_alter_type_change_commente() {
         added_indexes: vec![],
         dropped_indexes: vec![],
         is_new_table: false,
+        enum_renames: vec![],
     };
     let content = generate_alter_file(&changes);
 

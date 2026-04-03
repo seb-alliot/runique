@@ -4,9 +4,12 @@ model! {
     Contributions,
     table: "contributions",
     pk: id => i32,
+    enums: {
+        ContributionType: [Runique, Cours],
+    },
     fields: {
         user_id: i32 [required],
-        contribution_type: String [required],
+        contribution_type: enum(ContributionType) [required],
         title: String [required, max_len(200)],
         content: String [required],
         created_at: datetime [auto_now],

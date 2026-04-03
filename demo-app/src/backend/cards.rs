@@ -1,6 +1,6 @@
 use crate::entities::changelog_entry::Entity as ChangelogEntryEntity;
 use crate::entities::known_issue::Entity as KnownIssueEntity;
-use crate::entities::roadmap_entry::Entity as RoadmapEntryEntity;
+use crate::entities::roadmap_entry::{Entity as RoadmapEntryEntity, RoadmapStatus};
 use runique::prelude::*;
 
 #[derive(serde::Serialize)]
@@ -34,7 +34,7 @@ pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSectio
             && s.heading == heading
         {
             s.entries.push(CardEntry {
-                subtitle: Some(entry.category.clone()),
+                subtitle: Some(entry.category.to_string()),
                 title: entry.title.clone(),
                 description: entry.description.clone(),
                 link_url: None,
@@ -48,7 +48,7 @@ pub async fn fetch_changelog(db: &sea_orm::DatabaseConnection) -> Vec<CardSectio
             heading,
             heading_class: "roadmap-active".into(),
             entries: vec![CardEntry {
-                subtitle: Some(entry.category.clone()),
+                subtitle: Some(entry.category.to_string()),
                 title: entry.title.clone(),
                 description: entry.description.clone(),
                 link_url: None,
@@ -74,7 +74,7 @@ pub async fn fetch_known_issues(db: &sea_orm::DatabaseConnection) -> Vec<CardSec
             && s.heading == heading
         {
             s.entries.push(CardEntry {
-                subtitle: Some(entry.issue_type.clone()),
+                subtitle: Some(entry.issue_type.to_string()),
                 title: entry.title.clone(),
                 description: entry.description.clone(),
                 link_url: None,
@@ -88,7 +88,7 @@ pub async fn fetch_known_issues(db: &sea_orm::DatabaseConnection) -> Vec<CardSec
             heading,
             heading_class: "roadmap-active".into(),
             entries: vec![CardEntry {
-                subtitle: Some(entry.issue_type.clone()),
+                subtitle: Some(entry.issue_type.to_string()),
                 title: entry.title.clone(),
                 description: entry.description.clone(),
                 link_url: None,
@@ -108,9 +108,9 @@ pub async fn fetch_roadmap(db: &sea_orm::DatabaseConnection) -> Vec<CardSection>
         .unwrap_or_default();
 
     let status_sections = [
-        ("active", "🔧 In progress", "roadmap-active"),
-        ("planned", "📋 Planned", "roadmap-planned"),
-        ("future", "🔭 Future", "roadmap-future"),
+        (RoadmapStatus::Active, "🔧 In progress", "roadmap-active"),
+        (RoadmapStatus::Planned, "📋 Planned", "roadmap-planned"),
+        (RoadmapStatus::Future, "🔭 Future", "roadmap-future"),
     ];
 
     status_sections

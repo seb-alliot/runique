@@ -278,6 +278,19 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
         );
     }
 
+    // 9) Enum renames (data migration)
+    for (col, old_val, new_val) in &change.enum_renames {
+        up.push_str(&format!(
+            "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{new}' WHERE {col} = '{old}'\"\n        ).await?;\n\n",
+            table = change.table_name, col = col, old = old_val, new = new_val,
+        ));
+        // down : inverse
+        down.push_str(&format!(
+            "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{old}' WHERE {col} = '{new}'\"\n        ).await?;\n\n",
+            table = change.table_name, col = col, old = old_val, new = new_val,
+        ));
+    }
+
     (up, down)
 }
 
@@ -364,22 +377,30 @@ fn render_pk_col(pk: &ParsedColumn) -> String {
 }
 
 fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
-    let ty = col_type_to_method(&col.col_type);
+    // Enum string : rendre avec les valeurs pour que le snapshot les conserve
+    let ty = if !col.enum_string_values.is_empty() {
+        let name = col.enum_name.as_deref().unwrap_or("enum");
+        let vals: Vec<String> = col
+            .enum_string_values
+            .iter()
+            .map(|v| format!("\"{}\".to_string()", v))
+            .collect();
+        format!("enum_type(\"{}\", vec![{}])", name, vals.join(", "))
+    } else {
+        col_type_to_method(&col.col_type).to_string()
+    };
+
     let null = if col.nullable {
         ".null()"
     } else {
         ".not_null()"
     };
     let uniq = if col.unique { ".unique_key()" } else { "" };
-
     let default = if col.has_default_now {
         ".default(Expr::current_timestamp())"
     } else {
         ""
     };
-
-    // MySQL/MariaDB : ON UPDATE CURRENT_TIMESTAMP pour les colonnes updated_at.
-    // PostgreSQL : géré via un trigger généré séparément dans build_updated_at_trigger_stmts.
     let on_update = if col.updated_at && *db_kind == DbKind::Mysql {
         ".extra(\"ON UPDATE CURRENT_TIMESTAMP\")"
     } else {

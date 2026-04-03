@@ -30,10 +30,7 @@ pub struct Migrator;
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        // let mut migrations: Vec<Box<dyn MigrationTrait>> = user_runique()
-        //     .into_iter()
-        //     .collect();
-        vec![
+        let mut migrations: Vec<Box<dyn MigrationTrait>> = vec![
             Box::new(m20260327_103709_create_blog_table::Migration),
             Box::new(m20260327_103709_create_form_field_table::Migration),
             Box::new(m20260327_103709_create_test_all_fields_table::Migration),
@@ -59,6 +56,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260327_103709_create_code_example_table::Migration),
             Box::new(m20260328_000000_create_runique_release_table::Migration),
             Box::new(m20260328_130203_alter_runique_release_table::Migration),
-        ]
+        ];
+        migrations.extend(runique::migration::builtin_migrations());
+        migrations
     }
 }

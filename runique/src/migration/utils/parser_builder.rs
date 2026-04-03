@@ -11,6 +11,7 @@ use crate::migration::utils::types::{ParsedColumn, ParsedFk, ParsedIndex, Parsed
 struct DslModel {
     table: String,
     pk: DslPk,
+    enum_types: Vec<(String, String, Vec<String>)>, // (enum_name, backing_type, string_values)
     fields: Vec<DslField>,
     relations: Vec<DslRelation>,
 }
@@ -23,6 +24,7 @@ struct DslPk {
 struct DslField {
     name: String,
     ty: String,
+    enum_name: Option<String>, // nom de l'enum si ty == "enum"
     options: Vec<String>,
 }
 
@@ -72,6 +74,72 @@ impl Parse for DslModel {
         input.parse::<Token![=>]>()?;
         let pk_ty: Ident = input.parse()?;
         input.parse::<Token![,]>()?;
+
+        // enums: { ... } optionnel — on extrait le backing type et les valeurs string
+        let mut enum_types: Vec<(String, String, Vec<String>)> = Vec::new();
+        if input.peek(Ident) {
+            let peek: Ident = input.fork().parse()?;
+            if peek == "enums" {
+                input.parse::<Ident>()?;
+                input.parse::<Token![:]>()?;
+                let enum_block;
+                braced!(enum_block in input);
+                while !enum_block.is_empty() {
+                    if let Ok(enum_name) = enum_block.parse::<Ident>() {
+                        let _ = enum_block.parse::<Token![:]>();
+                        // type optionnel : String | i32 | i64
+                        let backing = if enum_block.peek(Ident) {
+                            let ty: Ident = enum_block.fork().parse().unwrap();
+                            match ty.to_string().as_str() {
+                                "String" | "i32" | "i64" => {
+                                    enum_block.parse::<Ident>().ok();
+                                    ty.to_string()
+                                }
+                                _ => "String".to_string(),
+                            }
+                        } else {
+                            "String".to_string()
+                        };
+                        // parser les variants [Name] ou [Name="value", ...]
+                        let mut string_values: Vec<String> = Vec::new();
+                        if enum_block.peek(syn::token::Bracket) {
+                            let variants;
+                            bracketed!(variants in enum_block);
+                            while !variants.is_empty() {
+                                if let Ok(vname) = variants.parse::<Ident>() {
+                                    if variants.peek(Token![=]) {
+                                        let _ = variants.parse::<Token![=]>();
+                                        // valeur explicite : littéral string ou int
+                                        if let Ok(lit) = variants.parse::<syn::Lit>() {
+                                            match lit {
+                                                syn::Lit::Str(s) => string_values.push(s.value()),
+                                                syn::Lit::Int(n) => {
+                                                    string_values.push(n.to_string())
+                                                }
+                                                _ => string_values.push(vname.to_string()),
+                                            }
+                                        } else {
+                                            string_values.push(vname.to_string());
+                                        }
+                                    } else {
+                                        // pas de valeur explicite → nom du variant
+                                        string_values.push(vname.to_string());
+                                    }
+                                } else {
+                                    variants.parse::<proc_macro2::TokenTree>().ok();
+                                }
+                                let _ = variants.parse::<Token![,]>();
+                            }
+                        }
+                        enum_types.push((enum_name.to_string(), backing, string_values));
+                        let _ = enum_block.parse::<Token![,]>();
+                    } else {
+                        enum_block.parse::<proc_macro2::TokenTree>().ok();
+                    }
+                }
+                let _ = input.parse::<Token![,]>();
+            }
+        }
 
         // fields: { ... }
         let kw: Ident = input.parse()?;
@@ -136,6 +204,7 @@ impl Parse for DslModel {
                 name: pk_name.to_string(),
                 ty: pk_ty.to_string(),
             },
+            enum_types,
             fields,
             relations,
         })
@@ -147,7 +216,18 @@ impl Parse for DslField {
         // name: type [opt1, opt2],
         let name: Ident = input.parse()?;
         input.parse::<Token![:]>()?;
-        let ty: Ident = input.parse()?;
+
+        // `enum` est un mot-clé Rust — traitement séparé
+        let (ty, enum_name) = if input.peek(Token![enum]) {
+            input.parse::<Token![enum]>()?;
+            let inner;
+            syn::parenthesized!(inner in input);
+            let name: Ident = inner.parse()?;
+            ("enum".to_string(), Some(name.to_string()))
+        } else {
+            let ty: Ident = input.parse()?;
+            (ty.to_string(), None)
+        };
 
         let mut options = Vec::new();
         if input.peek(syn::token::Bracket) {
@@ -171,7 +251,8 @@ impl Parse for DslField {
         let _ = input.parse::<Token![,]>();
         Ok(DslField {
             name: name.to_string(),
-            ty: ty.to_string(),
+            ty,
+            enum_name,
             options,
         })
     }
@@ -346,8 +427,11 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         created_at: false,
         updated_at: false,
         has_default_now: false,
+        enum_name: None,
+        enum_string_values: Vec::new(),
     });
 
+    let enum_types = model.enum_types;
     let columns = model
         .fields
         .into_iter()
@@ -363,10 +447,33 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
 
             let unique = f.options.contains(&"unique".to_string());
 
+            let enum_entry = f
+                .enum_name
+                .as_deref()
+                .and_then(|n| enum_types.iter().find(|(name, _, _)| name == n));
+
             let col_type = if has_auto_now || has_auto_now_update {
                 "DateTime".to_string()
+            } else if f.ty == "enum" {
+                match enum_entry.map(|(_, bt, _)| bt.as_str()).unwrap_or("String") {
+                    "i32" => "Integer".to_string(),
+                    "i64" => "BigInteger".to_string(),
+                    _ => "String".to_string(),
+                }
             } else {
                 dsl_field_type_to_col_type(&f.ty)
+            };
+
+            // Pour les enums String, on garde les valeurs DB pour le diff
+            let (enum_name, enum_string_values) = if f.ty == "enum" {
+                match enum_entry {
+                    Some((name, backing, values)) if backing == "String" => {
+                        (Some(name.clone()), values.clone())
+                    }
+                    _ => (None, Vec::new()),
+                }
+            } else {
+                (None, Vec::new())
             };
 
             let ignored = f.options.contains(&"readonly".to_string()) || f.name == "cache_key";
@@ -379,6 +486,8 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                 ignored,
                 created_at: has_auto_now || is_created_at,
                 updated_at: has_auto_now_update || is_updated_at,
+                enum_name,
+                enum_string_values,
                 has_default_now: has_auto_now
                     || has_auto_now_update
                     || is_created_at
