@@ -317,11 +317,25 @@
       "confirm_delete": "Eliminare questa voce?"
     },
     "reset_password": {
-      "btn": "Reset password",
+      "btn": "Reimposta la password",
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
-      "error_send": "Error sending email: {}"
+      "error_send": "Error sending email: {}",
+      "email_subject": "Reimposta la tua password",
+      "email_title": "Reimpostazione password",
+      "email_greeting": "Salve,",
+      "email_body": "Clicca il link qui sotto per reimpostare la tua password (valido 1 ora):",
+      "email_btn": "Reimposta la mia password",
+      "email_ignore": "Se non hai richiesto questa reimpostazione, ignora questo messaggio."
+    },
+    "user_created": {
+      "email_subject": "Benvenuto — imposta la tua password",
+      "email_sent": "Email di benvenuto inviata a {}.",
+      "email_greeting": "Benvenuto,",
+      "email_body": "È stato creato un account per te. Clicca il link per impostare la tua password:",
+      "email_btn": "Imposta la mia password",
+      "email_validity": "Questo link è valido 1 ora. Se non ti aspettavi questo messaggio, ignoralo."
     },
     "delete": {
       "title": "Elimina",

@@ -2,7 +2,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use runique::utils::{
-    cli::{makemigration, migrate, runique_start},
+    cli::{create_superuser, makemigration, migrate, runique_start},
     create_new_project, init_logging,
     trad::{Lang, set_lang},
 };
@@ -91,7 +91,7 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::New { name } => create_new_project(&name)?,
         Commands::Start { main, admin } => runique_start(&main, &admin)?,
-        Commands::CreateSuperuser => runique::admin::create_superuser().await?,
+        Commands::CreateSuperuser => create_superuser().await?,
         Commands::Migration { action } => match action {
             MigrateAction::Up { migrations } => {
                 migrate::up(&migrations).await?;

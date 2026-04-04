@@ -850,13 +850,13 @@ a {
     box-shadow: inset 0 1px 0 var(--shadow-message);
 }
 
-.message-Error {
+.message-Error , .alert {
     color: var(--msg-error-text, #fecaca);
     border-left: 4px solid var(--error-color);
     background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), var(--bg-surface) 40%);
 }
 
-.message-Success {
+.message-Success{
     color: var(--msg-success-text, #bbf7d0);
     border-left: 4px solid var(--success-color);
     background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), var(--bg-surface) 40%);

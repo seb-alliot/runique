@@ -321,7 +321,21 @@
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
-      "error_send": "Error sending email: {}"
+      "error_send": "Error sending email: {}",
+      "email_subject": "Reset your password",
+      "email_title": "Password reset",
+      "email_greeting": "Hello,",
+      "email_body": "Click the link below to reset your password (valid for 1 hour):",
+      "email_btn": "Reset my password",
+      "email_ignore": "If you did not request this reset, ignore this message."
+    },
+    "user_created": {
+      "email_subject": "Welcome — set your password",
+      "email_sent": "Welcome email sent to {}.",
+      "email_greeting": "Welcome,",
+      "email_body": "An account has been created for you. Click the link below to set your password:",
+      "email_btn": "Set my password",
+      "email_validity": "This link is valid for 1 hour. If you were not expecting this message, ignore it."
     },
     "delete": {
       "title": "Delete",

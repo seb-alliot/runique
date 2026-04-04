@@ -4,9 +4,10 @@
 macro_rules! admin {
     (
         $(
-            $key:ident : $($model:ident)::+ => $form:ident {
+            $key:ident : $($model:ident)::+ => $form:path {
                 title: $title:literal ,
                 permissions: [ $($perm:literal),* $(,)? ]
+                $(, create_form: $create_form_path:path)?
                 $(, edit_form: $edit_form_path:path)?
                 $(, list_display: [ $([$display_col:literal, $display_label:literal]),* $(,)? ])?
                 $(, list_filter: [ $([$filter_col:literal, $filter_label:literal $(, $entry_limit:literal)?]),* $(,)? ])?

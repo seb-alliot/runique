@@ -54,7 +54,7 @@ fn test_mask_produces_base64() {
     assert!(
         masked
             .chars()
-            .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=')
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
     );
 }
 

@@ -1,33 +1,16 @@
 use crate::entities::{
     blog, changelog_entry, chapitre, code_example, contribution, cour, cour_block, demo_category,
-    demo_page, demo_section, doc_block, doc_page, doc_section, eihwaz_users, form_field,
-    known_issue, page_doc_link, roadmap_entry, runique_release, site_config,
+    demo_page, demo_section, doc_block, doc_page, doc_section, form_field, known_issue,
+    page_doc_link, roadmap_entry, runique_release, site_config,
 };
 use crate::formulaire::{
     BlogForm, ChangelogEntryForm, ChapitreForm, CodeExampleForm, ContributionForm, CourBlockForm,
     CourForm, DemoCategoryForm, DemoPageForm, DemoSectionForm, DocBlockForm, DocPageForm,
-    DocSectionForm, FormFieldForm, KnownIssueForm, PageDocLinkForm, RegisterForm, RoadmapEntryForm,
+    DocSectionForm, FormFieldForm, KnownIssueForm, PageDocLinkForm, RoadmapEntryForm,
     RuniqueReleaseForm, SiteConfigForm,
 };
 
 admin! {
-    users: eihwaz_users::Model => RegisterForm {
-        title: "Utilisateurs",
-        permissions: ["admin"],
-        edit_form: crate::formulaire::UserEditForm,
-        list_display: [
-            ["username", "Nom d'utilisateur"],
-            ["email", "Email"],
-            ["is_superuser", "Superuser"],
-            ["is_active", "Actif"],
-        ],
-        list_filter: [
-            ["username", "Nom d'utilisateur", 10],
-            ["email", "Email", 10],
-            ["is_superuser", "Superuser", 10],
-            ["is_active", "Actif", 10],
-        ]
-    }
     contribution: contribution::Model => ContributionForm {
         title: "Contribution",
         permissions: ["admin"],

@@ -33,6 +33,7 @@ pub const FIELD_TEMPLATES: &[(&str, &str)] = tpls![
     ("base_select", "field_html/base_select.html"),
     ("base_special", "field_html/base_special.html"),
     ("base_string", "field_html/base_string.html"),
+    ("base_hidden", "field_html/base_hidden.html"),
 ];
 
 pub const AUTH_TEMPLATES: &[(&str, &str)] = tpls![

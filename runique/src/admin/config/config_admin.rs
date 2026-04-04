@@ -40,6 +40,16 @@ pub struct AdminConfig {
     ///
     /// Si None, le lien est affiché dans le flash message (dev sans mailer).
     pub reset_password_url: Option<String>,
+
+    /// Ressources "utilisateur" : clé de ressource → template email optionnel.
+    /// Activer via `.user_resource("users")`.
+    /// À la création, génère un mot de passe aléatoire hashé et envoie un email de reset.
+    pub user_resources: std::collections::HashMap<String, Option<String>>,
+
+    /// Template Tera pour l'email de reset de mot de passe depuis l'admin.
+    /// Défaut : "admin/reset_password_email.html"
+    /// Contexte disponible : `username`, `email`, `reset_url`
+    pub reset_password_email_template: Option<String>,
 }
 
 impl Clone for AdminConfig {
@@ -54,6 +64,8 @@ impl Clone for AdminConfig {
             templates: self.templates.clone(),
             page_size: self.page_size,
             reset_password_url: self.reset_password_url.clone(),
+            user_resources: self.user_resources.clone(),
+            reset_password_email_template: self.reset_password_email_template.clone(),
         }
     }
 }
@@ -84,6 +96,8 @@ impl AdminConfig {
             templates: AdminTemplate::new(),
             page_size: 10,
             reset_password_url: None,
+            user_resources: std::collections::HashMap::new(),
+            reset_password_email_template: None,
         }
     }
 
@@ -147,6 +161,36 @@ impl AdminConfig {
 
     pub fn disable(mut self) -> Self {
         self.enabled = false;
+        self
+    }
+
+    /// Déclare une ressource comme "utilisateur".
+    /// À la création : mot de passe aléatoire hashé + email de reset envoyé automatiquement.
+    /// Le champ email du formulaire doit s'appeler "email".
+    ///
+    /// ```rust,ignore
+    /// AdminConfig::new().user_resource("users")
+    /// ```
+    pub fn user_resource(mut self, resource_key: &str) -> Self {
+        self.user_resources.insert(resource_key.to_string(), None);
+        self
+    }
+
+    /// Template Tera pour l'email de reset de mot de passe depuis l'admin.
+    /// Contexte : `username`, `email`, `reset_url`
+    pub fn reset_password_email_template(mut self, path: &str) -> Self {
+        self.reset_password_email_template = Some(path.to_string());
+        self
+    }
+
+    /// Comme `user_resource` mais avec un template email personnalisé.
+    ///
+    /// ```rust,ignore
+    /// AdminConfig::new().user_resource_with_template("users", "emails/welcome.html")
+    /// ```
+    pub fn user_resource_with_template(mut self, resource_key: &str, email_template: &str) -> Self {
+        self.user_resources
+            .insert(resource_key.to_string(), Some(email_template.to_string()));
         self
     }
 }

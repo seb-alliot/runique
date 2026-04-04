@@ -1,5 +1,4 @@
 //! Type de la clé primaire utilisateur — `i32` par défaut, `i64` avec la feature `big-pk`.
-
 /// Type de la clé primaire utilisateur.
 ///
 /// Par défaut `i32`. Activer la feature `big-pk` pour passer à `i64` :

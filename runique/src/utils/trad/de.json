@@ -315,11 +315,25 @@
       "confirm_delete": "Diesen Eintrag löschen?"
     },
     "reset_password": {
-      "btn": "Reset password",
+      "btn": "Passwort zurücksetzen",
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
-      "error_send": "Error sending email: {}"
+      "error_send": "Error sending email: {}",
+      "email_subject": "Passwort zurücksetzen",
+      "email_title": "Passwort zurücksetzen",
+      "email_greeting": "Hallo,",
+      "email_body": "Klicken Sie auf den Link, um Ihr Passwort zurückzusetzen (gültig 1 Stunde):",
+      "email_btn": "Mein Passwort zurücksetzen",
+      "email_ignore": "Wenn Sie diese Zurücksetzung nicht angefordert haben, ignorieren Sie diese Nachricht."
+    },
+    "user_created": {
+      "email_subject": "Willkommen — Passwort festlegen",
+      "email_sent": "Willkommens-E-Mail an {} gesendet.",
+      "email_greeting": "Willkommen,",
+      "email_body": "Ein Konto wurde für Sie erstellt. Klicken Sie auf den Link, um Ihr Passwort festzulegen:",
+      "email_btn": "Mein Passwort festlegen",
+      "email_validity": "Dieser Link ist 1 Stunde gültig. Wenn Sie diese Nachricht nicht erwartet haben, ignorieren Sie sie."
     },
     "delete": {
       "title": "Löschen",

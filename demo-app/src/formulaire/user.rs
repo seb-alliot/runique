@@ -1,12 +1,16 @@
 use crate::entities::eihwaz_users::schema as eihwaz_users_schema;
 use runique::prelude::*;
 
-#[form(schema = eihwaz_users_schema, fields = [username, email, password])]
-pub struct RegisterForm;
-
+// admin
 #[form(schema = eihwaz_users_schema, fields = [username, email, is_active, is_staff, is_superuser, roles])]
 pub struct UserEditForm;
+impl RuniqueForm for UserEditForm {
+    impl_form_access!(model);
+}
 
+// inscription
+#[form(schema = eihwaz_users_schema, fields = [username, email, password])]
+pub struct RegisterForm;
 #[async_trait]
 impl RuniqueForm for RegisterForm {
     impl_form_access!(model);
@@ -39,10 +43,6 @@ impl RuniqueForm for RegisterForm {
             Err(errors)
         }
     }
-}
-
-impl RuniqueForm for UserEditForm {
-    impl_form_access!(model);
 }
 
 impl RegisterForm {

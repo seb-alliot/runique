@@ -35,7 +35,7 @@ pub mod roadmap_entry;
 pub use roadmap_entry::RoadmapEntryForm;
 
 pub mod user;
-pub use user::{RegisterForm, UserEditForm};
+pub use user::RegisterForm;
 
 pub mod blog;
 pub use blog::BlogForm;

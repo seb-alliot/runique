@@ -45,10 +45,10 @@ impl ContributionForm {
     pub async fn save(
         &mut self,
         db: &DatabaseConnection,
-        user_id: runique::utils::pk::UserId,
+        user_pk: UserId,
     ) -> Result<crate::entities::contribution::Model, DbErr> {
         let new_contribution = crate::entities::contribution::ActiveModel {
-            user_id: Set(user_id as i32),
+            user_id: Set(user_pk.try_into().unwrap()),
             contribution_type: Set(self
                 .form
                 .get_string("contribution_type")

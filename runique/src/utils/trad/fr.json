@@ -322,7 +322,21 @@
       "success_email": "Lien de réinitialisation envoyé à {}.",
       "success_link": "Lien de réinitialisation (mailer non configuré) : {}",
       "error_no_email": "Aucun champ email trouvé pour cet utilisateur.",
-      "error_send": "Erreur lors de l'envoi de l'email : {}"
+      "error_send": "Erreur lors de l'envoi de l'email : {}",
+      "email_subject": "Réinitialisation de votre mot de passe",
+      "email_title": "Réinitialisation du mot de passe",
+      "email_greeting": "Bonjour,",
+      "email_body": "Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe (valide 1 heure) :",
+      "email_btn": "Réinitialiser mon mot de passe",
+      "email_ignore": "Si vous n'avez pas demandé cette réinitialisation, ignorez ce message."
+    },
+    "user_created": {
+      "email_subject": "Bienvenue — définissez votre mot de passe",
+      "email_sent": "Email de bienvenue envoyé à {}.",
+      "email_greeting": "Bienvenue,",
+      "email_body": "Un compte a été créé pour vous. Cliquez sur le lien ci-dessous pour définir votre mot de passe :",
+      "email_btn": "Définir mon mot de passe",
+      "email_validity": "Ce lien est valide 1 heure. Si vous n'attendiez pas ce message, ignorez-le."
     },
     "delete": {
       "title": "Supprimer",

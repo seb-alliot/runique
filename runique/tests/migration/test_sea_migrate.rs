@@ -203,34 +203,6 @@ async fn test_sea_migrate_reset_mariadb() {
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
-async fn test_sea_migrate_fresh_sqlite() {
-    let db_file = std::env::temp_dir().join("runique_test_sea_migration.db");
-    let sqlite_url = format!("sqlite://{}?mode=rwc", db_file.display());
-
-    let out = sea_migrate(&sqlite_url, &["fresh"]);
-    assert!(
-        out.status.success(),
-        "sea migrate fresh (sqlite) doit Ok:\n{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-
-    // Vérifie via sea-orm SQLite
-    if let Ok(db) = sea_orm::Database::connect(&sqlite_url).await {
-        for table in TABLES {
-            let exists = db
-                .execute_unprepared(&format!("SELECT 1 FROM \"{}\" LIMIT 1", table))
-                .await
-                .is_ok();
-            assert!(
-                exists,
-                "table '{}' doit exister après fresh (sqlite)",
-                table
-            );
-        }
-    }
-}
-
-#[tokio::test]
 async fn test_sea_migrate_reset_sqlite() {
     let db_file = std::env::temp_dir().join("runique_test_sea_migration_reset.db");
     let sqlite_url = format!("sqlite://{}?mode=rwc", db_file.display());

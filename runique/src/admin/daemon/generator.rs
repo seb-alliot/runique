@@ -67,7 +67,11 @@ fn write_admin(resources: &[ResourceDef], dir: &Path) -> Result<(), String> {
 
 fn write_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), String> {
     let module = model_to_module(&r.model_type);
-    let form_path = format!("{}::AdminForm", module);
+    let form_path = r
+        .create_form_type
+        .as_deref()
+        .unwrap_or(&format!("{}::AdminForm", module))
+        .to_string();
     let wrapper = format!("{}AdminFormDynWrapper", pascal_case(&module));
 
     let _ = writeln!(out, "// ── DynForm wrapper pour {}::AdminForm ──", module);
@@ -160,6 +164,12 @@ fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(
         roles_str
     );
     let _ = writeln!(out, "    let mut registry = AdminRegistry::new();");
+    let _ = writeln!(
+        out,
+        "    for entry in runique::admin::builtin_resources() {{"
+    );
+    let _ = writeln!(out, "        registry.register(entry);");
+    let _ = writeln!(out, "    }}");
     let _ = writeln!(out);
 
     for r in resources {
@@ -218,7 +228,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let model = full_model_path(&r.model_type);
     let title = &r.title;
     let module = model_to_module(&r.model_type);
-    let form_path = format!("{}::AdminForm", module);
+    let form_path = r
+        .create_form_type
+        .as_deref()
+        .unwrap_or(&format!("{}::AdminForm", module))
+        .to_string();
     let wrapper = format!("{}AdminFormDynWrapper", pascal_case(&module));
     let roles: Vec<String> = r
         .permissions
@@ -249,6 +263,11 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        \"{}\",", title);
     let _ = writeln!(out, "        vec![{}],", roles_str);
     let _ = writeln!(out, "    );");
+
+    // inject_password : activé quand un create_form custom est déclaré
+    if r.create_form_type.is_some() {
+        let _ = writeln!(out, "    let meta = meta.inject_password(true);");
+    }
 
     // Template overrides
     if let Some(ref t) = r.template_list {

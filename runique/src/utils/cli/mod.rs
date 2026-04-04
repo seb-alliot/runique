@@ -11,3 +11,6 @@ pub mod migrate;
 
 pub mod start;
 pub use start::runique_start;
+
+pub mod cli_admin;
+pub use cli_admin::create_superuser;

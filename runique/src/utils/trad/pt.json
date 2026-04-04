@@ -317,11 +317,25 @@
       "confirm_delete": "Excluir esta entrada?"
     },
     "reset_password": {
-      "btn": "Reset password",
+      "btn": "Redefinir senha",
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
-      "error_send": "Error sending email: {}"
+      "error_send": "Error sending email: {}",
+      "email_subject": "Redefina sua senha",
+      "email_title": "Redefinição de senha",
+      "email_greeting": "Olá,",
+      "email_body": "Clique no link abaixo para redefinir sua senha (válido por 1 hora):",
+      "email_btn": "Redefinir minha senha",
+      "email_ignore": "Se você não solicitou esta redefinição, ignore esta mensagem."
+    },
+    "user_created": {
+      "email_subject": "Bem-vindo — defina sua senha",
+      "email_sent": "E-mail de boas-vindas enviado para {}.",
+      "email_greeting": "Bem-vindo,",
+      "email_body": "Uma conta foi criada para você. Clique no link para definir sua senha:",
+      "email_btn": "Definir minha senha",
+      "email_validity": "Este link é válido por 1 hora. Se não esperava esta mensagem, ignore-a."
     },
     "delete": {
       "title": "Excluir",
