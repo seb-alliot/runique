@@ -9,7 +9,7 @@ use sea_orm::DatabaseConnection;
 // ═══════════════════════════════════════════════════════════════
 
 struct MockUser {
-    id: i32,
+    id: runique::utils::pk::UserId,
     username: String,
     email: String,
     password: String,
@@ -19,7 +19,7 @@ struct MockUser {
 }
 
 impl RuniqueUser for MockUser {
-    fn user_id(&self) -> i32 {
+    fn user_id(&self) -> runique::utils::pk::UserId {
         self.id
     }
     fn username(&self) -> &str {
@@ -146,7 +146,10 @@ impl UserEntity for MockUserEntity {
         None
     }
 
-    async fn find_by_id(_db: &DatabaseConnection, _id: i32) -> Option<Self::Model> {
+    async fn find_by_id(
+        _db: &DatabaseConnection,
+        _id: runique::utils::pk::UserId,
+    ) -> Option<Self::Model> {
         None
     }
 

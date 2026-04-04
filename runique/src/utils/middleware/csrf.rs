@@ -104,13 +104,13 @@ pub fn mask_csrf_token(token_hex: &str) -> Result<String, &'static str> {
     let mut result = mask;
     result.extend(masked);
 
-    // Encode in base64
-    Ok(general_purpose::STANDARD.encode(&result))
+    // Encode in base64 URL-safe (évite + et / qui sont corrompus par les forms URL-encoded)
+    Ok(general_purpose::URL_SAFE_NO_PAD.encode(&result))
 }
 
 /// Unmasking
 pub fn unmask_csrf_token(masked_token_b64: &str) -> Result<String, &'static str> {
-    let decoded = general_purpose::STANDARD
+    let decoded = general_purpose::URL_SAFE_NO_PAD
         .decode(masked_token_b64)
         .map_err(|_| "Invalid base64")?;
 

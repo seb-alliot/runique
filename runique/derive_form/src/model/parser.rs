@@ -46,15 +46,25 @@ impl Parse for EnumDef {
         let mut variants = Vec::new();
         while !content.is_empty() {
             let variant_name: Ident = content.parse()?;
-            let value = if content.peek(Token![=]) {
+            let (value, label) = if content.peek(Token![=]) {
                 content.parse::<Token![=]>()?;
-                Some(content.parse::<syn::Lit>()?)
+                if content.peek(syn::token::Paren) {
+                    let inner;
+                    syn::parenthesized!(inner in content);
+                    let db_val: syn::Lit = inner.parse()?;
+                    inner.parse::<Token![,]>()?;
+                    let lbl: syn::Lit = inner.parse()?;
+                    (Some(db_val), Some(lbl))
+                } else {
+                    (Some(content.parse::<syn::Lit>()?), None)
+                }
             } else {
-                None
+                (None, None)
             };
             variants.push(EnumVariant {
                 name: variant_name,
                 value,
+                label,
             });
             let _ = content.parse::<Token![,]>();
         }
