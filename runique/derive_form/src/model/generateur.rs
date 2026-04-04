@@ -24,218 +24,303 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
 }
 
 pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
-    model.enums.iter().map(|e| {
-        let name = &e.name;
-        let variant_names: Vec<&syn::Ident> = e.variants.iter().map(|v| &v.name).collect();
-        let variant_name_strs: Vec<String> = variant_names.iter().map(|v| v.to_string()).collect();
-        let first = &variant_names[0];
+    model
+        .enums
+        .iter()
+        .map(|e| {
+            let name = &e.name;
+            let variant_names: Vec<&syn::Ident> = e.variants.iter().map(|v| &v.name).collect();
+            let variant_name_strs: Vec<String> =
+                variant_names.iter().map(|v| v.to_string()).collect();
+            let first = &variant_names[0];
 
-        match e.backing_type {
-            EnumBackingType::String => {
-                // Valeur DB = valeur explicite ou nom du variant
-                let db_values: Vec<String> = e.variants.iter().map(|v| {
-                    match &v.value {
-                        Some(syn::Lit::Str(s)) => s.value(),
-                        Some(_) => v.name.to_string(),
-                        None => v.name.to_string(),
-                    }
-                }).collect();
+            match e.backing_type {
+                EnumBackingType::String => {
+                    // Valeur DB = valeur explicite ou nom du variant
+                    let db_values: Vec<String> = e
+                        .variants
+                        .iter()
+                        .map(|v| match &v.value {
+                            Some(syn::Lit::Str(s)) => s.value(),
+                            Some(_) => v.name.to_string(),
+                            None => v.name.to_string(),
+                        })
+                        .collect();
 
-                quote! {
-                    #[derive(
-                        ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
-                        Clone, Debug, PartialEq,
-                        ::serde::Serialize, ::serde::Deserialize,
-                    )]
-                    #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
-                    pub enum #name {
-                        #(
-                            #[sea_orm(string_value = #db_values)]
-                            #variant_names,
-                        )*
-                    }
-
-                    impl ::std::default::Default for #name {
-                        fn default() -> Self { #name::#first }
-                    }
-
-                    impl ::std::fmt::Display for #name {
-                        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                            let s = match self {
-                                #(#name::#variant_names => #db_values,)*
-                            };
-                            f.write_str(s)
-                        }
-                    }
-
-                    impl ::std::str::FromStr for #name {
-                        type Err = ();
-                        fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
-                            let low = s.to_ascii_lowercase();
-                            #(
-                                if low == #db_values.to_ascii_lowercase() || low == #variant_name_strs.to_ascii_lowercase() {
-                                    return ::std::result::Result::Ok(#name::#variant_names);
+                    // Valeur affichée = label si présent, sinon db_value
+                    let display_values: Vec<String> = e
+                        .variants
+                        .iter()
+                        .map(|v| {
+                            if let Some(syn::Lit::Str(lbl)) = &v.label {
+                                lbl.value()
+                            } else {
+                                match &v.value {
+                                    Some(syn::Lit::Str(s)) => s.value(),
+                                    Some(_) => v.name.to_string(),
+                                    None => v.name.to_string(),
                                 }
-                            )*
-                            ::std::result::Result::Err(())
-                        }
-                    }
-                }
-            }
-
-            EnumBackingType::I32 => {
-                let db_values: Vec<i32> = e.variants.iter().map(|v| {
-                    match &v.value {
-                        Some(syn::Lit::Int(n)) => n.base10_parse::<i32>().unwrap_or(0),
-                        _ => 0,
-                    }
-                }).collect();
-
-                quote! {
-                    #[derive(
-                        ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
-                        Clone, Debug, PartialEq,
-                        ::serde::Serialize, ::serde::Deserialize,
-                    )]
-                    #[sea_orm(rs_type = "i32", db_type = "Integer")]
-                    pub enum #name {
-                        #(
-                            #[sea_orm(num_value = #db_values)]
-                            #variant_names,
-                        )*
-                    }
-
-                    impl ::std::default::Default for #name {
-                        fn default() -> Self { #name::#first }
-                    }
-
-                    impl ::std::fmt::Display for #name {
-                        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                            let s = match self {
-                                #(#name::#variant_names => #variant_name_strs,)*
-                            };
-                            f.write_str(s)
-                        }
-                    }
-
-                    impl ::std::str::FromStr for #name {
-                        type Err = ();
-                        fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
-                            let low = s.to_ascii_lowercase();
-                            #(
-                                if low == #variant_name_strs.to_ascii_lowercase() {
-                                    return ::std::result::Result::Ok(#name::#variant_names);
-                                }
-                            )*
-                            ::std::result::Result::Err(())
-                        }
-                    }
-                }
-            }
-
-            EnumBackingType::I64 => {
-                let db_values: Vec<i64> = e.variants.iter().map(|v| {
-                    match &v.value {
-                        Some(syn::Lit::Int(n)) => n.base10_parse::<i64>().unwrap_or(0),
-                        _ => 0,
-                    }
-                }).collect();
-
-                quote! {
-                    #[derive(
-                        ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
-                        Clone, Debug, PartialEq,
-                        ::serde::Serialize, ::serde::Deserialize,
-                    )]
-                    #[sea_orm(rs_type = "i64", db_type = "BigInteger")]
-                    pub enum #name {
-                        #(
-                            #[sea_orm(num_value = #db_values)]
-                            #variant_names,
-                        )*
-                    }
-
-                    impl ::std::default::Default for #name {
-                        fn default() -> Self { #name::#first }
-                    }
-
-                    impl ::std::fmt::Display for #name {
-                        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                            let s = match self {
-                                #(#name::#variant_names => #variant_name_strs,)*
-                            };
-                            f.write_str(s)
-                        }
-                    }
-
-                    impl ::std::str::FromStr for #name {
-                        type Err = ();
-                        fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
-                            let low = s.to_ascii_lowercase();
-                            #(
-                                if low == #variant_name_strs.to_ascii_lowercase() {
-                                    return ::std::result::Result::Ok(#name::#variant_names);
-                                }
-                            )*
-                            ::std::result::Result::Err(())
-                        }
-                    }
-                }
-            }
-            EnumBackingType::Pg => {
-            let db_values: Vec<String> = e.variants.iter().map(|v| {
-                match &v.value {
-                    Some(syn::Lit::Str(s)) => s.value(),
-                    Some(_) => v.name.to_string(),
-                    None => v.name.to_string(),
-                }
-            }).collect();
-
-            let enum_name_str = e.name.to_string().to_ascii_lowercase();
-
-            quote! {
-                #[derive(
-                    ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
-                    Clone, Debug, PartialEq,
-                    ::serde::Serialize, ::serde::Deserialize,
-                )]
-                #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = #enum_name_str)]
-                pub enum #name {
-                    #(
-                        #[sea_orm(string_value = #db_values)]
-                        #variant_names,
-                    )*
-                }
-
-                impl ::std::default::Default for #name {
-                    fn default() -> Self { #name::#first }
-                }
-
-                impl ::std::fmt::Display for #name {
-                    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                        let s = match self {
-                            #(#name::#variant_names => #db_values,)*
-                        };
-                        f.write_str(s)
-                    }
-                }
-
-                impl ::std::str::FromStr for #name {
-                    type Err = ();
-                    fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
-                        let low = s.to_ascii_lowercase();
-                        #(
-                            if low == #db_values.to_ascii_lowercase() || low == #variant_name_strs.to_ascii_lowercase() {
-                                return ::std::result::Result::Ok(#name::#variant_names);
                             }
-                        )*
-                        ::std::result::Result::Err(())
+                        })
+                        .collect();
+
+                    // Conditions FromStr : db_value + nom du variant + label si présent
+                    let match_conditions: Vec<proc_macro2::TokenStream> = e
+                        .variants
+                        .iter()
+                        .zip(variant_names.iter())
+                        .zip(db_values.iter())
+                        .map(|((v, vname), db_val)| {
+                            let name_str = vname.to_string();
+                            let mut conditions: Vec<proc_macro2::TokenStream> = vec![
+                                quote! { low == #db_val.to_ascii_lowercase() },
+                                quote! { low == #name_str.to_ascii_lowercase() },
+                            ];
+                            if let Some(syn::Lit::Str(lbl)) = &v.label {
+                                let lbl_str = lbl.value();
+                                conditions.push(quote! { low == #lbl_str.to_ascii_lowercase() });
+                            }
+                            quote! {
+                                if #(#conditions)||* {
+                                    return ::std::result::Result::Ok(#name::#vname);
+                                }
+                            }
+                        })
+                        .collect();
+
+                    quote! {
+                        #[derive(
+                            ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
+                            Clone, Debug, PartialEq,
+                            ::serde::Serialize, ::serde::Deserialize,
+                        )]
+                        #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+                        pub enum #name {
+                            #(
+                                #[sea_orm(string_value = #db_values)]
+                                #variant_names,
+                            )*
+                        }
+
+                        impl ::std::default::Default for #name {
+                            fn default() -> Self { #name::#first }
+                        }
+
+                        impl ::std::fmt::Display for #name {
+                            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                                let s = match self {
+                                    #(#name::#variant_names => #display_values,)*
+                                };
+                                f.write_str(s)
+                            }
+                        }
+
+                        impl ::std::str::FromStr for #name {
+                            type Err = ();
+                            fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                                let low = s.to_ascii_lowercase();
+                                #(#match_conditions)*
+                                ::std::result::Result::Err(())
+                            }
+                        }
+                    }
+                }
+
+                EnumBackingType::I32 => {
+                    let db_values: Vec<i32> = e
+                        .variants
+                        .iter()
+                        .map(|v| match &v.value {
+                            Some(syn::Lit::Int(n)) => n.base10_parse::<i32>().unwrap_or(0),
+                            _ => 0,
+                        })
+                        .collect();
+
+                    quote! {
+                        #[derive(
+                            ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
+                            Clone, Debug, PartialEq,
+                            ::serde::Serialize, ::serde::Deserialize,
+                        )]
+                        #[sea_orm(rs_type = "i32", db_type = "Integer")]
+                        pub enum #name {
+                            #(
+                                #[sea_orm(num_value = #db_values)]
+                                #variant_names,
+                            )*
+                        }
+
+                        impl ::std::default::Default for #name {
+                            fn default() -> Self { #name::#first }
+                        }
+
+                        impl ::std::fmt::Display for #name {
+                            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                                let s = match self {
+                                    #(#name::#variant_names => #variant_name_strs,)*
+                                };
+                                f.write_str(s)
+                            }
+                        }
+
+                        impl ::std::str::FromStr for #name {
+                            type Err = ();
+                            fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                                let low = s.to_ascii_lowercase();
+                                #(
+                                    if low == #variant_name_strs.to_ascii_lowercase() {
+                                        return ::std::result::Result::Ok(#name::#variant_names);
+                                    }
+                                )*
+                                ::std::result::Result::Err(())
+                            }
+                        }
+                    }
+                }
+
+                EnumBackingType::I64 => {
+                    let db_values: Vec<i64> = e
+                        .variants
+                        .iter()
+                        .map(|v| match &v.value {
+                            Some(syn::Lit::Int(n)) => n.base10_parse::<i64>().unwrap_or(0),
+                            _ => 0,
+                        })
+                        .collect();
+
+                    quote! {
+                        #[derive(
+                            ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
+                            Clone, Debug, PartialEq,
+                            ::serde::Serialize, ::serde::Deserialize,
+                        )]
+                        #[sea_orm(rs_type = "i64", db_type = "BigInteger")]
+                        pub enum #name {
+                            #(
+                                #[sea_orm(num_value = #db_values)]
+                                #variant_names,
+                            )*
+                        }
+
+                        impl ::std::default::Default for #name {
+                            fn default() -> Self { #name::#first }
+                        }
+
+                        impl ::std::fmt::Display for #name {
+                            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                                let s = match self {
+                                    #(#name::#variant_names => #variant_name_strs,)*
+                                };
+                                f.write_str(s)
+                            }
+                        }
+
+                        impl ::std::str::FromStr for #name {
+                            type Err = ();
+                            fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                                let low = s.to_ascii_lowercase();
+                                #(
+                                    if low == #variant_name_strs.to_ascii_lowercase() {
+                                        return ::std::result::Result::Ok(#name::#variant_names);
+                                    }
+                                )*
+                                ::std::result::Result::Err(())
+                            }
+                        }
+                    }
+                }
+                EnumBackingType::Pg => {
+                    let db_values: Vec<String> = e
+                        .variants
+                        .iter()
+                        .map(|v| match &v.value {
+                            Some(syn::Lit::Str(s)) => s.value(),
+                            Some(_) => v.name.to_string(),
+                            None => v.name.to_string(),
+                        })
+                        .collect();
+
+                    let display_values: Vec<String> = e
+                        .variants
+                        .iter()
+                        .map(|v| {
+                            if let Some(syn::Lit::Str(lbl)) = &v.label {
+                                lbl.value()
+                            } else {
+                                match &v.value {
+                                    Some(syn::Lit::Str(s)) => s.value(),
+                                    Some(_) => v.name.to_string(),
+                                    None => v.name.to_string(),
+                                }
+                            }
+                        })
+                        .collect();
+
+                    let match_conditions: Vec<proc_macro2::TokenStream> = e
+                        .variants
+                        .iter()
+                        .zip(variant_names.iter())
+                        .zip(db_values.iter())
+                        .map(|((v, vname), db_val)| {
+                            let name_str = vname.to_string();
+                            let mut conditions: Vec<proc_macro2::TokenStream> = vec![
+                                quote! { low == #db_val.to_ascii_lowercase() },
+                                quote! { low == #name_str.to_ascii_lowercase() },
+                            ];
+                            if let Some(syn::Lit::Str(lbl)) = &v.label {
+                                let lbl_str = lbl.value();
+                                conditions.push(quote! { low == #lbl_str.to_ascii_lowercase() });
+                            }
+                            quote! {
+                                if #(#conditions)||* {
+                                    return ::std::result::Result::Ok(#name::#vname);
+                                }
+                            }
+                        })
+                        .collect();
+
+                    let enum_name_str = e.name.to_string().to_ascii_lowercase();
+
+                    quote! {
+                        #[derive(
+                            ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
+                            Clone, Debug, PartialEq,
+                            ::serde::Serialize, ::serde::Deserialize,
+                        )]
+                        #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = #enum_name_str)]
+                        pub enum #name {
+                            #(
+                                #[sea_orm(string_value = #db_values)]
+                                #variant_names,
+                            )*
+                        }
+
+                        impl ::std::default::Default for #name {
+                            fn default() -> Self { #name::#first }
+                        }
+
+                        impl ::std::fmt::Display for #name {
+                            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                                let s = match self {
+                                    #(#name::#variant_names => #display_values,)*
+                                };
+                                f.write_str(s)
+                            }
+                        }
+
+                        impl ::std::str::FromStr for #name {
+                            type Err = ();
+                            fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                                let low = s.to_ascii_lowercase();
+                                #(#match_conditions)*
+                                ::std::result::Result::Err(())
+                            }
+                        }
                     }
                 }
             }
-        }
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 /// Génère `pub fn admin_from_form(data: &HashMap<String, String>, id: Option<PkType>) -> ActiveModel`
@@ -534,10 +619,27 @@ fn generate_field_type(ty: &FieldType, enums: &[EnumDef]) -> TokenStream2 {
         FieldType::Interval => quote! { .interval() },
         FieldType::Enum(enum_name) => {
             let enum_def = enums.iter().find(|e| e.name == *enum_name);
-            match enum_def.map(|e| &e.backing_type) {
-                Some(EnumBackingType::I32) => quote! { .integer() },
-                Some(EnumBackingType::I64) => quote! { .big_integer() },
-                _ => quote! { .string() },
+            if let Some(def) = enum_def {
+                match &def.backing_type {
+                    EnumBackingType::I32 => quote! { .integer() },
+                    EnumBackingType::I64 => quote! { .big_integer() },
+                    EnumBackingType::Pg => {
+                        let name_str = def.name.to_string().to_ascii_lowercase();
+                        let variants: Vec<String> = def
+                            .variants
+                            .iter()
+                            .map(|v| match &v.value {
+                                Some(syn::Lit::Str(s)) => s.value(),
+                                Some(_) => v.name.to_string(),
+                                None => v.name.to_string(),
+                            })
+                            .collect();
+                        quote! { .enum_type(#name_str, vec![#(#variants.to_string()),*]) }
+                    }
+                    EnumBackingType::String => quote! { .string() },
+                }
+            } else {
+                quote! { .string() }
             }
         }
     }
@@ -624,11 +726,21 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
                 form.field(&::runique::forms::fields::TextField::textarea(#fname_str).label(#label) #required_suffix);
             },
             FieldType::Enum(enum_name) => {
-                let variants = model.enums.iter()
+                let choices: Vec<proc_macro2::TokenStream> = model.enums.iter()
                     .find(|e| e.name == *enum_name)
-                    .map(|e| e.variants.iter().map(|v| v.name.to_string()).collect::<Vec<_>>())
+                    .map(|e| e.variants.iter().map(|v| {
+                        let db_val = match &v.value {
+                            Some(syn::Lit::Str(s)) => s.value(),
+                            _ => v.name.to_string(),
+                        };
+                        let display = if let Some(syn::Lit::Str(lbl)) = &v.label {
+                            lbl.value()
+                        } else {
+                            db_val.clone()
+                        };
+                        quote! { .add_choice(#db_val, #display) }
+                    }).collect())
                     .unwrap_or_default();
-                let choices = variants.iter().map(|v| quote! { .add_choice(#v, #v) });
                 quote! {
                     form.field(
                         &::runique::forms::fields::ChoiceField::new(#fname_str)

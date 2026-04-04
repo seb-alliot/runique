@@ -130,13 +130,15 @@ impl CleaningMemoryStore {
     pub async fn invalidate_user_sessions(&self, user_id: crate::utils::pk::UserId) {
         let mut guard = self.data.lock().await;
         let mut freed = 0usize;
+        #[allow(clippy::useless_conversion)]
+        let uid_i64: i64 = user_id.into();
         let to_delete: Vec<Id> = guard
             .iter()
             .filter(|(_, r)| {
                 r.data
                     .get(crate::utils::constante::SESSION_USER_ID_KEY)
                     .and_then(serde_json::Value::as_i64)
-                    .is_some_and(|id| id == i64::from(user_id))
+                    .is_some_and(|id| id == uid_i64)
             })
             .map(|(id, _)| *id)
             .collect();

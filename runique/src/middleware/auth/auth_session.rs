@@ -142,6 +142,7 @@ pub async fn get_username(session: &Session) -> Option<String> {
 /// ```rust,ignore
 /// login(&session, &db, user.id, &user.username, user.is_staff, user.is_superuser, None, false).await?;
 /// ```
+#[allow(clippy::too_many_arguments)]
 pub async fn login(
     session: &Session,
     db: &DatabaseConnection,

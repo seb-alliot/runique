@@ -10,6 +10,7 @@ pub enum EnumBackingType {
 pub struct EnumVariant {
     pub name: syn::Ident,
     pub value: Option<syn::Lit>,
+    pub label: Option<syn::Lit>,
 }
 
 pub struct EnumDef {
