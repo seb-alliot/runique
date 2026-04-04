@@ -5,12 +5,12 @@ use std::path::PathBuf;
 fn find_seed_sql() -> Option<PathBuf> {
     // Priorité : fichier ciblé (sans tables gérées par d'autres seeds)
     let candidates = [
-        "seed_demo_only.sql",
-        "demo-app/seed_demo_only.sql",
-        "../seed_demo_only.sql",
-        "seed_doc.sql",
-        "demo-app/seed_doc.sql",
-        "../seed_doc.sql",
+        "seed.sql",
+        "demo-app/seed.sql",
+        "../seed.sql",
+        "seed.sql",
+        "demo-app/seed.sql",
+        "../seed.sql",
     ];
     for c in &candidates {
         let p = PathBuf::from(c);

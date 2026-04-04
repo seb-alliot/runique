@@ -5,23 +5,47 @@ pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
-async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.get_connection().execute_unprepared(
-            "CREATE TYPE BlockType AS ENUM ('Text', 'Code', 'Sommaire')"
-        ).await?;
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .get_connection()
+            .execute_unprepared("CREATE TYPE BlockType AS ENUM ('Text', 'Code', 'Sommaire')")
+            .await?;
 
         manager
             .create_table(
                 Table::create()
                     .table(Alias::new("doc_block"))
                     .if_not_exists()
-                    .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
+                    .col(
+                        ColumnDef::new(Alias::new("id"))
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(Alias::new("page_id")).integer().not_null())
                     .col(ColumnDef::new(Alias::new("heading")).string().null())
                     .col(ColumnDef::new(Alias::new("content")).string().not_null())
-                    .col(ColumnDef::new_with_type(Alias::new("block_type"), ColumnType::Enum { name: Alias::new("BlockType").into_iden(), variants: vec![Alias::new("Text").into_iden(), Alias::new("Code").into_iden(), Alias::new("Sommaire").into_iden()] }).not_null())
-                    .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
-                    .to_owned()
+                    .col(
+                        ColumnDef::new_with_type(
+                            Alias::new("block_type"),
+                            ColumnType::Enum {
+                                name: Alias::new("BlockType").into_iden(),
+                                variants: vec![
+                                    Alias::new("Text").into_iden(),
+                                    Alias::new("Code").into_iden(),
+                                    Alias::new("Sommaire").into_iden(),
+                                ],
+                            },
+                        )
+                        .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Alias::new("sort_order"))
+                            .integer()
+                            .not_null(),
+                    )
+                    .to_owned(),
             )
             .await?;
 
@@ -37,9 +61,9 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
             .await?;
 
         Ok(())
-}
+    }
 
-async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_foreign_key(
                 ForeignKey::drop()
@@ -50,14 +74,13 @@ async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
             .await?;
 
         manager
-            .drop_table(Table::drop()
-                .table(Alias::new("doc_block"))
-                .to_owned())
+            .drop_table(Table::drop().table(Alias::new("doc_block")).to_owned())
             .await?;
-        manager.get_connection().execute_unprepared(
-            "DROP TYPE IF EXISTS BlockType"
-        ).await?;
+        manager
+            .get_connection()
+            .execute_unprepared("DROP TYPE IF EXISTS BlockType")
+            .await?;
 
         Ok(())
-}
+    }
 }
