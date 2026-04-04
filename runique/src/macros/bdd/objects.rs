@@ -1,3 +1,5 @@
+//! `Objects<E>` — manager Django-style pour les entités SeaORM, exposé via `impl_objects!`.
+
 /// Django-style ORM manager for entities
 ///
 /// This struct provides a Django-like interface for querying database entities.

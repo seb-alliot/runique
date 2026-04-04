@@ -1,3 +1,4 @@
+//! Configuration centralisée des logs Runique — niveaux par catégorie, macro `runique_log!`, helper `dev()`.
 use std::sync::OnceLock;
 use tracing::Level;
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};

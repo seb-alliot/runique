@@ -1,3 +1,4 @@
+//! Middleware de session utilisateur : charge `CurrentUser` depuis la session et injecte dans les extensions.
 use crate::admin::permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
 use crate::context::RequestExtensions;
 use crate::middleware::auth::default_auth::UserEntity;
@@ -16,10 +17,7 @@ use axum::{extract::Request, middleware::Next, response::Response};
 use sea_orm::DatabaseConnection;
 use tower_sessions::Session;
 
-// ═══════════════════════════════════════════════════════════════
-// CurrentUser — Utilisateur authentifié
-// ═══════════════════════════════════════════════════════════════
-
+/// Utilisateur authentifié injecté dans les extensions de requête.
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct CurrentUser {
     pub id: UserId,

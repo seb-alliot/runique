@@ -1,6 +1,12 @@
+//! Définition d'une colonne de table — type, contraintes, validation et génération SeaQuery.
+//!
+//! [`ColumnDef`] est le point d'entrée. Il suit le pattern builder :
+//! `ColumnDef::new("slug").varchar(200).unique().nullable()`.
+//! La méthode [`ColumnDef::to_sea_column`] produit le [`sea_query::ColumnDef`] correspondant.
+//! La méthode [`ColumnDef::to_form_field`] génère automatiquement le champ de formulaire adapté.
 use sea_query::{ColumnType, IntoIden};
 
-/// Definition of a simple column
+/// Définition complète d'une colonne de table.
 #[derive(Debug, Clone)]
 pub struct ColumnDef {
     pub name: String,

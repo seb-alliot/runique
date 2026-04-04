@@ -1,3 +1,4 @@
+//! Middleware CSRF : génère et stocke le token en session, valide les requêtes mutantes.
 use crate::context::RequestExtensions;
 use crate::middleware::auth::is_authenticated;
 use crate::utils::{

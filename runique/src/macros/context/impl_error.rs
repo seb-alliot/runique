@@ -1,3 +1,5 @@
+//! Macro `impl_from_error!` — génère les implémentations `From<Err>` vers `AppError` en une ligne.
+
 // Factorisation des conversions avec une macro interne simple
 #[macro_export]
 macro_rules! impl_from_error {

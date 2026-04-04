@@ -1,3 +1,4 @@
+//! Conteneur léger `UrlParams` pour les paramètres d'URL (path + query) — accès unifié et whitelisté.
 use std::collections::HashMap;
 
 /// Conteneur léger pour les paramètres d'URL (path + query).

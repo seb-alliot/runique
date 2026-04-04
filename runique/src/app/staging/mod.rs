@@ -1,3 +1,4 @@
+//! Étapes de staging — configuration progressive de l'app avant `build()` (core, middlewares, admin, static, CSP).
 pub mod admin_staging;
 pub mod core_staging;
 pub mod csp_config;

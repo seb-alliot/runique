@@ -1,3 +1,4 @@
+//! Extensions de requête Axum : injecte engine, Tera, config, CSRF, CSP nonce et utilisateur courant.
 use crate::middleware::auth::CurrentUser;
 use crate::utils::csp_nonce::CspNonce;
 use crate::utils::csrf::CsrfToken;

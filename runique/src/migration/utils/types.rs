@@ -1,3 +1,5 @@
+//! Types de données partagés entre les utilitaires de migration : schémas parsés, colonnes, FK, index, diff.
+
 /// Backend de base de données cible — utilisé pour générer le SQL DB-spécifique
 /// (ex: ON UPDATE CURRENT_TIMESTAMP pour MySQL, trigger pour PostgreSQL).
 #[derive(Debug, Clone, PartialEq, Default)]

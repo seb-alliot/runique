@@ -1,3 +1,4 @@
+//! Staging du cœur de l'application : connexion DB et registre d'URLs.
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::utils::aliases::{ARlockmap, new_registry};
 

@@ -1,3 +1,4 @@
+//! Staging des middlewares : réorganisation automatique par slots et application au router.
 use super::csp_config::CspConfig;
 use super::host_config::HostConfig;
 use crate::app::error_build::BuildError;

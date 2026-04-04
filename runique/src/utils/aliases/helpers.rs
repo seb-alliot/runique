@@ -1,3 +1,4 @@
+//! Fonctions helpers sur les aliases — `new()`, `new_registry()`, `new_serve()`.
 use crate::utils::aliases::ARlockmap;
 use std::{
     collections::HashMap,

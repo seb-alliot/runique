@@ -1,3 +1,4 @@
+//! Aegis : extraction et normalisation du body de requête (multipart, urlencoded, JSON, GET).
 use crate::config::RuniqueConfig;
 use crate::utils::{
     aliases::{StrMap, StrVecMap},

@@ -1,3 +1,4 @@
+//! Middleware Content Security Policy : génère les headers CSP avec nonce par requête.
 use crate::context::RequestExtensions;
 use crate::utils::{aliases::AEngine, csp_nonce::CspNonce};
 

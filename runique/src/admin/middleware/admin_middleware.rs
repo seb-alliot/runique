@@ -1,3 +1,4 @@
+//! Middlewares Axum pour l'espace admin — redirection si non authentifié, vérification des permissions.
 use axum::{
     extract::Request,
     middleware::Next,

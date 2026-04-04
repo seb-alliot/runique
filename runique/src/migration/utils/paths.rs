@@ -1,4 +1,6 @@
-/// snapshots/ directory (current state of the table, used for diff only)
+//! Chemins de fichiers de migration — répertoire snapshots, fichiers de migration, entités SeaORM.
+
+/// Répertoire `snapshots/` (état courant de la table, utilisé uniquement pour le diff).
 #[doc = include_str!("../../../doc-tests/migration/paths_snapshot_dir.md")]
 pub fn snapshot_dir(migrations_path: &str) -> String {
     format!("{}/snapshots", migrations_path)

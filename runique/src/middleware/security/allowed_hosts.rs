@@ -1,5 +1,4 @@
-// runique/src/middleware/allowed_hosts.rs
-
+//! Middleware de validation du header `Host` : rejette les requêtes vers des hôtes non autorisés.
 use crate::utils::{aliases::AEngine, trad::t};
 use axum::{
     body::Body,
@@ -10,9 +9,12 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
+/// Politique de validation des hôtes : liste blanche avec support wildcard (`.domaine.fr`).
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HostPolicy {
+    /// Liste des hôtes autorisés (exact ou wildcard préfixé par `.`).
     pub allowed_hosts: Vec<String>,
+    /// Active ou désactive la validation. Si `false`, toutes les requêtes passent.
     pub enabled: bool,
 }
 

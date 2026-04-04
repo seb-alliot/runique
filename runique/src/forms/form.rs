@@ -1,3 +1,4 @@
+//! `Forms` — conteneur principal d'un formulaire : champs, validation, rendu, gestion CSRF.
 use crate::forms::{
     base::FormField,
     fields::HiddenField,

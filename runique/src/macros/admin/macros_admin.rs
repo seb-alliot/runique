@@ -1,3 +1,5 @@
+//! Définition de la macro `admin!` — lie modèles SeaORM, formulaires et options d'affichage admin.
+
 #[macro_export]
 macro_rules! admin {
     (

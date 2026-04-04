@@ -1,3 +1,5 @@
+//! Macro `search_apply_op!` — mappe les opérateurs Django vers les conditions SeaORM (eq, icontains, gte…).
+
 // ─────────────────────────────────────────────────────────────────────────────
 // search_apply_op! — mappe un nom d'opérateur Django vers une condition SeaORM
 // ─────────────────────────────────────────────────────────────────────────────

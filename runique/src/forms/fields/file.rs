@@ -1,3 +1,4 @@
+//! Champ fichier : `FileField` avec validation de type, taille et chemin d'upload.
 use crate::utils::trad::{t, tf};
 use crate::{
     config::StaticConfig,

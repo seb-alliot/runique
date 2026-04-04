@@ -1,3 +1,4 @@
+//! Génération de `src/admins/admin.rs` — `DynForm` wrappers et `admin_register()` depuis les `ResourceDef`.
 use crate::admin::daemon::parser::ResourceDef;
 use std::{fmt::Write, fs, path::Path};
 

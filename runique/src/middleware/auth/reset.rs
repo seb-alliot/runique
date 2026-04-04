@@ -1,18 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// Reset Password — Logique built-in Runique
-//
-// Deux flows :
-//   1. /forgot-password  → ForgotPasswordForm  → envoi email
-//   2. /reset-password/{token}/{encrypted_email} → PasswordResetForm → maj mdp
-//
-// Usage builder (zero-config) :
-//   .with_password_reset::<BuiltinUserEntity>(|pr| pr)
-//
-// Usage manuel (template surchargeable) :
-//   handle_forgot_password::<MyEntity>(&mut req, &mut form, &headers, "my/tpl.html", "/reset-password").await
-//   handle_password_reset::<MyEntity>(&mut req, &mut form, token, encrypted_email, "my/tpl.html").await
-// ═══════════════════════════════════════════════════════════════
-
+//! Flow de réinitialisation de mot de passe built-in : oubli + reset via token email.
 use axum::{
     Router,
     extract::{Path, State},

@@ -1,3 +1,4 @@
+//! Génération du code Rust de migration SeaORM — fichiers `up`/`down`, CREATE TABLE, FK, index, triggers.
 use crate::migration::utils::{
     helpers::col_type_to_method,
     types::{Changes, DbKind, ParsedColumn, ParsedSchema},

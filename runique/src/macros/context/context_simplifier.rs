@@ -1,3 +1,5 @@
+//! Macro `context!` — constructeur ergonomique pour `ContextHelper` (contexte Tera).
+
 #[macro_export]
 macro_rules! context {
 

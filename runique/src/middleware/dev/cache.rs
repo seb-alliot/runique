@@ -1,3 +1,4 @@
+//! Middleware cache-control — injecte `Cache-Control: no-cache` en mode debug pour forcer le rechargement.
 use crate::utils::aliases::AEngine;
 use axum::{
     body::Body,

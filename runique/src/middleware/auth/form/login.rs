@@ -1,3 +1,4 @@
+//! `LoginAdmin` — formulaire de connexion admin avec champs username/password.
 use crate::forms::{Forms, field::RuniqueForm, fields::text::TextField};
 use crate::impl_form_access;
 

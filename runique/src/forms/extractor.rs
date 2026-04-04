@@ -1,3 +1,4 @@
+//! Extracteur Axum `Prisme<T>` : pipeline Sentinel → CSRF → Aegis → désérialisation du formulaire.
 use crate::forms::{
     field::RuniqueForm,
     prisme::{aegis, csrf_gate, sentinel},

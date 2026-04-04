@@ -1,3 +1,4 @@
+//! Erreurs de la phase de construction de l'application (build-time).
 use std::fmt;
 
 /// Erreur principale de la phase de build

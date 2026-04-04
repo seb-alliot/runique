@@ -1,3 +1,4 @@
+//! Permissions admin : droits, groupes et snapshots session chargés depuis la base.
 pub mod droit;
 pub mod groupe;
 pub mod groupes_droits;

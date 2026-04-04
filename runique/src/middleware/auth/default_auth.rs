@@ -1,19 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// UserEntity + DefaultAdminAuth
-// ═══════════════════════════════════════════════════════════════
-//
-// UserEntity : côté base de données — comment trouver un user.
-// DefaultAdminAuth<E> : implémente AdminAuth automatiquement
-//   pour toute entité qui implémente UserEntity.
-//
-// Usage avec le User built-in de Runique :
-//   .auth(DefaultAdminAuth::<BuiltinUser>::new())
-//
-// Usage avec un modèle custom :
-//   impl UserEntity for MyUserEntity { ... }
-//   .auth(DefaultAdminAuth::<MyUserEntity>::new())
-// ═══════════════════════════════════════════════════════════════
-
+//! Authentification admin par défaut : `UserEntity` + `DefaultAdminAuth<E>` générique.
 use std::marker::PhantomData;
 
 use sea_orm::DatabaseConnection;

@@ -1,12 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// AdminAuth — Contrat pour la vérification du login admin
-// ═══════════════════════════════════════════════════════════════
-//
-// Ce module ne sait pas qu'un panneau admin existe.
-// Il définit uniquement le contrat d'authentification.
-// C'est src/admin/ qui dépend d'ici, jamais l'inverse.
-// ═══════════════════════════════════════════════════════════════
-
+//! Trait `AdminAuth` : contrat d'authentification pour le panneau d'administration.
 use crate::utils::pk::UserId;
 use sea_orm::DatabaseConnection;
 

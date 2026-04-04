@@ -1,3 +1,4 @@
+//! Implémentation de `RuniqueEngine` — construction, attachement des middlewares, accès aux stores.
 use crate::middleware::session::{CleaningMemoryStore, session_db::RuniqueSessionStore};
 use crate::utils::aliases::{
     ADb, ARlockmap, ASecurityCsp, ASecurityHosts, ATera, new, new_registry,
@@ -16,30 +17,33 @@ use crate::middleware::{
 
 #[cfg(feature = "orm")]
 use sea_orm::DatabaseConnection;
+/// Machine centrale du framework : regroupe la config, le moteur de templates,
+/// la base de données, le registre d'URLs et toutes les politiques de sécurité.
 #[derive(Debug)]
-/// Machine centrale de l'application
 pub struct RuniqueEngine {
+    /// Configuration générale de l'application.
     pub config: RuniqueConfig,
+    /// Instance Tera partagée en lecture/écriture.
     pub tera: ATera,
     #[cfg(feature = "orm")]
+    /// Connexion à la base de données (feature `orm`).
     pub db: ADb,
+    /// Registre global des routes nommées (reverse URL).
     pub url_registry: ARlockmap,
-
-    // Les interrupteurs (La Porte)
+    /// Interrupteurs middleware (cache, CSP, CSRF, etc.).
     pub features: MiddlewareConfig,
-
-    // Les politiques (Les Meubles)
+    /// Politique Content Security Policy active.
     pub security_csp: ASecurityCsp,
+    /// Politique de validation des hôtes autorisés.
     pub security_hosts: ASecurityHosts,
-
     /// Store mémoire — sessions anonymes + CSRF.
     pub session_store: LazyLock<RwLock<Option<Arc<CleaningMemoryStore>>>>,
-
-    /// Store DB — sessions authentifiées persistantes (eihwaz_sessions).
+    /// Store DB — sessions authentifiées persistantes (table `eihwaz_sessions`).
     pub session_db_store: LazyLock<RwLock<Option<Arc<RuniqueSessionStore>>>>,
 }
 
 impl RuniqueEngine {
+    /// Construit un nouveau moteur à partir de la config, de Tera et de la connexion DB.
     #[cfg(feature = "orm")]
     pub fn new(config: RuniqueConfig, tera: Tera, db: DatabaseConnection) -> Self {
         // Chargement unique au démarrage
@@ -60,6 +64,8 @@ impl RuniqueEngine {
         }
     }
 
+    /// Attache les middlewares globaux (HTTPS, hosts, CSRF, cache, CSP, erreurs)
+    /// sur le router selon la configuration active.
     pub fn attach_middlewares(engine: Arc<Self>, router: Router) -> Router {
         let mut router = router;
         let f = &engine.features;

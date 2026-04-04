@@ -1,3 +1,5 @@
+//! Clés de session et de formulaire — CSRF, flash, nonce CSP, user_id, rôles.
+
 // flash messages.rs
 pub const FLASH_KEY: &str = "flash_messages";
 

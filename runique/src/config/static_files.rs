@@ -1,5 +1,7 @@
+//! Configuration des fichiers statiques, media et templates.
 use serde::{Deserialize, Serialize};
 
+/// Chemins et URLs pour les assets du framework et du projet utilisateur.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StaticConfig {
     // Runique internal
@@ -27,6 +29,7 @@ pub struct StaticConfig {
 }
 
 impl StaticConfig {
+    /// Charge les chemins depuis les variables d'environnement avec des valeurs par défaut sensées.
     pub fn from_env() -> Self {
         let base_dir = std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string());
 

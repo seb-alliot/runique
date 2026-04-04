@@ -1,3 +1,5 @@
+//! Macro `delegate_to_kind!` — dispatch vers le variant de `FieldKind` sans match répétitif.
+
 #[macro_export]
 macro_rules! delegate_to_kind {
     ($self:expr, $method:ident $(, $arg:expr)*) => {

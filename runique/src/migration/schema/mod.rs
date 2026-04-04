@@ -1,3 +1,4 @@
+//! `ModelSchema` : source unique de vérité pour un modèle — colonnes, clé primaire, FK, index, hooks.
 use crate::migration::{
     utils::to_pascal_case,
     {

@@ -1,3 +1,4 @@
+//! Binaire CLI `runique` — commandes `new`, `start`, `makemigration`, `migrate` via clap.
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use runique::utils::{

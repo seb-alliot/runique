@@ -1,7 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// Admin Router — Génération des routes CRUD + connexion à l'Engine
-// ═══════════════════════════════════════════════════════════════
-
+//! Router admin : construit les routes CRUD, login/logout et branche le middleware d'authentification.
 use std::sync::Arc;
 
 use axum::{

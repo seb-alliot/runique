@@ -1,6 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// AdminStaging — Configuration de l'AdminPanel dans le builder
-// ═══════════════════════════════════════════════════════════════
+//! Staging du panneau d'administration : configuration, routes et état admin.
 
 use std::sync::Arc;
 

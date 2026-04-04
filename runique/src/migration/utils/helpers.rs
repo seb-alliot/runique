@@ -1,3 +1,4 @@
+//! Helpers partagés : mapping type↔méthode, snake_case, extraction AST syn (chaînes de méthodes, FK actions).
 use syn::{Expr, ExprCall, ExprLit, ExprMethodCall, Lit};
 
 // ============================================================

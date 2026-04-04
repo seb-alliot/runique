@@ -1,3 +1,4 @@
+//! Trait `FormField` et structure `FieldConfig` : base commune à tous les champs de formulaire.
 use crate::forms::options::*;
 use crate::utils::aliases::*;
 use dyn_clone::DynClone;
@@ -5,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
+/// Configuration commune d'un champ de formulaire (nom, label, valeur, erreur, attributs HTML).
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FieldConfig {
     pub name: String,

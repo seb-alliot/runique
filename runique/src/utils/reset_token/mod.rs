@@ -1,3 +1,4 @@
+//! Tokens de réinitialisation de mot de passe — génération HMAC-SHA256, TTL configurable, stockage en mémoire.
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256};

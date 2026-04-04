@@ -1,3 +1,4 @@
+//! `QuerySet<E>` — query builder Django-style : filter, exclude, order_by, limit, all, get, count…
 use crate::db::DatabaseConfig;
 /// Django-inspired query builder for SeaORM
 ///

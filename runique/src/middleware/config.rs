@@ -1,3 +1,5 @@
+//! Configuration centralisée des middlewares Runique — session, CSP, CSRF, debug errors, rate limit.
+
 /// Configuration centralisée de tous les middlewares Runique
 ///
 /// Note: Le CSRF est TOUJOURS activé (imposé par le framework pour la sécurité)

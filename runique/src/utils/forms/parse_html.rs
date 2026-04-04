@@ -1,3 +1,4 @@
+//! Parsing de requêtes multipart — extraction des champs texte et upload de fichiers vers disque.
 use crate::{
     utils::aliases::StrVecMap,
     utils::trad::{t, tf},

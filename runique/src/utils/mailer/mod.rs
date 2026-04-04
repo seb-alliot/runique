@@ -1,3 +1,4 @@
+//! Client e-mail (lettre) — configuration SMTP, envoi async, initialisation depuis l'environnement.
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor, message::header::ContentType,
     transport::smtp::authentication::Credentials,

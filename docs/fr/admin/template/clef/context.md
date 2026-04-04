@@ -325,9 +325,20 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 | `filter_values` | `HashMap<String, Vec<String>>` | Valeurs distinctes par colonne de filtre (depuis `list_filter`) |
 | `active_filters` | `HashMap<String, String>` | Filtre actif par colonne — `""` si aucun filtre actif sur cette colonne |
 | `filter_qs` | `String` | Fragment query string des filtres actifs — à inclure dans les liens de pagination |
-| `filter_page_size` | `u64` | Nombre de valeurs affichées par page dans la sidebar filtre (depuis `list_filter_limit`) |
+| `filter_meta` | `HashMap<String, Object>` | Pagination sidebar par colonne — voir structure ci-dessous |
 
 > **Note :** `active_filters` est pré-rempli pour **toutes** les colonnes de `list_filter` (valeur `""` si inactif). Tera lève une erreur si on accède à une clé absente — cette pré-initialisation l'évite.
+
+### Structure de `filter_meta[colonne]`
+
+| Champ | Type | Description |
+| --- | --- | --- |
+| `current_page` | `u64` | Page courante dans la sidebar filtre (commence à 0) |
+| `total_pages` | `u64` | Nombre total de pages de valeurs distinctes |
+| `has_prev` | `bool` | Il existe une page précédente |
+| `has_next` | `bool` | Il existe une page suivante |
+| `prev_qs` | `String` | Query string complet pour la page précédente — `href="?{{ filter_meta[col].prev_qs }}"` |
+| `next_qs` | `String` | Query string complet pour la page suivante |
 
 ### Clés obligatoires pour la surcharge
 
@@ -579,8 +590,8 @@ RuniqueApp::builder(config)
 
 | Section | Description |
 | --- | --- |
-| [Surcharge](/docs/fr/admin/template) | remplacer le layout ou un composant CRUD
-| [CSRF](/docs/fr/admin/template) | token CSRF, `csrf.js`, checklist login custom
+| [Surcharge](/docs/fr/admin/template) | remplacer le layout ou un composant CRUD |
+| [CSRF](/docs/fr/admin/template) | token CSRF, `csrf.js`, checklist login custom |
 
 ## Revenir au sommaire
 

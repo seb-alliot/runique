@@ -1,3 +1,5 @@
+//! Génération du nonce CSP — 16 bytes aléatoires encodés en base64, renouvelé à chaque requête.
+
 /// CSP Nonce Generation
 ///
 /// Utilities to generate CSP (Content Security Policy) nonces

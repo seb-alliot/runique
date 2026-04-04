@@ -1,3 +1,4 @@
+//! Middleware de gestion des erreurs HTTP : rendu HTML contextuel ou JSON selon l'acceptation.
 use crate::utils::{
     aliases::{ARuniqueConfig, ATera, StrMap},
     error::DEBUG_MESSAGE_KEYS,

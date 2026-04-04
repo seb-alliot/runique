@@ -1,3 +1,4 @@
+//! Registre global des noms d'URL — `register_pending`, `reverse()`, `reverse_with_parameters()`.
 use crate::engine::RuniqueEngine;
 use std::sync::LazyLock;
 use std::sync::{Arc, Mutex};

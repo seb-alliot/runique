@@ -1,10 +1,8 @@
-// ═══════════════════════════════════════════════════════════════
-// admin_main — Handler générique central de l'interface admin
-//
-// Routes :
-//   /admin/{resource}/{action}          → admin_get / admin_post
-//   /admin/{resource}/{id}/{action}     → admin_get_id / admin_post_id
-// ═══════════════════════════════════════════════════════════════
+//! Handler CRUD générique de l'interface admin.
+//!
+//! Routes couvertes :
+//! - `GET/POST /admin/{resource}/{action}` → [`admin_get`] / [`admin_post`]
+//! - `GET/POST /admin/{resource}/{id}/{action}` → [`admin_get_id`] / [`admin_post_id`]
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::flash_now;
@@ -549,8 +547,9 @@ async fn handle_list(
         list_ctx::FILTER_META       => filter_meta,
     }
 
+    let htmx_tpl = state.config.templates.htmx.resolve().to_string();
     let template = if is_htmx {
-        "admin/list_partial"
+        htmx_tpl.as_str()
     } else {
         entry
             .meta

@@ -1,3 +1,4 @@
+//! Rendu HTML des champs de formulaire via Tera avec fallback sur les templates internes.
 use crate::forms::base::FormField;
 use crate::utils::{
     aliases::{ATera, FieldsMap},

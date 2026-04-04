@@ -1,4 +1,4 @@
-// Créée par le daemon lors du parsing de `src/admin.rs` :
+//! Traits et types pour les ressources admin : permissions CRUD, colonnes, opérations.
 //
 //   admin! {
 //       users: users::Model => RegisterForm {

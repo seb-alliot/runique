@@ -1,3 +1,4 @@
+//! Champs spéciaux : `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;

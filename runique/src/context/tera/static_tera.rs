@@ -1,3 +1,4 @@
+//! Enregistrement global des filtres/fonctions Tera — `register_asset_filters` et filtre `| markdown`.
 use crate::context::tera::form::form_filter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;

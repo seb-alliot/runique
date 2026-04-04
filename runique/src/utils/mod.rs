@@ -1,3 +1,4 @@
+//! Utilitaires transverses du framework — aliases de types, constantes, i18n, password, CSRF, mailer, CLI…
 pub mod aliases;
 pub mod cli;
 pub mod config;

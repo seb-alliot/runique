@@ -1,3 +1,4 @@
+//! Application Runique construite et prête à être lancée.
 use axum::Router;
 use tokio::signal;
 
@@ -10,8 +11,11 @@ use super::builder::RuniqueAppBuilder;
 // RuniqueApp — Application construite, prête à être lancée
 // ═══════════════════════════════════════════════════════════════
 
+/// Application compilée : moteur + router prêts à servir des requêtes HTTP.
 pub struct RuniqueApp {
+    /// Moteur partagé contenant config, Tera, DB et politiques de sécurité.
     pub engine: AEngine,
+    /// Router Axum avec tous les middlewares attachés.
     pub router: Router,
 }
 

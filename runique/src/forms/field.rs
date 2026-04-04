@@ -1,4 +1,4 @@
-// --- Common definitions for form fields ---
+//! Trait `RuniqueForm` : interface commune à tous les formulaires Runique.
 pub use crate::forms::{
     base::FormField, form::Forms, renderer::FormRenderer, validator::ValidationError,
 };

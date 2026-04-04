@@ -1,3 +1,4 @@
+//! Store de sessions en mémoire avec nettoyage automatique et watermarks pour éviter les fuites.
 use std::{
     collections::HashMap,
     sync::{

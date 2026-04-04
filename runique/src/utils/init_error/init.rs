@@ -1,3 +1,4 @@
+//! Initialisation du subscriber tracing — utilisé par le CLI ; les apps web passent par `RuniqueLog`.
 use crate::utils::runique_log::RuniqueLog;
 
 /// Initialise le subscriber tracing avec les paramètres par défaut.

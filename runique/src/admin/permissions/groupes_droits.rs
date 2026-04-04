@@ -1,3 +1,4 @@
+//! Entité SeaORM `eihwaz_groupes_droits` — table de liaison groupe ↔ droit.
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]

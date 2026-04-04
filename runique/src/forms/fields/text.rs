@@ -1,3 +1,4 @@
+//! Champs texte : `TextField`, `EmailField`, `UrlField`, `TextAreaField`, `PasswordField`.
 pub use crate::forms::generic::GenericField;
 use crate::forms::{
     base::{CommonFieldConfig, FieldConfig, FormField, TextConfig},

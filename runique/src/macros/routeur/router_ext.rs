@@ -1,3 +1,4 @@
+//! `RouterExt` — extension d'Axum `Router` pour attacher un rate limiter à une route.
 use std::sync::Arc;
 
 use axum::{Router, routing::MethodRouter};

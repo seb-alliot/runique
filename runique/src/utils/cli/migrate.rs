@@ -1,3 +1,4 @@
+//! Commande `migrate` — applique les migrations SeaORM en base de données.
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend};

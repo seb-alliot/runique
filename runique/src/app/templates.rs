@@ -1,3 +1,4 @@
+//! Chargement et initialisation du moteur de templates Tera (internes + utilisateur).
 use crate::config::RuniqueConfig;
 use crate::context::tera::static_tera;
 use crate::utils::aliases::ARlockmap;
@@ -6,6 +7,7 @@ use regex::Captures;
 use std::path::Path;
 use tera::Tera;
 
+/// Charge et configure l'instance Tera avec les templates internes du framework et ceux du projet.
 pub struct TemplateLoader;
 
 impl TemplateLoader {

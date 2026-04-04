@@ -1,3 +1,4 @@
+//! Champ générique `GenericField` : enum unifié pour dispatcher vers n'importe quel type de champ.
 use crate::forms::{
     base::{CommonFieldConfig, FormField},
     fields::*,

@@ -1,3 +1,4 @@
+//! Entrée de ressource admin : callbacks CRUD, métadonnées et configuration d'affichage.
 use std::sync::Arc;
 
 use axum::http::Method;

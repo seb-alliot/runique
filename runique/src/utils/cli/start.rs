@@ -1,3 +1,4 @@
+//! Commande `start` — génère le code entrypoint `main.rs` et `admin.rs` depuis les templates CLI.
 use crate::utils::trad::{t, tf};
 use anyhow::Result;
 

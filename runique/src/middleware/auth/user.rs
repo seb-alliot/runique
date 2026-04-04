@@ -1,7 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// User built-in de Runique
-// ═══════════════════════════════════════════════════════════════
-
+//! Entité utilisateur built-in de Runique (table `eihwaz_users`).
 pub use crate::middleware::auth::{default_auth::UserEntity, user_trait::RuniqueUser};
 use crate::utils::pk::UserId;
 use crate::{impl_objects, search};

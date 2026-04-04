@@ -1,3 +1,4 @@
+//! Entité SeaORM `eihwaz_users_droits` — table de liaison utilisateur ↔ droit individuel.
 use crate::utils::pk::UserId;
 use sea_orm::entity::prelude::*;
 
