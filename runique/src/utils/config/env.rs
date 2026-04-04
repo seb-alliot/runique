@@ -55,8 +55,10 @@ pub fn is_debug() -> bool {
     matches!(*ENV, RuniqueEnv::Development)
 }
 
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+};
 
 static CSS_TOKEN: LazyLock<String> = LazyLock::new(|| {
     let static_dir = std::env::var("STATICFILES_DIRS").unwrap_or_else(|_| "static".to_string());

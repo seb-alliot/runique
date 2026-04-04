@@ -6,7 +6,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token }}">
-
+        <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
         <meta property="og:image" content="{{ og_image }}">
 
         <title>{% if admin_login_title %}{{ admin_login_title }}{% endif %} — {{ site_title | default(value="Administration") }}</title>

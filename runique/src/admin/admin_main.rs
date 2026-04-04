@@ -159,6 +159,7 @@ pub async fn admin_get(
 #[allow(private_interfaces)]
 pub async fn admin_post(
     mut req: Request,
+    headers: axum::http::HeaderMap,
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     AdminBody(body): AdminBody,
@@ -173,7 +174,7 @@ pub async fn admin_post(
     check_csrf(&body, req.csrf_token.as_str())?;
 
     match action.as_str() {
-        "create" => handle_create_post(&mut req, entry, body, &state).await,
+        "create" => handle_create_post(&mut req, entry, body, &headers, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Action inconnue",
         )))),
@@ -588,9 +589,19 @@ async fn handle_create_get(
 async fn handle_create_post(
     req: &mut Request,
     entry: &crate::admin::ResourceEntry,
-    body: StrMap,
+    mut body: StrMap,
+    headers: &axum::http::HeaderMap,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
+    // Si la ressource déclare inject_password (via create_form: dans admin!{}),
+    // injecter un hash aléatoire dans le champ "password" vide.
+    if entry.meta.inject_password && body.get("password").is_some_and(|p| p.is_empty()) {
+        let temp_pw = uuid::Uuid::new_v4().to_string();
+        if let Ok(hash) = crate::utils::password::hash(&temp_pw) {
+            body.insert("password".to_string(), hash);
+        }
+    }
+
     let body_for_create = body.clone();
     let tera = req.engine.tera.clone();
     let csrf = req
@@ -603,13 +614,35 @@ async fn handle_create_post(
 
     if form.is_valid().await {
         let result = match &entry.create_fn {
-            Some(f) => f(req.engine.db.clone(), body_for_create).await,
+            Some(f) => f(req.engine.db.clone(), body_for_create.clone()).await,
             None => form.save(&req.engine.db).await,
         };
         if let Err(e) = result {
             form.get_form_mut().database_error(&e);
             return Err(Box::new(AppError::new(ErrorContext::database(e))));
         }
+
+        // Envoi email de bienvenue + reset après création d'un utilisateur admin
+        if entry.meta.inject_password {
+            if let Some(email) = body_for_create.get("email") {
+                let email_template = state
+                    .config
+                    .user_resources
+                    .get(entry.meta.key)
+                    .and_then(|t| t.as_deref());
+                send_user_created_email(
+                    req,
+                    entry,
+                    email,
+                    body_for_create.get("username").map(String::as_str),
+                    email_template,
+                    headers,
+                    state,
+                )
+                .await;
+            }
+        }
+
         flash_now!(success => t("admin.create.success").to_string());
         return Ok(Redirect::to(&format!(
             "{}/{}/list",
@@ -798,6 +831,90 @@ async fn handle_delete_post(
     .into_response())
 }
 
+// ─── Création utilisateur — envoi email reset ────────────────────────────────
+
+async fn send_user_created_email(
+    req: &mut Request,
+    _entry: &crate::admin::ResourceEntry,
+    email: &str,
+    username: Option<&str>,
+    email_template: Option<&str>,
+    headers: &axum::http::HeaderMap,
+    state: &PrototypeAdminState,
+) {
+    let token = crate::utils::reset_token::generate(email);
+    let encrypted = crate::utils::reset_token::encrypt_email(&token, email);
+
+    let reset_url = if let Some(base) = &state.config.reset_password_url {
+        format!("{}/{}/{}", base.trim_end_matches('/'), token, encrypted)
+    } else {
+        let host = headers
+            .get(axum::http::header::HOST)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("localhost");
+        format!("http://{}/reset-password/{}/{}", host, token, encrypted)
+    };
+
+    let template_name = email_template.unwrap_or("admin/user_created_email.html");
+    let username_str = username.unwrap_or(email);
+
+    let mut ctx = tera::Context::new();
+    ctx.insert("username", username_str);
+    ctx.insert("email", email);
+    ctx.insert("reset_url", &reset_url);
+    ctx.insert(
+        "t_greeting",
+        t("admin.user_created.email_greeting").as_ref(),
+    );
+    ctx.insert("t_body", t("admin.user_created.email_body").as_ref());
+    ctx.insert("t_btn", t("admin.user_created.email_btn").as_ref());
+    ctx.insert(
+        "t_validity",
+        t("admin.user_created.email_validity").as_ref(),
+    );
+
+    let body_html = match req.engine.tera.render(template_name, &ctx) {
+        Ok(rendered) => rendered,
+        Err(_) => format!(
+            "<p>Bonjour {username_str},</p><p>Cliquez sur le lien pour définir votre mot de passe :</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
+        ),
+    };
+
+    if crate::utils::mailer_configured() {
+        match crate::utils::Email::new()
+            .to(email)
+            .subject(t("admin.user_created.email_subject"))
+            .html(body_html)
+            .send()
+            .await
+        {
+            Ok(_) => {
+                req.notices
+                    .success(crate::utils::trad::tf(
+                        "admin.user_created.email_sent",
+                        &[email],
+                    ))
+                    .await;
+            }
+            Err(e) => {
+                req.notices
+                    .error(crate::utils::trad::tf(
+                        "admin.reset_password.error_send",
+                        &[&e],
+                    ))
+                    .await;
+            }
+        }
+    } else {
+        req.notices
+            .success(crate::utils::trad::tf(
+                "admin.reset_password.success_link",
+                &[&reset_url],
+            ))
+            .await;
+    }
+}
+
 // ─── Reset password ──────────────────────────────────────────────────────────
 
 async fn handle_reset_password(
@@ -864,12 +981,32 @@ async fn handle_reset_password(
 
     // Envoi par email si mailer configuré, sinon affiche le lien dans le flash
     if crate::utils::mailer_configured() {
-        let body = format!(
-            "<p>Bonjour {username},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
+        let template_name = state
+            .config
+            .reset_password_email_template
+            .as_deref()
+            .unwrap_or("admin/reset_password_email.html");
+        let mut ctx = tera::Context::new();
+        ctx.insert("username", username);
+        ctx.insert("email", &email);
+        ctx.insert("reset_url", &reset_url);
+        ctx.insert("t_title", t("admin.reset_password.email_title").as_ref());
+        ctx.insert(
+            "t_greeting",
+            t("admin.reset_password.email_greeting").as_ref(),
         );
+        ctx.insert("t_body", t("admin.reset_password.email_body").as_ref());
+        ctx.insert("t_btn", t("admin.reset_password.btn").as_ref());
+        ctx.insert("t_ignore", t("admin.reset_password.email_ignore").as_ref());
+        let body = match req.engine.tera.render(template_name, &ctx) {
+            Ok(rendered) => rendered,
+            Err(_) => format!(
+                "<p>Bonjour {username},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
+            ),
+        };
         match crate::utils::Email::new()
             .to(email.clone())
-            .subject(t("admin.reset_password.btn"))
+            .subject(t("admin.reset_password.email_subject"))
             .html(body)
             .send()
             .await

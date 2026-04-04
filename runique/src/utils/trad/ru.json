@@ -318,11 +318,25 @@
       "confirm_delete": "Удалить эту запись?"
     },
     "reset_password": {
-      "btn": "Reset password",
+      "btn": "Сбросить пароль",
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
-      "error_send": "Error sending email: {}"
+      "error_send": "Error sending email: {}",
+      "email_subject": "Сброс пароля",
+      "email_title": "Сброс пароля",
+      "email_greeting": "Здравствуйте,",
+      "email_body": "Нажмите на ссылку, чтобы сбросить пароль (действительна 1 час):",
+      "email_btn": "Сбросить пароль",
+      "email_ignore": "Если вы не запрашивали сброс, проигнорируйте это сообщение."
+    },
+    "user_created": {
+      "email_subject": "Добро пожаловать — установите пароль",
+      "email_sent": "Приветственное письмо отправлено на {}.",
+      "email_greeting": "Добро пожаловать,",
+      "email_body": "Для вас создан аккаунт. Нажмите на ссылку, чтобы установить пароль:",
+      "email_btn": "Установить пароль",
+      "email_validity": "Ссылка действительна 1 час. Если вы не ожидали этого сообщения, проигнорируйте его."
     },
     "delete": {
       "title": "Удалить",

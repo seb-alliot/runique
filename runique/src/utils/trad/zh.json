@@ -317,11 +317,25 @@
       "confirm_delete": "删除此条目？"
     },
     "reset_password": {
-      "btn": "Reset password",
+      "btn": "重置密码",
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
-      "error_send": "Error sending email: {}"
+      "error_send": "Error sending email: {}",
+      "email_subject": "重置您的密码",
+      "email_title": "密码重置",
+      "email_greeting": "您好，",
+      "email_body": "请点击下方链接重置您的密码（有效期1小时）：",
+      "email_btn": "重置我的密码",
+      "email_ignore": "如果您没有请求此重置，请忽略此消息。"
+    },
+    "user_created": {
+      "email_subject": "欢迎 — 请设置您的密码",
+      "email_sent": "欢迎邮件已发送至 {}。",
+      "email_greeting": "欢迎，",
+      "email_body": "已为您创建账户。请点击下方链接设置您的密码：",
+      "email_btn": "设置我的密码",
+      "email_validity": "此链接有效期为1小时。如果您未期待此消息，请忽略。"
     },
     "delete": {
       "title": "删除",

@@ -317,11 +317,25 @@
       "confirm_delete": "このエントリを削除しますか？"
     },
     "reset_password": {
-      "btn": "Reset password",
+      "btn": "パスワードをリセット",
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
-      "error_send": "Error sending email: {}"
+      "error_send": "Error sending email: {}",
+      "email_subject": "パスワードのリセット",
+      "email_title": "パスワードのリセット",
+      "email_greeting": "こんにちは、",
+      "email_body": "以下のリンクをクリックしてパスワードをリセットしてください（1時間有効）：",
+      "email_btn": "パスワードをリセット",
+      "email_ignore": "このリセットを要求していない場合は、このメッセージを無視してください。"
+    },
+    "user_created": {
+      "email_subject": "ようこそ — パスワードを設定してください",
+      "email_sent": "{} にウェルカムメールを送信しました。",
+      "email_greeting": "ようこそ、",
+      "email_body": "アカウントが作成されました。以下のリンクをクリックしてパスワードを設定してください：",
+      "email_btn": "パスワードを設定",
+      "email_validity": "このリンクは1時間有効です。このメッセージを予期していなかった場合は、無視してください。"
     },
     "delete": {
       "title": "削除",

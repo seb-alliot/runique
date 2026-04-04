@@ -25,7 +25,7 @@ impl HiddenField {
     /// Constructeur générique pour un champ caché
     pub fn new(name: &str) -> Self {
         Self {
-            base: FieldConfig::new(name, "hidden", "base_string"),
+            base: FieldConfig::new(name, "hidden", "base_hidden"),
             expected_value: None,
         }
     }

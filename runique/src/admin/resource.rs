@@ -222,6 +222,10 @@ pub struct AdminResource {
 
     /// Clés custom injectées dans le contexte Tera (définies via extra: {} dans admin!{})
     pub extra_context: std::collections::HashMap<String, String>,
+
+    /// Si true : injecte un hash aléatoire dans le champ "password" vide à la création.
+    /// Positionné automatiquement par le daemon quand `create_form:` est déclaré.
+    pub inject_password: bool,
 }
 
 impl AdminResource {
@@ -257,6 +261,7 @@ impl AdminResource {
             template_detail: None,
             template_delete: None,
             extra_context: std::collections::HashMap::new(),
+            inject_password: false,
         }
     }
 
@@ -282,7 +287,14 @@ impl AdminResource {
             template_detail: None,
             template_delete: None,
             extra_context: std::collections::HashMap::new(),
+            inject_password: false,
         }
+    }
+
+    /// Active l'injection automatique d'un hash aléatoire dans le champ "password" vide à la création.
+    pub fn inject_password(mut self, v: bool) -> Self {
+        self.inject_password = v;
+        self
     }
 
     /// Configure l'affichage de cette ressource

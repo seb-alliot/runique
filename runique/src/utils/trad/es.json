@@ -317,11 +317,25 @@
       "confirm_delete": "¿Eliminar esta entrada?"
     },
     "reset_password": {
-      "btn": "Reset password",
+      "btn": "Restablecer contraseña",
       "success_email": "Reset link sent to {}.",
       "success_link": "Reset link (mailer not configured): {}",
       "error_no_email": "No email field found for this user.",
-      "error_send": "Error sending email: {}"
+      "error_send": "Error sending email: {}",
+      "email_subject": "Restablece tu contraseña",
+      "email_title": "Restablecimiento de contraseña",
+      "email_greeting": "Hola,",
+      "email_body": "Haz clic en el enlace para restablecer tu contraseña (válido 1 hora):",
+      "email_btn": "Restablecer mi contraseña",
+      "email_ignore": "Si no solicitaste este restablecimiento, ignora este mensaje."
+    },
+    "user_created": {
+      "email_subject": "Bienvenido — define tu contraseña",
+      "email_sent": "Correo de bienvenida enviado a {}.",
+      "email_greeting": "Bienvenido,",
+      "email_body": "Se ha creado una cuenta para ti. Haz clic en el enlace para definir tu contraseña:",
+      "email_btn": "Definir mi contraseña",
+      "email_validity": "Este enlace es válido por 1 hora. Si no esperabas este mensaje, ignóralo."
     },
     "delete": {
       "title": "Eliminar",

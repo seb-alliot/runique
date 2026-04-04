@@ -27,6 +27,9 @@ pub struct ResourceDef {
     pub template_detail: Option<String>,
     pub template_delete: Option<String>,
 
+    /// Formulaire alternatif pour la création (optionnel, chemin complet ex: crate::formulaire::UserAdminCreateForm)
+    pub create_form_type: Option<String>,
+
     /// Formulaire alternatif pour l'édition (optionnel, chemin complet ex: crate::formulaire::UserEditForm)
     pub edit_form_type: Option<String>,
 
@@ -133,12 +136,8 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
         expect_punct(&mut iter, '=')?;
         expect_punct(&mut iter, '>')?;
 
-        // 5. form_type (ident simple)
-        let form_type = match iter.next() {
-            Some(TokenTree::Ident(id)) => id.to_string(),
-            Some(other) => return Err(format!("Expected Form name, found: {}", other)),
-            None => return Err("Expected Form name, end of file".to_string()),
-        };
+        // 5. form_type (chemin complet possible : crate::formulaire::MyForm ou simple ident)
+        let form_type = parse_path(&mut iter)?;
 
         // 6. { title: "...", permissions: [...], template_*: "...", extra: { ... } }
         let body = match iter.next() {
@@ -161,6 +160,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             template_detail: body.template_detail,
             template_delete: body.template_delete,
             extra_context: body.extra_context,
+            create_form_type: body.create_form_type,
             edit_form_type: body.edit_form_type,
             id_type: body.id_type,
             list_filter: body.list_filter,
@@ -184,6 +184,7 @@ struct ResourceBody {
     template_detail: Option<String>,
     template_delete: Option<String>,
     extra_context: Vec<(String, String)>,
+    create_form_type: Option<String>,
     edit_form_type: Option<String>,
     id_type: String,
     list_filter: Vec<(String, String, u64)>,
@@ -204,6 +205,7 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         template_detail: None,
         template_delete: None,
         extra_context: Vec::new(),
+        create_form_type: None,
         edit_form_type: None,
         id_type: "I32".to_string(),
         list_filter: Vec::new(),
@@ -241,6 +243,9 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
             }
             "template_delete" => {
                 body.template_delete = Some(parse_string_literal(&mut iter)?);
+            }
+            "create_form" => {
+                body.create_form_type = Some(parse_path(&mut iter)?);
             }
             "edit_form" => {
                 body.edit_form_type = Some(parse_path(&mut iter)?);
