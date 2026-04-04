@@ -6,8 +6,8 @@ use std::path::PathBuf;
 fn find_ia_dir() -> Option<PathBuf> {
     let candidates = [
         "docs/ia",
-        "demo-app/docs/ia",
-        "../docs/ia",
+        "demo-app/docs/fr/ia",
+        "../docs/fr/ia",
         "../../docs/ia",
         "/app/docs/ia",
     ];

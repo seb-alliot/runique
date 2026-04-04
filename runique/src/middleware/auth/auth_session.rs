@@ -1,19 +1,18 @@
 use crate::admin::permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
-use crate::config::AppSettings;
 use crate::context::RequestExtensions;
+use crate::middleware::auth::default_auth::UserEntity;
 use crate::middleware::auth::permissions_cache::{
     cache_permissions, evict_permissions, get_permissions,
 };
+use crate::middleware::auth::user::BuiltinUserEntity;
+use crate::middleware::auth::user_trait::RuniqueUser;
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::constante::{
     SESSION_ACTIVE_KEY, SESSION_USER_DROITS_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_ID_KEY,
     SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
 };
-use axum::{
-    extract::Request,
-    middleware::Next,
-    response::{IntoResponse, Redirect, Response},
-};
+use crate::utils::pk::UserId;
+use axum::{extract::Request, middleware::Next, response::Response};
 use sea_orm::DatabaseConnection;
 use tower_sessions::Session;
 
@@ -23,7 +22,7 @@ use tower_sessions::Session;
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct CurrentUser {
-    pub id: i32,
+    pub id: UserId,
     pub username: String,
     /// Accès au panneau d'administration (lecture / opérations limitées)
     pub is_staff: bool,
@@ -114,8 +113,12 @@ pub async fn is_admin_authenticated(session: &Session) -> bool {
 }
 
 /// Récupère l'ID de l'utilisateur connecté.
-pub async fn get_user_id(session: &Session) -> Option<i32> {
-    session.get::<i32>(SESSION_USER_ID_KEY).await.ok().flatten()
+pub async fn get_user_id(session: &Session) -> Option<UserId> {
+    session
+        .get::<UserId>(SESSION_USER_ID_KEY)
+        .await
+        .ok()
+        .flatten()
 }
 
 /// Récupère le username de l'utilisateur connecté.
@@ -142,7 +145,7 @@ pub async fn get_username(session: &Session) -> Option<String> {
 pub async fn login(
     session: &Session,
     db: &DatabaseConnection,
-    user_id: i32,
+    user_id: UserId,
     username: &str,
     is_staff: bool,
     is_superuser: bool,
@@ -182,6 +185,33 @@ pub async fn login(
     Ok(())
 }
 
+/// Connecte un utilisateur à partir de son seul `user_id` — charge les données depuis la DB.
+///
+/// Raccourci générique pour tout flux d'authentification (inscription, OAuth, magic link…)
+/// qui dispose déjà de l'identifiant utilisateur sans avoir besoin de repasser les champs.
+///
+/// Utilise [`BuiltinUserEntity`] pour la recherche. Pour un modèle custom, utiliser [`login`] directement.
+pub async fn auth_login(
+    session: &Session,
+    db: &DatabaseConnection,
+    user_id: UserId,
+) -> Result<(), tower_sessions::session::Error> {
+    let Some(user) = BuiltinUserEntity::find_by_id(db, user_id).await else {
+        return Ok(());
+    };
+    login(
+        session,
+        db,
+        user.user_id(),
+        user.username(),
+        user.is_staff(),
+        user.is_superuser(),
+        None,
+        false,
+    )
+    .await
+}
+
 /// Déconnecte un utilisateur — supprime la session mémoire et l'entrée DB si fournie.
 pub async fn logout(
     session: &Session,
@@ -194,7 +224,12 @@ pub async fn logout(
     }
 
     // Vider le cache permissions
-    if let Some(user_id) = session.get::<i32>(SESSION_USER_ID_KEY).await.ok().flatten() {
+    if let Some(user_id) = session
+        .get::<UserId>(SESSION_USER_ID_KEY)
+        .await
+        .ok()
+        .flatten()
+    {
         evict_permissions(user_id);
     }
 
@@ -266,26 +301,6 @@ pub async fn has_permission(session: &Session, permission: &str) -> bool {
 // ═══════════════════════════════════════════════════════════════
 // Middlewares Axum
 // ═══════════════════════════════════════════════════════════════
-
-/// Middleware : protège les routes (authentification requise).
-pub async fn login_required(session: Session, request: Request, next: Next) -> Response {
-    if is_authenticated(&session).await {
-        next.run(request).await
-    } else {
-        let redirect_anonymous = AppSettings::default().redirect_anonymous;
-        Redirect::to(&redirect_anonymous).into_response()
-    }
-}
-
-/// Middleware : redirige les utilisateurs déjà connectés.
-pub async fn redirect_if_authenticated(session: Session, request: Request, next: Next) -> Response {
-    if is_authenticated(&session).await {
-        let redirect_url = AppSettings::default().user_connected;
-        Redirect::to(&redirect_url).into_response()
-    } else {
-        next.run(request).await
-    }
-}
 
 /// Middleware : charge les infos utilisateur dans les extensions de la requête.
 pub async fn load_user_middleware(session: Session, mut request: Request, next: Next) -> Response {

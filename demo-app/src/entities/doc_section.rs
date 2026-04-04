@@ -5,7 +5,7 @@ model! {
     table: "doc_section",
     pk: id => i32,
     enums: {
-        SectionTheme: [Demarrage, Web, Database, Security, Admin, Autres],
+        SectionTheme: pg [Demarrage, Web, Database, Security, Admin, Autres],
     },
     fields: {
         slug: String [required],

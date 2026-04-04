@@ -4,7 +4,7 @@
 
 ```rust
 use runique::middleware::auth::{
-    login, login_staff, logout,
+    login, auth_login, logout,
     is_authenticated, get_user_id, get_username,
 };
 ```
@@ -13,41 +13,55 @@ use runique::middleware::auth::{
 
 ## Login
 
-```rust
-// Regular user — is_staff and is_superuser default to false
-login(&session, user.id, &user.username).await?;
+### `auth_login` — login by user_id (recommended)
 
-// Staff/admin user — with explicit rights and custom roles
-login_staff(
+Generic shortcut: automatically loads user data from the DB using only the `user_id`. Suitable for any authentication flow (registration, OAuth, magic link…).
+
+```rust
+auth_login(&session, &db, user.id).await?;
+```
+
+### `login` — full login
+
+For cases where you already have all the data and want to control DB persistence and exclusive login.
+
+```rust
+login(
     &session,
+    &db,
     user.id,
     &user.username,
     user.is_staff,
     user.is_superuser,
-    user.roles(),
+    None,    // Option<&RuniqueSessionStore> — multi-device persistence
+    false,   // exclusive — invalidate other sessions
 ).await?;
 ```
 
 ### Exclusive login
 
-To allow only one active session per user at a time, enable via the builder:
+To allow only one active session per user at a time, pass `exclusive: true`:
+
+```rust
+login(&session, &db, user.id, &user.username, false, false, Some(&store), true).await?;
+```
+
+Or enable globally via the builder:
 
 ```rust
 RuniqueApp::builder(config)
     .middleware(|m| m.with_exclusive_login(true))
 ```
 
-`login` and `login_staff` will then automatically invalidate all existing sessions
-for the user on each new login. No changes required in handlers.
-
-> Disabled by default (`false`). No effect when using an external session store.
-
 ---
 
 ## Logout
 
 ```rust
-logout(&session).await?;
+logout(&session, None).await?;
+
+// With DB session deletion (multi-device)
+logout(&session, Some(&store)).await?;
 ```
 
 ---
@@ -60,7 +74,7 @@ if is_authenticated(&session).await {
     // ...
 }
 
-// Get user ID from session
+// Get user ID from session (returns UserId = i32 or i64)
 if let Some(user_id) = get_user_id(&session).await {
     // ...
 }
@@ -70,17 +84,6 @@ if let Some(username) = get_username(&session).await {
     // ...
 }
 ```
-
----
-
-## Environment Variables
-
-These variables control automatic redirects in the middlewares:
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `REDIRECT_ANONYMOUS` | `/` | Redirect target for unauthenticated users |
-| `USER_CONNECTED_URL` | `/` | Redirect target for already-authenticated users |
 
 ---
 

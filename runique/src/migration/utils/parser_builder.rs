@@ -91,7 +91,7 @@ impl Parse for DslModel {
                         let backing = if enum_block.peek(Ident) {
                             let ty: Ident = enum_block.fork().parse().unwrap();
                             match ty.to_string().as_str() {
-                                "String" | "i32" | "i64" => {
+                                "String" | "i32" | "i64" | "pg" => {
                                     enum_block.parse::<Ident>().ok();
                                     ty.to_string()
                                 }
@@ -467,7 +467,7 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
             // Pour les enums String, on garde les valeurs DB pour le diff
             let (enum_name, enum_string_values) = if f.ty == "enum" {
                 match enum_entry {
-                    Some((name, backing, values)) if backing == "String" => {
+                    Some((name, backing, values)) if backing == "String" || backing == "pg" => {
                         (Some(name.clone()), values.clone())
                     }
                     _ => (None, Vec::new()),

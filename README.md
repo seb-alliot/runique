@@ -1,206 +1,204 @@
-# Runique — Django-inspired Rust Framework
+# Runique
 
-![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.54-blue)
+**A Django-inspired web framework for Rust.**
+Type-safe forms, built-in admin panel, security middleware, and a CLI — built on Axum + SeaORM + Tera.
+
+[![Version](https://img.shields.io/badge/version-1.1.54-blue)](https://crates.io/crates/runique)
+[![Tests](https://img.shields.io/badge/tests-1833%2F1833%20passing-green)](https://github.com/seb-alliot/runique)
+[![Coverage](https://img.shields.io/badge/coverage-76%25-yellowgreen)](https://github.com/seb-alliot/runique)
+[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)](https://www.rust-lang.org)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/seb-alliot/runique/blob/main/LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
-[![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
-Runique is a web framework built on Axum, focused on type-safe forms, security middleware, template rendering, ORM integration, and a code-generated admin workflow.
-
-> Current state: active development. The framework source of truth is the `runique` crate.
-> `demo-app` is used as a validation/testing application for framework behavior.
-
-🌍 **Languages**: English | [Français](https://runique.io/readme/fr)
+🌍 [Français](https://runique.io/readme/fr)
 
 ---
 
-## What this repository contains
+## Why Runique?
 
-- `runique/` → framework crate (main product)
-- `demo-app/` → test/validation app for framework development
-- `docs/` → EN/FR documentation
+Rust web frameworks leave most of the work to you. Runique takes the opposite approach — bring the ergonomics of Django to Rust, without hiding the type system.
 
-Workspace version (source of truth): **1.1.54**.
-
----
-
-## Core capabilities
-
-- Type-safe form system (`forms`, extractors, validators, renderers)
-- Routing macros and URL helpers
-- Tera template integration and context helpers
-- Security middleware (CSRF, CSP, allowed hosts, sanitization, auth/session)
-- SeaORM integration + migration tooling
-- Flash message system
-- Admin beta (`admin!` macro + daemon-generated CRUD code)
-
-Main public modules are exposed from `runique/src/lib.rs`.
+| | Runique | Axum alone |
+|---|---|---|
+| Forms (parse, validate, render) | ✅ `Prisme` + `derive_form` | Manual |
+| Admin panel | ✅ Code-generated from `admin!` | Manual |
+| Auth + session | ✅ Built-in | Manual |
+| CSRF | ✅ Always on | Manual |
+| CSP + allowed hosts | ✅ Builder API | Manual |
+| Migration CLI | ✅ `runique makemigrations` | SeaORM CLI only |
 
 ---
 
-## Installation
+## Quick start
 
-```bash
-git clone https://github.com/seb-alliot/runique
-cd runique
-cargo build --workspace
-cargo test --workspace
-```
-
-Detailed guide: [Installation](https://runique.io/docs/en/installation)
-
----
-
-## Quick usage
-
-```rust,no_run
+```rust
 use runique::prelude::*;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = RuniqueConfig::from_env();
-    let app = RuniqueApp::builder(config).build().await.unwrap();
-    app.run().await.unwrap();
+
+    RuniqueApp::builder(config)
+        .routes(routes())
+        .with_database_config(DatabaseConfig::from_env()?.build())
+        .statics()
+        .middleware(|m| {
+            m.with_csp(|c| c.with_header_security(true))
+             .with_allowed_hosts(|h| h.enabled(!is_debug()).host("mysite.com"))
+        })
+        .with_admin(|a| a.site_title("Admin"))
+        .build().await?
+        .run().await?;
+
+    Ok(())
 }
 ```
 
----
+```toml
+# Cargo.toml
+[dependencies]
+runique = { version = "1.1.54", features = ["orm", "postgres"] }
+```
 
-## CLI (actual commands)
-
-`runique` provides:
-
-- `runique new <name>`
-- `runique start [--main src/main.rs] [--admin src/admin.rs]`
-- `runique create-superuser`
-- `runique makemigrations --entities src/entities --migrations migration/src [--force false]`
-- `runique migration up|down|status --migrations migration/src`
-
-> ⚠️ **Warning**
-> The `makemigrations` command generates SeaORM tables while preserving the
-> chronological order of the migration system.
-> To ensure migration tracking remains consistent, only use the SeaORM CLI
-> to apply or manage migrations.
-> Using other commands may lead to migration desynchronization.
-
-## Admin beta status
-
-Admin daemon behavior in `start`:
-
-- checks whether `.with_admin(...)` exists in `src/main.rs`
-- starts the admin watcher when enabled
-- otherwise exits with an explicit hint
-
-Admin resources are declared in `src/admin.rs` using `admin!`.
-
-The workflow:
-
-1. parse `admin!` declarations
-2. generate admin code under `src/admins/`
-3. refresh on changes with watcher mode
-
-Current beta limits:
-
-- mostly resource-level permissions
-- generated folder overwrite (`src/admins/`)
-- iterative hardening still in progress
-
-Admin docs: [Admin](https://runique.io/docs/en/admin)
+```env
+# .env
+DATABASE_URL=postgres://user:pass@localhost/mydb
+SECRET_KEY=change-me-in-production
+DEBUG=false
+```
 
 ---
 
-## Features and database backends
+## Features
 
-Default features:
+### Forms — type-safe, no boilerplate
 
-- `orm`
-- `all-databases`
+```rust
+#[derive(Forms)]
+struct LoginForm {
+    #[field(min_length = 3)]
+    username: CharField,
+    password: PasswordField,
+}
 
-Selectable backends:
+async fn login_view(
+    mut request: Request,
+    Prisme(form): Prisme<LoginForm>,
+) -> AppResult<Response> {
+    if form.is_valid() {
+        auth_login(&request.session, &request.engine.db, user.id).await?;
+        return Ok(redirect("/dashboard"));
+    }
+    render!(request, "login.html", { "form" => form })
+}
+```
 
-- `sqlite`
-- `postgres`
-- `mysql`
-- `mariadb`
+### Admin — generated from declarations
+
+```rust
+// src/admin.rs
+admin! {
+    Article {
+        list: [title, author, published_at],
+        search: [title, author],
+        filters: [published_at],
+    }
+}
+```
+
+`runique start` watches `admin.rs` and regenerates the CRUD code under `src/admins/` automatically.
+
+### Security — sane defaults, configurable
+
+- **CSRF** — always active, cannot be disabled
+- **CSP** — disabled in dev, strict in prod by default, fully configurable
+- **Allowed hosts** — closure-based, wildcard support
+- **Rate limiting** — `RateLimiter::new().max_requests(100).retry_after(60)`
+- **Login guard** — brute-force protection per account, not per IP
+
+### Sessions
+
+`CleaningMemoryStore` replaces the default Axum `MemoryStore`:
+- Two-tier watermark (128 MB low / 256 MB high) with automatic cleanup
+- Priority protection for authenticated sessions
+- Optional DB persistence (`eihwaz_sessions` table)
+- Exclusive login (one active device per user) via `.with_exclusive_login(true)`
 
 ---
 
-## Test and coverage snapshot
-
-- Reported tests: **1833/1833 passing**
-- Coverage snapshot (`2026-03-30`, package `runique`):
-  - Functions: **76.59%**
-  - Lines: **71.52%**
-  - Regions: **69.11%**
+## CLI
 
 ```bash
+runique new <name>                                          # scaffold a new project
+runique start [--main src/main.rs] [--admin src/admin.rs]  # dev server + admin watcher
+runique create-superuser                                    # create admin user
+runique makemigrations --entities src/entities \
+                       --migrations migration/src          # generate migrations
+runique migration up|down|status \
+                  --migrations migration/src               # apply / inspect migrations
+```
+
+---
+
+## Database backends
+
+```toml
+runique = { version = "1.1.54", features = ["orm", "postgres"] }
+# or: "sqlite" | "mysql" | "mariadb" | "all-databases"
+```
+
+Primary key size (default `i32`, opt-in `i64`):
+
+```toml
+runique = { version = "1.1.54", features = ["orm", "postgres", "big-pk"] }
+```
+
+---
+
+## Tests & coverage
+
+```bash
+cargo test --workspace
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
 ```
 
----
-
-## Sessions
-
-`CleaningMemoryStore` replaces the default `MemoryStore` with automatic expired-session cleanup, a two-tier watermark system (128 MB / 256 MB), and priority-based protection for authenticated sessions.
-
-- Low watermark: background purge of expired anonymous sessions
-- High watermark: synchronous emergency purge + 503 refusal if still exceeded
-- `protect_session(&session, duration_secs)` — marks an anonymous session as untouchable until a given timestamp
-- `user_id` key — automatically protects authenticated sessions
-
-Full reference: [Sessions](https://runique.io/docs/en/session)
-
----
-
-## Environment variables
-
-All behavior is configurable via `.env`. Key variables:
-
-```env
-RUNIQUE_SESSION_CLEANUP_SECS=60
-RUNIQUE_SESSION_LOW_WATERMARK=134217728
-RUNIQUE_SESSION_HIGH_WATERMARK=268435456
-SECRET_KEY=your-secret-key
-DATABASE_URL=sqlite://db.sqlite3
-```
-
-Full reference: [Environment variables](https://runique.io/docs/en/env)
+- **1833/1833** tests passing
+- Line coverage: **~76%** (snapshot 2026-03-30)
 
 ---
 
 ## Documentation
 
-- [Installation](https://runique.io/docs/en/installation)
-- [Architecture](https://runique.io/docs/en/architecture)
-- [Configuration](https://runique.io/docs/en/configuration)
-- [Routing](https://runique.io/docs/en/routing)
-- [Forms](https://runique.io/docs/en/formulaire)
-- [Model/Schema](https://runique.io/docs/en/model)
-- [Templates](https://runique.io/docs/en/template)
-- [ORM](https://runique.io/docs/en/orm)
-- [Middlewares](https://runique.io/docs/en/middleware)
-- [Flash Messages](https://runique.io/docs/en/flash)
-- [Examples](https://runique.io/docs/en/exemple)
-- [Admin beta](https://runique.io/docs/en/admin)
-- [Sessions](https://runique.io/docs/en/session)
-- [Environment variables](https://runique.io/docs/en/env)
+| Section | |
+|---|---|
+| [Installation](https://runique.io/docs/en/installation) | Setup, prerequisites, first project |
+| [Configuration](https://runique.io/docs/en/configuration) | Builder API, environment variables |
+| [Routing](https://runique.io/docs/en/routing) | `urlpatterns!`, extractors, responses |
+| [Forms](https://runique.io/docs/en/formulaire) | `derive_form`, `Prisme`, validators |
+| [Templates](https://runique.io/docs/en/template) | Tera, filters, context helpers |
+| [ORM](https://runique.io/docs/en/orm) | SeaORM integration, migrations |
+| [Middlewares](https://runique.io/docs/en/middleware) | CSRF, CSP, hosts, rate limiting |
+| [Auth & Sessions](https://runique.io/docs/en/auth) | Login, logout, session store |
+| [Admin](https://runique.io/docs/en/admin) | `admin!` macro, permissions, generated CRUD |
+| [Flash Messages](https://runique.io/docs/en/flash) | Handler + template macros |
+| [Examples](https://runique.io/docs/en/exemple) | Minimal, forms, upload |
+| [Environment Variables](https://runique.io/docs/en/env) | Full reference |
+
 ---
 
 ## Project status
 
-For the detailed, continuously updated state report, see [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md).
+Active development — API stabilizing toward 1.2.
+
+See [PROJECT_STATUS.md](https://github.com/seb-alliot/runique/blob/main/docs/en/PROJECT_STATUS.en.md) for the detailed state report.
 
 ## Resources
 
 - [Changelog](https://runique.io/changelog)
-- [Runique vs Django — Feature Comparison](https://runique.io/docs/en/comparatif)
+- [Runique vs Django](https://runique.io/docs/en/comparatif)
 - [Crates.io](https://crates.io/crates/runique)
 - [Security policy](https://github.com/seb-alliot/runique/blob/main/SECURITY.md)
 
 ---
 
-## License
-
-MIT — see [LICENSE](https://github.com/seb-alliot/runique/blob/main/LICENSE)
+MIT — © seb-alliot

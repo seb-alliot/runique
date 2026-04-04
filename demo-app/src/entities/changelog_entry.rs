@@ -5,7 +5,7 @@ model! {
     table: "changelog_entry",
     pk: id => i32,
     enums: {
-        ChangelogCategory: String [Fix="Fix", Feature="Feature", Ajoute="Ajouté"],
+        ChangelogCategory: pg [Fix="Fix", Feature="Feature", Ajoute="Ajouté"],
     },
     fields: {
         version: String [required],

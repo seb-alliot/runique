@@ -5,18 +5,13 @@ pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
-    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_table(
                 Table::create()
                     .table(Alias::new("test_all_fields"))
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(Alias::new("id"))
-                            .uuid()
-                            .not_null()
-                            .primary_key(),
-                    )
+                    .col(ColumnDef::new(Alias::new("id")).uuid().not_null().primary_key())
                     .col(ColumnDef::new(Alias::new("f_text")).string().null())
                     .col(ColumnDef::new(Alias::new("f_email")).string().null())
                     .col(ColumnDef::new(Alias::new("f_url")).string().null())
@@ -29,27 +24,15 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("f_percent")).integer().null())
                     .col(ColumnDef::new(Alias::new("f_range")).integer().null())
                     .col(ColumnDef::new(Alias::new("f_checkbox")).boolean().null())
-                    .col(
-                        ColumnDef::new(Alias::new("f_radio_single"))
-                            .boolean()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(Alias::new("f_radio_single")).boolean().null())
                     .col(ColumnDef::new(Alias::new("f_select")).string().null())
-                    .col(
-                        ColumnDef::new(Alias::new("f_select_multiple"))
-                            .json()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(Alias::new("f_select_multiple")).json().null())
                     .col(ColumnDef::new(Alias::new("f_radio_group")).string().null())
                     .col(ColumnDef::new(Alias::new("f_checkbox_group")).json().null())
                     .col(ColumnDef::new(Alias::new("f_date")).date_time().null())
                     .col(ColumnDef::new(Alias::new("f_time")).string().null())
                     .col(ColumnDef::new(Alias::new("f_datetime")).date_time().null())
-                    .col(
-                        ColumnDef::new(Alias::new("f_duration"))
-                            .big_integer()
-                            .null(),
-                    )
+                    .col(ColumnDef::new(Alias::new("f_duration")).big_integer().null())
                     .col(ColumnDef::new(Alias::new("f_file_image")).json().null())
                     .col(ColumnDef::new(Alias::new("f_file_document")).json().null())
                     .col(ColumnDef::new(Alias::new("f_file_any")).json().null())
@@ -58,19 +41,9 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Alias::new("f_uuid")).uuid().null())
                     .col(ColumnDef::new(Alias::new("f_json")).json().null())
                     .col(ColumnDef::new(Alias::new("f_ip")).string().null())
-                    .col(
-                        ColumnDef::new(Alias::new("created_at"))
-                            .date_time()
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
-                    .col(
-                        ColumnDef::new(Alias::new("updated_at"))
-                            .date_time()
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
-                    .to_owned(),
+                    .col(ColumnDef::new(Alias::new("created_at")).date_time().not_null().default(Expr::current_timestamp()))
+                    .col(ColumnDef::new(Alias::new("updated_at")).date_time().not_null().default(Expr::current_timestamp()))
+                    .to_owned()
             )
             .await?;
 
@@ -82,27 +55,21 @@ impl MigrationTrait for Migration {
         ).await?;
 
         Ok(())
-    }
+}
 
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .get_connection()
-            .execute_unprepared(
-                "DROP TRIGGER IF EXISTS trg_test_all_fields_updated_at ON test_all_fields;",
-            )
-            .await?;
-        manager
-            .get_connection()
-            .execute_unprepared("DROP FUNCTION IF EXISTS set_updated_at_test_all_fields();")
-            .await?;
+async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager.get_connection().execute_unprepared(
+            "DROP TRIGGER IF EXISTS trg_test_all_fields_updated_at ON test_all_fields;"
+        ).await?;
+        manager.get_connection().execute_unprepared(
+            "DROP FUNCTION IF EXISTS set_updated_at_test_all_fields();"
+        ).await?;
 
         manager
-            .drop_table(
-                Table::drop()
-                    .table(Alias::new("test_all_fields"))
-                    .to_owned(),
-            )
+            .drop_table(Table::drop()
+                .table(Alias::new("test_all_fields"))
+                .to_owned())
             .await?;
         Ok(())
-    }
+}
 }

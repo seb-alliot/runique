@@ -87,6 +87,7 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
+    pub use crate::utils::pk::UserId;
     pub use crate::{error, flash_now, impl_objects, info, search, success, warning};
     pub use derive_form::{form, model};
 

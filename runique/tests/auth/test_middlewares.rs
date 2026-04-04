@@ -1,13 +1,10 @@
-// Tests pour login_required, redirect_if_authenticated, load_user_middleware, has_permission
+// Tests pour load_user_middleware, has_permission
 //
 // Stratégie : serveur persistant (OnceLock) avec MemoryStore.
 // Chaque test crée son propre client reqwest (cookie jar isolé → session distincte).
 
 use axum::{Extension, Router, middleware, routing::get, routing::post};
-use runique::middleware::auth::{
-    CurrentUser, has_permission, load_user_middleware, login, login_required,
-    redirect_if_authenticated,
-};
+use runique::middleware::auth::{CurrentUser, has_permission, load_user_middleware, login};
 use sea_orm::DatabaseConnection;
 use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
@@ -32,16 +29,6 @@ fn auth_mw_addr() -> SocketAddr {
 
                 let store = MemoryStore::default();
                 let session_layer = SessionManagerLayer::new(store).with_secure(false);
-
-                // Routes protégées par login_required
-                let protected = Router::new()
-                    .route("/protected", get(|| async { "secret" }))
-                    .layer(middleware::from_fn(login_required));
-
-                // Routes avec redirect_if_authenticated
-                let login_page = Router::new()
-                    .route("/login_page", get(|| async { "login page" }))
-                    .layer(middleware::from_fn(redirect_if_authenticated));
 
                 // Routes avec load_user_middleware
                 let user_area = Router::new()
@@ -91,8 +78,6 @@ fn auth_mw_addr() -> SocketAddr {
                     );
 
                 let app = Router::new()
-                    .merge(protected)
-                    .merge(login_page)
                     .merge(user_area)
                     .merge(public)
                     .layer(Extension(db))
@@ -117,94 +102,6 @@ fn client() -> reqwest::Client {
         .redirect(reqwest::redirect::Policy::none()) // ne pas suivre les redirects
         .build()
         .unwrap()
-}
-
-// ═══════════════════════════════════════════════════════════════
-// login_required
-// ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_login_required_anonymous_retourne_redirect() {
-    let addr = auth_mw_addr();
-    let c = client();
-
-    let resp = c
-        .get(format!("http://{addr}/protected"))
-        .send()
-        .await
-        .unwrap();
-
-    assert!(
-        resp.status().is_redirection(),
-        "anonyme doit être redirigé (got {})",
-        resp.status()
-    );
-}
-
-#[tokio::test]
-async fn test_login_required_authentifie_passe() {
-    let addr = auth_mw_addr();
-    let c = client();
-
-    // Login
-    c.post(format!("http://{addr}/do_login"))
-        .send()
-        .await
-        .unwrap();
-
-    // Accès protégé
-    let resp = c
-        .get(format!("http://{addr}/protected"))
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(resp.status(), 200);
-    assert_eq!(resp.text().await.unwrap(), "secret");
-}
-
-// ═══════════════════════════════════════════════════════════════
-// redirect_if_authenticated
-// ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_redirect_if_auth_anonyme_passe() {
-    let addr = auth_mw_addr();
-    let c = client();
-
-    let resp = c
-        .get(format!("http://{addr}/login_page"))
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(resp.status(), 200);
-    assert_eq!(resp.text().await.unwrap(), "login page");
-}
-
-#[tokio::test]
-async fn test_redirect_if_auth_connecte_redirige() {
-    let addr = auth_mw_addr();
-    let c = client();
-
-    // Login
-    c.post(format!("http://{addr}/do_login"))
-        .send()
-        .await
-        .unwrap();
-
-    // Page de login → doit rediriger
-    let resp = c
-        .get(format!("http://{addr}/login_page"))
-        .send()
-        .await
-        .unwrap();
-
-    assert!(
-        resp.status().is_redirection(),
-        "utilisateur connecté doit être redirigé (got {})",
-        resp.status()
-    );
 }
 
 // ═══════════════════════════════════════════════════════════════

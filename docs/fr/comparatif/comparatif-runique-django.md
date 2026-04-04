@@ -92,17 +92,17 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Login / Logout | `authenticate()` + `login()` | `login()`, `login_staff()`, `logout()` — `LoginGuard` = middleware anti-brute force |
+| Login / Logout | `authenticate()` + `login()` | `auth_login(session, db, user_id)`, `login()` (8 params), `logout()` — `LoginGuard` = anti-brute force |
 | Vérif authentification | `request.user.is_authenticated` | `is_authenticated(&session).await` |
 | Utilisateur courant | `request.user` | `CurrentUser` (injecté via `load_user_middleware`) |
-| Protection route | `@login_required` | middleware `login_required` |
-| Redirection si connecté | manuel | middleware `redirect_if_authenticated` |
+| Protection route | `@login_required` | pattern inline `if !is_authenticated(&session).await { Redirect... }` |
+| Redirection si connecté | manuel | pattern inline `if is_authenticated(&session).await { Redirect... }` |
 | Sessions | natif | tower-sessions |
 | Protection brute force | `django-axes` (tiers) | `LoginGuard` natif (tentatives + lockout) |
 | Hashage mot de passe | PBKDF2 / argon2 | argon2, bcrypt, scrypt, custom (détection automatique à la vérification) |
 | Activation compte email | natif (`auth`) | **manquant** |
-| Reset password | natif | **manquant** (prévu via `lettre`) |
-| Déconnexion forcée toutes sessions | oui | **manquant** |
+| Reset password | natif | `handle_forgot_password` + `handle_password_reset` natifs |
+| Déconnexion forcée toutes sessions | oui | `RuniqueSessionStore::invalidate_all(user_id)` |
 
 ---
 
@@ -128,7 +128,7 @@
 |----------------|--------|---------|
 | Activation | `admin.site.register(Model)` | macro `admin!{}` + `runique start` |
 | List / Create / Edit / Detail / Delete | natif | natif |
-| Pagination liste | natif | **manquant** |
+| Pagination liste | natif | `.page_size(n)` dans le builder admin |
 | `list_display` | natif | **manquant** |
 | Recherche / filtres | natif | **manquant** |
 | Templates personnalisables | oui | oui (hiérarchie Tera) |

@@ -6,7 +6,7 @@
 |----------|---------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Listening IP address |
 | `PORT` | `3000` | Server port |
-| `DEBUG` | `true` | Debug mode (templates, logs, etc.) |
+| `DEBUG` | `false` | Debug mode (templates, logs, etc.) |
 
 > **⚠️ Production:** Set `DEBUG=false` explicitly. In debug mode, detailed error pages are visible, potentially revealing sensitive information. Also, compiling with `cargo build --release` automatically disables debug assertions, but `DEBUG=true` may override this.
 
@@ -14,20 +14,49 @@
 
 ## Database
 
+### Connection
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | — | Full connection string |
-| `DB_ENGINE` | `postgres` | `postgres`, `sqlite`, `mysql` |
-| `DB_USER` | `postgres` | DB user |
-| `DB_PASSWORD` | — | DB password |
+| `DATABASE_URL` | — | Full connection URL (takes priority over all component variables) |
+| `DB_ENGINE` | `sqlite` | `postgres`, `mysql`, `mariadb`, `sqlite` |
+| `DB_USER` | — | DB user (required except for SQLite) |
+| `DB_PASSWORD` | — | DB password (required except for SQLite) |
 | `DB_HOST` | `localhost` | DB host |
-| `DB_PORT` | `5432` | DB port |
-| `DB_NAME` | `runique` | Database name |
+| `DB_PORT` | `5432` / `3306` | DB port (default depends on engine) |
+| `DB_NAME` | `local_base.sqlite` | Database name |
 
-**PostgreSQL:**
+### Connection pool
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_MAX_CONNECTIONS` | `100` | Maximum pool size |
+| `DB_MIN_CONNECTIONS` | `20` | Minimum pool size |
+
+### Timeouts
+
+| Variable | Default | Unit | Description |
+|----------|---------|------|-------------|
+| `DB_CONNECT_TIMEOUT` | `2` | seconds | Connection establishment timeout |
+| `DB_ACQUIRE_TIMEOUT` | `500` | milliseconds | Pool acquire timeout |
+| `DB_IDLE_TIMEOUT` | `300` | seconds | Idle connection lifetime |
+| `DB_MAX_LIFETIME` | `3600` | seconds | Maximum connection lifetime |
+
+### Logging
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_LOGGING` | `false` | Enable SQL query logging (`true`, `1`, `yes`) |
+
+**PostgreSQL (direct URL):**
 
 ```env
 DATABASE_URL=postgres://user:password@localhost:5432/dbname
+```
+
+**PostgreSQL (component variables):**
+
+```env
 DB_ENGINE=postgres
 DB_USER=postgres
 DB_PASSWORD=secret
@@ -39,7 +68,18 @@ DB_NAME=runique
 **SQLite (dev):**
 
 ```env
-DATABASE_URL=sqlite:runique.db?mode=rwc
+DB_ENGINE=sqlite
+DB_NAME=runique.db
+```
+
+**Custom pool:**
+
+```env
+DB_MAX_CONNECTIONS=50
+DB_MIN_CONNECTIONS=5
+DB_CONNECT_TIMEOUT=5
+DB_IDLE_TIMEOUT=600
+DB_LOGGING=true
 ```
 
 ---
@@ -64,10 +104,10 @@ MEDIA_ROOT=uploads
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SECRETE_KEY` | *(required)* | CSRF secret key (⚠️ CHANGE IN PROD!) |
+| `SECRET_KEY` | *(required)* | CSRF secret key (⚠️ CHANGE IN PROD!) |
 
 ```env
-SECRETE_KEY=your_secret_key_change_this_in_production
+SECRET_KEY=your_secret_key_change_this_in_production
 ```
 
 > Allowed hosts are configured in the builder (`main.rs`), not via an environment variable:
@@ -112,7 +152,7 @@ MEDIA_ROOT=media
 # ============================================================================
 # SECURITY
 # ============================================================================
-SECRETE_KEY=your_secret_key_here_change_in_production
+SECRET_KEY=your_secret_key_here_change_in_production
 ```
 
 ---
@@ -121,7 +161,7 @@ SECRETE_KEY=your_secret_key_here_change_in_production
 
 ```bash
 # Python
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 # OpenSSL
 openssl rand -base64 32
@@ -137,7 +177,7 @@ openssl rand -base64 32
 DEBUG=false
 PORT=443
 IP_SERVER=0.0.0.0
-SECRETE_KEY=<dynamically generated>
+SECRET_KEY=<dynamically generated>
 DATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique
 ```
 
@@ -147,7 +187,7 @@ DATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique
 DEBUG=true
 PORT=3000
 IP_SERVER=127.0.0.1
-SECRETE_KEY=any_dev_key
+SECRET_KEY=any_dev_key
 DATABASE_URL=sqlite:runique.db?mode=rwc
 ```
 
@@ -155,7 +195,7 @@ DATABASE_URL=sqlite:runique.db?mode=rwc
 
 ```env
 DEBUG=true
-SECRETE_KEY=test_key
+SECRET_KEY=test_key
 DATABASE_URL=sqlite::memory:
 ```
 

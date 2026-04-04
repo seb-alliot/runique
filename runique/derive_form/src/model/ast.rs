@@ -1,6 +1,7 @@
 // model_macro/src/model/ast.rs — structures qui représentent le DSL parsé
 
 pub enum EnumBackingType {
+    Pg,
     String,
     I32,
     I64,
@@ -8,7 +9,7 @@ pub enum EnumBackingType {
 
 pub struct EnumVariant {
     pub name: syn::Ident,
-    pub value: Option<syn::Lit>, // None → nom utilisé comme valeur string
+    pub value: Option<syn::Lit>, 
 }
 
 pub struct EnumDef {

@@ -6,9 +6,6 @@
 |----------|--------|-------------|
 | `DEBUG` | `false` | Interrupteur global dev/prod — lu **une seule fois** au démarrage via `LazyLock`. Active : niveau de log `debug`, pages d'erreur détaillées, hot reload templates admin. En production (`false`) : niveau `warn`, erreurs génériques. |
 | `BASE_DIR` | `.` | Répertoire racine de l'application |
-| `PROJECT_NAME` | `myproject` | Nom du projet (utilisé pour `root_urlconf`) |
-| `TIME_ZONE` | `UTC` | Fuseau horaire (pas encore implémenté) |
-| `DEFAULT_AUTO_FIELD` | — | Type de champ auto par défaut pour les modèles |
 | `LANG` | locale système | Langue de la CLI (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priorité : `.env` > locale système (`LC_ALL`, `LC_MESSAGES`) > `en` |
 
 ---
@@ -29,7 +26,7 @@
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `DB_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |
+| `DATABASE_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |
 | `DB_ENGINE` | `sqlite` | Moteur : `postgres`, `mysql`, `mariadb`, `sqlite` |
 | `DB_USER` | — | Utilisateur (requis sauf SQLite) |
 | `DB_PASSWORD` | — | Mot de passe (requis sauf SQLite) |
@@ -58,16 +55,6 @@
 | Variable | Défaut | Description |
 |----------|--------|-------------|
 | `DB_LOGGING` | `false` | Active les logs SQL (`true`, `1`, `yes`) |
-
----
-
-## Redirections
-
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `REDIRECT_ANONYMOUS` | `/` | URL de redirection pour les visiteurs non connectés |
-| `LOGGING_URL` | `/` | URL de redirection vers la page de login |
-| `USER_CONNECTED_URL` | `/` | URL de redirection après connexion |
 
 ---
 

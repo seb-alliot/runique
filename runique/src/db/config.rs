@@ -182,7 +182,7 @@ impl DatabaseConfig {
     /// # Environment Variables
     ///
     /// **Connection (URL directe — prioritaire)**
-    /// - `DB_URL` - Full connection URL (e.g., `postgres://user:pass@host/db`). Takes priority over all component variables.
+    /// - `DATABASE_URL` - Full connection URL (e.g., `postgres://user:pass@host/db`). Takes priority over all component variables. Compatible with `sea-orm-cli`.
     ///
     /// **Connection (variables composantes)**
     /// - `DB_ENGINE` - Database type: `postgres`, `mysql`, `mariadb`, `sqlite` (default: `sqlite`)
@@ -234,8 +234,8 @@ impl DatabaseConfig {
     pub fn from_env() -> Result<DatabaseConfigBuilder, String> {
         dotenv().ok();
 
-        // DB_URL prioritaire sur les variables composantes
-        let url = if let Ok(direct_url) = env::var("DB_URL") {
+        // DATABASE_URL prioritaire sur les variables composantes (compatible sea-orm-cli)
+        let url = if let Ok(direct_url) = env::var("DATABASE_URL") {
             direct_url
         } else {
             let engine = env::var("DB_ENGINE").unwrap_or_else(|_| "sqlite".to_string());

@@ -20,7 +20,7 @@ Runique applique une politique CSP via le middleware de sécurité, configuré e
 La CSP est désactivée par défaut — elle s'active uniquement via le builder :
 
 ```rust
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| c)
     })

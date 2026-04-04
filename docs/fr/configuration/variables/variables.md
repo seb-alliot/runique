@@ -6,7 +6,7 @@
 |----------|--------|-------------|
 | `IP_SERVER` | `127.0.0.1` | Adresse IP écoute |
 | `PORT` | `3000` | Port serveur |
-| `DEBUG` | `true` | Mode debug (templates, logs, etc.) |
+| `DEBUG` | `false` | Mode debug (templates, logs, etc.) |
 
 > **⚠️ Production :** Définir `DEBUG=false` explicitement. En mode debug, les pages d'erreur détaillées sont visibles, révélant potentiellement des informations sensibles. De plus, compiler avec `cargo build --release` désactive automatiquement les assertions debug, mais `DEBUG=true` peut outrepasser cela.
 
@@ -18,7 +18,7 @@
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `DB_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |
+| `DATABASE_URL` | — | URL complète (prioritaire sur toutes les variables composantes) |
 | `DB_ENGINE` | `sqlite` | `postgres`, `mysql`, `mariadb`, `sqlite` |
 | `DB_USER` | — | Utilisateur DB (requis sauf SQLite) |
 | `DB_PASSWORD` | — | Mot de passe DB (requis sauf SQLite) |
@@ -51,7 +51,7 @@
 **PostgreSQL (URL directe) :**
 
 ```env
-DB_URL=postgres://user:password@localhost:5432/dbname
+DATABASE_URL=postgres://user:password@localhost:5432/dbname
 ```
 
 **PostgreSQL (variables composantes) :**
@@ -104,10 +104,10 @@ MEDIA_ROOT=uploads
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `SECRETE_KEY` | *(requis)* | Clé secrète CSRF (⚠️ CHANGE EN PROD!) |
+| `SECRET_KEY` | *(requis)* | Clé secrète CSRF (⚠️ CHANGE EN PROD!) |
 
 ```env
-SECRETE_KEY=your_secret_key_change_this_in_production
+SECRET_KEY=your_secret_key_change_this_in_production
 ```
 
 > La validation des hosts autorisés se configure dans le builder (`main.rs`), pas via une variable d'environnement :
@@ -152,7 +152,7 @@ MEDIA_ROOT=media
 # ============================================================================
 # SECURITY
 # ============================================================================
-SECRETE_KEY=your_secret_key_here_change_in_production
+SECRET_KEY=your_secret_key_here_change_in_production
 ```
 
 ---
@@ -177,7 +177,7 @@ openssl rand -base64 32
 DEBUG=false
 PORT=443
 IP_SERVER=0.0.0.0
-SECRETE_KEY=<généré dynamiquement>
+SECRET_KEY=<généré dynamiquement>
 DATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique
 ```
 
@@ -187,7 +187,7 @@ DATABASE_URL=postgres://user:pwd@prod-db.example.com:5432/runique
 DEBUG=true
 PORT=3000
 IP_SERVER=127.0.0.1
-SECRETE_KEY=any_dev_key
+SECRET_KEY=any_dev_key
 DATABASE_URL=sqlite:runique.db?mode=rwc
 ```
 
@@ -195,7 +195,7 @@ DATABASE_URL=sqlite:runique.db?mode=rwc
 
 ```env
 DEBUG=true
-SECRETE_KEY=test_key
+SECRET_KEY=test_key
 DATABASE_URL=sqlite::memory:
 ```
 

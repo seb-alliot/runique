@@ -69,7 +69,7 @@ mod admins;  // module généré par runique start
 ```rust
 use runique::app::builder::RuniqueAppBuilder as builder;
 
-builder::new(config)
+RuniqueApp::builder(config)
     .routes(url::routes())
     .with_database(db)
     .with_admin(|a| {

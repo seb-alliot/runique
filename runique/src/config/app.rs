@@ -1,7 +1,4 @@
-use crate::config::{
-    security::SecurityConfig, server::ServerConfig, settings::AppSettings,
-    static_files::StaticConfig,
-};
+use crate::config::{security::SecurityConfig, server::ServerConfig, static_files::StaticConfig};
 use crate::middleware::MiddlewareConfig;
 use crate::utils::password::PasswordConfig;
 use crate::utils::runique_log::RuniqueLog;
@@ -14,7 +11,6 @@ pub struct RuniqueConfig {
     pub security: SecurityConfig,
     pub password: PasswordConfig,
     pub static_files: StaticConfig,
-    pub app: AppSettings,
     /// Configuration des logs par catégorie — initialisée via `.with_log()`.
     #[serde(skip)]
     pub log: RuniqueLog,
@@ -26,15 +22,12 @@ impl RuniqueConfig {
     pub fn from_env() -> Self {
         dotenvy::dotenv().ok();
 
-        // 2. Assembler les composants en essayant de lire l'environnement
         Self {
             server: ServerConfig::from_env(),
             middleware: MiddlewareConfig::from_env(),
             security: SecurityConfig::from_env(),
             password: PasswordConfig::auto(),
             static_files: StaticConfig::from_env(),
-            app: AppSettings::from_env(),
-
             base_dir: std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string()),
             debug: matches!(std::env::var("DEBUG").as_deref(), Ok("true" | "1")),
             log: RuniqueLog::default(),

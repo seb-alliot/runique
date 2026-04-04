@@ -4,7 +4,7 @@
 
 ```rust
 use runique::middleware::auth::{
-    login, login_staff, logout,
+    login, auth_login, logout,
     is_authenticated, get_user_id, get_username,
 };
 ```
@@ -13,41 +13,55 @@ use runique::middleware::auth::{
 
 ## Connexion
 
-```rust
-// Utilisateur classique — is_staff et is_superuser valent false par défaut
-login(&session, user.id, &user.username).await?;
+### `auth_login` — connexion par user_id (recommandé)
 
-// Utilisateur staff/admin — avec droits et rôles personnalisés
-login_staff(
+Raccourci générique : charge automatiquement les données depuis la DB à partir du seul `user_id`. Adapté à tous les flux d'authentification (inscription, OAuth, magic link…).
+
+```rust
+auth_login(&session, &db, user.id).await?;
+```
+
+### `login` — connexion complète
+
+Pour les cas où vous avez déjà toutes les données et souhaitez contrôler la persistance DB et la connexion exclusive.
+
+```rust
+login(
     &session,
+    &db,
     user.id,
     &user.username,
     user.is_staff,
     user.is_superuser,
-    user.roles(),
+    None,    // Option<&RuniqueSessionStore> — persistance multi-appareils
+    false,   // exclusive — invalider les autres sessions
 ).await?;
 ```
 
 ### Connexion exclusive
 
-Pour n'autoriser qu'un seul appareil connecté à la fois, activer via le builder :
+Pour n'autoriser qu'un seul appareil connecté à la fois, passer `exclusive: true` :
+
+```rust
+login(&session, &db, user.id, &user.username, false, false, Some(&store), true).await?;
+```
+
+Ou via le builder pour activer globalement :
 
 ```rust
 RuniqueApp::builder(config)
     .middleware(|m| m.with_exclusive_login(true))
 ```
 
-`login` et `login_staff` invalident alors automatiquement toutes les sessions existantes
-de l'utilisateur à chaque nouvelle connexion. Aucun changement dans les handlers.
-
-> Désactivé par défaut (`false`). Sans effet si un store externe est utilisé.
-
 ---
 
 ## Déconnexion
 
 ```rust
-logout(&session).await?;
+logout(&session, None).await?;
+
+// Avec suppression de la session DB (multi-appareils)
+logout(&session, Some(&store)).await?;
 ```
 
 ---
@@ -60,7 +74,7 @@ if is_authenticated(&session).await {
     // ...
 }
 
-// Récupérer l'ID en session
+// Récupérer l'ID en session (retourne UserId = i32 ou i64)
 if let Some(user_id) = get_user_id(&session).await {
     // ...
 }
@@ -70,17 +84,6 @@ if let Some(username) = get_username(&session).await {
     // ...
 }
 ```
-
----
-
-## Variables d'environnement
-
-Ces variables contrôlent les redirections automatiques des middlewares :
-
-| Variable | Défaut | Description |
-| --- | --- | --- |
-| `REDIRECT_ANONYMOUS` | `/` | Cible de redirection pour les utilisateurs non connectés |
-| `USER_CONNECTED_URL` | `/` | Cible de redirection pour les utilisateurs déjà connectés |
 
 ---
 

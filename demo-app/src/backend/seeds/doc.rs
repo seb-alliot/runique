@@ -214,6 +214,7 @@ async fn insert_page_with_blocks(
         sort_order: Set(sort_order),
         ..Default::default()
     };
+    println!("document push en db");
 
     let page = match page.insert(db).await {
         Ok(p) => p,
@@ -222,6 +223,7 @@ async fn insert_page_with_blocks(
             return;
         }
     };
+    println!("document push en db réussi");
 
     let blocks = parse_blocks(content);
     for (i, (heading, block_content, block_type)) in blocks.into_iter().enumerate() {
@@ -235,6 +237,7 @@ async fn insert_page_with_blocks(
             sort_order: Set(i as i32),
             ..Default::default()
         };
+        println!("parse echouer");
         if let Err(e) = block.insert(db).await {
             tracing::warn!("doc_seed: impossible d'insérer un bloc pour {slug}: {e}");
         }
@@ -304,12 +307,12 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
             });
 
         let theme = match section_slug.as_str() {
-            "installation" | "architecture" | "configuration" | "env" => "demarrage",
-            "routing" | "formulaire" | "flash" | "template" => "web",
-            "orm" | "model" => "database",
-            "middleware" | "auth" | "session" => "security",
-            "admin" => "admin",
-            _ => "autres",
+            "installation" | "architecture" | "configuration" | "env" => "Demarrage",
+            "routing" | "formulaire" | "flash" | "template" => "Web",
+            "orm" | "model" => "Database",
+            "middleware" | "auth" | "session" => "Security",
+            "admin" => "Admin",
+            _ => "Autres",
         };
 
         let section = doc_section::ActiveModel {
@@ -323,11 +326,11 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
 
         match section.insert(db).await {
             Ok(s) => {
-                tracing::info!("doc_seed: section créée — {lang}/{section_slug}");
+                println!("section insert OK — id={}", s.id);
                 seed_section_pages(&section_slug, lang, s.id, &path, db).await;
             }
             Err(e) => {
-                tracing::warn!("doc_seed: erreur section {section_slug}: {e}");
+                println!("section insert ECHOUE — {section_slug}: {e}"); // ← ici
             }
         }
     }
@@ -345,6 +348,7 @@ async fn seed_section_pages(
         Err(_) => return,
     };
     entries.sort_by_key(|e| e.file_name());
+    println!("Section page");
 
     let mut order = 0i32;
 
@@ -383,6 +387,7 @@ async fn seed_section_pages(
                     })
                 })
                 .and_then(|e| e.ok());
+            println!("markdown trouver");
 
             if let Some(md) = md_file {
                 let content = match fs::read_to_string(md.path()) {
@@ -454,6 +459,7 @@ pub async fn seed_docs(db: &DatabaseConnection) {
     ];
     for sql in &stmts {
         if let Err(e) = db.execute_unprepared(sql).await {
+            println!("DELETE ECHOUE: {sql} — {e}");
             tracing::warn!("doc_seed: erreur nettoyage ({sql}): {e}");
             return;
         }

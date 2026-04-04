@@ -78,8 +78,8 @@ All middleware configuration goes through `.middleware(|m| { ... })` where `m` i
 let app = RuniqueApp::builder(config)
     .routes(router)
     .middleware(|m| {
-        m.with_csp(true)                // Enable Content Security Policy
-         .with_host_validation(true)    // Enable host validation
+        m.with_csp(|c| c.with_header_security(true))                        // Enable Content Security Policy
+         .with_allowed_hosts(|h| h.enabled(true).host("mydomain.com"))      // Enable host validation
          .with_cache(true)              // Enable no-cache in dev
          .with_debug_errors(true)       // Enable detailed errors
     })
@@ -87,7 +87,7 @@ let app = RuniqueApp::builder(config)
     .await?;
 ```
 
-Host validation is enabled exclusively via `with_allowed_hosts(vec![...])` in the builder — without this call, validation is disabled. No `.env` variable controls this behaviour.
+Host validation is enabled via `.with_allowed_hosts(|h| h.enabled(true).host("..."))` in the builder — without this call, validation is disabled. No `.env` variable controls this behaviour.
 
 > **`is_debug()`** — global helper available via `use runique::prelude::*`. Returns `true` if `DEBUG=true` in `.env`. Read once at startup (`LazyLock`), available everywhere without passing a parameter.
 

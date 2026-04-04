@@ -598,7 +598,7 @@ Runique intègre ce pattern directement dans ses builders. Le cleanup est automa
 
 ```rust
 // Sessions : limite mémoire + nettoyage toutes les 5 minutes
-builder::new(config)
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
             .with_session_cleanup_interval(5)
