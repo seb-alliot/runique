@@ -5,7 +5,7 @@ model! {
     table: "doc_block",
     pk: id => i32,
     enums: {
-        BlockType: [Text, Code, Sommaire],
+        BlockType: pg [Text, Code, Sommaire],
     },
     fields: {
         page_id: i32 [required],

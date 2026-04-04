@@ -45,6 +45,11 @@ pub trait UserEntity: Send + Sync + 'static {
     /// Le modèle retourné par la requête (doit implémenter `RuniqueUser`)
     type Model: RuniqueUser;
 
+    /// Recherche un utilisateur par id en base
+    async fn find_by_id(
+        db: &DatabaseConnection,
+        id: crate::utils::pk::UserId,
+    ) -> Option<Self::Model>;
     /// Recherche un utilisateur par username en base
     async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model>;
     /// Recherche un utilisateur par email en base

@@ -8,14 +8,14 @@ Runique inclut un modèle utilisateur prêt à l'emploi, sans aucune configurati
 
 | Champ | Type | Description |
 |---------------|----------|----------------------------------------|
-| `id` | `i32` | Clé primaire |
+| `id` | `UserId` | Clé primaire (`i32` par défaut, `i64` avec la feature `big-pk`) |
 | `username` | `String` | Nom d'utilisateur unique |
 | `email` | `String` | Adresse email |
 | `password` | `String` | Hash Argon2 — jamais en clair |
 | `is_active` | `bool` | Compte actif |
 | `is_staff` | `bool` | Accès au panneau admin (limité) |
 | `is_superuser` | `bool` | Accès complet, bypass toutes les règles |
-| `roles` | `JSON` | Rôles personnalisés ex. `["editor"]` |
+| `roles` | `String` | Rôles personnalisés (nullable) |
 | `created_at` | datetime | Date de création |
 | `updated_at` | datetime | Date de mise à jour |
 
@@ -25,10 +25,13 @@ Pour créer le premier superutilisateur :
 runique create-superuser
 ```
 
-Pour accéder au modèle depuis votre code :
+### Clé primaire i64 (BigAutoField)
 
-```rust
-use runique::prelude::user::{Model, ActiveModel};
+Par défaut, la clé primaire est un `i32`. Pour passer à `i64` (comme Django depuis 3.2) :
+
+```toml
+# Cargo.toml du projet
+runique = { version = "...", features = ["big-pk"] }
 ```
 
 ---
@@ -39,20 +42,16 @@ Si vous utilisez votre propre modèle utilisateur à la place du built-in, vous 
 
 ```rust
 use runique::middleware::auth::RuniqueUser;
+use runique::prelude::UserId;
 
 impl RuniqueUser for users::Model {
-    fn user_id(&self) -> i32        { self.id }
-    fn username(&self) -> &str      { &self.username }
-    fn email(&self) -> &str         { &self.email }
-    fn password_hash(&self) -> &str { &self.password }
-    fn is_active(&self) -> bool     { self.is_active }
-    fn is_staff(&self) -> bool      { self.is_staff }
-    fn is_superuser(&self) -> bool  { self.is_superuser }
-
-    // Optionnel — rôles personnalisés
-    fn roles(&self) -> Vec<String> {
-        self.roles.clone().unwrap_or_default()
-    }
+    fn user_id(&self) -> UserId      { self.id }
+    fn username(&self) -> &str       { &self.username }
+    fn email(&self) -> &str          { &self.email }
+    fn password_hash(&self) -> &str  { &self.password }
+    fn is_active(&self) -> bool      { self.is_active }
+    fn is_staff(&self) -> bool       { self.is_staff }
+    fn is_superuser(&self) -> bool   { self.is_superuser }
 
     // Optionnel — logique d'accès admin sur mesure
     fn can_access_admin(&self) -> bool {
@@ -65,7 +64,7 @@ impl RuniqueUser for users::Model {
 
 | Méthode | Retour | Description |
 |------------------|-------------|--------------------------------|
-| `user_id()` | `i32` | Identifiant unique |
+| `user_id()` | `UserId` | Identifiant unique |
 | `username()` | `&str` | Nom d'utilisateur |
 | `email()` | `&str` | Adresse email |
 | `password_hash()` | `&str` | Hash du mot de passe |
@@ -86,7 +85,7 @@ impl RuniqueUser for users::Model {
 
 | Section | Description |
 | --- | --- |
-| [Helpers de session](/docs/fr/auth/session) | `login`, `logout`, vérifications |
+| [Helpers de session](/docs/fr/auth/session) | `login`, `auth_login`, `logout` |
 | [Middlewares & CurrentUser](/docs/fr/auth/middleware) | Protection des routes |
 
 ## Retour au sommaire

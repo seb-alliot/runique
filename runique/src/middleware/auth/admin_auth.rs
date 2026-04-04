@@ -7,12 +7,13 @@
 // C'est src/admin/ qui dépend d'ici, jamais l'inverse.
 // ═══════════════════════════════════════════════════════════════
 
+use crate::utils::pk::UserId;
 use sea_orm::DatabaseConnection;
 
 /// Données retournées après une authentification admin réussie
 #[derive(Debug, Clone)]
 pub struct AdminLoginResult {
-    pub user_id: i32,
+    pub user_id: UserId,
     pub username: String,
     pub is_staff: bool,
     pub is_superuser: bool,

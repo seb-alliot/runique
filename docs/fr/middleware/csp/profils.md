@@ -30,7 +30,7 @@ Runique propose trois profils prédéfinis, utilisables via `.policy(...)` dans 
 Politique recommandée pour la production. Tous les scripts et styles inline sont autorisés **uniquement via nonce**. Pas d'images ou polices externes.
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| c)
     })
@@ -45,7 +45,7 @@ RuniqueApp::new()
 Plus restrictif que `default()` : ajoute `upgrade-insecure-requests` et force le nonce. À utiliser en production pour une sécurité maximale.
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.policy(SecurityPolicy::strict())
@@ -68,7 +68,7 @@ Politique relâchée pour le développement ou les intégrations legacy. **Ne pa
 - `frame-ancestors 'self'` au lieu de `'none'`
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.policy(SecurityPolicy::permissive())
@@ -85,7 +85,7 @@ RuniqueApp::new()
 Pour une politique sur mesure, utiliser les méthodes du builder directement :
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.scripts(vec!["'self'", "https://cdn.example.com"])
@@ -108,7 +108,7 @@ let policy = SecurityPolicy {
     ..SecurityPolicy::default()
 };
 
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| c.policy(policy))
     })

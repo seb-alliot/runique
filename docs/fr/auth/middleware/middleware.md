@@ -1,29 +1,27 @@
 # Middlewares de protection & CurrentUser
 
-## `login_required` — protéger une route
+## Protection de routes — pattern recommandé
 
-Redirige vers `REDIRECT_ANONYMOUS` si l'utilisateur n'est pas connecté.
-
-```rust
-use runique::middleware::auth::login_required;
-
-let protected = Router::new()
-    .route("/dashboard", get(dashboard))
-    .layer(axum::middleware::from_fn(login_required));
-```
-
----
-
-## `redirect_if_authenticated` — page login/register
-
-Redirige vers `USER_CONNECTED_URL` si l'utilisateur est déjà connecté. Utile pour éviter qu'un utilisateur connecté accède à `/login`.
+`login_required` et `redirect_if_authenticated` ont été supprimés. La protection s'écrit directement dans le handler, ce qui est plus explicite et laisse le contrôle de l'URL au dev.
 
 ```rust
-use runique::middleware::auth::redirect_if_authenticated;
+use runique::middleware::auth::is_authenticated;
 
-let public = Router::new()
-    .route("/login", get(login_page).post(login_post))
-    .layer(axum::middleware::from_fn(redirect_if_authenticated));
+// Protéger une route
+async fn dashboard(mut request: Request) -> AppResult<Response> {
+    if !is_authenticated(&request.session).await {
+        return Ok(Redirect::to("/login").into_response());
+    }
+    // ...
+}
+
+// Rediriger si déjà connecté (page login/register)
+async fn login_page(mut request: Request) -> AppResult<Response> {
+    if is_authenticated(&request.session).await {
+        return Ok(Redirect::to("/").into_response());
+    }
+    // ...
+}
 ```
 
 ---
@@ -44,7 +42,6 @@ Accès dans un handler :
 
 ```rust
 use runique::middleware::auth::CurrentUser;
-use runique::context::RequestExtensions;
 
 async fn profile(req: RuniqueRequest) -> impl IntoResponse {
     if let Some(user) = req.extensions().current_user() {
@@ -61,22 +58,26 @@ Structure injectée par `load_user_middleware` dans les extensions de requête.
 
 ```rust
 pub struct CurrentUser {
-    pub id: i32,
+    pub id: UserId,      // i32 par défaut, i64 avec la feature "big-pk"
     pub username: String,
     pub is_staff: bool,
     pub is_superuser: bool,
-    pub roles: Vec<String>,
+    pub droits: Vec<Droit>,
+    pub groupes: Vec<Groupe>,
 }
 ```
 
 ### Méthodes disponibles
 
 ```rust
-// Vérifier un rôle précis
-user.has_role("editor")           // → bool
+// Droits effectifs (directs + hérités des groupes, dédupliqués)
+user.droits_effectifs()           // → Vec<Droit>
 
-// Vérifier au moins un rôle parmi une liste
-user.has_any_role(&["editor", "moderator"])  // → bool
+// Vérifier un droit précis
+user.has_droit("editor")          // → bool
+
+// Vérifier au moins un droit parmi une liste
+user.has_any_droit(&["editor", "moderator"])  // → bool
 
 // Accès à l'admin (is_staff || is_superuser)
 user.can_access_admin()           // → bool

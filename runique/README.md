@@ -22,7 +22,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **1.1.53**.
+Workspace version (source of truth): **1.1.54**.
 
 ---
 
@@ -160,12 +160,12 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 All behavior is configurable via `.env`. Key variables:
 
 ```env
-RUNIQUE_SESSION_CLEANUP_SECS=60
-RUNIQUE_SESSION_LOW_WATERMARK=134217728
-RUNIQUE_SESSION_HIGH_WATERMARK=268435456
 SECRET_KEY=your-secret-key
 DATABASE_URL=sqlite://db.sqlite3
+RUNIQUE_ENABLE_CACHE=true
 ```
+
+> Session watermarks and cleanup interval are configured via the builder (`.with_session_memory_limit()`, `.with_session_cleanup_interval()`), not via environment variables.
 
 Full reference: [Environment variables](https://runique.io/docs/en/env)
 

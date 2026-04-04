@@ -7,7 +7,7 @@
 | `RUNIQUE_ENABLE_CACHE` | `true` (prod) / `false` (dev) | Headers de cache HTTP |
 
 > **CSP** — Configurée exclusivement via le builder (`.with_csp(...)`). Voir [CSP](/docs/fr/middleware/csp).
-> **Host validation** — Configurée exclusivement via le builder (`.with_allowed_hosts([...])`). Voir [Host Validation](/docs/fr/middleware/hosts).
+> **Host validation** — Configurée exclusivement via le builder (`.with_allowed_hosts(|h| h.enabled(true).host("..."))`). Voir [Host Validation](/docs/fr/middleware/hosts).
 
 ---
 

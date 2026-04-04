@@ -6,9 +6,6 @@
 |----------|---------|-------------|
 | `DEBUG` | `false` | Global dev/prod switch — read **once** at startup via `LazyLock`. Enables: `debug` log level, detailed error pages, admin template hot reload. In production (`false`): `warn` level, generic errors. |
 | `BASE_DIR` | `.` | Application root directory |
-| `PROJECT_NAME` | `myproject` | Project name (used for `root_urlconf`) |
-| `TIME_ZONE` | `UTC` | Timezone (not yet implemented) |
-| `DEFAULT_AUTO_FIELD` | — | Default auto field type for models |
 | `LANG` | system locale | CLI language (`fr`, `en`, `de`, `es`, `it`, `pt`, `ja`, `zh`, `ru`). Priority: `.env` > system locale (`LC_ALL`, `LC_MESSAGES`) > `en` |
 
 ---
@@ -29,7 +26,7 @@
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DB_URL` | — | Full connection URL (takes priority over all component variables) |
+| `DATABASE_URL` | — | Full connection URL (takes priority over all component variables) |
 | `DB_ENGINE` | `sqlite` | Engine: `postgres`, `mysql`, `mariadb`, `sqlite` |
 | `DB_USER` | — | Username (required except for SQLite) |
 | `DB_PASSWORD` | — | Password (required except for SQLite) |
@@ -58,16 +55,6 @@
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_LOGGING` | `false` | Enable SQL query logging (`true`, `1`, `yes`) |
-
----
-
-## Redirects
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `REDIRECT_ANONYMOUS` | `/` | Redirect URL for unauthenticated visitors |
-| `LOGGING_URL` | `/` | Redirect URL to the login page |
-| `USER_CONNECTED_URL` | `/` | Redirect URL after login |
 
 ---
 

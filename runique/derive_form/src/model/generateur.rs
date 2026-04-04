@@ -182,6 +182,58 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
                     }
                 }
             }
+            EnumBackingType::Pg => {
+            let db_values: Vec<String> = e.variants.iter().map(|v| {
+                match &v.value {
+                    Some(syn::Lit::Str(s)) => s.value(),
+                    Some(_) => v.name.to_string(),
+                    None => v.name.to_string(),
+                }
+            }).collect();
+
+            let enum_name_str = e.name.to_string().to_ascii_lowercase();
+
+            quote! {
+                #[derive(
+                    ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
+                    Clone, Debug, PartialEq,
+                    ::serde::Serialize, ::serde::Deserialize,
+                )]
+                #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = #enum_name_str)]
+                pub enum #name {
+                    #(
+                        #[sea_orm(string_value = #db_values)]
+                        #variant_names,
+                    )*
+                }
+
+                impl ::std::default::Default for #name {
+                    fn default() -> Self { #name::#first }
+                }
+
+                impl ::std::fmt::Display for #name {
+                    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                        let s = match self {
+                            #(#name::#variant_names => #db_values,)*
+                        };
+                        f.write_str(s)
+                    }
+                }
+
+                impl ::std::str::FromStr for #name {
+                    type Err = ();
+                    fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                        let low = s.to_ascii_lowercase();
+                        #(
+                            if low == #db_values.to_ascii_lowercase() || low == #variant_name_strs.to_ascii_lowercase() {
+                                return ::std::result::Result::Ok(#name::#variant_names);
+                            }
+                        )*
+                        ::std::result::Result::Err(())
+                    }
+                }
+            }
+        }
         }
     }).collect()
 }

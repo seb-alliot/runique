@@ -90,17 +90,17 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Login / Logout | `authenticate()` + `login()` | `login()`, `login_staff()`, `logout()` — `LoginGuard` = brute-force middleware |
+| Login / Logout | `authenticate()` + `login()` | `auth_login(session, db, user_id)`, `login()` (8 params), `logout()` — `LoginGuard` = brute-force protection |
 | Auth check | `request.user.is_authenticated` | `is_authenticated(&session).await` |
 | Current user | `request.user` | `CurrentUser` (injected via `load_user_middleware`) |
-| Route protection | `@login_required` | `login_required` middleware |
-| Redirect if authenticated | manual | `redirect_if_authenticated` middleware |
+| Route protection | `@login_required` | inline pattern `if !is_authenticated(&session).await { Redirect... }` |
+| Redirect if authenticated | manual | inline pattern `if is_authenticated(&session).await { Redirect... }` |
 | Sessions | native | tower-sessions |
 | Brute-force protection | `django-axes` (third-party) | `LoginGuard` native (attempts + lockout) |
 | Password hashing | PBKDF2 / argon2 | argon2, bcrypt, scrypt, custom (auto-detected at verification) |
 | Email account activation | native (`auth`) | **missing** |
-| Password reset | native | **missing** (planned via `lettre`) |
-| Force logout all sessions | yes | **missing** |
+| Password reset | native | `handle_forgot_password` + `handle_password_reset` native |
+| Force logout all sessions | yes | `RuniqueSessionStore::invalidate_all(user_id)` |
 
 ---
 
@@ -126,7 +126,7 @@
 |---------|--------|---------|
 | Activation | `admin.site.register(Model)` | `admin!{}` macro + `runique start` |
 | List / Create / Edit / Detail / Delete | native | native |
-| List pagination | native | **missing** |
+| List pagination | native | `.page_size(n)` in the admin builder |
 | `list_display` | native | **missing** |
 | Search / filters | native | **missing** |
 | Customizable templates | yes | yes (Tera hierarchy) |

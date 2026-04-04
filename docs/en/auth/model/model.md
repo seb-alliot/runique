@@ -8,14 +8,14 @@ Runique includes a ready-to-use user model that requires no configuration.
 
 | Field | Type | Description |
 |---------------|----------|----------------------------------------|
-| `id` | `i32` | Primary key |
+| `id` | `UserId` | Primary key (`i32` by default, `i64` with the `big-pk` feature) |
 | `username` | `String` | Unique username |
 | `email` | `String` | Email address |
 | `password` | `String` | Argon2 hash — never stored in plain text |
 | `is_active` | `bool` | Account active |
 | `is_staff` | `bool` | Admin panel access (limited) |
 | `is_superuser` | `bool` | Full access, bypasses all rules |
-| `roles` | `JSON` | Custom roles e.g. `["editor"]` |
+| `roles` | `String` | Custom roles (nullable) |
 | `created_at` | datetime | Creation timestamp |
 | `updated_at` | datetime | Last update timestamp |
 
@@ -25,10 +25,13 @@ To create the first superuser:
 runique create-superuser
 ```
 
-To access the model from your code:
+### i64 primary key (BigAutoField)
 
-```rust
-use runique::prelude::user::{Model, ActiveModel};
+By default, the primary key is `i32`. To switch to `i64` (like Django since 3.2):
+
+```toml
+# project Cargo.toml
+runique = { version = "...", features = ["big-pk"] }
 ```
 
 ---
@@ -39,20 +42,16 @@ If you use your own user model instead of the built-in one, you must implement `
 
 ```rust
 use runique::middleware::auth::RuniqueUser;
+use runique::prelude::UserId;
 
 impl RuniqueUser for users::Model {
-    fn user_id(&self) -> i32        { self.id }
-    fn username(&self) -> &str      { &self.username }
-    fn email(&self) -> &str         { &self.email }
-    fn password_hash(&self) -> &str { &self.password }
-    fn is_active(&self) -> bool     { self.is_active }
-    fn is_staff(&self) -> bool      { self.is_staff }
-    fn is_superuser(&self) -> bool  { self.is_superuser }
-
-    // Optional — custom roles
-    fn roles(&self) -> Vec<String> {
-        self.roles.clone().unwrap_or_default()
-    }
+    fn user_id(&self) -> UserId      { self.id }
+    fn username(&self) -> &str       { &self.username }
+    fn email(&self) -> &str          { &self.email }
+    fn password_hash(&self) -> &str  { &self.password }
+    fn is_active(&self) -> bool      { self.is_active }
+    fn is_staff(&self) -> bool       { self.is_staff }
+    fn is_superuser(&self) -> bool   { self.is_superuser }
 
     // Optional — custom admin access logic
     fn can_access_admin(&self) -> bool {
@@ -65,7 +64,7 @@ impl RuniqueUser for users::Model {
 
 | Method | Return | Description |
 |------------------|-------------|--------------------------------|
-| `user_id()` | `i32` | Unique identifier |
+| `user_id()` | `UserId` | Unique identifier |
 | `username()` | `&str` | Username |
 | `email()` | `&str` | Email address |
 | `password_hash()` | `&str` | Password hash |
@@ -86,7 +85,7 @@ impl RuniqueUser for users::Model {
 
 | Section | Description |
 | --- | --- |
-| [Session helpers](/docs/en/auth/session) | `login`, `logout`, checks |
+| [Session helpers](/docs/en/auth/session) | `login`, `auth_login`, `logout` |
 | [Middlewares & CurrentUser](/docs/en/auth/middleware) | Route protection |
 
 ## Back to summary

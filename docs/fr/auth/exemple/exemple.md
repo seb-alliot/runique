@@ -3,7 +3,7 @@
 ## Exemple complet — Login / Logout
 
 ```rust
-use runique::middleware::auth::{login_staff, logout};
+use runique::middleware::auth::{auth_login, logout};
 use runique::utils::password::verify;
 use runique::prelude::*;
 
@@ -23,15 +23,8 @@ pub async fn login_post(
             // 2. Vérifier le mot de passe (en clair vs hash)
             let password = form.get_form().get_string("password");
             if verify(&password, &user.password) {
-                // 3. Ouvrir la session
-                login_staff(
-                    &request.session,
-                    user.id,
-                    &user.username,
-                    user.is_staff,
-                    user.is_superuser,
-                    user.roles(),
-                ).await?;
+                // 3. Ouvrir la session (charge les données depuis la DB par user_id)
+                auth_login(&request.session, &request.engine.db, user.id).await.ok();
                 return Ok(Redirect::to("/dashboard").into_response());
             }
         }
@@ -49,7 +42,7 @@ pub async fn login_post(
 }
 
 pub async fn logout_view(mut request: Request) -> AppResult<Response> {
-    logout(&request.session).await.ok();
+    logout(&request.session, None).await.ok();
     Ok(Redirect::to("/login").into_response())
 }
 ```
@@ -75,6 +68,10 @@ use runique::middleware::auth::{DefaultAdminAuth, UserEntity};
 impl UserEntity for users::Entity {
     type Model = users::Model;
 
+    async fn find_by_id(db: &DatabaseConnection, id: UserId) -> Option<Self::Model> {
+        users::Entity::find_by_id(id).one(db).await.ok().flatten()
+    }
+
     async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model> {
         users::Entity::find()
             .filter(users::Column::Username.eq(username))
@@ -92,6 +89,11 @@ impl UserEntity for users::Entity {
             .ok()
             .flatten()
     }
+
+    async fn update_password(db: &DatabaseConnection, email: &str, new_hash: &str) -> Result<(), sea_orm::DbErr> {
+        // implémentation mise à jour du hash
+        todo!()
+    }
 }
 
 // 2. Passer DefaultAdminAuth à la config admin
@@ -107,7 +109,7 @@ Pour brancher l'authentification au panneau d'administration, voir aussi [11-Adm
 | Section | Description |
 | --- | --- |
 | [Modèle utilisateur](/docs/fr/auth/modele) | Built-in, trait `RuniqueUser` |
-| [Helpers de session](/docs/fr/auth/session) | `login`, `logout`, vérifications |
+| [Helpers de session](/docs/fr/auth/session) | `login`, `auth_login`, `logout` |
 | [Middlewares & CurrentUser](/docs/fr/auth/middleware) | Protection des routes |
 
 ## Retour au sommaire

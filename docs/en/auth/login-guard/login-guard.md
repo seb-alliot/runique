@@ -43,7 +43,7 @@ pub async fn login(
     match authenticate(&username, &form.password(), &db).await {
         Some(user) => {
             GUARD.record_success(&key);
-            login(&session, user.id, &user.username).await.unwrap();
+            auth_login(&session, &db, user.id).await.unwrap();
             Redirect::to("/dashboard").into_response()
         }
         None => {

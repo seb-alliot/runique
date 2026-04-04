@@ -16,7 +16,7 @@ async fn main() {
     // Argon2 automatic mode (recommended default)
     password_init(PasswordConfig::auto());
 
-    RuniqueApp::new()
+    RuniqueApp::builder(config)
         // ...
         .run()
         .await;

@@ -146,6 +146,10 @@ impl UserEntity for MockUserEntity {
         None
     }
 
+    async fn find_by_id(_db: &DatabaseConnection, _id: i32) -> Option<Self::Model> {
+        None
+    }
+
     async fn update_password(
         _db: &DatabaseConnection,
         _email: &str,

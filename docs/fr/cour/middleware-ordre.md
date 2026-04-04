@@ -63,7 +63,7 @@ Extensions(0) → Compression(5) → ErrorHandler(10) → Custom(20+)
 
 ```rust
 // ✅ Avec Runique — l'ordre de déclaration n'a aucune importance
-builder::new(config)
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| c.policy(SecurityPolicy::strict()))  // slot 30
          .with_allowed_hosts(|h| h.host("monsite.fr"))      // slot 70
@@ -108,7 +108,7 @@ Le CSRF est désormais **non configurable** — il s'exécute toujours après la
 ```rust
 // Le CSRF est toujours activé, toujours au bon slot
 // Aucune configuration requise, aucune erreur possible
-builder::new(config)
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
         // CSRF garanti au slot 60, après Session(50) — automatique
@@ -237,7 +237,7 @@ Dans Runique, les middlewares configurés via le builder s'appliquent à **toute
 
 ```rust
 // Le rate limiter s'applique à TOUTES les routes
-builder::new(config)
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_session_memory_limit(...)
     })

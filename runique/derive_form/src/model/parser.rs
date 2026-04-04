@@ -31,7 +31,11 @@ impl Parse for EnumDef {
                     input.parse::<Ident>()?;
                     EnumBackingType::I64
                 }
-                _ => EnumBackingType::String, // pas de type → String implicite
+                "pg" => {
+                    input.parse::<Ident>()?;
+                    EnumBackingType::Pg
+                }
+                _ => EnumBackingType::String,
             }
         } else {
             EnumBackingType::String

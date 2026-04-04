@@ -1,10 +1,11 @@
+use crate::utils::pk::UserId;
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "eihwaz_users_groupes")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub user_id: i32,
+    pub user_id: UserId,
     #[sea_orm(primary_key)]
     pub groupe_id: i32,
 }

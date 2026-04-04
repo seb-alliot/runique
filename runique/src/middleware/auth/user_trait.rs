@@ -5,7 +5,7 @@
 // Implémentation minimale requise :
 //
 //   impl RuniqueUser for MyUserModel {
-//       fn user_id(&self) -> i32        { self.id }
+//       fn user_id(&self) -> UserId      { self.id }
 //       fn username(&self) -> &str      { &self.username }
 //       fn password_hash(&self) -> &str { &self.password }
 //       fn is_active(&self) -> bool     { self.is_active }
@@ -15,7 +15,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 pub trait RuniqueUser: Send + Sync {
-    fn user_id(&self) -> i32;
+    fn user_id(&self) -> crate::utils::pk::UserId;
     fn username(&self) -> &str;
     fn email(&self) -> &str;
     fn password_hash(&self) -> &str;

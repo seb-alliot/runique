@@ -44,7 +44,7 @@ Each CSP directive is configurable via the builder — environment variables are
 ### Minimal — CSP enabled with no customization
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| c)
     })
@@ -55,7 +55,7 @@ RuniqueApp::new()
 ### CDN for scripts and styles (e.g. Bootstrap)
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.scripts(vec!["'self'", "https://cdn.jsdelivr.net"])
@@ -69,7 +69,7 @@ RuniqueApp::new()
 ### Google Fonts + base64 images
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.fonts(vec!["'self'", "https://fonts.gstatic.com"])
@@ -84,7 +84,7 @@ RuniqueApp::new()
 ### WebSocket + iframes
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.connect(vec!["'self'", "wss://ws.example.com"])
@@ -99,7 +99,7 @@ RuniqueApp::new()
 ### Full configuration (production)
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.with_header_security(true)
@@ -119,7 +119,7 @@ RuniqueApp::new()
 ### Strict preset with security headers
 
 ```rust,ignore
-RuniqueApp::new()
+RuniqueApp::builder(config)
     .middleware(|m| {
         m.with_csp(|c| {
             c.policy(SecurityPolicy::strict())
