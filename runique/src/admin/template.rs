@@ -67,7 +67,7 @@ impl PathAdminTemplate {
     pub fn htmx() -> Self {
         Self {
             dev: None,
-            runique: "admin/htmx",
+            runique: "admin/list_partial",
         }
     }
 }
