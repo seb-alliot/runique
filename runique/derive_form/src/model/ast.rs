@@ -13,6 +13,24 @@ pub struct EnumVariant {
     pub label: Option<syn::Lit>,
 }
 
+impl EnumVariant {
+    /// Valeur stockée en base (String/Pg) : valeur explicite ou nom du variant.
+    pub fn db_str(&self) -> String {
+        match &self.value {
+            Some(syn::Lit::Str(s)) => s.value(),
+            Some(_) | None => self.name.to_string(),
+        }
+    }
+
+    /// Libellé affiché (formulaire admin) : label explicite, sinon db_str.
+    pub fn display_str(&self) -> String {
+        match &self.label {
+            Some(syn::Lit::Str(s)) => s.value(),
+            _ => self.db_str(),
+        }
+    }
+}
+
 pub struct EnumDef {
     pub name: syn::Ident,
     pub backing_type: EnumBackingType,
@@ -95,7 +113,6 @@ pub enum FieldOption {
     AutoNowUpdate,
     Readonly,
     SelectAs(String),
-    #[allow(dead_code)]
     Label(String),
     #[allow(dead_code)]
     Help(String),

@@ -18,9 +18,10 @@ Le parseur attend une structure stricte :
 1. nom du modèle,
 2. `table: "..."`,
 3. `pk: id => i32|i64|uuid`,
-4. `fields: { ... }`,
-5. `relations: { ... }` optionnel,
-6. `meta: { ... }` optionnel.
+4. `enums: { ... }` optionnel,
+5. `fields: { ... }`,
+6. `relations: { ... }` optionnel,
+7. `meta: { ... }` optionnel.
 
 Exemple concret :
 
@@ -62,7 +63,70 @@ La DSL est convertie en AST `Model` avec notamment :
 - texte : `String`, `text`, `char`, `varchar(n)`, `var_binary(n)`
 - numériques : `i8/i16/i32/i64/u32/u64/f32/f64`, `decimal(p,s)`, `decimal`
 - date/temps : `date`, `time`, `datetime`, `timestamp`, `timestamp_tz`, `interval`
-- autres : `bool`, `uuid`, `json`, `json_binary`, `binary(n)`, `binary`, `blob`, `enum(A, B, ...)`, `inet`, `cidr`, `mac_address`
+- autres : `bool`, `uuid`, `json`, `json_binary`, `binary(n)`, `binary`, `blob`, `enum(NomEnum)`, `inet`, `cidr`, `mac_address`
+
+#### Enums — `enums: { ... }` + `enum(NomEnum)`
+
+Les enums se déclarent dans un bloc `enums: { ... }` distinct des champs, puis sont référencés dans `fields` via `enum(NomEnum)`.
+
+```rust
+model! {
+    DocSection,
+    table: "doc_section",
+    pk: id => i32,
+    enums: {
+        SectionTheme: pg [Demarrage, Web, Database, Security, Admin, Autres],
+    },
+    fields: {
+        theme: enum(SectionTheme) [nullable],
+    },
+}
+```
+
+**Types de backing :**
+
+| Syntaxe | Stockage DB |
+| --- | --- |
+| `NomEnum: [A, B]` | `String` (valeur = nom du variant) |
+| `NomEnum: pg [A, B]` | `Enum` PostgreSQL natif |
+| `NomEnum: i32 [A, B]` | `Integer` |
+| `NomEnum: i64 [A, B]` | `BigInteger` |
+
+**Valeurs en base :** les variants sont stockés **exactement tels qu'écrits dans le DSL** — aucune transformation automatique. Si vous déclarez `[Demarrage, Web]`, la base contient `"Demarrage"` et `"Web"`. Si vous déclarez `[demarrage, web]`, la base contient `"demarrage"` et `"web"`.
+
+**Syntaxes de variant :**
+
+| Syntaxe | Valeur DB | Libellé affiché (admin) |
+| --- | --- | --- |
+| `Variant` | nom du variant tel qu'écrit | nom du variant |
+| `Variant = "ordre"` | `"ordre"` | `"ordre"` |
+| `Variant = ("ordre", "Ordre d'affichage")` | `"ordre"` | `"Ordre d'affichage"` |
+
+```rust
+enums: {
+    SortMode: [
+        Manual,
+        Alphabetical = "alpha",
+        ByDate = ("date", "Par date de création"),
+    ],
+},
+```
+
+La forme tuple `= ("valeur_db", "Libellé")` permet de stocker une valeur courte en base tout en affichant un libellé lisible dans le formulaire admin.
+
+`FromStr` accepte les trois formes en insensible à la casse : le nom du variant, la valeur DB, et le libellé (si présent) redirigent tous vers le même variant.
+
+**Dans les templates Tera**, la valeur de comparaison doit correspondre **exactement** à ce qui est stocké en base (sensible à la casse) :
+
+```jinja2
+{# Correct — correspond à la valeur stockée "Web" #}
+{% for section in sections | filter(attribute="theme", value="Web") %}
+
+{# Incorrect — ne correspondra jamais si la base contient "Web" #}
+{% for section in sections | filter(attribute="theme", value="web") %}
+```
+
+Le filtre Tera `filter` est **strictement sensible à la casse**.
 
 ### Options de champ
 
@@ -71,6 +135,25 @@ La DSL est convertie en AST `Model` avec notamment :
 - `auto_now`, `auto_now_update`
 - `label(...)`, `help(...)`, `select_as(...)`
 - `file(kind)`, `file(kind, "chemin/upload")` — champ fichier (voir ci-dessous)
+
+#### `label(...)`
+
+Par défaut, le formulaire admin génère le libellé d'un champ à partir de son nom snake_case (`sort_order` → `Sort order`). L'option `label(...)` permet de définir un libellé personnalisé :
+
+```rust
+model! {
+    Chapitre,
+    table: "chapitres",
+    pk: id => i32,
+    fields: {
+        title: String [required, label("Titre du chapitre")],
+        sort_order: i32 [label("Ordre d'affichage")],
+        is_published: bool [label("Publié")],
+    },
+}
+```
+
+Le libellé est utilisé dans le formulaire d'édition admin (balise `<label>`) et dans les en-têtes de colonnes si le champ est déclaré dans `list_display`. Il n'a aucun effet sur la migration ou l'entité SeaORM générée.
 
 ### Champs fichier — `file()`
 

@@ -339,7 +339,7 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
 
         let extensions = RequestExtensions::new().with_current_user(current_user);
         extensions.inject_request(&mut request);
-    } else {
+    } else if session.id().is_some() {
         let _ = session.delete().await;
     }
 

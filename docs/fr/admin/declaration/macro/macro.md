@@ -112,7 +112,9 @@ admin! {
 }
 ```
 
-Chaque entrée est une paire `["nom_colonne", "Libellé"]`. Le nom de colonne doit correspondre à un champ de l'entité SeaORM.
+Chaque entrée est une paire `["nom_colonne", "Libellé"]`. Le nom de colonne doit correspondre **exactement** au nom du champ dans l'entité SeaORM générée (en général identique au nom déclaré dans `model!`). Utiliser le mauvais nom produit une erreur SQL au runtime.
+
+> Si le champ DSL est `sort_order`, le nom de colonne à déclarer est `"sort_order"` — pas `"ordre"` ni un alias quelconque.
 
 Si `list_display` est absent, **toutes les colonnes** de l'entité sont affichées (comportement par défaut).
 
@@ -135,7 +137,9 @@ admin! {
 }
 ```
 
-Chaque entrée est un triplet `["nom_colonne", "Libellé", limite_optionnelle]`. Le 3ème élément est optionnel — si absent, la limite par défaut est `10` valeurs par page.
+Chaque entrée est un triplet `["nom_colonne", "Libellé", limite_optionnelle]`. Le nom de colonne suit la même règle que `list_display` : il doit correspondre exactement au champ de l'entité SeaORM. Le 3ème élément est optionnel — si absent, la limite par défaut est `10` valeurs par page.
+
+Les colonnes de type `enum` sont de bons candidats pour `list_filter` : les valeurs distinctes affichées correspondent aux variantes sérialisées (capitalisées). Voir [DSL `model!`](/docs/fr/model/dsl) pour le comportement des enums.
 
 Pour chaque champ, le daemon génère une requête qui charge les valeurs distinctes depuis la base avec pagination serveur (`LIMIT` / `OFFSET`). La navigation `‹ 1/N ›` dans la sidebar recharge la page via des paramètres `fp_{colonne}` dans l'URL, sans JavaScript.
 

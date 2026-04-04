@@ -289,7 +289,7 @@ admin! {
         list_display: [
             ["slug", "Slug"],
             ["lang", "Langue"],
-            ["titre", "Titre"],
+            ["title", "Titre"],
             ["theme", "Thème"],
             ["difficulte", "Difficulté"],
             ["ordre", "Ordre"],
@@ -298,7 +298,7 @@ admin! {
         list_filter: [
             ["slug", "Slug", 10],
             ["lang", "Langue", 10],
-            ["titre", "Titre", 10],
+            ["title", "Titre", 10],
             ["theme", "Thème", 10],
             ["difficulte", "Difficulté", 10],
             ["ordre", "Ordre", 10],
@@ -311,13 +311,13 @@ admin! {
         list_display: [
             ["cour_id", "Cours"],
             ["slug", "Slug"],
-            ["titre", "Titre"],
-            ["ordre", "Ordre"],
+            ["title", "Titre"],
+            ["sort_order", "Ordre"],
         ],
         list_filter: [
             ["cour_id", "Cours", 10],
             ["slug", "Slug", 10],
-            ["titre", "Titre", 10],
+            ["title", "Titre", 10],
             ["sort_order", "Ordre", 10],
         ]
     }
@@ -334,7 +334,7 @@ admin! {
             ["chapitre_id", "Chapitre", 10],
             ["block_type", "Type", 10],
             ["heading", "En-tête", 10],
-            ["sort_order", "Ordre", 10],
+            ["sort_order", "Ordre d'affichage", 10],
         ]
     }
     runique_release: runique_release::Model => RuniqueReleaseForm {

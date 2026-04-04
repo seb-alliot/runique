@@ -23,7 +23,7 @@
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
           {% endif %}
         </div>
-        <div class="form-actions form-actions-sticky">
+        <div class="form-actions">
           <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
           <button type="submit" class="btn btn-primary">{% if admin_edit_btn_submit %}{{ admin_edit_btn_submit }}{% endif %}</button>
         </div>

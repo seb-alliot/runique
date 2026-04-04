@@ -18,9 +18,10 @@ The parser expects a strict structure:
 1. model name,
 2. `table: "..."`,
 3. `pk: id => i32|i64|uuid`,
-4. `fields: { ... }`,
-5. `relations: { ... }` (optional),
-6. `meta: { ... }` (optional).
+4. `enums: { ... }` (optional),
+5. `fields: { ... }`,
+6. `relations: { ... }` (optional),
+7. `meta: { ... }` (optional).
 
 Concrete example:
 
@@ -62,7 +63,70 @@ The DSL is converted into an internal `Model` AST structure, including:
 - text: `String`, `text`, `char`, `varchar(n)`, `var_binary(n)`
 - numeric: `i8/i16/i32/i64/u32/u64/f32/f64`, `decimal(p,s)`, `decimal`
 - date/time: `date`, `time`, `datetime`, `timestamp`, `timestamp_tz`, `interval`
-- other: `bool`, `uuid`, `json`, `json_binary`, `binary(n)`, `binary`, `blob`, `enum(A, B, ...)`, `inet`, `cidr`, `mac_address`
+- other: `bool`, `uuid`, `json`, `json_binary`, `binary(n)`, `binary`, `blob`, `enum(EnumName)`, `inet`, `cidr`, `mac_address`
+
+#### Enums — `enums: { ... }` + `enum(EnumName)`
+
+Enums are declared in a separate `enums: { ... }` block, then referenced in `fields` via `enum(EnumName)`.
+
+```rust
+model! {
+    DocSection,
+    table: "doc_section",
+    pk: id => i32,
+    enums: {
+        SectionTheme: pg [Demarrage, Web, Database, Security, Admin, Autres],
+    },
+    fields: {
+        theme: enum(SectionTheme) [nullable],
+    },
+}
+```
+
+**Backing types:**
+
+| Syntax | DB storage |
+| --- | --- |
+| `EnumName: [A, B]` | `String` (value = variant name) |
+| `EnumName: pg [A, B]` | Native PostgreSQL `Enum` |
+| `EnumName: i32 [A, B]` | `Integer` |
+| `EnumName: i64 [A, B]` | `BigInteger` |
+
+**DB values:** variants are stored **exactly as written in the DSL** — no automatic transformation. Declaring `[Demarrage, Web]` stores `"Demarrage"` and `"Web"`. Declaring `[demarrage, web]` stores `"demarrage"` and `"web"`.
+
+**Variant syntaxes:**
+
+| Syntax | DB value | Display label (admin) |
+| --- | --- | --- |
+| `Variant` | variant name as written | variant name |
+| `Variant = "order"` | `"order"` | `"order"` |
+| `Variant = ("order", "Display order")` | `"order"` | `"Display order"` |
+
+```rust
+enums: {
+    SortMode: [
+        Manual,
+        Alphabetical = "alpha",
+        ByDate = ("date", "By creation date"),
+    ],
+},
+```
+
+The tuple form `= ("db_value", "Label")` lets you store a short value in the database while displaying a readable label in the admin form.
+
+`FromStr` accepts all three forms case-insensitively: the variant name, the DB value, and the label (if present) all resolve to the same variant.
+
+**In Tera templates**, the comparison value must **exactly** match what is stored in the database (case-sensitive):
+
+```jinja2
+{# Correct — matches the stored value "Web" #}
+{% for section in sections | filter(attribute="theme", value="Web") %}
+
+{# Incorrect — will never match if the DB contains "Web" #}
+{% for section in sections | filter(attribute="theme", value="web") %}
+```
+
+The Tera `filter` built-in is **strictly case-sensitive**.
 
 ### Field options
 
@@ -71,6 +135,25 @@ The DSL is converted into an internal `Model` AST structure, including:
 - `auto_now`, `auto_now_update`
 - `label(...)`, `help(...)`, `select_as(...)`
 - `file(kind)`, `file(kind, "upload/path")` — file field (see below)
+
+#### `label(...)`
+
+By default, the admin form generates a field label from its snake_case name (`sort_order` → `Sort order`). The `label(...)` option sets a custom label:
+
+```rust
+model! {
+    Chapter,
+    table: "chapters",
+    pk: id => i32,
+    fields: {
+        title: String [required, label("Chapter title")],
+        sort_order: i32 [label("Display order")],
+        is_published: bool [label("Published")],
+    },
+}
+```
+
+The label is used in the admin edit form (`<label>` tag) and in column headers when the field is declared in `list_display`. It has no effect on the generated migration or SeaORM entity.
 
 ### File fields — `file()`
 

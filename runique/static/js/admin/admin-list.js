@@ -25,11 +25,24 @@ function initAdminList() {
     const FILTER_KEY = 'runique_admin_filter_collapsed';
     const isMobile   = window.innerWidth <= 768;
 
-    // ── Cellules dépliables ──
+    // ── Cellules dépliables (clic sur td-data) ──
     document.querySelectorAll('.admin-table tbody').forEach(function (tbody) {
         tbody.addEventListener('click', function (e) {
             const cell = e.target.closest('td.td-data');
             if (cell) cell.classList.toggle('expanded');
+        });
+    });
+
+    // ── Expand lignes (mobile) ──
+    document.querySelectorAll('.row-expand-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const tr = btn.closest('tr');
+            const detailRow = tr.nextElementSibling;
+            if (!detailRow || !detailRow.classList.contains('row-detail')) return;
+            const isOpen = detailRow.classList.toggle('open');
+            btn.classList.toggle('open', isOpen);
+            btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
     });
 

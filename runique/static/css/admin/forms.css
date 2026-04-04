@@ -134,6 +134,63 @@
 
 textarea.form-control { min-height: 100px; resize: vertical; }
 
+/* Champs numériques (base_number.html → .number-field input) */
+.number-field input {
+    width: 100%;
+    padding: 0.6rem 0.875rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    color: var(--text-main);
+    font: inherit;
+    font-size: 0.88rem;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.number-field input::-webkit-outer-spin-button,
+.number-field input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.number-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Champs select (base_select.html → .select-field select) */
+.select-field select {
+    width: 100%;
+    padding: 0.6rem 0.875rem;
+    padding-right: 2.25rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    color: var(--text-main);
+    font: inherit;
+    font-size: 0.88rem;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    cursor: pointer;
+}
+
+.select-field select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.select-field select option {
+    background: var(--bg-input);
+    color: var(--text-main);
+}
+
 .invalid-feedback { font-size: 0.78rem; color: var(--danger); margin-top: 0.25rem; }
 
 /* form-group + mb-3 */
@@ -150,6 +207,14 @@ textarea.form-control { min-height: 100px; resize: vertical; }
     gap: 0.3rem;
     margin-bottom: 1.1rem;
 }
+
+.field-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.field-label.field-error { color: var(--danger); }
 
 .boolean-field .field-label {
     display: flex;
