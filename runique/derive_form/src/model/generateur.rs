@@ -36,49 +36,24 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
 
             match e.backing_type {
                 EnumBackingType::String => {
-                    // Valeur DB = valeur explicite ou nom du variant
-                    let db_values: Vec<String> = e
-                        .variants
-                        .iter()
-                        .map(|v| match &v.value {
-                            Some(syn::Lit::Str(s)) => s.value(),
-                            Some(_) => v.name.to_string(),
-                            None => v.name.to_string(),
-                        })
-                        .collect();
+                    let db_values: Vec<String> = e.variants.iter().map(|v| v.db_str()).collect();
+                    let display_values: Vec<String> =
+                        e.variants.iter().map(|v| v.display_str()).collect();
 
-                    // Valeur affichée = label si présent, sinon db_value
-                    let display_values: Vec<String> = e
-                        .variants
-                        .iter()
-                        .map(|v| {
-                            if let Some(syn::Lit::Str(lbl)) = &v.label {
-                                lbl.value()
-                            } else {
-                                match &v.value {
-                                    Some(syn::Lit::Str(s)) => s.value(),
-                                    Some(_) => v.name.to_string(),
-                                    None => v.name.to_string(),
-                                }
-                            }
-                        })
-                        .collect();
-
-                    // Conditions FromStr : db_value + nom du variant + label si présent
                     let match_conditions: Vec<proc_macro2::TokenStream> = e
                         .variants
                         .iter()
                         .zip(variant_names.iter())
-                        .zip(db_values.iter())
-                        .map(|((v, vname), db_val)| {
+                        .map(|(v, vname)| {
+                            let db_val = v.db_str();
                             let name_str = vname.to_string();
+                            let display = v.display_str();
                             let mut conditions: Vec<proc_macro2::TokenStream> = vec![
                                 quote! { low == #db_val.to_ascii_lowercase() },
                                 quote! { low == #name_str.to_ascii_lowercase() },
                             ];
-                            if let Some(syn::Lit::Str(lbl)) = &v.label {
-                                let lbl_str = lbl.value();
-                                conditions.push(quote! { low == #lbl_str.to_ascii_lowercase() });
+                            if display != db_val && display != name_str {
+                                conditions.push(quote! { low == #display.to_ascii_lowercase() });
                             }
                             quote! {
                                 if #(#conditions)||* {
@@ -230,46 +205,24 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
                     }
                 }
                 EnumBackingType::Pg => {
-                    let db_values: Vec<String> = e
-                        .variants
-                        .iter()
-                        .map(|v| match &v.value {
-                            Some(syn::Lit::Str(s)) => s.value(),
-                            Some(_) => v.name.to_string(),
-                            None => v.name.to_string(),
-                        })
-                        .collect();
-
-                    let display_values: Vec<String> = e
-                        .variants
-                        .iter()
-                        .map(|v| {
-                            if let Some(syn::Lit::Str(lbl)) = &v.label {
-                                lbl.value()
-                            } else {
-                                match &v.value {
-                                    Some(syn::Lit::Str(s)) => s.value(),
-                                    Some(_) => v.name.to_string(),
-                                    None => v.name.to_string(),
-                                }
-                            }
-                        })
-                        .collect();
+                    let db_values: Vec<String> = e.variants.iter().map(|v| v.db_str()).collect();
+                    let display_values: Vec<String> =
+                        e.variants.iter().map(|v| v.display_str()).collect();
 
                     let match_conditions: Vec<proc_macro2::TokenStream> = e
                         .variants
                         .iter()
                         .zip(variant_names.iter())
-                        .zip(db_values.iter())
-                        .map(|((v, vname), db_val)| {
+                        .map(|(v, vname)| {
+                            let db_val = v.db_str();
                             let name_str = vname.to_string();
+                            let display = v.display_str();
                             let mut conditions: Vec<proc_macro2::TokenStream> = vec![
                                 quote! { low == #db_val.to_ascii_lowercase() },
                                 quote! { low == #name_str.to_ascii_lowercase() },
                             ];
-                            if let Some(syn::Lit::Str(lbl)) = &v.label {
-                                let lbl_str = lbl.value();
-                                conditions.push(quote! { low == #lbl_str.to_ascii_lowercase() });
+                            if display != db_val && display != name_str {
+                                conditions.push(quote! { low == #display.to_ascii_lowercase() });
                             }
                             quote! {
                                 if #(#conditions)||* {
@@ -664,8 +617,10 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
             return None;
         }
 
-        // Label auto-généré : snake_case → "First word capitalized"
-        let label = {
+        // Label : utilise l'option label("...") si définie, sinon génère depuis snake_case
+        let label = if let Some(FieldOption::Label(lbl)) = field.options.iter().find(|o| matches!(o, FieldOption::Label(_))) {
+            lbl.clone()
+        } else {
             let s = fname_str.replace('_', " ");
             let mut chars = s.chars();
             match chars.next() {
@@ -729,15 +684,8 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
                 let choices: Vec<proc_macro2::TokenStream> = model.enums.iter()
                     .find(|e| e.name == *enum_name)
                     .map(|e| e.variants.iter().map(|v| {
-                        let db_val = match &v.value {
-                            Some(syn::Lit::Str(s)) => s.value(),
-                            _ => v.name.to_string(),
-                        };
-                        let display = if let Some(syn::Lit::Str(lbl)) = &v.label {
-                            lbl.value()
-                        } else {
-                            db_val.clone()
-                        };
+                        let db_val = v.db_str();
+                        let display = v.display_str();
                         quote! { .add_choice(#db_val, #display) }
                     }).collect())
                     .unwrap_or_default();

@@ -435,7 +435,7 @@
 .text-muted         { color: var(--text-muted); }
 .th-right           { text-align: right; }
 .table-actions-end  { justify-content: flex-end; }
-.card-form          { max-width: 60%; }
+
 .card-full-width    { grid-column: 1 / -1; }
 .mt-sm              { margin-top: 0.5rem; }
 
@@ -603,4 +603,12 @@
 .filter-page-btn:disabled {
     opacity: 0.3;
     cursor: default;
+}
+
+@media (max-width: 480px) {
+    .card-form { max-width: 100%; }
+}
+
+@media (min-width: 480px) and (max-width: 768px){
+    .card-form { max-width: 80%; }
 }

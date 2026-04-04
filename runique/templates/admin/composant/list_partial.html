@@ -74,7 +74,7 @@
                   </a>
                 </th>
                 {% for col in visible_columns %}
-                  <th>
+                  <th{% if loop.index0 > 0 %} class="col-secondary"{% endif %}>
                     <a href="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
                        hx-get="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
                        hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
@@ -84,6 +84,7 @@
                     </a>
                   </th>
                 {% endfor %}
+                <th class="th-expand"></th>
                 <th class="th-right">{% if admin_list_th_actions %}{{ admin_list_th_actions }}{% endif %}</th>
               </tr>
             </thead>
@@ -93,7 +94,7 @@
                   <td><span class="id-badge">#{{ entry.id }}</span></td>
                   {% for col in visible_columns %}
                     {% set value = entry[col] %}
-                    <td class="td-data">
+                    <td class="td-data{% if loop.index0 > 0 %} col-secondary{% endif %}" data-label="{% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col }}{% endif %}">
                       {% if value == true %}
                         <span class="badge badge-green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
                       {% elif value == false %}
@@ -105,6 +106,13 @@
                       {% endif %}
                     </td>
                   {% endfor %}
+                  <td class="td-expand">
+                    <button class="row-expand-btn" type="button" aria-expanded="false" aria-label="Détails">
+                      <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    </button>
+                  </td>
                   <td class="td-actions">
                     {% set_global can_modify = false %}
                     {% if current_user %}
@@ -138,6 +146,26 @@
                         </form>
                         {% endif %}
                       </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="row-detail">
+                  <td colspan="999">
+                    <div class="row-detail-grid">
+                      {% for col in visible_columns %}
+                        {% if loop.index0 > 0 %}
+                          {% set value = entry[col] %}
+                          <div class="row-detail-item">
+                            <span class="row-detail-label">{% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col }}{% endif %}</span>
+                            <span class="row-detail-value">
+                              {% if value == true %}<span class="badge badge-green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
+                              {% elif value == false %}<span class="badge badge-neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
+                              {% elif value %}{% if value is string %}{{ value | escape }}{% else %}{{ value }}{% endif %}
+                              {% else %}<span class="text-muted">—</span>{% endif %}
+                            </span>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
                     </div>
                   </td>
                 </tr>

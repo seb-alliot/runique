@@ -10,7 +10,7 @@ model! {
         title: String [required],
         theme: String [required],
         difficulte: String [required],
-        ordre: i32 [required],
-        sort_order: i32 [required],
+        ordre: i32 [required, label("Ordre")],
+        sort_order: i32 [required,  label("Ordre d'affichage")],
     }
 }

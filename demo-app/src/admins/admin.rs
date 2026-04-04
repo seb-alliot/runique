@@ -6182,7 +6182,7 @@ pub fn admin_register() -> AdminRegistry {
             .columns_include(vec![
                 ("slug", "Slug"),
                 ("lang", "Langue"),
-                ("titre", "Titre"),
+                ("title", "Titre"),
                 ("theme", "Thème"),
                 ("difficulte", "Difficulté"),
                 ("ordre", "Ordre"),
@@ -6191,7 +6191,7 @@ pub fn admin_register() -> AdminRegistry {
             .list_filter(vec![
                 ("slug", "Slug", 10u64),
                 ("lang", "Langue", 10u64),
-                ("titre", "Titre", 10u64),
+                ("title", "Titre", 10u64),
                 ("theme", "Thème", 10u64),
                 ("difficulte", "Difficulté", 10u64),
                 ("ordre", "Ordre", 10u64),
@@ -6298,53 +6298,53 @@ pub fn admin_register() -> AdminRegistry {
                 _ => a.cmp(b),
             });
             result.insert("lang".to_string(), (vals_lang, total_lang));
-            let page_size_titre = 10u64;
-            let cur_page_titre = pages.get("titre").copied().unwrap_or(0);
-            let count_stmt_titre = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT titre)"))
+            let page_size_title = 10u64;
+            let cur_page_title = pages.get("title").copied().unwrap_or(0);
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
                 .from(Alias::new(cour::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("titre")).is_not_null())
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
-            let count_row_titre = match db.query_one(&count_stmt_titre).await {
+            let count_row_title = match db.query_one(&count_stmt_title).await {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.titre` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.title` : colonne introuvable en DB — {}",
                         e
                     );
                     None
                 }
             };
-            let total_titre = count_row_titre
+            let total_title = count_row_title
                 .and_then(|r| r.try_get_by_index::<i64>(0).ok())
                 .unwrap_or(0) as u64;
-            let stmt_titre = Query::select()
+            let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(titre AS TEXT)"))
+                .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(cour::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("titre")).is_not_null())
-                .limit(page_size_titre)
-                .offset(cur_page_titre * page_size_titre)
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
                 .to_owned();
-            let rows_titre = match db.query_all(&stmt_titre).await {
+            let rows_title = match db.query_all(&stmt_title).await {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.titre` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.title` : colonne introuvable en DB — {}",
                         e
                     );
                     vec![]
                 }
             };
-            let mut vals_titre: Vec<String> = rows_titre
+            let mut vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_titre.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
                 (Ok(x), Ok(y)) => x.cmp(&y),
                 _ => a.cmp(b),
             });
-            result.insert("titre".to_string(), (vals_titre, total_titre));
+            result.insert("title".to_string(), (vals_title, total_title));
             let page_size_theme = 10u64;
             let cur_page_theme = pages.get("theme").copied().unwrap_or(0);
             let count_stmt_theme = Query::select()
@@ -6653,13 +6653,13 @@ pub fn admin_register() -> AdminRegistry {
             .columns_include(vec![
                 ("cour_id", "Cours"),
                 ("slug", "Slug"),
-                ("titre", "Titre"),
-                ("ordre", "Ordre"),
+                ("title", "Titre"),
+                ("sort_order", "Ordre"),
             ])
             .list_filter(vec![
                 ("cour_id", "Cours", 10u64),
                 ("slug", "Slug", 10u64),
-                ("titre", "Titre", 10u64),
+                ("title", "Titre", 10u64),
                 ("sort_order", "Ordre", 10u64),
             ]),
     );
@@ -6763,53 +6763,53 @@ pub fn admin_register() -> AdminRegistry {
                 _ => a.cmp(b),
             });
             result.insert("slug".to_string(), (vals_slug, total_slug));
-            let page_size_titre = 10u64;
-            let cur_page_titre = pages.get("titre").copied().unwrap_or(0);
-            let count_stmt_titre = Query::select()
-                .expr(Expr::cust("COUNT(DISTINCT titre)"))
+            let page_size_title = 10u64;
+            let cur_page_title = pages.get("title").copied().unwrap_or(0);
+            let count_stmt_title = Query::select()
+                .expr(Expr::cust("COUNT(DISTINCT title)"))
                 .from(Alias::new(chapitre::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("titre")).is_not_null())
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
                 .to_owned();
-            let count_row_titre = match db.query_one(&count_stmt_titre).await {
+            let count_row_title = match db.query_one(&count_stmt_title).await {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.titre` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.title` : colonne introuvable en DB — {}",
                         e
                     );
                     None
                 }
             };
-            let total_titre = count_row_titre
+            let total_title = count_row_title
                 .and_then(|r| r.try_get_by_index::<i64>(0).ok())
                 .unwrap_or(0) as u64;
-            let stmt_titre = Query::select()
+            let stmt_title = Query::select()
                 .distinct()
-                .expr(Expr::cust("CAST(titre AS TEXT)"))
+                .expr(Expr::cust("CAST(title AS TEXT)"))
                 .from(Alias::new(chapitre::Entity.table_name()))
-                .and_where(Expr::col(Alias::new("titre")).is_not_null())
-                .limit(page_size_titre)
-                .offset(cur_page_titre * page_size_titre)
+                .and_where(Expr::col(Alias::new("title")).is_not_null())
+                .limit(page_size_title)
+                .offset(cur_page_title * page_size_title)
                 .to_owned();
-            let rows_titre = match db.query_all(&stmt_titre).await {
+            let rows_title = match db.query_all(&stmt_title).await {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.titre` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.title` : colonne introuvable en DB — {}",
                         e
                     );
                     vec![]
                 }
             };
-            let mut vals_titre: Vec<String> = rows_titre
+            let mut vals_title: Vec<String> = rows_title
                 .iter()
                 .filter_map(|r| r.try_get_by_index::<String>(0).ok())
                 .collect();
-            vals_titre.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
+            vals_title.sort_by(|a, b| match (a.parse::<i64>(), b.parse::<i64>()) {
                 (Ok(x), Ok(y)) => x.cmp(&y),
                 _ => a.cmp(b),
             });
-            result.insert("titre".to_string(), (vals_titre, total_titre));
+            result.insert("title".to_string(), (vals_title, total_title));
             let page_size_sort_order = 10u64;
             let cur_page_sort_order = pages.get("sort_order").copied().unwrap_or(0);
             let count_stmt_sort_order = Query::select()
@@ -6981,7 +6981,7 @@ pub fn admin_register() -> AdminRegistry {
                 ("chapitre_id", "Chapitre", 10u64),
                 ("block_type", "Type", 10u64),
                 ("heading", "En-tête", 10u64),
-                ("sort_order", "Ordre", 10u64),
+                ("sort_order", "Ordre d'affichage", 10u64),
             ]),
     );
     let filter_fn: FilterFn = Arc::new(|db: ADb, pages: std::collections::HashMap<String, u64>| {

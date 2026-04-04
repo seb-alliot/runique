@@ -111,7 +111,11 @@ admin! {
 }
 ```
 
-Each entry is a `["column_name", "Label"]` pair. If absent, **all entity columns** are displayed.
+Each entry is a `["column_name", "Label"]` pair. The column name must **exactly** match the field name in the generated SeaORM entity (generally identical to the name declared in `model!`). Using the wrong name produces a SQL error at runtime.
+
+> If the DSL field is `sort_order`, the column name to declare is `"sort_order"` — not `"order"` or any alias.
+
+If absent, **all entity columns** are displayed.
 
 Columns declared in `list_display` also serve as the **sorting whitelist**: only these columns (and `id`) accept a `sort_by` parameter.
 
@@ -132,7 +136,9 @@ admin! {
 }
 ```
 
-Each entry is a `["column_name", "Group label", optional_limit]` triplet. The 3rd element is optional — if absent, the default limit is `10` values per page.
+Each entry is a `["column_name", "Group label", optional_limit]` triplet. The column name follows the same rule as `list_display`: it must exactly match the SeaORM entity field name. The 3rd element is optional — if absent, the default limit is `10` values per page.
+
+`enum` columns are good candidates for `list_filter`: the distinct values shown match the serialized (capitalized) variants. See the [`model!` DSL](/docs/en/model/dsl) for enum behavior.
 
 For each field, the daemon generates a SQL query that loads distinct values with server-side pagination (`LIMIT` / `OFFSET`). The `‹ 1/N ›` navigation in the sidebar reloads the page via `fp_{column}` URL parameters — no JavaScript required.
 
