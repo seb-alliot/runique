@@ -1,3 +1,5 @@
+//! Constantes des clés de contexte Tera pour les templates admin (list, form, etc.).
+
 /// Clés de contexte Tera injectées dans les templates admin.
 /// Utilisez ces constantes pour surcharger un template sans risquer de typos.
 pub mod admin_ctx {

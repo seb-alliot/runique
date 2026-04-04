@@ -1,3 +1,4 @@
+//! Système de formulaires — champs, validation, rendu Tera, extracteur Prisme, model forms.
 pub mod base;
 pub mod extractor;
 pub mod field;

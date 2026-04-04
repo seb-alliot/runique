@@ -1,3 +1,4 @@
+//! Middlewares Runique — auth, sécurité (CSP, CSRF, hosts), session, rate limit, gestion d'erreurs.
 pub mod auth;
 pub mod dev;
 pub mod errors;

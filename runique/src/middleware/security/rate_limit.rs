@@ -1,3 +1,4 @@
+//! Rate limiter par clé (IP ou autre) avec fenêtre glissante et réponse 429.
 use crate::utils::trad::t;
 use axum::{
     body::Body,

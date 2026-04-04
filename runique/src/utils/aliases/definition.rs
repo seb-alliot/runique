@@ -1,3 +1,4 @@
+//! Définition de tous les aliases de types : `ATera`, `ADb`, `StrMap`, `FieldsMap`, `AppResult`…
 use crate::config::app::RuniqueConfig;
 use crate::context::template::AppError;
 use crate::engine::RuniqueEngine;

@@ -1,3 +1,4 @@
+//! Règles de garde Prisme : contrôle d'accès par rôle ou authentification avant extraction du body.
 use crate::utils::trad::t;
 use axum::{
     http::StatusCode,

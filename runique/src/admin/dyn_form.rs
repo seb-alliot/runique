@@ -1,3 +1,4 @@
+//! Trait `DynForm` : abstraction object-safe des formulaires Runique pour le dispatch dynamique admin.
 use async_trait::async_trait;
 use sea_orm::{DatabaseConnection, DbErr};
 

@@ -1,13 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// Surveille src/admin.rs avec notify et déclenche la génération
-// à chaque modification.
-//
-// Flux :
-//   Modification détectée
-//     → parse src/admin.rs
-//     → génère src/admin/generated.rs
-// ═══════════════════════════════════════════════════════════════
-
+//! Watcher hot-reload : surveille `src/admin.rs` et régénère le code admin à chaque modification.
 use crate::admin::daemon::{generate, parse_admin_file};
 use crate::utils::trad::{t, tf};
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};

@@ -1,3 +1,4 @@
+//! Champs numériques : `NumericField` (entier, décimal) avec validation min/max et précision.
 use crate::forms::base::*;
 use crate::utils::trad::{t, tf};
 use serde::Serialize;

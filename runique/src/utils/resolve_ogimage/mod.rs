@@ -1,3 +1,4 @@
+//! Résolution de l'URL absolue de l'OG image — hôte extrait de `HostPolicy` selon le mode debug/prod.
 use crate::middleware::allowed_hosts::HostPolicy;
 
 /// Retourne l'URL absolue de l'OG image selon le contexte (debug/prod).

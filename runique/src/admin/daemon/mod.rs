@@ -1,3 +1,4 @@
+//! Daemon de rechargement admin — génère `admin.rs` à chaud depuis la macro `admin!`.
 pub mod generator;
 pub mod parser;
 pub mod watcher;

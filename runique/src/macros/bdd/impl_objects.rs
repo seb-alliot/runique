@@ -1,3 +1,5 @@
+//! Macro `impl_objects!` — ajoute la constante `objects` sur une entité SeaORM.
+
 /// Ajoute un gestionnaire d'objets de style Django à une entité SeaORM.
 ///
 /// Génère un champ constant `objects` qui permet la syntaxe

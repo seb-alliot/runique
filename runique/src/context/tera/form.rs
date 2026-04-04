@@ -1,3 +1,4 @@
+//! Filtre Tera `form` — rendu HTML d'un champ de formulaire par nom depuis le contexte.
 // Dans src/tera_function/form_filter.rs
 use crate::middleware::errors::error::html_escape;
 use crate::utils::aliases::JsonMap;

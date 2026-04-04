@@ -1,3 +1,5 @@
+//! Hachage et vérification de mots de passe — Argon2, bcrypt, scrypt via trait `PasswordHasher`.
+
 // === password/hasher.rs ===
 use argon2::{
     Argon2,

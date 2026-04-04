@@ -1,3 +1,4 @@
+//! Cache global des permissions utilisateur (droits et groupes) par `UserId`.
 use crate::admin::permissions::{Droit, Groupe};
 use crate::utils::pk::UserId;
 use std::collections::HashMap;

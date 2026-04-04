@@ -1,6 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// HostConfig — Configuration des hôtes autorisés via closure
-// ═══════════════════════════════════════════════════════════════
+//! Configuration des hôtes autorisés passée via closure au builder.
 //
 // Utilisé exclusivement dans la closure de `with_allowed_hosts` :
 //

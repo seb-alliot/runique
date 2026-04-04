@@ -1,3 +1,4 @@
+//! Fonction Tera `link` — résolution d'URL nommée depuis le registre global, avec paramètres optionnels.
 use crate::utils::aliases::{ARlockmap, JsonMap, TResult};
 use tera::{Function, Value};
 

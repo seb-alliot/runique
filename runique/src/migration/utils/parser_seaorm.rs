@@ -1,3 +1,4 @@
+//! Parser AST des snapshots SeaORM générés — extrait le `ParsedSchema` depuis les fichiers de snapshot.
 use anyhow::Result;
 use syn::{Expr, visit::Visit};
 

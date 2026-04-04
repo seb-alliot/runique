@@ -1,19 +1,6 @@
-// ═══════════════════════════════════════════════════════════════
-// RuniqueUser — Contrat pour tout modèle utilisateur
-// ═══════════════════════════════════════════════════════════════
-//
-// Implémentation minimale requise :
-//
-//   impl RuniqueUser for MyUserModel {
-//       fn user_id(&self) -> UserId      { self.id }
-//       fn username(&self) -> &str      { &self.username }
-//       fn password_hash(&self) -> &str { &self.password }
-//       fn is_active(&self) -> bool     { self.is_active }
-//       fn is_staff(&self) -> bool      { self.is_staff }
-//       fn is_superuser(&self) -> bool  { self.is_superuser }
-//   }
-// ═══════════════════════════════════════════════════════════════
+//! Trait `RuniqueUser` : contrat minimal pour tout modèle utilisateur Runique.
 
+/// Contrat à implémenter sur tout modèle utilisateur pour l'intégration avec le framework.
 pub trait RuniqueUser: Send + Sync {
     fn user_id(&self) -> crate::utils::pk::UserId;
     fn username(&self) -> &str;

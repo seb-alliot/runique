@@ -1,3 +1,4 @@
+//! Entité SeaORM `eihwaz_users_groupes` — table de liaison utilisateur ↔ groupe.
 use crate::utils::pk::UserId;
 use sea_orm::entity::prelude::*;
 

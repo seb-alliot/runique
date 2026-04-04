@@ -1,3 +1,4 @@
+//! Protection brute-force par compte : verrouillage temporaire après N échecs consécutifs.
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},

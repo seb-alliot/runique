@@ -1,6 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// AdminTemplate — Surcharge des templates admin par le dev
-// ═══════════════════════════════════════════════════════════════
+//! Gestion des templates admin avec surcharge optionnelle par le développeur.
 
 /// Chemin d'un template admin — avec fallback sur le défaut Runique.
 ///
@@ -66,6 +64,12 @@ impl PathAdminTemplate {
             runique: "admin_base",
         }
     }
+    pub fn htmx() -> Self {
+        Self {
+            dev: None,
+            runique: "admin/htmx",
+        }
+    }
 }
 
 /// Configuration globale des templates admin.
@@ -94,6 +98,8 @@ pub struct AdminTemplate {
     pub delete: PathAdminTemplate,
     pub login: PathAdminTemplate,
     pub base: PathAdminTemplate,
+    /// Template pour les réponses partielles HTMX (fragment uniquement, sans layout).
+    pub htmx: PathAdminTemplate,
 }
 
 impl AdminTemplate {
@@ -107,6 +113,7 @@ impl AdminTemplate {
             delete: PathAdminTemplate::delete(),
             login: PathAdminTemplate::login(),
             base: PathAdminTemplate::base(),
+            htmx: PathAdminTemplate::htmx(),
         }
     }
     #[must_use]
@@ -147,6 +154,11 @@ impl AdminTemplate {
     #[must_use]
     pub fn with_base(mut self, path: &str) -> Self {
         self.base.dev = Some(path.to_string());
+        self
+    }
+    #[must_use]
+    pub fn with_htmx(mut self, path: &str) -> Self {
+        self.htmx.dev = Some(path.to_string());
         self
     }
 }

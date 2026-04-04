@@ -1,3 +1,4 @@
+//! Configuration de l'application — serveur, sécurité, fichiers statiques, routeur.
 pub mod app;
 pub mod router;
 pub mod security;

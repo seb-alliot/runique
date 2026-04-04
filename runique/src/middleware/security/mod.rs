@@ -1,3 +1,4 @@
+//! Middlewares de sécurité — allowed hosts, CSP, CSRF, rate limiting.
 pub mod allowed_hosts;
 pub mod csp;
 pub mod csrf;

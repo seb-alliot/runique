@@ -1,3 +1,4 @@
+//! Sentinel Prisme : évalue les règles d'accès avant l'extraction du corps de requête.
 use crate::config::RuniqueConfig;
 use crate::forms::prisme::rules::{GuardContext, GuardRules, evaluate_rules};
 use axum::{body::Body, http::Request, response::Response};

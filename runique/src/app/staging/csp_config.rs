@@ -1,3 +1,4 @@
+//! Configuration du Content Security Policy passée via closure au builder.
 use crate::middleware::SecurityPolicy;
 
 // ═══════════════════════════════════════════════════════════════

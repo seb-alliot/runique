@@ -1,3 +1,4 @@
+//! Champ de sélection : `ChoiceField` avec groupes, multi-select et options dynamiques.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;

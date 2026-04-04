@@ -1,9 +1,12 @@
+//! Configuration principale de l'application Runique.
 use crate::config::{security::SecurityConfig, server::ServerConfig, static_files::StaticConfig};
 use crate::middleware::MiddlewareConfig;
 use crate::utils::password::PasswordConfig;
 use crate::utils::runique_log::RuniqueLog;
 use serde::{Deserialize, Serialize};
 
+/// Configuration globale agrégée : serveur, middleware, sécurité, mots de passe, fichiers statiques.
+/// Construite via [`RuniqueConfig::from_env`] qui lit les variables d'environnement.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RuniqueConfig {
     pub server: ServerConfig,
@@ -19,6 +22,7 @@ pub struct RuniqueConfig {
 }
 
 impl RuniqueConfig {
+    /// Charge la configuration depuis les variables d'environnement (lit `.env` via dotenvy).
     pub fn from_env() -> Self {
         dotenvy::dotenv().ok();
 

@@ -1,3 +1,4 @@
+//! Porte CSRF du pipeline Prisme : valide le token sur les requêtes mutantes (POST/PUT/PATCH/DELETE).
 use crate::forms::{extractor::Prisme, field::RuniqueForm};
 use crate::utils::{
     aliases::{StrMap, StrVecMap},

@@ -1,3 +1,4 @@
+//! Utilitaires de formulaires — parsing multipart/HTML et sanitisation HTML (ammonia).
 pub mod parse_html;
 pub mod sanitizer;
 

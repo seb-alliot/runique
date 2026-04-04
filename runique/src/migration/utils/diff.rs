@@ -1,3 +1,4 @@
+//! Calcul de diff entre deux [`ParsedSchema`] — colonnes ajoutées/supprimées/modifiées, FK, index, enum renames.
 use std::collections::{HashMap, HashSet};
 
 use crate::migration::utils::types::{Changes, ParsedColumn, ParsedSchema};

@@ -1,3 +1,4 @@
+//! Commande `new` — scaffolde un nouveau projet Runique (fichiers, dépendances, SECRET_KEY).
 use crate::utils::trad::{t, tf};
 use anyhow::Result;
 use rand::RngExt;

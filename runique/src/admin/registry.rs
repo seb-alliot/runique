@@ -1,3 +1,4 @@
+//! Registre central des ressources admin indexées par clé URL.
 use indexmap::IndexMap;
 
 use crate::admin::resource_entry::ResourceEntry;

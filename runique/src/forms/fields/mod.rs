@@ -1,3 +1,4 @@
+//! Types de champs de formulaire — text, number, boolean, choice, datetime, file, hidden, special.
 pub mod boolean;
 pub mod choice;
 pub mod datetime;

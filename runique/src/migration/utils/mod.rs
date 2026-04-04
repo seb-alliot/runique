@@ -1,3 +1,4 @@
+//! Utilitaires de migration — diff de schémas, génération SQL, parsers AST, helpers string.
 pub mod convertisseur;
 pub mod diff;
 pub mod generators;

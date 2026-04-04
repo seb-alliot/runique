@@ -1,3 +1,4 @@
+//! Contexte de requête principal : `AppError`, `RuniqueContext` et construction du contexte Tera.
 use crate::app::templates::TemplateLoader;
 use crate::errors::error::ErrorContext;
 use crate::flash::Message;
@@ -19,7 +20,9 @@ use tracing::error;
 
 // --- ERROR HANDLING ---
 
+/// Erreur applicative retournée par les handlers : encapsule un [`ErrorContext`] et s'implémente en [`IntoResponse`].
 pub struct AppError {
+    /// Contexte de l'erreur : status code, message, type.
     pub context: ErrorContext,
 }
 
@@ -73,15 +76,25 @@ impl IntoResponse for Box<AppError> {
 
 // --- TEMPLATE CONTEXT ---
 
+/// Contexte de requête extrait automatiquement dans les handlers via `FromRequestParts`.
+/// Contient l'engine, la session, les flash messages, le token CSRF et le contexte Tera pré-rempli.
 #[derive(Clone)]
 pub struct Request {
+    /// Moteur partagé de l'application.
     pub engine: AEngine,
+    /// Session de la requête courante.
     pub session: Session,
+    /// Flash messages de la session.
     pub notices: Message,
+    /// Token CSRF de la requête (masqué dans le contexte Tera).
     pub csrf_token: CsrfToken,
+    /// Contexte Tera pré-rempli (csrf_token, debug, messages, current_user…).
     pub context: Context,
+    /// Méthode HTTP de la requête.
     pub method: Method,
+    /// Paramètres de chemin (`/articles/{id}`).
     pub path_params: HashMap<String, String>,
+    /// Paramètres de query string.
     pub query_params: HashMap<String, String>,
 }
 

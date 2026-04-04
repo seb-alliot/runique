@@ -1,3 +1,4 @@
+//! Registre global des rôles admin, peuplé au boot par le code généré.
 use std::sync::RwLock;
 
 /// Registre global des rôles admin déclarés via `admin!{}`.

@@ -1,3 +1,5 @@
+//! Macro `urlpatterns!` — déclare les routes nommées et les enregistre dans le registre global.
+
 pub use crate::macros::routeur::register_url::{
     add_urls, register_name_url, register_pending, reverse, reverse_with_parameters,
 };

@@ -1,3 +1,4 @@
+//! Commande `makemigration` — génère les fichiers de migration SeaORM à partir du DSL `ModelSchema`.
 use crate::migration::*;
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};

@@ -1,3 +1,4 @@
+//! Commandes CLI Runique — nouveau projet, génération de migrations, démarrage serveur.
 pub mod new_project;
 pub use new_project::create_new_project;
 

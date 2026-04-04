@@ -1,3 +1,4 @@
+//! Implémentation `FromRequestParts` pour `Request` — agrège engine, session, CSRF, flash en un seul extracteur.
 use crate::context::Request;
 use crate::flash::Message;
 use crate::utils::aliases::AEngine;

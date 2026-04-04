@@ -1,3 +1,4 @@
+//! Champ caché `HiddenField` pour les données non affichées (tokens, IDs internes).
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;

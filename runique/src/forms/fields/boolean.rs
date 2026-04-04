@@ -1,3 +1,4 @@
+//! Champ booléen `BooleanField` : checkbox HTML avec gestion des cases décochées.
 use crate::forms::base::*;
 use crate::utils::trad::tf;
 use serde::Serialize;

@@ -1,8 +1,5 @@
+//! Staging des fichiers statiques : active ou désactive le service d'assets.
 use crate::app::error_build::BuildError;
-
-// ═══════════════════════════════════════════════════════════════
-// StaticStaging — Service de fichiers statiques
-// ═══════════════════════════════════════════════════════════════
 //
 // Contrôle si les fichiers statiques (CSS, JS, media, assets
 // internes Runique) sont servis par l'application.

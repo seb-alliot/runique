@@ -1,3 +1,4 @@
+//! Gestion des sessions — stores (mémoire, DB), nettoyage automatique, paramètres de session.
 pub mod cleaning_store;
 pub mod session_db;
 pub mod session_parametre;

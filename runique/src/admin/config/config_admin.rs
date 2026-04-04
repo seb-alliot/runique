@@ -1,7 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// AdminConfig — Configuration du panneau d'administration
-// ═══════════════════════════════════════════════════════════════
-
+//! Configuration du panneau d'administration : préfixe, titre, hot reload, auth et templates.
 use std::sync::Arc;
 
 use crate::admin::template::AdminTemplate;

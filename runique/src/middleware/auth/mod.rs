@@ -1,3 +1,4 @@
+//! Middlewares d'authentification — session, guards de login, permissions, reset de mot de passe.
 pub mod admin_auth;
 pub mod auth_session;
 pub mod default_auth;

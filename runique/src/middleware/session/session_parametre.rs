@@ -1,3 +1,4 @@
+//! Paramètres de session — `SessionBackend` (Memory/Custom), limites mémoire, durée de vie.
 use std::sync::Arc;
 use tower_sessions::{SessionStore, cookie::time::Duration};
 

@@ -1,3 +1,4 @@
+//! Store de sessions persistant en base de données (table `eihwaz_sessions`).
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*,
 };

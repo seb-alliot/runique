@@ -1,19 +1,4 @@
-// Lit le fichier admin.rs du projet développeur et extrait
-// les déclarations de ressources du macro admin!{}.
-//
-// Syntaxe parsée :
-//
-//   admin! {
-//       users: users::Model => RegisterForm {
-//           title: "Utilisateurs",
-//           permissions: ["admin"]
-//       }
-//       blog: blog::Model => BlogForm {
-//           title: "Articles",
-//           permissions: ["admin", "editor"]
-//       }
-//   }
-
+//! Parser du fichier `src/admin.rs` : extrait les déclarations de ressources de la macro `admin!{}`.
 use crate::utils::trad::{t, tf};
 use proc_macro2::TokenStream;
 use syn::{Macro, parse_file, visit::Visit};

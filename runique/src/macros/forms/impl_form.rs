@@ -1,3 +1,5 @@
+//! Macro `impl_form_access!` — implémente les méthodes d'accès sur les structs de formulaire.
+
 #[macro_export]
 macro_rules! impl_form_access {
     (model) => {

@@ -1,4 +1,5 @@
-use std::sync::LazyLock;
+//! Environnement d'exécution — mode debug/production, chargement `.env`, token CSS.
+use std::{path::Path, sync::LazyLock};
 
 /// Mode d'exécution de l'application.
 ///
@@ -12,9 +13,21 @@ pub enum RuniqueEnv {
     Production,
 }
 
+pub fn load_env(files: Vec<&str>) {
+    files.iter().for_each(|file| {
+        if Path::new(file).exists() {
+            if let Err(e) = dotenvy::from_path_override(file) {
+                eprintln!(
+                    "Impossible de charger {} : {}, config par default via .env",
+                    file, e
+                );
+            }
+        }
+    });
+}
+
 impl RuniqueEnv {
     fn from_env() -> Self {
-        dotenvy::dotenv().ok();
         match std::env::var("DEBUG").as_deref() {
             Ok("true" | "1") => Self::Development,
             _ => Self::Production,

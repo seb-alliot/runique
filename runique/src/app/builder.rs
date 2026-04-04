@@ -1,3 +1,5 @@
+//! Builder intelligent de l'application Runique : collecte, valide et assemble
+//! tous les composants (core, middlewares, routes, admin, fichiers statiques).
 use axum::Router;
 use std::sync::Arc;
 use tower_sessions::cookie::time::Duration;

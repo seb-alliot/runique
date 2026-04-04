@@ -1,3 +1,4 @@
+//! Parser AST du DSL builder (`ModelSchema`) — extrait le `ParsedSchema` depuis le code source Rust.
 use syn::{
     Ident, LitStr, Token, braced, bracketed,
     parse::{Parse, ParseStream},

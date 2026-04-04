@@ -1,3 +1,4 @@
+//! Champs date/heure : `DateField`, `TimeField`, `DateTimeField` avec validation min/max.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};

@@ -1,3 +1,4 @@
+//! Sanitisation HTML via ammonia — builder pré-configuré pour le rich-text, liste blanche de balises/attributs.
 use crate::utils::constante::parse::{ALLOWED_ATTRS, ALLOWED_TAGS, RICH_CONTENT_FIELDS};
 use ammonia::Builder;
 use std::{collections::HashSet, sync::LazyLock};

@@ -1,3 +1,4 @@
+//! `Message` — extracteur Axum pour lire/écrire les messages flash en session.
 use crate::flash::flash_struct::FlashMessage;
 use crate::utils::aliases::Messages;
 use crate::utils::constante::FLASH_KEY;

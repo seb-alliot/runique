@@ -1,4 +1,8 @@
-/// Relation type
+//! Définitions des relations SeaORM — HasOne, HasMany, BelongsTo, ManyToMany.
+//!
+//! Ces structs alimentent la génération de code `to_model()` dans [`crate::migration::ModelSchema`].
+
+/// Type de relation entre deux entités.
 #[derive(Debug, Clone)]
 pub enum RelationKind {
     HasOne,

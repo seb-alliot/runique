@@ -1,3 +1,4 @@
+//! Erreurs centralisées du framework : `RuniqueError`, `ErrorContext` et rendu HTML/JSON des erreurs.
 use crate::middleware::RequestInfoHelper;
 use crate::utils::aliases::StrMap;
 use crate::utils::env::is_debug;
@@ -33,10 +34,10 @@ fn get_internal_templates() -> &'static [&'static str] {
         .as_slice()
 }
 
-// Type Result global pour Runique
+/// Alias `Result` global pour le framework.
 pub type RuniqueResult<T> = Result<T, RuniqueError>;
 
-// Erreurs applicatives centralisées
+/// Erreurs applicatives centralisées du framework.
 #[derive(Debug, Error)]
 pub enum RuniqueError {
     #[error("Erreur de build: {0}")]
@@ -93,6 +94,7 @@ impl From<BuildError> for RuniqueError {
     }
 }
 impl RuniqueError {
+    /// Journalise l'erreur avec le niveau tracing approprié (error/info).
     pub fn log(&self) {
         match self {
             RuniqueError::Build(e) => error!("{}", tf("error.build", &[&e.to_string()])),
@@ -171,7 +173,8 @@ impl IntoResponse for RuniqueError {
 
 // ----------- CONTEXTE ERREUR (fusionné depuis context/error.rs) -----------
 
-/// Contexte complet pour les erreurs avec toutes les informations de débogage
+/// Contexte riche d'une erreur HTTP : status, type, infos de débogage, template, requête.
+/// Attaché aux extensions de la réponse pour être rendu par le middleware d'erreurs.
 #[derive(Debug, Serialize, Clone)]
 pub struct ErrorContext {
     pub status_code: u16,
@@ -188,6 +191,7 @@ pub struct ErrorContext {
     pub environment: EnvironmentInfo,
 }
 
+/// Catégorie d'erreur pour le rendu et le logging.
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ErrorType {
@@ -231,6 +235,7 @@ pub struct EnvironmentInfo {
 }
 
 impl ErrorContext {
+    /// Crée un contexte d'erreur avec les informations de base.
     pub fn new(error_type: ErrorType, status_code: StatusCode, title: &str, message: &str) -> Self {
         Self {
             status_code: status_code.as_u16(),
