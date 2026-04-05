@@ -449,7 +449,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "            {};", id_parse_code);
     let _ = writeln!(
         out,
-        "            {}::admin_from_form(&data, Some(id))",
+        "            {}::admin_from_form(&data, Some(id.into()))",
         module
     );
     let _ = writeln!(out, "                .update(&*db).await.map(|_| ())");
