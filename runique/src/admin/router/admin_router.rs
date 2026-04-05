@@ -40,7 +40,7 @@ struct AdminLoginData {
     csrf_token: String,
 }
 
-pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
+pub fn build_admin_router(admin_staging: AdminStaging, db: crate::utils::aliases::ADb) -> Router {
     let prefix = admin_staging
         .config
         .prefix
@@ -103,6 +103,12 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
             Err(arc) => arc.registry.clone(),
         };
 
+        // Seed des droits scopés par ressource — exécuté en arrière-plan au démarrage.
+        let registry_seed = registry.clone();
+        tokio::spawn(async move {
+            registry_seed.seed_resource_droits(&db).await;
+        });
+
         let merged = Arc::new(PrototypeAdminState { registry, config });
         router = router.layer(Extension(merged));
     }
@@ -129,6 +135,7 @@ async fn admin_dashboard_redirect() -> Response {
 async fn admin_dashboard(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
+    Extension(current_user): Extension<crate::middleware::auth::CurrentUser>,
     proto: Option<Extension<Arc<PrototypeAdminState>>>,
 ) -> AppResult<Response> {
     let db = req.engine.db.clone();
@@ -136,6 +143,8 @@ async fn admin_dashboard(
     let mut resource_counts: std::collections::HashMap<String, u64> =
         std::collections::HashMap::new();
 
+    const SUPERUSER_ONLY: &[&str] = &["droits", "groupes"];
+    let effective_droits = current_user.droits_effectifs();
     let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
         for (key, entry) in &state.registry.resources {
             if let Some(count_fn) = &entry.count_fn {
@@ -144,7 +153,23 @@ async fn admin_dashboard(
                 }
             }
         }
-        state.registry.all().map(|e| &e.meta).collect()
+        state
+            .registry
+            .all()
+            .filter(|e| {
+                if current_user.is_superuser {
+                    return true;
+                }
+                if SUPERUSER_ONLY.contains(&e.meta.key) {
+                    return false;
+                }
+                effective_droits.iter().any(|d| {
+                    d.resource_key.as_deref() == Some(e.meta.key)
+                        && d.access_type.as_deref() == Some("view")
+                })
+            })
+            .map(|e| &e.meta)
+            .collect()
     } else {
         Vec::new()
     };

@@ -1,26 +1,8 @@
-//! Traits et types pour les ressources admin : permissions CRUD, colonnes, opérations.
+//! Types pour les ressources admin : colonnes, opérations, configuration d'affichage.
 //
-//   admin! {
-//       users: users::Model => RegisterForm {
-//           title: "Utilisateurs",
-//           permissions: ["admin"]
-//       }
-//   }
-
-// Chaque opération CRUD peut avoir ses propres rôles autorisés.
-// Permet une sécurité fine sans sacrifier la lisibilité.
-//
-// Si une seule liste est fournie dans admin! (permissions: ["admin"]),
-// elle s'applique à toutes les opérations.
-//
-// Exemple avancé :
-//   permissions: {
-//       list:   ["admin", "staff"],
-//       view:   ["admin", "staff"],
-//       create: ["admin"],
-//       edit:   ["admin"],
-//       delete: ["admin"],
-//   }
+// Les permissions d'accès aux ressources sont gérées en base via les droits scopés
+// (eihwaz_droits avec resource_key + access_type), et non dans admin!{}.
+// Voir : runique::middleware::auth::permissions_cache
 
 /// Type de la clé primaire d'une ressource admin
 #[derive(Debug, Clone, Copy, Default, serde::Serialize)]

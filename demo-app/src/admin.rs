@@ -13,7 +13,6 @@ use crate::formulaire::{
 admin! {
     contribution: contribution::Model => ContributionForm {
         title: "Contribution",
-        permissions: ["admin"],
         list_display: [
             ["user_id", "contributeur"],
             ["contribution_type", "type"],
@@ -29,7 +28,6 @@ admin! {
     }
     blog: blog::Model => BlogForm {
         title: "Articles",
-        permissions: ["admin"],
         list_display: [
             ["title", "Titre"],
             ["email", "email"],
@@ -47,7 +45,7 @@ admin! {
     }
     changelog_entry: changelog_entry::Model => ChangelogEntryForm {
         title: "Changelog",
-        permissions: ["admin"],
+
         list_display: [
             ["version", "Version"],
             ["release_date", "Date de sortie"],
@@ -68,7 +66,6 @@ admin! {
     }
     roadmap_entry: roadmap_entry::Model => RoadmapEntryForm {
         title: "Roadmap",
-        permissions: ["admin"],
         list_display: [
             ["status", "Statut"],
             ["title", "Titre"],
@@ -92,7 +89,6 @@ admin! {
     }
     known_issue: known_issue::Model => KnownIssueForm {
         title: "Problèmes connus",
-        permissions: ["admin"],
         list_display: [
             ["version", "Version"],
             ["title", "Titre"],
@@ -110,11 +106,11 @@ admin! {
     }
     demo_category: demo_category::Model => DemoCategoryForm {
         title: "Catégories",
-        permissions: ["admin"]
+
     }
     demo_page: demo_page::Model => DemoPageForm {
         title: "Pages",
-        permissions: ["admin"],
+
         list_display: [
             ["category_id", "Catégorie"],
             ["slug", "Slug"],
@@ -135,7 +131,7 @@ admin! {
     }
     demo_section: demo_section::Model => DemoSectionForm {
         title: "Sections",
-        permissions: ["admin"],
+
         list_display: [
             ["page_id", "Page"],
             ["title", "Titre"],
@@ -151,7 +147,7 @@ admin! {
     }
     code_example: code_example::Model => CodeExampleForm {
         title: "Exemples de code",
-        permissions: ["admin"],
+
         list_display: [
             ["page_id", "Page"],
             ["title", "Titre"],
@@ -171,7 +167,7 @@ admin! {
     }
     page_doc_link: page_doc_link::Model => PageDocLinkForm {
         title: "Liens documentation",
-        permissions: ["admin"],
+
         list_display: [
             ["page_id", "Page"],
             ["label", "Label"],
@@ -189,7 +185,7 @@ admin! {
     }
     form_field: form_field::Model => FormFieldForm {
         title: "Champs formulaire",
-        permissions: ["admin"],
+
         list_display: [
             ["page_id", "Page"],
             ["name", "Nom"],
@@ -211,7 +207,6 @@ admin! {
     }
     doc_section: doc_section::Model => DocSectionForm {
         title: "Doc — Sections",
-        permissions: ["admin"],
         list_display: [
             ["slug", "Slug"],
             ["lang", "Langue"],
@@ -226,7 +221,7 @@ admin! {
     }
     doc_page: doc_page::Model => DocPageForm {
         title: "Doc — Pages",
-        permissions: ["admin"],
+
         list_display: [
             ["section_id", "Section"],
             ["slug", "Slug"],
@@ -246,7 +241,6 @@ admin! {
     }
     doc_block: doc_block::Model => DocBlockForm {
         title: "Doc — Blocs",
-        permissions: ["admin"],
         list_display: [
             ["page_id", "Page"],
             ["content", "Contenu"],
@@ -264,11 +258,10 @@ admin! {
     }
     site_config: site_config::Model => SiteConfigForm {
         title: "Configuration site",
-        permissions: ["admin"]
+
     }
     cour: cour::Model => CourForm {
         title: "Cours",
-        permissions: ["admin"],
         list_display: [
             ["slug", "Slug"],
             ["lang", "Langue"],
@@ -290,7 +283,6 @@ admin! {
     }
     chapitre: chapitre::Model => ChapitreForm {
         title: "Chapitres",
-        permissions: ["admin"],
         list_display: [
             ["cour_id", "Cours"],
             ["slug", "Slug"],
@@ -306,7 +298,6 @@ admin! {
     }
     cour_block: cour_block::Model => CourBlockForm {
         title: "Cours — Blocs",
-        permissions: ["admin"],
         list_display: [
             ["chapitre_id", "Chapitre"],
             ["block_type", "Type"],
@@ -322,7 +313,6 @@ admin! {
     }
     runique_release: runique_release::Model => RuniqueReleaseForm {
         title: "Releases Runique",
-        permissions: ["admin"],
         list_display: [
             ["version", "Version"],
             ["github_url", "GitHub"],

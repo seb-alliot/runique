@@ -143,28 +143,10 @@ fn write_edit_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), Str
 
 fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), String> {
     let resources = &parsed.resources;
-    // Collecte tous les rôles uniques déclarés dans permissions: [...]
-    let mut all_roles: Vec<String> = resources
-        .iter()
-        .flat_map(|r| r.permissions.iter().cloned())
-        .collect::<std::collections::HashSet<_>>()
-        .into_iter()
-        .collect();
-    all_roles.sort();
-    let roles_str = all_roles
-        .iter()
-        .map(|p| format!("\"{}\".to_string()", p))
-        .collect::<Vec<_>>()
-        .join(", ");
 
     let _ = writeln!(out, "/// Construit le registre admin au boot.");
     let _ = writeln!(out, "/// Appelé par le builder de l'application.");
     let _ = writeln!(out, "pub fn admin_register() -> AdminRegistry {{");
-    let _ = writeln!(
-        out,
-        "    runique::admin::register_roles(vec![{}]);",
-        roles_str
-    );
     let _ = writeln!(out, "    let mut registry = AdminRegistry::new();");
     let _ = writeln!(
         out,
@@ -275,13 +257,6 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         .unwrap_or(&format!("{}::AdminForm", module))
         .to_string();
     let wrapper = format!("{}AdminFormDynWrapper", pascal_case(&module));
-    let roles: Vec<String> = r
-        .permissions
-        .iter()
-        .map(|p| format!("\"{}\".to_string()", p))
-        .collect();
-    let roles_str = roles.join(", ");
-
     // Code de conversion de l'ID depuis String selon id_type
     let id_parse_code = match r.id_type.as_str() {
         "I64" => {
@@ -302,7 +277,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        \"{}\",", model);
     let _ = writeln!(out, "        \"AdminForm\",");
     let _ = writeln!(out, "        \"{}\",", title);
-    let _ = writeln!(out, "        vec![{}],", roles_str);
+    let _ = writeln!(out, "        vec![],");
     let _ = writeln!(out, "    );");
 
     // inject_password : activé quand un create_form custom est déclaré

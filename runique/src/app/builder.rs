@@ -430,7 +430,7 @@ impl RuniqueAppBuilder {
         let router = if self.admin.enabled {
             let admin_prefix = self.admin.config.prefix.trim_end_matches('/').to_string();
             let robots_txt = self.admin.robots_txt;
-            let admin_router = build_admin_router(self.admin);
+            let admin_router = build_admin_router(self.admin, engine.db.clone());
             add_urls(&engine);
             let mut r = router.merge(admin_router);
             if robots_txt {

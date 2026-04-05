@@ -278,6 +278,7 @@ fn droit_entry() -> ResourceEntry {
             droit::ActiveModel {
                 id: Set(id),
                 nom: Set(nom),
+                ..Default::default()
             }
             .update(&*db)
             .await
