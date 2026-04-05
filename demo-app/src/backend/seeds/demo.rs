@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::entities::demo_category;
 use runique::prelude::*;
 use std::path::PathBuf;
