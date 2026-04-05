@@ -128,7 +128,7 @@ impl CleaningMemoryStore {
     /// Utilisé pour implémenter la connexion exclusive (un seul appareil à la fois).
     /// La session courante (nouvelle connexion) ne doit pas encore contenir `user_id`
     /// au moment de l'appel — elle est donc préservée.
-    pub async fn invalidate_user_sessions(&self, user_id: crate::utils::pk::UserId) {
+    pub async fn invalidate_user_sessions(&self, user_id: crate::utils::pk::Pk) {
         let mut guard = self.data.lock().await;
         let mut freed = 0usize;
         #[allow(clippy::useless_conversion)]

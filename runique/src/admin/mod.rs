@@ -16,13 +16,11 @@ pub mod builtin;
 pub mod forms;
 pub mod roles;
 
+// Used by daemon-generated code in user projects (external crate) — must stay pub
 pub use admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id};
 pub use builtin::builtin_resources;
 pub use config::AdminConfig;
-pub use daemon::{ConfigureDef, generate, parse_admin_file, watch};
 pub use dyn_form::DynForm;
-pub use forms::{DroitAdminForm, GroupeAdminForm, UserAdminCreateForm, UserAdminEditForm};
-pub use permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
 pub use registry::AdminRegistry;
 pub use resource::{
     AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
@@ -31,7 +29,7 @@ pub use resource_entry::{
     CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ListParams, ResourceEntry, SortDir,
     UpdateFn,
 };
-pub use roles::{get_roles, register_roles};
-pub use router::AdminState;
-pub use router::build_admin_router;
-pub use template::{AdminTemplate, PathAdminTemplate};
+
+pub use permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
+pub(crate) use router::build_admin_router;
+pub(crate) use template::AdminTemplate;

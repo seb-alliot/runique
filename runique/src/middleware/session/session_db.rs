@@ -19,7 +19,7 @@ pub struct Model {
     pub cookie_id: String,
 
     /// FK → eihwaz_users.id
-    pub user_id: crate::utils::pk::UserId,
+    pub user_id: crate::utils::pk::Pk,
 
     /// Identifiant stable par login/appareil
     pub session_id: String,
@@ -74,7 +74,7 @@ impl RuniqueSessionStore {
     pub async fn create(
         &self,
         cookie_id: &str,
-        user_id: crate::utils::pk::UserId,
+        user_id: crate::utils::pk::Pk,
         session_id: &str,
         expires_at: chrono::NaiveDateTime,
     ) -> Result<(), DbErr> {
@@ -102,7 +102,7 @@ impl RuniqueSessionStore {
     /// Invalide toutes les sessions d'un utilisateur sauf celle en cours (exclusive login).
     pub async fn invalidate_other_sessions(
         &self,
-        user_id: crate::utils::pk::UserId,
+        user_id: crate::utils::pk::Pk,
         current_cookie_id: &str,
     ) -> Result<(), DbErr> {
         Entity::delete_many()

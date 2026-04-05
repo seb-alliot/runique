@@ -4,15 +4,12 @@ use proc_macro2::TokenStream;
 use syn::{Macro, parse_file, visit::Visit};
 
 #[derive(Debug, Clone)]
-pub struct ResourceDef {
+pub(crate) struct ResourceDef {
     /// Clé de la ressource (ex: "users")
     pub key: String,
 
     /// Chemin du Model SeaORM (ex: "users::Model")
     pub model_type: String,
-
-    /// Nom du Form Runique (ex: "RegisterForm")
-    pub form_type: String,
 
     /// Titre affiché dans l'interface admin
     pub title: String,
@@ -48,7 +45,7 @@ pub struct ResourceDef {
 
 /// Configuration d'affichage pour une ressource dans le bloc `configure {}`
 #[derive(Debug, Clone)]
-pub struct ConfigureDef {
+pub(crate) struct ConfigureDef {
     /// Clé de la ressource à configurer (ex: "users", "droits")
     pub key: String,
     /// Colonnes visibles dans la liste avec labels : [("col", "Label")]
@@ -61,13 +58,13 @@ pub struct ConfigureDef {
 
 /// Résultat du parsing de src/admin.rs
 #[derive(Debug)]
-pub struct ParsedAdmin {
+pub(crate) struct ParsedAdmin {
     pub resources: Vec<ResourceDef>,
     pub configures: Vec<ConfigureDef>,
 }
 
 /// Parse le contenu de src/admin.rs et retourne les ressources déclarées
-pub fn parse_admin_file(source: &str) -> Result<ParsedAdmin, String> {
+pub(crate) fn parse_admin_file(source: &str) -> Result<ParsedAdmin, String> {
     let syntax = parse_file(source).map_err(|e| format!("Rust syntax error: {}", e))?;
 
     let mut visitor = AdminMacroVisitor::new();
@@ -126,7 +123,6 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
 // Syntaxe attendue :
 //   key: path::Model => FormType {
 //       title: "...",
-//       permissions: ["role1", "role2"]
 //   }
 
 fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
@@ -162,8 +158,8 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
         expect_punct(&mut iter, '=')?;
         expect_punct(&mut iter, '>')?;
 
-        // 5. form_type (chemin complet possible : crate::formulaire::MyForm ou simple ident)
-        let form_type = parse_path(&mut iter)?;
+        // 5. form_type — parsé pour avancer dans le flux, mais non utilisé par le générateur
+        let _form_type = parse_path(&mut iter)?;
 
         // 6. { title: "...", permissions: [...], template_*: "...", extra: { ... } }
         let body = match iter.next() {
@@ -176,7 +172,6 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
         resources.push(ResourceDef {
             key,
             model_type,
-            form_type,
             title,
             template_list: body.template_list,
             template_create: body.template_create,
@@ -344,10 +339,6 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         match field.as_str() {
             "title" => {
                 body.title = parse_string_literal(&mut iter)?;
-            }
-            "permissions" => {
-                // Ignoré — les permissions sont gérées via les droits scopés en base
-                skip_until_punct(&mut iter, ',');
             }
             "template_list" => {
                 body.template_list = Some(parse_string_literal(&mut iter)?);

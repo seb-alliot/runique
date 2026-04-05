@@ -213,25 +213,6 @@ pub async fn csp_middleware(
     response
 }
 
-/// Middleware CSP report-only
-pub async fn csp_report_only_middleware(
-    State(engine): State<AEngine>,
-    req: Request<Body>,
-    next: Next,
-) -> Response {
-    let mut response = next.run(req).await;
-
-    let csp_value = engine.security_csp.to_header_value(None);
-    if let Ok(header) = HeaderValue::from_str(&csp_value) {
-        response.headers_mut().insert(
-            axum::http::header::CONTENT_SECURITY_POLICY_REPORT_ONLY,
-            header,
-        );
-    }
-
-    response
-}
-
 /// Middleware global de sécurité (CSP + headers divers)
 pub async fn security_headers_middleware(
     State(engine): State<AEngine>,

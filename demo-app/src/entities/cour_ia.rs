@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     CourIa,
     table: "cour_ia",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         context: String [required],
         contraintes: String [required],

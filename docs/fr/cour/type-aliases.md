@@ -43,13 +43,13 @@ I **Note importante :** Les type aliases n'ajoutent AUCUN overhead au runtime. L
 ## 2.1 Syntaxe générale
 
 ```
-type NomAlias = TypeExistant; // Exemples type UserId = i32; type Username =
+type NomAlias = TypeExistant; // Exemples type Pk = i32; type Username =
 String; type Result = std::result::Result;
 ```
 
 ## 2.2 Premier exemple concret
 
-`// Sans type alias` I `fn create_user(id: i32, name: String) -> i32 { // ... id } fn get_user(id: i32) -> Option { // ... None } // Avec type alias` I `type UserId = i32; type Username = String; fn create_user(id: UserId, name: Username) -> UserId { // ... id } fn get_user(id: UserId) -> Option { // ... None }` 
+`// Sans type alias` I `fn create_user(id: i32, name: String) -> i32 { // ... id } fn get_user(id: i32) -> Option { // ... None } // Avec type alias` I `type Pk = i32; type Username = String; fn create_user(id: Pk, name: Username) -> Pk { // ... id } fn get_user(id: Pk) -> Option { // ... None }` 
 
 Dans cet exemple, l'intention du code devient **beaucoup plus claire** . On comprend immédiatement qu'on manipule un identifiant utilisateur et un nom d'utilisateur, pas juste des entiers et des chaînes génériques. 
 
@@ -57,7 +57,7 @@ Dans cet exemple, l'intention du code devient **beaucoup plus claire** . On comp
 
 ```
 type Timestamp = i64; type JsonData = serde_json::Value; struct Event { id:
-UserId, created_at: Timestamp, data: JsonData, } // Utilisation let event =
+Pk, created_at: Timestamp, data: JsonData, } // Utilisation let event =
 Event { id: 42, created_at: 1706400000, data: serde_json::json!({"action":
 "login"}), };
 ```
@@ -72,9 +72,9 @@ Event { id: 42, created_at: 1706400000, data: serde_json::json!({"action":
 
 ```
 // Types de bases de données type DbPool = Arc>; type DbResult = Result; //
-Utilisation cohérente async fn get_user(pool: &DbPool;, id: UserId) -> DbResult
+Utilisation cohérente async fn get_user(pool: &DbPool;, id: Pk) -> DbResult
 { // ... } async fn create_user(pool: &DbPool;, user: User) -> DbResult<()> { //
-... } async fn delete_user(pool: &DbPool;, id: UserId) -> DbResult<()> { // ...
+... } async fn delete_user(pool: &DbPool;, id: Pk) -> DbResult<()> { // ...
 }
 ```
 
@@ -94,9 +94,9 @@ DashMap; // Les utilisateurs de votre API n'ont pas besoin de changer leur code
 ## 4.1 La différence fondamentale
 
 ```
-// Type Alias - PAS un nouveau type type UserId = i32; // Newtype Pattern -
-NOUVEAU type struct UserId(i32); // Conséquences : let id1: UserId = 42; // Type
-alias - OK let id2: i32 = id1; // OK - même type ! let id3 = UserId(42); //
+// Type Alias - PAS un nouveau type type Pk = i32; // Newtype Pattern -
+NOUVEAU type struct Pk(i32); // Conséquences : let id1: Pk = 42; // Type
+alias - OK let id2: i32 = id1; // OK - même type ! let id3 = Pk(42); //
 Newtype - OK let id4: i32 = id3; // ERREUR - types différents ! let id5: i32 =
 id3.0; // OK - accès explicite
 ```
@@ -128,7 +128,7 @@ id3.0; // OK - accès explicite
 
 ```
 // Alias pour Result personnalisé type AppResult = Result; // Utilisation fn
-create_user(name: &str;) -> AppResult { // ... } fn delete_user(id: UserId) ->
+create_user(name: &str;) -> AppResult { // ... } fn delete_user(id: Pk) ->
 AppResult<()> { // ... }
 ```
 
@@ -155,7 +155,7 @@ I **Astuce Pro :** Les type aliases génériques sont parfaits pour créer des A
 
 ## 6.1 Organiser vos aliases
 
-`//` I `Mauvais - dispersé partout mod user { type UserId = i32; // ... } mod product { type ProductId = i32; // ... } //` I `Bon - centralisé // types.rs ou common_types.rs pub type UserId = i32; pub type ProductId = i32; pub type Timestamp = i64; pub type JsonData = serde_json::Value; // Usage dans les autres modules use crate::types::*;` 
+`//` I `Mauvais - dispersé partout mod user { type Pk = i32; // ... } mod product { type ProductId = i32; // ... } //` I `Bon - centralisé // types.rs ou common_types.rs pub type Pk = i32; pub type ProductId = i32; pub type Timestamp = i64; pub type JsonData = serde_json::Value; // Usage dans les autres modules use crate::types::*;` 
 
 ## 6.2 Structure recommandée
 
@@ -169,7 +169,7 @@ type AppResult = Result;
 
 ## 6.3 Conventions de nommage
 
-- **Suffixes descriptifs** : UserId, UserResult, UserError 
+- **Suffixes descriptifs** : Pk, UserResult, UserError 
 
 - **Préfixes de module** : DbPool, ApiResponse, WebConfig 
 
@@ -183,7 +183,7 @@ type AppResult = Result;
 
 ## 7.1 Pas de vérification de type supplémentaire
 
-`type UserId = i32; type ProductId = i32; fn get_user(id: UserId) -> User { /* ... */ } //` II `Ceci compile sans erreur ! let product_id: ProductId = 123; let user = get_user(product_id); // BUG silencieux // Solution : Utilisez le Newtype Pattern pour une vraie type-safety struct UserId(i32); struct ProductId(i32); fn get_user(id: UserId) -> User { /* ... */ } let product_id = ProductId(123); // get_user(product_id); //` I `ERREUR de compilation !` 
+`type Pk = i32; type ProductId = i32; fn get_user(id: Pk) -> User { /* ... */ } //` II `Ceci compile sans erreur ! let product_id: ProductId = 123; let user = get_user(product_id); // BUG silencieux // Solution : Utilisez le Newtype Pattern pour une vraie type-safety struct Pk(i32); struct ProductId(i32); fn get_user(id: Pk) -> User { /* ... */ } let product_id = ProductId(123); // get_user(product_id); //` I `ERREUR de compilation !` 
 
 ## 7.2 Messages d'erreur du compilateur
 
@@ -197,7 +197,7 @@ II **Limitation :** Les messages d'erreur montrent toujours le type réel, pas l
 
 ## 7.3 Pas d'implémentation de traits
 
-`type UserId = i32; //` I `Impossible d'implémenter des traits sur un alias impl Display for UserId { // ERREUR fn fmt(&self;, f: &mut; Formatter) -> fmt::Result { write!(f, "User #{}", self) } } //` I `Solution : Utilisez un Newtype struct UserId(i32); impl Display for UserId { // OK fn fmt(&self;, f: &mut; Formatter) -> fmt::Result { write!(f, "User #{}", self.0) } }` 
+`type Pk = i32; //` I `Impossible d'implémenter des traits sur un alias impl Display for Pk { // ERREUR fn fmt(&self;, f: &mut; Formatter) -> fmt::Result { write!(f, "User #{}", self) } } //` I `Solution : Utilisez un Newtype struct Pk(i32); impl Display for Pk { // OK fn fmt(&self;, f: &mut; Formatter) -> fmt::Result { write!(f, "User #{}", self.0) } }` 
 
 ## 8. Exemples Réels (Framework Runique)
 
@@ -276,7 +276,7 @@ fn create_user( name: String, email: String, db: &Arc;> ) -> Result> { // ... }
 Organisez ces types dans une hiérarchie de modules appropriée : 
 
 ```
-// Types en vrac type UserId = i32; type ProductId = i32; type OrderId = i32;
+// Types en vrac type Pk = i32; type ProductId = i32; type OrderId = i32;
 type UserResult = Result; type ProductResult = Result; type ApiError = Box; type
 JsonPayload = serde_json::Value;
 ```
@@ -296,8 +296,8 @@ avec erreurs // 3. Un cache asynchrone avec timeout
 ## Solution Exercice 1
 
 ```
-// Types centralisés type UserId = i32; type DbPool = Arc>; type AppError = Box;
-type AppResult = Result; // Code refactoré fn get_user(id: UserId, db: &DbPool;)
+// Types centralisés type Pk = i32; type DbPool = Arc>; type AppError = Box;
+type AppResult = Result; // Code refactoré fn get_user(id: Pk, db: &DbPool;)
 -> AppResult> { // ... } fn create_user(name: String, email: String, db:
 &DbPool;) -> AppResult { // ... }
 ```
@@ -306,7 +306,7 @@ type AppResult = Result; // Code refactoré fn get_user(id: UserId, db: &DbPool;
 
 ```
 // src/types/mod.rs pub mod ids; pub mod db; pub mod api; // src/types/ids.rs
-pub type UserId = i32; pub type ProductId = i32; pub type OrderId = i32; //
+pub type Pk = i32; pub type ProductId = i32; pub type OrderId = i32; //
 src/types/db.rs use super::ids::*; pub type UserResult = Result; pub type
 ProductResult = Result; // src/types/api.rs pub type ApiError = Box; pub type
 JsonPayload = serde_json::Value; pub type ApiResult = Result;

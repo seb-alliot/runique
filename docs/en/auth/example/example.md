@@ -68,7 +68,7 @@ use runique::middleware::auth::{DefaultAdminAuth, UserEntity};
 impl UserEntity for users::Entity {
     type Model = users::Model;
 
-    async fn find_by_id(db: &DatabaseConnection, id: UserId) -> Option<Self::Model> {
+    async fn find_by_id(db: &DatabaseConnection, id: Pk) -> Option<Self::Model> {
         users::Entity::find_by_id(id).one(db).await.ok().flatten()
     }
 

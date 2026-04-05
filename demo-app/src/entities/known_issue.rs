@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     KnownIssue,
     table: "known_issue",
-    pk: id => i32,
+    pk: id => Pk,
     enums: {
         IssueType: [Manquant, Ajoute, Fix],
     },

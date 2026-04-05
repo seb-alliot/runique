@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     DocBlock,
     table: "doc_block",
-    pk: id => i32,
+    pk: id => Pk,
     enums: {
         BlockType: pg [Text, Code, Sommaire],
     },

@@ -23,5 +23,5 @@ pub use init_error::init_logging;
 pub use mailer::{Email, MailerConfig, mailer_configured, mailer_init, mailer_init_from_env};
 pub use middleware::*;
 pub use password::*;
-pub use pk::UserId;
+pub use pk::Pk;
 pub use resolve_ogimage::resolve_og_image;

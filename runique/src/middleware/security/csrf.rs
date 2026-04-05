@@ -85,8 +85,8 @@ pub async fn csrf_middleware(
         t
     } else {
         let token = if is_authenticated(&session).await {
-            let user_id: crate::utils::pk::UserId = session
-                .get::<crate::utils::pk::UserId>(SESSION_USER_ID_KEY)
+            let user_id: crate::utils::pk::Pk = session
+                .get::<crate::utils::pk::Pk>(SESSION_USER_ID_KEY)
                 .await
                 .ok()
                 .flatten()

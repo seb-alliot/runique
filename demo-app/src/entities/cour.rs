@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     Cour,
     table: "cour",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         slug: String [required],
         lang: String [required],

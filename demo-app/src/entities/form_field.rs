@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     FormField,
     table: "form_field",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         page_id: i32 [required],
         name: String [required],

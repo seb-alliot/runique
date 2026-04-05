@@ -3,6 +3,7 @@ use crate::app::templates::TemplateLoader;
 use crate::errors::error::ErrorContext;
 use crate::flash::Message;
 use crate::impl_from_error;
+use crate::middleware::auth::CurrentUser;
 use crate::utils::aliases::{AEngine, AppResult};
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
@@ -88,7 +89,7 @@ pub struct Request {
     pub notices: Message,
     /// Token CSRF de la requête (masqué dans le contexte Tera).
     pub csrf_token: CsrfToken,
-    /// Contexte Tera pré-rempli (csrf_token, debug, messages, current_user…).
+    /// Contexte Tera pré-rempli (csrf_token, debug, messages, user…).
     pub context: Context,
     /// Méthode HTTP de la requête.
     pub method: Method,
@@ -96,6 +97,8 @@ pub struct Request {
     pub path_params: HashMap<String, String>,
     /// Paramètres de query string.
     pub query_params: HashMap<String, String>,
+    /// Utilisateur courant (None si non authentifié).
+    pub user: Option<CurrentUser>,
 }
 
 impl<S> FromRequestParts<S> for Request
@@ -142,9 +145,9 @@ where
         context.insert("csp_nonce", nonce);
         context.insert("static_runique", &engine.config.static_files);
         context.insert("messages", &messages);
-        // Inject current_user if available
-        if let Some(current_user) = ex.get::<crate::middleware::auth::CurrentUser>() {
-            context.insert("current_user", current_user);
+        let user = ex.get::<CurrentUser>().cloned();
+        if let Some(ref u) = user {
+            context.insert("current_user", u);
         }
         let path_params = Path::<HashMap<String, String>>::from_request_parts(parts, state)
             .await
@@ -178,6 +181,7 @@ where
             method: parts.method.clone(),
             path_params,
             query_params,
+            user,
         })
     }
 }
@@ -206,6 +210,7 @@ impl Request {
             method,
             path_params: HashMap::new(),
             query_params: HashMap::new(),
+            user: None,
         }
     }
 

@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     CourBlock,
     table: "cour_block",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         chapitre_id: i32 [required],
         heading: String [nullable],

@@ -87,7 +87,7 @@ pub mod prelude {
     };
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
-    pub use crate::utils::config::UserId;
+    pub use crate::utils::config::Pk;
     pub use crate::{error, flash_now, impl_objects, info, search, success, warning};
     pub use derive_form::{form, model};
 
@@ -97,7 +97,7 @@ pub mod prelude {
     use crate::chrono;
     pub use crate::config::{security::SecurityConfig, server::ServerConfig};
     pub use crate::utils::env::{is_debug, load_env};
-    pub use crate::utils::trad::{Lang, current_lang, set_lang, t, tf};
+    pub use crate::utils::trad::{Lang, current_lang, set_lang};
     pub use dotenvy;
 
     // ========================================================================
@@ -107,7 +107,6 @@ pub mod prelude {
         RouterExt, register_name_url, register_pending, reverse, reverse_with_parameters,
     };
     pub use crate::utils::csp_nonce::*;
-    pub use crate::utils::csrf::*;
     pub use crate::{urlpatterns, view};
 
     // ========================================================================
@@ -200,16 +199,19 @@ pub mod prelude {
     // Admin
     // ========================================================================
     pub use crate::admin::config::config_admin::AdminConfig;
-    pub use crate::admin::daemon::{generate, parse_admin_file, watch};
     pub use crate::admin::resource::{
         AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
     };
-    pub use crate::admin::router::{AdminState, build_admin_router};
-    pub use crate::admin::template::{AdminTemplate, PathAdminTemplate};
-    pub use crate::admin::{
-        AdminRegistry, CountFn, CreateFn, DeleteFn, DynForm, FormBuilder, GetFn, ListFn,
-        ListParams, PrototypeAdminState, ResourceEntry, SortDir, UpdateFn, admin_get, admin_get_id,
-        admin_post, admin_post_id,
+    // Items used by daemon-generated code (external crate) via `use runique::prelude::*`
+    pub use crate::admin::admin_main::{
+        PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id,
+    };
+    pub use crate::admin::builtin::builtin_resources;
+    pub use crate::admin::dyn_form::DynForm;
+    pub use crate::admin::registry::AdminRegistry;
+    pub use crate::admin::resource_entry::{
+        CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ListParams, ResourceEntry,
+        SortDir, UpdateFn,
     };
     pub use futures_util::future::BoxFuture;
 }

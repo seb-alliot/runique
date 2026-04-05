@@ -15,7 +15,7 @@ use std::{
 /// - Modification de `main.rs` avec `.with_admin(` commenté → arrête le daemon.
 ///
 /// Bloquant — tourne jusqu'à Ctrl+C ou désactivation de `.with_admin`.
-pub fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
+pub(crate) fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
     let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
 
     let mut watcher: RecommendedWatcher = RecommendedWatcher::new(tx, Config::default())

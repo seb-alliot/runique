@@ -1,9 +1,10 @@
-//! `RouterExt` — extension d'Axum `Router` pour attacher un rate limiter à une route.
+//! `RouterExt` — extension d'Axum `Router` pour attacher un rate limiter ou un guard de login à une route.
 use std::sync::Arc;
 
 use axum::{Router, routing::MethodRouter};
 
 use crate::macros::routeur::register_url::register_pending;
+use crate::middleware::auth::login_required_middleware;
 use crate::middleware::rate_limit::{RateLimiter, rate_limit_middleware};
 
 /// Extension de `Router` pour ajouter des routes avec rate limiting de façon fluente.
@@ -23,6 +24,21 @@ use crate::middleware::rate_limit::{RateLimiter, rate_limit_middleware};
 ///     ])
 /// ```
 pub trait RouterExt {
+    /// Ajoute une route protégée par `login_required` — redirige vers `redirect_url` si non authentifié.
+    ///
+    /// # Exemple
+    /// ```rust,ignore
+    /// urlpatterns! { ... }
+    ///     .login_required("/profil", "profil", view!(profil), "/login")
+    /// ```
+    fn login_required(
+        self,
+        path: impl Into<String>,
+        name: impl Into<String>,
+        handler: MethodRouter,
+        redirect_url: impl Into<String>,
+    ) -> Self;
+
     /// Ajoute une route protégée par un rate limiter.
     fn rate_limit(
         self,
@@ -43,6 +59,27 @@ pub trait RouterExt {
 }
 
 impl RouterExt for Router {
+    fn login_required(
+        self,
+        path: impl Into<String>,
+        name: impl Into<String>,
+        handler: MethodRouter,
+        redirect_url: impl Into<String>,
+    ) -> Self {
+        let path = path.into();
+        let name = name.into();
+        let redirect = Arc::new(redirect_url.into());
+        register_pending(&name, &path);
+        let protected =
+            Router::new()
+                .route(&path, handler)
+                .route_layer(axum::middleware::from_fn_with_state(
+                    redirect,
+                    login_required_middleware,
+                ));
+        self.merge(protected)
+    }
+
     fn rate_limit(
         self,
         path: impl Into<String>,

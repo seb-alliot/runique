@@ -46,11 +46,11 @@
             <a href="{% link 'contribution_list' %}">Contribute</a>
         </div>
         <div class="site-nav-actions">
-            {% if current_user %}
-                {% if current_user.is_superuser %}
+            {% if user %}
+                {% if user.is_superuser %}
                     <a href="{% link 'admin_login' %}" class="site-nav-link-action">admin</a>
                 {% endif %}
-                <a href="{% link 'profil' %}" class="site-nav-link-action">{{ current_user.username }}</a>
+                <a href="{% link 'profil' %}" class="site-nav-link-action">{{ user.username }}</a>
             {% else %}
                 <a href="{% link 'login' %}" class="site-nav-link-action">Login</a>
             {% endif %}

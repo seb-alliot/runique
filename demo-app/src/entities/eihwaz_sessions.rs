@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     EihwazSession,
     table: "eihwaz_sessions",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         cookie_id: String [required, max_len(100), unique],
         user_id: i32 [required],

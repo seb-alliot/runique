@@ -12,6 +12,7 @@ Runique intègre des middlewares de sécurité configurables appliqués automati
 | [Hosts & Cache](/docs/fr/middleware/hosts-cache) | Allowed Hosts, Cache-Control, headers de sécurité |
 | [Builder & configuration](/docs/fr/middleware/builder) | Builder classique, Builder Intelligent, variables d'env |
 | [Rate Limiting](/docs/fr/middleware/rate-limit) | Limitation de débit par IP, par route, configurable |
+| [Login Required](/docs/fr/middleware/login-required) | Protection de routes — redirige si non authentifié |
 
 ## Stack d'exécution
 

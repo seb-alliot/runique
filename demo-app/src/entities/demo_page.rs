@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     DemoPage,
     table: "demo_page",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         category_id: i32 [required],
         slug: String [required],

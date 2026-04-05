@@ -8,5 +8,6 @@ pub mod templates;
 pub use builder::RuniqueAppBuilder;
 pub use error_build::{BuildError, BuildErrorKind, CheckError, CheckReport};
 pub use runique_app::RuniqueApp;
-pub use staging::{AdminStaging, CoreStaging, CspConfig, MiddlewareStaging, StaticStaging};
-pub use templates::*;
+pub use staging::{
+    AdminStaging, CoreStaging, CspConfig, HostConfig, MiddlewareStaging, StaticStaging,
+};

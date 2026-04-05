@@ -178,10 +178,23 @@ impl Parse for PkDef {
             "i32" => PkType::I32,
             "i64" => PkType::I64,
             "uuid" => PkType::Uuid,
+            "Pk" => {
+                #[cfg(feature = "big-pk")]
+                {
+                    PkType::I64
+                }
+                #[cfg(not(feature = "big-pk"))]
+                {
+                    PkType::I32
+                }
+            }
             other => {
                 return Err(syn::Error::new(
                     ty_ident.span(),
-                    format!("Type de PK inconnu : '{}'. Attendu : i32, i64, uuid", other),
+                    format!(
+                        "Type de PK inconnu : '{}'. Attendu : i32, i64, Pk, uuid",
+                        other
+                    ),
                 ))
             }
         };

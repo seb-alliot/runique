@@ -7,7 +7,7 @@
 /// runique = { version = "...", features = ["big-pk"] }
 /// ```
 #[cfg(feature = "big-pk")]
-pub type UserId = i64;
+pub type Pk = i64;
 
 #[cfg(not(feature = "big-pk"))]
-pub type UserId = i32;
+pub type Pk = i32;

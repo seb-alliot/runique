@@ -79,7 +79,7 @@ impl HostPolicy {
     }
 }
 
-pub async fn allowed_hosts_middleware(
+pub(crate) async fn allowed_hosts_middleware(
     State(engine): State<AEngine>,
     request: Request<Body>,
     next: Next,

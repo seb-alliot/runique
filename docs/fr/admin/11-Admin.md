@@ -10,7 +10,6 @@ L'approche est volontairement transparente : pas de magie cachée, pas de runtim
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin", "staff"],
         list_display: [
             ["username", "Nom d'utilisateur"],
             ["email", "Email"],
