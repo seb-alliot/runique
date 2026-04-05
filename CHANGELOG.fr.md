@@ -178,7 +178,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ---
 
-## [1.1.53] - À venir
+## [1.1.53]
 
 ### Correctifs
 
