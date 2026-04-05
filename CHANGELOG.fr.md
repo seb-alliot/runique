@@ -8,6 +8,29 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ## [1.1.54] - À venir
 
+### Rupture
+
+* **Admin — `permissions:` retiré de `admin!{}`:**
+  Le champ `permissions: [...]` n'est plus accepté par la macro `admin!{}`.
+  Le supprimer de toutes les déclarations de ressources — le contrôle d'accès est désormais géré
+  entièrement depuis le panel admin via les droits scopés.
+  Voir la documentation [Permissions](/docs/fr/admin/permission).
+
+### Correctifs
+
+* **Admin — système de permissions par ressource :**
+  Le champ statique `permissions: [...]` déclaré dans `admin!{}` est remplacé par un système de
+  permissions entièrement piloté depuis la base de données et géré via le panel admin.
+  `eihwaz_droits` reçoit deux colonnes nullable : `resource_key` et `access_type` (`"view"` / `"write"`).
+  Un droit scopé (`resource_key = "blog"`, `access_type = "view"`) donne la visibilité de la ressource
+  dans la nav ; `access_type = "write"` donne accès au create/edit/delete.
+  Au démarrage, `seed_resource_droits` insère automatiquement `{key}.view` et `{key}.write` dans
+  `eihwaz_droits` pour chaque ressource enregistrée si absents — aucune configuration manuelle requise.
+  Les ressources `droits` et `groupes` sont superuser uniquement et ne peuvent pas être débloquées
+  via des droits scopés.
+  La révocation est immédiate : supprimer un droit vide le cache de permissions de tous les utilisateurs.
+  La vérification write est appliquée côté serveur dans `admin_main` avant chaque opération POST.
+
 ### Ajouté
 
 * **Admin — bloc `configure {}` dans `admin!{}`:**
@@ -87,8 +110,6 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 * **Docs — macro `admin!`** : bloc `configure {}`, tableau des champs mis à jour.
 * **Docs — vue liste** : sous-section "Configurer les builtins" ajoutée.
 
----
-
 * **Macro `search!` — refonte syntaxe style Django :**
   La macro `search!` adopte une syntaxe inspirée de Django ORM, plus lisible et plus facile à maintenir.
   L'ancienne syntaxe `+Col = val` est remplacée par `Col eq val`. Les symboles `~~`, `!~~`, `+`, `-`
@@ -105,11 +126,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
   Exemple : `search!(Entity => Col eq val, asc SortOrder, desc Id)`.
 
 * **Macro `search!` — nouveaux bras :**
-  - `search!(Entity)` — fetch all sans filtre
-  - `Col isnull` / `Col not_null` — IS NULL / IS NOT NULL
-  - `Col in (expr)` / `! Col in (expr)` — IN / NOT IN dynamique (Vec, itérateur)
-  - `Col range (a, b)` / `! Col range (a, b)` — BETWEEN / NOT BETWEEN
-  - `or(Col1 op val, Col2 op val)` — OR multi-colonnes
+  * `search!(Entity)` — fetch all sans filtre
+  * `Col isnull` / `Col not_null` — IS NULL / IS NOT NULL
+  * `Col in (expr)` / `! Col in (expr)` — IN / NOT IN dynamique (Vec, itérateur)
+  * `Col range (a, b)` / `! Col range (a, b)` — BETWEEN / NOT BETWEEN
+  * `or(Col1 op val, Col2 op val)` — OR multi-colonnes
 
 * **`RuniqueQueryBuilder` — `.into_select()` :**
   Expose le `Select<E>` SeaORM interne pour chaîner `.select_only()`, `.column()`, `.distinct()`,
@@ -117,6 +138,43 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 * **`RuniqueQueryBuilder` — aliases `.asc()` / `.desc()` :**
   Aliases de `.order_by_asc()` / `.order_by_desc()` pour les cas d'ordering externe à la macro.
+
+* **Vue admin — barre de recherche et persistance des filtres (HTMX) :**
+  La vue liste de l'admin inclut désormais une barre de recherche et des filtres par champ.
+  L'état des filtres est persisté entre les requêtes. Implémenté via HTMX — rendu partiel sans rechargement complet.
+
+* **Exercice interactif (demo-app) :**
+  Exercices interactifs connectés à une IA, basés sur un prompt, proposant des entraînements sur le cours en cours.
+  Actuellement en beta sur la démo.
+
+* **`derive_form` — support des relations Sea-ORM :**
+  La macro procédurale `derive_form` a été mise à jour pour supporter les relations Sea-ORM.
+  La macro `search!` a été mise à jour en conséquence pour s'aligner sur la nouvelle sortie `derive_form`.
+
+* **Sessions — gestion DB avec injection de contexte dynamique :**
+  Les sessions utilisent désormais une gestion en base de données avec injection dynamique de contexte constant.
+  La surveillance des permissions est gérée par des vérifications de lecture middleware ; les accès en écriture sont conditionnés à des permissions d'écriture explicites.
+  Les mises à jour asynchrones sont implémentées via Tokio et SeaORM.
+
+### Correctifs
+
+* **Admin — surcharge de template via le builder (rétablie) :**
+  La surcharge de templates via le builder dans la vue admin a été rétablie.
+  La logique de démo a été séparée de la logique du framework.
+
+* **`makemigrations` / migration up — ordre des relations de tables :**
+  Les problèmes d'ordre des relations de tables à la création ont été corrigés.
+  Le CLI génère désormais les migrations dans le bon ordre de dépendance.
+
+* **Admin — déconnexion (session et cookie non vidés) :**
+  Ajout d'un appel `logout()` dans le handler `admin_logout`.
+  La session est désormais correctement invalidée côté serveur (suppression par clé + suppression).
+  Tower-sessions gère automatiquement la suppression du cookie via l'en-tête `Set-Cookie`.
+  Correction d'un bug silencieux où l'utilisateur restait authentifié après déconnexion.
+
+* **Admin — CSRF sur le login avec session DB :**
+  Le token CSRF sur la page de login admin était cassé avec le système de session en base.
+  Désormais corrigé.
 
 ---
 
@@ -166,6 +224,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
   Deux flows : `/forgot-password` (demande par email) et `/reset-password/{token}/{email}` (mise à jour du mot de passe).
   Les templates sont embarqués et surchargeables. Le rate limiting est appliqué automatiquement.
   Utilisation : `.with_password_reset::<BuiltinUserEntity>(|pr| pr)`
+
+* **Versionnage CSS :**
+  Un token de version à 4 chiffres stocké dans un `LazyLock` est ajouté aux URLs des fichiers CSS à chaque rebuild.
+  Évite les problèmes de cache périmé sans stratégie de cache-busting côté serveur.
+
+* **Vue admin — filtres par champ, recherche et colonnes triables :**
+  La vue liste de l'admin est améliorée avec des filtres par champ, une barre de recherche par nom, et une
+  pagination appliquée aux résultats filtrés avec un nombre d'éléments par page configurable.
+  Les colonnes sont triables en ordre croissant ou décroissant, avec un tri alphanumérique pour les champs texte.
 
 ---
 

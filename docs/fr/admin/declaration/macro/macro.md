@@ -14,13 +14,11 @@ admin! {
     // Champs obligatoires uniquement
     articles: articles::Model => ArticleForm {
         title: "Articles",
-        permissions: ["admin"]
     },
 
     // Tous les champs optionnels
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"],
         id_type: I32,                                        // I32 | I64 | Uuid
         edit_form: crate::formulaire::UserEditForm,          // formulaire distinct pour l'édition
         list_display: [                                      // colonnes visibles dans la vue liste
@@ -54,7 +52,6 @@ La macro est parsée par le daemon (`runique start`) qui génère la fonction `a
 | `model` (position) | chemin de type | Ex: `users::Model` |
 | `form` (position) | chemin de type | Type du formulaire Runique associé |
 | `title` | `&str` | Titre affiché dans l'interface |
-| `permissions` | `[&str; N]` | Rôles déclarés pour cette ressource (⚠️ non appliqués — voir [Permissions](/docs/fr/admin/permission)) |
 
 ### Optionnels — comportement
 
@@ -100,7 +97,6 @@ Par défaut, le segment `{id}` des routes admin est converti en `i32`. Déclarer
 admin! {
     posts: posts::Model => PostForm {
         title: "Articles",
-        permissions: ["admin"],
         id_type: I64
     }
 }
@@ -118,7 +114,6 @@ Utiliser un formulaire différent pour la création et l'édition (cas courant :
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"],
         edit_form: crate::formulaire::UserEditForm
     }
 }
@@ -134,7 +129,6 @@ Déclare les colonnes affichées dans la vue liste et leurs libellés :
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"],
         list_display: [
             ["username", "Nom d'utilisateur"],
             ["email", "Email"],
@@ -161,7 +155,6 @@ Déclare les champs disponibles dans la barre de filtre latérale :
 admin! {
     doc_page: doc_page::Model => DocPageForm {
         title: "Doc — Pages",
-        permissions: ["admin"],
         list_filter: [
             ["lang", "Langue"],          // défaut : 10 valeurs par page
             ["block_type", "Type", 5],   // limite explicite : 5 valeurs par page
@@ -190,7 +183,6 @@ Injecter des variables Tera disponibles dans tous les templates de cette ressour
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"],
         extra: {
             "icon" => "user",
             "color" => "#3b82f6"
@@ -211,15 +203,12 @@ Les clés sont accessibles via `{{ resource.extra_context.icon }}`.
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"]
     },
     articles: articles::Model => ArticleForm {
         title: "Articles",
-        permissions: ["admin", "editor"]
     },
     comments: comments::Model => CommentForm {
         title: "Commentaires",
-        permissions: ["moderator", "admin"]
     }
 }
 ```
@@ -234,7 +223,6 @@ La macro `admin!` couvre uniquement les **métadonnées de registre** :
 - le modèle SeaORM utilisé
 - le formulaire Runique pour la création/modification
 - le titre d'affichage
-- les rôles autorisés (uniformément sur toutes les opérations CRUD)
 - le type de la clé primaire (`id_type`)
 - un formulaire distinct pour l'édition (`edit_form`)
 - les colonnes visibles dans la vue liste (`list_display`)
@@ -246,7 +234,7 @@ La macro `admin!` couvre uniquement les **métadonnées de registre** :
 
 | Fonctionnalité | Raison de l'exclusion |
 | --- | --- |
-| Permissions par opération CRUD | Non supporté — les rôles s'appliquent globalement |
+| Permissions d'accès aux ressources | Gérées depuis le panel via les droits scopés — voir [Permissions](/docs/fr/admin/permission) |
 | Règles conditionnelles | Relève de la logique métier, à écrire dans le code généré |
 | Rendu HTML / templates | Séparation des responsabilités |
 | Relations complexes / JOINs | Trop spécifique pour être déclaratif |

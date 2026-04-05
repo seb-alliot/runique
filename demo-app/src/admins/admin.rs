@@ -445,7 +445,6 @@ impl DynForm for RuniqueReleaseAdminFormDynWrapper {
 /// Construit le registre admin au boot.
 /// Appelé par le builder de l'application.
 pub fn admin_register() -> AdminRegistry {
-    runique::admin::register_roles(vec!["admin".to_string()]);
     let mut registry = AdminRegistry::new();
     for entry in runique::admin::builtin_resources() {
         registry.register(entry);
@@ -457,7 +456,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::contribution::Model",
         "AdminForm",
         "Contribution",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -782,7 +781,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::blog::Model",
         "AdminForm",
         "Articles",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -1146,7 +1145,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::changelog_entry::Model",
         "AdminForm",
         "Changelog",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -1572,7 +1571,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::roadmap_entry::Model",
         "AdminForm",
         "Roadmap",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -2102,7 +2101,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::known_issue::Model",
         "AdminForm",
         "Problèmes connus",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -2479,7 +2478,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::demo_category::Model",
         "AdminForm",
         "Catégories",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -2584,7 +2583,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::demo_page::Model",
         "AdminForm",
         "Pages",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -3006,7 +3005,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::demo_section::Model",
         "AdminForm",
         "Sections",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -3328,7 +3327,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::code_example::Model",
         "AdminForm",
         "Exemples de code",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -3748,7 +3747,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::page_doc_link::Model",
         "AdminForm",
         "Liens documentation",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -4119,7 +4118,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::form_field::Model",
         "AdminForm",
         "Champs formulaire",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -4596,7 +4595,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::doc_section::Model",
         "AdminForm",
         "Doc — Sections",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -4817,7 +4816,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::doc_page::Model",
         "AdminForm",
         "Doc — Pages",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -5239,7 +5238,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::doc_block::Model",
         "AdminForm",
         "Doc — Blocs",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -5612,7 +5611,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::site_config::Model",
         "AdminForm",
         "Configuration site",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -5717,7 +5716,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::cour::Model",
         "AdminForm",
         "Cours",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -6185,7 +6184,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::chapitre::Model",
         "AdminForm",
         "Chapitres",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -6506,7 +6505,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::cour_block::Model",
         "AdminForm",
         "Cours — Blocs",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
@@ -6833,7 +6832,7 @@ pub fn admin_register() -> AdminRegistry {
         "crate::entities::runique_release::Model",
         "AdminForm",
         "Releases Runique",
-        vec!["admin".to_string()],
+        vec![],
     );
     let form_builder: FormBuilder =
         Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {

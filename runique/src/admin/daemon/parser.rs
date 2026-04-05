@@ -17,9 +17,6 @@ pub struct ResourceDef {
     /// Titre affiché dans l'interface admin
     pub title: String,
 
-    /// Rôles autorisés
-    pub permissions: Vec<String>,
-
     /// Surcharges de templates par opération (optionnel)
     pub template_list: Option<String>,
     pub template_create: Option<String>,
@@ -175,14 +172,12 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
             None => return Err("Expected '{{', end of file".to_string()),
         };
         let title = body.title.clone();
-        let permissions = body.permissions.clone();
 
         resources.push(ResourceDef {
             key,
             model_type,
             form_type,
             title,
-            permissions,
             template_list: body.template_list,
             template_create: body.template_create,
             template_edit: body.template_edit,
@@ -303,7 +298,6 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
 
 struct ResourceBody {
     title: String,
-    permissions: Vec<String>,
     template_list: Option<String>,
     template_create: Option<String>,
     template_edit: Option<String>,
@@ -324,7 +318,6 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
     let mut iter = tokens.into_iter().peekable();
     let mut body = ResourceBody {
         title: String::new(),
-        permissions: Vec::new(),
         template_list: None,
         template_create: None,
         template_edit: None,
@@ -353,7 +346,8 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
                 body.title = parse_string_literal(&mut iter)?;
             }
             "permissions" => {
-                body.permissions = parse_permissions_array(&mut iter)?;
+                // Ignoré — les permissions sont gérées via les droits scopés en base
+                skip_until_punct(&mut iter, ',');
             }
             "template_list" => {
                 body.template_list = Some(parse_string_literal(&mut iter)?);
@@ -400,9 +394,6 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
 
     if body.title.is_empty() {
         return Err(t("parser.title_required").to_string());
-    }
-    if body.permissions.is_empty() {
-        return Err(t("parser.permissions_required").to_string());
     }
     if !body.list_display.is_empty() && !body.list_exclude.is_empty() {
         return Err(t("parser.list_display_exclude_exclusive").to_string());
@@ -691,39 +682,6 @@ fn parse_ident(iter: &mut TokenIter) -> Result<String, String> {
         Some(TokenTree::Ident(id)) => Ok(id.to_string()),
         Some(other) => Err(format!("Expected identifier, found: {}", other)),
         None => Err("Expected identifier, end of file".to_string()),
-    }
-}
-
-/// Parse un tableau de permissions ["role1", "role2"]
-fn parse_permissions_array(iter: &mut TokenIter) -> Result<Vec<String>, String> {
-    use proc_macro2::TokenTree;
-
-    match iter.next() {
-        Some(TokenTree::Group(group)) => {
-            let mut roles = Vec::new();
-            let mut inner = group.stream().into_iter().peekable();
-
-            while inner.peek().is_some() {
-                match inner.next() {
-                    Some(TokenTree::Literal(lit)) => {
-                        let s = lit.to_string();
-                        if s.starts_with('"') && s.ends_with('"') {
-                            roles.push(s[1..s.len() - 1].to_string());
-                        }
-                    }
-                    Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
-                    _ => continue,
-                }
-            }
-
-            if roles.is_empty() {
-                Err(t("parser.role_required").to_string())
-            } else {
-                Ok(roles)
-            }
-        }
-        Some(other) => Err(tf("parser.array_expected", &[&other.to_string()])),
-        None => Err(t("parser.array_eof").to_string()),
     }
 }
 

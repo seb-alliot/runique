@@ -14,13 +14,11 @@ admin! {
     // Required fields only
     articles: articles::Model => ArticleForm {
         title: "Articles",
-        permissions: ["admin"]
     },
 
     // All optional fields
     users: users::Model => RegisterForm {
         title: "Users",
-        permissions: ["admin"],
         id_type: I32,                                  // I32 | I64 | Uuid
         edit_form: crate::forms::UserEditForm,         // separate form for edit
         list_display: [                                // visible columns in list view
@@ -54,7 +52,6 @@ The macro is parsed by the daemon (`runique start`) which generates the `admin_r
 | `model` (positional) | type path | e.g. `users::Model` |
 | `form` (positional) | type path | Runique form type for create/edit |
 | `title` | `&str` | Title displayed in the interface |
-| `permissions` | `[&str; N]` | Roles declared for this resource (⚠️ not enforced — see [Permissions](/docs/en/admin/permission)) |
 
 ### Optional — behaviour
 
@@ -100,7 +97,6 @@ By default, the `{id}` route segment is converted to `i32`. Declaring a differen
 admin! {
     posts: posts::Model => PostForm {
         title: "Posts",
-        permissions: ["admin"],
         id_type: I64
     }
 }
@@ -118,7 +114,6 @@ Use a different form for create and edit (common case: the create form includes 
 admin! {
     users: users::Model => RegisterForm {
         title: "Users",
-        permissions: ["admin"],
         edit_form: crate::forms::UserEditForm
     }
 }
@@ -134,7 +129,6 @@ Declare which columns are shown in the list view and their labels:
 admin! {
     users: users::Model => RegisterForm {
         title: "Users",
-        permissions: ["admin"],
         list_display: [
             ["username", "Username"],
             ["email", "Email"],
@@ -160,7 +154,6 @@ Declare fields available in the sidebar filter:
 admin! {
     doc_page: doc_page::Model => DocPageForm {
         title: "Doc — Pages",
-        permissions: ["admin"],
         list_filter: [
             ["lang", "Language"],          // default: 10 values per page
             ["block_type", "Type", 5],     // explicit limit: 5 values per page
@@ -185,7 +178,6 @@ Inject Tera variables available in all templates for this resource:
 admin! {
     users: users::Model => RegisterForm {
         title: "Users",
-        permissions: ["admin"],
         extra: {
             "icon" => "user",
             "color" => "#3b82f6"
@@ -206,15 +198,12 @@ Keys are accessible via `{{ resource.extra_context.icon }}`.
 admin! {
     users: users::Model => RegisterForm {
         title: "Users",
-        permissions: ["admin"]
     },
     articles: articles::Model => ArticleForm {
         title: "Articles",
-        permissions: ["admin", "editor"]
     },
     comments: comments::Model => CommentForm {
         title: "Comments",
-        permissions: ["moderator", "admin"]
     }
 }
 ```
@@ -229,7 +218,6 @@ The `admin!` macro covers only **registry metadata**:
 - the SeaORM model used
 - the Runique form for create/edit
 - the display title
-- the allowed roles (uniformly across all CRUD operations)
 - the primary key type (`id_type`)
 - a separate form for edit operations (`edit_form`)
 - visible columns in the list view (`list_display`)
@@ -241,7 +229,7 @@ The `admin!` macro covers only **registry metadata**:
 
 | Feature | Reason for exclusion |
 | --- | --- |
-| Per-CRUD-operation permissions | Not supported — roles apply globally |
+| Resource access permissions | Managed from the panel via scoped droits — see [Permissions](/docs/en/admin/permission) |
 | Conditional rules | Business logic, to be written in the generated code |
 | HTML rendering / templates | Separation of concerns |
 | Filters or complex relations | Too specific to be declarative |

@@ -1,102 +1,89 @@
 # Rôles et permissions
 
-## Source de vérité : la table `users`
+## Vue d'ensemble
 
-Le système de permissions s'appuie sur l'utilisateur authentifié, dont les données sont lues depuis la table `users`.
+Le système de permissions admin repose sur deux niveaux distincts :
+
+| Niveau | Contrôle | Effet |
+| --- | --- | --- |
+| **Permission (view)** | Droit scopé `access_type = "view"` | Ressource visible dans la nav |
+| **Droit (write)** | Droit scopé `access_type = "write"` | Accès create / edit / delete |
+| **Superuser** | `is_superuser = true` | Bypass les deux niveaux |
+
+---
 
 ## Champs de contrôle d'accès
 
-| Champ | Type | État | Rôle |
+| Champ | Type | Rôle |
+| --- | --- | --- |
+| `is_staff` | `bool` | Autorise l'accès à l'interface admin |
+| `is_superuser` | `bool` | Accès total, bypass toutes les vérifications |
+| `is_active` | `bool` | Bloque les comptes inactifs |
+
+---
+
+## Droits scopés
+
+Chaque ressource enregistrée dispose automatiquement de deux droits dans `eihwaz_droits`, créés au démarrage par le framework si absents :
+
+| Nom | `resource_key` | `access_type` | Effet |
 | --- | --- | --- | --- |
-| `is_staff` | `bool` | ✅ Actif | Autorise l'accès à l'interface admin |
-| `is_superuser` | `bool` | ✅ Actif | Accès total, bypass toutes les vérifications |
-| `is_active` | `bool` | ⏳ En développement | Prévu pour bloquer les comptes désactivés |
-| `roles` | `Option<Vec<String>>` | ✅ Actif | Rôles utilisateur — accessibles dans les templates via `current_user.roles` |
+| `blog.view` | `"blog"` | `"view"` | Voir la ressource blog dans la nav |
+| `blog.write` | `"blog"` | `"write"` | Créer / modifier / supprimer dans blog |
+
+Ces droits sont des entrées ordinaires dans `eihwaz_droits` — l'admin les assigne aux utilisateurs ou aux groupes depuis le panel, exactement comme n'importe quel autre droit.
 
 ---
 
-## Ce qui est réellement appliqué aujourd'hui
+## Configuration via le panel
 
-### Entrée dans l'admin
+### Accorder la visibilité d'une ressource
 
-Le middleware vérifie uniquement `is_staff` et `is_superuser` :
+1. Aller dans **Admin → Droits**
+2. Trouver `blog.view` (créé automatiquement au démarrage)
+3. Aller dans **Admin → Utilisateurs**, ouvrir le profil du staff
+4. Assigner le droit `blog.view`
 
-```
-is_staff = true  OU  is_superuser = true  →  accès accordé
-les deux = false                           →  redirection /admin/login
-```
+L'utilisateur verra désormais la ressource `blog` dans la navigation admin.
 
-### is_superuser
+### Accorder l'accès en écriture
 
-Un utilisateur avec `is_superuser = true` bypass **toutes** les vérifications — entrée admin et permissions par ressource.
+Même procédure avec `blog.write`. Un utilisateur peut avoir `blog.view` sans `blog.write` — il voit la liste mais ne peut pas créer/modifier/supprimer.
 
----
+### Révocation immédiate
 
-## Ce qui est déclaré mais pas encore appliqué
-
-### is_active
-
-Le champ existe dans le modèle `users` mais n'est pas encore vérifié par le middleware admin. Un compte avec `is_active = false` peut toujours se connecter si `is_staff` ou `is_superuser` est `true`.
-
-### roles
-
-Le champ `roles` est disponible dans tous les templates admin via `current_user.roles`.
-
-#### Saisie dans l'interface admin
-
-Les rôles se saisissent en texte libre, séparés par des virgules :
-
-```
-editor
-editor, moderator
-admin, editor
-```
-
-#### Utilisation dans les templates
-
-```html
-{% if current_user and "editor" in current_user.roles %}
-    <a href="...">Modifier</a>
-{% endif %}
-```
-
-`is_superuser = true` bypass toujours les conditions de rôle — un superuser voit tout.
-
-#### Permissions par ressource (déclaratives)
-
-La macro `admin!` permet de déclarer des rôles autorisés par ressource :
-
-```rust
-admin! {
-    articles: articles::Model => ArticleForm {
-        title: "Articles",
-        permissions: ["editor", "admin"]
-    }
-}
-```
-
-La structure `ResourcePermissions` et la fonction `check_permission()` existent dans le code, mais **ne sont pas appelées** dans les handlers CRUD générés. Les permissions sont stockées sans être vérifiées à ce stade.
+Retirer un droit d'un utilisateur prend effet à sa prochaine requête — aucune déconnexion requise. Supprimer un droit de `eihwaz_droits` vide le cache de permissions de **tous** les utilisateurs instantanément.
 
 ---
 
-## Logique d'accès actuelle (état réel)
+## Ressources superuser uniquement
 
-```
+Les ressources `droits` et `groupes` ne peuvent être accédées que par un `is_superuser`. Aucun droit scopé ne peut débloquer leur accès pour un staff — c'est une règle fixe du framework.
+
+Cela empêche l'escalade de privilèges : un staff ne peut jamais modifier ses propres droits ou ceux d'autres utilisateurs.
+
+---
+
+## Logique d'accès (état actuel)
+
+```text
 authentifié ?
   └─ non → redirection /admin/login
   └─ oui → is_staff OU is_superuser ?
                └─ aucun → redirection /admin/login
-               └─ is_superuser → AUTORISÉ (accès total)
-               └─ is_staff seulement → AUTORISÉ (sans vérification de rôle)
+               └─ is_superuser → AUTORISÉ (accès total, toutes ressources)
+               └─ is_staff → ressource visible si droit .view assigné
+                              opération write si droit .write assigné
+                              droits/groupes → refusé (superuser uniquement)
 ```
 
 ---
 
 ## Notes
 
-- `is_active` et `roles` sont prévus dans la roadmap — voir [Évolutions](/docs/fr/admin/evolution).
-- La macro `admin!` définit uniquement les règles déclaratives ; la logique d'application est dans les middlewares.
-- La granularité par opération CRUD (list/create/edit/delete) n'est pas supportée dans la version actuelle.
+- La macro `admin!` ne déclare plus de `permissions:` — la configuration est entièrement en base.
+- Les droits scopés sont créés automatiquement : le dev n'a rien à faire côté code.
+- Un utilisateur sans aucun droit scopé ne voit aucune ressource dans la nav (sauf superuser).
 
 ---
 
@@ -104,10 +91,10 @@ authentifié ?
 
 | Section | Description |
 | --- | --- |
-| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin dans un projet existant, créer un superuser |
+| [Mise en place](/docs/fr/admin/setup) | Câbler l'admin, créer un superuser |
 | [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
-| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |
-| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution et état bêta |
+| [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge |
+| [Évolutions](/docs/fr/admin/evolution) | Axes d'évolution |
 
 ## Revenir au sommaire
 

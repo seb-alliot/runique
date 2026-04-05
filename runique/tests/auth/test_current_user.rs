@@ -16,6 +16,8 @@ fn user(is_staff: bool, is_superuser: bool, droits: Vec<&str>) -> CurrentUser {
             .map(|(i, n)| Droit {
                 id: i as i32 + 1,
                 nom: n.to_string(),
+                resource_key: None,
+                access_type: None,
             })
             .collect(),
         groupes: vec![],

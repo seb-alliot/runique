@@ -9,6 +9,27 @@ All notable changes to this project will be documented in this file.
 
 ## [1.1.54] - Unreleased
 
+### Breaking
+
+* **Admin — `permissions:` removed from `admin!{}`:**
+  The `permissions: [...]` field is no longer accepted by the `admin!{}` macro.
+  Remove it from all resource declarations — access control is now managed entirely from the admin
+  panel via scoped droits. See the [Permissions](/docs/en/admin/permission) documentation.
+
+### Fixed
+
+* **Admin — resource-level permission system:**
+  Replaced the static `permissions: [...]` declared in `admin!{}` with a fully DB-driven permission
+  system managed from the admin panel.
+  `eihwaz_droits` gains two nullable columns: `resource_key` and `access_type` (`"view"` / `"write"`).
+  A scoped droit (`resource_key = "blog"`, `access_type = "view"`) grants visibility of the resource
+  in the nav; `access_type = "write"` grants create/edit/delete access.
+  At startup, `seed_resource_droits` automatically inserts `{key}.view` and `{key}.write` droits for
+  each registered resource if absent — no manual setup required.
+  `droits` and `groupes` resources are superuser-only and cannot be unlocked via scoped droits.
+  Revocation is immediate: deleting a droit clears the permissions cache for all users.
+  Write access is enforced server-side in `admin_main` before every POST operation.
+
 ### Added
 
 * **Admin — `configure {}` block in `admin!{}`:**
@@ -104,6 +125,43 @@ All notable changes to this project will be documented in this file.
 * **`RuniqueQueryBuilder` — `.asc()` / `.desc()` aliases:**
   Shorter aliases for `.order_by_asc()` / `.order_by_desc()` for ordering outside the macro.
 
+* **Admin view — search bar and filter persistence (HTMX):**
+  The admin list view now includes a search bar and field-based filters.
+  Filter state is persisted across requests. Implemented via HTMX — partial rendering without full page reload.
+
+* **Interactive exercise (demo-app):**
+  AI-connected interactive exercises based on a prompt, offering practice on the current course.
+  Currently in beta on the demo.
+
+* **`derive_form` — Sea-ORM relation support:**
+  The `derive_form` procedural macro has been updated to support Sea-ORM relations.
+  The `search!` macro has been updated accordingly to align with the new `derive_form` output.
+
+* **Sessions — DB-backed with dynamic context injection:**
+  Sessions now use database-backed management with dynamic constant context injection.
+  Permission monitoring is handled by middleware read checks; write access is gated by explicit write permissions.
+  Async updates are implemented via Tokio and SeaORM signals.
+
+### Fixed
+
+* **Admin — template override via builder:**
+  Template overriding via the builder in the admin view has been restored.
+  Demo logic has been separated from framework logic.
+
+* **`makemigrations` / migration up — table relationship order:**
+  Table relationship issues during creation have been fixed.
+  The CLI now generates migrations in the correct dependency order.
+
+* **Admin — logout (session and cookie not cleared):**
+  Added `logout()` call in `admin_logout` handler.
+  Session is now properly invalidated server-side (remove per key + delete).
+  Tower-sessions automatically handles cookie removal via `Set-Cookie` header.
+  Fixed a silent bug where the user remained authenticated after logout.
+
+* **Admin — CSRF on login with DB-backed session:**
+  The CSRF token on the admin login page was broken when using the DB-backed session system.
+  Now fixed.
+
 ---
 
 ## [1.1.53] - Unreleased
@@ -164,6 +222,15 @@ All notable changes to this project will be documented in this file.
   Two flows: `/forgot-password` (email request) and `/reset-password/{token}/{email}` (password update).
   Templates are embedded and overridable. Rate limiting is applied automatically.
   Usage: `.with_password_reset::<BuiltinUserEntity>(|pr| pr)`
+
+* **CSS versioning:**
+  A 4-digit version token stored in a `LazyLock` is appended to CSS file URLs at each rebuild.
+  Prevents stale cache issues without requiring a cache-busting strategy at the server level.
+
+* **Admin view — field filters, search bar, and sortable columns:**
+  The admin list view is improved with field-based filters, a name search bar, and pagination
+  applied to filtered results with a configurable number of items per page.
+  Columns are sortable in ascending or descending order, with alphanumeric sorting for text fields.
 
 ---
 

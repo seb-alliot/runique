@@ -7,6 +7,7 @@ use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::flash_now;
 use crate::forms::prisme::aegis;
+use crate::middleware::auth::CurrentUser;
 use crate::utils::{
     CSRF_TOKEN_KEY,
     aliases::{ARuniqueConfig, AppResult, StrMap},
@@ -98,6 +99,7 @@ pub async fn admin_get(
     mut req: Request,
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Extension(current_user): Extension<CurrentUser>,
     Query(params): Query<StrMap>,
     headers: axum::http::HeaderMap,
 ) -> AppResult<Response> {
@@ -106,7 +108,7 @@ pub async fn admin_get(
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    inject_context(&mut req, &state, entry);
+    inject_context(&mut req, &state, entry, &current_user);
 
     match action.as_str() {
         "list" => {
@@ -162,6 +164,7 @@ pub async fn admin_post(
     headers: axum::http::HeaderMap,
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Extension(current_user): Extension<CurrentUser>,
     AdminBody(body): AdminBody,
 ) -> AppResult<Response> {
     let entry = state
@@ -169,9 +172,10 @@ pub async fn admin_post(
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    inject_context(&mut req, &state, entry);
+    inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
+    check_write_access(&current_user, &resource_key)?;
 
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &headers, &state).await,
@@ -186,13 +190,14 @@ pub async fn admin_get_id(
     mut req: Request,
     Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Extension(current_user): Extension<CurrentUser>,
 ) -> AppResult<Response> {
     let entry = state
         .registry
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    inject_context(&mut req, &state, entry);
+    inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     match action.as_str() {
         "detail" => handle_detail(&mut req, entry, id, &state).await,
@@ -211,6 +216,7 @@ pub async fn admin_post_id(
     headers: axum::http::HeaderMap,
     Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
+    Extension(current_user): Extension<CurrentUser>,
     AdminBody(body): AdminBody,
 ) -> AppResult<Response> {
     let entry = state
@@ -218,9 +224,10 @@ pub async fn admin_post_id(
         .get(&resource_key)
         .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Resource not found"))))?;
 
-    inject_context(&mut req, &state, entry);
+    inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
+    check_write_access(&current_user, &resource_key)?;
 
     match action.as_str() {
         "edit" => handle_edit_post(&mut req, entry, id, body, &state).await,
@@ -238,6 +245,7 @@ fn inject_context(
     req: &mut Request,
     state: &PrototypeAdminState,
     entry: &crate::admin::ResourceEntry,
+    current_user: &CurrentUser,
 ) {
     for item in ["list", "create", "edit", "detail", "delete", "base"] {
         insert_admin_messages(&mut req.context, item);
@@ -251,18 +259,62 @@ fn inject_context(
     req.context
         .insert(ctx_common::CURRENT_RESOURCE, entry.meta.key);
     req.context.insert(ctx_common::RESOURCE, &entry.meta);
-    req.context.insert(
-        ctx_common::RESOURCES,
-        &state.registry.all().map(|e| &e.meta).collect::<Vec<_>>(),
-    );
+
+    // Filtre les ressources visibles selon les droits scopés de l'utilisateur.
+    // - is_superuser → voit tout
+    // - droits/groupes → superuser uniquement (gestion des permissions, pas de droit scopé possible)
+    // - autres ressources → user doit avoir un droit avec resource_key = key et access_type = "view"
+    const SUPERUSER_ONLY: &[&str] = &["droits", "groupes"];
+    let effective_droits = current_user.droits_effectifs();
+    let visible_resources: Vec<_> = state
+        .registry
+        .all()
+        .filter(|e| {
+            if current_user.is_superuser {
+                return true;
+            }
+            if SUPERUSER_ONLY.contains(&e.meta.key) {
+                return false;
+            }
+            effective_droits.iter().any(|d| {
+                d.resource_key.as_deref() == Some(e.meta.key)
+                    && d.access_type.as_deref() == Some("view")
+            })
+        })
+        .map(|e| &e.meta)
+        .collect();
+    req.context
+        .insert(ctx_common::RESOURCES, &visible_resources);
 
     for (k, v) in &entry.meta.extra_context {
         req.context.insert(k, v);
     }
+}
 
-    let registered_roles = crate::admin::get_roles();
-    req.context
-        .insert(ctx_common::REGISTERED_ROLES, &registered_roles);
+/// Vérifie que l'utilisateur a un droit write sur la ressource.
+/// Superuser bypass. droits/groupes → superuser uniquement.
+fn check_write_access(user: &CurrentUser, resource_key: &str) -> AppResult<()> {
+    if user.is_superuser {
+        return Ok(());
+    }
+    const SUPERUSER_ONLY: &[&str] = &["droits", "groupes"];
+    if SUPERUSER_ONLY.contains(&resource_key) {
+        return Err(Box::new(AppError::new(ErrorContext::generic(
+            StatusCode::FORBIDDEN,
+            t("admin.access.insufficient_rights").as_ref(),
+        ))));
+    }
+    let has_write = user.droits_effectifs().iter().any(|d| {
+        d.resource_key.as_deref() == Some(resource_key) && d.access_type.as_deref() == Some("write")
+    });
+    if has_write {
+        Ok(())
+    } else {
+        Err(Box::new(AppError::new(ErrorContext::generic(
+            StatusCode::FORBIDDEN,
+            t("admin.access.insufficient_rights").as_ref(),
+        ))))
+    }
 }
 
 /// Vérifie le token CSRF depuis le body du formulaire.

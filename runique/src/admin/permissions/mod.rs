@@ -16,6 +16,10 @@ use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 pub struct Droit {
     pub id: i32,
     pub nom: String,
+    /// Ressource admin ciblée — `None` = droit global
+    pub resource_key: Option<String>,
+    /// Type d'accès : `"view"` ou `"write"` — `None` pour les droits globaux
+    pub access_type: Option<String>,
 }
 
 /// Groupe minimal stocké dans le snapshot session (inclut ses droits).
@@ -47,6 +51,8 @@ pub async fn pull_droits_db<C: ConnectionTrait>(
             d.map(|m| Droit {
                 id: m.id,
                 nom: m.nom,
+                resource_key: m.resource_key,
+                access_type: m.access_type,
             })
         })
         .collect()
@@ -91,6 +97,8 @@ pub async fn pull_groupes_db<C: ConnectionTrait>(
                 d.map(|m| Droit {
                     id: m.id,
                     nom: m.nom,
+                    resource_key: m.resource_key,
+                    access_type: m.access_type,
                 })
             })
             .collect();

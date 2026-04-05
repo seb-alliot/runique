@@ -19,10 +19,14 @@ fn test_current_user_has_droit() {
         Droit {
             id: 1,
             nom: "editor".to_string(),
+            resource_key: None,
+            access_type: None,
         },
         Droit {
             id: 2,
             nom: "moderator".to_string(),
+            resource_key: None,
+            access_type: None,
         },
     ]);
     assert!(user.has_droit("editor"));
@@ -70,6 +74,8 @@ fn test_current_user_can_admin_droits() {
         droits: vec![Droit {
             id: 1,
             nom: "moderator".to_string(),
+            resource_key: None,
+            access_type: None,
         }],
         groupes: vec![],
     };
@@ -87,6 +93,8 @@ fn test_current_user_droits_effectifs_merge_groupes() {
         droits: vec![Droit {
             id: 1,
             nom: "read".to_string(),
+            resource_key: None,
+            access_type: None,
         }],
         groupes: vec![Groupe {
             id: 1,
@@ -94,6 +102,8 @@ fn test_current_user_droits_effectifs_merge_groupes() {
             droits: vec![Droit {
                 id: 2,
                 nom: "write".to_string(),
+                resource_key: None,
+                access_type: None,
             }],
         }],
     };

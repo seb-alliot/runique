@@ -26,6 +26,7 @@ mod m20260404_103930_create_runique_release_table;
 mod m20260404_103930_create_site_config_table;
 mod m20260404_103930_create_test_all_fields_table;
 mod m20260404_103930_create_users_booster_table;
+mod m20260405_000000_alter_eihwaz_droits_add_resource_access;
 
 pub struct Migrator;
 
@@ -60,6 +61,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260404_103930_create_demo_section_table::Migration),
             Box::new(m20260404_103930_create_doc_block_table::Migration),
             Box::new(m20260404_103930_create_cour_block_table::Migration),
+            Box::new(m20260405_000000_alter_eihwaz_droits_add_resource_access::Migration),
         ];
         migrations
     }
