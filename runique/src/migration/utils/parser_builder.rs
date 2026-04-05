@@ -430,6 +430,7 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         has_default_now: false,
         enum_name: None,
         enum_string_values: Vec::new(),
+        enum_is_pg: false,
     });
 
     let enum_types = model.enum_types;
@@ -466,15 +467,15 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
             };
 
             // Pour les enums String, on garde les valeurs DB pour le diff
-            let (enum_name, enum_string_values) = if f.ty == "enum" {
+            let (enum_name, enum_string_values, enum_is_pg) = if f.ty == "enum" {
                 match enum_entry {
                     Some((name, backing, values)) if backing == "String" || backing == "pg" => {
-                        (Some(name.clone()), values.clone())
+                        (Some(name.clone()), values.clone(), backing == "pg")
                     }
-                    _ => (None, Vec::new()),
+                    _ => (None, Vec::new(), false),
                 }
             } else {
-                (None, Vec::new())
+                (None, Vec::new(), false)
             };
 
             let ignored = f.options.contains(&"readonly".to_string()) || f.name == "cache_key";
@@ -493,6 +494,7 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                     || has_auto_now_update
                     || is_created_at
                     || is_updated_at,
+                enum_is_pg,
             }
         })
         .collect();

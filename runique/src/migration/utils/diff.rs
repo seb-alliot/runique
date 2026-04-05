@@ -129,8 +129,8 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
 
     // Enum : renames (même position, valeur différente), ajouts et suppressions de variantes
     let mut enum_renames: Vec<(String, String, String)> = Vec::new();
-    let mut enum_value_adds: Vec<(String, String)> = Vec::new();
-    let mut enum_value_drops: Vec<(String, String)> = Vec::new();
+    let mut enum_value_adds: Vec<(String, String, String)> = Vec::new();
+    let mut enum_value_drops: Vec<(String, String, String)> = Vec::new();
 
     for (name, curr) in &curr_cols {
         if curr.enum_string_values.is_empty() {
@@ -144,11 +144,13 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
 
             // Valeurs ajoutées
             for v in curr_set.difference(&prev_set) {
-                enum_value_adds.push((name.to_string(), v.to_string()));
+                let enum_name = curr.enum_name.as_deref().unwrap_or(name).to_string();
+                enum_value_adds.push((name.to_string(), enum_name, v.to_string()));
             }
             // Valeurs supprimées
             for v in prev_set.difference(&curr_set) {
-                enum_value_drops.push((name.to_string(), v.to_string()));
+                let enum_name = prev.enum_name.as_deref().unwrap_or(name).to_string();
+                enum_value_drops.push((name.to_string(), enum_name, v.to_string()));
             }
             // Renames par position (parmi les valeurs présentes dans les deux)
             for (i, new_val) in curr.enum_string_values.iter().enumerate() {
