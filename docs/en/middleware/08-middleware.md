@@ -12,6 +12,7 @@ Runique includes configurable security middlewares automatically applied in the 
 | [Hosts & Cache](/docs/en/middleware/hosts-cache) | Allowed Hosts, Cache-Control, security headers |
 | [Builder & Configuration](/docs/en/middleware/builder) | Classic Builder, Intelligent Builder, environment variables |
 | [Rate Limiting](/docs/en/middleware/rate-limit) | Per-IP, per-route rate limiting, configurable |
+| [Login Required](/docs/en/middleware/login-required) | Route protection — redirects if not authenticated |
 
 ## Execution Stack
 

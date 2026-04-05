@@ -2,7 +2,7 @@
 
 /// Contrat à implémenter sur tout modèle utilisateur pour l'intégration avec le framework.
 pub trait RuniqueUser: Send + Sync {
-    fn user_id(&self) -> crate::utils::pk::UserId;
+    fn user_id(&self) -> crate::utils::pk::Pk;
     fn username(&self) -> &str;
     fn email(&self) -> &str;
     fn password_hash(&self) -> &str;

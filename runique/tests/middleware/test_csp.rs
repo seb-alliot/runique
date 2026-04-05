@@ -8,8 +8,7 @@ use crate::helpers::{
 use axum::{Router, middleware, routing::get};
 use runique::app::staging::CspConfig;
 use runique::middleware::security::csp::{
-    SecurityPolicy, csp_middleware, csp_report_only_middleware, https_redirect_middleware,
-    security_headers_middleware,
+    SecurityPolicy, csp_middleware, https_redirect_middleware, security_headers_middleware,
 };
 use runique::utils::aliases::AEngine;
 
@@ -290,15 +289,6 @@ fn csp_app(engine: AEngine) -> Router {
         .layer(middleware::from_fn_with_state(engine, csp_middleware))
 }
 
-fn csp_report_only_app(engine: AEngine) -> Router {
-    Router::new()
-        .route("/", get(|| async { "ok" }))
-        .layer(middleware::from_fn_with_state(
-            engine,
-            csp_report_only_middleware,
-        ))
-}
-
 fn security_headers_app(engine: AEngine) -> Router {
     Router::new()
         .route("/", get(|| async { "ok" }))
@@ -336,14 +326,6 @@ async fn test_csp_middleware_header_contient_default_src() {
         .to_str()
         .unwrap();
     assert!(csp.contains("default-src"));
-}
-
-#[tokio::test]
-async fn test_csp_report_only_middleware_ajoute_header() {
-    let engine = build_engine().await;
-    let resp = request::get(csp_report_only_app(engine), "/").await;
-    assert_status(&resp, 200);
-    assert_has_header(&resp, "content-security-policy-report-only");
 }
 
 #[tokio::test]

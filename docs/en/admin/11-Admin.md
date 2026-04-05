@@ -9,8 +9,7 @@ The approach is intentionally transparent: no hidden magic, no unknown runtime.
 ```rust
 admin! {
     users: users::Model => RegisterForm {
-        title: "Users",
-        permissions: ["admin", "staff"]
+        title: "Users"
     }
 }
 ```

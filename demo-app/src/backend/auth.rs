@@ -35,7 +35,7 @@ pub async fn find_user_by_username(
 
 pub async fn find_user_by_id(
     db: &sea_orm::DatabaseConnection,
-    id: runique::utils::pk::UserId,
+    id: runique::utils::pk::Pk,
 ) -> Option<runique::prelude::user::Model> {
     UserEntity::find_by_id(id).one(db).await.unwrap_or(None)
 }
@@ -152,7 +152,7 @@ pub fn get_credentials(form: &LoginForm) -> Option<(String, String)> {
 }
 
 pub async fn get_profile_user(
-    user_id: Option<runique::utils::pk::UserId>,
+    user_id: Option<runique::utils::pk::Pk>,
     db: &sea_orm::DatabaseConnection,
 ) -> Option<runique::prelude::user::Model> {
     find_user_by_id(db, user_id?).await

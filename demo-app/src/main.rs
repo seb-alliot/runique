@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate runique;
-mod prelude;
-use prelude::*;
+use runique::prelude::*;
 mod admin;
 mod admins;
 mod backend;

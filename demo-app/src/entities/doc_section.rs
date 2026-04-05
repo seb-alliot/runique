@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     DocSection,
     table: "doc_section",
-    pk: id => i32,
+    pk: id => Pk,
     enums: {
         SectionTheme: pg [Demarrage, Web, Database, Security, Admin, Autres],
     },

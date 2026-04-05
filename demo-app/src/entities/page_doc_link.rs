@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     PageDocLink,
     table: "page_doc_link",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         page_id: i32 [required],
         label: String [required],

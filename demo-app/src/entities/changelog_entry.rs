@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     ChangelogEntry,
     table: "changelog_entry",
-    pk: id => i32,
+    pk: id => Pk,
     enums: {
         ChangelogCategory: pg [Fix="Fix", Feature="Feature", Ajoute="Ajouté"],
     },

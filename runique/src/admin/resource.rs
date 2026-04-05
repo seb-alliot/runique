@@ -211,17 +211,6 @@ pub struct AdminResource {
 }
 
 impl AdminResource {
-    /// Crée une ressource avec des permissions uniformes
-    ///
-    /// Utilisé par le code généré pour les déclarations simples :
-    /// ```rust,ignore
-    /// admin! {
-    ///     users: users::Model => RegisterForm {
-    ///         title: "Utilisateurs",
-    ///         permissions: ["admin"]
-    ///     }
-    /// }
-    /// ```
     pub fn new(
         key: &'static str,
         model_path: &'static str,

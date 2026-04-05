@@ -1,12 +1,12 @@
 //! Entité SeaORM `eihwaz_users_droits` — table de liaison utilisateur ↔ droit individuel.
-use crate::utils::pk::UserId;
+use crate::utils::pk::Pk;
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "eihwaz_users_droits")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub user_id: UserId,
+    pub user_id: Pk,
     #[sea_orm(primary_key)]
     pub droit_id: i32,
 }

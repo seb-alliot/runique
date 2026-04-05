@@ -12,7 +12,7 @@ use crate::utils::constante::{
     SESSION_ACTIVE_KEY, SESSION_USER_DROITS_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_ID_KEY,
     SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
 };
-use crate::utils::pk::UserId;
+use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
 use sea_orm::DatabaseConnection;
 use tower_sessions::Session;
@@ -20,7 +20,7 @@ use tower_sessions::Session;
 /// Utilisateur authentifié injecté dans les extensions de requête.
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct CurrentUser {
-    pub id: UserId,
+    pub id: Pk,
     pub username: String,
     /// Accès au panneau d'administration (lecture / opérations limitées)
     pub is_staff: bool,
@@ -111,12 +111,8 @@ pub async fn is_admin_authenticated(session: &Session) -> bool {
 }
 
 /// Récupère l'ID de l'utilisateur connecté.
-pub async fn get_user_id(session: &Session) -> Option<UserId> {
-    session
-        .get::<UserId>(SESSION_USER_ID_KEY)
-        .await
-        .ok()
-        .flatten()
+pub async fn get_user_id(session: &Session) -> Option<Pk> {
+    session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten()
 }
 
 /// Récupère le username de l'utilisateur connecté.
@@ -144,7 +140,7 @@ pub async fn get_username(session: &Session) -> Option<String> {
 pub async fn login(
     session: &Session,
     db: &DatabaseConnection,
-    user_id: UserId,
+    user_id: Pk,
     username: &str,
     is_staff: bool,
     is_superuser: bool,
@@ -195,7 +191,7 @@ pub async fn login(
 pub async fn auth_login(
     session: &Session,
     db: &DatabaseConnection,
-    user_id: UserId,
+    user_id: Pk,
 ) -> Result<(), tower_sessions::session::Error> {
     let Some(user) = BuiltinUserEntity::find_by_id(db, user_id).await else {
         return Ok(());
@@ -228,12 +224,7 @@ pub async fn logout(
     }
 
     // Vider le cache permissions
-    if let Some(user_id) = session
-        .get::<UserId>(SESSION_USER_ID_KEY)
-        .await
-        .ok()
-        .flatten()
-    {
+    if let Some(user_id) = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten() {
         evict_permissions(user_id);
     }
 

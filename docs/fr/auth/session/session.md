@@ -74,7 +74,7 @@ if is_authenticated(&session).await {
     // ...
 }
 
-// Récupérer l'ID en session (retourne UserId = i32 ou i64)
+// Récupérer l'ID en session (retourne Pk = i32 ou i64)
 if let Some(user_id) = get_user_id(&session).await {
     // ...
 }

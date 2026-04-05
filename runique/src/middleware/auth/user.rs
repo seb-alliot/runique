@@ -1,6 +1,6 @@
 //! Entité utilisateur built-in de Runique (table `eihwaz_users`).
 pub use crate::middleware::auth::{default_auth::UserEntity, user_trait::RuniqueUser};
-use crate::utils::pk::UserId;
+use crate::utils::pk::Pk;
 use crate::{impl_objects, search};
 use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait, entity::prelude::*,
@@ -12,7 +12,7 @@ use sea_orm::{
 #[sea_orm(table_name = "eihwaz_users")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: UserId,
+    pub id: Pk,
     pub username: String,
     pub email: String,
     pub password: String,
@@ -57,7 +57,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 // ─── RuniqueUser ─────────────────────────────────────────────────────────────
 impl RuniqueUser for Model {
-    fn user_id(&self) -> UserId {
+    fn user_id(&self) -> Pk {
         self.id
     }
     fn username(&self) -> &str {
@@ -87,7 +87,7 @@ pub struct BuiltinUserEntity;
 impl UserEntity for BuiltinUserEntity {
     type Model = Model;
 
-    async fn find_by_id(db: &DatabaseConnection, id: UserId) -> Option<Self::Model> {
+    async fn find_by_id(db: &DatabaseConnection, id: Pk) -> Option<Self::Model> {
         Entity::find_by_id(id).one(db).await.ok().flatten()
     }
 

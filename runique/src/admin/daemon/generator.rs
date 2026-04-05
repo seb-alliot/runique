@@ -7,7 +7,7 @@ use std::{fmt::Write, fs, path::Path};
 /// Contient :
 /// - Une impl `DynForm` par ressource (wrapping le `RuniqueForm` concret)
 /// - `admin_register()` → `HashMap<String, ResourceEntry>` alimenté au boot
-pub fn generate(parsed: &ParsedAdmin) -> Result<(), String> {
+pub(crate) fn generate(parsed: &ParsedAdmin) -> Result<(), String> {
     let admins_dir = Path::new("src/admins");
     if admins_dir.exists() {
         fs::remove_dir_all(admins_dir)

@@ -53,12 +53,12 @@ async fn build_context(cour_id: i32, db: &DatabaseConnection) -> String {
 }
 
 pub async fn seed_ia(db: &DatabaseConnection) {
-    tracing::info!("ia_seed: démarrage");
+    tracing::info!("fichier ia: démarrage");
 
     let ia_dir = if let Some(p) = find_ia_dir() {
         p
     } else {
-        tracing::warn!("ia_seed: dossier docs/ia/ introuvable, seed ignoré");
+        tracing::warn!("fichier ia: dossier docs/ia/ introuvable, seed ignoré");
         return;
     };
 
@@ -66,7 +66,7 @@ pub async fn seed_ia(db: &DatabaseConnection) {
     let stmts = ["DELETE FROM cour_ia", "DELETE FROM contrainte_ia"];
     for sql in &stmts {
         if let Err(e) = db.execute_unprepared(sql).await {
-            tracing::warn!("ia_seed: erreur nettoyage ({sql}): {e}");
+            tracing::warn!("fichier ia: erreur nettoyage ({sql}): {e}");
             return;
         }
     }
@@ -76,7 +76,7 @@ pub async fn seed_ia(db: &DatabaseConnection) {
     let contrainte_text = if let Ok(c) = fs::read_to_string(&contrainte_path) {
         c
     } else {
-        tracing::warn!("ia_seed: contrainte_fr.md introuvable");
+        tracing::warn!("fichier ia: contrainte_fr.md introuvable");
         return;
     };
 
@@ -89,13 +89,13 @@ pub async fn seed_ia(db: &DatabaseConnection) {
     let inserted_contrainte = match contrainte_model.insert(db).await {
         Ok(c) => c,
         Err(e) => {
-            tracing::warn!("ia_seed: erreur insertion contrainte_ia: {e}");
+            tracing::warn!("fichier ia: erreur insertion contrainte_ia: {e}");
             return;
         }
     };
 
     tracing::info!(
-        "ia_seed: contrainte_ia insérée (id={})",
+        "fichier ia: contrainte_ia insérée (id={})",
         inserted_contrainte.id
     );
 
@@ -111,7 +111,10 @@ pub async fn seed_ia(db: &DatabaseConnection) {
         let context = build_context(c.id, db).await;
 
         if context.is_empty() {
-            tracing::warn!("ia_seed: contexte vide pour '{}', entrée ignorée", c.slug);
+            tracing::warn!(
+                "fichier ia: contexte vide pour '{}', entrée ignorée",
+                c.slug
+            );
             continue;
         }
 
@@ -125,10 +128,10 @@ pub async fn seed_ia(db: &DatabaseConnection) {
         };
 
         match cour_ia_model.insert(db).await {
-            Ok(_) => tracing::info!("ia_seed: cour_ia seedé — {}", c.slug),
-            Err(e) => tracing::warn!("ia_seed: erreur insertion cour_ia '{}': {e}", c.slug),
+            Ok(_) => tracing::info!("fichier ia: cour_ia seedé — {}", c.slug),
+            Err(e) => tracing::warn!("fichier ia: erreur insertion cour_ia '{}': {e}", c.slug),
         }
     }
 
-    tracing::info!("ia_seed: terminé");
+    tracing::info!("fichier ia: terminé");
 }

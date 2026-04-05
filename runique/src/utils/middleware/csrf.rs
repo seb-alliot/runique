@@ -10,7 +10,7 @@ type HmacSha256 = Hmac<Sha256>;
 /// Context for token generation
 pub enum CsrfContext<'a> {
     Anonymous { session_id: &'a str },
-    Authenticated { user_id: crate::utils::pk::UserId },
+    Authenticated { user_id: crate::utils::pk::Pk },
 }
 
 /// Typed CSRF token

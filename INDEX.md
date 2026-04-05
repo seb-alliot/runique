@@ -152,7 +152,7 @@ runique/
 - **`middleware/csrf.rs`** — `CsrfToken`, `mask_csrf_token()`, `unmask_csrf_token()`
 - **`middleware/csp_nonce.rs`** — CSP nonce generation
 - **`password/`** — Argon2 hashing helpers
-- **`pk.rs`** — `UserId` type alias (`i32` / `i64` with `big-pk`)
+- **`pk.rs`** — `Pk` type alias (`i32` par défaut, `i64` avec `big-pk`)
 - **`reset_token/`** — secure token generation for password resets
 - **`resolve_ogimage/`** — Open Graph image resolution
 - **`runique_log.rs`** — structured log helpers
@@ -276,4 +276,4 @@ cargo test --tests                         # integration only (no inline)
 | `postgres`       | PostgreSQL only                          |
 | `mysql`          | MySQL only                               |
 | `mariadb`        | MariaDB only                             |
-| `big-pk`         | `UserId = i64` instead of `i32`          |
+| `big-pk`         | `Pk = i64` instead of `i32`          |

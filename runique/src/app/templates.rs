@@ -8,7 +8,7 @@ use std::path::Path;
 use tera::Tera;
 
 /// Charge et configure l'instance Tera avec les templates internes du framework et ceux du projet.
-pub struct TemplateLoader;
+pub(crate) struct TemplateLoader;
 
 impl TemplateLoader {
     /// Initialise Tera et traite tous les templates (internes + utilisateurs)

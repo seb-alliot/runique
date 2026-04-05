@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     UsersBooster,
     table: "users_booster",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         username: String [required],
         email: String [required],

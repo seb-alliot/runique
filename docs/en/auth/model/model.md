@@ -8,7 +8,7 @@ Runique includes a ready-to-use user model that requires no configuration.
 
 | Field | Type | Description |
 |---------------|----------|----------------------------------------|
-| `id` | `UserId` | Primary key (`i32` by default, `i64` with the `big-pk` feature) |
+| `id` | `Pk` | Primary key (`i32` by default, `i64` with the `big-pk` feature) |
 | `username` | `String` | Unique username |
 | `email` | `String` | Email address |
 | `password` | `String` | Argon2 hash — never stored in plain text |
@@ -27,7 +27,7 @@ runique create-superuser
 
 ### i64 primary key (BigAutoField)
 
-By default, the primary key is `i32`. To switch to `i64` (like Django since 3.2):
+By default, the primary key is `i32`. To switch to `i64`:
 
 ```toml
 # project Cargo.toml
@@ -42,10 +42,10 @@ If you use your own user model instead of the built-in one, you must implement `
 
 ```rust
 use runique::middleware::auth::RuniqueUser;
-use runique::prelude::UserId;
+use runique::prelude::Pk;
 
 impl RuniqueUser for users::Model {
-    fn user_id(&self) -> UserId      { self.id }
+    fn user_id(&self) -> Pk      { self.id }
     fn username(&self) -> &str       { &self.username }
     fn email(&self) -> &str          { &self.email }
     fn password_hash(&self) -> &str  { &self.password }
@@ -64,7 +64,7 @@ impl RuniqueUser for users::Model {
 
 | Method | Return | Description |
 |------------------|-------------|--------------------------------|
-| `user_id()` | `UserId` | Unique identifier |
+| `user_id()` | `Pk` | Unique identifier |
 | `username()` | `&str` | Username |
 | `email()` | `&str` | Email address |
 | `password_hash()` | `&str` | Password hash |

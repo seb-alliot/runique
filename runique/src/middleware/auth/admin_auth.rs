@@ -1,11 +1,11 @@
 //! Trait `AdminAuth` : contrat d'authentification pour le panneau d'administration.
-use crate::utils::pk::UserId;
+use crate::utils::pk::Pk;
 use sea_orm::DatabaseConnection;
 
 /// Données retournées après une authentification admin réussie
 #[derive(Debug, Clone)]
 pub struct AdminLoginResult {
-    pub user_id: UserId,
+    pub user_id: Pk,
     pub username: String,
     pub is_staff: bool,
     pub is_superuser: bool,

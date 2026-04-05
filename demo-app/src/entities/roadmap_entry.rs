@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     RoadmapEntry,
     table: "roadmap_entry",
-    pk: id => i32,
+    pk: id => Pk,
     enums: {
         RoadmapStatus: [Active, Planned, Future],
     },

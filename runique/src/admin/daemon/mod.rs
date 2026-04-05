@@ -1,8 +1,8 @@
 //! Daemon de rechargement admin — génère `admin.rs` à chaud depuis la macro `admin!`.
-pub mod generator;
-pub mod parser;
-pub mod watcher;
+pub(crate) mod generator;
+pub(crate) mod parser;
+pub(crate) mod watcher;
 
-pub use generator::generate;
-pub use parser::{ConfigureDef, ParsedAdmin, ResourceDef, parse_admin_file};
-pub use watcher::watch;
+pub(crate) use generator::generate;
+pub(crate) use parser::parse_admin_file;
+pub(crate) use watcher::watch;

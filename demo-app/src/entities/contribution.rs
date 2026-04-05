@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     Contributions,
     table: "contributions",
-    pk: id => i32,
+    pk: id => Pk,
     enums: {
         ContributionType: pg [Runique, Cours],
     },

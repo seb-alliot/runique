@@ -19,7 +19,7 @@ pub async fn list_contributions(
 pub async fn save_contribution(
     form: &mut ContributionForm,
     db: &sea_orm::DatabaseConnection,
-    user_id: runique::utils::pk::UserId,
+    user_id: runique::utils::pk::Pk,
 ) -> Result<(), sea_orm::DbErr> {
     form.save(db, user_id).await.map(|_| ())
 }

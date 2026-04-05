@@ -3,7 +3,7 @@ use runique::prelude::*;
 model! {
     DemoCategory,
     table: "demo_category",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         title: String [required],
         back_link_url: String [nullable],
