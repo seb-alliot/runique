@@ -4,6 +4,13 @@
 
 ```rust
 admin! {
+    // Optionnel : configure l'affichage de n'importe quelle ressource (déclarée ou builtin)
+    configure {
+        users:  { list_display: [["id", "ID"], ["username", "Nom"], ["email", "Email"]] },
+        droits: { list_display: [["id", "ID"], ["nom", "Nom"]] },
+        blog:   { list_display: [["id", "ID"], ["titre", "Titre"], ["created_at", "Créé le"]] },
+    }
+
     // Champs obligatoires uniquement
     articles: articles::Model => ArticleForm {
         title: "Articles",
@@ -58,6 +65,32 @@ La macro est parsée par le daemon (`runique start`) qui génère la fonction `a
 | `list_display` | *(vide — toutes colonnes)* | Colonnes visibles et leurs libellés dans la vue liste |
 | `list_filter` | *(vide — pas de sidebar)* | Champs disponibles dans la barre de filtre latérale (limite optionnelle par colonne en 3ème élément, défaut `10`) |
 | `extra` | *(vide)* | Variables supplémentaires injectées dans les templates Tera de cette ressource |
+
+### Bloc `configure {}`
+
+Le bloc `configure {}` contrôle l'affichage de **n'importe quelle** ressource enregistrée — qu'elle soit déclarée dans `admin!{}` ou injectée automatiquement en tant que builtin (users, droits, groupes).
+
+```rust
+admin! {
+    configure {
+        users:  { list_display: [["id", "ID"], ["username", "Nom"], ["email", "Email"]] },
+        droits: { list_display: [["id", "ID"], ["nom", "Nom"]] },
+    }
+    // ... déclarations de ressources
+}
+```
+
+Clés disponibles dans chaque entrée :
+
+| Clé | Type | Description |
+| --- | --- | --- |
+| `list_display` | `[["col", "Libellé"], …]` | Colonnes visibles ordonnées dans la vue liste |
+| `list_exclude` | `["col1", "col2", …]` | Colonnes à masquer (exclusif avec `list_display`) |
+| `list_filter` | `[["col", "Libellé"], …]` | Filtres de la barre latérale |
+
+`list_display` et `list_exclude` sont mutuellement exclusifs — le daemon rejette les deux déclarés pour la même ressource.
+
+Le daemon génère des appels `registry.configure("key", DisplayConfig::new()...)` **après** tous les `registry.register()`, ce qui permet de configurer aussi les ressources builtin enregistrées en amont.
 
 #### `id_type`
 
@@ -207,6 +240,7 @@ La macro `admin!` couvre uniquement les **métadonnées de registre** :
 - les colonnes visibles dans la vue liste (`list_display`)
 - les filtres de la barre latérale (`list_filter`) avec limite optionnelle par colonne
 - des variables Tera supplémentaires par ressource (`extra`)
+- la configuration d'affichage de toute ressource y compris les builtins (`configure {}`)
 
 ## Ce qui n'est pas déclarable
 

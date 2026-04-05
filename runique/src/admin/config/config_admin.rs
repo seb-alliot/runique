@@ -50,6 +50,10 @@ pub struct AdminConfig {
     /// Défaut : "admin/reset_password_email.html"
     /// Contexte disponible : `username`, `email`, `reset_url`
     pub reset_password_email_template: Option<String>,
+
+    /// Ordre d'affichage des ressources dans la nav (clés URL).
+    /// Les clés non listées apparaissent à la fin dans leur ordre d'insertion.
+    pub resource_order: Vec<String>,
 }
 
 impl Clone for AdminConfig {
@@ -66,6 +70,7 @@ impl Clone for AdminConfig {
             reset_password_url: self.reset_password_url.clone(),
             user_resources: self.user_resources.clone(),
             reset_password_email_template: self.reset_password_email_template.clone(),
+            resource_order: self.resource_order.clone(),
         }
     }
 }
@@ -98,6 +103,7 @@ impl AdminConfig {
             reset_password_url: None,
             user_resources: std::collections::HashMap::new(),
             reset_password_email_template: None,
+            resource_order: Vec::new(),
         }
     }
 
@@ -191,6 +197,21 @@ impl AdminConfig {
     pub fn user_resource_with_template(mut self, resource_key: &str, email_template: &str) -> Self {
         self.user_resources
             .insert(resource_key.to_string(), Some(email_template.to_string()));
+        self
+    }
+
+    /// Définit l'ordre d'affichage des ressources dans la nav admin.
+    ///
+    /// ```rust,ignore
+    /// AdminConfig::new().resource_order(["users", "blog", "droits", "groupes"])
+    /// ```
+    /// Les clés non listées apparaissent à la fin dans leur ordre d'insertion.
+    pub fn resource_order<I, S>(mut self, order: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.resource_order = order.into_iter().map(Into::into).collect();
         self
     }
 }

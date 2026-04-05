@@ -33,6 +33,22 @@ Each entry is a `["column_name", "Label"]` pair. Columns declared in `list_displ
 
 Available in the Tera context via `visible_columns` (list of names) and `column_labels` (corresponding labels).
 
+### Configuring builtins — configure {}
+
+`list_display` inside a resource body only applies to resources you declare. To configure display for **builtin resources** (users, droits, groupes) or to centralise all display config, use the top-level `configure {}` block:
+
+```rust
+admin! {
+    configure {
+        users:  { list_display: [["id", "ID"], ["username", "Username"], ["email", "Email"]] },
+        droits: { list_display: [["id", "ID"], ["nom", "Name"]] },
+    }
+    blog: blog::Model => BlogForm { title: "Blog", permissions: ["admin"] }
+}
+```
+
+The `configure {}` block supports `list_display`, `list_exclude` and `list_filter`. `list_display` and `list_exclude` are mutually exclusive.
+
 ## Sidebar filters — list_filter
 
 Declaring `list_filter` enables a sidebar showing the distinct values of each field:

@@ -19,9 +19,9 @@ pub mod roles;
 pub use admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id};
 pub use builtin::builtin_resources;
 pub use config::AdminConfig;
-pub use daemon::{generate, parse_admin_file, watch};
+pub use daemon::{ConfigureDef, generate, parse_admin_file, watch};
 pub use dyn_form::DynForm;
-pub use forms::{DroitAdminForm, GroupeAdminForm, UserAdminCreateForm};
+pub use forms::{DroitAdminForm, GroupeAdminForm, UserAdminCreateForm, UserAdminEditForm};
 pub use permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
 pub use registry::AdminRegistry;
 pub use resource::{

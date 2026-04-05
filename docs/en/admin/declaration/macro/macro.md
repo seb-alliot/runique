@@ -4,6 +4,13 @@
 
 ```rust
 admin! {
+    // Optional: configure display for any resource (declared or builtin)
+    configure {
+        users:  { list_display: [["id", "ID"], ["username", "Username"], ["email", "Email"]] },
+        droits: { list_display: [["id", "ID"], ["nom", "Name"]] },
+        blog:   { list_display: [["id", "ID"], ["title", "Title"], ["created_at", "Created"]] },
+    }
+
     // Required fields only
     articles: articles::Model => ArticleForm {
         title: "Articles",
@@ -58,6 +65,32 @@ The macro is parsed by the daemon (`runique start`) which generates the `admin_r
 | `list_display` | *(empty — all columns)* | Visible columns and their labels in the list view |
 | `list_filter` | *(empty — no sidebar)* | Fields available in the sidebar filter (optional per-column limit as 3rd element, default `10`) |
 | `extra` | *(empty)* | Additional variables injected into all Tera templates for this resource |
+
+### `configure {}` block
+
+The `configure {}` block controls display settings for **any** registered resource — whether declared in `admin!{}` or injected as a builtin (users, droits, groupes).
+
+```rust
+admin! {
+    configure {
+        users:  { list_display: [["id", "ID"], ["username", "Username"], ["email", "Email"]] },
+        droits: { list_display: [["id", "ID"], ["nom", "Name"]] },
+    }
+    // ... resource declarations
+}
+```
+
+Supported keys inside each entry:
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `list_display` | `[["col", "Label"], …]` | Ordered visible columns in the list view |
+| `list_exclude` | `["col1", "col2", …]` | Columns to hide (mutually exclusive with `list_display`) |
+| `list_filter` | `[["col", "Label"], …]` | Sidebar filters |
+
+`list_display` and `list_exclude` are mutually exclusive — the daemon rejects both being declared for the same resource.
+
+The daemon generates `registry.configure("key", DisplayConfig::new()...)` calls **after** all `registry.register()` calls, so builtin resources registered earlier can also be configured.
 
 #### `id_type`
 
@@ -202,6 +235,7 @@ The `admin!` macro covers only **registry metadata**:
 - visible columns in the list view (`list_display`)
 - sidebar filters with optional per-column limit (`list_filter`)
 - additional per-resource Tera variables (`extra`)
+- display configuration for any resource including builtins (`configure {}`)
 
 ## What cannot be declared
 

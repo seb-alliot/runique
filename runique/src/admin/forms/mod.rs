@@ -69,10 +69,8 @@ impl RuniqueForm for UserAdminCreateForm {
         );
         form.field(&TextField::email("email").label("Email").required());
         form.field(&HiddenField::new("password"));
-        form.field(&BooleanField::new("is_active").label("Actif"));
         form.field(&BooleanField::new("is_staff").label("Staff"));
         form.field(&BooleanField::new("is_superuser").label("Superuser"));
-        form.field(&TextField::text("roles").label("Rôles"));
     }
 
     impl_form_access!();
@@ -98,4 +96,27 @@ impl RuniqueForm for UserAdminCreateForm {
             Err(errors)
         }
     }
+}
+
+// ─── UserAdminEditForm ────────────────────────────────────────────────────────
+
+#[derive(serde::Serialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct UserAdminEditForm {
+    pub form: Forms,
+}
+
+impl RuniqueForm for UserAdminEditForm {
+    fn register_fields(form: &mut Forms) {
+        form.field(
+            &TextField::text("username")
+                .label("Nom d'utilisateur")
+                .required(),
+        );
+        form.field(&TextField::email("email").label("Email").required());
+        form.field(&BooleanField::new("is_active").label("Actif"));
+        form.field(&BooleanField::new("is_staff").label("Staff"));
+        form.field(&BooleanField::new("is_superuser").label("Superuser"));
+    }
+    impl_form_access!();
 }

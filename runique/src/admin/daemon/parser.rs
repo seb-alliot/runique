@@ -49,10 +49,24 @@ pub struct ResourceDef {
     pub list_exclude: Vec<String>,
 }
 
+/// Configuration d'affichage pour une ressource dans le bloc `configure {}`
+#[derive(Debug, Clone)]
+pub struct ConfigureDef {
+    /// Clé de la ressource à configurer (ex: "users", "droits")
+    pub key: String,
+    /// Colonnes visibles dans la liste avec labels : [("col", "Label")]
+    pub list_display: Vec<(String, String)>,
+    /// Colonnes exclues de la liste
+    pub list_exclude: Vec<String>,
+    /// Filtres sidebar
+    pub list_filter: Vec<(String, String, u64)>,
+}
+
 /// Résultat du parsing de src/admin.rs
 #[derive(Debug)]
 pub struct ParsedAdmin {
     pub resources: Vec<ResourceDef>,
+    pub configures: Vec<ConfigureDef>,
 }
 
 /// Parse le contenu de src/admin.rs et retourne les ressources déclarées
@@ -68,11 +82,13 @@ pub fn parse_admin_file(source: &str) -> Result<ParsedAdmin, String> {
 
     Ok(ParsedAdmin {
         resources: visitor.resources,
+        configures: visitor.configures,
     })
 }
 
 struct AdminMacroVisitor {
     pub resources: Vec<ResourceDef>,
+    pub configures: Vec<ConfigureDef>,
     pub error: Option<String>,
 }
 
@@ -80,6 +96,7 @@ impl AdminMacroVisitor {
     fn new() -> Self {
         Self {
             resources: Vec::new(),
+            configures: Vec::new(),
             error: None,
         }
     }
@@ -100,7 +117,10 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
         }
 
         match parse_admin_tokens(mac.tokens.clone()) {
-            Ok(resources) => self.resources = resources,
+            Ok(parsed) => {
+                self.resources = parsed.resources;
+                self.configures = parsed.configures;
+            }
             Err(e) => self.error = Some(e),
         }
     }
@@ -112,10 +132,11 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
 //       permissions: ["role1", "role2"]
 //   }
 
-fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
+fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
     use proc_macro2::TokenTree;
 
     let mut resources = Vec::new();
+    let mut configures = Vec::new();
     let mut iter = tokens.into_iter().peekable();
 
     while iter.peek().is_some() {
@@ -125,6 +146,14 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
             Some(other) => return Err(format!("Expected resource name, found: {}", other)),
             None => break,
         };
+
+        // Bloc configure { ... } — configuration d'affichage pour toute ressource (builtin ou déclarée)
+        if key == "configure" {
+            let cfg = parse_configure_block(&mut iter)?;
+            configures.extend(cfg);
+            skip_optional_punct(&mut iter, ',');
+            continue;
+        }
 
         // 2. ':'
         expect_punct(&mut iter, ':')?;
@@ -172,7 +201,104 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<Vec<ResourceDef>, String> {
         skip_optional_punct(&mut iter, ',');
     }
 
-    Ok(resources)
+    Ok(ParsedAdmin {
+        resources,
+        configures,
+    })
+}
+
+/// Parse le bloc `configure { resource_key: { ... }, ... }`
+fn parse_configure_block(iter: &mut TokenIter) -> Result<Vec<ConfigureDef>, String> {
+    use proc_macro2::TokenTree;
+
+    let group = match iter.next() {
+        Some(TokenTree::Group(g)) => g,
+        Some(other) => return Err(format!("Expected '{{' after configure, found: {}", other)),
+        None => return Err("Expected '{{' after configure, end of file".to_string()),
+    };
+
+    let mut result = Vec::new();
+    let mut inner: TokenIter = group.stream().into_iter().peekable();
+
+    while inner.peek().is_some() {
+        let key = match inner.next() {
+            Some(TokenTree::Ident(id)) => id.to_string(),
+            Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+            Some(_) | None => continue,
+        };
+
+        expect_punct(&mut inner, ':')?;
+
+        let body_group = match inner.next() {
+            Some(TokenTree::Group(g)) => g,
+            Some(other) => {
+                return Err(format!(
+                    "Expected '{{' for configure[\"{}\"] body, found: {}",
+                    key, other
+                ));
+            }
+            None => {
+                return Err(format!(
+                    "Expected '{{' for configure[\"{}\"] body, end of file",
+                    key
+                ));
+            }
+        };
+
+        result.push(parse_configure_body(key, body_group.stream())?);
+        skip_optional_punct(&mut inner, ',');
+    }
+
+    Ok(result)
+}
+
+/// Parse `{ list_display: [...], list_exclude: [...], list_filter: [...] }` pour un `configure` item
+fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef, String> {
+    use proc_macro2::TokenTree;
+
+    let mut iter: TokenIter = tokens.into_iter().peekable();
+    let mut list_display = Vec::new();
+    let mut list_exclude = Vec::new();
+    let mut list_filter = Vec::new();
+
+    while iter.peek().is_some() {
+        let field = match iter.next() {
+            Some(TokenTree::Ident(id)) => id.to_string(),
+            Some(TokenTree::Punct(p)) if p.as_char() == ',' => continue,
+            _ => continue,
+        };
+
+        expect_punct(&mut iter, ':')?;
+
+        match field.as_str() {
+            "list_display" => {
+                list_display = parse_list_display(&mut iter)?;
+            }
+            "list_exclude" => {
+                list_exclude = parse_list_exclude(&mut iter)?;
+            }
+            "list_filter" => {
+                list_filter = parse_list_filter(&mut iter)?;
+            }
+            other => {
+                skip_until_punct(&mut iter, ',');
+                eprintln!("  Unknown field in configure[\"{}\"]: '{}'", key, other);
+            }
+        }
+    }
+
+    if !list_display.is_empty() && !list_exclude.is_empty() {
+        return Err(format!(
+            "configure[\"{key}\"]: list_display et list_exclude sont exclusifs"
+        ));
+    }
+
+    Ok(ConfigureDef {
+        key,
+        list_display,
+        list_exclude,
+        list_filter,
+    })
 }
 
 struct ResourceBody {

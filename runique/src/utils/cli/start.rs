@@ -21,8 +21,9 @@ pub fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
     println!("{}", t("cli.admin_detected"));
     // Lancer le daemon en thread séparé
     let admin_path = admin_path.to_string();
+    let main_path_owned = main_path.to_string();
     std::thread::spawn(move || {
-        if let Err(e) = start_admin_daemon(&admin_path) {
+        if let Err(e) = start_admin_daemon(&admin_path, &main_path_owned) {
             eprintln!("{}", tf("cli.daemon_error", &[&e.to_string()]));
         }
     });
@@ -41,14 +42,18 @@ pub fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
 
 // Détection de .with_admin() dans main.rs
 
-/// Vérifie si `src/main.rs` contient un appel à `.with_admin(...)`
+/// Vérifie si `src/main.rs` contient un appel actif à `.with_admin(...)`
+/// (ignore les lignes commentées avec `//`)
 fn has_admin(source: &str) -> bool {
-    source.contains(".with_admin(")
+    source.lines().any(|line| {
+        let trimmed = line.trim();
+        !trimmed.starts_with("//") && trimmed.contains(".with_admin(")
+    })
 }
 
 // Daemon AdminPanel
 
-fn start_admin_daemon(admin_path: &str) -> Result<()> {
+fn start_admin_daemon(admin_path: &str, main_path: &str) -> Result<()> {
     use crate::admin::daemon::watch;
 
     let admin_file = Path::new(admin_path);
@@ -57,7 +62,7 @@ fn start_admin_daemon(admin_path: &str) -> Result<()> {
         anyhow::bail!("{}", tf("cli.admin_not_found", &[&admin_path]));
     }
 
-    watch(admin_file)
+    watch(admin_file, Path::new(main_path))
         .map_err(|e| anyhow::anyhow!("{}", tf("cli.daemon_error", std::slice::from_ref(&e))))?;
 
     Ok(())

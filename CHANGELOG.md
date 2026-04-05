@@ -11,6 +11,72 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+* **Admin — `configure {}` block in `admin!{}`:**
+  A top-level `configure {}` block can now be declared in `admin!{}` to control the display configuration
+  of any registered resource — including builtin resources (users, droits, groupes) that have no
+  resource body to declare `list_display` in.
+  Supported keys per entry: `list_display`, `list_exclude`, `list_filter`.
+  `list_display` and `list_exclude` are mutually exclusive.
+  The daemon generates `registry.configure("key", DisplayConfig::new()...)` calls after all
+  `registry.register()` calls, so builtins registered earlier can also be configured.
+
+  ```rust
+  admin! {
+      configure {
+          users:  { list_display: [["id", "ID"], ["username", "Username"], ["email", "Email"]] },
+          droits: { list_display: [["id", "ID"], ["nom", "Name"]] },
+      }
+      blog: blog::Model => BlogForm { title: "Blog", permissions: ["admin"] }
+  }
+  ```
+
+* **Admin — builtin resources (users, droits, groupes):**
+  `runique::admin::builtin_resources()` returns a `Vec<ResourceEntry>` with full CRUD support for the
+  three framework-managed tables (`eihwaz_users`, `eihwaz_droit`, `eihwaz_groupe`).
+  These are injected automatically by `admin_register()` — no `admin!{}` declaration required.
+  Builtin forms: `UserAdminCreateForm`, `UserAdminEditForm`, `DroitAdminForm`, `GroupeAdminForm`.
+
+* **Admin — `resource_order` on `AdminStaging`:**
+  `.resource_order(["users", "droits", "groupes", "blog"])` controls the display order of resources
+  in the admin navigation. Unlisted resources appear at the end in insertion order.
+  Applied via `AdminRegistry::reorder()` in `build_admin_router`.
+
+* **Admin — user creation flow:**
+  Full builtin activation flow when creating a user via the admin panel:
+  * `UserAdminCreateForm` no longer exposes `is_active` — accounts are always created inactive.
+  * `BuiltinUserEntity::update_password` automatically sets `is_active = true` when the user
+    completes the password reset link.
+  * `auth_login()` checks `is_active` before opening a session — inactive accounts cannot log in.
+  * A random password hash is injected at creation; a reset email is sent automatically.
+
+* **Admin — `create_form:` field in `admin!{}`:**
+  A separate form type for the create view can now be declared via `create_form:` in the resource body.
+  When declared, the daemon enables `inject_password` on the resource (random hash + reset email flow).
+  The edit view continues to use `edit_form:` if declared, or the main form otherwise.
+
+* **Admin — `HiddenField` dedicated template:**
+  `HiddenField` now renders via `base_hidden.html` — a plain `<input type="hidden">` without a wrapper
+  `<div>`. Previously it used `base_string.html` which added an unwanted form-group container.
+
+* **CLI — `runique start` ignores commented `.with_admin(`:**
+  `has_admin()` now parses `main.rs` line by line — lines starting with `//` are skipped.
+  A commented-out `.with_admin(` no longer triggers the admin daemon.
+
+* **Daemon — auto-stop when `.with_admin(` is disabled:**
+  The watcher now also monitors `src/main.rs`. If `.with_admin(` is commented out while the daemon
+  is running, the daemon stops automatically and prints a status message.
+
+* **`AdminRegistry::configure(key, display)`:**
+  New method to update the `DisplayConfig` of an existing registry entry after registration.
+  Used by the generated `configure {}` calls. No-op if the key does not exist.
+
+* **Docs — user creation flow** (`docs/en/admin/user-creation/`): new dedicated section covering
+  the full cycle: creation → inactive account → reset email → password setup → activation.
+
+* **Docs — macro `admin!`:** updated with `configure {}` block syntax and field table.
+
+* **Docs — list view:** added "Configuring builtins" subsection.
+
 * **`search!` macro — Django-style syntax rewrite:**
   The `search!` macro now uses a syntax inspired by Django ORM, making queries more readable and easier to maintain.
   The old `+Col = val` syntax is replaced by `Col eq val`. Symbols `~~`, `!~~`, `+`, `-` are replaced by
@@ -150,7 +216,7 @@ All notable changes to this project will be documented in this file.
   `image: String [file(image, "media/uploads")]`
   `derive_form` => 1.1.34 : automatically generates the corresponding `FileField` with the correct type and upload path. Available types: `image`, `document`, `any`.
 
-### Documentation
+### Docs
 
 * **`clear()` documented** in `docs/fr/formulaire/trait/trait.md` and `docs/en/formulaire/trait/trait.md`:
   lifecycle diagram updated, method reference added, full `## clear()` section with three contexts (from handler, from `save(&mut self)`, where it cannot be called).
@@ -251,12 +317,12 @@ All notable changes to this project will be documented in this file.
 * **`base_color.html`:** Inline `<script>` (color picker sync) replaced with external `color_picker.js` loaded via `<script src defer>`. No nonce required — field templates are rendered without request context so `csp_nonce` was never available.
 * **`demo-app/main.rs`:** `upgrade-insecure-requests` is now conditional: enabled only in release builds (`cfg!(not(debug_assertions))`). Prevents Chrome from upgrading HTTP→HTTPS in localhost dev environments.
 
-### Templates
+### Templates — 1.1.47
 
 * **Admin — inline `style=` removed:** `create.html` (`max-width:60%` → `card card-form`), `dashboard.html` (`grid-column: 1/-1` → `card-full-width`, `text-decoration:none` removed), `delete.html` (`display:inline` → `form-inline`), `edit.html` (`max-width:60%` → `card card-form`), `login.html` (`margin-bottom:1rem` removed), `admin_base.html` mobile burger (`display:none` → `hidden`).
 * **`admin/composant/edit.html`:** Inline `<script>` (image preview) now carries `nonce="{{ csp_nonce }}"`.
 
-### Docs
+### Docs — 1.1.47
 
 * **`derive_form/README.md`:** Complete rewrite — field types table, PK types, all options, FK syntax, complete blog example (User/Category/Post/Comment), `impl_objects!` with all query methods, `#[form(...)]` parameters.
 * **`doc-tests/macro_db/model_complete.md`:** Rewritten with `model!` macro and `impl_objects!`.

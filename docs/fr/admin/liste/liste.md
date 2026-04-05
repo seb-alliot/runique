@@ -33,6 +33,22 @@ Chaque entrée est une paire `["nom_colonne", "Libellé"]`. Les colonnes déclar
 
 Disponible dans le contexte Tera via `visible_columns` (liste des noms) et `column_labels` (libellés).
 
+### Configurer les builtins — configure {}
+
+`list_display` dans le corps d'une ressource s'applique uniquement aux ressources déclarées. Pour configurer l'affichage des **ressources builtin** (users, droits, groupes) ou pour centraliser toute la config d'affichage, utiliser le bloc `configure {}` au niveau supérieur :
+
+```rust
+admin! {
+    configure {
+        users:  { list_display: [["id", "ID"], ["username", "Nom"], ["email", "Email"]] },
+        droits: { list_display: [["id", "ID"], ["nom", "Nom"]] },
+    }
+    blog: blog::Model => BlogForm { title: "Blog", permissions: ["admin"] }
+}
+```
+
+Le bloc `configure {}` supporte `list_display`, `list_exclude` et `list_filter`. `list_display` et `list_exclude` sont mutuellement exclusifs.
+
 ## Filtres latéraux — list_filter
 
 Déclarer `list_filter` active une barre latérale avec les valeurs distinctes de chaque champ :

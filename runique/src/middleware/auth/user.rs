@@ -119,6 +119,7 @@ impl UserEntity for BuiltinUserEntity {
 
         let mut active: ActiveModel = user.into();
         active.password = Set(new_hash.to_string());
+        active.is_active = Set(true);
         active.update(db).await?;
         Ok(())
     }

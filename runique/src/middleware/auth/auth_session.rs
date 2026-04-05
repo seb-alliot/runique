@@ -189,6 +189,8 @@ pub async fn login(
 /// Raccourci générique pour tout flux d'authentification (inscription, OAuth, magic link…)
 /// qui dispose déjà de l'identifiant utilisateur sans avoir besoin de repasser les champs.
 ///
+/// Retourne `Ok(())` sans créer de session si le compte est inactif (`is_active = false`).
+///
 /// Utilise [`BuiltinUserEntity`] pour la recherche. Pour un modèle custom, utiliser [`login`] directement.
 pub async fn auth_login(
     session: &Session,
@@ -198,6 +200,9 @@ pub async fn auth_login(
     let Some(user) = BuiltinUserEntity::find_by_id(db, user_id).await else {
         return Ok(());
     };
+    if !user.is_active() {
+        return Ok(());
+    }
     login(
         session,
         db,

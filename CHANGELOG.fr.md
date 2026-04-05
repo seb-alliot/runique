@@ -10,6 +10,85 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 ### Ajouté
 
+* **Admin — bloc `configure {}` dans `admin!{}`:**
+  Un bloc `configure {}` de niveau supérieur peut désormais être déclaré dans `admin!{}` pour
+  contrôler la configuration d'affichage de n'importe quelle ressource enregistrée — y compris
+  les ressources builtin (users, droits, groupes) qui n'ont pas de corps de ressource.
+  Clés supportées par entrée : `list_display`, `list_exclude`, `list_filter`.
+  `list_display` et `list_exclude` sont mutuellement exclusifs.
+  Le daemon génère des appels `registry.configure("key", DisplayConfig::new()...)` après tous les
+  `registry.register()`, ce qui permet de configurer aussi les builtins enregistrés en amont.
+
+  ```rust
+  admin! {
+      configure {
+          users:  { list_display: [["id", "ID"], ["username", "Nom"], ["email", "Email"]] },
+          droits: { list_display: [["id", "ID"], ["nom", "Nom"]] },
+      }
+      blog: blog::Model => BlogForm { title: "Blog", permissions: ["admin"] }
+  }
+  ```
+
+* **Admin — ressources builtin (users, droits, groupes) :**
+  `runique::admin::builtin_resources()` retourne un `Vec<ResourceEntry>` avec CRUD complet pour les
+  trois tables gérées par le framework (`eihwaz_users`, `eihwaz_droit`, `eihwaz_groupe`).
+  Injectées automatiquement par `admin_register()` — aucune déclaration `admin!{}` requise.
+  Formulaires builtin : `UserAdminCreateForm`, `UserAdminEditForm`, `DroitAdminForm`, `GroupeAdminForm`.
+
+* **Admin — `resource_order` sur `AdminStaging` :**
+  `.resource_order(["users", "droits", "groupes", "blog"])` contrôle l'ordre d'affichage des
+  ressources dans la navigation admin. Les ressources non listées apparaissent à la fin dans leur
+  ordre d'insertion. Appliqué via `AdminRegistry::reorder()` dans `build_admin_router`.
+
+* **Admin — flux de création utilisateur :**
+  Flux d'activation builtin complet lors de la création d'un utilisateur via le panel admin :
+  * `UserAdminCreateForm` n'expose plus `is_active` — les comptes sont toujours créés inactifs.
+  * `BuiltinUserEntity::update_password` passe automatiquement `is_active = true` quand
+    l'utilisateur complète le lien de réinitialisation de mot de passe.
+  * `auth_login()` vérifie `is_active` avant d'ouvrir une session — les comptes inactifs ne peuvent pas se connecter.
+  * Un hash aléatoire est injecté à la création ; un email de reset est envoyé automatiquement.
+
+* **Admin — champ `create_form:` dans `admin!{}`:**
+  Un formulaire distinct pour la vue de création peut être déclaré via `create_form:` dans le corps
+  de la ressource. Quand déclaré, le daemon active `inject_password` sur la ressource (hash
+  aléatoire + flux email de reset). La vue d'édition continue d'utiliser `edit_form:` si déclaré.
+
+* **Admin — template dédié pour `HiddenField` :**
+  `HiddenField` utilise désormais `base_hidden.html` — un simple `<input type="hidden">` sans
+  conteneur `<div>`. Auparavant il utilisait `base_string.html` qui ajoutait un conteneur form-group.
+
+* **CLI — `runique start` ignore `.with_admin(` commenté :**
+  `has_admin()` parse désormais `main.rs` ligne par ligne — les lignes commençant par `//` sont
+  ignorées. Un `.with_admin(` commenté ne déclenche plus le daemon admin.
+
+* **Daemon — arrêt automatique quand `.with_admin(` est désactivé :**
+  Le watcher surveille désormais aussi `src/main.rs`. Si `.with_admin(` est commenté pendant que
+  le daemon tourne, il s'arrête automatiquement et affiche un message.
+
+* **`AdminRegistry::configure(key, display)` :**
+  Nouvelle méthode pour mettre à jour le `DisplayConfig` d'une entrée existante après enregistrement.
+  Utilisée par les appels générés depuis `configure {}`. Sans effet si la clé n'existe pas.
+
+### Documentation
+
+* **Admin — flux de création utilisateur** (`docs/fr/admin/user-creation/`, `docs/en/admin/user-creation/`) :
+  Nouvelle section dédiée couvrant le cycle complet : création → compte inactif → email de reset →
+  définition du mot de passe → activation. Inclut le tableau des champs du formulaire, le contexte
+  du template email, la configuration de l'URL de reset, et une note sur les responsabilités des
+  modèles custom.
+
+* **Admin — macro `admin!` :** Mise à jour avec la syntaxe du bloc `configure {}`, tableau des
+  champs, et référence `list_display` / `list_exclude` / `list_filter`.
+
+* **Admin — vue liste :** Ajout d'une sous-section "Configurer les builtins" expliquant quand
+  utiliser `configure {}` plutôt que `list_display` dans le corps d'une ressource.
+
+* **Docs — flux de création utilisateur** (`docs/fr/admin/user-creation/`) : nouvelle section dédiée.
+* **Docs — macro `admin!`** : bloc `configure {}`, tableau des champs mis à jour.
+* **Docs — vue liste** : sous-section "Configurer les builtins" ajoutée.
+
+---
+
 * **Macro `search!` — refonte syntaxe style Django :**
   La macro `search!` adopte une syntaxe inspirée de Django ORM, plus lisible et plus facile à maintenir.
   L'ancienne syntaxe `+Col = val` est remplacée par `Col eq val`. Les symboles `~~`, `!~~`, `+`, `-`

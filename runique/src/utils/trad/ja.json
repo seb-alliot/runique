@@ -186,6 +186,7 @@
     "unable_read": "読み取れません: {}",
     "parse_error": "解析エラー: {}",
     "no_resource": "admin!{{}} にリソースがありません — 生成するものがありません",
+    "with_admin_disabled": "with_admin が無効 → デーモン停止",
     "operational": "デーモン稼働中 → src/admin/generated.rs",
     "generation_error": "生成エラー: {}",
     "watcher_error": "ウォッチャーエラー: {}",
