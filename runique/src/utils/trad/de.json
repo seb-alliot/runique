@@ -186,6 +186,7 @@
     "unable_read": "Kann nicht lesen: {}",
     "parse_error": "Analysefehler: {}",
     "no_resource": "Keine Ressource in admin!{{}} — nichts zu generieren",
+    "with_admin_disabled": "with_admin deaktiviert → Daemon gestoppt",
     "operational": "Daemon läuft → src/admin/generated.rs",
     "generation_error": "Generierungsfehler: {}",
     "watcher_error": "Watcher-Fehler: {}",

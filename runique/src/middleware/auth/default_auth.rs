@@ -27,7 +27,7 @@ use crate::utils::password;
 /// ```
 #[async_trait::async_trait]
 pub trait UserEntity: Send + Sync + 'static {
-    /// Le modèle retourné par la requête (doit implémenter `RuniqueUser`)
+    /// Le modèle retourné par la requête (doit implémenter `eihwaz_User`)
     type Model: RuniqueUser;
 
     /// Recherche un utilisateur par id en base

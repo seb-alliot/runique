@@ -31,6 +31,7 @@ admin! {
 | [CLI](/docs/fr/admin/declaration) | Commande `runique start`, workflow général |
 | [Daemon & génération](/docs/fr/admin/declaration) | Fichiers générés, comportement du watcher |
 | [Macro `admin!`](/docs/fr/admin/declaration) | Syntaxe complète, champs obligatoires et optionnels |
+| [Création d'utilisateur](/docs/fr/admin/user-creation) | Flux complet création → email → activation, modèle custom |
 | [Vue liste](/docs/fr/admin/liste) | Pagination, tri, recherche, `list_display`, `list_filter` |
 | [Permissions](/docs/fr/admin/permission) | Rôles, `is_staff` / `is_superuser`, vérification runtime |
 | [Templates](/docs/fr/admin/template) | Hiérarchie de templates, blocks, surcharge du visuel |

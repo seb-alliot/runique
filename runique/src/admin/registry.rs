@@ -1,6 +1,7 @@
 //! Registre central des ressources admin indexées par clé URL.
 use indexmap::IndexMap;
 
+use crate::admin::resource::DisplayConfig;
 use crate::admin::resource_entry::ResourceEntry;
 
 /// Registre des ressources admin — IndexMap clé → ResourceEntry.
@@ -48,5 +49,31 @@ impl AdminRegistry {
 
     pub fn keys(&self) -> Vec<&str> {
         self.resources.keys().map(|k| k.as_str()).collect()
+    }
+
+    /// Applique une configuration d'affichage à une ressource existante (builtin ou déclarée).
+    ///
+    /// Appelé par le code généré après `admin_register()` pour les entrées du bloc `configure {}`.
+    /// Sans effet si la clé n'existe pas.
+    pub fn configure(&mut self, key: &str, display: DisplayConfig) {
+        if let Some(entry) = self.resources.get_mut(key) {
+            entry.meta.display = display;
+        }
+    }
+
+    /// Réordonne le registre selon la liste de clés fournie.
+    /// Les clés non listées sont ajoutées à la fin dans leur ordre d'insertion.
+    pub fn reorder(&mut self, order: &[String]) {
+        let mut reordered = indexmap::IndexMap::new();
+        for key in order {
+            if let Some(entry) = self.resources.shift_remove(key.as_str()) {
+                reordered.insert(key.clone(), entry);
+            }
+        }
+        // Clés restantes non listées
+        for (key, entry) in std::mem::take(&mut self.resources) {
+            reordered.insert(key, entry);
+        }
+        self.resources = reordered;
     }
 }

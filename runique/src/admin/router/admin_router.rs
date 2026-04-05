@@ -85,10 +85,25 @@ pub fn build_admin_router(admin_staging: AdminStaging) -> Router {
     if let Some(state) = state {
         // On remplace le config du proto_state par celui d'AdminStaging
         // pour que les templates configurés via .templates() soient pris en compte.
-        let merged = Arc::new(PrototypeAdminState {
-            registry: state.registry.clone(),
-            config: Arc::new(config),
-        });
+        let order = config.resource_order.clone();
+        let config = Arc::new(config);
+
+        // Unwrap l'Arc<PrototypeAdminState> pour accéder aux champs en ownership.
+        // try_unwrap réussit car c'est le seul propriétaire au boot.
+        let registry = match Arc::try_unwrap(state) {
+            Ok(proto) => match Arc::try_unwrap(proto.registry) {
+                Ok(mut reg) => {
+                    if !order.is_empty() {
+                        reg.reorder(&order);
+                    }
+                    Arc::new(reg)
+                }
+                Err(arc) => arc,
+            },
+            Err(arc) => arc.registry.clone(),
+        };
+
+        let merged = Arc::new(PrototypeAdminState { registry, config });
         router = router.layer(Extension(merged));
     }
 

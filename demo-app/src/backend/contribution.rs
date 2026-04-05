@@ -8,7 +8,7 @@ pub async fn list_contributions(
 ) -> Vec<crate::entities::contribution::Model> {
     search!(ContributionEntity =>
         join EihwazUsers,
-        eihwaz_users::Username eq "alice",
+        eihwaz_users::Username eq "username",
         desc Id,
     )
     .all(db)

@@ -186,6 +186,7 @@
     "unable_read": "无法读取：{}",
     "parse_error": "解析错误：{}",
     "no_resource": "admin!{{}} 中未定义任何资源 — 无需生成",
+    "with_admin_disabled": "with_admin 已禁用 → 守护进程已停止",
     "operational": "守护进程运行中 → src/admin/generated.rs",
     "generation_error": "生成代码时出错：{}",
     "watcher_error": "文件监视器出错：{}",

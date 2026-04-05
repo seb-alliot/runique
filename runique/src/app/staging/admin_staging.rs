@@ -43,6 +43,23 @@ impl AdminStaging {
         self
     }
 
+    /// Définit l'ordre d'affichage des ressources dans la nav admin.
+    ///
+    /// ```rust,ignore
+    /// .with_admin(|a| a
+    ///     .resource_order(["users", "blog", "droits", "groupes"])
+    /// )
+    /// ```
+    /// Les clés non listées apparaissent à la fin dans leur ordre d'insertion.
+    pub fn resource_order<I, S>(mut self, order: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.config = self.config.resource_order(order);
+        self
+    }
+
     pub fn hot_reload(mut self, enabled: bool) -> Self {
         self.config = self.config.hot_reload(enabled);
         self

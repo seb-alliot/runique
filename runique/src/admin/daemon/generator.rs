@@ -1,5 +1,5 @@
 //! Génération de `src/admins/admin.rs` — `DynForm` wrappers et `admin_register()` depuis les `ResourceDef`.
-use crate::admin::daemon::parser::ResourceDef;
+use crate::admin::daemon::parser::{ParsedAdmin, ResourceDef};
 use std::{fmt::Write, fs, path::Path};
 
 /// Génère `src/admins/admin.rs` — seul fichier produit par le daemon.
@@ -7,7 +7,7 @@ use std::{fmt::Write, fs, path::Path};
 /// Contient :
 /// - Une impl `DynForm` par ressource (wrapping le `RuniqueForm` concret)
 /// - `admin_register()` → `HashMap<String, ResourceEntry>` alimenté au boot
-pub fn generate(resources: &[ResourceDef]) -> Result<(), String> {
+pub fn generate(parsed: &ParsedAdmin) -> Result<(), String> {
     let admins_dir = Path::new("src/admins");
     if admins_dir.exists() {
         fs::remove_dir_all(admins_dir)
@@ -17,7 +17,7 @@ pub fn generate(resources: &[ResourceDef]) -> Result<(), String> {
         .map_err(|e| format!("Impossible de créer {}: {}", admins_dir.display(), e))?;
 
     write_readme(admins_dir)?;
-    write_admin(resources, admins_dir)?;
+    write_admin(parsed, admins_dir)?;
     write_mod(admins_dir)?;
 
     Ok(())
@@ -34,7 +34,8 @@ fn write_mod(dir: &Path) -> Result<(), String> {
     fs::write(dir.join("mod.rs"), content).map_err(|e| format!("Impossible d'écrire mod.rs: {}", e))
 }
 
-fn write_admin(resources: &[ResourceDef], dir: &Path) -> Result<(), String> {
+fn write_admin(parsed: &ParsedAdmin, dir: &Path) -> Result<(), String> {
+    let resources = &parsed.resources;
     let mut out = String::new();
 
     let _ = writeln!(out, "// AUTO-admin — DO NOT EDIT MANUALLY");
@@ -60,7 +61,7 @@ fn write_admin(resources: &[ResourceDef], dir: &Path) -> Result<(), String> {
     }
 
     // admin_register()
-    write_admin_register(&mut out, resources)?;
+    write_admin_register(&mut out, parsed)?;
 
     fs::write(dir.join("admin.rs"), out).map_err(|e| format!("Impossible d'écrire admin.rs: {}", e))
 }
@@ -140,7 +141,8 @@ fn write_edit_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), Str
     Ok(())
 }
 
-fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(), String> {
+fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), String> {
+    let resources = &parsed.resources;
     // Collecte tous les rôles uniques déclarés dans permissions: [...]
     let mut all_roles: Vec<String> = resources
         .iter()
@@ -174,6 +176,45 @@ fn write_admin_register(out: &mut String, resources: &[ResourceDef]) -> Result<(
 
     for r in resources {
         write_resource_entry(out, r)?;
+    }
+
+    // Applique les configure{} : surcharge le DisplayConfig de toute ressource (builtin ou déclarée)
+    for cfg in &parsed.configures {
+        let has_display = !cfg.list_display.is_empty()
+            || !cfg.list_exclude.is_empty()
+            || !cfg.list_filter.is_empty();
+        if !has_display {
+            continue;
+        }
+        let mut chain = "DisplayConfig::new()".to_string();
+        if !cfg.list_display.is_empty() {
+            let cols = cfg
+                .list_display
+                .iter()
+                .map(|(c, l)| format!("(\"{}\", \"{}\")", c, l))
+                .collect::<Vec<_>>()
+                .join(", ");
+            chain.push_str(&format!(".columns_include(vec![{}])", cols));
+        }
+        if !cfg.list_exclude.is_empty() {
+            let cols = cfg
+                .list_exclude
+                .iter()
+                .map(|c| format!("\"{}\"", c))
+                .collect::<Vec<_>>()
+                .join(", ");
+            chain.push_str(&format!(".columns_exclude(vec![{}])", cols));
+        }
+        if !cfg.list_filter.is_empty() {
+            let filters = cfg
+                .list_filter
+                .iter()
+                .map(|(col, label, limit)| format!("(\"{}\", \"{}\", {}u64)", col, label, limit))
+                .collect::<Vec<_>>()
+                .join(", ");
+            chain.push_str(&format!(".list_filter(vec![{}])", filters));
+        }
+        let _ = writeln!(out, "    registry.configure(\"{}\", {});", cfg.key, chain);
     }
 
     let _ = writeln!(out, "    registry");

@@ -186,6 +186,7 @@
     "unable_read": "Невозможно прочитать: {}",
     "parse_error": "Ошибка разбора: {}",
     "no_resource": "Нет ресурсов в admin!{{}} — нечего генерировать",
+    "with_admin_disabled": "with_admin отключён → daemon остановлен",
     "operational": "Daemon работает → src/admin/generated.rs",
     "generation_error": "Ошибка генерации: {}",
     "watcher_error": "Ошибка наблюдателя: {}",
