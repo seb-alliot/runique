@@ -112,8 +112,21 @@ fn build_enum_type_drops(schema: &ParsedSchema, db_kind: &DbKind) -> String {
 pub fn generate_alter_file(change: &Changes) -> String {
     let (up_body, down_body) = build_alter_bodies(change);
 
+    let up_param = if up_body.trim().is_empty() {
+        "_manager"
+    } else {
+        "manager"
+    };
+    let down_param = if down_body.trim().is_empty() {
+        "_manager"
+    } else {
+        "manager"
+    };
+
     format!(
-        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{up}\n        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{\n{down}\n        Ok(())\n    }}\n}}\n",
+        "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, {up_param}: &SchemaManager) -> Result<(), DbErr> {{\n{up}\n        Ok(())\n    }}\n\n    async fn down(&self, {down_param}: &SchemaManager) -> Result<(), DbErr> {{\n{down}\n        Ok(())\n    }}\n}}\n",
+        up_param = up_param,
+        down_param = down_param,
         up = up_body.trim_end(),
         down = down_body.trim_end()
     )
@@ -375,24 +388,20 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
     }
 
     // 10) Enum value additions/removals — migration manuelle requise
-    for (col, val) in &change.enum_value_adds {
+    for (_col, enum_name, val) in &change.enum_value_adds {
         up.push_str(&format!(
-            "        // WARNING: enum value added on column '{col}': +'{val}'\n        // Postgres: ALTER TYPE <enum_name> ADD VALUE '{val}';\n        // MySQL:    ALTER TABLE {table} MODIFY COLUMN {col} ENUM(...);\n\n",
-            col = col, val = val, table = change.table_name,
-        ));
-        down.push_str(&format!(
-            "        // WARNING: remove enum value '{val}' from column '{col}' — manual migration required.\n\n",
-            col = col, val = val,
+            "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{val}'\"\n        ).await?;\n\n",
+            enum_name = enum_name, val = val,
         ));
     }
-    for (col, val) in &change.enum_value_drops {
+    for (_col, enum_name, val) in &change.enum_value_drops {
         up.push_str(&format!(
-            "        // WARNING: enum value removed on column '{col}': -'{val}'\n        // Ensure no rows use this value before applying.\n        // Postgres: recreate type; MySQL: ALTER TABLE {table} MODIFY COLUMN {col} ENUM(...);\n\n",
-            col = col, val = val, table = change.table_name,
+            "        // WARNING: valeur '{val}' supprimée de {enum_name} — migration manuelle requise.\n\n",
+            val = val, enum_name = enum_name,
         ));
         down.push_str(&format!(
-            "        // WARNING: restore enum value '{val}' on column '{col}' — manual migration required.\n\n",
-            col = col, val = val,
+            "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{val}'\"\n        ).await?;\n\n",
+            enum_name = enum_name, val = val,
         ));
     }
 

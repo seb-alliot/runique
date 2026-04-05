@@ -34,6 +34,7 @@ pub struct ParsedColumn {
     pub enum_name: Option<String>,
     /// Valeurs DB actuelles pour les colonnes enum string (ex: ["Fix", "Feature", "Ajouté"]).
     pub enum_string_values: Vec<String>,
+    pub enum_is_pg: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -66,9 +67,9 @@ pub struct Changes {
     /// Renommages de valeurs enum string : (nom_colonne, ancienne_valeur, nouvelle_valeur).
     pub enum_renames: Vec<(String, String, String)>,
     /// Valeurs enum ajoutées : (nom_colonne, valeur).
-    pub enum_value_adds: Vec<(String, String)>,
+    pub enum_value_adds: Vec<(String, String, String)>,
     /// Valeurs enum supprimées : (nom_colonne, valeur).
-    pub enum_value_drops: Vec<(String, String)>,
+    pub enum_value_drops: Vec<(String, String, String)>,
 }
 
 impl Changes {

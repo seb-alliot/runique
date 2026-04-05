@@ -86,7 +86,6 @@ impl SeaOrmVisitor {
                     let unique = methods.contains(&"unique".to_string())
                         || methods.contains(&"unique_key".to_string());
                     let has_default_now = methods.contains(&"default".to_string());
-                    // Extraire les valeurs enum string si présentes (.enum_type("Name", vec![...]))
                     let (enum_name, enum_string_values) =
                         if methods.contains(&"enum_type".to_string()) {
                             extract_enum_type_info(arg)
@@ -105,6 +104,7 @@ impl SeaOrmVisitor {
                             has_default_now: false,
                             enum_name: None,
                             enum_string_values: Vec::new(),
+                            enum_is_pg: false,
                         });
                     } else {
                         let is_created_at = n == "created_at";
@@ -118,6 +118,7 @@ impl SeaOrmVisitor {
                             created_at: is_created_at,
                             updated_at: is_updated_at,
                             has_default_now: has_default_now || is_created_at || is_updated_at,
+                            enum_is_pg: !enum_string_values.is_empty(),
                             enum_name,
                             enum_string_values,
                         });
