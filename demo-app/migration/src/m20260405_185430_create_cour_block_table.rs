@@ -9,7 +9,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("demo_page"))
+                    .table(Alias::new("cour_block"))
                     .if_not_exists()
                     .col(
                         ColumnDef::new(Alias::new("id"))
@@ -19,14 +19,13 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(Alias::new("category_id"))
+                        ColumnDef::new(Alias::new("chapitre_id"))
                             .integer()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(Alias::new("slug")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("title")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("lead")).string().null())
-                    .col(ColumnDef::new(Alias::new("page_type")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("heading")).string().null())
+                    .col(ColumnDef::new(Alias::new("content")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("block_type")).string().not_null())
                     .col(
                         ColumnDef::new(Alias::new("sort_order"))
                             .integer()
@@ -39,8 +38,9 @@ impl MigrationTrait for Migration {
         manager
             .create_foreign_key(
                 ForeignKey::create()
-                    .from(Alias::new("demo_page"), Alias::new("category_id"))
-                    .to(Alias::new("demo_category"), Alias::new("id"))
+                    .name("cour_block_chapitre_id_chapitre_fkey")
+                    .from(Alias::new("cour_block"), Alias::new("chapitre_id"))
+                    .to(Alias::new("chapitre"), Alias::new("id"))
                     .on_delete(ForeignKeyAction::Cascade)
                     .on_update(ForeignKeyAction::NoAction)
                     .to_owned(),
@@ -54,14 +54,14 @@ impl MigrationTrait for Migration {
         manager
             .drop_foreign_key(
                 ForeignKey::drop()
-                    .table(Alias::new("demo_page"))
-                    .name("demo_page_category_id_demo_category_fkey")
+                    .table(Alias::new("cour_block"))
+                    .name("cour_block_chapitre_id_chapitre_fkey")
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Alias::new("demo_page")).to_owned())
+            .drop_table(Table::drop().table(Alias::new("cour_block")).to_owned())
             .await?;
         Ok(())
     }

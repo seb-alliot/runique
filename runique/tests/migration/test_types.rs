@@ -62,6 +62,8 @@ mod types_migration {
             dropped_indexes: vec![],
             is_new_table: false,
             enum_renames: vec![],
+            enum_value_adds: vec![],
+            enum_value_drops: vec![],
         };
         assert!(changes.added_columns.is_empty());
     }

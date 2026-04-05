@@ -1,7 +1,7 @@
 //! Calcul de diff entre deux [`ParsedSchema`] — colonnes ajoutées/supprimées/modifiées, FK, index, enum renames.
 use std::collections::{HashMap, HashSet};
 
-use crate::migration::utils::types::{Changes, ParsedColumn, ParsedSchema};
+use crate::migration::utils::types::{Changes, ParsedColumn, ParsedFk, ParsedSchema};
 
 /// Colonnes qui existent réellement en base (hors ignored et hors PK)
 ///
@@ -74,6 +74,8 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
                     || prev.nullable != curr.nullable
                     || prev.unique != curr.unique
                     || prev.has_default_now != curr.has_default_now
+                    || prev.updated_at != curr.updated_at
+                    || prev.created_at != curr.created_at
                 {
                     Some(((*prev).clone(), (*curr).clone()))
                 } else {
@@ -83,39 +85,28 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         })
         .collect();
 
-    // FK
-    let prev_fks: HashSet<String> = previous
-        .foreign_keys
-        .iter()
-        .map(|fk| format!("{}->{}:{}", fk.from_column, fk.to_table, fk.to_column))
-        .collect();
-    let curr_fks: HashSet<String> = current
-        .foreign_keys
-        .iter()
-        .map(|fk| format!("{}->{}:{}", fk.from_column, fk.to_table, fk.to_column))
-        .collect();
+    // FK — la clé inclut on_delete et on_update pour détecter les changements d'action
+    let fk_key = |fk: &ParsedFk| {
+        format!(
+            "{}->{}:{}:{}:{}",
+            fk.from_column, fk.to_table, fk.to_column, fk.on_delete, fk.on_update
+        )
+    };
+
+    let prev_fks: HashSet<String> = previous.foreign_keys.iter().map(&fk_key).collect();
+    let curr_fks: HashSet<String> = current.foreign_keys.iter().map(&fk_key).collect();
 
     let added_fks = current
         .foreign_keys
         .iter()
-        .filter(|fk| {
-            !prev_fks.contains(&format!(
-                "{}->{}:{}",
-                fk.from_column, fk.to_table, fk.to_column
-            ))
-        })
+        .filter(|fk| !prev_fks.contains(&fk_key(fk)))
         .cloned()
         .collect();
 
     let dropped_fks = previous
         .foreign_keys
         .iter()
-        .filter(|fk| {
-            !curr_fks.contains(&format!(
-                "{}->{}:{}",
-                fk.from_column, fk.to_table, fk.to_column
-            ))
-        })
+        .filter(|fk| !curr_fks.contains(&fk_key(fk)))
         .cloned()
         .collect();
 
@@ -136,16 +127,36 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         .cloned()
         .collect();
 
-    // Enum renames : comparer les string_values par position pour les colonnes communes
+    // Enum : renames (même position, valeur différente), ajouts et suppressions de variantes
     let mut enum_renames: Vec<(String, String, String)> = Vec::new();
+    let mut enum_value_adds: Vec<(String, String)> = Vec::new();
+    let mut enum_value_drops: Vec<(String, String)> = Vec::new();
+
     for (name, curr) in &curr_cols {
         if curr.enum_string_values.is_empty() {
             continue;
         }
         if let Some(prev) = prev_cols.get(name) {
+            let prev_set: HashSet<&str> =
+                prev.enum_string_values.iter().map(|s| s.as_str()).collect();
+            let curr_set: HashSet<&str> =
+                curr.enum_string_values.iter().map(|s| s.as_str()).collect();
+
+            // Valeurs ajoutées
+            for v in curr_set.difference(&prev_set) {
+                enum_value_adds.push((name.to_string(), v.to_string()));
+            }
+            // Valeurs supprimées
+            for v in prev_set.difference(&curr_set) {
+                enum_value_drops.push((name.to_string(), v.to_string()));
+            }
+            // Renames par position (parmi les valeurs présentes dans les deux)
             for (i, new_val) in curr.enum_string_values.iter().enumerate() {
                 if let Some(old_val) = prev.enum_string_values.get(i) {
-                    if old_val != new_val {
+                    if old_val != new_val
+                        && prev_set.contains(old_val.as_str())
+                        && !curr_set.contains(old_val.as_str())
+                    {
                         enum_renames.push((name.to_string(), old_val.clone(), new_val.clone()));
                     }
                 }
@@ -164,5 +175,7 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         dropped_indexes,
         is_new_table: false,
         enum_renames,
+        enum_value_adds,
+        enum_value_drops,
     }
 }

@@ -9,8 +9,8 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     let fk_stmts = build_fk_create_stmts(schema);
     let idx_stmts = build_index_create_stmts(schema);
     let trigger_stmts = build_updated_at_trigger_stmts(schema, db_kind);
-    let enum_stmts = build_enum_type_stmts(schema);
-    let enum_drops = build_enum_type_drops(schema);
+    let enum_stmts = build_enum_type_stmts(schema, db_kind);
+    let enum_drops = build_enum_type_drops(schema, db_kind);
     let fk_drops = build_fk_drop_stmts(schema);
     let idx_drops = build_index_drop_stmts(schema);
     let trigger_drops = build_updated_at_trigger_drops(schema, db_kind);
@@ -67,7 +67,10 @@ pub fn generate_create_file(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     )
 }
 
-fn build_enum_type_stmts(schema: &ParsedSchema) -> String {
+fn build_enum_type_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> String {
+    if *db_kind != DbKind::Postgres {
+        return String::new();
+    }
     let mut out = String::new();
     for col in &schema.columns {
         if col.enum_string_values.is_empty() {
@@ -88,7 +91,10 @@ fn build_enum_type_stmts(schema: &ParsedSchema) -> String {
     out
 }
 
-fn build_enum_type_drops(schema: &ParsedSchema) -> String {
+fn build_enum_type_drops(schema: &ParsedSchema, db_kind: &DbKind) -> String {
+    if *db_kind != DbKind::Postgres {
+        return String::new();
+    }
     let mut out = String::new();
     for col in &schema.columns {
         if col.enum_string_values.is_empty() {
@@ -168,7 +174,7 @@ fn build_fk_create_stmts(schema: &ParsedSchema) -> String {
     let mut out = String::new();
     for fk in &schema.foreign_keys {
         out.push_str(&format!(
-            "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+            "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .name(\"{table}_{from}_{to_table}_fkey\")\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
             table = schema.table_name,
             from = fk.from_column,
             to_table = fk.to_table,
@@ -365,6 +371,28 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
         down.push_str(&format!(
             "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{old}' WHERE {col} = '{new}'\"\n        ).await?;\n\n",
             table = change.table_name, col = col, old = old_val, new = new_val,
+        ));
+    }
+
+    // 10) Enum value additions/removals — migration manuelle requise
+    for (col, val) in &change.enum_value_adds {
+        up.push_str(&format!(
+            "        // WARNING: enum value added on column '{col}': +'{val}'\n        // Postgres: ALTER TYPE <enum_name> ADD VALUE '{val}';\n        // MySQL:    ALTER TABLE {table} MODIFY COLUMN {col} ENUM(...);\n\n",
+            col = col, val = val, table = change.table_name,
+        ));
+        down.push_str(&format!(
+            "        // WARNING: remove enum value '{val}' from column '{col}' — manual migration required.\n\n",
+            col = col, val = val,
+        ));
+    }
+    for (col, val) in &change.enum_value_drops {
+        up.push_str(&format!(
+            "        // WARNING: enum value removed on column '{col}': -'{val}'\n        // Ensure no rows use this value before applying.\n        // Postgres: recreate type; MySQL: ALTER TABLE {table} MODIFY COLUMN {col} ENUM(...);\n\n",
+            col = col, val = val, table = change.table_name,
+        ));
+        down.push_str(&format!(
+            "        // WARNING: restore enum value '{val}' on column '{col}' — manual migration required.\n\n",
+            col = col, val = val,
         ));
     }
 
@@ -610,7 +638,7 @@ fn push_create_fk(
     on_update: &str,
 ) {
     buf.push_str(&format!(
-        "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
+        "        manager\n            .create_foreign_key(\n                ForeignKey::create()\n                    .name(\"{table}_{from}_{to_table}_fkey\")\n                    .from(Alias::new(\"{table}\"), Alias::new(\"{from}\"))\n                    .to(Alias::new(\"{to_table}\"), Alias::new(\"{to_col}\"))\n                    .on_delete(ForeignKeyAction::{on_delete})\n                    .on_update(ForeignKeyAction::{on_update})\n                    .to_owned(),\n            )\n            .await?;\n\n",
         table = table,
         from = from_col,
         to_table = to_table,

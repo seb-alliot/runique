@@ -6,10 +6,6 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
 async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.get_connection().execute_unprepared(
-            "CREATE TYPE SectionTheme AS ENUM ('Demarrage', 'Web', 'Database', 'Security', 'Admin', 'Autres')"
-        ).await?;
-
         manager
             .create_table(
                 Table::create()
@@ -34,10 +30,6 @@ async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                 .table(Alias::new("doc_section"))
                 .to_owned())
             .await?;
-        manager.get_connection().execute_unprepared(
-            "DROP TYPE IF EXISTS SectionTheme"
-        ).await?;
-
         Ok(())
 }
 }

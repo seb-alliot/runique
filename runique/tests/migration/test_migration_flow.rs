@@ -468,6 +468,8 @@ fn test_flow_generate_alter_ajout_colonne() {
         dropped_indexes: vec![],
         is_new_table: false,
         enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -490,6 +492,8 @@ fn test_flow_generate_alter_suppression_colonne() {
         dropped_indexes: vec![],
         is_new_table: false,
         enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -513,6 +517,8 @@ fn test_flow_generate_alter_up_et_down_sont_inverses() {
         dropped_indexes: vec![],
         is_new_table: false,
         enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 
@@ -541,6 +547,8 @@ fn test_flow_generate_alter_type_change_commente() {
         dropped_indexes: vec![],
         is_new_table: false,
         enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
 

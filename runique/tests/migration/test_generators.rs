@@ -78,6 +78,8 @@ fn simple_changes(table: &str) -> Changes {
         dropped_indexes: vec![],
         is_new_table: false,
         enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     }
 }
 
@@ -200,6 +202,8 @@ fn test_alter_file_sans_changements() {
         dropped_indexes: vec![],
         is_new_table: false,
         enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(content.contains("pub struct Migration"));
@@ -224,6 +228,8 @@ fn test_alter_file_avec_ajout_fk() {
         dropped_indexes: vec![],
         is_new_table: false,
         enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(content.contains("author_id") || content.contains("users"));
@@ -250,6 +256,8 @@ fn test_alter_file_enum_rename_genere_update_up() {
             "Ajoute".to_string(),
             "Ajouté".to_string(),
         )],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(
@@ -276,6 +284,8 @@ fn test_alter_file_enum_rename_genere_update_down() {
             "Ajoute".to_string(),
             "Ajouté".to_string(),
         )],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     // DOWN doit inverser : SET 'Ajoute' WHERE 'Ajouté'
@@ -299,6 +309,8 @@ fn test_alter_file_enum_rename_contient_nom_table() {
         dropped_indexes: vec![],
         is_new_table: false,
         enum_renames: vec![("status".to_string(), "old".to_string(), "new".to_string())],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
     };
     let content = generate_alter_file(&changes);
     assert!(

@@ -184,6 +184,21 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
+    /// Charge l'entité liée en même temps — retourne `Vec<(E::Model, Option<R::Model>)>`.
+    ///
+    /// ```rust,ignore
+    /// search!(ContributionEntity => desc Id,)
+    ///     .also_related(eihwaz_users::Entity)
+    ///     .all(db).await
+    /// ```
+    pub fn also_related<R>(self, r: R) -> sea_orm::SelectTwo<E, R>
+    where
+        R: sea_orm::EntityTrait,
+        E: sea_orm::Related<R>,
+    {
+        self.query.find_also_related(r)
+    }
+
     pub async fn get_or_404(
         self,
         db: &DatabaseConnection,

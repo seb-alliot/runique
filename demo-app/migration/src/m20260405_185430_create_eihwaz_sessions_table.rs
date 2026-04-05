@@ -9,7 +9,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("cour_block"))
+                    .table(Alias::new("eihwaz_sessions"))
                     .if_not_exists()
                     .col(
                         ColumnDef::new(Alias::new("id"))
@@ -19,16 +19,17 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(Alias::new("chapitre_id"))
-                            .integer()
-                            .not_null(),
+                        ColumnDef::new(Alias::new("cookie_id"))
+                            .string()
+                            .not_null()
+                            .unique_key(),
                     )
-                    .col(ColumnDef::new(Alias::new("heading")).string().null())
-                    .col(ColumnDef::new(Alias::new("content")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("block_type")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("user_id")).integer().not_null())
+                    .col(ColumnDef::new(Alias::new("session_id")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("session_data")).string().null())
                     .col(
-                        ColumnDef::new(Alias::new("sort_order"))
-                            .integer()
+                        ColumnDef::new(Alias::new("expires_at"))
+                            .date_time()
                             .not_null(),
                     )
                     .to_owned(),
@@ -38,8 +39,9 @@ impl MigrationTrait for Migration {
         manager
             .create_foreign_key(
                 ForeignKey::create()
-                    .from(Alias::new("cour_block"), Alias::new("chapitre_id"))
-                    .to(Alias::new("chapitre"), Alias::new("id"))
+                    .name("eihwaz_sessions_user_id_eihwaz_users_fkey")
+                    .from(Alias::new("eihwaz_sessions"), Alias::new("user_id"))
+                    .to(Alias::new("eihwaz_users"), Alias::new("id"))
                     .on_delete(ForeignKeyAction::Cascade)
                     .on_update(ForeignKeyAction::NoAction)
                     .to_owned(),
@@ -53,14 +55,18 @@ impl MigrationTrait for Migration {
         manager
             .drop_foreign_key(
                 ForeignKey::drop()
-                    .table(Alias::new("cour_block"))
-                    .name("cour_block_chapitre_id_chapitre_fkey")
+                    .table(Alias::new("eihwaz_sessions"))
+                    .name("eihwaz_sessions_user_id_eihwaz_users_fkey")
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Alias::new("cour_block")).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_sessions"))
+                    .to_owned(),
+            )
             .await?;
         Ok(())
     }
