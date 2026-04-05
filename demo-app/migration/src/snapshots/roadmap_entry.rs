@@ -6,10 +6,6 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
 async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.get_connection().execute_unprepared(
-            "CREATE TYPE RoadmapStatus AS ENUM ('Active', 'Planned', 'Future')"
-        ).await?;
-
         manager
             .create_table(
                 Table::create()
@@ -37,10 +33,6 @@ async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                 .table(Alias::new("roadmap_entry"))
                 .to_owned())
             .await?;
-        manager.get_connection().execute_unprepared(
-            "DROP TYPE IF EXISTS RoadmapStatus"
-        ).await?;
-
         Ok(())
 }
 }

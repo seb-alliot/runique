@@ -23,6 +23,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_foreign_key(
                 ForeignKey::create()
+                    .name("demo_section_page_id_demo_page_fkey")
                     .from(Alias::new("demo_section"), Alias::new("page_id"))
                     .to(Alias::new("demo_page"), Alias::new("id"))
                     .on_delete(ForeignKeyAction::Cascade)

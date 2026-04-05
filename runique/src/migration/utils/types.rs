@@ -65,6 +65,10 @@ pub struct Changes {
     pub is_new_table: bool,
     /// Renommages de valeurs enum string : (nom_colonne, ancienne_valeur, nouvelle_valeur).
     pub enum_renames: Vec<(String, String, String)>,
+    /// Valeurs enum ajoutées : (nom_colonne, valeur).
+    pub enum_value_adds: Vec<(String, String)>,
+    /// Valeurs enum supprimées : (nom_colonne, valeur).
+    pub enum_value_drops: Vec<(String, String)>,
 }
 
 impl Changes {
@@ -78,5 +82,7 @@ impl Changes {
             && self.added_indexes.is_empty()
             && self.dropped_indexes.is_empty()
             && self.enum_renames.is_empty()
+            && self.enum_value_adds.is_empty()
+            && self.enum_value_drops.is_empty()
     }
 }

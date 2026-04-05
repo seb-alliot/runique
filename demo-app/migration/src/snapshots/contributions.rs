@@ -6,10 +6,6 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
 async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.get_connection().execute_unprepared(
-            "CREATE TYPE ContributionType AS ENUM ('Runique', 'Cours')"
-        ).await?;
-
         manager
             .create_table(
                 Table::create()
@@ -28,6 +24,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_foreign_key(
                 ForeignKey::create()
+                    .name("contributions_user_id_eihwaz_users_fkey")
                     .from(Alias::new("contributions"), Alias::new("user_id"))
                     .to(Alias::new("eihwaz_users"), Alias::new("id"))
                     .on_delete(ForeignKeyAction::Cascade)
@@ -54,10 +51,6 @@ async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                 .table(Alias::new("contributions"))
                 .to_owned())
             .await?;
-        manager.get_connection().execute_unprepared(
-            "DROP TYPE IF EXISTS ContributionType"
-        ).await?;
-
         Ok(())
 }
 }

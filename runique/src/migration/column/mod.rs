@@ -317,9 +317,12 @@ impl ColumnDef {
 
         if let Some(ref val) = self.default {
             col.default(val.clone());
-        } else if self.auto_now || self.auto_now_update {
-            // Force un timestamp actuel au niveau SQL pour Postgres/MySQL
+        } else if self.auto_now {
+            // created_at : valeur par défaut à l'insertion
             col.extra("DEFAULT CURRENT_TIMESTAMP".to_string());
+        } else if self.auto_now_update {
+            // updated_at : ON UPDATE pour MySQL ; trigger géré séparément pour Postgres
+            col.extra("DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP".to_string());
         }
 
         col

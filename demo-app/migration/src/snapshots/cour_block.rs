@@ -24,6 +24,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_foreign_key(
                 ForeignKey::create()
+                    .name("cour_block_chapitre_id_chapitre_fkey")
                     .from(Alias::new("cour_block"), Alias::new("chapitre_id"))
                     .to(Alias::new("chapitre"), Alias::new("id"))
                     .on_delete(ForeignKeyAction::Cascade)

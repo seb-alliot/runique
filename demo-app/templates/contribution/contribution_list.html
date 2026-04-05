@@ -14,7 +14,7 @@
                 <article class="blog-card">
                     <div class="blog-card-header">
                         <h2 class="blog-card-title">{{ contribution.title }}</h2>
-                        <span class="blog-card-meta">by user #{{ contribution.user_id }}</span>
+                        <span class="blog-card-meta">by {% if contribution.username %}{{ contribution.username }}{% else %}Inconnu{% endif %}</span>
                     </div>
                     <p class="blog-card-summary">{{ contribution.content }}</p>
                 </article>

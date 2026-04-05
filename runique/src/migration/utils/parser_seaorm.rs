@@ -107,15 +107,17 @@ impl SeaOrmVisitor {
                             enum_string_values: Vec::new(),
                         });
                     } else {
+                        let is_created_at = n == "created_at";
+                        let is_updated_at = n == "updated_at";
                         self.columns.push(ParsedColumn {
                             name: n,
                             col_type,
                             nullable,
                             unique,
                             ignored: false,
-                            created_at: false,
-                            updated_at: false,
-                            has_default_now,
+                            created_at: is_created_at,
+                            updated_at: is_updated_at,
+                            has_default_now: has_default_now || is_created_at || is_updated_at,
                             enum_name,
                             enum_string_values,
                         });

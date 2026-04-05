@@ -9,7 +9,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("page_doc_link"))
+                    .table(Alias::new("doc_page"))
                     .if_not_exists()
                     .col(
                         ColumnDef::new(Alias::new("id"))
@@ -18,10 +18,15 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Alias::new("page_id")).integer().not_null())
-                    .col(ColumnDef::new(Alias::new("label")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("url")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("link_type")).string().not_null())
+                    .col(
+                        ColumnDef::new(Alias::new("section_id"))
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(Alias::new("slug")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("lang")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("title")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("lead")).string().null())
                     .col(
                         ColumnDef::new(Alias::new("sort_order"))
                             .integer()
@@ -34,8 +39,9 @@ impl MigrationTrait for Migration {
         manager
             .create_foreign_key(
                 ForeignKey::create()
-                    .from(Alias::new("page_doc_link"), Alias::new("page_id"))
-                    .to(Alias::new("demo_page"), Alias::new("id"))
+                    .name("doc_page_section_id_doc_section_fkey")
+                    .from(Alias::new("doc_page"), Alias::new("section_id"))
+                    .to(Alias::new("doc_section"), Alias::new("id"))
                     .on_delete(ForeignKeyAction::Cascade)
                     .on_update(ForeignKeyAction::NoAction)
                     .to_owned(),
@@ -49,14 +55,14 @@ impl MigrationTrait for Migration {
         manager
             .drop_foreign_key(
                 ForeignKey::drop()
-                    .table(Alias::new("page_doc_link"))
-                    .name("page_doc_link_page_id_demo_page_fkey")
+                    .table(Alias::new("doc_page"))
+                    .name("doc_page_section_id_doc_section_fkey")
                     .to_owned(),
             )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(Alias::new("page_doc_link")).to_owned())
+            .drop_table(Table::drop().table(Alias::new("doc_page")).to_owned())
             .await?;
         Ok(())
     }

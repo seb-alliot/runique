@@ -249,6 +249,8 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
                 dropped_indexes: vec![],
                 is_new_table: true,
                 enum_renames: vec![],
+                enum_value_adds: vec![],
+                enum_value_drops: vec![],
             }
         };
         if !changes.is_empty() {
