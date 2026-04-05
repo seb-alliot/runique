@@ -125,7 +125,7 @@ pub async fn cours_detail(slug: &str, request: &mut Request) -> AppResult<Respon
         .await
         .unwrap_or_default();
 
-    let chapitre_ids: Vec<i32> = chapitres.iter().map(|c| c.id).collect();
+    let chapitre_ids: Vec<_> = chapitres.iter().map(|c| c.id).collect();
 
     let blocs = search!(cour_block::Entity => ChapitreId in (chapitre_ids), asc SortOrder)
         .all(&db)
