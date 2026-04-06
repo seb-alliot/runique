@@ -30,6 +30,5 @@ check.ps1
 CLAUDE.md
 Dockerfile
 reflexion.md
-demo-app/seed.sql
 demo-app/PROGRESS.md
 demo-app/runique.dump

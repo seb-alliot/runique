@@ -155,7 +155,7 @@ where
             .unwrap_or_default();
 
         let ico_image =
-            std::env::var("ICON_IMAGE").unwrap_or("/runique/static/runique_320.ico".to_string());
+            std::env::var("ICON_IMAGE").unwrap_or("/runique/static/favicon_runique.ico".to_string());
         let ico_image =
             crate::utils::resolve_og_image(&engine.security_hosts, engine.config.debug, &ico_image);
         context.insert("icon_image", &ico_image);
