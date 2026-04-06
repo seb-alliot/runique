@@ -5,7 +5,7 @@ model! {
     table: "known_issue",
     pk: id => Pk,
     enums: {
-        IssueType: [Manquant, Ajoute, Fix],
+        IssueType: pg [Manquant, Ajoute, Fix],
     },
     fields: {
         version: String [required],
