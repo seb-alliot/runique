@@ -37,7 +37,7 @@ pub async fn inject_globals(request: &mut Request) {
         .unwrap_or(None);
 
     context_update!(request =>{
-        "runique_relase" => &release,
+        "runique_release" => &release,
         "user" => user,
     }
     )
