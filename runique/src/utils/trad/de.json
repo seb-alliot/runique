@@ -387,6 +387,12 @@
       "id_line": "  ID          : {}",
       "username_line": "  Benutzername: {}",
       "email_line": "  E-Mail      : {}"
+    },
+    "builtin": {
+      "invalid_id": "Ungültige ID.",
+      "droit_resource_required": "Bitte mindestens eine Ressource auswählen.",
+      "droit_exists": "Das Recht \"{}\" existiert bereits für diese Gruppe.",
+      "groupe_exists": "Eine Gruppe namens \"{}\" existiert bereits."
     }
   },
   "makemigrations": {

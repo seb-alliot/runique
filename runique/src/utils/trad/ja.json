@@ -390,6 +390,12 @@
       "id_line": "  ID          : {}",
       "username_line": "  ユーザー名  : {}",
       "email_line": "  メール      : {}"
+    },
+    "builtin": {
+      "invalid_id": "IDが無効です。",
+      "droit_resource_required": "少なくとも1つのリソースを選択してください。",
+      "droit_exists": "\"{}\" の権限はこのグループに既に存在します。",
+      "groupe_exists": "\"{}\" という名前のグループは既に存在します。"
     }
   },
   "makemigrations": {

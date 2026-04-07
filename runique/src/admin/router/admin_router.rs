@@ -164,6 +164,33 @@ async fn admin_dashboard(
         Vec::new()
     };
 
+    // Groupes ayant un droit sur chaque resource_key (depuis la DB)
+    let resource_groups: std::collections::HashMap<String, Vec<String>> = {
+        use crate::admin::permissions::{droit, groupe};
+        use sea_orm::EntityTrait;
+        let groupes: std::collections::HashMap<_, String> = groupe::Entity::find()
+            .all(&*db)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|g| (g.id, g.nom))
+            .collect();
+        let droits = droit::Entity::find().all(&*db).await.unwrap_or_default();
+        let mut map: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
+        for d in droits {
+            let nom = groupes
+                .get(&d.groupe_id)
+                .cloned()
+                .unwrap_or_else(|| d.groupe_id.to_string());
+            let entry = map.entry(d.resource_key).or_default();
+            if !entry.contains(&nom) {
+                entry.push(nom);
+            }
+        }
+        map
+    };
+
     let session_override: Option<String> = req
         .session
         .get(ADMIN_TEMPLATE_SESSION_KEY)
@@ -176,6 +203,7 @@ async fn admin_dashboard(
         .insert("site_title", &admin.config.site_title)
         .insert("site_url", &admin.config.site_url)
         .insert("resources", &resources)
+        .insert("resource_groups", &resource_groups)
         .insert("resource_counts", &resource_counts)
         .insert("current_page", "dashboard")
         .insert("lang", current_lang().code())

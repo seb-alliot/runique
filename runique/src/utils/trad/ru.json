@@ -391,6 +391,12 @@
       "id_line": "  ID        : {}",
       "username_line": "  Логин     : {}",
       "email_line": "  Email     : {}"
+    },
+    "builtin": {
+      "invalid_id": "Недопустимый идентификатор.",
+      "droit_resource_required": "Пожалуйста, выберите хотя бы один ресурс.",
+      "droit_exists": "Право \"{}\" уже существует для этой группы.",
+      "groupe_exists": "Группа с именем \"{}\" уже существует."
     }
   },
   "makemigrations": {

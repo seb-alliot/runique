@@ -11,6 +11,7 @@ use axum::{
     http::{Method, Request, StatusCode},
     response::{IntoResponse, Response},
 };
+use form_urlencoded;
 use http_body_util::BodyExt;
 use std::{collections::HashMap, sync::Arc};
 use tracing::warn;
@@ -69,14 +70,12 @@ where
             .to_bytes();
 
         if content_type.starts_with("application/x-www-form-urlencoded") {
-            parsed = serde_urlencoded::from_bytes::<StrMap>(&bytes)
-                .unwrap_or_else(|e| {
-                    warn!("{}", tf("forms.aegis_urlencoded_error", &[&e]));
-                    StrMap::default()
-                })
-                .into_iter()
-                .map(|(k, v)| (k, vec![v]))
-                .collect();
+            for (k, v) in form_urlencoded::parse(&bytes) {
+                parsed
+                    .entry(k.into_owned())
+                    .or_default()
+                    .push(v.into_owned());
+            }
         } else if content_type.starts_with("application/json") {
             parsed = serde_json::from_slice::<StrMap>(&bytes)
                 .unwrap_or_else(|e| {

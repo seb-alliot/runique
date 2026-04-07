@@ -390,6 +390,12 @@
       "id_line": "  ID         : {}",
       "username_line": "  Usuario    : {}",
       "email_line": "  Email      : {}"
+    },
+    "builtin": {
+      "invalid_id": "Identificador inválido.",
+      "droit_resource_required": "Por favor, seleccione al menos un recurso.",
+      "droit_exists": "El permiso \"{}\" ya existe para este grupo.",
+      "groupe_exists": "Ya existe un grupo llamado \"{}\"."
     }
   },
   "makemigrations": {

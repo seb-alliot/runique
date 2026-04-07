@@ -10,7 +10,7 @@
   <header class="page-header">
     <h1>{% if admin_create_title %}{{ admin_create_title }}{% endif %} — {{ resource.title | default(value="Élément") }}</h1>
   </header>
-  <div class="card card-form">
+  <div class="card card-form" data-admin-auto-init>
     <div class="card-header">
       <h2>{% if admin_create_card_info %}{{ admin_create_card_info }}{% endif %}</h2>
     </div>
@@ -31,4 +31,9 @@
       </form>
     </div>
   </div>
+{% endblock %}
+{% block extra_js %}
+{{ super() }}
+  <script {% csp %} src="{{ "js/admin/checkbox-toggle.js" | runique_static }}"></script>
+  <script {% csp %} src="{{ "js/admin/choice-filter.js" | runique_static }}"></script>
 {% endblock %}

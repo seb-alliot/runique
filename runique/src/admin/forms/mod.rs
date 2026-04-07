@@ -4,7 +4,7 @@
 //! être référencés via `create_form:` dans `admin!{}` sans avoir à les réécrire.
 
 use crate::forms::field::RuniqueForm;
-use crate::forms::fields::{BooleanField, HiddenField, TextField};
+use crate::forms::fields::{BooleanField, CheckboxField, HiddenField, TextField};
 use crate::forms::form::Forms;
 use crate::impl_form_access;
 use crate::utils::aliases::definition::StrMap;
@@ -87,6 +87,8 @@ impl RuniqueForm for UserAdminCreateForm {
         form.field(&HiddenField::new("password"));
         form.field(&BooleanField::new("is_staff").label("Staff"));
         form.field(&BooleanField::new("is_superuser").label("Superuser"));
+        // Champ écrasé dynamiquement avec les groupes disponibles (voir builtin.rs)
+        form.field(&CheckboxField::new("groupes").label("Groupes"));
     }
 
     impl_form_access!();
@@ -133,6 +135,8 @@ impl RuniqueForm for UserAdminEditForm {
         form.field(&BooleanField::new("is_active").label("Actif"));
         form.field(&BooleanField::new("is_staff").label("Staff"));
         form.field(&BooleanField::new("is_superuser").label("Superuser"));
+        // Champ écrasé dynamiquement avec les groupes disponibles (voir builtin.rs)
+        form.field(&CheckboxField::new("groupes").label("Groupes"));
     }
     impl_form_access!();
 }

@@ -236,6 +236,89 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 .boolean-field .field-label.field-error { color: var(--danger); }
 
+
+/* ───────────────────────────────────────────────
+   CheckboxField / RadioField multi-options
+   ─────────────────────────────────────────────── */
+
+.checkbox-fieldset,
+.radio-fieldset {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem 1rem;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.checkbox-fieldset legend,
+.radio-fieldset legend {
+    padding: 0 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.checkbox-fieldset.field-error,
+.radio-fieldset.field-error {
+    border-color: var(--danger);
+}
+
+.checkbox-option,
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 0.2rem 0;
+}
+
+.checkbox-option input[type="checkbox"],
+.radio-option input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* ───────────────────────────────────────────────
+   Barre de filtre alphabétique (choice-filter.js)
+   ─────────────────────────────────────────────── */
+
+.choice-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0.4rem 0 0.6rem;
+}
+
+.choice-filter-bar .btn-xs {
+    padding: 2px 9px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    border-radius: calc(var(--radius) - 2px);
+}
+
+.choice-filter-bar .choice-filter-active {
+    background-color: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.choice-filter-counter {
+    margin-left: 8px;
+    font-size: 0.82rem;
+    font-weight: normal;
+    color: var(--accent);
+    opacity: 0.9;
+}
+
 .field-error-message {
     font-size: 0.78rem;
     color: var(--danger);

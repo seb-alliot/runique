@@ -80,6 +80,13 @@ pub fn create_eihwaz_droits_table() -> TableCreateStatement {
                 .not_null()
                 .default(false),
         )
+        .index(
+            Index::create()
+                .name("uq_eihwaz_droits_groupe_resource")
+                .col(Alias::new("groupe_id"))
+                .col(Alias::new("resource_key"))
+                .unique(),
+        )
         .foreign_key(
             ForeignKey::create()
                 .name("fk_eihwaz_droits_groupe_id")
@@ -91,30 +98,30 @@ pub fn create_eihwaz_droits_table() -> TableCreateStatement {
         .to_owned()
 }
 
-/// Génère le `TableCreateStatement` pour la table pivot `users_groupes`.
-pub fn create_users_groupes_table() -> TableCreateStatement {
+/// Génère le `TableCreateStatement` pour la table pivot `eihwaz_users_groupes`.
+pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
     Table::create()
-        .table(Alias::new("users_groupes"))
+        .table(Alias::new("eihwaz_users_groupes"))
         .if_not_exists()
         .col(ColumnDef::new(Alias::new("user_id")).integer().not_null())
         .col(ColumnDef::new(Alias::new("groupe_id")).integer().not_null())
         .primary_key(
             Index::create()
-                .name("pk_users_groupes")
+                .name("pk_eihwaz_users_groupes")
                 .col(Alias::new("user_id"))
                 .col(Alias::new("groupe_id")),
         )
         .foreign_key(
             ForeignKey::create()
-                .name("fk_users_groupes_user_id")
-                .from(Alias::new("users_groupes"), Alias::new("user_id"))
+                .name("fk_eihwaz_users_groupes_user_id")
+                .from(Alias::new("eihwaz_users_groupes"), Alias::new("user_id"))
                 .to(Alias::new("eihwaz_users"), Alias::new("id"))
                 .on_delete(ForeignKeyAction::Cascade),
         )
         .foreign_key(
             ForeignKey::create()
-                .name("fk_users_groupes_groupe_id")
-                .from(Alias::new("users_groupes"), Alias::new("groupe_id"))
+                .name("fk_eihwaz_users_groupes_groupe_id")
+                .from(Alias::new("eihwaz_users_groupes"), Alias::new("groupe_id"))
                 .to(Alias::new("eihwaz_groupes"), Alias::new("id"))
                 .on_delete(ForeignKeyAction::Cascade),
         )
@@ -136,13 +143,19 @@ impl sea_orm_migration::MigrationTrait for AdminTableMigration {
     async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
         manager.create_table(create_eihwaz_groupes_table()).await?;
         manager.create_table(create_eihwaz_droits_table()).await?;
-        manager.create_table(create_users_groupes_table()).await?;
+        manager
+            .create_table(create_eihwaz_users_groupes_table())
+            .await?;
         Ok(())
     }
 
     async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
         manager
-            .drop_table(Table::drop().table(Alias::new("users_groupes")).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_users_groupes"))
+                    .to_owned(),
+            )
             .await?;
         manager
             .drop_table(Table::drop().table(Alias::new("eihwaz_droits")).to_owned())
