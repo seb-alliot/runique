@@ -390,6 +390,12 @@
       "id_line": "  ID     : {}",
       "username_line": "  用户名 : {}",
       "email_line": "  邮箱   : {}"
+    },
+    "builtin": {
+      "invalid_id": "无效的标识符。",
+      "droit_resource_required": "请至少选择一个资源。",
+      "droit_exists": "该组的权限 \"{}\" 已存在。",
+      "groupe_exists": "名为 \"{}\" 的组已存在。"
     }
   },
   "makemigrations": {

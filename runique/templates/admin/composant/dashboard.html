@@ -59,9 +59,11 @@
                     <td><strong>{{ resource.title }}</strong></td>
                     <td><span class="id-badge">{{ resource.key }}</span></td>
                     <td>
-                        {% for perm in resource.permissions.list %}
-                        <span class="badge badge-blue">{{ perm }}</span>
-                        {% endfor %}
+                        {% if resource_groups[resource.key] %}
+                            {% for grp in resource_groups[resource.key] %}
+                            <span class="badge badge-blue">{{ grp }}</span>
+                            {% endfor %}
+                        {% endif %}
                     </td>
                     <td>
                         <div class="table-actions">

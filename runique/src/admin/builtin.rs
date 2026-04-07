@@ -33,7 +33,28 @@ use crate::utils::{
         },
     },
     forms::parse_bool,
+    trad::{t, tf},
 };
+
+/// Détecte une violation de contrainte unique PostgreSQL (SQLSTATE 23505).
+/// Vérifie d'abord le code SQLSTATE via sqlx (locale-indépendant),
+/// puis tombe sur la vérification textuelle en fallback.
+fn is_unique_violation(err: &sea_orm::DbErr) -> bool {
+    use sea_orm::{RuntimeErr, sqlx};
+    if let sea_orm::DbErr::Exec(RuntimeErr::SqlxError(arc_err)) = err {
+        if let sqlx::Error::Database(db_err) = arc_err.as_ref() {
+            if db_err.code().as_deref() == Some("23505") {
+                return true;
+            }
+        }
+    }
+    let s = err.to_string();
+    s.contains("23505")
+        || s.contains("duplicate key")
+        || s.contains("unique constraint")
+        || s.contains("contrainte unique")
+        || s.contains("dupliquée")
+}
 
 /// Retourne les `ResourceEntry` built-in Runique (droits, GROUPESs).
 /// Appel automatiquement dans le registre admin généré par le daemon.
@@ -55,28 +76,77 @@ fn user_entry() -> ResourceEntry {
     .inject_password(true);
 
     let form_builder: FormBuilder = Arc::new(
-        |_db: ADb,
+        |db: ADb,
          _vec: Vec<std::string::String>,
          data: StrMap,
          tera: ATera,
          csrf: String,
          method: Method| {
             Box::pin(async move {
-                let form = UserAdminCreateForm::build_with_data(&data, tera, &csrf, method).await;
+                let mut form =
+                    UserAdminCreateForm::build_with_data(&data, tera, &csrf, method).await;
+
+                let groupes = crate::admin::permissions::groupe::Entity::find()
+                    .all(&*db)
+                    .await
+                    .unwrap_or_default();
+                let choices = groupes
+                    .into_iter()
+                    .map(|g| crate::forms::fields::ChoiceOption::new(&g.id.to_string(), &g.nom))
+                    .collect::<Vec<_>>();
+                form.get_form_mut().fields.insert(
+                    GROUPES.to_string(),
+                    Box::new(
+                        crate::forms::fields::CheckboxField::new(GROUPES)
+                            .choices(choices)
+                            .label("Groupes"),
+                    ),
+                );
+
                 Box::new(UserCreateDynWrapper(form)) as Box<dyn DynForm>
             })
         },
     );
 
     let edit_form_builder: FormBuilder = Arc::new(
-        |_db: ADb,
+        |db: ADb,
          _vec: Vec<std::string::String>,
          data: StrMap,
          tera: ATera,
          csrf: String,
          method: Method| {
             Box::pin(async move {
-                let form = UserAdminEditForm::build_with_data(&data, tera, &csrf, method).await;
+                let mut form = UserAdminEditForm::build_with_data(&data, tera, &csrf, method).await;
+
+                let groupes = crate::admin::permissions::groupe::Entity::find()
+                    .all(&*db)
+                    .await
+                    .unwrap_or_default();
+                let selected = data.get(GROUPES).cloned().unwrap_or_default();
+                let choices = groupes
+                    .into_iter()
+                    .map(|g| {
+                        let id_str = g.id.to_string();
+                        let mut opt = crate::forms::fields::ChoiceOption::new(&id_str, &g.nom);
+                        if selected.split(',').any(|s| s.trim() == id_str) {
+                            opt = opt.selected();
+                        }
+                        opt
+                    })
+                    .collect::<Vec<_>>();
+
+                let mut field = crate::forms::fields::CheckboxField::new(GROUPES)
+                    .choices(choices)
+                    .label("Groupes");
+                {
+                    use crate::forms::base::FormField;
+                    field.set_value(&selected);
+                }
+
+                form.get_form_mut()
+                    .fields
+                    .insert(GROUPES.to_string(), Box::new(field));
+
                 Box::new(UserEditDynWrapper(form)) as Box<dyn DynForm>
             })
         },
@@ -145,11 +215,32 @@ fn user_entry() -> ResourceEntry {
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
+            use crate::admin::permissions::users_groupes;
+            use sea_orm::{ColumnTrait, QueryFilter};
+
             let id = id
                 .parse::<Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let row = user::Entity::find_by_id(id).one(&*db).await?;
-            Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
+            let Some(row) = row else { return Ok(None) };
+
+            let mut value = serde_json::to_value(&row).unwrap_or(serde_json::Value::Null);
+
+            let liens: Vec<users_groupes::Model> = users_groupes::Entity::find()
+                .filter(users_groupes::Column::UserId.eq(id))
+                .all(&*db)
+                .await
+                .unwrap_or_default();
+            let groupes_str = liens
+                .iter()
+                .map(|l| l.groupe_id.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            if let serde_json::Value::Object(ref mut map) = value {
+                map.insert(GROUPES.to_string(), serde_json::Value::String(groupes_str));
+            }
+
+            Ok(Some(value))
         })
     });
 
@@ -157,15 +248,17 @@ fn user_entry() -> ResourceEntry {
         Box::pin(async move {
             let id = id
                 .parse::<Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             user::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
+            use crate::admin::permissions::users_groupes;
+
             let now = Some(chrono::Utc::now().naive_utc());
-            user::ActiveModel {
+            let inserted = user::ActiveModel {
                 username: Set(data.get("username").cloned().unwrap_or_default()),
                 email: Set(data.get("email").cloned().unwrap_or_default()),
                 password: Set(data.get("password").cloned().unwrap_or_default()),
@@ -177,16 +270,37 @@ fn user_entry() -> ResourceEntry {
                 ..Default::default()
             }
             .insert(&*db)
-            .await
-            .map(|_| ())
+            .await?;
+
+            if let Some(groupes_str) = data.get(GROUPES) {
+                for id_str in groupes_str.split(',') {
+                    let id_str = id_str.trim();
+                    if id_str.is_empty() {
+                        continue;
+                    }
+                    if let Ok(groupe_id) = id_str.parse::<crate::utils::pk::Pk>() {
+                        let _ = users_groupes::ActiveModel {
+                            user_id: Set(inserted.id),
+                            groupe_id: Set(groupe_id),
+                        }
+                        .insert(&*db)
+                        .await;
+                    }
+                }
+            }
+
+            Ok(())
         })
     });
 
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
+            use crate::admin::permissions::users_groupes;
+            use sea_orm::ColumnTrait;
+
             let id = id
                 .parse::<Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             user::ActiveModel {
                 id: Set(id),
                 username: Set(data.get("username").cloned().unwrap_or_default()),
@@ -198,8 +312,35 @@ fn user_entry() -> ResourceEntry {
                 ..Default::default()
             }
             .update(&*db)
-            .await
-            .map(|_| ())
+            .await?;
+
+            // Synchronise les groupes : supprime tout, réinsère les nouveaux
+            {
+                use sea_orm::QueryFilter;
+                users_groupes::Entity::delete_many()
+                    .filter(users_groupes::Column::UserId.eq(id))
+                    .exec(&*db)
+                    .await?;
+            }
+
+            if let Some(groupes_str) = data.get(GROUPES) {
+                for id_str in groupes_str.split(',') {
+                    let id_str = id_str.trim();
+                    if id_str.is_empty() {
+                        continue;
+                    }
+                    if let Ok(groupe_id) = id_str.parse::<crate::utils::pk::Pk>() {
+                        let _ = users_groupes::ActiveModel {
+                            user_id: Set(id),
+                            groupe_id: Set(groupe_id),
+                        }
+                        .insert(&*db)
+                        .await;
+                    }
+                }
+            }
+
+            Ok(())
         })
     });
 
@@ -240,31 +381,82 @@ fn droit_entry() -> ResourceEntry {
                     .await
                     .unwrap_or_default();
 
-                let mut choices = vec![];
-                for g in groupes {
-                    choices.push(crate::forms::fields::ChoiceOption::new(
-                        &g.id.to_string(),
-                        &g.nom,
-                    ));
-                }
+                let groupe_choices = groupes
+                    .into_iter()
+                    .map(|g| crate::forms::fields::ChoiceOption::new(&g.id.to_string(), &g.nom))
+                    .collect::<Vec<_>>();
 
                 form.get_form_mut().fields.insert(
                     GROUPE_ID.to_string(),
                     Box::new(
-                        crate::forms::fields::ChoiceField::new(GROUPE_ID)
-                            .choices(choices)
+                        crate::forms::fields::CheckboxField::new(GROUPE_ID)
+                            .choices(groupe_choices)
+                            .label("Groupes ciblés"),
+                    ),
+                );
+
+                if let Some(val) = data.get(GROUPE_ID) {
+                    if let Some(field) = form.get_form_mut().fields.get_mut(GROUPE_ID) {
+                        field.set_value(val);
+                    }
+                }
+
+                // Création : CheckboxField multi-sélection pour les ressources
+                let resource_choices = _vec
+                    .into_iter()
+                    .map(|key| crate::forms::fields::ChoiceOption::new(&key, &key))
+                    .collect::<Vec<_>>();
+
+                form.get_form_mut().fields.insert(
+                    RESOURCE_KEY.to_string(),
+                    Box::new(
+                        crate::forms::fields::CheckboxField::new(RESOURCE_KEY)
+                            .choices(resource_choices)
+                            .label("Ressources ciblées"),
+                    ),
+                );
+
+                Box::new(DroitDynWrapper(form)) as Box<dyn DynForm>
+            })
+        },
+    );
+
+    let edit_form_builder: FormBuilder = Arc::new(
+        |db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
+            Box::pin(async move {
+                use sea_orm::EntityTrait;
+                let mut form = DroitAdminForm::build_with_data(&data, tera, &csrf, method).await;
+
+                let groupes = crate::admin::permissions::groupe::Entity::find()
+                    .all(&*db)
+                    .await
+                    .unwrap_or_default();
+
+                let groupe_choices = groupes
+                    .into_iter()
+                    .map(|g| crate::forms::fields::ChoiceOption::new(&g.id.to_string(), &g.nom))
+                    .collect::<Vec<_>>();
+
+                form.get_form_mut().fields.insert(
+                    GROUPE_ID.to_string(),
+                    Box::new(
+                        crate::forms::fields::RadioField::new(GROUPE_ID)
+                            .choices(groupe_choices)
                             .label("Groupe")
                             .required(),
                     ),
                 );
 
-                let mut resource_choices = vec![];
-                for key in _vec {
-                    resource_choices.push(crate::forms::fields::ChoiceOption::new(
-                        &key,
-                        &key.to_string(), // Here we use the key directly as label
-                    ));
-                }
+                // Édition : ChoiceField simple pour une ressource précise
+                let resource_choices = _vec
+                    .into_iter()
+                    .map(|key| crate::forms::fields::ChoiceOption::new(&key, &key))
+                    .collect::<Vec<_>>();
 
                 form.get_form_mut().fields.insert(
                     RESOURCE_KEY.to_string(),
@@ -283,6 +475,7 @@ fn droit_entry() -> ResourceEntry {
                         }
                     }
                 }
+
                 Box::new(DroitDynWrapper(form)) as Box<dyn DynForm>
             })
         },
@@ -323,9 +516,31 @@ fn droit_entry() -> ResourceEntry {
                 .limit(params.limit)
                 .all(&*db)
                 .await?;
+
+            // Charger les groupes pour afficher le nom à la place de groupe_id
+            use crate::admin::permissions::groupe;
+            use std::collections::HashMap as HMap;
+            let groupes: HMap<_, String> = groupe::Entity::find()
+                .all(&*db)
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(|g| (g.id, g.nom))
+                .collect();
+
             Ok(rows
                 .into_iter()
-                .map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null))
+                .map(|r| {
+                    let mut v = serde_json::to_value(&r).unwrap_or(serde_json::Value::Null);
+                    if let serde_json::Value::Object(ref mut map) = v {
+                        let nom = groupes
+                            .get(&r.groupe_id)
+                            .cloned()
+                            .unwrap_or_else(|| r.groupe_id.to_string());
+                        map.insert("groupe_id".to_string(), serde_json::Value::String(nom));
+                    }
+                    v
+                })
                 .collect())
         })
     });
@@ -353,7 +568,7 @@ fn droit_entry() -> ResourceEntry {
         Box::pin(async move {
             let id = id
                 .parse::<crate::utils::pk::Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let row = droit::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -363,32 +578,65 @@ fn droit_entry() -> ResourceEntry {
         Box::pin(async move {
             let id = id
                 .parse::<crate::utils::pk::Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             droit::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            let groupe_id = data
-                .get(GROUPE_ID)
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(0);
-            let resource_key = data.get(RESOURCE_KEY).cloned().unwrap_or_default();
-            droit::ActiveModel {
-                groupe_id: Set(groupe_id),
-                resource_key: Set(resource_key),
-                can_create: Set(parse_bool(&data, CAN_CREATE)),
-                can_read: Set(parse_bool(&data, CAN_READ)),
-                can_update: Set(parse_bool(&data, CAN_UPDATE)),
-                can_delete: Set(parse_bool(&data, CAN_DELETE)),
-                can_update_own: Set(parse_bool(&data, CAN_UPDATE_OWN)),
-                can_delete_own: Set(parse_bool(&data, CAN_DELETE_OWN)),
-                ..Default::default()
+            let groupe_ids_str = data.get(GROUPE_ID).cloned().unwrap_or_default();
+            let groupe_ids: Vec<_> = groupe_ids_str
+                .split(',')
+                .filter_map(|s| s.trim().parse().ok())
+                .collect();
+
+            let resource_keys_str = data.get(RESOURCE_KEY).cloned().unwrap_or_default();
+            let resource_keys: Vec<&str> = resource_keys_str
+                .split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .collect();
+
+            if groupe_ids.is_empty() {
+                return Err(sea_orm::DbErr::Custom(
+                    t("admin.builtin.droit_groupe_required").into_owned(),
+                ));
             }
-            .insert(&*db)
-            .await
-            .map(|_| ())
+            if resource_keys.is_empty() {
+                return Err(sea_orm::DbErr::Custom(
+                    t("admin.builtin.droit_resource_required").into_owned(),
+                ));
+            }
+
+            for &groupe_id in &groupe_ids {
+                for resource_key in &resource_keys {
+                    droit::ActiveModel {
+                        groupe_id: Set(groupe_id),
+                        resource_key: Set(resource_key.to_string()),
+                        can_create: Set(parse_bool(&data, CAN_CREATE)),
+                        can_read: Set(parse_bool(&data, CAN_READ)),
+                        can_update: Set(parse_bool(&data, CAN_UPDATE)),
+                        can_delete: Set(parse_bool(&data, CAN_DELETE)),
+                        can_update_own: Set(parse_bool(&data, CAN_UPDATE_OWN)),
+                        can_delete_own: Set(parse_bool(&data, CAN_DELETE_OWN)),
+                        ..Default::default()
+                    }
+                    .insert(&*db)
+                    .await
+                    .map_err(|e| {
+                        if is_unique_violation(&e) {
+                            sea_orm::DbErr::Custom(tf(
+                                "admin.builtin.droit_exists",
+                                &[resource_key],
+                            ))
+                        } else {
+                            e
+                        }
+                    })?;
+                }
+            }
+            Ok(())
         })
     });
 
@@ -396,7 +644,7 @@ fn droit_entry() -> ResourceEntry {
         Box::pin(async move {
             let id = id
                 .parse::<crate::utils::pk::Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let groupe_id = data
                 .get(GROUPE_ID)
                 .and_then(|v| v.parse().ok())
@@ -420,6 +668,7 @@ fn droit_entry() -> ResourceEntry {
     });
 
     ResourceEntry::new(meta, form_builder)
+        .with_edit_form_builder(edit_form_builder)
         .with_list_fn(list_fn)
         .with_count_fn(count_fn)
         .with_get_fn(get_fn)
@@ -518,7 +767,7 @@ fn groupe_entry() -> ResourceEntry {
         Box::pin(async move {
             let id = id
                 .parse::<crate::utils::pk::Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let row = groupe::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -528,7 +777,7 @@ fn groupe_entry() -> ResourceEntry {
         Box::pin(async move {
             let id = id
                 .parse::<crate::utils::pk::Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             groupe::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -540,12 +789,19 @@ fn groupe_entry() -> ResourceEntry {
         Box::pin(async move {
             let nom = data.get("nom").cloned().unwrap_or_default();
             groupe::ActiveModel {
-                nom: Set(nom),
+                nom: Set(nom.clone()),
                 ..Default::default()
             }
             .insert(&*db)
             .await
             .map(|_| ())
+            .map_err(|e| {
+                if is_unique_violation(&e) {
+                    sea_orm::DbErr::Custom(tf("admin.builtin.groupe_exists", &[&nom]))
+                } else {
+                    e
+                }
+            })
         })
     });
 
@@ -553,7 +809,7 @@ fn groupe_entry() -> ResourceEntry {
         Box::pin(async move {
             let id = id
                 .parse::<crate::utils::pk::Pk>()
-                .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
             let nom = data.get("nom").cloned().unwrap_or_default();
             groupe::ActiveModel {
                 id: Set(id),

@@ -391,6 +391,12 @@
       "id_line": "  ID          : {}",
       "username_line": "  Utilisateur : {}",
       "email_line": "  Email       : {}"
+    },
+    "builtin": {
+      "invalid_id": "Identifiant invalide.",
+      "droit_resource_required": "Veuillez sélectionner au moins une ressource.",
+      "droit_exists": "Le droit \"{}\" existe déjà pour ce groupe.",
+      "groupe_exists": "Un groupe nommé « {} » existe déjà."
     }
   },
   "reset": {

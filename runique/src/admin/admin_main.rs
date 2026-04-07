@@ -79,7 +79,18 @@ impl<S: Send + Sync> FromRequest<S> for AdminBody {
         let parsed = aegis(req, state, config, &content_type).await?;
 
         // StrVecMap → StrMap (multi-values jointes par virgule, comme Prisme)
-        let body = parsed.into_iter().map(|(k, v)| (k, v.join(","))).collect();
+        // Exception : csrf_token prend la 1ère valeur uniquement (le formulaire
+        // peut en envoyer deux si {% csrf %} et form_fields.html coexistent).
+        let body = parsed
+            .into_iter()
+            .map(|(k, v)| {
+                if k == CSRF_TOKEN_KEY {
+                    (k, v.into_iter().next().unwrap_or_default())
+                } else {
+                    (k, v.join(","))
+                }
+            })
+            .collect();
         Ok(AdminBody(body))
     }
 }
@@ -167,6 +178,7 @@ pub async fn admin_post(
     Extension(current_user): Extension<CurrentUser>,
     AdminBody(body): AdminBody,
 ) -> AppResult<Response> {
+    tracing::info!("donnée formulaire a la validation {:?}", body);
     let entry = state
         .registry
         .get(&resource_key)
@@ -692,9 +704,24 @@ async fn handle_create_post(
             Some(f) => f(req.engine.db.clone(), body_for_create.clone()).await,
             None => form.save(&req.engine.db).await,
         };
-        if let Err(e) = result {
-            form.get_form_mut().database_error(&e);
-            return Err(Box::new(AppError::new(ErrorContext::database(e))));
+        match result {
+            Ok(()) => {}
+            Err(sea_orm::DbErr::Custom(ref msg)) => {
+                form.get_form_mut().errors.push(msg.clone());
+                req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
+                req.context.insert(ctx_create::IS_EDIT, &false);
+                req.context.insert(ctx_common::LANG, &current_lang().code());
+                let template = entry
+                    .meta
+                    .template_create
+                    .as_deref()
+                    .unwrap_or_else(|| state.config.templates.create.resolve());
+                return req.render(template);
+            }
+            Err(e) => {
+                form.get_form_mut().database_error(&e);
+                return Err(Box::new(AppError::new(ErrorContext::database(e))));
+            }
         }
 
         // Envoi email de bienvenue + reset après création d'un utilisateur admin

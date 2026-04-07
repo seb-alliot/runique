@@ -390,6 +390,12 @@
       "id_line": "  ID       : {}",
       "username_line": "  Username : {}",
       "email_line": "  Email    : {}"
+    },
+    "builtin": {
+      "invalid_id": "Invalid identifier.",
+      "droit_resource_required": "Please select at least one resource.",
+      "droit_exists": "The right \"{}\" already exists for this group.",
+      "groupe_exists": "A group named \"{}\" already exists."
     }
   },
   "reset": {

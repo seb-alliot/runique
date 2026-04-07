@@ -16,6 +16,7 @@
     </div>
     <div class="card-body">
       <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/edit">
+        {% csrf %}
         {% if orig_updated_at is defined %}
         <input type="hidden" name="__original_updated_at" value="{{ orig_updated_at }}">
         {% elif object.updated_at is defined %}
@@ -23,7 +24,6 @@
         {% endif %}
         <div class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
-            {% csrf %}
             {{ form_fields.html }}
           {% else %}
             <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
@@ -40,4 +40,6 @@
 {% block extra_js %}
 {{ super() }}
   <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
+  <script {% csp %} src="{{ "js/admin/checkbox-toggle.js" | runique_static }}"></script>
+  <script {% csp %} src="{{ "js/admin/choice-filter.js" | runique_static }}"></script>
 {% endblock %}
