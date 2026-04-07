@@ -19,9 +19,10 @@ use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
 use sea_orm::DatabaseConnection;
 use tower_sessions::Session;
+use serde::{Serialize, Deserialize};
 
 /// Utilisateur authentifié injecté dans les extensions de requête.
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CurrentUser {
     pub id: Pk,
     pub username: String,
@@ -175,10 +176,7 @@ pub async fn login(
     if let Some(store) = db_store {
         let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
         let session_id = uuid::Uuid::new_v4().to_string();
-        let expires_at = chrono::Utc::now()
-            .naive_utc()
-            .checked_add_signed(chrono::Duration::hours(24))
-            .unwrap_or_else(|| chrono::Utc::now().naive_utc());
+        let expires_at = chrono::Utc::now().naive_utc().checked_add_signed(chrono::Duration::hours(24)).unwrap_or_else(|| chrono::Utc::now().naive_utc());
 
         let _ = store
             .create(&cookie_id, user_id, &session_id, expires_at)
@@ -267,10 +265,13 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
 }
 
 /// Obsolète : remaniement matriciel
-pub async fn has_permission(_session: &Session, _permission: &str) -> bool {
-    false // Sera remplacé par les vérifs directes de matrice
+pub async fn has_permission(session: &Session, _permission: &str) -> bool {
+    // Temporaire : check si user connecté (superuser = bypass)
+    if let Some(user) = session.get::<CurrentUser>("user_id").await.unwrap_or(None) {
+        return user.is_superuser;
+    }
+    false
 }
-
 // ═══════════════════════════════════════════════════════════════
 // Middlewares Axum
 // ═══════════════════════════════════════════════════════════════
