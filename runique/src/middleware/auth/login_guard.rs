@@ -103,7 +103,7 @@ impl LoginGuard {
         let entry = store
             .entry(username.to_string())
             .or_insert((0, Instant::now()));
-        entry.0 += 1;
+        entry.0 = entry.0.saturating_add(1);
         entry.1 = Instant::now();
     }
 
@@ -174,7 +174,7 @@ impl LoginGuard {
             if *attempts >= self.max_attempts {
                 let elapsed = last.elapsed().as_secs();
                 if elapsed < self.lockout_secs {
-                    return Some(self.lockout_secs - elapsed);
+                    return Some(self.lockout_secs.saturating_sub(elapsed));
                 }
             }
         }

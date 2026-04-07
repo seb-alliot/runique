@@ -701,7 +701,7 @@ fn pascal_case(s: &str) -> String {
 fn model_to_module(model_type: &str) -> String {
     let segments: Vec<&str> = model_type.split("::").collect();
     if segments.len() >= 2 {
-        segments[segments.len() - 2].to_string()
+        segments[segments.len().saturating_sub(2)].to_string()
     } else {
         // Fallback : PascalCase → snake_case du seul segment
         let base = segments.last().copied().unwrap_or(model_type);

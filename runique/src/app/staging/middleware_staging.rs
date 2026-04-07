@@ -716,7 +716,7 @@ impl MiddlewareStaging {
 
         for (i, custom_mw) in self.custom_middlewares.into_iter().enumerate() {
             entries.push(MiddlewareEntry {
-                slot: SLOT_CUSTOM_BASE + i as u16,
+                slot: SLOT_CUSTOM_BASE.saturating_add(i as u16),
                 name: "Custom",
                 apply: custom_mw,
             });

@@ -158,7 +158,8 @@ fn topological_sort_changes(
     // Les tables sans prérequis (in_degree == 0) sont traitées en premier.
     let mut in_degree: HashMap<String, usize> = new_tables.iter().map(|t| (t.clone(), 0)).collect();
     for (table, table_deps) in &deps {
-        *in_degree.entry(table.clone()).or_insert(0) += table_deps.len();
+        let deg = in_degree.entry(table.clone()).or_insert(0);
+        *deg = deg.saturating_add(table_deps.len());
     }
 
     // Algorithme de Kahn : commence par les tables sans prérequis (ex. B référencée par A)
@@ -175,7 +176,7 @@ fn topological_sort_changes(
             for dep in dependents_list {
                 let entry = in_degree.entry(dep.clone()).or_insert(1);
                 if *entry > 0 {
-                    *entry -= 1;
+                    *entry = entry.saturating_sub(1);
                 }
                 if *entry == 0 {
                     queue.push_back(dep.clone());

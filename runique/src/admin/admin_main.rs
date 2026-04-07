@@ -371,7 +371,7 @@ async fn handle_list(
         filter_pages,
     } = query;
     let page_size = state.config.page_size;
-    let offset = (page - 1) * page_size;
+    let offset = page.saturating_sub(1).saturating_mul(page_size);
 
     let list_params = ListParams {
         offset,
@@ -425,7 +425,7 @@ async fn handle_list(
     let total = if entry.count_fn.is_some() {
         count
     } else {
-        offset + entries.len() as u64
+        offset.saturating_add(entries.len() as u64)
     };
 
     let page_count = total.div_ceil(page_size);
@@ -528,7 +528,7 @@ async fn handle_list(
             let total_pages = total_distinct.div_ceil(*col_limit);
             let total_pages = total_pages.max(1);
             let has_prev = cur_page > 0;
-            let has_next = cur_page + 1 < total_pages;
+            let has_next = cur_page.saturating_add(1) < total_pages;
 
             let build_qs = |fp_override: Option<u64>| -> String {
                 let mut parts = base_qs.clone();
@@ -546,12 +546,12 @@ async fn handle_list(
             };
 
             let prev_qs = if has_prev {
-                build_qs(Some(cur_page - 1))
+                build_qs(Some(cur_page.saturating_sub(1)))
             } else {
                 String::new()
             };
             let next_qs = if has_next {
-                build_qs(Some(cur_page + 1))
+                build_qs(Some(cur_page.saturating_add(1)))
             } else {
                 String::new()
             };
@@ -583,7 +583,7 @@ async fn handle_list(
         list_ctx::HAS_PREV          => (page > 1),
         list_ctx::HAS_NEXT          => (page < page_count),
         list_ctx::PREV_PAGE         => page.saturating_sub(1),
-        list_ctx::NEXT_PAGE         => (page + 1),
+        list_ctx::NEXT_PAGE         => page.saturating_add(1),
         "current_page"              => "list",
         list_ctx::VISIBLE_COLUMNS   => visible_columns,
         list_ctx::COLUMN_LABELS     => column_labels,

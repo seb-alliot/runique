@@ -379,7 +379,7 @@ impl ErrorContext {
                 location: None,
             });
             current = err.source();
-            level += 1;
+            level = level.saturating_add(1);
         }
     }
     pub fn from_runique_error(

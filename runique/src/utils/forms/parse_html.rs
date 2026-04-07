@@ -30,8 +30,8 @@ pub async fn parse_multipart(
             .into_response()
     })?;
 
-    let max_file_bytes = max_upload_mb * 1024 * 1024;
-    let max_text_bytes = max_text_field_kb * 1024;
+    let max_file_bytes = max_upload_mb.saturating_mul(1024).saturating_mul(1024);
+    let max_text_bytes = max_text_field_kb.saturating_mul(1024);
 
     // Répertoire temporaire pour l'upload atomique :
     // tous les fichiers sont d'abord écrits ici, puis déplacés en une fois
@@ -88,7 +88,7 @@ pub async fn parse_multipart(
                         )
                             .into_response()
                     })?;
-                    written += bytes.len() as u64;
+                    written = written.saturating_add(bytes.len() as u64);
                     if written > max_file_bytes {
                         return Err((
                             StatusCode::PAYLOAD_TOO_LARGE,
@@ -127,7 +127,7 @@ pub async fn parse_multipart(
                         )
                             .into_response()
                     })?;
-                    if bytes.len() + b.len() > max_text_bytes {
+                    if bytes.len().saturating_add(b.len()) > max_text_bytes {
                         return Err((
                             StatusCode::PAYLOAD_TOO_LARGE,
                             t("forms.text_field_too_large").to_string(),
