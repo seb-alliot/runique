@@ -26,6 +26,8 @@ pub mod admin_context {
         pub const CAN_DELETE: &str = "can_delete";
         pub const CAN_UPDATE_OWN: &str = "can_update_own";
         pub const CAN_DELETE_OWN: &str = "can_delete_own";
+        pub const GROUPE_ID: &str = "groupe_id";
+        pub const GROUPES: &str = "groupes";
     }
 
     pub mod etat {}

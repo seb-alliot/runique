@@ -643,9 +643,11 @@ impl MiddlewareStaging {
                          next: axum::middleware::Next| async move {
                             use crate::admin::permissions::Groupe;
                             use crate::middleware::auth::{CurrentUser, get_user_id, get_username};
-                            use crate::utils::constante::session_key::session::{
-                                SESSION_USER_GROUPES_KEY, SESSION_USER_IS_STAFF_KEY,
-                                SESSION_USER_IS_SUPERUSER_KEY,
+                            use crate::utils::constante::{
+                                admin_context::permission::GROUPES,
+                                session_key::session::{
+                                    SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
+                                },
                             };
                             if let Some(session) =
                                 req.extensions().get::<tower_sessions::Session>().cloned()
@@ -666,7 +668,7 @@ impl MiddlewareStaging {
                                         .flatten()
                                         .unwrap_or(false);
                                     let groupes = session
-                                        .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
+                                        .get::<Vec<Groupe>>(GROUPES)
                                         .await
                                         .ok()
                                         .flatten()

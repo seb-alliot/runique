@@ -8,8 +8,9 @@ use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 use runique::admin::Groupe;
 use runique::middleware::auth::{get_user_id, get_username, is_authenticated, login, logout};
-use runique::utils::constante::session_key::session::{
-    SESSION_USER_GROUPES_KEY, SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
+use runique::utils::constante::{
+    admin_context::permission::GROUPES,
+    session_key::session::{SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY},
 };
 
 use crate::helpers::{
@@ -105,7 +106,7 @@ async fn test_login_sets_all_fields() {
             .flatten()
             .unwrap_or(false);
         let groupes = session
-            .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
+            .get::<Vec<Groupe>>(GROUPES)
             .await
             .ok()
             .flatten()
@@ -151,7 +152,7 @@ async fn test_logout_clears_session_keys() {
                 .flatten()
                 .is_none()
             && session
-                .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
+                .get::<Vec<Groupe>>(GROUPES)
                 .await
                 .ok()
                 .flatten()

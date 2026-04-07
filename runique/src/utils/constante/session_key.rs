@@ -13,8 +13,5 @@ pub mod session {
     pub const SESSION_USER_IS_SUPERUSER_KEY: &str = "is_superuser";
     pub const SESSION_USER_ROLES_KEY: &str = "roles";
     pub const SESSION_USER_DROITS_KEY: &str = "droits";
-    pub const SESSION_USER_GROUPES_KEY: &str = "groupes";
+    pub const IS_ACTIVE: &str = "is_active";
 }
-pub const GROUPE_ID: &str = "groupe_id";
-pub const IS_ACTIVE: &str = "is_active";
-pub const GROUPES: &str = "groupes";
