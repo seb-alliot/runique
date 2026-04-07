@@ -300,8 +300,8 @@ fn extract_fn_block(source: &str, fn_name: &str) -> Option<String> {
             out.push_str(line);
             out.push('\n');
 
-            depth += trimmed.chars().filter(|&c| c == '{').count() as i32;
-            depth -= trimmed.chars().filter(|&c| c == '}').count() as i32;
+            depth = depth.saturating_add(trimmed.chars().filter(|&c| c == '{').count() as i32);
+            depth = depth.saturating_sub(trimmed.chars().filter(|&c| c == '}').count() as i32);
 
             if depth == 0 {
                 return Some(out);
@@ -316,8 +316,8 @@ fn extract_fn_block(source: &str, fn_name: &str) -> Option<String> {
         out.push_str(line);
         out.push('\n');
 
-        depth += trimmed.chars().filter(|&c| c == '{').count() as i32;
-        depth -= trimmed.chars().filter(|&c| c == '}').count() as i32;
+        depth = depth.saturating_add(trimmed.chars().filter(|&c| c == '{').count() as i32);
+        depth = depth.saturating_sub(trimmed.chars().filter(|&c| c == '}').count() as i32);
 
         if depth == 0 {
             return Some(out);
@@ -498,15 +498,15 @@ fn extract_table_from_source(source: &str) -> Option<String> {
 
 fn extract_alias_value(s: &str) -> Option<String> {
     let marker = "Alias::new(\"";
-    let pos = s.find(marker)? + marker.len();
-    let end = s[pos..].find('"')? + pos;
+    let pos = s.find(marker)?.saturating_add(marker.len());
+    let end = s[pos..].find('"')?.saturating_add(pos);
     Some(s[pos..end].to_string())
 }
 
 fn extract_name_value(s: &str) -> Option<String> {
     let marker = ".name(\"";
-    let pos = s.find(marker)? + marker.len();
-    let end = s[pos..].find('"')? + pos;
+    let pos = s.find(marker)?.saturating_add(marker.len());
+    let end = s[pos..].find('"')?.saturating_add(pos);
     Some(s[pos..end].to_string())
 }
 

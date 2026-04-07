@@ -588,18 +588,37 @@ impl DatabaseConfigBuilder {
 
 /// Masks the password in a URL for logging purposes
 fn mask_password(url: &str) -> String {
-    if let Some(idx) = url.find("://") {
-        if let Some(at_idx) = url[idx + 3..].find('@') {
-            let before = &url[..idx + 3];
-            let after = &url[idx + 3 + at_idx..];
+    // Vérifie le protocole "://"
+    let Some(idx) = url.find("://") else {
+        return url.to_string();
+    };
 
-            if let Some(colon) = url[idx + 3..idx + 3 + at_idx].find(':') {
-                let user = &url[idx + 3..idx + 3 + colon];
-                return format!("{}{}:****{}", before, user, after);
-            }
-        }
-    }
-    url.to_string()
+    // Calcule les indices de façon sûre
+    let protocol_end = idx
+        .checked_add(3)
+        .and_then(|x| if x <= url.len() { Some(x) } else { None });
+    let Some(after_protocol) = protocol_end else {
+        return url.to_string();
+    };
+
+    // Cherche '@' après le protocole
+    let Some(at_idx) = url[after_protocol..].find('@') else {
+        return url.to_string();
+    };
+    let at_pos = after_protocol.saturating_add(at_idx);
+
+    // Extrait les parties
+    let before = &url[..after_protocol];
+    let after = &url[at_pos..];
+
+    // Cherche ':' dans les credentials
+    let creds = &url[after_protocol..at_pos];
+    let Some(colon) = creds.find(':') else {
+        return url.to_string();
+    };
+    let user = &creds[..colon];
+
+    format!("{}{}:****{}", before, user, after)
 }
 
 #[cfg(test)]

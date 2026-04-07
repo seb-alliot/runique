@@ -50,7 +50,7 @@ impl HostPolicy {
             if let Some(suffix) = allowed_host.strip_prefix('.') {
                 host == suffix
                     || (host.ends_with(allowed_host)
-                        && host.as_bytes()[host.len() - allowed_host.len()] == b'.')
+                        && host.as_bytes()[host.len().saturating_sub(allowed_host.len())] == b'.')
             } else {
                 allowed_host == host
             }

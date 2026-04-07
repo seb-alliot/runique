@@ -109,7 +109,7 @@ impl RateLimiter {
             *entry = (1, now);
             true
         } else if entry.0 < self.max_requests {
-            entry.0 += 1;
+            entry.0 = entry.0.saturating_add(1);
             true
         } else {
             false

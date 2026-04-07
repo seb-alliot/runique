@@ -177,7 +177,7 @@ impl FormField for NumericField {
         // --- ÉTAPE 1 : Validation de la précision (digits) ---
         let current_digits = normalized
             .find('.')
-            .map(|dot| normalized[dot + 1..].len())
+            .map(|dot| normalized[dot.saturating_add(1)..].len())
             .unwrap_or(0);
 
         if current_digits < self.min_digits.unwrap_or(0) {

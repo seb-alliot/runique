@@ -412,7 +412,7 @@ fn parse_list_exclude(iter: &mut TokenIter) -> Result<Vec<String>, String> {
                     Some(TokenTree::Literal(lit)) => {
                         let s = lit.to_string();
                         if s.starts_with('"') && s.ends_with('"') {
-                            cols.push(s[1..s.len() - 1].to_string());
+                            cols.push(s[1..s.len().saturating_sub(1)].to_string());
                         } else {
                             return Err(format!(
                                 "Expected string literal in list_exclude, found: {}",
@@ -551,7 +551,7 @@ fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String
                     Some(TokenTree::Literal(lit)) => {
                         let s = lit.to_string();
                         if s.starts_with('"') && s.ends_with('"') {
-                            s[1..s.len() - 1].to_string()
+                            s[1..s.len().saturating_sub(1)].to_string()
                         } else {
                             continue;
                         }
@@ -577,7 +577,7 @@ fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String
                     Some(TokenTree::Literal(lit)) => {
                         let s = lit.to_string();
                         if s.starts_with('"') && s.ends_with('"') {
-                            s[1..s.len() - 1].to_string()
+                            s[1..s.len().saturating_sub(1)].to_string()
                         } else {
                             return Err(format!(
                                 "Expected string value in extra map, found: {}",
@@ -655,7 +655,7 @@ fn parse_string_literal(iter: &mut TokenIter) -> Result<String, String> {
             let s = lit.to_string();
             // Retire les guillemets
             if s.starts_with('"') && s.ends_with('"') {
-                Ok(s[1..s.len() - 1].to_string())
+                Ok(s[1..s.len().saturating_sub(1)].to_string())
             } else {
                 Err(tf("parser.string_expected", &[&s]))
             }

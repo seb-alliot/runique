@@ -130,7 +130,7 @@ impl Forms {
             if current > MAX_VALIDATION_DEPTH {
                 return Err(ValidationError::StackOverflow);
             }
-            depth.set(current + 1);
+            depth.set(current.saturating_add(1));
             let result = FormValidator::validate_fields(fields, errors);
             depth.set(current);
             result
@@ -510,7 +510,7 @@ impl Forms {
     fn parse_constraint_name(constraint: &str) -> Option<String> {
         let parts: Vec<&str> = constraint.split('_').collect();
         if parts.len() >= 3 {
-            let field_parts = &parts[1..parts.len() - 1];
+            let field_parts = &parts[1..parts.len().saturating_sub(1)];
             return Some(field_parts.join("_"));
         }
         None

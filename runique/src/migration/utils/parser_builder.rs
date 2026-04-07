@@ -286,7 +286,7 @@ impl Parse for DslRelation {
                 if input.peek(syn::token::Bracket) {
                     let opts;
                     bracketed!(opts in input);
-                    let mut i = 0;
+                    let mut i: i32 = 0;
                     while !opts.is_empty() {
                         let opt: Ident = opts.parse()?;
                         let val = normalize_fk_action(&opt.to_string());
@@ -295,7 +295,7 @@ impl Parse for DslRelation {
                         } else {
                             on_update = val;
                         }
-                        i += 1;
+                        i = i.saturating_add(1);
                         let _ = opts.parse::<Token![,]>();
                     }
                 }

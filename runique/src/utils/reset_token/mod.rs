@@ -33,7 +33,7 @@ pub fn generate(email: &str) -> String {
         token.clone(),
         ResetEntry {
             email: email.to_string(),
-            expires_at: now + TOKEN_TTL,
+            expires_at: now.checked_add(TOKEN_TTL).unwrap_or(now),
         },
     );
     token
@@ -87,7 +87,7 @@ pub fn encrypt_email(token: &str, email: &str) -> String {
     let tag = mac.finalize().into_bytes();
 
     // Sortie : tag[0..16] || ciphertext (tag en préfixe pour rejet rapide)
-    let mut output = Vec::with_capacity(16 + ciphertext.len());
+    let mut output = Vec::with_capacity(16usize.saturating_add(ciphertext.len()));
     output.extend_from_slice(&tag[..16]);
     output.extend_from_slice(&ciphertext);
 

@@ -149,11 +149,17 @@ impl fmt::Display for BuildError {
                 writeln!(f, "Build failed with {} check error(s):", report.count())?;
                 writeln!(f)?;
                 for (i, err) in report.errors.iter().enumerate() {
-                    write!(f, "  {}. {} - {}", i + 1, err.component, err.message)?;
+                    write!(
+                        f,
+                        "  {}. {} - {}",
+                        i.saturating_add(1),
+                        err.component,
+                        err.message
+                    )?;
                     if let Some(suggestion) = &err.suggestion {
                         write!(f, "\n     → {}", suggestion)?;
                     }
-                    if i < report.errors.len() - 1 {
+                    if i < report.errors.len().saturating_sub(1) {
                         writeln!(f)?;
                     }
                 }

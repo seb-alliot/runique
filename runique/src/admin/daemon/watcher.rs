@@ -35,7 +35,9 @@ pub(crate) fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
     run_generation(admin_path);
 
     // Debounce : évite plusieurs régénérations pour un seul save
-    let mut last_event = Instant::now() - Duration::from_secs(10);
+    let mut last_event = Instant::now()
+        .checked_sub(Duration::from_secs(10))
+        .unwrap_or_else(Instant::now);
     let debounce = Duration::from_millis(300);
 
     for event in rx {

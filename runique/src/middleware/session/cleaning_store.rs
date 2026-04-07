@@ -36,9 +36,11 @@ const MAX_SESSION_RECORD_SIZE: usize = 50 * 1024; // 50 Ko
 /// Estimation de la taille en mémoire d'un record.
 /// UUID (16o) + `expiry_date` (8o) + données JSON sérialisées.
 fn estimate_size(record: &Record) -> usize {
-    24 + serde_json::to_string(&record.data)
-        .map(|s| s.len())
-        .unwrap_or(256)
+    24usize.saturating_add(
+        serde_json::to_string(&record.data)
+            .map(|s| s.len())
+            .unwrap_or(256),
+    )
 }
 
 /// Une session est protégée si elle appartient à un utilisateur authentifié
@@ -145,7 +147,7 @@ impl CleaningMemoryStore {
             .collect();
         for id in to_delete {
             if let Some(r) = guard.remove(&id) {
-                freed += estimate_size(&r);
+                freed = freed.saturating_add(estimate_size(&r));
             }
         }
         if freed > 0 {
@@ -183,7 +185,7 @@ impl CleaningMemoryStore {
 
         for id in to_delete {
             if let Some(r) = guard.remove(&id) {
-                freed += estimate_size(&r);
+                freed = freed.saturating_add(estimate_size(&r));
             }
         }
 
@@ -232,7 +234,7 @@ impl SessionStore for CleaningMemoryStore {
                 .collect();
             for id in to_delete {
                 if let Some(r) = guard.remove(&id) {
-                    freed += estimate_size(&r);
+                    freed = freed.saturating_add(estimate_size(&r));
                 }
             }
             self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
@@ -247,7 +249,7 @@ impl SessionStore for CleaningMemoryStore {
                     .collect();
                 for id in to_delete2 {
                     if let Some(r) = guard.remove(&id) {
-                        freed2 += estimate_size(&r);
+                        freed2 = freed2.saturating_add(estimate_size(&r));
                     }
                 }
                 self.size_bytes.fetch_sub(freed2, Ordering::Relaxed);
@@ -332,7 +334,7 @@ impl SessionStore for CleaningMemoryStore {
                         .collect();
                     for id in to_delete {
                         if let Some(r) = guard.remove(&id) {
-                            freed += estimate_size(&r);
+                            freed = freed.saturating_add(estimate_size(&r));
                         }
                     }
                     if freed > 0 {
@@ -365,10 +367,10 @@ impl SessionStore for CleaningMemoryStore {
 
         if new_size >= old_size {
             self.size_bytes
-                .fetch_add(new_size - old_size, Ordering::Relaxed);
+                .fetch_add(new_size.saturating_sub(old_size), Ordering::Relaxed);
         } else {
             self.size_bytes
-                .fetch_sub(old_size - new_size, Ordering::Relaxed);
+                .fetch_sub(old_size.saturating_sub(new_size), Ordering::Relaxed);
         }
         Ok(())
     }
@@ -406,7 +408,7 @@ impl ExpiredDeletion for CleaningMemoryStore {
 
         guard.retain(|_, r| {
             if r.expiry_date <= now {
-                freed += estimate_size(r);
+                freed = freed.saturating_add(estimate_size(r));
                 false
             } else {
                 true
