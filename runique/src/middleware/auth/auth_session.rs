@@ -1,5 +1,5 @@
 //! Middleware de session utilisateur : charge `CurrentUser` depuis la session et injecte dans les extensions.
-use crate::admin::permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
+use crate::admin::permissions::{Groupe, Permission, pull_groupes_db};
 use crate::context::RequestExtensions;
 use crate::middleware::auth::default_auth::UserEntity;
 use crate::middleware::auth::permissions_cache::{
@@ -9,8 +9,8 @@ use crate::middleware::auth::user::BuiltinUserEntity;
 use crate::middleware::auth::user_trait::RuniqueUser;
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::constante::{
-    SESSION_ACTIVE_KEY, SESSION_USER_DROITS_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_ID_KEY,
-    SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
+    SESSION_ACTIVE_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
+    SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
 };
 use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
@@ -26,50 +26,57 @@ pub struct CurrentUser {
     pub is_staff: bool,
     /// Accès complet — bypass toutes les restrictions admin
     pub is_superuser: bool,
-    /// Droits directs de l'utilisateur
-    pub droits: Vec<Droit>,
-    /// Groupes de l'utilisateur (chaque groupe contient ses droits)
+    /// Groupes de l'utilisateur (chaque groupe contient ses permissions)
     pub groupes: Vec<Groupe>,
 }
 
 impl CurrentUser {
-    /// Droits effectifs = droits directs + droits hérités des groupes, dédupliqués.
-    pub fn droits_effectifs(&self) -> Vec<Droit> {
-        let mut droits = self.droits.clone();
+    /// Retourne les permissions CRUD effectives (Union logique de tous les groupes).
+    pub fn permissions_effectives(&self) -> Vec<Permission> {
+        let mut agg: std::collections::HashMap<String, Permission> =
+            std::collections::HashMap::new();
+
         for groupe in &self.groupes {
-            droits.extend(groupe.droits.iter().cloned());
+            for perm in &groupe.permissions {
+                let entry = agg
+                    .entry(perm.resource_key.clone())
+                    .or_insert_with(|| Permission {
+                        id: 0,
+                        resource_key: perm.resource_key.clone(),
+                        can_create: false,
+                        can_read: false,
+                        can_update: false,
+                        can_delete: false,
+                        can_update_own: false,
+                        can_delete_own: false,
+                    });
+                entry.can_create |= perm.can_create;
+                entry.can_read |= perm.can_read;
+                entry.can_update |= perm.can_update;
+                entry.can_delete |= perm.can_delete;
+                entry.can_update_own |= perm.can_update_own;
+                entry.can_delete_own |= perm.can_delete_own;
+            }
         }
-        droits.sort();
-        droits.dedup();
-        droits
+
+        agg.into_values().collect()
     }
 
-    /// Vérifie si l'utilisateur possède un droit spécifique (par nom).
+    /// Vérifie si l'utilisateur possède une permission globale stricte (peut être affiné).
     #[must_use]
-    pub fn has_droit(&self, nom: &str) -> bool {
-        self.droits_effectifs().iter().any(|d| d.nom == nom)
-    }
-
-    /// Vérifie si l'utilisateur possède au moins un des droits fournis.
-    #[must_use]
-    pub fn has_any_droit(&self, noms: &[&str]) -> bool {
-        noms.iter().any(|n| self.has_droit(n))
+    pub fn can_access_resource(&self, resource_key: &str) -> bool {
+        if self.is_superuser {
+            return true;
+        }
+        self.permissions_effectives()
+            .iter()
+            .any(|d| d.resource_key == resource_key && d.can_read)
     }
 
     /// Vérifie si l'utilisateur peut accéder au panneau d'administration.
     #[must_use]
     pub fn can_access_admin(&self) -> bool {
         self.is_staff || self.is_superuser
-    }
-
-    /// Vérifie les droits pour une opération admin.
-    /// `is_superuser` bypass toujours.
-    #[must_use]
-    pub fn can_admin(&self, required: &[&str]) -> bool {
-        if self.is_superuser {
-            return true;
-        }
-        self.has_any_droit(required)
     }
 }
 
@@ -147,11 +154,10 @@ pub async fn login(
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
 ) -> Result<(), tower_sessions::session::Error> {
-    let droits = pull_droits_db(db, user_id).await;
     let groupes = pull_groupes_db(db, user_id).await;
 
     // Cache mémoire — point d'accès unique pour load_user_middleware et le point 6
-    cache_permissions(user_id, droits.clone(), groupes.clone());
+    cache_permissions(user_id, groupes.clone());
 
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
     session
@@ -235,9 +241,6 @@ pub async fn logout(
         .remove::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
         .await?;
     session
-        .remove::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
-        .await?;
-    session
         .remove::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
         .await?;
     session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
@@ -259,38 +262,9 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
     Ok(())
 }
 
-/// Vérifie si l'utilisateur a un droit donné.
-pub async fn has_permission(session: &Session, permission: &str) -> bool {
-    let droits = session
-        .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or_default();
-
-    let groupes = session
-        .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or_default();
-
-    let is_superuser = session
-        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or(false);
-
-    if is_superuser {
-        return true;
-    }
-
-    let mut all_droits = droits;
-    for g in groupes {
-        all_droits.extend(g.droits);
-    }
-    all_droits.iter().any(|d| d.nom == permission)
+/// Obsolète : remaniement matriciel
+pub async fn has_permission(_session: &Session, _permission: &str) -> bool {
+    false // Sera remplacé par les vérifs directes de matrice
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -316,10 +290,10 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
             .flatten()
             .unwrap_or(false);
 
-        // Droits et groupes depuis le cache mémoire (plus rapide que la session)
-        let (droits, groupes) = match get_permissions(user_id) {
-            Some(cached) => (cached.droits.clone(), cached.groupes.clone()),
-            None => (vec![], vec![]),
+        // Groupes et permissions depuis le cache mémoire (plus rapide que la session)
+        let groupes = match get_permissions(user_id) {
+            Some(cached) => cached.groupes.clone(),
+            None => vec![],
         };
 
         let current_user = CurrentUser {
@@ -327,7 +301,6 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
             username,
             is_staff,
             is_superuser,
-            droits,
             groupes,
         };
 

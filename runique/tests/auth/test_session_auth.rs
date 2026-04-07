@@ -6,11 +6,10 @@
 use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
-use runique::admin::{Droit, Groupe};
+use runique::admin::Groupe;
 use runique::middleware::auth::{get_user_id, get_username, is_authenticated, login, logout};
 use runique::utils::constante::{
-    SESSION_USER_DROITS_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_IS_STAFF_KEY,
-    SESSION_USER_IS_SUPERUSER_KEY,
+    SESSION_USER_GROUPES_KEY, SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
 };
 
 use crate::helpers::{
@@ -105,13 +104,6 @@ async fn test_login_sets_all_fields() {
             .ok()
             .flatten()
             .unwrap_or(false);
-        // droits/groupes sont vides (tables absentes en sqlite::memory:)
-        let droits = session
-            .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_default();
         let groupes = session
             .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
             .await
@@ -120,18 +112,17 @@ async fn test_login_sets_all_fields() {
             .unwrap_or_default();
 
         format!(
-            "{}/{}/{}/{}/{}/{}",
+            "{}/{}/{}/{}/{}",
             id,
             username,
             is_staff,
             is_su,
-            droits.len(),
             groupes.len()
         )
     }
 
     let res = request::get(build_app(get(handler)), "/test").await;
-    assert_body_str(res, "7/admin/true/true/0/0").await;
+    assert_body_str(res, "7/admin/true/true/0").await;
 }
 
 // ── logout ────────────────────────────────────────────────────────────────────
@@ -155,12 +146,6 @@ async fn test_logout_clears_session_keys() {
                 .is_none()
             && session
                 .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-                .await
-                .ok()
-                .flatten()
-                .is_none()
-            && session
-                .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
                 .await
                 .ok()
                 .flatten()

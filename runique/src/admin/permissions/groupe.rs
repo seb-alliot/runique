@@ -5,7 +5,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "eihwaz_groupes")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i32,
+    pub id: crate::utils::pk::Pk,
     pub nom: String,
 }
 
@@ -13,8 +13,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::users_groupes::Entity")]
     UsersGroupes,
-    #[sea_orm(has_many = "super::groupes_droits::Entity")]
-    GroupesDroits,
+    #[sea_orm(has_many = "super::droit::Entity")]
+    Droits,
 }
 
 impl Related<super::users_groupes::Entity> for Entity {
@@ -23,9 +23,9 @@ impl Related<super::users_groupes::Entity> for Entity {
     }
 }
 
-impl Related<super::groupes_droits::Entity> for Entity {
+impl Related<super::droit::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::GroupesDroits.def()
+        Relation::Droits.def()
     }
 }
 

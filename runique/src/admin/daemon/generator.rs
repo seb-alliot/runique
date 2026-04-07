@@ -310,7 +310,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // FormBuilder closure
     let _ = writeln!(
         out,
-        "    let form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {{"
+        "    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {{"
     );
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
@@ -462,7 +462,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let edit_wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
         let _ = writeln!(
             out,
-            "    let edit_form_builder: FormBuilder = Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {{"
+            "    let edit_form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {{"
         );
         let _ = writeln!(out, "        Box::pin(async move {{");
         let _ = writeln!(

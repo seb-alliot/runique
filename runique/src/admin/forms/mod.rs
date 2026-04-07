@@ -9,8 +9,6 @@ use crate::forms::form::Forms;
 use crate::impl_form_access;
 use crate::utils::aliases::definition::StrMap;
 
-// ─── DroitAdminForm ──────────────────────────────────────────────────────────
-
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct DroitAdminForm {
@@ -19,7 +17,25 @@ pub struct DroitAdminForm {
 
 impl RuniqueForm for DroitAdminForm {
     fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("nom").label("Nom").required());
+        // Le ChoiceField sera écrasé dynamiquement avec les vraies données de DB (voir builtin.rs)
+        form.field(
+            &crate::forms::fields::ChoiceField::new("groupe_id")
+                .label("Groupe")
+                .required(),
+        );
+        form.field(
+            &TextField::text("resource_key")
+                .label("Ressource ciblée")
+                .required(),
+        );
+        form.field(&BooleanField::new("can_create").label("Peut créer"));
+        form.field(&BooleanField::new("can_read").label("Peut lire"));
+        form.field(&BooleanField::new("can_update").label("Peut modifier"));
+        form.field(&BooleanField::new("can_delete").label("Peut supprimer"));
+        form.field(&BooleanField::new("can_update_own").label("Peut modifier ses propres données"));
+        form.field(
+            &BooleanField::new("can_delete_own").label("Peut supprimer ses propres données"),
+        );
     }
     impl_form_access!();
 }

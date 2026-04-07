@@ -9,7 +9,7 @@ use runique::admin::resource_entry::{FormBuilder, ResourceEntry};
 
 fn make_entry(key: &'static str, title: &'static str) -> ResourceEntry {
     let meta = AdminResource::new(key, "module::Model", "module::Form", title, vec![]);
-    let form_builder: FormBuilder = Arc::new(|_, _, _, _| Box::pin(async { unreachable!() }));
+    let form_builder: FormBuilder = Arc::new(|_, _, _, _, _, _| Box::pin(async { unreachable!() }));
     ResourceEntry::new(meta, form_builder)
 }
 

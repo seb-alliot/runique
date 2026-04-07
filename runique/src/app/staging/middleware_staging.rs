@@ -641,11 +641,11 @@ impl MiddlewareStaging {
                     r.layer(axum::middleware::from_fn(
                         |mut req: axum::http::Request<axum::body::Body>,
                          next: axum::middleware::Next| async move {
-                            use crate::admin::permissions::{Droit, Groupe};
+                            use crate::admin::permissions::Groupe;
                             use crate::middleware::auth::{CurrentUser, get_user_id, get_username};
                             use crate::utils::constante::{
-                                SESSION_USER_DROITS_KEY, SESSION_USER_GROUPES_KEY,
-                                SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
+                                SESSION_USER_GROUPES_KEY, SESSION_USER_IS_STAFF_KEY,
+                                SESSION_USER_IS_SUPERUSER_KEY,
                             };
                             if let Some(session) =
                                 req.extensions().get::<tower_sessions::Session>().cloned()
@@ -665,12 +665,6 @@ impl MiddlewareStaging {
                                         .ok()
                                         .flatten()
                                         .unwrap_or(false);
-                                    let droits = session
-                                        .get::<Vec<Droit>>(SESSION_USER_DROITS_KEY)
-                                        .await
-                                        .ok()
-                                        .flatten()
-                                        .unwrap_or_default();
                                     let groupes = session
                                         .get::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
                                         .await
@@ -682,7 +676,6 @@ impl MiddlewareStaging {
                                         username,
                                         is_staff,
                                         is_superuser,
-                                        droits,
                                         groupes,
                                     };
                                     RequestExtensions::new()

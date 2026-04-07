@@ -265,7 +265,6 @@ fn inject_context(
     // - droits/groupes → superuser uniquement (gestion des permissions, pas de droit scopé possible)
     // - autres ressources → user doit avoir un droit avec resource_key = key et access_type = "view"
     const SUPERUSER_ONLY: &[&str] = &["droits", "groupes"];
-    let effective_droits = current_user.droits_effectifs();
     let visible_resources: Vec<_> = state
         .registry
         .all()
@@ -276,10 +275,7 @@ fn inject_context(
             if SUPERUSER_ONLY.contains(&e.meta.key) {
                 return false;
             }
-            effective_droits.iter().any(|d| {
-                d.resource_key.as_deref() == Some(e.meta.key)
-                    && d.access_type.as_deref() == Some("view")
-            })
+            current_user.can_access_resource(e.meta.key)
         })
         .map(|e| &e.meta)
         .collect();
@@ -304,9 +300,10 @@ fn check_write_access(user: &CurrentUser, resource_key: &str) -> AppResult<()> {
             t("admin.access.insufficient_rights").as_ref(),
         ))));
     }
-    let has_write = user.droits_effectifs().iter().any(|d| {
-        d.resource_key.as_deref() == Some(resource_key) && d.access_type.as_deref() == Some("write")
-    });
+    let has_write = user
+        .permissions_effectives()
+        .iter()
+        .any(|d| d.resource_key == resource_key && (d.can_create || d.can_update || d.can_delete));
     if has_write {
         Ok(())
     } else {
@@ -625,7 +622,15 @@ async fn handle_create_get(
         .unwrap_or_else(|_| req.csrf_token.clone())
         .as_str()
         .to_string();
-    let form = (entry.form_builder)(StrMap::new(), tera, csrf, axum::http::Method::GET).await;
+    let form = (entry.form_builder)(
+        req.engine.db.clone(),
+        Vec::<std::string::String>::new(),
+        StrMap::new(),
+        tera,
+        csrf,
+        axum::http::Method::GET,
+    )
+    .await;
 
     req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_create::IS_EDIT, &false);
@@ -662,7 +667,15 @@ async fn handle_create_post(
         .unwrap_or_else(|_| req.csrf_token.clone())
         .as_str()
         .to_string();
-    let mut form = (entry.form_builder)(body, tera, csrf, axum::http::Method::POST).await;
+    let mut form = (entry.form_builder)(
+        req.engine.db.clone(),
+        Vec::<std::string::String>::new(),
+        body,
+        tera,
+        csrf,
+        axum::http::Method::POST,
+    )
+    .await;
 
     if form.is_valid().await {
         let result = match &entry.create_fn {
@@ -768,7 +781,19 @@ async fn handle_edit_get(
         .edit_form_builder
         .as_ref()
         .unwrap_or(&entry.form_builder);
-    let form = (builder)(data, tera, csrf, axum::http::Method::GET).await;
+    let form = (builder)(
+        req.engine.db.clone(),
+        Vec::<std::string::String>::new(),
+        data.clone(),
+        tera,
+        csrf,
+        axum::http::Method::GET,
+    )
+    .await;
+
+    if let Some(ts) = data.get("updated_at") {
+        req.context.insert("orig_updated_at", ts);
+    }
 
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_edit::IS_EDIT, &true);
@@ -788,7 +813,9 @@ async fn handle_edit_post(
     body: StrMap,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
-    let body_for_update = body.clone();
+    let mut body_for_update = body.clone();
+    let orig_updated_at = body_for_update.remove("__original_updated_at");
+
     let tera = req.engine.tera.clone();
     let csrf = req
         .csrf_token
@@ -802,24 +829,56 @@ async fn handle_edit_post(
         .unwrap_or(&entry.form_builder);
     // Method::PATCH signals edit mode — password fields relax their required constraint
     // (empty password = keep existing, handled by NotSet in admin_from_form)
-    let mut form = (builder)(body, tera, csrf, axum::http::Method::PATCH).await;
+    let mut form = (builder)(
+        req.engine.db.clone(),
+        Vec::<std::string::String>::new(),
+        body,
+        tera,
+        csrf,
+        axum::http::Method::PATCH,
+    )
+    .await;
+
+    let mut is_locked = false;
 
     if form.is_valid().await {
-        let result = match &entry.update_fn {
-            Some(f) => f(req.engine.db.clone(), id, body_for_update).await,
-            None => form.save(&req.engine.db).await,
-        };
-        if let Err(e) = result {
-            form.get_form_mut().database_error(&e);
-            return Err(Box::new(AppError::new(ErrorContext::database(e))));
+        if let Some(orig_ts) = &orig_updated_at {
+            if let Some(get_fn) = &entry.get_fn {
+                if let Ok(Some(current_obj)) = get_fn(req.engine.db.clone(), id.clone()).await {
+                    if let Some(current_ts) = current_obj.get("updated_at").and_then(|v| v.as_str())
+                    {
+                        if current_ts != orig_ts {
+                            is_locked = true;
+                            // Inject error
+                            form.get_form_mut().errors.push("Mise à jour impossible : Ce contenu a été modifié par une autre personne pendant votre édition. Veuillez copier vos modifications et recharger la page.".to_string());
+                            flash_now!(error => "Ce contenu a été modifié par quelqu'un d'autre pendant votre édition. Rafraîchissez la page.");
+                        }
+                    }
+                }
+            }
         }
-        flash_now!(success => t("admin.edit.success").to_string());
-        return Ok(Redirect::to(&format!(
-            "{}/{}/list",
-            state.config.prefix.trim_end_matches('/'),
-            entry.meta.key
-        ))
-        .into_response());
+
+        if !is_locked && !form.get_form().has_errors() {
+            let result = match &entry.update_fn {
+                Some(f) => f(req.engine.db.clone(), id.clone(), body_for_update).await,
+                None => form.save(&req.engine.db).await,
+            };
+            if let Err(e) = result {
+                form.get_form_mut().database_error(&e);
+                return Err(Box::new(AppError::new(ErrorContext::database(e))));
+            }
+            flash_now!(success => t("admin.edit.success").to_string());
+            return Ok(Redirect::to(&format!(
+                "{}/{}/list",
+                state.config.prefix.trim_end_matches('/'),
+                entry.meta.key
+            ))
+            .into_response());
+        }
+    }
+
+    if let Some(ts) = orig_updated_at {
+        req.context.insert("orig_updated_at", &ts);
     }
 
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());

@@ -1,46 +1,49 @@
-//! Entité SeaORM `eihwaz_droits` — droits d'accès individuels pour les utilisateurs admin.
+//! Entité SeaORM `eihwaz_droits` — droits d'accès CRUD sous forme de matrice.
 //!
-//! Un droit peut être global (`resource_key = NULL`) ou scopé à une ressource admin.
-//! - `resource_key = "blog"` + `access_type = "view"` → voir la ressource blog dans la nav
-//! - `resource_key = "blog"` + `access_type = "write"` → create/edit/delete sur blog
+//! Un droit est désormais attaché de manière exclusive à un Groupe.
+//! - `resource_key = "articles"` + `can_create = true` + `can_read = true`
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "eihwaz_droits")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i32,
-    pub nom: String,
-    /// Clé de la ressource admin ciblée — `None` = droit global
-    pub resource_key: Option<String>,
-    /// Type d'accès sur la ressource — `None` pour les droits globaux
-    pub access_type: Option<String>,
+    pub id: crate::utils::pk::Pk,
+    pub groupe_id: crate::utils::pk::Pk,
+    /// Clé de la ressource admin ciblée (ex: "articles")
+    pub resource_key: String,
+
+    // Matrice CRUD
+    pub can_create: bool,
+    pub can_read: bool,
+    pub can_update: bool,
+    pub can_delete: bool,
+
+    // Row Level Security (Propriétaire uniquement)
+    pub can_update_own: bool,
+    pub can_delete_own: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::users_droits::Entity")]
-    UsersDroits,
-    #[sea_orm(has_many = "super::groupes_droits::Entity")]
-    GroupesDroits,
+    #[sea_orm(
+        belongs_to = "super::groupe::Entity",
+        from = "Column::GroupeId",
+        to = "super::groupe::Column::Id",
+        on_delete = "Cascade"
+    )]
+    Groupe,
 }
 
-impl Related<super::users_droits::Entity> for Entity {
+impl Related<super::groupe::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UsersDroits.def()
-    }
-}
-
-impl Related<super::groupes_droits::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::GroupesDroits.def()
+        Relation::Groupe.def()
     }
 }
 
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
-    /// Quand un droit est supprimé, vide le cache de tous les utilisateurs.
-    /// Chaque user rechargera ses permissions depuis la DB à la prochaine requête.
+    /// Quand une permission est supprimée, vide le cache de tous les utilisateurs.
     async fn after_delete<C>(self, _db: &C) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,

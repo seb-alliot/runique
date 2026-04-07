@@ -57,6 +57,11 @@ All notable changes to this project will be documented in this file.
   These are injected automatically by `admin_register()` — no `admin!{}` declaration required.
   Builtin forms: `UserAdminCreateForm`, `UserAdminEditForm`, `DroitAdminForm`, `GroupeAdminForm`.
 
+* **Admin — forms and database access:**
+  Asynchronous form generators (`FormBuilder`) now receive the database connection (`ADb`).
+  This resolves the structural limitation for injecting dynamic content. 
+  Direct example: When editing a Right (Droit), a dynamic dropdown allows linking it to any `Groupes` from the database.
+
 * **Admin — `resource_order` on `AdminStaging`:**
   `.resource_order(["users", "droits", "groupes", "blog"])` controls the display order of resources
   in the admin navigation. Unlisted resources appear at the end in insertion order.

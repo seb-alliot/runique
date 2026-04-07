@@ -1,8 +1,5 @@
 //! Registre central des ressources admin indexées par clé URL.
 use indexmap::IndexMap;
-use sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-};
 
 use crate::admin::resource::DisplayConfig;
 use crate::admin::resource_entry::ResourceEntry;
@@ -61,48 +58,6 @@ impl AdminRegistry {
     pub fn configure(&mut self, key: &str, display: DisplayConfig) {
         if let Some(entry) = self.resources.get_mut(key) {
             entry.meta.display = display;
-        }
-    }
-
-    /// Seed des droits scopés par ressource.
-    ///
-    /// Pour chaque ressource enregistrée, insère dans `eihwaz_droits` deux entrées si absentes :
-    /// - `{key}.view` (`access_type = "view"`) — permission de voir la ressource dans la nav
-    /// - `{key}.write` (`access_type = "write"`) — droit de modifier (create/edit/delete)
-    ///
-    /// Les ressources builtins superuser-only (`droits`, `groupes`) sont ignorées — elles n'ont
-    /// pas de droits scopés : l'accès est contrôlé uniquement via `is_superuser`.
-    pub async fn seed_resource_droits(&self, db: &DatabaseConnection) {
-        use crate::admin::permissions::droit::{ActiveModel, Column, Entity};
-
-        const SUPERUSER_ONLY: &[&str] = &["droits", "groupes"];
-
-        for key in self.resources.keys() {
-            if SUPERUSER_ONLY.contains(&key.as_str()) {
-                continue;
-            }
-
-            for access_type in ["view", "write"] {
-                let nom = format!("{}.{}", key, access_type);
-
-                let exists = Entity::find()
-                    .filter(Column::Nom.eq(&nom))
-                    .one(db)
-                    .await
-                    .unwrap_or(None)
-                    .is_some();
-
-                if !exists {
-                    let _ = ActiveModel {
-                        nom: Set(nom),
-                        resource_key: Set(Some(key.clone())),
-                        access_type: Set(Some(access_type.to_string())),
-                        ..Default::default()
-                    }
-                    .insert(db)
-                    .await;
-                }
-            }
         }
     }
 

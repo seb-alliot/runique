@@ -53,7 +53,7 @@ fn test_with_current_user() {
         username: "alice".to_string(),
         is_staff: false,
         is_superuser: false,
-        droits: vec![],
+
         groupes: vec![],
     };
     let ext = RequestExtensions::new().with_current_user(user);
@@ -93,7 +93,7 @@ fn test_inject_request_current_user() {
         username: "bob".to_string(),
         is_staff: true,
         is_superuser: false,
-        droits: vec![],
+
         groupes: vec![],
     };
     let ext = RequestExtensions::new().with_current_user(user);

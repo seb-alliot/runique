@@ -208,6 +208,7 @@ pub mod prelude {
     };
     pub use crate::admin::builtin::builtin_resources;
     pub use crate::admin::dyn_form::DynForm;
+    pub use crate::admin::migrations::*;
     pub use crate::admin::registry::AdminRegistry;
     pub use crate::admin::resource_entry::{
         CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ListParams, ResourceEntry,

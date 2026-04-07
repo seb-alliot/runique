@@ -1,5 +1,5 @@
 //! Cache global des permissions utilisateur (droits et groupes) par `Pk`.
-use crate::admin::permissions::{Droit, Groupe};
+use crate::admin::permissions::Groupe;
 use crate::utils::pk::Pk;
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, RwLock};
@@ -10,7 +10,6 @@ use std::sync::{Arc, LazyLock, RwLock};
 
 #[derive(Clone, Debug)]
 pub struct CachedPermissions {
-    pub droits: Vec<Droit>,
     pub groupes: Vec<Groupe>,
 }
 
@@ -19,9 +18,9 @@ static PERMISSIONS_CACHE: LazyLock<RwLock<HashMap<Pk, Arc<CachedPermissions>>>> 
 
 /// Insère ou met à jour les permissions d'un utilisateur dans le cache.
 /// Appelé au login et lors d'un signal de changement de droits.
-pub(crate) fn cache_permissions(user_id: Pk, droits: Vec<Droit>, groupes: Vec<Groupe>) {
+pub(crate) fn cache_permissions(user_id: Pk, groupes: Vec<Groupe>) {
     if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
-        cache.insert(user_id, Arc::new(CachedPermissions { droits, groupes }));
+        cache.insert(user_id, Arc::new(CachedPermissions { groupes }));
     }
 }
 

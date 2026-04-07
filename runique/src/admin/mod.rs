@@ -4,6 +4,7 @@ pub mod config;
 pub mod daemon;
 pub mod dyn_form;
 pub mod middleware;
+pub mod migrations;
 pub mod permissions;
 pub mod registry;
 pub mod resource;
@@ -30,6 +31,6 @@ pub use resource_entry::{
     UpdateFn,
 };
 
-pub use permissions::{Droit, Groupe, pull_droits_db, pull_groupes_db};
+pub use permissions::{Groupe, pull_groupes_db};
 pub(crate) use router::build_admin_router;
 pub(crate) use template::AdminTemplate;

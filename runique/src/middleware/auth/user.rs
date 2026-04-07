@@ -27,18 +27,10 @@ impl_objects!(Entity);
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "crate::admin::permissions::users_droits::Entity")]
-    UsersDroits,
     #[sea_orm(has_many = "crate::admin::permissions::users_groupes::Entity")]
     UsersGroupes,
     #[sea_orm(has_many = "crate::middleware::session::session_db::Entity")]
     Sessions,
-}
-
-impl Related<crate::admin::permissions::users_droits::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UsersDroits.def()
-    }
 }
 
 impl Related<crate::admin::permissions::users_groupes::Entity> for Entity {
