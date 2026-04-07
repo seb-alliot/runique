@@ -8,9 +8,12 @@ use crate::middleware::auth::permissions_cache::{
 use crate::middleware::auth::user::BuiltinUserEntity;
 use crate::middleware::auth::user_trait::RuniqueUser;
 use crate::middleware::session::session_db::RuniqueSessionStore;
-use crate::utils::constante::session_key::session::{
-    SESSION_ACTIVE_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
-    SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
+use crate::utils::constante::{
+    admin_key::admin_context::permission::GROUPES,
+    session_key::session::{
+        SESSION_ACTIVE_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
+        SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
+    },
 };
 use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
@@ -240,9 +243,7 @@ pub async fn logout(
     session
         .remove::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
         .await?;
-    session
-        .remove::<Vec<Groupe>>(SESSION_USER_GROUPES_KEY)
-        .await?;
+    session.remove::<Vec<Groupe>>(GROUPES).await?;
     session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
     session.delete().await
 }

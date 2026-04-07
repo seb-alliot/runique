@@ -20,15 +20,16 @@ use crate::forms::field::RuniqueForm;
 use crate::utils::{
     aliases::{ADb, ATera, StrMap},
     constante::{
-        GROUPE_ID, GROUPES, IS_ACTIVE,
         admin_context::{
             common::RESOURCE_KEY,
             permission::{
                 CAN_CREATE, CAN_DELETE, CAN_DELETE_OWN, CAN_READ, CAN_UPDATE, CAN_UPDATE_OWN,
+                GROUPE_ID, GROUPES,
             },
         },
         session_key::session::{
-            SESSION_USER_DROITS_KEY, SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
+            IS_ACTIVE, SESSION_USER_DROITS_KEY, SESSION_USER_IS_STAFF_KEY,
+            SESSION_USER_IS_SUPERUSER_KEY,
         },
     },
     forms::parse_bool,

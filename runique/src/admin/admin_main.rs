@@ -9,12 +9,12 @@ use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::middleware::auth::CurrentUser;
 use crate::utils::{
-    session_key::session::CSRF_TOKEN_KEY,
     aliases::{ARuniqueConfig, AppResult, StrMap},
     constante::admin_context::{
         common as ctx_common, create as ctx_create, detail as ctx_detail, edit as ctx_edit,
         list as list_ctx,
     },
+    session_key::session::CSRF_TOKEN_KEY,
     trad::{current_lang, t},
 };
 use crate::{
