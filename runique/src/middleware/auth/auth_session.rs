@@ -8,7 +8,7 @@ use crate::middleware::auth::permissions_cache::{
 use crate::middleware::auth::user::BuiltinUserEntity;
 use crate::middleware::auth::user_trait::RuniqueUser;
 use crate::middleware::session::session_db::RuniqueSessionStore;
-use crate::utils::constante::{
+use crate::utils::constante::session_key::session::{
     SESSION_ACTIVE_KEY, SESSION_USER_GROUPES_KEY, SESSION_USER_ID_KEY, SESSION_USER_IS_STAFF_KEY,
     SESSION_USER_IS_SUPERUSER_KEY, SESSION_USER_USERNAME_KEY,
 };

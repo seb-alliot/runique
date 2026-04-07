@@ -2,7 +2,7 @@
 use crate::forms::{extractor::Prisme, field::RuniqueForm};
 use crate::utils::{
     aliases::{StrMap, StrVecMap},
-    constante::CSRF_TOKEN_KEY,
+    constante::session_key::session::CSRF_TOKEN_KEY,
     middleware::csrf::unmask_csrf_token,
     trad::t,
 };

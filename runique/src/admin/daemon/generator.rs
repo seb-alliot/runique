@@ -365,6 +365,34 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
         out,
+        "            if let Some(ref search_str) = params.search {{"
+    );
+    let _ = writeln!(
+        out,
+        "                let escaped = search_str.replace('\\'', \"''\");"
+    );
+    let _ = writeln!(
+        out,
+        "                let mut search_cond = sea_orm::Condition::any();"
+    );
+    if r.list_display.is_empty() {
+        let _ = writeln!(
+            out,
+            "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"id\", escaped)));"
+        );
+    } else {
+        for (col, _) in &r.list_display {
+            let _ = writeln!(
+                out,
+                "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"{}\", escaped)));",
+                col
+            );
+        }
+    }
+    let _ = writeln!(out, "                query = query.filter(search_cond);");
+    let _ = writeln!(out, "            }}");
+    let _ = writeln!(
+        out,
         "            let rows = query.offset(params.offset).limit(params.limit).all(&*db).await?;"
     );
     let _ = writeln!(out, "            Ok(rows.into_iter()");
@@ -385,9 +413,39 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "        Box::pin(async move {{");
     let _ = writeln!(
         out,
-        "            {}::Entity::find().count(&*db).await",
+        "            use sea_orm::{{QueryFilter, sea_query::Expr}};"
+    );
+    let _ = writeln!(
+        out,
+        "            let mut query = {}::Entity::find();",
         module
     );
+    let _ = writeln!(out, "            if let Some(ref search_str) = _search {{");
+    let _ = writeln!(
+        out,
+        "                let escaped = search_str.replace('\\'', \"''\");"
+    );
+    let _ = writeln!(
+        out,
+        "                let mut search_cond = sea_orm::Condition::any();"
+    );
+    if r.list_display.is_empty() {
+        let _ = writeln!(
+            out,
+            "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"id\", escaped)));"
+        );
+    } else {
+        for (col, _) in &r.list_display {
+            let _ = writeln!(
+                out,
+                "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"{}\", escaped)));",
+                col
+            );
+        }
+    }
+    let _ = writeln!(out, "                query = query.filter(search_cond);");
+    let _ = writeln!(out, "            }}");
+    let _ = writeln!(out, "            query.count(&*db).await");
     let _ = writeln!(out, "        }})");
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);

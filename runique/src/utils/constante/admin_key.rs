@@ -2,7 +2,7 @@
 
 /// Clés de contexte Tera injectées dans les templates admin.
 /// Utilisez ces constantes pour surcharger un template sans risquer de typos.
-pub mod admin_ctx {
+pub mod admin_context {
     /// Clés partagées — injectées dans toutes les vues admin
     pub mod common {
         pub const LANG: &str = "lang";
@@ -19,6 +19,16 @@ pub mod admin_ctx {
         pub const IS_EDIT: &str = "is_edit";
     }
 
+    pub mod permission {
+        pub const CAN_CREATE: &str = "can_create";
+        pub const CAN_READ: &str = "can_read";
+        pub const CAN_UPDATE: &str = "can_update";
+        pub const CAN_DELETE: &str = "can_delete";
+        pub const CAN_UPDATE_OWN: &str = "can_update_own";
+        pub const CAN_DELETE_OWN: &str = "can_delete_own";
+    }
+
+    pub mod etat {}
     /// Template `list` — vue liste d'une ressource
     pub mod list {
         pub use super::common::LANG;

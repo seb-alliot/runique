@@ -137,7 +137,7 @@ impl CleaningMemoryStore {
             .iter()
             .filter(|(_, r)| {
                 r.data
-                    .get(crate::utils::constante::SESSION_USER_ID_KEY)
+                    .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
                     .and_then(serde_json::Value::as_i64)
                     .is_some_and(|id| id == uid_i64)
             })
@@ -307,11 +307,14 @@ impl SessionStore for CleaningMemoryStore {
         if self.exclusive_login {
             let had_user = guard
                 .get(&record.id)
-                .and_then(|r| r.data.get(crate::utils::constante::SESSION_USER_ID_KEY))
+                .and_then(|r| {
+                    r.data
+                        .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+                })
                 .is_some();
             if let Some(user_id) = record
                 .data
-                .get(crate::utils::constante::SESSION_USER_ID_KEY)
+                .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
                 .and_then(serde_json::Value::as_i64)
             {
                 if !had_user {
@@ -321,7 +324,7 @@ impl SessionStore for CleaningMemoryStore {
                         .filter(|(id, r)| {
                             **id != record.id
                                 && r.data
-                                    .get(crate::utils::constante::SESSION_USER_ID_KEY)
+                                    .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
                                     .and_then(serde_json::Value::as_i64)
                                     .is_some_and(|id| id == user_id)
                         })
