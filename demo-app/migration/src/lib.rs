@@ -14,8 +14,6 @@ mod m20260405_235615_create_demo_section_table;
 mod m20260405_235615_create_doc_block_table;
 mod m20260405_235615_create_doc_page_table;
 mod m20260405_235615_create_doc_section_table;
-mod m20260405_235615_create_eihwaz_droits_table;
-mod m20260405_235615_create_eihwaz_groupes_table;
 mod m20260405_235615_create_eihwaz_sessions_table;
 mod m20260405_235615_create_eihwaz_users_table;
 mod m20260405_235615_create_form_field_table;
@@ -37,11 +35,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20260405_235615_create_users_booster_table::Migration),
             Box::new(m20260405_235615_create_blog_table::Migration),
             Box::new(m20260405_235615_create_demo_category_table::Migration),
-            Box::new(m20260405_235615_create_eihwaz_droits_table::Migration),
             Box::new(m20260405_235615_create_changelog_entry_table::Migration),
             Box::new(m20260405_235615_create_runique_release_table::Migration),
             Box::new(m20260405_235615_create_doc_section_table::Migration),
-            Box::new(m20260405_235615_create_eihwaz_groupes_table::Migration),
             Box::new(m20260405_235615_create_site_config_table::Migration),
             Box::new(m20260405_235615_create_cour_ia_table::Migration),
             Box::new(m20260405_235615_create_eihwaz_users_table::Migration),
@@ -60,6 +56,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260405_235615_create_page_doc_link_table::Migration),
             Box::new(m20260405_235615_create_demo_section_table::Migration),
             Box::new(m20260405_235615_create_doc_block_table::Migration),
+            // Migration "clé en main" du Framework pour installer l'architecture RBAC native
+            Box::new(runique::admin::migrations::AdminTableMigration),
         ];
         migrations
     }

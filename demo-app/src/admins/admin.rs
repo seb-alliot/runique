@@ -458,14 +458,20 @@ pub fn admin_register() -> AdminRegistry {
         "Contribution",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     contribution::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(ContributionAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -783,13 +789,19 @@ pub fn admin_register() -> AdminRegistry {
         "Articles",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = blog::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(BlogAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -1147,14 +1159,20 @@ pub fn admin_register() -> AdminRegistry {
         "Changelog",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     changelog_entry::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(ChangelogEntryAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -1573,14 +1591,20 @@ pub fn admin_register() -> AdminRegistry {
         "Roadmap",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     roadmap_entry::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(RoadmapEntryAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -2103,14 +2127,20 @@ pub fn admin_register() -> AdminRegistry {
         "Problèmes connus",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     known_issue::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(KnownIssueAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -2480,14 +2510,20 @@ pub fn admin_register() -> AdminRegistry {
         "Catégories",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     demo_category::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(DemoCategoryAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -2585,13 +2621,19 @@ pub fn admin_register() -> AdminRegistry {
         "Pages",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = demo_page::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(DemoPageAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -3007,14 +3049,20 @@ pub fn admin_register() -> AdminRegistry {
         "Sections",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     demo_section::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(DemoSectionAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -3329,14 +3377,20 @@ pub fn admin_register() -> AdminRegistry {
         "Exemples de code",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     code_example::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(CodeExampleAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -3749,14 +3803,20 @@ pub fn admin_register() -> AdminRegistry {
         "Liens documentation",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     page_doc_link::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(PageDocLinkAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -4120,13 +4180,19 @@ pub fn admin_register() -> AdminRegistry {
         "Champs formulaire",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = form_field::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(FormFieldAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -4597,14 +4663,20 @@ pub fn admin_register() -> AdminRegistry {
         "Doc — Sections",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     doc_section::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(DocSectionAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -4818,13 +4890,19 @@ pub fn admin_register() -> AdminRegistry {
         "Doc — Pages",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = doc_page::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(DocPageAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -5240,13 +5318,19 @@ pub fn admin_register() -> AdminRegistry {
         "Doc — Blocs",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = doc_block::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(DocBlockAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -5613,14 +5697,20 @@ pub fn admin_register() -> AdminRegistry {
         "Configuration site",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     site_config::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(SiteConfigAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -5718,13 +5808,19 @@ pub fn admin_register() -> AdminRegistry {
         "Cours",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = cour::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(CourAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -6186,13 +6282,19 @@ pub fn admin_register() -> AdminRegistry {
         "Chapitres",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = chapitre::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(ChapitreAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -6507,13 +6609,19 @@ pub fn admin_register() -> AdminRegistry {
         "Cours — Blocs",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = cour_block::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(CourBlockAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -6834,14 +6942,20 @@ pub fn admin_register() -> AdminRegistry {
         "Releases Runique",
         vec![],
     );
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form =
                     runique_release::AdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(RuniqueReleaseAdminFormDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {

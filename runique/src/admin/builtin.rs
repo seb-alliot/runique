@@ -1,6 +1,6 @@
-//! Ressources admin built-in Runique — droits et groupes.
+//! Ressources admin built-in Runique â€” droits et groupes.
 //!
-//! Injectées automatiquement dans le registre admin sans déclaration dans `admin!{}`.
+//! InjectÃ©es automatiquement dans le registre admin sans dÃ©claration dans `admin!{}`.
 
 use std::sync::Arc;
 
@@ -20,12 +20,10 @@ use crate::forms::field::RuniqueForm;
 use crate::utils::aliases::{ADb, ATera, StrMap};
 
 /// Retourne les `ResourceEntry` built-in Runique (droits, groupes).
-/// Appelé automatiquement dans le registre admin généré par le daemon.
+/// Appel automatiquement dans le registre admin généré par le daemon.
 pub fn builtin_resources() -> Vec<ResourceEntry> {
     vec![user_entry(), droit_entry(), groupe_entry()]
 }
-
-// ─── User ─────────────────────────────────────────────────────────────────────
 
 fn user_entry() -> ResourceEntry {
     use crate::middleware::auth::user;
@@ -40,21 +38,33 @@ fn user_entry() -> ResourceEntry {
     )
     .inject_password(true);
 
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = UserAdminCreateForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(UserCreateDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
-    let edit_form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let edit_form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = UserAdminEditForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(UserEditDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -178,7 +188,7 @@ fn user_entry() -> ResourceEntry {
         .with_update_fn(update_fn)
 }
 
-// ─── Droit ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Droit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn droit_entry() -> ResourceEntry {
     use crate::admin::permissions::droit;
@@ -191,13 +201,44 @@ fn droit_entry() -> ResourceEntry {
         vec!["admin".to_string()],
     );
 
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
-                let form = DroitAdminForm::build_with_data(&data, tera, &csrf, method).await;
+                use sea_orm::EntityTrait;
+                let mut form = DroitAdminForm::build_with_data(&data, tera, &csrf, method).await;
+
+                let groupes = crate::admin::permissions::groupe::Entity::find()
+                    .all(&*db)
+                    .await
+                    .unwrap_or_default();
+
+                let mut choices = vec![];
+                for g in groupes {
+                    choices.push(crate::forms::fields::ChoiceOption::new(
+                        &g.id.to_string(),
+                        &g.nom,
+                    ));
+                }
+
+                form.get_form_mut().fields.insert(
+                    "groupe_id".to_string(),
+                    Box::new(
+                        crate::forms::fields::ChoiceField::new("groupe_id")
+                            .choices(choices)
+                            .label("Groupe")
+                            .required(),
+                    ),
+                );
+
                 Box::new(DroitDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -240,7 +281,7 @@ fn droit_entry() -> ResourceEntry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<crate::utils::pk::Pk>()
                 .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
             let row = droit::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -250,7 +291,7 @@ fn droit_entry() -> ResourceEntry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<crate::utils::pk::Pk>()
                 .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
             droit::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
@@ -258,9 +299,26 @@ fn droit_entry() -> ResourceEntry {
 
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
-            let nom = data.get("nom").cloned().unwrap_or_default();
+            let groupe_id = data
+                .get("groupe_id")
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0);
+            let resource_key = data.get("resource_key").cloned().unwrap_or_default();
             droit::ActiveModel {
-                nom: Set(nom),
+                groupe_id: Set(groupe_id),
+                resource_key: Set(resource_key),
+                can_create: Set(data.get("can_create").map(|v| v == "on").unwrap_or(false)),
+                can_read: Set(data.get("can_read").map(|v| v == "on").unwrap_or(false)),
+                can_update: Set(data.get("can_update").map(|v| v == "on").unwrap_or(false)),
+                can_delete: Set(data.get("can_delete").map(|v| v == "on").unwrap_or(false)),
+                can_update_own: Set(data
+                    .get("can_update_own")
+                    .map(|v| v == "on")
+                    .unwrap_or(false)),
+                can_delete_own: Set(data
+                    .get("can_delete_own")
+                    .map(|v| v == "on")
+                    .unwrap_or(false)),
                 ..Default::default()
             }
             .insert(&*db)
@@ -272,12 +330,29 @@ fn droit_entry() -> ResourceEntry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<crate::utils::pk::Pk>()
                 .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
-            let nom = data.get("nom").cloned().unwrap_or_default();
+            let groupe_id = data
+                .get("groupe_id")
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0);
+            let resource_key = data.get("resource_key").cloned().unwrap_or_default();
             droit::ActiveModel {
                 id: Set(id),
-                nom: Set(nom),
+                groupe_id: Set(groupe_id),
+                resource_key: Set(resource_key),
+                can_create: Set(data.get("can_create").map(|v| v == "on").unwrap_or(false)),
+                can_read: Set(data.get("can_read").map(|v| v == "on").unwrap_or(false)),
+                can_update: Set(data.get("can_update").map(|v| v == "on").unwrap_or(false)),
+                can_delete: Set(data.get("can_delete").map(|v| v == "on").unwrap_or(false)),
+                can_update_own: Set(data
+                    .get("can_update_own")
+                    .map(|v| v == "on")
+                    .unwrap_or(false)),
+                can_delete_own: Set(data
+                    .get("can_delete_own")
+                    .map(|v| v == "on")
+                    .unwrap_or(false)),
                 ..Default::default()
             }
             .update(&*db)
@@ -295,8 +370,6 @@ fn droit_entry() -> ResourceEntry {
         .with_update_fn(update_fn)
 }
 
-// ─── Groupe ──────────────────────────────────────────────────────────────────
-
 fn groupe_entry() -> ResourceEntry {
     use crate::admin::permissions::groupe;
 
@@ -308,13 +381,19 @@ fn groupe_entry() -> ResourceEntry {
         vec!["admin".to_string()],
     );
 
-    let form_builder: FormBuilder =
-        Arc::new(|data: StrMap, tera: ATera, csrf: String, method: Method| {
+    let form_builder: FormBuilder = Arc::new(
+        |_db: ADb,
+         _vec: Vec<std::string::String>,
+         data: StrMap,
+         tera: ATera,
+         csrf: String,
+         method: Method| {
             Box::pin(async move {
                 let form = GroupeAdminForm::build_with_data(&data, tera, &csrf, method).await;
                 Box::new(GroupeDynWrapper(form)) as Box<dyn DynForm>
             })
-        });
+        },
+    );
 
     let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {
         Box::pin(async move {
@@ -353,7 +432,7 @@ fn groupe_entry() -> ResourceEntry {
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<crate::utils::pk::Pk>()
                 .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
             let row = groupe::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
@@ -363,7 +442,7 @@ fn groupe_entry() -> ResourceEntry {
     let delete_fn: DeleteFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<crate::utils::pk::Pk>()
                 .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
             groupe::Entity::delete_by_id(id)
                 .exec(&*db)
@@ -388,7 +467,7 @@ fn groupe_entry() -> ResourceEntry {
     let update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
         Box::pin(async move {
             let id = id
-                .parse::<i32>()
+                .parse::<crate::utils::pk::Pk>()
                 .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
             let nom = data.get("nom").cloned().unwrap_or_default();
             groupe::ActiveModel {
@@ -410,7 +489,7 @@ fn groupe_entry() -> ResourceEntry {
         .with_update_fn(update_fn)
 }
 
-// ─── DynForm wrappers ─────────────────────────────────────────────────────────
+// â”€â”€â”€ DynForm wrappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 struct UserCreateDynWrapper(pub UserAdminCreateForm);
 #[async_trait::async_trait]

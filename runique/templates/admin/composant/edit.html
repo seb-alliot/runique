@@ -16,6 +16,11 @@
     </div>
     <div class="card-body">
       <form method="POST" action="/admin/{{ resource.key }}/{{ object_id }}/edit">
+        {% if orig_updated_at is defined %}
+        <input type="hidden" name="__original_updated_at" value="{{ orig_updated_at }}">
+        {% elif object.updated_at is defined %}
+        <input type="hidden" name="__original_updated_at" value="{{ object.updated_at }}">
+        {% endif %}
         <div class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
             {{ form_fields.html }}

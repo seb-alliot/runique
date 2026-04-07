@@ -51,7 +51,9 @@ pub struct ListParams {
 
 /// Closure construisant un form typé depuis des données brutes.
 pub type FormBuilder = Arc<
-    dyn Fn(StrMap, ATera, String, Method) -> BoxFuture<'static, Box<dyn DynForm>> + Send + Sync,
+    dyn Fn(ADb, Vec<String>, StrMap, ATera, String, Method) -> BoxFuture<'static, Box<dyn DynForm>>
+        + Send
+        + Sync,
 >;
 
 /// Closure retournant une page d'entrées d'une ressource.

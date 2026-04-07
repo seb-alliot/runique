@@ -58,6 +58,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
   Injectées automatiquement par `admin_register()` — aucune déclaration `admin!{}` requise.
   Formulaires builtin : `UserAdminCreateForm`, `UserAdminEditForm`, `DroitAdminForm`, `GroupeAdminForm`.
 
+* **Admin — formulaires et accès base de données :**
+  Les générateurs de formulaires (`FormBuilder`) asynchrones reçoivent désormais la connexion à la base de données (`ADb`).
+  Ceci résout la limitation structurelle d'injection du contenu dynamique. 
+  Exemple direct: Lors de l'édition d'un Droit, un sélecteur (Drop down dynamique) permet la liaison avec tous les `Groupes` en base de données.
+
 * **Admin — `resource_order` sur `AdminStaging` :**
   `.resource_order(["users", "droits", "groupes", "blog"])` contrôle l'ordre d'affichage des
   ressources dans la navigation admin. Les ressources non listées apparaissent à la fin dans leur

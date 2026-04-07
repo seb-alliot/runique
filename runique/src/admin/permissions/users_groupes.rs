@@ -8,7 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub user_id: Pk,
     #[sea_orm(primary_key)]
-    pub groupe_id: i32,
+    pub groupe_id: crate::utils::pk::Pk,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
