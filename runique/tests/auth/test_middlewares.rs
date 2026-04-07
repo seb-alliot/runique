@@ -41,6 +41,16 @@ fn auth_mw_addr() -> SocketAddr {
                             }
                         }),
                     )
+                    .route(
+                        "/has_perm",
+                        get(|session: Session| async move {
+                            if has_permission(&session, "any").await {
+                                "yes"
+                            } else {
+                                "no"
+                            }
+                        }),
+                    )
                     .layer(middleware::from_fn(load_user_middleware));
 
                 // Routes publiques (pas de middleware auth)
@@ -65,16 +75,6 @@ fn auth_mw_addr() -> SocketAddr {
                                 "ok"
                             },
                         ),
-                    )
-                    .route(
-                        "/has_perm",
-                        get(|session: Session| async move {
-                            if has_permission(&session, "any").await {
-                                "yes"
-                            } else {
-                                "no"
-                            }
-                        }),
                     );
 
                 let app = Router::new()

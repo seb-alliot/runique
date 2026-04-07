@@ -13,7 +13,6 @@ use crate::utils::{aliases::AEngine, csp_nonce::CspNonce};
 ///
 /// Pour ajouter un hash manquant : le navigateur l'indique dans la console CSP.
 pub const HTMX_STYLE_HASHES: &[&str] = &[
-    "'unsafe-hashes'",
     "'sha256-bsV5JivYxvGywDAZ22EZJKBFip65Ng9xoJVLbBg7bdo='",
 ];
 use axum::{
@@ -149,11 +148,13 @@ impl SecurityPolicy {
         }
 
         if !self.style_src.is_empty() {
-            // Le nonce n'est pas appliqué à style-src.
-            // strict() n'inclut pas 'unsafe-inline' : tous les styles doivent
-            // être dans des fichiers CSS externes. Les templates utilisant htmx
-            // (ex : admin) doivent utiliser default() ou permissive() à la place.
-            directives.push(format!("style-src {}", self.style_src.join(" ")));
+            let mut style_sources = self.style_src.clone();
+            if let Some(n) = nonce.filter(|n| !n.is_empty()) {
+                style_sources.push(format!("'nonce-{n}'"));
+                style_sources.retain(|s| s != "'unsafe-inline'" && s != "'unsafe-hashes'");
+                // ↑ Retirer aussi 'unsafe-hashes' quand nonce présent
+            }
+            directives.push(format!("style-src {}", style_sources.join(" ")));
         }
 
         if !self.img_src.is_empty() {

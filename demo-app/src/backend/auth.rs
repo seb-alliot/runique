@@ -27,7 +27,7 @@ pub async fn find_user_by_username(
     db: &sea_orm::DatabaseConnection,
     username: &str,
 ) -> Option<runique::prelude::user::Model> {
-    search!(UserEntity => Username eq username)
+    search!(UserEntity => Username eq username.trim())
         .first(db)
         .await
         .unwrap_or(None)
