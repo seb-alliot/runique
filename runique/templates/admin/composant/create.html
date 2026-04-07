@@ -18,6 +18,7 @@
       <form method="POST" action="/admin/{{ resource.key }}/create">
         <div class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
+            {% csrf %}
             {{ form_fields.html }}
           {% else %}
             <p>{% if admin_create_no_fields %}{{ admin_create_no_fields }}{% endif %}</p>

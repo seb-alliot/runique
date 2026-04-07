@@ -70,10 +70,5 @@
                 </form>
             </div>
         </div>
-        <script {% csp %}>
-            Object.keys(sessionStorage)
-                .filter(function(k) { return k.startsWith('runique_fg_'); })
-                .forEach(function(k) { sessionStorage.removeItem(k); });
-        </script>
     </body>
 </html>

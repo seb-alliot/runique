@@ -9,9 +9,9 @@ use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::middleware::auth::CurrentUser;
 use crate::utils::{
-    CSRF_TOKEN_KEY,
+    session_key::session::CSRF_TOKEN_KEY,
     aliases::{ARuniqueConfig, AppResult, StrMap},
-    constante::admin_ctx::{
+    constante::admin_context::{
         common as ctx_common, create as ctx_create, detail as ctx_detail, edit as ctx_edit,
         list as list_ctx,
     },
@@ -25,7 +25,7 @@ use crate::{
         resource_entry::{ListParams, SortDir},
         trad::insert_admin_messages,
     },
-    utils::admin_ctx::list::{PAGE, SORT_BY, SORT_DIR},
+    utils::admin_context::list::{PAGE, SORT_BY, SORT_DIR},
 };
 use axum::{
     Extension,
@@ -622,9 +622,14 @@ async fn handle_create_get(
         .unwrap_or_else(|_| req.csrf_token.clone())
         .as_str()
         .to_string();
+    let resource_keys = state
+        .registry
+        .all()
+        .map(|e| e.meta.key.to_string())
+        .collect::<Vec<_>>();
     let form = (entry.form_builder)(
         req.engine.db.clone(),
-        Vec::<std::string::String>::new(),
+        resource_keys,
         StrMap::new(),
         tera,
         csrf,
@@ -667,9 +672,14 @@ async fn handle_create_post(
         .unwrap_or_else(|_| req.csrf_token.clone())
         .as_str()
         .to_string();
+    let resource_keys = state
+        .registry
+        .all()
+        .map(|e| e.meta.key.to_string())
+        .collect::<Vec<_>>();
     let mut form = (entry.form_builder)(
         req.engine.db.clone(),
-        Vec::<std::string::String>::new(),
+        resource_keys,
         body,
         tera,
         csrf,
@@ -781,9 +791,14 @@ async fn handle_edit_get(
         .edit_form_builder
         .as_ref()
         .unwrap_or(&entry.form_builder);
+    let resource_keys = state
+        .registry
+        .all()
+        .map(|e| e.meta.key.to_string())
+        .collect::<Vec<_>>();
     let form = (builder)(
         req.engine.db.clone(),
-        Vec::<std::string::String>::new(),
+        resource_keys,
         data.clone(),
         tera,
         csrf,
@@ -829,9 +844,14 @@ async fn handle_edit_post(
         .unwrap_or(&entry.form_builder);
     // Method::PATCH signals edit mode — password fields relax their required constraint
     // (empty password = keep existing, handled by NotSet in admin_from_form)
+    let resource_keys = state
+        .registry
+        .all()
+        .map(|e| e.meta.key.to_string())
+        .collect::<Vec<_>>();
     let mut form = (builder)(
         req.engine.db.clone(),
-        Vec::<std::string::String>::new(),
+        resource_keys,
         body,
         tera,
         csrf,

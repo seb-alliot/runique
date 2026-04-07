@@ -10,7 +10,7 @@ use crate::forms::{
 use crate::middleware::errors::error::html_escape;
 use crate::utils::{
     aliases::{FieldsMap, StrMap},
-    constante::CSRF_TOKEN_KEY,
+    constante::session_key::session::CSRF_TOKEN_KEY,
     trad::{t, tf},
 };
 use axum::http::Method;

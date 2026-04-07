@@ -643,7 +643,7 @@ impl MiddlewareStaging {
                          next: axum::middleware::Next| async move {
                             use crate::admin::permissions::Groupe;
                             use crate::middleware::auth::{CurrentUser, get_user_id, get_username};
-                            use crate::utils::constante::{
+                            use crate::utils::constante::session_key::session::{
                                 SESSION_USER_GROUPES_KEY, SESSION_USER_IS_STAFF_KEY,
                                 SESSION_USER_IS_SUPERUSER_KEY,
                             };

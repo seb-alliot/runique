@@ -1,6 +1,6 @@
-//! Ressources admin built-in Runique â€” droits et groupes.
+//! Ressources admin built-in Runique  droits et groupes.
 //!
-//! InjectÃ©es automatiquement dans le registre admin sans dÃ©claration dans `admin!{}`.
+//! Injectées automatiquement dans le registre admin sans déclaration dans `admin!{}`.
 
 use std::sync::Arc;
 
@@ -17,9 +17,24 @@ use crate::admin::resource_entry::{
     UpdateFn,
 };
 use crate::forms::field::RuniqueForm;
-use crate::utils::aliases::{ADb, ATera, StrMap};
+use crate::utils::{
+    aliases::{ADb, ATera, StrMap},
+    constante::{
+        GROUPE_ID, GROUPES, IS_ACTIVE,
+        admin_context::{
+            common::RESOURCE_KEY,
+            permission::{
+                CAN_CREATE, CAN_DELETE, CAN_DELETE_OWN, CAN_READ, CAN_UPDATE, CAN_UPDATE_OWN,
+            },
+        },
+        session_key::session::{
+            SESSION_USER_DROITS_KEY, SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY,
+        },
+    },
+    forms::parse_bool,
+};
 
-/// Retourne les `ResourceEntry` built-in Runique (droits, groupes).
+/// Retourne les `ResourceEntry` built-in Runique (droits, GROUPESs).
 /// Appel automatiquement dans le registre admin généré par le daemon.
 pub fn builtin_resources() -> Vec<ResourceEntry> {
     vec![user_entry(), droit_entry(), groupe_entry()]
@@ -85,6 +100,17 @@ fn user_entry() -> ResourceEntry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                let cols = vec!["id", "username", "email"];
+                for col in cols {
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({col} AS TEXT)) LIKE LOWER('%{escaped}%')"
+                    )));
+                }
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -97,8 +123,24 @@ fn user_entry() -> ResourceEntry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb, _| Box::pin(async move { user::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search| {
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = user::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                let cols = vec!["id", "username", "email"];
+                for col in cols {
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({col} AS TEXT)) LIKE LOWER('%{escaped}%')"
+                    )));
+                }
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -126,18 +168,9 @@ fn user_entry() -> ResourceEntry {
                 username: Set(data.get("username").cloned().unwrap_or_default()),
                 email: Set(data.get("email").cloned().unwrap_or_default()),
                 password: Set(data.get("password").cloned().unwrap_or_default()),
-                is_active: Set(data
-                    .get("is_active")
-                    .map(|v| v == "on" || v == "true")
-                    .unwrap_or(true)),
-                is_staff: Set(data
-                    .get("is_staff")
-                    .map(|v| v == "on" || v == "true")
-                    .unwrap_or(false)),
-                is_superuser: Set(data
-                    .get("is_superuser")
-                    .map(|v| v == "on" || v == "true")
-                    .unwrap_or(false)),
+                is_active: Set(parse_bool(&data, IS_ACTIVE)),
+                is_staff: Set(parse_bool(&data, SESSION_USER_IS_STAFF_KEY)),
+                is_superuser: Set(parse_bool(&data, SESSION_USER_IS_SUPERUSER_KEY)),
                 created_at: Set(now),
                 updated_at: Set(now),
                 ..Default::default()
@@ -157,18 +190,9 @@ fn user_entry() -> ResourceEntry {
                 id: Set(id),
                 username: Set(data.get("username").cloned().unwrap_or_default()),
                 email: Set(data.get("email").cloned().unwrap_or_default()),
-                is_active: Set(data
-                    .get("is_active")
-                    .map(|v| v == "on" || v == "true")
-                    .unwrap_or(true)),
-                is_staff: Set(data
-                    .get("is_staff")
-                    .map(|v| v == "on" || v == "true")
-                    .unwrap_or(false)),
-                is_superuser: Set(data
-                    .get("is_superuser")
-                    .map(|v| v == "on" || v == "true")
-                    .unwrap_or(false)),
+                is_active: Set(parse_bool(&data, IS_ACTIVE)),
+                is_staff: Set(parse_bool(&data, SESSION_USER_IS_STAFF_KEY)),
+                is_superuser: Set(parse_bool(&data, SESSION_USER_IS_SUPERUSER_KEY)),
                 updated_at: Set(Some(chrono::Utc::now().naive_utc())),
                 ..Default::default()
             }
@@ -188,16 +212,14 @@ fn user_entry() -> ResourceEntry {
         .with_update_fn(update_fn)
 }
 
-// â”€â”€â”€ Droit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 fn droit_entry() -> ResourceEntry {
     use crate::admin::permissions::droit;
 
     let meta = AdminResource::new(
-        "droits",
+        SESSION_USER_DROITS_KEY,
         "runique::admin::permissions::droit::Model",
         "DroitAdminForm",
-        "Droits",
+        SESSION_USER_DROITS_KEY,
         vec!["admin".to_string()],
     );
 
@@ -226,15 +248,40 @@ fn droit_entry() -> ResourceEntry {
                 }
 
                 form.get_form_mut().fields.insert(
-                    "groupe_id".to_string(),
+                    GROUPE_ID.to_string(),
                     Box::new(
-                        crate::forms::fields::ChoiceField::new("groupe_id")
+                        crate::forms::fields::ChoiceField::new(GROUPE_ID)
                             .choices(choices)
                             .label("Groupe")
                             .required(),
                     ),
                 );
 
+                let mut resource_choices = vec![];
+                for key in _vec {
+                    resource_choices.push(crate::forms::fields::ChoiceOption::new(
+                        &key,
+                        &key.to_string(), // Here we use the key directly as label
+                    ));
+                }
+
+                form.get_form_mut().fields.insert(
+                    RESOURCE_KEY.to_string(),
+                    Box::new(
+                        crate::forms::fields::ChoiceField::new(RESOURCE_KEY)
+                            .choices(resource_choices)
+                            .label("Ressource ciblée")
+                            .required(),
+                    ),
+                );
+
+                for key in &[GROUPE_ID, RESOURCE_KEY] {
+                    if let Some(val) = data.get(*key) {
+                        if let Some(field) = form.get_form_mut().fields.get_mut(*key) {
+                            field.set_value(val);
+                        }
+                    }
+                }
                 Box::new(DroitDynWrapper(form)) as Box<dyn DynForm>
             })
         },
@@ -259,6 +306,17 @@ fn droit_entry() -> ResourceEntry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                let cols = vec!["id", RESOURCE_KEY, GROUPE_ID];
+                for col in cols {
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({col} AS TEXT)) LIKE LOWER('%{escaped}%')"
+                    )));
+                }
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -271,10 +329,22 @@ fn droit_entry() -> ResourceEntry {
         })
     });
 
-    let count_fn: CountFn = Arc::new(|db: ADb, _| {
+    let count_fn: CountFn = Arc::new(|db: ADb, _search| {
         Box::pin(async move {
-            use sea_orm::EntityTrait;
-            droit::Entity::find().count(&*db).await
+            use sea_orm::{EntityTrait, QueryFilter, sea_query::Expr};
+            let mut query = droit::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                let cols = vec!["id", RESOURCE_KEY, GROUPE_ID];
+                for col in cols {
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({col} AS TEXT)) LIKE LOWER('%{escaped}%')"
+                    )));
+                }
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
         })
     });
 
@@ -300,25 +370,19 @@ fn droit_entry() -> ResourceEntry {
     let create_fn: CreateFn = Arc::new(|db: ADb, data: StrMap| {
         Box::pin(async move {
             let groupe_id = data
-                .get("groupe_id")
+                .get(GROUPE_ID)
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(0);
-            let resource_key = data.get("resource_key").cloned().unwrap_or_default();
+            let resource_key = data.get(RESOURCE_KEY).cloned().unwrap_or_default();
             droit::ActiveModel {
                 groupe_id: Set(groupe_id),
                 resource_key: Set(resource_key),
-                can_create: Set(data.get("can_create").map(|v| v == "on").unwrap_or(false)),
-                can_read: Set(data.get("can_read").map(|v| v == "on").unwrap_or(false)),
-                can_update: Set(data.get("can_update").map(|v| v == "on").unwrap_or(false)),
-                can_delete: Set(data.get("can_delete").map(|v| v == "on").unwrap_or(false)),
-                can_update_own: Set(data
-                    .get("can_update_own")
-                    .map(|v| v == "on")
-                    .unwrap_or(false)),
-                can_delete_own: Set(data
-                    .get("can_delete_own")
-                    .map(|v| v == "on")
-                    .unwrap_or(false)),
+                can_create: Set(parse_bool(&data, CAN_CREATE)),
+                can_read: Set(parse_bool(&data, CAN_READ)),
+                can_update: Set(parse_bool(&data, CAN_UPDATE)),
+                can_delete: Set(parse_bool(&data, CAN_DELETE)),
+                can_update_own: Set(parse_bool(&data, CAN_UPDATE_OWN)),
+                can_delete_own: Set(parse_bool(&data, CAN_DELETE_OWN)),
                 ..Default::default()
             }
             .insert(&*db)
@@ -333,27 +397,20 @@ fn droit_entry() -> ResourceEntry {
                 .parse::<crate::utils::pk::Pk>()
                 .map_err(|_| sea_orm::DbErr::Custom("id invalide".into()))?;
             let groupe_id = data
-                .get("groupe_id")
+                .get(GROUPE_ID)
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(0);
-            let resource_key = data.get("resource_key").cloned().unwrap_or_default();
+            let resource_key = data.get(RESOURCE_KEY).cloned().unwrap_or_default();
             droit::ActiveModel {
                 id: Set(id),
                 groupe_id: Set(groupe_id),
                 resource_key: Set(resource_key),
-                can_create: Set(data.get("can_create").map(|v| v == "on").unwrap_or(false)),
-                can_read: Set(data.get("can_read").map(|v| v == "on").unwrap_or(false)),
-                can_update: Set(data.get("can_update").map(|v| v == "on").unwrap_or(false)),
-                can_delete: Set(data.get("can_delete").map(|v| v == "on").unwrap_or(false)),
-                can_update_own: Set(data
-                    .get("can_update_own")
-                    .map(|v| v == "on")
-                    .unwrap_or(false)),
-                can_delete_own: Set(data
-                    .get("can_delete_own")
-                    .map(|v| v == "on")
-                    .unwrap_or(false)),
-                ..Default::default()
+                can_create: Set(parse_bool(&data, CAN_CREATE)),
+                can_read: Set(parse_bool(&data, CAN_READ)),
+                can_update: Set(parse_bool(&data, CAN_UPDATE)),
+                can_delete: Set(parse_bool(&data, CAN_DELETE)),
+                can_update_own: Set(parse_bool(&data, CAN_UPDATE_OWN)),
+                can_delete_own: Set(parse_bool(&data, CAN_DELETE_OWN)),
             }
             .update(&*db)
             .await
@@ -374,10 +431,10 @@ fn groupe_entry() -> ResourceEntry {
     use crate::admin::permissions::groupe;
 
     let meta = AdminResource::new(
-        "groupes",
+        GROUPES,
         "runique::admin::permissions::groupe::Model",
         "GroupeAdminForm",
-        "Groupes",
+        GROUPES,
         vec!["admin".to_string()],
     );
 
@@ -414,6 +471,17 @@ fn groupe_entry() -> ResourceEntry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({col} AS TEXT) = '{escaped}'")));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                let cols = vec!["id", "nom"];
+                for col in cols {
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({col} AS TEXT)) LIKE LOWER('%{escaped}%')"
+                    )));
+                }
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -426,8 +494,24 @@ fn groupe_entry() -> ResourceEntry {
         })
     });
 
-    let count_fn: CountFn =
-        Arc::new(|db: ADb, _| Box::pin(async move { groupe::Entity::find().count(&*db).await }));
+    let count_fn: CountFn = Arc::new(|db: ADb, _search| {
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = groupe::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                let cols = vec!["id", "nom"];
+                for col in cols {
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({col} AS TEXT)) LIKE LOWER('%{escaped}%')"
+                    )));
+                }
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
+    });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
         Box::pin(async move {
@@ -488,8 +572,6 @@ fn groupe_entry() -> ResourceEntry {
         .with_create_fn(create_fn)
         .with_update_fn(update_fn)
 }
-
-// â”€â”€â”€ DynForm wrappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 struct UserCreateDynWrapper(pub UserAdminCreateForm);
 #[async_trait::async_trait]

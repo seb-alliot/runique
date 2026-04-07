@@ -3,7 +3,7 @@ use crate::context::RequestExtensions;
 use crate::middleware::auth::is_authenticated;
 use crate::utils::{
     aliases::{AEngine, JsonMap, TResult},
-    constante::{CSRF_TOKEN_KEY, SESSION_USER_ID_KEY},
+    constante::{session::CSRF_TOKEN_KEY, session_key::session::SESSION_USER_ID_KEY},
     csrf::{CsrfContext, CsrfToken},
 };
 use axum::{
