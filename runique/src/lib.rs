@@ -213,6 +213,6 @@ pub mod prelude {
         CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ListParams, ResourceEntry,
         SortDir, UpdateFn,
     };
-    pub use crate::admin::table_admin::migrations_table::*;
+    pub use crate::admin::table_admin::migrations_table;
     pub use futures_util::future::BoxFuture;
 }
