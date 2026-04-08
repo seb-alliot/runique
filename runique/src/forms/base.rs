@@ -139,7 +139,6 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
 
     fn set_value(&mut self, value: &str) {
         self.get_field_config_mut().value = value.to_string();
-        eprintln!("set_value result dans base : {:?}", value);
     }
 
     fn set_placeholder(&mut self, placeholder: &str) {
