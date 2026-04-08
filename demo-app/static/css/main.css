@@ -228,12 +228,13 @@ main {
     top: 0;
     right: 0;
     height: 100%;
-    width: 240px;
+    width: 200px;
     background: var(--bg-surface);
     border-left: 1px solid var(--border);
     z-index: 151;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
     transform: translateX(100%);
     transition: transform 0.25s ease;
 }

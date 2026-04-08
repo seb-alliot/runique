@@ -51,5 +51,5 @@
 {% block extra_js %}
 {{ super() }}
 <script {% csp %}>htmx = { config: { allowEval: false } };</script>
-<script {% csp %} src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js " defer></script>
+<script {% csp %} src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous" defer></script>
 {% endblock %}

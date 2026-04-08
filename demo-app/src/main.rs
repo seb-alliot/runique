@@ -45,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     c.policy(SecurityPolicy::strict())
                         .with_header_security(true)
                         .with_upgrade_insecure(!is_debug())
-                        .images(vec!["'self'", "data:", "https://img.shields.io"])
+                        .images(vec!["'self'", "data:", "https://img.shields.io", "https://runique.io"])
                 })
         })
         .with_admin(|a| {

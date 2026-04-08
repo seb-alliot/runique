@@ -21,7 +21,7 @@
         <link rel="stylesheet" href='{% static "css/main.css" %}'>
         <link rel="stylesheet" href='{% static "css/inline.css" %}'>
     {% endblock %}
-    <link rel="icon" type="image/x-icon" href='{% media "favicon/favicon_runique.ico" %}'>
+    <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
 </head>
 <body>
 
@@ -68,7 +68,14 @@
         <a href="{% link 'roadmap' %}">Roadmap</a>
         <a href="{% link 'changelog' %}">Changelog</a>
         <a href="{% link 'contribution_list' %}">Contribute</a>
-        <a href="{% link 'login' %}">Login</a>
+        {% if user %}
+            {% if user.is_superuser or user.is_staff %}
+                <a href="{% link 'admin_login' %}">Admin</a>
+            {% endif %}
+            <a href="{% link 'profil' %}">{{ user.username }}</a>
+        {% else %}
+            <a href="{% link 'login' %}">Login</a>
+        {% endif %}
         {% if runique_release %}
         <a href="{{ runique_release.github_url }}" target="_blank">GitHub</a>
         <a href="{{ runique_release.crates_url }}" target="_blank">Crates.io</a>

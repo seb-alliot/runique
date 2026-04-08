@@ -26,33 +26,6 @@
         <a href='{% link "doc_index_en" %}' class="btn {% if lang == 'en' %}btn-primary{% else %}btn-secondary{% endif %}">English</a>
     </div>
 
-    <div class="doc-index-section">
-        <button class="doc-index-section-title doc-section--readme" type="button" data-section="readme" aria-expanded="true">
-            README
-            <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div id="doc-section-readme">
-            <div class="doc-index-subsection">
-                <button class="doc-index-section-title doc-subsection-title doc-diff--fr" type="button" data-section="readme-fr" aria-expanded="true">
-                    French
-                    <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div class="doc-index-nav" id="doc-section-readme-fr">
-                    <a href="/readme/fr" class="doc-index-nav-link">README — French</a>
-                </div>
-            </div>
-            <div class="doc-index-subsection">
-                <button class="doc-index-section-title doc-subsection-title doc-diff--en" type="button" data-section="readme-en" aria-expanded="true">
-                    English
-                    <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div class="doc-index-nav" id="doc-section-readme-en">
-                    <a href="/readme/en" class="doc-index-nav-link">README — English</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {% if sections | length > 0 %}
     <div class="doc-index-section">
         <button class="doc-index-section-title doc-section--documentation" type="button" data-section="documentation" aria-expanded="true">
@@ -86,8 +59,13 @@
         </div>
     </div>
     {% endif %}
-
+    <div class="doc-index-section">
+        <a href="{% if lang == 'fr' %}{% link "readme_fr" %}{% else %}{% link "readme_en" %}{% endif %}" class="doc-index-section-title doc-section--readme">
+            Readme
+        </a>
+    </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
