@@ -138,6 +138,12 @@ pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppRes
         });
         return request.render(template);
     }
+    context_update!(request => {
+        "title"         => "Login",
+        "login_form"    => form,
+        "code_examples" => &code_examples,
+        "doc_links"     => &doc_links,
+    });
     request.render(template)
 }
 
