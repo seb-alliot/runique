@@ -159,7 +159,7 @@ pub async fn admin_get(
                 filter_pages,
             };
             let is_htmx = headers.contains_key("hx-request");
-            handle_list(&mut req, entry, &state, query, is_htmx).await
+            handle_list(&mut req, entry, &state, query, &current_user, is_htmx).await
         }
         "create" => handle_create_get(&mut req, entry, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -372,8 +372,11 @@ async fn handle_list(
     entry: &crate::admin::ResourceEntry,
     state: &PrototypeAdminState,
     query: ListQuery,
+    current_user: &CurrentUser,
     is_htmx: bool,
 ) -> AppResult<Response> {
+    inject_context(req, &state, entry, &current_user);
+
     let ListQuery {
         page,
         sort_by,
@@ -384,7 +387,6 @@ async fn handle_list(
     } = query;
     let page_size = state.config.page_size;
     let offset = page.saturating_sub(1).saturating_mul(page_size);
-
     let list_params = ListParams {
         offset,
         limit: page_size,

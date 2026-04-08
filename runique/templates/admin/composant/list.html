@@ -10,21 +10,33 @@
   {% set_global can_create = false %}
   {% if current_user %}
     {% if current_user.is_superuser %}{% set_global can_create = true %}
-    {% else %}{% for role in current_user.roles %}{% if role in resource.permissions.create %}{% set_global can_create = true %}{% endif %}{% endfor %}{% endif %}
+    {% else %}
+    {% for groupe in current_user.groupes %}
+      {% for perm in groupe.permissions %}
+        {% if perm.resource_key == resource.key and perm.can_create %}
+          {% set_global can_create = true %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  {% endif %}
   {% endif %}
   <div class="page-header">
     <div>
       <h1 class="page-title">{{ resource.title | default(value="Éléments") }}</h1>
       <p class="page-subtitle">{{ total | default(value=0) }} {% if admin_list_entries_count %}{{ admin_list_entries_count }}{% endif %}</p>
     </div>
-    {% if can_create %}
-    <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      {% if admin_list_btn_create %}{{ admin_list_btn_create }}{% endif %}
-    </a>
-    {% endif %}
+    {% for groupe in current_user.groupes %}
+      {% for perm in groupe.permissions %}
+        {% if can_create %}
+          <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            {% if admin_list_btn_create %}{{ admin_list_btn_create }}{% endif %}
+          </a>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
   </div>
 
   <div id="list-content">

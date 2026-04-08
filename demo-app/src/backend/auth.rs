@@ -27,10 +27,20 @@ pub async fn find_user_by_username(
     db: &sea_orm::DatabaseConnection,
     username: &str,
 ) -> Option<runique::prelude::user::Model> {
-    search!(UserEntity => Username eq username.trim())
-        .first(db)
-        .await
-        .unwrap_or(None)
+    eprintln!("=== DEBUG find_user_by_username ===");
+    eprintln!("Username reçu: {:?}", username);
+    eprintln!("Username bytes: {:?}", username.as_bytes());
+
+    // Construit la requête
+    let query = search!(UserEntity => Username eq username.trim());
+
+    // Log le SQL généré (si possible)
+    // Note: Sea-ORM ne expose pas facilement le SQL, mais on peut vérifier le résultat
+
+    let result = query.first(db).await;
+    eprintln!("Résultat SQL: {:?}", result);
+
+    result.unwrap_or(None)
 }
 
 pub async fn find_user_by_id(
@@ -91,7 +101,7 @@ pub async fn handle_inscription(
     request.render(template)
 }
 
-pub async fn handle_login(request: &mut Request, form: &LoginForm) -> AppResult<Response> {
+pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppResult<Response> {
     crate::backend::inject_globals(request).await;
     if is_authenticated(&request.session).await {
         return Ok(Redirect::to("/profil").into_response());
@@ -108,7 +118,7 @@ pub async fn handle_login(request: &mut Request, form: &LoginForm) -> AppResult<
         });
         return request.render(template);
     }
-    if request.is_post() {
+    if request.is_post() && form.is_valid().await {
         if let Some((username_val, password_val)) = get_credentials(form)
             && let Some(user) =
                 authenticate_user(&request.engine.db, &username_val, &password_val).await

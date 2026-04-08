@@ -200,6 +200,7 @@ async fn admin_dashboard(
     insert_admin_messages(&mut req.context, "dashboard");
     insert_admin_messages(&mut req.context, "base");
     req = req
+        .insert("current_user", &current_user)
         .insert("site_title", &admin.config.site_title)
         .insert("site_url", &admin.config.site_url)
         .insert("resources", &resources)

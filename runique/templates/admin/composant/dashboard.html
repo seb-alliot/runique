@@ -54,25 +54,43 @@
                 </tr>
             </thead>
             <tbody>
-                {% for resource in resources %}
-                <tr>
-                    <td><strong>{{ resource.title }}</strong></td>
-                    <td><span class="id-badge">{{ resource.key }}</span></td>
-                    <td>
-                        {% if resource_groups[resource.key] %}
-                            {% for grp in resource_groups[resource.key] %}
-                            <span class="badge badge-blue">{{ grp }}</span>
+            {% for resource in resources %}
+            <tr>
+                <td><strong>{{ resource.title }}</strong></td>
+                <td><span class="id-badge">{{ resource.key }}</span></td>
+                <td>
+                    {% if resource_groups[resource.key] %}
+                        {% for grp in resource_groups[resource.key] %}
+                        <span class="badge badge-blue">{{ grp }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="table-actions">
+                        <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">
+                            {{ admin_dashboard_btn_list }}
+                        </a>
+                        {% if current_user %}
+                        {% if current_user.is_superuser %}
+                            <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">
+                                {{ admin_dashboard_btn_create }}
+                            </a>
+                        {% else %}
+                            {% for groupe in current_user.groupes %}
+                            {% for perm in groupe.permissions %}
+                                {% if perm.resource_key == resource.key and perm.can_create %}
+                                <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">
+                                    {{ admin_dashboard_btn_create }}
+                                </a>
+                                {% endif %}
+                            {% endfor %}
                             {% endfor %}
                         {% endif %}
-                    </td>
-                    <td>
-                        <div class="table-actions">
-                            <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">{% if admin_dashboard_btn_list %}{{ admin_dashboard_btn_list }}{% endif %}</a>
-                            <a href="/admin/{{ resource.key }}/create" class="btn btn-primary btn-sm">{% if admin_dashboard_btn_create %}{{ admin_dashboard_btn_create }}{% endif %}</a>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
             </tbody>
         </table>
     </div>

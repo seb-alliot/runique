@@ -18,8 +18,8 @@ use crate::utils::constante::{
 use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
 use sea_orm::DatabaseConnection;
+use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
-use serde::{Serialize, Deserialize};
 
 /// Utilisateur authentifié injecté dans les extensions de requête.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -176,7 +176,10 @@ pub async fn login(
     if let Some(store) = db_store {
         let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
         let session_id = uuid::Uuid::new_v4().to_string();
-        let expires_at = chrono::Utc::now().naive_utc().checked_add_signed(chrono::Duration::hours(24)).unwrap_or_else(|| chrono::Utc::now().naive_utc());
+        let expires_at = chrono::Utc::now()
+            .naive_utc()
+            .checked_add_signed(chrono::Duration::hours(24))
+            .unwrap_or_else(|| chrono::Utc::now().naive_utc());
 
         let _ = store
             .create(&cookie_id, user_id, &session_id, expires_at)
