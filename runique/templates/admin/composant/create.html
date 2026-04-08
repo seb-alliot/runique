@@ -10,6 +10,23 @@
   <header class="page-header">
     <h1>{% if admin_create_title %}{{ admin_create_title }}{% endif %} — {{ resource.title | default(value="Élément") }}</h1>
   </header>
+  
+  {% set_global can_create = false %}
+  {% if current_user %}
+    {% if current_user.is_superuser %}
+      {% set_global can_create = true %}
+    {% else %}
+      {% for groupe in current_user.groupes %}
+        {% for perm in groupe.permissions %}
+          {% if perm.resource_key == resource.key and perm.can_create %}
+            {% set_global can_create = true %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+  
+  {% if current_user and can_create %}
   <div class="card card-form" data-admin-auto-init>
     <div class="card-header">
       <h2>{% if admin_create_card_info %}{{ admin_create_card_info }}{% endif %}</h2>
@@ -31,6 +48,16 @@
       </form>
     </div>
   </div>
+  {% else %}
+  <div class="card">
+    <div class="card-body">
+      <div class="empty-state">
+        <p class="empty-state-desc">{% if admin_access_denied %}{{ admin_access_denied }}{% else %}Vous n'avez pas les droits nécessaires pour créer cet élément.{% endif %}</p>
+        <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_create_btn_cancel %}{{ admin_create_btn_cancel }}{% else %}Retour{% endif %}</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 {% endblock %}
 {% block extra_js %}
 {{ super() }}

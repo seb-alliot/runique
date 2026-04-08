@@ -16,8 +16,17 @@
       <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
       {% set_global can_modify = false %}
       {% if current_user %}
-        {% if current_user.is_superuser %}{% set_global can_modify = true %}
-        {% else %}{% for role in current_user.roles %}{% if role in resource.permissions.edit %}{% set_global can_modify = true %}{% endif %}{% endfor %}{% endif %}
+        {% if current_user.is_superuser %}
+          {% set_global can_modify = true %}
+        {% else %}
+          {% for groupe in current_user.groupes %}
+            {% for perm in groupe.permissions %}
+              {% if perm.resource_key == resource.key and perm.can_update %}
+                {% set_global can_modify = true %}
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        {% endif %}
       {% endif %}
       {% if current_user and can_modify %}
       {% set has_password = false %}

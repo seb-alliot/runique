@@ -123,6 +123,12 @@ pub async fn admin_get(
 
     match action.as_str() {
         "list" => {
+            if !current_user.can_access_resource(&resource_key) {
+                return Err(Box::new(AppError::new(ErrorContext::generic(
+                    StatusCode::FORBIDDEN,
+                    t("admin.access.insufficient_rights").as_ref(),
+                ))));
+            }
             let page = params
                 .get(PAGE)
                 .and_then(|p| p.parse::<u64>().ok())
@@ -188,7 +194,6 @@ pub async fn admin_post(
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
     check_write_access(&current_user, &resource_key)?;
-
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &headers, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -211,6 +216,13 @@ pub async fn admin_get_id(
 
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
+
+    if !current_user.can_access_resource(&resource_key) {
+        return Err(Box::new(AppError::new(ErrorContext::generic(
+            StatusCode::FORBIDDEN,
+            t("admin.access.insufficient_rights").as_ref(),
+        ))));
+    }
     match action.as_str() {
         "detail" => handle_detail(&mut req, entry, id, &state).await,
         "edit" => handle_edit_get(&mut req, entry, id, &state).await,
@@ -375,8 +387,13 @@ async fn handle_list(
     current_user: &CurrentUser,
     is_htmx: bool,
 ) -> AppResult<Response> {
+    if !current_user.can_access_resource(entry.meta.key) {
+        return Err(Box::new(AppError::new(ErrorContext::generic(
+            StatusCode::FORBIDDEN,
+            t("admin.access.insufficient_rights").as_ref(),
+        ))));
+    }
     inject_context(req, &state, entry, &current_user);
-
     let ListQuery {
         page,
         sort_by,
@@ -629,7 +646,7 @@ async fn handle_create_get(
     entry: &crate::admin::ResourceEntry,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
-    let tera = req.engine.tera.clone();
+    let tera: Arc<tera::Tera> = req.engine.tera.clone();
     let csrf = req
         .csrf_token
         .masked()
