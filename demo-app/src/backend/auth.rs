@@ -27,19 +27,9 @@ pub async fn find_user_by_username(
     db: &sea_orm::DatabaseConnection,
     username: &str,
 ) -> Option<runique::prelude::user::Model> {
-    eprintln!("=== DEBUG find_user_by_username ===");
-    eprintln!("Username reçu: {:?}", username);
-    eprintln!("Username bytes: {:?}", username.as_bytes());
-
     // Construit la requête
     let query = search!(UserEntity => Username eq username.trim());
-
-    // Log le SQL généré (si possible)
-    // Note: Sea-ORM ne expose pas facilement le SQL, mais on peut vérifier le résultat
-
     let result = query.first(db).await;
-    eprintln!("Résultat SQL: {:?}", result);
-
     result.unwrap_or(None)
 }
 
