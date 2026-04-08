@@ -52,4 +52,5 @@ pub const ADMIN_TEMPLATES: &[(&str, &str)] = tpls![
     ("admin/edit", "admin/composant/edit.html"),
     ("admin/detail", "admin/composant/detail.html"),
     ("admin/delete", "admin/composant/delete.html"),
+    ("admin/kebab", "admin/composant/kebab.html")
 ];
