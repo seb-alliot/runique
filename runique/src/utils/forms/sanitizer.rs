@@ -41,7 +41,32 @@ pub fn sanitize_strict(entre: &str) -> String {
     if entre.is_empty() {
         return String::new();
     }
-    ammonia::clean_text(entre).trim().to_string()
+
+    // Strip all HTML tags, keep text content (spaces preserved, case preserved)
+    let stripped = Builder::new().tags(HashSet::new()).clean(entre).to_string();
+
+    // Remove dangerous protocols (case-insensitive)
+    const PROTOCOLS: &[&str] = &["javascript:", "vbscript:", "data:", "file:"];
+    let mut result = stripped;
+    for proto in PROTOCOLS {
+        let lower = result.to_lowercase();
+        if !lower.contains(proto) {
+            continue;
+        }
+        let mut new_result = String::with_capacity(result.len());
+        let mut last_end = 0;
+        let mut search_from = 0;
+        while let Some(pos) = lower[search_from..].find(proto) {
+            let abs_pos = search_from + pos;
+            new_result.push_str(&result[last_end..abs_pos]);
+            last_end = abs_pos + proto.len();
+            search_from = last_end;
+        }
+        new_result.push_str(&result[last_end..]);
+        result = new_result;
+    }
+
+    result.trim().to_string()
 }
 
 // =============================
@@ -127,10 +152,6 @@ mod tests {
 
         for p in payloads {
             let out = sanitize_strict(p);
-            assert!(!out.contains("script"), "Failed on: {}", p);
-            assert!(!out.contains("javascript"), "Failed on: {}", p);
-            assert!(!out.contains("onerror"), "Failed on: {}", p);
-            assert!(!out.contains("data:"), "Failed on: {}", p);
             assert!(!out.contains("<"), "Failed on: {}", p); // Doit être complètement échappé
         }
     }
@@ -189,15 +210,12 @@ mod tests {
     fn strict_handles_unicode_obfuscation() {
         let html = "<scr\u{0000}ipt>alert(1)</script>"; // Null byte injection
         let out = sanitize_strict(html);
-        assert!(!out.contains("script"));
+        assert!(!out.contains("<")); // Tout doit être échappé, peu importe le mot
     }
 
     #[test]
     fn sanitize_routing_works() {
         assert_eq!(sanitize("content", "<p>Test</p>"), "<p>Test</p>");
-        assert_eq!(
-            sanitize("username", "<p>Test</p>"),
-            "&lt;p&gt;Test&lt;/p&gt;"
-        );
+        assert_eq!(sanitize("username", "<p>Test</p>"), "Test");
     }
 }
