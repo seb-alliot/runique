@@ -90,7 +90,8 @@ impl FormField for GenericField {
     }
 
     fn set_value(&mut self, value: &str) {
-        delegate_to_kind!(mut self, set_value, value)
+        delegate_to_kind!(mut self, set_value, value);
+        eprintln!("set_value result dans generic : {:?}", value);
     }
 
     fn set_placeholder(&mut self, placeholder: &str) {

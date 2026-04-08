@@ -148,6 +148,7 @@ impl FormField for TextField {
                 }
             }
         };
+        eprintln!("set_value result dans text: {:?}", cleaned);
         self.base.value = cleaned;
     }
     fn validate(&mut self) -> bool {

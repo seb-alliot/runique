@@ -60,7 +60,7 @@ pub async fn handle_inscription(
         });
         return request.render(template);
     }
-    if request.is_post() && form.is_valid().await {
+    if request.is_post() {
         match register_user(form, &request.engine.db).await {
             Ok(user) => {
                 auth_login(
@@ -108,8 +108,9 @@ pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppRes
         });
         return request.render(template);
     }
+    let credentials = get_credentials(form);
     if request.is_post() && form.is_valid().await {
-        if let Some((username_val, password_val)) = get_credentials(form)
+        if let Some((username_val, password_val)) = &credentials
             && let Some(user) =
                 authenticate_user(&request.engine.db, &username_val, &password_val).await
         {
