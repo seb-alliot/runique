@@ -131,13 +131,28 @@ impl TextField {
 }
 
 impl FormField for TextField {
+    fn set_value(&mut self, value: &str) {
+        let cleaned = match self.format {
+            SpecialFormat::Password | SpecialFormat::Csrf => value.to_string(),
+            SpecialFormat::RichText => crate::utils::sanitizer::sanitize_rich(value),
+            _ => {
+                if value.contains('<') || value.contains('>') {
+                    value
+                        .replace('<', "")
+                        .replace('>', "")
+                        .replace('&', "")
+                        .trim()
+                        .to_string()
+                } else {
+                    crate::utils::sanitizer::sanitize_strict(value)
+                }
+            }
+        };
+        self.base.value = cleaned;
+    }
     fn validate(&mut self) -> bool {
         // Initial trim
         let mut val = self.base.value.trim().to_string();
-
-        if let SpecialFormat::RichText = self.format {
-            val = crate::utils::sanitizer::sanitize(&self.base.name, &val);
-        }
 
         // Required field validation
         if self.base.is_required.choice && val.is_empty() {

@@ -12,9 +12,7 @@ use crate::utils::{aliases::AEngine, csp_nonce::CspNonce};
 /// → `https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js`
 ///
 /// Pour ajouter un hash manquant : le navigateur l'indique dans la console CSP.
-pub const HTMX_STYLE_HASHES: &[&str] = &[
-    "'sha256-bsV5JivYxvGywDAZ22EZJKBFip65Ng9xoJVLbBg7bdo='",
-];
+pub const HTMX_STYLE_HASHES: &[&str] = &["'sha256-bsV5JivYxvGywDAZ22EZJKBFip65Ng9xoJVLbBg7bdo='"];
 use axum::{
     body::Body,
     extract::State,

@@ -34,9 +34,9 @@ pub async fn soumission_inscription(
 
 pub async fn login_user(
     mut request: Request,
-    Prisme(form): Prisme<LoginForm>,
+    Prisme(mut form): Prisme<LoginForm>,
 ) -> AppResult<Response> {
-    handle_login(&mut request, &form).await
+    handle_login(&mut request, &mut form).await
 }
 
 pub async fn deconnexion(request: Request) -> AppResult<Response> {

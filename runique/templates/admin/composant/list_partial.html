@@ -3,7 +3,11 @@
 {% set_global can_create = false %}
 {% if current_user %}
   {% if current_user.is_superuser %}{% set_global can_create = true %}
-  {% else %}{% for role in current_user.roles %}{% if role in resource.permissions.create %}{% set_global can_create = true %}{% endif %}{% endfor %}{% endif %}
+{% else %}    
+    {% for groupe in current_user.groupes %}
+          {% set_global can_create = true %}
+    {% endfor %}
+  {% endif %}
 {% endif %}
 {% set has_filters = resource.display.list_filter | length > 0 %}
 
@@ -117,8 +121,13 @@
                     {% set_global can_modify = false %}
                     {% if current_user %}
                       {% if current_user.is_superuser %}{% set_global can_modify = true %}
-                      {% else %}{% for role in current_user.roles %}{% if role in resource.permissions.edit %}{% set_global can_modify = true %}{% endif %}{% endfor %}{% endif %}
+                      {% else %}
+                        {% for perm in groupe.permissions %}
+                            {% set_global can_modify = true %}
+                          {% endfor %}
+                      {% endif %}
                     {% endif %}
+                    {% if can_modify %}
                     <div class="row-menu">
                       <button class="row-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false">
                         <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
@@ -130,6 +139,7 @@
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                           {% if admin_list_btn_detail %}{{ admin_list_btn_detail }}{% endif %}
                         </a>
+                        {% endif %}
                         {% if current_user and can_modify %}
                         <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="row-menu-item">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
