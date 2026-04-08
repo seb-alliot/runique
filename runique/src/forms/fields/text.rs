@@ -137,12 +137,7 @@ impl FormField for TextField {
             SpecialFormat::RichText => crate::utils::sanitizer::sanitize_rich(value),
             _ => {
                 if value.contains('<') || value.contains('>') {
-                    value
-                        .replace('<', "")
-                        .replace('>', "")
-                        .replace('&', "")
-                        .trim()
-                        .to_string()
+                    value.replace(['<', '>', '&'], "").trim().to_string()
                 } else {
                     crate::utils::sanitizer::sanitize_strict(value)
                 }

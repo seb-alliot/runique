@@ -251,7 +251,8 @@
       "label_password": "Mot de passe",
       "btn_submit": "Se connecter",
       "error_session": "Erreur lors de l'ouverture de session.",
-      "error_credentials": "Identifiants incorrects ou droits insuffisants."
+      "error_credentials": "Identifiants incorrects ou droits insuffisants.",
+      "error_locked": "Trop de tentatives. Compte temporairement verrouillé. Réessayez dans {} secondes."
     },
     "logout": {
       "success": "Déconnexion réussie."

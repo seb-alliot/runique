@@ -393,7 +393,7 @@ async fn handle_list(
             t("admin.access.insufficient_rights").as_ref(),
         ))));
     }
-    inject_context(req, &state, entry, &current_user);
+    inject_context(req, state, entry, current_user);
     let ListQuery {
         page,
         sort_by,

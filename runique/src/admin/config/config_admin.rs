@@ -2,7 +2,8 @@
 use std::sync::Arc;
 
 use crate::admin::template::AdminTemplate;
-use crate::middleware::auth::AdminAuth;
+use crate::middleware::auth::{AdminAuth, LoginGuard};
+use crate::middleware::security::RateLimiter;
 use crate::utils::env::is_debug;
 
 pub struct AdminConfig {
@@ -54,6 +55,12 @@ pub struct AdminConfig {
     /// Ordre d'affichage des ressources dans la nav (clés URL).
     /// Les clés non listées apparaissent à la fin dans leur ordre d'insertion.
     pub resource_order: Vec<String>,
+
+    /// Rate limiter appliqué sur la route de login (optionnel).
+    pub rate_limiter: Option<Arc<RateLimiter>>,
+
+    /// Protection brute-force par compte sur le login admin (optionnel).
+    pub login_guard: Option<Arc<LoginGuard>>,
 }
 
 impl Clone for AdminConfig {
@@ -71,6 +78,8 @@ impl Clone for AdminConfig {
             user_resources: self.user_resources.clone(),
             reset_password_email_template: self.reset_password_email_template.clone(),
             resource_order: self.resource_order.clone(),
+            rate_limiter: self.rate_limiter.clone(),
+            login_guard: self.login_guard.clone(),
         }
     }
 }
@@ -104,6 +113,8 @@ impl AdminConfig {
             user_resources: std::collections::HashMap::new(),
             reset_password_email_template: None,
             resource_order: Vec::new(),
+            rate_limiter: None,
+            login_guard: None,
         }
     }
 
@@ -197,6 +208,26 @@ impl AdminConfig {
     pub fn user_resource_with_template(mut self, resource_key: &str, email_template: &str) -> Self {
         self.user_resources
             .insert(resource_key.to_string(), Some(email_template.to_string()));
+        self
+    }
+
+    /// Active le rate limiting sur la route de login admin.
+    ///
+    /// ```rust,ignore
+    /// AdminConfig::new().with_rate_limiter(RateLimiter::new().max_requests(10).retry_after(60))
+    /// ```
+    pub fn with_rate_limiter(mut self, limiter: RateLimiter) -> Self {
+        self.rate_limiter = Some(Arc::new(limiter));
+        self
+    }
+
+    /// Active la protection brute-force par compte sur le login admin.
+    ///
+    /// ```rust,ignore
+    /// AdminConfig::new().with_login_guard(LoginGuard::new().max_attempts(5).lockout_secs(300))
+    /// ```
+    pub fn with_login_guard(mut self, guard: LoginGuard) -> Self {
+        self.login_guard = Some(Arc::new(guard));
         self
     }
 

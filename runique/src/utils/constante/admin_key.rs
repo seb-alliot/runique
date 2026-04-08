@@ -113,6 +113,7 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.login.btn_submit",
     "admin.login.error_session",
     "admin.login.error_credentials",
+    "admin.login.error_locked",
     // logout
     "admin.logout.success",
     // access

@@ -17,23 +17,35 @@ impl RuniqueForm for RegisterForm {
 
     async fn clean(&mut self) -> Result<(), StrMap> {
         let username = self.get_string("username");
-        let email = self.get_string("email");
         let password = self.get_string("password");
         let mut errors = StrMap::new();
 
+        // Username
         if username.len() < 3 {
             errors.insert(
                 "username".to_string(),
                 "Le nom d'utilisateur doit faire au moins 3 caractères.".to_string(),
             );
         }
-        if !email.contains('@') {
-            errors.insert("email".to_string(), "Adresse email invalide.".to_string());
+        if username.contains('#') || username.contains('\u{2014}') {
+            errors.insert(
+                "username".to_string(),
+                "Le nom d'utilisateur ne peut pas contenir '#' ou '—'.".to_string(),
+            );
         }
+
+        // Mot de passe
         if password.len() < 8 {
             errors.insert(
                 "password".to_string(),
                 "Le mot de passe doit faire au moins 8 caractères.".to_string(),
+            );
+        } else if !password.chars().any(|c| c.is_uppercase())
+            || !password.chars().any(|c| c.is_ascii_digit())
+        {
+            errors.insert(
+                "password".to_string(),
+                "Le mot de passe doit contenir au moins une majuscule et un chiffre.".to_string(),
             );
         }
 

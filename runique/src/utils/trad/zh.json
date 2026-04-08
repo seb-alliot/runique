@@ -251,7 +251,8 @@
       "label_password": "密码",
       "btn_submit": "登录",
       "error_session": "打开会话时出错。",
-      "error_credentials": "凭据不正确或权限不足。"
+      "error_credentials": "凭据不正确或权限不足。",
+      "error_locked": "尝试次数过多。账户已被临时锁定。请在{}秒后重试。"
     },
     "logout": {
       "success": "已成功登出。"

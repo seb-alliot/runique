@@ -19,8 +19,6 @@ pub fn routes() -> Router {
         "/"                              => view!{ index },                   name = "index",
 
         // Auth
-        "/inscription"                   => view! { soumission_inscription }, name = "inscription",
-        "/login"                         => view! { login_user },             name = "login",
         "/logout"                        => view! { deconnexion },            name = "logout",
 
         // Profil
@@ -105,5 +103,7 @@ pub fn routes() -> Router {
         "/contributions"                 => view! { contribution_list },      name = "contribution_list",
 
     }
-    .rate_limit("/upload-image", "upload_image", view!(upload_image_submit), 5, 60)
+    .rate_limit("/upload-image",  "upload_image",  view!(upload_image_submit),   5,  60)
+    .rate_limit("/inscription",   "inscription",   view!(soumission_inscription), 5, 300)
+    .rate_limit("/login",         "login",         view!(login_user),             10,  60)
 }

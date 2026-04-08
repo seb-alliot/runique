@@ -54,6 +54,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .routes(admins::routes("/admin").merge(demo_toggle::router("/admin")))
                 .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
                 .with_state(admins::admin_state())
+                .with_rate_limiter(RateLimiter::new().max_requests(3).retry_after(3600))
+                .with_login_guard(LoginGuard::new().max_attempts(5).lockout_secs(300))
                 .page_size(15)
         })
         .build()

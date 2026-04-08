@@ -251,7 +251,8 @@
       "label_password": "Senha",
       "btn_submit": "Entrar",
       "error_session": "Erro ao abrir a sessão.",
-      "error_credentials": "Credenciais incorretas ou direitos insuficientes."
+      "error_credentials": "Credenciais incorretas ou direitos insuficientes.",
+      "error_locked": "Muitas tentativas. Conta temporariamente bloqueada. Tente novamente em {} segundos."
     },
     "logout": {
       "success": "Desconectado com sucesso."

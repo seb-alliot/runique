@@ -5,7 +5,8 @@ use std::sync::Arc;
 use crate::admin::PrototypeAdminState;
 use crate::admin::{AdminConfig, AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
-use crate::middleware::auth::AdminAuth;
+use crate::middleware::auth::{AdminAuth, LoginGuard};
+use crate::middleware::security::RateLimiter;
 use axum::Router;
 
 pub struct AdminStaging {
@@ -109,6 +110,26 @@ impl AdminStaging {
     /// ```
     pub fn auth<A: AdminAuth>(mut self, handler: A) -> Self {
         self.config = self.config.auth(handler);
+        self
+    }
+
+    /// Active le rate limiting sur la route de login admin.
+    ///
+    /// ```rust,ignore
+    /// .with_admin(|a| a.with_rate_limiter(RateLimiter::new().max_requests(10).retry_after(60)))
+    /// ```
+    pub fn with_rate_limiter(mut self, limiter: RateLimiter) -> Self {
+        self.config = self.config.with_rate_limiter(limiter);
+        self
+    }
+
+    /// Active la protection brute-force par compte sur le login admin.
+    ///
+    /// ```rust,ignore
+    /// .with_admin(|a| a.with_login_guard(LoginGuard::new().max_attempts(5).lockout_secs(300)))
+    /// ```
+    pub fn with_login_guard(mut self, guard: LoginGuard) -> Self {
+        self.config = self.config.with_login_guard(guard);
         self
     }
 
