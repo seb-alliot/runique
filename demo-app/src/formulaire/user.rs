@@ -21,10 +21,10 @@ impl RuniqueForm for RegisterForm {
         let mut errors = StrMap::new();
 
         // Username
-        if username.len() < 3 {
+        if username.len() < 5 {
             errors.insert(
                 "username".to_string(),
-                "Le nom d'utilisateur doit faire au moins 3 caractères.".to_string(),
+                "Le nom d'utilisateur doit faire au moins 5 caractères.".to_string(),
             );
         }
         if username.contains('#') || username.contains('\u{2014}') {
@@ -35,17 +35,19 @@ impl RuniqueForm for RegisterForm {
         }
 
         // Mot de passe
-        if password.len() < 8 {
+        const SPECIAL: &str = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
+        if password.len() < 10 {
             errors.insert(
                 "password".to_string(),
-                "Le mot de passe doit faire au moins 8 caractères.".to_string(),
+                "Le mot de passe doit faire au moins 10 caractères.".to_string(),
             );
         } else if !password.chars().any(|c| c.is_uppercase())
             || !password.chars().any(|c| c.is_ascii_digit())
+            || !password.chars().any(|c| SPECIAL.contains(c))
         {
             errors.insert(
                 "password".to_string(),
-                "Le mot de passe doit contenir au moins une majuscule et un chiffre.".to_string(),
+                "Le mot de passe doit contenir au moins une majuscule, un chiffre et un caractère spécial (!@#$%...).".to_string(),
             );
         }
 
