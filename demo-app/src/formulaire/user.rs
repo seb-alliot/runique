@@ -67,7 +67,7 @@ impl RegisterForm {
             username: Set(self.form.get_string("username")),
             email: Set(self.form.get_string("email")),
             password: Set(hash(self.form.get_string("password").as_str()).unwrap_or_default()),
-            is_active: Set(true),
+            is_active: Set(false),
             is_superuser: Set(false),
             is_staff: Set(false),
             created_at: Set(Some(chrono::Utc::now().naive_utc())),
