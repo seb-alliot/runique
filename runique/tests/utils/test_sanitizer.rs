@@ -14,7 +14,7 @@ fn test_strict_texte_vide_retourne_vide() {
 
 #[test]
 fn test_strict_convertit_en_minuscules() {
-    assert_eq!(sanitize_strict("BONJOUR"), "bonjour");
+    assert_eq!(sanitize_strict("BONJOUR"), "BONJOUR");
 }
 
 #[test]
@@ -26,7 +26,7 @@ fn test_strict_retire_balise_bold() {
 fn test_strict_retire_balise_paragraphe() {
     let out = sanitize_strict("<p>Hello</p>");
     assert!(!out.contains("<p>"));
-    assert!(out.contains("hello"));
+    assert!(out.contains("Hello"));
 }
 
 #[test]

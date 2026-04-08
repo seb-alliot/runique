@@ -269,11 +269,12 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
 
 /// Obsolète : remaniement matriciel
 pub async fn has_permission(session: &Session, _permission: &str) -> bool {
-    // Temporaire : check si user connecté (superuser = bypass)
-    if let Some(user) = session.get::<CurrentUser>("user_id").await.unwrap_or(None) {
-        return user.is_superuser;
-    }
-    false
+    session
+        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false)
 }
 // ═══════════════════════════════════════════════════════════════
 // Middlewares Axum
