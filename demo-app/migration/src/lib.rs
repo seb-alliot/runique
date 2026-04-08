@@ -1,4 +1,6 @@
+use runique::prelude::migrations_table;
 pub use sea_orm_migration::prelude::*;
+
 mod m20260405_235615_create_blog_table;
 mod m20260405_235615_create_changelog_entry_table;
 mod m20260405_235615_create_chapitre_table;
@@ -57,7 +59,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260405_235615_create_demo_section_table::Migration),
             Box::new(m20260405_235615_create_doc_block_table::Migration),
             // Migration "clé en main" du Framework pour installer l'architecture RBAC native
-            Box::new(runique::admin::migrations::AdminTableMigration),
+            Box::new(migrations_table::AdminTableMigration),
         ];
         migrations
     }
