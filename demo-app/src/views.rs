@@ -128,6 +128,10 @@ pub async fn blog_save(
     mut request: Request,
     Prisme(mut blog): Prisme<BlogForm>,
 ) -> AppResult<Response> {
+    if !is_authenticated(&request.session).await {
+        warning!(request.notices => "Please log in to access your profile.");
+        return Ok(Redirect::to("/login").into_response());
+    }
     handle_blog_save(&mut request, &mut blog).await
 }
 
@@ -148,6 +152,10 @@ pub async fn upload_image_submit(
     mut request: Request,
     Prisme(mut form): Prisme<ImageForm>,
 ) -> AppResult<Response> {
+    if !is_authenticated(&request.session).await {
+        warning!(request.notices => "Please log in to access your profile.");
+        return Ok(Redirect::to("/login").into_response());
+    }
     handle_upload_image(&mut request, &mut form).await
 }
 
@@ -193,10 +201,18 @@ pub async fn contribution_submit(
     mut request: Request,
     Prisme(mut form): Prisme<ContributionForm>,
 ) -> AppResult<Response> {
+    if !is_authenticated(&request.session).await {
+        warning!(request.notices => "Please log in to access your profile.");
+        return Ok(Redirect::to("/login").into_response());
+    }
     handle_contribution_submit(&mut request, &mut form).await
 }
 
 pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
+    if !is_authenticated(&request.session).await {
+        warning!(request.notices => "Please log in to access your profile.");
+        return Ok(Redirect::to("/login").into_response());
+    }
     inject_globals(&mut request).await;
     let contributions = list_contributions(&request.engine.db).await;
     context_update!(request => { "title" => "Contributions", "contributions" => &contributions });
