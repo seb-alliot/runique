@@ -31,55 +31,55 @@ static RICH_BUILDER: LazyLock<Builder<'static>> = LazyLock::new(|| {
     builder
 });
 
-/// =============================
-/// STRICT MODE — TEXT ONLY
-/// =============================
+// =============================
+// STRICT MODE — TEXT ONLY
+// =============================
 
 #[doc = include_str!("../../../doc-tests/sanitizer/sanitizer_strict.md")]
 #[must_use]
-pub fn sanitize_strict(input: &str) -> String {
-    if input.is_empty() {
+pub fn sanitize_strict(entre: &str) -> String {
+    if entre.is_empty() {
         return String::new();
     }
-    ammonia::clean_text(input).trim().to_string()
+    ammonia::clean_text(entre).trim().to_string()
 }
 
-/// =============================
-/// RICH MODE — CONTROLLED HTML
-/// =============================
+// =============================
+// RICH MODE — CONTROLLED HTML
+// =============================
 
 #[doc = include_str!("../../../doc-tests/sanitizer/sanitizer_rich.md")]
 #[must_use]
-pub fn sanitize_rich(input: &str) -> String {
-    if input.is_empty() {
+pub fn sanitize_rich(entre: &str) -> String {
+    if entre.is_empty() {
         return String::new();
     }
 
-    RICH_BUILDER.clean(input).to_string().trim().to_string()
+    RICH_BUILDER.clean(entre).to_string().trim().to_string()
 }
 
-/// =============================
-/// SINGLE ENTRY POINT
-/// =============================
+// =============================
+// SINGLE ENTRY POINT
+// =============================
 
 #[doc = include_str!("../../../doc-tests/sanitizer/sanitizer.md")]
 #[must_use]
-pub fn sanitize(field: &str, input: &str) -> String {
+pub fn sanitize(field: &str, entre: &str) -> String {
     if RICH_CONTENT_FIELDS.contains(field) {
-        sanitize_rich(input)
+        sanitize_rich(entre)
     } else {
-        sanitize_strict(input)
+        sanitize_strict(entre)
     }
 }
 
-/// =============================
-/// VALIDATION SUPPLÉMENTAIRE
-/// =============================
+// =============================
+// VALIDATION SUPPLÉMENTAIRE
+// =============================
 
 /// Vérifie si le contenu nettoyé contient encore des éléments suspects
 #[must_use]
-pub fn is_suspicious_content(input: &str) -> bool {
-    let lower = input.to_lowercase();
+pub fn is_suspicious_content(entre: &str) -> bool {
+    let lower = entre.to_lowercase();
     lower.contains("<script")
         || lower.contains("javascript:")
         || lower.contains("onerror=")
@@ -89,8 +89,8 @@ pub fn is_suspicious_content(input: &str) -> bool {
 
 /// Nettoie avec fallback si contenu suspect détecté
 #[must_use]
-pub fn sanitize_with_fallback(field: &str, input: &str, fallback: &str) -> String {
-    let cleaned = sanitize(field, input);
+pub fn sanitize_with_fallback(field: &str, entre: &str, fallback: &str) -> String {
+    let cleaned = sanitize(field, entre);
     if is_suspicious_content(&cleaned) {
         fallback.to_string()
     } else {

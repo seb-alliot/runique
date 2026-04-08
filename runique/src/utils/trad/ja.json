@@ -251,7 +251,8 @@
       "label_password": "パスワード",
       "btn_submit": "ログイン",
       "error_session": "セッションの開始中にエラーが発生しました。",
-      "error_credentials": "認証情報が正しくないか、権限が不足しています。"
+      "error_credentials": "認証情報が正しくないか、権限が不足しています。",
+      "error_locked": "試行回数が多すぎます。アカウントが一時的にロックされています。{}秒後に再試行してください。"
     },
     "logout": {
       "success": "ログアウトしました。"

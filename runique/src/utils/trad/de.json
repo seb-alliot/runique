@@ -251,7 +251,8 @@
       "label_password": "Passwort",
       "btn_submit": "Anmelden",
       "error_session": "Fehler beim Öffnen der Sitzung.",
-      "error_credentials": "Falsche Anmeldedaten oder unzureichende Rechte."
+      "error_credentials": "Falsche Anmeldedaten oder unzureichende Rechte.",
+      "error_locked": "Zu viele Versuche. Konto vorübergehend gesperrt. Versuchen Sie es in {} Sekunden erneut."
     },
     "logout": {
       "success": "Erfolgreich abgemeldet."

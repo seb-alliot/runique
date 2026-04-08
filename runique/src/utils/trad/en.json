@@ -251,7 +251,8 @@
       "label_password": "Password",
       "btn_submit": "Sign in",
       "error_session": "Error while opening session.",
-      "error_credentials": "Incorrect credentials or insufficient rights."
+      "error_credentials": "Incorrect credentials or insufficient rights.",
+      "error_locked": "Too many attempts. Account temporarily locked. Try again in {} seconds."
     },
     "logout": {
       "success": "Successfully logged out."

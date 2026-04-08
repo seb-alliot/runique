@@ -112,7 +112,7 @@ pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppRes
     if request.is_post() && form.is_valid().await {
         if let Some((username_val, password_val)) = &credentials
             && let Some(user) =
-                authenticate_user(&request.engine.db, &username_val, &password_val).await
+                authenticate_user(&request.engine.db, username_val, password_val).await
         {
             auth_login(
                 &request.session,

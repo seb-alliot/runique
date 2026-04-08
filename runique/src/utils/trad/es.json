@@ -251,7 +251,8 @@
       "label_password": "Contraseña",
       "btn_submit": "Iniciar sesión",
       "error_session": "Error al abrir la sesión.",
-      "error_credentials": "Credenciales incorrectas o permisos insuficientes."
+      "error_credentials": "Credenciales incorrectas o permisos insuficientes.",
+      "error_locked": "Demasiados intentos. Cuenta bloqueada temporalmente. Inténtelo de nuevo en {} segundos."
     },
     "logout": {
       "success": "Sesión cerrada correctamente."

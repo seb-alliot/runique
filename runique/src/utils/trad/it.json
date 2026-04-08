@@ -251,7 +251,8 @@
       "label_password": "Password",
       "btn_submit": "Accedi",
       "error_session": "Errore durante l'apertura della sessione.",
-      "error_credentials": "Credenziali errate o diritti insufficienti."
+      "error_credentials": "Credenziali errate o diritti insufficienti.",
+      "error_locked": "Troppi tentativi. Account temporaneamente bloccato. Riprova tra {} secondi."
     },
     "logout": {
       "success": "Disconnessione riuscita."

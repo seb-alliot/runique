@@ -13,11 +13,12 @@ use serde::Deserialize;
 
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
-use crate::middleware::auth::{load_user_middleware, login, logout};
+use crate::middleware::auth::{LoginGuard, load_user_middleware, login, logout};
+use crate::middleware::security::rate_limit_middleware;
 use crate::urlpatterns;
 use crate::utils::{
     aliases::AppResult,
-    trad::{current_lang, t},
+    trad::{current_lang, t, tf},
 };
 use crate::{
     admin::{
@@ -30,6 +31,7 @@ use crate::{
 #[derive(Clone)]
 pub struct AdminState {
     pub config: Arc<AdminConfig>,
+    pub login_guard: Option<Arc<LoginGuard>>,
 }
 
 #[derive(Deserialize)]
@@ -49,13 +51,25 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
     let config = admin_staging.config;
     let state = admin_staging.state;
 
+    let login_guard = config.login_guard.clone();
+    let rate_limiter = config.rate_limiter.clone();
+
     let admin_state = Arc::new(AdminState {
         config: Arc::new(config.clone()),
+        login_guard,
     });
 
     // Routes publiques (login uniquement)
-    let public_router = urlpatterns! {
+    let login_route = urlpatterns! {
         &format!("{prefix}/login") => get(admin_login_get).post(admin_login_post), name = "admin_login",
+    };
+    let public_router = if let Some(limiter) = rate_limiter {
+        login_route.layer(middleware::from_fn_with_state(
+            limiter,
+            rate_limit_middleware,
+        ))
+    } else {
+        login_route
     };
 
     // Routes protégées (dashboard + logout)
@@ -267,6 +281,23 @@ async fn admin_login_post(
             .unwrap_or_else(axum::response::IntoResponse::into_response);
     }
 
+    // Vérification du login guard (brute-force)
+    if let Some(guard) = &admin.login_guard {
+        let key = LoginGuard::effective_key(&data.username, "unknown");
+        if guard.is_locked(&key) {
+            let secs = guard.remaining_lockout_secs(&key).unwrap_or(0);
+            insert_admin_messages(&mut req.context, "login");
+            req = req
+                .insert("lang", current_lang().code())
+                .insert("site_title", &admin.config.site_title)
+                .insert("site_url", &admin.config.site_url)
+                .insert("error", tf("admin.login.error_locked", &[secs]));
+            return req
+                .render(admin.config.templates.login.resolve())
+                .unwrap_or_else(axum::response::IntoResponse::into_response);
+        }
+    }
+
     let Some(auth) = &admin.config.auth else {
         return (
             StatusCode::NOT_IMPLEMENTED,
@@ -280,6 +311,11 @@ async fn admin_login_post(
         .await;
 
     if let Some(user) = result {
+        if let Some(guard) = &admin.login_guard {
+            let key = LoginGuard::effective_key(&data.username, "unknown");
+            guard.record_success(&key);
+        }
+
         let db_store = req
             .engine
             .session_db_store
@@ -314,6 +350,11 @@ async fn admin_login_post(
 
         Redirect::to(&format!("{}/", admin.config.prefix)).into_response()
     } else {
+        if let Some(guard) = &admin.login_guard {
+            let key = LoginGuard::effective_key(&data.username, "unknown");
+            guard.record_failure(&key);
+        }
+
         insert_admin_messages(&mut req.context, "login");
         insert_admin_messages(&mut req.context, "base");
         req = req
