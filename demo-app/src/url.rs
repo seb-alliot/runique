@@ -79,7 +79,7 @@ pub fn routes() -> Router {
         "/erreurs/404"                   =>   view! { force_not_found },      name = "force_404",
         "/erreurs/500"                   => view! { force_server_error },     name = "force_500",
         "/erreurs/429"                   => view! { force_to_many_requests }, name = "force_429",
-        "/erreurs/502"                    => view!{ erreur_502 },              name = "test-502",
+        "/erreurs/502"                   => view!{ erreur_502 },              name = "test-502",
 
         // Sitemap & SEO
         "/sitemap.xml"                   => view! { sitemap_xml },            name = "sitemap_xml",

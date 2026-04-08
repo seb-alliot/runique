@@ -47,7 +47,7 @@
         </div>
         <div class="site-nav-actions">
             {% if user %}
-                {% if user.is_superuser %}
+                {% if user.is_superuser or user.is_staff %}
                     <a href="{% link 'admin_login' %}" class="site-nav-link-action">admin</a>
                 {% endif %}
                 <a href="{% link 'profil' %}" class="site-nav-link-action">{{ user.username }}</a>
