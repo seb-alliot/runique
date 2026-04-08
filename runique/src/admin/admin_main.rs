@@ -38,6 +38,11 @@ use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
 use subtle::ConstantTimeEq;
 
+fn is_unique_violation(e: &sea_orm::DbErr) -> bool {
+    let msg = e.to_string();
+    msg.contains("unique") || msg.contains("UNIQUE") || msg.contains("Duplicate")
+}
+
 // ─── ListQuery — paramètres de la vue liste admin ─────────────
 
 struct ListQuery {
@@ -739,7 +744,18 @@ async fn handle_create_post(
             }
             Err(e) => {
                 form.get_form_mut().database_error(&e);
-                return Err(Box::new(AppError::new(ErrorContext::database(e))));
+                if !is_unique_violation(&e) {
+                    return Err(Box::new(AppError::new(ErrorContext::database(e))));
+                }
+                req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
+                req.context.insert(ctx_create::IS_EDIT, &false);
+                req.context.insert(ctx_common::LANG, &current_lang().code());
+                let template = entry
+                    .meta
+                    .template_create
+                    .as_deref()
+                    .unwrap_or_else(|| state.config.templates.create.resolve());
+                return req.render(template);
             }
         }
 
@@ -931,15 +947,19 @@ async fn handle_edit_post(
             };
             if let Err(e) = result {
                 form.get_form_mut().database_error(&e);
-                return Err(Box::new(AppError::new(ErrorContext::database(e))));
+                if !is_unique_violation(&e) {
+                    return Err(Box::new(AppError::new(ErrorContext::database(e))));
+                }
+                // violation d'unicité : fall through vers le re-rendu du formulaire
+            } else {
+                flash_now!(success => t("admin.edit.success").to_string());
+                return Ok(Redirect::to(&format!(
+                    "{}/{}/list",
+                    state.config.prefix.trim_end_matches('/'),
+                    entry.meta.key
+                ))
+                .into_response());
             }
-            flash_now!(success => t("admin.edit.success").to_string());
-            return Ok(Redirect::to(&format!(
-                "{}/{}/list",
-                state.config.prefix.trim_end_matches('/'),
-                entry.meta.key
-            ))
-            .into_response());
         }
     }
 
