@@ -7,19 +7,20 @@
 <meta property="og:site_name" content="Runique">
 <meta property="og:title" content="{% if lang == 'fr' %}README — Runique{% else %}README — Runique{% endif %}">
 <meta property="og:description" content="{% if lang == 'fr' %}Runique — framework web Rust inspiré de Django.{% else %}Runique — a Django-inspired Rust web framework.{% endif %}">
-<meta property="og:url" content="https://runique-production.up.railway.app/readme/{{ lang }}">
-<meta property="og:image" content="https://runique-production.up.railway.app/media/toshiro.avif">
-<link rel="canonical" href="https://runique-production.up.railway.app/readme/{{ lang }}">
+<meta property="og:url" content="https://runique.io/readme/{{ lang }}">
+<meta property="og:image" content="{{ og_image }}">
+<link rel="canonical" href="https://runique.io/readme/{{ lang }}">
 {% endblock %}
 
 {% block style %}
     {{ super() }}
     <link rel="stylesheet" href='{% static "css/doc.css" %}'>
+    <link rel="stylesheet" href='{% static "css/readme.css" %}'>
     <link rel="stylesheet" href='{% static "css/highlight-github-dark.min.css" %}'>
 {% endblock %}
 
 {% block content %}
-<div class="readme-bar">
+    <div class="readme-bar"><a href="{% link "doc_index_en" %}" class="btn btn-secondary">Documentation</a>
     <span class="readme-bar-title">README</span>
     <div class="readme-lang-switch">
         <a href="/readme/fr" class="btn {% if lang == 'fr' %}btn-primary{% else %}btn-secondary{% endif %}">Français</a>

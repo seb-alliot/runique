@@ -130,9 +130,11 @@ let actifs     = search!(users::Entity => Active eq true).all(&*db).await?;
 let adultes    = search!(users::Entity => Age gte 18).all(&*db).await?;
 let non_admins = search!(users::Entity => ! Level eq 99).all(&*db).await?;
 
-// LIKE / ILIKE
-let rust    = search!(users::Entity => Bio like "%rust%").all(&*db).await?;
-let rust_ci = search!(users::Entity => Bio ilike "%rust%").all(&*db).await?;
+// LIKE / ILIKE / NOT LIKE / NOT ILIKE
+let rust          = search!(users::Entity => Bio like "%rust%").all(&*db).await?;
+let rust_ci       = search!(users::Entity => Bio ilike "%rust%").all(&*db).await?;
+let pas_rust      = search!(users::Entity => Bio not_like "%rust%").all(&*db).await?;
+let pas_rust_ci   = search!(users::Entity => Bio not_ilike "%rust%").all(&*db).await?;
 
 // NULL
 let sans_bio = search!(users::Entity => Bio isnull).all(&*db).await?;
