@@ -210,7 +210,7 @@ pub async fn contribution_submit(
 
 pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
     if !is_authenticated(&request.session).await {
-        warning!(request.notices => "Please log in to access your profile.");
+        warning!(request.notices => "Please log in to access contributions.");
         return Ok(Redirect::to("/login").into_response());
     }
     inject_globals(&mut request).await;
