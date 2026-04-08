@@ -1,5 +1,7 @@
 use crate::backend::{
-    auth::{find_user_by_username, get_profile_user, handle_inscription, handle_login},
+    auth::{
+        find_user_by_username, get_profile_user, handle_activate, handle_inscription, handle_login,
+    },
     blog::{get_article, handle_blog_save, list_articles},
     contribution::{handle_contribution_submit, list_contributions},
     cours::{ExerciceInput, cours_detail, cours_exercice, cours_index},
@@ -27,9 +29,17 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 
 pub async fn soumission_inscription(
     mut request: Request,
+    headers: HeaderMap,
     Prisme(mut form): Prisme<RegisterForm>,
 ) -> AppResult<Response> {
-    handle_inscription(&mut request, &mut form).await
+    handle_inscription(&mut request, &mut form, &headers).await
+}
+
+pub async fn activate_account(
+    mut request: Request,
+    Path((token, encrypted_email)): Path<(String, String)>,
+) -> AppResult<Response> {
+    handle_activate(&mut request, token, encrypted_email).await
 }
 
 pub async fn login_user(
