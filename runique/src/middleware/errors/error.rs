@@ -11,7 +11,7 @@ use crate::{
 };
 use axum::{
     extract::Extension,
-    http::{Request, StatusCode},
+    http::{Request, StatusCode, HeaderValue, header::HeaderName},
     middleware::Next,
     response::{Html, IntoResponse, Response},
 };
@@ -87,6 +87,8 @@ pub async fn error_handler_middleware(
     response
 }
 
+
+
 /// Construit le `ErrorContext` depuis la réponse
 fn build_error_context(
     response: &Response,
@@ -161,6 +163,26 @@ fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
     }
 }
 
+fn inject_security_headers(headers: &mut axum::http::HeaderMap) {
+
+    let headers_to_add = [
+        ("content-security-policy", "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"),
+        ("x-content-type-options", "nosniff"),
+        ("x-frame-options", "DENY"),
+        ("strict-transport-security", "max-age=31536000; includeSubDomains; preload"),
+        ("referrer-policy", "strict-origin-when-cross-origin"),
+    ];
+
+    for (key, value) in headers_to_add {
+        if let (Ok(name), Ok(val)) = (
+            HeaderName::from_bytes(key.as_bytes()),
+            HeaderValue::from_str(value),
+        ) {
+            headers.insert(name, val);
+        }
+    }
+}
+
 // --- Render Helpers ---
 
 fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
@@ -170,13 +192,16 @@ fn render_404(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     context.insert("error_text", &t("html.404_text"));
     context.insert("back_home", &t("html.back_home"));
 
-    match tera.render("404", &context) {
+    let mut response = match tera.render("404", &context) {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
             error!("Failed to render 404 template: {}", e);
             fallback_404_html()
         }
-    }
+    };
+
+    inject_security_headers(response.headers_mut());
+    response
 }
 
 fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
@@ -186,10 +211,12 @@ fn render_429(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     context.insert("error_text", &t("html.429_text"));
     context.insert("back_home", &t("html.back_home"));
 
-    match tera.render("429", &context) {
+    let mut response = match tera.render("429", &context) {
         Ok(html) => (StatusCode::TOO_MANY_REQUESTS, Html(html)).into_response(),
         Err(_) => fallback_429_html(),
-    }
+    };
+    inject_security_headers(response.headers_mut());
+    response
 }
 
 fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -> Response {
@@ -199,16 +226,17 @@ fn render_500(tera: &Tera, config: &RuniqueConfig, csrf_token: Option<String>) -
     context.insert("error_text", &t("html.500_text"));
     context.insert("back_home", &t("html.back_home"));
 
-    match tera.render("500", &context) {
+    let mut response = match tera.render("500", &context) {
         Ok(html) => (StatusCode::INTERNAL_SERVER_ERROR, Html(html)).into_response(),
         Err(e) => {
             error!("Failed to render 500 template: {}", e);
             fallback_500_html()
         }
-    }
+    };
+    inject_security_headers(response.headers_mut());
+    response
 }
 
-/// Insère tous les messages de debug dans le contexte (itératif)
 fn insert_debug_messages(context: &mut Context) {
     for key in DEBUG_MESSAGE_KEYS {
         let translation_key = format!("TemplateMessage.{key}");
@@ -229,11 +257,10 @@ fn render_debug_error_from_context(
             return critical_error_html(&format!("Serialization Error: {e}"));
         }
     };
-
     inject_global_vars(&mut context, config, csrf_token);
     insert_debug_messages(&mut context);
 
-    match tera.render("debug", &context) {
+    let mut response = match tera.render("debug", &context) {
         Ok(html) => (
             StatusCode::from_u16(error_ctx.status_code)
                 .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
@@ -244,10 +271,11 @@ fn render_debug_error_from_context(
             error!("Failed to render debug template: {}", e);
             critical_error_html(&format!("Tera Rendering Error: {e}"))
         }
-    }
+    };
+    inject_security_headers(response.headers_mut());
+    response
 }
 
-/// Injecte variables globales pour templates
 fn inject_global_vars(context: &mut Context, config: &RuniqueConfig, csrf_token: Option<String>) {
     context.insert("static_runique", &config.static_files.static_runique_url);
     context.insert("timestamp", &Utc::now().to_rfc3339());
