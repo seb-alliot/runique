@@ -62,7 +62,9 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
     });
 
     // Routes publiques (login uniquement)
-    let login_get_route = Router::new().route(&format!("{prefix}/login"), get(admin_login_get));
+    let login_get_route = urlpatterns! {
+        &format!("{prefix}/login") => get(admin_login_get), name = "admin_login",
+    };
 
     let login_post_route = Router::new().route(&format!("{prefix}/login"), post(admin_login_post));
 

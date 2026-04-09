@@ -21,7 +21,7 @@ impl RuniqueForm for RegisterForm {
         let email = self.get_string("email");
 
         let mut errors = StrMap::new();
-        
+
         if username.is_empty() {
             errors.insert(
                 "username".to_string(),
@@ -43,15 +43,9 @@ impl RuniqueForm for RegisterForm {
             );
         }
         if email.is_empty() {
-            errors.insert(
-                "email".to_string(),
-                "L'email est obligatoire.".to_string(),
-            );
+            errors.insert("email".to_string(), "L'email est obligatoire.".to_string());
         } else if !email.contains('@') || !email.contains('.') {
-            errors.insert(
-                "email".to_string(),
-                "L'email n'est pas valide.".to_string(),
-            );
+            errors.insert("email".to_string(), "L'email n'est pas valide.".to_string());
         }
         // Mot de passe
         const SPECIAL: &str = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
