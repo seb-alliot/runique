@@ -21,7 +21,13 @@ impl RuniqueForm for RegisterForm {
         let email = self.get_string("email");
 
         let mut errors = StrMap::new();
-
+        
+        if username.is_empty() {
+            errors.insert(
+                "username".to_string(),
+                "Le nom d'utilisateur est obligatoire.".to_string(),
+            );
+        }
         // Username
         if username.len() < 5 {
             errors.insert(
@@ -29,7 +35,7 @@ impl RuniqueForm for RegisterForm {
                 "Le nom d'utilisateur doit faire au moins 5 caractères.".to_string(),
             );
         }
-        
+
         if username.contains('#') || username.contains('\u{2014}') {
             errors.insert(
                 "username".to_string(),
@@ -40,6 +46,11 @@ impl RuniqueForm for RegisterForm {
             errors.insert(
                 "email".to_string(),
                 "L'email est obligatoire.".to_string(),
+            );
+        } else if !email.contains('@') || !email.contains('.') {
+            errors.insert(
+                "email".to_string(),
+                "L'email n'est pas valide.".to_string(),
             );
         }
         // Mot de passe
