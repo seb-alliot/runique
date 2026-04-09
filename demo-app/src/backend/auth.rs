@@ -62,7 +62,7 @@ pub async fn handle_inscription(
         });
         return request.render(template);
     }
-    if request.is_post() {
+    if request.is_post() && form.is_valid().await {
         match register_user(form, &request.engine.db).await {
             Ok(user) => {
                 let token = reset_token::generate(&user.email);
