@@ -11,7 +11,7 @@ use crate::{
 };
 use axum::{
     extract::Extension,
-    http::{Request, StatusCode, HeaderValue, header::HeaderName},
+    http::{HeaderValue, Request, StatusCode, header::HeaderName},
     middleware::Next,
     response::{Html, IntoResponse, Response},
 };
@@ -86,8 +86,6 @@ pub async fn error_handler_middleware(
     // --- Pas d'erreur : retourne la réponse normale ---
     response
 }
-
-
 
 /// Construit le `ErrorContext` depuis la réponse
 fn build_error_context(
@@ -164,12 +162,17 @@ fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
 }
 
 fn inject_security_headers(headers: &mut axum::http::HeaderMap) {
-
     let headers_to_add = [
-        ("content-security-policy", "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"),
+        (
+            "content-security-policy",
+            "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
+        ),
         ("x-content-type-options", "nosniff"),
         ("x-frame-options", "DENY"),
-        ("strict-transport-security", "max-age=31536000; includeSubDomains; preload"),
+        (
+            "strict-transport-security",
+            "max-age=31536000; includeSubDomains; preload",
+        ),
         ("referrer-policy", "strict-origin-when-cross-origin"),
     ];
 
