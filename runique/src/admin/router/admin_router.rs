@@ -13,7 +13,9 @@ use serde::Deserialize;
 
 use crate::app::staging::AdminStaging;
 use crate::context::template::Request;
-use crate::middleware::auth::{LoginGuard, load_user_middleware, login, logout};
+use crate::middleware::auth::{
+    LoginGuard, is_admin_authenticated, load_user_middleware, login, logout,
+};
 use crate::middleware::security::rate_limit_middleware;
 use crate::urlpatterns;
 use crate::utils::{
@@ -237,7 +239,6 @@ async fn admin_login_get(
     Extension(admin): Extension<Arc<AdminState>>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> AppResult<Response> {
-    use crate::middleware::auth::is_admin_authenticated;
     let from_logout = params.get("from").is_some_and(|v| v == "logout");
     if !from_logout && is_admin_authenticated(&req.session).await {
         return Ok(Redirect::to(&format!("{}/", admin.config.prefix)).into_response());
@@ -259,7 +260,9 @@ async fn admin_login_post(
 ) -> Response {
     use crate::utils::middleware::csrf::unmask_csrf_token;
     use subtle::ConstantTimeEq;
-
+    if is_admin_authenticated(&req.session).await {
+        return Redirect::to(&format!("{}/", admin.config.prefix)).into_response();
+    }
     let csrf_valid = unmask_csrf_token(&data.csrf_token)
         .map(|unmasked| {
             bool::from(
