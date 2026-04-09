@@ -7,7 +7,7 @@ use axum::{
     http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect, Response},
-    routing::get,
+    routing::{get, post},
 };
 use serde::Deserialize;
 
@@ -62,17 +62,20 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
     });
 
     // Routes publiques (login uniquement)
-    let login_route = urlpatterns! {
-        &format!("{prefix}/login") => get(admin_login_get).post(admin_login_post), name = "admin_login",
-    };
-    let public_router = if let Some(limiter) = rate_limiter {
-        login_route.layer(middleware::from_fn_with_state(
+    let login_get_route = Router::new().route(&format!("{prefix}/login"), get(admin_login_get));
+
+    let login_post_route = Router::new().route(&format!("{prefix}/login"), post(admin_login_post));
+
+    let login_post_route = if let Some(limiter) = rate_limiter {
+        login_post_route.layer(middleware::from_fn_with_state(
             limiter,
             rate_limit_middleware,
         ))
     } else {
-        login_route
+        login_post_route
     };
+
+    let public_router = login_get_route.merge(login_post_route);
 
     // Routes protégées (dashboard + logout)
     let protected_router = urlpatterns! {
