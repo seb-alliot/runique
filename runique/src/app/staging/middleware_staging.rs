@@ -65,7 +65,8 @@ use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};
 const SLOT_EXTENSIONS: u16 = 0; // Injection Engine/Tera/Config (outermost)
 const SLOT_COMPRESSION: u16 = 5; // Compression (externe, avant tout autre middleware)
 const SLOT_ERROR_HANDLER: u16 = 10; // Attrape les erreurs de TOUTE la pile
-const SLOT_SECURITY_HEADERS: u16 = 30; // CSP + security headers
+const SLOT_SECURITY_HEADERS: u16 = 30; // security headers
+const SLOT_SECURITY_CSP: u16 = 31;
 const SLOT_CACHE: u16 = 40; // Headers cache
 const SLOT_SESSION: u16 = 50; // Avant CSRF (CSRF en dépend)
 const SLOT_SESSION_UPGRADE: u16 = 55; // Après Session (lit/écrit en session)
@@ -585,22 +586,29 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 30 : CSP (+ security headers additionnels si activés)
-        if self.features.enable_csp {
+        // Slot 30 : Security headers — TOUJOURS actif
+        {
             let eng = engine.clone();
-            let full_headers = self.features.enable_header_security;
             entries.push(MiddlewareEntry {
                 slot: SLOT_SECURITY_HEADERS,
                 name: "SecurityHeaders",
                 apply: Box::new(move |r| {
-                    if full_headers {
-                        r.layer(middleware::from_fn_with_state(
-                            eng,
-                            security_headers_middleware,
-                        ))
-                    } else {
-                        r.layer(middleware::from_fn_with_state(eng, csp_middleware))
-                    }
+                    r.layer(middleware::from_fn_with_state(
+                        eng,
+                        security_headers_middleware,
+                    ))
+                }),
+            });
+        }
+
+        // Slot 31 : CSP — uniquement si activé
+        if self.features.enable_csp {
+            let eng = engine.clone();
+            entries.push(MiddlewareEntry {
+                slot: SLOT_SECURITY_CSP,
+                name: "CSP",
+                apply: Box::new(move |r| {
+                    r.layer(middleware::from_fn_with_state(eng, csp_middleware))
                 }),
             });
         }
