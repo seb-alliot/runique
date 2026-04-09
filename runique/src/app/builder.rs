@@ -4,8 +4,11 @@ use axum::Router;
 use std::sync::Arc;
 use tower_sessions::cookie::time::Duration;
 
+use super::error_build::BuildError;
 use super::runique_app::RuniqueApp;
+use super::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
 use super::templates::TemplateLoader;
+use crate::admin::build_admin_router;
 use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
 use crate::macros::add_urls;
@@ -15,12 +18,10 @@ use crate::middleware::auth::{
 };
 #[cfg(feature = "orm")]
 use crate::middleware::session::session_db::RuniqueSessionStore;
-use crate::utils::aliases::{new, new_serve};
+use crate::utils::aliases::new;
 use crate::utils::runique_log::{RuniqueLog, log_init};
-
-use super::error_build::BuildError;
-use super::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
-use crate::admin::build_admin_router;
+use axum::http::{HeaderName, HeaderValue};
+use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer};
 
 #[cfg(feature = "orm")]
 use crate::db::DatabaseConfig;
@@ -526,22 +527,44 @@ impl RuniqueAppBuilder {
     // FICHIERS STATIQUES
     // ═══════════════════════════════════════════════════════════
 
-    /// Attache les routes de fichiers statiques au router
+    /// Attache les routes de fichiers statiques au route
     fn attach_static_files(mut router: Router, config: &RuniqueConfig) -> Router {
+        let static_headers = tower::ServiceBuilder::new()
+            .layer(SetResponseHeaderLayer::if_not_present(
+                HeaderName::from_static("x-content-type-options"),
+                HeaderValue::from_static("nosniff"),
+            ))
+            .layer(SetResponseHeaderLayer::if_not_present(
+                HeaderName::from_static("strict-transport-security"),
+                HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
+            ))
+            .layer(SetResponseHeaderLayer::if_not_present(
+                HeaderName::from_static("x-frame-options"),
+                HeaderValue::from_static("DENY"),
+            ))
+            .layer(SetResponseHeaderLayer::if_not_present(
+                HeaderName::from_static("referrer-policy"),
+                HeaderValue::from_static("strict-origin-when-cross-origin"),
+            ));
+
         router = router
             .nest_service(
                 &config.static_files.static_url,
-                new_serve(&config.static_files.staticfiles_dirs),
+                static_headers
+                    .clone()
+                    .service(ServeDir::new(&config.static_files.staticfiles_dirs)),
             )
             .nest_service(
                 &config.static_files.media_url,
-                new_serve(&config.static_files.media_root),
+                static_headers
+                    .clone()
+                    .service(ServeDir::new(&config.static_files.media_root)),
             );
 
         if !config.static_files.static_runique_url.is_empty() {
             router = router.nest_service(
                 &config.static_files.static_runique_url,
-                new_serve(&config.static_files.static_runique_path),
+                static_headers.service(ServeDir::new(&config.static_files.static_runique_path)),
             );
         }
 
