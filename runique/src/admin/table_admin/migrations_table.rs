@@ -26,18 +26,13 @@ pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
         .to_owned()
 }
 
-/// Génère le `TableCreateStatement` pour la table `eihwaz_droits` (la matrice de permissions).
-pub fn create_eihwaz_droits_table() -> TableCreateStatement {
+/// Génère le `TableCreateStatement` pour la table `eihwaz_groupes_droits`.
+/// Chaque ligne représente les permissions d'un groupe sur une ressource spécifique.
+/// PK composite : (groupe_id, resource_key).
+pub fn create_eihwaz_groupes_droits_table() -> TableCreateStatement {
     Table::create()
-        .table(Alias::new("eihwaz_droits"))
+        .table(Alias::new("eihwaz_groupes_droits"))
         .if_not_exists()
-        .col(
-            ColumnDef::new(Alias::new("id"))
-                .integer()
-                .not_null()
-                .auto_increment()
-                .primary_key(),
-        )
         .col(ColumnDef::new(Alias::new("groupe_id")).integer().not_null())
         .col(
             ColumnDef::new(Alias::new("resource_key"))
@@ -80,20 +75,18 @@ pub fn create_eihwaz_droits_table() -> TableCreateStatement {
                 .not_null()
                 .default(false),
         )
-        .index(
+        .primary_key(
             Index::create()
-                .name("uq_eihwaz_droits_groupe_resource")
+                .name("pk_eihwaz_groupes_droits")
                 .col(Alias::new("groupe_id"))
-                .col(Alias::new("resource_key"))
-                .unique(),
+                .col(Alias::new("resource_key")),
         )
         .foreign_key(
             ForeignKey::create()
-                .name("fk_eihwaz_droits_groupe_id")
-                .from(Alias::new("eihwaz_droits"), Alias::new("groupe_id"))
+                .name("fk_eihwaz_groupes_droits_groupe_id")
+                .from(Alias::new("eihwaz_groupes_droits"), Alias::new("groupe_id"))
                 .to(Alias::new("eihwaz_groupes"), Alias::new("id"))
-                .on_delete(ForeignKeyAction::Cascade)
-                .on_update(ForeignKeyAction::Cascade),
+                .on_delete(ForeignKeyAction::Cascade),
         )
         .to_owned()
 }
@@ -142,7 +135,9 @@ impl sea_orm_migration::MigrationName for AdminTableMigration {
 impl sea_orm_migration::MigrationTrait for AdminTableMigration {
     async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
         manager.create_table(create_eihwaz_groupes_table()).await?;
-        manager.create_table(create_eihwaz_droits_table()).await?;
+        manager
+            .create_table(create_eihwaz_groupes_droits_table())
+            .await?;
         manager
             .create_table(create_eihwaz_users_groupes_table())
             .await?;
@@ -158,7 +153,11 @@ impl sea_orm_migration::MigrationTrait for AdminTableMigration {
             )
             .await?;
         manager
-            .drop_table(Table::drop().table(Alias::new("eihwaz_droits")).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_groupes_droits"))
+                    .to_owned(),
+            )
             .await?;
         manager
             .drop_table(Table::drop().table(Alias::new("eihwaz_groupes")).to_owned())

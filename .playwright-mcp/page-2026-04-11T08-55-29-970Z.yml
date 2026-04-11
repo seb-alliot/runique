@@ -1,0 +1,529 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: R
+        - generic [ref=e6]: Administration
+      - navigation [ref=e7]:
+        - link [ref=e8] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e9]
+        - generic [ref=e15]: Administration
+        - link "Utilisateurs" [ref=e16] [cursor=pointer]:
+          - /url: /admin/users/list
+          - img [ref=e17]
+          - generic [ref=e20]: Utilisateurs
+        - link "droits" [ref=e21] [cursor=pointer]:
+          - /url: /admin/droits/list
+          - img [ref=e22]
+          - generic [ref=e25]: droits
+        - link "groupes" [ref=e26] [cursor=pointer]:
+          - /url: /admin/groupes/list
+          - img [ref=e27]
+          - generic [ref=e30]: groupes
+        - link "Contribution" [ref=e31] [cursor=pointer]:
+          - /url: /admin/contribution/list
+          - img [ref=e32]
+          - generic [ref=e35]: Contribution
+        - link "Articles" [ref=e36] [cursor=pointer]:
+          - /url: /admin/blog/list
+          - img [ref=e37]
+          - generic [ref=e40]: Articles
+        - link "Changelog" [ref=e41] [cursor=pointer]:
+          - /url: /admin/changelog_entry/list
+          - img [ref=e42]
+          - generic [ref=e45]: Changelog
+        - link "Roadmap" [ref=e46] [cursor=pointer]:
+          - /url: /admin/roadmap_entry/list
+          - img [ref=e47]
+          - generic [ref=e50]: Roadmap
+        - link "Problèmes connus" [ref=e51] [cursor=pointer]:
+          - /url: /admin/known_issue/list
+          - img [ref=e52]
+          - generic [ref=e55]: Problèmes connus
+        - link "Catégories" [ref=e56] [cursor=pointer]:
+          - /url: /admin/demo_category/list
+          - img [ref=e57]
+          - generic [ref=e60]: Catégories
+        - link "Pages" [ref=e61] [cursor=pointer]:
+          - /url: /admin/demo_page/list
+          - img [ref=e62]
+          - generic [ref=e65]: Pages
+        - link "Sections" [ref=e66] [cursor=pointer]:
+          - /url: /admin/demo_section/list
+          - img [ref=e67]
+          - generic [ref=e70]: Sections
+        - link "Exemples de code" [ref=e71] [cursor=pointer]:
+          - /url: /admin/code_example/list
+          - img [ref=e72]
+          - generic [ref=e75]: Exemples de code
+        - link "Liens documentation" [ref=e76] [cursor=pointer]:
+          - /url: /admin/page_doc_link/list
+          - img [ref=e77]
+          - generic [ref=e80]: Liens documentation
+        - link "Champs formulaire" [ref=e81] [cursor=pointer]:
+          - /url: /admin/form_field/list
+          - img [ref=e82]
+          - generic [ref=e85]: Champs formulaire
+        - link "Doc — Sections" [ref=e86] [cursor=pointer]:
+          - /url: /admin/doc_section/list
+          - img [ref=e87]
+          - generic [ref=e90]: Doc — Sections
+        - link "Doc — Pages" [ref=e91] [cursor=pointer]:
+          - /url: /admin/doc_page/list
+          - img [ref=e92]
+          - generic [ref=e95]: Doc — Pages
+        - link "Doc — Blocs" [ref=e96] [cursor=pointer]:
+          - /url: /admin/doc_block/list
+          - img [ref=e97]
+          - generic [ref=e100]: Doc — Blocs
+        - link "Configuration site" [ref=e101] [cursor=pointer]:
+          - /url: /admin/site_config/list
+          - img [ref=e102]
+          - generic [ref=e105]: Configuration site
+        - link "Cours" [ref=e106] [cursor=pointer]:
+          - /url: /admin/cour/list
+          - img [ref=e107]
+          - generic [ref=e110]: Cours
+        - link "Chapitres" [ref=e111] [cursor=pointer]:
+          - /url: /admin/chapitre/list
+          - img [ref=e112]
+          - generic [ref=e115]: Chapitres
+        - link "Cours — Blocs" [ref=e116] [cursor=pointer]:
+          - /url: /admin/cour_block/list
+          - img [ref=e117]
+          - generic [ref=e120]: Cours — Blocs
+        - link "Releases Runique" [ref=e121] [cursor=pointer]:
+          - /url: /admin/runique_release/list
+          - img [ref=e122]
+          - generic [ref=e125]: Releases Runique
+      - button "Réduire le menu" [ref=e128] [cursor=pointer]:
+        - img [ref=e129]
+    - generic [ref=e131]:
+      - banner [ref=e132]:
+        - generic [ref=e133]:
+          - link "Admin" [ref=e134] [cursor=pointer]:
+            - /url: /admin
+          - generic [ref=e135]: /
+          - link "Administration" [ref=e136] [cursor=pointer]:
+            - /url: /admin
+          - generic [ref=e137]: /
+          - generic [ref=e138]: droits
+        - link "← Site" [ref=e139] [cursor=pointer]:
+          - /url: /
+        - link "setsuna Déconnexion" [ref=e140] [cursor=pointer]:
+          - /url: /admin/logout
+          - generic [ref=e141]: setsuna
+          - generic [ref=e142]: Déconnexion
+      - main [ref=e143]:
+        - generic [ref=e145]: Droits insuffisants pour accéder à l'administration
+        - generic [ref=e147]:
+          - heading "droits" [level=1] [ref=e148]
+          - paragraph [ref=e149]: 44 entrée(s)
+        - generic [ref=e150]:
+          - generic [ref=e153]:
+            - textbox "Rechercher..." [ref=e154]
+            - button [ref=e155] [cursor=pointer]:
+              - img [ref=e156]
+          - generic [ref=e160]:
+            - table [ref=e163]:
+              - rowgroup [ref=e164]:
+                - row "id can create can delete can delete own can read can update can update own groupe id groupes resource key Actions" [ref=e165]:
+                  - columnheader "id" [ref=e166]:
+                    - link "id" [ref=e167] [cursor=pointer]:
+                      - /url: "?sort_by=id&sort_dir=asc&page=1"
+                  - columnheader "can create" [ref=e168]:
+                    - link "can create" [ref=e169] [cursor=pointer]:
+                      - /url: "?sort_by=can_create&sort_dir=asc&page=1"
+                  - columnheader "can delete" [ref=e170]:
+                    - link "can delete" [ref=e171] [cursor=pointer]:
+                      - /url: "?sort_by=can_delete&sort_dir=asc&page=1"
+                  - columnheader "can delete own" [ref=e172]:
+                    - link "can delete own" [ref=e173] [cursor=pointer]:
+                      - /url: "?sort_by=can_delete_own&sort_dir=asc&page=1"
+                  - columnheader "can read" [ref=e174]:
+                    - link "can read" [ref=e175] [cursor=pointer]:
+                      - /url: "?sort_by=can_read&sort_dir=asc&page=1"
+                  - columnheader "can update" [ref=e176]:
+                    - link "can update" [ref=e177] [cursor=pointer]:
+                      - /url: "?sort_by=can_update&sort_dir=asc&page=1"
+                  - columnheader "can update own" [ref=e178]:
+                    - link "can update own" [ref=e179] [cursor=pointer]:
+                      - /url: "?sort_by=can_update_own&sort_dir=asc&page=1"
+                  - columnheader "groupe id" [ref=e180]:
+                    - link "groupe id" [ref=e181] [cursor=pointer]:
+                      - /url: "?sort_by=groupe_id&sort_dir=asc&page=1"
+                  - columnheader "groupes" [ref=e182]:
+                    - link "groupes" [ref=e183] [cursor=pointer]:
+                      - /url: "?sort_by=groupes&sort_dir=asc&page=1"
+                  - columnheader "resource key" [ref=e184]:
+                    - link "resource key" [ref=e185] [cursor=pointer]:
+                      - /url: "?sort_by=resource_key&sort_dir=asc&page=1"
+                  - columnheader "Actions" [ref=e186]
+              - rowgroup [ref=e187]:
+                - row "#1:users Oui Oui Oui Oui Oui Oui 1 admin users" [ref=e188]:
+                  - cell "#1:users" [ref=e189]:
+                    - generic [ref=e190]: "#1:users"
+                  - cell "Oui" [ref=e191] [cursor=pointer]:
+                    - generic [ref=e192]: Oui
+                  - cell "Oui" [ref=e193] [cursor=pointer]:
+                    - generic [ref=e194]: Oui
+                  - cell "Oui" [ref=e195] [cursor=pointer]:
+                    - generic [ref=e196]: Oui
+                  - cell "Oui" [ref=e197] [cursor=pointer]:
+                    - generic [ref=e198]: Oui
+                  - cell "Oui" [ref=e199] [cursor=pointer]:
+                    - generic [ref=e200]: Oui
+                  - cell "Oui" [ref=e201] [cursor=pointer]:
+                    - generic [ref=e202]: Oui
+                  - cell "1" [ref=e203] [cursor=pointer]:
+                    - generic [ref=e204]: "1"
+                  - cell "admin" [ref=e205] [cursor=pointer]:
+                    - generic [ref=e206]: admin
+                  - cell "users" [ref=e207] [cursor=pointer]:
+                    - generic [ref=e208]: users
+                  - cell [ref=e209]:
+                    - button [ref=e211] [cursor=pointer]:
+                      - img [ref=e212]
+                - row "#1:groupes Oui Oui Oui Oui Oui Oui 1 admin groupes" [ref=e216]:
+                  - cell "#1:groupes" [ref=e217]:
+                    - generic [ref=e218]: "#1:groupes"
+                  - cell "Oui" [ref=e219] [cursor=pointer]:
+                    - generic [ref=e220]: Oui
+                  - cell "Oui" [ref=e221] [cursor=pointer]:
+                    - generic [ref=e222]: Oui
+                  - cell "Oui" [ref=e223] [cursor=pointer]:
+                    - generic [ref=e224]: Oui
+                  - cell "Oui" [ref=e225] [cursor=pointer]:
+                    - generic [ref=e226]: Oui
+                  - cell "Oui" [ref=e227] [cursor=pointer]:
+                    - generic [ref=e228]: Oui
+                  - cell "Oui" [ref=e229] [cursor=pointer]:
+                    - generic [ref=e230]: Oui
+                  - cell "1" [ref=e231] [cursor=pointer]:
+                    - generic [ref=e232]: "1"
+                  - cell "admin" [ref=e233] [cursor=pointer]:
+                    - generic [ref=e234]: admin
+                  - cell "groupes" [ref=e235] [cursor=pointer]:
+                    - generic [ref=e236]: groupes
+                  - cell [ref=e237]:
+                    - button [ref=e239] [cursor=pointer]:
+                      - img [ref=e240]
+                - row "#1:contribution Oui Oui Oui Oui Oui Oui 1 admin contribution" [ref=e244]:
+                  - cell "#1:contribution" [ref=e245]:
+                    - generic [ref=e246]: "#1:contribution"
+                  - cell "Oui" [ref=e247] [cursor=pointer]:
+                    - generic [ref=e248]: Oui
+                  - cell "Oui" [ref=e249] [cursor=pointer]:
+                    - generic [ref=e250]: Oui
+                  - cell "Oui" [ref=e251] [cursor=pointer]:
+                    - generic [ref=e252]: Oui
+                  - cell "Oui" [ref=e253] [cursor=pointer]:
+                    - generic [ref=e254]: Oui
+                  - cell "Oui" [ref=e255] [cursor=pointer]:
+                    - generic [ref=e256]: Oui
+                  - cell "Oui" [ref=e257] [cursor=pointer]:
+                    - generic [ref=e258]: Oui
+                  - cell "1" [ref=e259] [cursor=pointer]:
+                    - generic [ref=e260]: "1"
+                  - cell "admin" [ref=e261] [cursor=pointer]:
+                    - generic [ref=e262]: admin
+                  - cell "contribution" [ref=e263] [cursor=pointer]:
+                    - generic [ref=e264]: contribution
+                  - cell [ref=e265]:
+                    - button [ref=e267] [cursor=pointer]:
+                      - img [ref=e268]
+                - row "#1:blog Oui Oui Oui Oui Oui Oui 1 admin blog" [ref=e272]:
+                  - cell "#1:blog" [ref=e273]:
+                    - generic [ref=e274]: "#1:blog"
+                  - cell "Oui" [ref=e275] [cursor=pointer]:
+                    - generic [ref=e276]: Oui
+                  - cell "Oui" [ref=e277] [cursor=pointer]:
+                    - generic [ref=e278]: Oui
+                  - cell "Oui" [ref=e279] [cursor=pointer]:
+                    - generic [ref=e280]: Oui
+                  - cell "Oui" [ref=e281] [cursor=pointer]:
+                    - generic [ref=e282]: Oui
+                  - cell "Oui" [ref=e283] [cursor=pointer]:
+                    - generic [ref=e284]: Oui
+                  - cell "Oui" [ref=e285] [cursor=pointer]:
+                    - generic [ref=e286]: Oui
+                  - cell "1" [ref=e287] [cursor=pointer]:
+                    - generic [ref=e288]: "1"
+                  - cell "admin" [ref=e289] [cursor=pointer]:
+                    - generic [ref=e290]: admin
+                  - cell "blog" [ref=e291] [cursor=pointer]:
+                    - generic [ref=e292]: blog
+                  - cell [ref=e293]:
+                    - button [ref=e295] [cursor=pointer]:
+                      - img [ref=e296]
+                - row "#1:changelog_entry Oui Oui Oui Oui Oui Oui 1 admin changelog_entry" [ref=e300]:
+                  - cell "#1:changelog_entry" [ref=e301]:
+                    - generic [ref=e302]: "#1:changelog_entry"
+                  - cell "Oui" [ref=e303] [cursor=pointer]:
+                    - generic [ref=e304]: Oui
+                  - cell "Oui" [ref=e305] [cursor=pointer]:
+                    - generic [ref=e306]: Oui
+                  - cell "Oui" [ref=e307] [cursor=pointer]:
+                    - generic [ref=e308]: Oui
+                  - cell "Oui" [ref=e309] [cursor=pointer]:
+                    - generic [ref=e310]: Oui
+                  - cell "Oui" [ref=e311] [cursor=pointer]:
+                    - generic [ref=e312]: Oui
+                  - cell "Oui" [ref=e313] [cursor=pointer]:
+                    - generic [ref=e314]: Oui
+                  - cell "1" [ref=e315] [cursor=pointer]:
+                    - generic [ref=e316]: "1"
+                  - cell "admin" [ref=e317] [cursor=pointer]:
+                    - generic [ref=e318]: admin
+                  - cell "changelog_entry" [ref=e319] [cursor=pointer]:
+                    - generic [ref=e320]: changelog_entry
+                  - cell [ref=e321]:
+                    - button [ref=e323] [cursor=pointer]:
+                      - img [ref=e324]
+                - row "#1:roadmap_entry Oui Oui Oui Oui Oui Oui 1 admin roadmap_entry" [ref=e328]:
+                  - cell "#1:roadmap_entry" [ref=e329]:
+                    - generic [ref=e330]: "#1:roadmap_entry"
+                  - cell "Oui" [ref=e331] [cursor=pointer]:
+                    - generic [ref=e332]: Oui
+                  - cell "Oui" [ref=e333] [cursor=pointer]:
+                    - generic [ref=e334]: Oui
+                  - cell "Oui" [ref=e335] [cursor=pointer]:
+                    - generic [ref=e336]: Oui
+                  - cell "Oui" [ref=e337] [cursor=pointer]:
+                    - generic [ref=e338]: Oui
+                  - cell "Oui" [ref=e339] [cursor=pointer]:
+                    - generic [ref=e340]: Oui
+                  - cell "Oui" [ref=e341] [cursor=pointer]:
+                    - generic [ref=e342]: Oui
+                  - cell "1" [ref=e343] [cursor=pointer]:
+                    - generic [ref=e344]: "1"
+                  - cell "admin" [ref=e345] [cursor=pointer]:
+                    - generic [ref=e346]: admin
+                  - cell "roadmap_entry" [ref=e347] [cursor=pointer]:
+                    - generic [ref=e348]: roadmap_entry
+                  - cell [ref=e349]:
+                    - button [ref=e351] [cursor=pointer]:
+                      - img [ref=e352]
+                - row "#1:known_issue Oui Oui Oui Oui Oui Oui 1 admin known_issue" [ref=e356]:
+                  - cell "#1:known_issue" [ref=e357]:
+                    - generic [ref=e358]: "#1:known_issue"
+                  - cell "Oui" [ref=e359] [cursor=pointer]:
+                    - generic [ref=e360]: Oui
+                  - cell "Oui" [ref=e361] [cursor=pointer]:
+                    - generic [ref=e362]: Oui
+                  - cell "Oui" [ref=e363] [cursor=pointer]:
+                    - generic [ref=e364]: Oui
+                  - cell "Oui" [ref=e365] [cursor=pointer]:
+                    - generic [ref=e366]: Oui
+                  - cell "Oui" [ref=e367] [cursor=pointer]:
+                    - generic [ref=e368]: Oui
+                  - cell "Oui" [ref=e369] [cursor=pointer]:
+                    - generic [ref=e370]: Oui
+                  - cell "1" [ref=e371] [cursor=pointer]:
+                    - generic [ref=e372]: "1"
+                  - cell "admin" [ref=e373] [cursor=pointer]:
+                    - generic [ref=e374]: admin
+                  - cell "known_issue" [ref=e375] [cursor=pointer]:
+                    - generic [ref=e376]: known_issue
+                  - cell [ref=e377]:
+                    - button [ref=e379] [cursor=pointer]:
+                      - img [ref=e380]
+                - row "#1:demo_category Oui Oui Oui Oui Oui Oui 1 admin demo_category" [ref=e384]:
+                  - cell "#1:demo_category" [ref=e385]:
+                    - generic [ref=e386]: "#1:demo_category"
+                  - cell "Oui" [ref=e387] [cursor=pointer]:
+                    - generic [ref=e388]: Oui
+                  - cell "Oui" [ref=e389] [cursor=pointer]:
+                    - generic [ref=e390]: Oui
+                  - cell "Oui" [ref=e391] [cursor=pointer]:
+                    - generic [ref=e392]: Oui
+                  - cell "Oui" [ref=e393] [cursor=pointer]:
+                    - generic [ref=e394]: Oui
+                  - cell "Oui" [ref=e395] [cursor=pointer]:
+                    - generic [ref=e396]: Oui
+                  - cell "Oui" [ref=e397] [cursor=pointer]:
+                    - generic [ref=e398]: Oui
+                  - cell "1" [ref=e399] [cursor=pointer]:
+                    - generic [ref=e400]: "1"
+                  - cell "admin" [ref=e401] [cursor=pointer]:
+                    - generic [ref=e402]: admin
+                  - cell "demo_category" [ref=e403] [cursor=pointer]:
+                    - generic [ref=e404]: demo_category
+                  - cell [ref=e405]:
+                    - button [ref=e407] [cursor=pointer]:
+                      - img [ref=e408]
+                - row "#1:demo_page Oui Oui Oui Oui Oui Oui 1 admin demo_page" [ref=e412]:
+                  - cell "#1:demo_page" [ref=e413]:
+                    - generic [ref=e414]: "#1:demo_page"
+                  - cell "Oui" [ref=e415] [cursor=pointer]:
+                    - generic [ref=e416]: Oui
+                  - cell "Oui" [ref=e417] [cursor=pointer]:
+                    - generic [ref=e418]: Oui
+                  - cell "Oui" [ref=e419] [cursor=pointer]:
+                    - generic [ref=e420]: Oui
+                  - cell "Oui" [ref=e421] [cursor=pointer]:
+                    - generic [ref=e422]: Oui
+                  - cell "Oui" [ref=e423] [cursor=pointer]:
+                    - generic [ref=e424]: Oui
+                  - cell "Oui" [ref=e425] [cursor=pointer]:
+                    - generic [ref=e426]: Oui
+                  - cell "1" [ref=e427] [cursor=pointer]:
+                    - generic [ref=e428]: "1"
+                  - cell "admin" [ref=e429] [cursor=pointer]:
+                    - generic [ref=e430]: admin
+                  - cell "demo_page" [ref=e431] [cursor=pointer]:
+                    - generic [ref=e432]: demo_page
+                  - cell [ref=e433]:
+                    - button [ref=e435] [cursor=pointer]:
+                      - img [ref=e436]
+                - row "#1:demo_section Oui Oui Oui Oui Oui Oui 1 admin demo_section" [ref=e440]:
+                  - cell "#1:demo_section" [ref=e441]:
+                    - generic [ref=e442]: "#1:demo_section"
+                  - cell "Oui" [ref=e443] [cursor=pointer]:
+                    - generic [ref=e444]: Oui
+                  - cell "Oui" [ref=e445] [cursor=pointer]:
+                    - generic [ref=e446]: Oui
+                  - cell "Oui" [ref=e447] [cursor=pointer]:
+                    - generic [ref=e448]: Oui
+                  - cell "Oui" [ref=e449] [cursor=pointer]:
+                    - generic [ref=e450]: Oui
+                  - cell "Oui" [ref=e451] [cursor=pointer]:
+                    - generic [ref=e452]: Oui
+                  - cell "Oui" [ref=e453] [cursor=pointer]:
+                    - generic [ref=e454]: Oui
+                  - cell "1" [ref=e455] [cursor=pointer]:
+                    - generic [ref=e456]: "1"
+                  - cell "admin" [ref=e457] [cursor=pointer]:
+                    - generic [ref=e458]: admin
+                  - cell "demo_section" [ref=e459] [cursor=pointer]:
+                    - generic [ref=e460]: demo_section
+                  - cell [ref=e461]:
+                    - button [ref=e463] [cursor=pointer]:
+                      - img [ref=e464]
+                - row "#1:code_example Oui Oui Oui Oui Oui Oui 1 admin code_example" [ref=e468]:
+                  - cell "#1:code_example" [ref=e469]:
+                    - generic [ref=e470]: "#1:code_example"
+                  - cell "Oui" [ref=e471] [cursor=pointer]:
+                    - generic [ref=e472]: Oui
+                  - cell "Oui" [ref=e473] [cursor=pointer]:
+                    - generic [ref=e474]: Oui
+                  - cell "Oui" [ref=e475] [cursor=pointer]:
+                    - generic [ref=e476]: Oui
+                  - cell "Oui" [ref=e477] [cursor=pointer]:
+                    - generic [ref=e478]: Oui
+                  - cell "Oui" [ref=e479] [cursor=pointer]:
+                    - generic [ref=e480]: Oui
+                  - cell "Oui" [ref=e481] [cursor=pointer]:
+                    - generic [ref=e482]: Oui
+                  - cell "1" [ref=e483] [cursor=pointer]:
+                    - generic [ref=e484]: "1"
+                  - cell "admin" [ref=e485] [cursor=pointer]:
+                    - generic [ref=e486]: admin
+                  - cell "code_example" [ref=e487] [cursor=pointer]:
+                    - generic [ref=e488]: code_example
+                  - cell [ref=e489]:
+                    - button [ref=e491] [cursor=pointer]:
+                      - img [ref=e492]
+                - row "#1:page_doc_link Oui Oui Oui Oui Oui Oui 1 admin page_doc_link" [ref=e496]:
+                  - cell "#1:page_doc_link" [ref=e497]:
+                    - generic [ref=e498]: "#1:page_doc_link"
+                  - cell "Oui" [ref=e499] [cursor=pointer]:
+                    - generic [ref=e500]: Oui
+                  - cell "Oui" [ref=e501] [cursor=pointer]:
+                    - generic [ref=e502]: Oui
+                  - cell "Oui" [ref=e503] [cursor=pointer]:
+                    - generic [ref=e504]: Oui
+                  - cell "Oui" [ref=e505] [cursor=pointer]:
+                    - generic [ref=e506]: Oui
+                  - cell "Oui" [ref=e507] [cursor=pointer]:
+                    - generic [ref=e508]: Oui
+                  - cell "Oui" [ref=e509] [cursor=pointer]:
+                    - generic [ref=e510]: Oui
+                  - cell "1" [ref=e511] [cursor=pointer]:
+                    - generic [ref=e512]: "1"
+                  - cell "admin" [ref=e513] [cursor=pointer]:
+                    - generic [ref=e514]: admin
+                  - cell "page_doc_link" [ref=e515] [cursor=pointer]:
+                    - generic [ref=e516]: page_doc_link
+                  - cell [ref=e517]:
+                    - button [ref=e519] [cursor=pointer]:
+                      - img [ref=e520]
+                - row "#1:form_field Oui Oui Oui Oui Oui Oui 1 admin form_field" [ref=e524]:
+                  - cell "#1:form_field" [ref=e525]:
+                    - generic [ref=e526]: "#1:form_field"
+                  - cell "Oui" [ref=e527] [cursor=pointer]:
+                    - generic [ref=e528]: Oui
+                  - cell "Oui" [ref=e529] [cursor=pointer]:
+                    - generic [ref=e530]: Oui
+                  - cell "Oui" [ref=e531] [cursor=pointer]:
+                    - generic [ref=e532]: Oui
+                  - cell "Oui" [ref=e533] [cursor=pointer]:
+                    - generic [ref=e534]: Oui
+                  - cell "Oui" [ref=e535] [cursor=pointer]:
+                    - generic [ref=e536]: Oui
+                  - cell "Oui" [ref=e537] [cursor=pointer]:
+                    - generic [ref=e538]: Oui
+                  - cell "1" [ref=e539] [cursor=pointer]:
+                    - generic [ref=e540]: "1"
+                  - cell "admin" [ref=e541] [cursor=pointer]:
+                    - generic [ref=e542]: admin
+                  - cell "form_field" [ref=e543] [cursor=pointer]:
+                    - generic [ref=e544]: form_field
+                  - cell [ref=e545]:
+                    - button [ref=e547] [cursor=pointer]:
+                      - img [ref=e548]
+                - row "#1:doc_section Oui Oui Oui Oui Oui Oui 1 admin doc_section" [ref=e552]:
+                  - cell "#1:doc_section" [ref=e553]:
+                    - generic [ref=e554]: "#1:doc_section"
+                  - cell "Oui" [ref=e555] [cursor=pointer]:
+                    - generic [ref=e556]: Oui
+                  - cell "Oui" [ref=e557] [cursor=pointer]:
+                    - generic [ref=e558]: Oui
+                  - cell "Oui" [ref=e559] [cursor=pointer]:
+                    - generic [ref=e560]: Oui
+                  - cell "Oui" [ref=e561] [cursor=pointer]:
+                    - generic [ref=e562]: Oui
+                  - cell "Oui" [ref=e563] [cursor=pointer]:
+                    - generic [ref=e564]: Oui
+                  - cell "Oui" [ref=e565] [cursor=pointer]:
+                    - generic [ref=e566]: Oui
+                  - cell "1" [ref=e567] [cursor=pointer]:
+                    - generic [ref=e568]: "1"
+                  - cell "admin" [ref=e569] [cursor=pointer]:
+                    - generic [ref=e570]: admin
+                  - cell "doc_section" [ref=e571] [cursor=pointer]:
+                    - generic [ref=e572]: doc_section
+                  - cell [ref=e573]:
+                    - button [ref=e575] [cursor=pointer]:
+                      - img [ref=e576]
+                - row "#1:doc_page Oui Oui Oui Oui Oui Oui 1 admin doc_page" [ref=e580]:
+                  - cell "#1:doc_page" [ref=e581]:
+                    - generic [ref=e582]: "#1:doc_page"
+                  - cell "Oui" [ref=e583] [cursor=pointer]:
+                    - generic [ref=e584]: Oui
+                  - cell "Oui" [ref=e585] [cursor=pointer]:
+                    - generic [ref=e586]: Oui
+                  - cell "Oui" [ref=e587] [cursor=pointer]:
+                    - generic [ref=e588]: Oui
+                  - cell "Oui" [ref=e589] [cursor=pointer]:
+                    - generic [ref=e590]: Oui
+                  - cell "Oui" [ref=e591] [cursor=pointer]:
+                    - generic [ref=e592]: Oui
+                  - cell "Oui" [ref=e593] [cursor=pointer]:
+                    - generic [ref=e594]: Oui
+                  - cell "1" [ref=e595] [cursor=pointer]:
+                    - generic [ref=e596]: "1"
+                  - cell "admin" [ref=e597] [cursor=pointer]:
+                    - generic [ref=e598]: admin
+                  - cell "doc_page" [ref=e599] [cursor=pointer]:
+                    - generic [ref=e600]: doc_page
+                  - cell [ref=e601]:
+                    - button [ref=e603] [cursor=pointer]:
+                      - img [ref=e604]
+            - generic [ref=e608]:
+              - generic [ref=e609] [cursor=pointer]: «
+              - generic [ref=e610]: 1 / 3
+              - link "»" [ref=e611] [cursor=pointer]:
+                - /url: "?page=2"
+  - contentinfo

@@ -1,0 +1,551 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: R
+        - generic [ref=e6]: Administration
+      - navigation [ref=e7]:
+        - link "Tableau de bord" [ref=e8] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e9]
+          - generic [ref=e14]: Tableau de bord
+        - link "Utilisateurs" [ref=e17] [cursor=pointer]:
+          - /url: /admin/users/list
+          - img [ref=e18]
+          - generic [ref=e21]: Utilisateurs
+        - link "droits" [ref=e22] [cursor=pointer]:
+          - /url: /admin/droits/list
+          - img [ref=e23]
+          - generic [ref=e26]: droits
+        - link "groupes" [ref=e27] [cursor=pointer]:
+          - /url: /admin/groupes/list
+          - img [ref=e28]
+          - generic [ref=e31]: groupes
+        - link "Contribution" [ref=e32] [cursor=pointer]:
+          - /url: /admin/contribution/list
+          - img [ref=e33]
+          - generic [ref=e36]: Contribution
+        - link "Articles" [ref=e37] [cursor=pointer]:
+          - /url: /admin/blog/list
+          - img [ref=e38]
+          - generic [ref=e41]: Articles
+        - link "Changelog" [ref=e42] [cursor=pointer]:
+          - /url: /admin/changelog_entry/list
+          - img [ref=e43]
+          - generic [ref=e46]: Changelog
+        - link "Roadmap" [ref=e47] [cursor=pointer]:
+          - /url: /admin/roadmap_entry/list
+          - img [ref=e48]
+          - generic [ref=e51]: Roadmap
+        - link "Problèmes connus" [ref=e52] [cursor=pointer]:
+          - /url: /admin/known_issue/list
+          - img [ref=e53]
+          - generic [ref=e56]: Problèmes connus
+        - link "Catégories" [ref=e57] [cursor=pointer]:
+          - /url: /admin/demo_category/list
+          - img [ref=e58]
+          - generic [ref=e61]: Catégories
+        - link "Pages" [ref=e62] [cursor=pointer]:
+          - /url: /admin/demo_page/list
+          - img [ref=e63]
+          - generic [ref=e66]: Pages
+        - link "Sections" [ref=e67] [cursor=pointer]:
+          - /url: /admin/demo_section/list
+          - img [ref=e68]
+          - generic [ref=e71]: Sections
+        - link "Exemples de code" [ref=e72] [cursor=pointer]:
+          - /url: /admin/code_example/list
+          - img [ref=e73]
+          - generic [ref=e76]: Exemples de code
+        - link "Liens documentation" [ref=e77] [cursor=pointer]:
+          - /url: /admin/page_doc_link/list
+          - img [ref=e78]
+          - generic [ref=e81]: Liens documentation
+        - link "Champs formulaire" [ref=e82] [cursor=pointer]:
+          - /url: /admin/form_field/list
+          - img [ref=e83]
+          - generic [ref=e86]: Champs formulaire
+        - link "Doc — Sections" [ref=e87] [cursor=pointer]:
+          - /url: /admin/doc_section/list
+          - img [ref=e88]
+          - generic [ref=e91]: Doc — Sections
+        - link "Doc — Pages" [ref=e92] [cursor=pointer]:
+          - /url: /admin/doc_page/list
+          - img [ref=e93]
+          - generic [ref=e96]: Doc — Pages
+        - link "Doc — Blocs" [ref=e97] [cursor=pointer]:
+          - /url: /admin/doc_block/list
+          - img [ref=e98]
+          - generic [ref=e101]: Doc — Blocs
+        - link "Configuration site" [ref=e102] [cursor=pointer]:
+          - /url: /admin/site_config/list
+          - img [ref=e103]
+          - generic [ref=e106]: Configuration site
+        - link "Cours" [ref=e107] [cursor=pointer]:
+          - /url: /admin/cour/list
+          - img [ref=e108]
+          - generic [ref=e111]: Cours
+        - link "Chapitres" [ref=e112] [cursor=pointer]:
+          - /url: /admin/chapitre/list
+          - img [ref=e113]
+          - generic [ref=e116]: Chapitres
+        - link "Cours — Blocs" [ref=e117] [cursor=pointer]:
+          - /url: /admin/cour_block/list
+          - img [ref=e118]
+          - generic [ref=e121]: Cours — Blocs
+        - link "Releases Runique" [ref=e122] [cursor=pointer]:
+          - /url: /admin/runique_release/list
+          - img [ref=e123]
+          - generic [ref=e126]: Releases Runique
+      - button "Réduire le menu" [ref=e129] [cursor=pointer]:
+        - img [ref=e130]
+    - generic [ref=e132]:
+      - banner [ref=e133]:
+        - generic [ref=e134]:
+          - link "Admin" [ref=e135] [cursor=pointer]:
+            - /url: /admin
+          - generic [ref=e136]: /
+          - generic [ref=e137]: Tableau de bord
+        - link "← Site" [ref=e138] [cursor=pointer]:
+          - /url: /
+        - link "setsuna Déconnexion" [ref=e139] [cursor=pointer]:
+          - /url: /admin/logout
+          - generic [ref=e140]: setsuna
+          - generic [ref=e141]: Déconnexion
+      - main [ref=e142]:
+        - generic [ref=e143]:
+          - generic [ref=e144]:
+            - heading "Tableau de bord" [level=1] [ref=e145]
+            - paragraph [ref=e146]: Vue d'ensemble de l'application
+          - link "← Template configuré" [ref=e147] [cursor=pointer]:
+            - /url: /admin/toggle-template
+        - generic [ref=e148]:
+          - link "Utilisateurs 2 Voir la liste →" [ref=e149] [cursor=pointer]:
+            - /url: /admin/users/list
+            - generic [ref=e150]: Utilisateurs
+            - generic [ref=e151]: "2"
+            - generic [ref=e152]: Voir la liste →
+          - link "droits 44 Voir la liste →" [ref=e153] [cursor=pointer]:
+            - /url: /admin/droits/list
+            - generic [ref=e154]: droits
+            - generic [ref=e155]: "44"
+            - generic [ref=e156]: Voir la liste →
+          - link "groupes 2 Voir la liste →" [ref=e157] [cursor=pointer]:
+            - /url: /admin/groupes/list
+            - generic [ref=e158]: groupes
+            - generic [ref=e159]: "2"
+            - generic [ref=e160]: Voir la liste →
+          - link "Contribution 0 Voir la liste →" [ref=e161] [cursor=pointer]:
+            - /url: /admin/contribution/list
+            - generic [ref=e162]: Contribution
+            - generic [ref=e163]: "0"
+            - generic [ref=e164]: Voir la liste →
+          - link "Articles 0 Voir la liste →" [ref=e165] [cursor=pointer]:
+            - /url: /admin/blog/list
+            - generic [ref=e166]: Articles
+            - generic [ref=e167]: "0"
+            - generic [ref=e168]: Voir la liste →
+          - link "Changelog 15 Voir la liste →" [ref=e169] [cursor=pointer]:
+            - /url: /admin/changelog_entry/list
+            - generic [ref=e170]: Changelog
+            - generic [ref=e171]: "15"
+            - generic [ref=e172]: Voir la liste →
+          - link "Roadmap 0 Voir la liste →" [ref=e173] [cursor=pointer]:
+            - /url: /admin/roadmap_entry/list
+            - generic [ref=e174]: Roadmap
+            - generic [ref=e175]: "0"
+            - generic [ref=e176]: Voir la liste →
+          - link "Problèmes connus 1 Voir la liste →" [ref=e177] [cursor=pointer]:
+            - /url: /admin/known_issue/list
+            - generic [ref=e178]: Problèmes connus
+            - generic [ref=e179]: "1"
+            - generic [ref=e180]: Voir la liste →
+          - link "Catégories 6 Voir la liste →" [ref=e181] [cursor=pointer]:
+            - /url: /admin/demo_category/list
+            - generic [ref=e182]: Catégories
+            - generic [ref=e183]: "6"
+            - generic [ref=e184]: Voir la liste →
+          - link "Pages 33 Voir la liste →" [ref=e185] [cursor=pointer]:
+            - /url: /admin/demo_page/list
+            - generic [ref=e186]: Pages
+            - generic [ref=e187]: "33"
+            - generic [ref=e188]: Voir la liste →
+          - link "Sections 0 Voir la liste →" [ref=e189] [cursor=pointer]:
+            - /url: /admin/demo_section/list
+            - generic [ref=e190]: Sections
+            - generic [ref=e191]: "0"
+            - generic [ref=e192]: Voir la liste →
+          - link "Exemples de code 80 Voir la liste →" [ref=e193] [cursor=pointer]:
+            - /url: /admin/code_example/list
+            - generic [ref=e194]: Exemples de code
+            - generic [ref=e195]: "80"
+            - generic [ref=e196]: Voir la liste →
+          - link "Liens documentation 34 Voir la liste →" [ref=e197] [cursor=pointer]:
+            - /url: /admin/page_doc_link/list
+            - generic [ref=e198]: Liens documentation
+            - generic [ref=e199]: "34"
+            - generic [ref=e200]: Voir la liste →
+          - link "Champs formulaire 27 Voir la liste →" [ref=e201] [cursor=pointer]:
+            - /url: /admin/form_field/list
+            - generic [ref=e202]: Champs formulaire
+            - generic [ref=e203]: "27"
+            - generic [ref=e204]: Voir la liste →
+          - link "Doc — Sections 33 Voir la liste →" [ref=e205] [cursor=pointer]:
+            - /url: /admin/doc_section/list
+            - generic [ref=e206]: Doc — Sections
+            - generic [ref=e207]: "33"
+            - generic [ref=e208]: Voir la liste →
+          - link "Doc — Pages 167 Voir la liste →" [ref=e209] [cursor=pointer]:
+            - /url: /admin/doc_page/list
+            - generic [ref=e210]: Doc — Pages
+            - generic [ref=e211]: "167"
+            - generic [ref=e212]: Voir la liste →
+          - link "Doc — Blocs 620 Voir la liste →" [ref=e213] [cursor=pointer]:
+            - /url: /admin/doc_block/list
+            - generic [ref=e214]: Doc — Blocs
+            - generic [ref=e215]: "620"
+            - generic [ref=e216]: Voir la liste →
+          - link "Configuration site 4 Voir la liste →" [ref=e217] [cursor=pointer]:
+            - /url: /admin/site_config/list
+            - generic [ref=e218]: Configuration site
+            - generic [ref=e219]: "4"
+            - generic [ref=e220]: Voir la liste →
+          - link "Cours 32 Voir la liste →" [ref=e221] [cursor=pointer]:
+            - /url: /admin/cour/list
+            - generic [ref=e222]: Cours
+            - generic [ref=e223]: "32"
+            - generic [ref=e224]: Voir la liste →
+          - link "Chapitres 505 Voir la liste →" [ref=e225] [cursor=pointer]:
+            - /url: /admin/chapitre/list
+            - generic [ref=e226]: Chapitres
+            - generic [ref=e227]: "505"
+            - generic [ref=e228]: Voir la liste →
+          - link "Cours — Blocs 1639 Voir la liste →" [ref=e229] [cursor=pointer]:
+            - /url: /admin/cour_block/list
+            - generic [ref=e230]: Cours — Blocs
+            - generic [ref=e231]: "1639"
+            - generic [ref=e232]: Voir la liste →
+          - link "Releases Runique 1 Voir la liste →" [ref=e233] [cursor=pointer]:
+            - /url: /admin/runique_release/list
+            - generic [ref=e234]: Releases Runique
+            - generic [ref=e235]: "1"
+            - generic [ref=e236]: Voir la liste →
+        - generic [ref=e237]:
+          - heading "Ressources" [level=2] [ref=e239]
+          - table [ref=e241]:
+            - rowgroup [ref=e242]:
+              - row "Ressource Clé Permissions Actions" [ref=e243]:
+                - columnheader "Ressource" [ref=e244]
+                - columnheader "Clé" [ref=e245]
+                - columnheader "Permissions" [ref=e246]
+                - columnheader "Actions" [ref=e247]
+            - rowgroup [ref=e248]:
+              - row "Utilisateurs users admin moderateur Liste Créer" [ref=e249]:
+                - cell "Utilisateurs" [ref=e250]:
+                  - strong [ref=e251]: Utilisateurs
+                - cell "users" [ref=e252]:
+                  - generic [ref=e253]: users
+                - cell "admin moderateur" [ref=e254]:
+                  - generic [ref=e255]: admin
+                  - generic [ref=e256]: moderateur
+                - cell "Liste Créer" [ref=e257]:
+                  - generic [ref=e258]:
+                    - link "Liste" [ref=e259] [cursor=pointer]:
+                      - /url: /admin/users/list
+                    - link "Créer" [ref=e260] [cursor=pointer]:
+                      - /url: /admin/users/create
+              - row "droits droits moderateur admin Liste Créer" [ref=e261]:
+                - cell "droits" [ref=e262]:
+                  - strong [ref=e263]: droits
+                - cell "droits" [ref=e264]:
+                  - generic [ref=e265]: droits
+                - cell "moderateur admin" [ref=e266]:
+                  - generic [ref=e267]: moderateur
+                  - generic [ref=e268]: admin
+                - cell "Liste Créer" [ref=e269]:
+                  - generic [ref=e270]:
+                    - link "Liste" [ref=e271] [cursor=pointer]:
+                      - /url: /admin/droits/list
+                    - link "Créer" [ref=e272] [cursor=pointer]:
+                      - /url: /admin/droits/create
+              - row "groupes groupes admin moderateur Liste Créer" [ref=e273]:
+                - cell "groupes" [ref=e274]:
+                  - strong [ref=e275]: groupes
+                - cell "groupes" [ref=e276]:
+                  - generic [ref=e277]: groupes
+                - cell "admin moderateur" [ref=e278]:
+                  - generic [ref=e279]: admin
+                  - generic [ref=e280]: moderateur
+                - cell "Liste Créer" [ref=e281]:
+                  - generic [ref=e282]:
+                    - link "Liste" [ref=e283] [cursor=pointer]:
+                      - /url: /admin/groupes/list
+                    - link "Créer" [ref=e284] [cursor=pointer]:
+                      - /url: /admin/groupes/create
+              - row "Contribution contribution admin moderateur Liste Créer" [ref=e285]:
+                - cell "Contribution" [ref=e286]:
+                  - strong [ref=e287]: Contribution
+                - cell "contribution" [ref=e288]:
+                  - generic [ref=e289]: contribution
+                - cell "admin moderateur" [ref=e290]:
+                  - generic [ref=e291]: admin
+                  - generic [ref=e292]: moderateur
+                - cell "Liste Créer" [ref=e293]:
+                  - generic [ref=e294]:
+                    - link "Liste" [ref=e295] [cursor=pointer]:
+                      - /url: /admin/contribution/list
+                    - link "Créer" [ref=e296] [cursor=pointer]:
+                      - /url: /admin/contribution/create
+              - row "Articles blog admin moderateur Liste Créer" [ref=e297]:
+                - cell "Articles" [ref=e298]:
+                  - strong [ref=e299]: Articles
+                - cell "blog" [ref=e300]:
+                  - generic [ref=e301]: blog
+                - cell "admin moderateur" [ref=e302]:
+                  - generic [ref=e303]: admin
+                  - generic [ref=e304]: moderateur
+                - cell "Liste Créer" [ref=e305]:
+                  - generic [ref=e306]:
+                    - link "Liste" [ref=e307] [cursor=pointer]:
+                      - /url: /admin/blog/list
+                    - link "Créer" [ref=e308] [cursor=pointer]:
+                      - /url: /admin/blog/create
+              - row "Changelog changelog_entry admin moderateur Liste Créer" [ref=e309]:
+                - cell "Changelog" [ref=e310]:
+                  - strong [ref=e311]: Changelog
+                - cell "changelog_entry" [ref=e312]:
+                  - generic [ref=e313]: changelog_entry
+                - cell "admin moderateur" [ref=e314]:
+                  - generic [ref=e315]: admin
+                  - generic [ref=e316]: moderateur
+                - cell "Liste Créer" [ref=e317]:
+                  - generic [ref=e318]:
+                    - link "Liste" [ref=e319] [cursor=pointer]:
+                      - /url: /admin/changelog_entry/list
+                    - link "Créer" [ref=e320] [cursor=pointer]:
+                      - /url: /admin/changelog_entry/create
+              - row "Roadmap roadmap_entry admin moderateur Liste Créer" [ref=e321]:
+                - cell "Roadmap" [ref=e322]:
+                  - strong [ref=e323]: Roadmap
+                - cell "roadmap_entry" [ref=e324]:
+                  - generic [ref=e325]: roadmap_entry
+                - cell "admin moderateur" [ref=e326]:
+                  - generic [ref=e327]: admin
+                  - generic [ref=e328]: moderateur
+                - cell "Liste Créer" [ref=e329]:
+                  - generic [ref=e330]:
+                    - link "Liste" [ref=e331] [cursor=pointer]:
+                      - /url: /admin/roadmap_entry/list
+                    - link "Créer" [ref=e332] [cursor=pointer]:
+                      - /url: /admin/roadmap_entry/create
+              - row "Problèmes connus known_issue admin moderateur Liste Créer" [ref=e333]:
+                - cell "Problèmes connus" [ref=e334]:
+                  - strong [ref=e335]: Problèmes connus
+                - cell "known_issue" [ref=e336]:
+                  - generic [ref=e337]: known_issue
+                - cell "admin moderateur" [ref=e338]:
+                  - generic [ref=e339]: admin
+                  - generic [ref=e340]: moderateur
+                - cell "Liste Créer" [ref=e341]:
+                  - generic [ref=e342]:
+                    - link "Liste" [ref=e343] [cursor=pointer]:
+                      - /url: /admin/known_issue/list
+                    - link "Créer" [ref=e344] [cursor=pointer]:
+                      - /url: /admin/known_issue/create
+              - row "Catégories demo_category admin moderateur Liste Créer" [ref=e345]:
+                - cell "Catégories" [ref=e346]:
+                  - strong [ref=e347]: Catégories
+                - cell "demo_category" [ref=e348]:
+                  - generic [ref=e349]: demo_category
+                - cell "admin moderateur" [ref=e350]:
+                  - generic [ref=e351]: admin
+                  - generic [ref=e352]: moderateur
+                - cell "Liste Créer" [ref=e353]:
+                  - generic [ref=e354]:
+                    - link "Liste" [ref=e355] [cursor=pointer]:
+                      - /url: /admin/demo_category/list
+                    - link "Créer" [ref=e356] [cursor=pointer]:
+                      - /url: /admin/demo_category/create
+              - row "Pages demo_page admin moderateur Liste Créer" [ref=e357]:
+                - cell "Pages" [ref=e358]:
+                  - strong [ref=e359]: Pages
+                - cell "demo_page" [ref=e360]:
+                  - generic [ref=e361]: demo_page
+                - cell "admin moderateur" [ref=e362]:
+                  - generic [ref=e363]: admin
+                  - generic [ref=e364]: moderateur
+                - cell "Liste Créer" [ref=e365]:
+                  - generic [ref=e366]:
+                    - link "Liste" [ref=e367] [cursor=pointer]:
+                      - /url: /admin/demo_page/list
+                    - link "Créer" [ref=e368] [cursor=pointer]:
+                      - /url: /admin/demo_page/create
+              - row "Sections demo_section admin moderateur Liste Créer" [ref=e369]:
+                - cell "Sections" [ref=e370]:
+                  - strong [ref=e371]: Sections
+                - cell "demo_section" [ref=e372]:
+                  - generic [ref=e373]: demo_section
+                - cell "admin moderateur" [ref=e374]:
+                  - generic [ref=e375]: admin
+                  - generic [ref=e376]: moderateur
+                - cell "Liste Créer" [ref=e377]:
+                  - generic [ref=e378]:
+                    - link "Liste" [ref=e379] [cursor=pointer]:
+                      - /url: /admin/demo_section/list
+                    - link "Créer" [ref=e380] [cursor=pointer]:
+                      - /url: /admin/demo_section/create
+              - row "Exemples de code code_example admin moderateur Liste Créer" [ref=e381]:
+                - cell "Exemples de code" [ref=e382]:
+                  - strong [ref=e383]: Exemples de code
+                - cell "code_example" [ref=e384]:
+                  - generic [ref=e385]: code_example
+                - cell "admin moderateur" [ref=e386]:
+                  - generic [ref=e387]: admin
+                  - generic [ref=e388]: moderateur
+                - cell "Liste Créer" [ref=e389]:
+                  - generic [ref=e390]:
+                    - link "Liste" [ref=e391] [cursor=pointer]:
+                      - /url: /admin/code_example/list
+                    - link "Créer" [ref=e392] [cursor=pointer]:
+                      - /url: /admin/code_example/create
+              - row "Liens documentation page_doc_link admin moderateur Liste Créer" [ref=e393]:
+                - cell "Liens documentation" [ref=e394]:
+                  - strong [ref=e395]: Liens documentation
+                - cell "page_doc_link" [ref=e396]:
+                  - generic [ref=e397]: page_doc_link
+                - cell "admin moderateur" [ref=e398]:
+                  - generic [ref=e399]: admin
+                  - generic [ref=e400]: moderateur
+                - cell "Liste Créer" [ref=e401]:
+                  - generic [ref=e402]:
+                    - link "Liste" [ref=e403] [cursor=pointer]:
+                      - /url: /admin/page_doc_link/list
+                    - link "Créer" [ref=e404] [cursor=pointer]:
+                      - /url: /admin/page_doc_link/create
+              - row "Champs formulaire form_field admin moderateur Liste Créer" [ref=e405]:
+                - cell "Champs formulaire" [ref=e406]:
+                  - strong [ref=e407]: Champs formulaire
+                - cell "form_field" [ref=e408]:
+                  - generic [ref=e409]: form_field
+                - cell "admin moderateur" [ref=e410]:
+                  - generic [ref=e411]: admin
+                  - generic [ref=e412]: moderateur
+                - cell "Liste Créer" [ref=e413]:
+                  - generic [ref=e414]:
+                    - link "Liste" [ref=e415] [cursor=pointer]:
+                      - /url: /admin/form_field/list
+                    - link "Créer" [ref=e416] [cursor=pointer]:
+                      - /url: /admin/form_field/create
+              - row "Doc — Sections doc_section admin moderateur Liste Créer" [ref=e417]:
+                - cell "Doc — Sections" [ref=e418]:
+                  - strong [ref=e419]: Doc — Sections
+                - cell "doc_section" [ref=e420]:
+                  - generic [ref=e421]: doc_section
+                - cell "admin moderateur" [ref=e422]:
+                  - generic [ref=e423]: admin
+                  - generic [ref=e424]: moderateur
+                - cell "Liste Créer" [ref=e425]:
+                  - generic [ref=e426]:
+                    - link "Liste" [ref=e427] [cursor=pointer]:
+                      - /url: /admin/doc_section/list
+                    - link "Créer" [ref=e428] [cursor=pointer]:
+                      - /url: /admin/doc_section/create
+              - row "Doc — Pages doc_page admin moderateur Liste Créer" [ref=e429]:
+                - cell "Doc — Pages" [ref=e430]:
+                  - strong [ref=e431]: Doc — Pages
+                - cell "doc_page" [ref=e432]:
+                  - generic [ref=e433]: doc_page
+                - cell "admin moderateur" [ref=e434]:
+                  - generic [ref=e435]: admin
+                  - generic [ref=e436]: moderateur
+                - cell "Liste Créer" [ref=e437]:
+                  - generic [ref=e438]:
+                    - link "Liste" [ref=e439] [cursor=pointer]:
+                      - /url: /admin/doc_page/list
+                    - link "Créer" [ref=e440] [cursor=pointer]:
+                      - /url: /admin/doc_page/create
+              - row "Doc — Blocs doc_block admin moderateur Liste Créer" [ref=e441]:
+                - cell "Doc — Blocs" [ref=e442]:
+                  - strong [ref=e443]: Doc — Blocs
+                - cell "doc_block" [ref=e444]:
+                  - generic [ref=e445]: doc_block
+                - cell "admin moderateur" [ref=e446]:
+                  - generic [ref=e447]: admin
+                  - generic [ref=e448]: moderateur
+                - cell "Liste Créer" [ref=e449]:
+                  - generic [ref=e450]:
+                    - link "Liste" [ref=e451] [cursor=pointer]:
+                      - /url: /admin/doc_block/list
+                    - link "Créer" [ref=e452] [cursor=pointer]:
+                      - /url: /admin/doc_block/create
+              - row "Configuration site site_config admin moderateur Liste Créer" [ref=e453]:
+                - cell "Configuration site" [ref=e454]:
+                  - strong [ref=e455]: Configuration site
+                - cell "site_config" [ref=e456]:
+                  - generic [ref=e457]: site_config
+                - cell "admin moderateur" [ref=e458]:
+                  - generic [ref=e459]: admin
+                  - generic [ref=e460]: moderateur
+                - cell "Liste Créer" [ref=e461]:
+                  - generic [ref=e462]:
+                    - link "Liste" [ref=e463] [cursor=pointer]:
+                      - /url: /admin/site_config/list
+                    - link "Créer" [ref=e464] [cursor=pointer]:
+                      - /url: /admin/site_config/create
+              - row "Cours cour admin moderateur Liste Créer" [ref=e465]:
+                - cell "Cours" [ref=e466]:
+                  - strong [ref=e467]: Cours
+                - cell "cour" [ref=e468]:
+                  - generic [ref=e469]: cour
+                - cell "admin moderateur" [ref=e470]:
+                  - generic [ref=e471]: admin
+                  - generic [ref=e472]: moderateur
+                - cell "Liste Créer" [ref=e473]:
+                  - generic [ref=e474]:
+                    - link "Liste" [ref=e475] [cursor=pointer]:
+                      - /url: /admin/cour/list
+                    - link "Créer" [ref=e476] [cursor=pointer]:
+                      - /url: /admin/cour/create
+              - row "Chapitres chapitre admin moderateur Liste Créer" [ref=e477]:
+                - cell "Chapitres" [ref=e478]:
+                  - strong [ref=e479]: Chapitres
+                - cell "chapitre" [ref=e480]:
+                  - generic [ref=e481]: chapitre
+                - cell "admin moderateur" [ref=e482]:
+                  - generic [ref=e483]: admin
+                  - generic [ref=e484]: moderateur
+                - cell "Liste Créer" [ref=e485]:
+                  - generic [ref=e486]:
+                    - link "Liste" [ref=e487] [cursor=pointer]:
+                      - /url: /admin/chapitre/list
+                    - link "Créer" [ref=e488] [cursor=pointer]:
+                      - /url: /admin/chapitre/create
+              - row "Cours — Blocs cour_block admin moderateur Liste Créer" [ref=e489]:
+                - cell "Cours — Blocs" [ref=e490]:
+                  - strong [ref=e491]: Cours — Blocs
+                - cell "cour_block" [ref=e492]:
+                  - generic [ref=e493]: cour_block
+                - cell "admin moderateur" [ref=e494]:
+                  - generic [ref=e495]: admin
+                  - generic [ref=e496]: moderateur
+                - cell "Liste Créer" [ref=e497]:
+                  - generic [ref=e498]:
+                    - link "Liste" [ref=e499] [cursor=pointer]:
+                      - /url: /admin/cour_block/list
+                    - link "Créer" [ref=e500] [cursor=pointer]:
+                      - /url: /admin/cour_block/create
+              - row "Releases Runique runique_release admin moderateur Liste Créer" [ref=e501]:
+                - cell "Releases Runique" [ref=e502]:
+                  - strong [ref=e503]: Releases Runique
+                - cell "runique_release" [ref=e504]:
+                  - generic [ref=e505]: runique_release
+                - cell "admin moderateur" [ref=e506]:
+                  - generic [ref=e507]: admin
+                  - generic [ref=e508]: moderateur
+                - cell "Liste Créer" [ref=e509]:
+                  - generic [ref=e510]:
+                    - link "Liste" [ref=e511] [cursor=pointer]:
+                      - /url: /admin/runique_release/list
+                    - link "Créer" [ref=e512] [cursor=pointer]:
+                      - /url: /admin/runique_release/create
+  - contentinfo

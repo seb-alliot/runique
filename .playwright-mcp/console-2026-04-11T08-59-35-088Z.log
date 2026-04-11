@@ -1,0 +1,4 @@
+[     268ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0
+[   29168ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:3000/admin/droits/create:0
+[   29178ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:3000/admin/droits/1/edit:0
+[   29188ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:3000/admin/droits/1/delete:0

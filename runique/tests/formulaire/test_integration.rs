@@ -1059,6 +1059,7 @@ fn test_get_string() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("name"));
     form.add_value("name", "Alice");
+    form.is_valid().ok();
     assert_eq!(form.get_string("name"), "Alice");
     // Champ inexistant → String vide
     assert_eq!(form.get_string("inexistant"), "");
@@ -1072,6 +1073,7 @@ fn test_get_option() {
 
     form.add_value("bio", "Développeuse Rust");
     form.add_value("vide", "");
+    form.is_valid().ok();
 
     assert_eq!(
         form.get_option("bio"),
@@ -1089,6 +1091,7 @@ fn test_get_i32() {
 
     form.add_value("age", "25");
     form.add_value("texte", "pas un nombre");
+    form.is_valid().ok();
 
     assert_eq!(form.get_i32("age"), 25);
     assert_eq!(form.get_i32("texte"), 0); // parse échoué → 0
@@ -1100,6 +1103,7 @@ fn test_get_i64() {
     let mut form = Forms::new("csrf");
     form.field(&NumericField::integer("big"));
     form.add_value("big", "9999999999");
+    form.is_valid().ok();
     assert_eq!(form.get_i64("big"), 9_999_999_999i64);
 }
 
@@ -1108,9 +1112,11 @@ fn test_get_u32() {
     let mut form = Forms::new("csrf");
     form.field(&NumericField::integer("count"));
     form.add_value("count", "42");
+    form.is_valid().ok();
     assert_eq!(form.get_u32("count"), 42u32);
     // Négatif → 0 (parse échoue pour u32)
     form.add_value("count", "-5");
+    form.is_valid().ok();
     assert_eq!(form.get_u32("count"), 0);
 }
 
@@ -1119,6 +1125,7 @@ fn test_get_u64() {
     let mut form = Forms::new("csrf");
     form.field(&NumericField::integer("id"));
     form.add_value("id", "18446744073709551615");
+    form.is_valid().ok();
     assert_eq!(form.get_u64("id"), u64::MAX);
 }
 
@@ -1127,6 +1134,7 @@ fn test_get_f32() {
     let mut form = Forms::new("csrf");
     form.field(&NumericField::float("ratio"));
     form.add_value("ratio", &std::f32::consts::PI.to_string());
+    form.is_valid().ok();
     let val = form.get_f32("ratio");
     assert!((val - std::f32::consts::PI).abs() < f32::EPSILON);
 }
@@ -1136,6 +1144,7 @@ fn test_get_f64() {
     let mut form = Forms::new("csrf");
     form.field(&NumericField::float("price"));
     form.add_value("price", "19.99");
+    form.is_valid().ok();
     assert_eq!(form.get_f64("price"), 19.99);
 }
 
@@ -1144,6 +1153,7 @@ fn test_get_f64_comma_to_dot() {
     let mut form = Forms::new("csrf");
     form.field(&NumericField::float("price"));
     form.add_value("price", "19,99");
+    form.is_valid().ok();
     assert_eq!(form.get_f64("price"), 19.99);
 }
 
@@ -1159,6 +1169,7 @@ fn test_get_bool() {
     form.add_value("news", "1");
     form.add_value("html", "on");
     form.add_value("off", "false");
+    form.is_valid().ok();
 
     assert!(form.get_bool("cgu"));
     assert!(form.get_bool("news"));
@@ -1175,6 +1186,7 @@ fn test_get_option_i32() {
 
     form.add_value("age", "30");
     form.add_value("vide", "");
+    form.is_valid().ok();
 
     assert_eq!(form.get_option_i32("age"), Some(30));
     assert_eq!(form.get_option_i32("vide"), None);
@@ -1186,6 +1198,7 @@ fn test_get_option_i64() {
     let mut form = Forms::new("csrf");
     form.field(&NumericField::integer("score"));
     form.add_value("score", "999");
+    form.is_valid().ok();
     assert_eq!(form.get_option_i64("score"), Some(999i64));
 }
 
@@ -1197,6 +1210,7 @@ fn test_get_option_f64() {
 
     form.add_value("note", "18,5");
     form.add_value("vide", "");
+    form.is_valid().ok();
 
     assert_eq!(form.get_option_f64("note"), Some(18.5));
     assert_eq!(form.get_option_f64("vide"), None);
@@ -1210,6 +1224,7 @@ fn test_get_option_bool() {
 
     form.add_value("active", "true");
     form.add_value("vide", "");
+    form.is_valid().ok();
 
     assert_eq!(form.get_option_bool("active"), Some(true));
     assert_eq!(form.get_option_bool("vide"), None);
@@ -1224,6 +1239,7 @@ fn test_get_naive_date_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("naissance"));
     form.add_value("naissance", "1990-06-15");
+    form.is_valid().ok();
     let date = form.get_naive_date("naissance");
     use chrono::NaiveDate;
     assert_eq!(date, NaiveDate::from_ymd_opt(1990, 6, 15).unwrap());
@@ -1234,6 +1250,7 @@ fn test_get_naive_date_invalide_retourne_default() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("d"));
     form.add_value("d", "pas-une-date");
+    form.is_valid().ok();
     let date = form.get_naive_date("d");
     assert_eq!(date, chrono::NaiveDate::default());
 }
@@ -1250,6 +1267,7 @@ fn test_get_option_naive_date_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("d"));
     form.add_value("d", "2024-01-31");
+    form.is_valid().ok();
     let date = form.get_option_naive_date("d");
     use chrono::NaiveDate;
     assert_eq!(date, NaiveDate::from_ymd_opt(2024, 1, 31));
@@ -1260,6 +1278,7 @@ fn test_get_option_naive_date_invalide_retourne_none() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("d"));
     form.add_value("d", "invalide");
+    form.is_valid().ok();
     assert_eq!(form.get_option_naive_date("d"), None);
 }
 
@@ -1268,6 +1287,7 @@ fn test_get_option_naive_date_vide_retourne_none() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("d"));
     form.add_value("d", "");
+    form.is_valid().ok();
     assert_eq!(form.get_option_naive_date("d"), None);
 }
 
@@ -1276,6 +1296,7 @@ fn test_get_naive_time_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("t"));
     form.add_value("t", "14:30");
+    form.is_valid().ok();
     let time = form.get_naive_time("t");
     use chrono::NaiveTime;
     assert_eq!(time, NaiveTime::from_hms_opt(14, 30, 0).unwrap());
@@ -1286,6 +1307,7 @@ fn test_get_naive_time_invalide_retourne_default() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("t"));
     form.add_value("t", "pas-une-heure");
+    form.is_valid().ok();
     let time = form.get_naive_time("t");
     assert_eq!(time, chrono::NaiveTime::default());
 }
@@ -1295,6 +1317,7 @@ fn test_get_option_naive_time_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("t"));
     form.add_value("t", "09:00");
+    form.is_valid().ok();
     use chrono::NaiveTime;
     assert_eq!(
         form.get_option_naive_time("t"),
@@ -1307,6 +1330,7 @@ fn test_get_option_naive_time_invalide_retourne_none() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("t"));
     form.add_value("t", "25:00");
+    form.is_valid().ok();
     assert_eq!(form.get_option_naive_time("t"), None);
 }
 
@@ -1315,6 +1339,7 @@ fn test_get_naive_datetime_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("dt"));
     form.add_value("dt", "2025-03-15T10:30");
+    form.is_valid().ok();
     let dt = form.get_naive_datetime("dt");
     use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
     let expected = NaiveDateTime::new(
@@ -1329,6 +1354,7 @@ fn test_get_naive_datetime_invalide_retourne_default() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("dt"));
     form.add_value("dt", "invalide");
+    form.is_valid().ok();
     assert_eq!(
         form.get_naive_datetime("dt"),
         chrono::NaiveDateTime::default()
@@ -1340,6 +1366,7 @@ fn test_get_option_naive_datetime_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("dt"));
     form.add_value("dt", "2025-06-01T08:00");
+    form.is_valid().ok();
     use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
     let expected = NaiveDateTime::new(
         NaiveDate::from_ymd_opt(2025, 6, 1).unwrap(),
@@ -1353,6 +1380,7 @@ fn test_get_option_naive_datetime_invalide_retourne_none() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("dt"));
     form.add_value("dt", "2025-13-99T99:99");
+    form.is_valid().ok();
     assert_eq!(form.get_option_naive_datetime("dt"), None);
 }
 
@@ -1361,6 +1389,7 @@ fn test_get_datetime_utc_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("ts"));
     form.add_value("ts", "2025-01-01T00:00:00Z");
+    form.is_valid().ok();
     let dt = form.get_datetime_utc("ts");
     use chrono::{TimeZone, Utc};
     let expected = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
@@ -1372,6 +1401,7 @@ fn test_get_datetime_utc_invalide_retourne_maintenant() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("ts"));
     form.add_value("ts", "invalide");
+    form.is_valid().ok();
     // Doit retourner un temps proche de maintenant (Utc::now())
     let dt = form.get_datetime_utc("ts");
     let now = chrono::Utc::now();
@@ -1387,6 +1417,7 @@ fn test_get_option_datetime_utc_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("ts"));
     form.add_value("ts", "2025-06-15T12:00:00+02:00");
+    form.is_valid().ok();
     let dt = form.get_option_datetime_utc("ts");
     assert!(dt.is_some());
 }
@@ -1396,6 +1427,7 @@ fn test_get_option_datetime_utc_invalide_retourne_none() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("ts"));
     form.add_value("ts", "pas-une-date");
+    form.is_valid().ok();
     assert_eq!(form.get_option_datetime_utc("ts"), None);
 }
 
@@ -1408,6 +1440,7 @@ fn test_get_uuid_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("token"));
     form.add_value("token", "550e8400-e29b-41d4-a716-446655440000");
+    form.is_valid().ok();
     let uuid = form.get_uuid("token");
     assert_eq!(uuid.to_string(), "550e8400-e29b-41d4-a716-446655440000");
 }
@@ -1417,6 +1450,7 @@ fn test_get_uuid_invalide_retourne_nil() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("token"));
     form.add_value("token", "pas-un-uuid");
+    form.is_valid().ok();
     let uuid = form.get_uuid("token");
     assert_eq!(uuid, uuid::Uuid::nil());
 }
@@ -1433,6 +1467,7 @@ fn test_get_option_uuid_valide() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("id"));
     form.add_value("id", "550e8400-e29b-41d4-a716-446655440000");
+    form.is_valid().ok();
     let uuid = form.get_option_uuid("id");
     assert!(uuid.is_some());
     assert_eq!(
@@ -1446,6 +1481,7 @@ fn test_get_option_uuid_invalide_retourne_none() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("id"));
     form.add_value("id", "invalide");
+    form.is_valid().ok();
     assert_eq!(form.get_option_uuid("id"), None);
 }
 
@@ -1454,6 +1490,7 @@ fn test_get_option_uuid_vide_retourne_none() {
     let mut form = Forms::new("csrf");
     form.field(&TextField::text("id"));
     form.add_value("id", "");
+    form.is_valid().ok();
     assert_eq!(form.get_option_uuid("id"), None);
 }
 

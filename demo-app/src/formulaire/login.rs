@@ -17,6 +17,7 @@ impl RuniqueForm for LoginForm {
         form.field(
             &TextField::password("password")
                 .label("Mot de passe")
+                .no_hash()
                 .required(),
         );
     }

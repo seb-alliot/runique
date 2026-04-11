@@ -42,7 +42,6 @@ fn write_admin(parsed: &ParsedAdmin, dir: &Path) -> Result<(), String> {
     let _ = writeln!(out, "// admin by `runique start` from src/admin.rs");
     let _ = writeln!(out);
     let _ = writeln!(out, "use runique::prelude::*;");
-    let _ = writeln!(out, "use runique::admin::resource_entry::FilterFn;");
     let _ = writeln!(out);
 
     // Imports des entités (AdminForm est généré par model! dans chaque module)

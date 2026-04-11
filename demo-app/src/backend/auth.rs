@@ -175,8 +175,8 @@ pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppRes
         });
         return request.render(template);
     }
-    let credentials = get_credentials(form);
     if request.is_post() && form.is_valid().await {
+        let credentials = get_credentials(form);
         if let Some((username_val, password_val)) = &credentials
             && let Some(user) =
                 authenticate_user(&request.engine.db, username_val, password_val).await
@@ -216,13 +216,9 @@ pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppRes
 }
 
 pub fn get_credentials(form: &LoginForm) -> Option<(String, String)> {
-    let u = form.get_form().get_value("username").unwrap_or_default();
-    let p = form.get_form().get_value("password").unwrap_or_default();
-    if u.is_empty() || p.is_empty() {
-        None
-    } else {
-        Some((u, p))
-    }
+    let u = form.cleaned_string("username")?;
+    let p = form.cleaned_string("password")?;
+    Some((u, p))
 }
 
 pub async fn get_profile_user(

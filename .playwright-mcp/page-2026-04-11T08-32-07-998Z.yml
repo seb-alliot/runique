@@ -1,0 +1,13 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: R
+    - heading "Administration" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Connectez-vous pour accéder au panneau d'administration
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: Nom d'utilisateur
+      - textbox "Nom d'utilisateur" [active] [ref=e11]: Itsuki
+    - generic [ref=e12]:
+      - generic [ref=e13]: Mot de passe
+      - textbox "Mot de passe" [ref=e14]: Connasse1.
+    - button "Se connecter" [ref=e15] [cursor=pointer]

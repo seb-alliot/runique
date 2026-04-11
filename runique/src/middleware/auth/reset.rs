@@ -78,11 +78,11 @@ impl RuniqueForm for PasswordResetForm {
     }
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let token = self.get_string("token");
-        let encrypted = self.get_string("encrypted_email");
-        let email = self.get_string("email");
-        let password = self.get_string("password");
-        let confirm = self.get_string("confirm");
+        let token = self.cleaned_string("token").unwrap_or_default();
+        let encrypted = self.cleaned_string("encrypted_email").unwrap_or_default();
+        let email = self.cleaned_string("email").unwrap_or_default();
+        let password = self.cleaned_string("password").unwrap_or_default();
+        let confirm = self.cleaned_string("confirm").unwrap_or_default();
         let mut errors = StrMap::new();
 
         match crate::utils::reset_token::decrypt_email(&token, &encrypted) {
@@ -218,7 +218,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
     }
 
     if request.is_post() && form.is_valid().await {
-        let email = form.get_string("email");
+        let email = form.cleaned_string("email").unwrap_or_default();
         let email = email.trim().to_lowercase();
 
         let db = request.engine.db.clone();
@@ -332,7 +332,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
         }
 
         let db = request.engine.db.clone();
-        let email_clean = form.get_string("email");
+        let email_clean = form.cleaned_string("email").unwrap_or_default();
         let new_hash = form.cleaned_string("password").unwrap_or_default();
 
         match E::update_password(&db, email_clean.trim(), &new_hash).await {

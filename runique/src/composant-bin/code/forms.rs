@@ -13,9 +13,9 @@ impl RegisterForm {
     ) -> Result<runique::prelude::user::Model, DbErr> {
         use runique::prelude::user::ActiveModel;
         let new_user = ActiveModel {
-            username: Set(self.form.get_string("username")),
-            email: Set(self.form.get_string("email")),
-            password: Set(hash(self.form.get_string("password").as_str()).unwrap_or_default()),
+            username: Set(self.cleaned_string("username").unwrap_or_default()),
+            email: Set(self.cleaned_string("email").unwrap_or_default()),
+            password: Set(self.cleaned_string("password").unwrap_or_default()),
             ..Default::default()
         };
         new_user.insert(db).await

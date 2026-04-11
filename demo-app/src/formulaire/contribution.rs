@@ -16,8 +16,8 @@ impl RuniqueForm for ContributionForm {
     impl_form_access!(model);
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let title = self.get_string("title");
-        let content = self.get_string("content");
+        let title = self.cleaned_string("title").unwrap_or_default();
+        let content = self.cleaned_string("content").unwrap_or_default();
         let mut errors = StrMap::new();
 
         if title.len() < 3 {
@@ -50,12 +50,12 @@ impl ContributionForm {
         let new_contribution = crate::entities::contribution::ActiveModel {
             user_id: Set(user_pk.try_into().unwrap()),
             contribution_type: Set(self
-                .form
-                .get_string("contribution_type")
+                .cleaned_string("contribution_type")
+                .unwrap_or_default()
                 .parse::<crate::entities::contribution::ContributionType>()
                 .unwrap_or_default()),
-            title: Set(self.form.get_string("title")),
-            content: Set(self.form.get_string("content")),
+            title: Set(self.cleaned_string("title").unwrap_or_default()),
+            content: Set(self.cleaned_string("content").unwrap_or_default()),
             ..Default::default()
         };
         new_contribution.insert(db).await

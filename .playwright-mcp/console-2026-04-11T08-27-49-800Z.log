@@ -1,0 +1,5 @@
+[     232ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0
+[   15661ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:3000/media/favicon/favicon.ico:0
+[   15740ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0
+[   38594ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0
+[   69398ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0

@@ -1,0 +1,8 @@
+[     221ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0
+[    9036ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://127.0.0.1:3000/admin/droits/list:0
+[   21403ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://127.0.0.1:3000/admin/droits/list:0
+[   21417ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://127.0.0.1:3000/admin/droits/list:0
+[   21431ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://127.0.0.1:3000/admin/droits/list:0
+[  350156ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0
+[  356334ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0
+[  357624ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0

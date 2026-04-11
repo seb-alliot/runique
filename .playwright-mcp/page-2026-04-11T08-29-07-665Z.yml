@@ -1,0 +1,317 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: R
+        - generic [ref=e6]: Administration
+      - navigation [ref=e7]:
+        - link [ref=e8] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e9]
+        - generic [ref=e15]: Administration
+        - link "Utilisateurs" [ref=e16] [cursor=pointer]:
+          - /url: /admin/users/list
+          - img [ref=e17]
+          - generic [ref=e20]: Utilisateurs
+        - link "droits" [ref=e21] [cursor=pointer]:
+          - /url: /admin/droits/list
+          - img [ref=e22]
+          - generic [ref=e25]: droits
+        - link "groupes" [ref=e26] [cursor=pointer]:
+          - /url: /admin/groupes/list
+          - img [ref=e27]
+          - generic [ref=e30]: groupes
+        - link "Contribution" [ref=e31] [cursor=pointer]:
+          - /url: /admin/contribution/list
+          - img [ref=e32]
+          - generic [ref=e35]: Contribution
+        - link "Articles" [ref=e36] [cursor=pointer]:
+          - /url: /admin/blog/list
+          - img [ref=e37]
+          - generic [ref=e40]: Articles
+        - link "Changelog" [ref=e41] [cursor=pointer]:
+          - /url: /admin/changelog_entry/list
+          - img [ref=e42]
+          - generic [ref=e45]: Changelog
+        - link "Roadmap" [ref=e46] [cursor=pointer]:
+          - /url: /admin/roadmap_entry/list
+          - img [ref=e47]
+          - generic [ref=e50]: Roadmap
+        - link "Problèmes connus" [ref=e51] [cursor=pointer]:
+          - /url: /admin/known_issue/list
+          - img [ref=e52]
+          - generic [ref=e55]: Problèmes connus
+        - link "Catégories" [ref=e56] [cursor=pointer]:
+          - /url: /admin/demo_category/list
+          - img [ref=e57]
+          - generic [ref=e60]: Catégories
+        - link "Pages" [ref=e61] [cursor=pointer]:
+          - /url: /admin/demo_page/list
+          - img [ref=e62]
+          - generic [ref=e65]: Pages
+        - link "Sections" [ref=e66] [cursor=pointer]:
+          - /url: /admin/demo_section/list
+          - img [ref=e67]
+          - generic [ref=e70]: Sections
+        - link "Exemples de code" [ref=e71] [cursor=pointer]:
+          - /url: /admin/code_example/list
+          - img [ref=e72]
+          - generic [ref=e75]: Exemples de code
+        - link "Liens documentation" [ref=e76] [cursor=pointer]:
+          - /url: /admin/page_doc_link/list
+          - img [ref=e77]
+          - generic [ref=e80]: Liens documentation
+        - link "Champs formulaire" [ref=e81] [cursor=pointer]:
+          - /url: /admin/form_field/list
+          - img [ref=e82]
+          - generic [ref=e85]: Champs formulaire
+        - link "Doc — Sections" [ref=e86] [cursor=pointer]:
+          - /url: /admin/doc_section/list
+          - img [ref=e87]
+          - generic [ref=e90]: Doc — Sections
+        - link "Doc — Pages" [ref=e91] [cursor=pointer]:
+          - /url: /admin/doc_page/list
+          - img [ref=e92]
+          - generic [ref=e95]: Doc — Pages
+        - link "Doc — Blocs" [ref=e96] [cursor=pointer]:
+          - /url: /admin/doc_block/list
+          - img [ref=e97]
+          - generic [ref=e100]: Doc — Blocs
+        - link "Configuration site" [ref=e101] [cursor=pointer]:
+          - /url: /admin/site_config/list
+          - img [ref=e102]
+          - generic [ref=e105]: Configuration site
+        - link "Cours" [ref=e106] [cursor=pointer]:
+          - /url: /admin/cour/list
+          - img [ref=e107]
+          - generic [ref=e110]: Cours
+        - link "Chapitres" [ref=e111] [cursor=pointer]:
+          - /url: /admin/chapitre/list
+          - img [ref=e112]
+          - generic [ref=e115]: Chapitres
+        - link "Cours — Blocs" [ref=e116] [cursor=pointer]:
+          - /url: /admin/cour_block/list
+          - img [ref=e117]
+          - generic [ref=e120]: Cours — Blocs
+        - link "Releases Runique" [ref=e121] [cursor=pointer]:
+          - /url: /admin/runique_release/list
+          - img [ref=e122]
+          - generic [ref=e125]: Releases Runique
+      - button "Réduire le menu" [ref=e128] [cursor=pointer]:
+        - img [ref=e129]
+    - generic [ref=e131]:
+      - banner [ref=e132]:
+        - button [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+        - generic [ref=e135]:
+          - link "Admin" [ref=e136] [cursor=pointer]:
+            - /url: /admin
+          - generic [ref=e137]: /
+          - link "Administration" [ref=e138] [cursor=pointer]:
+            - /url: /admin
+          - generic [ref=e139]: /
+          - generic [ref=e140]: droits
+        - link "← Site" [ref=e141] [cursor=pointer]:
+          - /url: /
+        - link "Itsuki Déconnexion" [ref=e142] [cursor=pointer]:
+          - /url: /admin/logout
+          - generic [ref=e143]: Itsuki
+          - generic [ref=e144]: Déconnexion
+      - main [ref=e145]:
+        - generic [ref=e146]:
+          - generic [ref=e147]:
+            - heading "droits" [level=1] [ref=e148]
+            - paragraph [ref=e149]: 44 entrée(s)
+          - link "Créer" [ref=e150] [cursor=pointer]:
+            - /url: /admin/droits/create
+            - img [ref=e151]
+            - text: Créer
+        - generic [ref=e152]:
+          - generic [ref=e155]:
+            - textbox "Rechercher..." [ref=e156]
+            - button [ref=e157] [cursor=pointer]:
+              - img [ref=e158]
+          - generic [ref=e162]:
+            - table [ref=e165]:
+              - rowgroup [ref=e166]:
+                - row "id can create Actions" [ref=e167]:
+                  - columnheader "id" [ref=e168]:
+                    - link "id" [ref=e169] [cursor=pointer]:
+                      - /url: "?sort_by=id&sort_dir=asc&page=1"
+                  - columnheader "can create" [ref=e170]:
+                    - link "can create" [ref=e171] [cursor=pointer]:
+                      - /url: "?sort_by=can_create&sort_dir=asc&page=1"
+                  - columnheader [ref=e172]
+                  - columnheader "Actions" [ref=e173]
+              - rowgroup [ref=e174]:
+                - row "#1:users Oui Détails" [ref=e175]:
+                  - cell "#1:users" [ref=e176]:
+                    - generic [ref=e177]: "#1:users"
+                  - cell "Oui" [ref=e178] [cursor=pointer]:
+                    - generic [ref=e179]: Oui
+                  - cell "Détails" [ref=e180]:
+                    - button "Détails" [ref=e181] [cursor=pointer]:
+                      - img [ref=e182]
+                  - cell [ref=e184]:
+                    - button [ref=e186] [cursor=pointer]:
+                      - img [ref=e187]
+                - row "#1:groupes Oui Détails" [ref=e191]:
+                  - cell "#1:groupes" [ref=e192]:
+                    - generic [ref=e193]: "#1:groupes"
+                  - cell "Oui" [ref=e194] [cursor=pointer]:
+                    - generic [ref=e195]: Oui
+                  - cell "Détails" [ref=e196]:
+                    - button "Détails" [ref=e197] [cursor=pointer]:
+                      - img [ref=e198]
+                  - cell [ref=e200]:
+                    - button [ref=e202] [cursor=pointer]:
+                      - img [ref=e203]
+                - row "#1:contribution Oui Détails" [ref=e207]:
+                  - cell "#1:contribution" [ref=e208]:
+                    - generic [ref=e209]: "#1:contribution"
+                  - cell "Oui" [ref=e210] [cursor=pointer]:
+                    - generic [ref=e211]: Oui
+                  - cell "Détails" [ref=e212]:
+                    - button "Détails" [ref=e213] [cursor=pointer]:
+                      - img [ref=e214]
+                  - cell [ref=e216]:
+                    - button [ref=e218] [cursor=pointer]:
+                      - img [ref=e219]
+                - row "#1:blog Oui Détails" [ref=e223]:
+                  - cell "#1:blog" [ref=e224]:
+                    - generic [ref=e225]: "#1:blog"
+                  - cell "Oui" [ref=e226] [cursor=pointer]:
+                    - generic [ref=e227]: Oui
+                  - cell "Détails" [ref=e228]:
+                    - button "Détails" [ref=e229] [cursor=pointer]:
+                      - img [ref=e230]
+                  - cell [ref=e232]:
+                    - button [ref=e234] [cursor=pointer]:
+                      - img [ref=e235]
+                - row "#1:changelog_entry Oui Détails" [ref=e239]:
+                  - cell "#1:changelog_entry" [ref=e240]:
+                    - generic [ref=e241]: "#1:changelog_entry"
+                  - cell "Oui" [ref=e242] [cursor=pointer]:
+                    - generic [ref=e243]: Oui
+                  - cell "Détails" [ref=e244]:
+                    - button "Détails" [ref=e245] [cursor=pointer]:
+                      - img [ref=e246]
+                  - cell [ref=e248]:
+                    - button [ref=e250] [cursor=pointer]:
+                      - img [ref=e251]
+                - row "#1:roadmap_entry Oui Détails" [ref=e255]:
+                  - cell "#1:roadmap_entry" [ref=e256]:
+                    - generic [ref=e257]: "#1:roadmap_entry"
+                  - cell "Oui" [ref=e258] [cursor=pointer]:
+                    - generic [ref=e259]: Oui
+                  - cell "Détails" [ref=e260]:
+                    - button "Détails" [ref=e261] [cursor=pointer]:
+                      - img [ref=e262]
+                  - cell [ref=e264]:
+                    - button [ref=e266] [cursor=pointer]:
+                      - img [ref=e267]
+                - row "#1:known_issue Oui Détails" [ref=e271]:
+                  - cell "#1:known_issue" [ref=e272]:
+                    - generic [ref=e273]: "#1:known_issue"
+                  - cell "Oui" [ref=e274] [cursor=pointer]:
+                    - generic [ref=e275]: Oui
+                  - cell "Détails" [ref=e276]:
+                    - button "Détails" [ref=e277] [cursor=pointer]:
+                      - img [ref=e278]
+                  - cell [ref=e280]:
+                    - button [ref=e282] [cursor=pointer]:
+                      - img [ref=e283]
+                - row "#1:demo_category Oui Détails" [ref=e287]:
+                  - cell "#1:demo_category" [ref=e288]:
+                    - generic [ref=e289]: "#1:demo_category"
+                  - cell "Oui" [ref=e290] [cursor=pointer]:
+                    - generic [ref=e291]: Oui
+                  - cell "Détails" [ref=e292]:
+                    - button "Détails" [ref=e293] [cursor=pointer]:
+                      - img [ref=e294]
+                  - cell [ref=e296]:
+                    - button [ref=e298] [cursor=pointer]:
+                      - img [ref=e299]
+                - row "#1:demo_page Oui Détails" [ref=e303]:
+                  - cell "#1:demo_page" [ref=e304]:
+                    - generic [ref=e305]: "#1:demo_page"
+                  - cell "Oui" [ref=e306] [cursor=pointer]:
+                    - generic [ref=e307]: Oui
+                  - cell "Détails" [ref=e308]:
+                    - button "Détails" [ref=e309] [cursor=pointer]:
+                      - img [ref=e310]
+                  - cell [ref=e312]:
+                    - button [ref=e314] [cursor=pointer]:
+                      - img [ref=e315]
+                - row "#1:demo_section Oui Détails" [ref=e319]:
+                  - cell "#1:demo_section" [ref=e320]:
+                    - generic [ref=e321]: "#1:demo_section"
+                  - cell "Oui" [ref=e322] [cursor=pointer]:
+                    - generic [ref=e323]: Oui
+                  - cell "Détails" [ref=e324]:
+                    - button "Détails" [ref=e325] [cursor=pointer]:
+                      - img [ref=e326]
+                  - cell [ref=e328]:
+                    - button [ref=e330] [cursor=pointer]:
+                      - img [ref=e331]
+                - row "#1:code_example Oui Détails" [ref=e335]:
+                  - cell "#1:code_example" [ref=e336]:
+                    - generic [ref=e337]: "#1:code_example"
+                  - cell "Oui" [ref=e338] [cursor=pointer]:
+                    - generic [ref=e339]: Oui
+                  - cell "Détails" [ref=e340]:
+                    - button "Détails" [ref=e341] [cursor=pointer]:
+                      - img [ref=e342]
+                  - cell [ref=e344]:
+                    - button [ref=e346] [cursor=pointer]:
+                      - img [ref=e347]
+                - row "#1:page_doc_link Oui Détails" [ref=e351]:
+                  - cell "#1:page_doc_link" [ref=e352]:
+                    - generic [ref=e353]: "#1:page_doc_link"
+                  - cell "Oui" [ref=e354] [cursor=pointer]:
+                    - generic [ref=e355]: Oui
+                  - cell "Détails" [ref=e356]:
+                    - button "Détails" [ref=e357] [cursor=pointer]:
+                      - img [ref=e358]
+                  - cell [ref=e360]:
+                    - button [ref=e362] [cursor=pointer]:
+                      - img [ref=e363]
+                - row "#1:form_field Oui Détails" [ref=e367]:
+                  - cell "#1:form_field" [ref=e368]:
+                    - generic [ref=e369]: "#1:form_field"
+                  - cell "Oui" [ref=e370] [cursor=pointer]:
+                    - generic [ref=e371]: Oui
+                  - cell "Détails" [ref=e372]:
+                    - button "Détails" [ref=e373] [cursor=pointer]:
+                      - img [ref=e374]
+                  - cell [ref=e376]:
+                    - button [ref=e378] [cursor=pointer]:
+                      - img [ref=e379]
+                - row "#1:doc_section Oui Détails" [ref=e383]:
+                  - cell "#1:doc_section" [ref=e384]:
+                    - generic [ref=e385]: "#1:doc_section"
+                  - cell "Oui" [ref=e386] [cursor=pointer]:
+                    - generic [ref=e387]: Oui
+                  - cell "Détails" [ref=e388]:
+                    - button "Détails" [ref=e389] [cursor=pointer]:
+                      - img [ref=e390]
+                  - cell [ref=e392]:
+                    - button [ref=e394] [cursor=pointer]:
+                      - img [ref=e395]
+                - row "#1:doc_page Oui Détails" [ref=e399]:
+                  - cell "#1:doc_page" [ref=e400]:
+                    - generic [ref=e401]: "#1:doc_page"
+                  - cell "Oui" [ref=e402] [cursor=pointer]:
+                    - generic [ref=e403]: Oui
+                  - cell "Détails" [ref=e404]:
+                    - button "Détails" [ref=e405] [cursor=pointer]:
+                      - img [ref=e406]
+                  - cell [ref=e408]:
+                    - button [ref=e410] [cursor=pointer]:
+                      - img [ref=e411]
+            - generic [ref=e415]:
+              - generic [ref=e416] [cursor=pointer]: «
+              - generic [ref=e417]: 1 / 3
+              - link "»" [ref=e418] [cursor=pointer]:
+                - /url: "?page=2"
+  - contentinfo

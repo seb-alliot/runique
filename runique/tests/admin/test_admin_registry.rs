@@ -3,9 +3,9 @@
 
 use std::sync::Arc;
 
+use runique::admin::helper::resource_entry::{FormBuilder, ResourceEntry};
 use runique::admin::registry::AdminRegistry;
 use runique::admin::resource::AdminResource;
-use runique::admin::resource_entry::{FormBuilder, ResourceEntry};
 
 fn make_entry(key: &'static str, title: &'static str) -> ResourceEntry {
     let meta = AdminResource::new(key, "module::Model", "module::Form", title, vec![]);

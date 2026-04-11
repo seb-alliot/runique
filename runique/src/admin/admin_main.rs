@@ -5,7 +5,6 @@
 //! - `GET/POST /admin/{resource}/{id}/{action}` → [`admin_get_id`] / [`admin_post_id`]
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
-use crate::flash_now;
 use crate::forms::prisme::aegis;
 use crate::middleware::auth::CurrentUser;
 use crate::utils::{
@@ -21,8 +20,8 @@ use crate::{
     admin::{
         AdminRegistry,
         config::AdminConfig,
+        helper::resource_entry::{ListParams, ResourceEntry, SortDir},
         resource::ColumnFilter,
-        resource_entry::{ListParams, SortDir},
         trad::insert_admin_messages,
     },
     utils::admin_context::list::{PAGE, SORT_BY, SORT_DIR},
@@ -129,10 +128,7 @@ pub async fn admin_get(
     match action.as_str() {
         "list" => {
             if !current_user.can_access_resource(&resource_key) {
-                return Err(Box::new(AppError::new(ErrorContext::generic(
-                    StatusCode::FORBIDDEN,
-                    t("admin.access.insufficient_rights").as_ref(),
-                ))));
+                return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
             }
             let page = params
                 .get(PAGE)
@@ -172,7 +168,17 @@ pub async fn admin_get(
             let is_htmx = headers.contains_key("hx-request");
             handle_list(&mut req, entry, &state, query, &current_user, is_htmx).await
         }
-        "create" => handle_create_get(&mut req, entry, &state).await,
+        "create" => {
+            if !current_user.can_access_resource(&resource_key) {
+                return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
+            }
+            if !check_write_access(&current_user, &resource_key) {
+                return Ok(
+                    permission_denied(&req.notices, &state.config.prefix, &resource_key).await,
+                );
+            }
+            handle_create_get(&mut req, entry, &state).await
+        }
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Action inconnue",
         )))),
@@ -198,7 +204,9 @@ pub async fn admin_post(
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
-    check_write_access(&current_user, &resource_key)?;
+    if !check_write_access(&current_user, &resource_key) {
+        return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
+    }
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &headers, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
@@ -223,10 +231,12 @@ pub async fn admin_get_id(
     req.context.insert(ctx_common::LANG, &current_lang().code());
 
     if !current_user.can_access_resource(&resource_key) {
-        return Err(Box::new(AppError::new(ErrorContext::generic(
-            StatusCode::FORBIDDEN,
-            t("admin.access.insufficient_rights").as_ref(),
-        ))));
+        return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
+    }
+    if !check_write_access(&current_user, &resource_key)
+        && matches!(action.as_str(), "edit" | "delete")
+    {
+        return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
     match action.as_str() {
         "detail" => handle_detail(&mut req, entry, id, &state).await,
@@ -256,7 +266,9 @@ pub async fn admin_post_id(
     inject_context(&mut req, &state, entry, &current_user);
     req.context.insert(ctx_common::LANG, &current_lang().code());
     check_csrf(&body, req.csrf_token.as_str())?;
-    check_write_access(&current_user, &resource_key)?;
+    if !check_write_access(&current_user, &resource_key) {
+        return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
+    }
 
     match action.as_str() {
         "edit" => handle_edit_post(&mut req, entry, id, body, &state).await,
@@ -273,7 +285,7 @@ pub async fn admin_post_id(
 fn inject_context(
     req: &mut Request,
     state: &PrototypeAdminState,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     current_user: &CurrentUser,
 ) {
     for item in ["list", "create", "edit", "detail", "delete", "base"] {
@@ -291,18 +303,13 @@ fn inject_context(
 
     // Filtre les ressources visibles selon les droits scopés de l'utilisateur.
     // - is_superuser → voit tout
-    // - droits/groupes → superuser uniquement (gestion des permissions, pas de droit scopé possible)
-    // - autres ressources → user doit avoir un droit avec resource_key = key et access_type = "view"
-    const SUPERUSER_ONLY: &[&str] = &["droits", "groupes"];
+    // - autres ressources → user doit avoir can_read sur la resource_key
     let visible_resources: Vec<_> = state
         .registry
         .all()
         .filter(|e| {
             if current_user.is_superuser {
                 return true;
-            }
-            if SUPERUSER_ONLY.contains(&e.meta.key) {
-                return false;
             }
             current_user.can_access_resource(e.meta.key)
         })
@@ -317,30 +324,40 @@ fn inject_context(
 }
 
 /// Vérifie que l'utilisateur a un droit write sur la ressource.
-/// Superuser bypass. droits/groupes → superuser uniquement.
-fn check_write_access(user: &CurrentUser, resource_key: &str) -> AppResult<()> {
-    if user.is_superuser {
-        return Ok(());
-    }
-    const SUPERUSER_ONLY: &[&str] = &["droits", "groupes"];
-    if SUPERUSER_ONLY.contains(&resource_key) {
-        return Err(Box::new(AppError::new(ErrorContext::generic(
-            StatusCode::FORBIDDEN,
-            t("admin.access.insufficient_rights").as_ref(),
-        ))));
-    }
-    let has_write = user
-        .permissions_effectives()
-        .iter()
-        .any(|d| d.resource_key == resource_key && (d.can_create || d.can_update || d.can_delete));
-    if has_write {
-        Ok(())
-    } else {
-        Err(Box::new(AppError::new(ErrorContext::generic(
-            StatusCode::FORBIDDEN,
-            t("admin.access.insufficient_rights").as_ref(),
-        ))))
-    }
+/// Superuser bypass. Sinon, vérifie les permissions DB.
+fn check_write_access(user: &CurrentUser, resource_key: &str) -> bool {
+    user.is_superuser
+        || user.permissions_effectives().iter().any(|d| {
+            d.resource_key == resource_key && (d.can_create || d.can_update || d.can_delete)
+        })
+}
+
+/// Redirige vers la liste de la ressource avec un message d'erreur de permission.
+async fn permission_denied(
+    notices: &crate::flash::flash_manager::Message,
+    prefix: &str,
+    resource_key: &str,
+) -> Response {
+    notices
+        .error(t("admin.access.insufficient_rights").to_string())
+        .await;
+    Redirect::to(&format!(
+        "{}/{}/list",
+        prefix.trim_end_matches('/'),
+        resource_key
+    ))
+    .into_response()
+}
+
+/// Redirige vers le dashboard admin avec un message d'erreur de permission.
+async fn permission_denied_dashboard(
+    notices: &crate::flash::flash_manager::Message,
+    prefix: &str,
+) -> Response {
+    notices
+        .error(t("admin.access.insufficient_rights").to_string())
+        .await;
+    Redirect::to(&format!("{}/", prefix.trim_end_matches('/'))).into_response()
 }
 
 /// Vérifie le token CSRF depuis le body du formulaire.
@@ -386,17 +403,14 @@ fn value_to_strmap(v: Value) -> StrMap {
 
 async fn handle_list(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     state: &PrototypeAdminState,
     query: ListQuery,
     current_user: &CurrentUser,
     is_htmx: bool,
 ) -> AppResult<Response> {
     if !current_user.can_access_resource(entry.meta.key) {
-        return Err(Box::new(AppError::new(ErrorContext::generic(
-            StatusCode::FORBIDDEN,
-            t("admin.access.insufficient_rights").as_ref(),
-        ))));
+        return Ok(permission_denied_dashboard(&req.notices, &state.config.prefix).await);
     }
     inject_context(req, state, entry, current_user);
     let ListQuery {
@@ -479,7 +493,7 @@ async fn handle_list(
         })
         .unwrap_or_default();
 
-    let (visible_columns, column_labels): (Vec<String>, HashMap<String, String>) =
+    let (visible_columns, mut column_labels): (Vec<String>, HashMap<String, String>) =
         match &entry.meta.display.columns {
             ColumnFilter::All => (all_cols, HashMap::new()),
             ColumnFilter::Include(cols) => {
@@ -502,6 +516,18 @@ async fn handle_list(
                 HashMap::new(),
             ),
         };
+
+    // Auto-populate column_labels depuis les clés i18n "permission.col.{col}"
+    // pour les colonnes sans label explicite.
+    for col in &visible_columns {
+        if !column_labels.contains_key(col) {
+            let key = format!("permission.col.{col}");
+            let translated = t(&key);
+            if translated != key.as_str() {
+                column_labels.insert(col.clone(), translated.into_owned());
+            }
+        }
+    }
 
     // Validation whitelist : sort_by doit être une colonne visible ou "id"
     let safe_sort_by = sort_by
@@ -648,7 +674,7 @@ async fn handle_list(
 
 async fn handle_create_get(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
     let tera: Arc<tera::Tera> = req.engine.tera.clone();
@@ -686,7 +712,7 @@ async fn handle_create_get(
 
 async fn handle_create_post(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     mut body: StrMap,
     headers: &axum::http::HeaderMap,
     state: &PrototypeAdminState,
@@ -780,7 +806,9 @@ async fn handle_create_post(
             }
         }
 
-        flash_now!(success => t("admin.create.success").to_string());
+        req.notices
+            .success(t("admin.create.success").to_string())
+            .await;
         return Ok(Redirect::to(&format!(
             "{}/{}/list",
             state.config.prefix.trim_end_matches('/'),
@@ -802,7 +830,7 @@ async fn handle_create_post(
 
 async fn handle_detail(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &crate::admin::helper::ResourceEntry,
     id: String,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
@@ -827,7 +855,7 @@ async fn handle_detail(
 
 async fn handle_edit_get(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     id: String,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
@@ -885,7 +913,7 @@ async fn handle_edit_get(
 
 async fn handle_edit_post(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     id: String,
     body: StrMap,
     state: &PrototypeAdminState,
@@ -933,7 +961,7 @@ async fn handle_edit_post(
                             is_locked = true;
                             // Inject error
                             form.get_form_mut().errors.push("Mise à jour impossible : Ce contenu a été modifié par une autre personne pendant votre édition. Veuillez copier vos modifications et recharger la page.".to_string());
-                            flash_now!(error => "Ce contenu a été modifié par quelqu'un d'autre pendant votre édition. Rafraîchissez la page.");
+                            req.notices.error("Ce contenu a été modifié par quelqu'un d'autre pendant votre édition. Rafraîchissez la page.").await;
                         }
                     }
                 }
@@ -952,7 +980,9 @@ async fn handle_edit_post(
                 }
                 // violation d'unicité : fall through vers le re-rendu du formulaire
             } else {
-                flash_now!(success => t("admin.edit.success").to_string());
+                req.notices
+                    .success(t("admin.edit.success").to_string())
+                    .await;
                 return Ok(Redirect::to(&format!(
                     "{}/{}/list",
                     state.config.prefix.trim_end_matches('/'),
@@ -980,7 +1010,7 @@ async fn handle_edit_post(
 
 async fn handle_delete_get(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     id: String,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
@@ -1005,7 +1035,7 @@ async fn handle_delete_get(
 
 async fn handle_delete_post(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     id: String,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
@@ -1019,7 +1049,9 @@ async fn handle_delete_post(
         .await
         .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
 
-    flash_now!(success => t("admin.delete.success").to_string());
+    req.notices
+        .success(t("admin.delete.success").to_string())
+        .await;
     Ok(Redirect::to(&format!(
         "{}/{}/list",
         state.config.prefix.trim_end_matches('/'),
@@ -1032,7 +1064,7 @@ async fn handle_delete_post(
 
 async fn send_user_created_email(
     req: &mut Request,
-    _entry: &crate::admin::ResourceEntry,
+    _entry: &ResourceEntry,
     email: &str,
     username: Option<&str>,
     email_template: Option<&str>,
@@ -1116,7 +1148,7 @@ async fn send_user_created_email(
 
 async fn handle_reset_password(
     req: &mut Request,
-    entry: &crate::admin::ResourceEntry,
+    entry: &ResourceEntry,
     id: String,
     headers: &axum::http::HeaderMap,
     state: &PrototypeAdminState,

@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
-   AdminPanel — Composants (cards, table, badges, alerts, etc.)
+    AdminPanel — Composants (cards, table, badges, alerts, etc.)
    ═══════════════════════════════════════════════════════════════ */
 
 /* ───────────────────────────────────────────────
-   Stat cards (dashboard)
+    Stat cards (dashboard)
    ─────────────────────────────────────────────── */
 
 .stats-grid {
@@ -49,7 +49,7 @@
 .stat-meta.down    { color: var(--danger); }
 
 /* ───────────────────────────────────────────────
-   Card générique
+    Card générique
    ─────────────────────────────────────────────── */
 
 .card {
@@ -77,7 +77,7 @@
 .card-body { padding: 1.25rem; }
 
 /* ───────────────────────────────────────────────
-   Barre de recherche
+    Barre de recherche
    ─────────────────────────────────────────────── */
 
 .admin-search-wrapper {
@@ -94,7 +94,7 @@
 .admin-search-btn { flex-shrink: 0; }
 
 /* ───────────────────────────────────────────────
-   Table
+    Table
    ─────────────────────────────────────────────── */
 
 .admin-table-wrapper { overflow-x: auto; }
@@ -109,10 +109,10 @@
 
 .admin-table th {
     padding: 0.75rem 1rem;
-    text-align: left;
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
+    text-align: left;
     letter-spacing: 0.05em;
     color: var(--text-muted);
     border-bottom: 1px solid var(--border);
@@ -176,7 +176,7 @@
 }
 
 /* ───────────────────────────────────────────────
-   Pagination
+    Pagination
    ─────────────────────────────────────────────── */
 
 .pagination {
@@ -228,7 +228,7 @@
 .page-btn:disabled { opacity: 0.35; pointer-events: none; }
 
 /* ───────────────────────────────────────────────
-   Alerts / Flash messages
+    Alerts / Flash messages
    ─────────────────────────────────────────────── */
 
 .alert {
@@ -248,7 +248,7 @@
 .alert-info    { background: var(--accent-light);  border-color: rgba(59, 130, 246, 0.25); color: #93c5fd; }
 
 /* ───────────────────────────────────────────────
-   Badges
+    Badges
    ─────────────────────────────────────────────── */
 
 .badge {
@@ -268,7 +268,7 @@
 .badge-neutral { background: var(--bg-input);      color: var(--text-muted); }
 
 /* ───────────────────────────────────────────────
-   Search bar
+    Search bar
    ─────────────────────────────────────────────── */
 
 .search-bar {
@@ -289,7 +289,7 @@
 }
 
 /* ───────────────────────────────────────────────
-   Empty state
+    Empty state
    ─────────────────────────────────────────────── */
 
 .empty-state {
@@ -308,7 +308,7 @@
 .empty-state-desc   { font-size: 0.85rem; max-width: 300px; }
 
 /* ───────────────────────────────────────────────
-   Kebab menu (actions ligne tableau)
+    Kebab menu (actions ligne tableau)
    ─────────────────────────────────────────────── */
 
 .td-actions {
@@ -319,7 +319,6 @@
 
 .row-menu {
     position: relative;
-    display: flex;
     justify-content: center;
 }
 
@@ -391,7 +390,7 @@
 }
 
 /* ───────────────────────────────────────────────
-   Delete zone (confirmation suppression)
+    Delete zone (confirmation suppression)
    ─────────────────────────────────────────────── */
 
 .delete-zone {
@@ -410,7 +409,7 @@
 .delete-zone-title  { font-weight: 600; color: var(--danger); margin-bottom: 0.25rem; }
 
 /* ───────────────────────────────────────────────
-   Warning box (page de suppression)
+    Warning box (page de suppression)
    ─────────────────────────────────────────────── */
 
 .warning-box {
@@ -427,13 +426,12 @@
 .warning-box strong { color: var(--danger); }
 
 /* ───────────────────────────────────────────────
-   Utilitaires (remplacent les style= inline)
+    Utilitaires (remplacent les style= inline)
    ─────────────────────────────────────────────── */
 
 .page-actions       { display: flex; gap: 0.6rem; height: 25px; }
 .form-inline        { display: inline; }
 .text-muted         { color: var(--text-muted); }
-.th-right           { text-align: right; }
 .table-actions-end  { justify-content: flex-end; }
 
 .card-full-width    { grid-column: 1 / -1; }

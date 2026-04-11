@@ -18,12 +18,22 @@ form.field(&TextField::email("email").label("Email").required());
 // URL — validated via `validator::ValidateUrl`
 form.field(&TextField::url("website").label("Website"));
 
-// Password — automatic Argon2 hashing in finalize(), never re-displayed in HTML
+// Registration / password change form — automatic hashing in finalize()
 form.field(
     &TextField::password("password")
         .label("Password")
         .required()
         .min_length(8, "Min 8 characters"),
+);
+
+// Login form — .no_hash() is required
+// Without .no_hash(), finalize() hashes the submitted password before comparison
+// → verify(hash, stored_hash) always fails silently
+form.field(
+    &TextField::password("password")
+        .label("Password")
+        .no_hash()
+        .required(),
 );
 
 // Textarea
@@ -48,13 +58,13 @@ TextField::text("name")
 
 **Automatic behavior per format:**
 
-| Format     | Validation                 | Transformation                                           |
-| ---------- | -------------------------- | -------------------------------------------------------- |
-| `Email`    | `validator::ValidateEmail` | Lowercased                                               |
-| `Url`      | `validator::ValidateUrl`   | —                                                        |
-| `Password` | Standard                   | Argon2 hash in `finalize()`, value cleared on `render()` |
-| `RichText` | Standard                   | XSS sanitization (`sanitize()`) before validation        |
-| `Csrf`     | Session token              | —                                                        |
+| Format     | Validation                 | Transformation                                                                                 |
+| ---------- | -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Email`    | `validator::ValidateEmail` | Lowercased                                                                                     |
+| `Url`      | `validator::ValidateUrl`   | —                                                                                              |
+| `Password` | Standard                   | Auto hash in `finalize()` if config is `Auto` and no `.no_hash()`, value cleared on `render()` |
+| `RichText` | Standard                   | XSS sanitization (`sanitize()`) before validation                                              |
+| `Csrf`     | Session token              | —                                                                                              |
 
 **Password utilities:**
 

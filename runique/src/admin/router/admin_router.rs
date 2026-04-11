@@ -100,7 +100,7 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
                 .merge(generated_router)
                 .layer(middleware::from_fn(admin_required)),
         )
-        .layer(middleware::from_fn(load_user_middleware))
+        .layer(middleware::from_fn_with_state(_db, load_user_middleware))
         .layer(Extension(admin_state));
 
     if let Some(state) = state {
@@ -158,7 +158,6 @@ async fn admin_dashboard(
     let mut resource_counts: std::collections::HashMap<String, u64> =
         std::collections::HashMap::new();
 
-    const SUPERUSER_ONLY: &[&str] = &["droits", "groupes"];
     let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
         for (key, entry) in &state.registry.resources {
             if let Some(count_fn) = &entry.count_fn {
@@ -174,9 +173,6 @@ async fn admin_dashboard(
                 if current_user.is_superuser {
                     return true;
                 }
-                if SUPERUSER_ONLY.contains(&e.meta.key) {
-                    return false;
-                }
                 current_user.can_access_resource(e.meta.key)
             })
             .map(|e| &e.meta)
@@ -185,9 +181,9 @@ async fn admin_dashboard(
         Vec::new()
     };
 
-    // Groupes ayant un droit sur chaque resource_key (depuis la DB)
+    // Groupes ayant une permission sur chaque resource_key
     let resource_groups: std::collections::HashMap<String, Vec<String>> = {
-        use crate::admin::permissions::{droit, groupe};
+        use crate::admin::permissions::{groupe, groupes_droits};
         use sea_orm::EntityTrait;
         let groupes: std::collections::HashMap<_, String> = groupe::Entity::find()
             .all(&*db)
@@ -196,15 +192,18 @@ async fn admin_dashboard(
             .into_iter()
             .map(|g| (g.id, g.nom))
             .collect();
-        let droits = droit::Entity::find().all(&*db).await.unwrap_or_default();
+        let rows = groupes_droits::Entity::find()
+            .all(&*db)
+            .await
+            .unwrap_or_default();
         let mut map: std::collections::HashMap<String, Vec<String>> =
             std::collections::HashMap::new();
-        for d in droits {
+        for r in rows {
             let nom = groupes
-                .get(&d.groupe_id)
+                .get(&r.groupe_id)
                 .cloned()
-                .unwrap_or_else(|| d.groupe_id.to_string());
-            let entry = map.entry(d.resource_key).or_default();
+                .unwrap_or_else(|| r.groupe_id.to_string());
+            let entry = map.entry(r.resource_key).or_default();
             if !entry.contains(&nom) {
                 entry.push(nom);
             }

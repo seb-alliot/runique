@@ -6,7 +6,6 @@ use runique::middleware::auth::CurrentUser;
 
 fn perm(resource: &str, create: bool, read: bool, update: bool, delete: bool) -> Permission {
     Permission {
-        id: 1,
         resource_key: resource.to_string(),
         can_create: create,
         can_read: read,

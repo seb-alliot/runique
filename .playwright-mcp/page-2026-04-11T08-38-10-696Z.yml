@@ -1,0 +1,234 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: R
+        - generic [ref=e6]: Administration
+      - navigation [ref=e7]:
+        - link [ref=e8] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e9]
+        - generic [ref=e15]: Administration
+        - link "Utilisateurs" [ref=e16] [cursor=pointer]:
+          - /url: /admin/users/list
+          - img [ref=e17]
+          - generic [ref=e20]: Utilisateurs
+        - link "droits" [ref=e21] [cursor=pointer]:
+          - /url: /admin/droits/list
+          - img [ref=e22]
+          - generic [ref=e25]: droits
+        - link "groupes" [ref=e26] [cursor=pointer]:
+          - /url: /admin/groupes/list
+          - img [ref=e27]
+          - generic [ref=e30]: groupes
+        - link "Contribution" [ref=e31] [cursor=pointer]:
+          - /url: /admin/contribution/list
+          - img [ref=e32]
+          - generic [ref=e35]: Contribution
+        - link "Articles" [ref=e36] [cursor=pointer]:
+          - /url: /admin/blog/list
+          - img [ref=e37]
+          - generic [ref=e40]: Articles
+        - link "Changelog" [ref=e41] [cursor=pointer]:
+          - /url: /admin/changelog_entry/list
+          - img [ref=e42]
+          - generic [ref=e45]: Changelog
+        - link "Roadmap" [ref=e46] [cursor=pointer]:
+          - /url: /admin/roadmap_entry/list
+          - img [ref=e47]
+          - generic [ref=e50]: Roadmap
+        - link "Problèmes connus" [ref=e51] [cursor=pointer]:
+          - /url: /admin/known_issue/list
+          - img [ref=e52]
+          - generic [ref=e55]: Problèmes connus
+        - link "Catégories" [ref=e56] [cursor=pointer]:
+          - /url: /admin/demo_category/list
+          - img [ref=e57]
+          - generic [ref=e60]: Catégories
+        - link "Pages" [ref=e61] [cursor=pointer]:
+          - /url: /admin/demo_page/list
+          - img [ref=e62]
+          - generic [ref=e65]: Pages
+        - link "Sections" [ref=e66] [cursor=pointer]:
+          - /url: /admin/demo_section/list
+          - img [ref=e67]
+          - generic [ref=e70]: Sections
+        - link "Exemples de code" [ref=e71] [cursor=pointer]:
+          - /url: /admin/code_example/list
+          - img [ref=e72]
+          - generic [ref=e75]: Exemples de code
+        - link "Liens documentation" [ref=e76] [cursor=pointer]:
+          - /url: /admin/page_doc_link/list
+          - img [ref=e77]
+          - generic [ref=e80]: Liens documentation
+        - link "Champs formulaire" [ref=e81] [cursor=pointer]:
+          - /url: /admin/form_field/list
+          - img [ref=e82]
+          - generic [ref=e85]: Champs formulaire
+        - link "Doc — Sections" [ref=e86] [cursor=pointer]:
+          - /url: /admin/doc_section/list
+          - img [ref=e87]
+          - generic [ref=e90]: Doc — Sections
+        - link "Doc — Pages" [ref=e91] [cursor=pointer]:
+          - /url: /admin/doc_page/list
+          - img [ref=e92]
+          - generic [ref=e95]: Doc — Pages
+        - link "Doc — Blocs" [ref=e96] [cursor=pointer]:
+          - /url: /admin/doc_block/list
+          - img [ref=e97]
+          - generic [ref=e100]: Doc — Blocs
+        - link "Configuration site" [ref=e101] [cursor=pointer]:
+          - /url: /admin/site_config/list
+          - img [ref=e102]
+          - generic [ref=e105]: Configuration site
+        - link "Cours" [ref=e106] [cursor=pointer]:
+          - /url: /admin/cour/list
+          - img [ref=e107]
+          - generic [ref=e110]: Cours
+        - link "Chapitres" [ref=e111] [cursor=pointer]:
+          - /url: /admin/chapitre/list
+          - img [ref=e112]
+          - generic [ref=e115]: Chapitres
+        - link "Cours — Blocs" [ref=e116] [cursor=pointer]:
+          - /url: /admin/cour_block/list
+          - img [ref=e117]
+          - generic [ref=e120]: Cours — Blocs
+        - link "Releases Runique" [ref=e121] [cursor=pointer]:
+          - /url: /admin/runique_release/list
+          - img [ref=e122]
+          - generic [ref=e125]: Releases Runique
+      - button "Réduire le menu" [ref=e128] [cursor=pointer]:
+        - img [ref=e129]
+    - generic [ref=e131]:
+      - banner [ref=e132]:
+        - generic [ref=e133]:
+          - link "Admin" [ref=e134] [cursor=pointer]:
+            - /url: /admin
+          - generic [ref=e135]: /
+          - link "droits" [ref=e136] [cursor=pointer]:
+            - /url: /admin/droits/list
+          - generic [ref=e137]: /
+          - generic [ref=e138]: Modifier
+        - link "← Site" [ref=e139] [cursor=pointer]:
+          - /url: /
+        - link "setsuna Déconnexion" [ref=e140] [cursor=pointer]:
+          - /url: /admin/logout
+          - generic [ref=e141]: setsuna
+          - generic [ref=e142]: Déconnexion
+      - main [ref=e143]:
+        - heading "Modifier — droits" [level=1] [ref=e145]
+        - generic [ref=e146]:
+          - heading "Informations" [level=2] [ref=e148]
+          - generic [ref=e150]:
+            - generic [ref=e151]:
+              - generic [ref=e152]:
+                - text: Groupe
+                - combobox "Groupe" [ref=e153] [cursor=pointer]:
+                  - option "admin"
+                  - option "moderateur" [selected]
+              - group "Ressource ciblée — 1 sélectionné" [ref=e155]:
+                - generic [ref=e156]: Ressource ciblée — 1 sélectionné
+                - button "Tout sélectionner" [ref=e157] [cursor=pointer]
+                - generic [ref=e158]:
+                  - button "Tout" [ref=e159] [cursor=pointer]
+                  - button "B" [ref=e160] [cursor=pointer]
+                  - button "C" [ref=e161] [cursor=pointer]
+                  - button "D" [ref=e162] [cursor=pointer]
+                  - button "F" [ref=e163] [cursor=pointer]
+                  - button "G" [ref=e164] [cursor=pointer]
+                  - button "K" [ref=e165] [cursor=pointer]
+                  - button "P" [ref=e166] [cursor=pointer]
+                  - button "R" [ref=e167] [cursor=pointer]
+                  - button "S" [ref=e168] [cursor=pointer]
+                  - button "U" [ref=e169] [cursor=pointer]
+                - generic [ref=e170] [cursor=pointer]:
+                  - checkbox "users" [checked] [ref=e171]
+                  - generic [ref=e172]: users
+                - generic [ref=e173] [cursor=pointer]:
+                  - checkbox "droits" [ref=e174]
+                  - generic [ref=e175]: droits
+                - generic [ref=e176] [cursor=pointer]:
+                  - checkbox "groupes" [ref=e177]
+                  - generic [ref=e178]: groupes
+                - generic [ref=e179] [cursor=pointer]:
+                  - checkbox "contribution" [ref=e180]
+                  - generic [ref=e181]: contribution
+                - generic [ref=e182] [cursor=pointer]:
+                  - checkbox "blog" [ref=e183]
+                  - generic [ref=e184]: blog
+                - generic [ref=e185] [cursor=pointer]:
+                  - checkbox "changelog_entry" [ref=e186]
+                  - generic [ref=e187]: changelog_entry
+                - generic [ref=e188] [cursor=pointer]:
+                  - checkbox "roadmap_entry" [ref=e189]
+                  - generic [ref=e190]: roadmap_entry
+                - generic [ref=e191] [cursor=pointer]:
+                  - checkbox "known_issue" [ref=e192]
+                  - generic [ref=e193]: known_issue
+                - generic [ref=e194] [cursor=pointer]:
+                  - checkbox "demo_category" [ref=e195]
+                  - generic [ref=e196]: demo_category
+                - generic [ref=e197] [cursor=pointer]:
+                  - checkbox "demo_page" [ref=e198]
+                  - generic [ref=e199]: demo_page
+                - generic [ref=e200] [cursor=pointer]:
+                  - checkbox "demo_section" [ref=e201]
+                  - generic [ref=e202]: demo_section
+                - generic [ref=e203] [cursor=pointer]:
+                  - checkbox "code_example" [ref=e204]
+                  - generic [ref=e205]: code_example
+                - generic [ref=e206] [cursor=pointer]:
+                  - checkbox "page_doc_link" [ref=e207]
+                  - generic [ref=e208]: page_doc_link
+                - generic [ref=e209] [cursor=pointer]:
+                  - checkbox "form_field" [ref=e210]
+                  - generic [ref=e211]: form_field
+                - generic [ref=e212] [cursor=pointer]:
+                  - checkbox "doc_section" [ref=e213]
+                  - generic [ref=e214]: doc_section
+                - generic [ref=e215] [cursor=pointer]:
+                  - checkbox "doc_page" [ref=e216]
+                  - generic [ref=e217]: doc_page
+                - generic [ref=e218] [cursor=pointer]:
+                  - checkbox "doc_block" [ref=e219]
+                  - generic [ref=e220]: doc_block
+                - generic [ref=e221] [cursor=pointer]:
+                  - checkbox "site_config" [ref=e222]
+                  - generic [ref=e223]: site_config
+                - generic [ref=e224] [cursor=pointer]:
+                  - checkbox "cour" [ref=e225]
+                  - generic [ref=e226]: cour
+                - generic [ref=e227] [cursor=pointer]:
+                  - checkbox "chapitre" [ref=e228]
+                  - generic [ref=e229]: chapitre
+                - generic [ref=e230] [cursor=pointer]:
+                  - checkbox "cour_block" [ref=e231]
+                  - generic [ref=e232]: cour_block
+                - generic [ref=e233] [cursor=pointer]:
+                  - checkbox "runique_release" [ref=e234]
+                  - generic [ref=e235]: runique_release
+              - generic [ref=e236]:
+                - generic [ref=e238] [cursor=pointer]:
+                  - checkbox "Peut créer" [ref=e239]
+                  - generic [ref=e240]: Peut créer
+                - generic [ref=e242] [cursor=pointer]:
+                  - checkbox "Peut lire" [checked] [ref=e243]
+                  - generic [ref=e244]: Peut lire
+                - generic [ref=e246] [cursor=pointer]:
+                  - checkbox "Peut modifier" [ref=e247]
+                  - generic [ref=e248]: Peut modifier
+                - generic [ref=e250] [cursor=pointer]:
+                  - checkbox "Peut supprimer" [ref=e251]
+                  - generic [ref=e252]: Peut supprimer
+                - generic [ref=e254] [cursor=pointer]:
+                  - checkbox "Peut modifier ses propres données" [ref=e255]
+                  - generic [ref=e256]: Peut modifier ses propres données
+                - generic [ref=e258] [cursor=pointer]:
+                  - checkbox "Peut supprimer ses propres données" [ref=e259]
+                  - generic [ref=e260]: Peut supprimer ses propres données
+            - generic [ref=e261]:
+              - button "Tout cocher" [ref=e262] [cursor=pointer]
+              - link "Annuler" [ref=e263] [cursor=pointer]:
+                - /url: /admin/droits/list
+              - button "Enregistrer" [ref=e264] [cursor=pointer]
+  - contentinfo

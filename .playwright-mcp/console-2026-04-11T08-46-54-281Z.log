@@ -1,0 +1,2 @@
+[     147ms] [ERROR] Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep @ https://runique.io/media/favicon/favicon_runique.ico?v=50c59d599a33507b:0
+[    5383ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://127.0.0.1:3000/admin/:0
