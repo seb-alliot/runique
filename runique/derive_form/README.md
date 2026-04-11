@@ -36,7 +36,7 @@ use runique::prelude::*;
 model! {
     Post,
     table: "posts",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         title:   String [required, max_len(255)],
         content: String [required],
@@ -53,18 +53,19 @@ model! {
 
 ## Primary key types
 
-| Syntax            | Column type          | Notes                     |
-|-------------------|----------------------|---------------------------|
-| `pk: id => i32`   | `INTEGER` (32-bit)   | Auto-increment by default |
-| `pk: id => i64`   | `BIGINT` (64-bit)    | Auto-increment by default |
-| `pk: id => uuid`  | `UUID`               | No auto-increment         |
+| Syntax           | Column type                                        | Notes             |
+|------------------|----------------------------------------------------|-------------------|
+| `pk: id => Pk`   | `INTEGER` (default) or `BIGINT` (feature `big-pk`) | Auto-increment    |
+| `pk: id => i32`  | `INTEGER` (32-bit)                                 | Auto-increment    |
+| `pk: id => i64`  | `BIGINT` (64-bit)                                  | Auto-increment    |
+| `pk: id => uuid` | `UUID`                                             | No auto-increment |
 
 ```rust
 // Integer PK (most common)
 model! {
     Article,
     table: "articles",
-    pk: id => i32,
+    pk: id => Pk,
     fields: { title: String [required] }
 }
 
@@ -104,7 +105,7 @@ model! {
 model! {
     Profile,
     table: "profiles",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         username:   String   [required, max_len(50), unique],
         bio:        text     [nullable],
@@ -146,7 +147,7 @@ model! {
 model! {
     Product,
     table: "products",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         name:        String [required, max_len(200), label("Product name")],
         description: text   [nullable, help("Detailed product description")],
@@ -172,7 +173,7 @@ Use the `fk(table.column, action)` option to declare a foreign key.
 model! {
     Comment,
     table: "comments",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         // FK → posts.id, delete comment when post is deleted
         post_id:    i32    [required, fk(posts.id, cascade)],
@@ -180,6 +181,200 @@ model! {
         author_id:  i32    [nullable, fk(users.id, set_null)],
         content:    text   [required],
         created_at: datetime [auto_now],
+    }
+}
+```
+
+---
+
+## Enums
+
+The `model!` macro supports declaring enums directly alongside the model via the optional
+`enums:` block. Variants are available as a Rust enum and integrate with SeaORM and the
+admin form (rendered as a `<select>`).
+
+### Backing types
+
+| Keyword  | Storage          | SeaORM type                             | Notes                             |
+|----------|------------------|-----------------------------------------|-----------------------------------|
+| `String` | Text column      | `DeriveActiveEnum(String)`              | Default when no keyword specified |
+| `i32`    | Integer column   | `DeriveActiveEnum(i32)`                 |                                   |
+| `i64`    | Bigint column    | `DeriveActiveEnum(i64)`                 |                                   |
+| `pg`     | Native enum type | `DeriveActiveEnum` + `db_type = "Enum"` | PostgreSQL only                   |
+
+### Enum syntax
+
+```text
+enums: {
+    EnumName BackingType [Variant, Variant = "db_value", Variant = ("db_value", "Label"), ...]
+}
+```
+
+Each variant can optionally specify:
+
+- `= "db_value"` — the value stored in the database (defaults to the variant name)
+- `= ("db_value", "Display label")` — db value + label shown in the admin form
+
+### Example — String-backed enum (default)
+
+```rust
+use runique::prelude::*;
+
+model! {
+    Post,
+    table: "posts",
+    pk: id => Pk,
+    enums: {
+        Status [Draft, Published, Archived]
+    },
+    fields: {
+        title:  String [required],
+        status: Status [required, default("Draft")],
+    }
+}
+```
+
+Stored as a `VARCHAR` column. The generated `Status` enum implements `DeriveActiveEnum`,
+`Display`, `FromStr`, `Default`, `Serialize`, and `Deserialize`.
+
+### Example — PostgreSQL native ENUM
+
+For PostgreSQL `CREATE TYPE` enums, use the `pg` keyword. The column type becomes
+`db_type = "Enum"` with `enum_name` set to the snake_case enum name.
+
+```rust
+use runique::prelude::*;
+
+model! {
+    Task,
+    table: "tasks",
+    pk: id => Pk,
+    enums: {
+        Priority pg [Low, Medium, High]
+        Visibility pg [
+            Public  = ("public",  "Public"),
+            Team    = ("team",    "Team only"),
+            Private = ("private", "Private"),
+        ]
+    },
+    fields: {
+        title:      String     [required],
+        priority:   Priority   [required, default("Low")],
+        visibility: Visibility [required, default("Public")],
+    }
+}
+```
+
+The corresponding PostgreSQL migration must create the type before the table:
+
+```sql
+CREATE TYPE priority AS ENUM ('Low', 'Medium', 'High');
+CREATE TYPE visibility AS ENUM ('public', 'team', 'private');
+```
+
+SeaORM generates the correct `ColumnType::Enum { name, variants }` for these fields.
+
+### Variant labels in the admin
+
+When a field uses an enum type, the admin form renders a `<select>` with one `<option>`
+per variant. The displayed text is the **label** if provided, otherwise the db value.
+
+```rust
+enums: {
+    Role pg [
+        Admin = ("admin", "Administrator"),
+        Editor = ("editor", "Editor"),
+        Viewer = ("viewer", "Read-only"),
+    ]
+}
+```
+
+---
+
+## Relations
+
+The optional `relations:` block declares SeaORM relations on the model.
+It generates the `Relation` enum, `Related` implementations, and `RelationTrait` used by SeaORM queries.
+
+### Relation types
+
+| Declaration                                     | Description                                      |
+|-------------------------------------------------|--------------------------------------------------|
+| `belongs_to: Model via field`                   | This model holds the FK column                   |
+| `has_many: Model`                               | One-to-many (inverse of belongs_to)              |
+| `has_many: Model as alias`                      | One-to-many with a custom relation name          |
+| `has_one: Model`                                | One-to-one (inverse of belongs_to)               |
+| `has_one: Model as alias`                       | One-to-one with a custom relation name           |
+| `many_to_many: Model through JoinTable via fk`  | Many-to-many through a join table                |
+
+### Example
+
+```rust
+use runique::prelude::*;
+
+model! {
+    User,
+    table: "users",
+    pk: id => Pk,
+    fields: {
+        username: String [required, max_len(150)],
+    }
+}
+
+model! {
+    Post,
+    table: "posts",
+    pk: id => Pk,
+    fields: {
+        title:     String [required],
+        author_id: Pk     [required, fk(users.id, cascade)],
+    },
+    relations: {
+        belongs_to: User via author_id,
+        has_many:   Comment,
+    }
+}
+
+model! {
+    Comment,
+    table: "comments",
+    pk: id => Pk,
+    fields: {
+        body:    text [required],
+        post_id: Pk   [required, fk(posts.id, cascade)],
+    },
+    relations: {
+        belongs_to: Post via post_id,
+    }
+}
+```
+
+### Many-to-many
+
+```rust
+model! {
+    Article,
+    table: "articles",
+    pk: id => Pk,
+    fields: {
+        title: String [required],
+    },
+    relations: {
+        many_to_many: Tag through ArticleTag via article_id,
+    }
+}
+
+model! {
+    ArticleTag,
+    table: "article_tags",
+    pk: id => Pk,
+    fields: {
+        article_id: Pk [required, fk(articles.id, cascade)],
+        tag_id:     Pk [required, fk(tags.id, cascade)],
+    },
+    relations: {
+        belongs_to: Article via article_id,
+        belongs_to: Tag via tag_id,
     }
 }
 ```
@@ -195,7 +390,7 @@ use runique::prelude::*;
 model! {
     User,
     table: "users",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         username:   String   [required, max_len(150), unique],
         email:      String   [required, unique],
@@ -211,7 +406,7 @@ model! {
 model! {
     Category,
     table: "categories",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         name: String [required, max_len(100), unique],
         slug: String [required, max_len(100), unique],
@@ -222,7 +417,7 @@ model! {
 model! {
     Post,
     table: "posts",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         title:       String   [required, max_len(255)],
         slug:        String   [required, unique, max_len(255)],
@@ -241,7 +436,7 @@ model! {
 model! {
     Comment,
     table: "comments",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         post_id:    i32  [required, fk(posts.id, cascade)],
         author_id:  i32  [nullable, fk(users.id, set_null)],
@@ -264,7 +459,7 @@ use runique::prelude::*;
 model! {
     Post,
     table: "posts",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         title:        String [required],
         is_published: bool   [required, default(false)],
@@ -332,7 +527,7 @@ use runique::prelude::*;
 model! {
     Post,
     table: "posts",
-    pk: id => i32,
+    pk: id => Pk,
     fields: {
         title:        String [required, max_len(255), label("Title")],
         content:      text   [required, label("Content")],
