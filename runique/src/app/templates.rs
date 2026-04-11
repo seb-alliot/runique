@@ -17,6 +17,7 @@ impl TemplateLoader {
         url_registry: ARlockmap,
     ) -> Result<Tera, Box<dyn std::error::Error>> {
         let mut tera = Tera::default();
+        tera.autoescape_on(vec!["html", "xml"]);
 
         // 1b. Enregistrer les filtres personnalisés (static, media, form, etc.)
         static_tera::register_asset_filters(

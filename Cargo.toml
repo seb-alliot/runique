@@ -61,7 +61,7 @@ image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
 walkdir = "2.5.0"
 
-derive_form = { path = "runique/derive_form" }
+derive_form = { version = "1.1.35", path = "runique/derive_form" }
 
 # Logging
 tracing = "0.1"
