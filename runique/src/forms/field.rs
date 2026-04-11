@@ -85,20 +85,6 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Some(matches!(v.to_lowercase().as_str(), "true" | "1" | "on"))
     }
 
-    // Raccourcis directs — délèguent à get_form() pour éviter form.get_form().xxx()
-    fn is_submitted(&self) -> bool {
-        self.get_form().is_submitted()
-    }
-    fn get_value(&self, name: &str) -> Option<String> {
-        self.get_form().get_value(name)
-    }
-    fn get_string(&self, name: &str) -> String {
-        self.get_form().get_string(name)
-    }
-    fn get_option(&self, name: &str) -> Option<String> {
-        self.get_form().get_option(name)
-    }
-
     /// Vide toutes les valeurs du formulaire (hors CSRF).
     fn clear(&mut self) {
         self.get_form_mut().clear_values();

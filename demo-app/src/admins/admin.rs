@@ -1,7 +1,6 @@
 // AUTO-admin — DO NOT EDIT MANUALLY
 // admin by `runique start` from src/admin.rs
 
-use runique::admin::resource_entry::FilterFn;
 use runique::prelude::*;
 
 use crate::entities::blog;
@@ -492,6 +491,27 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "user_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "contribution_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "content", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -505,7 +525,32 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { contribution::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = contribution::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "user_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "contribution_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "content", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -822,6 +867,31 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "email", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "website", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "summary", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "content", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -835,7 +905,36 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { blog::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = blog::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "email", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "website", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "summary", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "content", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -1193,6 +1292,35 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "version", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "release_date", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "category", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "description", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -1206,7 +1334,40 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { changelog_entry::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = changelog_entry::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "version", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "release_date", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "category", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "description", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -1625,6 +1786,43 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "status", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "description", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_url", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_label", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_url_2", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_label_2", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -1638,7 +1836,48 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { roadmap_entry::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = roadmap_entry::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "status", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "description", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_url", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_label", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_url_2", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_label_2", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -2161,6 +2400,31 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "version", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "description", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "issue_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -2174,7 +2438,36 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { known_issue::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = known_issue::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "version", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "description", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "issue_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -2544,6 +2837,15 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "id", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -2557,7 +2859,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { demo_category::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = demo_category::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "id", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -2654,6 +2969,35 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "category_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lead", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -2667,7 +3011,40 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { demo_page::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = demo_page::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "category_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lead", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -3083,6 +3460,27 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "content", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -3096,7 +3494,32 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { demo_section::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = demo_section::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "content", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -3411,6 +3834,35 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "language", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "code", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "context", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -3424,7 +3876,40 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { code_example::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = code_example::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "language", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "code", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "context", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -3837,6 +4322,31 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "label", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "url", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -3850,7 +4360,36 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { page_doc_link::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = page_doc_link::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "label", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "url", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "link_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -4213,6 +4752,39 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "name", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "field_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "description", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "example", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "html_preview", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -4226,7 +4798,44 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { form_field::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = form_field::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "name", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "field_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "description", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "example", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "html_preview", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -4697,6 +5306,31 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lang", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "theme", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -4710,7 +5344,36 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { doc_section::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = doc_section::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lang", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "theme", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -4923,6 +5586,35 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "section_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lang", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lead", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -4936,7 +5628,40 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { doc_page::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = doc_page::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "section_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lang", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lead", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -5351,6 +6076,31 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "content", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "block_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "heading", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -5364,7 +6114,36 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { doc_block::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = doc_block::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "page_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "content", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "block_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "heading", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -5731,6 +6510,15 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "id", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -5744,7 +6532,20 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { site_config::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = site_config::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "id", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -5841,6 +6642,39 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lang", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "theme", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "difficulte", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "ordre", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -5854,7 +6688,44 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { cour::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = cour::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "lang", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "theme", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "difficulte", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "ordre", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -6315,6 +7186,27 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "cour_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -6328,7 +7220,32 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { chapitre::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = chapitre::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "cour_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "slug", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "title", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -6642,6 +7559,27 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "chapitre_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "block_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "heading", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -6655,7 +7593,32 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { cour_block::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = cour_block::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "chapitre_id", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "block_type", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "heading", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "sort_order", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {
@@ -6976,6 +7939,23 @@ pub fn admin_register() -> AdminRegistry {
                 let escaped = val.replace('\'', "''");
                 query = query.filter(Expr::cust(format!("CAST({} AS TEXT) = '{}'", col, escaped)));
             }
+            if let Some(ref search_str) = params.search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "version", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "github_url", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "crates_url", escaped
+                )));
+                query = query.filter(search_cond);
+            }
             let rows = query
                 .offset(params.offset)
                 .limit(params.limit)
@@ -6989,7 +7969,28 @@ pub fn admin_register() -> AdminRegistry {
     });
 
     let count_fn: CountFn = Arc::new(|db: ADb, _search: Option<String>| {
-        Box::pin(async move { runique_release::Entity::find().count(&*db).await })
+        Box::pin(async move {
+            use sea_orm::{QueryFilter, sea_query::Expr};
+            let mut query = runique_release::Entity::find();
+            if let Some(ref search_str) = _search {
+                let escaped = search_str.replace('\'', "''");
+                let mut search_cond = sea_orm::Condition::any();
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "version", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "github_url", escaped
+                )));
+                search_cond = search_cond.add(Expr::cust(format!(
+                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                    "crates_url", escaped
+                )));
+                query = query.filter(search_cond);
+            }
+            query.count(&*db).await
+        })
     });
 
     let get_fn: GetFn = Arc::new(|db: ADb, id: String| {

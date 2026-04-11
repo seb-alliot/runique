@@ -98,6 +98,24 @@ clear()                      → [optional] empty the form after processing
 
 ---
 
+## Accessing data — `cleaned_*()`
+
+After `is_valid()`, access data via the `cleaned_*` methods on the trait:
+
+```rust
+self.cleaned_string("username")      // Option<String>  (None if empty)
+self.cleaned_i32("age")              // Option<i32>
+self.cleaned_f64("price")            // Option<f64>  (handles , → .)
+self.cleaned_bool("active")          // Option<bool>
+// … see the Helpers page for the full list
+```
+
+These methods are **whitelisted**: they return `None` if the field is not declared in `register_fields()`. They also cover route parameters and query string parameters.
+
+> **`cleaned_string` returns `Option<String>`**. For an empty string default: `self.cleaned_string("x").unwrap_or_default()`.
+
+---
+
 ## `is_valid()` — calling on GET and POST
 
 `is_valid()` is designed to be called regardless of the HTTP method:
@@ -113,7 +131,7 @@ pub async fn search(
     Prisme(mut form): Prisme<SearchForm>,
 ) -> AppResult<Response> {
     if form.is_valid().await {
-        let query = form.get_string("q");
+        let query = form.cleaned_string("q").unwrap_or_default();
         // run the search...
     }
     // First GET: is_valid() == false, no errors → clean empty form
@@ -134,7 +152,7 @@ Calling `form.is_valid().await` triggers **4 steps in order** (only if the form 
 1. **Field validation** — Each field runs `validate()`: required, length, format (email via `validator`, URL via `validator`, JSON via `serde_json`, UUID via `uuid`, IP via `std::net::IpAddr`, …)
 2. **`clean_field(name)`** — Per-field business validation, called for each field after step 1 (only if standard validation passed)
 3. **`clean()`** — Cross-field validation (e.g. `pwd1 == pwd2`); passwords are still plain text at this step
-4. **`finalize()`** — Final transformations (automatic Argon2 hashing for `Password` fields)
+4. **`finalize()`** — Final transformations (automatic hashing for `Password` fields if the global config is in `Auto` mode)
 
 ---
 
@@ -153,7 +171,7 @@ impl RuniqueForm for UsernameForm {
 
     async fn clean_field(&mut self, name: &str) -> bool {
         if name == "username" {
-            let val = self.get_form().get_string("username");
+            let val = self.cleaned_string("username").unwrap_or_default();
             if val.to_lowercase().contains("admin") {
                 if let Some(f) = self.get_form_mut().fields.get_mut("username") {
                     f.set_error("The name 'admin' is reserved".to_string());
@@ -185,8 +203,8 @@ impl RuniqueForm for RegisterForm {
     // ...
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let pwd1 = self.form.get_string("password");
-        let pwd2 = self.form.get_string("password_confirm");
+        let pwd1 = self.cleaned_string("password").unwrap_or_default();
+        let pwd2 = self.cleaned_string("password_confirm").unwrap_or_default();
 
         if pwd1 != pwd2 {
             let mut errors = StrMap::new();
@@ -201,8 +219,10 @@ impl RuniqueForm for RegisterForm {
 }
 ```
 
-> **⚠️ Important**: `Password` fields are **automatically hashed** during `finalize()` by default (Argon2), unless `password_init` is called in `main.rs` with `PasswordConfig::Manual`, `Delegated`, or `Custom`.
+> **⚠️ Important**: `Password` fields are hashed during `finalize()` only if the global config is `PasswordConfig::Auto` (the default mode) **and** `.no_hash()` was not applied to the field. In `Manual`, `Delegated`, or `Custom` mode, `finalize()` does not hash — the application is responsible.
 > Use `clean()` for any password comparison — it is the only step where they are still readable.
+>
+> **Login form**: the password field must **not** be hashed — it will be compared against the stored hash. Disable automatic hashing with `.no_hash()`: `TextField::password("password").no_hash().required()`
 
 ---
 
@@ -216,7 +236,7 @@ Available anywhere `self` is `&mut Self` — from a handler or from a method on 
 
 ```rust
 if form.is_valid().await {
-    let path = form.cleaned_string("image"); // 1. read before clear
+    let path = form.cleaned_string("image").unwrap_or_default(); // 1. read before clear
     // save to DB...
     form.clear();                            // 2. empty
     success!(request.notices => "File uploaded!");
@@ -236,7 +256,7 @@ impl BlogForm {
         db: &DatabaseConnection,
     ) -> Result<blog::Model, DbErr> {
         let record = blog::ActiveModel {
-            title: Set(self.form.get_string("title")),
+            title: Set(self.cleaned_string("title").unwrap_or_default()),
             // ...
             ..Default::default()
         };

@@ -1,6 +1,6 @@
 //! Entité SeaORM `eihwaz_droits` — droits d'accès CRUD sous forme de matrice.
 //!
-//! Un droit est désormais attaché de manière exclusive à un Groupe.
+//! Un droit est lié à plusieurs groupes via la table pivot `eihwaz_groupes_droits`.
 //! - `resource_key = "articles"` + `can_create = true` + `can_read = true`
 use sea_orm::entity::prelude::*;
 
@@ -9,8 +9,8 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: crate::utils::pk::Pk,
-    pub groupe_id: crate::utils::pk::Pk,
-    /// Clé de la ressource admin ciblée (ex: "articles")
+    /// Clé unique de la ressource admin ciblée (ex: "articles")
+    #[sea_orm(unique)]
     pub resource_key: String,
 
     // Matrice CRUD
@@ -25,21 +25,7 @@ pub struct Model {
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::groupe::Entity",
-        from = "Column::GroupeId",
-        to = "super::groupe::Column::Id",
-        on_delete = "Cascade"
-    )]
-    Groupe,
-}
-
-impl Related<super::groupe::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Groupe.def()
-    }
-}
+pub enum Relation {}
 
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {

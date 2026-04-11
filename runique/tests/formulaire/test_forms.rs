@@ -249,6 +249,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("name"));
         form.add_value("name", "Alice");
+        form.is_valid().ok();
         assert_eq!(form.get_string("name"), "Alice");
     }
 
@@ -263,6 +264,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&NumericField::integer("age"));
         form.add_value("age", "42");
+        form.is_valid().ok();
         assert_eq!(form.get_i32("age"), 42);
     }
 
@@ -271,6 +273,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&NumericField::integer("age"));
         form.add_value("age", "not_a_number");
+        form.is_valid().ok();
         assert_eq!(form.get_i32("age"), 0);
     }
 
@@ -279,6 +282,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&NumericField::float("price"));
         form.add_value("price", "19.99");
+        form.is_valid().ok();
         assert!((form.get_f64("price") - 19.99).abs() < 0.001);
     }
 
@@ -287,6 +291,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&NumericField::float("price"));
         form.add_value("price", "19,99");
+        form.is_valid().ok();
         assert!((form.get_f64("price") - 19.99).abs() < 0.001);
     }
 
@@ -295,6 +300,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&BooleanField::new("active"));
         form.add_value("active", "true");
+        form.is_valid().ok();
         assert!(form.get_bool("active"));
     }
 
@@ -303,6 +309,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&BooleanField::new("active"));
         form.add_value("active", "1");
+        form.is_valid().ok();
         assert!(form.get_bool("active"));
     }
 
@@ -311,6 +318,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&BooleanField::new("active"));
         form.add_value("active", "false");
+        form.is_valid().ok();
         assert!(!form.get_bool("active"));
     }
 
@@ -319,6 +327,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("name"));
         form.add_value("name", "Bob");
+        form.is_valid().ok();
         assert_eq!(form.get_option("name"), Some("Bob".to_string()));
     }
 
@@ -348,6 +357,7 @@ mod tests {
         data.insert("username".to_string(), "bob".to_string());
         data.insert("age".to_string(), "30".to_string());
         form.fill(&data, Method::POST);
+        form.is_valid().ok();
 
         assert_eq!(form.get_string("username"), "bob");
         assert_eq!(form.get_i32("age"), 30);
@@ -429,6 +439,7 @@ mod tests {
         let mut form = Forms::new("csrf");
         form.field(&NumericField::integer("qty"));
         form.add_value("qty", "5");
+        form.is_valid().ok();
         assert_eq!(form.get_option_i32("qty"), Some(5));
     }
 

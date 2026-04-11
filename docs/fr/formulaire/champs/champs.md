@@ -18,12 +18,22 @@ form.field(&TextField::email("email").label("Email").required());
 // URL — validée via `validator::ValidateUrl`
 form.field(&TextField::url("website").label("Site web"));
 
-// Mot de passe — hachage Argon2 automatique dans finalize(), jamais ré-affiché en HTML
+// Formulaire d'inscription / modification — hachage automatique dans finalize()
 form.field(
     &TextField::password("password")
         .label("Mot de passe")
         .required()
         .min_length(8, "Min 8 caractères"),
+);
+
+// Formulaire de connexion (login) — .no_hash() obligatoire
+// Sans .no_hash(), finalize() hache le mot de passe soumis avant la comparaison
+// → verify(hash, stored_hash) échoue toujours silencieusement
+form.field(
+    &TextField::password("password")
+        .label("Mot de passe")
+        .no_hash()
+        .required(),
 );
 
 // Textarea
@@ -52,7 +62,7 @@ TextField::text("nom")
 | --- | --- | --- |
 | `Email` | `validator::ValidateEmail` | Conversion en lowercase |
 | `Url` | `validator::ValidateUrl` | — |
-| `Password` | Standard | Hachage Argon2 dans `finalize()`, valeur vidée au `render()` |
+| `Password` | Standard | Hachage auto dans `finalize()` si config `Auto` et pas `.no_hash()`, valeur vidée au `render()` |
 | `RichText` | Standard | Sanitisation XSS (`sanitize()`) avant validation |
 | `Csrf` | Token session | — |
 

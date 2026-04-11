@@ -16,15 +16,6 @@ function initAdminList() {
         new window.AdminActions().init();
     }
 
-    const sidebar = document.getElementById('filterSidebar');
-    if (!sidebar) return;
-
-    const toggle     = document.getElementById('filterToggle');
-    const chevron    = toggle.querySelector('svg');
-    const layout     = sidebar.closest('.admin-list-layout');
-    const FILTER_KEY = 'runique_admin_filter_collapsed';
-    const isMobile   = window.innerWidth <= 768;
-
     // ── Cellules dépliables (clic sur td-data) ──
     document.querySelectorAll('.admin-table tbody').forEach(function (tbody) {
         tbody.addEventListener('click', function (e) {
@@ -45,6 +36,15 @@ function initAdminList() {
             btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
     });
+
+    const sidebar = document.getElementById('filterSidebar');
+    if (!sidebar) return;
+
+    const toggle     = document.getElementById('filterToggle');
+    const chevron    = toggle.querySelector('svg');
+    const layout     = sidebar.closest('.admin-list-layout');
+    const FILTER_KEY = 'runique_admin_filter_collapsed';
+    const isMobile   = window.innerWidth <= 768;
 
     // ── Bouton burger filtre (mobile) + overlay ──
     const mobileBtn = document.getElementById('mobileFilterToggle');

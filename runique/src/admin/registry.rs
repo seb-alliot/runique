@@ -1,8 +1,8 @@
 //! Registre central des ressources admin indexées par clé URL.
 use indexmap::IndexMap;
 
+use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::admin::resource::DisplayConfig;
-use crate::admin::resource_entry::ResourceEntry;
 
 /// Registre des ressources admin — IndexMap clé → ResourceEntry.
 ///

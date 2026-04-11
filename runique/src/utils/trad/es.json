@@ -395,7 +395,7 @@
     "builtin": {
       "invalid_id": "Identificador inválido.",
       "droit_resource_required": "Por favor, seleccione al menos un recurso.",
-      "droit_exists": "El permiso \"{}\" ya existe para este grupo.",
+      "droit_exists": "El permiso \"{}\" ya existe.",
       "groupe_exists": "Ya existe un grupo llamado \"{}\"."
     }
   },
@@ -447,5 +447,17 @@
     "check_inbox": "Si esta dirección está asociada a una cuenta, recibirá un correo de restablecimiento.",
     "email_subject": "Restablecer contraseña",
     "email_body": "<p>Hola {0},</p><p>Haga clic en el siguiente enlace para restablecer su contraseña (válido durante 1 hora):</p><p><a href=\"{1}\">{2}</a></p>"
+  },
+  "permission": {
+    "col.id": "ID",
+    "col.can_create": "Crear",
+    "col.can_delete": "Eliminar",
+    "col.can_delete_own": "Eliminar (propio)",
+    "col.can_read": "Leer",
+    "col.can_update": "Modificar",
+    "col.can_update_own": "Modificar (propio)",
+    "col.groupes": "Grupos",
+    "col.resource_key": "Recurso",
+    "col.actions": "Acciones"
   }
 }

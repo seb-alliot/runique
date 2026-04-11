@@ -1,14 +1,14 @@
 /* ═══════════════════════════════════════════════════════════════
-   AdminPanel — Responsive
-   Breakpoints :
-     > 900px   → desktop  (sidebar fixe, layout complet)
-     768–900px → tablette (sidebar overlay, 1 colonne)
-     < 768px   → mobile   (sidebar overlay, filtres overlay, barre fixe)
-     < 480px   → petit mobile
+    AdminPanel — Responsive
+    Breakpoints :
+        > 900px   → desktop  (sidebar fixe, layout complet)
+        768–900px → tablette (sidebar overlay, 1 colonne)
+        < 768px   → mobile   (sidebar overlay, filtres overlay, barre fixe)
+        < 480px   → petit mobile
    ═══════════════════════════════════════════════════════════════ */
 
 /* ───────────────────────────────────────────────
-   Tableau expandable — desktop (colonnes toutes visibles)
+    Tableau expandable — desktop (colonnes toutes visibles)
    ─────────────────────────────────────────────── */
 
 .th-expand,
@@ -17,7 +17,7 @@
 .row-detail.open { display: table-row; }
 
 /* ───────────────────────────────────────────────
-   Barre recherche + bouton filtres
+    Barre recherche + bouton filtres
    ─────────────────────────────────────────────── */
 
 .admin-search-row {
@@ -67,9 +67,23 @@
 .btn-show-mobile { display: none; }
 
 /* ───────────────────────────────────────────────
-   Tablette (≤ 900px) — sidebar en overlay
+    Tablette (≤ 900px) — sidebar en overlay
    ─────────────────────────────────────────────── */
-
+@media (max-width: 480px){
+        .row-expand-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border-light);
+        background: none;
+        border-radius: var(--radius);
+        color: var(--text-muted);
+        transition: all var(--transition);
+        margin-left: 25vw;
+    }
+}
 @media (max-width: 900px) {
     /* Sidebar → overlay glissant depuis la gauche */
     .admin-sidebar {
@@ -77,7 +91,7 @@
         top: 0;
         left: 0;
         height: 100%;
-        width: 240px;
+        width: 200px;
         transform: translateX(-100%);
         transition: transform var(--transition);
         z-index: 200;
@@ -153,12 +167,12 @@
         padding: 0.5rem 1rem 0.875rem;
         background: var(--bg-hover);
         border-bottom: 1px solid var(--border);
+        line-height: 2.5;
     }
 
     .row-detail-grid {
-        display: flex;
-        flex-wrap: wrap;
         gap: 0.6rem 1.5rem;
+        width: 85vw;
     }
 
     .row-detail-item {
@@ -254,10 +268,16 @@
 
 @media (max-width: 600px) {
     /* Topbar */
-    .admin-topbar { padding: 0 0.875rem; gap: 0.5rem; }
+    .admin-topbar { padding: 0 0.875rem; gap: 0.5rem; justify-content: space-around; }
     .topbar-breadcrumb { display: none; }
     .topbar-user span { display: none; } /* masque le nom, garde l'avatar */
-
+        .admin-search-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        justify-content: space-between;
+    }
     /* Contenu */
     .admin-content {
         padding: 0.875rem;
@@ -292,12 +312,13 @@
         justify-content: center;
         gap: 1.5rem;
         padding: 0.6rem 1rem;
+        justify-content: space-between;
     }
 
     /* Table encore plus compacte */
     .admin-table th,
     .admin-table td { padding: 0.6rem 0.75rem; font-size: 0.82rem; }
-    .admin-table { min-width: 480px; }
+    .admin-table { min-width: 95vw; }
 
     /* Formulaires */
     .form-group { gap: 0.3rem; }
@@ -323,6 +344,8 @@
         min-width: 0;
         table-layout: fixed;
         width: 100%;
+        display: flex;
+        flex-direction: column;
     }
 
     .admin-table-wrapper { overflow-x: hidden; }
@@ -331,18 +354,6 @@
     .admin-table th:first-child,
     .admin-table td:first-child {
         width: 42px;
-        padding-left: 0.5rem;
-        padding-right: 0.25rem;
-    }
-
-    /* Première colonne data : prend l'espace restant, tronque */
-    .admin-table th:nth-child(2),
-    .admin-table td:nth-child(2) {
-        width: auto;
-        max-width: 0; /* force truncation dans table-layout:fixed */
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
     }
 
     .admin-table td:nth-child(2) .td-content {

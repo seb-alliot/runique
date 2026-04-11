@@ -396,7 +396,7 @@
     "builtin": {
       "invalid_id": "Identifiant invalide.",
       "droit_resource_required": "Veuillez sélectionner au moins une ressource.",
-      "droit_exists": "Le droit \"{}\" existe déjà pour ce groupe.",
+      "droit_exists": "Le droit \"{}\" existe déjà.",
       "groupe_exists": "Un groupe nommé « {} » existe déjà."
     }
   },
@@ -448,5 +448,17 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "Aucune instruction down trouvée.",
     "executing": "Exécution : {}"
+  },
+  "permission": {
+    "col.id": "ID",
+    "col.can_create": "Créer",
+    "col.can_delete": "Supprimer",
+    "col.can_delete_own": "Supprimer (propre)",
+    "col.can_read": "Lire",
+    "col.can_update": "Modifier",
+    "col.can_update_own": "Modifier (propre)",
+    "col.groupes": "Groupes",
+    "col.resource_key": "Ressource",
+    "col.actions": "Actions"
   }
 }

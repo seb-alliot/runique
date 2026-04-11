@@ -395,7 +395,7 @@
     "builtin": {
       "invalid_id": "无效的标识符。",
       "droit_resource_required": "请至少选择一个资源。",
-      "droit_exists": "该组的权限 \"{}\" 已存在。",
+      "droit_exists": "权限 \"{}\" 已存在。",
       "groupe_exists": "名为 \"{}\" 的组已存在。"
     }
   },
@@ -447,5 +447,17 @@
     "check_inbox": "如果此地址与帐户关联，您将收到一封重置邮件。",
     "email_subject": "密码重置请求",
     "email_body": "<p>您好 {0}，</p><p>请点击以下链接重置您的密码（有效期1小时）：</p><p><a href=\"{1}\">{2}</a></p>"
+  },
+  "permission": {
+    "col.id": "ID",
+    "col.can_create": "创建",
+    "col.can_delete": "删除",
+    "col.can_delete_own": "删除（自己的）",
+    "col.can_read": "读取",
+    "col.can_update": "修改",
+    "col.can_update_own": "修改（自己的）",
+    "col.groupes": "组",
+    "col.resource_key": "资源",
+    "col.actions": "操作"
   }
 }

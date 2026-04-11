@@ -51,7 +51,7 @@ fn auth_mw_addr() -> SocketAddr {
                             }
                         }),
                     )
-                    .layer(middleware::from_fn(load_user_middleware));
+                    .layer(middleware::from_fn_with_state(db.clone(), load_user_middleware));
 
                 // Routes publiques (pas de middleware auth)
                 let public = Router::new()

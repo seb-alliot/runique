@@ -16,19 +16,10 @@ impl RuniqueForm for RegisterForm {
     impl_form_access!(model);
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let username = self.get_string("username");
-        let password = self.get_string("password");
-        let email = self.get_string("email");
-
+        let username = self.cleaned_string("username").unwrap_or_default();
+        let password = self.cleaned_string("password").unwrap_or_default();
         let mut errors = StrMap::new();
 
-        if username.is_empty() {
-            errors.insert(
-                "username".to_string(),
-                "Le nom d'utilisateur est obligatoire.".to_string(),
-            );
-        }
-        // Username
         if username.len() < 5 {
             errors.insert(
                 "username".to_string(),
@@ -41,11 +32,6 @@ impl RuniqueForm for RegisterForm {
                 "username".to_string(),
                 "Le nom d'utilisateur ne peut pas contenir '#' ou '—'.".to_string(),
             );
-        }
-        if email.is_empty() {
-            errors.insert("email".to_string(), "L'email est obligatoire.".to_string());
-        } else if !email.contains('@') || !email.contains('.') {
-            errors.insert("email".to_string(), "L'email n'est pas valide.".to_string());
         }
         // Mot de passe
         const SPECIAL: &str = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
@@ -79,9 +65,9 @@ impl RegisterForm {
     ) -> Result<runique::prelude::user::Model, DbErr> {
         use runique::prelude::user::ActiveModel;
         let user = ActiveModel {
-            username: Set(self.form.get_string("username")),
-            email: Set(self.form.get_string("email")),
-            password: Set(hash(self.form.get_string("password").as_str()).unwrap_or_default()),
+            username: Set(self.cleaned_string("username").unwrap_or_default()),
+            email: Set(self.cleaned_string("email").unwrap_or_default()),
+            password: Set(self.cleaned_string("password").unwrap_or_default()),
             is_active: Set(false),
             is_superuser: Set(false),
             is_staff: Set(false),

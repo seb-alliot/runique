@@ -191,4 +191,15 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.create.success",
     "admin.edit.success",
     "admin.delete.success",
+    // Permission html
+    "permission.col.id",
+    "permission.col.can_create",
+    "permission.col.can_delete",
+    "permission.col.can_delete_own",
+    "permission.col.can_read",
+    "permission.col.can_update",
+    "permission.col.can_update_own",
+    "permission.col.groupes",
+    "permission.col.resource_key",
+    "permission.col.actions",
 ];

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   AdminPanel — Formulaires
+    AdminPanel — Formulaires
    ═══════════════════════════════════════════════════════════════ */
 
 .form-grid   { display: grid; gap: 1.25rem; }
@@ -95,8 +95,8 @@
 }
 
 /* ───────────────────────────────────────────────
-   Bridge : classes field templates → admin
-   (les templates Runique utilisent form-control/form-group/mb-3)
+    Bridge : classes field templates → admin
+    (les templates Runique utilisent form-control/form-group/mb-3)
    ─────────────────────────────────────────────── */
 
 .form-control,
@@ -198,7 +198,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 .mb-3 { margin-bottom: 1.1rem; }
 
 /* ───────────────────────────────────────────────
-   Champs booléens (base_boolean.html)
+    Champs booléens (base_boolean.html)
    ─────────────────────────────────────────────── */
 
 .form-field.boolean-field {
@@ -238,18 +238,48 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 
 /* ───────────────────────────────────────────────
-   CheckboxField / RadioField multi-options
+    CheckboxField / RadioField multi-options
    ─────────────────────────────────────────────── */
 
 .checkbox-fieldset,
-.radio-fieldset {
+.radio-fieldset,
+.boolean-group {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 0.75rem 1rem 1rem;
     margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.4rem 0.75rem;
+}
+
+.boolean-group .boolean-field { margin-bottom: 0; }
+
+@media (max-width: 1024px) { .boolean-group { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 900px)  { .boolean-group { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 480px)  { .boolean-group { grid-template-columns: repeat(2, 1fr); } }
+
+.checkbox-fieldset legend,
+.radio-fieldset legend { grid-column: 1 / -1; }
+
+.btn-select-all { grid-column: 1 / -1; }
+
+.checkbox-fieldset .choice-filter-bar,
+.radio-fieldset .choice-filter-bar { grid-column: 1 / -1; }
+
+@media (max-width: 1024px) {
+    .checkbox-fieldset,
+    .radio-fieldset { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 900px) {
+    .checkbox-fieldset,
+    .radio-fieldset { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 480px) {
+    .checkbox-fieldset,
+    .radio-fieldset { grid-template-columns: repeat(2, 1fr); }
 }
 
 .checkbox-fieldset legend,
@@ -266,6 +296,21 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 .radio-fieldset.field-error {
     border-color: var(--danger);
 }
+
+.btn-select-all {
+    display: inline-block;
+    margin: 0.2rem 0 0.4rem;
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: 0.78rem;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.btn-select-all:hover { opacity: 0.75; }
 
 .checkbox-option,
 .radio-option {
@@ -288,7 +333,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 }
 
 /* ───────────────────────────────────────────────
-   Barre de filtre alphabétique (choice-filter.js)
+    Barre de filtre alphabétique (choice-filter.js)
    ─────────────────────────────────────────────── */
 
 .choice-filter-bar {
@@ -327,7 +372,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 
 /* ───────────────────────────────────────────────
-   Vue détail — dl/dt/dd
+    Vue détail — dl/dt/dd
    ─────────────────────────────────────────────── */
 
 .detail-dl { display: flex; flex-direction: column; gap: 0; }
