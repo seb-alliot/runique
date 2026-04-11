@@ -148,20 +148,13 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
             continue;
         }
 
-        // 2. ':'
         expect_punct(&mut iter, ':')?;
-
-        // 3. model_type (path: ident :: ident...)
         let model_type = parse_path(&mut iter)?;
-
-        // 4. '=>'
         expect_punct(&mut iter, '=')?;
         expect_punct(&mut iter, '>')?;
 
-        // 5. form_type — parsé pour avancer dans le flux, mais non utilisé par le générateur
         let _form_type = parse_path(&mut iter)?;
 
-        // 6. { title: "...", permissions: [...], template_*: "...", extra: { ... } }
         let body = match iter.next() {
             Some(TokenTree::Group(group)) => parse_resource_body(group.stream())?,
             Some(other) => return Err(format!("Expected '{{', found: {}", other)),

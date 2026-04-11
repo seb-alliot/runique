@@ -235,9 +235,7 @@ impl Request {
             // In debug mode, Tera is fully reinitialized with the Loader
             // This applies Regex on {% messages %}, {% form.xxx %}, etc.
             match TemplateLoader::init(&self.engine.config, self.engine.url_registry.clone()) {
-                Ok(mut dev_tera) => {
-                    dev_tera.autoescape_on(vec!["html", "xml"]);
-
+                Ok(dev_tera) => {
                     let res = dev_tera.render(template, &self.context);
                     if let Err(ref e) = res {
                         // Detailed log of the Tera error with all sources
