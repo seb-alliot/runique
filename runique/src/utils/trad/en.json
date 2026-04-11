@@ -447,5 +447,17 @@
     "usage_batch": "runique migration down --batch <timestamp>",
     "no_down": "No down statements found.",
     "executing": "Executing: {}"
+  },
+  "permission": {
+    "col.id": "ID",
+    "col.can_create": "Create",
+    "col.can_delete": "Delete",
+    "col.can_delete_own": "Delete (own)",
+    "col.can_read": "Read",
+    "col.can_update": "Update",
+    "col.can_update_own": "Update (own)",
+    "col.groupes": "Groups",
+    "col.resource_key": "Resource",
+    "col.actions": "Actions"
   }
 }

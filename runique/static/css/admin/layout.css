@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   AdminPanel — Layout (sidebar, topbar, main area)
+    AdminPanel — Layout (sidebar, topbar, main area)
    ═══════════════════════════════════════════════════════════════ */
 
 /* Reset admin */
@@ -20,7 +20,7 @@ button { cursor: pointer; font: inherit; }
 ul { list-style: none; }
 
 /* ───────────────────────────────────────────────
-   Structure principale
+    Structure principale
    ─────────────────────────────────────────────── */
 
 .admin-layout {
@@ -30,7 +30,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Sidebar
+    Sidebar
    ─────────────────────────────────────────────── */
 
 .admin-sidebar {
@@ -222,7 +222,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Zone principale
+    Zone principale
    ─────────────────────────────────────────────── */
 
 .admin-main {

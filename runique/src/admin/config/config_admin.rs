@@ -1,7 +1,7 @@
 //! Configuration du panneau d'administration : préfixe, titre, hot reload, auth et templates.
 use std::sync::Arc;
 
-use crate::admin::template::AdminTemplate;
+use crate::admin::helper::AdminTemplate;
 use crate::middleware::auth::{AdminAuth, LoginGuard};
 use crate::middleware::security::RateLimiter;
 use crate::utils::env::is_debug;

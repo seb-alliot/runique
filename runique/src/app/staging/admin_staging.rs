@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use crate::admin::PrototypeAdminState;
-use crate::admin::{AdminConfig, AdminTemplate};
+use crate::admin::{AdminConfig, helper::AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::middleware::auth::{AdminAuth, LoginGuard};
 use crate::middleware::security::RateLimiter;

@@ -45,7 +45,6 @@ impl CurrentUser {
                 let entry = agg
                     .entry(perm.resource_key.clone())
                     .or_insert_with(|| Permission {
-                        id: 0,
                         resource_key: perm.resource_key.clone(),
                         can_create: false,
                         can_read: false,
@@ -158,6 +157,14 @@ pub async fn login(
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
 ) -> Result<(), tower_sessions::session::Error> {
+    // Si une autre session est déjà active, logout propre avant de login
+    let existing_id = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten();
+    if let Some(existing) = existing_id {
+        if existing != user_id {
+            let _ = logout(session, db_store).await;
+        }
+    }
+
     let groupes = pull_groupes_db(db, user_id).await;
 
     // Cache mémoire — point d'accès unique pour load_user_middleware et le point 6
@@ -267,21 +274,85 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
     Ok(())
 }
 
-/// Obsolète : remaniement matriciel
-pub async fn has_permission(session: &Session, _permission: &str) -> bool {
-    session
+/// Vérifie si l'utilisateur connecté possède une permission donnée.
+///
+/// Format : `"resource_key.action"` — ex: `"users.read"`, `"posts.create"`.
+/// Actions disponibles : `create`, `read`, `update`, `delete`, `update_own`, `delete_own`.
+/// `"resource_key"` seul (sans `.action`) vérifie n'importe quelle action sur la ressource.
+/// `"any"` vérifie que l'utilisateur appartient à au moins un groupe.
+///
+/// Les superusers ont toujours accès (bypass).
+pub async fn has_permission(session: &Session, permission: &str) -> bool {
+    // Superuser bypass
+    let is_superuser = session
         .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
         .await
         .ok()
         .flatten()
-        .unwrap_or(false)
+        .unwrap_or(false);
+
+    if is_superuser {
+        return true;
+    }
+
+    let Some(user_id) = get_user_id(session).await else {
+        return false;
+    };
+
+    let Some(cached) = get_permissions(user_id) else {
+        return false;
+    };
+
+    if permission == "any" {
+        return true; // user_id validé ci-dessus → utilisateur authentifié
+    }
+
+    let (resource_key, action) = match permission.find('.') {
+        Some(pos) => (&permission[..pos], &permission[pos + 1..]),
+        None => (permission, "any"),
+    };
+
+    for groupe in &cached.groupes {
+        for perm in &groupe.permissions {
+            if perm.resource_key != resource_key {
+                continue;
+            }
+            let has = match action {
+                "create" => perm.can_create,
+                "read" => perm.can_read,
+                "update" => perm.can_update,
+                "delete" => perm.can_delete,
+                "update_own" => perm.can_update_own,
+                "delete_own" => perm.can_delete_own,
+                "any" => {
+                    perm.can_create
+                        || perm.can_read
+                        || perm.can_update
+                        || perm.can_delete
+                        || perm.can_update_own
+                        || perm.can_delete_own
+                }
+                _ => false,
+            };
+            if has {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 // ═══════════════════════════════════════════════════════════════
 // Middlewares Axum
 // ═══════════════════════════════════════════════════════════════
 
 /// Middleware : charge les infos utilisateur dans les extensions de la requête.
-pub async fn load_user_middleware(session: Session, mut request: Request, next: Next) -> Response {
+pub async fn load_user_middleware(
+    axum::extract::State(db): axum::extract::State<crate::utils::aliases::ADb>,
+    session: Session,
+    mut request: Request,
+    next: Next,
+) -> Response {
     if let (Some(user_id), Some(username)) =
         (get_user_id(&session).await, get_username(&session).await)
     {
@@ -299,10 +370,14 @@ pub async fn load_user_middleware(session: Session, mut request: Request, next: 
             .flatten()
             .unwrap_or(false);
 
-        // Groupes et permissions depuis le cache mémoire (plus rapide que la session)
+        // Groupes depuis le cache — rechargement DB si cache vide (après clear_cache)
         let groupes = match get_permissions(user_id) {
             Some(cached) => cached.groupes.clone(),
-            None => vec![],
+            None => {
+                let groupes = pull_groupes_db(&*db, user_id).await;
+                cache_permissions(user_id, groupes.clone());
+                groupes
+            }
         };
 
         let current_user = CurrentUser {

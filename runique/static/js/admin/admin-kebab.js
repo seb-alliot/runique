@@ -40,6 +40,8 @@
         }
     };
 
+    let lastOpenTime = 0;
+
     document.addEventListener('click', function (e) {
         const trigger = e.target.closest('.row-menu-trigger');
         if (trigger) {
@@ -50,6 +52,7 @@
                 positionDropdown(trigger, dropdown);
                 dropdown.classList.add('open');
                 trigger.classList.add('active');
+                lastOpenTime = Date.now();
             }
             e.stopPropagation();
             return;
@@ -57,8 +60,10 @@
         if (!e.target.closest('.row-menu-dropdown')) closeAllMenus();
     });
 
-    // Repositionner si scroll ou resize
-    window.addEventListener('scroll', closeAllMenus, true);
+    // Sur mobile, un tap génère un micro-scroll — on ignore les scrolls dans les 300ms suivant l'ouverture
+    window.addEventListener('scroll', () => {
+        if (Date.now() - lastOpenTime > 300) closeAllMenus();
+    }, true);
     window.addEventListener('resize', closeAllMenus);
 
     // Fermer avec Echap

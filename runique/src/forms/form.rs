@@ -32,6 +32,7 @@ pub struct Forms {
     pub session_csrf_token: String,
     renderer: Option<FormRenderer>,
     submitted: bool,
+    validated: bool,
     pub(crate) path_params: HashMap<String, String>,
     pub(crate) query_params: HashMap<String, String>,
 }
@@ -157,6 +158,7 @@ impl Forms {
             session_csrf_token: csrf_token.to_string(),
             renderer: None,
             submitted: false,
+            validated: false,
             path_params: HashMap::new(),
             query_params: HashMap::new(),
         }
@@ -253,6 +255,7 @@ impl Forms {
             }
         }
         self.submitted = false;
+        self.validated = false;
     }
 
     pub fn finalize(&mut self) -> Result<(), String> {
@@ -273,6 +276,7 @@ impl Forms {
     pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
         // Pour les tests unitaires et la robustesse, on valide toujours si is_valid() est appelé,
         // même si le formulaire n'est pas marqué comme soumis (ex: aucun champ rempli).
+        self.validated = true;
         Self::validate(&mut self.fields, &self.errors)
     }
     pub fn has_errors(&self) -> bool {
@@ -302,24 +306,32 @@ impl Forms {
 // ============================================================================
 
 impl Forms {
+    #[inline]
+    fn assert_validated(&self, method: &str) {
+        debug_assert!(
+            !self.submitted || self.validated,
+            "Forms::{method}() appelé sans is_valid() préalable — appelez is_valid().await avant d'accéder aux données du formulaire"
+        );
+    }
+
     pub fn get_value(&self, name: &str) -> Option<String> {
+        self.assert_validated("get_value");
         self.fields.get(name).map(|field| field.value().to_string())
     }
     /// Retourne la valeur comme `String`, ou `String::new()` si le champ n'existe pas.
     pub fn get_string(&self, name: &str) -> String {
+        self.assert_validated("get_string");
         self.get_value(name).unwrap_or_default()
     }
 
     /// Retourne la valeur comme `Option<String>`.
     /// `None` si le champ n'existe pas **ou** si la valeur est vide.
     pub fn get_option(&self, name: &str) -> Option<String> {
+        self.assert_validated("get_option");
         self.get_value(name).filter(|v| !v.trim().is_empty())
     }
 
-    /// Indique si le formulaire a été soumis avec des données.
-    /// Équivalent du `request.GET or None` de Django : retourne `false`
-    /// si aucun champ (hors csrf_token) n'a de valeur non-vide.
-    pub fn is_submitted(&self) -> bool {
+    pub(crate) fn is_submitted(&self) -> bool {
         self.submitted
     }
 

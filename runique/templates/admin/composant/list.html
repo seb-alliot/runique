@@ -28,7 +28,7 @@
       <p class="page-subtitle">{{ total | default(value=0) }} {% if admin_list_entries_count %}{{ admin_list_entries_count }}{% endif %}</p>
     </div>
     
-    {# ✅ Affichage simple, hors boucle #}
+    {# Affichage simple, hors boucle #}
     {% if can_create %}
     <a href="/admin/{{ resource.key }}/create" class="btn btn-primary">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
@@ -39,9 +39,7 @@
     {% endif %}
   </div>
 
-  <div id="list-content">
-    {% include "admin/list_partial" %}
-  </div>
+  {% include "admin/list_partial" %}
 
   <script {% csp %} src="{{ "js/admin/admin-actions.js" | runique_static }}"></script>
   <script {% csp %} src="{{ "js/admin/admin-kebab.js" | runique_static }}"></script>

@@ -4,7 +4,7 @@
 //! être référencés via `create_form:` dans `admin!{}` sans avoir à les réécrire.
 
 use crate::forms::field::RuniqueForm;
-use crate::forms::fields::{BooleanField, CheckboxField, HiddenField, TextField};
+use crate::forms::fields::{BooleanField, CheckboxField, ChoiceField, HiddenField, TextField};
 use crate::forms::form::Forms;
 use crate::impl_form_access;
 use crate::utils::aliases::definition::StrMap;
@@ -17,17 +17,9 @@ pub struct DroitAdminForm {
 
 impl RuniqueForm for DroitAdminForm {
     fn register_fields(form: &mut Forms) {
-        // Le ChoiceField sera écrasé dynamiquement avec les vraies données de DB (voir builtin.rs)
-        form.field(
-            &crate::forms::fields::ChoiceField::new("groupe_id")
-                .label("Groupe")
-                .required(),
-        );
-        form.field(
-            &TextField::text("resource_key")
-                .label("Ressource ciblée")
-                .required(),
-        );
+        // groupe_id, resource_key écrasés dynamiquement dans builtin.rs
+        form.field(&ChoiceField::new("groupe_id").label("Groupe").required());
+        form.field(&CheckboxField::new("resource_key").label("Ressources ciblées"));
         form.field(&BooleanField::new("can_create").label("Peut créer"));
         form.field(&BooleanField::new("can_read").label("Peut lire"));
         form.field(&BooleanField::new("can_update").label("Peut modifier"));
@@ -94,8 +86,8 @@ impl RuniqueForm for UserAdminCreateForm {
     impl_form_access!();
 
     async fn clean(&mut self) -> Result<(), StrMap> {
-        let username = self.get_string("username");
-        let email = self.get_string("email");
+        let username = self.cleaned_string("username").unwrap_or_default();
+        let email = self.cleaned_string("email").unwrap_or_default();
         let mut errors = StrMap::new();
 
         if username.len() < 3 {

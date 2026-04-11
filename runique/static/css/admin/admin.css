@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════
-   Runique AdminPanel — Feuille de style principale
-   Thème : dark, sobre, professionnel
-   Cohérent avec l'esthétique Runique (variables.css)
+    Runique AdminPanel — Feuille de style principale
+    Thème : dark, sobre, professionnel
+    Cohérent avec l'esthétique Runique (variables.css)
    ═══════════════════════════════════════════════════════════════ */
 
 /* ───────────────────────────────────────────────
-   Variables
+    Variables
    ─────────────────────────────────────────────── */
 
 :root {
@@ -39,7 +39,7 @@
 }
 
 /* ───────────────────────────────────────────────
-   Reset
+    Reset
    ─────────────────────────────────────────────── */
 
 *, *::before, *::after {
@@ -63,7 +63,7 @@ button { cursor: pointer; font: inherit; }
 ul { list-style: none; }
 
 /* ═══════════════════════════════════════════════
-   LAYOUT ADMIN
+    LAYOUT ADMIN
    ═══════════════════════════════════════════════ */
 
 .admin-layout {
@@ -73,7 +73,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   SIDEBAR
+    SIDEBAR
    ─────────────────────────────────────────────── */
 
 .admin-sidebar {
@@ -264,7 +264,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   MAIN AREA
+    MAIN AREA
    ─────────────────────────────────────────────── */
 
 .admin-main {
@@ -348,11 +348,11 @@ ul { list-style: none; }
 .admin-content::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 
 /* ═══════════════════════════════════════════════
-   COMPOSANTS
+    COMPOSANTS
    ═══════════════════════════════════════════════ */
 
 /* ───────────────────────────────────────────────
-   Page header
+    Page header
    ─────────────────────────────────────────────── */
 
 .page-header {
@@ -376,7 +376,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Stat cards (dashboard)
+    Stat cards (dashboard)
    ─────────────────────────────────────────────── */
 
 .stats-grid {
@@ -426,7 +426,7 @@ ul { list-style: none; }
 .stat-meta.down { color: var(--danger); }
 
 /* ───────────────────────────────────────────────
-   Card générique
+    Card générique
    ─────────────────────────────────────────────── */
 
 .card {
@@ -456,7 +456,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Table
+    Table
    ─────────────────────────────────────────────── */
 
 .admin-table-wrapper {
@@ -475,7 +475,6 @@ ul { list-style: none; }
 
 .admin-table th {
     padding: 0.75rem 1rem;
-    text-align: left;
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -522,7 +521,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Pagination
+    Pagination
    ─────────────────────────────────────────────── */
 
 .pagination {
@@ -578,7 +577,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Boutons
+    Boutons
    ─────────────────────────────────────────────── */
 
 .btn {
@@ -654,7 +653,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Formulaires
+    Formulaires
    ─────────────────────────────────────────────── */
 
 .form-grid {
@@ -774,7 +773,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Alerts / Flash messages
+    Alerts / Flash messages
    ─────────────────────────────────────────────── */
 
 .alert {
@@ -813,7 +812,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Badges / Tags
+    Badges / Tags
    ─────────────────────────────────────────────── */
 
 .badge {
@@ -833,7 +832,7 @@ ul { list-style: none; }
 .badge-neutral { background: var(--bg-input);       color: var(--text-muted); }
 
 /* ───────────────────────────────────────────────
-   Search bar
+    Search bar
    ─────────────────────────────────────────────── */
 
 .search-bar {
@@ -857,7 +856,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Admin list — barre de recherche
+    Admin list — barre de recherche
    ─────────────────────────────────────────────── */
 
 .admin-search-form {
@@ -880,7 +879,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Admin table — tri par colonne
+    Admin table — tri par colonne
    ─────────────────────────────────────────────── */
 
 .th-sort-link {
@@ -902,7 +901,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Empty state
+    Empty state
    ─────────────────────────────────────────────── */
 
 .empty-state {
@@ -934,7 +933,7 @@ ul { list-style: none; }
 }
 
 /* ───────────────────────────────────────────────
-   Confirm delete
+    Confirm delete
    ─────────────────────────────────────────────── */
 
 .delete-zone {
@@ -961,7 +960,7 @@ ul { list-style: none; }
 }
 
 /* ═══════════════════════════════════════════════
-   PAGE LOGIN
+    PAGE LOGIN
    ═══════════════════════════════════════════════ */
 
 .login-wrapper {
@@ -1029,7 +1028,7 @@ ul { list-style: none; }
 }
 
 /* ═══════════════════════════════════════════════
-   RESPONSIVE
+    RESPONSIVE
    ═══════════════════════════════════════════════ */
 
 @media (max-width: 900px) {
@@ -1083,7 +1082,7 @@ ul { list-style: none; }
 }
 
 /* ═══════════════════════════════════════════════
-   SIDEBAR TOGGLE — JavaScript hook
+    SIDEBAR TOGGLE — JavaScript hook
    ═══════════════════════════════════════════════ */
 
 /* SVG icons inline (chevron toggle) */
@@ -1096,7 +1095,7 @@ ul { list-style: none; }
 }
 
 /* ═══════════════════════════════════════════════
-   LIST FILTER SIDEBAR
+    LIST FILTER SIDEBAR
    ═══════════════════════════════════════════════ */
 
 .admin-list-layout {

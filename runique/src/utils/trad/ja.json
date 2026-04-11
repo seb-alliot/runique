@@ -395,7 +395,7 @@
     "builtin": {
       "invalid_id": "IDが無効です。",
       "droit_resource_required": "少なくとも1つのリソースを選択してください。",
-      "droit_exists": "\"{}\" の権限はこのグループに既に存在します。",
+      "droit_exists": "\"{}\" の権限は既に存在します。",
       "groupe_exists": "\"{}\" という名前のグループは既に存在します。"
     }
   },
@@ -447,5 +447,17 @@
     "check_inbox": "このアドレスがアカウントに関連付けられている場合、リセットメールが届きます。",
     "email_subject": "パスワードリセットのご案内",
     "email_body": "<p>{0} 様、</p><p>以下のリンクをクリックしてパスワードをリセットしてください（1時間有効）：</p><p><a href=\"{1}\">{2}</a></p>"
+  },
+  "permission": {
+    "col.id": "ID",
+    "col.can_create": "作成",
+    "col.can_delete": "削除",
+    "col.can_delete_own": "削除（自分の）",
+    "col.can_read": "閲覧",
+    "col.can_update": "更新",
+    "col.can_update_own": "更新（自分の）",
+    "col.groupes": "グループ",
+    "col.resource_key": "リソース",
+    "col.actions": "操作"
   }
 }

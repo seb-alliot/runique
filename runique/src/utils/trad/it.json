@@ -395,7 +395,7 @@
     "builtin": {
       "invalid_id": "Identificativo non valido.",
       "droit_resource_required": "Seleziona almeno una risorsa.",
-      "droit_exists": "Il diritto \"{}\" esiste già per questo gruppo.",
+      "droit_exists": "Il diritto \"{}\" esiste già.",
       "groupe_exists": "Esiste già un gruppo chiamato \"{}\"."
     }
   },
@@ -447,5 +447,17 @@
     "check_inbox": "Se questo indirizzo è associato a un account, riceverà un'email di reimpostazione.",
     "email_subject": "Reimpostazione password",
     "email_body": "<p>Ciao {0},</p><p>Clicca sul link seguente per reimpostare la password (valido per 1 ora):</p><p><a href=\"{1}\">{2}</a></p>"
+  },
+  "permission": {
+    "col.id": "ID",
+    "col.can_create": "Creare",
+    "col.can_delete": "Eliminare",
+    "col.can_delete_own": "Eliminare (proprio)",
+    "col.can_read": "Leggere",
+    "col.can_update": "Modificare",
+    "col.can_update_own": "Modificare (proprio)",
+    "col.groupes": "Gruppi",
+    "col.resource_key": "Risorsa",
+    "col.actions": "Azioni"
   }
 }

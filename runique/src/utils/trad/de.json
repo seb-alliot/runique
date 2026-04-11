@@ -392,7 +392,7 @@
     "builtin": {
       "invalid_id": "Ungültige ID.",
       "droit_resource_required": "Bitte mindestens eine Ressource auswählen.",
-      "droit_exists": "Das Recht \"{}\" existiert bereits für diese Gruppe.",
+      "droit_exists": "Das Recht \"{}\" existiert bereits.",
       "groupe_exists": "Eine Gruppe namens \"{}\" existiert bereits."
     }
   },
@@ -444,5 +444,17 @@
     "check_inbox": "Falls diese Adresse mit einem Konto verknüpft ist, erhalten Sie eine Reset-E-Mail.",
     "email_subject": "Passwort zurücksetzen",
     "email_body": "<p>Hallo {0},</p><p>Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen (gültig für 1 Stunde):</p><p><a href=\"{1}\">{2}</a></p>"
+  },
+  "permission": {
+    "col.id": "ID",
+    "col.can_create": "Erstellen",
+    "col.can_delete": "Löschen",
+    "col.can_delete_own": "Löschen (eigenes)",
+    "col.can_read": "Lesen",
+    "col.can_update": "Bearbeiten",
+    "col.can_update_own": "Bearbeiten (eigenes)",
+    "col.groupes": "Gruppen",
+    "col.resource_key": "Ressource",
+    "col.actions": "Aktionen"
   }
 }

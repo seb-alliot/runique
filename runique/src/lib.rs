@@ -201,21 +201,24 @@ pub mod prelude {
     // ========================================================================
     // Admin
     // ========================================================================
-    pub use crate::admin::config::config_admin::AdminConfig;
-    pub use crate::admin::resource::{
-        AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig, ResourcePermissions,
-    };
     // Items used by daemon-generated code (external crate) via `use runique::prelude::*`
-    pub use crate::admin::admin_main::{
-        PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id,
+    pub use crate::admin::{
+        admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id},
+        builtin::builtin_resources,
+        config::config_admin::AdminConfig,
+        helper::{
+            dyn_form::DynForm,
+            resource_entry::{
+                CountFn, CreateFn, DeleteFn, FilterFn, FormBuilder, GetFn, ListFn, ListParams,
+                ResourceEntry, SortDir, UpdateFn,
+            },
+        },
+        registry::AdminRegistry,
+        resource::{
+            AdminIdType, AdminResource, ColumnFilter, CrudOperation, DisplayConfig,
+            ResourcePermissions,
+        },
+        table_admin::migrations_table,
     };
-    pub use crate::admin::builtin::builtin_resources;
-    pub use crate::admin::dyn_form::DynForm;
-    pub use crate::admin::registry::AdminRegistry;
-    pub use crate::admin::resource_entry::{
-        CountFn, CreateFn, DeleteFn, FormBuilder, GetFn, ListFn, ListParams, ResourceEntry,
-        SortDir, UpdateFn,
-    };
-    pub use crate::admin::table_admin::migrations_table;
     pub use futures_util::future::BoxFuture;
 }

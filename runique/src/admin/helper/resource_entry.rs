@@ -7,7 +7,7 @@ use sea_orm::DbErr;
 use serde_json::Value;
 
 pub use crate::admin::{
-    dyn_form::DynForm,
+    helper::dyn_form::DynForm,
     resource::{AdminResource, ColumnFilter, CrudOperation, DisplayConfig},
 };
 use crate::utils::aliases::{ADb, ATera, StrMap};
