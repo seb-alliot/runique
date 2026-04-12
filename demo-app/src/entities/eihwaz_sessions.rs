@@ -4,12 +4,12 @@ model! {
     EihwazSession,
     table: "eihwaz_sessions",
     pk: id => Pk,
-    fields: {
-        cookie_id: String [required, max_len(100), unique],
-        user_id: i32 [required],
-        session_id: String [required],
-        session_data: String [nullable],
-        expires_at: datetime [required],
+    {
+        cookie_id:    text [max_length: 100, unique, required],
+        user_id:      int [required],
+        session_id:   text [required],
+        session_data: text,
+        expires_at:   datetime [required],
     },
     relations: {
         belongs_to: eihwaz_users via user_id [cascade],

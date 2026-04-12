@@ -4,9 +4,9 @@ model! {
     EihwazDroit,
     table: "eihwaz_droits",
     pk: id => Pk,
-    fields: {
-        nom: String [required, max_len(100), unique],
-        resource_key: String [nullable],
-        access_type: String [nullable],
+    {
+        nom:          text [max_length: 100, unique, required],
+        resource_key: text,
+        access_type:  text,
     }
 }

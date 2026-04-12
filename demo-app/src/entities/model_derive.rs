@@ -4,12 +4,12 @@ model! {
     UsersBooster,
     table: "users_booster",
     pk: id => Pk,
-    fields: {
-        username: String [required],
-        email: String [required],
-        password: String [required],
-        bio: String [nullable],
-        website: String [nullable],
+    {
+        username:  text [required],
+        email:     email [required],
+        password:  password [required],
+        bio:       textarea,
+        website:   url,
         is_active: bool [required],
     }
 }

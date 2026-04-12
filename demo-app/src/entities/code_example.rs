@@ -4,13 +4,13 @@ model! {
     CodeExample,
     table: "code_example",
     pk: id => Pk,
-    fields: {
-        page_id: i32 [required],
-        title: String [required],
-        language: String [required],
-        code: String [required],
-        context: String [nullable],
-        sort_order: i32 [required],
+    {
+        page_id:    int [required],
+        title:      text [required],
+        language:   text [required],
+        code:       richtext [required],
+        context:    text,
+        sort_order: int [required],
     },
     relations: {
         belongs_to: demo_page via page_id [cascade],

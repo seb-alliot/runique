@@ -5,14 +5,14 @@ model! {
     table: "contributions",
     pk: id => Pk,
     enums: {
-        ContributionType: pg [Runique, Cours],
+        ContributionType: [Runique, Cours],
     },
-    fields: {
-        user_id: i32 [required],
-        contribution_type: enum(ContributionType) [required],
-        title: String [required, max_len(200)],
-        content: String [required],
-        created_at: datetime [auto_now],
+    {
+        user_id:           int [required],
+        contribution_type: choice [enum(ContributionType), required],
+        title:             text [max_length: 200, required],
+        content:           richtext [required],
+        created_at:        datetime [auto_now],
     },
     relations: {
         belongs_to: eihwaz_users via user_id [cascade],

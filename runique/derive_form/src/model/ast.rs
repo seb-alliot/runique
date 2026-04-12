@@ -1,8 +1,9 @@
 // model_macro/src/model/ast.rs — structures qui représentent le DSL parsé
 
 pub enum EnumBackingType {
-    Pg,
-    String,
+    /// Détecté depuis `.env` : natif Postgres (`CREATE TYPE … AS ENUM`) si engine = Postgres,
+    /// sinon VARCHAR. C'est le comportement par défaut quand aucun type n'est précisé.
+    Auto,
     I32,
     I64,
 }
@@ -45,6 +46,68 @@ pub struct ModelInput {
     pub fields: Vec<FieldDef>,
     pub relations: Vec<RelationDef>,
     pub meta: Option<MetaDef>,
+    pub form_fields: Vec<FormFieldDecl>,
+}
+
+// ── Bloc form_fields: — types sémantiques ──────────────────────
+
+pub enum FormFieldKind {
+    Text,
+    Email,
+    Password,
+    Richtext,
+    Textarea,
+    Url,
+    Int,
+    Float,
+    Decimal,
+    Percent,
+    Bool,
+    Date,
+    Time,
+    Datetime,
+    Image,
+    Document,
+    File,
+    Color,
+    Slug,
+    Uuid,
+    Json,
+    Ip,
+    Choice,
+    Radio,
+    Bigint,
+}
+
+pub enum FormFieldAttr {
+    Required,
+    Nullable,
+    NoHash,
+    MaxLength(u32),
+    MinLength(u32),
+    Min(i64),
+    Max(i64),
+    MinF(f64),
+    MaxF(f64),
+    Default(syn::Lit),
+    UploadTo(String),
+    MaxSizeMb(u64),
+    Rows(u32),
+    Step(f64),
+    /// Référence à un enum déclaré dans `enums:` — utilisé avec `choice` et `radio`.
+    EnumRef(syn::Ident),
+    /// Rempli automatiquement à la création — exclut le champ du formulaire.
+    AutoNow,
+    /// Rempli automatiquement à chaque mise à jour — exclut le champ du formulaire.
+    AutoNowUpdate,
+    /// Contrainte UNIQUE sur la colonne SQL.
+    Unique,
+}
+
+pub struct FormFieldDecl {
+    pub name: syn::Ident,
+    pub kind: FormFieldKind,
+    pub attrs: Vec<FormFieldAttr>,
 }
 
 pub struct PkDef {

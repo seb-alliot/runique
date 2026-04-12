@@ -4,12 +4,12 @@ model! {
     PageDocLink,
     table: "page_doc_link",
     pk: id => Pk,
-    fields: {
-        page_id: i32 [required],
-        label: String [required],
-        url: String [required],
-        link_type: String [required],
-        sort_order: i32 [required],
+    {
+        page_id:    int [required],
+        label:      text [required],
+        url:        url [required],
+        link_type:  text [required],
+        sort_order: int [required],
     },
     relations: {
         belongs_to: demo_page via page_id [cascade],

@@ -4,11 +4,11 @@ model! {
     Blog,
     table: "blog",
     pk: id => Pk,
-    fields: {
-        title: String [required],
-        email: String [required],
-        website: String [nullable],
-        summary: String [required],
-        content: String [required],
+    {
+        title:   text [required],
+        email:   email [required],
+        website: url,
+        summary: textarea [rows: 3, required],
+        content: richtext [rows: 15, required],
     }
 }

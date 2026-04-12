@@ -5,13 +5,13 @@ model! {
     table: "doc_section",
     pk: id => Pk,
     enums: {
-        SectionTheme: pg [Demarrage, Web, Database, Security, Admin, Autres],
+        SectionTheme: [Demarrage, Web, Database, Security, Admin, Autres],
     },
-    fields: {
-        slug: String [required],
-        lang: String [required],
-        title: String [required],
-        sort_order: i32 [required],
-        theme: enum(SectionTheme) [nullable],
+    {
+        slug:       text [required],
+        lang:       text [required],
+        title:      text [required],
+        sort_order: int [required],
+        theme:      choice [enum(SectionTheme)],
     }
 }
