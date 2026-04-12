@@ -4,15 +4,15 @@ model! {
     EihwazUsers,
     table: "eihwaz_users",
     pk: id => Pk,
-    fields: {
-        username: String [required, max_len(150), unique],
-        email: String [required, unique],
-        password: String [required, max_len(128)],
-        is_active: bool [required],
-        is_staff: bool [required],
+    {
+        username:     text [max_length: 150, unique, required],
+        email:        email [unique, required],
+        password:     password [max_length: 128, required],
+        is_active:    bool [required],
+        is_staff:     bool [required],
         is_superuser: bool [required],
-        roles: String [nullable],
-        created_at: datetime [auto_now],
-        updated_at: datetime [auto_now_update],
+        roles:        text,
+        created_at:   datetime [auto_now],
+        updated_at:   datetime [auto_now_update],
     }
 }

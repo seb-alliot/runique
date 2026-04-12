@@ -4,11 +4,11 @@ model! {
     CourIa,
     table: "cour_ia",
     pk: id => Pk,
-    fields: {
-        context: String [required],
-        contraintes: String [required],
-        contrainte_id: i32 [required],
-        cour_id: i32 [required],
-        sort_order: i32 [required],
+    {
+        context:       richtext [required],
+        contraintes:   richtext [required],
+        contrainte_id: int [required],
+        cour_id:       int [required],
+        sort_order:    int [required],
     }
 }

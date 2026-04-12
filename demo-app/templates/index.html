@@ -24,7 +24,8 @@
     <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
 </head>
 <body>
-
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NMHDD89C"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     {% if debug %}
         <div class="debug-banner">
             <strong>Debug Mode Enabled</strong>
@@ -95,6 +96,7 @@
     </footer>
     <script {% csp %} src='{% static "js/theme.js" %}'></script>
     <script {% csp %} src='{% static "js/site_nav.js" %}'></script>
+    <script {% csp %} src='{% static "js/analytic.js" %}'></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

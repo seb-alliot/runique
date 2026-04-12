@@ -1,6 +1,6 @@
 use crate::model::ast::{
     EnumBackingType, EnumDef, EnumVariant, FieldDef, FieldOption, FieldType, FkAction, FkDef,
-    MetaDef, ModelInput, PkDef, PkType, RelationDef,
+    FormFieldAttr, FormFieldDecl, FormFieldKind, MetaDef, ModelInput, PkDef, PkType, RelationDef,
 };
 use proc_macro2;
 use syn::token;
@@ -15,13 +15,18 @@ impl Parse for EnumDef {
         let name: Ident = input.parse()?;
         input.parse::<Token![:]>()?;
 
-        // Type optionnel : String | i32 | i64 (sinon String implicite)
+        // Type optionnel : String | i32 | i64 (sinon Auto — détecté depuis .env)
         let backing_type = if input.peek(Ident) {
             let ty: Ident = input.fork().parse()?;
             match ty.to_string().as_str() {
                 "String" => {
-                    input.parse::<Ident>()?;
-                    EnumBackingType::String
+                    let ident: Ident = input.parse()?;
+                    return Err(syn::Error::new(
+                        ident.span(),
+                        "`String` est obsolète comme type d'enum. \
+                        Retirez-le — le comportement correct est détecté automatiquement \
+                        depuis DATABASE_URL dans `.env` (natif Postgres ou VARCHAR).",
+                    ));
                 }
                 "i32" => {
                     input.parse::<Ident>()?;
@@ -32,13 +37,18 @@ impl Parse for EnumDef {
                     EnumBackingType::I64
                 }
                 "pg" => {
-                    input.parse::<Ident>()?;
-                    EnumBackingType::Pg
+                    let ident: Ident = input.parse()?;
+                    return Err(syn::Error::new(
+                        ident.span(),
+                        "`pg` est obsolète — retirez-le. \
+                        Le moteur est maintenant détecté automatiquement depuis DATABASE_URL dans `.env`. \
+                        Si votre engine est PostgreSQL, les enums natifs sont générés automatiquement.",
+                    ));
                 }
-                _ => EnumBackingType::String,
+                _ => EnumBackingType::Auto,
             }
         } else {
-            EnumBackingType::String
+            EnumBackingType::Auto
         };
 
         let content;
@@ -114,18 +124,39 @@ impl Parse for ModelInput {
             }
         }
 
-        // fields: { ... },
-        let fields_kw: Ident = input.parse()?;
-        assert_eq!(fields_kw.to_string(), "fields");
-        input.parse::<Token![:]>()?;
-        let fields_content;
-        syn::braced!(fields_content in input);
+        // Détection du style :
+        // Nouveau (v2) : bloc anonyme `{ ... }` — types sémantiques, dérivent le SQL
+        // Ancien (v1)  : `fields: { ... }` — types SQL explicites
         let mut fields = Vec::new();
-        while !fields_content.is_empty() {
-            fields.push(FieldDef::parse(&fields_content)?);
+        let mut form_fields_early: Vec<FormFieldDecl> = Vec::new();
+
+        if input.peek(syn::token::Brace) {
+            // ── Nouveau style : bloc anonyme ──────────────────────
+            let ff_content;
+            syn::braced!(ff_content in input);
+            while !ff_content.is_empty() {
+                let ff = FormFieldDecl::parse(&ff_content)?;
+                fields.push(form_field_to_field_def(&ff));
+                form_fields_early.push(ff);
+            }
+            let _ = input.parse::<Token![,]>();
+        } else {
+            // ── Ancien style : fields: { ... } ────────────────────
+            let fields_kw: Ident = input.parse()?;
+            if fields_kw != "fields" {
+                return Err(syn::Error::new(
+                    fields_kw.span(),
+                    "Attendu : `fields` ou un bloc `{ ... }`",
+                ));
+            }
+            input.parse::<Token![:]>()?;
+            let fields_content;
+            syn::braced!(fields_content in input);
+            while !fields_content.is_empty() {
+                fields.push(FieldDef::parse(&fields_content)?);
+            }
+            let _ = input.parse::<Token![,]>();
         }
-        // virgule optionnelle après fields { }
-        let _ = input.parse::<Token![,]>();
 
         // relations: { ... } optionnel
         let mut relations = Vec::new();
@@ -156,6 +187,28 @@ impl Parse for ModelInput {
             }
         }
 
+        // form_fields: { ... } optionnel (ancien style uniquement — ignoré si bloc anonyme déjà parsé)
+        let mut form_fields = if form_fields_early.is_empty() {
+            let mut ff = Vec::new();
+            if input.peek(Ident) {
+                let peek: Ident = input.fork().parse()?;
+                if peek == "form_fields" {
+                    input.parse::<Ident>()?;
+                    input.parse::<Token![:]>()?;
+                    let ff_content;
+                    syn::braced!(ff_content in input);
+                    while !ff_content.is_empty() {
+                        ff.push(FormFieldDecl::parse(&ff_content)?);
+                    }
+                    let _ = input.parse::<Token![,]>();
+                }
+            }
+            ff
+        } else {
+            form_fields_early
+        };
+        let _ = &mut form_fields; // silence unused_mut
+
         Ok(ModelInput {
             name,
             table: table.value(),
@@ -164,6 +217,7 @@ impl Parse for ModelInput {
             fields,
             relations,
             meta,
+            form_fields,
         })
     }
 }
@@ -625,5 +679,447 @@ impl Parse for MetaDef {
             abstract_model,
             indexes,
         })
+    }
+}
+
+// ── Dérivation FieldDef depuis FormFieldDecl ──────────────────
+
+/// Convertit un `FormFieldDecl` (bloc anonyme v2) en `FieldDef` SQL équivalent.
+/// Les types SQL sont déduits des types sémantiques.
+fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
+    use crate::model::ast::{FileKind, FormFieldAttr::*, FormFieldKind::*};
+
+    let is_required = ff.attrs.iter().any(|a| matches!(a, Required));
+    let is_nullable = ff.attrs.iter().any(|a| matches!(a, Nullable)) || !is_required; // sans required → nullable implicite
+
+    let max_len = ff
+        .attrs
+        .iter()
+        .find_map(|a| if let MaxLength(n) = a { Some(*n) } else { None });
+    let default = ff.attrs.iter().find_map(|a| {
+        if let Default(lit) = a {
+            Some(lit.clone())
+        } else {
+            None
+        }
+    });
+    let upload_to = ff.attrs.iter().find_map(|a| {
+        if let UploadTo(p) = a {
+            Some(p.clone())
+        } else {
+            None
+        }
+    });
+    let enum_ref = ff.attrs.iter().find_map(|a| {
+        if let EnumRef(id) = a {
+            Some(id.clone())
+        } else {
+            None
+        }
+    });
+
+    let ty = match &ff.kind {
+        Text => {
+            if let Some(n) = max_len {
+                FieldType::Varchar(n)
+            } else {
+                FieldType::String
+            }
+        }
+        Email => FieldType::Varchar(254),
+        Password => FieldType::String,
+        Richtext | Textarea | Json => FieldType::Text,
+        Url => FieldType::String,
+        Int => FieldType::I32,
+        Float => FieldType::F64,
+        Decimal => FieldType::Decimal(None),
+        Percent => FieldType::F64,
+        Bool => FieldType::Bool,
+        Date => FieldType::Date,
+        Time => FieldType::Time,
+        Datetime => FieldType::Datetime,
+        Uuid => FieldType::Uuid,
+        Ip => FieldType::Inet,
+        Color | Slug => FieldType::String,
+        Image | Document | File => FieldType::String,
+        Choice | Radio => {
+            if let Some(ident) = enum_ref {
+                FieldType::Enum(ident)
+            } else {
+                FieldType::String
+            }
+        }
+        Bigint => FieldType::I64,
+    };
+
+    let is_auto_now = ff.attrs.iter().any(|a| matches!(a, AutoNow));
+    let is_auto_now_update = ff.attrs.iter().any(|a| matches!(a, AutoNowUpdate));
+
+    let mut options: Vec<FieldOption> = Vec::new();
+    if is_auto_now {
+        options.push(FieldOption::AutoNow);
+    } else if is_auto_now_update {
+        options.push(FieldOption::AutoNowUpdate);
+    } else if is_required && !is_nullable {
+        options.push(FieldOption::Required);
+    } else if is_nullable && !is_required {
+        options.push(FieldOption::Nullable);
+    }
+    if ff.attrs.iter().any(|a| matches!(a, FormFieldAttr::Unique)) {
+        options.push(FieldOption::Unique);
+    }
+    if let Some(lit) = default {
+        options.push(FieldOption::Default(lit));
+    }
+    if let Some(path) = upload_to {
+        let file_kind = match &ff.kind {
+            Image => FileKind::Image,
+            Document => FileKind::Document,
+            _ => FileKind::Any,
+        };
+        options.push(FieldOption::File {
+            kind: file_kind,
+            upload_to: Some(path),
+        });
+    }
+    if let Some(FormFieldAttr::MaxLength(n)) = ff
+        .attrs
+        .iter()
+        .find(|a| matches!(a, FormFieldAttr::MaxLength(_)))
+    {
+        options.push(FieldOption::MaxLen(*n));
+    }
+
+    FieldDef {
+        name: ff.name.clone(),
+        ty,
+        options,
+    }
+}
+
+// ── form_fields: parsing ──────────────────────────────────────
+
+impl Parse for FormFieldDecl {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name: Ident = input.parse()?;
+        input.parse::<Token![:]>()?;
+
+        let kind_ident: Ident = input.parse()?;
+        let kind = match kind_ident.to_string().as_str() {
+            "text" => FormFieldKind::Text,
+            "email" => FormFieldKind::Email,
+            "password" => FormFieldKind::Password,
+            "richtext" => FormFieldKind::Richtext,
+            "textarea" => FormFieldKind::Textarea,
+            "url" => FormFieldKind::Url,
+            "int" => FormFieldKind::Int,
+            "float" => FormFieldKind::Float,
+            "decimal" => FormFieldKind::Decimal,
+            "percent" => FormFieldKind::Percent,
+            "bool" => FormFieldKind::Bool,
+            "date" => FormFieldKind::Date,
+            "time" => FormFieldKind::Time,
+            "datetime" => FormFieldKind::Datetime,
+            "image" => FormFieldKind::Image,
+            "document" => FormFieldKind::Document,
+            "file" => FormFieldKind::File,
+            "color" => FormFieldKind::Color,
+            "slug" => FormFieldKind::Slug,
+            "uuid" => FormFieldKind::Uuid,
+            "json" => FormFieldKind::Json,
+            "ip" => FormFieldKind::Ip,
+            "choice" => FormFieldKind::Choice,
+            "radio" => FormFieldKind::Radio,
+            "bigint" => FormFieldKind::Bigint,
+            other => {
+                let suggestion = suggest_form_field_type(other);
+                return Err(syn::Error::new(
+                    kind_ident.span(),
+                    format!(
+                        "Type de champ inconnu : '{}' (champ: {}){}",
+                        other, name, suggestion
+                    ),
+                ));
+            }
+        };
+
+        // Attributs optionnels [ ... ]
+        let mut attrs = Vec::new();
+        if input.peek(token::Bracket) {
+            let attrs_content;
+            syn::bracketed!(attrs_content in input);
+            while !attrs_content.is_empty() {
+                // `enum` est un mot-clé Rust — traitement séparé avant le match sur Ident
+                if attrs_content.peek(Token![enum]) {
+                    attrs_content.parse::<Token![enum]>()?;
+                    let content;
+                    syn::parenthesized!(content in attrs_content);
+                    let ident: Ident = content.parse()?;
+                    attrs.push(FormFieldAttr::EnumRef(ident));
+                    let _ = attrs_content.parse::<Token![,]>();
+                    continue;
+                }
+
+                let attr_ident: Ident = attrs_content.parse()?;
+                let attr = match attr_ident.to_string().as_str() {
+                    "required" => FormFieldAttr::Required,
+                    "nullable" => FormFieldAttr::Nullable,
+                    "no_hash" => FormFieldAttr::NoHash,
+                    "max_length" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let n: LitInt = attrs_content.parse()?;
+                        FormFieldAttr::MaxLength(n.base10_parse()?)
+                    }
+                    "min_length" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let n: LitInt = attrs_content.parse()?;
+                        FormFieldAttr::MinLength(n.base10_parse()?)
+                    }
+                    "min" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        if attrs_content.peek(LitFloat) {
+                            let n: LitFloat = attrs_content.parse()?;
+                            FormFieldAttr::MinF(n.base10_parse()?)
+                        } else {
+                            let n: LitInt = attrs_content.parse()?;
+                            FormFieldAttr::Min(n.base10_parse()?)
+                        }
+                    }
+                    "max" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        if attrs_content.peek(LitFloat) {
+                            let n: LitFloat = attrs_content.parse()?;
+                            FormFieldAttr::MaxF(n.base10_parse()?)
+                        } else {
+                            let n: LitInt = attrs_content.parse()?;
+                            FormFieldAttr::Max(n.base10_parse()?)
+                        }
+                    }
+                    "default" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let lit: syn::Lit = attrs_content.parse()?;
+                        FormFieldAttr::Default(lit)
+                    }
+                    "upload_to" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let s: LitStr = attrs_content.parse()?;
+                        FormFieldAttr::UploadTo(s.value())
+                    }
+                    "max_size_mb" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let n: LitInt = attrs_content.parse()?;
+                        FormFieldAttr::MaxSizeMb(n.base10_parse()?)
+                    }
+                    "rows" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let n: LitInt = attrs_content.parse()?;
+                        FormFieldAttr::Rows(n.base10_parse()?)
+                    }
+                    "step" => {
+                        attrs_content.parse::<Token![:]>()?;
+                        let n: LitFloat = attrs_content.parse()?;
+                        FormFieldAttr::Step(n.base10_parse()?)
+                    }
+                    "auto_now" => FormFieldAttr::AutoNow,
+                    "auto_now_update" => FormFieldAttr::AutoNowUpdate,
+                    "unique" => FormFieldAttr::Unique,
+                    other => {
+                        return Err(syn::Error::new(
+                            attr_ident.span(),
+                            format!("Attribut inconnu : '{}' (champ: {})", other, name),
+                        ))
+                    }
+                };
+                attrs.push(attr);
+                let _ = attrs_content.parse::<Token![,]>();
+            }
+        }
+
+        // Validation attributs vs type
+        validate_form_field_attrs(&name, &kind_ident, &kind, &attrs)?;
+
+        let _ = input.parse::<Token![,]>();
+        Ok(FormFieldDecl { name, kind, attrs })
+    }
+}
+
+fn suggest_form_field_type(input: &str) -> String {
+    let known = [
+        "text", "email", "password", "richtext", "textarea", "url", "int", "bigint", "float",
+        "decimal", "percent", "bool", "date", "time", "datetime", "image", "document", "file",
+        "color", "slug", "uuid", "json", "ip",
+    ];
+    // Suggestion par préfixe commun (≥ 3 caractères)
+    let matches: Vec<&str> = known
+        .iter()
+        .filter(|&&k| {
+            let min_len = k.len().min(input.len()).min(4);
+            min_len >= 2 && k[..min_len] == input[..min_len.min(input.len())]
+        })
+        .copied()
+        .collect();
+    if matches.is_empty() {
+        String::new()
+    } else {
+        format!(" — vouliez-vous dire `{}` ?", matches[0])
+    }
+}
+
+fn validate_form_field_attrs(
+    name: &Ident,
+    kind_ident: &Ident,
+    kind: &FormFieldKind,
+    attrs: &[FormFieldAttr],
+) -> Result<()> {
+    use FormFieldAttr::*;
+    use FormFieldKind::*;
+
+    let kind_name = kind_ident.to_string();
+
+    for attr in attrs {
+        let valid = match (attr, kind) {
+            // required / nullable / EnumRef — universels
+            (Required, _) => true,
+            (Nullable, _) => true,
+            (EnumRef(_), FormFieldKind::Choice | FormFieldKind::Radio) => true,
+            (EnumRef(_), _) => false,
+
+            // no_hash — password uniquement
+            (NoHash, Password) => true,
+            (NoHash, _) => false,
+
+            // max_length / min_length — types textuels
+            (MaxLength(_), Text | Email | Password | Richtext | Textarea | Url) => true,
+            (MaxLength(_), _) => false,
+            (MinLength(_), Text | Textarea) => true,
+            (MinLength(_), _) => false,
+
+            // min / max entier — int uniquement
+            (Min(_), Int) => true,
+            (Min(_), _) => false,
+            (Max(_), Int) => true,
+            (Max(_), _) => false,
+
+            // min_f / max_f flottant — float, decimal
+            (MinF(_), Float | Decimal) => true,
+            (MinF(_), _) => false,
+            (MaxF(_), Float | Decimal) => true,
+            (MaxF(_), _) => false,
+
+            // default — tout sauf fichiers
+            (Default(_), Image | Document | File) => false,
+            (Default(_), _) => true,
+
+            // upload_to / max_size_mb — fichiers uniquement
+            (UploadTo(_), Image | Document | File) => true,
+            (UploadTo(_), _) => false,
+            (MaxSizeMb(_), Image | Document | File) => true,
+            (MaxSizeMb(_), _) => false,
+
+            // rows — types multilignes
+            (Rows(_), Richtext | Textarea | Json) => true,
+            (Rows(_), _) => false,
+
+            // step — float, decimal
+            (Step(_), Float | Decimal) => true,
+            (Step(_), _) => false,
+
+            // auto_now / auto_now_update — datetime uniquement
+            (AutoNow, Datetime) => true,
+            (AutoNow, _) => false,
+            (AutoNowUpdate, Datetime) => true,
+            (AutoNowUpdate, _) => false,
+
+            // unique — tous les types sauf fichiers/bool
+            (Unique, Image | Document | File | Bool) => false,
+            (Unique, _) => true,
+        };
+
+        if !valid {
+            let attr_name = attr_name_str(attr);
+            return Err(syn::Error::new(
+                kind_ident.span(),
+                format!(
+                    "`{}` n'est pas valide pour le type `{}` (champ: {})",
+                    attr_name, kind_name, name
+                ),
+            ));
+        }
+    }
+
+    // upload_to requis pour image / document / file
+    if matches!(kind, Image | Document | File)
+        && !attrs.iter().any(|a| matches!(a, UploadTo(_))) {
+            return Err(syn::Error::new(
+                name.span(),
+                format!(
+                    "`upload_to` est requis pour les champs `{}` (champ: {})",
+                    kind_name, name
+                ),
+            ));
+        }
+    
+
+    // min < max pour int
+    let min_val = attrs
+        .iter()
+        .find_map(|a| if let Min(v) = a { Some(*v) } else { None });
+    let max_val = attrs
+        .iter()
+        .find_map(|a| if let Max(v) = a { Some(*v) } else { None });
+    if let (Some(mn), Some(mx)) = (min_val, max_val) {
+        if mn >= mx {
+            return Err(syn::Error::new(
+                name.span(),
+                format!(
+                    "`min` doit être inférieur à `max` (champ: {}, min={}, max={})",
+                    name, mn, mx
+                ),
+            ));
+        }
+    }
+
+    // min_f < max_f pour float/decimal
+    let min_f_val = attrs
+        .iter()
+        .find_map(|a| if let MinF(v) = a { Some(*v) } else { None });
+    let max_f_val = attrs
+        .iter()
+        .find_map(|a| if let MaxF(v) = a { Some(*v) } else { None });
+    if let (Some(mn), Some(mx)) = (min_f_val, max_f_val) {
+        if mn >= mx {
+            return Err(syn::Error::new(
+                name.span(),
+                format!(
+                    "`min` doit être inférieur à `max` (champ: {}, min={}, max={})",
+                    name, mn, mx
+                ),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
+    match attr {
+        FormFieldAttr::Required => "required",
+        FormFieldAttr::Nullable => "nullable",
+        FormFieldAttr::NoHash => "no_hash",
+        FormFieldAttr::EnumRef(_) => "enum",
+        FormFieldAttr::MaxLength(_) => "max_length",
+        FormFieldAttr::MinLength(_) => "min_length",
+        FormFieldAttr::Min(_) => "min",
+        FormFieldAttr::Max(_) => "max",
+        FormFieldAttr::MinF(_) => "min",
+        FormFieldAttr::MaxF(_) => "max",
+        FormFieldAttr::Default(_) => "default",
+        FormFieldAttr::UploadTo(_) => "upload_to",
+        FormFieldAttr::MaxSizeMb(_) => "max_size_mb",
+        FormFieldAttr::Rows(_) => "rows",
+        FormFieldAttr::Step(_) => "step",
+        FormFieldAttr::AutoNow => "auto_now",
+        FormFieldAttr::AutoNowUpdate => "auto_now_update",
+        FormFieldAttr::Unique => "unique",
     }
 }

@@ -5,13 +5,13 @@ model! {
     table: "known_issue",
     pk: id => Pk,
     enums: {
-        IssueType: pg [Manquant, Ajoute, Fix],
+        IssueType: [Manquant, Ajoute, Fix],
     },
-    fields: {
-        version: String [required],
-        title: String [required],
-        description: String [required],
-        issue_type: enum(IssueType) [required],
-        sort_order: i32 [required],
+    {
+        version:     text [required],
+        title:       text [required],
+        description: richtext [required],
+        issue_type:  choice [enum(IssueType), required],
+        sort_order:  int [required],
     }
 }

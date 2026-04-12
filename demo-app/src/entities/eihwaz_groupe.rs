@@ -4,7 +4,7 @@ model! {
     EihwazGroupe,
     table: "eihwaz_groupes",
     pk: id => Pk,
-    fields: {
-        nom: String [required, max_len(100), unique],
+    {
+        nom: text [max_length: 100, unique, required],
     }
 }

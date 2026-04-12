@@ -4,12 +4,12 @@ model! {
     Chapitre,
     table: "chapitre",
     pk: id => Pk,
-    fields: {
-        cour_id: i32 [required],
-        slug: String [required],
-        title: String [required],
-        lead: String [nullable],
-        sort_order: i32 [required],
+    {
+        cour_id:    int [required],
+        slug:       text [required],
+        title:      text [required],
+        lead:       text,
+        sort_order: int [required],
     },
     relations: {
         belongs_to: Cour via cour_id [cascade],
