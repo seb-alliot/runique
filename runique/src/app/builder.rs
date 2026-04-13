@@ -9,13 +9,13 @@ use super::runique_app::RuniqueApp;
 use super::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
 use super::templates::TemplateLoader;
 use crate::admin::build_admin_router;
+use crate::auth::{
+    PasswordResetAdapter, PasswordResetConfig, PasswordResetStaging, session::UserEntity,
+};
 use crate::config::RuniqueConfig;
 use crate::engine::RuniqueEngine;
 use crate::macros::add_urls;
 use crate::middleware::HostPolicy;
-use crate::middleware::auth::{
-    PasswordResetAdapter, PasswordResetConfig, PasswordResetStaging, UserEntity,
-};
 #[cfg(feature = "orm")]
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::aliases::new;

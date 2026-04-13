@@ -626,7 +626,7 @@ impl MiddlewareStaging {
                                 if let Some(session) =
                                     req.extensions().get::<tower_sessions::Session>()
                                 {
-                                    if crate::middleware::auth::is_authenticated(session).await {
+                                    if crate::auth::session::is_authenticated(session).await {
                                         session.set_expiry(Some(Expiry::OnInactivity(
                                             self.session_duration,
                                         )));
@@ -650,7 +650,7 @@ impl MiddlewareStaging {
                         |mut req: axum::http::Request<axum::body::Body>,
                          next: axum::middleware::Next| async move {
                             use crate::admin::permissions::Groupe;
-                            use crate::middleware::auth::{CurrentUser, get_user_id, get_username};
+                            use crate::auth::session::{CurrentUser, get_user_id, get_username};
                             use crate::utils::constante::{
                                 admin_context::permission::GROUPES,
                                 session_key::session::{

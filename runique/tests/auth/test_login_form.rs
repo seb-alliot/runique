@@ -7,9 +7,9 @@
 //! - RuniqueForm::save, save_txn (implémentations par défaut dans forms/field.rs)
 
 use axum::http::Method;
+use runique::auth::LoginAdmin;
 use runique::forms::field::RuniqueForm;
 use runique::forms::form::Forms;
-use runique::middleware::LoginAdmin;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tera::Tera;

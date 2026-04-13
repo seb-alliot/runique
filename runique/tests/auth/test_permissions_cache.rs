@@ -5,9 +5,7 @@
 //! doit utiliser des `user_id` distincts pour éviter les interférences.
 
 use runique::admin::permissions::{Groupe, Permission};
-use runique::middleware::auth::permissions_cache::{
-    cache_permissions, clear_cache, evict_permissions, get_permissions,
-};
+use runique::auth::guard::{cache_permissions, clear_cache, evict_permissions, get_permissions};
 
 fn make_groupe(resource: &str, can_read: bool) -> Groupe {
     Groupe {
@@ -106,7 +104,7 @@ fn test_clear_cache_puis_reinsert_fonctionne() {
 #[test]
 fn test_multi_groupes_or_permissions() {
     use runique::admin::permissions::Groupe;
-    use runique::middleware::auth::CurrentUser;
+    use runique::auth::session::CurrentUser;
 
     let user = CurrentUser {
         id: 10_008,
@@ -155,7 +153,7 @@ fn test_multi_groupes_or_permissions() {
 
 #[test]
 fn test_can_access_resource_necessite_can_read() {
-    use runique::middleware::auth::CurrentUser;
+    use runique::auth::session::CurrentUser;
 
     let user = CurrentUser {
         id: 10_009,
@@ -169,7 +167,7 @@ fn test_can_access_resource_necessite_can_read() {
 
 #[test]
 fn test_can_access_resource_avec_can_read() {
-    use runique::middleware::auth::CurrentUser;
+    use runique::auth::session::CurrentUser;
 
     let user = CurrentUser {
         id: 10_010,

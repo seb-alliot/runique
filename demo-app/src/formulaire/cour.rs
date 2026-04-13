@@ -1,4 +1,4 @@
-use crate::entities::cour::schema as cour;
+use crate::entities::cour;
 use runique::prelude::*;
 
 #[form(schema = cour, fields = [slug, lang, title, theme, difficulte, ordre, sort_order])]

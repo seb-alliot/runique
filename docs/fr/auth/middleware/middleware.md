@@ -5,7 +5,7 @@
 `login_required` et `redirect_if_authenticated` ont été supprimés. La protection s'écrit directement dans le handler, ce qui est plus explicite et laisse le contrôle de l'URL au dev.
 
 ```rust
-use runique::middleware::auth::is_authenticated;
+use runique::prelude::*;
 
 // Protéger une route
 async fn dashboard(mut request: Request) -> AppResult<Response> {
@@ -31,7 +31,7 @@ async fn login_page(mut request: Request) -> AppResult<Response> {
 Injecte un `CurrentUser` dans les extensions de la requête. Permet d'accéder aux informations de l'utilisateur dans vos handlers.
 
 ```rust
-use runique::middleware::auth::load_user_middleware;
+use runique::prelude::*;
 
 let app = Router::new()
     .route("/profile", get(profile))
@@ -41,7 +41,7 @@ let app = Router::new()
 Accès dans un handler :
 
 ```rust
-use runique::middleware::auth::CurrentUser;
+use runique::prelude::*;
 
 async fn profile(req: RuniqueRequest) -> impl IntoResponse {
     if let Some(user) = req.extensions().current_user() {

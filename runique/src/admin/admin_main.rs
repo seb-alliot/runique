@@ -3,10 +3,10 @@
 //! Routes couvertes :
 //! - `GET/POST /admin/{resource}/{action}` → [`admin_get`] / [`admin_post`]
 //! - `GET/POST /admin/{resource}/{id}/{action}` → [`admin_get_id`] / [`admin_post_id`]
+use crate::auth::session::CurrentUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::forms::prisme::aegis;
-use crate::middleware::auth::CurrentUser;
 use crate::utils::{
     aliases::{ARuniqueConfig, AppResult, StrMap},
     constante::admin_context::{

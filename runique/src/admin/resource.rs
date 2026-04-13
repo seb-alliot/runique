@@ -2,7 +2,7 @@
 //
 // Les permissions d'accès aux ressources sont gérées en base via les droits scopés
 // (eihwaz_droits avec resource_key + access_type), et non dans admin!{}.
-// Voir : runique::middleware::auth::permissions_cache
+// Voir : runique::auth::permissions_cache
 
 /// Type de la clé primaire d'une ressource admin
 #[derive(Debug, Clone, Copy, Default, serde::Serialize)]

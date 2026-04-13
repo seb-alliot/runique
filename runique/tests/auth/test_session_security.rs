@@ -10,8 +10,8 @@ use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 use runique::admin::permissions::{Groupe, Permission};
-use runique::middleware::auth::permissions_cache::{cache_permissions, get_permissions};
-use runique::middleware::auth::{get_user_id, get_username, is_authenticated, login, logout};
+use runique::auth::guard::{cache_permissions, get_permissions};
+use runique::auth::session::{get_user_id, get_username, is_authenticated, login, logout};
 
 use crate::helpers::{
     assert::{assert_body_str, assert_status},

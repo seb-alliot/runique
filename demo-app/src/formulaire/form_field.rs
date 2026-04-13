@@ -1,4 +1,4 @@
-use crate::entities::form_field::schema as form_field;
+use crate::entities::form_field;
 use runique::prelude::*;
 
 #[form(schema = form_field, fields = [page_id, name, field_type, description, example, sort_order])]

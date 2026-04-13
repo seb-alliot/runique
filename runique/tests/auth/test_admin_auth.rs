@@ -1,6 +1,6 @@
 // Tests pour AdminLoginResult
 
-use runique::middleware::auth::AdminLoginResult;
+use runique::auth::session::AdminLoginResult;
 
 // ═══════════════════════════════════════════════════════════════
 // AdminLoginResult — accès aux champs

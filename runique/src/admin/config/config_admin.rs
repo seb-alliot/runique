@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 use crate::admin::helper::AdminTemplate;
-use crate::middleware::auth::{AdminAuth, LoginGuard};
+use crate::auth::{guard::LoginGuard, session::AdminAuth};
 use crate::middleware::security::RateLimiter;
 use crate::utils::env::is_debug;
 
@@ -24,7 +24,7 @@ pub struct AdminConfig {
 
     /// Handler de vérification du login admin
     ///
-    /// Voir `crate::middleware::auth::AdminAuth`.
+    /// Voir `crate::auth::AdminAuth`.
     pub auth: Option<Arc<dyn AdminAuth>>,
 
     /// Surcharges de templates admin (dashboard, login, list, etc.)

@@ -75,7 +75,7 @@ model! {
     table: "doc_section",
     pk: id => i32,
     enums: {
-        SectionTheme: pg [Demarrage, Web, Database, Security, Admin, Autres],
+        SectionTheme: [Demarrage, Web, Database, Security, Admin, Autres],
     },
     fields: {
         theme: enum(SectionTheme) [nullable],
@@ -87,8 +87,7 @@ model! {
 
 | Syntax | DB storage |
 | --- | --- |
-| `EnumName: [A, B]` | `String` (value = variant name) |
-| `EnumName: pg [A, B]` | Native PostgreSQL `Enum` |
+| `EnumName: [A, B]` | Auto-detected from `DB_ENGINE`: native `Enum` on PostgreSQL, `VARCHAR` on MySQL/SQLite |
 | `EnumName: i32 [A, B]` | `Integer` |
 | `EnumName: i64 [A, B]` | `BigInteger` |
 
@@ -207,7 +206,7 @@ Relations are declared in an optional `relations: { ... }` block after `fields`.
 | `belongs_to: Model via fk_field [cascade, restrict],` | ✅ | FK with on_delete + on_update |
 | `has_many: Model,` | ❌ (code only) | 1-N relation |
 | `has_one: Model,` | ❌ (code only) | 1-1 relation |
-| `many_to_many: Model via pivot_table,` | ❌ (code only) | N-N relation |
+| `many_to_many: Model through PivotTable via via_field,` | ❌ (code only) | N-N relation |
 
 Available FK actions: `cascade`, `restrict`, `set_null`, `set_default` (default: `no_action`).
 

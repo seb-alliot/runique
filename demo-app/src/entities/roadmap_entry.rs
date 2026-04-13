@@ -5,7 +5,7 @@ model! {
     table: "roadmap_entry",
     pk: id => Pk,
     enums: {
-        RoadmapStatus: [Active, Planned, Future],
+        RoadmapStatus: [Active="Active", Planned="Planned", Future="Future"],
     },
     {
         status:       choice [enum(RoadmapStatus), required],

@@ -13,7 +13,7 @@ Cette clé est insérée automatiquement par le système d'authentification de R
 Pour protéger une session anonyme à valeur (panier, formulaire multi-étapes, wizard), utilisez `protect_session` :
 
 ```rust
-use runique::middleware::auth::protect_session;
+use runique::prelude::*;
 
 // Protège la session pendant 30 minutes
 protect_session(&session, 60 * 30).await?;
@@ -24,8 +24,6 @@ La clé `session_active` stocke un timestamp Unix futur. La protection expire au
 Pour retirer la protection explicitement :
 
 ```rust
-use runique::middleware::auth::unprotect_session;
-
 unprotect_session(&session).await?;
 ```
 

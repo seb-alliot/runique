@@ -83,12 +83,12 @@ pub fn extend(input: TokenStream) -> TokenStream {
     let table_name: Option<String> = (|| {
         loop {
             let tok = tokens.next()?;
-            if let proc_macro2::TokenTree::Ident(ident) = &tok {
-                if ident == "table" {
-                    tokens.next()?; // consomme ':'
-                    if let proc_macro2::TokenTree::Literal(lit) = tokens.next()? {
-                        return Some(lit.to_string().trim_matches('"').to_string());
-                    }
+            if let proc_macro2::TokenTree::Ident(ident) = &tok
+                && ident == "table"
+            {
+                tokens.next()?; // consomme ':'
+                if let proc_macro2::TokenTree::Literal(lit) = tokens.next()? {
+                    return Some(lit.to_string().trim_matches('"').to_string());
                 }
             }
         }

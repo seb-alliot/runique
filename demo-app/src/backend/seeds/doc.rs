@@ -165,7 +165,7 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
         {
             // Bloc de navigation : stocké avec block_type "sommaire", sans heading
             if !body_part.is_empty() {
-                blocks.push((None, body_part, "sommaire".to_string()));
+                blocks.push((None, body_part, "Sommaire".to_string()));
             }
             continue;
         }
@@ -183,9 +183,9 @@ fn parse_blocks(content: &str) -> Vec<(Option<String>, String, String)> {
 
         if !body_part.is_empty() {
             let block_type = if body_part.contains("```") {
-                "code"
+                "Code"
             } else {
-                "text"
+                "Text"
             };
             blocks.push((Some(heading), body_part, block_type.to_string()));
         }
@@ -240,6 +240,7 @@ async fn insert_page_with_blocks(
         }
     }
 }
+use sea_orm::ActiveValue::Set;
 
 async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
     let mut entries: Vec<_> = match fs::read_dir(lang_path) {
@@ -303,13 +304,15 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
                 s
             });
 
-        let theme = match section_slug.as_str() {
-            "installation" | "architecture" | "configuration" | "env" => "Demarrage",
-            "routing" | "formulaire" | "flash" | "template" => "Web",
-            "orm" | "model" => "Database",
-            "middleware" | "auth" | "session" => "Security",
-            "admin" => "Admin",
-            _ => "Autres",
+        let theme_value = match section_slug.as_str() {
+            "installation" | "architecture" | "configuration" | "env" => {
+                doc_section::SectionTheme::Demarrage
+            }
+            "routing" | "formulaire" | "flash" | "template" => doc_section::SectionTheme::Web,
+            "orm" | "model" => doc_section::SectionTheme::Database,
+            "middleware" | "auth" | "session" => doc_section::SectionTheme::Security,
+            "admin" => doc_section::SectionTheme::Admin,
+            _ => doc_section::SectionTheme::Autres,
         };
 
         let section = doc_section::ActiveModel {
@@ -317,7 +320,7 @@ async fn seed_language(lang: &str, lang_path: &Path, db: &DatabaseConnection) {
             lang: Set(lang.to_string()),
             title: Set(title),
             sort_order: Set(sort_order),
-            theme: Set(theme.parse::<doc_section::SectionTheme>().ok()),
+            theme: Set(Some(theme_value)),
             ..Default::default()
         };
 

@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use axum::{Router, routing::MethodRouter};
 
+use crate::auth::guard::login_required_middleware;
 use crate::macros::routeur::register_url::register_pending;
-use crate::middleware::auth::login_required_middleware;
 use crate::middleware::rate_limit::{RateLimiter, rate_limit_middleware};
 
 /// Extension de `Router` pour ajouter des routes avec rate limiting de façon fluente.

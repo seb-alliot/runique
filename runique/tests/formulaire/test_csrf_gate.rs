@@ -2,9 +2,9 @@
 //! Couvre : csrf_gate<T> — token valide (→ None) et invalide/manquant (→ Some avec erreur).
 
 use reqwest::Method;
+use runique::auth::LoginAdmin;
 use runique::forms::field::RuniqueForm;
 use runique::forms::prisme::csrf_gate;
-use runique::middleware::LoginAdmin;
 use runique::utils::mask_csrf_token;
 use std::collections::HashMap;
 use std::sync::Arc;

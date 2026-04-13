@@ -13,11 +13,6 @@ pub mod demo_section;
 pub mod doc_block;
 pub mod doc_page;
 pub mod doc_section;
-pub mod eihwaz_droit;
-pub mod eihwaz_groupe;
-pub mod eihwaz_sessions;
-pub mod eihwaz_users;
-
 pub mod form_field;
 pub mod known_issue;
 pub mod page_doc_link;

@@ -1,12 +1,8 @@
-//! Middleware de session utilisateur : charge `CurrentUser` depuis la session et injecte dans les extensions.
+//! Session utilisateur, authentification admin, et traits d'authentification.
 use crate::admin::permissions::{Groupe, Permission, pull_groupes_db};
+use crate::auth::guard::{cache_permissions, evict_permissions, get_permissions};
+use crate::auth::user_trait::RuniqueUser;
 use crate::context::RequestExtensions;
-use crate::middleware::auth::default_auth::UserEntity;
-use crate::middleware::auth::permissions_cache::{
-    cache_permissions, evict_permissions, get_permissions,
-};
-use crate::middleware::auth::user::BuiltinUserEntity;
-use crate::middleware::auth::user_trait::RuniqueUser;
 use crate::middleware::session::session_db::RuniqueSessionStore;
 use crate::utils::constante::{
     admin_key::admin_context::permission::GROUPES,
@@ -19,7 +15,145 @@ use crate::utils::pk::Pk;
 use axum::{extract::Request, middleware::Next, response::Response};
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 use tower_sessions::Session;
+
+// ═══════════════════════════════════════════════════════════════
+// AdminAuth — trait + résultat
+// ═══════════════════════════════════════════════════════════════
+
+/// Données retournées après une authentification admin réussie
+#[derive(Debug, Clone)]
+pub struct AdminLoginResult {
+    pub user_id: Pk,
+    pub username: String,
+    pub is_staff: bool,
+    pub is_superuser: bool,
+}
+
+/// Trait à implémenter pour brancher la vérification du login admin
+///
+/// Retourne `None` si :
+/// - L'utilisateur n'existe pas
+/// - Le mot de passe est incorrect
+/// - Le compte est inactif
+/// - L'utilisateur n'a pas les droits admin
+///
+/// ## Implémentation rapide avec `DefaultAdminAuth` :
+/// ```rust,ignore
+/// use runique::auth::DefaultAdminAuth;
+///
+/// .with_admin(|a| a.auth(DefaultAdminAuth::<users::Entity>::new()))
+/// ```
+#[async_trait::async_trait]
+pub trait AdminAuth: Send + Sync + 'static {
+    async fn authenticate(
+        &self,
+        username: &str,
+        password: &str,
+        db: &DatabaseConnection,
+    ) -> Option<AdminLoginResult>;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UserEntity — trait DB
+// ═══════════════════════════════════════════════════════════════
+
+/// Trait côté base de données : comment récupérer un user par username.
+///
+/// ```rust,ignore
+/// impl UserEntity for users::Entity {
+///     type Model = users::Model;
+///
+///     async fn find_by_username(
+///         db: &DatabaseConnection,
+///         username: &str,
+///     ) -> Option<Self::Model> {
+///         users::Entity::find()
+///             .filter(users::Column::Username.eq(username))
+///             .one(db)
+///             .await
+///             .ok()
+///             .flatten()
+///     }
+/// }
+/// ```
+#[async_trait::async_trait]
+pub trait UserEntity: Send + Sync + 'static {
+    /// Le modèle retourné par la requête (doit implémenter `RuniqueUser`)
+    type Model: RuniqueUser;
+
+    /// Recherche un utilisateur par id en base
+    async fn find_by_id(db: &DatabaseConnection, id: crate::utils::pk::Pk) -> Option<Self::Model>;
+    /// Recherche un utilisateur par username en base
+    async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model>;
+    /// Recherche un utilisateur par email en base
+    async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model>;
+
+    /// Met à jour le mot de passe d'un utilisateur identifié par son email.
+    ///
+    /// `new_hash` est déjà haché (le formulaire Prisme hash automatiquement les champs password).
+    async fn update_password(
+        db: &DatabaseConnection,
+        email: &str,
+        new_hash: &str,
+    ) -> Result<(), sea_orm::DbErr>;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DefaultAdminAuth<E>
+// ═══════════════════════════════════════════════════════════════
+
+/// Adaptateur générique qui transforme n'importe quelle entité
+/// implémentant `UserEntity` en `AdminAuth`.
+pub struct DefaultAdminAuth<E: UserEntity>(PhantomData<E>);
+
+impl<E: UserEntity> DefaultAdminAuth<E> {
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<E: UserEntity> Default for DefaultAdminAuth<E> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait::async_trait]
+impl<E: UserEntity> AdminAuth for DefaultAdminAuth<E> {
+    async fn authenticate(
+        &self,
+        username: &str,
+        password: &str,
+        db: &DatabaseConnection,
+    ) -> Option<AdminLoginResult> {
+        // 1. Récupérer l'utilisateur depuis la DB
+        let user = E::find_by_username(db, username).await?;
+
+        // 2. Vérifier les droits d'accès admin + compte actif
+        if !user.can_access_admin() {
+            return None;
+        }
+
+        // 3. Vérifier le mot de passe (Argon2)
+        if !crate::utils::password::verify(password, user.password_hash()) {
+            return None;
+        }
+
+        // 4. Tout est bon — retourner les infos de session
+        Some(AdminLoginResult {
+            user_id: user.user_id(),
+            username: user.username().to_string(),
+            is_staff: user.is_staff(),
+            is_superuser: user.is_superuser(),
+        })
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CurrentUser
+// ═══════════════════════════════════════════════════════════════
 
 /// Utilisateur authentifié injecté dans les extensions de requête.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -213,7 +347,7 @@ pub async fn auth_login(
     db: &DatabaseConnection,
     user_id: Pk,
 ) -> Result<(), tower_sessions::session::Error> {
-    let Some(user) = BuiltinUserEntity::find_by_id(db, user_id).await else {
+    let Some(user) = crate::auth::user::BuiltinUserEntity::find_by_id(db, user_id).await else {
         return Ok(());
     };
     if !user.is_active() {
@@ -342,6 +476,7 @@ pub async fn has_permission(session: &Session, permission: &str) -> bool {
 
     false
 }
+
 // ═══════════════════════════════════════════════════════════════
 // Middlewares Axum
 // ═══════════════════════════════════════════════════════════════

@@ -67,13 +67,13 @@ let user = UserForm::objects
     .await?;
 
 // Via la macro search!
-let results = search!(@UserForm => Username = "alice").all(&db).await?;
-let adults  = search!(@UserForm => Age >= 18).all(&db).await?;
+let results = search!(@UserForm => Username eq "alice").all(&db).await?;
+let adults  = search!(@UserForm => Age gte 18).all(&db).await?;
 
 // Toutes les syntaxes search! sont supportées
 let results = search!(@BlogForm =>
-    Status = ("published" | "featured"),
-    AuthorId = author_id,
+    or(Status eq "published", Status eq "featured"),
+    AuthorId eq author_id,
 )
 .order_by_desc(blog::Column::CreatedAt)
 .limit(10)

@@ -3,8 +3,6 @@
 ## Exemple complet — Login / Logout
 
 ```rust
-use runique::middleware::auth::{auth_login, logout};
-use runique::utils::password::verify;
 use runique::prelude::*;
 
 pub async fn login_post(
@@ -54,15 +52,13 @@ pub async fn logout_view(mut request: Request) -> AppResult<Response> {
 ### Avec le User built-in (zéro config)
 
 ```rust
-use runique::middleware::auth::RuniqueAdminAuth;
-
 .with_admin(|a| a.auth(RuniqueAdminAuth::new()))
 ```
 
 ### Avec un modèle custom
 
 ```rust
-use runique::middleware::auth::{DefaultAdminAuth, UserEntity};
+use runique::prelude::*;
 
 // 1. Implémenter UserEntity sur votre entité
 impl UserEntity for users::Entity {

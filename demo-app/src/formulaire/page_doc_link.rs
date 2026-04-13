@@ -1,4 +1,4 @@
-use crate::entities::page_doc_link::schema as page_doc_link;
+use crate::entities::page_doc_link;
 use runique::prelude::*;
 
 #[form(schema = page_doc_link, fields = [page_id, label, url, link_type, sort_order])]

@@ -1,5 +1,8 @@
 //! CLI de création de superutilisateur admin avec choix de l'algorithme de hachage.
-use crate::middleware::auth::user::{ActiveModel, BuiltinUserEntity, UserEntity};
+use crate::auth::{
+    session::UserEntity,
+    user::{ActiveModel, BuiltinUserEntity},
+};
 use crate::utils::{
     password::{BaseHash, Manual},
     trad::{t, tf},

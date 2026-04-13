@@ -1,5 +1,5 @@
 // Tests pour CurrentUser (auth_session)
-use runique::middleware::auth::auth_session::CurrentUser;
+use runique::auth::session::CurrentUser;
 
 #[test]
 fn test_current_user_superuser() {

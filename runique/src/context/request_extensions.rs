@@ -1,15 +1,16 @@
 //! Extensions de requête Axum : injecte engine, Tera, config, CSRF, CSP nonce et utilisateur courant.
-use crate::middleware::auth::CurrentUser;
-use crate::utils::csp_nonce::CspNonce;
-use crate::utils::csrf::CsrfToken;
+use crate::auth::session::CurrentUser;
 use axum::body::Body;
 use axum::http::Request;
 /// Module centralisé pour injecter toutes les données dans les extensions Axum
 use axum::http::request::Parts;
 
-use crate::utils::aliases::{
-    AEngine, ARuniqueConfig, ATera, OAEngine, OARuniqueConfig, OATera, OCspNonce, OCsrfToken,
-    OCurrentUser,
+use crate::utils::{
+    aliases::{
+        AEngine, ARuniqueConfig, ATera, OAEngine, OARuniqueConfig, OATera, OCspNonce, OCsrfToken,
+        OCurrentUser,
+    },
+    {csp_nonce::CspNonce, csrf::CsrfToken},
 };
 
 /// Structure contenant toutes les données à injecter dans les extensions

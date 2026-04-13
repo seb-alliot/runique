@@ -2,7 +2,7 @@
 //! Couvre : permissions_effectives, can_access_resource, can_access_admin
 
 use runique::admin::{Groupe, permissions::Permission};
-use runique::middleware::auth::CurrentUser;
+use runique::auth::session::CurrentUser;
 
 fn perm(resource: &str, create: bool, read: bool, update: bool, delete: bool) -> Permission {
     Permission {

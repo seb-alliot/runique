@@ -416,7 +416,8 @@
     "apply_hint": "运行'sea-orm-cli migrate up'来应用。",
     "extend_unknown_table": "extend!{{}} : \"{}\"不是已知的框架表。允许的表: {}。要扩展应用表，请直接修改其model!{{}}。",
     "extend_invalid_syntax": "extend!{{}} : 语法无效。预期格式: table: \"表名\", fields: {{ ... }}",
-    "admin_positioned": "AdminTableMigration已定位在'{}'迁移之后"
+    "admin_positioned": "AdminTableMigration已定位在'{}'迁移之后",
+    "files_ready": "{}个文件已准备好迁移。"
   },
   "migrate": {
     "applying": "正在从'{}'应用迁移...",

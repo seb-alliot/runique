@@ -1,4 +1,4 @@
-use runique::middleware::auth::LoginGuard;
+use runique::auth::guard::LoginGuard;
 
 #[test]
 fn test_not_locked_initially() {

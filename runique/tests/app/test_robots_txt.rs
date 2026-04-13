@@ -3,8 +3,8 @@
 use axum::Router;
 use axum::routing::get;
 use runique::app::RuniqueApp;
+use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::RuniqueConfig;
-use runique::middleware::auth::{AdminAuth, AdminLoginResult};
 use sea_orm::{Database, DatabaseConnection};
 
 // ── Mock AdminAuth ────────────────────────────────────────────────────────────

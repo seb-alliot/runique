@@ -1,5 +1,5 @@
 //! Entité utilisateur built-in de Runique (table `eihwaz_users`).
-pub use crate::middleware::auth::{default_auth::UserEntity, user_trait::RuniqueUser};
+pub use crate::auth::{session::UserEntity, user_trait::RuniqueUser};
 use crate::utils::pk::Pk;
 use crate::{impl_objects, search};
 use sea_orm::{
@@ -118,5 +118,67 @@ impl UserEntity for BuiltinUserEntity {
 }
 
 // ─── Alias pratique ───────────────────────────────────────────────────────────
-pub type RuniqueAdminAuth =
-    crate::middleware::auth::default_auth::DefaultAdminAuth<BuiltinUserEntity>;
+pub type RuniqueAdminAuth = crate::auth::session::DefaultAdminAuth<BuiltinUserEntity>;
+
+// ─── Schema formulaire ────────────────────────────────────────────────────────
+
+/// Retourne le `ModelSchema` de la table `eihwaz_users`.
+/// Utilisé par `#[form(schema = runique_users)]` — pas besoin de déclarer l'entité localement.
+pub fn schema() -> crate::migration::schema::ModelSchema {
+    #[cfg(feature = "big-pk")]
+    let pk = crate::migration::PrimaryKeyDef::new("id")
+        .i64()
+        .auto_increment();
+    #[cfg(not(feature = "big-pk"))]
+    let pk = crate::migration::PrimaryKeyDef::new("id")
+        .i32()
+        .auto_increment();
+
+    crate::migration::ModelSchema::new("EihwazUsers")
+        .table_name("eihwaz_users")
+        .primary_key(pk)
+        .column(
+            crate::migration::ColumnDef::new("username")
+                .text()
+                .required()
+                .unique(),
+        )
+        .column(
+            crate::migration::ColumnDef::new("email")
+                .varchar(254)
+                .required()
+                .unique(),
+        )
+        .column(
+            crate::migration::ColumnDef::new("password")
+                .string()
+                .required(),
+        )
+        .column(
+            crate::migration::ColumnDef::new("is_active")
+                .boolean()
+                .required(),
+        )
+        .column(
+            crate::migration::ColumnDef::new("is_staff")
+                .boolean()
+                .required(),
+        )
+        .column(
+            crate::migration::ColumnDef::new("is_superuser")
+                .boolean()
+                .required(),
+        )
+        .column(
+            crate::migration::ColumnDef::new("created_at")
+                .datetime()
+                .nullable(),
+        )
+        .column(
+            crate::migration::ColumnDef::new("updated_at")
+                .datetime()
+                .nullable(),
+        )
+        .build()
+        .unwrap()
+}

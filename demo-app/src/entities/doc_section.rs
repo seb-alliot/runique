@@ -5,8 +5,7 @@ model! {
     table: "doc_section",
     pk: id => Pk,
     enums: {
-        SectionTheme: [Demarrage, Web, Database, Security, Admin, Autres],
-    },
+        SectionTheme: [Demarrage="Demarrage", Web="Web", Database="Database", Security="Security", Admin="Admin", Autres="Autres"]},
     {
         slug:       text [required],
         lang:       text [required],

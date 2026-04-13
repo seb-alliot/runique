@@ -416,7 +416,8 @@
     "apply_hint": "'sea-orm-cli migrate up'を実行して適用してください。",
     "extend_unknown_table": "extend!{{}} : \"{}\"は既知のフレームワークテーブルではありません。許可されたテーブル: {}。アプリテーブルを拡張するには、model!{{}}を直接変更してください。",
     "extend_invalid_syntax": "extend!{{}} : 構文が無効です。期待される形式: table: \"テーブル名\", fields: {{ ... }}",
-    "admin_positioned": "AdminTableMigrationを'{}'マイグレーションの後に配置しました"
+    "admin_positioned": "AdminTableMigrationを'{}'マイグレーションの後に配置しました",
+    "files_ready": "{}個のファイルが移行の準備ができています。"
   },
   "migrate": {
     "applying": "'{}'からマイグレーションを適用中...",

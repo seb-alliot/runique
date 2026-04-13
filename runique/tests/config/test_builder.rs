@@ -14,9 +14,9 @@ use axum::{Router, routing::get};
 use runique::admin::AdminConfig;
 use runique::app::staging::{AdminStaging, CoreStaging, MiddlewareStaging, StaticStaging};
 use runique::app::{BuildError, BuildErrorKind, CheckError, CheckReport, RuniqueAppBuilder};
+use runique::auth::session::{AdminAuth, AdminLoginResult};
 use runique::config::app::RuniqueConfig;
 use runique::middleware::MiddlewareConfig;
-use runique::middleware::auth::{AdminAuth, AdminLoginResult};
 use sea_orm::DatabaseConnection;
 use tower_sessions::cookie::time::Duration;
 

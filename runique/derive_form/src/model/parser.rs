@@ -5,8 +5,8 @@ use crate::model::ast::{
 use proc_macro2;
 use syn::token;
 use syn::{
-    parse::{Parse, ParseStream},
     Ident, LitFloat, LitInt, LitStr, Result, Token,
+    parse::{Parse, ParseStream},
 };
 
 impl Parse for EnumDef {
@@ -35,15 +35,6 @@ impl Parse for EnumDef {
                 "i64" => {
                     input.parse::<Ident>()?;
                     EnumBackingType::I64
-                }
-                "pg" => {
-                    let ident: Ident = input.parse()?;
-                    return Err(syn::Error::new(
-                        ident.span(),
-                        "`pg` est obsolète — retirez-le. \
-                        Le moteur est maintenant détecté automatiquement depuis DATABASE_URL dans `.env`. \
-                        Si votre engine est PostgreSQL, les enums natifs sont générés automatiquement.",
-                    ));
                 }
                 _ => EnumBackingType::Auto,
             }
@@ -249,7 +240,7 @@ impl Parse for PkDef {
                         "Type de PK inconnu : '{}'. Attendu : i32, i64, Pk, uuid",
                         other
                     ),
-                ))
+                ));
             }
         };
         Ok(PkDef { name, ty })
@@ -441,6 +432,12 @@ impl Parse for FieldOption {
                 let fk = FkDef::parse(&content)?;
                 Ok(FieldOption::Fk(fk))
             }
+            "max_size" | "max_size_mb" => {
+                let content;
+                syn::parenthesized!(content in input);
+                let n = parse_size(&content)?;
+                Ok(FieldOption::MaxSize(n))
+            }
             "file" => {
                 let content;
                 syn::parenthesized!(content in input);
@@ -456,7 +453,7 @@ impl Parse for FieldOption {
                                 "Type de fichier inconnu : '{}'. Attendu : image, document, any",
                                 other
                             ),
-                        ))
+                        ));
                     }
                 };
                 let upload_to = if content.peek(Token![,]) {
@@ -493,10 +490,10 @@ impl Parse for FkDef {
                 return Err(syn::Error::new(
                     action_ident.span(),
                     format!(
-                    "Action FK inconnue : '{}'. Attendu : cascade, set_null, restrict, set_default",
-                    other
-                ),
-                ))
+                        "Action FK inconnue : '{}'. Attendu : cascade, set_null, restrict, set_default",
+                        other
+                    ),
+                ));
             }
         };
         Ok(FkDef {
@@ -577,12 +574,21 @@ impl Parse for RelationDef {
                 }
                 let via_self: Ident = input.parse()?;
 
-                RelationDef::ManyToMany { model, through, via_self }
+                RelationDef::ManyToMany {
+                    model,
+                    through,
+                    via_self,
+                }
             }
-            other => return Err(syn::Error::new(
-                kind.span(),
-                format!("Relation inconnue : '{}'. Attendu : belongs_to, has_many, has_one, many_to_many", other),
-            )),
+            other => {
+                return Err(syn::Error::new(
+                    kind.span(),
+                    format!(
+                        "Relation inconnue : '{}'. Attendu : belongs_to, has_many, has_one, many_to_many",
+                        other
+                    ),
+                ));
+            }
         };
 
         let _ = input.parse::<Token![,]>();
@@ -664,7 +670,7 @@ impl Parse for MetaDef {
                     return Err(syn::Error::new(
                         key.span(),
                         format!("Clé meta inconnue : '{}'", other),
-                    ))
+                    ));
                 }
             }
 
@@ -905,10 +911,10 @@ impl Parse for FormFieldDecl {
                         let s: LitStr = attrs_content.parse()?;
                         FormFieldAttr::UploadTo(s.value())
                     }
-                    "max_size_mb" => {
+                    "max_size" | "max_size_mb" => {
                         attrs_content.parse::<Token![:]>()?;
-                        let n: LitInt = attrs_content.parse()?;
-                        FormFieldAttr::MaxSizeMb(n.base10_parse()?)
+                        let n = parse_size(&attrs_content)?;
+                        FormFieldAttr::MaxSize(n)
                     }
                     "rows" => {
                         attrs_content.parse::<Token![:]>()?;
@@ -927,7 +933,7 @@ impl Parse for FormFieldDecl {
                         return Err(syn::Error::new(
                             attr_ident.span(),
                             format!("Attribut inconnu : '{}' (champ: {})", other, name),
-                        ))
+                        ));
                     }
                 };
                 attrs.push(attr);
@@ -1013,8 +1019,8 @@ fn validate_form_field_attrs(
             // upload_to / max_size_mb — fichiers uniquement
             (UploadTo(_), Image | Document | File) => true,
             (UploadTo(_), _) => false,
-            (MaxSizeMb(_), Image | Document | File) => true,
-            (MaxSizeMb(_), _) => false,
+            (MaxSize(_), Image | Document | File) => true,
+            (MaxSize(_), _) => false,
 
             // rows — types multilignes
             (Rows(_), Richtext | Textarea | Json) => true,
@@ -1065,16 +1071,16 @@ fn validate_form_field_attrs(
     let max_val = attrs
         .iter()
         .find_map(|a| if let Max(v) = a { Some(*v) } else { None });
-    if let (Some(mn), Some(mx)) = (min_val, max_val) {
-        if mn >= mx {
-            return Err(syn::Error::new(
-                name.span(),
-                format!(
-                    "`min` doit être inférieur à `max` (champ: {}, min={}, max={})",
-                    name, mn, mx
-                ),
-            ));
-        }
+    if let (Some(mn), Some(mx)) = (min_val, max_val)
+        && mn >= mx
+    {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "`min` doit être inférieur à `max` (champ: {}, min={}, max={})",
+                name, mn, mx
+            ),
+        ));
     }
 
     // min_f < max_f pour float/decimal
@@ -1084,16 +1090,16 @@ fn validate_form_field_attrs(
     let max_f_val = attrs
         .iter()
         .find_map(|a| if let MaxF(v) = a { Some(*v) } else { None });
-    if let (Some(mn), Some(mx)) = (min_f_val, max_f_val) {
-        if mn >= mx {
-            return Err(syn::Error::new(
-                name.span(),
-                format!(
-                    "`min` doit être inférieur à `max` (champ: {}, min={}, max={})",
-                    name, mn, mx
-                ),
-            ));
-        }
+    if let (Some(mn), Some(mx)) = (min_f_val, max_f_val)
+        && mn >= mx
+    {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "`min` doit être inférieur à `max` (champ: {}, min={}, max={})",
+                name, mn, mx
+            ),
+        ));
     }
 
     Ok(())
@@ -1113,11 +1119,235 @@ fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
         FormFieldAttr::MaxF(_) => "max",
         FormFieldAttr::Default(_) => "default",
         FormFieldAttr::UploadTo(_) => "upload_to",
-        FormFieldAttr::MaxSizeMb(_) => "max_size_mb",
+        FormFieldAttr::MaxSize(_) => "max_size",
         FormFieldAttr::Rows(_) => "rows",
         FormFieldAttr::Step(_) => "step",
         FormFieldAttr::AutoNow => "auto_now",
         FormFieldAttr::AutoNowUpdate => "auto_now_update",
         FormFieldAttr::Unique => "unique",
+    }
+}
+
+/// Parse une taille avec unité (KB, MB, GB). Retourne la valeur en Octets.
+/// Sans unité, la valeur est traitée comme des MO (MB) par défaut pour la compatibilité.
+fn parse_size(input: ParseStream) -> Result<u64> {
+    let n: LitInt = input.parse()?;
+    let value = n.base10_parse::<u64>()?;
+
+    if input.peek(Ident) {
+        let unit: Ident = input.parse()?;
+        let unit_str = unit.to_string().to_uppercase();
+        match unit_str.as_str() {
+            "KB" | "K" | "KO" => Ok(value * 1024),
+            "MB" | "M" | "MO" => Ok(value * 1024 * 1024),
+            "GB" | "G" | "GO" => Ok(value * 1024 * 1024 * 1024),
+            _ => Err(syn::Error::new(
+                unit.span(),
+                "Unité de taille inconnue. Attendu : KB, MB, GB (ou K, M, G, KO, MO, GO)",
+            )),
+        }
+    } else {
+        // Défaut : MB pour la compatibilité avec l'existant
+        Ok(value * 1024 * 1024)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Parse un `FormFieldDecl` depuis une chaîne DSL.
+    /// Format : `nom: type [attr1, attr2, ...]`
+    fn parse_field(src: &str) -> syn::Result<FormFieldDecl> {
+        syn::parse_str::<FormFieldDecl>(src)
+    }
+
+    fn ok(src: &str) {
+        assert!(
+            parse_field(src).is_ok(),
+            "attendu OK mais erreur pour : `{src}`"
+        );
+    }
+
+    fn err(src: &str) {
+        assert!(
+            parse_field(src).is_err(),
+            "attendu ERREUR mais OK pour : `{src}`"
+        );
+    }
+
+    // ── max_length ────────────────────────────────────────────────
+
+    #[test]
+    fn max_length_valide_sur_text() {
+        ok("nom: text [max_length: 100]");
+    }
+
+    #[test]
+    fn max_length_valide_sur_email() {
+        ok("email: email [max_length: 254]");
+    }
+
+    #[test]
+    fn max_length_valide_sur_password() {
+        ok("mdp: password [max_length: 128]");
+    }
+
+    #[test]
+    fn max_length_valide_sur_url() {
+        ok("site: url [max_length: 200]");
+    }
+
+    #[test]
+    fn max_length_invalide_sur_int() {
+        err("age: int [max_length: 50]");
+    }
+
+    #[test]
+    fn max_length_invalide_sur_float() {
+        err("prix: float [max_length: 10]");
+    }
+
+    #[test]
+    fn max_length_invalide_sur_bool() {
+        err("actif: bool [max_length: 5]");
+    }
+
+    #[test]
+    fn max_length_invalide_sur_date() {
+        err("naissance: date [max_length: 10]");
+    }
+
+    #[test]
+    fn max_length_invalide_sur_uuid() {
+        err("uid: uuid [max_length: 36]");
+    }
+
+    // ── min / max (entier) ────────────────────────────────────────
+
+    #[test]
+    fn min_max_valide_sur_int() {
+        ok("age: int [min: 0, max: 150]");
+    }
+
+    #[test]
+    fn min_invalide_sur_text() {
+        err("nom: text [min: 0]");
+    }
+
+    #[test]
+    fn max_invalide_sur_float() {
+        // max entier (i64) n'est pas valide sur float — doit utiliser max flottant
+        err("prix: float [max: 100]");
+    }
+
+    #[test]
+    fn min_invalide_sur_bool() {
+        err("flag: bool [min: 0]");
+    }
+
+    #[test]
+    fn min_invalide_sur_date() {
+        err("jour: date [min: 0]");
+    }
+
+    #[test]
+    fn min_egal_max_rejete() {
+        err("age: int [min: 5, max: 5]");
+    }
+
+    #[test]
+    fn min_superieur_max_rejete() {
+        err("age: int [min: 10, max: 5]");
+    }
+
+    #[test]
+    fn min_inferieur_max_accepte() {
+        ok("age: int [min: 0, max: 120]");
+    }
+
+    // ── min / max (flottant) ──────────────────────────────────────
+
+    #[test]
+    fn min_f_max_f_valide_sur_float() {
+        ok("note: float [min: 0.0, max: 20.0]");
+    }
+
+    #[test]
+    fn min_f_max_f_valide_sur_decimal() {
+        ok("prix: decimal [min: 0.0, max: 9999.99]");
+    }
+
+    #[test]
+    fn min_f_invalide_sur_int() {
+        // float min sur un champ int → invalide
+        err("age: int [min: 0.0]");
+    }
+
+    #[test]
+    fn min_f_egal_max_f_rejete() {
+        err("note: float [min: 5.0, max: 5.0]");
+    }
+
+    // ── upload_to ─────────────────────────────────────────────────
+
+    #[test]
+    fn upload_to_valide_sur_image() {
+        ok(r#"avatar: image [upload_to: "avatars/"]"#);
+    }
+
+    #[test]
+    fn upload_to_valide_sur_document() {
+        ok(r#"cv: document [upload_to: "docs/"]"#);
+    }
+
+    #[test]
+    fn upload_to_valide_sur_file() {
+        ok(r#"piece: file [upload_to: "files/"]"#);
+    }
+
+    #[test]
+    fn upload_to_requis_sur_image_sans_lui() {
+        err("avatar: image []");
+    }
+
+    #[test]
+    fn upload_to_requis_sur_document_sans_lui() {
+        err("cv: document []");
+    }
+
+    #[test]
+    fn upload_to_invalide_sur_text() {
+        err(r#"nom: text [upload_to: "path/"]"#);
+    }
+
+    #[test]
+    fn upload_to_invalide_sur_int() {
+        err(r#"age: int [upload_to: "path/"]"#);
+    }
+
+    #[test]
+    fn upload_to_invalide_sur_email() {
+        err(r#"mail: email [upload_to: "path/"]"#);
+    }
+
+    // ── cas généraux ──────────────────────────────────────────────
+
+    #[test]
+    fn champ_sans_attrs() {
+        ok("nom: text");
+    }
+
+    #[test]
+    fn required_universel() {
+        ok("age: int [required]");
+        ok("nom: text [required]");
+        ok("flag: bool [required]");
+    }
+
+    #[test]
+    fn nullable_universel() {
+        ok("age: int [nullable]");
+        ok("nom: text [nullable]");
     }
 }

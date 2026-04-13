@@ -478,12 +478,56 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
             let has_auto_now = f.options.contains(&"auto_now".to_string());
             let has_auto_now_update = f.options.contains(&"auto_now_update".to_string());
             let has_required = f.options.contains(&"required".to_string());
+            let has_nullable = f.options.contains(&"nullable".to_string());
             let is_created_at = f.name == "created_at";
             let is_updated_at = f.name == "updated_at";
 
-            // v1 : nullable explicite  v2 : absence de required = nullable implicite
-            // auto_now / auto_now_update → jamais nullable
-            let nullable = !has_required && !has_auto_now && !has_auto_now_update;
+            // Types sémantiques v2 (minuscules) : absence de `required` → nullable par défaut.
+            // Types v1 (SQL / Rust : String, i32…) : seul `[nullable]` explicite rend nullable.
+            // auto_now / auto_now_update → jamais nullable dans les deux cas.
+            const V2_TYPES: &[&str] = &[
+                "text",
+                "email",
+                "password",
+                "richtext",
+                "textarea",
+                "url",
+                "int",
+                "float",
+                "decimal",
+                "percent",
+                "date",
+                "time",
+                "datetime",
+                "timestamp",
+                "timestamp_tz",
+                "image",
+                "document",
+                "file",
+                "color",
+                "slug",
+                "uuid",
+                "json",
+                "json_binary",
+                "ip",
+                "choice",
+                "radio",
+                "bigint",
+                "binary",
+                "blob",
+                "inet",
+                "cidr",
+                "mac_address",
+                "interval",
+            ];
+            let is_v2 = V2_TYPES.contains(&f.ty.as_str());
+            let nullable = if has_auto_now || has_auto_now_update || has_required {
+                false
+            } else if has_nullable {
+                true
+            } else {
+                is_v2 // v2 sans required → nullable ; v1 sans nullable explicite → non nullable
+            };
 
             let unique = f.options.contains(&"unique".to_string());
 

@@ -15,7 +15,7 @@ pub struct EnumVariant {
 }
 
 impl EnumVariant {
-    /// Valeur stockée en base (String/Pg) : valeur explicite ou nom du variant.
+    /// Valeur stockée en base (String) : valeur explicite ou nom du variant.
     pub fn db_str(&self) -> String {
         match &self.value {
             Some(syn::Lit::Str(s)) => s.value(),
@@ -91,7 +91,7 @@ pub enum FormFieldAttr {
     MaxF(f64),
     Default(syn::Lit),
     UploadTo(String),
-    MaxSizeMb(u64),
+    MaxSize(u64),
     Rows(u32),
     Step(f64),
     /// Référence à un enum déclaré dans `enums:` — utilisé avec `choice` et `radio`.
@@ -184,6 +184,7 @@ pub enum FieldOption {
         kind: FileKind,
         upload_to: Option<String>,
     },
+    MaxSize(u64),
 }
 
 pub enum FileKind {

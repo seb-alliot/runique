@@ -251,13 +251,13 @@ If the form is linked to an entity via `#[form(model = ...)]`, use `@Form` as a 
 pub struct UserForm;
 
 // Identical to search!(users::Entity => ...)
-let active = search!(@UserForm => Active = true)
+let active = search!(@UserForm => Active eq true)
     .all(&*db).await?;
 
 // All syntaxes are supported
 search!(@UserForm =>
-    +Role = ["admin", "moderator"],
-    Age >= 18,
+    Role in ["admin", "moderator"],
+    Age gte 18,
 )
 .limit(10)
 .all(&*db)

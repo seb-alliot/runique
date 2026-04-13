@@ -5,7 +5,7 @@ model! {
     table: "known_issue",
     pk: id => Pk,
     enums: {
-        IssueType: [Manquant, Ajoute, Fix],
+        IssueType: [Manquant="Manquant", Ajoute="Ajoute", Fix="Fix"],
     },
     {
         version:     text [required],

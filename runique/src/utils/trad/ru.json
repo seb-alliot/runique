@@ -417,7 +417,8 @@
     "apply_hint": "Запустите 'sea-orm-cli migrate up' для применения.",
     "extend_unknown_table": "extend!{{}} : \"{}\" не является известной таблицей фреймворка. Разрешённые таблицы: {}. Для расширения таблицы приложения измените её model!{{}} напрямую.",
     "extend_invalid_syntax": "extend!{{}} : неверный синтаксис. Ожидается: table: \"имя_таблицы\", fields: {{ ... }}",
-    "admin_positioned": "AdminTableMigration размещена после миграции '{}'"
+    "admin_positioned": "AdminTableMigration размещена после миграции '{}'",
+    "files_ready": "{} файл(ов) готов(о) к миграции."
   },
   "migrate": {
     "applying": "Применение миграций из '{}'...",

@@ -1,8 +1,7 @@
 //! Tests — middleware/auth/user.rs
 //! Couvre : RuniqueUser trait
 
-use runique::middleware::auth::user::Model;
-use runique::middleware::auth::user_trait::RuniqueUser;
+use runique::auth::{user::Model, user_trait::RuniqueUser};
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 

@@ -14,9 +14,9 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "crate::middleware::auth::user::Entity",
+        belongs_to = "crate::auth::user::Entity",
         from = "Column::UserId",
-        to = "crate::middleware::auth::user::Column::Id",
+        to = "crate::auth::user::Column::Id",
         on_delete = "Cascade"
     )]
     User,
@@ -29,7 +29,7 @@ pub enum Relation {
     Groupe,
 }
 
-impl Related<crate::middleware::auth::user::Entity> for Entity {
+impl Related<crate::auth::user::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::User.def()
     }

@@ -1,4 +1,4 @@
-use crate::entities::blog::schema as blog;
+use crate::entities::blog;
 use runique::prelude::*;
 
 #[form(schema = blog, fields = [title, email, summary, website, content])]
