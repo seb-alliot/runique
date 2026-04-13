@@ -1,4 +1,4 @@
-//! Lecture de la configuration depuis les variables d'environnement.
+//! Reading configuration from environment variables.
 pub mod env;
 pub use env::{css_token, load_env};
 

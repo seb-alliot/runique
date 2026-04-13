@@ -1,6 +1,6 @@
-//! Convertisseur de casse — snake_case vers PascalCase, utilisé pour la génération de code.
+//! Case converter — snake_case to PascalCase, used for code generation.
 
-/// Convertit une chaîne snake_case en PascalCase.
+/// Converts a snake_case string to PascalCase.
 ///
 /// `"user_profile"` → `"UserProfile"`, `"tag"` → `"Tag"`.
 pub fn to_pascal_case(words: &str) -> String {

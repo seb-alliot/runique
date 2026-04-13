@@ -1,7 +1,7 @@
-//! Définition de la clé primaire — type (i32, i64, UUID), auto-increment et génération SeaQuery.
+//! Primary key definition — type (i32, i64, UUID), auto-increment, and SeaQuery generation.
 use sea_query::ColumnType;
 
-/// Définition de la clé primaire d'une table.
+/// Table primary key definition.
 #[derive(Debug, Clone)]
 pub struct PrimaryKeyDef {
     pub name: String,

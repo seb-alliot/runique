@@ -1,4 +1,4 @@
-//! Rendu HTML des champs de formulaire via Tera avec fallback sur les templates internes.
+//! HTML rendering of form fields via Tera with fallback to internal templates.
 use crate::forms::base::FormField;
 use crate::utils::{
     aliases::{ATera, FieldsMap},
@@ -49,10 +49,10 @@ impl FormRenderer {
     pub fn render(&self, fields: &FieldsMap, errors: &[String]) -> Result<String, String> {
         let mut html = Vec::new();
 
-        // Rendre les erreurs globales en premier
+        // Render global errors first
         if !errors.is_empty() {
-            let mut context = tera::Context::new();
-            context.insert("errors", errors);
+            let mut _context = tera::Context::new();
+            _context.insert("errors", errors);
             html.push(
                 errors
                     .iter()

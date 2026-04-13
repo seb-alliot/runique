@@ -3,7 +3,7 @@ use proc_macro::TokenStream;
 mod model;
 mod schema_form;
 
-/// Macro #[form(...)]
+/// #[form(...)] macro
 #[proc_macro_attribute]
 pub fn form(attr: TokenStream, item: TokenStream) -> TokenStream {
     schema_form::model_schema(attr, item)
@@ -14,10 +14,10 @@ pub fn model(input: TokenStream) -> TokenStream {
     model::model_impl(input)
 }
 
-/// Déclare une extension de table framework — utilisée par `makemigrations` pour générer
-/// les `ALTER TABLE ADD COLUMN` correspondants. N'a aucun effet à la compilation.
+/// Declares a framework table extension — used by `makemigrations` to generate
+/// the corresponding `ALTER TABLE ADD COLUMN` statements. Has no effect at compile time.
 ///
-/// # Exemple
+/// # Example
 ///
 /// ```rust,ignore
 /// extend! {
@@ -40,7 +40,7 @@ pub fn extend(input: TokenStream) -> TokenStream {
         "eihwaz_groupes_droits",
     ];
 
-    // JSON de traduction embarqués à la compilation de derive_form
+    // Translation JSONs embedded at derive_form compilation time
     const TRANSLATIONS: &[(&str, &str)] = &[
         ("fr", include_str!("../../src/utils/trad/fr.json")),
         ("en", include_str!("../../src/utils/trad/en.json")),
@@ -53,7 +53,7 @@ pub fn extend(input: TokenStream) -> TokenStream {
         ("ru", include_str!("../../src/utils/trad/ru.json")),
     ];
 
-    /// Extrait une clé imbriquée `"section.key"` depuis un JSON embarqué.
+    /// Extracts a nested key `"section.key"` from an embedded JSON.
     fn get_msg(lang_code: &str, key: &str) -> Option<String> {
         let json_str = TRANSLATIONS.iter().find(|(l, _)| *l == lang_code)?.1;
         let val: serde_json::Value = serde_json::from_str(json_str).ok()?;
@@ -66,7 +66,7 @@ pub fn extend(input: TokenStream) -> TokenStream {
             .map(|s| s.to_string())
     }
 
-    /// Détecte la langue depuis LANG / LC_ALL / LC_MESSAGES dans l'env (après dotenvy).
+    /// Detects the language from LANG / LC_ALL / LC_MESSAGES in the environment (after dotenvy).
     fn detect_lang() -> String {
         dotenvy::dotenv().ok();
         let raw = std::env::var("LANG")
@@ -76,7 +76,7 @@ pub fn extend(input: TokenStream) -> TokenStream {
         raw.chars().take(2).collect::<String>().to_lowercase()
     }
 
-    // Extrait le nom de table depuis `table: "..."` pour valider à la compilation.
+    // Extracts the table name from `table: "..."` to validate at compile time.
     let input2 = proc_macro2::TokenStream::from(input);
     let mut tokens = input2.into_iter();
 
@@ -86,7 +86,7 @@ pub fn extend(input: TokenStream) -> TokenStream {
             if let proc_macro2::TokenTree::Ident(ident) = &tok
                 && ident == "table"
             {
-                tokens.next()?; // consomme ':'
+                tokens.next()?; // consume ':'
                 if let proc_macro2::TokenTree::Literal(lit) = tokens.next()? {
                     return Some(lit.to_string().trim_matches('"').to_string());
                 }
@@ -111,7 +111,7 @@ pub fn extend(input: TokenStream) -> TokenStream {
                     "extend!{{}} : \"{}\" is not a known framework table. Allowed tables: {}."
                         .to_string()
                 });
-            // Remplace {} par les valeurs (format simple : premier {} = table, second {} = liste)
+            // Replaces {} with values (simple format: first {} = table, second {} = list)
             let msg = template
                 .replacen("{}", &name, 1)
                 .replacen("{}", &tables_list, 1);

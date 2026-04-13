@@ -1,6 +1,6 @@
-//! Définition d'un index de table — colonnes, unicité, nom optionnel, génération SeaQuery.
+//! Table index definition — columns, uniqueness, optional name, SeaQuery generation.
 
-/// Définition d'un index.
+/// Index definition.
 #[derive(Debug, Clone)]
 pub struct IndexDef {
     pub columns: Vec<String>,

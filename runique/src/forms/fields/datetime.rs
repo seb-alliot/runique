@@ -1,4 +1,4 @@
-//! Champs date/heure : `DateField`, `TimeField`, `DateTimeField` avec validation min/max.
+//! Date/time fields: `DateField`, `TimeField`, `DateTimeField` with min/max validation.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
@@ -7,7 +7,7 @@ use serde_json::json;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
-/// DateField - Champ de date (format: YYYY-MM-DD)
+/// DateField - Date field (format: YYYY-MM-DD)
 #[derive(Clone, Serialize, Debug)]
 pub struct DateField {
     pub base: FieldConfig,
@@ -89,7 +89,7 @@ impl FormField for DateField {
             return true;
         }
 
-        // Parser la date
+        // Parse the date
         let date = match NaiveDate::parse_from_str(val, "%Y-%m-%d") {
             Ok(d) => d,
             Err(_) => {
@@ -98,7 +98,7 @@ impl FormField for DateField {
             }
         };
 
-        // Vérifier min
+        // Check min
         if let Some(min) = self.min_date {
             if date < min {
                 let msg = self
@@ -112,7 +112,7 @@ impl FormField for DateField {
             }
         }
 
-        // Vérifier max
+        // Check max
         if let Some(max) = self.max_date {
             if date > max {
                 let msg = self
@@ -152,7 +152,7 @@ impl FormField for DateField {
     }
 }
 
-/// TimeField - Champ de temps (format: HH:MM)
+/// TimeField - Time field (format: HH:MM)
 #[derive(Clone, Serialize, Debug)]
 pub struct TimeField {
     pub base: FieldConfig,
@@ -228,7 +228,7 @@ impl FormField for TimeField {
             return true;
         }
 
-        // Parser le temps
+        // Parse the time
         let time = match NaiveTime::parse_from_str(val, "%H:%M") {
             Ok(t) => t,
             Err(_) => {
@@ -237,7 +237,7 @@ impl FormField for TimeField {
             }
         };
 
-        // Vérifier min
+        // Check min
         if let Some(min) = self.min_time {
             if time < min {
                 let msg = self
@@ -251,7 +251,7 @@ impl FormField for TimeField {
             }
         }
 
-        // Vérifier max
+        // Check max
         if let Some(max) = self.max_time {
             if time > max {
                 let msg = self
@@ -291,7 +291,7 @@ impl FormField for TimeField {
     }
 }
 
-/// DateTimeField - Champ de date et temps combiné
+/// DateTimeField - Combined date and time field
 #[derive(Clone, Serialize, Debug)]
 pub struct DateTimeField {
     pub base: FieldConfig,
@@ -367,7 +367,7 @@ impl FormField for DateTimeField {
             return true;
         }
 
-        // Parser le datetime (format ISO: YYYY-MM-DDTHH:MM)
+        // Parse the datetime (ISO format: YYYY-MM-DDTHH:MM)
         let datetime = match NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M") {
             Ok(dt) => dt,
             Err(_) => {
@@ -376,7 +376,7 @@ impl FormField for DateTimeField {
             }
         };
 
-        // Vérifier min
+        // Check min
         if let Some(min) = self.min_datetime {
             if datetime < min {
                 let msg = self
@@ -390,7 +390,7 @@ impl FormField for DateTimeField {
             }
         }
 
-        // Vérifier max
+        // Check max
         if let Some(max) = self.max_datetime {
             if datetime > max {
                 let msg = self
@@ -430,7 +430,7 @@ impl FormField for DateTimeField {
     }
 }
 
-/// DurationField - Champ pour saisir une durée (en secondes)
+/// DurationField - Field to enter a duration (in seconds)
 #[derive(Clone, Serialize, Debug)]
 pub struct DurationField {
     pub base: FieldConfig,
@@ -507,7 +507,7 @@ impl FormField for DurationField {
             return true;
         }
 
-        // Parser la durée (en secondes)
+        // Parse the duration (in seconds)
         let seconds = match val.parse::<u64>() {
             Ok(s) => s,
             Err(_) => {
@@ -516,7 +516,7 @@ impl FormField for DurationField {
             }
         };
 
-        // Vérifier min
+        // Check min
         if let Some(min) = self.min_seconds {
             if seconds < min {
                 let msg = self
@@ -530,7 +530,7 @@ impl FormField for DurationField {
             }
         }
 
-        // Vérifier max
+        // Check max
         if let Some(max) = self.max_seconds {
             if seconds > max {
                 let msg = self

@@ -1,8 +1,8 @@
-//! Conteneur léger `UrlParams` pour les paramètres d'URL (path + query) — accès unifié et whitelisté.
+//! Lightweight `UrlParams` container for URL parameters (path + query) — unified and whitelisted access.
 use std::collections::HashMap;
 
-/// Conteneur léger pour les paramètres d'URL (path + query).
-/// Passé aux méthodes de formulaire pour un accès whitelisté.
+/// Lightweight container for URL parameters (path + query).
+/// Passed to form methods for whitelisted access.
 pub struct UrlParams<'a> {
     pub path: &'a HashMap<String, String>,
     pub query: &'a HashMap<String, String>,
@@ -13,7 +13,7 @@ impl<'a> UrlParams<'a> {
         Self { path, query }
     }
 
-    /// Cherche dans path d'abord, puis query.
+    /// Search in path first, then query.
     #[must_use]
     pub fn get(&self, key: &str) -> Option<&str> {
         self.path

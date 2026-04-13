@@ -1,6 +1,6 @@
-//! Chemins de fichiers de migration — répertoire snapshots, fichiers de migration, entités SeaORM.
+//! Migration file paths — snapshots directory, migration files, SeaORM entities.
 
-/// Répertoire `snapshots/` (état courant de la table, utilisé uniquement pour le diff).
+/// `snapshots/` directory (current table state, used only for diffing).
 #[doc = include_str!("../../../doc-tests/migration/paths_snapshot_dir.md")]
 pub fn snapshot_dir(migrations_path: &str) -> String {
     format!("{}/snapshots", migrations_path)
@@ -67,7 +67,7 @@ pub fn batch_down_dir(migrations_path: &str, table_name: &str) -> String {
     format!("{}/applied/by_time/{}/down", migrations_path, table_name)
 }
 
-/// Chemin du fichier batch up d'une table
+/// Path to the batch up file of a table
 pub fn batch_up_path(migrations_path: &str, table_name: &str, timestamp: &str) -> String {
     format!(
         "{}/applied/by_time/{}/up/{}.rs",
@@ -75,7 +75,7 @@ pub fn batch_up_path(migrations_path: &str, table_name: &str, timestamp: &str) -
     )
 }
 
-/// Chemin du fichier batch down d'une table
+/// Path to the batch down file of a table
 pub fn batch_down_path(migrations_path: &str, table_name: &str, timestamp: &str) -> String {
     format!(
         "{}/applied/by_time/{}/down/{}.rs",
@@ -83,17 +83,17 @@ pub fn batch_down_path(migrations_path: &str, table_name: &str, timestamp: &str)
     )
 }
 
-/// Chemin du lib.rs du migrator
+/// Path to the migrator's lib.rs
 pub fn lib_path(migrations_path: &str) -> String {
     format!("{}/lib.rs", migrations_path)
 }
 
-/// Répertoire des snapshots d'extension de tables framework (`snapshots/runique/`)
+/// Directory for framework table extension snapshots (`snapshots/runique/`)
 pub fn extend_snapshot_dir(migrations_path: &str) -> String {
     format!("{}/snapshots/runique", migrations_path)
 }
 
-/// Chemin du snapshot d'extension pour une table framework donnée
+/// Path to the extension snapshot for a given framework table
 pub fn extend_snapshot_file_path(migrations_path: &str, table_name: &str) -> String {
     format!("{}/snapshots/runique/{}.rs", migrations_path, table_name)
 }
@@ -328,7 +328,7 @@ mod tests {
         assert_eq!(lib_path("migrations"), "migrations/lib.rs");
     }
 
-    // ── cohérence globale ────────────────────────────────────────────────────
+    // ── global coherence ────────────────────────────────────────────────────
 
     #[test]
     fn snapshot_is_inside_snapshot_dir() {

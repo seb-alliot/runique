@@ -1,5 +1,5 @@
 // Tests pour sanitize_strict, sanitize_rich, sanitize
-// (complément des tests inline dans sanitizer.rs)
+// (complement to inline tests in sanitizer.rs)
 
 use runique::utils::forms::sanitizer::{sanitize, sanitize_rich, sanitize_strict};
 
@@ -141,7 +141,7 @@ fn test_sanitize_champ_non_riche_retire_script() {
 
 #[test]
 fn test_sanitize_champ_riche_bloque_quand_meme_script() {
-    // Même les champs riches ne doivent pas laisser passer les scripts
+    // Even rich fields should not let scripts pass through
     let out = sanitize("content", "<script>alert(1)</script>texte");
     assert!(!out.contains("<script>"));
 }

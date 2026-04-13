@@ -1,4 +1,4 @@
-//! Enregistrement global des filtres/fonctions Tera — `register_asset_filters` et filtre `| markdown`.
+//! Global registration of Tera filters/functions — `register_asset_filters` and `| markdown` filter.
 use crate::context::tera::form::form_filter;
 use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
@@ -7,13 +7,13 @@ use crate::utils::trad::tf;
 use pulldown_cmark::{Options, Parser, html};
 use tera::{Tera, Value};
 
-// Filtre pour masquer une valeur sensible avec des bullets (nombre de caractères réel)
+// Filter to mask a sensitive value with bullets (real number of characters)
 fn mask_filter(value: &Value, _: &JsonMap) -> TResult {
     let s = value.as_str().unwrap_or("");
     Ok(Value::String("•".repeat(s.chars().count())))
 }
 
-// Filtre pour générer un champ CSRF hidden
+// Filter to generate a hidden CSRF field
 fn csrf_filter(value: &Value, _: &JsonMap) -> TResult {
     let token = value
         .as_str()
@@ -27,7 +27,7 @@ fn csrf_filter(value: &Value, _: &JsonMap) -> TResult {
     Ok(Value::String(html))
 }
 
-// Filtre markdown → HTML (tables, strikethrough, heading ids)
+// Markdown filter → HTML (tables, strikethrough, heading ids)
 fn markdown_filter(value: &Value, _: &JsonMap) -> TResult {
     let md = value.as_str().unwrap_or("");
     let mut opts = Options::empty();
@@ -40,7 +40,7 @@ fn markdown_filter(value: &Value, _: &JsonMap) -> TResult {
     Ok(Value::String(output))
 }
 
-// Fonction générique interne pour éviter la répétition
+// Internal generic function to avoid repetition
 fn register_filter(base_url: String, version: String) -> impl Fn(&Value, &JsonMap) -> TResult {
     move |value: &Value, _: &JsonMap| {
         let file = value.as_str().ok_or_else(|| {

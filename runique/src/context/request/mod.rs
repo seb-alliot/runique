@@ -1,4 +1,4 @@
-//! Extracteur de contexte de requête — `Request` struct enrichi via `FromRequestParts`.
+//! Request context extractor — `Request` struct enriched via `FromRequestParts`.
 pub mod extractor;
 
 pub use extractor::*;

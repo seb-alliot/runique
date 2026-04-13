@@ -138,7 +138,7 @@ impl RuniqueForm for RegisterForm {
 
 > **La surcharge individuelle d'un champ auto-généré par `#[form(...)]` ou `model!` n'est pas encore prise en charge.**
 
-Il n'est pas possible aujourd'hui de personnaliser un seul champ (ex: ajouter `.max_size_mb(5)` ou changer le label) sans réécrire l'intégralité de `register_fields` à la main, ce qui annule le bénéfice de la macro.
+Il n'est pas possible aujourd'hui de personnaliser un seul champ (ex: ajouter `.max_size(5)` ou changer le label) sans réécrire l'intégralité de `register_fields` à la main, ce qui annule le bénéfice de la macro.
 
 **Contournement actuel :** écrire un formulaire manuel complet et déclarer les champs explicitement.
 
@@ -160,7 +160,7 @@ impl RuniqueForm for ArticleForm {
         form.field(
             &FileField::image("image")
                 .upload_to("media/articles")
-                .max_size_mb(5),
+                .max_size(5),
         );
     }
 }

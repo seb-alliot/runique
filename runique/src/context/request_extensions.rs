@@ -1,8 +1,8 @@
-//! Extensions de requête Axum : injecte engine, Tera, config, CSRF, CSP nonce et utilisateur courant.
+//! Axum request extensions: injects engine, Tera, config, CSRF, CSP nonce, and current user.
 use crate::auth::session::CurrentUser;
 use axum::body::Body;
 use axum::http::Request;
-/// Module centralisé pour injecter toutes les données dans les extensions Axum
+/// Centralized module to inject all data into Axum extensions.
 use axum::http::request::Parts;
 
 use crate::utils::{
@@ -13,7 +13,7 @@ use crate::utils::{
     {csp_nonce::CspNonce, csrf::CsrfToken},
 };
 
-/// Structure contenant toutes les données à injecter dans les extensions
+/// Structure containing all data to be injected into extensions.
 pub struct RequestExtensions {
     pub engine: OAEngine,
     pub tera: OATera,
@@ -24,7 +24,7 @@ pub struct RequestExtensions {
 }
 
 impl RequestExtensions {
-    /// Crée une nouvelle instance vide
+    /// Creates a new empty instance.
     pub fn new() -> Self {
         Self {
             engine: None,
@@ -36,7 +36,7 @@ impl RequestExtensions {
         }
     }
 
-    /// Injecte toutes les données présentes dans les extensions
+    /// Injects all present data into extensions.
     pub fn inject(&self, parts: &mut Parts) {
         if let Some(engine) = &self.engine {
             parts.extensions.insert(engine.clone());
@@ -58,9 +58,9 @@ impl RequestExtensions {
         }
     }
 
-    /// Injecte toutes les données dans une Request (wrapper pour Axum)
+    /// Injects all data into a Request (wrapper for Axum).
     pub fn inject_request(&self, req: &mut Request<Body>) {
-        // Utilise directement la méthode extensions_mut() de la Request
+        // Uses the extensions_mut() method of the Request directly.
         let extensions = req.extensions_mut();
 
         if let Some(engine) = &self.engine {

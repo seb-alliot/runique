@@ -1,4 +1,4 @@
-//! Pipeline Prisme — extracteur typé Axum : sentinel (accès) → CSRF → parsing → rendu.
+//! Prisme pipeline — typed Axum extractor: sentinel (access) → CSRF → parsing → rendering.
 pub mod aegis;
 pub mod csrf_gate;
 pub mod rules;

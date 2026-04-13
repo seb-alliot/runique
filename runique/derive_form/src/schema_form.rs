@@ -8,7 +8,7 @@ use syn::{
     punctuated::Punctuated,
 };
 
-// ─── Attributs parsés depuis #[form(schema = ..., fields = [...], exclude = [...])] ───
+// ─── Attributes parsed from #[form(schema = ..., fields = [...], exclude = [...])] ───
 
 struct FormAttrs {
     schema: Path,
@@ -52,7 +52,7 @@ impl Parse for FormAttrs {
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
-                        format!("#[form]: attribut inconnu `{}`", other),
+                        format!("#[form]: unknown attribute `{}`", other),
                     ));
                 }
             }
@@ -63,7 +63,7 @@ impl Parse for FormAttrs {
         }
 
         let schema = schema
-            .ok_or_else(|| syn::Error::new(Span::call_site(), "#[form]: `schema` est requis"))?;
+            .ok_or_else(|| syn::Error::new(Span::call_site(), "#[form]: `schema` is required"))?;
 
         Ok(FormAttrs {
             schema,
@@ -74,7 +74,7 @@ impl Parse for FormAttrs {
     }
 }
 
-// ─── Point d'entrée du macro ───────────────────────────────────────────────
+// ─── Macro entry point ───────────────────────────────────────────────
 
 pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput);

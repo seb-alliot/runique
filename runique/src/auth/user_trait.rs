@@ -1,6 +1,6 @@
-//! Trait `RuniqueUser` : contrat minimal pour tout modèle utilisateur Runique.
+//! `RuniqueUser` trait: minimal contract for any Runique user model.
 
-/// Contrat à implémenter sur tout modèle utilisateur pour l'intégration avec le framework.
+/// Contract to implement on any user model for framework integration.
 pub trait RuniqueUser: Send + Sync {
     fn user_id(&self) -> crate::utils::pk::Pk;
     fn username(&self) -> &str;
@@ -10,15 +10,15 @@ pub trait RuniqueUser: Send + Sync {
     fn is_staff(&self) -> bool;
     fn is_superuser(&self) -> bool;
 
-    /// Rôles personnalisés. Retourne un Vec vide par défaut.
+    /// Custom roles. Returns an empty Vec by default.
     fn roles(&self) -> Vec<String> {
         vec![]
     }
 
-    /// Vérifie si l'utilisateur peut accéder à l'admin.
+    /// Checks if the user can access the admin.
     ///
-    /// Par défaut : compte actif + (`is_staff` OU `is_superuser`).
-    /// Peut être surchargé pour une logique custom.
+    /// Default: active account + (`is_staff` OR `is_superuser`).
+    /// Can be overridden for custom logic.
     fn can_access_admin(&self) -> bool {
         self.is_active() && (self.is_staff() || self.is_superuser())
     }

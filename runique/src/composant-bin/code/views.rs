@@ -62,7 +62,7 @@ pub async fn soumission_inscription(
     request.render(template)
 }
 
-/// Page "À propos"
+/// About page
 pub async fn about(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
     context_update!(request => {

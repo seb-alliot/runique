@@ -1,4 +1,4 @@
-//! CLI de création de superutilisateur admin avec choix de l'algorithme de hachage.
+//! CLI for creating an admin superuser with a choice of hashing algorithm.
 use crate::auth::{
     session::UserEntity,
     user::{ActiveModel, BuiltinUserEntity},
@@ -212,7 +212,7 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
     use std::path::Path;
     use std::process::{Command, Stdio};
 
-    // Vérifie que le chemin est un fichier existant et exécutable — pas de shell injection
+    // Verify that the path is an existing and executable file — no shell injection
     let path = Path::new(provider_path);
     if !path.exists() {
         return Err(format!("Provider not found: '{}'", provider_path));
@@ -242,7 +242,7 @@ fn hash_via_provider(password: &str, provider_path: &str) -> Result<String, Stri
             .write_all(password.as_bytes())
             .map_err(|e| format!("Error writing to stdin: {}", e))?;
     }
-    // Fermeture explicite de stdin pour signaler EOF au processus enfant
+    // Explicitly close stdin to signal EOF to the child process
     drop(child.stdin.take());
 
     let (tx, rx) = mpsc::channel();

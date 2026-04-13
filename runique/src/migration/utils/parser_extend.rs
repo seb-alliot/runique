@@ -1,6 +1,6 @@
-//! Parser pour les blocs `extend!{}` — extrait les extensions de tables framework.
+//! Parser for `extend!{}` blocks — extracts framework table extensions.
 //!
-//! Syntaxe attendue :
+//! Expected syntax:
 //! ```rust,ignore
 //! extend! {
 //!     table: "eihwaz_users",
@@ -20,7 +20,7 @@ use syn::{
 
 use crate::migration::utils::types::{ParsedColumn, ParsedSchema};
 
-// ── DSL interne ───────────────────────────────────────────────────────────────
+// ── Internal DSL ───────────────────────────────────────────────────────────────
 
 struct DslExtendField {
     name: String,
@@ -44,7 +44,7 @@ impl Parse for DslExtendField {
             let opts;
             bracketed!(opts in input);
             while !opts.is_empty() {
-                // enum(...) en position attribut — on ignore le nom mais on consomme les tokens
+                // enum(...) in attribute position — we ignore the name but consume tokens
                 if opts.peek(Token![enum]) {
                     opts.parse::<Token![enum]>()?;
                     let inner;
@@ -59,12 +59,12 @@ impl Parse for DslExtendField {
                 let opt: Ident = opts.parse()?;
                 options.push(opt.to_string());
 
-                // syntaxe `key: value`
+                // `key: value` syntax
                 if opts.peek(Token![:]) {
                     opts.parse::<Token![:]>()?;
                     opts.parse::<TokenTree>().ok();
                 }
-                // syntaxe `key(value)`
+                // `key(value)` syntax
                 else if opts.peek(syn::token::Paren) {
                     let inner;
                     syn::parenthesized!(inner in opts);
@@ -88,10 +88,10 @@ impl Parse for DslExtendField {
 
 impl Parse for DslExtend {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        // table: "nom_de_table",
+        // table: "table_name",
         let kw: Ident = input.parse()?;
         if kw != "table" {
-            return Err(syn::Error::new(kw.span(), "attendu 'table'"));
+            return Err(syn::Error::new(kw.span(), "expected 'table'"));
         }
         input.parse::<Token![:]>()?;
         let table: LitStr = input.parse()?;
@@ -100,7 +100,7 @@ impl Parse for DslExtend {
         // fields: { ... }
         let kw: Ident = input.parse()?;
         if kw != "fields" {
-            return Err(syn::Error::new(kw.span(), "attendu 'fields'"));
+            return Err(syn::Error::new(kw.span(), "expected 'fields'"));
         }
         input.parse::<Token![:]>()?;
         let fields_content;
@@ -111,7 +111,7 @@ impl Parse for DslExtend {
             fields.push(DslExtendField::parse(&fields_content)?);
         }
 
-        // virgule finale optionnelle
+        // optional trailing comma
         let _ = input.parse::<Token![,]>();
 
         Ok(DslExtend {
@@ -121,38 +121,38 @@ impl Parse for DslExtend {
     }
 }
 
-// ── Conversion vers ParsedColumn ──────────────────────────────────────────────
+// ── Conversion to ParsedColumn ──────────────────────────────────────────────
 
 fn extend_field_type_to_col_type(ty: &str) -> String {
     match ty {
-        // Texte court (VARCHAR)
+        // Short text (VARCHAR)
         "text" | "email" | "url" | "password" | "slug" | "color" | "String" | "char"
         | "varchar" => "String".to_string(),
-        // Texte long
+        // Long text
         "richtext" | "textarea" => "Text".to_string(),
-        // Fichiers — stockés comme chemin String
+        // Files — stored as String path
         "image" | "document" | "file" => "String".to_string(),
-        // Entiers
+        // Integers
         "i8" => "TinyInteger".to_string(),
         "i16" => "SmallInteger".to_string(),
         "i32" | "integer" | "int" => "Integer".to_string(),
         "i64" | "bigint" | "big_integer" => "BigInteger".to_string(),
-        // Flottants
+        // Floats
         "f32" => "Float".to_string(),
         "f64" | "float" | "percent" | "double" => "Double".to_string(),
         "decimal" => "Decimal".to_string(),
-        // Booléen
+        // Boolean
         "bool" => "Boolean".to_string(),
-        // Dates / Temps
+        // Date / Time
         "date" => "Date".to_string(),
         "time" => "Time".to_string(),
         "datetime" | "timestamp" => "DateTime".to_string(),
         "timestamp_tz" => "TimestampWithTimeZone".to_string(),
-        // Divers
+        // Miscellaneous
         "uuid" => "Uuid".to_string(),
         "json" | "json_binary" => "Json".to_string(),
         "binary" | "blob" => "Binary".to_string(),
-        // Choix (enum) — stocké comme String
+        // Choice (enum) — stored as String
         "choice" | "radio" => "String".to_string(),
         _ => "String".to_string(),
     }
@@ -176,7 +176,7 @@ fn extend_field_to_col(f: DslExtendField) -> ParsedColumn {
     }
 }
 
-// ── Visiteur ──────────────────────────────────────────────────────────────────
+// ── Visitor ──────────────────────────────────────────────────────────────────
 
 struct ExtendVisitor {
     pub schemas: Vec<ParsedSchema>,
@@ -216,11 +216,11 @@ impl<'ast> Visit<'ast> for ExtendVisitor {
     }
 }
 
-// ── Point d'entrée public ─────────────────────────────────────────────────────
+// ── Public entry point ─────────────────────────────────────────────────────
 
-/// Parse tous les blocs `extend!{}` dans un fichier source Rust.
-/// Retourne un vecteur de `ParsedSchema` (un par bloc `extend!{}`).
-/// Les schémas ont `primary_key = None` — ce sont des extensions de tables existantes.
+/// Parses all `extend!{}` blocks in a Rust source file.
+/// Returns a vector of `ParsedSchema` (one per `extend!{}` block).
+/// Schemas have `primary_key = None` — these are extensions of existing tables.
 pub fn parse_extend_blocks_from_source(source: &str) -> Vec<ParsedSchema> {
     let file = match syn::parse_str::<syn::File>(source) {
         Ok(f) => f,

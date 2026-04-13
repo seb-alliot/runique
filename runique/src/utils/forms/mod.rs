@@ -1,4 +1,4 @@
-//! Utilitaires de formulaires — parsing multipart/HTML et sanitisation HTML (ammonia).
+//! Form utilities — multipart/HTML parsing and HTML sanitization (ammonia).
 pub mod parse_boolean;
 pub mod parse_html;
 pub mod sanitizer;

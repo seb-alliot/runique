@@ -1,4 +1,4 @@
-//! Commande `start` — génère le code entrypoint `main.rs` et `admin.rs` depuis les templates CLI.
+//! `start` command — generates the entrypoint code `main.rs` and `admin.rs` from CLI templates.
 use crate::utils::trad::{t, tf};
 use anyhow::Result;
 
@@ -19,7 +19,7 @@ pub fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
     }
 
     println!("{}", t("cli.admin_detected"));
-    // Lancer le daemon en thread séparé
+    // Start the daemon in a separate thread
     let admin_path = admin_path.to_string();
     let main_path_owned = main_path.to_string();
     std::thread::spawn(move || {
@@ -28,7 +28,7 @@ pub fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
         }
     });
 
-    // Lancer le serveur applicatif après le daemon
+    // Start the application server after the daemon
     let status = Command::new("cargo")
         .arg("run")
         .arg("--release")
@@ -40,10 +40,10 @@ pub fn runique_start(main_path: &str, admin_path: &str) -> Result<()> {
     Ok(())
 }
 
-// Détection de .with_admin() dans main.rs
+// Detection of .with_admin() in main.rs
 
-/// Vérifie si `src/main.rs` contient un appel actif à `.with_admin(...)`
-/// (ignore les lignes commentées avec `//`)
+/// Checks if `src/main.rs` contains an active call to `.with_admin(...)`
+/// (ignores lines commented with `//`)
 fn has_admin(source: &str) -> bool {
     source.lines().any(|line| {
         let trimmed = line.trim();
@@ -51,7 +51,7 @@ fn has_admin(source: &str) -> bool {
     })
 }
 
-// Daemon AdminPanel
+// AdminPanel Daemon
 
 fn start_admin_daemon(admin_path: &str, main_path: &str) -> Result<()> {
     use crate::admin::daemon::watch;

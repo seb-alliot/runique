@@ -1,4 +1,4 @@
-//! Porte CSRF du pipeline Prisme : valide le token sur les requêtes mutantes (POST/PUT/PATCH/DELETE).
+//! CSRF gate of the Prisme pipeline: validates the token on mutating requests (POST/PUT/PATCH/DELETE).
 use crate::forms::{extractor::Prisme, field::RuniqueForm};
 use crate::utils::{
     aliases::{StrMap, StrVecMap},
@@ -12,9 +12,9 @@ use std::{collections::HashMap, sync::Arc};
 use subtle::ConstantTimeEq;
 use tera::Tera;
 
-/// CSRF gate : vérification du token dans les données parsées.
-/// Sur GET/HEAD sans token soumis (chargement initial), la validation est ignorée.
-/// Retourne Some(Prisme) si invalid/missing (formulaire vide avec erreur), None sinon.
+/// CSRF gate: verification of the token in the parsed data.
+/// On GET/HEAD without submitted token (initial load), validation is ignored.
+/// Returns Some(Prisme) if invalid/missing (empty form with error), None otherwise.
 pub async fn csrf_gate<T: RuniqueForm>(
     parsed: &StrVecMap,
     csrf_session: &str,
@@ -26,13 +26,13 @@ pub async fn csrf_gate<T: RuniqueForm>(
         .and_then(|v| v.last())
         .map(|s| s.as_str());
 
-    // GET/HEAD : pas de validation CSRF (token non consommé + middleware strip l'URL)
+    // GET/HEAD: no CSRF validation (token not consumed + middleware strips the URL)
     if method == Method::GET || method == Method::HEAD {
         return Ok(None);
     }
 
-    // Démasque le token soumis (base64 → hex) puis compare en constant-time
-    // au token brut de session pour éviter une attaque par timing.
+    // Unmasks the submitted token (base64 → hex) then compares in constant-time
+    // to the raw session token to avoid a timing attack.
     let token_valid = csrf_submitted
         .map(|s| match unmask_csrf_token(s) {
             Ok(unmasked) => bool::from(unmasked.as_bytes().ct_eq(csrf_session.as_bytes())),

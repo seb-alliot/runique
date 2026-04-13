@@ -1,5 +1,5 @@
-//! Fournit les statements de création de tables SeaORM pour les composants RBAC internes.
-//! Utilisable par les développeurs dans leurs propres migrations `up`.
+//! Provides SeaORM table creation statements for internal RBAC components.
+//! Usable by developers in their own `up` migrations.
 
 use sea_query::{
     Alias, ColumnDef, ForeignKey, ForeignKeyAction, Index, Table, TableCreateStatement,
@@ -7,7 +7,7 @@ use sea_query::{
 
 // ── EihwazUsersMigration ──────────────────────────────────────────────────────
 
-/// Génère le `TableCreateStatement` pour la table `eihwaz_users`.
+/// Generates the `TableCreateStatement` for the `eihwaz_users` table.
 pub fn create_eihwaz_users_table() -> TableCreateStatement {
     let mut pk_col = ColumnDef::new(Alias::new("id"));
     #[cfg(feature = "big-pk")]
@@ -56,8 +56,8 @@ pub fn create_eihwaz_users_table() -> TableCreateStatement {
         .to_owned()
 }
 
-/// Migration "clé en main" pour créer la table `eihwaz_users`.
-/// À placer en premier dans le `vec!` de `Migrator`.
+/// "Turnkey" migration to create the `eihwaz_users` table.
+/// To be placed first in the `Migrator` `vec!`.
 pub struct EihwazUsersMigration;
 
 impl sea_orm_migration::MigrationName for EihwazUsersMigration {
@@ -79,7 +79,7 @@ impl sea_orm_migration::MigrationTrait for EihwazUsersMigration {
     }
 }
 
-/// Génère le `TableCreateStatement` pour la table `eihwaz_groupes`.
+/// Generates the `TableCreateStatement` for the `eihwaz_groupes` table.
 pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
     Table::create()
         .table(Alias::new("eihwaz_groupes"))
@@ -100,9 +100,9 @@ pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
         .to_owned()
 }
 
-/// Génère le `TableCreateStatement` pour la table `eihwaz_groupes_droits`.
-/// Chaque ligne représente les permissions d'un groupe sur une ressource spécifique.
-/// PK composite : (groupe_id, resource_key).
+/// Generates the `TableCreateStatement` for the `eihwaz_groupes_droits` table.
+/// Each row represents a group's permissions on a specific resource.
+/// Composite PK: (groupe_id, resource_key).
 pub fn create_eihwaz_groupes_droits_table() -> TableCreateStatement {
     Table::create()
         .table(Alias::new("eihwaz_groupes_droits"))
@@ -165,15 +165,15 @@ pub fn create_eihwaz_groupes_droits_table() -> TableCreateStatement {
         .to_owned()
 }
 
-/// Retourne le nom de la table user configurée.
-/// Lit `RUNIQUE_USER_TABLE` depuis l'environnement (`.env` chargé par sea-orm-cli).
-/// Défaut : `"eihwaz_users"`.
+/// Returns the name of the configured user table.
+/// Reads `RUNIQUE_USER_TABLE` from the environment (`.env` loaded by `sea-orm-cli`).
+/// Default: `"eihwaz_users"`.
 pub fn user_table_name() -> String {
     std::env::var("RUNIQUE_USER_TABLE").unwrap_or_else(|_| "eihwaz_users".to_string())
 }
 
-/// Génère le `TableCreateStatement` pour la table pivot `eihwaz_users_groupes`.
-/// La FK vers la table user cible `RUNIQUE_USER_TABLE` (défaut : `eihwaz_users`).
+/// Generates the `TableCreateStatement` for the `eihwaz_users_groupes` junction table.
+/// The FK to the user table targets `RUNIQUE_USER_TABLE` (default: `eihwaz_users`).
 pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
     let user_table = user_table_name();
     let fk_name = format!("fk_eihwaz_users_groupes_{}_id", user_table);
@@ -206,8 +206,8 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
         .to_owned()
 }
 
-/// Migration complète "clé en main" pour initialiser l'architecture RBAC native de Runique.
-/// À injecter directement dans le `vec!` de `Migrations::up()` après la migration de votre table User.
+/// Complete "turnkey" migration to initialize Runique's native RBAC architecture.
+/// To be injected directly into the `Migrations::up()` `vec!` after your User table migration.
 pub struct AdminTableMigration;
 
 impl sea_orm_migration::MigrationName for AdminTableMigration {

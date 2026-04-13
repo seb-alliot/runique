@@ -1,4 +1,4 @@
-//! Rate limiter par clé (IP ou autre) avec fenêtre glissante et réponse 429.
+//! Rate limiter by key (IP or other) with sliding window and 429 response.
 use crate::utils::trad::t;
 use axum::{
     body::Body,
@@ -14,23 +14,23 @@ use std::{
 };
 use tokio::time::interval;
 
-/// Entrée par clé : (nombre de requêtes dans la fenêtre, début de la fenêtre)
+/// Entry per key: (request count in window, window start)
 type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
 
-/// Rate limiter configurable — fenêtre glissante par clé (IP ou autre)
+/// Configurable rate limiter — sliding window per key (IP or other)
 #[derive(Clone)]
 pub struct RateLimiter {
     store: Store,
-    /// Nombre maximal de requêtes autorisées dans la fenêtre
+    /// Maximum number of requests allowed in the window
     pub max_requests: u32,
-    /// Durée de la fenêtre
+    /// Window duration
     pub window: Duration,
 }
 
 impl RateLimiter {
-    /// Crée un rate limiter avec les valeurs par défaut (60 req / 60 s).
+    /// Creates a rate limiter with default values (60 Req / 60 s).
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// RateLimiter::new()
     ///     .max_requests(100)
@@ -44,22 +44,22 @@ impl RateLimiter {
         }
     }
 
-    /// Nombre maximal de requêtes autorisées dans la fenêtre
+    /// Maximum number of requests allowed in the window
     #[must_use]
     pub fn max_requests(mut self, max: u32) -> Self {
         self.max_requests = max;
         self
     }
 
-    /// Durée de la fenêtre en secondes
+    /// Window duration in seconds
     #[must_use]
     pub fn retry_after(mut self, secs: u64) -> Self {
         self.window = Duration::from_secs(secs);
         self
     }
 
-    /// Spawne une tâche Tokio qui purge périodiquement les entrées expirées.
-    /// À appeler une fois au démarrage de l'application.
+    /// Spawns a Tokio task that periodically purges expired entries.
+    /// Should be called once at application startup.
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let store = self.store.clone();
         let window = self.window;
@@ -77,8 +77,8 @@ impl RateLimiter {
         });
     }
 
-    /// Secondes restantes avant la réinitialisation de la fenêtre pour cette clé.
-    /// Retourne `0` si la clé est inconnue ou si la fenêtre est déjà expirée.
+    /// Seconds remaining before window reset for this key.
+    /// Returns `0` if the key is unknown or if the window is already expired.
     #[must_use]
     pub fn retry_after_secs(&self, key: &str) -> u64 {
         let store = match self.store.lock() {
@@ -94,7 +94,7 @@ impl RateLimiter {
         }
     }
 
-    /// Retourne `true` si la clé est sous la limite, `false` si dépassée
+    /// Returns `true` if the key is under the limit, `false` if exceeded
     #[must_use]
     pub fn is_allowed(&self, key: &str) -> bool {
         let mut store = match self.store.lock() {
@@ -105,7 +105,7 @@ impl RateLimiter {
         let entry = store.entry(key.to_string()).or_insert((0, now));
 
         if now.duration_since(entry.1) >= self.window {
-            // Nouvelle fenêtre
+            // New window
             *entry = (1, now);
             true
         } else if entry.0 < self.max_requests {
@@ -123,15 +123,15 @@ impl Default for RateLimiter {
     }
 }
 
-/// Extrait la clé IP depuis les headers (`X-Forwarded-For`, `X-Real-IP`, fallback `"unknown"`).
+/// Extracts the IP key from headers (`X-Forwarded-For`, `X-Real-IP`, fallback `"unknown"`).
 ///
-/// **Pré-requis : reverse proxy de confiance.**
-/// Cette fonction fait confiance au header `X-Forwarded-For` tel qu'il arrive.
-/// Sans proxy en amont (nginx, Caddy, Cloudflare…) qui contrôle ce header,
-/// un client malveillant peut le forcer pour contourner le rate limiting par IP.
+/// **Pre-requisite: trusted reverse proxy.**
+/// This function trusts the `X-Forwarded-For` header as it arrives.
+/// Without a front proxy (nginx, Caddy, Cloudflare…) that controls this header,
+/// a malicious client can forge it to bypass IP rate limiting.
 ///
-/// Pour la protection brute-force sur le login, préférez [`LoginGuard`] qui
-/// limite par nom d'utilisateur — non bypassable par IP spoofing.
+/// For brute-force protection on login, prefer [`LoginGuard`] which
+/// limits by username — non-bypassable by IP spoofing.
 fn extract_ip(req: &Request<Body>) -> String {
     req.headers()
         .get("x-forwarded-for")
@@ -147,9 +147,9 @@ fn extract_ip(req: &Request<Body>) -> String {
         .unwrap_or_else(|| "unknown".to_string())
 }
 
-/// Middleware de rate limiting — à appliquer sur les routes sensibles (login, etc.)
+/// Rate limiting middleware — to be applied on sensitive routes (login, etc.)
 ///
-/// # Exemple
+/// # Example
 /// ```rust,ignore
 /// use runique::prelude::*;
 /// use std::sync::Arc;

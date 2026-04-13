@@ -1,17 +1,17 @@
-//! Middleware Content Security Policy : génère les headers CSP avec nonce par requête.
+//! Content Security Policy Middleware: generates CSP headers with nonce per request.
 use crate::context::RequestExtensions;
 use crate::utils::{aliases::AEngine, csp_nonce::CspNonce};
 
-/// Hashes des styles inline injectés par htmx (version embarquée : 2.0.4).
+/// Hashes of inline styles injected by htmx (embedded version: 2.0.4).
 ///
-/// Ces hashes sont déterministes : SHA-256 de la valeur exacte du style injecté
-/// (ex: `display:none`). Ils ne changent pas pour une valeur donnée, mais doivent
-/// être mis à jour si la version d'htmx change et injecte des valeurs différentes.
+/// These hashes are deterministic: SHA-256 of the exact injected style value
+/// (e.g., `display:none`). They do not change for a given value, but must
+/// be updated if the htmx version changes and injects different values.
 ///
-/// Référence : `runique/templates/admin/composant/list.html`
+/// Reference: `runique/templates/admin/composant/list.html`
 /// → `https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js`
 ///
-/// Pour ajouter un hash manquant : le navigateur l'indique dans la console CSP.
+/// To add a missing hash: the browser indicates it in the CSP console.
 pub const HTMX_STYLE_HASHES: &[&str] = &["'sha256-bsV5JivYxvGywDAZ22EZJKBFip65Ng9xoJVLbBg7bdo='"];
 use axum::{
     body::Body,
@@ -30,11 +30,11 @@ pub struct SecurityPolicy {
     pub img_src: Vec<String>,
     pub font_src: Vec<String>,
     pub connect_src: Vec<String>,
-    /// Sources autorisées pour les objets embarqués (plugins, applets)
+    /// Authorized sources for embedded objects (plugins, applets)
     pub object_src: Vec<String>,
-    /// Sources autorisées pour les médias audio/vidéo
+    /// Authorized sources for audio/video media
     pub media_src: Vec<String>,
-    /// Sources autorisées pour les iframes
+    /// Authorized sources for iframes
     pub frame_src: Vec<String>,
     pub frame_ancestors: Vec<String>,
     pub base_uri: Vec<String>,
@@ -48,21 +48,21 @@ impl Default for SecurityPolicy {
         Self {
             default_src: vec!["'none'".into()],
             script_src: vec!["'self'".into()],
-            // 'unsafe-inline' requis pour les bibliothèques comme htmx qui injectent
-            // des styles inline (ex: style="display:none") sans nonce.
+            // 'unsafe-inline' required for libraries like htmx that inject
+            // inline styles (e.g., style="display:none") without nonce.
             style_src: vec!["'self'".into(), "'unsafe-inline'".into()],
-            // Uniquement `'self'` par défaut.
-            // Pour autoriser les images base64 inline (avatars, éditeurs rich-text),
-            // ajoutez `data:` via la variable d'env :
+            // Only `'self'` by default.
+            // To allow inline base64 images (avatars, rich-text editors),
+            // add `data:` via the env variable:
             //   RUNIQUE_POLICY_CSP_IMAGES='self',data:
             img_src: vec!["'self'".into()],
             font_src: vec!["'self'".into()],
             connect_src: vec!["'self'".into()],
-            // Bloque tous les objets embarqués par défaut
+            // Block all embedded objects by default
             object_src: vec!["'none'".into()],
-            // Autorise les médias depuis le même domaine
+            // Allow media from the same domain
             media_src: vec!["'self'".into()],
-            // Bloque les iframes par défaut
+            // Block iframes by default
             frame_src: vec!["'none'".into()],
             frame_ancestors: vec!["'none'".into()],
             base_uri: vec!["'self'".into()],
@@ -115,11 +115,11 @@ impl SecurityPolicy {
         }
     }
 
-    /// Ajoute les hashes de styles inline connus d'htmx à `style_src`.
+    /// Adds known htmx inline style hashes to `style_src`.
     ///
-    /// Appelé automatiquement par le builder quand `.with_admin()` est activé.
-    /// Évite d'ouvrir `'unsafe-inline'` sur `style-src` tout en permettant
-    /// les styles injectés dynamiquement par htmx.
+    /// Called automatically by the builder when `.with_admin()` is activated.
+    /// Avoids opening `'unsafe-inline'` on `style-src` while allowing
+    /// dynamically injected styles by htmx.
     pub fn merge_htmx_hashes(&mut self) {
         for hash in HTMX_STYLE_HASHES {
             let s = hash.to_string();
@@ -150,7 +150,7 @@ impl SecurityPolicy {
             if let Some(n) = nonce.filter(|n| !n.is_empty()) {
                 style_sources.push(format!("'nonce-{n}'"));
                 style_sources.retain(|s| s != "'unsafe-inline'" && s != "'unsafe-hashes'");
-                // ↑ Retirer aussi 'unsafe-hashes' quand nonce présent
+                // ↑ Also remove 'unsafe-hashes' when nonce is present
             }
             directives.push(format!("style-src {}", style_sources.join(" ")));
         }
@@ -194,7 +194,7 @@ impl SecurityPolicy {
     }
 }
 
-/// Middleware CSP standard
+/// Standard CSP Middleware
 pub async fn csp_middleware(
     State(engine): State<AEngine>,
     req: Request<Body>,
@@ -212,16 +212,16 @@ pub async fn csp_middleware(
     response
 }
 
-/// Middleware global de sécurité (CSP + headers divers)
+/// Global security middleware (CSP + miscellaneous headers)
 pub async fn security_headers_middleware(
     State(engine): State<AEngine>,
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
-    // Générer un nonce unique pour cette requête
+    // Generate a unique nonce for this request
     let nonce = CspNonce::generate();
 
-    // Injection via la structure centralisée
+    // Injection via centralized structure
     let extensions = RequestExtensions::new().with_csp_nonce(nonce.clone());
 
     extensions.inject_request(&mut req);
@@ -229,13 +229,13 @@ pub async fn security_headers_middleware(
     let mut response = next.run(req).await;
     let headers = response.headers_mut();
 
-    // Utiliser le nonce pour construire la CSP
+    // Use the nonce to build the CSP
     let csp_value = engine.security_csp.to_header_value(Some(nonce.as_str()));
     if let Ok(header) = HeaderValue::from_str(&csp_value) {
         headers.insert(axum::http::header::CONTENT_SECURITY_POLICY, header);
     }
 
-    // Autres headers de sécurité
+    // Other security headers
     headers.insert(
         axum::http::header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),
@@ -284,19 +284,19 @@ pub async fn security_headers_middleware(
     response
 }
 
-/// Middleware de redirection HTTPS
+/// HTTPS redirection middleware
 pub async fn https_redirect_middleware(
     State(engine): State<AEngine>,
     req: Request<Body>,
     next: Next,
 ) -> Response {
-    // Vérifier si enforce_https est activé
+    // Check if enforce_https is enabled
     if !engine.config.security.enforce_https {
         return next.run(req).await;
     }
 
-    // Vérifier si la requête est déjà en HTTPS
-    // Derrière un proxy, vérifier X-Forwarded-Proto
+    // Check if the request is already in HTTPS
+    // Behind a proxy, check X-Forwarded-Proto
     let is_https = req
         .headers()
         .get("x-forwarded-proto")
@@ -307,7 +307,7 @@ pub async fn https_redirect_middleware(
         return next.run(req).await;
     }
 
-    // Construire l'URL HTTPS
+    // Build the HTTPS URL
     let host = req
         .headers()
         .get(axum::http::header::HOST)
@@ -321,6 +321,6 @@ pub async fn https_redirect_middleware(
         uri.path_and_query().map_or("", |pq| pq.as_str())
     );
 
-    // Rediriger avec 301
+    // Redirect with 301
     Redirect::permanent(&https_url).into_response()
 }

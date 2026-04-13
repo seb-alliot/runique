@@ -1,4 +1,4 @@
-//! `QuerySet<E>` — query builder Django-style : filter, exclude, order_by, limit, all, get, count…
+//! `RuniqueQueryBuilder<E>` — Django-style query builder: filter, exclude, order_by, limit, all, get, count…
 use crate::db::DatabaseConfig;
 /// Django-inspired query builder for SeaORM
 ///
@@ -27,14 +27,14 @@ use crate::db::DatabaseConfig;
 ///
 ///     impl ActiveModelBehavior for ActiveModel {}
 ///
-///     // Connexion SQLite en mémoire
+///     // SQLite in-memory connection
 ///     let db = Database::connect("sqlite::memory:").await.unwrap();
 ///
-///     // Création de la table
+///     // Table creation
 ///     let stmt = Schema::new(DbBackend::Sqlite).create_table_from_entity(Entity);
 ///     db.execute(&stmt).await.unwrap();
 ///
-///     // Insertion d'un utilisateur
+///     // User insertion
 ///     ActiveModel {
 ///         username: Set("Alice".to_owned()),
 ///         age: Set(30),
@@ -44,7 +44,7 @@ use crate::db::DatabaseConfig;
 ///     .await
 ///     .unwrap();
 ///
-///     // Vérification via query
+///     // Verification via query
 ///     let user: Option<Model> = Entity::find()
 ///         .filter(Column::Username.eq("Alice"))
 ///         .one(&db)
@@ -72,7 +72,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         Self { query }
     }
 
-    // Permet d'extraire la connexion depuis l'Engine directement
+    // Allows extracting the connection directly from the Engine
     pub async fn all_from_engine(
         self,
         engine: Arc<DatabaseConfig>,
@@ -84,9 +84,9 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self.query.all(db).await
     }
 
-    // Dans impl<E: EntityTrait> RuniqueQueryBuilder<E>
+    // In impl<E: EntityTrait> RuniqueQueryBuilder<E>
 
-    // === EXISTANT (garde tes filter/exclude actuels) ===
+    // === EXISTING (keeping current filter/exclude) ===
     pub fn filter<C>(mut self, condition: C) -> Self
     where
         C: Into<Condition>,
@@ -103,7 +103,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
-    // === NOUVEAU : version vectoriel, synthax simplifier ===
+    // === NEW : vector version, simplified syntax ===
     pub fn filter_many<C, V, I>(mut self, filters: I) -> Self
     where
         C: ColumnTrait,
@@ -184,7 +184,7 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
         self
     }
 
-    /// Charge l'entité liée en même temps — retourne `Vec<(E::Model, Option<R::Model>)>`.
+    /// Loads the related entity at the same time — returns `Vec<(E::Model, Option<R::Model>)>`.
     ///
     /// ```rust,ignore
     /// search!(ContributionEntity => desc Id,)
@@ -209,16 +209,16 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
             Ok(Some(entity)) => Ok(entity),
             Ok(None) => {
                 let mut context = ctx.context.clone();
-                context.insert("title", "Page non trouvée");
+                context.insert("title", "Page not found");
                 context.insert("error_message", error_msg);
 
                 match ctx.engine.tera.render("404", &context) {
                     Ok(html) => Err(axum::response::Html(html).into_response()),
                     Err(e) => {
-                        tracing::error!("Erreur Tera render 404: {}", e);
+                        tracing::error!("Tera render 404 error: {}", e);
                         Err((
                             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                            "Erreur interne",
+                            "Internal error",
                         )
                             .into_response())
                     }
@@ -226,16 +226,16 @@ impl<E: EntityTrait> RuniqueQueryBuilder<E> {
             }
             Err(_) => {
                 let mut context = ctx.context.clone();
-                context.insert("title", "Erreur serveur");
+                context.insert("title", "Server error");
                 context.insert("error_message", "Database error");
 
                 match ctx.engine.tera.render("500", &context) {
                     Ok(html) => Err(axum::response::Html(html).into_response()),
                     Err(e) => {
-                        tracing::error!("Erreur Tera render 500: {}", e);
+                        tracing::error!("Tera render 500 error: {}", e);
                         Err((
                             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                            "Erreur interne",
+                            "Internal error",
                         )
                             .into_response())
                     }
@@ -257,7 +257,7 @@ pub trait Queryable {
 impl<T: EntityTrait> Queryable for T {}
 
 // =====================================================
-// Tests SQLite activés avec feature "sqlite"
+// SQLite tests enabled with "sqlite" feature
 // =====================================================
 
 #[cfg(feature = "sqlite")]
@@ -268,7 +268,7 @@ mod tests {
     use sea_orm::Set;
     use sea_orm::entity::prelude::*;
 
-    // Définition du modèle de test
+    // Test model definition
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
     #[sea_orm(table_name = "users")]
     pub struct Model {

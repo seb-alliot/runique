@@ -1,11 +1,11 @@
-//! Configuration du Content Security Policy passée via closure au builder.
+//! Content Security Policy configuration passed via closure to the builder.
 use crate::middleware::SecurityPolicy;
 
 // ═══════════════════════════════════════════════════════════════
-// CspConfig — Configuration CSP passée via closure au builder
+// CspConfig — CSP configuration passed via closure to the builder
 // ═══════════════════════════════════════════════════════════════
 //
-// Utilisé exclusivement dans la closure de `with_csp` :
+// Used exclusively in the `with_csp` closure:
 //
 //   .middleware(|m| {
 //       m.with_csp(|c| {
@@ -16,17 +16,17 @@ use crate::middleware::SecurityPolicy;
 //       })
 //   })
 //
-// Tout est `false`/défaut — tu actives explicitement ce dont tu as besoin.
+// Everything is `false`/default — you explicitly enable what you need.
 //
-// TOGGLES :
+// TOGGLES:
 //   .with_header_security(bool) → HSTS, X-Frame-Options, COEP, COOP, CORP...
-//   .with_nonce(bool)           → nonce CSP par requête
+//   .with_nonce(bool)           → CSP nonce per request
 //   .with_upgrade_insecure(bool)→ upgrade-insecure-requests
 //
-// PRESET :
+// PRESET:
 //   .policy(SecurityPolicy::strict())
 //
-// DIRECTIVES :
+// DIRECTIVES:
 //   .scripts(vec!["'self'"])
 //   .styles(vec!["'self'"])
 //   .images(vec!["'self'", "data:"])
@@ -35,11 +35,11 @@ use crate::middleware::SecurityPolicy;
 //
 // ═══════════════════════════════════════════════════════════════
 
-/// Configuration du Content Security Policy, passée via closure à `.with_csp(|c| { ... })`.
+/// Content Security Policy configuration, passed via closure to `.with_csp(|c| { ... })`.
 ///
-/// Tout est désactivé ou à sa valeur par défaut — active explicitement ce dont tu as besoin.
+/// Everything is disabled or at its default value — explicitly enable what you need.
 ///
-/// # Exemple complet
+/// # Full Example
 /// ```rust,ignore
 /// .middleware(|m| {
 ///     m.with_csp(|c| {
@@ -53,7 +53,7 @@ use crate::middleware::SecurityPolicy;
 /// })
 /// ```
 ///
-/// # Exemple — preset strict
+/// # Example — strict preset
 /// ```rust,ignore
 /// .middleware(|m| {
 ///     m.with_csp(|c| {
@@ -63,11 +63,11 @@ use crate::middleware::SecurityPolicy;
 /// })
 /// ```
 ///
-/// # Désactiver le CSP — ne pas appeler `.with_csp` du tout.
+/// # Disable CSP — do not call `.with_csp` at all.
 #[derive(Default)]
 pub struct CspConfig {
     pub(crate) policy: SecurityPolicy,
-    /// Active les headers de sécurité additionnels (HSTS, X-Frame-Options,
+    /// Enables additional security headers (HSTS, X-Frame-Options,
     /// X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COEP, COOP, CORP).
     pub(crate) enable_header_security: bool,
 }
@@ -77,7 +77,7 @@ impl CspConfig {
     // TOGGLES — true/false
     // ═══════════════════════════════════════════════════
 
-    /// Active les headers de sécurité additionnels aux côtés du CSP :
+    /// Enables additional security headers alongside CSP:
     /// HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
     /// Permissions-Policy, COEP, COOP, CORP.
     pub fn with_header_security(mut self, enable: bool) -> Self {
@@ -85,13 +85,13 @@ impl CspConfig {
         self
     }
 
-    /// Active ou désactive le nonce CSP (injecté par requête dans `script-src` et `style-src`).
+    /// Enables or disables the CSP nonce (injected per request into `script-src` and `style-src`).
     pub fn with_nonce(mut self, enable: bool) -> Self {
         self.policy.use_nonce = enable;
         self
     }
 
-    /// Active ou désactive `upgrade-insecure-requests`.
+    /// Enables or disables `upgrade-insecure-requests`.
     pub fn with_upgrade_insecure(mut self, enable: bool) -> Self {
         self.policy.upgrade_insecure_requests = enable;
         self
@@ -101,7 +101,7 @@ impl CspConfig {
     // PRESET
     // ═══════════════════════════════════════════════════
 
-    /// Remplace la politique entière par un preset ou une policy personnalisée.
+    /// Replaces the entire policy with a preset or a custom policy.
     ///
     /// ```rust,ignore
     /// c.policy(SecurityPolicy::strict())
@@ -113,91 +113,91 @@ impl CspConfig {
     }
 
     // ═══════════════════════════════════════════════════
-    // DIRECTIVES CSP
+    // CSP DIRECTIVES
     // ═══════════════════════════════════════════════════
 
-    /// Configure `default-src`.
+    /// Configures `default-src`.
     pub fn default_src(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.default_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `script-src`.
+    /// Configures `script-src`.
     pub fn scripts(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.script_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `style-src`.
+    /// Configures `style-src`.
     pub fn styles(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.style_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `img-src`.
+    /// Configures `img-src`.
     pub fn images(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.img_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `font-src`.
+    /// Configures `font-src`.
     pub fn fonts(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.font_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `connect-src`.
+    /// Configures `connect-src`.
     pub fn connect(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.connect_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `object-src`.
+    /// Configures `object-src`.
     pub fn objects(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.object_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `media-src`.
+    /// Configures `media-src`.
     pub fn media(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.media_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `frame-src`.
+    /// Configures `frame-src`.
     pub fn frames(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.frame_src = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `frame-ancestors`.
+    /// Configures `frame-ancestors`.
     pub fn frame_ancestors(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.frame_ancestors = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `base-uri`.
+    /// Configures `base-uri`.
     pub fn base_uri(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.base_uri = src.into_iter().map(Into::into).collect();
         self
     }
 
-    /// Configure `form-action`.
+    /// Configures `form-action`.
     pub fn form_action(mut self, src: Vec<impl Into<String>>) -> Self {
         self.policy.form_action = src.into_iter().map(Into::into).collect();
         self
     }
 
     // ═══════════════════════════════════════════════════
-    // ACCESSEURS (utilisés dans les tests)
+    // ACCESSORS (used in tests)
     // ═══════════════════════════════════════════════════
 
-    /// Retourne la politique CSP courante.
+    /// Returns the current CSP policy.
     pub fn get_policy(&self) -> &SecurityPolicy {
         &self.policy
     }
 
-    /// Indique si les headers de sécurité additionnels sont activés.
+    /// Indicates whether additional security headers are enabled.
     pub fn header_security_enabled(&self) -> bool {
         self.enable_header_security
     }

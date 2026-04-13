@@ -1,4 +1,4 @@
-//! Macros `tpl!` / `tpls!` — inclusion statique (`include_str!`) des templates depuis `runique/templates/`.
+//! Macros `tpl!` / `tpls!` — static inclusion (`include_str!`) of templates from `runique/templates/`.
 
 #[macro_export]
 macro_rules! tpl {

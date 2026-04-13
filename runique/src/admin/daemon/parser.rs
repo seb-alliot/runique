@@ -1,69 +1,69 @@
-//! Parser du fichier `src/admin.rs` : extrait les déclarations de ressources de la macro `admin!{}`.
+//! Parser for the `src/admin.rs` file: extracts resource declarations from the `admin!{}` macro.
 use crate::utils::trad::{t, tf};
 use proc_macro2::TokenStream;
 use syn::{Macro, parse_file, visit::Visit};
 
 #[derive(Debug, Clone)]
 pub(crate) struct ResourceDef {
-    /// Clé de la ressource (ex: "users")
+    /// Resource key (e.g., "users")
     pub key: String,
 
-    /// Chemin du Model SeaORM (ex: "users::Model")
+    /// SeaORM Model path (e.g., "users::Model")
     pub model_type: String,
 
-    /// Titre affiché dans l'interface admin
+    /// Title displayed in the admin interface
     pub title: String,
 
-    /// Surcharges de templates par opération (optionnel)
+    /// Template overrides per operation (optional)
     pub template_list: Option<String>,
     pub template_create: Option<String>,
     pub template_edit: Option<String>,
     pub template_detail: Option<String>,
     pub template_delete: Option<String>,
 
-    /// Formulaire alternatif pour la création (optionnel, chemin complet ex: crate::formulaire::UserAdminCreateForm)
+    /// Alternative creation form (optional, full path e.g., `crate::formulaire::UserAdminCreateForm`)
     pub create_form_type: Option<String>,
 
-    /// Formulaire alternatif pour l'édition (optionnel, chemin complet ex: crate::formulaire::UserEditForm)
+    /// Alternative edition form (optional, full path e.g., `crate::formulaire::UserEditForm`)
     pub edit_form_type: Option<String>,
 
-    /// Type de la clé primaire : "I32" (défaut), "I64", "Uuid"
+    /// Primary key type: "I32" (default), "I64", "Uuid"
     pub id_type: String,
 
-    /// Clés custom pour le contexte Tera (via extra: { "k" => "v" })
+    /// Custom keys for Tera context (via `extra: { "k" => "v" }`)
     pub extra_context: Vec<(String, String)>,
 
-    /// Filtres sidebar : [("col_sql", "Label affiché", limit_par_page)]
+    /// Sidebar filters: `[("col_sql", "Display Label", limit_per_page)]`
     pub list_filter: Vec<(String, String, u64)>,
 
-    /// Colonnes visibles dans la liste avec labels : [("col", "Label")]
+    /// List visible columns with labels: `[("col", "Label")]`
     pub list_display: Vec<(String, String)>,
 
-    /// Colonnes exclues de la liste : ["col1", "col2"]
+    /// Columns excluded from the list: `["col1", "col2"]`
     pub list_exclude: Vec<String>,
 }
 
-/// Configuration d'affichage pour une ressource dans le bloc `configure {}`
+/// Display configuration for a resource in the `configure {}` block
 #[derive(Debug, Clone)]
 pub(crate) struct ConfigureDef {
-    /// Clé de la ressource à configurer (ex: "users", "droits")
+    /// Key of the resource to configure (e.g., "users", "permissions")
     pub key: String,
-    /// Colonnes visibles dans la liste avec labels : [("col", "Label")]
+    /// List visible columns with labels: `[("col", "Label")]`
     pub list_display: Vec<(String, String)>,
-    /// Colonnes exclues de la liste
+    /// Columns excluded from the list
     pub list_exclude: Vec<String>,
-    /// Filtres sidebar
+    /// Sidebar filters
     pub list_filter: Vec<(String, String, u64)>,
 }
 
-/// Résultat du parsing de src/admin.rs
+/// Result of parsing `src/admin.rs`
 #[derive(Debug)]
 pub(crate) struct ParsedAdmin {
     pub resources: Vec<ResourceDef>,
     pub configures: Vec<ConfigureDef>,
 }
 
-/// Parse le contenu de src/admin.rs et retourne les ressources déclarées
+/// Parses the content of `src/admin.rs` and returns the declared resources
 pub(crate) fn parse_admin_file(source: &str) -> Result<ParsedAdmin, String> {
     let syntax = parse_file(source).map_err(|e| format!("Rust syntax error: {}", e))?;
 
@@ -98,7 +98,7 @@ impl AdminMacroVisitor {
 
 impl<'ast> Visit<'ast> for AdminMacroVisitor {
     fn visit_macro(&mut self, mac: &'ast Macro) {
-        // On cherche uniquement le macro nommé "admin"
+        // We only look for the macro named "admin"
         let name = mac
             .path
             .segments
@@ -120,7 +120,7 @@ impl<'ast> Visit<'ast> for AdminMacroVisitor {
     }
 }
 
-// Syntaxe attendue :
+// Expected syntax:
 //   key: path::Model => FormType {
 //       title: "...",
 //   }
@@ -140,7 +140,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
             None => break,
         };
 
-        // Bloc configure { ... } — configuration d'affichage pour toute ressource (builtin ou déclarée)
+        // configure { ... } block — display configuration for any resource (built-in or declared)
         if key == "configure" {
             let cfg = parse_configure_block(&mut iter)?;
             configures.extend(cfg);
@@ -180,7 +180,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
             list_exclude: body.list_exclude,
         });
 
-        // Virgule optionnelle entre ressources
+        // Optional comma between resources
         skip_optional_punct(&mut iter, ',');
     }
 
@@ -190,7 +190,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
     })
 }
 
-/// Parse le bloc `configure { resource_key: { ... }, ... }`
+/// Parses the `configure { resource_key: { ... }, ... }` block
 fn parse_configure_block(iter: &mut TokenIter) -> Result<Vec<ConfigureDef>, String> {
     use proc_macro2::TokenTree;
 
@@ -235,7 +235,7 @@ fn parse_configure_block(iter: &mut TokenIter) -> Result<Vec<ConfigureDef>, Stri
     Ok(result)
 }
 
-/// Parse `{ list_display: [...], list_exclude: [...], list_filter: [...] }` pour un `configure` item
+/// Parses `{ list_display: [...], list_exclude: [...], list_filter: [...] }` for a `configure` item
 fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef, String> {
     use proc_macro2::TokenTree;
 
@@ -272,7 +272,7 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
 
     if !list_display.is_empty() && !list_exclude.is_empty() {
         return Err(format!(
-            "configure[\"{key}\"]: list_display et list_exclude sont exclusifs"
+            "configure[\"{key}\"]: list_display and list_exclude are exclusive"
         ));
     }
 
@@ -429,7 +429,7 @@ fn parse_list_exclude(iter: &mut TokenIter) -> Result<Vec<String>, String> {
     }
 }
 
-/// Parse list_filter: [["col_sql", "Label"], ...] ou [["col_sql", "Label", 10], ...]
+/// Parse list_filter: [["col_sql", "Label"], ...] or [["col_sql", "Label", 10], ...]
 fn parse_list_filter(iter: &mut TokenIter) -> Result<Vec<(String, String, u64)>, String> {
     use proc_macro2::TokenTree;
 
@@ -448,13 +448,13 @@ fn parse_list_filter(iter: &mut TokenIter) -> Result<Vec<(String, String, u64)>,
                             _ => return Err("Expected ',' after col in list_filter".to_string()),
                         }
                         let label = parse_string_literal(&mut t)?;
-                        // 3ème élément optionnel : limit
+                        // 3rd optional element: limit
                         let limit = match t.next() {
                             Some(TokenTree::Punct(p)) if p.as_char() == ',' => {
-                                // virgule présente → lire le literal
+                                // comma present → read literal
                                 parse_integer_literal(&mut t).unwrap_or(10)
                             }
-                            _ => 10, // pas de 3ème élément → défaut 10
+                            _ => 10, // no 3rd element → default 10
                         };
                         entries.push((col, label, limit));
                     }
@@ -484,7 +484,7 @@ fn parse_integer_literal(iter: &mut TokenIter) -> Result<u64, String> {
     }
 }
 
-/// Parseur générique pour [["str1", "str2"], ...] — utilisé par list_display et list_filter
+/// Generic parser for `[["str1", "str2"], ...]` — used by `list_display` and `list_filter`
 fn parse_str_pair_array(
     iter: &mut TokenIter,
     field: &str,
@@ -529,7 +529,7 @@ fn parse_str_pair_array(
     }
 }
 
-/// Parse extra: { "key" => "value", ... }
+/// Parses `extra: { "key" => "value", ... }`
 fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String> {
     use proc_macro2::TokenTree;
 
@@ -604,7 +604,7 @@ fn parse_extra_map(iter: &mut TokenIter) -> Result<Vec<(String, String)>, String
 
 type TokenIter = std::iter::Peekable<proc_macro2::token_stream::IntoIter>;
 
-/// Parse un chemin de type (ex: users::Model, crate::models::users::Model)
+/// Parses a type path (e.g., `users::Model`, `crate::models::users::Model`)
 fn parse_path(iter: &mut TokenIter) -> Result<String, String> {
     use proc_macro2::TokenTree;
 
@@ -618,14 +618,14 @@ fn parse_path(iter: &mut TokenIter) -> Result<String, String> {
                 }
             }
             Some(TokenTree::Punct(p)) if p.as_char() == ':' => {
-                iter.next(); // premier ':'
-                // Vérifie le deuxième ':'
+                iter.next(); // first ':'
+                // Check second ':'
                 match iter.peek() {
                     Some(TokenTree::Punct(p2)) if p2.as_char() == ':' => {
                         iter.next();
                         path.push_str("::");
                     }
-                    _ => break, // c'était le ':' de "key:"
+                    _ => break, // was the ':' of "key:"
                 }
             }
             _ => break,
@@ -639,14 +639,14 @@ fn parse_path(iter: &mut TokenIter) -> Result<String, String> {
     }
 }
 
-/// Parse une chaîne littérale "..."
+/// Parses a string literal `"..."`
 fn parse_string_literal(iter: &mut TokenIter) -> Result<String, String> {
     use proc_macro2::TokenTree;
 
     match iter.next() {
         Some(TokenTree::Literal(lit)) => {
             let s = lit.to_string();
-            // Retire les guillemets
+            // Removes quotes
             if s.starts_with('"') && s.ends_with('"') {
                 Ok(s[1..s.len().saturating_sub(1)].to_string())
             } else {
@@ -658,7 +658,7 @@ fn parse_string_literal(iter: &mut TokenIter) -> Result<String, String> {
     }
 }
 
-/// Parse un identifiant simple (ex: I32, I64, Uuid)
+/// Parses a simple identifier (e.g., `I32`, `I64`, `Uuid`)
 fn parse_ident(iter: &mut TokenIter) -> Result<String, String> {
     use proc_macro2::TokenTree;
 
@@ -669,7 +669,7 @@ fn parse_ident(iter: &mut TokenIter) -> Result<String, String> {
     }
 }
 
-/// Vérifie et consomme la ponctuation attendue
+/// Verifies and consumes the expected punctuation
 fn expect_punct(iter: &mut TokenIter, expected: char) -> Result<(), String> {
     use proc_macro2::TokenTree;
 
@@ -683,7 +683,7 @@ fn expect_punct(iter: &mut TokenIter, expected: char) -> Result<(), String> {
     }
 }
 
-/// Skip une ponctuation si présente (non bloquant)
+/// Skips a punctuation if present (non-blocking)
 fn skip_optional_punct(iter: &mut TokenIter, ch: char) {
     use proc_macro2::TokenTree;
 
@@ -694,7 +694,7 @@ fn skip_optional_punct(iter: &mut TokenIter, ch: char) {
     }
 }
 
-/// Skip les tokens jusqu'à trouver une ponctuation donnée
+/// Skips tokens until a given punctuation is found
 fn skip_until_punct(iter: &mut TokenIter, ch: char) {
     use proc_macro2::TokenTree;
 

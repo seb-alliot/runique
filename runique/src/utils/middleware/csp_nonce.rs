@@ -1,4 +1,4 @@
-//! Génération du nonce CSP — 16 bytes aléatoires encodés en base64, renouvelé à chaque requête.
+//! CSP nonce generation — 16 random bytes encoded in base64, renewed for each request.
 
 /// CSP Nonce Generation
 ///

@@ -1,8 +1,8 @@
 use crate::entities::users::schema as users;
 use runique::prelude::*;
 
-// Formulaire basé sur le schéma de l'entité Users.
-// Seuls les champs listés dans `fields` sont exposés.
+// Form based on the Users entity schema.
+// Only the fields listed in `fields` are exposed.
 #[form(schema = users, fields = [username, email, password])]
 pub struct RegisterForm;
 

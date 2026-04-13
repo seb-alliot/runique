@@ -56,7 +56,7 @@
     // Expose globalement
     window.AdminActions = AdminActions;
 
-    // Auto-init si data-admin-auto-init présent (fonctionne même si DOM déjà prêt)
+    // Auto-init if data-admin-auto-init is present (works even if DOM is already ready)
     function tryAutoInit() {
         if (document.querySelector('[data-admin-auto-init]')) {
             new AdminActions().init();

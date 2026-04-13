@@ -1,4 +1,4 @@
-//! `ContextHelper` — wrapper ergonomique autour de `tera::Context` avec API chaînable.
+//! `ContextHelper` — ergonomic wrapper around `tera::Context` with a chainable API.
 use serde::Serialize;
 use serde_json::Value;
 use tera::Context;

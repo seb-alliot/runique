@@ -1,4 +1,4 @@
-//! Middlewares Axum pour l'espace admin — redirection si non authentifié, vérification des permissions.
+//! Axum middlewares for the admin space — redirection if not authenticated, permission verification.
 use axum::{
     extract::Request,
     middleware::Next,
@@ -8,10 +8,10 @@ use tower_sessions::Session;
 
 use crate::auth::session::is_admin_authenticated;
 
-/// Middleware : accès admin requis (is_staff OU is_superuser)
+/// Middleware: admin access required (is_staff OR is_superuser)
 ///
-/// Redirige vers /admin/login si non authentifié.
-/// Retourne 403 si authentifié mais sans droits admin.
+/// Redirects to / if not authenticated.
+/// Returns 403 if authenticated but without admin rights.
 ///
 /// ```rust,ignore
 /// Router::new()

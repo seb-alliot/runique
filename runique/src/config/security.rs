@@ -1,21 +1,21 @@
-//! Paramètres de sécurité globaux (CSP, rate limiting, HTTPS, hôtes autorisés).
+//! Global security settings (CSP, rate limiting, HTTPS, allowed hosts).
 use serde::{Deserialize, Serialize};
 
-/// Paramètres de sécurité lus depuis l'environnement.
+/// Security settings read from the environment.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SecurityConfig {
-    /// Active la Content Security Policy stricte (env: `STRICT_CSP`, défaut: `true`).
+    /// Enables strict Content Security Policy (env: `STRICT_CSP`, default: `true`).
     pub strict_csp: bool,
-    /// Active le rate limiting global (env: `RATE_LIMITING`, défaut: `true`).
+    /// Enables global rate limiting (env: `RATE_LIMITING`, default: `true`).
     pub rate_limiting: bool,
-    /// Redirige HTTP vers HTTPS (env: `ENFORCE_HTTPS`, défaut: `false`).
+    /// Redirects HTTP to HTTPS (env: `ENFORCE_HTTPS`, default: `false`).
     pub enforce_https: bool,
-    /// Liste des hôtes autorisés (env: `ALLOWED_HOSTS`, séparés par virgule).
+    /// List of allowed hosts (env: `ALLOWED_HOSTS`, comma-separated).
     pub allowed_hosts: Vec<String>,
 }
 
 impl SecurityConfig {
-    /// Charge la configuration depuis les variables d'environnement.
+    /// Loads configuration from environment variables.
     pub fn from_env() -> Self {
         let strict_csp = std::env::var("STRICT_CSP")
             .map(|v| v.parse().unwrap_or(true))

@@ -1,31 +1,31 @@
-//! Sanitisation HTML via ammonia — builder pré-configuré pour le rich-text, liste blanche de balises/attributs.
-/// Builder ammonia pré-configuré — initialisé une seule fois, réutilisé à chaque requête.
+//! HTML sanitization via ammonia — pre-configured builder for rich-text, whitelist of tags/attributes.
+/// Pre-configured ammonia builder — initialized once, reused for each request.
 use crate::utils::constante::parse::{ALLOWED_ATTRS, ALLOWED_TAGS, RICH_CONTENT_FIELDS};
 use ammonia::Builder;
 use std::{collections::HashSet, sync::LazyLock};
 
-/// Builder ammonia pré-configuré — initialisé une seule fois, réutilisé à chaque requête.
+/// Pre-configured ammonia builder — initialized once, reused for each request.
 static RICH_BUILDER: LazyLock<Builder<'static>> = LazyLock::new(|| {
     let mut builder = Builder::new();
 
-    // Tags et attributs autorisés (whitelist)
+    // Allowed tags and attributes (whitelist)
     builder.tags(ALLOWED_TAGS.clone());
     builder.tag_attributes(ALLOWED_ATTRS.clone());
 
-    // Schémas URL stricts
+    // Strict URL schemes
     builder.url_schemes(HashSet::from(["http", "https"]));
 
-    // Interdire les URLs relatives (prévention open redirect)
+    // Disallow relative URLs (open redirect prevention)
     builder.url_relative(ammonia::UrlRelative::Deny);
 
-    // Forcer rel="noopener noreferrer" sur tous les liens
+    // Force rel="noopener noreferrer" on all links
     builder.link_rel(Some("noopener noreferrer"));
 
-    // Autoriser target="_blank" uniquement (bloque _top, _parent, etc.)
+    // Allow target="_blank" only (blocks _top, _parent, etc.)
     builder.add_tag_attributes("a", &["target"]);
     builder.add_tag_attribute_values("a", "target", &["_blank"]);
 
-    // Supprimer les commentaires HTML
+    // Strip HTML comments
     builder.strip_comments(true);
 
     builder
@@ -37,13 +37,13 @@ static RICH_BUILDER: LazyLock<Builder<'static>> = LazyLock::new(|| {
 
 #[doc = include_str!("../../../doc-tests/sanitizer/sanitizer_strict.md")]
 #[must_use]
-pub fn sanitize_strict(entre: &str) -> String {
-    if entre.is_empty() {
+pub fn sanitize_strict(input: &str) -> String {
+    if input.is_empty() {
         return String::new();
     }
 
     // Strip all HTML tags, keep text content (spaces preserved, case preserved)
-    let stripped = Builder::new().tags(HashSet::new()).clean(entre).to_string();
+    let stripped = Builder::new().tags(HashSet::new()).clean(input).to_string();
 
     // Remove dangerous protocols (case-insensitive)
     const PROTOCOLS: &[&str] = &["javascript:", "vbscript:", "data:", "file:"];
@@ -75,12 +75,12 @@ pub fn sanitize_strict(entre: &str) -> String {
 
 #[doc = include_str!("../../../doc-tests/sanitizer/sanitizer_rich.md")]
 #[must_use]
-pub fn sanitize_rich(entre: &str) -> String {
-    if entre.is_empty() {
+pub fn sanitize_rich(input: &str) -> String {
+    if input.is_empty() {
         return String::new();
     }
 
-    RICH_BUILDER.clean(entre).to_string().trim().to_string()
+    RICH_BUILDER.clean(input).to_string().trim().to_string()
 }
 
 // =============================
@@ -89,22 +89,22 @@ pub fn sanitize_rich(entre: &str) -> String {
 
 #[doc = include_str!("../../../doc-tests/sanitizer/sanitizer.md")]
 #[must_use]
-pub fn sanitize(field: &str, entre: &str) -> String {
+pub fn sanitize(field: &str, input: &str) -> String {
     if RICH_CONTENT_FIELDS.contains(field) {
-        sanitize_rich(entre)
+        sanitize_rich(input)
     } else {
-        sanitize_strict(entre)
+        sanitize_strict(input)
     }
 }
 
 // =============================
-// VALIDATION SUPPLÉMENTAIRE
+// ADDITIONAL VALIDATION
 // =============================
 
-/// Vérifie si le contenu nettoyé contient encore des éléments suspects
+/// Checks if the cleaned content still contains suspicious elements
 #[must_use]
-pub fn is_suspicious_content(entre: &str) -> bool {
-    let lower = entre.to_lowercase();
+pub fn is_suspicious_content(input: &str) -> bool {
+    let lower = input.to_lowercase();
     lower.contains("<script")
         || lower.contains("javascript:")
         || lower.contains("onerror=")
@@ -112,10 +112,10 @@ pub fn is_suspicious_content(entre: &str) -> bool {
         || lower.contains("data:text/html")
 }
 
-/// Nettoie avec fallback si contenu suspect détecté
+/// Cleans with fallback if suspicious content is detected
 #[must_use]
-pub fn sanitize_with_fallback(field: &str, entre: &str, fallback: &str) -> String {
-    let cleaned = sanitize(field, entre);
+pub fn sanitize_with_fallback(field: &str, input: &str, fallback: &str) -> String {
+    let cleaned = sanitize(field, input);
     if is_suspicious_content(&cleaned) {
         fallback.to_string()
     } else {
@@ -152,7 +152,7 @@ mod tests {
 
         for p in payloads {
             let out = sanitize_strict(p);
-            assert!(!out.contains("<"), "Failed on: {}", p); // Doit être complètement échappé
+            assert!(!out.contains("<"), "Failed on: {}", p); // Must be completely escaped
         }
     }
 
@@ -174,7 +174,7 @@ mod tests {
 
         assert!(!out.contains("script"));
         assert!(!out.contains("onclick"));
-        assert!(out.contains("Test")); // Le texte est conservé
+        assert!(out.contains("Test")); // Text is preserved
     }
 
     #[test]
@@ -198,11 +198,11 @@ mod tests {
 
     #[test]
     fn rich_blocks_mailto_if_not_allowed() {
-        // Si vous n'avez pas mis "mailto" dans url_schemes
+        // If you haven't put "mailto" in url_schemes
         let html = r#"<a href="mailto:test@example.com">email</a>"#;
         let out = sanitize_rich(html);
 
-        // Le href doit être supprimé ou nettoyé
+        // The href must be removed or cleaned
         assert!(!out.contains("mailto:"));
     }
 
@@ -210,7 +210,7 @@ mod tests {
     fn strict_handles_unicode_obfuscation() {
         let html = "<scr\u{0000}ipt>alert(1)</script>"; // Null byte injection
         let out = sanitize_strict(html);
-        assert!(!out.contains("<")); // Tout doit être échappé, peu importe le mot
+        assert!(!out.contains("<")); // Eveything must be escaped, regardless of the word
     }
 
     #[test]

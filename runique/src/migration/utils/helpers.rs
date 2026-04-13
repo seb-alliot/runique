@@ -1,11 +1,11 @@
-//! Helpers partagés : mapping type↔méthode, snake_case, extraction AST syn (chaînes de méthodes, FK actions).
+//! Shared helpers: type↔method mapping, snake_case conversion, syn AST extraction (method chains, FK actions).
 use syn::{Expr, ExprCall, ExprLit, ExprMethodCall, Lit};
 
 // ============================================================
 // Type mapping
 // ============================================================
 
-/// Retourne le nom de la méthode associée à un type de colonne.
+/// Returns the method name associated with a column type.
 #[doc = include_str!("../../../doc-tests/migration/migration_col_type.md")]
 pub fn col_type_to_method(col_type: &str) -> &str {
     match col_type {
@@ -42,7 +42,7 @@ pub fn col_type_to_method(col_type: &str) -> &str {
 }
 
 pub fn detect_col_type_builder(methods: &[String]) -> String {
-    // Binaires
+    // Binaries
     if methods.contains(&"blob".to_string()) {
         "Blob".to_string()
     } else if methods.contains(&"binary".to_string()) || methods.contains(&"binary_len".to_string())
@@ -51,7 +51,7 @@ pub fn detect_col_type_builder(methods: &[String]) -> String {
     } else if methods.contains(&"var_binary".to_string()) {
         "VarBinary".to_string()
     }
-    // Textes
+    // Texts
     else if methods.contains(&"text".to_string()) {
         "Text".to_string()
     } else if methods.contains(&"char".to_string()) || methods.contains(&"char_len".to_string()) {
@@ -61,7 +61,7 @@ pub fn detect_col_type_builder(methods: &[String]) -> String {
     {
         "String".to_string()
     }
-    // Entiers
+    // Integers
     else if methods.contains(&"tiny_integer".to_string()) {
         "TinyInteger".to_string()
     } else if methods.contains(&"small_integer".to_string()) {
@@ -75,7 +75,7 @@ pub fn detect_col_type_builder(methods: &[String]) -> String {
     } else if methods.contains(&"integer".to_string()) {
         "Integer".to_string()
     }
-    // Numériques
+    // Numerics
     else if methods.contains(&"float".to_string()) {
         "Float".to_string()
     } else if methods.contains(&"double".to_string()) {
@@ -85,11 +85,11 @@ pub fn detect_col_type_builder(methods: &[String]) -> String {
     {
         "Decimal".to_string()
     }
-    // Booléen
+    // Boolean
     else if methods.contains(&"boolean".to_string()) {
         "Boolean".to_string()
     }
-    // Date/Heure
+    // Date/Time
     else if methods.contains(&"timestamp_tz".to_string()) {
         "TimestampWithTimeZone".to_string()
     } else if methods.contains(&"timestamp".to_string()) {
@@ -121,7 +121,7 @@ pub fn detect_col_type_builder(methods: &[String]) -> String {
 }
 
 pub fn detect_col_type_seaorm(methods: &[String]) -> String {
-    // Binaires
+    // Binaries
     if methods.contains(&"blob".to_string()) {
         "Blob".to_string()
     } else if methods.contains(&"binary".to_string()) || methods.contains(&"binary_len".to_string())
@@ -130,13 +130,13 @@ pub fn detect_col_type_seaorm(methods: &[String]) -> String {
     } else if methods.contains(&"var_binary".to_string()) {
         "VarBinary".to_string()
     }
-    // Textes
+    // Texts
     else if methods.contains(&"text".to_string()) {
         "Text".to_string()
     } else if methods.contains(&"char".to_string()) || methods.contains(&"char_len".to_string()) {
         "Char".to_string()
     }
-    // Entiers (ordre : du plus spécifique au plus général)
+    // Integers (order: most specific to most general)
     else if methods.contains(&"tiny_integer".to_string()) {
         "TinyInteger".to_string()
     } else if methods.contains(&"small_integer".to_string()) {
@@ -150,7 +150,7 @@ pub fn detect_col_type_seaorm(methods: &[String]) -> String {
     } else if methods.contains(&"integer".to_string()) {
         "Integer".to_string()
     }
-    // Numériques
+    // Numerics
     else if methods.contains(&"float".to_string()) {
         "Float".to_string()
     } else if methods.contains(&"double".to_string()) {
@@ -160,11 +160,11 @@ pub fn detect_col_type_seaorm(methods: &[String]) -> String {
     {
         "Decimal".to_string()
     }
-    // Booléen
+    // Boolean
     else if methods.contains(&"boolean".to_string()) {
         "Boolean".to_string()
     }
-    // Date/Heure
+    // Date/Time
     else if methods.contains(&"timestamp_tz".to_string())
         || methods.contains(&"timestamp_with_time_zone".to_string())
     {
@@ -191,7 +191,7 @@ pub fn detect_col_type_seaorm(methods: &[String]) -> String {
     } else if methods.contains(&"json".to_string()) {
         "Json".to_string()
     }
-    // PostgreSQL spécifiques
+    // PostgreSQL specific
     else if methods.contains(&"inet".to_string()) {
         "Inet".to_string()
     } else if methods.contains(&"cidr".to_string()) {
@@ -217,9 +217,9 @@ pub fn detect_col_type_seaorm(methods: &[String]) -> String {
 // String helpers
 // ============================================================
 
-/// Convertit une chaîne PascalCase en snake_case.
+/// Converts a PascalCase string to snake_case.
 ///
-/// # Exemple
+/// # Example
 ///
 /// ```rust
 /// use runique::migration::utils::helpers::to_snake_case;
@@ -356,7 +356,7 @@ fn collect_str_args(expr: &Expr, result: &mut Vec<String>) {
             }
         }
         Expr::Macro(syn::ExprMacro { mac, .. }) => {
-            // Gère vec!["a".to_string(), "b".to_string()] et similaires
+            // Handles vec!["a".to_string(), "b".to_string()] and similar
             struct ExprList(syn::punctuated::Punctuated<Expr, syn::Token![,]>);
             impl syn::parse::Parse for ExprList {
                 fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {

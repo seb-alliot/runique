@@ -1,4 +1,4 @@
-//! Structs des messages flash — `FlashMessage` et `MessageLevel` avec mapping CSS.
+//! Flash message structs — `FlashMessage` and `MessageLevel` with CSS mapping.
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,8 +10,8 @@ pub enum MessageLevel {
 }
 
 impl MessageLevel {
-    /// Retourne la classe CSS statique associée au niveau du message.
-    /// Utilisé dans le rendu html
+    /// Returns the static CSS class associated with the message level.
+    /// Used in HTML rendering.
     pub fn as_css_class(&self) -> &'static str {
         match self {
             MessageLevel::Success => "success-message",
@@ -28,7 +28,7 @@ pub struct FlashMessage {
 }
 
 impl FlashMessage {
-    /// Crée un nouveau message flash.
+    /// Creates a new flash message.
     pub fn new<S: Into<String>>(content: S, level: MessageLevel) -> Self {
         FlashMessage {
             content: content.into(),

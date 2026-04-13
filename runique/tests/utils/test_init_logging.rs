@@ -11,7 +11,7 @@ fn test_init_logging_ne_panique_pas() {
 
 #[test]
 fn test_init_logging_idempotent() {
-    // Appels multiples ne doivent pas paniquer (le logger est déjà init)
+    // Multiple calls should not panic (logger is already initialized)
     init_logging();
     init_logging();
     init_logging();

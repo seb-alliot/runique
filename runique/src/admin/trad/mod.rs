@@ -1,4 +1,4 @@
-//! Injection i18n pour les templates admin — `insert_admin_messages` par section.
+//! i18n injection for admin templates — `insert_admin_messages` by section.
 use crate::utils::{ADMIN_MESSAGE_KEYS, trad::t};
 use tera::Context;
 

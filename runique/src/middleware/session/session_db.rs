@@ -1,11 +1,11 @@
-//! Store de sessions persistant en base de données (table `eihwaz_sessions`).
+//! Persistent session store in the database (table `eihwaz_sessions`).
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*,
 };
 use std::sync::Arc;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Entité SeaORM — eihwaz_sessions
+// SeaORM Entity — eihwaz_sessions
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
@@ -14,20 +14,20 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
 
-    /// ID de session tower-sessions (cookie navigateur) — unique par appareil
+    /// tower-sessions session ID (browser cookie) — unique per device
     #[sea_orm(unique)]
     pub cookie_id: String,
 
     /// FK → eihwaz_users.id
     pub user_id: crate::utils::pk::Pk,
 
-    /// Identifiant stable par login/appareil
+    /// Stable identifier per login/device
     pub session_id: String,
 
-    /// Données de session sérialisées (JSON)
+    /// Serialized session data (JSON)
     pub session_data: Option<String>,
 
-    /// Date d'expiration
+    /// Expiration date
     pub expires_at: chrono::NaiveDateTime,
 }
 
@@ -51,15 +51,15 @@ impl Related<crate::auth::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RuniqueSessionStore — couche DB explicite (login / logout / multi-appareils)
+// RuniqueSessionStore — explicit DB layer (login / logout / multi-device)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Gestion des sessions authentifiées en DB.
+/// Management of authenticated sessions in DB.
 ///
-/// N'implémente pas `tower_sessions::SessionStore` — tower-sessions
-/// continue d'utiliser le store mémoire pour le CSRF et les sessions anonymes.
+/// Does not implement `tower_sessions::SessionStore` — tower-sessions
+/// continues to use the memory store for CSRF and anonymous sessions.
 ///
-/// Appelé explicitement au login et au logout.
+/// Called explicitly at login and logout.
 #[derive(Clone, Debug)]
 pub struct RuniqueSessionStore {
     db: Arc<DatabaseConnection>,
@@ -70,7 +70,7 @@ impl RuniqueSessionStore {
         Self { db }
     }
 
-    /// Crée une entrée DB pour une session authentifiée.
+    /// Creates a DB entry for an authenticated session.
     pub async fn create(
         &self,
         cookie_id: &str,
@@ -90,7 +90,7 @@ impl RuniqueSessionStore {
         Ok(())
     }
 
-    /// Supprime la session DB correspondant au cookie_id (logout).
+    /// Deletes the DB session corresponding to the cookie_id (logout).
     pub async fn delete(&self, cookie_id: &str) -> Result<(), DbErr> {
         Entity::delete_many()
             .filter(Column::CookieId.eq(cookie_id))
@@ -99,7 +99,7 @@ impl RuniqueSessionStore {
         Ok(())
     }
 
-    /// Invalide toutes les sessions d'un utilisateur sauf celle en cours (exclusive login).
+    /// Invalidates all sessions of a user except the current one (exclusive login).
     pub async fn invalidate_other_sessions(
         &self,
         user_id: crate::utils::pk::Pk,
@@ -113,7 +113,7 @@ impl RuniqueSessionStore {
         Ok(())
     }
 
-    /// Invalide toutes les sessions d'un utilisateur (changement de mot de passe, etc.).
+    /// Invalidates all sessions of a user (password change, etc.).
     pub async fn invalidate_all(&self, user_id: i32) -> Result<(), DbErr> {
         Entity::delete_many()
             .filter(Column::UserId.eq(user_id))
@@ -122,7 +122,7 @@ impl RuniqueSessionStore {
         Ok(())
     }
 
-    /// Retourne toutes les sessions actives d'un utilisateur.
+    /// Returns all active sessions for a user.
     pub async fn find_by_user(&self, user_id: i32) -> Result<Vec<Model>, DbErr> {
         let now = chrono::Utc::now().naive_utc();
         Entity::find()
@@ -132,7 +132,7 @@ impl RuniqueSessionStore {
             .await
     }
 
-    /// Supprime les sessions expirées (à appeler périodiquement).
+    /// Deletes expired sessions (should be called periodically).
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let db = self.db.clone();
         tokio::spawn(async move {

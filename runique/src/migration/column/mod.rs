@@ -1,12 +1,12 @@
-//! Définition d'une colonne de table — type, contraintes, validation et génération SeaQuery.
+//! Table column definition — type, constraints, validation, and SeaQuery generation.
 //!
-//! [`ColumnDef`] est le point d'entrée. Il suit le pattern builder :
+//! [`ColumnDef`] is the entry point. It follows the builder pattern:
 //! `ColumnDef::new("slug").varchar(200).unique().nullable()`.
-//! La méthode [`ColumnDef::to_sea_column`] produit le [`sea_query::ColumnDef`] correspondant.
-//! La méthode [`ColumnDef::to_form_field`] génère automatiquement le champ de formulaire adapté.
+//! The [`ColumnDef::to_sea_column`] method produces the corresponding [`sea_query::ColumnDef`].
+//! The [`ColumnDef::to_form_field`] method automatically generates the appropriate form field.
 use sea_query::{ColumnType, IntoIden};
 
-/// Définition complète d'une colonne de table.
+/// Complete table column definition.
 #[derive(Debug, Clone)]
 pub struct ColumnDef {
     pub name: String,
@@ -216,7 +216,7 @@ impl ColumnDef {
             name: sea_query::Alias::new(&name_str).into_iden(),
             variants: variants_iden,
         };
-        self.enum_variants = variants; // ← sauvegarde en clair
+        self.enum_variants = variants; // ← store as plain string
         self
     }
 
@@ -318,10 +318,10 @@ impl ColumnDef {
         if let Some(ref val) = self.default {
             col.default(val.clone());
         } else if self.auto_now {
-            // created_at : valeur par défaut à l'insertion
+            // created_at: default value on insertion
             col.extra("DEFAULT CURRENT_TIMESTAMP".to_string());
         } else if self.auto_now_update {
-            // updated_at : ON UPDATE pour MySQL ; trigger géré séparément pour Postgres
+            // updated_at: ON UPDATE for MySQL; trigger handled separately for Postgres
             col.extra("DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP".to_string());
         }
 
@@ -350,8 +350,8 @@ impl ColumnDef {
     }
     // ── Form integration ─────────────────────────────────────────────────────────
 
-    /// Convertit la colonne en GenericField.
-    /// Retourne `None` si la colonne est auto-exclue.
+    /// Converts the column to a GenericField.
+    /// Returns `None` if the column is auto-excluded.
     pub fn to_form_field(&self) -> Option<crate::forms::generic::GenericField> {
         use crate::forms::base::FormField;
         use crate::forms::fields::{
@@ -382,7 +382,7 @@ impl ColumnDef {
                             Some(f) => max_model.min(f),
                             None => max_model,
                         };
-                        tf = tf.max_length(effective, "Trop long");
+                        tf = tf.max_length(effective, "Too long");
                     }
                     tf.into()
                 } else if name == "password"
@@ -396,7 +396,7 @@ impl ColumnDef {
                             Some(f) => max_model.min(f),
                             None => max_model,
                         };
-                        tf = tf.max_length(effective, "Trop long");
+                        tf = tf.max_length(effective, "Too long");
                     }
                     tf.into()
                 } else if name == "url"
@@ -412,7 +412,7 @@ impl ColumnDef {
                             Some(f) => max_model.min(f),
                             None => max_model,
                         };
-                        tf = tf.max_length(effective, "Trop long");
+                        tf = tf.max_length(effective, "Too long");
                     }
                     tf.into()
                 } else if name == "slug" || name.ends_with("_slug") {
@@ -433,7 +433,7 @@ impl ColumnDef {
                             Some(f) => max_model.min(f),
                             None => max_model,
                         };
-                        tf = tf.max_length(effective, "Trop long");
+                        tf = tf.max_length(effective, "Too long");
                     }
                     tf.into()
                 }
@@ -456,7 +456,7 @@ impl ColumnDef {
                         Some(f) => max_model.min(f),
                         None => max_model,
                     };
-                    tf = tf.max_length(effective, "Trop long");
+                    tf = tf.max_length(effective, "Too long");
                 }
                 tf.into()
             }

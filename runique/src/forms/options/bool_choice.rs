@@ -1,4 +1,4 @@
-//! `BoolChoice` — option de validation pour les champs booléens (valeur attendue true/false/any).
+//! `BoolChoice` — validation option for boolean fields (expected value true/false/any).
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]

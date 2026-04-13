@@ -1,4 +1,4 @@
-//! Trait `ModelForm` — lie un formulaire à un `ModelSchema`, génère les champs automatiquement.
+//! `ModelForm` trait — links a form to a `ModelSchema`, generates fields automatically.
 
 pub trait ModelForm: Sized + Send + Sync {
     fn schema() -> crate::migration::schema::ModelSchema;

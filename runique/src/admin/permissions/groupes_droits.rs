@@ -1,5 +1,5 @@
-//! Table `eihwaz_groupes_droits` — permissions d'un groupe sur une ressource.
-//! PK composite : (groupe_id, resource_key).
+//! Table `eihwaz_groupes_droits` — group permissions on a resource.
+//! Composite PK: (groupe_id, resource_key).
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize)]

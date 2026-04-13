@@ -1,2 +1,2 @@
-//! Macros de templates — `tpl!` et `tpls!` pour l'inclusion statique des templates intégrés.
+//! Template macros — `tpl!` and `tpls!` for static inclusion of built-in templates.
 pub mod const_template;

@@ -1,11 +1,11 @@
-//! `LoginAdmin` — formulaire de connexion admin avec champs username/password.
+//! `LoginAdmin` — admin login form with username/password fields.
 use crate::forms::{Forms, field::RuniqueForm, fields::text::TextField};
 use crate::impl_form_access;
 
-/// Formulaire de connexion admin fourni par Runique.
+/// Admin login form provided by Runique.
 ///
-/// Utilisé automatiquement par `admin_login_post` dans le router admin.
-/// Le dev n'a pas besoin d'y toucher.
+/// Used automatically by `admin_login_post` in the admin router.
+/// Developers don't need to touch this.
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct LoginAdmin {
@@ -14,17 +14,9 @@ pub struct LoginAdmin {
 
 impl RuniqueForm for LoginAdmin {
     fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::text("username")
-                .label("Nom d'utilisateur")
-                .required(),
-        );
+        form.field(&TextField::text("username").label("Username").required());
 
-        form.field(
-            &TextField::password("password")
-                .label("Mot de passe")
-                .required(),
-        );
+        form.field(&TextField::password("password").label("Password").required());
     }
 
     impl_form_access!();

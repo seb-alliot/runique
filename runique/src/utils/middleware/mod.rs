@@ -1,4 +1,4 @@
-//! Utilitaires middleware — génération/validation CSRF et nonce CSP.
+//! Middleware utilities — CSRF generation/validation and CSP nonce.
 pub mod csp_nonce;
 pub mod csrf;
 

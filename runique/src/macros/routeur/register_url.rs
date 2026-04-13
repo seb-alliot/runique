@@ -1,21 +1,21 @@
-//! Registre global des noms d'URL — `register_pending`, `reverse()`, `reverse_with_parameters()`.
+//! Global registry of URL names — `register_pending`, `reverse()`, `reverse_with_parameters()`.
 use crate::engine::RuniqueEngine;
 use std::sync::LazyLock;
 use std::sync::{Arc, Mutex};
 
-// --- 1. Stockage temporaire pour la macro ---
+// --- 1. Temporary storage for the macro ---
 pub static PENDING_URLS: LazyLock<Mutex<Vec<(String, String)>>> =
     LazyLock::new(|| Mutex::new(Vec::new()));
 
-/// Utilisé par la macro urlpatterns!
+/// Used by the urlpatterns! macro
 pub fn register_pending(name: impl Into<String>, path: impl Into<String>) {
     let mut pending = PENDING_URLS.lock().unwrap_or_else(|e| e.into_inner());
     pending.push((name.into(), path.into()));
 }
 
-// --- 2. Fonctions utilisant directement RuniqueEngine (Runtime) ---
+// --- 2. Functions directly using RuniqueEngine (Runtime) ---
 
-/// Enregistre une URL dans l'engine
+/// Registers a URL in the engine
 pub fn register_name_url(
     engine: &Arc<RuniqueEngine>,
     name: impl Into<String>,
@@ -28,7 +28,7 @@ pub fn register_name_url(
     map.insert(name.into(), path.into());
 }
 
-/// Récupère une URL à partir du nom
+/// Retrieves a URL from its name
 pub fn reverse(engine: &Arc<RuniqueEngine>, name: &str) -> Option<String> {
     let map = engine
         .url_registry
@@ -37,7 +37,7 @@ pub fn reverse(engine: &Arc<RuniqueEngine>, name: &str) -> Option<String> {
     map.get(name).cloned()
 }
 
-/// Récupère une URL avec substitution de paramètres
+/// Retrieves a URL with parameter substitution
 pub fn reverse_with_parameters(
     engine: &Arc<RuniqueEngine>,
     name: &str,
@@ -50,7 +50,7 @@ pub fn reverse_with_parameters(
     Some(result)
 }
 
-/// Transfère toutes les URLs en attente vers l'engine
+/// Transfers all pending URLs to the engine
 pub fn add_urls(engine: &Arc<RuniqueEngine>) {
     let mut pending = PENDING_URLS.lock().unwrap_or_else(|e| e.into_inner());
     let mut map = engine

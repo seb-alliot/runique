@@ -1,9 +1,9 @@
-//! Constantes des clés de contexte Tera pour les templates admin (list, form, etc.).
+//! Tera context key constants for admin templates (list, form, etc.).
 
-/// Clés de contexte Tera injectées dans les templates admin.
-/// Utilisez ces constantes pour surcharger un template sans risquer de typos.
+/// Tera context keys injected into admin templates.
+/// Use these constants to override a template without risking typos.
 pub mod admin_context {
-    /// Clés partagées — injectées dans toutes les vues admin
+    /// Shared keys — injected into all admin views
     pub mod common {
         pub const LANG: &str = "lang";
         pub const SITE_TITLE: &str = "site_title";
@@ -31,7 +31,7 @@ pub mod admin_context {
     }
 
     pub mod etat {}
-    /// Template `list` — vue liste d'une ressource
+    /// `list` template — resource list view
     pub mod list {
         pub use super::common::LANG;
         pub const ENTRIES: &str = "entries";
@@ -53,7 +53,7 @@ pub mod admin_context {
         pub const FILTER_QS: &str = "filter_qs";
         pub const FILTER_META: &str = "filter_meta";
 
-        /// Clés obligatoires pour la surcharge de ce template
+        /// Mandatory keys for overriding this template
         pub const REQUIRED: &[&str] = &[
             ENTRIES,
             TOTAL,
@@ -71,35 +71,35 @@ pub mod admin_context {
         ];
     }
 
-    /// Template `create` — formulaire de creation
+    /// `create` template — creation form
     pub mod create {
         pub use super::common::{FORM_FIELDS, IS_EDIT, LANG};
 
-        /// Clés obligatoires pour la surcharge de ce template
+        /// Mandatory keys for overriding this template
         pub const REQUIRED: &[&str] = &[FORM_FIELDS];
     }
 
-    /// Template `edit` — formulaire d'edition
+    /// `edit` template — edition form
     pub mod edit {
         pub use super::common::{FORM_FIELDS, IS_EDIT, LANG, OBJECT_ID};
 
-        /// Clés obligatoires pour la surcharge de ce template
+        /// Mandatory keys for overriding this template
         pub const REQUIRED: &[&str] = &[FORM_FIELDS, OBJECT_ID];
     }
 
-    /// Template `detail` — vue detail d'un objet
+    /// `detail` template — object detail view
     pub mod detail {
         pub use super::common::{ENTRY, OBJECT_ID};
 
-        /// Clés obligatoires pour la surcharge de ce template
+        /// Mandatory keys for overriding this template
         pub const REQUIRED: &[&str] = &[ENTRY, OBJECT_ID];
     }
 
-    /// Template `delete` — confirmation de suppression
+    /// `delete` template — deletion confirmation
     pub mod delete {
         pub use super::common::{ENTRY, OBJECT_ID};
 
-        /// Clés obligatoires pour la surcharge de ce template
+        /// Mandatory keys for overriding this template
         pub const REQUIRED: &[&str] = &[ENTRY, OBJECT_ID];
     }
 }

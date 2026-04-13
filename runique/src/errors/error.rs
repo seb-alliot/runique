@@ -1,4 +1,4 @@
-//! Erreurs centralisées du framework : `RuniqueError`, `ErrorContext` et rendu HTML/JSON des erreurs.
+//! Centralized framework errors: `RuniqueError`, `ErrorContext`, and HTML/JSON error rendering.
 use crate::middleware::RequestInfoHelper;
 use crate::utils::aliases::StrMap;
 use crate::utils::env::is_debug;
@@ -15,7 +15,7 @@ use tracing::{error, info};
 use crate::utils::constante::{ADMIN_TEMPLATES, ERROR_CORPS, FIELD_TEMPLATES, SIMPLE_TEMPLATES};
 use crate::utils::trad::{t, tf};
 // ═══════════════════════════════════════════════════════════════
-// ERREURS DE BUILD (refonte app builder)
+// BUILD ERRORS (app builder redesign)
 // ═══════════════════════════════════════════════════════════════
 use crate::app::error_build::BuildError;
 
@@ -34,27 +34,27 @@ fn get_internal_templates() -> &'static [&'static str] {
         .as_slice()
 }
 
-/// Alias `Result` global pour le framework.
+/// Global `Result` alias for the framework.
 pub type RuniqueResult<T> = Result<T, RuniqueError>;
 
-/// Erreurs applicatives centralisées du framework.
+/// Centralized application errors of the framework.
 #[derive(Debug, Error)]
 pub enum RuniqueError {
-    #[error("Erreur de build: {0}")]
+    #[error("Build error: {0}")]
     Build(BuildError),
-    #[error("Erreur interne")]
+    #[error("Internal error")]
     Internal,
-    #[error("Accès interdit")]
+    #[error("Access denied")]
     Forbidden,
-    #[error("Ressource introuvable")]
+    #[error("Resource not found")]
     NotFound,
-    #[error("Erreur de validation: {0}")]
+    #[error("Validation error: {0}")]
     Validation(String),
-    #[error("Erreur base de données: {0}")]
+    #[error("Database error: {0}")]
     Database(String),
-    #[error("Erreur IO: {0}")]
+    #[error("IO error: {0}")]
     Io(String),
-    #[error("Erreur template: {0}")]
+    #[error("Template error: {0}")]
     Template(String),
     #[error("{message}")]
     Custom {
@@ -94,7 +94,7 @@ impl From<BuildError> for RuniqueError {
     }
 }
 impl RuniqueError {
-    /// Journalise l'erreur avec le niveau tracing approprié (error/info).
+    /// Logs the error with the appropriate tracing level (error/info).
     pub fn log(&self) {
         match self {
             RuniqueError::Build(e) => error!("{}", tf("error.build", &[&e.to_string()])),
@@ -114,7 +114,7 @@ impl RuniqueError {
         }
     }
 
-    /// Convertit l'erreur en `ErrorContext` pour un rendu riche
+    /// Converts the error to `ErrorContext` for rich rendering.
     pub fn to_error_context(&self) -> ErrorContext {
         let (status, error_type, title) = match self {
             RuniqueError::NotFound => (
@@ -159,22 +159,22 @@ impl IntoResponse for RuniqueError {
     fn into_response(self) -> Response {
         self.log();
 
-        // Créer un ErrorContext riche au lieu d'un simple message
+        // Create a rich ErrorContext instead of a simple message
         let error_context = self.to_error_context();
         let status = StatusCode::from_u16(error_context.status_code)
             .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 
-        // Attacher l'ErrorContext à la réponse pour que le middleware puisse le récupérer
+        // Attach the ErrorContext to the response so the middleware can retrieve it
         let mut response = status.into_response();
         response.extensions_mut().insert(Arc::new(self));
         response
     }
 }
 
-// ----------- CONTEXTE ERREUR (fusionné depuis context/error.rs) -----------
+// ----------- ERROR CONTEXT (merged from context/error.rs) -----------
 
-/// Contexte riche d'une erreur HTTP : status, type, infos de débogage, template, requête.
-/// Attaché aux extensions de la réponse pour être rendu par le middleware d'erreurs.
+/// Rich context of an HTTP error: status, type, debug info, template, request.
+/// Attached to response extensions to be rendered by the error middleware.
 #[derive(Debug, Serialize, Clone)]
 pub struct ErrorContext {
     pub status_code: u16,
@@ -182,7 +182,7 @@ pub struct ErrorContext {
     pub timestamp: String,
     pub title: String,
     pub message: String,
-    /// Représentation `{:?}` de l'erreur racine (format debug complet)
+    /// `{:?}` representation of the root error (full debug format)
     pub debug_repr: Option<String>,
     pub details: Option<String>,
     pub template_info: Option<TemplateInfo>,
@@ -191,7 +191,7 @@ pub struct ErrorContext {
     pub environment: EnvironmentInfo,
 }
 
-/// Catégorie d'erreur pour le rendu et le logging.
+/// Error category for rendering and logging.
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ErrorType {
@@ -222,7 +222,7 @@ pub struct RequestInfo {
 pub struct StackFrame {
     pub level: usize,
     pub message: String,
-    /// Représentation `{:?}` de cette erreur dans la chaîne
+    /// `{:?}` representation of this error in the chain
     pub debug_repr: Option<String>,
     pub location: Option<String>,
 }
@@ -235,7 +235,7 @@ pub struct EnvironmentInfo {
 }
 
 impl ErrorContext {
-    /// Crée un contexte d'erreur avec les informations de base.
+    /// Creates an error context with basic information.
     pub fn new(error_type: ErrorType, status_code: StatusCode, title: &str, message: &str) -> Self {
         Self {
             status_code: status_code.as_u16(),
@@ -326,7 +326,7 @@ impl ErrorContext {
             &t("error.AppError"),
             &error.to_string(),
         );
-        // Capture le {:?} complet de l'erreur anyhow (inclut la chaîne + backtrace)
+        // Capture the full `{:?}` of the anyhow error (includes chain + backtrace)
         ctx.debug_repr = Some(format!("{error:?}"));
 
         for (i, cause) in error.chain().enumerate() {
@@ -366,7 +366,7 @@ impl ErrorContext {
     }
 
     pub fn build_stack_trace(&mut self, error: &dyn std::error::Error) {
-        // Capture le {:?} de l'erreur racine sur l'ErrorContext
+        // Capture the `{:?}` of the root error on the ErrorContext
         self.debug_repr = Some(format!("{error:?}"));
 
         let mut level = 0;

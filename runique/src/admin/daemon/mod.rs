@@ -1,4 +1,4 @@
-//! Daemon de rechargement admin — génère `admin.rs` à chaud depuis la macro `admin!`.
+//! Admin reload daemon — hot-generates `admin.rs` from the `admin!` macro.
 pub(crate) mod generator;
 pub(crate) mod parser;
 pub(crate) mod watcher;

@@ -1,4 +1,4 @@
-//! `RouterExt` — extension d'Axum `Router` pour attacher un rate limiter ou un guard de login à une route.
+//! `RouterExt` — Axum `Router` extension to attach a rate limiter or a login guard to a route.
 use std::sync::Arc;
 
 use axum::{Router, routing::MethodRouter};
@@ -7,26 +7,26 @@ use crate::auth::guard::login_required_middleware;
 use crate::macros::routeur::register_url::register_pending;
 use crate::middleware::rate_limit::{RateLimiter, rate_limit_middleware};
 
-/// Extension de `Router` pour ajouter des routes avec rate limiting de façon fluente.
+/// `RouterExt` extension to add routes with rate limiting in a fluent way.
 ///
-/// # Exemple — route unique
+/// # Example — single route
 /// ```rust,ignore
 /// urlpatterns! { ... }
 ///     .rate_limit("/upload-image", "upload_image", view!(upload_image_submit), 5, 60)
 /// ```
 ///
-/// # Exemple — plusieurs routes, compteur partagé
+/// # Example — multiple routes, shared counter
 /// ```rust,ignore
 /// urlpatterns! { ... }
 ///     .rate_limit_many(5, 60, vec![
 ///         ("/upload-image".into(), "upload_image".into(), view!(upload_image_submit)),
-///         ("/inscription".into(),  "inscription".into(),  view!(soumission_inscription)),
+///         ("/inscription".into(),  "inscription".into(),  view!(registration_submission)),
 ///     ])
 /// ```
 pub trait RouterExt {
-    /// Ajoute une route protégée par `login_required` — redirige vers `redirect_url` si non authentifié.
+    /// Adds a route protected by `login_required` — redirects to `redirect_url` if not authenticated.
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// urlpatterns! { ... }
     ///     .login_required("/profil", "profil", view!(profil), "/login")
@@ -39,7 +39,7 @@ pub trait RouterExt {
         redirect_url: impl Into<String>,
     ) -> Self;
 
-    /// Ajoute une route protégée par un rate limiter.
+    /// Adds a route protected by a rate limiter.
     fn rate_limit(
         self,
         path: impl Into<String>,
@@ -49,7 +49,7 @@ pub trait RouterExt {
         retry_after: u64,
     ) -> Self;
 
-    /// Ajoute plusieurs routes partageant le même rate limiter (compteur commun).
+    /// Adds multiple routes sharing the same rate limiter (common counter).
     fn rate_limit_many(
         self,
         max_requests: u32,

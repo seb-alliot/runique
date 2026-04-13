@@ -1,7 +1,7 @@
-//! Résolution de l'URL absolue de l'OG image — hôte extrait de `HostPolicy` selon le mode debug/prod.
+//! OG image absolute URL resolution — host extracted from `HostPolicy` according to debug/prod mode.
 use crate::middleware::allowed_hosts::HostPolicy;
 
-/// Retourne l'URL absolue de l'OG image selon le contexte (debug/prod).
+/// Returns the absolute OG image URL based on the context (debug/prod).
 pub fn resolve_og_image(security: &HostPolicy, debug: bool, og_image: &str) -> String {
     let host = if debug {
         security

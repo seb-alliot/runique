@@ -1,4 +1,4 @@
-//! Binaire CLI `runique` — commandes `new`, `start`, `makemigration`, `migrate` via clap.
+//! CLI binary `runique` — `new`, `start`, `makemigration`, `migrate` commands via clap.
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use runique::utils::{
@@ -9,7 +9,7 @@ use runique::utils::{
 
 #[derive(Parser)]
 #[command(name = "runique")]
-#[command(about = "CLI du framework Runique", long_about = None)]
+#[command(about = "Runique framework CLI", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -17,26 +17,26 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Créer un nouveau projet Runique
+    /// Create a new Runique project
     ///
-    /// Génère la structure complète avec routes, vues, modèles et templates.
+    /// Generates the complete structure with routes, views, models and templates.
     New { name: String },
 
-    /// Démarrer les services Runique (depuis la racine du projet)
+    /// Start Runique services (from the project root)
     ///
-    /// Détecte automatiquement la configuration du projet :
-    ///   - Si `.with_admin(...)` est présent dans src/main.rs → démarre le daemon `AdminPanel`
-    ///   - Sinon → rien à faire
+    /// Automatically detects the project configuration:
+    ///   - If `.with_admin(...)` is present in src/main.rs → starts the `AdminPanel` daemon
+    ///   - Otherwise → nothing to do
     Start {
-        /// Chemin vers src/main.rs (défaut: ./src/main.rs)
+        /// Path to src/main.rs (default: ./src/main.rs)
         #[arg(long, default_value = "src/main.rs")]
         main: String,
 
-        /// Chemin vers src/admin.rs (défaut: ./src/admin.rs)
+        /// Path to src/admin.rs (default: ./src/admin.rs)
         #[arg(long, default_value = "src/admin.rs")]
         admin: String,
     },
-    /// Créer un superuser admin
+    /// Create an admin superuser
     CreateSuperuser,
     Migration {
         #[command(subcommand)]

@@ -2,7 +2,7 @@ use crate::model::{ModelInput, RelationDef};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-/// Tables fournies par le framework — leurs entités SeaORM sont dans `runique`, pas dans `super::`.
+/// Tables provided by the framework — their SeaORM entities are in `runique`, not in `super::`.
 const FRAMEWORK_TABLES: &[(&str, &str)] = &[
     ("eihwaz_users", "::runique::auth::user"),
     ("eihwaz_groupes", "::runique::admin::permissions::groupe"),
@@ -176,11 +176,11 @@ fn pascal_case(s: &str) -> String {
 
 #[allow(dead_code)]
 fn to_snake_case(s: &str) -> String {
-    // Déjà en snake_case (contient _ ou tout en minuscules)
+    // Already in snake_case (contains _ or all lowercase)
     if s.contains('_') || s.chars().all(|c| c.is_lowercase()) {
         return s.to_string();
     }
-    // Sinon conversion PascalCase → snake_case
+    // Otherwise PascalCase → snake_case conversion
     let mut result = String::new();
     for (i, ch) in s.chars().enumerate() {
         if ch.is_uppercase() && i > 0 {

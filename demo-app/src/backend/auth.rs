@@ -28,7 +28,7 @@ pub async fn find_user_by_username(
     db: &sea_orm::DatabaseConnection,
     username: &str,
 ) -> Option<runique::prelude::runique_users::Model> {
-    // Construit la requête
+    // Build the query
     let query = search!(UserEntity => Username eq username.trim());
     let result = query.first(db).await;
     result.unwrap_or(None)
@@ -106,7 +106,7 @@ pub async fn handle_activate(
     token: String,
     encrypted_email: String,
 ) -> AppResult<Response> {
-    // Vérifier et décrypter avant de consommer (consume est irréversible)
+    // Verify and decrypt before consuming (consume is irreversible)
     if !reset_token::peek(&token) {
         warning!(request.notices => "Lien d'activation invalide ou expiré.");
         return Ok(Redirect::to("/login").into_response());
@@ -117,19 +117,19 @@ pub async fn handle_activate(
         return Ok(Redirect::to("/login").into_response());
     };
 
-    // Consommer le token (usage unique)
+    // Consume the token (single use)
     reset_token::consume(&token);
 
     let db = request.engine.db.clone();
 
-    // Trouver l'utilisateur par email
+    // Find the user by email
     let query = search!(UserEntity => Email eq email.trim());
     let Some(user) = query.first(&db).await.unwrap_or(None) else {
         warning!(request.notices => "Compte introuvable.");
         return Ok(Redirect::to("/login").into_response());
     };
 
-    // Activer le compte
+    // Activate the account
     let active_model = UserActiveModel {
         id: Set(user.id),
         is_active: Set(true),
@@ -140,7 +140,7 @@ pub async fn handle_activate(
         return Ok(Redirect::to("/login").into_response());
     }
 
-    // Connecter directement
+    // Directly log in
     auth_login(
         &request.session,
         &db,

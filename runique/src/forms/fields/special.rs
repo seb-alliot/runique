@@ -1,4 +1,4 @@
-//! Champs spéciaux : `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
+//! Special fields: `ColorField`, `UUIDField`, `IPAddressField`, `JSONField`, `SlugField`.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;
@@ -7,7 +7,7 @@ use std::{net::IpAddr, sync::Arc};
 use tera::{Context, Tera};
 use uuid::Uuid;
 
-/// ColorField - Sélecteur de couleur HTML5
+/// ColorField - HTML5 color selector
 #[derive(Clone, Serialize, Debug)]
 pub struct ColorField {
     pub base: FieldConfig,
@@ -31,7 +31,7 @@ impl ColorField {
     }
 
     pub fn default_color(mut self, color: &str) -> Self {
-        // Valider le format hex
+        // Validate the hex format
         if color.starts_with('#') && (color.len() == 7 || color.len() == 4) {
             self.base.value = color.to_string();
         }
@@ -65,7 +65,7 @@ impl FormField for ColorField {
         }
 
         if !val.is_empty() {
-            // Valider le format hexadécimal #RRGGBB ou #RGB
+            // Validate the hexadecimal format #RRGGBB or #RGB
             if !val.starts_with('#') {
                 self.set_error(t("forms.color_no_hash").to_string());
                 return false;
@@ -102,7 +102,7 @@ impl FormField for ColorField {
     }
 }
 
-/// SlugField - Champ pour slugs URL-friendly
+/// SlugField - Field for URL-friendly slugs
 #[derive(Clone, Serialize, Debug)]
 pub struct SlugField {
     pub base: FieldConfig,
@@ -158,9 +158,9 @@ impl FormField for SlugField {
         }
 
         if !val.is_empty() {
-            // Validation du slug
+            // Slug validation
             if self.allow_unicode {
-                // Slug unicode : lettres, chiffres, tirets, underscores
+                // Unicode slug: letters, numbers, dashes, underscores
                 let valid = val
                     .chars()
                     .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
@@ -169,7 +169,7 @@ impl FormField for SlugField {
                     return false;
                 }
             } else {
-                // Slug ASCII uniquement
+                // ASCII slug only
                 let valid = val
                     .chars()
                     .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
@@ -179,7 +179,7 @@ impl FormField for SlugField {
                 }
             }
 
-            // Ne doit pas commencer ou finir par un tiret
+            // Must not start or end with a dash
             if val.starts_with('-') || val.ends_with('-') {
                 self.set_error(t("forms.slug_no_dash").to_string());
                 return false;
@@ -206,7 +206,7 @@ impl FormField for SlugField {
     }
 }
 
-/// UUIDField - Champ pour identifiants UUID
+/// UUIDField - Field for UUID identifiers
 #[derive(Clone, Serialize, Debug)]
 pub struct UUIDField {
     pub base: FieldConfig,
@@ -261,7 +261,7 @@ impl FormField for UUIDField {
         }
 
         if !val.is_empty() {
-            // Valider le format UUID
+            // Validate the UUID format
             if Uuid::parse_str(val).is_err() {
                 self.set_error(t("forms.uuid_invalid").to_string());
                 return false;
@@ -288,7 +288,7 @@ impl FormField for UUIDField {
     }
 }
 
-/// JSONField - Textarea avec validation JSON
+/// JSONField - Textarea with JSON validation
 #[derive(Clone, Serialize, Debug)]
 pub struct JSONField {
     pub base: FieldConfig,
@@ -350,7 +350,7 @@ impl FormField for JSONField {
         }
 
         if !val.is_empty() {
-            // Valider le JSON
+            // Validate the JSON
             if let Err(e) = serde_json::from_str::<serde_json::Value>(val) {
                 self.set_error(tf("forms.json_invalid", &[&e]));
                 return false;
@@ -367,7 +367,7 @@ impl FormField for JSONField {
         context.insert("field_hint", &t("forms.hint_json").to_string());
         context.insert("readonly", &self.to_json_readonly());
         context.insert("disabled", &self.to_json_disabled());
-        // Nombre de lignes
+        // Number of lines
         let rows = self
             .base
             .extra_context
@@ -387,7 +387,7 @@ impl FormField for JSONField {
     }
 }
 
-/// IPAddressField - Validation d'adresse IP (v4 ou v6)
+/// IPAddressField - IP address validation (v4 or v6)
 #[derive(Clone, Serialize, Debug)]
 pub struct IPAddressField {
     pub base: FieldConfig,
@@ -458,7 +458,7 @@ impl FormField for IPAddressField {
         }
 
         if !val.is_empty() {
-            // Parser l'adresse IP
+            // Parse the IP address
             match val.parse::<IpAddr>() {
                 Ok(ip) => {
                     if self.ipv4_only && ip.is_ipv6() {

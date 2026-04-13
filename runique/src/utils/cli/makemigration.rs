@@ -1,4 +1,4 @@
-//! Commande `makemigration` — génère les fichiers de migration SeaORM à partir du DSL `ModelSchema`.
+//! `makemigration` command — generates SeaORM migration files from `ModelSchema` DSL.
 use crate::migration::*;
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
@@ -21,8 +21,8 @@ pub fn parse_create_file(path: &str) -> Result<ParsedSchema> {
 
 // ── scan ─────────────────────────────────────────────────────────────────────
 
-/// Tables créées par EihwazUsersMigration + AdminTableMigration.
-/// Exclues du scan quand `RUNIQUE_USER_TABLE` n'est pas défini (table user par défaut).
+/// Tables created by `EihwazUsersMigration` + `AdminTableMigration`.
+/// Excluded from scan when `RUNIQUE_USER_TABLE` is not defined (default user table).
 const FRAMEWORK_TABLES: &[&str] = &[
     "eihwaz_users",
     "eihwaz_groupes",
@@ -55,7 +55,7 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
 
         if let Some(schema) = parse_schema_from_source(&source) {
-            // Ignore les tables fournies par le framework (EihwazUsersMigration + AdminTableMigration)
+            // Ignore tables provided by the framework (`EihwazUsersMigration` + `AdminTableMigration`)
             if using_builtin_user && FRAMEWORK_TABLES.contains(&schema.table_name.as_str()) {
                 continue;
             }
@@ -84,7 +84,7 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
         if existing.contains(&mod_line) {
             return Ok(());
         }
-        // Ajoute le `use migrations_table` si absent (lib.rs existant sans lui)
+        // Add `use migrations_table` if missing (`lib.rs` existing without it)
         let existing = if !existing.contains("migrations_table") {
             existing.replacen(
                 "use sea_orm_migration::prelude::*;",
@@ -109,8 +109,8 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
 
 // ── db kind detection ────────────────────────────────────────────────────────
 
-/// Détecte le backend DB depuis `DB_URL` ou `DB_ENGINE` dans le `.env`.
-/// Utilisé pour générer le SQL DB-spécifique (trigger vs ON UPDATE).
+/// Detects the DB backend from `DB_URL` or `DB_ENGINE` in `.env`.
+/// Used to generate DB-specific SQL (trigger vs ON UPDATE).
 fn detect_db_kind() -> crate::migration::utils::types::DbKind {
     dotenvy::dotenv().ok();
     use crate::migration::utils::types::DbKind;
@@ -138,10 +138,10 @@ fn detect_db_kind() -> crate::migration::utils::types::DbKind {
 
 // ── topological sort ─────────────────────────────────────────────────────────
 
-/// Trie les `Changes` par ordre de dépendance FK.
-/// Les tables référencées par d'autres nouvelles tables sont placées en premier.
-/// Les tables existantes (non nouvelles) sont ignorées : elles existent déjà en DB.
-/// En cas de dépendance circulaire, les tables restantes sont ajoutées à la fin.
+/// Sorts `Changes` by FK dependency order.
+/// Tables referenced by other new tables are placed first.
+/// Existing tables (not new) are ignored: they already exist in DB.
+/// In case of circular dependency, the remaining tables are added at the end.
 fn topological_sort_changes(
     changes: Vec<crate::migration::utils::types::Changes>,
 ) -> Vec<crate::migration::utils::types::Changes> {
@@ -153,7 +153,7 @@ fn topological_sort_changes(
         .map(|c| c.table_name.clone())
         .collect();
 
-    // deps[A] = {B} : A a une FK vers B, donc B doit être créée avant A
+    // deps[A] = {B} : A has a FK to B, so B must be created before A
     let mut deps: HashMap<String, HashSet<String>> = HashMap::new();
     for change in &changes {
         if !change.is_new_table {
@@ -167,7 +167,7 @@ fn topological_sort_changes(
         }
     }
 
-    // dependents[B] = [A] : quand B est traité, on peut décrémenter l'in_degree de A
+    // dependents[B] = [A] : when B is processed, we can decrement the in_degree of A
     let mut dependents: HashMap<String, Vec<String>> = HashMap::new();
     for (table, table_deps) in &deps {
         for dep in table_deps {
@@ -178,15 +178,15 @@ fn topological_sort_changes(
         }
     }
 
-    // in_degree[A] = nombre de prérequis de A (tables que A attend via FK)
-    // Les tables sans prérequis (in_degree == 0) sont traitées en premier.
+    // in_degree[A] = number of requirements for A (tables A waits for via FK)
+    // Tables without requirements (in_degree == 0) are processed first.
     let mut in_degree: HashMap<String, usize> = new_tables.iter().map(|t| (t.clone(), 0)).collect();
     for (table, table_deps) in &deps {
         let deg = in_degree.entry(table.clone()).or_insert(0);
         *deg = deg.saturating_add(table_deps.len());
     }
 
-    // Algorithme de Kahn : commence par les tables sans prérequis (ex. B référencée par A)
+    // Kahn's algorithm: starts with tables without requirements (e.g. B referenced by A)
     let mut queue: VecDeque<String> = in_degree
         .iter()
         .filter(|(_, d)| **d == 0)
@@ -216,13 +216,13 @@ fn topological_sort_changes(
         .map(|c| (c.table_name.clone(), c))
         .collect();
 
-    // Nouvelles tables dans l'ordre topologique (référencées en premier)
+    // New tables in topological order (referenced first)
     for name in sorted_names {
         if let Some(c) = by_name.remove(&name) {
             result.push(c);
         }
     }
-    // Restants (ALTER + éventuels cycles)
+    // Remaining (ALTER + potential circles)
     result.extend(by_name.into_values());
     result
 }
@@ -253,9 +253,9 @@ pub fn seaorm_extend_file_path(migrations_path: &str, timestamp: &str, table: &s
 
 // ── scan extend blocks ────────────────────────────────────────────────────────
 
-/// Scanne tous les fichiers `.rs` du répertoire `entities_path` et collecte
-/// tous les blocs `extend!{}` trouvés. Retourne une liste plate de `ParsedSchema`
-/// (un par bloc — plusieurs blocs peuvent cibler la même table).
+/// Scans all `.rs` files in the `entities_path` directory and collects
+/// all found `extend!{}` blocks. Returns a flat list of `ParsedSchema`
+/// (one per block — multiple blocks can target the same table).
 pub fn scan_extend_blocks(entities_path: &str) -> Result<Vec<ParsedSchema>> {
     let mut schemas = Vec::new();
     let entries = fs::read_dir(entities_path)
@@ -282,8 +282,8 @@ pub fn scan_extend_blocks(entities_path: &str) -> Result<Vec<ParsedSchema>> {
     Ok(schemas)
 }
 
-/// Fusionne les blocs `extend!{}` qui ciblent la même table en un seul `ParsedSchema`.
-/// Les colonnes sont concaténées dans l'ordre de découverte.
+/// Merges `extend!{}` blocks targeting the same table into a single `ParsedSchema`.
+/// Columns are concatenated in discovery order.
 pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
     use std::collections::HashMap;
     let mut by_table: HashMap<String, Vec<ParsedColumn>> = HashMap::new();
@@ -405,10 +405,10 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
     let db_kind = detect_db_kind();
 
-    // ── tri topologique : tables référencées créées avant celles qui les référencent
+    // ── topological sort: referenced tables created before those referencing them
     all_changes = topological_sort_changes(all_changes);
 
-    // ── Phase 1 : planification — aucune écriture ────────────────────────────
+    // ── Phase 1: planning — no writing ────────────────────────────
     let mut files_to_write: Vec<(String, String)> = Vec::new(); // (path, content)
     let mut extra_dirs: Vec<String> = Vec::new();
     let mut lib_modules: Vec<String> = Vec::new();
@@ -419,7 +419,7 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
             .find(|s| s.table_name == change.table_name)
             .unwrap();
 
-        // Snapshot (toujours mis à jour, sans SQL DB-spécifique)
+        // Snapshot (always updated, without DB-specific SQL)
         files_to_write.push((
             snapshot_file_path(migrations_path, &change.table_name),
             generate_create_file(schema, &crate::migration::utils::types::DbKind::Other),
@@ -457,13 +457,13 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         }
     }
 
-    // ── Phase 2 : création des répertoires (idempotent) ──────────────────────
+    // ── Phase 2: directory creation (idempotent) ──────────────────────
     for dir in &extra_dirs {
         fs::create_dir_all(dir)?;
     }
 
-    // ── Phase 3 : écriture atomique ──────────────────────────────────────────
-    // Sauvegarde de lib.rs pour rollback en cas d'erreur partielle.
+    // ── Phase 3: atomic writing ──────────────────────────────────────────
+    // lib.rs backup for rollback in case of partial error.
     let lib_file = lib_path(migrations_path);
     let lib_backup: Option<String> = if Path::new(&lib_file).exists() {
         Some(fs::read_to_string(&lib_file)?)
@@ -486,23 +486,20 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
 
     if let Err(e) = write_result {
         eprintln!(
-            "\n[makemigrations] Erreur : {}. Annulation des fichiers générés...",
+            "\n[makemigrations] Error: {}. Rollback generated files...",
             e
         );
         for path in &written {
             if let Err(re) = fs::remove_file(path) {
-                eprintln!(
-                    "  avertissement : impossible de supprimer {} : {}",
-                    path, re
-                );
+                eprintln!("  warning: cannot delete {} : {}", path, re);
             } else {
-                eprintln!("  supprimé : {}", path);
+                eprintln!("  deleted: {}", path);
             }
         }
         match lib_backup {
             Some(content) => {
                 let _ = fs::write(&lib_file, content);
-                eprintln!("  lib.rs restauré");
+                eprintln!("  lib.rs restored");
             }
             None => {
                 let _ = fs::remove_file(&lib_file);
@@ -511,10 +508,10 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         return Err(e);
     }
 
-    // ── Passe 2 : extensions de tables framework (extend!{}) ─────────────────
+    // ── Pass 2: framework table extensions (extend!{}) ─────────────────
     run_extend_pass(entities_path, migrations_path, &timestamp, &db_kind)?;
 
-    // ── Passe 3 : positionnement automatique d'AdminTableMigration ────────────
+    // ── Pass 3: automatic positioning of AdminTableMigration ────────────
     ensure_admin_migration_positioned(migrations_path)?;
 
     println!("{}", tf("makemigrations.files_ready", &[lib_modules.len()]));
@@ -522,15 +519,15 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     Ok(())
 }
 
-// ── Positionnement AdminTableMigration ───────────────────────────────────────
+// ── AdminTableMigration positioning ───────────────────────────────────────
 
-/// Positionne automatiquement `AdminTableMigration` dans `lib.rs` juste après la migration
-/// de la table user (`RUNIQUE_USER_TABLE`, défaut : `eihwaz_users`).
+/// Automatically positions `AdminTableMigration` in `lib.rs` just after the migration
+/// of the user table (`RUNIQUE_USER_TABLE`, default: `eihwaz_users`).
 ///
-/// - Ajoute `use runique::prelude::migrations_table;` si absent
-/// - Retire `AdminTableMigration` de sa position actuelle si présente
-/// - L'insère immédiatement après la ligne `Box::new(<user_table_migration>)`
-/// - Sans effet si la migration de la user table n'est pas encore dans `lib.rs`
+/// - Adds `use runique::prelude::migrations_table;` if missing
+/// - Removes `AdminTableMigration` from its current position if present
+/// - Inserts it immediately after the line `Box::new(<user_table_migration>)`
+/// - No effect if the user table migration is not yet in `lib.rs`
 pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     dotenvy::dotenv().ok();
     let user_table = crate::admin::table_admin::migrations_table::user_table_name();
@@ -542,7 +539,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
     let content = fs::read_to_string(&lib_file)?;
 
-    // Ensure `use runique::prelude::migrations_table;` est présent
+    // Ensure `use runique::prelude::migrations_table;` is present
     let content = if !content.contains("migrations_table") {
         content.replacen(
             "use sea_orm_migration::prelude::*;",
@@ -559,7 +556,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
     let using_builtin_user = user_table == "eihwaz_users";
 
-    // Tables créées par EihwazUsersMigration + AdminTableMigration — à exclure du vec
+    // Tables created by `EihwazUsersMigration` + `AdminTableMigration` — to exclude from the vec
     const FRAMEWORK_TABLE_PATTERNS: &[&str] = &[
         "create_eihwaz_users_table",
         "create_eihwaz_groupes_table",
@@ -568,9 +565,9 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     ];
 
     if using_builtin_user {
-        // ── Cas par défaut : table user fournie par le framework ──────────────
-        // Retire les lignes framework existantes (on va les réinjecter en tête)
-        // et filtre aussi les migrations app qui dupliquent les tables framework.
+        // ── Default case: user table provided by the framework ──────────────
+        // Remove existing framework lines (we'll re-inject them at the top)
+        // and also filter app migrations duplicating framework tables.
         let mut lines: Vec<String> = content
             .lines()
             .filter(|l| {
@@ -581,7 +578,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
             .map(|l| l.to_string())
             .collect();
 
-        // Insère les deux migrations framework au début du vec![
+        // Insert both framework migrations at the start of vec![
         if let Some(idx) = lines
             .iter()
             .position(|l| l.trim() == "vec![" || l.contains("vec!["))
@@ -595,8 +592,8 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
             fs::write(&lib_file, &result)?;
         }
     } else {
-        // ── Cas custom : le dev fournit sa propre table user ──────────────────
-        // AdminTableMigration positionnée juste après la migration de sa table
+        // ── Custom case: the dev provides their own user table ──────────────────
+        // AdminTableMigration positioned right after the migration of its table
         if !content.contains(&user_pattern) {
             fs::write(&lib_file, &content)?;
             return Ok(());
@@ -621,7 +618,7 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
     Ok(())
 }
 
-// ── Passe extend ──────────────────────────────────────────────────────────────
+// ── Extend pass ──────────────────────────────────────────────────────────────
 
 fn run_extend_pass(
     entities_path: &str,
@@ -647,7 +644,7 @@ fn run_extend_pass(
             let previous = parse_create_file(&snap_path)?;
             diff_schemas(&previous, ext_schema)
         } else {
-            // Première fois — toutes les colonnes sont nouvelles (ADD COLUMN)
+            // First time — all columns are new (ADD COLUMN)
             Changes {
                 table_name: ext_schema.table_name.clone(),
                 added_columns: ext_schema.columns.clone(),
@@ -657,7 +654,7 @@ fn run_extend_pass(
                 dropped_fks: vec![],
                 added_indexes: vec![],
                 dropped_indexes: vec![],
-                is_new_table: false, // toujours false — la table framework existe déjà
+                is_new_table: false, // always false — the framework table already exists
                 enum_renames: vec![],
                 enum_value_adds: vec![],
                 enum_value_drops: vec![],
@@ -668,20 +665,20 @@ fn run_extend_pass(
             continue;
         }
 
-        // Snapshot mis à jour (sans PK, juste les colonnes d'extension)
+        // Snapshot updated (without PK, just extension columns)
         files_to_write.push((
             snap_path,
             generate_create_file(ext_schema, &crate::migration::utils::types::DbKind::Other),
         ));
 
-        // Fichier de migration SeaORM extend
+        // SeaORM extend migration file
         let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
         let seaorm_path =
             seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
         files_to_write.push((seaorm_path, generate_alter_file(&changes)));
         lib_modules.push(module_name);
 
-        // Fichiers applied/batch (répertoire propre pour chaque table étendue)
+        // Applied/batch files (specific directory for each extended table)
         let apply_dir = table_applied_dir(migrations_path, &ext_schema.table_name);
         let up_dir = batch_up_dir(migrations_path, &ext_schema.table_name);
         let down_dir = batch_down_dir(migrations_path, &ext_schema.table_name);
@@ -707,7 +704,7 @@ fn run_extend_pass(
         return Ok(());
     }
 
-    // Écriture
+    // Write
     let lib_backup: Option<String> = {
         let lib_file = lib_path(migrations_path);
         if Path::new(&lib_file).exists() {
@@ -731,13 +728,10 @@ fn run_extend_pass(
     })();
 
     if let Err(e) = write_result {
-        eprintln!("\n[makemigrations extend] Erreur : {}. Annulation...", e);
+        eprintln!("\n[makemigrations extend] Error: {}. Rollback...", e);
         for path in &written {
             if let Err(re) = fs::remove_file(path) {
-                eprintln!(
-                    "  avertissement : impossible de supprimer {} : {}",
-                    path, re
-                );
+                eprintln!("  warning: cannot delete {} : {}", path, re);
             }
         }
         if let Some(content) = lib_backup {

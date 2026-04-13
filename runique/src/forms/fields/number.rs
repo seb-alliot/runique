@@ -1,4 +1,4 @@
-//! Champs numériques : `NumericField` (entier, décimal) avec validation min/max et précision.
+//! Numeric fields: `NumericField` (integer, decimal) with min/max validation and precision.
 use crate::forms::base::*;
 use crate::utils::trad::{t, tf};
 use serde::Serialize;
@@ -38,7 +38,7 @@ impl NumericField {
         self.max_digits = Some(max);
         self
     }
-    // --- Constructeurs ---
+    // --- Constructors ---
     pub fn integer(name: &str) -> Self {
         Self::create(
             name,
@@ -154,7 +154,7 @@ impl NumericField {
     }
 }
 
-// --- Implémentation du Trait ---
+// --- Trait Implementation ---
 impl FormField for NumericField {
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
@@ -174,7 +174,7 @@ impl FormField for NumericField {
 
         let normalized = val.replace(',', ".");
 
-        // --- ÉTAPE 1 : Validation de la précision (digits) ---
+        // --- STEP 1: Precision validation (digits) ---
         let current_digits = normalized
             .find('.')
             .map(|dot| normalized[dot.saturating_add(1)..].len())
@@ -192,7 +192,7 @@ impl FormField for NumericField {
             return false;
         }
 
-        // --- ÉTAPE 2 : Validation des bornes de valeur (min/max) ---
+        // --- STEP 2: Value bounds validation (min/max) ---
         match &self.config {
             NumericConfig::Integer { min, max } => {
                 if let Ok(v) = normalized.parse::<i64>() {

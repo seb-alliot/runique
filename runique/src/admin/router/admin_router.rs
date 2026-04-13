@@ -1,4 +1,4 @@
-//! Router admin : construit les routes CRUD, login/logout et branche le middleware d'authentification.
+//! Admin router: builds CRUD routes, login/logout, and attaches authentication middleware.
 use std::sync::Arc;
 
 use axum::{
@@ -62,7 +62,7 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
         login_guard,
     });
 
-    // Routes publiques (login uniquement)
+    // Public routes (login only)
     let login_get_route = urlpatterns! {
         &format!("{prefix}/login") => get(admin_login_get), name = "admin_login",
     };
@@ -80,21 +80,21 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
 
     let public_router = login_get_route.merge(login_post_route);
 
-    // Routes protégées (dashboard + logout)
+    // Protected routes (dashboard + logout)
     let protected_router = urlpatterns! {
         &format!("{prefix}/") => get(admin_dashboard), name = "admin_dashboard",
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
         &format!("{prefix}/logout") => get(admin_logout), name = "admin_logout",
     };
 
-    // Routes CRUD générées (protégées aussi)
+    // Generated CRUD routes (also protected)
     let generated_router = if let Some(router) = admin_staging.route_admin {
         router
     } else {
         Router::new()
     };
 
-    // Assemblage : public + (protected + generated avec middleware)
+    // Assembly: public + (protected + generated with middleware)
     let mut router = public_router
         .merge(
             protected_router
@@ -105,13 +105,13 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
         .layer(Extension(admin_state));
 
     if let Some(state) = state {
-        // On remplace le config du proto_state par celui d'AdminStaging
-        // pour que les templates configurés via .templates() soient pris en compte.
+        // Replace proto_state config with the one from AdminStaging
+        // so that templates configured via .templates() are taken into account.
         let order = config.resource_order.clone();
         let config = Arc::new(config);
 
-        // Unwrap l'Arc<PrototypeAdminState> pour accéder aux champs en ownership.
-        // try_unwrap réussit car c'est le seul propriétaire au boot.
+        // Unwrap the Arc<PrototypeAdminState> to access fields in ownership.
+        // try_unwrap succeeds as it is the sole owner at boot.
         let registry = match Arc::try_unwrap(state) {
             Ok(proto) => match Arc::try_unwrap(proto.registry) {
                 Ok(mut reg) => {
@@ -132,13 +132,13 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
     router
 }
 
-/// Clé de session pour la surcharge runtime du template dashboard.
+/// Session key for runtime override of the dashboard template.
 ///
-/// Un dev peut stocker un nom de template Tera dans cette clé pour remplacer
-/// temporairement le template configuré via `.with_dashboard()`.
-/// Si absente ou vide, `resolve()` s'applique normalement.
+/// A developer can store a Tera template name in this key to temporarily replace
+/// the template configured via `.with_dashboard()`.
+/// If absent or empty, `resolve()` applies normally.
 ///
-/// ## Exemple (dans un handler custom) :
+/// ## Example (in a custom handler):
 /// ```rust,ignore
 /// session.insert(ADMIN_TEMPLATE_SESSION_KEY, "admin/dashboard").await?;
 /// ```
@@ -182,7 +182,7 @@ async fn admin_dashboard(
         Vec::new()
     };
 
-    // Groupes ayant une permission sur chaque resource_key
+    // Groups with permission on each resource_key
     let resource_groups: std::collections::HashMap<String, Vec<String>> = {
         use crate::admin::permissions::{groupe, groupes_droits};
         use sea_orm::EntityTrait;
@@ -289,7 +289,7 @@ async fn admin_login_post(
             .unwrap_or_else(axum::response::IntoResponse::into_response);
     }
 
-    // Vérification du login guard (brute-force)
+    // Login guard verification (brute-force)
     if let Some(guard) = &admin.login_guard {
         let key = LoginGuard::effective_key(&data.username, "unknown");
         if guard.is_locked(&key) {
@@ -385,6 +385,6 @@ async fn admin_logout(req: Request, Extension(admin): Extension<Arc<AdminState>>
         .and_then(|g| g.as_ref().cloned());
     let _ = logout(session, db_store.as_deref()).await;
     let login_url = format!("{}/login?from=logout", admin.config.prefix);
-    flash_now!(info => "Vous êtes deconnecté");
+    flash_now!(info => "You have been logged out");
     Redirect::to(&login_url).into_response()
 }

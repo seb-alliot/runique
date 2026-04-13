@@ -1,4 +1,4 @@
-//! Regex pour les tags Tera dans les templates — `{% static %}`, `{% media %}`, `{% link %}`.
+//! Regex for Tera tags in templates — `{% static %}`, `{% media %}`, `{% link %}`.
 use regex::Regex;
 use std::sync::LazyLock;
 

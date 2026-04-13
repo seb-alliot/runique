@@ -1,4 +1,4 @@
-//! `ModelSchema` : source unique de vérité pour un modèle — colonnes, clé primaire, FK, index, hooks.
+//! `ModelSchema`: single source of truth for a model — columns, primary keys, FKs, indexes, hooks.
 use crate::migration::{
     utils::to_pascal_case,
     {
@@ -335,12 +335,12 @@ impl ModelSchema {
         self.columns.iter().filter(|c| c.auto_now).collect()
     }
 
-    /// Trouve les colonnes auto_now_update (updated_at)
+    /// Finds auto_now_update columns (updated_at)
     pub fn auto_now_update_columns(&self) -> Vec<&ColumnDef> {
         self.columns.iter().filter(|c| c.auto_now_update).collect()
     }
 
-    /// Vérifie si le modèle a besoin de timestamps automatiques
+    /// Checks if the model needs automatic timestamps
     pub fn has_auto_timestamps(&self) -> bool {
         self.columns.iter().any(|c| c.auto_now || c.auto_now_update)
     }

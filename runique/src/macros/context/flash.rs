@@ -1,26 +1,26 @@
-//! Macros pour simplifier l'envoi de messages flash
+//! Macros to simplify sending flash messages
 //!
-//! # Utilisation
+//! # Usage
 //!
-//! Ces macros prennent en premier paramètre la variable `Message`
-//! et ensuite le ou les messages à envoyer.
+//! These macros take the `Message` variable as the first parameter
+//! followed by one or more messages to send.
 //!
-//! # Exemples
+//! # Examples
 //!
 //! ```rust
 //! use runique::prelude::*;
 //! use runique::{info, success};
 //!
 //! async fn create_user(mut message: Message) -> Response {
-//!     // Un seul message
-//!     success!(message => "Utilisateur créé avec succès");
+//!     // Single message
+//!     success!(message => "User created successfully");
 //!
-//!     // Plusieurs messages
-//!     success!(message => "Utilisateur créé", "Email envoyé", "Bienvenue !");
+//!     // Multiple messages
+//!     success!(message => "User created", "Email sent", "Welcome!");
 //!
-//!     // Messages mixtes
-//!     success!(message => "Opération réussie");
-//!     info!(message => "Vérifiez votre email");
+//!     // Mixed messages
+//!     success!(message => "Operation successful");
+//!     info!(message => "Please check your email");
 //!
 //!     Redirect::to("/users").into_response()
 //! }
@@ -145,8 +145,8 @@ mod tests {
     #[tokio::test]
     async fn test_error_macro() {
         let mut msg = MockMessage::new();
-        error!(msg => "Erreur 1", "Erreur 2");
-        assert_eq!(msg.template, vec!["error: Erreur 1", "error: Erreur 2"]);
+        error!(msg => "Error 1", "Error 2");
+        assert_eq!(msg.template, vec!["error: Error 1", "error: Error 2"]);
     }
 
     #[tokio::test]

@@ -1,4 +1,4 @@
-//! Extracteur Axum `Prisme<T>` : pipeline Sentinel → CSRF → Aegis → désérialisation du formulaire.
+//! Axum `Prisme<T>` extractor: Sentinel → CSRF → Aegis → form deserialization pipeline.
 use crate::forms::{
     field::RuniqueForm,
     prisme::{aegis, csrf_gate, sentinel},
@@ -69,7 +69,7 @@ where
         .unwrap_or("")
         .to_string();
 
-    // Extraction des paramètres d'URL avant de consommer le body
+    // Extraction of URL parameters before consuming the body
     let (mut parts, body) = req.into_parts();
 
     let path_params = Path::<HashMap<String, String>>::from_request_parts(&mut parts, state)
@@ -97,8 +97,8 @@ where
 
     let form_data = convert_for_form(parsed);
 
-    // Passe le token masqué au formulaire : les champs cachés et les re-rendus
-    // contiennent alors un token base64 cohérent avec la validation AJAX (X-CSRF-Token).
+    // Pass the masked token to the form: hidden fields and re-renders
+    // then contain a base64 token consistent with AJAX validation (X-CSRF-Token).
     let csrf_for_form = csrf_session
         .masked()
         .unwrap_or_else(|_| csrf_session.clone());

@@ -1,7 +1,7 @@
-//! Configuration des fichiers statiques, media et templates.
+//! Static files, media, and templates configuration.
 use serde::{Deserialize, Serialize};
 
-/// Chemins et URLs pour les assets du framework et du projet utilisateur.
+/// Paths and URLs for framework and user project assets.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StaticConfig {
     // Runique internal
@@ -20,16 +20,16 @@ pub struct StaticConfig {
     pub media_url: String,
     pub staticfiles: String,
     pub og_image: String,
-    /// Taille maximale d'un fichier uploadé en Mo (env: RUNIQUE_MAX_UPLOAD_MB, défaut: 100).
-    /// Protection DoS au niveau du streaming — la limite par champ (`FileField::max_size_mb`)
-    /// reste le contrôle fonctionnel.
+    /// Maximum upload size for a file in MB (env: RUNIQUE_MAX_UPLOAD_MB, default: 100).
+    /// DoS protection at the streaming level - the per-field limit (`FileField::max_size`)
+    /// remains the functional control.
     pub max_upload_mb: u64,
-    /// Taille maximale d'un champ texte multipart en Ko (env: RUNIQUE_MAX_TEXT_FIELD_KB, défaut: 1024).
+    /// Maximum size of a multipart text field in KB (env: RUNIQUE_MAX_TEXT_FIELD_KB, default: 1024).
     pub max_text_field_kb: usize,
 }
 
 impl StaticConfig {
-    /// Charge les chemins depuis les variables d'environnement avec des valeurs par défaut sensées.
+    /// Loads paths from environment variables with sensible defaults.
     pub fn from_env() -> Self {
         let base_dir = std::env::var("BASE_DIR").unwrap_or_else(|_| ".".to_string());
 

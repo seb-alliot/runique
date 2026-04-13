@@ -1,4 +1,4 @@
-//! Staging du cœur de l'application : connexion DB et registre d'URLs.
+//! Core application staging: DB connection and URL registry.
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
 use crate::utils::aliases::{ARlockmap, new_registry};
 
@@ -8,26 +8,26 @@ use crate::db::DatabaseConfig;
 use sea_orm::DatabaseConnection;
 
 // ═══════════════════════════════════════════════════════════════
-// CoreStaging — Composants obligatoires du cœur de l'application
+// CoreStaging — Mandatory core application components
 // ═══════════════════════════════════════════════════════════════
 //
-// Inspiré du système Prisme des formulaires :
-// - Collecte flexible (le dev ajoute dans l'ordre qu'il veut)
-// - Validation stricte (tout est vérifié avant construction)
-// - Signal OK (is_ready)
+// Inspired by the Prisme forms system:
+// - Flexible collection (the dev adds in the order they want)
+// - Strict validation (everything is verified before construction)
+// - OK signal (is_ready)
 //
-// Le CoreStaging accepte deux chemins pour la DB :
-//   1. .with_database(db)         → connexion déjà établie par le dev
-//   2. .with_database_config(cfg) → le staging valide le driver et
-//                                    connecte pendant le build
+// CoreStaging accepts two paths for the DB:
+//   1. .with_database(db)         → connection already established by the dev
+//   2. .with_database_config(cfg) → staging validates the driver and
+//                                    connects during build
 // ═══════════════════════════════════════════════════════════════
 
 pub struct CoreStaging {
-    /// Connexion DB déjà établie (chemin 1)
+    /// Already established DB connection (path 1)
     #[cfg(feature = "orm")]
     pub(crate) db: Option<DatabaseConnection>,
 
-    /// Configuration DB pour connexion différée (chemin 2)
+    /// DB configuration for deferred connection (path 2)
     #[cfg(feature = "orm")]
     pub(crate) db_config: Option<DatabaseConfig>,
 
@@ -35,7 +35,7 @@ pub struct CoreStaging {
 }
 
 impl CoreStaging {
-    /// Crée un nouveau CoreStaging avec les valeurs par défaut
+    /// Creates a new CoreStaging with default values
     pub fn new() -> Self {
         Self {
             #[cfg(feature = "orm")]
@@ -47,12 +47,12 @@ impl CoreStaging {
     }
 
     // ═══════════════════════════════════════════════════
-    // Configuration de la base de données
+    // Database configuration
     // ═══════════════════════════════════════════════════
 
-    /// Enregistre une connexion à la base de données déjà établie
+    /// Registers an already established database connection
     ///
-    /// Le dev gère la connexion lui-même :
+    /// The dev manages the connection themselves:
     /// ```rust,ignore
     /// .core(|c| {
     ///     let db = DatabaseConfig::from_env()?.build().connect().await?;
@@ -65,9 +65,9 @@ impl CoreStaging {
         self
     }
 
-    /// Enregistre une configuration DB — la connexion sera établie pendant le build.
+    /// Registers a DB configuration — the connection will be established during build.
     ///
-    /// Le staging valide le driver et connecte automatiquement :
+    /// Staging validates the driver and connects automatically:
     /// ```rust,ignore
     /// .core(|c| {
     ///     let config = DatabaseConfig::from_env()?.build();
@@ -80,10 +80,10 @@ impl CoreStaging {
         self
     }
 
-    /// Valide que tous les composants obligatoires sont présents.
+    /// Validates that all mandatory components are present.
     ///
-    /// Retourne un `BuildError::CheckFailed` avec un rapport détaillé
-    /// incluant des suggestions de correction pour chaque composant manquant.
+    /// Returns a `BuildError::CheckFailed` with a detailed report
+    /// including corrective suggestions for each missing component.
     pub fn validate(&self) -> Result<(), BuildError> {
         let mut report = CheckReport::new();
 
@@ -92,10 +92,10 @@ impl CoreStaging {
             report.add(
                 CheckError::new(
                     "Database",
-                    "Connexion ou configuration de base de données requise (feature 'orm' activée)",
+                    "Database connection or configuration required (`orm` feature enabled)",
                 )
                 .with_suggestion(
-                    "Ajoutez .with_database(db) ou .with_database_config(config) à votre chaîne de construction",
+                    "Add .with_database(db) or .with_database_config(config) to your construction chain",
                 ),
             );
         }
@@ -107,31 +107,31 @@ impl CoreStaging {
         Ok(())
     }
 
-    /// Si un `DatabaseConfig` a été fourni (chemin 2), valide le driver
-    /// et établit la connexion. Si une connexion directe a été fournie
-    /// (chemin 1), la retourne telle quelle.
+    /// If a `DatabaseConfig` was provided (path 2), validates the driver
+    /// and establishes the connection. If a direct connection was provided
+    /// (path 1), returns it as is.
     ///
-    /// Appelé pendant `build()` — après `validate()`.
+    /// Called during `build()` — after `validate()`.
     #[cfg(feature = "orm")]
     pub(crate) async fn connect(&mut self) -> Result<DatabaseConnection, BuildError> {
-        // Chemin 1 : connexion déjà fournie par le dev
+        // Path 1: connection already provided by the dev
         if let Some(db) = self.db.take() {
             return Ok(db);
         }
 
-        // Chemin 2 : connexion depuis DatabaseConfig
+        // Path 2: connection from DatabaseConfig
         if let Some(config) = self.db_config.take() {
             let db = config.connect().await.map_err(|e| {
-                BuildError::validation(format!("Échec de connexion à la base de données : {}", e))
+                BuildError::validation(format!("Failed to connect to the database: {}", e))
             })?;
             return Ok(db);
         }
 
-        // Ne devrait jamais arriver si validate() a été appelé avant
+        // Should never happen if validate() was called before
         Err(BuildError::database_missing())
     }
 
-    /// Vérifie si le core est prêt pour la construction
+    /// Checks if the core is ready for construction
     pub fn is_ready(&self) -> bool {
         #[cfg(feature = "orm")]
         {

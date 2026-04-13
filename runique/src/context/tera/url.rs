@@ -1,4 +1,4 @@
-//! Fonction Tera `link` — résolution d'URL nommée depuis le registre global, avec paramètres optionnels.
+//! Tera `link` function — named URL resolution from the global registry, with optional parameters.
 use crate::utils::aliases::{ARlockmap, JsonMap, TResult};
 use tera::{Function, Value};
 
@@ -16,18 +16,18 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
     let link_name = args
         .get("link")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| tera::Error::msg("link() nécessite un argument 'link'"))?;
+        .ok_or_else(|| tera::Error::msg("link() requires a 'link' argument"))?;
 
     let map = url_registry.read().unwrap_or_else(|e| e.into_inner());
     let pattern = map.get(link_name).cloned().ok_or_else(|| {
         tera::Error::msg(format!(
-            "Route '{}' introuvable.\n\nVérifiez que la route existe dans vos routes !",
+            "Route '{}' not found.\n\nVerify that the route exists in your routes!",
             link_name
         ))
     })?;
     drop(map);
 
-    // Substituer les paramètres de route {id}, {slug}, etc.
+    // Substitute route parameters {id}, {slug}, etc.
     let mut result = args
         .iter()
         .filter(|(k, _)| *k != "link" && *k != "query")
@@ -40,12 +40,12 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
             acc.replace(&format!("{{{}}}", k), &value)
         });
 
-    // Gérer les paramètres de query string
+    // Handle query string parameters
     if let Some(query_val) = args.get("query") {
         let query_str = match query_val {
             Value::String(s) => s.clone(),
             Value::Object(map) => {
-                // Construire ?k1=v1&k2=v2
+                // Build ?k1=v1&k2=v2
                 map.iter()
                     .map(|(k, v)| {
                         let v_encoded: String = match v {
@@ -70,24 +70,24 @@ fn link_function(args: &JsonMap, url_registry: &ARlockmap) -> TResult {
     Ok(Value::String(result))
 }
 
-// Exemples d'utilisation dans les templates :
+// Usage examples in templates:
 //
-// Route simple :
+// Simple route:
 //   {% link "index" %}
 //   → /
 //
-// Paramètre de route :
+// Route parameter:
 //   {% link "article_detail" id=article.id %}
 //   → /articles/42
 //
-// Sans query :
+// Without query:
 //   {% link "article_list" %}
 //   → /articles
 //
-// Avec query (objet) :
+// With query (object):
 //   {% link "article_list" query={page: 2, search: "rust"} %}
 //   → /articles?page=2&search=rust
 //
-// Avec query (string brute) :
+// With query (raw string):
 //   {% link "article_list" query="page=2&search=rust" %}
 //   → /articles?page=2&search=rust

@@ -1,6 +1,6 @@
-//! Macro `impl_from_error!` — génère les implémentations `From<Err>` vers `AppError` en une ligne.
+//! Macro `impl_from_error!` — generates `From<Err>` to `AppError` implementations in a single line.
 
-// Factorisation des conversions avec une macro interne simple
+// Factorization of conversions with a simple internal macro
 #[macro_export]
 macro_rules! impl_from_error {
     ($($err:ty => $method:ident),*) => {

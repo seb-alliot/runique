@@ -1,4 +1,4 @@
-//! Entité utilisateur built-in de Runique (table `eihwaz_users`).
+//! Runique's built-in user entity (table `eihwaz_users`).
 pub use crate::auth::{session::UserEntity, user_trait::RuniqueUser};
 use crate::utils::pk::Pk;
 use crate::{impl_objects, search};
@@ -6,7 +6,7 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, DatabaseConnection, EntityTrait, entity::prelude::*,
 };
 
-// ─── Modèle SeaORM ───────────────────────────────────────────────────────────
+// ─── SeaORM Model ───────────────────────────────────────────────────────────
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "eihwaz_users")]
@@ -117,13 +117,13 @@ impl UserEntity for BuiltinUserEntity {
     }
 }
 
-// ─── Alias pratique ───────────────────────────────────────────────────────────
+// ─── Handy Alias ───────────────────────────────────────────────────────────
 pub type RuniqueAdminAuth = crate::auth::session::DefaultAdminAuth<BuiltinUserEntity>;
 
-// ─── Schema formulaire ────────────────────────────────────────────────────────
+// ─── Form Schema ────────────────────────────────────────────────────────
 
-/// Retourne le `ModelSchema` de la table `eihwaz_users`.
-/// Utilisé par `#[form(schema = runique_users)]` — pas besoin de déclarer l'entité localement.
+/// Returns the `ModelSchema` of the `eihwaz_users` table.
+/// Used by `#[form(schema = runique_users)]` — no need to declare the entity locally.
 pub fn schema() -> crate::migration::schema::ModelSchema {
     #[cfg(feature = "big-pk")]
     let pk = crate::migration::PrimaryKeyDef::new("id")

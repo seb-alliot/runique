@@ -1,4 +1,4 @@
-//! Moteur Runique — `RuniqueEngine` centralise toutes les dépendances partagées (Tera, DB, config, registres).
+//! Runique engine — `RuniqueEngine` centralizes all shared dependencies (Tera, DB, config, registries).
 pub mod core;
 
 pub use core::*;

@@ -1,4 +1,4 @@
-//! `Message` — extracteur Axum pour lire/écrire les messages flash en session.
+//! `Message` — Axum extractor to read/write flash messages in session.
 use crate::flash::flash_struct::FlashMessage;
 use crate::utils::{aliases::Messages, constante::session_key::session::FLASH_KEY};
 use axum::extract::FromRequestParts;
@@ -62,7 +62,7 @@ impl Message {
             .flatten()
             .unwrap_or_default();
 
-        // Supprime après lecture pour effet “flash”
+        // Deletes after reading for “flash” effect
         let _ = self.session.remove::<Messages>(FLASH_KEY).await;
         messages
     }

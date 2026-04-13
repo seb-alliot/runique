@@ -1,4 +1,4 @@
-//! Protection brute-force, middleware `login_required`, et cache de permissions.
+//! Brute-force protection, `login_required` middleware, and permission cache.
 use crate::admin::permissions::Groupe;
 use crate::utils::pk::Pk;
 use std::{
@@ -9,7 +9,7 @@ use std::{
 use tokio::time::interval;
 
 // ═══════════════════════════════════════════════════════════════
-// Cache global des permissions par user_id
+// Global permission cache by user_id
 // ═══════════════════════════════════════════════════════════════
 
 #[derive(Clone, Debug)]
@@ -20,27 +20,27 @@ pub struct CachedPermissions {
 static PERMISSIONS_CACHE: LazyLock<RwLock<HashMap<Pk, Arc<CachedPermissions>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
-/// Insère ou met à jour les permissions d'un utilisateur dans le cache.
-/// Appelé au login et lors d'un signal de changement de droits.
+/// Inserts or updates a user's permissions in the cache.
+/// Called upon login and when a rights change signal occurs.
 pub fn cache_permissions(user_id: Pk, groupes: Vec<Groupe>) {
     if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
         cache.insert(user_id, Arc::new(CachedPermissions { groupes }));
     }
 }
 
-/// Retourne les permissions cachées pour un utilisateur.
+/// Returns the cached permissions for a user.
 pub fn get_permissions(user_id: Pk) -> Option<Arc<CachedPermissions>> {
     PERMISSIONS_CACHE.read().ok()?.get(&user_id).cloned()
 }
 
-/// Supprime les permissions d'un utilisateur du cache (logout).
+/// Removes a user's permissions from the cache (logout).
 pub fn evict_permissions(user_id: Pk) {
     if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
         cache.remove(&user_id);
     }
 }
 
-/// Vide entièrement le cache (redémarrage, maintenance).
+/// Entirely clears the cache (restart, maintenance).
 pub fn clear_cache() {
     if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
         cache.clear();
@@ -51,24 +51,24 @@ pub fn clear_cache() {
 // LoginGuard
 // ═══════════════════════════════════════════════════════════════
 
-/// Entrée par username : (nombre d'échecs, début du verrouillage)
+/// Entry by username: (number of failures, start of lockout)
 type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
 
-/// Protection contre le brute-force par username.
+/// Brute-force protection by username.
 ///
-/// Suit les tentatives de login échouées par compte, indépendamment de l'IP.
-/// Aucun faux positif lié au NAT ou aux proxies partagés.
+/// Tracks failed login attempts per account, independent of IP.
+/// No false positives related to NAT or shared proxies.
 ///
-/// # Exemple
+/// # Example
 /// ```rust,ignore
 /// use runique::prelude::*;
 /// use std::sync::Arc;
 ///
 /// let guard = Arc::new(LoginGuard::new().max_attempts(5).lockout_secs(300));
 ///
-/// // Dans le handler de login :
+/// // In the login handler:
 /// if guard.is_locked(&username) {
-///     // retourner une erreur de blocage
+///     // return a blocking error
 /// }
 /// match authenticate(&username, &password, &db).await {
 ///     Some(user) => {
@@ -83,14 +83,14 @@ type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
 #[derive(Clone)]
 pub struct LoginGuard {
     store: Store,
-    /// Nombre d'échecs avant verrouillage
+    /// Number of failures before lockout
     pub max_attempts: u32,
-    /// Durée du verrouillage en secondes
+    /// Lockout duration in seconds
     pub lockout_secs: u64,
 }
 
 impl LoginGuard {
-    /// Crée un `LoginGuard` avec les valeurs par défaut (5 tentatives / 300 s).
+    /// Creates a `LoginGuard` with default values (5 attempts / 300 s).
     pub fn new() -> Self {
         Self {
             store: Arc::new(Mutex::new(HashMap::new())),
@@ -99,21 +99,21 @@ impl LoginGuard {
         }
     }
 
-    /// Nombre d'échecs avant verrouillage du compte
+    /// Number of failures before account lockout
     #[must_use]
     pub fn max_attempts(mut self, max: u32) -> Self {
         self.max_attempts = max;
         self
     }
 
-    /// Durée du verrouillage en secondes
+    /// Lockout duration in seconds
     #[must_use]
     pub fn lockout_secs(mut self, secs: u64) -> Self {
         self.lockout_secs = secs;
         self
     }
 
-    /// Spawne une tâche Tokio qui purge périodiquement les entrées expirées.
+    /// Spawns a Tokio task that periodically purges expired entries.
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let store = self.store.clone();
         let lockout_secs = self.lockout_secs;
@@ -131,7 +131,7 @@ impl LoginGuard {
         });
     }
 
-    /// Enregistre un échec de connexion pour ce username
+    /// Records a connection failure for this username
     pub fn record_failure(&self, username: &str) {
         let mut store = match self.store.lock() {
             Ok(s) => s,
@@ -144,7 +144,7 @@ impl LoginGuard {
         entry.1 = Instant::now();
     }
 
-    /// Réinitialise le compteur après une connexion réussie
+    /// Resets the counter after a successful connection
     pub fn record_success(&self, username: &str) {
         let mut store = match self.store.lock() {
             Ok(s) => s,
@@ -153,7 +153,7 @@ impl LoginGuard {
         store.remove(username);
     }
 
-    /// Retourne `true` si le compte est temporairement verrouillé
+    /// Returns `true` if the account is temporarily locked
     #[must_use]
     pub fn is_locked(&self, username: &str) -> bool {
         let store = match self.store.lock() {
@@ -166,7 +166,7 @@ impl LoginGuard {
         attempts >= self.max_attempts && last.elapsed() < Duration::from_secs(self.lockout_secs)
     }
 
-    /// Nombre d'échecs en cours pour ce username
+    /// Current number of failures for this username
     #[must_use]
     pub fn attempts(&self, username: &str) -> u32 {
         let store = match self.store.lock() {
@@ -176,10 +176,10 @@ impl LoginGuard {
         store.get(username).map_or(0, |(n, _)| *n)
     }
 
-    /// Retourne la clé effective à utiliser avec `LoginGuard`.
+    /// Returns the effective key to use with `LoginGuard`.
     ///
-    /// - Username non vide → clé par username (protection compte ciblé)
-    /// - Username vide ou absent → `"anonym:{ip}"` (protection anonyme par IP)
+    /// - Non-empty username → key by username (targeted account protection)
+    /// - Empty or absent username → `"anonym:{ip}"` (anonymous protection by IP)
     #[must_use]
     pub fn effective_key<'a>(username: &'a str, ip: &str) -> std::borrow::Cow<'a, str> {
         if username.trim().is_empty() {
@@ -189,7 +189,7 @@ impl LoginGuard {
         }
     }
 
-    /// Secondes restantes avant déverrouillage, ou `None` si non verrouillé
+    /// Remaining seconds before unlocking, or `None` if not locked
     #[must_use]
     pub fn remaining_lockout_secs(&self, username: &str) -> Option<u64> {
         let store = match self.store.lock() {
@@ -227,7 +227,7 @@ use axum::{
 };
 use tower_sessions::Session;
 
-/// Middleware qui redirige vers `redirect_url` si l'utilisateur n'est pas authentifié.
+/// Middleware that redirects to `redirect_url` if the user is not authenticated.
 pub(crate) async fn login_required_middleware(
     State(redirect_url): State<Arc<String>>,
     session: Session,

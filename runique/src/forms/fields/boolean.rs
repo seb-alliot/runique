@@ -1,4 +1,4 @@
-//! Champ booléen `BooleanField` : checkbox HTML avec gestion des cases décochées.
+//! Boolean field `BooleanField`: HTML checkbox with unchecked case management.
 use crate::forms::base::*;
 use crate::utils::trad::tf;
 use serde::Serialize;
@@ -56,9 +56,9 @@ impl BooleanField {
 
 impl FormField for BooleanField {
     fn validate(&mut self) -> bool {
-        // Un champ booléen est toujours valide : "true" ou "false" (décoché = false).
-        // required = NOT NULL en DB, pas "doit être coché".
-        // Pour forcer la coche (ex: CGU), utiliser clean() avec une erreur custom.
+        // A boolean field is always valid: "true" or "false" (unchecked = false).
+        // required = NOT NULL in DB, not "must be checked".
+        // To force the check (e.g., TOS), use clean() with a custom error.
         self.clear_error();
         true
     }
@@ -70,7 +70,7 @@ impl FormField for BooleanField {
         context.insert("readonly", &self.to_json_readonly());
         context.insert("disabled", &self.to_json_disabled());
 
-        // Ajouter l'état "checked"
+        // Add the "checked" state
         let is_checked = self.base.value == "true";
         context.insert("checked", &is_checked);
 

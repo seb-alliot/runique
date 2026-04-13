@@ -1,4 +1,4 @@
-//! Middleware CSRF : génère et stocke le token en session, valide les requêtes mutantes.
+//! CSRF Middleware: generates and stores the token in session, validates mutating requests.
 use crate::auth::session::is_authenticated;
 use crate::context::RequestExtensions;
 use crate::utils::{
@@ -43,7 +43,7 @@ pub async fn csrf_middleware(
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
-    // Strip csrf_token des query params GET pour éviter l'exposition du token dans les URLs
+    // Strip csrf_token from GET query params to avoid token exposure in URLs
     if matches!(req.method(), &Method::GET | &Method::HEAD) {
         let uri = req.uri();
         if let Some(query) = uri.query() {
@@ -72,7 +72,7 @@ pub async fn csrf_middleware(
 
     let secret = &engine.config.server.secret_key;
 
-    // Récupérer ou générer le token de session
+    // Retrieve or generate the session token
     let session_token: CsrfToken = if let Some(t) = session
         .get::<CsrfToken>(CSRF_TOKEN_KEY)
         .await
@@ -107,7 +107,7 @@ pub async fn csrf_middleware(
         token
     };
 
-    // Vérification CSRF **UNIQUEMENT pour les requêtes AJAX avec header**
+    // CSRF verification **ONLY for AJAX requests with header**
     let requires_csrf = matches!(
         req.method(),
         &Method::POST | &Method::PUT | &Method::DELETE | &Method::PATCH
@@ -116,7 +116,7 @@ pub async fn csrf_middleware(
     if requires_csrf {
         let has_header = req.headers().contains_key("X-CSRF-Token");
 
-        // Si header présent, on valide (requête AJAX)
+        // If header present, we validate (AJAX request)
         if has_header {
             let header_token = req
                 .headers()
@@ -129,8 +129,8 @@ pub async fn csrf_middleware(
                     if token
                         .as_str()
                         .as_bytes()
-                        // ct_eq : comparaison constant-time — évite qu'un attaquant
-                        // devine le token octet par octet via le temps de réponse
+                        // ct_eq: constant-time comparison — prevents an attacker
+                        // from guessing the token byte by byte via response time
                         .ct_eq(session_token.as_str().as_bytes())
                         .into() =>
                 {
@@ -141,8 +141,8 @@ pub async fn csrf_middleware(
                 }
             }
         } else {
-            // Pas de header CSRF : autorisé uniquement pour les soumissions de formulaires HTML
-            // (urlencoded / multipart). Les requêtes JSON sans header sont bloquées.
+            // No CSRF header: allowed only for HTML form submissions
+            // (urlencoded / multipart). JSON requests without header are blocked.
             let ct = req
                 .headers()
                 .get("content-type")
@@ -153,11 +153,11 @@ pub async fn csrf_middleware(
             if !is_form {
                 return (StatusCode::FORBIDDEN, "CSRF token required").into_response();
             }
-            // Sinon, on laisse Prisme valider le champ de formulaire
+            // Otherwise, we let Prisme validate the form field
         }
     }
 
-    // Injection du token pour le frontend
+    // Token injection for the frontend
     let masked = session_token
         .masked()
         .unwrap_or_else(|_| session_token.clone());

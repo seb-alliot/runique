@@ -1,4 +1,4 @@
-//! Constantes de parsing — regex contraintes DB, liste blanche HTML (ammonia), champs rich-text.
+//! Parsing constants — DB constraint regex, HTML whitelist (ammonia), rich-text fields.
 use fancy_regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;

@@ -1,7 +1,7 @@
-//! Formulaires d'administration fournis par Runique.
+//! Administration forms provided by Runique.
 //!
-//! Ces forms sont disponibles directement dans `runique::admin::forms` et peuvent
-//! être référencés via `create_form:` dans `admin!{}` sans avoir à les réécrire.
+//! These forms are available directly in `runique::admin::forms` and can
+//! be referenced via `create_form:` in `admin!{}` without having to rewrite them.
 
 use crate::forms::field::RuniqueForm;
 use crate::forms::fields::{BooleanField, CheckboxField, ChoiceField, HiddenField, TextField};
@@ -17,17 +17,15 @@ pub struct DroitAdminForm {
 
 impl RuniqueForm for DroitAdminForm {
     fn register_fields(form: &mut Forms) {
-        // groupe_id, resource_key écrasés dynamiquement dans builtin.rs
-        form.field(&ChoiceField::new("groupe_id").label("Groupe").required());
-        form.field(&CheckboxField::new("resource_key").label("Ressources ciblées"));
-        form.field(&BooleanField::new("can_create").label("Peut créer"));
-        form.field(&BooleanField::new("can_read").label("Peut lire"));
-        form.field(&BooleanField::new("can_update").label("Peut modifier"));
-        form.field(&BooleanField::new("can_delete").label("Peut supprimer"));
-        form.field(&BooleanField::new("can_update_own").label("Peut modifier ses propres données"));
-        form.field(
-            &BooleanField::new("can_delete_own").label("Peut supprimer ses propres données"),
-        );
+        // groupe_id, resource_key overridden dynamically in builtin.rs
+        form.field(&ChoiceField::new("groupe_id").label("Group").required());
+        form.field(&CheckboxField::new("resource_key").label("Targeted Resources"));
+        form.field(&BooleanField::new("can_create").label("Can create"));
+        form.field(&BooleanField::new("can_read").label("Can read"));
+        form.field(&BooleanField::new("can_update").label("Can update"));
+        form.field(&BooleanField::new("can_delete").label("Can delete"));
+        form.field(&BooleanField::new("can_update_own").label("Can update own data"));
+        form.field(&BooleanField::new("can_delete_own").label("Can delete own data"));
     }
     impl_form_access!();
 }
@@ -42,20 +40,20 @@ pub struct GroupeAdminForm {
 
 impl RuniqueForm for GroupeAdminForm {
     fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("nom").label("Nom").required());
+        form.field(&TextField::text("nom").label("Name").required());
     }
     impl_form_access!();
 }
 
-/// Formulaire de création d'utilisateur depuis l'interface admin.
+/// User creation form from the admin interface.
 ///
-/// Le champ `password` est caché — Runique injecte automatiquement un hash aléatoire
-/// et envoie un email de reset à l'utilisateur créé.
+/// The `password` field is hidden — Runique automatically injects a random hash
+/// and sends a reset email to the created user.
 ///
-/// Usage dans `admin!{}` :
+/// Usage in `admin!{}`:
 /// ```rust,ignore
 /// users: eihwaz_users::Model => MyForm {
-///     title: "Utilisateurs",
+///     title: "Users",
 ///     permissions: ["admin"],
 ///     create_form: runique::admin::forms::UserAdminCreateForm,
 ///     edit_form: crate::formulaire::UserEditForm,
@@ -70,17 +68,13 @@ pub struct UserAdminCreateForm {
 #[async_trait::async_trait]
 impl RuniqueForm for UserAdminCreateForm {
     fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::text("username")
-                .label("Nom d'utilisateur")
-                .required(),
-        );
+        form.field(&TextField::text("username").label("Username").required());
         form.field(&TextField::email("email").label("Email").required());
         form.field(&HiddenField::new("password"));
         form.field(&BooleanField::new("is_staff").label("Staff"));
         form.field(&BooleanField::new("is_superuser").label("Superuser"));
-        // Champ écrasé dynamiquement avec les groupes disponibles (voir builtin.rs)
-        form.field(&CheckboxField::new("groupes").label("Groupes"));
+        // Field overridden dynamically with available groups (see builtin.rs)
+        form.field(&CheckboxField::new("groupes").label("Groups"));
     }
 
     impl_form_access!();
@@ -93,11 +87,11 @@ impl RuniqueForm for UserAdminCreateForm {
         if username.len() < 3 {
             errors.insert(
                 "username".to_string(),
-                "Le nom d'utilisateur doit faire au moins 3 caractères.".to_string(),
+                "Username must be at least 3 characters long.".to_string(),
             );
         }
         if !email.contains('@') {
-            errors.insert("email".to_string(), "Adresse email invalide.".to_string());
+            errors.insert("email".to_string(), "Invalid email address.".to_string());
         }
 
         if errors.is_empty() {
@@ -118,17 +112,13 @@ pub struct UserAdminEditForm {
 
 impl RuniqueForm for UserAdminEditForm {
     fn register_fields(form: &mut Forms) {
-        form.field(
-            &TextField::text("username")
-                .label("Nom d'utilisateur")
-                .required(),
-        );
+        form.field(&TextField::text("username").label("Username").required());
         form.field(&TextField::email("email").label("Email").required());
-        form.field(&BooleanField::new("is_active").label("Actif"));
+        form.field(&BooleanField::new("is_active").label("Active"));
         form.field(&BooleanField::new("is_staff").label("Staff"));
         form.field(&BooleanField::new("is_superuser").label("Superuser"));
-        // Champ écrasé dynamiquement avec les groupes disponibles (voir builtin.rs)
-        form.field(&CheckboxField::new("groupes").label("Groupes"));
+        // Field overridden dynamically with available groups (see builtin.rs)
+        form.field(&CheckboxField::new("groupes").label("Groups"));
     }
     impl_form_access!();
 }

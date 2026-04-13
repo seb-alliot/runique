@@ -1,8 +1,8 @@
-// model_macro/src/model/ast.rs — structures qui représentent le DSL parsé
+// model_macro/src/model/ast.rs — structures representing the parsed DSL
 
 pub enum EnumBackingType {
-    /// Détecté depuis `.env` : natif Postgres (`CREATE TYPE … AS ENUM`) si engine = Postgres,
-    /// sinon VARCHAR. C'est le comportement par défaut quand aucun type n'est précisé.
+    /// Detected from `.env`: native Postgres (`CREATE TYPE … AS ENUM`) if engine = Postgres,
+    /// otherwise VARCHAR. This is the default behavior when no type is specified.
     Auto,
     I32,
     I64,
@@ -15,7 +15,7 @@ pub struct EnumVariant {
 }
 
 impl EnumVariant {
-    /// Valeur stockée en base (String) : valeur explicite ou nom du variant.
+    /// Value stored in database (String): explicit value or variant name.
     pub fn db_str(&self) -> String {
         match &self.value {
             Some(syn::Lit::Str(s)) => s.value(),
@@ -23,7 +23,7 @@ impl EnumVariant {
         }
     }
 
-    /// Libellé affiché (formulaire admin) : label explicite, sinon db_str.
+    /// Displayed label (admin form): explicit label, otherwise db_str.
     pub fn display_str(&self) -> String {
         match &self.label {
             Some(syn::Lit::Str(s)) => s.value(),
@@ -49,7 +49,7 @@ pub struct ModelInput {
     pub form_fields: Vec<FormFieldDecl>,
 }
 
-// ── Bloc form_fields: — types sémantiques ──────────────────────
+// ── form_fields: block — semantic types ──────────────────────
 
 pub enum FormFieldKind {
     Text,
@@ -94,13 +94,13 @@ pub enum FormFieldAttr {
     MaxSize(u64),
     Rows(u32),
     Step(f64),
-    /// Référence à un enum déclaré dans `enums:` — utilisé avec `choice` et `radio`.
+    /// Reference to an enum declared in `enums:` — used with `choice` and `radio`.
     EnumRef(syn::Ident),
-    /// Rempli automatiquement à la création — exclut le champ du formulaire.
+    /// Automatically filled on creation — excludes the field from the form.
     AutoNow,
-    /// Rempli automatiquement à chaque mise à jour — exclut le champ du formulaire.
+    /// Automatically filled on every update — excludes the field from the form.
     AutoNowUpdate,
-    /// Contrainte UNIQUE sur la colonne SQL.
+    /// UNIQUE constraint on the SQL column.
     Unique,
 }
 

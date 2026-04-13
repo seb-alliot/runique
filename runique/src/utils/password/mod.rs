@@ -1,4 +1,4 @@
-//! Hachage et vérification de mots de passe — Argon2, bcrypt, scrypt via trait `PasswordHasher`.
+//! Password hashing and verification — Argon2, bcrypt, scrypt via `PasswordHasher` trait.
 
 // === password/hasher.rs ===
 use argon2::{
@@ -285,7 +285,7 @@ impl PasswordService {
 
                 if value.is_empty() {
                     if !config.allow_empty {
-                        return Err("Mot de passe vide non autorisé".to_string());
+                        return Err("Empty password not allowed".to_string());
                     }
                     return Ok(());
                 }
@@ -296,7 +296,7 @@ impl PasswordService {
 
                 if self.looks_like_hash(value) {
                     return Err(format!(
-                        "Le champ '{}' contient une valeur ressemblant à un hash non reconnu",
+                        "The field '{}' contains a value resembling an unrecognized hash",
                         field.base.name
                     ));
                 }
@@ -313,25 +313,25 @@ impl PasswordService {
     }
 
     pub fn hash(&self, password: &str) -> Result<String, String> {
-        // Vérification policy allow_empty pour mode Auto
+        // check allow_empty policy for Auto mode
         if password.is_empty() {
             match &self.config {
                 PasswordConfig::Auto(config) if !config.allow_empty => {
-                    return Err("Mot de passe vide non autorisé".to_string());
+                    return Err("Empty password not allowed".to_string());
                 }
                 _ => {}
             }
         }
 
         if self.looks_like_hash(password) {
-            return Err("Le mot de passe ressemble à un hash déjà traité".to_string());
+            return Err("The password resembles an already processed hash".to_string());
         }
 
         match &self.config {
             PasswordConfig::Auto(config) => self.hasher.hash(password, &config.algorithm),
             PasswordConfig::Manual(algorithm) => self.hasher.hash(password, algorithm),
             PasswordConfig::Custom(handler) => handler.transform(password),
-            PasswordConfig::Delegated(_) => Err("Pas de hashage en mode délégué".to_string()),
+            PasswordConfig::Delegated(_) => Err("No hashing in delegated mode".to_string()),
         }
     }
     #[must_use]
@@ -382,7 +382,7 @@ pub fn password_init(config: PasswordConfig) {
         if let Some(level) = crate::utils::runique_log::get_log().password_init {
             crate::runique_log!(
                 level,
-                "password_init() appelé plusieurs fois — la configuration initiale est conservée"
+                "password_init() called multiple times — initial configuration is kept"
             );
         }
     }

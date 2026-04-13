@@ -1,4 +1,4 @@
-//! Configuration du panneau d'administration : préfixe, titre, hot reload, auth et templates.
+//! Admin panel configuration: prefix, title, hot reload, auth, and templates.
 use std::sync::Arc;
 
 use crate::admin::helper::AdminTemplate;
@@ -7,59 +7,59 @@ use crate::middleware::security::RateLimiter;
 use crate::utils::env::is_debug;
 
 pub struct AdminConfig {
-    /// Préfixe des routes admin (défaut : "/admin")
+    /// Prefix for admin routes (default: "/admin")
     pub prefix: String,
 
-    /// Active le daemon de hot reload en développement
+    /// Enables the hot reload daemon in development
     pub hot_reload: bool,
 
-    /// Titre affiché dans l'interface admin
+    /// Title displayed in the admin interface
     pub site_title: String,
 
-    /// URL de retour vers le site principal (défaut : "/")
+    /// Return URL to the main site (default: "/")
     pub site_url: String,
 
-    /// Active ou désactive entièrement l'AdminPanel
+    /// Entirely enables or disables the `AdminPanel`
     pub enabled: bool,
 
-    /// Handler de vérification du login admin
+    /// Admin login verification handler
     ///
-    /// Voir `crate::auth::AdminAuth`.
+    /// See `crate::auth::AdminAuth`.
     pub auth: Option<Arc<dyn AdminAuth>>,
 
-    /// Surcharges de templates admin (dashboard, login, list, etc.)
+    /// Admin template overrides (dashboard, login, list, etc.)
     pub templates: AdminTemplate,
 
-    /// Nombre d'entrées par page dans la vue liste (défaut : 10)
+    /// Number of entries per page in the list view (default: 10)
     pub page_size: u64,
 
-    /// URL de base pour la réinitialisation de mot de passe (défaut : None)
-    /// Le token sera ajouté automatiquement : `{reset_password_url}/{token}`
+    /// Base URL for password reset (default: None)
+    /// The token will be added automatically: `{reset_password_url}/{token}`
     ///
-    /// En production avec mailer, doit être une URL absolue :
-    /// `"https://monsite.fr/reset-password"`
+    /// In production with a mailer, must be an absolute URL:
+    /// `"https://mysite.com/reset-password"`
     ///
-    /// Si None, le lien est affiché dans le flash message (dev sans mailer).
+    /// If None, the link is displayed in the flash message (dev without mailer).
     pub reset_password_url: Option<String>,
 
-    /// Ressources "utilisateur" : clé de ressource → template email optionnel.
-    /// Activer via `.user_resource("users")`.
-    /// À la création, génère un mot de passe aléatoire hashé et envoie un email de reset.
+    /// "User" resources: resource key → optional email template.
+    /// Enable via `.user_resource("users")`.
+    /// Upon creation, generates a random hashed password and sends a reset email.
     pub user_resources: std::collections::HashMap<String, Option<String>>,
 
-    /// Template Tera pour l'email de reset de mot de passe depuis l'admin.
-    /// Défaut : "admin/reset_password_email.html"
-    /// Contexte disponible : `username`, `email`, `reset_url`
+    /// Tera template for the password reset email from the admin.
+    /// Default: "admin/reset_password_email.html"
+    /// Available context: `username`, `email`, `reset_url`
     pub reset_password_email_template: Option<String>,
 
-    /// Ordre d'affichage des ressources dans la nav (clés URL).
-    /// Les clés non listées apparaissent à la fin dans leur ordre d'insertion.
+    /// Display order of resources in the navigation (URL keys).
+    /// Unlisted keys appear at the end in their insertion order.
     pub resource_order: Vec<String>,
 
-    /// Rate limiter appliqué sur la route de login (optionnel).
+    /// Rate limiter applied to the login route (optional).
     pub rate_limiter: Option<Arc<RateLimiter>>,
 
-    /// Protection brute-force par compte sur le login admin (optionnel).
+    /// Per-account brute-force protection on admin login (optional).
     pub login_guard: Option<Arc<LoginGuard>>,
 }
 
@@ -143,15 +143,15 @@ impl AdminConfig {
         self
     }
 
-    /// URL de base pour le reset de mot de passe côté projet.
-    /// Le token sera ajouté automatiquement : `{url}/{token}`
+    /// Base URL for password reset on the project side.
+    /// The token will be added automatically: `{url}/{token}`
     ///
-    /// En production (avec mailer), passer une URL absolue :
+    /// In production (with a mailer), pass an absolute URL:
     /// ```rust,ignore
-    /// .with_admin(|a| a.reset_password_url("https://monsite.fr/reset-password"))
+    /// .with_admin(|a| a.reset_password_url("https://mysite.com/reset-password"))
     /// ```
     ///
-    /// Pour lire depuis l'environnement dans `main.rs` :
+    /// To read from the environment in `main.rs`:
     /// ```rust,ignore
     /// let reset_url = std::env::var("RESET_PASSWORD_URL").ok();
     /// .with_admin(|a| {
@@ -164,7 +164,7 @@ impl AdminConfig {
         self
     }
 
-    /// Branche le handler d'authentification admin
+    /// Attaches the admin authentication handler
     ///
     /// ```rust,ignore
     /// AdminConfig::new().auth(RuniqueAdminAuth::new())
@@ -181,9 +181,9 @@ impl AdminConfig {
         self
     }
 
-    /// Déclare une ressource comme "utilisateur".
-    /// À la création : mot de passe aléatoire hashé + email de reset envoyé automatiquement.
-    /// Le champ email du formulaire doit s'appeler "email".
+    /// Declares a resource as a "user".
+    /// Upon creation: random hashed password + reset email sent automatically.
+    /// The form's email field must be named "email".
     ///
     /// ```rust,ignore
     /// AdminConfig::new().user_resource("users")
@@ -193,14 +193,14 @@ impl AdminConfig {
         self
     }
 
-    /// Template Tera pour l'email de reset de mot de passe depuis l'admin.
-    /// Contexte : `username`, `email`, `reset_url`
+    /// Tera template for the password reset email from the admin.
+    /// Context: `username`, `email`, `reset_url`
     pub fn reset_password_email_template(mut self, path: &str) -> Self {
         self.reset_password_email_template = Some(path.to_string());
         self
     }
 
-    /// Comme `user_resource` mais avec un template email personnalisé.
+    /// Like `user_resource` but with a custom email template.
     ///
     /// ```rust,ignore
     /// AdminConfig::new().user_resource_with_template("users", "emails/welcome.html")
@@ -211,7 +211,7 @@ impl AdminConfig {
         self
     }
 
-    /// Active le rate limiting sur la route de login admin.
+    /// Enables rate limiting on the admin login route.
     ///
     /// ```rust,ignore
     /// AdminConfig::new().with_rate_limiter(RateLimiter::new().max_requests(10).retry_after(60))
@@ -221,7 +221,7 @@ impl AdminConfig {
         self
     }
 
-    /// Active la protection brute-force par compte sur le login admin.
+    /// Enables per-account brute-force protection on the admin login.
     ///
     /// ```rust,ignore
     /// AdminConfig::new().with_login_guard(LoginGuard::new().max_attempts(5).lockout_secs(300))
@@ -231,12 +231,12 @@ impl AdminConfig {
         self
     }
 
-    /// Définit l'ordre d'affichage des ressources dans la nav admin.
+    /// Sets the display order of resources in the admin navigation.
     ///
     /// ```rust,ignore
     /// AdminConfig::new().resource_order(["users", "blog", "droits", "groupes"])
     /// ```
-    /// Les clés non listées apparaissent à la fin dans leur ordre d'insertion.
+    /// Unlisted keys appear at the end in their insertion order.
     pub fn resource_order<I, S>(mut self, order: I) -> Self
     where
         I: IntoIterator<Item = S>,

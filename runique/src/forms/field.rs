@@ -1,4 +1,4 @@
-//! Trait `RuniqueForm` : interface commune à tous les formulaires Runique.
+//! `RuniqueForm` trait: common interface for all Runique forms.
 pub use crate::forms::{
     base::FormField, form::Forms, renderer::FormRenderer, validator::ValidationError,
 };
@@ -12,7 +12,7 @@ use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
 
 dyn_clone::clone_trait_object!(FormField);
 
-/// Logique commune à tous les `cleaned_*` — whiteliste + priorité POST > path > query.
+/// Common logic for all `cleaned_*` — whitelist + priority: POST > path > query.
 fn cleaned_value(form: &Forms, name: &str) -> Option<String> {
     if !form.fields.contains_key(name) {
         return None;
@@ -28,7 +28,7 @@ fn cleaned_value(form: &Forms, name: &str) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-/// Trait principal pour les formulaires typés avec validation et sauvegarde
+/// Main trait for typed forms with validation and saving
 ///
 #[doc = include_str!("../../doc-tests/form/form_proc_macro.md")]
 ///
@@ -40,52 +40,52 @@ pub trait RuniqueForm: Sized + Send + Sync {
     fn get_form(&self) -> &Forms;
     fn get_form_mut(&mut self) -> &mut Forms;
 
-    // ── Accès whitelisté aux valeurs (POST > path param > query param) ──────────
+    // ── Whitelisted access to values (POST > path param > query param) ──────────
 
-    /// `String` — `None` si le champ est inconnu ou vide.
+    /// `String` — `None` if the field is unknown or empty.
     fn cleaned_string(&self, name: &str) -> Option<String> {
         cleaned_value(self.get_form(), name)
     }
-    /// `i32` — `None` si inconnu, vide ou non parseable.
+    /// `i32` — `None` if unknown, empty, or not parseable.
     fn cleaned_i32(&self, name: &str) -> Option<i32> {
         cleaned_value(self.get_form(), name)?.parse().ok()
     }
-    /// `i64` — `None` si inconnu, vide ou non parseable.
+    /// `i64` — `None` if unknown, empty, or not parseable.
     fn cleaned_i64(&self, name: &str) -> Option<i64> {
         cleaned_value(self.get_form(), name)?.parse().ok()
     }
-    /// `u32` — `None` si inconnu, vide ou non parseable.
+    /// `u32` — `None` if unknown, empty, or not parseable.
     fn cleaned_u32(&self, name: &str) -> Option<u32> {
         cleaned_value(self.get_form(), name)?.parse().ok()
     }
-    /// `u64` — `None` si inconnu, vide ou non parseable.
+    /// `u64` — `None` if unknown, empty, or not parseable.
     fn cleaned_u64(&self, name: &str) -> Option<u64> {
         cleaned_value(self.get_form(), name)?.parse().ok()
     }
-    /// `f32` — gère `,` → `.`. `None` si inconnu, vide ou non parseable.
+    /// `f32` — handles `,` → `.`. `None` if unknown, empty, or not parseable.
     fn cleaned_f32(&self, name: &str) -> Option<f32> {
         cleaned_value(self.get_form(), name)?
             .replace(',', ".")
             .parse()
             .ok()
     }
-    /// `f64` — gère `,` → `.`. `None` si inconnu, vide ou non parseable.
+    /// `f64` — handles `,` → `.`. `None` if unknown, empty, or not parseable.
     fn cleaned_f64(&self, name: &str) -> Option<f64> {
         cleaned_value(self.get_form(), name)?
             .replace(',', ".")
             .parse()
             .ok()
     }
-    /// `bool` — `true` pour `"true"`, `"1"`, `"on"` (insensible à la casse).
-    /// Retourne `None` si le champ n'existe pas dans le formulaire.
-    /// Note : `fill()` normalise les checkboxes/radios décochées vers `"false"`,
-    /// donc cette méthode retourne toujours `Some(_)` pour un champ boolean soumis.
+    /// `bool` — `true` for `"true"`, `"1"`, `"on"` (case-insensitive).
+    /// Returns `None` if the field does not exist in the form.
+    /// Note: `fill()` normalizes unchecked checkboxes/radios to `"false"`,
+    /// so this method always returns `Some(_)` for a submitted boolean field.
     fn cleaned_bool(&self, name: &str) -> Option<bool> {
         let v = cleaned_value(self.get_form(), name)?;
         Some(matches!(v.to_lowercase().as_str(), "true" | "1" | "on"))
     }
 
-    /// Vide toutes les valeurs du formulaire (hors CSRF).
+    /// Clears all form values (except CSRF).
     fn clear(&mut self) {
         self.get_form_mut().clear_values();
     }
@@ -153,15 +153,15 @@ pub trait RuniqueForm: Sized + Send + Sync {
         }
     }
 
-    /// Wrapper atomic par défaut : ouvre une transaction et appelle `save_txn`.
+    /// Default atomic wrapper: opens a transaction and calls `save_txn`.
     ///
-    /// - si `save_txn` renvoie Err -> rollback automatique
-    /// - sinon -> commit
+    /// - if `save_txn` returns Err -> automatic rollback
+    /// - otherwise -> commit
     async fn save_txn(&mut self, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
         Ok(())
     }
 
-    /// Wrapper atomic : transaction explicite (évite le piège des futures 'static)
+    /// Atomic wrapper: explicit transaction (avoids the 'static futures trap)
     async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
         let txn = db.begin().await?;
 
@@ -171,7 +171,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
                 Ok(())
             }
             Err(e) => {
-                // On tente rollback, mais on renvoie l’erreur métier/DB d’origine.
+                // Try rollback, but return the original business/DB error.
                 let _ = txn.rollback().await;
                 Err(e)
             }

@@ -1,8 +1,8 @@
-//! Définition de la macro `admin!` — lie modèles SeaORM, formulaires et options d'affichage admin.
+//! Definition of the `admin!` macro — binds SeaORM models, forms, and admin display options.
 
 #[macro_export]
 macro_rules! admin {
-    // Avec bloc configure en tête (optionnel)
+    // With configure block at the head (optional)
     (
         configure { $($_cfg:tt)* }
         $(
@@ -16,8 +16,8 @@ macro_rules! admin {
             }
         )*
     ) => {
-        // Vérification compile-time — justifie les `use` du dev
-        // Si un type est introuvable → erreur de compilation explicite
+        // Compile-time verification — validates dev imports
+        // If a type is missing → explicit compilation error
         $(
             const _: () = {
                 fn _check_types() {
@@ -28,7 +28,7 @@ macro_rules! admin {
         )*
     };
 
-    // Sans bloc configure
+    // Without configure block
     (
         $(
             $key:ident : $($model:ident)::+ => $form:path {
@@ -41,8 +41,8 @@ macro_rules! admin {
             }
         )*
     ) => {
-        // Vérification compile-time — justifie les `use` du dev
-        // Si un type est introuvable → erreur de compilation explicite
+        // Compile-time verification — validates dev imports
+        // If a type is missing → explicit compilation error
         $(
             const _: () = {
                 fn _check_types() {

@@ -1,4 +1,4 @@
-//! Définition de tous les aliases de types : `ATera`, `ADb`, `StrMap`, `FieldsMap`, `AppResult`…
+//! Definition of all type aliases: `ATera`, `ADb`, `StrMap`, `FieldsMap`, `AppResult`…
 use crate::auth::session::CurrentUser;
 use crate::config::app::RuniqueConfig;
 use crate::context::template::AppError;
@@ -10,13 +10,13 @@ use std::{collections::HashMap, result::Result, sync::Arc, sync::RwLock};
 use tera::{Result as TeraResult, Tera, Value};
 use tower_sessions::{SessionManagerLayer, SessionStore};
 
-// Import pour les nouveaux aliause crate::alia
+// Import for new aliases
 use crate::flash::FlashMessage;
 use crate::forms::base::FormField;
 use indexmap::IndexMap;
 
 // ============================================================================
-// ALIASES ARC<T> - TYPES PARTAGÉS THREAD-SAFE
+// ARC<T> ALIASES - THREAD-SAFE SHARED TYPES
 // ============================================================================
 
 /// Tera
@@ -44,11 +44,11 @@ pub type OAEngine = Option<AEngine>;
 pub type ARuniqueConfig = Arc<RuniqueConfig>;
 pub type OARuniqueConfig = Option<ARuniqueConfig>;
 
-/// Session Store (pour `SessionBackend::Custom`)
+/// Session Store (for `SessionBackend::Custom`)
 pub type ASessionStore = Arc<dyn SessionStore + Send + Sync>;
 
 // ============================================================================
-// ALIASES OPTION<T> - TYPES OPTIONNELS
+// OPTION<T> ALIASES - OPTIONAL TYPES
 // ============================================================================
 
 /// Current User
@@ -61,10 +61,10 @@ pub type OCsrfToken = Option<CsrfToken>;
 pub type OCspNonce = Option<CspNonce>;
 
 // ============================================================================
-// COLLECTIONS ALIASES - TYPES COLLECTIONS STANDARD
+// COLLECTIONS ALIASES - STANDARD COLLECTIONS
 // ============================================================================
-// Convention : UN alias par type concret (évite la répétition)
-// Les noms décrivent la structure, pas l'usage spécifique
+// Convention: ONE alias per concrete type (avoids repetition)
+// Names describe the structure, not the specific usage
 
 // --- Core Collections ---
 /// String-to-String map (headers, form data, attributes, errors, etc.)
@@ -83,7 +83,7 @@ pub type FieldsMap = IndexMap<String, Box<dyn FormField>>;
 pub type Messages = Vec<FlashMessage>;
 
 // --- URL Registry ---
-/// Url Registry (déjà existant - conservé pour compatibilité)
+/// URL Registry (existing - kept for compatibility)
 pub type ARlockmap = Arc<RwLock<HashMap<String, String>>>;
 
 /// Pending URL registrations (name, path)
@@ -97,7 +97,7 @@ pub type PendingUrls = Vec<(String, String)>;
 pub type Session<S> = SessionManagerLayer<S>;
 
 // ============================================================================
-// RESULT ALIASES - TYPES DE RETOUR
+// RESULT ALIASES - RETURN TYPES
 // ============================================================================
 
 /// Application Result Type
@@ -106,6 +106,6 @@ pub type AppResult<T> = Result<T, Box<AppError>>;
 /// Tera Result Type
 pub type TResult = TeraResult<Value>;
 
-/// Database Result Type (optionnel, pour `SeaORM`)
+/// Database Result Type (optional, for `SeaORM`)
 #[cfg(feature = "orm")]
 pub type DbResult<T> = Result<T, sea_orm::DbErr>;

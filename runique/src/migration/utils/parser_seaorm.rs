@@ -1,4 +1,4 @@
-//! Parser AST des snapshots SeaORM générés — extrait le `ParsedSchema` depuis les fichiers de snapshot.
+//! AST Parser for generated SeaORM snapshots — extracts the `ParsedSchema` from snapshot files.
 use anyhow::Result;
 use syn::{Expr, visit::Visit};
 
@@ -11,9 +11,9 @@ use crate::migration::utils::{
     types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema},
 };
 
-/// Parse le code source SeaORM et retourne un schéma analysé.
+/// Parses SeaORM source code and returns an analyzed schema.
 ///
-/// # Exemple
+/// # Example
 ///
 /// ```rust,ignore
 /// // let schema = parse_seaorm_source("...");
@@ -180,14 +180,14 @@ impl SeaOrmVisitor {
     }
 }
 
-/// Extrait (enum_name, string_values) depuis une expression `.enum_type("Name", vec![...])`
+/// Extracts (enum_name, string_values) from an expression `.enum_type("Name", vec![...])`
 fn extract_enum_type_info(expr: &Expr) -> (Option<String>, Vec<String>) {
     let chain = collect_chain(expr);
     for mc in &chain {
         if mc.method != "enum_type" {
             continue;
         }
-        // Premier arg : nom de l'enum (string littéral)
+        // First arg: enum name (string literal)
         let enum_name = mc.args.first().and_then(|a| {
             if let Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(s),
@@ -199,7 +199,7 @@ fn extract_enum_type_info(expr: &Expr) -> (Option<String>, Vec<String>) {
                 None
             }
         });
-        // Deuxième arg : vec![...] de strings
+        // Second arg: vec![...] of strings
         let values = if mc.args.len() >= 2 {
             extract_all_str_args(&mc.args[1])
         } else {
@@ -210,8 +210,8 @@ fn extract_enum_type_info(expr: &Expr) -> (Option<String>, Vec<String>) {
     (None, Vec::new())
 }
 
-/// Extrait (enum_name, variants) depuis `ColumnType::Enum { name: Alias::new("X").into_iden(), variants: vec![...] }`
-/// en cherchant récursivement dans l'expression.
+/// Extracts (enum_name, variants) from `ColumnType::Enum { name: Alias::new("X").into_iden(), variants: vec![...] }`
+/// by recursively searching in the expression.
 fn extract_column_type_enum_struct(expr: &Expr) -> (Option<String>, Vec<String>) {
     match expr {
         Expr::Struct(s) => {

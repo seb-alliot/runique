@@ -1,4 +1,4 @@
-//! `Objects<E>` — manager Django-style pour les entités SeaORM, exposé via `impl_objects!`.
+//! `Objects<E>` — Django-style manager for SeaORM entities, exposed via `impl_objects!`.
 
 /// Django-style ORM manager for entities
 ///
@@ -28,14 +28,14 @@
 ///
 ///     impl ActiveModelBehavior for ActiveModel {}
 ///
-///     // Connexion SQLite en mémoire
+///     // SQLite in-memory connection
 ///     let db = Database::connect("sqlite::memory:").await.unwrap();
 ///
-///     // Création de la table
+///     // Table creation
 ///     let stmt = Schema::new(DbBackend::Sqlite).create_table_from_entity(Entity);
 ///     db.execute(&stmt).await.unwrap();
 ///
-///     // Utilisation de ActiveModel pour insertion
+///     // Using ActiveModel for insertion
 ///     ActiveModel {
 ///         username: Set("Bob".to_owned()),
 ///         age: Set(25),
@@ -45,7 +45,7 @@
 ///     .await
 ///     .unwrap();
 ///
-///     // Récupération
+///     // Retrieval
 ///     let user: Option<Model> = Entity::find()
 ///         .filter(Column::Username.eq("Bob"))
 ///         .one(&db)
@@ -89,9 +89,9 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find())
     }
 
-    // Dans impl<E: EntityTrait> Objects<E>
+    // In impl<E: EntityTrait> Objects<E>
 
-    // === EXISTANT (garde tes filter/exclude actuels) ===
+    // === EXISTING (keeping current filter/exclude) ===
     pub fn filter<C>(&self, condition: C) -> RuniqueQueryBuilder<E>
     where
         C: Into<Condition>,
@@ -106,7 +106,7 @@ impl<E: EntityTrait> Objects<E> {
         RuniqueQueryBuilder::new(E::find()).exclude(condition.into())
     }
 
-    // === NOUVEAU : filtre vectoriel simplifier ===
+    // === NEW : simplified vector filter ===
     pub fn filter_many<C, V, I>(&self, filters: I) -> RuniqueQueryBuilder<E>
     where
         C: ColumnTrait,
@@ -162,25 +162,25 @@ impl<E: EntityTrait> Objects<E> {
             Ok(Some(entity)) => Ok(entity),
             Ok(None) => {
                 let mut context = ctx.context.clone();
-                context.insert("title", "Page non trouvée");
+                context.insert("title", "Page not found");
                 context.insert("error_message", error_msg);
                 match ctx.engine.tera.render("404", &context) {
                     Ok(html) => Err(axum::response::Html(html).into_response()),
                     Err(e) => {
-                        tracing::error!("Erreur Tera render 404: {}", e);
-                        Err((StatusCode::INTERNAL_SERVER_ERROR, "Erreur interne").into_response())
+                        tracing::error!("Tera render 404 error: {}", e);
+                        Err((StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response())
                     }
                 }
             }
             Err(_) => {
                 let mut context = ctx.context.clone();
-                context.insert("title", "Erreur serveur");
+                context.insert("title", "Server error");
                 context.insert("error_message", "Database error");
                 match ctx.engine.tera.render("500", &context) {
                     Ok(html) => Err(axum::response::Html(html).into_response()),
                     Err(e) => {
-                        tracing::error!("Erreur Tera render 500: {}", e);
-                        Err((StatusCode::INTERNAL_SERVER_ERROR, "Erreur interne").into_response())
+                        tracing::error!("Tera render 500 error: {}", e);
+                        Err((StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response())
                     }
                 }
             }
@@ -196,7 +196,7 @@ impl<E: EntityTrait> Clone for Objects<E> {
 }
 
 // =====================================================
-// Tests SQLite activés avec feature "sqlite"
+// SQLite tests enabled with "sqlite" feature
 // =====================================================
 
 #[cfg(feature = "sqlite")]
@@ -207,7 +207,7 @@ mod tests {
     use sea_orm::Set;
     use sea_orm::entity::prelude::*;
 
-    // Définition du modèle de test
+    // Test model definition
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
     #[sea_orm(table_name = "users")]
     pub struct Model {
@@ -222,13 +222,13 @@ mod tests {
 
     impl ActiveModelBehavior for ActiveModel {}
 
-    // Implémentation de Objects pour notre Entity de test
+    // Objects implementation for our test Entity
     impl Entity {
         #[allow(non_upper_case_globals)]
         pub const objects: Objects<Self> = Objects::new();
     }
 
-    // Fonction helper pour setup DB
+    // Helper function for DB setup
     async fn setup_db() -> Result<DatabaseConnection, DbErr> {
         let db = sea_orm::Database::connect("sqlite::memory:").await?;
 

@@ -1,4 +1,4 @@
-//! Fonctions helpers sur les aliases — `new()`, `new_registry()`, `new_serve()`.
+//! Helper functions on aliases — `new()`, `new_registry()`, `new_serve()`.
 use crate::utils::aliases::ARlockmap;
 use std::{
     collections::HashMap,
@@ -6,20 +6,20 @@ use std::{
 };
 use tower_http::services::ServeDir;
 
-/// Crée un nouvel `Arc` autour d'une valeur.
+/// Creates a new `Arc` around a value.
 #[doc = include_str!("../../../doc-tests/aliases/aliases_new.md")]
 pub fn new<T>(value: T) -> Arc<T> {
     Arc::new(value)
 }
 
-/// Crée un nouveau registre partagé (`ARlockmap`).
+/// Creates a new shared registry (`ARlockmap`).
 #[doc = include_str!("../../../doc-tests/aliases/aliases_new_registry.md")]
 #[must_use]
 pub fn new_registry() -> ARlockmap {
     Arc::new(RwLock::new(HashMap::new()))
 }
 
-/// Crée un service `ServeDir` pour servir des fichiers statiques.
+/// Creates a `ServeDir` service for serving static files.
 ///
 /// # Exemple
 ///

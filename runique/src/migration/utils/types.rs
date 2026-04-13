@@ -1,7 +1,7 @@
-//! Types de données partagés entre les utilitaires de migration : schémas parsés, colonnes, FK, index, diff.
+//! Shared data types between migration utilities: parsed schemas, columns, FKs, indexes, diffs.
 
-/// Backend de base de données cible — utilisé pour générer le SQL DB-spécifique
-/// (ex: ON UPDATE CURRENT_TIMESTAMP pour MySQL, trigger pour PostgreSQL).
+/// Target database backend — used to generate DB-specific SQL
+/// (e.g., ON UPDATE CURRENT_TIMESTAMP for MySQL, trigger for PostgreSQL).
 #[derive(Debug, Clone, PartialEq, Default)]
 pub enum DbKind {
     Postgres,
@@ -28,11 +28,11 @@ pub struct ParsedColumn {
     pub ignored: bool,
     pub created_at: bool,
     pub updated_at: bool,
-    /// Colonne avec DEFAULT CURRENT_TIMESTAMP — détecté depuis le builder ou le snapshot SeaORM.
+    /// Column with DEFAULT CURRENT_TIMESTAMP — detected from the builder or SeaORM snapshot.
     pub has_default_now: bool,
-    /// Nom de l'enum pour les colonnes de type enum string (utilisé dans le snapshot).
+    /// Enum name for string enum columns (used in the snapshot).
     pub enum_name: Option<String>,
-    /// Valeurs DB actuelles pour les colonnes enum string (ex: ["Fix", "Feature", "Ajouté"]).
+    /// Current DB values for string enum columns (e.g., ["Fix", "Feature", "Added"]).
     pub enum_string_values: Vec<String>,
     pub enum_is_pg: bool,
 }
@@ -57,18 +57,18 @@ pub struct ParsedIndex {
 pub struct Changes {
     pub table_name: String,
     pub added_columns: Vec<ParsedColumn>,
-    pub dropped_columns: Vec<ParsedColumn>, // <- CHANGÉ
+    pub dropped_columns: Vec<ParsedColumn>, // <- CHANGED
     pub modified_columns: Vec<(ParsedColumn, ParsedColumn)>,
     pub added_fks: Vec<ParsedFk>,
     pub dropped_fks: Vec<ParsedFk>,
     pub added_indexes: Vec<ParsedIndex>,
     pub dropped_indexes: Vec<ParsedIndex>,
     pub is_new_table: bool,
-    /// Renommages de valeurs enum string : (nom_colonne, ancienne_valeur, nouvelle_valeur).
+    /// String enum value renames: (column_name, old_value, new_value).
     pub enum_renames: Vec<(String, String, String)>,
-    /// Valeurs enum ajoutées : (nom_colonne, valeur).
+    /// Added enum values: (column_name, value).
     pub enum_value_adds: Vec<(String, String, String)>,
-    /// Valeurs enum supprimées : (nom_colonne, valeur).
+    /// Dropped enum values: (column_name, value).
     pub enum_value_drops: Vec<(String, String, String)>,
 }
 

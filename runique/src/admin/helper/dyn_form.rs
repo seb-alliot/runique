@@ -1,25 +1,25 @@
-//! Trait `DynForm` : abstraction object-safe des formulaires Runique pour le dispatch dynamique admin.
+//! `DynForm` trait: object-safe abstraction of Runique forms for admin dynamic dispatch.
 use async_trait::async_trait;
 use sea_orm::{DatabaseConnection, DbErr};
 
 use crate::forms::form::Forms;
 
-/// Trait object-safe wrappant RuniqueForm pour le dispatch dynamique admin.
+/// Object-safe trait wrapping `RuniqueForm` for admin dynamic dispatch.
 ///
-/// `RuniqueForm` a un bound `Sized` qui le rend non object-safe.
-/// `DynForm` expose uniquement les méthodes nécessaires au handler générique,
-/// sans bound `Sized`, via `async_trait` pour la compatibilité `Box<dyn DynForm>`.
+/// `RuniqueForm` has a `Sized` bound which makes it non-object-safe.
+/// `DynForm` exposes only the methods necessary for the generic handler,
+/// without a `Sized` bound, via `async_trait` for `Box<dyn DynForm>` compatibility.
 #[async_trait]
 pub trait DynForm: Send + Sync {
-    /// Validation du formulaire (champs + clean)
+    /// Form validation (fields + clean)
     async fn is_valid(&mut self) -> bool;
 
-    /// Sauvegarde en base avec transaction
+    /// Database save with transaction
     async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr>;
 
-    /// Accès au Forms sous-jacent pour le rendu Tera
+    /// Access to the underlying `Forms` for Tera rendering
     fn get_form(&self) -> &Forms;
 
-    /// Accès mutable pour injecter une erreur DB dans le rendu
+    /// Mutable access to inject a DB error into the rendering
     fn get_form_mut(&mut self) -> &mut Forms;
 }
