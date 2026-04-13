@@ -42,15 +42,7 @@ pub fn extend(input: TokenStream) -> TokenStream {
 
     // Translation JSONs embedded at derive_form compilation time
     const TRANSLATIONS: &[(&str, &str)] = &[
-        ("fr", include_str!("../../src/utils/trad/fr.json")),
-        ("en", include_str!("../../src/utils/trad/en.json")),
-        ("de", include_str!("../../src/utils/trad/de.json")),
-        ("es", include_str!("../../src/utils/trad/es.json")),
-        ("it", include_str!("../../src/utils/trad/it.json")),
-        ("pt", include_str!("../../src/utils/trad/pt.json")),
-        ("ja", include_str!("../../src/utils/trad/ja.json")),
-        ("zh", include_str!("../../src/utils/trad/zh.json")),
-        ("ru", include_str!("../../src/utils/trad/ru.json")),
+        ("en", r#"{"makemigrations": {"extend_invalid_syntax": "extend: incomplete feature", "extend_unknown_table": "extend: incomplete feature"}}"#),
     ];
 
     /// Extracts a nested key `"section.key"` from an embedded JSON.
