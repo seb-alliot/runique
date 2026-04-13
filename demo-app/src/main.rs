@@ -16,12 +16,11 @@ use runique::app::builder::RuniqueAppBuilder as builder;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     password_init(PasswordConfig::auto_with(Manual::Argon2));
     set_lang(Lang::Fr);
-    init_logging();
 
     let config: RuniqueConfig = RuniqueConfig::from_env();
 
-    let db_config = DatabaseConfig::from_env()?.min_connections(1).build();
-    let db: DatabaseConnection = db_config.connect().await?;
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db = db_config.connect().await?;
     backend::run_seeds(&db).await;
 
     builder::new(config)
@@ -39,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_allowed_hosts(|h| {
                     h.enabled(!is_debug())
                         .host("runique.io")
-                        .host("localhost:3000")
+                        .host("localhost:")
                         .host("127.0.0.1:3000")
                 })
                 .with_csp(|c| {

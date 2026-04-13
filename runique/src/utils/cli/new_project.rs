@@ -88,26 +88,6 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
             "src/main.rs",
         ),
         (
-            include_bytes!("../../composant-bin/code/mod.rs"),
-            "src/entities/mod.rs",
-        ),
-        (
-            include_bytes!("../../composant-bin/code/users.rs"),
-            "src/entities/eihwaz_users.rs",
-        ),
-        (
-            include_bytes!("../../composant-bin/code/eihwaz_droit.rs"),
-            "src/entities/eihwaz_droit.rs",
-        ),
-        (
-            include_bytes!("../../composant-bin/code/eihwaz_groupe.rs"),
-            "src/entities/eihwaz_groupe.rs",
-        ),
-        (
-            include_bytes!("../../composant-bin/code/eihwaz_sessions.rs"),
-            "src/entities/eihwaz_sessions.rs",
-        ),
-        (
             include_bytes!("../../composant-bin/template/index.html"),
             "templates/index.html",
         ),
@@ -164,7 +144,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
     for (content, path) in files {
         fs::write(project_dir.join(path), content)?;
     }
-
+    fs::write(project_dir.join("src/entities/mod.rs"), "")?;
     // Cargo.toml and .env with substitutions
     let cargo_toml = include_str!("../../composant-bin/config/apiconfig")
         .replace("{{PROJECT_NAME}}", name)

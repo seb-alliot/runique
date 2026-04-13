@@ -85,7 +85,7 @@ pub async fn handle_inscription(
                         .await
                         .ok();
                 }
-                success!(request.notices => "Compte créé ! Consultez votre email pour l'activer.");
+                success!(request.notices => "Compte créé ! Consultez vos emails pour l'activer.");
                 return Ok(Redirect::to("/login").into_response());
             }
             Err(err) => form.get_form_mut().database_error(&err),

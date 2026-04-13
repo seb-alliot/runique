@@ -2,18 +2,18 @@ use crate::formulaire::RegisterForm;
 use runique::prelude::*;
 
 async fn inject_auth(request: &mut Request) {
-    let connected = is_authenticated(&request.session).await;
-    let username = get_username(&request.session).await;
-    request.context.insert("connected", &connected);
-    request.context.insert("current_user", &username);
+    let user = is_authenticated(&request.session).await;
+    context_update!(request => {
+        "user" => user,
+    });
 }
 
 /// Page d'accueil
 pub async fn index(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
     context_update!(request => {
-        "title" => "Bienvenue sur Runique",
-        "description" => "Un framework web moderne inspiré de Django",
+        "title" => "Welcome to Runique",
+        "description" => "A web framework inspired by Django",
     });
     request.render("index.html")
 }
@@ -39,13 +39,13 @@ pub async fn soumission_inscription(
         return request.render(template);
     }
 
-    if request.is_post() && form.is_valid().await {
+    if request.is_post() && form.form.is_valid().unwrap_or(false) {
         match form.save(&request.engine.db).await {
             Ok(user) => {
                 auth_login(&request.session, &request.engine.db, user.id)
                     .await
                     .ok();
-                success!(request.notices => format!("Bienvenue {} !", user.username));
+                success!(request.notices => format!("Welcome {} !", user.username));
                 return Ok(Redirect::to("/").into_response());
             }
             Err(err) => {
@@ -57,7 +57,7 @@ pub async fn soumission_inscription(
     context_update!(request => {
         "title" => "Inscription",
         "inscription_form" => &form,
-        "messages" => flash_now!(error => "Veuillez corriger les erreurs"),
+        "messages" => flash_now!(error => "An error occurred while registering. Please try again."),
     });
     request.render(template)
 }
@@ -66,8 +66,8 @@ pub async fn soumission_inscription(
 pub async fn about(mut request: Request) -> AppResult<Response> {
     inject_auth(&mut request).await;
     context_update!(request => {
-        "title" => "À propos",
-        "content" => "Runique est un framework web inspiré de Django, construit sur Axum et Tera.",
+        "title" => "About",
+        "content" => "Runique is a web framework inspired by Django, built on Axum and Tera.",
     });
     request.render("about/about.html")
 }
