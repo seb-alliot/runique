@@ -1,4 +1,4 @@
-//! Session utilisateur, authentification admin, et traits d'authentification.
+//! User session, admin authentication, and authentication traits.
 use crate::admin::permissions::{Groupe, Permission, pull_groupes_db};
 use crate::auth::guard::{cache_permissions, evict_permissions, get_permissions};
 use crate::auth::user_trait::RuniqueUser;
@@ -19,10 +19,10 @@ use std::marker::PhantomData;
 use tower_sessions::Session;
 
 // ═══════════════════════════════════════════════════════════════
-// AdminAuth — trait + résultat
+// AdminAuth — trait + result
 // ═══════════════════════════════════════════════════════════════
 
-/// Données retournées après une authentification admin réussie
+/// Data returned after a successful admin authentication
 #[derive(Debug, Clone)]
 pub struct AdminLoginResult {
     pub user_id: Pk,
@@ -31,15 +31,15 @@ pub struct AdminLoginResult {
     pub is_superuser: bool,
 }
 
-/// Trait à implémenter pour brancher la vérification du login admin
+/// Trait to implement for plugging in admin login verification
 ///
-/// Retourne `None` si :
-/// - L'utilisateur n'existe pas
-/// - Le mot de passe est incorrect
-/// - Le compte est inactif
-/// - L'utilisateur n'a pas les droits admin
+/// Returns `None` if:
+/// - The user does not exist
+/// - The password is incorrect
+/// - The account is inactive
+/// - The user does not have admin rights
 ///
-/// ## Implémentation rapide avec `DefaultAdminAuth` :
+/// ## Quick implementation with `DefaultAdminAuth`:
 /// ```rust,ignore
 /// use runique::auth::DefaultAdminAuth;
 ///
@@ -56,10 +56,10 @@ pub trait AdminAuth: Send + Sync + 'static {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// UserEntity — trait DB
+// UserEntity — DB trait
 // ═══════════════════════════════════════════════════════════════
 
-/// Trait côté base de données : comment récupérer un user par username.
+/// Database-side trait: how to retrieve a user by username.
 ///
 /// ```rust,ignore
 /// impl UserEntity for users::Entity {
@@ -80,19 +80,19 @@ pub trait AdminAuth: Send + Sync + 'static {
 /// ```
 #[async_trait::async_trait]
 pub trait UserEntity: Send + Sync + 'static {
-    /// Le modèle retourné par la requête (doit implémenter `RuniqueUser`)
+    /// The model returned by the query (must implement `RuniqueUser`)
     type Model: RuniqueUser;
 
-    /// Recherche un utilisateur par id en base
+    /// Searches for a user by id in the database
     async fn find_by_id(db: &DatabaseConnection, id: crate::utils::pk::Pk) -> Option<Self::Model>;
-    /// Recherche un utilisateur par username en base
+    /// Searches for a user by username in the database
     async fn find_by_username(db: &DatabaseConnection, username: &str) -> Option<Self::Model>;
-    /// Recherche un utilisateur par email en base
+    /// Searches for a user by email in the database
     async fn find_by_email(db: &DatabaseConnection, email: &str) -> Option<Self::Model>;
 
-    /// Met à jour le mot de passe d'un utilisateur identifié par son email.
+    /// Updates the password of a user identified by their email.
     ///
-    /// `new_hash` est déjà haché (le formulaire Prisme hash automatiquement les champs password).
+    /// `new_hash` is already hashed (Prisme forms automatically hash password fields).
     async fn update_password(
         db: &DatabaseConnection,
         email: &str,
@@ -104,8 +104,7 @@ pub trait UserEntity: Send + Sync + 'static {
 // DefaultAdminAuth<E>
 // ═══════════════════════════════════════════════════════════════
 
-/// Adaptateur générique qui transforme n'importe quelle entité
-/// implémentant `UserEntity` en `AdminAuth`.
+/// Generic adapter that transforms any entity implementing `UserEntity` into `AdminAuth`.
 pub struct DefaultAdminAuth<E: UserEntity>(PhantomData<E>);
 
 impl<E: UserEntity> DefaultAdminAuth<E> {
@@ -128,20 +127,20 @@ impl<E: UserEntity> AdminAuth for DefaultAdminAuth<E> {
         password: &str,
         db: &DatabaseConnection,
     ) -> Option<AdminLoginResult> {
-        // 1. Récupérer l'utilisateur depuis la DB
+        // 1. Retrieve the user from the DB
         let user = E::find_by_username(db, username).await?;
 
-        // 2. Vérifier les droits d'accès admin + compte actif
+        // 2. Check admin access rights + active account
         if !user.can_access_admin() {
             return None;
         }
 
-        // 3. Vérifier le mot de passe (Argon2)
+        // 3. Check password (Argon2)
         if !crate::utils::password::verify(password, user.password_hash()) {
             return None;
         }
 
-        // 4. Tout est bon — retourner les infos de session
+        // 4. Everything is fine — return the session info
         Some(AdminLoginResult {
             user_id: user.user_id(),
             username: user.username().to_string(),
@@ -155,21 +154,21 @@ impl<E: UserEntity> AdminAuth for DefaultAdminAuth<E> {
 // CurrentUser
 // ═══════════════════════════════════════════════════════════════
 
-/// Utilisateur authentifié injecté dans les extensions de requête.
+/// Authenticated user injected into request extensions.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CurrentUser {
     pub id: Pk,
     pub username: String,
-    /// Accès au panneau d'administration (lecture / opérations limitées)
+    /// Access to the admin panel (read / limited operations)
     pub is_staff: bool,
-    /// Accès complet — bypass toutes les restrictions admin
+    /// Full access — bypasses all admin restrictions
     pub is_superuser: bool,
-    /// Groupes de l'utilisateur (chaque groupe contient ses permissions)
+    /// User groups (each group contains its permissions)
     pub groupes: Vec<Groupe>,
 }
 
 impl CurrentUser {
-    /// Retourne les permissions CRUD effectives (Union logique de tous les groupes).
+    /// Returns the effective CRUD permissions (Logical union of all groups).
     pub fn permissions_effectives(&self) -> Vec<Permission> {
         let mut agg: std::collections::HashMap<String, Permission> =
             std::collections::HashMap::new();
@@ -199,7 +198,7 @@ impl CurrentUser {
         agg.into_values().collect()
     }
 
-    /// Vérifie si l'utilisateur possède une permission globale stricte (peut être affiné).
+    /// Checks if the user has a strict global permission (can be refined).
     #[must_use]
     pub fn can_access_resource(&self, resource_key: &str) -> bool {
         if self.is_superuser {
@@ -210,7 +209,7 @@ impl CurrentUser {
             .any(|d| d.resource_key == resource_key && d.can_read)
     }
 
-    /// Vérifie si l'utilisateur peut accéder au panneau d'administration.
+    /// Checks if the user can access the admin panel.
     #[must_use]
     pub fn can_access_admin(&self) -> bool {
         self.is_staff || self.is_superuser
@@ -218,10 +217,10 @@ impl CurrentUser {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Helpers de session
+// Session helpers
 // ═══════════════════════════════════════════════════════════════
 
-/// Vérifie si l'utilisateur est authentifié.
+/// Checks if the user is authenticated.
 pub async fn is_authenticated(session: &Session) -> bool {
     session
         .get::<i32>(SESSION_USER_ID_KEY)
@@ -231,7 +230,7 @@ pub async fn is_authenticated(session: &Session) -> bool {
         .is_some()
 }
 
-/// Vérifie si l'utilisateur est authentifié et a accès à l'admin.
+/// Checks if the user is authenticated and has admin access.
 pub async fn is_admin_authenticated(session: &Session) -> bool {
     if !is_authenticated(session).await {
         return false;
@@ -254,12 +253,12 @@ pub async fn is_admin_authenticated(session: &Session) -> bool {
     is_staff || is_superuser
 }
 
-/// Récupère l'ID de l'utilisateur connecté.
+/// Retrieves the ID of the logged-in user.
 pub async fn get_user_id(session: &Session) -> Option<Pk> {
     session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten()
 }
 
-/// Récupère le username de l'utilisateur connecté.
+/// Retrieves the username of the logged-in user.
 pub async fn get_username(session: &Session) -> Option<String> {
     session
         .get::<String>(SESSION_USER_USERNAME_KEY)
@@ -269,13 +268,13 @@ pub async fn get_username(session: &Session) -> Option<String> {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Login unifié
+// Unified Login
 // ═══════════════════════════════════════════════════════════════
 
-/// Connecte un utilisateur — charge ses droits et groupes depuis la DB.
+/// Logs in a user — loads their rights and groups from the DB.
 ///
-/// Si `db_store` est fourni, persiste la session en DB (multi-appareils).
-/// Si `exclusive` est `true`, invalide les autres sessions de l'utilisateur.
+/// If `db_store` is provided, persists the session in DB (multi-device).
+/// If `exclusive` is `true`, invalidates other sessions for the user.
 ///
 /// ```rust,ignore
 /// login(&session, &db, user.id, &user.username, user.is_staff, user.is_superuser, None, false).await?;
@@ -291,7 +290,7 @@ pub async fn login(
     db_store: Option<&RuniqueSessionStore>,
     exclusive: bool,
 ) -> Result<(), tower_sessions::session::Error> {
-    // Si une autre session est déjà active, logout propre avant de login
+    // If another session is already active, perform a clean logout before login
     let existing_id = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten();
     if let Some(existing) = existing_id {
         if existing != user_id {
@@ -301,7 +300,7 @@ pub async fn login(
 
     let groupes = pull_groupes_db(db, user_id).await;
 
-    // Cache mémoire — point d'accès unique pour load_user_middleware et le point 6
+    // Memory cache — single access point for load_user_middleware and point 6 (internal)
     cache_permissions(user_id, groupes.clone());
 
     session.insert(SESSION_USER_ID_KEY, user_id).await?;
@@ -313,7 +312,7 @@ pub async fn login(
         .insert(SESSION_USER_IS_SUPERUSER_KEY, is_superuser)
         .await?;
 
-    // Persistance DB
+    // DB persistence
     if let Some(store) = db_store {
         let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
         let session_id = uuid::Uuid::new_v4().to_string();
@@ -334,14 +333,14 @@ pub async fn login(
     Ok(())
 }
 
-/// Connecte un utilisateur à partir de son seul `user_id` — charge les données depuis la DB.
+/// Logs in a user starting only from their `user_id` — loads data from the DB.
 ///
-/// Raccourci générique pour tout flux d'authentification (inscription, OAuth, magic link…)
-/// qui dispose déjà de l'identifiant utilisateur sans avoir besoin de repasser les champs.
+/// Generic shortcut for any authentication flow (registration, OAuth, magic link...)
+/// that already has the user identifier without needing to re-send the fields.
 ///
-/// Retourne `Ok(())` sans créer de session si le compte est inactif (`is_active = false`).
+/// Returns `Ok(())` without creating a session if the account is inactive (`is_active = false`).
 ///
-/// Utilise [`BuiltinUserEntity`] pour la recherche. Pour un modèle custom, utiliser [`login`] directement.
+/// Uses [`BuiltinUserEntity`] for searching. For a custom model, use [`login`] directly.
 pub async fn auth_login(
     session: &Session,
     db: &DatabaseConnection,
@@ -366,18 +365,18 @@ pub async fn auth_login(
     .await
 }
 
-/// Déconnecte un utilisateur — supprime la session mémoire et l'entrée DB si fournie.
+/// Logs out a user — removes the memory session and the DB entry if provided.
 pub async fn logout(
     session: &Session,
     db_store: Option<&RuniqueSessionStore>,
 ) -> Result<(), tower_sessions::session::Error> {
-    // Suppression DB avant de vider la session (cookie_id encore accessible)
+    // DB deletion before clearing the session (cookie_id still accessible)
     if let Some(store) = db_store {
         let cookie_id = session.id().map(|id| id.to_string()).unwrap_or_default();
         let _ = store.delete(&cookie_id).await;
     }
 
-    // Vider le cache permissions
+    // Clear permission cache
     if let Some(user_id) = session.get::<Pk>(SESSION_USER_ID_KEY).await.ok().flatten() {
         evict_permissions(user_id);
     }
@@ -393,7 +392,7 @@ pub async fn logout(
     session.delete().await
 }
 
-/// Protège une session anonyme contre le cleanup.
+/// Protects an anonymous session from cleanup.
 pub async fn protect_session(
     session: &Session,
     duration_secs: i64,
@@ -402,20 +401,20 @@ pub async fn protect_session(
     session.insert(SESSION_ACTIVE_KEY, protect_until).await
 }
 
-/// Retire la protection manuelle d'une session anonyme.
+/// Removes manual protection from an anonymous session.
 pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::session::Error> {
     session.remove::<i64>(SESSION_ACTIVE_KEY).await?;
     Ok(())
 }
 
-/// Vérifie si l'utilisateur connecté possède une permission donnée.
+/// Checks if the logged-in user has a given permission.
 ///
-/// Format : `"resource_key.action"` — ex: `"users.read"`, `"posts.create"`.
-/// Actions disponibles : `create`, `read`, `update`, `delete`, `update_own`, `delete_own`.
-/// `"resource_key"` seul (sans `.action`) vérifie n'importe quelle action sur la ressource.
-/// `"any"` vérifie que l'utilisateur appartient à au moins un groupe.
+/// Format: `"resource_key.action"` — e.g.: `"users.read"`, `"posts.create"`.
+/// Available actions: `create`, `read`, `update`, `delete`, `update_own`, `delete_own`.
+/// `"resource_key"` alone (without `.action`) checks any action on the resource.
+/// `"any"` checks that the user belongs to at least one group.
 ///
-/// Les superusers ont toujours accès (bypass).
+/// Superusers always have access (bypass).
 pub async fn has_permission(session: &Session, permission: &str) -> bool {
     // Superuser bypass
     let is_superuser = session
@@ -438,7 +437,7 @@ pub async fn has_permission(session: &Session, permission: &str) -> bool {
     };
 
     if permission == "any" {
-        return true; // user_id validé ci-dessus → utilisateur authentifié
+        return true; // user_id validated above → authenticated user
     }
 
     let (resource_key, action) = match permission.find('.') {
@@ -478,10 +477,10 @@ pub async fn has_permission(session: &Session, permission: &str) -> bool {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Middlewares Axum
+// Axum Middlewares
 // ═══════════════════════════════════════════════════════════════
 
-/// Middleware : charge les infos utilisateur dans les extensions de la requête.
+/// Middleware: loads user info into the request extensions.
 pub async fn load_user_middleware(
     axum::extract::State(db): axum::extract::State<crate::utils::aliases::ADb>,
     session: Session,
@@ -505,7 +504,7 @@ pub async fn load_user_middleware(
             .flatten()
             .unwrap_or(false);
 
-        // Groupes depuis le cache — rechargement DB si cache vide (après clear_cache)
+        // Groups from cache — DB reload if cache is empty (after clear_cache)
         let groupes = match get_permissions(user_id) {
             Some(cached) => cached.groupes.clone(),
             None => {

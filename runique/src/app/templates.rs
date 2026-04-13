@@ -1,4 +1,4 @@
-//! Chargement et initialisation du moteur de templates Tera (internes + utilisateur).
+//! Loading and initialization of the Tera template engine (internal + user).
 use crate::config::RuniqueConfig;
 use crate::context::tera::static_tera;
 use crate::utils::aliases::ARlockmap;
@@ -7,11 +7,11 @@ use regex::Captures;
 use std::path::Path;
 use tera::Tera;
 
-/// Charge et configure l'instance Tera avec les templates internes du framework et ceux du projet.
+/// Loads and configures the Tera instance with internal framework templates and project templates.
 pub(crate) struct TemplateLoader;
 
 impl TemplateLoader {
-    /// Initialise Tera et traite tous les templates (internes + utilisateurs)
+    /// Initializes Tera and processes all templates (internal + users)
     pub fn init(
         config: &RuniqueConfig,
         url_registry: ARlockmap,
@@ -19,7 +19,7 @@ impl TemplateLoader {
         let mut tera = Tera::default();
         tera.autoescape_on(vec!["html", "xml"]);
 
-        // 1b. Enregistrer les filtres personnalisés (static, media, form, etc.)
+        // 1b. Register custom filters (static, media, form, etc.)
         static_tera::register_asset_filters(
             &mut tera,
             config.static_files.static_url.clone(),
@@ -29,12 +29,12 @@ impl TemplateLoader {
             url_registry.clone(),
         );
 
-        // 3. Chargement des templates internes du framework (AVEC preprocess)
+        // 3. Loading internal framework templates (WITH preprocess)
         Self::load_internal_templates(&mut tera)?;
 
         let mut all_templates = Vec::new();
 
-        // 4. Boucle de traitement des dossiers templates configurés (dev) (AVEC preprocess)
+        // 4. Processing loop for configured template directories (dev) (WITH preprocess)
         for dir_string in &config.static_files.templates_dir {
             let template_dir = Path::new(dir_string);
             let pattern = format!("{}/**/*.html", template_dir.display());
@@ -45,7 +45,7 @@ impl TemplateLoader {
 
                     let processed = Self::process_content(content);
 
-                    // Calcul du nom logique du template (chemin relatif)
+                    // Calculation of the template's logical name (relative path)
                     let name = entry
                         .strip_prefix(template_dir)?
                         .to_string_lossy()
@@ -60,14 +60,14 @@ impl TemplateLoader {
         Ok(tera)
     }
 
-    /// Applique toutes les transformations Runique sur un contenu de template
+    /// Applies all Runique transformations on a template content
     fn process_content(mut content: String) -> String {
-        // Remplacements simples (DSL Runique)
+        // Simple replacements (Runique DSL)
         content = content.replace("{% csrf %}", r#"{% include "csrf" %}"#);
         content = content.replace("{% messages %}", r#"{% include "message" %}"#);
         content = content.replace("{% csp %}", r#"{% include "csp" %}"#);
 
-        // Traitement Formulaires (Champs isolés)
+        // Form processing (Isolated fields)
         content = FORM_FIELD_REGEX
             .replace_all(&content, |caps: &Captures| {
                 format!(
@@ -77,14 +77,14 @@ impl TemplateLoader {
             })
             .to_string();
 
-        // Traitement Formulaires (Full form)
+        // Form processing (Full form)
         content = FORM_FULL_REGEX
             .replace_all(&content, |caps: &Captures| {
                 format!("{{{{ {} | form | safe }}}}", &caps[1])
             })
             .to_string();
 
-        // Traitement des liens nommés (link)
+        // Named link processing (link)
         content = LINK_REGEX
             .replace_all(&content, |caps: &Captures| {
                 let name = &caps["name"];
@@ -99,14 +99,14 @@ impl TemplateLoader {
             })
             .to_string();
 
-        // Traitement Markdown ({{ var | markdown }} → {{ var | markdown | safe }})
+        // Markdown processing ({{ var | markdown }} → {{ var | markdown | safe }})
         content = MARKDOWN_REGEX
             .replace_all(&content, |caps: &Captures| {
                 format!("{{{{ {} | markdown | safe }}}}", &caps[1])
             })
             .to_string();
 
-        // Traitement Static/Media
+        // Static/Media processing
         content = BALISE_LINK
             .replace_all(&content, |caps: &Captures| {
                 format!(r#"{{{{ "{}" | {} }}}}"#, &caps["link"], &caps["tag"])
@@ -116,7 +116,7 @@ impl TemplateLoader {
         content
     }
 
-    /// Charge les templates HTML embarqués dans le binaire de Runique (AVEC preprocess)
+    /// Loads HTML templates embedded in the Runique binary (WITH preprocess)
     fn load_internal_templates(tera: &mut Tera) -> Result<(), Box<dyn std::error::Error>> {
         for (name, content) in SIMPLE_TEMPLATES
             .iter()

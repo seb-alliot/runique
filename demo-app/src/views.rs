@@ -146,7 +146,7 @@ pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult
     }
 }
 
-// ─── Formulaires ──────────────────────────────────────────────────────────────
+// ─── Forms ───────────────────────────────────────────────────────────────────
 
 pub async fn upload_image_submit(
     mut request: Request,
@@ -219,7 +219,7 @@ pub async fn contribution_list(mut request: Request) -> AppResult<Response> {
     request.render("contribution/contribution_list.html")
 }
 
-// ─── Info / Statique ──────────────────────────────────────────────────────────
+// ─── Info / Static ───────────────────────────────────────────────────────────
 
 pub async fn about(mut request: Request) -> AppResult<Response> {
     inject_globals(&mut request).await;
@@ -375,7 +375,7 @@ pub async fn middleware_https(mut request: Request) -> AppResult<Response> {
     demo_code_page("middleware_https", &mut request).await
 }
 
-// ─── Cours ────────────────────────────────────────────────────────────────────
+// ─── Courses ──────────────────────────────────────────────────────────────────
 
 pub async fn view_cours_index(mut request: Request) -> AppResult<Response> {
     cours_index(&mut request).await
@@ -448,7 +448,7 @@ pub async fn admin_surcharge(mut request: Request) -> AppResult<Response> {
     request.render("admin/surcharge.html")
 }
 
-// ─── Pages démo ───────────────────────────────────────────────────────────────
+// ─── Demo pages ───────────────────────────────────────────────────────────────
 
 pub async fn installation_demo(mut request: Request) -> AppResult<Response> {
     demo_code_page("installation_demo", &mut request).await
@@ -498,7 +498,7 @@ pub async fn i18n_demo(mut request: Request) -> AppResult<Response> {
     demo_code_page("i18n_demo", &mut request).await
 }
 
-// ─── Erreurs / CSRF ───────────────────────────────────────────────────────────
+// ─── Errors / CSRF ────────────────────────────────────────────────────────────
 
 pub async fn test_csrf(request: Request) -> AppResult<Response> {
     success!(request.notices => "CSRF token validated successfully!");

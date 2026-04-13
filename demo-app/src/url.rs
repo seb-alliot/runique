@@ -32,7 +32,7 @@ pub fn routes() -> Router {
         "/blog/nouveau"                  => view! { blog_save },              name = "blog_info",
         "/blog/{id}"                     => view! { blog_detail },            name = "blog_detail",
 
-        // Outils & démo
+        // Tools & Demo
         "/about"                         => view! { about },                  name = "about",
         "/admin-demo"                    => view! { admin_hub },              name = "admin_hub",
         "/admin-demo/declaration"        => view! { admin_declaration },      name = "admin_declaration",
@@ -57,7 +57,7 @@ pub fn routes() -> Router {
         "/rgpd"                          => view! { rgpd },                   name = "rgpd",
         "/test-csrf"                     => view! { test_csrf },              name = "test_csrf",
 
-        // Formulaires
+        // Forms
         "/test-fields"                   => view! { test_fields },            name = "test_fields",
         "/formulaires"                   => view! { formulaires_hub },        name = "formulaires_hub",
         "/formulaires/champs"            => view! { formulaires_champs },     name = "formulaires_champs",
@@ -74,7 +74,7 @@ pub fn routes() -> Router {
         "/middleware/host-validation"    => view! { middleware_hosts },       name = "middleware_hosts",
         "/middleware/https"              => view! { middleware_https },       name = "middleware_https",
 
-        // Erreurs — vérifie que les pages d'erreur Runique s'affichent correctement
+        // Errors — check that Runique error pages display correctly
         "/erreurs/propose-error"         => view! { propos_template_error },  name = "propos_template_error",
         "/erreurs/404"                   =>   view! { force_not_found },      name = "force_404",
         "/erreurs/500"                   => view! { force_server_error },     name = "force_500",
@@ -89,7 +89,7 @@ pub fn routes() -> Router {
         "/readme/fr"                     => view! { readme_fr },              name = "readme_fr",
         "/readme/en"                     => view! { readme_en },              name = "readme_en",
 
-        // Cours Rust
+        // Rust Courses
         "/cours"                         => view! { view_cours_index },       name = "cours_index",
         "/cours/{slug}"                  => view! { view_cours_detail },      name = "cours_detail",
         "/cours/{slug}/exercice"         => view! { view_cours_exercice },    name = "cours_exercice",
@@ -103,6 +103,7 @@ pub fn routes() -> Router {
         // Contributions
         "/contribution"                  => view! { contribution_submit },    name = "contribution",
         "/contributions"                 => view! { contribution_list },      name = "contribution_list",
+
 
     }
     .rate_limit("/upload-image",  "upload_image",  view!(upload_image_submit),   5,  60)

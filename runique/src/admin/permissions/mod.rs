@@ -1,4 +1,4 @@
-//! Permissions admin : groupes et droits chargés depuis la base.
+//! Admin permissions: groups and rights loaded from the database.
 pub mod groupe;
 pub mod groupes_droits;
 pub mod users_groupes;
@@ -6,10 +6,10 @@ pub mod users_groupes;
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Structures mémorielles
+// Memory structures
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Permissions d'un groupe sur une ressource, stockées en cache.
+/// Group permissions on a resource, cached.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct Permission {
     pub resource_key: String,
@@ -21,7 +21,7 @@ pub struct Permission {
     pub can_delete_own: bool,
 }
 
-/// Groupe (inclut ses permissions par ressource).
+/// Group (includes its permissions per resource).
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Groupe {
     pub id: crate::utils::pk::Pk,
@@ -30,17 +30,17 @@ pub struct Groupe {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Fonctions de chargement DB — appelées au login
+// DB loading functions — called at login
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Rafraîchit le cache mémoire des permissions pour un utilisateur donné.
+/// Refreshes the memory cache of permissions for a given user.
 pub async fn refresh_cache_for_user<C: ConnectionTrait>(db: &C, user_id: crate::utils::pk::Pk) {
     use crate::auth::guard::cache_permissions;
     let groupes = pull_groupes_db(db, user_id).await;
     cache_permissions(user_id, groupes);
 }
 
-/// Charge les groupes d'un utilisateur avec leurs permissions depuis la DB.
+/// Loads a user's groups with their permissions from the DB.
 pub async fn pull_groupes_db<C: ConnectionTrait>(
     db: &C,
     user_id: crate::utils::pk::Pk,

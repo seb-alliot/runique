@@ -1,4 +1,4 @@
-//! Module app — constructeur `RuniqueAppBuilder`, application finale `RuniqueApp`, erreurs de build et staging.
+//! App module — `RuniqueAppBuilder` constructor, final `RuniqueApp` application, build errors, and staging.
 pub mod builder;
 pub mod error_build;
 pub mod runique_app;

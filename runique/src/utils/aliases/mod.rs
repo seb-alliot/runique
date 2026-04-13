@@ -1,4 +1,4 @@
-//! Aliases de types partagés — `Arc<T>`, collections, résultats, session.
+//! Shared type aliases — `Arc<T>`, collections, results, session.
 pub mod definition;
 pub mod helpers;
 

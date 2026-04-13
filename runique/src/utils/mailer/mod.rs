@@ -1,11 +1,11 @@
-//! Client e-mail (lettre) — configuration SMTP, envoi async, initialisation depuis l'environnement.
+//! E-mail client (`lettre`) — SMTP configuration, async sending, initialization from environment.
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor, message::header::ContentType,
     transport::smtp::authentication::Credentials,
 };
 use std::{env::var, sync::OnceLock};
 
-// === Config globale ===
+// === Global Config ===
 
 pub static MAILER_CONFIG: OnceLock<MailerConfig> = OnceLock::new();
 
@@ -55,7 +55,7 @@ pub fn mailer_configured() -> bool {
     MAILER_CONFIG.get().is_some()
 }
 
-// === Builder Email ===
+// === Email Builder ===
 
 pub struct Email {
     to: String,
@@ -102,26 +102,27 @@ impl Email {
     }
 
     pub async fn send(self) -> Result<(), String> {
-        let config = MAILER_CONFIG
-            .get()
-            .ok_or_else(|| "Mailer non configuré — appelez mailer_init() ou définissez SMTP_HOST/SMTP_USER/SMTP_PASS".to_string())?;
+        let config = MAILER_CONFIG.get().ok_or_else(|| {
+            "Mailer not configured — call mailer_init() or define SMTP_HOST/SMTP_USER/SMTP_PASS"
+                .to_string()
+        })?;
 
         let from = config
             .from
             .parse::<lettre::message::Mailbox>()
-            .map_err(|e| format!("Adresse expéditeur invalide : {e}"))?;
+            .map_err(|e| format!("Invalid sender address: {e}"))?;
 
         let to = self
             .to
             .parse::<lettre::message::Mailbox>()
-            .map_err(|e| format!("Adresse destinataire invalide : {e}"))?;
+            .map_err(|e| format!("Invalid recipient address: {e}"))?;
 
         let mut builder = Message::builder().from(from).to(to).subject(self.subject);
 
         if let Some(reply_to) = &self.reply_to {
             let rt = reply_to
                 .parse::<lettre::message::Mailbox>()
-                .map_err(|e| format!("Reply-To invalide : {e}"))?;
+                .map_err(|e| format!("Invalid Reply-To: {e}"))?;
             builder = builder.reply_to(rt);
         }
 
@@ -129,27 +130,27 @@ impl Email {
             builder
                 .header(ContentType::TEXT_HTML)
                 .body(html)
-                .map_err(|e| format!("Erreur construction email : {e}"))?
+                .map_err(|e| format!("Error constructing email: {e}"))?
         } else if let Some(text) = self.text {
             builder
                 .header(ContentType::TEXT_PLAIN)
                 .body(text)
-                .map_err(|e| format!("Erreur construction email : {e}"))?
+                .map_err(|e| format!("Error constructing email: {e}"))?
         } else {
-            return Err("Email sans contenu".to_string());
+            return Err("Email without content".to_string());
         };
 
         let creds = Credentials::new(config.username.clone(), config.password.clone());
 
         let transport = if config.starttls {
             AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&config.host)
-                .map_err(|e| format!("Connexion SMTP échouée : {e}"))?
+                .map_err(|e| format!("SMTP connection failed: {e}"))?
                 .port(config.port)
                 .credentials(creds)
                 .build()
         } else {
             AsyncSmtpTransport::<Tokio1Executor>::relay(&config.host)
-                .map_err(|e| format!("Connexion SMTP échouée : {e}"))?
+                .map_err(|e| format!("SMTP connection failed: {e}"))?
                 .port(config.port)
                 .credentials(creds)
                 .build()
@@ -158,7 +159,7 @@ impl Email {
         transport
             .send(message)
             .await
-            .map_err(|e| format!("Erreur envoi email : {e}"))?;
+            .map_err(|e| format!("Error sending email: {e}"))?;
 
         Ok(())
     }

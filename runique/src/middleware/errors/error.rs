@@ -1,4 +1,4 @@
-//! Middleware de gestion des erreurs HTTP : rendu HTML contextuel ou JSON selon l'acceptation.
+//! HTTP error management middleware: contextual HTML or JSON rendering based on Accept header.
 use crate::utils::{
     aliases::{ARuniqueConfig, ATera, StrMap},
     error_key::DEBUG_MESSAGE_KEYS,
@@ -21,7 +21,7 @@ use tera::{Context, Tera};
 use tracing::{error, info, instrument};
 use tracing_futures::Instrument;
 
-/// Transport des infos requête pour debug contextuel
+/// Transport for request info used in contextual debug
 pub struct RequestInfoHelper {
     pub method: String,
     pub path: String,
@@ -29,7 +29,7 @@ pub struct RequestInfoHelper {
     pub headers: StrMap,
 }
 
-/// Middleware principal Runique avec tracing + debug
+/// Principal Runique middleware with tracing + debug
 #[instrument(name = "RuniqueRequest", skip(tera, config, next))]
 pub async fn error_handler_middleware(
     Extension(tera): Extension<ATera>,
@@ -37,7 +37,7 @@ pub async fn error_handler_middleware(
     request: Request<axum::body::Body>,
     next: Next,
 ) -> Response {
-    // --- Collecte des infos requête ---
+    // --- Collect request info ---
     let csrf_token: Option<String> = request.extensions().get::<CsrfToken>().map(|t| t.0.clone());
     let request_helper = RequestInfoHelper {
         method: request.method().to_string(),
@@ -54,25 +54,25 @@ pub async fn error_handler_middleware(
             .collect(),
     };
 
-    // --- Exécute la requête dans le span tracing ---
+    // --- Execute request within tracing span ---
     let span = tracing::Span::current();
     let response = next.run(request).instrument(span.clone()).await;
 
     let status = response.status();
 
-    // --- Gestion des erreurs ---
+    // --- Error handling ---
     if status.is_server_error()
         || status == StatusCode::NOT_FOUND
         || status == StatusCode::TOO_MANY_REQUESTS
     {
-        // 429 : rendu direct, pas de debug page
+        // 429: direct rendering, no debug page
         if status == StatusCode::TOO_MANY_REQUESTS {
             return render_429(&tera, &config, csrf_token);
         }
 
         let error_ctx = build_error_context(&response, &request_helper, &tera);
 
-        // --- Rendu selon mode debug ou production ---
+        // --- Render according to debug or production mode ---
         if config.debug {
             return render_debug_error_from_context(&tera, &config, &error_ctx, csrf_token);
         } else {
@@ -83,11 +83,11 @@ pub async fn error_handler_middleware(
         }
     }
 
-    // --- Pas d'erreur : retourne la réponse normale ---
+    // --- No error: return normal response ---
     response
 }
 
-/// Construit le `ErrorContext` depuis la réponse
+/// Builds the `ErrorContext` from the response
 fn build_error_context(
     response: &Response,
     request_helper: &RequestInfoHelper,
@@ -125,7 +125,7 @@ fn build_error_context(
         );
     }
 
-    // Pas d'erreur explicite, créer un contexte basique
+    // No explicit error, create a basic context
     if response.status() == StatusCode::NOT_FOUND {
         ErrorContext::not_found(&request_helper.path).with_request_helper(request_helper)
     } else {
@@ -134,7 +134,7 @@ fn build_error_context(
     }
 }
 
-/// Log l'erreur Runique selon sa gravité
+/// Logs Runique error according to its severity
 fn log_runique_error(err: &RuniqueError, request_helper: &RequestInfoHelper) {
     match err {
         RuniqueError::Internal

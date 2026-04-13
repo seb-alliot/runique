@@ -1,4 +1,4 @@
-//! Constantes des clés de message d'erreur debug injectées dans les templates.
+//! Debug error message key constants injected into templates.
 
 pub const DEBUG_MESSAGE_KEYS: &[&str] = &[
     "debug_info_title",

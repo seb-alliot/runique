@@ -1,4 +1,4 @@
-//! Store de sessions en mémoire avec nettoyage automatique et watermarks pour éviter les fuites.
+//! In-memory session store with automatic cleanup and watermarks to prevent leaks.
 use std::{
     collections::HashMap,
     sync::{
@@ -17,24 +17,24 @@ use tower_sessions::{
 };
 
 // ═══════════════════════════════════════════════════════════════
-// Constantes
+// Constants
 // ═══════════════════════════════════════════════════════════════
 
-/// Déclenche un cleanup proactif des sessions anonymes expirées.
-const LOW_WATERMARK_DEFAULT: usize = 128 * 1024 * 1024; // 128 Mo
+/// Triggers proactive cleanup of expired anonymous sessions.
+const LOW_WATERMARK_DEFAULT: usize = 128 * 1024 * 1024; // 128 MB
 
-/// Déclenche un cleanup d'urgence synchrone + refuse les nouvelles sessions si insuffisant.
-const HIGH_WATERMARK_DEFAULT: usize = 256 * 1024 * 1024; // 256 Mo
+/// Triggers synchronous emergency cleanup + refuses new sessions if insufficient.
+const HIGH_WATERMARK_DEFAULT: usize = 256 * 1024 * 1024; // 256 MB
 
-/// Alerte dans les logs si un record de session dépasse cette taille.
-const MAX_SESSION_RECORD_SIZE: usize = 50 * 1024; // 50 Ko
+/// Alerts in logs if a session record exceeds this size.
+const MAX_SESSION_RECORD_SIZE: usize = 50 * 1024; // 50 KB
 
 // ═══════════════════════════════════════════════════════════════
-// Helpers internes
+// Internal helpers
 // ═══════════════════════════════════════════════════════════════
 
-/// Estimation de la taille en mémoire d'un record.
-/// UUID (16o) + `expiry_date` (8o) + données JSON sérialisées.
+/// Estimated in-memory size of a record.
+/// UUID (16b) + `expiry_date` (8b) + serialized JSON data.
 fn estimate_size(record: &Record) -> usize {
     24usize.saturating_add(
         serde_json::to_string(&record.data)
@@ -43,8 +43,8 @@ fn estimate_size(record: &Record) -> usize {
     )
 }
 
-/// Une session est protégée si elle appartient à un utilisateur authentifié
-/// (`user_id` présent) ou si le dev a posé `session_active` avec un timestamp futur.
+/// A session is protected if it belongs to an authenticated user
+/// (`user_id` present) or if the dev set `session_active` with a future timestamp.
 fn is_protected(record: &Record) -> bool {
     record.data.contains_key("user_id")
         || record
@@ -58,30 +58,30 @@ fn is_protected(record: &Record) -> bool {
 // CleaningMemoryStore
 // ═══════════════════════════════════════════════════════════════
 
-/// `MemoryStore` avec purge automatique et protection par watermarks.
+/// `MemoryStore` with automatic purge and watermark protection.
 ///
-/// # Comportement
+/// # Behavior
 ///
-/// **Timer (60s)** : purge toutes les sessions expirées (anonymes et authentifiées).
+/// **Timer (60s)**: purges all expired sessions (anonymous and authenticated).
 ///
-/// **Low watermark** : purge asynchrone (non-bloquante) des sessions anonymes expirées.
+/// **Low watermark**: asynchronous (non-blocking) purge of expired anonymous sessions.
 ///
-/// **High watermark** : purge synchrone d'urgence.
-///   - Passe 1 : sessions anonymes expirées
-///   - Passe 2 : toutes les sessions expirées (si toujours dépassé)
-///   - Si encore dépassé → `Error::Backend` (503 pour le client)
+/// **High watermark**: synchronous emergency purge.
+///   - Phase 1: expired anonymous sessions
+///   - Phase 2: all expired sessions (if still exceeded)
+///   - If still exceeded → `Error::Backend` (503 for the client)
 ///
-/// # Protection des sessions
+/// # Session Protection
 ///
-/// Sessions avec `user_id` ou `session_active` (timestamp futur) ne sont jamais
-/// supprimées sous pression — seules les sessions anonymes sans valeur sont sacrifiées.
+/// Sessions with `user_id` or `session_active` (future timestamp) are never
+/// deleted under pressure — only valueless anonymous sessions are sacrificed.
 #[derive(Clone, Debug)]
 pub struct CleaningMemoryStore {
     data: Arc<Mutex<HashMap<Id, Record>>>,
     size_bytes: Arc<AtomicUsize>,
     low_watermark: usize,
     high_watermark: usize,
-    /// Si `true`, toute nouvelle connexion invalide les sessions existantes du même utilisateur.
+    /// If `true`, any new connection invalidates existing sessions of the same user.
     exclusive_login: bool,
 }
 
@@ -98,10 +98,10 @@ impl Default for CleaningMemoryStore {
 }
 
 impl CleaningMemoryStore {
-    /// Configure les watermarks mémoire.
+    /// Configures memory watermarks.
     ///
-    /// - `low`  : déclenche un cleanup proactif (non-bloquant)
-    /// - `high` : déclenche un cleanup d'urgence + refuse si insuffisant
+    /// - `low`: triggers proactive cleanup (non-blocking)
+    /// - `high`: triggers emergency cleanup + refuses if insufficient
     #[must_use]
     pub fn with_watermarks(mut self, low: usize, high: usize) -> Self {
         self.low_watermark = low;
@@ -109,27 +109,27 @@ impl CleaningMemoryStore {
         self
     }
 
-    /// Active ou désactive la connexion exclusive.
+    /// Enables or disables exclusive login.
     ///
-    /// Si `true`, toute nouvelle connexion invalide automatiquement les sessions
-    /// existantes du même utilisateur — un seul appareil connecté à la fois.
+    /// If `true`, any new connection automatically invalidates
+    /// existing sessions of the same user — only one device connected at a time.
     #[must_use]
     pub fn with_exclusive_login(mut self, exclusive: bool) -> Self {
         self.exclusive_login = exclusive;
         self
     }
 
-    /// Taille estimée actuelle du store en octets.
+    /// Current estimated size of the store in bytes.
     #[must_use]
     pub fn size_bytes(&self) -> usize {
         self.size_bytes.load(Ordering::Relaxed)
     }
 
-    /// Invalide toutes les sessions actives d'un utilisateur.
+    /// Invalidates all active sessions for a user.
     ///
-    /// Utilisé pour implémenter la connexion exclusive (un seul appareil à la fois).
-    /// La session courante (nouvelle connexion) ne doit pas encore contenir `user_id`
-    /// au moment de l'appel — elle est donc préservée.
+    /// Used to implement exclusive login (only one device at a time).
+    /// The current session (new login) should not yet contain `user_id`
+    /// at the time of call — it is thus preserved.
     pub async fn invalidate_user_sessions(&self, user_id: crate::utils::pk::Pk) {
         let mut guard = self.data.lock().await;
         let mut freed = 0usize;
@@ -155,7 +155,7 @@ impl CleaningMemoryStore {
         }
     }
 
-    /// Spawne la tâche Tokio de cleanup périodique.
+    /// Spawns the Tokio task for periodic cleanup.
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let store = self.clone();
         tokio::spawn(async move {
@@ -171,7 +171,7 @@ impl CleaningMemoryStore {
         });
     }
 
-    /// Purge asynchrone des sessions anonymes expirées (réponse au low watermark).
+    /// Asynchronous purge of expired anonymous sessions (low watermark response).
     async fn purge_anonymous_expired(&self) {
         let now = OffsetDateTime::now_utc();
         let mut guard = self.data.lock().await;
@@ -194,7 +194,7 @@ impl CleaningMemoryStore {
             if let Some(level) = crate::utils::runique_log::get_log().session {
                 crate::runique_log!(
                     level,
-                    "Low watermark: {} octets libérés (sessions anonymes expirées)",
+                    "Low watermark: {} bytes freed (expired anonymous sessions)",
                     freed
                 );
             }
@@ -211,7 +211,7 @@ impl SessionStore for CleaningMemoryStore {
     async fn create(&self, record: &mut Record) -> session_store::Result<()> {
         let current = self.size_bytes.load(Ordering::Relaxed);
 
-        // Low watermark — cleanup non-bloquant en arrière-plan
+        // Low watermark — non-blocking background cleanup
         if current >= self.low_watermark && current < self.high_watermark {
             let store = self.clone();
             tokio::spawn(async move {
@@ -221,11 +221,11 @@ impl SessionStore for CleaningMemoryStore {
 
         let mut guard = self.data.lock().await;
 
-        // High watermark — cleanup d'urgence synchrone sous le lock
+        // High watermark — synchronous emergency cleanup under the lock
         if self.size_bytes.load(Ordering::Relaxed) >= self.high_watermark {
             let now = OffsetDateTime::now_utc();
 
-            // Passe 1 : sessions anonymes expirées
+            // Phase 1: expired anonymous sessions
             let mut freed = 0usize;
             let to_delete: Vec<Id> = guard
                 .iter()
@@ -239,7 +239,7 @@ impl SessionStore for CleaningMemoryStore {
             }
             self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
 
-            // Passe 2 : toutes les sessions expirées (si toujours au-dessus)
+            // Phase 2: all expired sessions (if still above)
             if self.size_bytes.load(Ordering::Relaxed) >= self.high_watermark {
                 let mut freed2 = 0usize;
                 let to_delete2: Vec<Id> = guard
@@ -256,19 +256,19 @@ impl SessionStore for CleaningMemoryStore {
                 if let Some(level) = crate::utils::runique_log::get_log().session {
                     crate::runique_log!(
                         level,
-                        "High watermark: {} + {} octets libérés en urgence",
+                        "High watermark: {} + {} bytes freed in emergency",
                         freed,
                         freed2
                     );
                 }
             }
 
-            // Toujours au-dessus → refus
+            // Still above → refusal
             if self.size_bytes.load(Ordering::Relaxed) >= self.high_watermark {
                 if let Some(level) = crate::utils::runique_log::get_log().session {
                     crate::runique_log!(
                         level,
-                        "Session store saturé ({} octets), nouvelle session refusée",
+                        "Session store saturated ({} bytes), new session refused",
                         self.size_bytes()
                     );
                 }
@@ -288,7 +288,7 @@ impl SessionStore for CleaningMemoryStore {
             if let Some(level) = crate::utils::runique_log::get_log().session {
                 crate::runique_log!(
                     level,
-                    "Session record volumineux ({} octets) — évitez de stocker des fichiers ou images en session",
+                    "Large session record ({} bytes) — avoid storing files or images in session",
                     size
                 );
             }
@@ -304,8 +304,8 @@ impl SessionStore for CleaningMemoryStore {
         let old_size = guard.get(&record.id).map_or(0, estimate_size);
         let new_size = estimate_size(record);
 
-        // Connexion exclusive : si user_id apparaît pour la première fois sur cette session,
-        // invalider toutes les autres sessions du même utilisateur.
+        // Exclusive login: if user_id appears for the first time on this session,
+        // invalidate all other sessions for the same user.
         if self.exclusive_login {
             let had_user = guard
                 .get(&record.id)
@@ -343,7 +343,7 @@ impl SessionStore for CleaningMemoryStore {
                             crate::runique_log!(
                                 level,
                                 user_id = user_id,
-                                "exclusive_login: {} session(s) invalidée(s) pour l'utilisateur {}",
+                                "exclusive_login: {} session(s) invalidated for user {}",
                                 freed,
                                 user_id
                             );
@@ -357,7 +357,7 @@ impl SessionStore for CleaningMemoryStore {
             if let Some(level) = crate::utils::runique_log::get_log().session {
                 crate::runique_log!(
                     level,
-                    "Session record volumineux ({} octets) — évitez de stocker des fichiers ou images en session",
+                    "Large session record ({} bytes) — avoid storing files or images in session",
                     new_size
                 );
             }

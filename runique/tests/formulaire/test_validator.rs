@@ -46,7 +46,7 @@ fn test_validation_error_global_vide() {
     assert!(!msg.is_empty());
 }
 
-// ── ValidationError implémente std::error::Error ──────────────────────────────
+// ── ValidationError implements std::error::Error ──────────────────────────────
 
 #[test]
 fn test_validation_error_is_std_error() {

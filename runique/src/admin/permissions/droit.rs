@@ -1,6 +1,6 @@
-//! Entité SeaORM `eihwaz_droits` — droits d'accès CRUD sous forme de matrice.
+//! SeaORM entity `eihwaz_droits` — CRUD access rights in matrix form.
 //!
-//! Un droit est lié à plusieurs groupes via la table pivot `eihwaz_groupes_droits`.
+//! A right is linked to several groups via the pivot table `eihwaz_groupes_droits`.
 //! - `resource_key = "articles"` + `can_create = true` + `can_read = true`
 use sea_orm::entity::prelude::*;
 
@@ -9,17 +9,17 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: crate::utils::pk::Pk,
-    /// Clé unique de la ressource admin ciblée (ex: "articles")
+    /// Unique key of the targeted admin resource (e.g., "articles")
     #[sea_orm(unique)]
     pub resource_key: String,
 
-    // Matrice CRUD
+    // CRUD matrix
     pub can_create: bool,
     pub can_read: bool,
     pub can_update: bool,
     pub can_delete: bool,
 
-    // Row Level Security (Propriétaire uniquement)
+    // Row Level Security (Owner only)
     pub can_update_own: bool,
     pub can_delete_own: bool,
 }
@@ -29,7 +29,7 @@ pub enum Relation {}
 
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
-    /// Quand une permission est supprimée, vide le cache de tous les utilisateurs.
+    /// When a permission is deleted, clear the cache for all users.
     async fn after_delete<C>(self, _db: &C) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,

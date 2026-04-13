@@ -1,13 +1,13 @@
-//! Types pour les ressources admin : colonnes, opérations, configuration d'affichage.
+//! Types for admin resources: columns, operations, display configuration.
 //
-// Les permissions d'accès aux ressources sont gérées en base via les droits scopés
-// (eihwaz_droits avec resource_key + access_type), et non dans admin!{}.
-// Voir : runique::auth::permissions_cache
+// Resource access permissions are managed in the database via scoped rights
+// (eihwaz_droits with resource_key + access_type), and not in admin!{}.
+// See: runique::auth::permissions_cache
 
-/// Type de la clé primaire d'une ressource admin
+/// Type of the primary key for an admin resource
 #[derive(Debug, Clone, Copy, Default, serde::Serialize)]
 pub enum AdminIdType {
-    /// i32 (défaut SeaORM)
+    /// i32 (SeaORM default)
     #[default]
     I32,
     /// i64
@@ -17,26 +17,26 @@ pub enum AdminIdType {
 }
 
 impl AdminIdType {
-    /// Génère le code Rust de conversion depuis un `String` capturé dans la route
+    /// Generates the Rust code for conversion from a `String` captured in the route
     pub fn parse_expr(&self) -> &'static str {
         match self {
             AdminIdType::I32 => {
-                "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"id invalide\".into()))?;"
+                "let id = id.parse::<i32>().map_err(|_| DbErr::Custom(\"invalid id\".into()))?;"
             }
             AdminIdType::I64 => {
-                "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"id invalide\".into()))?;"
+                "let id = id.parse::<i64>().map_err(|_| DbErr::Custom(\"invalid id\".into()))?;"
             }
             AdminIdType::Uuid => {
-                "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"id invalide\".into()))?;"
+                "let id = uuid::Uuid::parse_str(&id).map_err(|_| DbErr::Custom(\"invalid id\".into()))?;"
             }
         }
     }
 }
 
-/// Permissions granulaires par opération CRUD
+/// Granular permissions per CRUD operation
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ResourcePermissions {
-    // Rôles autorisés pour chaque opération
+    // Authorized roles for each operation
     pub list: Vec<String>,
 
     pub view: Vec<String>,
@@ -49,7 +49,7 @@ pub struct ResourcePermissions {
 }
 
 impl ResourcePermissions {
-    /// Crée des permissions uniformes a toutes les actions
+    /// Creates uniform permissions for all actions
     pub fn uniform(roles: Vec<String>) -> Self {
         Self {
             list: roles.clone(),
@@ -60,7 +60,7 @@ impl ResourcePermissions {
         }
     }
 
-    /// Vérifie si un rôle est autorisé pour une opération donnée
+    /// Checks if a role is authorized for a given operation
     pub fn can(&self, operation: CrudOperation, role: &str) -> bool {
         let allowed = match operation {
             CrudOperation::List => &self.list,
@@ -72,13 +72,13 @@ impl ResourcePermissions {
         allowed.iter().any(|r| r == role)
     }
 
-    /// Vérifie si l'un des rôles fournis est autorisé pour une opération
+    /// Checks if any of the provided roles are authorized for an operation
     pub fn can_any(&self, operation: CrudOperation, roles: &[&str]) -> bool {
         roles.iter().any(|role| self.can(operation, role))
     }
 }
 
-/// Opérations CRUD disponibles sur une ressource admin
+/// Available CRUD operations on an admin resource
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum CrudOperation {
     List,
@@ -88,33 +88,33 @@ pub enum CrudOperation {
     Delete,
 }
 
-/// Filtre les colonnes affichées dans la vue liste
+/// Filters columns displayed in the list view
 #[derive(Debug, Clone, Default, serde::Serialize)]
 pub enum ColumnFilter {
-    /// Affiche toutes les colonnes du Model (défaut)
+    /// Displays all columns of the Model (default)
     #[default]
     All,
 
-    /// Affiche uniquement les colonnes spécifiées avec leurs labels : (col_sql, label_affiché)
+    /// Displays only specified columns with their labels: (col_sql, displayed_label)
     Include(Vec<(String, String)>),
 
-    /// Affiche toutes les colonnes sauf celles spécifiées
+    /// Displays all columns except specified ones
     Exclude(Vec<String>),
 }
 
-/// Configuration de l'affichage d'une ressource dans l'interface admin
+/// Configuration of resource display in the admin interface
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DisplayConfig {
-    /// Icône affichée dans la navigation (nom d'icône, ex: "user", "file")
+    /// Icon displayed in navigation (icon name, e.g., "user", "file")
     pub icon: Option<String>,
 
-    /// Colonnes à afficher dans la vue liste
+    /// Columns to display in the list view
     pub columns: ColumnFilter,
 
-    /// Nombre d'entrées par page
+    /// Number of entries per page
     pub pagination: usize,
 
-    /// Filtres sidebar : [(col_sql, label_affiché, limit_par_page)]
+    /// Sidebar filters: [(col_sql, displayed_label, limit_per_page)]
     pub list_filter: Vec<(String, String, u64)>,
 }
 
@@ -152,7 +152,7 @@ impl DisplayConfig {
         self
     }
 
-    /// Filtres sidebar : [("col_sql", "Label", limit_par_page), ...]
+    /// Sidebar filters: [("col_sql", "Label", limit_per_page), ...]
     pub fn list_filter(mut self, filters: Vec<(&str, &str, u64)>) -> Self {
         self.list_filter = filters
             .iter()
@@ -168,45 +168,45 @@ impl Default for DisplayConfig {
     }
 }
 
-// Créée par le daemon lors du parsing de src/admin.rs.
+// Created by the daemon during parsing of src/admin.rs.
 //
-// généré dans target/runique/admin/generated.rs d'être type-safe.
+// generated in target/runique/admin/generated.rs to be type-safe.
 
-/// Métadonnées d'une ressource administrable
+/// Metadata of an administrable resource
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct AdminResource {
-    /// Utilisée pour les routes : /admin/{key}/list
+    /// Used for routes: /admin/{key}/list
     pub key: &'static str,
 
-    /// On récupere les chemins pour model et form
+    /// We retrieve the paths for model and form
     pub model_path: &'static str,
 
     pub form_path: &'static str,
 
-    /// Titre affiché dans l'interface admin
+    /// Title displayed in the admin interface
     pub title: &'static str,
 
-    /// Permissions CRUD de cette ressource
+    /// CRUD permissions for this resource
     pub permissions: ResourcePermissions,
 
-    /// Configuration d'affichage (colonnes, pagination, icône)
+    /// Display configuration (columns, pagination, icon)
     pub display: DisplayConfig,
 
-    /// Surcharges de templates par opération (None = template Runique par défaut)
+    /// Template overrides per operation (None = default Runique template)
     pub template_list: Option<String>,
     pub template_create: Option<String>,
     pub template_edit: Option<String>,
     pub template_detail: Option<String>,
     pub template_delete: Option<String>,
 
-    /// Type de la clé primaire (pour les routes /{id}/)
+    /// Primary key type (for /{id}/ routes)
     pub id_type: AdminIdType,
 
-    /// Clés custom injectées dans le contexte Tera (définies via extra: {} dans admin!{})
+    /// Custom keys injected into the Tera context (defined via extra: {} in admin!{})
     pub extra_context: std::collections::HashMap<String, String>,
 
-    /// Si true : injecte un hash aléatoire dans le champ "password" vide à la création.
-    /// Positionné automatiquement par le daemon quand `create_form:` est déclaré.
+    /// If true: injects a random hash into the empty "password" field upon creation.
+    /// Automatically set by the daemon when `create_form:` is declared.
     pub inject_password: bool,
 }
 
@@ -236,7 +236,7 @@ impl AdminResource {
         }
     }
 
-    /// Crée une ressource avec des permissions granulaires
+    /// Creates a resource with granular permissions
     pub fn with_permissions(
         key: &'static str,
         model_path: &'static str,
@@ -262,41 +262,41 @@ impl AdminResource {
         }
     }
 
-    /// Active l'injection automatique d'un hash aléatoire dans le champ "password" vide à la création.
+    /// Enables automatic injection of a random hash into the empty "password" field upon creation.
     pub fn inject_password(mut self, v: bool) -> Self {
         self.inject_password = v;
         self
     }
 
-    /// Configure l'affichage de cette ressource
+    /// Configures the display of this resource
     pub fn display(mut self, display: DisplayConfig) -> Self {
         self.display = display;
         self
     }
 
-    /// Retourne le chemin de la route liste pour cette ressource
+    /// Returns the list route path for this resource
     ///
     /// Ex: resource.key = "users" → "/users/list"
     pub fn list_route(&self) -> String {
         format!("/{}/list", self.key)
     }
 
-    /// Retourne le chemin de la route création pour cette ressource
+    /// Returns the creation route path for this resource
     pub fn create_route(&self) -> String {
         format!("/{}/create", self.key)
     }
 
-    /// Retourne le chemin de la route détail/édition pour cette ressource
+    /// Returns the detail/edit route path for this resource
     pub fn detail_route(&self) -> String {
         format!("/{}/{{id}}", self.key)
     }
 
-    /// Retourne le chemin de la route suppression pour cette ressource
+    /// Returns the delete route path for this resource
     pub fn delete_route(&self) -> String {
         format!("/{}/{{id}}/delete", self.key)
     }
 
-    // ─── Résolution de templates (fallback sur défauts Runique) ───
+    // ─── Template resolution (fallback to Runique defaults) ───
 
     pub fn resolve_list(&self) -> &str {
         self.template_list.as_deref().unwrap_or("admin/list.html")

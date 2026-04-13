@@ -1,4 +1,4 @@
-//! Aegis : extraction et normalisation du body de requête (multipart, urlencoded, JSON, GET).
+//! Aegis: extraction and normalization of the request body (multipart, urlencoded, JSON, GET).
 use crate::config::RuniqueConfig;
 use crate::utils::{
     aliases::{StrMap, StrVecMap},
@@ -16,8 +16,8 @@ use http_body_util::BodyExt;
 use std::{collections::HashMap, sync::Arc};
 use tracing::warn;
 
-/// Aegis : extraction unique du body (multipart/urlencoded/json) et normalisation.
-/// Sur GET/HEAD, les données sont lues depuis les query params (token CSRF inclus).
+/// Aegis: unique extraction of the body (multipart/urlencoded/json) and normalization.
+/// On GET/HEAD, data is read from query params (including CSRF token).
 pub async fn aegis<S>(
     req: Request<Body>,
     state: &S,

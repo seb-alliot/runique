@@ -1,4 +1,4 @@
-//! Filtre Tera `form` — rendu HTML d'un champ de formulaire par nom depuis le contexte.
+//! Tera `form` filter — HTML rendering of a form field by name from context.
 // Dans src/tera_function/form_filter.rs
 use crate::middleware::errors::error::html_escape;
 use crate::utils::aliases::JsonMap;
@@ -10,14 +10,14 @@ pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
         let field_html = render_field(value, field_name)?;
         let mut output = field_html.as_str().unwrap_or("").to_string();
 
-        // Injecter le CSRF avant le premier champ
+        // Inject CSRF before the first field
         if is_first_field_by_index(value, field_name) {
             if let Some(csrf) = render_csrf(value) {
                 output = format!("{}\n{}", csrf, output);
             }
         }
 
-        // Injecter les scripts après le dernier champ
+        // Inject scripts after the last field
         if is_last_field_by_index(value, field_name) {
             let scripts = render_scripts(value).unwrap_or_default();
             if !scripts.is_empty() {
@@ -31,11 +31,11 @@ pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
         return Ok(Value::String(output));
     }
 
-    // Rendu du form complet
+    // Render full form
     render_form_html(value)
 }
 
-/// Vérifie si le field est le premier par index (hors csrf_token)
+/// Checks if the field is the first by index (excluding csrf_token)
 fn is_first_field_by_index(value: &Value, field_name: &str) -> bool {
     let fields = value
         .get("fields")
@@ -46,7 +46,7 @@ fn is_first_field_by_index(value: &Value, field_name: &str) -> bool {
         None => return false,
     };
 
-    // Index minimum en excluant csrf_token
+    // Minimum index excluding csrf_token
     let min_index = fields_obj
         .values()
         .filter(|f| f.get("name").and_then(|n| n.as_str()) != Some("csrf_token"))
@@ -65,7 +65,7 @@ fn is_first_field_by_index(value: &Value, field_name: &str) -> bool {
     }
 }
 
-/// Vérifie si le field est le dernier par index
+/// Checks if the field is the last by index
 fn is_last_field_by_index(value: &Value, field_name: &str) -> bool {
     let fields = value
         .get("fields")
@@ -76,14 +76,14 @@ fn is_last_field_by_index(value: &Value, field_name: &str) -> bool {
         None => return false,
     };
 
-    // Trouver l'index maximum (dernier field)
+    // Find maximum index (last field)
     let max_index = fields_obj
         .values()
         .filter_map(|field| field.get("index"))
         .filter_map(|idx| idx.as_u64())
         .max();
 
-    // Obtenir l'index du field actuel
+    // Get current field index
     let current_index = fields_obj
         .get(field_name)
         .and_then(|field| field.get("index"))
@@ -95,7 +95,7 @@ fn is_last_field_by_index(value: &Value, field_name: &str) -> bool {
     }
 }
 
-/// Récupère le HTML du champ CSRF depuis rendered_fields
+/// Retrieves the CSRF field HTML from rendered_fields
 fn render_csrf(value: &Value) -> Option<String> {
     let rendered = find_rendered_fields(value)?;
     rendered
@@ -154,7 +154,7 @@ fn find_rendered_fields(value: &Value) -> Option<&Value> {
         .or_else(|| value.get("form").and_then(|f| f.get("rendered_fields")))
 }
 
-/// Rendu du HTML complet du formulaire
+/// Renders the complete form HTML
 fn render_form_html(value: &Value) -> TResult {
     let html = find_html(value);
 
@@ -167,21 +167,21 @@ fn render_form_html(value: &Value) -> TResult {
     ))
 }
 
-/// Cherche le champ "html" intelligemment
+/// Intelligently searches for the "html" field
 fn find_html(value: &Value) -> Option<String> {
-    // 1. Directement value.html
+    // 1. Directly value.html
     if let Some(html) = value.get("html").and_then(|v| v.as_str()) {
         return Some(html.to_string());
     }
 
-    // 2. value.form.html (struct avec champ "form")
+    // 2. value.form.html (struct with "form" field)
     if let Some(form) = value.get("form") {
         if let Some(html) = form.get("html").and_then(|v| v.as_str()) {
             return Some(html.to_string());
         }
     }
 
-    // 3. Reconstruire depuis rendered_fields si html absent
+    // 3. Rebuild from rendered_fields if html is absent
     if let Some(fields) = find_rendered_fields(value) {
         if let Some(obj) = fields.as_object() {
             let html: Vec<&str> = obj.values().filter_map(|v| v.as_str()).collect();

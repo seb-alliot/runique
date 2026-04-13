@@ -35,7 +35,7 @@ body {
   text-shadow: var(--text-shadow);
 }
 
-/* ===== ÉLÉMENTS INLINE COMMUNS ===== */
+/* ===== COMMON INLINE ELEMENTS ===== */
 .error-type, .badge, .level {
   display: inline-block;
   border-radius: var(--border-radius-md);

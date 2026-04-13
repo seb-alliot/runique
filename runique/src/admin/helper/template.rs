@@ -1,9 +1,9 @@
-//! Gestion des templates admin avec surcharge optionnelle par le développeur.
+//! Admin template management with optional developer override.
 
-/// Chemin d'un template admin — avec fallback sur le défaut Runique.
+/// Admin template path — with fallback to Runique default.
 ///
-/// `runique` : clé Tera du template framework (immuable)
-/// `dev`     : chemin dev optionnel — remplace `runique` si défini
+/// `runique` : Tera key of the framework template (immutable)
+/// `dev`     : optional dev path — replaces `runique` if defined
 #[derive(Debug, Clone)]
 pub struct PathAdminTemplate {
     pub dev: Option<String>,
@@ -11,7 +11,7 @@ pub struct PathAdminTemplate {
 }
 
 impl PathAdminTemplate {
-    /// Retourne le chemin résolu : dev en priorité, sinon défaut Runique.
+    /// Returns the resolved path: dev has priority, otherwise Runique default.
     #[must_use]
     pub fn resolve(&self) -> &str {
         self.dev.as_deref().unwrap_or(self.runique)
@@ -72,19 +72,19 @@ impl PathAdminTemplate {
     }
 }
 
-/// Configuration globale des templates admin.
+/// Global configuration for admin templates.
 ///
-/// Hiérarchie de résolution (priorité décroissante) :
-/// 1. `admin!{ template_list: "..." }` — surcharge par ressource
-/// 2. `AdminTemplate.list.dev`         — surcharge globale dev
-/// 3. `AdminTemplate.list.runique`     — défaut framework
+/// Resolution hierarchy (decreasing priority):
+/// 1. `admin!{ template_list: "..." }` — override per resource
+/// 2. `AdminTemplate.list.dev`         — global dev override
+/// 3. `AdminTemplate.list.runique`     — framework default
 ///
-/// ## Exemple
+/// ## Example
 /// ```rust,ignore
 /// .with_admin(|a| a
 ///     .templates(|t| t
-///         .with_list("mon_theme/list")
-///         .with_dashboard("mon_theme/dashboard")
+///         .with_list("my_theme/list")
+///         .with_dashboard("my_theme/dashboard")
 ///     )
 /// )
 /// ```
@@ -98,7 +98,7 @@ pub struct AdminTemplate {
     pub delete: PathAdminTemplate,
     pub login: PathAdminTemplate,
     pub base: PathAdminTemplate,
-    /// Template pour les réponses partielles HTMX (fragment uniquement, sans layout).
+    /// Template for HTMX partial responses (fragment only, no layout).
     pub htmx: PathAdminTemplate,
 }
 

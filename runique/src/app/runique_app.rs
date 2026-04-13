@@ -1,4 +1,4 @@
-//! Application Runique construite et prête à être lancée.
+//! Built and ready-to-launch Runique application.
 use axum::Router;
 use tokio::signal;
 
@@ -8,26 +8,26 @@ use crate::utils::aliases::AEngine;
 use super::builder::RuniqueAppBuilder;
 
 // ═══════════════════════════════════════════════════════════════
-// RuniqueApp — Application construite, prête à être lancée
+// RuniqueApp — Built application, ready to be launched
 // ═══════════════════════════════════════════════════════════════
 
-/// Application compilée : moteur + router prêts à servir des requêtes HTTP.
+/// Compiled application: engine + router ready to serve HTTP requests.
 pub struct RuniqueApp {
-    /// Moteur partagé contenant config, Tera, DB et politiques de sécurité.
+    /// Shared engine containing config, Tera, DB, and security policies.
     pub engine: AEngine,
-    /// Router Axum avec tous les middlewares attachés.
+    /// Axum router with all attached middlewares.
     pub router: Router,
 }
 
 impl RuniqueApp {
-    /// Crée un nouveau builder pour configurer l'application.
+    /// Creates a new builder to configure the application.
     ///
-    /// Raccourci vers [`RuniqueAppBuilder::new`].
+    /// Shortcut to [`RuniqueAppBuilder::new`].
     pub fn builder(config: RuniqueConfig) -> RuniqueAppBuilder {
         RuniqueAppBuilder::new(config)
     }
 
-    /// Lance le serveur HTTP avec graceful shutdown (Ctrl+C).
+    /// Launches the HTTP server with graceful shutdown (Ctrl+C).
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         let addr = format!(
             "{}:{}",

@@ -1,4 +1,4 @@
-//! Middleware de validation du header `Host` : rejette les requêtes vers des hôtes non autorisés.
+//! `Host` header validation middleware: rejects requests to unauthorized hosts.
 use crate::utils::{aliases::AEngine, trad::t};
 use axum::{
     body::Body,
@@ -9,12 +9,12 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-/// Politique de validation des hôtes : liste blanche avec support wildcard (`.domaine.fr`).
+/// Host validation policy: allowlist with wildcard support (`.domain.fr`).
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HostPolicy {
-    /// Liste des hôtes autorisés (exact ou wildcard préfixé par `.`).
+    /// List of allowed hosts (exact or wildcard prefixed by `.`).
     pub allowed_hosts: Vec<String>,
-    /// Active ou désactive la validation. Si `false`, toutes les requêtes passent.
+    /// Enables or disables validation. If `false`, all requests pass.
     pub enabled: bool,
 }
 
@@ -44,7 +44,7 @@ impl HostPolicy {
                 return true;
             }
 
-            //  normalisation côté allowed aussi
+            // normalization on allowed side too
             let allowed_host = normalize_host(allowed);
 
             if let Some(suffix) = allowed_host.strip_prefix('.') {
@@ -123,7 +123,7 @@ mod tests {
         let validator = HostPolicy::new(vec!["*".to_string()], true);
 
         assert!(validator.is_host_allowed("exemple.com"));
-        assert!(validator.is_host_allowed("n-importe-quoi.com"));
+        assert!(validator.is_host_allowed("anything.com"));
     }
 
     #[test]
@@ -141,7 +141,7 @@ mod tests {
         assert!(validator.is_host_allowed("www.exemple.com"));
         assert!(validator.is_host_allowed("api.exemple.com"));
         assert!(validator.is_host_allowed("v1.api.exemple.com"));
-        assert!(!validator.is_host_allowed("autre.exemple.com"));
+        assert!(!validator.is_host_allowed("other.exemple.com"));
     }
 
     #[test]
@@ -154,24 +154,24 @@ mod tests {
 
     #[test]
     fn test_disabled_allows_all() {
-        // Validation désactivée via RUNIQUE_ENABLE_HOST_VALIDATION=false
-        // Le bypass se fait au niveau du middleware, pas dans is_host_allowed
+        // Validation disabled via RUNIQUE_ENABLE_HOST_VALIDATION=false
+        // Bypass happens at the middleware level, not in is_host_allowed
         let validator = HostPolicy::new(vec!["exemple.com".to_string()], false);
-        assert!(!validator.is_host_allowed("n-importe-quoi.com"));
+        assert!(!validator.is_host_allowed("anything.com"));
         assert!(!validator.is_host_allowed("malicious.com"));
     }
 
     #[test]
     fn test_wildcard_subdomain_security() {
-        // Test pour éviter que "malicious-exemple.com" match ".exemple.com"
+        // Test to ensure "malicious-exemple.com" does not match ".exemple.com"
         let validator = HostPolicy::new(vec![".exemple.com".to_string()], true);
 
-        // Doit matcher
+        // Should match
         assert!(validator.is_host_allowed("exemple.com"));
         assert!(validator.is_host_allowed("www.exemple.com"));
         assert!(validator.is_host_allowed("api.exemple.com"));
 
-        // Ne doit PAS matcher (bug de sécurité)
+        // Should NOT match (security bug)
         assert!(!validator.is_host_allowed("malicious-exemple.com"));
         assert!(!validator.is_host_allowed("evil-exemple.com"));
         assert!(!validator.is_host_allowed("exemple.com.evil.com"));

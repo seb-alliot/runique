@@ -1,4 +1,4 @@
-//! Trait `FormField` et structure `FieldConfig` : base commune à tous les champs de formulaire.
+//! `FormField` trait and `FieldConfig` structure: common base for all form fields.
 use crate::forms::options::*;
 use crate::utils::aliases::*;
 use dyn_clone::DynClone;
@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
-/// Configuration commune d'un champ de formulaire (nom, label, valeur, erreur, attributs HTML).
+/// Common configuration for a form field (name, label, value, error, HTML attributes).
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FieldConfig {
     pub name: String,
@@ -154,7 +154,7 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         };
     }
 
-    /// Réinitialise l'erreur du champ (équivalent explicite de set_error(""))
+    /// Resets the field error (explicit equivalent of `set_error("")`)
     fn clear_error(&mut self) {
         self.get_field_config_mut().error = None;
     }
@@ -192,13 +192,13 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         );
     }
 
-    /// Validation spécifique au type de champ
+    /// Field-type specific validation
     fn validate(&mut self) -> bool;
 
-    /// Rendu HTML du champ
+    /// HTML rendering of the field
     fn render(&self, tera: &ATera) -> Result<String, String>;
 
-    /// Finalisation (ex: hachage de mot de passe)
+    /// Finalization (e.g., password hashing)
     fn finalize(&mut self) -> Result<(), String> {
         Ok(())
     }

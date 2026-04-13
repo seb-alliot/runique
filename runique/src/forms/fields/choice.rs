@@ -1,4 +1,4 @@
-//! Champ de sélection : `ChoiceField` avec groupes, multi-select et options dynamiques.
+//! Selection field: `ChoiceField` with groups, multi-select, and dynamic options.
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;
@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 use tera::{Context, Tera};
 
-/// Option pour les champs de choix
+/// Option for choice fields
 #[derive(Clone, Debug, Serialize)]
 pub struct ChoiceOption {
     pub value: String,
@@ -29,7 +29,7 @@ impl ChoiceOption {
     }
 }
 
-/// SelectField - Dropdown/Select standard
+/// SelectField - Standard Dropdown/Select
 #[derive(Clone, Serialize, Debug)]
 pub struct ChoiceField {
     pub base: FieldConfig,
@@ -99,7 +99,7 @@ impl FormField for ChoiceField {
         }
 
         if !val.is_empty() {
-            // Vérifier que la valeur existe dans les choix
+            // Check that the value exists in the choices
             let valid = self.choices.iter().any(|c| c.value == val);
             if !valid {
                 self.set_error(t("forms.choice_invalid").to_string());
@@ -130,7 +130,7 @@ impl FormField for ChoiceField {
     }
 }
 
-/// RadioField - Boutons radio
+/// RadioField - Radio buttons
 #[derive(Clone, Serialize, Debug)]
 pub struct RadioField {
     pub base: FieldConfig,
@@ -231,7 +231,7 @@ impl FormField for RadioField {
     }
 }
 
-/// CheckboxField - Checkboxes multiples
+/// CheckboxField - Multiple checkboxes
 #[derive(Clone, Serialize, Debug)]
 pub struct CheckboxField {
     pub base: FieldConfig,
@@ -278,7 +278,7 @@ impl CommonFieldConfig for CheckboxField {
 
 impl FormField for CheckboxField {
     fn set_value(&mut self, value: &str) {
-        // Format attendu: "value1,value2,value3"
+        // Expected format: "value1,value2,value3"
         self.base.value = value.to_string();
         let selected_values: Vec<&str> = value.split(',').map(|s| s.trim()).collect();
 
@@ -302,7 +302,7 @@ impl FormField for CheckboxField {
         }
 
         if !val.is_empty() {
-            // Vérifier que toutes les valeurs sélectionnées existent
+            // Check that all selected values exist
             let selected_values: Vec<&str> = val.split(',').map(|s| s.trim()).collect();
             for sel_val in selected_values {
                 if !self.choices.iter().any(|c| c.value == sel_val) {

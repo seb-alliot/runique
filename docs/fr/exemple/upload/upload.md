@@ -13,7 +13,7 @@ impl RuniqueForm for ImageForm {
             &FileField::image("image")
                 .label("Image")
                 .upload_to_env()        // lit MEDIA_ROOT depuis .env
-                .max_size_mb(5)
+                .max_size(5)
                 .max_files(1)
                 .max_dimensions(1920, 1080)
                 .allowed_extensions(vec!["jpg", "png", "webp", "avif"])

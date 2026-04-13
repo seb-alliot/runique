@@ -1,7 +1,7 @@
 // Tests pour BaseHash, PasswordService, PasswordConfig
 //
-// Note : bcrypt (DEFAULT_COST=12) et scrypt sont trop lents pour être
-// testés en round-trip. On se limite à Argon2 pour les tests hash+verify.
+// Note: bcrypt (DEFAULT_COST=12) and scrypt are too slow to be
+// tested in round-trip. We limit to Argon2 for hash+verify tests.
 // Les autres algorithmes sont couverts via detect_algorithm / is_already_hashed.
 
 use runique::utils::password::{
@@ -143,7 +143,7 @@ fn test_argon2_verify_incorrect_false() {
 
 #[test]
 fn test_hash_vide_retourne_erreur_allow_empty_false() {
-    let svc = PasswordService::new(PasswordConfig::auto()); // allow_empty=false par défaut
+    let svc = PasswordService::new(PasswordConfig::auto()); // allow_empty=false by default
     assert!(svc.hash("").is_err());
 }
 
@@ -179,7 +179,7 @@ fn test_is_algorithm_current_bcrypt_ne_correspond_pas_a_argon2() {
 #[test]
 fn test_is_algorithm_current_manual_toujours_true() {
     let svc = PasswordService::new(PasswordConfig::manual(Manual::Argon2));
-    // Mode Manual → toujours true (pas de détection)
+    // Manual mode → always true (no detection)
     assert!(svc.is_algorithm_current("$2b$12$nimportequoi"));
 }
 
@@ -247,7 +247,7 @@ fn test_password_config_oauth_google() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// AutoConfig — valeurs par défaut
+// AutoConfig — default values
 // ═══════════════════════════════════════════════════════════════
 
 #[test]

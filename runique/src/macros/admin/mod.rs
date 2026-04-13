@@ -1,2 +1,2 @@
-//! Macro `admin!` — déclaration des ressources de l'interface d'administration.
+//! `admin!` macro — declaring resources for the administration interface.
 pub mod macros_admin;

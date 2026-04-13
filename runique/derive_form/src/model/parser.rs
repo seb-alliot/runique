@@ -11,11 +11,11 @@ use syn::{
 
 impl Parse for EnumDef {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Status: [Active, Inactive] ou Status: String [Fix="fix"] ou Priority: i32 [Low=1]
+        // Status: [Active, Inactive] or Status: String [Fix="fix"] or Priority: i32 [Low=1]
         let name: Ident = input.parse()?;
         input.parse::<Token![:]>()?;
 
-        // Type optionnel : String | i32 | i64 (sinon Auto — détecté depuis .env)
+        // Optional type: String | i32 | i64 (otherwise Auto — detected from .env)
         let backing_type = if input.peek(Ident) {
             let ty: Ident = input.fork().parse()?;
             match ty.to_string().as_str() {
@@ -23,9 +23,9 @@ impl Parse for EnumDef {
                     let ident: Ident = input.parse()?;
                     return Err(syn::Error::new(
                         ident.span(),
-                        "`String` est obsolète comme type d'enum. \
-                        Retirez-le — le comportement correct est détecté automatiquement \
-                        depuis DATABASE_URL dans `.env` (natif Postgres ou VARCHAR).",
+                        "`String` is deprecated as an enum type. \
+                        Remove it — the correct behavior is automatically detected \
+                        from DATABASE_URL in `.env` (native Postgres or VARCHAR).",
                     ));
                 }
                 "i32" => {
@@ -47,7 +47,10 @@ impl Parse for EnumDef {
         let mut variants = Vec::new();
         while !content.is_empty() {
             let variant_name: Ident = content.parse()?;
-            let (value, label) = if content.peek(Token![=]) {
+            let (value, label) = if content.peek(Token![:]) {
+                content.parse::<Token![:]>()?;
+                (None, Some(content.parse::<syn::Lit>()?))
+            } else if content.peek(Token![=]) {
                 content.parse::<Token![=]>()?;
                 if content.peek(syn::token::Paren) {
                     let inner;
@@ -99,7 +102,7 @@ impl Parse for ModelInput {
         let pk = PkDef::parse(input)?;
         input.parse::<Token![,]>()?;
 
-        // enums: { ... } optionnel
+        // enums: { ... } optional
         let mut enums = Vec::new();
         if input.peek(Ident) {
             let peek: Ident = input.fork().parse()?;
@@ -115,14 +118,14 @@ impl Parse for ModelInput {
             }
         }
 
-        // Détection du style :
-        // Nouveau (v2) : bloc anonyme `{ ... }` — types sémantiques, dérivent le SQL
-        // Ancien (v1)  : `fields: { ... }` — types SQL explicites
+        // Style detection:
+        // New (v2): anonymous block `{ ... }` — semantic types, deriving SQL
+        // Old (v1): `fields: { ... }` — explicit SQL types
         let mut fields = Vec::new();
         let mut form_fields_early: Vec<FormFieldDecl> = Vec::new();
 
         if input.peek(syn::token::Brace) {
-            // ── Nouveau style : bloc anonyme ──────────────────────
+            // ── New style: anonymous block ──────────────────────
             let ff_content;
             syn::braced!(ff_content in input);
             while !ff_content.is_empty() {
@@ -132,12 +135,12 @@ impl Parse for ModelInput {
             }
             let _ = input.parse::<Token![,]>();
         } else {
-            // ── Ancien style : fields: { ... } ────────────────────
+            // ── Old style: fields: { ... } ────────────────────
             let fields_kw: Ident = input.parse()?;
             if fields_kw != "fields" {
                 return Err(syn::Error::new(
                     fields_kw.span(),
-                    "Attendu : `fields` ou un bloc `{ ... }`",
+                    "Expected: `fields` or an anonymous block `{ ... }` ",
                 ));
             }
             input.parse::<Token![:]>()?;
@@ -149,7 +152,7 @@ impl Parse for ModelInput {
             let _ = input.parse::<Token![,]>();
         }
 
-        // relations: { ... } optionnel
+        // relations: { ... } optional
         let mut relations = Vec::new();
         if input.peek(Ident) {
             let peek: Ident = input.fork().parse()?;
@@ -165,7 +168,7 @@ impl Parse for ModelInput {
             }
         }
 
-        // meta: { ... } optionnel
+        // meta: { ... } optional
         let mut meta = None;
         if input.peek(Ident) {
             let peek: Ident = input.fork().parse()?;
@@ -178,7 +181,7 @@ impl Parse for ModelInput {
             }
         }
 
-        // form_fields: { ... } optionnel (ancien style uniquement — ignoré si bloc anonyme déjà parsé)
+        // form_fields: { ... } optional (old style only — ignored if anonymous block already parsed)
         let mut form_fields = if form_fields_early.is_empty() {
             let mut ff = Vec::new();
             if input.peek(Ident) {
@@ -236,10 +239,7 @@ impl Parse for PkDef {
             other => {
                 return Err(syn::Error::new(
                     ty_ident.span(),
-                    format!(
-                        "Type de PK inconnu : '{}'. Attendu : i32, i64, Pk, uuid",
-                        other
-                    ),
+                    format!("Unknown PK type: '{}'. Expected: i32, i64, Pk, uuid", other),
                 ));
             }
         };
@@ -254,7 +254,7 @@ impl Parse for FieldDef {
         input.parse::<Token![:]>()?;
         let ty = FieldType::parse(input)?;
 
-        // options [ ... ] optionnelles
+        // options [ ... ] optional
         let mut options = Vec::new();
         if input.peek(token::Bracket) {
             let options_content;
@@ -265,7 +265,7 @@ impl Parse for FieldDef {
             }
         }
 
-        // virgule de fin
+        // trailing comma
         let _ = input.parse::<Token![,]>();
 
         Ok(FieldDef { name, ty, options })
@@ -274,7 +274,7 @@ impl Parse for FieldDef {
 
 impl Parse for FieldType {
     fn parse(input: ParseStream) -> Result<Self> {
-        // `enum` est un mot-clé Rust — traitement séparé
+        // `enum` is a Rust keyword — separate treatment
         if input.peek(Token![enum]) {
             input.parse::<Token![enum]>()?;
             let content;
@@ -349,7 +349,7 @@ impl Parse for FieldType {
             "interval" => Ok(FieldType::Interval),
             other => Err(syn::Error::new(
                 ty_ident.span(),
-                format!("Type de champ inconnu : '{}'", other),
+                format!("Unknown field type: '{}'", other),
             )),
         }
     }
@@ -450,7 +450,7 @@ impl Parse for FieldOption {
                         return Err(syn::Error::new(
                             kind_ident.span(),
                             format!(
-                                "Type de fichier inconnu : '{}'. Attendu : image, document, any",
+                                "Unknown file type: '{}'. Expected: image, document, any",
                                 other
                             ),
                         ));
@@ -467,7 +467,7 @@ impl Parse for FieldOption {
             }
             other => Err(syn::Error::new(
                 option_ident.span(),
-                format!("Option inconnue : '{}'", other),
+                format!("Unknown option: '{}'", other),
             )),
         }
     }
@@ -490,7 +490,7 @@ impl Parse for FkDef {
                 return Err(syn::Error::new(
                     action_ident.span(),
                     format!(
-                        "Action FK inconnue : '{}'. Attendu : cascade, set_null, restrict, set_default",
+                        "Unknown FK action: '{}'. Expected: cascade, set_null, restrict, set_default",
                         other
                     ),
                 ));
@@ -518,11 +518,11 @@ impl Parse for RelationDef {
             "belongs_to" => {
                 let via_kw: Ident = input.parse()?;
                 if via_kw != "via" {
-                    return Err(syn::Error::new(via_kw.span(), "Attendu : 'via'"));
+                    return Err(syn::Error::new(via_kw.span(), "Expected: 'via'"));
                 }
                 let via: Ident = input.parse()?;
-                // options FK optionnelles : [cascade], [cascade, restrict], etc.
-                // consommées ici, gérées par le système de migration
+                // Optional FK options: [cascade], [cascade, restrict], etc.
+                // consumed here, handled by migration system
                 if input.peek(syn::token::Bracket) {
                     let opts;
                     syn::bracketed!(opts in input);
@@ -563,14 +563,14 @@ impl Parse for RelationDef {
             "many_to_many" => {
                 let through_kw: Ident = input.parse()?;
                 if through_kw != "through" {
-                    return Err(syn::Error::new(through_kw.span(), "Attendu : 'through'"));
+                    return Err(syn::Error::new(through_kw.span(), "Expected: 'through'"));
                 }
                 let through: Ident = input.parse()?;
 
-                // ← nouveau : via ViaIdent
+                // via ViaIdent
                 let via_kw: Ident = input.parse()?;
                 if via_kw != "via" {
-                    return Err(syn::Error::new(via_kw.span(), "Attendu : 'via'"));
+                    return Err(syn::Error::new(via_kw.span(), "Expected: 'via'"));
                 }
                 let via_self: Ident = input.parse()?;
 
@@ -584,7 +584,7 @@ impl Parse for RelationDef {
                 return Err(syn::Error::new(
                     kind.span(),
                     format!(
-                        "Relation inconnue : '{}'. Attendu : belongs_to, has_many, has_one, many_to_many",
+                        "Unknown relation: '{}'. Expected: belongs_to, has_many, has_one, many_to_many",
                         other
                     ),
                 ));
@@ -669,7 +669,7 @@ impl Parse for MetaDef {
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
-                        format!("Clé meta inconnue : '{}'", other),
+                        format!("Unknown meta key: '{}'", other),
                     ));
                 }
             }
@@ -688,15 +688,15 @@ impl Parse for MetaDef {
     }
 }
 
-// ── Dérivation FieldDef depuis FormFieldDecl ──────────────────
+// ── FieldDef derivation from FormFieldDecl ──────────────────
 
-/// Convertit un `FormFieldDecl` (bloc anonyme v2) en `FieldDef` SQL équivalent.
-/// Les types SQL sont déduits des types sémantiques.
+/// Converts a `FormFieldDecl` (anonymous block v2) into an equivalent SQL `FieldDef`.
+/// SQL types are inferred from semantic types.
 fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     use crate::model::ast::{FileKind, FormFieldAttr::*, FormFieldKind::*};
 
     let is_required = ff.attrs.iter().any(|a| matches!(a, Required));
-    let is_nullable = ff.attrs.iter().any(|a| matches!(a, Nullable)) || !is_required; // sans required → nullable implicite
+    let is_nullable = ff.attrs.iter().any(|a| matches!(a, Nullable)) || !is_required; // without required -> implicit nullable
 
     let max_len = ff
         .attrs
@@ -842,20 +842,20 @@ impl Parse for FormFieldDecl {
                 return Err(syn::Error::new(
                     kind_ident.span(),
                     format!(
-                        "Type de champ inconnu : '{}' (champ: {}){}",
+                        "Unknown field type: '{}' (field: {}){}",
                         other, name, suggestion
                     ),
                 ));
             }
         };
 
-        // Attributs optionnels [ ... ]
+        // Optional attributes [ ... ]
         let mut attrs = Vec::new();
         if input.peek(token::Bracket) {
             let attrs_content;
             syn::bracketed!(attrs_content in input);
             while !attrs_content.is_empty() {
-                // `enum` est un mot-clé Rust — traitement séparé avant le match sur Ident
+                // `enum` is a Rust keyword — separate treatment before matching on Ident
                 if attrs_content.peek(Token![enum]) {
                     attrs_content.parse::<Token![enum]>()?;
                     let content;
@@ -932,7 +932,7 @@ impl Parse for FormFieldDecl {
                     other => {
                         return Err(syn::Error::new(
                             attr_ident.span(),
-                            format!("Attribut inconnu : '{}' (champ: {})", other, name),
+                            format!("Unknown attribute: '{}' (field: {})", other, name),
                         ));
                     }
                 };
@@ -941,7 +941,7 @@ impl Parse for FormFieldDecl {
             }
         }
 
-        // Validation attributs vs type
+        // Validate attributes vs type
         validate_form_field_attrs(&name, &kind_ident, &kind, &attrs)?;
 
         let _ = input.parse::<Token![,]>();
@@ -955,7 +955,7 @@ fn suggest_form_field_type(input: &str) -> String {
         "decimal", "percent", "bool", "date", "time", "datetime", "image", "document", "file",
         "color", "slug", "uuid", "json", "ip",
     ];
-    // Suggestion par préfixe commun (≥ 3 caractères)
+    // Suggestion by common prefix (≥ 2 characters)
     let matches: Vec<&str> = known
         .iter()
         .filter(|&&k| {
@@ -967,7 +967,7 @@ fn suggest_form_field_type(input: &str) -> String {
     if matches.is_empty() {
         String::new()
     } else {
-        format!(" — vouliez-vous dire `{}` ?", matches[0])
+        format!(" — did you mean `{}`?", matches[0])
     }
 }
 
@@ -984,45 +984,45 @@ fn validate_form_field_attrs(
 
     for attr in attrs {
         let valid = match (attr, kind) {
-            // required / nullable / EnumRef — universels
+            // required / nullable / EnumRef — universal
             (Required, _) => true,
             (Nullable, _) => true,
             (EnumRef(_), FormFieldKind::Choice | FormFieldKind::Radio) => true,
             (EnumRef(_), _) => false,
 
-            // no_hash — password uniquement
+            // no_hash — password only
             (NoHash, Password) => true,
             (NoHash, _) => false,
 
-            // max_length / min_length — types textuels
+            // max_length / min_length — textual types
             (MaxLength(_), Text | Email | Password | Richtext | Textarea | Url) => true,
             (MaxLength(_), _) => false,
             (MinLength(_), Text | Textarea) => true,
             (MinLength(_), _) => false,
 
-            // min / max entier — int uniquement
+            // min / max integer — int only
             (Min(_), Int) => true,
             (Min(_), _) => false,
             (Max(_), Int) => true,
             (Max(_), _) => false,
 
-            // min_f / max_f flottant — float, decimal
+            // min_f / max_f float — float, decimal
             (MinF(_), Float | Decimal) => true,
             (MinF(_), _) => false,
             (MaxF(_), Float | Decimal) => true,
             (MaxF(_), _) => false,
 
-            // default — tout sauf fichiers
+            // default — all except files
             (Default(_), Image | Document | File) => false,
             (Default(_), _) => true,
 
-            // upload_to / max_size_mb — fichiers uniquement
+            // upload_to / max_size - files only
             (UploadTo(_), Image | Document | File) => true,
             (UploadTo(_), _) => false,
             (MaxSize(_), Image | Document | File) => true,
             (MaxSize(_), _) => false,
 
-            // rows — types multilignes
+            // rows — multiline types
             (Rows(_), Richtext | Textarea | Json) => true,
             (Rows(_), _) => false,
 
@@ -1030,13 +1030,13 @@ fn validate_form_field_attrs(
             (Step(_), Float | Decimal) => true,
             (Step(_), _) => false,
 
-            // auto_now / auto_now_update — datetime uniquement
+            // auto_now / auto_now_update — datetime only
             (AutoNow, Datetime) => true,
             (AutoNow, _) => false,
             (AutoNowUpdate, Datetime) => true,
             (AutoNowUpdate, _) => false,
 
-            // unique — tous les types sauf fichiers/bool
+            // unique — all types except files/bool
             (Unique, Image | Document | File | Bool) => false,
             (Unique, _) => true,
         };
@@ -1046,25 +1046,25 @@ fn validate_form_field_attrs(
             return Err(syn::Error::new(
                 kind_ident.span(),
                 format!(
-                    "`{}` n'est pas valide pour le type `{}` (champ: {})",
+                    "`{}` is not valid for type `{}` (field: {})",
                     attr_name, kind_name, name
                 ),
             ));
         }
     }
 
-    // upload_to requis pour image / document / file
+    // upload_to required for image / document / file
     if matches!(kind, Image | Document | File) && !attrs.iter().any(|a| matches!(a, UploadTo(_))) {
         return Err(syn::Error::new(
             name.span(),
             format!(
-                "`upload_to` est requis pour les champs `{}` (champ: {})",
+                "`upload_to` is required for `{}` fields (field: {})",
                 kind_name, name
             ),
         ));
     }
 
-    // min < max pour int
+    // min < max for int
     let min_val = attrs
         .iter()
         .find_map(|a| if let Min(v) = a { Some(*v) } else { None });
@@ -1077,13 +1077,13 @@ fn validate_form_field_attrs(
         return Err(syn::Error::new(
             name.span(),
             format!(
-                "`min` doit être inférieur à `max` (champ: {}, min={}, max={})",
+                "`min` must be less than `max` (field: {}, min={}, max={})",
                 name, mn, mx
             ),
         ));
     }
 
-    // min_f < max_f pour float/decimal
+    // min_f < max_f for float/decimal
     let min_f_val = attrs
         .iter()
         .find_map(|a| if let MinF(v) = a { Some(*v) } else { None });
@@ -1096,7 +1096,7 @@ fn validate_form_field_attrs(
         return Err(syn::Error::new(
             name.span(),
             format!(
-                "`min` doit être inférieur à `max` (champ: {}, min={}, max={})",
+                "`min` must be less than `max` (field: {}, min={}, max={})",
                 name, mn, mx
             ),
         ));
@@ -1128,8 +1128,8 @@ fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
     }
 }
 
-/// Parse une taille avec unité (KB, MB, GB). Retourne la valeur en Octets.
-/// Sans unité, la valeur est traitée comme des MO (MB) par défaut pour la compatibilité.
+/// Parses a size with unit (KB, MB, GB). Returns the value in Bytes.
+/// Without unit, the value is treated as MB by default for backward compatibility.
 fn parse_size(input: ParseStream) -> Result<u64> {
     let n: LitInt = input.parse()?;
     let value = n.base10_parse::<u64>()?;
@@ -1143,11 +1143,11 @@ fn parse_size(input: ParseStream) -> Result<u64> {
             "GB" | "G" | "GO" => Ok(value * 1024 * 1024 * 1024),
             _ => Err(syn::Error::new(
                 unit.span(),
-                "Unité de taille inconnue. Attendu : KB, MB, GB (ou K, M, G, KO, MO, GO)",
+                "Unknown size unit. Expected: KB, MB, GB (or K, M, G, KO, MO, GO)",
             )),
         }
     } else {
-        // Défaut : MB pour la compatibilité avec l'existant
+        // Default: MB for backward compatibility
         Ok(value * 1024 * 1024)
     }
 }
@@ -1156,8 +1156,8 @@ fn parse_size(input: ParseStream) -> Result<u64> {
 mod tests {
     use super::*;
 
-    /// Parse un `FormFieldDecl` depuis une chaîne DSL.
-    /// Format : `nom: type [attr1, attr2, ...]`
+    /// Parses a `FormFieldDecl` from a DSL string.
+    /// Format: `name: type [attr1, attr2, ...]`
     fn parse_field(src: &str) -> syn::Result<FormFieldDecl> {
         syn::parse_str::<FormFieldDecl>(src)
     }
@@ -1165,189 +1165,189 @@ mod tests {
     fn ok(src: &str) {
         assert!(
             parse_field(src).is_ok(),
-            "attendu OK mais erreur pour : `{src}`"
+            "expected OK but error for: `{src}`"
         );
     }
 
     fn err(src: &str) {
         assert!(
             parse_field(src).is_err(),
-            "attendu ERREUR mais OK pour : `{src}`"
+            "expected ERROR but OK for: `{src}`"
         );
     }
 
     // ── max_length ────────────────────────────────────────────────
 
     #[test]
-    fn max_length_valide_sur_text() {
-        ok("nom: text [max_length: 100]");
+    fn max_length_valid_on_text() {
+        ok("name: text [max_length: 100]");
     }
 
     #[test]
-    fn max_length_valide_sur_email() {
+    fn max_length_valid_on_email() {
         ok("email: email [max_length: 254]");
     }
 
     #[test]
-    fn max_length_valide_sur_password() {
-        ok("mdp: password [max_length: 128]");
+    fn max_length_valid_on_password() {
+        ok("pwd: password [max_length: 128]");
     }
 
     #[test]
-    fn max_length_valide_sur_url() {
+    fn max_length_valid_on_url() {
         ok("site: url [max_length: 200]");
     }
 
     #[test]
-    fn max_length_invalide_sur_int() {
+    fn max_length_invalid_on_int() {
         err("age: int [max_length: 50]");
     }
 
     #[test]
-    fn max_length_invalide_sur_float() {
-        err("prix: float [max_length: 10]");
+    fn max_length_invalid_on_float() {
+        err("price: float [max_length: 10]");
     }
 
     #[test]
-    fn max_length_invalide_sur_bool() {
-        err("actif: bool [max_length: 5]");
+    fn max_length_invalid_on_bool() {
+        err("active: bool [max_length: 5]");
     }
 
     #[test]
-    fn max_length_invalide_sur_date() {
-        err("naissance: date [max_length: 10]");
+    fn max_length_invalid_on_date() {
+        err("birth: date [max_length: 10]");
     }
 
     #[test]
-    fn max_length_invalide_sur_uuid() {
+    fn max_length_invalid_on_uuid() {
         err("uid: uuid [max_length: 36]");
     }
 
-    // ── min / max (entier) ────────────────────────────────────────
+    // ── min / max (integer) ────────────────────────────────────────
 
     #[test]
-    fn min_max_valide_sur_int() {
+    fn min_max_valid_on_int() {
         ok("age: int [min: 0, max: 150]");
     }
 
     #[test]
-    fn min_invalide_sur_text() {
-        err("nom: text [min: 0]");
+    fn min_invalid_on_text() {
+        err("name: text [min: 0]");
     }
 
     #[test]
-    fn max_invalide_sur_float() {
-        // max entier (i64) n'est pas valide sur float — doit utiliser max flottant
-        err("prix: float [max: 100]");
+    fn max_invalid_on_float() {
+        // integer max (i64) is not valid on float — must use floating max
+        err("price: float [max: 100]");
     }
 
     #[test]
-    fn min_invalide_sur_bool() {
+    fn min_invalid_on_bool() {
         err("flag: bool [min: 0]");
     }
 
     #[test]
-    fn min_invalide_sur_date() {
-        err("jour: date [min: 0]");
+    fn min_invalid_on_date() {
+        err("day: date [min: 0]");
     }
 
     #[test]
-    fn min_egal_max_rejete() {
+    fn min_equal_max_rejected() {
         err("age: int [min: 5, max: 5]");
     }
 
     #[test]
-    fn min_superieur_max_rejete() {
+    fn min_greater_than_max_rejected() {
         err("age: int [min: 10, max: 5]");
     }
 
     #[test]
-    fn min_inferieur_max_accepte() {
+    fn min_less_than_max_accepted() {
         ok("age: int [min: 0, max: 120]");
     }
 
-    // ── min / max (flottant) ──────────────────────────────────────
+    // ── min / max (float) ──────────────────────────────────────
 
     #[test]
-    fn min_f_max_f_valide_sur_float() {
-        ok("note: float [min: 0.0, max: 20.0]");
+    fn min_f_max_f_valid_on_float() {
+        ok("score: float [min: 0.0, max: 20.0]");
     }
 
     #[test]
-    fn min_f_max_f_valide_sur_decimal() {
-        ok("prix: decimal [min: 0.0, max: 9999.99]");
+    fn min_f_max_f_valid_on_decimal() {
+        ok("price: decimal [min: 0.0, max: 9999.99]");
     }
 
     #[test]
-    fn min_f_invalide_sur_int() {
-        // float min sur un champ int → invalide
+    fn min_f_invalid_on_int() {
+        // float min on an int field -> invalid
         err("age: int [min: 0.0]");
     }
 
     #[test]
-    fn min_f_egal_max_f_rejete() {
-        err("note: float [min: 5.0, max: 5.0]");
+    fn min_f_equal_max_f_rejected() {
+        err("score: float [min: 5.0, max: 5.0]");
     }
 
     // ── upload_to ─────────────────────────────────────────────────
 
     #[test]
-    fn upload_to_valide_sur_image() {
+    fn upload_to_valid_on_image() {
         ok(r#"avatar: image [upload_to: "avatars/"]"#);
     }
 
     #[test]
-    fn upload_to_valide_sur_document() {
+    fn upload_to_valid_on_document() {
         ok(r#"cv: document [upload_to: "docs/"]"#);
     }
 
     #[test]
-    fn upload_to_valide_sur_file() {
+    fn upload_to_valid_on_file() {
         ok(r#"piece: file [upload_to: "files/"]"#);
     }
 
     #[test]
-    fn upload_to_requis_sur_image_sans_lui() {
+    fn upload_to_required_on_image_without_it() {
         err("avatar: image []");
     }
 
     #[test]
-    fn upload_to_requis_sur_document_sans_lui() {
+    fn upload_to_required_on_document_without_it() {
         err("cv: document []");
     }
 
     #[test]
-    fn upload_to_invalide_sur_text() {
-        err(r#"nom: text [upload_to: "path/"]"#);
+    fn upload_to_invalid_on_text() {
+        err(r#"name: text [upload_to: "path/"]"#);
     }
 
     #[test]
-    fn upload_to_invalide_sur_int() {
+    fn upload_to_invalid_on_int() {
         err(r#"age: int [upload_to: "path/"]"#);
     }
 
     #[test]
-    fn upload_to_invalide_sur_email() {
+    fn upload_to_invalid_on_email() {
         err(r#"mail: email [upload_to: "path/"]"#);
     }
 
-    // ── cas généraux ──────────────────────────────────────────────
+    // ── general cases ──────────────────────────────────────────────
 
     #[test]
-    fn champ_sans_attrs() {
-        ok("nom: text");
+    fn field_without_attrs() {
+        ok("name: text");
     }
 
     #[test]
-    fn required_universel() {
+    fn required_universal() {
         ok("age: int [required]");
-        ok("nom: text [required]");
+        ok("name: text [required]");
         ok("flag: bool [required]");
     }
 
     #[test]
-    fn nullable_universel() {
+    fn nullable_universal() {
         ok("age: int [nullable]");
-        ok("nom: text [nullable]");
+        ok("name: text [nullable]");
     }
 }

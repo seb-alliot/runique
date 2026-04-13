@@ -1,4 +1,4 @@
-//! Constantes des templates intégrés au framework (erreurs, base, CSRF, admin…).
+//! Built-in framework template constants (errors, base, CSRF, admin…).
 use crate::tpls;
 
 pub const SIMPLE_TEMPLATES: &[(&str, &str)] = tpls![

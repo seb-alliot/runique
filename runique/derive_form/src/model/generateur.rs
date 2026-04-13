@@ -169,8 +169,8 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
                     let engine = DbEngine::detect();
                     if engine.is_unknown() {
                         let err_msg = format!(
-                            "derive_form: impossible de détecter le moteur de base de données pour l'enum `{}`. \
-                            Ajoutez `DB_ENGINE=postgres` (ou `mysql`/`sqlite`) dans votre `.env`.",
+                            "derive_form: unable to detect the database engine for enum `{}`. \
+                            Add `DB_ENGINE=postgres` (or `mysql`/`sqlite`) to your `.env`.",
                             e.name
                         );
                         return quote! { ::std::compile_error!(#err_msg); };
@@ -213,7 +213,7 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
                             }
                         }
                     } else {
-                        // MySQL / SQLite → VARCHAR (même code que String)
+                        // MySQL / SQLite → VARCHAR (same as String)
                         quote! {
                             #[derive(
                                 ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
@@ -256,13 +256,12 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
         .collect()
 }
 
-/// Génère `pub fn admin_from_form(data: &HashMap<String, String>, id: Option<PkType>) -> ActiveModel`
-/// Cette fonction est utilisée par la vue admin pour créer/mettre à jour une entrée en DB
-/// à partir des données de formulaire (HashMap<String, String>).
+/// Generates `pub fn admin_from_form(data: &HashMap<String, String>, id: Option<PkType>) -> ActiveModel`
+/// This function is used by the admin view to create/update a DB entry from form data (HashMap<String, String>).
 pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
     let pk_name = &model.pk.name;
 
-    // La valeur du PK selon son type
+    // The PK value according to its type
     let pk_set = match model.pk.ty {
         PkType::I32 => quote! {
             #pk_name: match __id {
@@ -284,7 +283,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
         },
     };
 
-    // Un assignment par champ (les champs auto_now/auto_now_update sont exclus du Model → ignorés)
+    // One assignment per field (auto_now/auto_now_update fields are excluded from Model → ignored)
     let field_assignments: Vec<TokenStream2> = model.fields.iter().filter_map(|field| {
         let fname = &field.name;
         let fname_str = fname.to_string();
@@ -293,7 +292,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
         let is_auto_now_update = field.options.iter().any(|o| matches!(o, FieldOption::AutoNowUpdate));
         let is_nullable = field.options.iter().any(|o| matches!(o, FieldOption::Nullable));
 
-        // Ces champs n'existent pas dans l'ActiveModel (filtrés par generate_sea_model) → on les saute
+        // These fields do not exist in the ActiveModel (filtered by generate_sea_model) → skipping them
         if is_auto_now || is_auto_now_update {
             return None;
         }
@@ -366,7 +365,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
             }
             FieldType::Datetime | FieldType::Timestamp | FieldType::TimestampTz
             | FieldType::Date | FieldType::Time => {
-                // Champs date/time sans auto_now : laissé à Default (NotSet)
+                // Date/time fields without auto_now: left to Default (NotSet)
                 return None;
             }
             FieldType::Uuid => {
@@ -428,8 +427,8 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
             _ => {
                 let is_password = fname_str.contains("password");
                 if is_password {
-                    // Champs mot de passe : hachage automatique via la config globale du dev.
-                    // Si vide → NotSet (ne pas écraser lors d'un edit sans nouveau mot de passe).
+                    // Password fields: automatic hashing via developer's global config.
+                    // If empty → NotSet (do not overwrite during an edit without a new password).
                     if is_nullable {
                         quote! {
                             #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
@@ -467,7 +466,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
         Some(ts)
     }).collect();
 
-    // Type du PK pour la signature
+    // PK type for signature
     let pk_type = match model.pk.ty {
         PkType::I32 => quote! { i32 },
         PkType::I64 => quote! { i64 },
@@ -475,9 +474,9 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
     };
 
     quote! {
-        /// Construit un `ActiveModel` à partir d'une map de données de formulaire (vue admin).
-        /// - `id = Some(pk)` → mise à jour (Unchanged sur la PK)
-        /// - `id = None`     → création (NotSet ou Uuid::new_v4() selon le type de PK)
+        /// Builds an `ActiveModel` from a form data map (admin view).
+        /// - `id = Some(pk)` → update (Unchanged on PK)
+        /// - `id = None`     → creation (NotSet or Uuid::new_v4() depending on PK type)
         #[allow(clippy::needless_update)]
         pub fn admin_from_form(
             __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
@@ -581,9 +580,9 @@ fn generate_field_type(ty: &FieldType, enums: &[EnumDef]) -> TokenStream2 {
     }
 }
 
-/// Génère `{ModelName}AdminForm` — formulaire auto-généré à partir du modèle.
-/// Si `form_fields:` est déclaré dans le DSL, utilise les déclarations explicites.
-/// Sinon, infère les widgets depuis les types SQL (comportement historique).
+/// Generates `{ModelName}AdminForm` — auto-generated form from model.
+/// If `form_fields:` is declared in DSL, use explicit declarations.
+/// Otherwise, infer widgets from SQL types (legacy behavior).
 pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
     let model_name = &model.name;
     let form_name = quote::format_ident!("{}AdminForm", model_name);
@@ -608,7 +607,7 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
             return None;
         }
 
-        // Label : utilise l'option label("...") si définie, sinon génère depuis snake_case
+        // Label: Use label("...") option if defined, otherwise generate from snake_case
         let label = if let Some(FieldOption::Label(lbl)) = field.options.iter().find(|o| matches!(o, FieldOption::Label(_))) {
             lbl.clone()
         } else {
@@ -626,7 +625,7 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
             quote! {}
         };
 
-        // Champ fichier — priorité sur l'inférence par type
+        // File field — priority over type inference
         if let Some(file_opt) = field.options.iter().find_map(|o| {
             if let FieldOption::File { kind, upload_to } = o { Some((kind, upload_to)) } else { None }
         }) {
@@ -640,7 +639,7 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
                 Some(path) => quote! { .upload_to(#path) },
                 None       => quote! {},
             };
-            // Recherche de l'option de taille max
+            // Search for max size option
             let size_suffix = if let Some(FieldOption::MaxSize(bytes)) = field.options.iter().find(|o| matches!(o, FieldOption::MaxSize(_))) {
                 quote! { .max_size(#bytes) }
             } else {
@@ -712,15 +711,15 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
 
         Some(registration)
     }).collect()
-    }; // fin du if form_fields
+    }; // end of if form_fields
 
     quote! {
-        /// Alias stable utilisé par le daemon `runique start` pour référencer ce formulaire.
-        /// Toujours disponible via `{module}::AdminForm`.
+        /// Stable alias used by the `runique start` daemon to reference this form.
+        /// Always available via `{module}::AdminForm`.
         pub type AdminForm = #form_name;
 
-        /// Formulaire admin auto-généré à partir du modèle.
-        /// Couvre tous les champs du modèle sauf les champs auto_now/auto_now_update.
+        /// Admin form auto-generated from model.
+        /// Covers all model fields except auto_now/auto_now_update fields.
         #[derive(::runique::serde::Serialize, Debug, Clone)]
         pub struct #form_name {
             pub form: ::runique::forms::Forms,
@@ -746,10 +745,10 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
     }
 }
 
-/// Génère `form.field(&...)` depuis une déclaration `FormFieldDecl` (bloc `form_fields:`).
-/// `model` est passé pour permettre la résolution des variants d'enum pour `Choice`/`Radio`.
+/// Generates `form.field(&...)` from a `FormFieldDecl` declaration (form_fields: block).
+/// `model` is passed to allow resolution of enum variants for `Choice`/`Radio`.
 fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStream2 {
-    // Champs auto_now / auto_now_update : gérés côté DB, pas de widget dans le formulaire.
+    // auto_now / auto_now_update fields: handled on DB side, no widget in the form.
     if ff
         .attrs
         .iter()
@@ -761,7 +760,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
     let name = &ff.name;
     let name_str = name.to_string();
 
-    // Label auto-généré depuis le nom snake_case (même logique que l'inférence SQL)
+    // Auto-generated label from snake_case name (same logic as SQL inference)
     let label = {
         let s = name_str.replace('_', " ");
         let mut chars = s.chars();
@@ -771,7 +770,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
         }
     };
 
-    // Suffixes d'attributs communs (ordre: constructor → label → attrs spécifiques → required)
+    // Common attribute suffixes (order: constructor → label → specific attrs → required)
     let required_suffix = if ff
         .attrs
         .iter()
@@ -783,7 +782,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
     };
 
     let field_expr: TokenStream2 = match &ff.kind {
-        // ── Champs texte ──────────────────────────────────────────────
+        // ── Text fields ──────────────────────────────────────────────
         FormFieldKind::Text => {
             let extras = text_attrs_tokens(&ff.attrs, false);
             quote! { ::runique::forms::fields::TextField::text(#name_str).label(#label) #extras #required_suffix }
@@ -814,7 +813,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
             quote! { ::runique::forms::fields::TextField::url(#name_str).label(#label) #extras #required_suffix }
         }
 
-        // ── Champs numériques ─────────────────────────────────────────
+        // ── Numeric fields ─────────────────────────────────────────
         FormFieldKind::Int => {
             let extras = numeric_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::NumericField::integer(#name_str).label(#label) #extras }
@@ -851,7 +850,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
             quote! { ::runique::forms::fields::BooleanField::new(#name_str).label(#label) #default_suffix #required_suffix }
         }
 
-        // ── Date/Heure ────────────────────────────────────────────────
+        // ── Date/Time ────────────────────────────────────────────────
         FormFieldKind::Date => {
             quote! { ::runique::forms::fields::DateField::new(#name_str).label(#label) #required_suffix }
         }
@@ -862,7 +861,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
             quote! { ::runique::forms::fields::DateTimeField::new(#name_str).label(#label) #required_suffix }
         }
 
-        // ── Fichiers ──────────────────────────────────────────────────
+        // ── Files ──────────────────────────────────────────────────
         FormFieldKind::Image => {
             let file_extras = file_attrs_tokens(&ff.attrs);
             quote! { ::runique::forms::fields::FileField::image(#name_str).label(#label) #file_extras #required_suffix }
@@ -876,9 +875,9 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
             quote! { ::runique::forms::fields::FileField::any(#name_str).label(#label) #file_extras #required_suffix }
         }
 
-        // ── Choice / Radio — résolution via EnumRef attr ou fields: ─────
+        // ── Choice / Radio — resolution via EnumRef attr or fields: ─────
         FormFieldKind::Choice | FormFieldKind::Radio => {
-            // Priorité : EnumRef explicite dans les attrs, sinon lookup via fields:
+            // Priority: Explicit EnumRef in attrs, otherwise lookup via fields:
             let enum_ident = ff.attrs.iter().find_map(|a| {
                 if let FormFieldAttr::EnumRef(id) = a {
                     Some(id)
@@ -922,7 +921,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
             }
         }
 
-        // ── Champs spéciaux ───────────────────────────────────────────
+        // ── Special fields ───────────────────────────────────────────
         FormFieldKind::Color => {
             quote! { ::runique::forms::fields::ColorField::new(#name_str).label(#label) #required_suffix }
         }
@@ -949,7 +948,7 @@ fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStre
     quote! { form.field(&#field_expr); }
 }
 
-/// Génère les suffixes builder pour les champs texte (max_length, min_length, rows).
+/// Generates builder suffixes for text fields (max_length, min_length, rows).
 fn text_attrs_tokens(attrs: &[FormFieldAttr], with_rows: bool) -> TokenStream2 {
     let mut ts = quote! {};
     for attr in attrs {
@@ -966,7 +965,7 @@ fn text_attrs_tokens(attrs: &[FormFieldAttr], with_rows: bool) -> TokenStream2 {
     ts
 }
 
-/// Génère les suffixes builder pour les champs numériques (min, max, step).
+/// Generates builder suffixes for numeric fields (min, max, step).
 fn numeric_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     let mut ts = quote! {};
     for attr in attrs {
@@ -988,7 +987,7 @@ fn numeric_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     ts
 }
 
-/// Génère les suffixes builder pour les champs fichier (upload_to, max_size).
+/// Generates builder suffixes for file fields (upload_to, max_size).
 fn file_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     let mut ts = quote! {};
     for attr in attrs {
@@ -1001,7 +1000,7 @@ fn file_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     ts
 }
 
-/// Génère le suffixe `.rows(n)` si présent.
+/// Generates the `.rows(n)` suffix if present.
 fn rows_token(attrs: &[FormFieldAttr]) -> TokenStream2 {
     attrs
         .iter()
@@ -1048,7 +1047,7 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
                 }
             };
 
-            // note: les FK seront générées séparément
+            // note: FKs will be generated separately
             let _ = (table, column, action);
             quote! {}
         }

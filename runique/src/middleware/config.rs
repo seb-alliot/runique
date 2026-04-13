@@ -1,29 +1,29 @@
-//! Configuration centralisée des middlewares Runique — session, CSP, CSRF, debug errors, rate limit.
+//! Centralized configuration of Runique middlewares — session, CSP, CSRF, debug errors, rate limit.
 
-/// Configuration centralisée de tous les middlewares Runique
+/// Centralized configuration of all Runique middlewares
 ///
-/// Note: Le CSRF est TOUJOURS activé (imposé par le framework pour la sécurité)
+/// Note: CSRF is ALWAYS enabled (imposed by the framework for security)
 ///
-/// ## Gestion des pages d'erreur
-/// `enable_debug_errors` contrôle si le middleware `error_handler` est ajouté au router.
-/// Quand il est actif, les pages d'erreur sont rendues par Tera :
-/// - En **développement** (`DEBUG=true` ou `cargo build` sans `--release`) : traces complètes.
-/// - En **production** (`cargo build --release`) : pages 404/500 propres sans trace.
+/// ## Error page management
+/// `enable_debug_errors` controls whether the `error_handler` middleware is added to the router.
+/// When active, error pages are rendered by Tera:
+/// - In **development** (`DEBUG=true` or `cargo build` without `--release`): full traces.
+/// - In **production** (`cargo build --release`): clean 404/500 pages without traces.
 ///
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiddlewareConfig {
     pub enable_csp: bool,
-    /// Active les headers de sécurité additionnels (HSTS, X-Frame-Options, COEP, COOP, CORP,
-    /// Referrer-Policy, Permissions-Policy). Sans effet si `enable_csp` est false.
+    /// Enables additional security headers (HSTS, X-Frame-Options, COEP, COOP, CORP,
+    /// Referrer-Policy, Permissions-Policy). Has no effect if `enable_csp` is false.
     ///
-    /// Quand `true` : utilise `security_headers_middleware` (CSP + headers additionnels).
-    /// Quand `false` : utilise `csp_middleware` (CSP uniquement).
+    /// When `true`: uses `security_headers_middleware` (CSP + additional headers).
+    /// When `false`: uses `csp_middleware` (CSP only).
     pub enable_header_security: bool,
     pub enable_host_validation: bool,
-    /// Active le middleware `error_handler` qui intercepte les erreurs 4xx/5xx.
-    /// Désactiver uniquement si vous gérez les erreurs manuellement dans chaque handler.
+    /// Enables `error_handler` middleware which intercepts 4xx/5xx errors.
+    /// Disable only if you handle errors manually in each handler.
     pub enable_debug_errors: bool,
     pub enable_cache: bool,
     pub exclusive_login: bool,
@@ -51,17 +51,17 @@ impl MiddlewareConfig {
         };
 
         Self {
-            // CSP et host validation configurés uniquement via le builder
+            // CSP and host validation configured only via the builder
             enable_csp: false,
             enable_header_security: false,
             enable_host_validation: false,
-            enable_debug_errors: true, // toujours monté — config.debug gère le contenu
+            enable_debug_errors: true, // always mounted — config.debug handles content
             enable_cache: get_bool("RUNIQUE_ENABLE_CACHE", true),
             exclusive_login: false,
         }
     }
 
-    /// Configuration pour production (sécurité maximale)
+    /// Configuration for production (maximum security)
     pub fn production() -> Self {
         Self {
             enable_csp: true,
@@ -73,7 +73,7 @@ impl MiddlewareConfig {
         }
     }
 
-    /// Configuration pour développement (plus permissif)
+    /// Configuration for development (more permissive)
     pub fn development() -> Self {
         Self {
             enable_csp: false,
@@ -85,7 +85,7 @@ impl MiddlewareConfig {
         }
     }
 
-    /// Configuration pour API (minimal)
+    /// Configuration for API (minimal)
     pub fn api() -> Self {
         Self {
             enable_csp: false,
@@ -97,12 +97,12 @@ impl MiddlewareConfig {
         }
     }
 
-    /// Builder pattern pour customisation
+    /// Builder pattern for customization
     pub fn custom() -> Self {
         Self::default()
     }
 
-    // Méthodes chainables pour configuration fine
+    // Chainable methods for fine-grained configuration
     #[must_use]
     pub fn with_csp(mut self, enable: bool) -> Self {
         self.enable_csp = enable;

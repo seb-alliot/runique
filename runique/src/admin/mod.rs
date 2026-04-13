@@ -1,4 +1,4 @@
-//! Module admin — interface d'administration : routes, configuration, daemon de rechargement, permissions, formulaires.
+//! Admin module — administration interface: routes, configuration, reloading daemon, permissions, forms.
 pub mod admin_main;
 pub mod config;
 pub mod daemon;

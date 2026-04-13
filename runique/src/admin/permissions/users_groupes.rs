@@ -1,4 +1,4 @@
-//! Entité SeaORM `eihwaz_users_groupes` — table de liaison utilisateur ↔ groupe.
+//! SeaORM entity `eihwaz_users_groupes` — user ↔ group junction table.
 use crate::utils::pk::Pk;
 use sea_orm::entity::prelude::*;
 

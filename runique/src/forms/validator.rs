@@ -1,4 +1,4 @@
-//! Validation des formulaires : `ValidationError` et `FormValidator` avec accumulation d'erreurs.
+//! Form validation: `ValidationError` and `FormValidator` with error accumulation.
 use crate::utils::{
     aliases::{FieldsMap, StrMap},
     trad::t,

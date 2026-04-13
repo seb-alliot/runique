@@ -1,4 +1,4 @@
-//! Génération et validation des tokens CSRF — HMAC-SHA256, masquage base64, contextes anonyme/authentifié.
+//! CSRF token generation and validation — HMAC-SHA256, base64 masking, anonymous/authenticated contexts.
 use base64::{Engine as _, engine::general_purpose};
 use hmac::{Hmac, Mac};
 use rand::RngExt;
@@ -105,7 +105,7 @@ pub fn mask_csrf_token(token_hex: &str) -> Result<String, &'static str> {
     let mut result = mask;
     result.extend(masked);
 
-    // Encode in base64 URL-safe (évite + et / qui sont corrompus par les forms URL-encoded)
+    // Encode in base64 URL-safe (avoids + and / which are corrupted by URL-encoded forms)
     Ok(general_purpose::URL_SAFE_NO_PAD.encode(&result))
 }
 

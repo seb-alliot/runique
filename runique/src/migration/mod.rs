@@ -1,8 +1,8 @@
-//! Module de migration — définitions DSL, schémas, colonnes, FK, index, hooks, relations et utilitaires.
+//! Migration module — DSL definitions, schemas, columns, FKs, indexes, hooks, relations, and utilities.
 //!
-//! Le point d'entrée public est [`schema::ModelSchema`], source unique de vérité pour un modèle.
-//! Les sous-modules exposent les briques élémentaires (colonnes, clés primaires, FK…) et les
-//! utilitaires de diff/génération SQL utilisés par le moteur de migration.
+//! The main entry point is [`schema::ModelSchema`], the single source of truth for a model.
+//! Sub-modules expose the basic building blocks (columns, primary keys, FKs…) and the
+//! diff/SQL generation utilities used by the migration engine.
 pub mod column;
 pub mod foreign_key;
 pub mod hooks;

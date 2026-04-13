@@ -1,7 +1,7 @@
-//! Parser AST du DSL builder (`ModelSchema`) — extrait le `ParsedSchema` depuis le code source Rust.
-//! Supporte les deux syntaxes :
-//!   v1 : `fields: { name: String [required], ... }`
-//!   v2 : `{ name: text [required], ... }` (bloc anonyme, types sémantiques)
+//! AST Parser for the builder DSL (`ModelSchema`) — extracts the `ParsedSchema` from Rust source code.
+//! Supports two syntaxes:
+//!   v1: `fields: { name: String [required], ... }`
+//!   v2: `{ name: text [required], ... }` (anonymous block, semantic types)
 use syn::{
     Ident, LitStr, Token, braced, bracketed,
     parse::{Parse, ParseStream},
@@ -10,7 +10,7 @@ use syn::{
 
 use crate::migration::utils::types::{ParsedColumn, ParsedFk, ParsedIndex, ParsedSchema};
 
-// ── Structures de parsing légères ────────────────────────────────────────────
+// ── Lightweight parsing structures ────────────────────────────────────────────
 
 struct DslModel {
     table: String,
@@ -28,7 +28,7 @@ struct DslPk {
 struct DslField {
     name: String,
     ty: String,
-    enum_name: Option<String>, // depuis le type (v1: `enum(X)`) ou les attrs (v2: `choice [enum(X)]`)
+    enum_name: Option<String>, // from type (v1: `enum(X)`) or attrs (v2: `choice [enum(X)]`)
     options: Vec<String>,
 }
 
@@ -55,14 +55,14 @@ struct DslRelation {
 
 impl Parse for DslModel {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        // NomModele,
+        // ModelName,
         let _name: Ident = input.parse()?;
         input.parse::<Token![,]>()?;
 
         // table: "...",
         let kw: Ident = input.parse()?;
         if kw != "table" {
-            return Err(syn::Error::new(kw.span(), "attendu 'table'"));
+            return Err(syn::Error::new(kw.span(), "expected 'table'"));
         }
         input.parse::<Token![:]>()?;
         let table: LitStr = input.parse()?;
@@ -71,7 +71,7 @@ impl Parse for DslModel {
         // pk: name => type,
         let kw: Ident = input.parse()?;
         if kw != "pk" {
-            return Err(syn::Error::new(kw.span(), "attendu 'pk'"));
+            return Err(syn::Error::new(kw.span(), "expected 'pk'"));
         }
         input.parse::<Token![:]>()?;
         let pk_name: Ident = input.parse()?;
@@ -79,7 +79,7 @@ impl Parse for DslModel {
         let pk_ty: Ident = input.parse()?;
         input.parse::<Token![,]>()?;
 
-        // enums: { ... } optionnel
+        // enums: { ... } optional
         let mut enum_types: Vec<(String, String, Vec<String>)> = Vec::new();
         if input.peek(Ident) {
             let peek: Ident = input.fork().parse()?;
@@ -91,7 +91,7 @@ impl Parse for DslModel {
                 while !enum_block.is_empty() {
                     if let Ok(enum_name) = enum_block.parse::<Ident>() {
                         let _ = enum_block.parse::<Token![:]>();
-                        // type optionnel : i32 | i64 (String et pg sont obsolètes mais tolérés ici)
+                        // optional type: i32 | i64 (String and pg are obsolete but tolerated here)
                         let backing = if enum_block.peek(Ident) {
                             let ty: Ident = enum_block.fork().parse().unwrap();
                             match ty.to_string().as_str() {
@@ -104,7 +104,7 @@ impl Parse for DslModel {
                         } else {
                             "Auto".to_string()
                         };
-                        // variants [Name] ou [Name="value", ...]
+                        // [Name] or [Name="value", ...] variants
                         let mut string_values: Vec<String> = Vec::new();
                         if enum_block.peek(syn::token::Bracket) {
                             let variants;
@@ -143,9 +143,9 @@ impl Parse for DslModel {
             }
         }
 
-        // Détection du style :
-        //   v2 — bloc anonyme `{ ... }` (types sémantiques)
-        //   v1 — `fields: { ... }` (types SQL)
+        // Style detection:
+        //   v2 — anonymous `{ ... }` block (semantic types)
+        //   v1 — `fields: { ... }` block (SQL types)
         let mut fields = Vec::new();
         if input.peek(syn::token::Brace) {
             // v2
@@ -160,7 +160,7 @@ impl Parse for DslModel {
             if kw != "fields" {
                 return Err(syn::Error::new(
                     kw.span(),
-                    "attendu 'fields' ou un bloc `{ ... }`",
+                    "expected 'fields' or a `{ ... }` block",
                 ));
             }
             input.parse::<Token![:]>()?;
@@ -171,7 +171,7 @@ impl Parse for DslModel {
             }
         }
 
-        // blocs optionnels : relations, indexes, meta, form_fields (ignoré), etc.
+        // optional blocks: relations, indexes, meta, form_fields (ignored), etc.
         let mut relations = Vec::new();
         while !input.is_empty() {
             let _ = input.parse::<Token![,]>();
@@ -202,7 +202,7 @@ impl Parse for DslModel {
                     }
                 }
                 _ => {
-                    // form_fields, indexes, meta, etc. — ignorés
+                    // form_fields, indexes, meta, etc. — ignored
                     while !block_content.is_empty() {
                         block_content.parse::<proc_macro2::TokenTree>().ok();
                     }
@@ -229,7 +229,7 @@ impl Parse for DslField {
         let name: Ident = input.parse()?;
         input.parse::<Token![:]>()?;
 
-        // `enum` est un mot-clé Rust — traitement séparé (v1 : `enum(X)` en position type)
+        // `enum` is a Rust keyword — separate handling (v1: `enum(X)` in type position)
         let (ty, mut enum_name) = if input.peek(Token![enum]) {
             input.parse::<Token![enum]>()?;
             let inner;
@@ -246,7 +246,7 @@ impl Parse for DslField {
             let opts;
             bracketed!(opts in input);
             while !opts.is_empty() {
-                // v2 : `enum(X)` en position attr (choice/radio)
+                // v2: `enum(X)` in attr position (choice/radio)
                 if opts.peek(Token![enum]) {
                     opts.parse::<Token![enum]>()?;
                     let inner;
@@ -260,7 +260,7 @@ impl Parse for DslField {
                 let opt: Ident = opts.parse()?;
                 options.push(opt.to_string());
 
-                // paren syntax (v1) : max_len(150)
+                // paren syntax (v1): max_len(150)
                 if opts.peek(syn::token::Paren) {
                     let inner;
                     syn::parenthesized!(inner in opts);
@@ -268,7 +268,7 @@ impl Parse for DslField {
                         inner.parse::<proc_macro2::TokenTree>().ok();
                     }
                 }
-                // colon syntax (v2) : max_length: 150, rows: 6, upload_to: "path"
+                // colon syntax (v2): max_length: 150, rows: 6, upload_to: "path"
                 else if opts.peek(Token![:]) {
                     opts.parse::<Token![:]>()?;
                     opts.parse::<proc_macro2::TokenTree>().ok();
@@ -300,7 +300,7 @@ impl Parse for DslRelation {
                 if via_kw != "via" {
                     return Err(syn::Error::new(
                         via_kw.span(),
-                        "attendu 'via' après le modèle cible",
+                        "expected 'via' after target model",
                     ));
                 }
                 let from_col: Ident = input.parse()?;
@@ -352,7 +352,7 @@ impl Parse for DslRelation {
                 if via_kw != "via" {
                     return Err(syn::Error::new(
                         via_kw.span(),
-                        "attendu 'via' après le modèle cible",
+                        "expected 'via' after target model",
                     ));
                 }
                 let via: Ident = input.parse()?;
@@ -391,7 +391,7 @@ fn normalize_fk_action(s: &str) -> String {
     }
 }
 
-/// PascalCase → snake_case pour dériver le nom de la table cible depuis un modèle
+/// PascalCase → snake_case to derive target table name from model
 fn pascal_to_snake(s: &str) -> String {
     let mut result = String::new();
     for (i, ch) in s.chars().enumerate() {
@@ -403,14 +403,14 @@ fn pascal_to_snake(s: &str) -> String {
     result
 }
 
-// ── Mapping de types ──────────────────────────────────────────────────────────
+// ── Type Mapping ──────────────────────────────────────────────────────────
 
-/// Convertit un type DSL (v1 SQL ou v2 sémantique) vers le nom de type SeaORM.
+/// Converts a DSL type (v1 SQL or v2 semantic) to a SeaORM type name.
 fn dsl_field_type_to_col_type(ty: &str) -> String {
     match ty {
         // v1 SQL
         "String" | "char" | "varchar" => "String".to_string(),
-        // "text" en v2 = champ texte court (VARCHAR) — même comportement que String en v1
+        // "text" in v2 = short text field (VARCHAR) — same behavior as String in v1
         "text" => "String".to_string(),
         "i8" => "TinyInteger".to_string(),
         "i16" => "SmallInteger".to_string(),
@@ -430,14 +430,14 @@ fn dsl_field_type_to_col_type(ty: &str) -> String {
         "json" | "json_binary" => "Json".to_string(),
         "binary" | "blob" => "Binary".to_string(),
         "inet" | "cidr" | "mac_address" | "interval" | "ip" => "String".to_string(),
-        // v2 sémantiques texte → String (VARCHAR) ou Text
+        // v2 semantic text → String (VARCHAR) or Text
         "email" | "url" | "password" | "slug" | "color" => "String".to_string(),
         "richtext" | "textarea" => "Text".to_string(),
-        // v2 fichiers → String (chemin JSON)
+        // v2 files → String (JSON path)
         "image" | "document" | "file" => "String".to_string(),
-        // v2 choice/radio → résolu via enum_ref dans dsl_to_parsed_schema, fallback String
+        // v2 choice/radio → resolved via enum_ref in dsl_to_parsed_schema, fallback String
         "choice" | "radio" => "String".to_string(),
-        // int explicite
+        // explicit int
         "int" => "Integer".to_string(),
         _ => "String".to_string(),
     }
@@ -452,7 +452,7 @@ fn dsl_pk_to_col_type(ty: &str) -> String {
     }
 }
 
-// ── Conversion vers ParsedSchema ──────────────────────────────────────────────
+// ── Conversion to ParsedSchema ──────────────────────────────────────────────
 
 fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
     let primary_key = Some(ParsedColumn {
@@ -482,9 +482,9 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
             let is_created_at = f.name == "created_at";
             let is_updated_at = f.name == "updated_at";
 
-            // Types sémantiques v2 (minuscules) : absence de `required` → nullable par défaut.
-            // Types v1 (SQL / Rust : String, i32…) : seul `[nullable]` explicite rend nullable.
-            // auto_now / auto_now_update → jamais nullable dans les deux cas.
+            // Semantic v2 types (lowercase): lack of `required` → nullable by default.
+            // v1 types (SQL / Rust: String, i32...): only explicit `[nullable]` makes it nullable.
+            // auto_now / auto_now_update → never nullable in both cases.
             const V2_TYPES: &[&str] = &[
                 "text",
                 "email",
@@ -526,12 +526,12 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
             } else if has_nullable {
                 true
             } else {
-                is_v2 // v2 sans required → nullable ; v1 sans nullable explicite → non nullable
+                is_v2 // v2 without required → nullable ; v1 without explicit nullable → not nullable
             };
 
             let unique = f.options.contains(&"unique".to_string());
 
-            // Résolution de l'enum associé (v1 : ty=="enum", v2 : ty=="choice"/"radio")
+            // Resolution of the associated enum (v1: ty=="enum", v2: ty=="choice"/"radio")
             let is_enum_field = f.ty == "enum" || f.ty == "choice" || f.ty == "radio";
             let enum_entry = if is_enum_field {
                 f.enum_name
@@ -553,11 +553,11 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
                 dsl_field_type_to_col_type(&f.ty)
             };
 
-            // Valeurs string de l'enum pour le diff (uniquement les enums string-backed)
+            // Enum string values for diff (only string-backed enums)
             let (enum_name, enum_string_values, enum_is_pg) = if is_enum_field {
                 match enum_entry {
                     Some((name, backing, values)) if backing != "i32" && backing != "i64" => {
-                        // Auto → `enum_is_pg = false`, le générateur décide via DbKind
+                        // Auto → `enum_is_pg = false`, the generator decides via DbKind
                         (Some(name.clone()), values.clone(), false)
                     }
                     _ => (None, Vec::new(), false),
@@ -619,7 +619,7 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
     }
 }
 
-// ── Visiteur ──────────────────────────────────────────────────────────────────
+// ── Visitor ──────────────────────────────────────────────────────────────────
 
 struct DslVisitor {
     pub schema: Option<ParsedSchema>,
@@ -652,7 +652,7 @@ impl<'ast> Visit<'ast> for DslVisitor {
     }
 }
 
-// ── Point d'entrée public ─────────────────────────────────────────────────────
+// ── Public entry point ─────────────────────────────────────────────────────
 
 pub fn parse_schema_from_source(source: &str) -> Option<ParsedSchema> {
     let file = syn::parse_str::<syn::File>(source).ok()?;

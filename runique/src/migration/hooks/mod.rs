@@ -1,9 +1,9 @@
-//! Hooks SeaORM — before/after save/delete, ordonnés par slot d'exécution.
+//! SeaORM Hooks — before/after save/delete, ordered by execution slot.
 //!
-//! [`HooksDef`] est optionnel dans [`crate::migration::ModelSchema`] :
-//! absent = `impl ActiveModelBehavior for ActiveModel {}` vide.
+//! [`HooksDef`] is optional in [`crate::migration::ModelSchema`]:
+//! absent = empty `impl ActiveModelBehavior for ActiveModel {}`.
 
-/// Type de hook SeaORM.
+/// SeaORM hook type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HookType {
     BeforeSave,

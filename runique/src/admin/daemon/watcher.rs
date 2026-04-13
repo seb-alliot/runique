@@ -1,4 +1,4 @@
-//! Watcher hot-reload : surveille `src/admin.rs` et `src/main.rs`, régénère ou s'arrête selon l'état.
+//! Hot-reload watcher: monitors `src/admin.rs` and `src/main.rs`, regenerates or stops based on state.
 use crate::admin::daemon::{generate, parse_admin_file};
 use crate::utils::trad::{t, tf};
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
@@ -9,12 +9,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-/// Démarre la surveillance de `admin_path` et `main_path`.
+/// Starts monitoring of `admin_path` and `main_path`.
 ///
-/// - Modification de `admin.rs` → régénère le code admin.
-/// - Modification de `main.rs` avec `.with_admin(` commenté → arrête le daemon.
+/// - Modification of `admin.rs` → regenerates admin code.
+/// - Modification of `main.rs` with `.with_admin(` commented out → stops the daemon.
 ///
-/// Bloquant — tourne jusqu'à Ctrl+C ou désactivation de `.with_admin`.
+/// Blocking — runs until Ctrl+C or `.with_admin` is disabled.
 pub(crate) fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
     let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
 
@@ -31,10 +31,10 @@ pub(crate) fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
             .map_err(|e| format!("Unable to watch {}: {}", main_path.display(), e))?;
     }
 
-    // Génération initiale au démarrage
+    // Initial generation at startup
     run_generation(admin_path);
 
-    // Debounce : évite plusieurs régénérations pour un seul save
+    // Debounce: avoids multiple regenerations for a single save
     let mut last_event = Instant::now()
         .checked_sub(Duration::from_secs(10))
         .unwrap_or_else(Instant::now);
@@ -48,7 +48,7 @@ pub(crate) fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
                     if now.duration_since(last_event) > debounce {
                         last_event = now;
 
-                        // Vérifier si l'événement concerne main.rs
+                        // Check if the event concerns main.rs
                         let is_main = ev.paths.iter().any(|p| {
                             p.file_name()
                                 .and_then(|n| n.to_str())
@@ -61,7 +61,7 @@ pub(crate) fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
                                 println!("\n {}", t("daemon.with_admin_disabled"));
                                 return Ok(());
                             }
-                            // main.rs modifié mais with_admin toujours actif → rien à faire
+                            // main.rs modified but with_admin still active → do nothing
                             continue;
                         }
 
@@ -77,7 +77,7 @@ pub(crate) fn watch(admin_path: &Path, main_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// Vérifie si `.with_admin(` est encore actif (non commenté) dans main.rs
+/// Checks if `.with_admin(` is still active (not commented out) in main.rs
 fn admin_still_active(main_path: &Path) -> bool {
     let Ok(source) = fs::read_to_string(main_path) else {
         return false;
@@ -88,12 +88,12 @@ fn admin_still_active(main_path: &Path) -> bool {
     })
 }
 
-/// Vérifie si l'événement est une écriture/modification
+/// Checks if the event is a write/modification
 fn is_write_event(event: &Event) -> bool {
     matches!(event.kind, EventKind::Modify(_) | EventKind::Create(_))
 }
 
-/// Parse + génère — affiche le résultat
+/// Parse + generate — display the result
 fn run_generation(admin_path: &Path) {
     let source = match fs::read_to_string(admin_path) {
         Ok(s) => s,

@@ -1,11 +1,11 @@
-//! Règles de garde Prisme : contrôle d'accès par rôle ou authentification avant extraction du body.
+//! Prisme guard rules: access control by role or authentication before body extraction.
 use crate::utils::trad::t;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 
-/// Contexte optionnel transmis via les extensions pour évaluer les règles.
+/// Optional context passed via extensions to evaluate rules.
 #[derive(Debug, Clone, Default)]
 pub struct GuardContext {
     pub user_id: Option<String>,
@@ -22,7 +22,7 @@ impl GuardContext {
     }
 }
 
-/// Règles configurables pour Sentinel, à placer dans les extensions.
+/// Configurable rules for Sentinel, to be placed in extensions.
 #[derive(Debug, Clone, Default)]
 pub struct GuardRules {
     pub login_required: bool,
@@ -44,7 +44,7 @@ impl GuardRules {
         }
     }
 
-    /// Plusieurs rôles possibles, sans login imposé.
+    /// Multiple possible roles, without mandatory login.
     pub fn roles<R, S>(roles: R) -> Self
     where
         R: IntoIterator<Item = S>,
@@ -63,7 +63,7 @@ impl GuardRules {
         }
     }
 
-    /// Login requis + plusieurs rôles possibles.
+    /// Login required + multiple possible roles.
     pub fn login_and_roles<R, S>(roles: R) -> Self
     where
         R: IntoIterator<Item = S>,
@@ -81,9 +81,9 @@ impl GuardRules {
     }
 }
 
-/// Évalue les règles par rapport au contexte utilisateur. Retourne Ok si tout passe, sinon Response.
+/// Evaluates rules against the user context. Returns Ok if everything passes, otherwise Response.
 pub fn evaluate_rules(rules: &GuardRules, ctx: Option<&GuardContext>) -> Result<(), Box<Response>> {
-    // Si aucune règle n'est définie, on laisse passer.
+    // If no rule is defined, allow pass.
     if !rules.login_required && rules.roles.is_empty() {
         return Ok(());
     }

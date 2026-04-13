@@ -1,41 +1,41 @@
-//! Configuration centralisée des logs Runique — niveaux par catégorie, macro `runique_log!`, helper `dev()`.
+//! Centralized Runique log configuration — levels by category, `runique_log!` macro, `dev()` helper.
 use std::sync::OnceLock;
 use tracing::Level;
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
 
-/// Configuration unifiée des logs Runique.
+/// Unified Runique log configuration.
 ///
-/// Contrôle à la fois le niveau du subscriber tracing global et les catégories
-/// internes du framework.
+/// Controls both the global tracing subscriber level and internal framework
+/// categories.
 ///
 /// # Exemple
 /// ```rust,ignore
 /// RuniqueApp::builder(config)
 ///     .with_log(|l| l
-///         .subscriber_level("info")   // optionnel — défaut : debug/warn selon DEBUG env
+///         .subscriber_level("info")   // optional — default: debug/warn according to DEBUG env
 ///         .csrf(Level::WARN)
 ///         .session(Level::INFO)
 ///     )
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct RuniqueLog {
-    /// Niveau du subscriber tracing. `RUST_LOG` a priorité si défini.
-    /// Par défaut : `"debug"` si `DEBUG=true`, sinon `"warn"`.
+    /// Tracing subscriber level. `RUST_LOG` takes priority if defined.
+    /// Default: `"debug"` if `DEBUG=true`, else `"warn"`.
     subscriber_level: Option<String>,
 
-    /// Détecte un `csrf_token` dans une URL GET (nettoyage silencieux).
+    /// Detects a `csrf_token` in a GET URL (silent cleanup).
     pub csrf: Option<Level>,
-    /// Trace l'invalidation de sessions lors d'une connexion exclusive.
+    /// Traces session invalidation during exclusive login.
     pub exclusive_login: Option<Level>,
-    /// Signale l'échec d'une `filter_fn` dans la vue liste admin.
+    /// Reports `filter_fn` failure in admin list view.
     pub filter_fn: Option<Level>,
-    /// Signale les erreurs d'accès au registre des rôles admin.
+    /// Reports admin roles registry access errors.
     pub roles: Option<Level>,
-    /// Avertit si `password_init()` est appelé plusieurs fois.
+    /// Warns if `password_init()` is called multiple times.
     pub password_init: Option<Level>,
-    /// Traces du session store : watermarks mémoire, records volumineux, erreurs cleanup.
+    /// Session store traces: memory watermarks, large records, cleanup errors.
     pub session: Option<Level>,
-    /// Infos de connexion DB (connecting / connected successfully).
+    /// DB connection info (connecting / connected successfully).
     pub db: Option<Level>,
 }
 
@@ -44,16 +44,16 @@ impl RuniqueLog {
         Self::default()
     }
 
-    /// Surcharge le niveau du subscriber tracing.
-    /// `RUST_LOG` a toujours la priorité sur cette valeur.
+    /// Overrides the tracing subscriber level.
+    /// `RUST_LOG` always has priority over this value.
     #[must_use]
     pub fn subscriber_level(mut self, level: impl Into<String>) -> Self {
         self.subscriber_level = Some(level.into());
         self
     }
 
-    /// Initialise le subscriber tracing global.
-    /// Appelé automatiquement par `build()` — sans effet si déjà initialisé.
+    /// Initializes the global tracing subscriber.
+    /// Called automatically by `build()` — no effect if already initialized.
     pub fn init_subscriber(&self) {
         let default = self.subscriber_level.as_deref().unwrap_or_else(|| {
             if crate::utils::env::is_debug() {
@@ -108,14 +108,14 @@ impl RuniqueLog {
         self
     }
 
-    /// Active toutes les catégories au niveau `DEBUG`.
+    /// Enables all categories at `DEBUG` level.
     ///
-    /// Sans effet si `DEBUG` n'est pas `true` ou `1` dans l'environnement —
-    /// peut être utilisé inconditionnellement dans `.with_log()`.
+    /// No effect if `DEBUG` is not `true` or `1` in the environment —
+    /// can be used unconditionally in `.with_log()`.
     ///
     /// ```rust,ignore
     /// .with_log(|l| l.dev())
-    /// // ou avec surcharge
+    /// // or with override
     /// .with_log(|l| l.dev().db(Level::INFO))
     /// ```
     #[must_use]
@@ -135,24 +135,24 @@ impl RuniqueLog {
 
 static LOG_CONFIG: OnceLock<RuniqueLog> = OnceLock::new();
 
-/// Initialise la configuration de logs — appelé une fois pendant `build()`.
+/// Initializes the log configuration — called once during `build()`.
 pub fn log_init(config: RuniqueLog) {
-    // Double appel silencieux : la config initiale est conservée.
+    // Double silent call: initial config is kept.
     LOG_CONFIG.set(config).ok();
 }
 
-/// Retourne la configuration de logs active.
-/// Retourne une config vide (tout désactivé) si `log_init` n'a pas été appelé.
+/// Returns the active log configuration.
+/// Returns an empty config (all disabled) if `log_init` hasn't been called.
 pub fn get_log() -> &'static RuniqueLog {
     LOG_CONFIG.get_or_init(RuniqueLog::default)
 }
 
-/// Émet un événement tracing au niveau dynamique configuré.
+/// Emits a tracing event at the configured dynamic level.
 ///
 /// # Exemple
 /// ```rust,ignore
 /// if let Some(level) = get_log().csrf {
-///     runique_log!(level, path = %path, "csrf_token détecté dans une URL GET");
+///     runique_log!(level, path = %path, "csrf_token detected in a GET URL");
 /// }
 /// ```
 #[macro_export]

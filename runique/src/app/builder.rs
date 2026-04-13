@@ -1,5 +1,5 @@
-//! Builder intelligent de l'application Runique : collecte, valide et assemble
-//! tous les composants (core, middlewares, routes, admin, fichiers statiques).
+//! Intelligent Runique application builder: collects, validates, and assembles
+//! all components (core, middlewares, routes, admin, static files).
 use axum::Router;
 use std::sync::Arc;
 use tower_sessions::cookie::time::Duration;
@@ -29,23 +29,23 @@ use crate::db::DatabaseConfig;
 use sea_orm::DatabaseConnection;
 
 // ═══════════════════════════════════════════════════════════════
-// Builder Intelligent — Innovation Runique
+// Intelligent Builder — Runique Innovation
 // ═══════════════════════════════════════════════════════════════
 //
-// Premier framework web à combiner flexibilité d'écriture
-// et rigueur d'exécution via un pipeline de validation
-// + réorganisation automatique des middlewares par slots.
+// First web framework to combine writing flexibility
+// and execution rigor via a validation pipeline
+// + automatic middleware reorganization by slots.
 //
-//   Flexibilité (Staging) + Validation (Pipeline)
-//   + Réorganisation (Slots) = Builder Intelligent
+//   Flexibility (Staging) + Validation (Pipeline)
+//   + Reorganization (Slots) = Intelligent Builder
 //
-// Le développeur configure dans l'ordre qui lui semble logique.
-// Chaque staging valide ses composants, puis réorganise
-// automatiquement pour garantir un démarrage optimal.
+// The developer configures in the order that seems logical to them.
+// Each staging validates its components, then automatically reorganizes
+// to guarantee an optimal startup.
 //
 // ═══════════════════════════════════════════════════════════════
 //
-// USAGE :
+// USAGE:
 //
 //   RuniqueApp::builder(config)
 //       .core(|c| c.with_database(db))
@@ -84,11 +84,11 @@ pub struct RuniqueAppBuilder {
 }
 
 impl RuniqueAppBuilder {
-    /// Crée un nouveau builder intelligent avec la configuration donnée
+    /// Creates a new intelligent builder with the given configuration
     ///
-    /// Le `MiddlewareConfig` est récupéré directement depuis `RuniqueConfig`
+    /// `MiddlewareConfig` is retrieved directly from `RuniqueConfig`
     /// (loaded via `.env` or `from_env()`). The staging uses it as a base
-    /// et le dev peut le surcharger ensuite via `.middleware(|m| ...)`.
+    /// and the dev can then override it via `.middleware(|m| ...)`.
     pub fn new(config: RuniqueConfig) -> Self {
         let middleware = MiddlewareStaging::from_config(&config);
         Self {
@@ -102,19 +102,19 @@ impl RuniqueAppBuilder {
         }
     }
 
-    // PHASE 1 : COLLECTE FLEXIBLE
+    // PHASE 1: FLEXIBLE COLLECTION
     //
-    // Chaque méthode stocke la donnée sans l'exécuter.
-    // Peu importe l'ordre d'appel par un dév.
+    // Each method stores the data without executing it.
+    // Regardless of the call order by a dev.
 
-    // CORE — Base de données et composants fondamentaux
+    // CORE — Database and fundamental components
 
-    /// Configure le core via une closure.
+    /// Configures the core via a closure.
     ///
-    /// Même principe que `.middleware()` : le dev configure
-    /// dans l'ordre qu'il veut, le staging valide au build.
+    /// Same principle as `.middleware()`: the dev configures
+    /// in the order they want, the staging validates at build.
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// .core(|c| c.with_database(db))
     /// .core(|c| c.with_database_config(db_config))
@@ -124,7 +124,7 @@ impl RuniqueAppBuilder {
         self
     }
 
-    /// Raccourci : ajoute une connexion DB déjà établie sans passer par `.core()`
+    /// Shortcut: adds an already established DB connection without going through `.core()`
     ///
     /// ```rust,ignore
     /// let db = DatabaseConfig::from_env()?.build().connect().await?;
@@ -136,7 +136,7 @@ impl RuniqueAppBuilder {
         self
     }
 
-    /// Raccourci : ajoute une configuration DB — connexion auto pendant `build()`
+    /// Shortcut: adds a DB configuration — auto-connection during `build()`
     ///
     /// ```rust,ignore
     /// let db_config = DatabaseConfig::from_env()?.build();
@@ -148,12 +148,12 @@ impl RuniqueAppBuilder {
         self
     }
 
-    /// Configure les logs Runique par catégorie.
+    /// Configures Runique logs by category.
     ///
-    /// Chaque catégorie est désactivée par défaut. Appeler la méthode
-    /// correspondante avec un niveau tracing active la catégorie.
+    /// Each category is disabled by default. Calling the corresponding
+    /// method with a tracing level enables the category.
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// use tracing::Level;
     ///
@@ -170,23 +170,23 @@ impl RuniqueAppBuilder {
 
     // ROUTES
 
-    /// Définit les routes de l'application
+    /// Defines the application routes
     pub fn routes(mut self, router: Router) -> Self {
         self.router = Some(router);
         self
     }
 
-    // MIDDLEWARE — Réorganisation automatique par slots
+    // MIDDLEWARE — Automatic reorganization by slots
 
-    /// Configure les middlewares via une closure.
+    /// Configures middlewares via a closure.
     ///
-    /// L'ordre des appels à l'intérieur de la closure n'a aucune importance :
-    /// le framework appliquera les middlewares dans l'ordre optimal garanti
-    /// grâce au système de slots.
+    /// The order of calls inside the closure does not matter:
+    /// the framework will apply middlewares in the optimal guaranteed order
+    /// thanks to the slots system.
     ///
-    /// CSRF dépend de Session ? Le staging le sait et réordonne automatiquement.
+    /// CSRF depends on Session? The staging knows it and reorders automatically.
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// .middleware(|m| {
     ///     m.with_csp(true)
@@ -200,26 +200,26 @@ impl RuniqueAppBuilder {
         self
     }
 
-    /// Raccourci : configure la durée de session sans passer par `.middleware()`
+    /// Shortcut: configures the session duration without going through `.middleware()`
     pub fn with_session_duration(mut self, duration: Duration) -> Self {
         self.middleware = self.middleware.with_session_duration(duration);
         self
     }
 
-    /// Raccourci : active/désactive les pages d'erreur de debug
+    /// Shortcut: enables/disables debug error pages
     pub fn with_error_handler(mut self, enable: bool) -> Self {
         self.middleware = self.middleware.with_debug_errors(enable);
         self
     }
 
-    // FICHIERS STATIQUES
+    // STATIC FILES
 
-    /// Configure les fichiers statiques via une closure.
+    /// Configures static files via a closure.
     ///
-    /// Même principe que `.middleware()` et `.core()` :
-    /// configuration flexible, validation au build.
+    /// Same principle as `.middleware()` and `.core()`:
+    /// flexible configuration, validation at build.
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// .static_files(|s| s.disable())
     /// ```
@@ -228,7 +228,7 @@ impl RuniqueAppBuilder {
         self
     }
 
-    /// Configure le mailer SMTP manuellement
+    /// Configures the SMTP mailer manually
     ///
     /// ```rust,ignore
     /// builder::new(config)
@@ -239,20 +239,20 @@ impl RuniqueAppBuilder {
         self
     }
 
-    /// Configure le mailer depuis les variables d'environnement
+    /// Configures the mailer from environment variables
     /// (SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_PORT, SMTP_STARTTLS)
     pub fn with_mailer_from_env(self) -> Self {
         crate::utils::mailer::mailer_init_from_env();
         self
     }
 
-    /// Raccourci : active le service de fichiers statiques (activé par défaut)
+    /// Shortcut: enables the static files service (enabled by default)
     pub fn statics(mut self) -> Self {
         self.statics = self.statics.enable();
         self
     }
 
-    /// Raccourci : désactive le service de fichiers statiques
+    /// Shortcut: disables the static files service
     pub fn no_statics(mut self) -> Self {
         self.statics = self.statics.disable();
         self
@@ -262,13 +262,13 @@ impl RuniqueAppBuilder {
     // ADMIN PANEL
     // ═══════════════════════════════════════════════════════════
 
-    /// Configure et active l'AdminPanel via une closure.
+    /// Configures and enables the `AdminPanel` via a closure.
     ///
     /// ```rust,ignore
     /// .with_admin(|a| a
     ///     .prefix("/admin")
     ///     .hot_reload(is_debug())
-    ///     .site_title("Mon Admin")
+    ///     .site_title("My Admin")
     /// )
     /// ```
     pub fn with_admin(mut self, f: impl FnOnce(AdminStaging) -> AdminStaging) -> Self {
@@ -280,23 +280,23 @@ impl RuniqueAppBuilder {
     // RESET PASSWORD
     // ═══════════════════════════════════════════════════════════
 
-    /// Active le flow reset password built-in pour une entité donnée.
+    /// Enables the built-in password reset flow for a given entity.
     ///
-    /// Enregistre automatiquement deux routes :
-    ///   - `{config.forgot_route}` — formulaire email (étape 1)
-    ///   - `{config.reset_route}/{token}/{encrypted_email}` — nouveau mdp (étape 2)
+    /// Automatically registers two routes:
+    ///   - `{config.forgot_route}` — email form (step 1)
+    ///   - `{config.reset_route}/{token}/{encrypted_email}` — new password (step 2)
     ///
-    /// Exemple minimal (entité built-in) :
+    /// Minimal example (built-in entity):
     /// ```rust,ignore
     /// .with_password_reset::<BuiltinUserEntity>(|pr| pr)
     /// ```
     ///
-    /// Avec config personnalisée :
+    /// With custom config:
     /// ```rust,ignore
     /// .with_password_reset::<MyEntity>(|pr| pr
-    ///     .forgot_route("/mot-de-passe-oublie")
-    ///     .reset_route("/reinitialiser")
-    ///     .base_url("https://monsite.fr")
+    ///     .forgot_route("/forgot-password")
+    ///     .reset_route("/reset")
+    ///     .base_url("https://mysite.com")
     /// )
     /// ```
     pub fn with_password_reset<E: UserEntity + 'static>(
@@ -312,51 +312,51 @@ impl RuniqueAppBuilder {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // PHASE 2 : VALIDATION + CONSTRUCTION (pipeline strict)
+    // PHASE 2: VALIDATION + CONSTRUCTION (strict pipeline)
     //
-    // Comme Prisme (formulaires) :
-    // 1. validate() — vérifie chaque staging + dépendances croisées
-    // 2. all_ready() — signal OK
-    // 3. Construction dans l'ordre STRICT garanti
-    // 4. MiddlewareStaging réorganise par slots et applique
+    // Like Prisme (forms):
+    // 1. `validate()` — checks each staging + cross-dependencies
+    // 2. `all_ready()` — signal OK
+    // 3. Construction in guaranteed STRICT order
+    // 4. `MiddlewareStaging` reorganizes by slots and applies
     // ═══════════════════════════════════════════════════════════
 
-    /// Valide et construit l'application.
+    /// Validates and builds the application.
     ///
-    /// # Pipeline de construction
-    /// 1. **Validation** de tous les composants (Core, Middleware, Statics)
-    /// 2. **Construction** du Core (Templates → Engine → URLs)
-    /// 3. **Réorganisation** automatique des middlewares par slots
-    /// 4. **Application** des fichiers statiques (si activés)
+    /// # Construction Pipeline
+    /// 1. **Validation** of all components (Core, Middleware, Statics)
+    /// 2. **Construction** of the Core (Templates → Engine → URLs)
+    /// 3. **Automatic reorganization** of middlewares by slots
+    /// 4. **Application** of static files (if enabled)
     pub async fn build(mut self) -> Result<RuniqueApp, BuildError> {
         // ═══════════════════════════════════════
-        // ÉTAPE 0 : TRACING (avant tout le reste)
+        // STEP 0: TRACING (before everything else)
         // ═══════════════════════════════════════
         self.config.log.init_subscriber();
 
         // ═══════════════════════════════════════
-        // ÉTAPE 1 : VALIDATION (comme Prisme)
+        // STEP 1: VALIDATION (like Prisme)
         // ═══════════════════════════════════════
         self.validate()?;
 
         if !self.all_ready() {
             return Err(BuildError::validation(
-                "Un ou plusieurs composants ne sont pas prêts pour la construction",
+                "One or more components are not ready for construction",
             ));
         }
 
         // ═══════════════════════════════════════
-        // ÉTAPE 2 : CONNEXION DB (si DatabaseConfig fourni)
+        // STEP 2: DB CONNECTION (if DatabaseConfig provided)
         //
-        // Deux chemins possibles :
-        //   1. with_database(db)        → déjà connecté, on prend tel quel
-        //   2. with_database_config(cfg) → connect() pendant le build
+        // Two possible paths:
+        //   1. `with_database(db)`        → already connected, we take as is
+        //   2. `with_database_config(cfg)` → `connect()` during build
         // ═══════════════════════════════════════
         #[cfg(feature = "orm")]
         let db = self.core.connect().await?;
 
         // ═══════════════════════════════════════
-        // ÉTAPE 3 : DÉSTRUCTURATION
+        // STEP 3: DESTRUCTURING
         // ═══════════════════════════════════════
         let config = self.config;
         let url_registry = self.core.url_registry;
@@ -365,11 +365,11 @@ impl RuniqueAppBuilder {
         let router = self.router;
 
         // ═══════════════════════════════════════
-        // ÉTAPE 4 : CONSTRUCTION CORE
-        // Ordre strict : Templates → Config → Engine → URLs
+        // STEP 4: CORE CONSTRUCTION
+        // Strict order: Templates → Config → Engine → URLs
         // ═══════════════════════════════════════
 
-        // A. Templates (Tera) — toujours en premier
+        // A. Templates (Tera) — always first
         let tera = new(TemplateLoader::init(&config, url_registry.clone())
             .map_err(|e| BuildError::template(e.to_string()))?);
 
@@ -377,7 +377,7 @@ impl RuniqueAppBuilder {
         log_init(config.log.clone());
         crate::utils::password::password_init(config.password.clone());
 
-        // B. Engine (cœur de l'application)
+        // B. Engine (heart of the application)
         let engine = new(RuniqueEngine {
             config: (*config).clone(),
             tera: tera.clone(),
@@ -404,22 +404,22 @@ impl RuniqueAppBuilder {
             session_db_store: std::sync::LazyLock::new(|| std::sync::RwLock::new(None)),
         });
 
-        // C. Enregistrement des URLs (urlpatterns!)
+        // C. URL registration (urlpatterns!)
         add_urls(&engine);
 
         // ═══════════════════════════════════════
         // ═══════════════════════════════════════
-        // ÉTAPE 4b : ADMIN PANEL — mergé AVANT la stack middleware
+        // STEP 4b: ADMIN PANEL — merged BEFORE the middleware stack
         //
-        // .layer() en Axum ne couvre que les routes déjà présentes
-        // sur le router au moment de l'appel.
-        // Merger après = routes admin sans Session/CSRF/Extensions.
+        // `.layer()` in Axum only covers routes already present
+        // on the router at the time of the call.
+        // Merging after = admin routes without Session/CSRF/Extensions.
         // ═══════════════════════════════════════
 
         let router = router.unwrap_or_default();
 
         // ═══════════════════════════════════════
-        // ÉTAPE 4b.1 : RESET PASSWORD (avant middleware, comme admin)
+        // STEP 4b.1: RESET PASSWORD (before middleware, like admin)
         // ═══════════════════════════════════════
         let router = if let Some(pr) = self.password_reset {
             let pr_router = pr.handler.build_router(std::sync::Arc::new(pr.config));
@@ -449,10 +449,10 @@ impl RuniqueAppBuilder {
         };
 
         // ═══════════════════════════════════════
-        // ÉTAPE 5 : MIDDLEWARE STAGING
+        // STEP 5: MIDDLEWARE STAGING
         //
-        // Appliqué sur toutes les routes (dev + admin).
-        // Le staging réorganise automatiquement par slots :
+        // Applied to all routes (dev + admin).
+        // The staging automatically reorganizes by slots:
         //   Extensions → Session → CSRF → CSP → Host
         // ═══════════════════════════════════════
 
@@ -465,7 +465,7 @@ impl RuniqueAppBuilder {
             }
         }
 
-        // Store DB sessions — initialisé si une DB est disponible
+        // Store DB sessions — initialized if a DB is available
         #[cfg(feature = "orm")]
         {
             let db_store = RuniqueSessionStore::new(engine.db.clone());
@@ -475,7 +475,7 @@ impl RuniqueAppBuilder {
         }
 
         // ═══════════════════════════════════════
-        // ÉTAPE 6 : FICHIERS STATIQUES (conditionnel)
+        // STEP 6: STATIC FILES (conditional)
         // ═══════════════════════════════════════
 
         let router = if statics_enabled {
@@ -488,34 +488,34 @@ impl RuniqueAppBuilder {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // VALIDATION INTERNE
+    // INTERNAL VALIDATION
     // ═══════════════════════════════════════════════════════════
 
-    /// Validation individuelle de chaque staging, puis croisée
+    /// Individual validation of each staging, then cross-validation
     fn validate(&self) -> Result<(), BuildError> {
-        // Validation individuelle (comme field.validate() dans Prisme)
+        // Individual validation (like `field.validate()` in Prisme)
         self.core.validate()?;
         self.middleware.validate()?;
         self.statics.validate()?;
         self.admin.validate()?;
 
-        // Validation croisée (dépendances entre composants)
+        // Cross-validation (dependencies between components)
         self.cross_validate()?;
 
         Ok(())
     }
 
-    /// Vérifie les dépendances entre composants
+    /// Checks dependencies between components
     fn cross_validate(&self) -> Result<(), BuildError> {
-        // Futures validations inter-composants :
+        // Future inter-component validations:
         //
-        // - host_validation activé → ALLOWED_HOSTS défini ?
-        // - enable_debug_errors en production → warning
+        // - host_validation enabled → ALLOWED_HOSTS defined?
+        // - enable_debug_errors in production → warning
         // - CSP strict + session Memory → warning
         Ok(())
     }
 
-    /// Vérifie que tous les composants sont prêts
+    /// Checks that all components are ready
     fn all_ready(&self) -> bool {
         self.core.is_ready()
             && self.middleware.is_ready()
@@ -524,10 +524,10 @@ impl RuniqueAppBuilder {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // FICHIERS STATIQUES
+    // STATIC FILES
     // ═══════════════════════════════════════════════════════════
 
-    /// Attache les routes de fichiers statiques au route
+    /// Attaches static file routes to the router
     fn attach_static_files(mut router: Router, config: &RuniqueConfig) -> Router {
         let static_headers = tower::ServiceBuilder::new()
             .layer(SetResponseHeaderLayer::if_not_present(

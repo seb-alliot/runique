@@ -1,4 +1,4 @@
-//! Commande `new` — scaffolde un nouveau projet Runique (fichiers, dépendances, SECRET_KEY).
+//! `new` command — scaffolds a new Runique project (files, dependencies, SECRET_KEY).
 use crate::utils::trad::{t, tf};
 use anyhow::Result;
 use rand::RngExt;
@@ -15,10 +15,10 @@ pub fn create_new_project(name: &str) -> Result<()> {
     println!("🦀 {}", tf("cli.creating_project", &[&name]));
     let runique_version = env!("CARGO_PKG_VERSION");
 
-    // Créer tous les dossiers nécessaires
+    // Create all necessary folders
     create_project_dirs(project_dir)?;
 
-    // Copier fichiers statiques et templates
+    // Copy static files and templates
     write_project_files(project_dir, name, runique_version)?;
 
     println!("  {}", tf("cli.project_created", &[&name]));
@@ -61,7 +61,7 @@ fn create_project_dirs(project_dir: &Path) -> Result<()> {
 }
 
 fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<()> {
-    // Mapping fichiers -> destination
+    // Files -> destination mapping
     let files: &[(&[u8], &str)] = &[
         (
             include_bytes!("../../composant-bin/code/views.rs"),
@@ -165,7 +165,7 @@ fn write_project_files(project_dir: &Path, name: &str, version: &str) -> Result<
         fs::write(project_dir.join(path), content)?;
     }
 
-    // Cargo.toml et .env avec substitutions
+    // Cargo.toml and .env with substitutions
     let cargo_toml = include_str!("../../composant-bin/config/apiconfig")
         .replace("{{PROJECT_NAME}}", name)
         .replace("{{RUNIQUE_VERSION}}", version);

@@ -1,11 +1,11 @@
-//! Définition d'une clé étrangère — table cible, colonne, actions ON DELETE / ON UPDATE.
+//! Foreign key definition — target table, column, ON DELETE / ON UPDATE actions.
 //!
-//! [`ForeignKeyDef`] suit le pattern builder :
+//! [`ForeignKeyDef`] follows the builder pattern:
 //! `ForeignKeyDef::new("user_id").references("users").on_delete(ForeignKeyAction::Cascade)`.
-//! La méthode [`ForeignKeyDef::to_sea_foreign_key`] produit le [`sea_query::ForeignKeyCreateStatement`].
+//! The [`ForeignKeyDef::to_sea_foreign_key`] method produces the [`sea_query::ForeignKeyCreateStatement`].
 use sea_query::ForeignKeyAction;
 
-/// Définition d'une clé étrangère.
+/// Foreign key definition.
 #[derive(Debug, Clone)]
 pub struct ForeignKeyDef {
     pub from_column: String,

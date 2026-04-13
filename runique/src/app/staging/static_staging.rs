@@ -1,29 +1,29 @@
-//! Staging des fichiers statiques : active ou désactive le service d'assets.
+//! Static files staging: enables or disables the asset service.
 use crate::app::error_build::BuildError;
 //
-// Contrôle si les fichiers statiques (CSS, JS, media, assets
-// internes Runique) sont servis par l'application.
+// Controls whether static files (CSS, JS, media, Runique
+// internal assets) are served by the application.
 //
-// Activé par défaut. Peut être désactivé pour les API pures
-// ou quand un CDN/reverse-proxy gère les fichiers statiques.
+// Enabled by default. Can be disabled for pure APIs
+// or when a CDN/reverse-proxy manages static files.
 // ═══════════════════════════════════════════════════════════════
 
 pub struct StaticStaging {
-    /// Indique si le service de fichiers statiques est activé
+    /// Indicates whether the static files service is enabled
     pub(crate) enabled: bool,
 }
 
 impl StaticStaging {
-    /// Crée un StaticStaging (activé par défaut)
+    /// Creates a StaticStaging (enabled by default)
     pub fn new() -> Self {
         Self { enabled: true }
     }
 
     // ═══════════════════════════════════════════════════
-    // Configuration des fichiers statiques
+    // Static files configuration
     // ═══════════════════════════════════════════════════
 
-    /// Active le service de fichiers statiques
+    /// Enables the static files service
     ///
     /// ```rust,ignore
     /// .static_files(|s| s.enable())
@@ -33,10 +33,10 @@ impl StaticStaging {
         self
     }
 
-    /// Désactive le service de fichiers statiques
+    /// Disables the static files service
     ///
-    /// Utile pour les API pures ou quand un CDN/reverse-proxy
-    /// gère les fichiers statiques.
+    /// Useful for pure APIs or when a CDN/reverse-proxy
+    /// manages static files.
     ///
     /// ```rust,ignore
     /// .static_files(|s| s.disable())
@@ -46,7 +46,7 @@ impl StaticStaging {
         self
     }
 
-    /// Active ou désactive le service de fichiers statiques
+    /// Enables or disables the static files service
     ///
     /// ```rust,ignore
     /// .static_files(|s| s.enabled(false))
@@ -60,23 +60,23 @@ impl StaticStaging {
     // Validation
     // ═══════════════════════════════════════════════════
 
-    /// Valide la configuration des fichiers statiques
+    /// Validates static files configuration
     pub fn validate(&self) -> Result<(), BuildError> {
-        // Pour l'instant, rien à valider :
-        // - Si désactivé, on ne sert tout simplement rien
-        // - Si activé, les chemins sont vérifiés par la config
+        // For now, nothing to validate:
+        // - If disabled, we simply serve nothing
+        // - If enabled, paths are checked by the config
         //
-        // Future : vérifier que les dossiers statiques existent
-        // quand `enabled` est true
+        // Future: check that static folders exist
+        // when `enabled` is true
         Ok(())
     }
 
-    /// Retourne `true` si le service de fichiers statiques est activé
+    /// Returns `true` if the static files service is enabled
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
 
-    /// Les fichiers statiques sont toujours prêts
+    /// Static files are always ready
     pub fn is_ready(&self) -> bool {
         true
     }

@@ -1,5 +1,5 @@
-/// Moteur de base de données détecté au moment de la compilation (depuis `.env`).
-/// Utilisé par la proc-macro pour adapter la génération selon l'engine cible.
+/// Database engine detected at compile time (from `.env`).
+/// Used by the proc-macro to adapt generation according to the target engine.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DbEngine {
     Postgres,
@@ -9,15 +9,15 @@ pub enum DbEngine {
 }
 
 impl DbEngine {
-    /// Détecte le moteur depuis l'environnement de build.
+    /// Detects the engine from the build environment.
     ///
-    /// Priorité :
-    /// 1. Variable `DB_ENGINE` (override explicite : `postgres`, `mysql`, `sqlite`)
-    /// 2. Préfixe de `DATABASE_URL` (`postgres://`, `mysql://`, `sqlite:`)
-    /// 3. Recherche `.env` dans CWD, puis dans les parents jusqu'à 4 niveaux
-    /// 4. Fallback : `Unknown`
+    /// Priority:
+    /// 1. `DB_ENGINE` variable (explicit override: `postgres`, `mysql`, `sqlite`)
+    /// 2. `DATABASE_URL` prefix (`postgres://`, `mysql://`, `sqlite:`)
+    /// 3. Search `.env` in CWD, then in parents up to 4 levels
+    /// 4. Fallback: `Unknown`
     pub fn detect() -> Self {
-        // 1. CARGO_MANIFEST_DIR — chemin de la crate compilée (le plus fiable en proc-macro).
+        // 1. CARGO_MANIFEST_DIR — path of the compiled crate (most reliable in proc-macro).
         if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
             let candidate = std::path::Path::new(&manifest_dir).join(".env");
             if candidate.exists() {
@@ -25,7 +25,7 @@ impl DbEngine {
             }
         }
 
-        // 2. CWD puis remontée arborescence (fallback workspace racine).
+        // 2. CWD then traversing tree up (root workspace fallback).
         if std::env::var("DATABASE_URL").is_err() && std::env::var("DB_ENGINE").is_err() {
             let _ = dotenvy::dotenv();
         }
@@ -45,7 +45,7 @@ impl DbEngine {
             }
         }
 
-        // 1. Override explicite DB_ENGINE
+        // 1. Explicit DB_ENGINE override
         if let Ok(engine) = std::env::var("DB_ENGINE") {
             match engine.to_ascii_lowercase().as_str() {
                 "postgres" | "postgresql" => return DbEngine::Postgres,
@@ -55,7 +55,7 @@ impl DbEngine {
             }
         }
 
-        // 2. Préfixe DATABASE_URL
+        // 2. DATABASE_URL prefix
         if let Ok(url) = std::env::var("DATABASE_URL") {
             if url.starts_with("postgres://") || url.starts_with("postgresql://") {
                 return DbEngine::Postgres;

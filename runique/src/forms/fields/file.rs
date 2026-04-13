@@ -1,14 +1,14 @@
-//! Champ fichier : `FileField` avec validation de type, taille et chemin d'upload.
+//! File Field: `FileField` with type, size, and upload path validation.
 use crate::utils::trad::{t, tf};
 use crate::{
     config::StaticConfig,
     forms::base::{CommonFieldConfig, FieldConfig, FormField},
 };
 
-/// Accepte un chemin d'upload sous plusieurs formes :
+/// Accepts an upload path in several forms:
 /// - `"media/avatars"` (&str)
 /// - `String`
-/// - `&StaticConfig` (utilise `media_root` du .env)
+/// - `&StaticConfig` (uses `media_root` from .env)
 pub trait IntoUploadPath {
     fn into_upload_path(self) -> String;
 }
@@ -36,14 +36,14 @@ use std::path::Path;
 use std::sync::Arc;
 use tera::{Context, Tera};
 
-/// Supprime les fichiers uploadés du disque (nettoyage en cas d'échec de validation)
+/// Deletes uploaded files from disk (cleanup on validation failure)
 fn cleanup_files(files: &[String]) {
     for path in files {
         let _ = std::fs::remove_file(path);
     }
 }
 
-/// Vérifie si le fichier est une image valide
+/// Checks if the file is a valid image
 fn is_valid_path(path: &str) -> bool {
     let p = Path::new(path);
     if !p.exists() {
@@ -58,7 +58,7 @@ fn is_valid_path(path: &str) -> bool {
     }
 }
 
-/// Parse la valeur du champ en liste de chemins de fichiers
+/// Parses the field value into a list of file paths
 fn parse_file_list(val: &str) -> Vec<&str> {
     val.split(',')
         .map(|s| s.trim())
@@ -121,10 +121,10 @@ impl AllowedExtensions {
 
 pub type UploadPathFn = Option<Arc<dyn Fn(&str) -> String + Send + Sync>>;
 
-/// Limite appliquée si `.max_size()` n'est jamais appelé (10 MB par défaut).
+/// Default limit if `.max_size()` is never called (10 MB default).
 const DEFAULT_MAX_SIZE: u64 = 10 * 1024 * 1024;
 
-/// Configuration d'upload de fichier
+/// File upload configuration
 #[derive(Clone, Serialize)]
 pub struct FileUploadConfig {
     #[serde(skip_serializing)]
@@ -273,7 +273,7 @@ impl FormField for FileField {
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 
-        // 1. Validation de présence
+        // 1. Presence validation
         if self.base.is_required.choice && val.is_empty() {
             let msg = self
                 .base
@@ -295,7 +295,7 @@ impl FormField for FileField {
             .map(|s| s.to_string())
             .collect();
 
-        // 2. Validation du nombre de fichiers
+        // 2. File count validation
         if let Some(max) = self.max_files {
             if files.len() > max {
                 cleanup_files(&files);
@@ -305,7 +305,7 @@ impl FormField for FileField {
             }
         }
 
-        // 3. Validation extensions + taille
+        // 3. Extensions + size validation
         for filename in &files {
             if !self.allowed_extensions.is_allowed(filename) {
                 let exts = self.allowed_extensions.extensions.join(", ");
@@ -337,7 +337,7 @@ impl FormField for FileField {
             }
         }
 
-        // 4. Validation image : format réel + dimensions
+        // 4. Image validation: real format + dimensions
         if let FileFieldType::Image = self.field_type {
             for filename in &files {
                 if !is_valid_path(filename) {

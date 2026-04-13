@@ -88,7 +88,7 @@ Fields default to **nullable** unless `required` is specified.
 |---------------|-----------------------------|------------------------------------------|
 | `text`        | `VARCHAR(255)`              | Short text field                         |
 | `textarea`    | `TEXT`                      | Long text, multi-line                    |
-| `richtext`    | `TEXT`                      | Rich text (HTML editor in admin)         |
+| `richtext`    | `TEXT`                      | Rich text (HTML editor)         |
 | `email`       | `VARCHAR(255)`              | Email — validated format                 |
 | `password`    | `VARCHAR(255)`              | Password — hashed on save                |
 | `url`         | `VARCHAR(255)`              | URL — validated format                   |
@@ -151,7 +151,7 @@ model! {
 | `auto_now_update`       | Set to `NOW()` on UPDATE                                           |
 | `rows: n`               | Number of rows for `textarea` / `richtext` in admin                |
 | `step: n`               | Step for numeric fields in forms                                   |
-| `max_size_mb: n`      | Max upload size in MB for file fields                             |
+| `max_size: n`         | Max upload size (e.g., 2 GB, 500 KB) for file fields              |
 | `upload_to: "path"`     | Upload directory for file fields (required for files)             |
 | `enum(EnumName)`        | Enum reference for `choice` / `radio` fields                       |
 | `skip`                  | Column generated in SQL but excluded from forms                    |
@@ -169,7 +169,7 @@ model! {
         stock:       int     [required, default: 0, min: 0],
         sku:         text    [required, max_length: 50, unique],
         is_active:   bool    [required, default: true],
-        banner:      image   [upload_to: "products/", max_size_mb: 2],
+        banner:      image   [upload_to: "products/", max_size: 2 MB],
         created_at:  datetime [auto_now],
         updated_at:  datetime [auto_now_update],
     }
@@ -257,9 +257,9 @@ model! {
     pk: id => Pk,
     enums: {
         Status: [
-            Draft    = ("draft",     "Draft"),
-            Active   = ("active",    "Active"),
-            Archived = ("archived",  "Archived"),
+            Draft:    "Brouillon",
+            Active:   "Publié",
+            Archived: "Archivé",
         ],
         Priority: [Low, Medium, High],
     },

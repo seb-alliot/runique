@@ -1,4 +1,4 @@
-//! Staging du panneau d'administration : configuration, routes et état admin.
+//! Admin panel staging: configuration, routes, and admin state.
 
 use std::sync::Arc;
 
@@ -28,7 +28,7 @@ impl AdminStaging {
         }
     }
 
-    /// Désactive la génération automatique du `/robots.txt` (activé par défaut).
+    /// Disables the automatic generation of `/robots.txt` (enabled by default).
     pub fn no_robots_txt(mut self) -> Self {
         self.robots_txt = false;
         self
@@ -44,14 +44,14 @@ impl AdminStaging {
         self
     }
 
-    /// Définit l'ordre d'affichage des ressources dans la nav admin.
+    /// Sets the resource display order in the admin navigation.
     ///
     /// ```rust,ignore
     /// .with_admin(|a| a
-    ///     .resource_order(["users", "blog", "droits", "groupes"])
+    ///     .resource_order(["users", "blog", "permissions", "groups"])
     /// )
     /// ```
-    /// Les clés non listées apparaissent à la fin dans leur ordre d'insertion.
+    /// Unlisted keys appear at the end in their insertion order.
     pub fn resource_order<I, S>(mut self, order: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -76,31 +76,31 @@ impl AdminStaging {
         self
     }
 
-    /// Définit le préfixe des routes admin (défaut : `/admin`).
+    /// Sets the prefix for admin routes (default: `/admin`).
     pub fn prefix(mut self, prefix: &str) -> Self {
         self.config = self.config.prefix(prefix);
         self
     }
 
-    /// Définit le nombre d'entrées par page dans la vue liste (défaut : 10).
+    /// Sets the number of entries per page in the list view (default: 10).
     pub fn page_size(mut self, size: u64) -> Self {
         self.config = self.config.page_size(size);
         self
     }
 
-    /// Branche le handler d'authentification admin
+    /// Connects the admin authentication handler.
     ///
-    /// ## Avec le User built-in (zéro config) :
+    /// ## With built-in User (zero config):
     /// ```rust,ignore
     /// use runique::auth::RuniqueAdminAuth;
     ///
     /// .with_admin(|a| a
-    ///     .site_title("Mon Admin")
+    ///     .site_title("My Admin")
     ///     .auth(RuniqueAdminAuth::new())
     /// )
     /// ```
     ///
-    /// ## Avec un modèle custom :
+    /// ## With a custom model:
     /// ```rust,ignore
     /// use runique::auth::{DefaultAdminAuth, UserEntity};
     ///
@@ -113,7 +113,7 @@ impl AdminStaging {
         self
     }
 
-    /// Active le rate limiting sur la route de login admin.
+    /// Enables rate limiting on the admin login route.
     ///
     /// ```rust,ignore
     /// .with_admin(|a| a.with_rate_limiter(RateLimiter::new().max_requests(10).retry_after(60)))
@@ -123,7 +123,7 @@ impl AdminStaging {
         self
     }
 
-    /// Active la protection brute-force par compte sur le login admin.
+    /// Enables per-account brute-force protection on the admin login.
     ///
     /// ```rust,ignore
     /// .with_admin(|a| a.with_login_guard(LoginGuard::new().max_attempts(5).lockout_secs(300)))
@@ -144,13 +144,13 @@ impl AdminStaging {
         self
     }
 
-    /// Surcharge les templates de l'interface admin.
+    /// Overrides admin interface templates.
     ///
     /// ```rust,ignore
     /// .with_admin(|a| a
     ///     .templates(|t| t
-    ///         .with_list("mon_theme/list.html")
-    ///         .with_dashboard("mon_theme/dashboard.html")
+    ///         .with_list("my_theme/list.html")
+    ///         .with_dashboard("my_theme/dashboard.html")
     ///     )
     /// )
     /// ```
@@ -169,20 +169,17 @@ impl AdminStaging {
 
         if self.config.prefix.is_empty() {
             report.add(
-                CheckError::new(
-                    "AdminPanel",
-                    "Le préfixe des routes admin ne peut pas être vide",
-                )
-                .with_suggestion("Utilisez .prefix(\"/admin\") ou laissez la valeur par défaut"),
+                CheckError::new("AdminPanel", "The admin route prefix cannot be empty")
+                    .with_suggestion("Use .prefix(\"/admin\") or leave the default value"),
             );
         }
 
         if self.config.auth.is_none() {
             report.add(
-                CheckError::new("AdminPanel", "Aucun handler d'authentification configuré")
+                CheckError::new("AdminPanel", "No authentication handler configured")
                     .with_suggestion(
-                        "Ajoutez .auth(RuniqueAdminAuth::new()) pour utiliser le User built-in, \
-                    ou implémentez UserEntity sur votre propre modèle",
+                        "Add .auth(RuniqueAdminAuth::new()) to use the built-in User, \
+                    or implement UserEntity on your own model",
                     ),
             );
         }

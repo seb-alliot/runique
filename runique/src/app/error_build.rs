@@ -1,57 +1,57 @@
-//! Erreurs de la phase de construction de l'application (build-time).
+//! Application construction phase errors (build-time).
 use std::fmt;
 
-/// Erreur principale de la phase de build
+/// Main build phase error
 #[derive(Debug, Clone)]
 pub struct BuildError {
     pub kind: BuildErrorKind,
     pub context: Option<String>,
 }
 
-/// Types d'erreurs possibles pendant le build
+/// Possible error types during build
 #[derive(Debug, Clone)]
 pub enum BuildErrorKind {
-    /// Validation structurelle échouée (composant manquant, config invalide)
+    /// Structural validation failed (missing component, invalid config)
     ValidationFailed(String),
 
-    /// Les health checks ont détecté des problèmes
+    /// Health checks detected problems
     CheckFailed(CheckReport),
 
-    /// Erreur lors du chargement des templates
+    /// Error during template loading
     TemplateLoadFailed(String),
 
-    /// Base de données requise mais absente (feature orm activée)
+    /// Database required but absent (`orm` feature enabled)
     DatabaseMissing,
 
-    /// Un composant n'est pas prêt
+    /// A component is not ready
     ComponentNotReady(String),
 }
 
-/// Rapport complet des health checks
+/// Complete health checks report
 #[derive(Debug, Clone)]
 pub struct CheckReport {
     pub errors: Vec<CheckError>,
 }
 
-/// Erreur individuelle d'un health check
+/// Individual health check error
 #[derive(Debug, Clone)]
 pub struct CheckError {
-    /// Nom du composant testé (ex: "Database", "Templates", "Session")
+    /// Name of the tested component (e.g., "Database", "Templates", "Session")
     pub component: String,
 
-    /// Description du problème
+    /// Description of the problem
     pub message: String,
 
-    /// Suggestion pour corriger le problème
+    /// Suggestion to fix the problem
     pub suggestion: Option<String>,
 }
 
 // ═══════════════════════════════════════════════════════════════
-// IMPLÉMENTATIONS
+// IMPLEMENTATIONS
 // ═══════════════════════════════════════════════════════════════
 
 impl BuildError {
-    /// Crée une erreur de validation
+    /// Creates a validation error
     pub fn validation(msg: impl Into<String>) -> Self {
         Self {
             kind: BuildErrorKind::ValidationFailed(msg.into()),
@@ -59,7 +59,7 @@ impl BuildError {
         }
     }
 
-    /// Crée une erreur de health check
+    /// Creates a health check error
     pub fn check(report: CheckReport) -> Self {
         Self {
             kind: BuildErrorKind::CheckFailed(report),
@@ -67,7 +67,7 @@ impl BuildError {
         }
     }
 
-    /// Crée une erreur de template
+    /// Creates a template error
     pub fn template(err: impl Into<String>) -> Self {
         Self {
             kind: BuildErrorKind::TemplateLoadFailed(err.into()),
@@ -75,7 +75,7 @@ impl BuildError {
         }
     }
 
-    /// Crée une erreur de DB manquante
+    /// Creates a missing DB error
     pub fn database_missing() -> Self {
         Self {
             kind: BuildErrorKind::DatabaseMissing,
@@ -83,7 +83,7 @@ impl BuildError {
         }
     }
 
-    /// Ajoute du contexte à l'erreur
+    /// Adds context to the error
     pub fn with_context(mut self, context: impl Into<String>) -> Self {
         self.context = Some(context.into());
         self
@@ -91,22 +91,22 @@ impl BuildError {
 }
 
 impl CheckReport {
-    /// Crée un rapport vide
+    /// Creates an empty report
     pub fn new() -> Self {
         Self { errors: Vec::new() }
     }
 
-    /// Ajoute une erreur au rapport
+    /// Adds an error to the report
     pub fn add(&mut self, error: CheckError) {
         self.errors.push(error);
     }
 
-    /// Vérifie si le rapport contient des erreurs
+    /// Checks if the report contains errors
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
 
-    /// Nombre d'erreurs dans le rapport
+    /// Number of errors in the report
     pub fn count(&self) -> usize {
         self.errors.len()
     }
@@ -119,7 +119,7 @@ impl Default for CheckReport {
 }
 
 impl CheckError {
-    /// Crée une nouvelle erreur de health check
+    /// Creates a new health check error
     pub fn new(component: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             component: component.into(),
@@ -128,7 +128,7 @@ impl CheckError {
         }
     }
 
-    /// Ajoute une suggestion pour corriger l'erreur
+    /// Adds a suggestion to fix the error
     pub fn with_suggestion(mut self, suggestion: impl Into<String>) -> Self {
         self.suggestion = Some(suggestion.into());
         self
@@ -136,7 +136,7 @@ impl CheckError {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DISPLAY TRAITS (pour l'affichage dans le terminal)
+// DISPLAY TRAITS (for terminal display)
 // ═══════════════════════════════════════════════════════════════
 
 impl fmt::Display for BuildError {

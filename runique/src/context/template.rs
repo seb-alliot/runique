@@ -1,4 +1,4 @@
-//! Contexte de requête principal : `AppError`, `RuniqueContext` et construction du contexte Tera.
+//! Main request context: `AppError`, `RuniqueContext`, and Tera context construction.
 use crate::app::templates::TemplateLoader;
 use crate::auth::session::CurrentUser;
 use crate::errors::error::ErrorContext;
@@ -21,9 +21,9 @@ use tracing::error;
 
 // --- ERROR HANDLING ---
 
-/// Erreur applicative retournée par les handlers : encapsule un [`ErrorContext`] et s'implémente en [`IntoResponse`].
+/// Application error returned by handlers: encapsulates an [`ErrorContext`] and implements [`IntoResponse`].
 pub struct AppError {
-    /// Contexte de l'erreur : status code, message, type.
+    /// Error context: status code, message, type.
     pub context: ErrorContext,
 }
 
@@ -77,27 +77,27 @@ impl IntoResponse for Box<AppError> {
 
 // --- TEMPLATE CONTEXT ---
 
-/// Contexte de requête extrait automatiquement dans les handlers via `FromRequestParts`.
-/// Contient l'engine, la session, les flash messages, le token CSRF et le contexte Tera pré-rempli.
+/// Request context automatically extracted in handlers via `FromRequestParts`.
+/// Contains the engine, session, flash messages, CSRF token, and pre-filled Tera context.
 #[derive(Clone)]
 pub struct Request {
-    /// Moteur partagé de l'application.
+    /// Shared application engine.
     pub engine: AEngine,
-    /// Session de la requête courante.
+    /// Session of the current request.
     pub session: Session,
-    /// Flash messages de la session.
+    /// Session flash messages.
     pub notices: Message,
-    /// Token CSRF de la requête (masqué dans le contexte Tera).
+    /// Request CSRF token (masked in the Tera context).
     pub csrf_token: CsrfToken,
-    /// Contexte Tera pré-rempli (csrf_token, debug, messages, user…).
+    /// Pre-filled Tera context (csrf_token, debug, messages, user…).
     pub context: Context,
-    /// Méthode HTTP de la requête.
+    /// HTTP method of the request.
     pub method: Method,
-    /// Paramètres de chemin (`/articles/{id}`).
+    /// Path parameters (`/{id}`).
     pub path_params: HashMap<String, String>,
-    /// Paramètres de query string.
+    /// Query string parameters.
     pub query_params: HashMap<String, String>,
-    /// Utilisateur courant (None si non authentifié).
+    /// Current user (None if not authenticated).
     pub user: Option<CurrentUser>,
 }
 
@@ -299,17 +299,17 @@ impl Request {
         self.render(template)
     }
 
-    /// Récupère un paramètre de route (`/{id}`)
+    /// Retrieves a route parameter (`/{id}`)
     pub fn path_param(&self, key: &str) -> Option<&str> {
         self.path_params.get(key).map(|s| s.as_str())
     }
 
-    /// Récupère un paramètre de query string (`?page=2`)
+    /// Retrieves a query string parameter (`?page=2`)
     pub fn from_url(&self, key: &str) -> Option<&str> {
         self.query_params.get(key).map(|s| s.as_str())
     }
 
-    /// Retourne un `UrlParams` combinant path et query — à passer à `form.cleaned()`
+    /// Returns an `UrlParams` combining path and query — to be passed to `form.cleaned()`
     pub fn url_params(&self) -> UrlParams<'_> {
         UrlParams::new(&self.path_params, &self.query_params)
     }

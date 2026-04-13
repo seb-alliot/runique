@@ -1,4 +1,4 @@
-//! Entrée de ressource admin : callbacks CRUD, métadonnées et configuration d'affichage.
+//! Admin resource entry: CRUD callbacks, metadata, and display configuration.
 use std::sync::Arc;
 
 use axum::http::Method;
@@ -12,7 +12,7 @@ pub use crate::admin::{
 };
 use crate::utils::aliases::{ADb, ATera, StrMap};
 
-/// Direction de tri pour la vue liste admin.
+/// Sort direction for the admin list view.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize)]
 pub enum SortDir {
     #[default]
@@ -37,7 +37,7 @@ impl SortDir {
     }
 }
 
-/// Paramètres passés à `ListFn` : pagination, tri, recherche, filtres colonne.
+/// Parameters passed to `ListFn`: pagination, sorting, search, column filters.
 #[derive(Debug, Clone)]
 pub struct ListParams {
     pub offset: u64,
@@ -45,42 +45,42 @@ pub struct ListParams {
     pub sort_by: Option<String>,
     pub sort_dir: SortDir,
     pub search: Option<String>,
-    /// Filtres exacts par colonne : [(`col_sql`, `valeur`)]
+    /// Exact filters by column: [(`col_sql`, `value`)]
     pub column_filters: Vec<(String, String)>,
 }
 
-/// Closure construisant un form typé depuis des données brutes.
+/// Closure building a typed form from raw data.
 pub type FormBuilder = Arc<
     dyn Fn(ADb, Vec<String>, StrMap, ATera, String, Method) -> BoxFuture<'static, Box<dyn DynForm>>
         + Send
         + Sync,
 >;
 
-/// Closure retournant une page d'entrées d'une ressource.
+/// Closure returning a page of resource entries.
 pub type ListFn =
     Arc<dyn Fn(ADb, ListParams) -> BoxFuture<'static, Result<Vec<Value>, DbErr>> + Send + Sync>;
 
-/// Closure retournant une entrée par son id sous forme de `Value`.
+/// Closure returning an entry by its ID as a `Value`.
 pub type GetFn =
     Arc<dyn Fn(ADb, String) -> BoxFuture<'static, Result<Option<Value>, DbErr>> + Send + Sync>;
 
-/// Closure supprimant une entrée par son id.
+/// Closure deleting an entry by its ID.
 pub type DeleteFn = Arc<dyn Fn(ADb, String) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
-/// Closure mettant à jour une entrée par son id depuis les données du formulaire validé.
+/// Closure updating an entry by its ID from validated form data.
 pub type UpdateFn =
     Arc<dyn Fn(ADb, String, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
-/// Closure créant une nouvelle entrée depuis les données du formulaire validé.
+/// Closure creating a new entry from validated form data.
 pub type CreateFn = Arc<dyn Fn(ADb, StrMap) -> BoxFuture<'static, Result<(), DbErr>> + Send + Sync>;
 
-/// Closure retournant le nombre total d'entrées (avec terme de recherche optionnel).
+/// Closure returning the total number of entries (with optional search term).
 pub type CountFn =
     Arc<dyn Fn(ADb, Option<String>) -> BoxFuture<'static, Result<u64, DbErr>> + Send + Sync>;
 
-/// Closure retournant les valeurs distinctes de chaque colonne configurée dans `list_filter`.
-/// Paramètre : page courante par colonne (0-based).
-/// Retourne : `HashMap`<`col_sql`, (`valeurs_de_la_page`, `total_distinct`)>
+/// Closure returning distinct values for each column configured in `list_filter`.
+/// Parameter: current page per column (0-based).
+/// Returns: `HashMap`<`col_sql`, (`page_values`, `total_distinct`)>
 pub type FilterFn = Arc<
     dyn Fn(
             ADb,
@@ -92,7 +92,7 @@ pub type FilterFn = Arc<
         + Sync,
 >;
 
-/// Entrée du registre admin : métadonnées + closures CRUD.
+/// Admin registry entry: metadata + CRUD closures.
 pub struct ResourceEntry {
     pub meta: AdminResource,
     pub form_builder: FormBuilder,

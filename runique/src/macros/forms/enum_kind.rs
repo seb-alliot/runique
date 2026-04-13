@@ -1,4 +1,4 @@
-//! Macro `define_enum_kind!` — génère l'enum `FieldKind` avec un variant par type de champ.
+//! Macro `define_enum_kind!` — generates the `FieldKind` enum with one variant per field type.
 
 #[macro_export]
 macro_rules! define_enum_kind {

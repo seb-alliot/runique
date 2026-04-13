@@ -350,7 +350,7 @@ impl DatabaseConfig {
             crate::runique_log!(level, "  Connecting to {} database...", self.engine.name());
         }
 
-        // Vérification que le driver est activé
+        // Verification that the driver is enabled
         verify_database_driver(&self.engine).map_err(DbErr::Custom)?;
 
         let mut opt = ConnectOptions::new(&self.url);
@@ -588,12 +588,12 @@ impl DatabaseConfigBuilder {
 
 /// Masks the password in a URL for logging purposes
 fn mask_password(url: &str) -> String {
-    // Vérifie le protocole "://"
+    // Checks the "://" protocol
     let Some(idx) = url.find("://") else {
         return url.to_string();
     };
 
-    // Calcule les indices de façon sûre
+    // Calculates indices safely
     let protocol_end = idx
         .checked_add(3)
         .and_then(|x| if x <= url.len() { Some(x) } else { None });
@@ -601,17 +601,17 @@ fn mask_password(url: &str) -> String {
         return url.to_string();
     };
 
-    // Cherche '@' après le protocole
+    // Searches for '@' after the protocol
     let Some(at_idx) = url[after_protocol..].find('@') else {
         return url.to_string();
     };
     let at_pos = after_protocol.saturating_add(at_idx);
 
-    // Extrait les parties
+    // Extracts parts
     let before = &url[..after_protocol];
     let after = &url[at_pos..];
 
-    // Cherche ':' dans les credentials
+    // Searches for ':' in credentials
     let creds = &url[after_protocol..at_pos];
     let Some(colon) = creds.find(':') else {
         return url.to_string();

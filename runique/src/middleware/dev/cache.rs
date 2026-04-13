@@ -1,4 +1,4 @@
-//! Middleware cache-control — injecte `Cache-Control: no-cache` en mode debug pour forcer le rechargement.
+//! Cache-control middleware — injects `Cache-Control: no-cache` in debug mode to force reloading.
 use crate::utils::aliases::AEngine;
 use axum::{
     body::Body,
@@ -13,7 +13,7 @@ pub async fn dev_no_cache_middleware(
     req: Request<Body>,
     next: Next,
 ) -> Response {
-    // Vérifier si on est en mode debug ET sur localhost
+    // Check if in debug mode AND on localhost
     let should_no_cache = engine.config.debug && is_localhost(&req);
 
     let mut response = next.run(req).await;

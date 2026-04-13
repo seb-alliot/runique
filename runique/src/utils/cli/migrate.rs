@@ -1,4 +1,4 @@
-//! Commande `migrate` — applique les migrations SeaORM en base de données.
+//! `migrate` command — applies SeaORM migrations in the database.
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, TransactionTrait};
@@ -21,15 +21,12 @@ pub async fn up(migrations_path: &str) -> Result<()> {
         .args(["migrate", "up", "--migration-dir", migration_dir])
         .status()
         .await
-        .with_context(|| {
-            "Impossible de lancer sea-orm-cli. Est-il installé ? Exécutez : cargo install sea-orm-cli"
-        })?;
+        .with_context(
+            || "Unable to launch sea-orm-cli. Is it installed? Run: cargo install sea-orm-cli",
+        )?;
 
     if !status.success() {
-        anyhow::bail!(
-            "sea-orm-cli migrate up a échoué (code: {:?})",
-            status.code()
-        );
+        anyhow::bail!("sea-orm-cli migrate up failed (code: {:?})", status.code());
     }
 
     println!("{}", t("migrate.complete_up"));
@@ -407,11 +404,11 @@ fn extract_statements_from_block(
 
         // ----------------------------
         // modify_column : nullable only (SET/DROP NOT NULL)
-        // Pattern attendu: .modify_column(ColumnDef::new(Alias::new("bio")).text().not_null())
+        // Expected pattern: .modify_column(ColumnDef::new(Alias::new("bio")).text().not_null())
         // ----------------------------
         if trimmed.contains(".modify_column(") && trimmed.contains("Alias::new(\"") {
             if let Some(col) = extract_alias_value(trimmed) {
-                // Ici on ne gère que NOT NULL / NULL (suffisant pour ton test)
+                // Here we only handle NOT NULL / NULL (sufficient for your test)
                 let make_null = trimmed.contains(".null()");
                 let sql = match backend {
                     DbBackend::Postgres => {
@@ -428,8 +425,8 @@ fn extract_statements_from_block(
                         }
                     }
                     _ => {
-                        // MySQL/MariaDB : MODIFY COLUMN nécessite le type. On fait un fallback "unsafe".
-                        // => Si tu vises MySQL, il faudra passer sur sea_query pour être correct.
+                        // MySQL/MariaDB: MODIFY COLUMN requires the type. We do an "unsafe" fallback.
+                        // => If you target MySQL, you'll need to use sea_query to be correct.
                         if make_null {
                             format!(
                                 "-- WARNING: modify_column NULL not supported safely on this backend for `{}`.`{}`",

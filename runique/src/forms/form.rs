@@ -1,4 +1,4 @@
-//! `Forms` — conteneur principal d'un formulaire : champs, validation, rendu, gestion CSRF.
+//! `Forms` — main form container: fields, validation, rendering, CSRF management.
 use crate::forms::{
     base::FormField,
     fields::HiddenField,
@@ -22,7 +22,7 @@ use serde::{
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
-/// Conteneur de champs de formulaire avec validation et rendu HTML
+/// Container of form fields with validation and HTML rendering
 ///
 #[doc = include_str!("../../doc-tests/form/form_manual.md")]
 #[derive(Clone)]
@@ -142,10 +142,10 @@ impl Forms {
         let mut fields: FieldsMap = IndexMap::new();
         let mut csrf_field = HiddenField::new_csrf();
         csrf_field.set_value(csrf_token);
-        // Le CSRF est déjà validé en amont par csrf_gate (Prisme).
-        // set_expected_value n'est pas appelé ici : les tokens masqués sont
-        // différents à chaque requête (masque aléatoire), ct_eq échouerait
-        // systématiquement et bloquerait is_valid() sur tous les formulaires.
+        // CSRF is already validated upstream by csrf_gate (Prisme).
+        // set_expected_value is not called here: masked tokens are different on
+        // each request (random mask), ct_eq would systematically fail and block
+        // is_valid() on all forms.
 
         fields.insert(
             CSRF_TOKEN_KEY.to_string(),
@@ -199,10 +199,10 @@ impl Forms {
         );
     }
 
-    /// Remplit les champs du formulaire à partir d'une map de données.
-    /// Si allow_password est false, les champs password sont ignorés (sécurité GET).
-    /// En mode PATCH (edit admin), les champs password voient leur contrainte `required`
-    /// relaxée : valeur vide = garder l'existant (NotSet côté DB).
+    /// Fills the form fields from a data map.
+    /// If allow_password is false, password fields are ignored (GET security).
+    /// In PATCH mode (admin edit), password fields have their required constraint
+    /// relaxed: empty value = keep existing (NotSet DB side).
     pub fn fill(&mut self, data: &StrMap, method: Method) {
         let allow_password = matches!(method, Method::POST | Method::PUT | Method::PATCH);
         let is_edit = matches!(method, Method::PATCH | Method::PUT);
@@ -221,9 +221,9 @@ impl Forms {
                 field.set_value(value);
             }
         }
-        // Normalise les checkboxes/radios absentes du POST → "false".
-        // Un navigateur n'envoie pas les cases décochées : sans cette normalisation,
-        // leur valeur resterait "" et get_string().is_empty() retournerait true à tort.
+        // Normalizes checkboxes/radios absent from POST → "false".
+        // A browser does not send unchecked boxes: without this normalization,
+        // their value would remain "" and get_string().is_empty() would return true wrongly.
         if allow_password {
             for field in self.fields.values_mut() {
                 if matches!(field.field_type(), "checkbox" | "radio") && field.value().is_empty() {
@@ -246,8 +246,8 @@ impl Forms {
         }
     }
 
-    /// Vide toutes les valeurs de champ (hors CSRF).
-    /// À appeler après avoir lu les données nettoyées, avant un redirect.
+    /// Clears all field values (except CSRF).
+    /// To be called after reading cleaned data, before a redirect.
     pub fn clear_values(&mut self) {
         for (name, field) in self.fields.iter_mut() {
             if name != CSRF_TOKEN_KEY {
@@ -269,13 +269,13 @@ impl Forms {
 }
 
 // ============================================================================
-// VALIDATION (délégation au validator)
+// VALIDATION (delegated to validator)
 // ============================================================================
 
 impl Forms {
     pub fn is_valid(&mut self) -> Result<bool, ValidationError> {
-        // Pour les tests unitaires et la robustesse, on valide toujours si is_valid() est appelé,
-        // même si le formulaire n'est pas marqué comme soumis (ex: aucun champ rempli).
+        // For unit tests and robustness, we always validate if is_valid() is called,
+        // even if the form is not marked as submitted (e.g., no field filled).
         self.validated = true;
         Self::validate(&mut self.fields, &self.errors)
     }
@@ -289,7 +289,7 @@ impl Forms {
 }
 
 // ============================================================================
-// RENDU (délégation au renderer)
+// RENDERING (delegated to renderer)
 // ============================================================================
 
 impl Forms {
@@ -302,7 +302,7 @@ impl Forms {
 }
 
 // ============================================================================
-// EXTRACTION DE DONNÉES (Logique métier pure)
+// DATA EXTRACTION (Pure business logic)
 // ============================================================================
 
 impl Forms {
@@ -310,7 +310,7 @@ impl Forms {
     fn assert_validated(&self, method: &str) {
         debug_assert!(
             !self.submitted || self.validated,
-            "Forms::{method}() appelé sans is_valid() préalable — appelez is_valid().await avant d'accéder aux données du formulaire"
+            "Forms::{method}() called without prior is_valid() — call is_valid().await before accessing form data"
         );
     }
 
@@ -318,14 +318,14 @@ impl Forms {
         self.assert_validated("get_value");
         self.fields.get(name).map(|field| field.value().to_string())
     }
-    /// Retourne la valeur comme `String`, ou `String::new()` si le champ n'existe pas.
+    /// Returns the value as `String`, or `String::new()` if the field does not exist.
     pub fn get_string(&self, name: &str) -> String {
         self.assert_validated("get_string");
         self.get_value(name).unwrap_or_default()
     }
 
-    /// Retourne la valeur comme `Option<String>`.
-    /// `None` si le champ n'existe pas **ou** si la valeur est vide.
+    /// Returns the value as `Option<String>`.
+    /// `None` if the field does not exist **or** if the value is empty.
     pub fn get_option(&self, name: &str) -> Option<String> {
         self.assert_validated("get_option");
         self.get_value(name).filter(|v| !v.trim().is_empty())
@@ -335,27 +335,27 @@ impl Forms {
         self.submitted
     }
 
-    /// Retourne la valeur comme `i32` (0 par défaut).
+    /// Returns the value as `i32` (0 by default).
     pub fn get_i32(&self, name: &str) -> i32 {
         self.get_string(name).parse().unwrap_or(0)
     }
 
-    /// Retourne la valeur comme `i64` (0 par défaut).
+    /// Returns the value as `i64` (0 by default).
     pub fn get_i64(&self, name: &str) -> i64 {
         self.get_string(name).parse().unwrap_or(0)
     }
 
-    /// Retourne la valeur comme `u32` (0 par défaut).
+    /// Returns the value as `u32` (0 by default).
     pub fn get_u32(&self, name: &str) -> u32 {
         self.get_string(name).parse().unwrap_or(0)
     }
 
-    /// Retourne la valeur comme `u64` (0 par défaut).
+    /// Returns the value as `u64` (0 by default).
     pub fn get_u64(&self, name: &str) -> u64 {
         self.get_string(name).parse().unwrap_or(0)
     }
 
-    /// Retourne la valeur comme `f32` (0.0 par défaut).
+    /// Returns the value as `f32` (0.0 by default).
     pub fn get_f32(&self, name: &str) -> f32 {
         self.get_string(name)
             .replace(',', ".")
@@ -363,7 +363,7 @@ impl Forms {
             .unwrap_or(0.0)
     }
 
-    /// Retourne la valeur comme `f64` (0.0 par défaut).
+    /// Returns the value as `f64` (0.0 by default).
     pub fn get_f64(&self, name: &str) -> f64 {
         self.get_string(name)
             .replace(',', ".")
@@ -371,76 +371,76 @@ impl Forms {
             .unwrap_or(0.0)
     }
 
-    /// Retourne la valeur comme `bool`.
-    /// `true` si la valeur est `"true"`, `"1"` ou `"on"`.
+    /// Returns the value as `bool`.
+    /// `true` if the value is `"true"`, `"1"` or `"on"`.
     pub fn get_bool(&self, name: &str) -> bool {
         let val = self.get_string(name);
         matches!(val.as_str(), "true" | "1" | "on")
     }
 
-    /// Retourne la valeur comme `Option<i32>`. `None` si vide.
+    /// Returns the value as `Option<i32>`. `None` if empty.
     pub fn get_option_i32(&self, name: &str) -> Option<i32> {
         self.get_option(name)?.parse().ok()
     }
 
-    /// Retourne la valeur comme `Option<i64>`. `None` si vide.
+    /// Returns the value as `Option<i64>`. `None` if empty.
     pub fn get_option_i64(&self, name: &str) -> Option<i64> {
         self.get_option(name)?.parse().ok()
     }
 
-    /// Retourne la valeur comme `Option<f64>`. `None` si vide.
+    /// Returns the value as `Option<f64>`. `None` if empty.
     pub fn get_option_f64(&self, name: &str) -> Option<f64> {
         self.get_option(name)
             .and_then(|v| v.replace(',', ".").parse().ok())
     }
 
-    /// Retourne la valeur comme `Option<bool>`. `None` si vide.
+    /// Returns the value as `Option<bool>`. `None` if empty.
     pub fn get_option_bool(&self, name: &str) -> Option<bool> {
         self.get_option(name)
             .map(|v| matches!(v.as_str(), "true" | "1" | "on"))
     }
     // ── Date / Time ─────────────────────────────────────────────────────────────
 
-    /// Retourne la valeur comme `NaiveDate` (format `YYYY-MM-DD`).
-    /// Retourne `NaiveDate::default()` si le champ est vide ou invalide.
+    /// Returns the value as `NaiveDate` (format `YYYY-MM-DD`).
+    /// Returns `NaiveDate::default()` if the field is empty or invalid.
     pub fn get_naive_date(&self, name: &str) -> chrono::NaiveDate {
         self.get_option(name)
             .and_then(|v| chrono::NaiveDate::parse_from_str(&v, "%Y-%m-%d").ok())
             .unwrap_or_default()
     }
 
-    /// Retourne la valeur comme `Option<NaiveDate>`. `None` si vide ou invalide.
+    /// Returns the value as `Option<NaiveDate>`. `None` if empty or invalid.
     pub fn get_option_naive_date(&self, name: &str) -> Option<chrono::NaiveDate> {
         chrono::NaiveDate::parse_from_str(&self.get_option(name)?, "%Y-%m-%d").ok()
     }
 
-    /// Retourne la valeur comme `NaiveTime` (format `HH:MM`).
-    /// Retourne `NaiveTime::default()` si le champ est vide ou invalide.
+    /// Returns the value as `NaiveTime` (format `HH:MM`).
+    /// Returns `NaiveTime::default()` if the field is empty or invalid.
     pub fn get_naive_time(&self, name: &str) -> chrono::NaiveTime {
         self.get_option(name)
             .and_then(|v| chrono::NaiveTime::parse_from_str(&v, "%H:%M").ok())
             .unwrap_or_default()
     }
 
-    /// Retourne la valeur comme `Option<NaiveTime>`. `None` si vide ou invalide.
+    /// Returns the value as `Option<NaiveTime>`. `None` if empty or invalid.
     pub fn get_option_naive_time(&self, name: &str) -> Option<chrono::NaiveTime> {
         chrono::NaiveTime::parse_from_str(&self.get_option(name)?, "%H:%M").ok()
     }
 
-    /// Retourne la valeur comme `NaiveDateTime` (format `YYYY-MM-DDTHH:MM`).
-    /// Retourne `NaiveDateTime::default()` si le champ est vide ou invalide.
+    /// Returns the value as `NaiveDateTime` (format `YYYY-MM-DDTHH:MM`).
+    /// Returns `NaiveDateTime::default()` if the field is empty or invalid.
     pub fn get_naive_datetime(&self, name: &str) -> chrono::NaiveDateTime {
         self.get_option(name)
             .and_then(|v| chrono::NaiveDateTime::parse_from_str(&v, "%Y-%m-%dT%H:%M").ok())
             .unwrap_or_default()
     }
 
-    /// Retourne la valeur comme `Option<NaiveDateTime>`. `None` si vide ou invalide.
+    /// Returns the value as `Option<NaiveDateTime>`. `None` if empty or invalid.
     pub fn get_option_naive_datetime(&self, name: &str) -> Option<chrono::NaiveDateTime> {
         chrono::NaiveDateTime::parse_from_str(&self.get_option(name)?, "%Y-%m-%dT%H:%M").ok()
     }
 
-    /// Retourne la valeur comme `DateTime<Utc>`. `Utc::now()` si vide ou invalide.
+    /// Returns the value as `DateTime<Utc>`. `Utc::now()` if empty or invalid.
     pub fn get_datetime_utc(&self, name: &str) -> chrono::DateTime<chrono::Utc> {
         self.get_option(name)
             .and_then(|v| chrono::DateTime::parse_from_rfc3339(&v).ok())
@@ -448,7 +448,7 @@ impl Forms {
             .unwrap_or_else(chrono::Utc::now)
     }
 
-    /// Retourne la valeur comme `Option<DateTime<Utc>>`. `None` si vide ou invalide.
+    /// Returns the value as `Option<DateTime<Utc>>`. `None` if empty or invalid.
     pub fn get_option_datetime_utc(&self, name: &str) -> Option<chrono::DateTime<chrono::Utc>> {
         chrono::DateTime::parse_from_rfc3339(&self.get_option(name)?)
             .ok()
@@ -457,21 +457,21 @@ impl Forms {
 
     // ── UUID ─────────────────────────────────────────────────────────────────────
 
-    /// Retourne la valeur comme `Uuid`. `Uuid::nil()` si vide ou invalide.
+    /// Returns the value as `Uuid`. `Uuid::nil()` if empty or invalid.
     pub fn get_uuid(&self, name: &str) -> uuid::Uuid {
         self.get_option(name)
             .and_then(|v| uuid::Uuid::parse_str(&v).ok())
             .unwrap_or(uuid::Uuid::nil())
     }
 
-    /// Retourne la valeur comme `Option<Uuid>`. `None` si vide ou invalide.
+    /// Returns the value as `Option<Uuid>`. `None` if empty or invalid.
     pub fn get_option_uuid(&self, name: &str) -> Option<uuid::Uuid> {
         uuid::Uuid::parse_str(&self.get_option(name)?).ok()
     }
 }
 
 // ============================================================================
-// GESTION DES ERREURS DB (Logique métier spécifique)
+// DB ERROR MANAGEMENT (Specific business logic)
 // ============================================================================
 
 impl Forms {

@@ -1,4 +1,4 @@
-//! Macro `delegate_to_kind!` — dispatch vers le variant de `FieldKind` sans match répétitif.
+//! Macro `delegate_to_kind!` — dispatch to the `FieldKind` variant without repetitive match blocks.
 
 #[macro_export]
 macro_rules! delegate_to_kind {

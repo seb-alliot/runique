@@ -1,4 +1,4 @@
-//! Messages flash — stockage en session, niveaux (success/error/info/warning), extracteur Axum.
+//! Flash messages — session storage, levels (success/error/info/warning), Axum extractor.
 pub mod flash_manager;
 pub mod flash_struct;
 

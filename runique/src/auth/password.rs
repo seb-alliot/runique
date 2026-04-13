@@ -1,4 +1,4 @@
-//! Flow de réinitialisation de mot de passe built-in : oubli + reset via token email.
+//! Built-in password reset flow: forgot + reset via email token.
 use axum::{
     Router,
     extract::{Path, State},
@@ -118,7 +118,7 @@ impl RuniqueForm for PasswordResetForm {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-/// Configuration du flow reset password enregistré via le builder.
+/// Password reset flow configuration registered via the builder.
 #[derive(Clone)]
 pub struct PasswordResetConfig {
     pub forgot_route: String,
@@ -240,7 +240,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
             }
         }
 
-        // Sécurité : ne pas révéler si l'email existe ou non
+        // Security: do not reveal if the email exists or not
         request
             .notices
             .success(t("reset.check_inbox").to_string())
@@ -342,14 +342,14 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
     request.render(template)
 }
 
-// ─── Builder — routes auto-enregistrées ──────────────────────────────────────
+// ─── Builder — auto-registered routes ──────────────────────────────────────
 
-/// Trait d'effacement de type pour le staging builder.
+/// Type erasure trait for the staging builder.
 pub trait PasswordResetHandler: Send + Sync + 'static {
     fn build_router(&self, config: Arc<PasswordResetConfig>) -> Router;
 }
 
-/// Adaptateur générique : implémente `PasswordResetHandler` pour tout E: `UserEntity`.
+/// Generic adapter: implements `PasswordResetHandler` for any E: `UserEntity`.
 pub struct PasswordResetAdapter<E: UserEntity>(PhantomData<E>);
 
 impl<E: UserEntity + 'static> PasswordResetAdapter<E> {
@@ -448,7 +448,7 @@ impl<E: UserEntity + 'static> PasswordResetHandler for PasswordResetAdapter<E> {
     }
 }
 
-/// Staging stocké dans le builder avant la construction.
+/// Staging stored in the builder before construction.
 pub struct PasswordResetStaging {
     pub handler: Box<dyn PasswordResetHandler>,
     pub config: PasswordResetConfig,

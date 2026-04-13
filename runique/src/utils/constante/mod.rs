@@ -1,4 +1,4 @@
-//! Constantes du framework — clés de session, CSRF, flash, templates, regex, erreurs.
+//! Framework constants — session keys, CSRF, flash, templates, regex, errors.
 pub mod admin_key;
 pub mod error_key;
 pub mod parse;

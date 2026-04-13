@@ -1,19 +1,18 @@
 //! # Suite de tests — runique
 //!
-//! ## Conventions de nommage
-//! Tous les fichiers de test portent le préfixe `test_` :
+//! All test files have the `test_` prefix:
 //! - `test_csrf.rs`, `test_validator.rs`, `test_paths.rs`, …
 //!
-//! ## Types de tests
-//! | Type          | Attribut           | Quand l'utiliser                          |
-//! | ------------- | ------------------ | ----------------------------------------- |
-//! | Unitaire      | `#[test]`          | Tester une fonction/struct isolée         |
-//! | Async oneshot | `#[tokio::test]`   | Tester un handler axum sans session       |
-//! | Intégration   | `#[tokio::test]`   | Flux multi-requêtes avec cookie/session   |
+//! ## Types of tests
+//! | Type          | Attribute          | When to use                              |
+//! | ------------- | ------------------ | ---------------------------------------- |
+//! | Unit          | `#[test]`          | Test an isolated function/struct         |
+//! | Async oneshot | `#[tokio::test]`   | Test an axum handler without session     |
+//! | Integration   | `#[tokio::test]`   | Multi-request flow with cookie/session   |
 //!
-//! ## Ajouter un nouveau test
-//! 1. Créer `<module>/test_<sujet>.rs`
-//! 2. Le déclarer dans `<module>/mod.rs`
+//! ## Adding a new test
+//! 1. Create `<module>/test_<subject>.rs`
+//! 2. Declare it in `<module>/mod.rs`
 //! 3. Utiliser les helpers disponibles :
 //!
 //! ```rust
@@ -28,7 +27,7 @@
 //! - [`helpers::server`]  — `build_engine()`, `build_default_router()`, `test_server_addr()`, `test_client()`
 //! - [`helpers::request`] — builders oneshot : `get`, `post`, `post_with_header`, `delete`, …
 //! - [`helpers::assert`]  — assertions HTTP : `assert_status`, `assert_has_header`, `assert_redirect`, …
-//! - [`helpers::db`]      — SQLite en mémoire : `fresh_db()`, `fresh_db_with_schema()`, `exec()`, `count()`, …
+//! - [`helpers::db`]      — In-memory SQLite: `fresh_db()`, `fresh_db_with_schema()`, `exec()`, `count()`, …
 
 pub mod admin;
 pub mod app;

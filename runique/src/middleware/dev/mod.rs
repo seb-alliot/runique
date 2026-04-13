@@ -1,4 +1,4 @@
-//! Middlewares de développement — cache-control `no-cache` pour les assets en mode debug.
+//! Development middlewares — `no-cache` cache-control for assets in debug mode.
 pub mod cache;
 
 pub use cache::*;

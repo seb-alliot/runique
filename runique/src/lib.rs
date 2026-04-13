@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 // ---------------------------------------------------------------------------
-// Modules principaux (arborescence actuelle)
+// Main Modules
 // ---------------------------------------------------------------------------*
 pub mod app;
 pub mod auth;
@@ -23,7 +23,7 @@ pub mod utils;
 
 pub use forms::Prisme;
 // ---------------------------------------------------------------------------
-// Ré-export des dépendances principales
+// Main Dependencies Re-exports
 // ---------------------------------------------------------------------------
 pub use anyhow;
 pub use argon2;
@@ -50,11 +50,11 @@ pub use dotenvy;
 pub use pulldown_cmark;
 
 // ---------------------------------------------------------------------------
-// Prelude simplifié
+// Simplified Prelude
 // ---------------------------------------------------------------------------
 pub mod prelude {
     // ========================================================================
-    // ERREURS
+    // ERRORS
     // ========================================================================
     pub use crate::errors::ErrorContext;
     pub use crate::errors::RuniqueError;
@@ -62,7 +62,7 @@ pub mod prelude {
     pub use tracing;
 
     // ========================================================================
-    // MODULES PRINCIPAUX
+    // MAIN MODULES
     // ========================================================================
     pub use crate::app::{RuniqueApp, RuniqueAppBuilder};
     pub use crate::config::app::RuniqueConfig;
@@ -111,7 +111,7 @@ pub mod prelude {
     pub use crate::{urlpatterns, view};
 
     // ========================================================================
-    // CONTEXTE & TEMPLATE
+    // CONTEXT & TEMPLATE
     // ========================================================================
     // pub use crate::context::error::*;
     pub use crate::context::request::RuniqueContext;
@@ -142,7 +142,7 @@ pub mod prelude {
     };
 
     // ========================================================================
-    // ORM (optionnel)
+    // ORM (optional)
     // ========================================================================
     // pub use crate::migration::user_runique;
     #[cfg(feature = "orm")]
@@ -156,7 +156,7 @@ pub mod prelude {
     pub use sea_orm_migration::sea_query;
 
     // ========================================================================
-    // SÉRIALISATION & DONNÉES
+    // SERIALIZATION & DATA
     // ========================================================================
     pub use serde::{Deserialize, Deserializer, Serialize, Serializer};
     pub use serde_json;
@@ -174,13 +174,13 @@ pub mod prelude {
     pub use tokio;
 
     // ========================================================================
-    // TYPES STANDARDS COURANTS
+    // STANDARD TYPES
     // ========================================================================
     pub use std::collections::{HashMap, HashSet};
     pub use std::sync::Arc;
 
     // ========================================================================
-    // SÉCURITÉ - HMAC, Hashing, etc.
+    // SECURITY - HMAC, Hashing, etc.
     // ========================================================================
     pub use crate::utils::mailer::{Email, mailer_configured};
     pub use crate::utils::password::{
@@ -203,6 +203,7 @@ pub mod prelude {
     // ========================================================================
     // Admin
     // ========================================================================
+
     // Items used by daemon-generated code (external crate) via `use runique::prelude::*`
     pub use crate::admin::{
         admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id},

@@ -1,4 +1,4 @@
-//! Contexte de requête — extracteurs, template `Request`, extensions et filtres Tera.
+//! Request context — extractors, Request template, extensions, and Tera filters.
 // pub mod error;
 pub mod request;
 pub mod request_extensions;

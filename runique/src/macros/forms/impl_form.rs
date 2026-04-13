@@ -1,4 +1,4 @@
-//! Macro `impl_form_access!` — implémente les méthodes d'accès sur les structs de formulaire.
+//! Macro `impl_form_access!` — implements access methods on form structs.
 
 #[macro_export]
 macro_rules! impl_form_access {

@@ -257,7 +257,7 @@ form.field(
     &FileField::image("avatar")
         .label("Profile picture")
         .upload_to("uploads/avatars")   // → uploads/avatars/
-        .max_size_mb(5)
+        .max_size(5)
         .max_files(1)
         .max_dimensions(1920, 1080)
         .allowed_extensions(vec!["png", "jpg", "jpeg", "webp", "avif"]),
@@ -269,14 +269,14 @@ form.field(
     &FileField::image("photo")
         .label("Photo")
         .upload_to_env()
-        .max_size_mb(5),
+        .max_size(5),
 );
 
 // Without upload_to — files stored directly in MEDIA_ROOT
 form.field(
     &FileField::image("image")
         .label("Image")
-        .max_size_mb(5),
+        .max_size(5),
 );
 
 // Document
@@ -284,7 +284,7 @@ form.field(
     &FileField::document("cv")
         .label("Resume")
         .upload_to("uploads/cv")
-        .max_size_mb(10),
+        .max_size(10),
 );
 
 // Any file (multi-file)

@@ -1,4 +1,4 @@
-//! Entité SeaORM `eihwaz_groupes` — groupes de permissions admin.
+//! SeaORM entity `eihwaz_groupes` — admin permission groups.
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]

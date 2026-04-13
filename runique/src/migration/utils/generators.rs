@@ -1,4 +1,4 @@
-//! Génération du code Rust de migration SeaORM — fichiers `up`/`down`, CREATE TABLE, FK, index, triggers.
+//! SeaORM migration Rust code generation — `up`/`down` files, CREATE TABLE, FK, indexes, triggers.
 use crate::migration::utils::{
     helpers::col_type_to_method,
     types::{Changes, DbKind, ParsedColumn, ParsedSchema},
@@ -80,7 +80,7 @@ fn build_enum_type_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> String {
         let variants: Vec<String> = col
             .enum_string_values
             .iter()
-            .map(|v| format!("'{}'", v)) // ← guillemets simples
+            .map(|v| format!("'{}'", v)) // ← single quotes
             .collect();
         out.push_str(&format!(
             "        manager.get_connection().execute_unprepared(\n            \"DO $$ BEGIN CREATE TYPE {name} AS ENUM ({variants}); EXCEPTION WHEN duplicate_object THEN NULL; END $$\"\n        ).await?;\n\n",
@@ -281,7 +281,7 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
 
         // nullable -> not_null => destructive unless you backfill
         if old.nullable && !new.nullable {
-            // Génère quand même le modify_column (risqué si NULL existants)
+            // Generates modify_column anyway (risky if NULLs exist)
             push_modify_column(
                 &mut up,
                 &change.table_name,
@@ -380,14 +380,14 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
             "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{new}' WHERE {col} = '{old}'\"\n        ).await?;\n\n",
             table = change.table_name, col = col, old = old_val, new = new_val,
         ));
-        // down : inverse
+        // down: inverse
         down.push_str(&format!(
             "        manager.get_connection().execute_unprepared(\n            \"UPDATE {table} SET {col} = '{old}' WHERE {col} = '{new}'\"\n        ).await?;\n\n",
             table = change.table_name, col = col, old = old_val, new = new_val,
         ));
     }
 
-    // 10) Enum value additions/removals — migration manuelle requise
+    // 10) Enum value additions/removals — manual migration required
     for (_col, enum_name, val) in &change.enum_value_adds {
         up.push_str(&format!(
             "        manager.get_connection().execute_unprepared(\n            \"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{val}'\"\n        ).await?;\n\n",
@@ -396,7 +396,7 @@ fn build_alter_bodies(change: &Changes) -> (String, String) {
     }
     for (_col, enum_name, val) in &change.enum_value_drops {
         up.push_str(&format!(
-            "        // WARNING: valeur '{val}' supprimée de {enum_name} — migration manuelle requise.\n\n",
+            "        // WARNING: value '{val}' removed from {enum_name} — manual migration required.\n\n",
             val = val, enum_name = enum_name,
         ));
         down.push_str(&format!(
@@ -478,7 +478,6 @@ fn render_pk_col(pk: &ParsedColumn) -> String {
 
     let mut s = format!(
         "                    .col(ColumnDef::new(Alias::new(\"{name}\")).{ty}.not_null()",
-        // 20 espaces ici aussi
         name = pk.name,
         ty = ty
     );
@@ -539,8 +538,8 @@ fn render_column_def(col: &ParsedColumn, db_kind: &DbKind) -> String {
     }
 }
 
-/// Génère les triggers PostgreSQL pour les colonnes `updated_at`.
-/// Pour MySQL, la gestion est inline via `.extra("ON UPDATE CURRENT_TIMESTAMP")`.
+/// Generates PostgreSQL triggers for `updated_at` columns.
+/// For MySQL, handling is inline via `.extra("ON UPDATE CURRENT_TIMESTAMP")`.
 fn build_updated_at_trigger_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     if *db_kind != DbKind::Postgres {
         return String::new();
@@ -562,7 +561,7 @@ fn build_updated_at_trigger_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> St
     )
 }
 
-/// Supprime les triggers PostgreSQL `updated_at` dans le bloc `down`.
+/// Drops PostgreSQL `updated_at` triggers in the `down` block.
 fn build_updated_at_trigger_drops(schema: &ParsedSchema, db_kind: &DbKind) -> String {
     if *db_kind != DbKind::Postgres {
         return String::new();

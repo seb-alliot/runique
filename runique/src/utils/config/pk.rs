@@ -1,7 +1,7 @@
-//! Type de la clé primaire utilisateur — `i32` par défaut, `i64` avec la feature `big-pk`.
-/// Type de la clé primaire utilisateur.
+//! User primary key type — `i32` by default, `i64` with the `big-pk` feature.
+/// User primary key type.
 ///
-/// Par défaut `i32`. Activer la feature `big-pk` pour passer à `i64` :
+/// Defaults to `i32`. Enable the `big-pk` feature to switch to `i64`:
 ///
 /// ```toml
 /// runique = { version = "...", features = ["big-pk"] }

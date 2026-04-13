@@ -1,11 +1,11 @@
-//! Calcul de diff entre deux [`ParsedSchema`] — colonnes ajoutées/supprimées/modifiées, FK, index, enum renames.
+//! Diff calculation between two [`ParsedSchema`] — added/dropped/modified columns, FKs, indexes, enum renames.
 use std::collections::{HashMap, HashSet};
 
 use crate::migration::utils::types::{Changes, ParsedColumn, ParsedFk, ParsedSchema};
 
-/// Colonnes qui existent réellement en base (hors ignored et hors PK)
+/// Columns that actually exist in the database (excluding ignored and PK)
 ///
-/// # Exemple
+/// # Example
 ///
 /// ```rust, ignore
 /// use runique::migration::utils::types::{ParsedSchema, ParsedColumn};
@@ -34,9 +34,9 @@ pub fn db_columns(schema: &ParsedSchema) -> Vec<&ParsedColumn> {
         .collect()
 }
 
-/// Calcule les différences entre deux schémas de table.
+/// Calculates differences between two table schemas.
 ///
-/// # Exemple
+/// # Example
 ///
 /// ```rust,ignore
 /// // let changes = diff_schemas(&old_schema, &new_schema);
@@ -85,7 +85,7 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         })
         .collect();
 
-    // FK — la clé inclut on_delete et on_update pour détecter les changements d'action
+    // FK — the key includes on_delete and on_update to detect action changes
     let fk_key = |fk: &ParsedFk| {
         format!(
             "{}->{}:{}:{}:{}",
@@ -127,7 +127,7 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
         .cloned()
         .collect();
 
-    // Enum : renames (même position, valeur différente), ajouts et suppressions de variantes
+    // Enum: renames (same position, different value), additions and deletions of variants
     let mut enum_renames: Vec<(String, String, String)> = Vec::new();
     let mut enum_value_adds: Vec<(String, String, String)> = Vec::new();
     let mut enum_value_drops: Vec<(String, String, String)> = Vec::new();
@@ -142,17 +142,17 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
             let curr_set: HashSet<&str> =
                 curr.enum_string_values.iter().map(|s| s.as_str()).collect();
 
-            // Valeurs ajoutées
+            // Added values
             for v in curr_set.difference(&prev_set) {
                 let enum_name = curr.enum_name.as_deref().unwrap_or(name).to_string();
                 enum_value_adds.push((name.to_string(), enum_name, v.to_string()));
             }
-            // Valeurs supprimées
+            // Dropped values
             for v in prev_set.difference(&curr_set) {
                 let enum_name = prev.enum_name.as_deref().unwrap_or(name).to_string();
                 enum_value_drops.push((name.to_string(), enum_name, v.to_string()));
             }
-            // Renames par position (parmi les valeurs présentes dans les deux)
+            // Renames by position (among values present in both)
             for (i, new_val) in curr.enum_string_values.iter().enumerate() {
                 if let Some(old_val) = prev.enum_string_values.get(i) {
                     if old_val != new_val

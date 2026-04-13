@@ -1,53 +1,53 @@
-//! Configuration des hôtes autorisés passée via closure au builder.
+//! Allowed hosts configuration passed via closure to the builder.
 //
-// Utilisé exclusivement dans la closure de `with_allowed_hosts` :
+// Used exclusively in the `with_allowed_hosts` closure:
 //
 //   .middleware(|m| {
 //       m.with_allowed_hosts(|h| {
 //           h.enabled(true)
-//            .host("monsite.fr")
-//            .host("www.monsite.fr")
+//            .host("mysite.com")
+//            .host("www.mysite.com")
 //       })
 //   })
 //
-// ACTIVATION :
-//   .enabled(true)          → active la validation du header Host
-//   .enabled(false)         → désactive (cas rare, escape hatch)
+// ACTIVATION:
+//   .enabled(true)          → enables Host header validation
+//   .enabled(false)         → disables (rare case, escape hatch)
 //
-// HÔTES :
-//   .host("monsite.fr")     → ajoute un hôte exact
-//   .hosts(vec![...])       → ajoute plusieurs hôtes d'un coup
+// HOSTS:
+//   .host("mysite.com")     → adds an exact host
+//   .hosts(vec![...])       → adds multiple hosts at once
 //
-// WILDCARDS :
-//   ".monsite.fr"           → monsite.fr + tous les sous-domaines
-//   "*"                     → tout autoriser (désactive la validation de fait)
+// WILDCARDS:
+//   ".mysite.com"           → mysite.com + all subdomains
+//   "*"                     → allow everything (effectively disables validation)
 //
 // ═══════════════════════════════════════════════════════════════
 
-/// Configuration des hôtes autorisés, passée via closure à `.with_allowed_hosts(|h| { ... })`.
+/// Allowed hosts configuration, passed via closure to `.with_allowed_hosts(|h| { ... })`.
 ///
-/// Désactivé par défaut — appeler `.enabled(true)` pour activer.
+/// Disabled by default — call `.enabled(true)` to enable.
 ///
-/// # Exemple
+/// # Example
 /// ```rust,ignore
 /// .middleware(|m| {
 ///     m.with_allowed_hosts(|h| {
 ///         h.enabled(true)
-///          .host("monsite.fr")
-///          .host("www.monsite.fr")
+///          .host("mysite.com")
+///          .host("www.mysite.com")
 ///     })
 /// })
 /// ```
 ///
-/// # Wildcard sous-domaines
+/// # Wildcard subdomains
 /// ```rust,ignore
 /// m.with_allowed_hosts(|h| {
 ///     h.enabled(true)
-///      .host(".monsite.fr") // monsite.fr + sous-domaines
+///      .host(".mysite.com") // mysite.com + subdomains
 /// })
 /// ```
 ///
-/// # Désactiver — ne pas appeler `.with_allowed_hosts` du tout.
+/// # Disable — do not call `.with_allowed_hosts` at all.
 #[derive(Default)]
 pub struct HostConfig {
     pub(crate) hosts: Vec<String>,
@@ -55,35 +55,35 @@ pub struct HostConfig {
 }
 
 impl HostConfig {
-    /// Active ou désactive la validation du header Host.
+    /// Enables or disables Host header validation.
     ///
-    /// Sans appel à `.enabled(true)`, la validation est inactive
-    /// même si des hôtes sont définis.
+    /// Without calling `.enabled(true)`, validation is inactive
+    /// even if hosts are defined.
     pub fn enabled(mut self, enable: bool) -> Self {
         self.enabled = enable;
         self
     }
 
-    /// Ajoute un hôte autorisé.
+    /// Adds an allowed host.
     ///
-    /// Peut être chaîné plusieurs fois :
+    /// Can be chained multiple times:
     /// ```rust,ignore
-    /// h.host("monsite.fr").host("www.monsite.fr")
+    /// h.host("mysite.com").host("www.mysite.com")
     /// ```
     ///
-    /// Préfixer par `.` pour autoriser le domaine et tous ses sous-domaines :
+    /// Prefix with `.` to allow the domain and all its subdomains:
     /// ```rust,ignore
-    /// h.host(".monsite.fr") // monsite.fr + api.monsite.fr + ...
+    /// h.host(".mysite.com") // mysite.com + api.mysite.com + ...
     /// ```
     pub fn host(mut self, host: impl Into<String>) -> Self {
         self.hosts.push(host.into());
         self
     }
 
-    /// Ajoute plusieurs hôtes d'un coup.
+    /// Adds multiple hosts at once.
     ///
     /// ```rust,ignore
-    /// h.hosts(vec!["monsite.fr", "www.monsite.fr"])
+    /// h.hosts(vec!["mysite.com", "www.mysite.com"])
     /// ```
     pub fn hosts(mut self, hosts: Vec<impl Into<String>>) -> Self {
         self.hosts.extend(hosts.into_iter().map(Into::into));

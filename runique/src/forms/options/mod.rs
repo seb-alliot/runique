@@ -1,4 +1,4 @@
-//! Options de validation de champs — `LengthConstraint` et `BoolChoice`.
+//! Field validation options — `LengthConstraint` and `BoolChoice`.
 pub mod bool_choice;
 pub mod length;
 

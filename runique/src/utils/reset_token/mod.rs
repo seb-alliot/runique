@@ -1,4 +1,4 @@
-//! Tokens de réinitialisation de mot de passe — génération HMAC-SHA256, TTL configurable, stockage en mémoire.
+//! Password reset tokens — HMAC-SHA256 generation, configurable TTL, memory storage.
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use hmac::{Hmac, Mac};
 use sha2::{Digest, Sha256};
@@ -23,7 +23,7 @@ static TOKENS: LazyLock<Mutex<HashMap<String, ResetEntry>>> =
 
 const TOKEN_TTL: Duration = Duration::from_secs(3600);
 
-/// Génère un token de réinitialisation lié à un email (valide 1h, usage unique).
+/// Generates a reset token linked to an email (valid 1h, single use).
 pub fn generate(email: &str) -> String {
     let token = Uuid::new_v4().to_string();
     let mut store = TOKENS.lock().unwrap();
@@ -39,7 +39,7 @@ pub fn generate(email: &str) -> String {
     token
 }
 
-/// Consomme un token (usage unique) → retourne l'email associé si valide.
+/// Consumes a token (single use) → returns associated email if valid.
 pub fn consume(token: &str) -> Option<String> {
     let mut store = TOKENS.lock().unwrap();
     let now = Instant::now();
@@ -51,16 +51,16 @@ pub fn consume(token: &str) -> Option<String> {
     None
 }
 
-/// Chiffre l'email avec le token comme clé (CTR-SHA256 + HMAC-SHA256).
-/// Résultat : base64url, sûr dans une URL.
+/// Encrypts email with token as key (CTR-SHA256 + HMAC-SHA256).
+/// Result: base64url, safe in a URL.
 ///
-/// Construction : `enc_key` = SHA256(token || ":enc"), keystream[i] = `SHA256(enc_key` || `i_le32`)
-/// Authentification : HMAC-SHA256(token, ciphertext), tag tronqué à 16 octets en préfixe.
+/// Construction: `enc_key` = SHA256(token || ":enc"), keystream[i] = `SHA256(enc_key` || `i_le32`)
+/// Authentication: HMAC-SHA256(token, ciphertext), tag truncated to 16 bytes as prefix.
 #[must_use]
 pub fn encrypt_email(token: &str, email: &str) -> String {
     let email_bytes = email.as_bytes();
 
-    // Clé de chiffrement dérivée du token — unique par token (UUID4)
+    // Encryption key derived from token — unique per token (UUID4)
     let enc_key: [u8; 32] = {
         let mut h = Sha256::new();
         h.update(token.as_bytes());
@@ -68,7 +68,7 @@ pub fn encrypt_email(token: &str, email: &str) -> String {
         h.finalize().into()
     };
 
-    // Chiffrement CTR : keystream[i] = SHA256(enc_key || counter_le32)
+    // CTR encryption: keystream[i] = SHA256(enc_key || counter_le32)
     let mut ciphertext = Vec::with_capacity(email_bytes.len());
     for (block_idx, chunk) in email_bytes.chunks(32).enumerate() {
         let mut block_input = [0u8; 36];
@@ -80,13 +80,13 @@ pub fn encrypt_email(token: &str, email: &str) -> String {
         }
     }
 
-    // Tag d'authentification : HMAC-SHA256(token, ciphertext), tronqué à 16 octets
-    let mut mac = HmacSha256::new_from_slice(token.as_bytes())
-        .expect("HMAC-SHA256 accepte toute longueur de clé");
+    // Authentication tag: HMAC-SHA256(token, ciphertext), truncated to 16 bytes
+    let mut mac =
+        HmacSha256::new_from_slice(token.as_bytes()).expect("HMAC-SHA256 accepts any key length");
     mac.update(&ciphertext);
     let tag = mac.finalize().into_bytes();
 
-    // Sortie : tag[0..16] || ciphertext (tag en préfixe pour rejet rapide)
+    // Output: tag[0..16] || ciphertext (tag as prefix for fast rejection)
     let mut output = Vec::with_capacity(16usize.saturating_add(ciphertext.len()));
     output.extend_from_slice(&tag[..16]);
     output.extend_from_slice(&ciphertext);
@@ -94,28 +94,28 @@ pub fn encrypt_email(token: &str, email: &str) -> String {
     URL_SAFE_NO_PAD.encode(&output)
 }
 
-/// Déchiffre l'email depuis une valeur base64url produite par `encrypt_email`.
-/// Retourne `None` si le décodage, l'authentification ou l'UTF-8 échoue.
+/// Decrypts email from a base64url value produced by `encrypt_email`.
+/// Returns `None` if decoding, authentication or UTF-8 fails.
 #[must_use]
 pub fn decrypt_email(token: &str, encoded: &str) -> Option<String> {
     let data = URL_SAFE_NO_PAD.decode(encoded).ok()?;
-    // Minimum : 16 octets de tag + au moins 1 octet de ciphertext
+    // Minimum: 16 bytes of tag + at least 1 byte of ciphertext
     if data.len() < 17 {
         return None;
     }
 
     let (tag_bytes, ciphertext) = data.split_at(16);
 
-    // Vérification du tag HMAC en temps constant
-    let mut mac = HmacSha256::new_from_slice(token.as_bytes())
-        .expect("HMAC-SHA256 accepte toute longueur de clé");
+    // Constant-time HMAC tag verification
+    let mut mac =
+        HmacSha256::new_from_slice(token.as_bytes()).expect("HMAC-SHA256 accepts any key length");
     mac.update(ciphertext);
     let expected = mac.finalize().into_bytes();
     if !bool::from(tag_bytes.ct_eq(&expected[..16])) {
         return None;
     }
 
-    // Déchiffrement CTR (même keystream)
+    // CTR decryption (same keystream)
     let enc_key: [u8; 32] = {
         let mut h = Sha256::new();
         h.update(token.as_bytes());
@@ -137,7 +137,7 @@ pub fn decrypt_email(token: &str, encoded: &str) -> Option<String> {
     String::from_utf8(plaintext).ok()
 }
 
-/// Vérifie qu'un token est valide sans le consommer (pour afficher le formulaire).
+/// Checks if a token is valid without consuming it (to display form).
 pub fn peek(token: &str) -> bool {
     let store = TOKENS.lock().unwrap();
     let now = Instant::now();

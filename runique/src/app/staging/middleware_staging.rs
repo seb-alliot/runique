@@ -1,4 +1,4 @@
-//! Staging des middlewares : réorganisation automatique par slots et application au router.
+//! Middleware staging: automatic reorganization by slots and application to the router.
 use super::csp_config::CspConfig;
 use super::host_config::HostConfig;
 use crate::app::error_build::BuildError;
@@ -17,94 +17,94 @@ use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, SessionManagerLayer, SessionStore};
 
 // ═══════════════════════════════════════════════════════════════
-// MiddlewareStaging — Réorganisation automatique par Slots
+// MiddlewareStaging — Automatic Reorganization by Slots
 // ═══════════════════════════════════════════════════════════════
 //
-// Innovation clé de Runique :
-// Le développeur configure ses middlewares dans l'ordre qu'il veut.
-// Chaque middleware possède un SLOT fixe (priorité).
-// Au moment du build, le staging trie par slot et applique dans
-// l'ordre optimal — automatiquement.
+// Key Runique innovation:
+// The developer configures their middlewares in the order they want.
+// Each middleware has a fixed SLOT (priority).
+// At build time, staging sorts by slot and applies in the
+// optimal order — automatically.
 //
-// Le CSRF lit/écrit un token en session → il DÉPEND de Session.
-// Avec Axum brut, si on met CSRF avant Session → bug silencieux.
-// Avec Runique → ça marche quand même, le framework réordonne.
+// CSRF reads/writes a token in the session → it DEPENDS on Session.
+// With raw Axum, if you put CSRF before Session → silent bug.
+// With Runique → it works anyway, the framework reorders.
 //
 // ═══════════════════════════════════════════════════════════════
 //
-// MODÈLE AXUM :
+// AXUM MODEL:
 //   .layer(A).layer(B).layer(C)
-//   Exécution requête : C → B → A → Handler
-//   Dernier .layer() ajouté = le plus externe = premier exécuté
+//   Request execution: C → B → A → Handler
+//   Last added `.layer()` = outermost = first executed
 //
-// NOTRE STRATÉGIE :
-//   Slot bas  (0)   = externe = premier exécuté sur la requête
-//   Slot haut (200+) = interne = plus proche du handler
+// OUR STRATEGY:
+//   Low slot (0)   = external = first executed on the request
+//   High slot (200+) = internal = closer to the handler
 //
-//   On trie DESCENDANT puis on applique .layer() dans cet ordre :
-//   le slot le plus haut est appliqué EN PREMIER (.layer) = le plus INTERNE
-//   le slot le plus bas est appliqué EN DERNIER (.layer) = le plus EXTERNE
+//   We sort DESCENDING then apply `.layer()` in this order:
+//   the highest slot is applied FIRST (.layer) = the most INTERNAL
+//   the lowest slot is applied LAST (.layer) = the most EXTERNAL
 //
-// RÉSULTAT sur une requête entrante :
+// RESULT on an incoming request:
 //   → Extensions(0) → ErrorHandler(10) → Custom(20+)
 //   → CSP(30) → Cache(40) → Session(50) → CSRF(60)
 //   → Host(70) → Handler
 //
-// Reproduit l'ordre prouvé de l'ancien builder :
-//   ErrorHandler enveloppe TOUT → attrape toutes les erreurs
-//   ErrorHandler extrait Extension(tera/config) → injectées par Extensions
-//   Session exécutée AVANT CSRF → CSRF peut lire la session
-//   Host = dernier rempart avant le handler
+// Reproduces the proven order of the old builder:
+//   ErrorHandler wraps EVERYTHING → catches all errors
+//   ErrorHandler extracts Extension(tera/config) → injected by Extensions
+//   Session executed BEFORE CSRF → CSRF can read the session
+//   Host = last defense before the handler
 //
 // ═══════════════════════════════════════════════════════════════
 
 // ─────────────────────────────────────────────────────────────
-// Slots built-in — Ordre d'exécution garanti sur la requête
+// Built-in slots — Guaranteed execution order on the request
 // ─────────────────────────────────────────────────────────────
 
-const SLOT_EXTENSIONS: u16 = 0; // Injection Engine/Tera/Config (outermost)
-const SLOT_COMPRESSION: u16 = 5; // Compression (externe, avant tout autre middleware)
-const SLOT_ERROR_HANDLER: u16 = 10; // Attrape les erreurs de TOUTE la pile
+const SLOT_EXTENSIONS: u16 = 0; // Engine/Tera/Config injection (outermost)
+const SLOT_COMPRESSION: u16 = 5; // Compression (external, before any other middleware)
+const SLOT_ERROR_HANDLER: u16 = 10; // Catches errors of the WHOLE stack
 const SLOT_SECURITY_HEADERS: u16 = 30; // security headers
 const SLOT_SECURITY_CSP: u16 = 31;
-const SLOT_CACHE: u16 = 40; // Headers cache
-const SLOT_SESSION: u16 = 50; // Avant CSRF (CSRF en dépend)
-const SLOT_SESSION_UPGRADE: u16 = 55; // Après Session (lit/écrit en session)
-const SLOT_AUTH: u16 = 57; // Après Session — charge CurrentUser depuis la session
-const SLOT_CSRF: u16 = 60; // Après Session (lit/écrit en session)
-const SLOT_HOST_VALIDATION: u16 = 70; // Dernier rempart avant handler
+const SLOT_CACHE: u16 = 40; // Cache headers
+const SLOT_SESSION: u16 = 50; // Before CSRF (CSRF depends on it)
+const SLOT_SESSION_UPGRADE: u16 = 55; // After Session (reads/writes in session)
+const SLOT_AUTH: u16 = 57; // After Session — loads CurrentUser from the session
+const SLOT_CSRF: u16 = 60; // After Session (reads/writes in session)
+const SLOT_HOST_VALIDATION: u16 = 70; // Last defense before handler
 
-// Les middlewares custom du dev démarrent ICI
-// Placés entre ErrorHandler et CSP → enveloppés par ErrorHandler
+// Dev's custom middlewares start HERE
+// Placed between ErrorHandler and CSP → wrapped by ErrorHandler
 const SLOT_CUSTOM_BASE: u16 = 20;
 
 // ─────────────────────────────────────────────────────────────
-// MiddlewareEntry — Un middleware avec son slot de priorité
+// MiddlewareEntry — A middleware with its priority slot
 // ─────────────────────────────────────────────────────────────
 
 struct MiddlewareEntry {
-    /// Slot = position dans la pile.
-    /// Bas (0) = externe, premier exécuté.
-    /// Haut (100+) = interne, proche du handler.
+    /// Slot = position in the stack.
+    /// Low (0) = external, first executed.
+    /// High (100+) = internal, close to the handler.
     slot: u16,
 
-    /// Nom lisible pour le debug et les logs
+    /// Human-readable name for debug and logs
     #[allow(dead_code)]
     name: &'static str,
 
-    /// Closure type-erased qui applique le middleware sur le router
+    /// Type-erased closure that applies the middleware on the router
     apply: Box<dyn FnOnce(Router) -> Router + Send>,
 }
 
 // ─────────────────────────────────────────────────────────────
-// Types internes
+// Internal types
 // ─────────────────────────────────────────────────────────────
 
-/// Closure type-erased pour un session store personnalisé
+/// Type-erased closure for a custom session store
 /// Params: (Router, debug: bool, duration: Duration) -> Router
 pub(crate) type SessionApplicator = Box<dyn FnOnce(Router, bool, Duration) -> Router + Send>;
 
-/// Closure type-erased pour un middleware custom du développeur
+/// Type-erased closure for a developer's custom middleware
 pub(crate) type CustomMiddleware = Box<dyn FnOnce(Router) -> Router + Send>;
 
 // ═══════════════════════════════════════════════════════════════
@@ -112,39 +112,39 @@ pub(crate) type CustomMiddleware = Box<dyn FnOnce(Router) -> Router + Send>;
 // ═══════════════════════════════════════════════════════════════
 
 pub struct MiddlewareStaging {
-    /// Configuration des features middleware (CSP, Host, Cache, etc.)
+    /// Middleware features configuration (CSP, Host, Cache, etc.)
     pub(crate) features: MiddlewareConfig,
 
-    /// Durée d'inactivité avant expiration de la session
+    /// Inactivity duration before session expiration
     pub(crate) session_duration: Duration,
 
-    /// Durée session anonyme => time life session anonyme
+    /// Anonymous session duration => anonymous session lifetime
     pub(crate) anonymous_session_duration: Duration,
-    /// Applicateur de session personnalisé (None = MemoryStore par défaut)
+    /// Custom session applicator (None = default MemoryStore)
     pub(crate) session_applicator: Option<SessionApplicator>,
 
-    /// Watermarks mémoire du CleaningMemoryStore (low, high) en octets
+    /// `CleaningMemoryStore` memory watermarks (low, high) in bytes
     pub(crate) session_low_watermark: usize,
     pub(crate) session_high_watermark: usize,
 
-    /// Intervalle du cleanup périodique en secondes (défaut : 60s, via RUNIQUE_SESSION_CLEANUP_SECS)
+    /// Periodic cleanup interval in seconds (default: 60s, via `RUNIQUE_SESSION_CLEANUP_SECS`)
     pub(crate) session_cleanup_interval_secs: u64,
 
-    /// Un seul appareil connecté à la fois par utilisateur (défaut : false)
+    /// Only one device connected at a time per user (default: false)
     pub(crate) exclusive_login: bool,
 
-    /// Middlewares custom du développeur (ordre d'ajout préservé)
+    /// Developer's custom middlewares (order of addition preserved)
     pub(crate) custom_middlewares: Vec<CustomMiddleware>,
 
-    /// Politique CSP définie via le builder (None = lecture depuis .env)
+    /// CSP policy defined via the builder (None = read from `.env`)
     pub(crate) security_policy: Option<SecurityPolicy>,
 
-    /// Hôtes autorisés définis via le builder
+    /// Allowed hosts defined via the builder
     pub(crate) allowed_hosts: Vec<String>,
 }
 
 impl MiddlewareStaging {
-    /// Crée un MiddlewareStaging adapté au mode (debug/production)
+    /// Creates a `MiddlewareStaging` adapted to the mode (debug/production)
     pub fn new(debug: bool) -> Self {
         let features = if debug {
             MiddlewareConfig::development()
@@ -167,24 +167,24 @@ impl MiddlewareStaging {
         }
     }
 
-    /// Crée un MiddlewareStaging depuis la RuniqueConfig.
+    /// Creates a `MiddlewareStaging` from `RuniqueConfig`.
     ///
-    /// Stratégie de résolution :
-    ///   1. Les variables `RUNIQUE_ENABLE_*` du `.env` sont prioritaires
-    ///   2. Si absentes, le mode debug détermine les défauts :
-    ///      - debug=true  → profil `development()` (permissif)
-    ///      - debug=false → profil `production()` (strict)
+    /// Resolution strategy:
+    ///   1. `RUNIQUE_ENABLE_*` variables from `.env` take priority
+    ///   2. If absent, debug mode determines defaults:
+    ///      - debug=true  → `development()` profile (permissive)
+    ///      - debug=false → `production()` profile (strict)
     ///
-    /// Le dev peut ensuite surcharger via `.middleware(|m| m.with_csp(true))`.
+    /// The dev can then override via `.middleware(|m| m.with_csp(true))`.
     pub fn from_config(config: &RuniqueConfig) -> Self {
-        // Profil de base selon le mode
+        // Base profile according to mode
         let defaults = if config.debug {
             MiddlewareConfig::development()
         } else {
             MiddlewareConfig::production()
         };
 
-        // Les variables .env sont prioritaires sur le profil
+        // .env variables take priority over the profile
         let get_env_or = |key: &str, default: bool| -> bool {
             std::env::var(key)
                 .map(|v| v.parse::<bool>().unwrap_or(default))
@@ -192,14 +192,14 @@ impl MiddlewareStaging {
         };
 
         let features = MiddlewareConfig {
-            // CSP configuré uniquement via le builder (.with_csp(true/false))
+            // CSP configured only via the builder (.with_csp(true/false))
             enable_csp: false,
             enable_header_security: false,
-            // host validation configuré uniquement via le builder (.with_allowed_hosts)
+            // host validation configured only via the builder (.with_allowed_hosts)
             enable_host_validation: false,
-            enable_debug_errors: true, // toujours monté — config.debug gère le contenu
+            enable_debug_errors: true, // always mounted — config.debug manages the content
             enable_cache: get_env_or("RUNIQUE_ENABLE_CACHE", defaults.enable_cache),
-            exclusive_login: false, // propagé via apply_to_router depuis self.exclusive_login
+            exclusive_login: false, // propagated via `apply_to_router` from `self.exclusive_login`
         };
 
         Self {
@@ -218,16 +218,16 @@ impl MiddlewareStaging {
     }
 
     // ═══════════════════════════════════════════════════
-    // Configuration des features
+    // Features configuration
     // ═══════════════════════════════════════════════════
 
-    /// Configure le Content Security Policy via une closure.
+    /// Configures the Content Security Policy via a closure.
     ///
-    /// La closure reçoit un [`CspConfig`] et retourne le `CspConfig` configuré.
-    /// Tout est désactivé par défaut — active explicitement ce dont tu as besoin.
-    /// Pour désactiver le CSP : ne pas appeler `.with_csp` du tout.
+    /// The closure receives a [`CspConfig`] and returns the configured `CspConfig`.
+    /// Everything is disabled by default — explicitly enable what you need.
+    /// To disable CSP: do not call `.with_csp` at all.
     ///
-    /// # Exemple — configuration personnalisée
+    /// # Example — custom configuration
     /// ```rust,ignore
     /// .middleware(|m| {
     ///     m.with_csp(|c| {
@@ -240,7 +240,7 @@ impl MiddlewareStaging {
     /// })
     /// ```
     ///
-    /// # Exemple — preset strict
+    /// # Example — strict preset
     /// ```rust,ignore
     /// use runique::middleware::SecurityPolicy;
     ///
@@ -252,7 +252,7 @@ impl MiddlewareStaging {
     /// })
     /// ```
     ///
-    /// # Exemple — CSP avec defaults uniquement
+    /// # Example — CSP with defaults only
     /// ```rust,ignore
     /// .middleware(|m| m.with_csp(|c| c))
     /// ```
@@ -264,27 +264,27 @@ impl MiddlewareStaging {
         self
     }
 
-    /// Configure la validation des hôtes autorisés via une closure.
+    /// Configures allowed hosts validation via a closure.
     ///
-    /// La closure reçoit un [`HostConfig`] et retourne le `HostConfig` configuré.
-    /// La validation est **désactivée par défaut** — appeler `.enabled(true)` explicitement.
-    /// Pour désactiver : ne pas appeler `.with_allowed_hosts` du tout.
+    /// The closure receives a [`HostConfig`] and returns the configured `HostConfig`.
+    /// Validation is **disabled by default** — call `.enabled(true)` explicitly.
+    /// To disable: do not call `.with_allowed_hosts` at all.
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// .middleware(|m| {
     ///     m.with_allowed_hosts(|h| {
     ///         h.enabled(true)
-    ///          .host("monsite.fr")
-    ///          .host("www.monsite.fr")
+    ///          .host("mysite.com")
+    ///          .host("www.mysite.com")
     ///     })
     /// })
     /// ```
     ///
-    /// # Wildcard sous-domaines
+    /// # Wildcard subdomains
     /// ```rust,ignore
     /// m.with_allowed_hosts(|h| {
-    ///     h.enabled(true).host(".monsite.fr")
+    ///     h.enabled(true).host(".mysite.com")
     /// })
     /// ```
     pub fn with_allowed_hosts(mut self, f: impl FnOnce(HostConfig) -> HostConfig) -> Self {
@@ -294,38 +294,38 @@ impl MiddlewareStaging {
         self
     }
 
-    /// Active ou désactive les pages d'erreur de debug
+    /// Enables or disables debug error pages
     pub fn with_debug_errors(mut self, enable: bool) -> Self {
         self.features.enable_debug_errors = enable;
         self
     }
 
-    /// Active ou désactive le cache HTTP
+    /// Enables or disables HTTP cache
     pub fn with_cache(mut self, enable: bool) -> Self {
         self.features.enable_cache = enable;
         self
     }
 
     // ═══════════════════════════════════════════════════
-    // Configuration de la session
+    // Session configuration
     // ═══════════════════════════════════════════════════
 
-    /// Configure la durée d'inactivité avant expiration de la session
+    /// Configures the inactivity duration before session expiration
     pub fn with_session_duration(mut self, duration: Duration) -> Self {
         self.session_duration = duration;
         self
     }
 
-    /// Configure la durée d'inactivité avant expiration de la session anonyme
+    /// Configures the inactivity duration before anonymous session expiration
     pub fn with_anonymous_session_duration(mut self, duration: Duration) -> Self {
         self.anonymous_session_duration = duration;
         self
     }
 
-    /// Configure les watermarks mémoire du CleaningMemoryStore.
+    /// Configures the `CleaningMemoryStore` memory watermarks.
     ///
-    /// - `low`  : déclenche un cleanup proactif (non-bloquant) des sessions anonymes expirées
-    /// - `high` : cleanup d'urgence synchrone + refus si toujours dépassé (503)
+    /// - `low`: triggers a proactive (non-blocking) cleanup of expired anonymous sessions
+    /// - `high`: synchronous emergency cleanup + refusal if still exceeded (503)
     ///
     pub fn with_session_memory_limit(mut self, low: usize, high: usize) -> Self {
         self.session_low_watermark = low;
@@ -333,19 +333,19 @@ impl MiddlewareStaging {
         self
     }
 
-    /// Configure l'intervalle du cleanup périodique.
+    /// Configures the periodic cleanup interval.
     ///
     pub fn with_session_cleanup_interval(mut self, secs: u64) -> Self {
         self.session_cleanup_interval_secs = secs;
         self
     }
 
-    /// Active ou désactive la connexion exclusive (un seul appareil à la fois).
+    /// Enables or disables exclusive login (only one device at a time).
     ///
-    /// Par défaut à `false`. Si `true`, toute nouvelle connexion invalide automatiquement
-    /// les sessions existantes du même utilisateur — sans modifier les handlers.
+    /// Defaults to `false`. If `true`, any new connection automatically invalidates
+    /// existing sessions of the same user — without modifying handlers.
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// .middleware(|m| m.with_exclusive_login(true))
     /// ```
@@ -354,9 +354,9 @@ impl MiddlewareStaging {
         self
     }
 
-    /// Configure un store de session personnalisé (Redis, PostgreSQL, etc.)
+    /// Configures a custom session store (Redis, PostgreSQL, etc.)
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// .middleware(|m| {
     ///     m.with_session_store(RedisStore::new(client))
@@ -381,18 +381,18 @@ impl MiddlewareStaging {
     }
 
     // ═══════════════════════════════════════════════════
-    // Middlewares custom du développeur
+    // Developer's custom middlewares
     // ═══════════════════════════════════════════════════
 
-    /// Ajoute un middleware custom.
+    /// Adds a custom middleware.
     ///
-    /// Position automatique : `len + 1` — toujours APRÈS tous les
-    /// middlewares built-in, au plus proche du handler.
+    /// Automatic position: `len + 1` — always AFTER all
+    /// built-in middlewares, closest to the handler.
     ///
-    /// Si plusieurs customs sont ajoutés, ils sont placés dans
-    /// l'ordre d'ajout (slot 100, 101, 102...).
+    /// If multiple customs are added, they are placed in
+    /// the order of addition (slot 100, 101, 102...).
     ///
-    /// # Exemple
+    /// # Example
     /// ```rust,ignore
     /// .middleware(|m| {
     ///     m.add_custom(|router| {
@@ -409,51 +409,51 @@ impl MiddlewareStaging {
     // Validation
     // ═══════════════════════════════════════════════════
 
-    /// Valide la cohérence de la configuration des middlewares
+    /// Validates the consistency of the middleware configuration
     pub fn validate(&self) -> Result<(), BuildError> {
-        // CSRF toujours activé → rien à valider
+        // CSRF always enabled → nothing to validate
         //
-        // Futures validations :
-        // - host_validation activé → ALLOWED_HOSTS défini ?
-        // - enable_debug_errors en production → warning
+        // Future validations:
+        // - host_validation enabled → ALLOWED_HOSTS defined?
+        // - enable_debug_errors in production → warning
         Ok(())
     }
 
-    /// Les middlewares sont toujours prêts
+    /// Middlewares are always ready
     pub fn is_ready(&self) -> bool {
         true
     }
 
-    /// Retourne la configuration des features middleware active
+    /// Returns the active middleware features configuration
     pub fn features(&self) -> &MiddlewareConfig {
         &self.features
     }
 
-    /// Retourne la liste des hôtes autorisés configurés
+    /// Returns the list of configured allowed hosts
     pub fn allowed_hosts(&self) -> &[String] {
         &self.allowed_hosts
     }
 
-    /// Retourne la durée de session configurée
+    /// Returns the configured session duration
     pub fn session_duration(&self) -> Duration {
         self.session_duration
     }
 
-    /// Retourne le nombre de middlewares custom ajoutés
+    /// Returns the number of custom middlewares added
     pub fn custom_count(&self) -> usize {
         self.custom_middlewares.len()
     }
 
     // ═══════════════════════════════════════════════════════════
-    // APPLICATION — Le cœur de l'innovation
+    // APPLICATION — The heart of innovation
     //
-    // Construit la pile complète de middlewares :
-    // 1. Collecte toutes les entries (built-in + custom)
-    // 2. Chaque entry a son slot fixe
-    // 3. Tri DESCENDANT par slot
-    // 4. Application .layer() dans cet ordre
+    // Builds the full middleware stack:
+    // 1. Collects all entries (built-in + custom)
+    // 2. Each entry has a fixed slot
+    // 3. DESCENDING sort by slot
+    // 4. `.layer()` application in this order
     //
-    // Résultat (exécution sur requête) :
+    // Result (execution on request):
     //   Extensions → ErrorHandler → Custom → CSP → Cache
     //   → Session → CSRF → Host → Handler
     // ═══════════════════════════════════════════════════════════
@@ -469,12 +469,12 @@ impl MiddlewareStaging {
         let mut entries: Vec<MiddlewareEntry> = Vec::new();
 
         // ═══════════════════════════════════════
-        // BUILT-IN : chaque middleware a un slot fixe.
-        // Peu importe si le dev active CSP avant Host,
-        // le tri par slot garantit le bon ordre.
+        // BUILT-IN: each middleware has a fixed slot.
+        // Regardless of whether the dev enables CSP before Host,
+        // sorting by slot guarantees the correct order.
         // ═══════════════════════════════════════
 
-        // Slot 0 : Extensions (Engine, Tera, Config) — le plus externe
+        // Slot 0: Extensions (Engine, Tera, Config) — outermost
         {
             let eng = engine.clone();
             let t = tera.clone();
@@ -497,7 +497,7 @@ impl MiddlewareStaging {
                 }),
             });
         }
-        // Slot 5 : Compression — avant tout autre middleware
+        // Slot 5: Compression — before any other middleware
         {
             entries.push(MiddlewareEntry {
                 slot: SLOT_COMPRESSION,
@@ -505,7 +505,7 @@ impl MiddlewareStaging {
                 apply: Box::new(|r| r.layer(CompressionLayer::new())),
             });
         }
-        // Slot 70 : Host validation — dernier rempart avant handler
+        // Slot 70: Host validation — last defense before handler
         if self.features.enable_host_validation {
             let eng = engine.clone();
             entries.push(MiddlewareEntry {
@@ -520,7 +520,7 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 50 : Session — avant CSRF (CSRF en dépend)
+        // Slot 50: Session — before CSRF (CSRF depends on it)
         let memory_store: Option<Arc<CleaningMemoryStore>> = {
             let applicator = self.session_applicator;
             let anon_duration = self.anonymous_session_duration;
@@ -562,7 +562,7 @@ impl MiddlewareStaging {
             store_arc
         };
 
-        // Slot 60 : CSRF — TOUJOURS activé, après Session
+        // Slot 60: CSRF — ALWAYS enabled, after Session
         {
             let eng = engine.clone();
             entries.push(MiddlewareEntry {
@@ -574,7 +574,7 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 40 : Cache control
+        // Slot 40: Cache control
         if !self.features.enable_cache {
             let eng = engine.clone();
             entries.push(MiddlewareEntry {
@@ -586,7 +586,7 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 30 : Security headers — TOUJOURS actif
+        // Slot 30: Security headers — ALWAYS active
         {
             let eng = engine.clone();
             entries.push(MiddlewareEntry {
@@ -601,7 +601,7 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 31 : CSP — uniquement si activé
+        // Slot 31: CSP — only if enabled
         if self.features.enable_csp {
             let eng = engine.clone();
             entries.push(MiddlewareEntry {
@@ -613,7 +613,7 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 55 : Upgrade TTL si authentifié
+        // Slot 55: Upgrade TTL if authenticated
         {
             entries.push(MiddlewareEntry {
                 slot: SLOT_SESSION_UPGRADE,
@@ -640,7 +640,7 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 57 : Auth — charge CurrentUser depuis la session et l'injecte dans les extensions
+        // Slot 57: Auth — loads `CurrentUser` from the session and injects it into extensions
         {
             entries.push(MiddlewareEntry {
                 slot: SLOT_AUTH,
@@ -700,8 +700,8 @@ impl MiddlewareStaging {
             });
         }
 
-        // Slot 10 : Error handler — enveloppe TOUTE la pile, attrape toutes les erreurs
-        // Extrait Extension(tera) et Extension(config) injectées par Extensions (slot 0)
+        // Slot 10: Error handler — wraps the WHOLE stack, catches all errors
+        // Extracts Extension(tera) and Extension(config) injected by Extensions (slot 0)
         if self.features.enable_debug_errors {
             entries.push(MiddlewareEntry {
                 slot: SLOT_ERROR_HANDLER,
@@ -711,14 +711,14 @@ impl MiddlewareStaging {
         }
 
         // ═══════════════════════════════════════
-        // CUSTOM : Position automatique entre ErrorHandler et CSP.
+        // CUSTOM: Automatic position between ErrorHandler and CSP.
         //
-        // Le dev ne choisit pas de slot.
-        // Ses middlewares sont enveloppés par ErrorHandler
-        // mais exécutés avant les middlewares de sécurité.
+        // The dev doesn't choose a slot.
+        // Their middlewares are wrapped by ErrorHandler
+        // but executed before security middlewares.
         //
-        // Premier custom → slot 20
-        // Deuxième custom → slot 21
+        // First custom → slot 20
+        // Second custom → slot 21
         // etc.
         // ═══════════════════════════════════════
 
@@ -731,20 +731,20 @@ impl MiddlewareStaging {
         }
 
         // ═══════════════════════════════════════
-        // TRI DESCENDANT + APPLICATION
+        // DESCENDING SORT + APPLICATION
         //
-        // Slot le plus haut → premier .layer() → le plus INTERNE
-        // Slot le plus bas  → dernier .layer() → le plus EXTERNE
+        // Highest slot → first `.layer()` → most INTERNAL
+        // Lowest slot  → last `.layer()` → most EXTERNAL
         //
-        // En Axum : dernier .layer() = premier exécuté sur la requête
+        // In Axum: last `.layer()` = first executed on the request
         //
-        // Résultat sur la requête :
+        // Result on the request:
         //   Extensions(0) → ErrorHandler(10) → Custom(20+)
         //   → CSP(30) → Cache(40) → Session(50) → CSRF(60)
         //   → Host(70) → Handler
         //
-        // ErrorHandler enveloppe tout → attrape toutes les erreurs
-        // Session avant CSRF → CSRF peut lire la session
+        // ErrorHandler wraps everything → catches all errors
+        // Session before CSRF → CSRF can read the session
         // ═══════════════════════════════════════
 
         entries.sort_by_key(|b| std::cmp::Reverse(b.slot));

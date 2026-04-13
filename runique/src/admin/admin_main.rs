@@ -1,6 +1,6 @@
-//! Handler CRUD générique de l'interface admin.
+//! Generic CRUD handler for the admin interface.
 //!
-//! Routes couvertes :
+//! Covered routes:
 //! - `GET/POST /admin/{resource}/{action}` → [`admin_get`] / [`admin_post`]
 //! - `GET/POST /admin/{resource}/{id}/{action}` → [`admin_get_id`] / [`admin_post_id`]
 use crate::auth::session::CurrentUser;
@@ -42,7 +42,7 @@ fn is_unique_violation(e: &sea_orm::DbErr) -> bool {
     msg.contains("unique") || msg.contains("UNIQUE") || msg.contains("Duplicate")
 }
 
-// ─── ListQuery — paramètres de la vue liste admin ─────────────
+// ─── ListQuery — admin list view parameters ─────────────────────
 
 struct ListQuery {
     page: u64,
@@ -53,11 +53,11 @@ struct ListQuery {
     filter_pages: HashMap<String, u64>,
 }
 
-// ─── Extracteur AdminBody ─────────────────────────────────────
+// ─── AdminBody Extractor ─────────────────────────────────────
 //
-// Encapsule aegis pour gérer automatiquement multipart/form-data
-// ET application/x-www-form-urlencoded dans les handlers admin POST.
-// Remplace axum::extract::Form<StrMap> qui refusait le multipart.
+// Encapsulates aegis to automatically handle multipart/form-data
+// AND application/x-www-form-urlencoded in admin POST handlers.
+// Replaces axum::extract::Form<StrMap> which rejected multipart.
 
 pub struct AdminBody(StrMap);
 
@@ -69,9 +69,7 @@ impl<S: Send + Sync> FromRequest<S> for AdminBody {
             .extensions()
             .get::<ARuniqueConfig>()
             .cloned()
-            .ok_or_else(|| {
-                (StatusCode::INTERNAL_SERVER_ERROR, "config manquante").into_response()
-            })?;
+            .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "missing config").into_response())?;
 
         let content_type = req
             .headers()
@@ -82,9 +80,9 @@ impl<S: Send + Sync> FromRequest<S> for AdminBody {
 
         let parsed = aegis(req, state, config, &content_type).await?;
 
-        // StrVecMap → StrMap (multi-values jointes par virgule, comme Prisme)
-        // Exception : csrf_token prend la 1ère valeur uniquement (le formulaire
-        // peut en envoyer deux si {% csrf %} et form_fields.html coexistent).
+        // StrVecMap → StrMap (multi-values joined by comma, like Prisme)
+        // Exception : csrf_token takes the 1st value only (the form
+        // may send two if {% csrf %} and form_fields.html coexist).
         let body = parsed
             .into_iter()
             .map(|(k, v)| {
@@ -99,7 +97,7 @@ impl<S: Send + Sync> FromRequest<S> for AdminBody {
     }
 }
 
-// ─── État partagé ────────────────────────────────────────────
+// ─── Shared state ────────────────────────────────────────────
 
 #[derive(Clone)]
 pub struct PrototypeAdminState {
@@ -107,7 +105,7 @@ pub struct PrototypeAdminState {
     pub config: Arc<AdminConfig>,
 }
 
-// ─── Points d'entrée Axum ────────────────────────────────────
+// ─── Axum entry points ────────────────────────────────────
 
 /// GET /admin/{resource}/{action}  (list, create)
 pub async fn admin_get(
@@ -180,7 +178,7 @@ pub async fn admin_get(
             handle_create_get(&mut req, entry, &state).await
         }
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
-            "Action inconnue",
+            "Unknown action",
         )))),
     }
 }
@@ -195,7 +193,7 @@ pub async fn admin_post(
     Extension(current_user): Extension<CurrentUser>,
     AdminBody(body): AdminBody,
 ) -> AppResult<Response> {
-    tracing::info!("donnée formulaire a la validation {:?}", body);
+    tracing::info!("form data at validation {:?}", body);
     let entry = state
         .registry
         .get(&resource_key)
@@ -210,7 +208,7 @@ pub async fn admin_post(
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &headers, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
-            "Action inconnue",
+            "Unknown action",
         )))),
     }
 }
@@ -243,7 +241,7 @@ pub async fn admin_get_id(
         "edit" => handle_edit_get(&mut req, entry, id, &state).await,
         "delete" => handle_delete_get(&mut req, entry, id, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
-            "Action inconnue",
+            "Unknown action",
         )))),
     }
 }
@@ -275,12 +273,12 @@ pub async fn admin_post_id(
         "delete" => handle_delete_post(&mut req, entry, id, &state).await,
         "reset-password" => handle_reset_password(&mut req, entry, id, &headers, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
-            "Action inconnue",
+            "Unknown action",
         )))),
     }
 }
 
-// ─── Fonctions internes ──────────────────────────────────────
+// ─── Internal functions ──────────────────────────────────────
 
 fn inject_context(
     req: &mut Request,
@@ -301,9 +299,9 @@ fn inject_context(
         .insert(ctx_common::CURRENT_RESOURCE, entry.meta.key);
     req.context.insert(ctx_common::RESOURCE, &entry.meta);
 
-    // Filtre les ressources visibles selon les droits scopés de l'utilisateur.
-    // - is_superuser → voit tout
-    // - autres ressources → user doit avoir can_read sur la resource_key
+    // Filters visible resources based on user's scoped rights.
+    // - is_superuser → sees everything
+    // - other resources → user must have can_read on resource_key
     let visible_resources: Vec<_> = state
         .registry
         .all()
@@ -323,8 +321,8 @@ fn inject_context(
     }
 }
 
-/// Vérifie que l'utilisateur a un droit write sur la ressource.
-/// Superuser bypass. Sinon, vérifie les permissions DB.
+/// Checks if the user has write access to the resource.
+/// Superuser bypass. Otherwise, checks DB permissions.
 fn check_write_access(user: &CurrentUser, resource_key: &str) -> bool {
     user.is_superuser
         || user.permissions_effectives().iter().any(|d| {
@@ -332,7 +330,7 @@ fn check_write_access(user: &CurrentUser, resource_key: &str) -> bool {
         })
 }
 
-/// Redirige vers la liste de la ressource avec un message d'erreur de permission.
+/// Redirects to the resource list with a permission error message.
 async fn permission_denied(
     notices: &crate::flash::flash_manager::Message,
     prefix: &str,
@@ -349,7 +347,7 @@ async fn permission_denied(
     .into_response()
 }
 
-/// Redirige vers le dashboard admin avec un message d'erreur de permission.
+/// Redirects to the admin dashboard with a permission error message.
 async fn permission_denied_dashboard(
     notices: &crate::flash::flash_manager::Message,
     prefix: &str,
@@ -360,8 +358,8 @@ async fn permission_denied_dashboard(
     Redirect::to(&format!("{}/", prefix.trim_end_matches('/'))).into_response()
 }
 
-/// Vérifie le token CSRF depuis le body du formulaire.
-/// Le middleware délègue la validation de form à Prisme — on la fait manuellement ici.
+/// Checks the CSRF token from the form body.
+/// The middleware delegates form validation to Prisme — we do it manually here.
 fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     let valid = body
         .get(CSRF_TOKEN_KEY)
@@ -382,7 +380,7 @@ fn check_csrf(body: &StrMap, session_token: &str) -> AppResult<()> {
     Ok(())
 }
 
-/// Convertit un `Value::Object` en `StrMap` pour pré-remplir un formulaire.
+/// Converts a `Value::Object` to `StrMap` to pre-fill a form.
 fn value_to_strmap(v: Value) -> StrMap {
     let mut map = StrMap::new();
     if let Value::Object(obj) = v {
@@ -392,7 +390,7 @@ fn value_to_strmap(v: Value) -> StrMap {
                 Value::String(s) => s,
                 Value::Number(n) => n.to_string(),
                 Value::Bool(b) => b.to_string(),
-                // Arrays et objets imbriqués ne peuvent pas pré-remplir un champ plat
+                // Arrays and nested objects cannot pre-fill a flat field
                 Value::Array(_) | Value::Object(_) => continue,
             };
             map.insert(k, s);
@@ -451,7 +449,7 @@ async fn handle_list(
                     .await
                     .unwrap_or_else(|e| {
                         if let Some(level) = crate::utils::runique_log::get_log().filter_fn {
-                            crate::runique_log!(level, resource = entry.meta.key, error = %e, "filter_fn a échoué — liste retournée sans filtres sidebar");
+                            crate::runique_log!(level, resource = entry.meta.key, error = %e, "filter_fn failed — list returned without sidebar filters");
                         }
                         HashMap::new()
                     }),
@@ -462,7 +460,7 @@ async fn handle_list(
     let entries = entries_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
     let count = count_result.map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
 
-    // Séparer valeurs et totaux distincts par colonne
+    // Separate distinct values and totals by column
     let filter_values: HashMap<String, Vec<String>> = filter_result
         .iter()
         .map(|(k, (vals, _))| (k.clone(), vals.clone()))
@@ -471,7 +469,7 @@ async fn handle_list(
         .into_iter()
         .map(|(k, (_, total))| (k, total))
         .collect();
-    // Si count_fn absent, estime le total depuis la page courante (évite la pagination cassée)
+    // If count_fn is absent, estimates the total from the current page (avoids broken pagination)
     let total = if entry.count_fn.is_some() {
         count
     } else {
@@ -481,7 +479,7 @@ async fn handle_list(
     let page_count = total.div_ceil(page_size);
     let page = page.min(page_count.max(1));
 
-    // Colonnes visibles : toutes sauf id/password, filtrées par DisplayConfig
+    // Visible columns: all except id/password, filtered by DisplayConfig
     let all_cols: Vec<String> = entries
         .first()
         .and_then(|v| v.as_object())
@@ -517,8 +515,8 @@ async fn handle_list(
             ),
         };
 
-    // Auto-populate column_labels depuis les clés i18n "permission.col.{col}"
-    // pour les colonnes sans label explicite.
+    // Auto-populate column_labels from i18n keys "permission.col.{col}"
+    // for columns without an explicit label.
     for col in &visible_columns {
         if !column_labels.contains_key(col) {
             let key = format!("permission.col.{col}");
@@ -529,13 +527,13 @@ async fn handle_list(
         }
     }
 
-    // Validation whitelist : sort_by doit être une colonne visible ou "id"
+    // Whitelist validation: sort_by must be a visible column or "id"
     let safe_sort_by = sort_by
         .filter(|s| s == "id" || visible_columns.contains(s))
         .unwrap_or_default();
 
-    // active_filters : toutes les colonnes list_filter initialisées à "" puis écrasées si actives
-    // (évite l'erreur Tera "key not found" lors de l'accès active_filters[col])
+    // active_filters: all list_filter columns initialized to "" then overwritten if active
+    // (avoids Tera "key not found" error when accessing active_filters[col])
     let mut active_filters: HashMap<String, String> = entry
         .meta
         .display
@@ -547,8 +545,8 @@ async fn handle_list(
         active_filters.insert(col.clone(), val.clone());
     }
 
-    // filter_qs : query string ajouté aux liens de pagination / tri / recherche
-    // Inclut les filtres actifs ET les pages de sidebar (fp_*) pour les préserver
+    // filter_qs: query string added to pagination / sort / search links
+    // Includes active filters AND sidebar pages (fp_*) to preserve them
     let filter_qs: String = {
         let mut parts: Vec<String> = column_filters
             .iter()
@@ -562,7 +560,7 @@ async fn handle_list(
         parts.concat()
     };
 
-    // filter_meta : prev/next QS précalculés par colonne pour la pagination sidebar
+    // filter_meta: pre-calculated prev/next QS by column for sidebar pagination
     let base_qs: Vec<String> = {
         let mut parts = vec![];
         if !safe_sort_by.is_empty() {
@@ -717,8 +715,8 @@ async fn handle_create_post(
     headers: &axum::http::HeaderMap,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
-    // Si la ressource déclare inject_password (via create_form: dans admin!{}),
-    // injecter un hash aléatoire dans le champ "password" vide.
+    // If the resource declares inject_password (via create_form: in admin!{}),
+    // inject a random hash into the empty "password" field.
     if entry.meta.inject_password && body.get("password").is_some_and(|p| p.is_empty()) {
         let temp_pw = uuid::Uuid::new_v4().to_string();
         if let Ok(hash) = crate::utils::password::hash(&temp_pw) {
@@ -773,6 +771,7 @@ async fn handle_create_post(
                 if !is_unique_violation(&e) {
                     return Err(Box::new(AppError::new(ErrorContext::database(e))));
                 }
+                // uniqueness violation: fall through to form re-rendering
                 req.context.insert(ctx_create::FORM_FIELDS, form.get_form());
                 req.context.insert(ctx_create::IS_EDIT, &false);
                 req.context.insert(ctx_common::LANG, &current_lang().code());
@@ -785,7 +784,7 @@ async fn handle_create_post(
             }
         }
 
-        // Envoi email de bienvenue + reset après création d'un utilisateur admin
+        // Send welcome email + reset after creating an admin user
         if entry.meta.inject_password {
             if let Some(email) = body_for_create.get("email") {
                 let email_template = state
@@ -867,7 +866,7 @@ async fn handle_edit_get(
         .as_str()
         .to_string();
 
-    // Pré-remplissage via get_fn si disponible
+    // Pre-filling via get_fn if available
     let data = match &entry.get_fn {
         Some(f) => f(req.engine.db.clone(), id.clone())
             .await
@@ -960,8 +959,8 @@ async fn handle_edit_post(
                         if current_ts != orig_ts {
                             is_locked = true;
                             // Inject error
-                            form.get_form_mut().errors.push("Mise à jour impossible : Ce contenu a été modifié par une autre personne pendant votre édition. Veuillez copier vos modifications et recharger la page.".to_string());
-                            req.notices.error("Ce contenu a été modifié par quelqu'un d'autre pendant votre édition. Rafraîchissez la page.").await;
+                            form.get_form_mut().errors.push("Update failed: This content has been modified by another person during your editing. Please copy your changes and reload the page.".to_string());
+                            req.notices.error("This content has been modified by someone else during your editing. Refresh the page.").await;
                         }
                     }
                 }
@@ -978,7 +977,7 @@ async fn handle_edit_post(
                 if !is_unique_violation(&e) {
                     return Err(Box::new(AppError::new(ErrorContext::database(e))));
                 }
-                // violation d'unicité : fall through vers le re-rendu du formulaire
+                // uniqueness violation: fall through to form re-rendering
             } else {
                 req.notices
                     .success(t("admin.edit.success").to_string())
@@ -1060,7 +1059,7 @@ async fn handle_delete_post(
     .into_response())
 }
 
-// ─── Création utilisateur — envoi email reset ────────────────────────────────
+// ─── User creation — send reset email ────────────────────────────────
 
 async fn send_user_created_email(
     req: &mut Request,
@@ -1105,7 +1104,7 @@ async fn send_user_created_email(
     let body_html = match req.engine.tera.render(template_name, &ctx) {
         Ok(rendered) => rendered,
         Err(_) => format!(
-            "<p>Bonjour {username_str},</p><p>Cliquez sur le lien pour définir votre mot de passe :</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
+            "<p>Hello {username_str},</p><p>Click on the link to set your password:</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
         ),
     };
 
@@ -1153,7 +1152,7 @@ async fn handle_reset_password(
     headers: &axum::http::HeaderMap,
     state: &PrototypeAdminState,
 ) -> AppResult<Response> {
-    // Récupère l'entrée pour extraire l'email
+    // Retrieve the entry to extract the email
     let object = match &entry.get_fn {
         Some(f) => f(req.engine.db.clone(), id.clone())
             .await
@@ -1208,7 +1207,7 @@ async fn handle_reset_password(
         )
     };
 
-    // Envoi par email si mailer configuré, sinon affiche le lien dans le flash
+    // Send by email if mailer is configured, otherwise display the link in the flash message
     if crate::utils::mailer_configured() {
         let template_name = state
             .config
@@ -1230,7 +1229,7 @@ async fn handle_reset_password(
         let body = match req.engine.tera.render(template_name, &ctx) {
             Ok(rendered) => rendered,
             Err(_) => format!(
-                "<p>Bonjour {username},</p><p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe (valide 1 heure) :</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
+                "<p>Hello {username},</p><p>Click on the following link to reset your password (valid for 1 hour):</p><p><a href=\"{reset_url}\">{reset_url}</a></p>"
             ),
         };
         match crate::utils::Email::new()

@@ -27,23 +27,23 @@ pub enum Lang {
 
 static GLOBAL_LANG: AtomicU8 = AtomicU8::new(1); // 1 = Lang::En
 
-/// Définit dynamiquement la langue globale de l'application.
+/// Dynamically sets the global language of the application.
 pub fn set_lang(lang: Lang) {
     GLOBAL_LANG.store(lang.as_u8(), Ordering::Relaxed);
 }
 
-/// Retourne la langue globale configurée (défaut : `En`).
+/// Returns the configured global language (default: `En`).
 pub fn current_lang() -> Lang {
     Lang::from_u8(GLOBAL_LANG.load(Ordering::Relaxed))
 }
 
-/// Traduit une clé avec la langue globale.
+/// Translates a key with the global language.
 #[must_use]
 pub fn t(key: &str) -> Cow<'static, str> {
     current_lang().get(key)
 }
 
-/// Traduit une clé avec paramètres avec la langue globale.
+/// Translates a key with parameters using the global language.
 pub fn tf<T: Display>(key: &str, args: &[T]) -> String {
     current_lang().format(key, args)
 }

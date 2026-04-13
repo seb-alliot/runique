@@ -1,4 +1,4 @@
-//! Parsing de requêtes multipart — extraction des champs texte et upload de fichiers vers disque.
+//! Multipart request parsing — text field extraction and file uploads to disk.
 use crate::{
     utils::aliases::StrVecMap,
     utils::trad::{t, tf},
@@ -33,10 +33,10 @@ pub async fn parse_multipart(
     let max_file_bytes = max_upload_mb.saturating_mul(1024).saturating_mul(1024);
     let max_text_bytes = max_text_field_kb.saturating_mul(1024);
 
-    // Répertoire temporaire pour l'upload atomique :
-    // tous les fichiers sont d'abord écrits ici, puis déplacés en une fois
-    // vers leur destination finale. En cas d'erreur, le tmp est supprimé
-    // entièrement — aucun fichier orphelin ne subsiste dans upload_dir.
+    // Temporary directory for atomic upload:
+    // all files are first written here, then moved all at once
+    // to their final destination. In case of error, the tmp is deleted
+    // entirely — no orphan files remain in upload_dir.
     let tmp_dir = upload_dir.join(format!("tmp-{}", Uuid::new_v4()));
     tokio::fs::create_dir_all(&tmp_dir).await.map_err(|_| {
         (
@@ -47,7 +47,7 @@ pub async fn parse_multipart(
     })?;
 
     let mut data: StrVecMap = HashMap::new();
-    // (chemin tmp, chemin final, nom du champ)
+    // (tmp path, final path, field name)
     let mut pending_files: Vec<(PathBuf, PathBuf, String)> = Vec::new();
 
     while let Ok(Some(mut field)) = multipart.next_field().await {
@@ -56,9 +56,9 @@ pub async fn parse_multipart(
             None => continue,
         };
 
-        // --- Champ fichier ---
+        // --- File field ---
         if let Some(filename) = field.file_name().map(std::string::ToString::to_string) {
-            // Aucun fichier sélectionné (filename="" + body vide) — ignorer
+            // No file selected (filename="" + empty body) — ignore
             if filename.is_empty() {
                 while field.next().await.is_some() {}
                 continue;
@@ -68,8 +68,8 @@ pub async fn parse_multipart(
             let tmp_path = tmp_dir.join(&safe);
             let final_path = upload_dir.join(&safe);
 
-            // Stream dans le tmp — le handle de fichier est scoped à ce bloc
-            // pour garantir sa fermeture avant tout cleanup du tmp_dir.
+            // Stream into tmp — the file handle is scoped to this block
+            // to ensure its closure before any tmp_dir cleanup.
             let stream_result: Result<(), Response> = async {
                 let mut file = tokio::fs::File::create(&tmp_path).await.map_err(|_| {
                     (
@@ -115,7 +115,7 @@ pub async fn parse_multipart(
 
             pending_files.push((tmp_path, final_path, name));
         }
-        // --- Champ texte ---
+        // --- Text field ---
         else {
             let text_result: Result<String, Response> = async {
                 let mut bytes: Vec<u8> = Vec::new();
@@ -150,8 +150,8 @@ pub async fn parse_multipart(
         }
     }
 
-    // Commit : déplacer tous les fichiers du tmp vers leur destination finale.
-    // tmp_dir est dans upload_dir → même filesystem → rename atomique garanti.
+    // Commit: move all files from tmp to their final destination.
+    // tmp_dir is within upload_dir → same filesystem → atomic rename guaranteed.
     for (tmp_path, final_path, field_name) in pending_files {
         if tokio::fs::rename(&tmp_path, &final_path).await.is_err() {
             return Err((
@@ -165,7 +165,7 @@ pub async fn parse_multipart(
             .push(final_path.to_string_lossy().to_string());
     }
 
-    // Supprime le répertoire tmp maintenant vide
+    // Remove the now-empty tmp directory
     let _ = tokio::fs::remove_dir(&tmp_dir).await;
 
     Ok(data)

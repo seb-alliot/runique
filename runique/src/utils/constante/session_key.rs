@@ -1,7 +1,7 @@
-//! Clés de session et de formulaire — CSRF, flash, nonce CSP, user_id, rôles.
-// Session protection key — timestamp Unix (i64) indiquant jusqu'à quand protéger la session.
-// Posé manuellement par le dev pour des sessions anonymes à valeur (panier, formulaire multi-étapes).
-// Le cleaner ne supprime pas les sessions où ce timestamp est dans le futur.
+//! Session and form keys — CSRF, flash, CSP nonce, user_id, roles.
+// Session protection key — Unix timestamp (i64) indicating until when the session should be protected.
+// Set manually by the dev for anonymous sessions with value (cart, multi-step form).
+// The cleaner does not delete sessions where this timestamp is in the future.
 pub mod session {
     pub const FLASH_KEY: &str = "flash_messages";
     pub const CSRF_TOKEN_KEY: &str = "csrf_token";

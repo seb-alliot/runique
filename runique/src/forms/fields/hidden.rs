@@ -1,4 +1,4 @@
-//! Champ caché `HiddenField` pour les données non affichées (tokens, IDs internes).
+//! Hidden field `HiddenField` for non-displayed data (tokens, internal IDs).
 use crate::forms::base::{CommonFieldConfig, FieldConfig, FormField};
 use crate::utils::trad::{t, tf};
 use serde::Serialize;
@@ -9,12 +9,12 @@ use tera::{Context, Tera};
 #[derive(Clone, Serialize, Debug)]
 pub struct HiddenField {
     pub base: FieldConfig,
-    /// Token de session attendu (pour validation CSRF)
+    /// Expected session token (for CSRF validation)
     pub expected_value: Option<String>,
 }
 
 impl HiddenField {
-    /// Constructeur spécifique pour un champ caché CSRF
+    /// Specific constructor for a CSRF hidden field
     pub fn new_csrf() -> Self {
         Self {
             base: FieldConfig::new("csrf_token", "hidden", "csrf"),
@@ -22,7 +22,7 @@ impl HiddenField {
         }
     }
 
-    /// Constructeur générique pour un champ caché
+    /// Generic constructor for a hidden field
     pub fn new(name: &str) -> Self {
         Self {
             base: FieldConfig::new(name, "hidden", "base_hidden"),
@@ -30,7 +30,7 @@ impl HiddenField {
         }
     }
 
-    /// Définit la valeur attendue pour la validation (token de session)
+    /// Sets the expected value for validation (session token)
     pub fn set_expected_value(&mut self, expected: &str) {
         self.expected_value = Some(expected.to_string());
     }
@@ -53,7 +53,7 @@ impl CommonFieldConfig for HiddenField {
 
 impl FormField for HiddenField {
     fn validate(&mut self) -> bool {
-        // Pour un champ CSRF, vérifier que la valeur correspond à celle attendue
+        // For a CSRF field, check that the value matches the expected one
         if self.base.name == "csrf_token" {
             if let Some(expected) = &self.expected_value {
                 if self.base.value.trim().is_empty() {
@@ -61,8 +61,8 @@ impl FormField for HiddenField {
                     return false;
                 }
 
-                // ct_eq : comparaison constant-time — évite qu'un attaquant
-                // devine le token octet par octet via le temps de réponse
+                // ct_eq: constant-time comparison — prevents an attacker
+                // guessing the token byte by byte via response time
                 if !bool::from(self.base.value.as_bytes().ct_eq(expected.as_bytes())) {
                     self.set_error(t("csrf.invalid").to_string());
                     return false;

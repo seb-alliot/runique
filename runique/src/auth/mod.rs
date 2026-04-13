@@ -1,4 +1,4 @@
-//! Authentification — session, guards, permissions, reset de mot de passe.
+//! Authentication — session, guards, permissions, password reset.
 pub mod form;
 pub mod guard;
 pub mod password;
