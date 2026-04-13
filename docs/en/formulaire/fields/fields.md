@@ -121,7 +121,7 @@ form.field(
 );
 ```
 
-**Options:** `.min(val, msg)`, `.max(val, msg)`, `.step(val)`, `.digits(min, max)`, `.label(l)`, `.placeholder(p)`
+**Options:** `.min(val, msg)`, `.max(val, msg)`, `.step(val)` (`range` type only), `.digits(min, max)`, `.label(l)`, `.placeholder(p)`
 
 ---
 
@@ -134,6 +134,9 @@ form.field(
         .label("I accept the terms")
         .required(),
 );
+```
+
+> **Note on `.required()`**: On a `BooleanField`, `.required()` means the field is mandatory at the database level (`NOT NULL`). It does not force the user to check the box to validate the form (an unchecked checkbox sends `false`, which is a valid value for a non-null boolean). To force acceptance (e.g. Terms), use a custom validation or check the value manually.
 
 // Single radio (yes/no)
 form.field(&BooleanField::radio("newsletter").label("Newsletter"));
@@ -407,9 +410,9 @@ form.field(&HiddenField::new_csrf());
 
 | Struct           | Constructors                                                           | Special validation                                  |
 | ---------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
-| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization |
-| `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`            | Min/max bounds, decimal precision                   |
-| `BooleanField`   | `new()`, `radio()`                                                     | Required = must be checked                          |
+| `TextField`      | `text()`, `email()`, `url()`, `password()`, `textarea()`, `richtext()` | Email/URL via `validator`, Argon2, XSS sanitization, `.rows(n)` |
+| `NumericField`   | `integer()`, `float()`, `decimal()`, `percent()`, `range()`            | Min/max bounds, decimal precision, `.step(n)` (`range` only)   |
+| `BooleanField`   | `new()`, `radio()`                                                     | Required = NOT NULL in database                                |
 | `ChoiceField`    | `new()` + `.multiple()`                                                | Value must be in declared choices                   |
 | `RadioField`     | `new()`                                                                | Value must be in declared choices                   |
 | `CheckboxField`  | `new()`                                                                | All values must be in choices                       |
@@ -421,7 +424,7 @@ form.field(&HiddenField::new_csrf());
 | `ColorField`     | `new()`                                                                | `#RRGGBB` or `#RGB` format                          |
 | `SlugField`      | `new()`                                                                | ASCII/unicode, no hyphen at start/end               |
 | `UUIDField`      | `new()`                                                                | Valid UUID format                                   |
-| `JSONField`      | `new()`                                                                | Valid JSON via `serde_json`                         |
+| `JSONField`      | `new()`                                                                | Valid JSON via `serde_json`, `.rows(n)`             |
 | `IPAddressField` | `new()` + `.ipv4_only()` / `.ipv6_only()`                              | IPv4/IPv6 via `std::net::IpAddr`                    |
 | `HiddenField`    | `new()`, `new_csrf()`                                                  | CSRF token validation if `name == "csrf_token"`     |
 

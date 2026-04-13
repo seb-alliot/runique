@@ -2,11 +2,10 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use syn::{
-    bracketed,
+    DeriveInput, Ident, Path, Token, bracketed,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
-    DeriveInput, Ident, Path, Token,
 };
 
 // ─── Attributs parsés depuis #[form(schema = ..., fields = [...], exclude = [...])] ───
@@ -110,7 +109,7 @@ pub(crate) fn model_schema(attr: TokenStream, item: TokenStream) -> TokenStream 
 
         impl ::runique::forms::model_form::ModelForm for #name {
             fn schema() -> ::runique::migration::schema::ModelSchema {
-                #schema_path()
+                #schema_path::schema()
             }
             fn fields() -> Option<&'static [&'static str]> {
                 #fields_expr

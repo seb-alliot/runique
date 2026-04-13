@@ -35,7 +35,7 @@ pub struct Groupe {
 
 /// Rafraîchit le cache mémoire des permissions pour un utilisateur donné.
 pub async fn refresh_cache_for_user<C: ConnectionTrait>(db: &C, user_id: crate::utils::pk::Pk) {
-    use crate::middleware::auth::permissions_cache::cache_permissions;
+    use crate::auth::guard::cache_permissions;
     let groupes = pull_groupes_db(db, user_id).await;
     cache_permissions(user_id, groupes);
 }

@@ -13,7 +13,7 @@ This key is inserted automatically by Runique's authentication system on login.
 To protect a high-value anonymous session (cart, multi-step form, wizard), use `protect_session`:
 
 ```rust
-use runique::middleware::auth::protect_session;
+use runique::prelude::*;
 
 // Protect the session for 30 minutes
 protect_session(&session, 60 * 30).await?;
@@ -24,8 +24,6 @@ The `session_active` key stores a future Unix timestamp. Protection expires auto
 To remove protection explicitly:
 
 ```rust
-use runique::middleware::auth::unprotect_session;
-
 unprotect_session(&session).await?;
 ```
 

@@ -53,10 +53,10 @@ let msgs = flash_now!(warning => "Champ A incorrect", "Champ B manquant");
 
 | Type | Classe CSS générée |
 |------|-------------------|
-| `success` | `message-success` |
-| `error` | `message-error` |
-| `info` | `message-info` |
-| `warning` | `message-warning` |
+| `success` | `success-message` |
+| `error` | `error-message` |
+| `info` | `info-message` |
+| `warning` | `warning-message` |
 
 ### Injection dans le contexte
 

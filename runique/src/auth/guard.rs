@@ -1,10 +1,55 @@
-//! Protection brute-force par compte : verrouillage temporaire après N échecs consécutifs.
+//! Protection brute-force, middleware `login_required`, et cache de permissions.
+use crate::admin::permissions::Groupe;
+use crate::utils::pk::Pk;
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, LazyLock, Mutex, RwLock},
     time::{Duration, Instant},
 };
 use tokio::time::interval;
+
+// ═══════════════════════════════════════════════════════════════
+// Cache global des permissions par user_id
+// ═══════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug)]
+pub struct CachedPermissions {
+    pub groupes: Vec<Groupe>,
+}
+
+static PERMISSIONS_CACHE: LazyLock<RwLock<HashMap<Pk, Arc<CachedPermissions>>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
+
+/// Insère ou met à jour les permissions d'un utilisateur dans le cache.
+/// Appelé au login et lors d'un signal de changement de droits.
+pub fn cache_permissions(user_id: Pk, groupes: Vec<Groupe>) {
+    if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
+        cache.insert(user_id, Arc::new(CachedPermissions { groupes }));
+    }
+}
+
+/// Retourne les permissions cachées pour un utilisateur.
+pub fn get_permissions(user_id: Pk) -> Option<Arc<CachedPermissions>> {
+    PERMISSIONS_CACHE.read().ok()?.get(&user_id).cloned()
+}
+
+/// Supprime les permissions d'un utilisateur du cache (logout).
+pub fn evict_permissions(user_id: Pk) {
+    if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
+        cache.remove(&user_id);
+    }
+}
+
+/// Vide entièrement le cache (redémarrage, maintenance).
+pub fn clear_cache() {
+    if let Ok(mut cache) = PERMISSIONS_CACHE.write() {
+        cache.clear();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LoginGuard
+// ═══════════════════════════════════════════════════════════════
 
 /// Entrée par username : (nombre d'échecs, début du verrouillage)
 type Store = Arc<Mutex<HashMap<String, (u32, Instant)>>>;
@@ -46,13 +91,6 @@ pub struct LoginGuard {
 
 impl LoginGuard {
     /// Crée un `LoginGuard` avec les valeurs par défaut (5 tentatives / 300 s).
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// LoginGuard::new()
-    ///     .max_attempts(5)
-    ///     .lockout_secs(300)
-    /// ```
     pub fn new() -> Self {
         Self {
             store: Arc::new(Mutex::new(HashMap::new())),
@@ -76,7 +114,6 @@ impl LoginGuard {
     }
 
     /// Spawne une tâche Tokio qui purge périodiquement les entrées expirées.
-    /// À appeler une fois au démarrage de l'application.
     pub fn spawn_cleanup(&self, period: tokio::time::Duration) {
         let store = self.store.clone();
         let lockout_secs = self.lockout_secs;
@@ -123,8 +160,6 @@ impl LoginGuard {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
-        // Lecture unifiée : même chemin de code qu'un username connu ou inconnu
-        // → réduit la fuite de timing permettant l'énumération d'usernames.
         let (attempts, last) = store
             .get(username)
             .map_or((0, Instant::now()), |(a, t)| (*a, *t));
@@ -145,15 +180,6 @@ impl LoginGuard {
     ///
     /// - Username non vide → clé par username (protection compte ciblé)
     /// - Username vide ou absent → `"anonym:{ip}"` (protection anonyme par IP)
-    ///
-    /// Garantit que les tentatives anonymes ne partagent pas un compteur global :
-    /// verrouiller `"anonym:1.2.3.4"` n'affecte pas `"anonym:5.6.7.8"`.
-    ///
-    /// # Exemple
-    /// ```rust,ignore
-    /// let key = LoginGuard::effective_key(&username, &ip);
-    /// if GUARD.is_locked(&key) { /* 429 */ }
-    /// ```
     #[must_use]
     pub fn effective_key<'a>(username: &'a str, ip: &str) -> std::borrow::Cow<'a, str> {
         if username.trim().is_empty() {
@@ -185,5 +211,32 @@ impl LoginGuard {
 impl Default for LoginGuard {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// login_required middleware
+// ═══════════════════════════════════════════════════════════════
+
+use axum::{
+    body::Body,
+    extract::State,
+    http::Request,
+    middleware::Next,
+    response::{IntoResponse, Redirect, Response},
+};
+use tower_sessions::Session;
+
+/// Middleware qui redirige vers `redirect_url` si l'utilisateur n'est pas authentifié.
+pub(crate) async fn login_required_middleware(
+    State(redirect_url): State<Arc<String>>,
+    session: Session,
+    req: Request<Body>,
+    next: Next,
+) -> Response {
+    if crate::auth::session::is_authenticated(&session).await {
+        next.run(req).await
+    } else {
+        Redirect::to(redirect_url.as_str()).into_response()
     }
 }

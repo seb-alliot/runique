@@ -1,9 +1,9 @@
 //! Contexte de requête principal : `AppError`, `RuniqueContext` et construction du contexte Tera.
 use crate::app::templates::TemplateLoader;
+use crate::auth::session::CurrentUser;
 use crate::errors::error::ErrorContext;
 use crate::flash::Message;
 use crate::impl_from_error;
-use crate::middleware::auth::CurrentUser;
 use crate::utils::aliases::{AEngine, AppResult};
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};

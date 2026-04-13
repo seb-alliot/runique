@@ -1,8 +1,8 @@
 // Tests pour RequestExtensions — builder pattern + inject
 
 use axum::{body::Body, http::Request};
+use runique::auth::session::CurrentUser;
 use runique::context::RequestExtensions;
-use runique::middleware::auth::CurrentUser;
 use runique::utils::csp_nonce::CspNonce;
 use runique::utils::csrf::CsrfToken;
 

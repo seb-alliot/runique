@@ -1,8 +1,8 @@
 //! Définition de tous les aliases de types : `ATera`, `ADb`, `StrMap`, `FieldsMap`, `AppResult`…
+use crate::auth::session::CurrentUser;
 use crate::config::app::RuniqueConfig;
 use crate::context::template::AppError;
 use crate::engine::RuniqueEngine;
-use crate::middleware::auth::CurrentUser;
 use crate::prelude::{HostPolicy, SecurityPolicy};
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use sea_orm::DatabaseConnection;

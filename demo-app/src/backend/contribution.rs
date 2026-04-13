@@ -1,5 +1,4 @@
 use crate::entities::contribution::Entity as ContributionEntity;
-use crate::entities::eihwaz_users;
 use crate::formulaire::{ContributionForm, contribution_type_choices};
 use runique::prelude::*;
 use serde::Serialize;
@@ -13,7 +12,7 @@ pub struct ContributionItem {
 
 pub async fn list_contributions(db: &sea_orm::DatabaseConnection) -> Vec<ContributionItem> {
     search!(ContributionEntity => desc Id,)
-        .also_related(eihwaz_users::Entity)
+        .also_related(runique_users::Entity)
         .all(db)
         .await
         .unwrap_or_default()

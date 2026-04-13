@@ -166,7 +166,17 @@ pub fn generate_enums(model: &ModelInput) -> TokenStream2 {
 
                     let enum_name_str = e.name.to_string().to_ascii_lowercase();
 
-                    if DbEngine::detect().is_postgres() {
+                    let engine = DbEngine::detect();
+                    if engine.is_unknown() {
+                        let err_msg = format!(
+                            "derive_form: impossible de détecter le moteur de base de données pour l'enum `{}`. \
+                            Ajoutez `DB_ENGINE=postgres` (ou `mysql`/`sqlite`) dans votre `.env`.",
+                            e.name
+                        );
+                        return quote! { ::std::compile_error!(#err_msg); };
+                    }
+
+                    if engine.is_postgres() {
                         quote! {
                             #[derive(
                                 ::sea_orm::EnumIter, ::sea_orm::DeriveActiveEnum,
@@ -630,8 +640,14 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
                 Some(path) => quote! { .upload_to(#path) },
                 None       => quote! {},
             };
+            // Recherche de l'option de taille max
+            let size_suffix = if let Some(FieldOption::MaxSize(bytes)) = field.options.iter().find(|o| matches!(o, FieldOption::MaxSize(_))) {
+                quote! { .max_size(#bytes) }
+            } else {
+                quote! {}
+            };
             return Some(quote! {
-                form.field(&#file_constructor.label(#label) #upload_suffix #required_suffix);
+                form.field(&#file_constructor.label(#label) #upload_suffix #size_suffix #required_suffix);
             });
         }
 
@@ -972,13 +988,13 @@ fn numeric_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     ts
 }
 
-/// Génère les suffixes builder pour les champs fichier (upload_to, max_size_mb).
+/// Génère les suffixes builder pour les champs fichier (upload_to, max_size).
 fn file_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     let mut ts = quote! {};
     for attr in attrs {
         match attr {
             FormFieldAttr::UploadTo(path) => ts.extend(quote! { .upload_to(#path) }),
-            FormFieldAttr::MaxSizeMb(n) => ts.extend(quote! { .max_size_mb(#n) }),
+            FormFieldAttr::MaxSize(n) => ts.extend(quote! { .max_size(#n) }),
             _ => {}
         }
     }
@@ -1019,6 +1035,7 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::Default(lit) => quote! { .default(sea_query::Value::from(#lit)) },
         FieldOption::Label(_) | FieldOption::Help(_) => quote! {},
         FieldOption::File { .. } => quote! {},
+        FieldOption::MaxSize(n) => quote! { .max_size(#n) },
         FieldOption::Fk(fk) => {
             let table = fk.table.to_string();
             let column = fk.column.to_string();

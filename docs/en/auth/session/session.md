@@ -3,10 +3,7 @@
 ## Import
 
 ```rust
-use runique::middleware::auth::{
-    login, auth_login, logout,
-    is_authenticated, get_user_id, get_username,
-};
+use runique::prelude::*;
 ```
 
 ---

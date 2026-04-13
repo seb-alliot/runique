@@ -1,4 +1,4 @@
-use crate::entities::cour_block::schema as cour_block;
+use crate::entities::cour_block;
 use runique::prelude::*;
 
 #[form(schema = cour_block, fields = [chapitre_id, heading, content, block_type, sort_order])]

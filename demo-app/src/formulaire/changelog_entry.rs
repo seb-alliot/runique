@@ -1,4 +1,4 @@
-use crate::entities::changelog_entry::schema as changelog_entry;
+use crate::entities::changelog_entry;
 use runique::prelude::*;
 
 #[form(schema = changelog_entry, fields = [version, release_date, category, title, description, sort_order])]

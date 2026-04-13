@@ -12,10 +12,11 @@ use axum::{
 use serde::Deserialize;
 
 use crate::app::staging::AdminStaging;
-use crate::context::template::Request;
-use crate::middleware::auth::{
-    LoginGuard, is_admin_authenticated, load_user_middleware, login, logout,
+use crate::auth::{
+    guard::LoginGuard,
+    session::{is_admin_authenticated, load_user_middleware, login, logout},
 };
+use crate::context::template::Request;
 use crate::middleware::security::rate_limit_middleware;
 use crate::urlpatterns;
 use crate::utils::{
@@ -150,7 +151,7 @@ async fn admin_dashboard_redirect() -> Response {
 async fn admin_dashboard(
     mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Extension(current_user): Extension<crate::middleware::auth::CurrentUser>,
+    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
     proto: Option<Extension<Arc<PrototypeAdminState>>>,
 ) -> AppResult<Response> {
     let db = req.engine.db.clone();

@@ -5,7 +5,7 @@ model! {
     table: "contributions",
     pk: id => Pk,
     enums: {
-        ContributionType: [Runique, Cours],
+        ContributionType: [Runique="Runique", Cours="Cours"],
     },
     {
         user_id:           int [required],

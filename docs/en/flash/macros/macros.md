@@ -53,10 +53,10 @@ let msgs = flash_now!(warning => "Field A is incorrect", "Field B is missing");
 
 | Type | Generated CSS Class |
 |------|---------------------|
-| `success` | `message-success` |
-| `error` | `message-error` |
-| `info` | `message-info` |
-| `warning` | `message-warning` |
+| `success` | `success-message` |
+| `error` | `error-message` |
+| `info` | `info-message` |
+| `warning` | `warning-message` |
 
 ### Injecting into the context
 

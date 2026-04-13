@@ -10,13 +10,14 @@ use std::{marker::PhantomData, sync::Arc};
 
 use async_trait::async_trait;
 
+use crate::auth::session::{UserEntity, logout};
+use crate::auth::user_trait::RuniqueUser;
 use crate::context::template::Request;
 use crate::forms::{
     Forms, Prisme,
     field::RuniqueForm,
     fields::{hidden::HiddenField, text::TextField},
 };
-use crate::middleware::auth::{RuniqueUser, UserEntity, logout};
 use crate::utils::{
     aliases::{AppResult, StrMap},
     trad::{t, tf},
@@ -24,8 +25,6 @@ use crate::utils::{
 use crate::{context_update, impl_form_access};
 
 // ─── ForgotPasswordForm ───────────────────────────────────────────────────────
-//
-// Formulaire étape 1 : l'utilisateur saisit son email pour demander un reset.
 
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
@@ -46,8 +45,6 @@ impl RuniqueForm for ForgotPasswordForm {
 }
 
 // ─── PasswordResetForm ────────────────────────────────────────────────────────
-//
-// Formulaire étape 2 : l'utilisateur saisit son email + nouveau mot de passe.
 
 #[derive(Serialize, Debug, Clone)]
 #[serde(transparent)]
@@ -124,21 +121,13 @@ impl RuniqueForm for PasswordResetForm {
 /// Configuration du flow reset password enregistré via le builder.
 #[derive(Clone)]
 pub struct PasswordResetConfig {
-    /// Route de demande de reset (étape 1). Défaut : `/forgot-password`
     pub forgot_route: String,
-    /// Route de confirmation (étape 2). Défaut : `/reset-password`
     pub reset_route: String,
-    /// Template étape 1. Défaut : `auth/forgot_password.html`
     pub forgot_template: String,
-    /// Template étape 2. Défaut : `auth/reset_password.html`
     pub reset_template: String,
-    /// Redirection après succès. Défaut : `/`
     pub success_redirect: String,
-    /// URL de base pour les emails (ex : `https://monsite.fr`). Si None → HOST header.
     pub base_url: Option<String>,
-    /// Limite de requêtes sur les routes reset. Défaut : 5.
     pub max_requests: u64,
-    /// Fenêtre retry-after en secondes. Défaut : 300.
     pub retry_after: u64,
 }
 
@@ -194,12 +183,6 @@ impl PasswordResetConfig {
 }
 
 // ─── handle_forgot_password ───────────────────────────────────────────────────
-//
-// GET  → affiche le formulaire email
-// POST → génère le token, envoie l'email, affiche la confirmation
-//
-// reset_path : ex. "/reset-password" (sans token — ajouté automatiquement)
-// base_url   : None = construit depuis le header HOST
 
 pub async fn handle_forgot_password<E: UserEntity + 'static>(
     request: &mut Request,
@@ -272,9 +255,6 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
 }
 
 // ─── handle_password_reset ────────────────────────────────────────────────────
-//
-// GET  → pré-remplit le formulaire et l'affiche
-// POST → valide, consomme le token, met à jour le mot de passe
 
 pub async fn handle_password_reset<E: UserEntity + 'static>(
     request: &mut Request,
@@ -384,8 +364,6 @@ impl<E: UserEntity + 'static> Default for PasswordResetAdapter<E> {
     }
 }
 
-// ─── States Axum pour injecter la config dans les vues ───────────────────────
-
 #[derive(Clone)]
 struct ForgotState {
     config: Arc<PasswordResetConfig>,
@@ -395,8 +373,6 @@ struct ForgotState {
 struct ResetState {
     config: Arc<PasswordResetConfig>,
 }
-
-// ─── Vues Axum génériques ─────────────────────────────────────────────────────
 
 async fn forgot_view<E: UserEntity + 'static>(
     State(state): State<ForgotState>,

@@ -1,4 +1,4 @@
-use crate::entities::chapitre::schema as chapitre;
+use crate::entities::chapitre;
 use runique::prelude::*;
 
 #[form(schema = chapitre, fields = [cour_id, slug, title, lead, sort_order])]

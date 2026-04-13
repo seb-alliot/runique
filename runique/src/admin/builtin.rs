@@ -66,12 +66,12 @@ pub fn builtin_resources() -> Vec<ResourceEntry> {
 }
 
 fn user_entry() -> ResourceEntry {
-    use crate::middleware::auth::user;
+    use crate::auth::user;
     use crate::utils::pk::Pk;
 
     let meta = AdminResource::new(
         "users",
-        "runique::middleware::auth::user::Model",
+        "runique::auth::user::Model",
         "UserAdminCreateForm",
         "Utilisateurs",
         vec!["admin".to_string()],
@@ -620,7 +620,7 @@ fn droit_entry() -> ResourceEntry {
                 .await
                 .map(|_| ());
             if result.is_ok() {
-                crate::middleware::auth::permissions_cache::clear_cache();
+                crate::auth::guard::clear_cache();
             }
             result
         })
@@ -670,7 +670,7 @@ fn droit_entry() -> ResourceEntry {
                     }
                 })?;
             }
-            crate::middleware::auth::permissions_cache::clear_cache();
+            crate::auth::guard::clear_cache();
             Ok(())
         })
     });
@@ -719,7 +719,7 @@ fn droit_entry() -> ResourceEntry {
                 }
             })?;
 
-            crate::middleware::auth::permissions_cache::clear_cache();
+            crate::auth::guard::clear_cache();
             Ok(())
         })
     });
@@ -840,7 +840,7 @@ fn groupe_entry() -> ResourceEntry {
                 .await
                 .map(|_| ());
             if result.is_ok() {
-                crate::middleware::auth::permissions_cache::clear_cache();
+                crate::auth::guard::clear_cache();
             }
             result
         })
@@ -880,7 +880,7 @@ fn groupe_entry() -> ResourceEntry {
             .await
             .map(|_| ());
             if result.is_ok() {
-                crate::middleware::auth::permissions_cache::clear_cache();
+                crate::auth::guard::clear_cache();
             }
             result
         })

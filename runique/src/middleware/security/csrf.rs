@@ -1,6 +1,6 @@
 //! Middleware CSRF : génère et stocke le token en session, valide les requêtes mutantes.
+use crate::auth::session::is_authenticated;
 use crate::context::RequestExtensions;
-use crate::middleware::auth::is_authenticated;
 use crate::utils::{
     aliases::{AEngine, JsonMap, TResult},
     constante::{session::CSRF_TOKEN_KEY, session_key::session::SESSION_USER_ID_KEY},

@@ -21,7 +21,22 @@ pub fn parse_create_file(path: &str) -> Result<ParsedSchema> {
 
 // ── scan ─────────────────────────────────────────────────────────────────────
 
+/// Tables créées par EihwazUsersMigration + AdminTableMigration.
+/// Exclues du scan quand `RUNIQUE_USER_TABLE` n'est pas défini (table user par défaut).
+const FRAMEWORK_TABLES: &[&str] = &[
+    "eihwaz_users",
+    "eihwaz_groupes",
+    "eihwaz_groupes_droits",
+    "eihwaz_users_groupes",
+];
+
 pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
+    dotenvy::dotenv().ok();
+    let using_builtin_user = std::env::var("RUNIQUE_USER_TABLE")
+        .unwrap_or_default()
+        .is_empty()
+        || std::env::var("RUNIQUE_USER_TABLE").unwrap_or_default() == "eihwaz_users";
+
     let mut schemas = Vec::new();
     let entries = fs::read_dir(entities_path)
         .with_context(|| format!("Cannot read entities directory: {}", entities_path))?;
@@ -40,10 +55,10 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
 
         if let Some(schema) = parse_schema_from_source(&source) {
-            println!(
-                "  {}",
-                tf("makemigrations.found_schema", &[&schema.table_name])
-            );
+            // Ignore les tables fournies par le framework (EihwazUsersMigration + AdminTableMigration)
+            if using_builtin_user && FRAMEWORK_TABLES.contains(&schema.table_name.as_str()) {
+                continue;
+            }
             schemas.push(schema);
         }
     }
@@ -89,7 +104,6 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
         fs::write(&lib, updated)?;
     }
 
-    println!(" {}", tf("makemigrations.updated_lib", &[&lib]));
     Ok(())
 }
 
@@ -262,10 +276,6 @@ pub fn scan_extend_blocks(entities_path: &str) -> Result<Vec<ParsedSchema>> {
 
         let blocks = parse_extend_blocks_from_source(&source);
         for schema in blocks {
-            println!(
-                "  {}",
-                tf("makemigrations.found_extend", &[&schema.table_name])
-            );
             schemas.push(schema);
         }
     }
@@ -305,17 +315,10 @@ pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
         .collect()
 }
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
-    println!(" {}", tf("makemigrations.scanning", &[entities_path]));
-
     let schemas = scan_entities(entities_path)?;
     if schemas.is_empty() {
-        println!(" {}", tf("makemigrations.no_schema", &[entities_path]));
         return Ok(());
     }
-    println!(
-        " {}",
-        tf("makemigrations.schema_count", &[&schemas.len().to_string()])
-    );
 
     fs::create_dir_all(applied_dir(migrations_path))?;
     fs::create_dir_all(snapshot_dir(migrations_path))?;
@@ -349,7 +352,6 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
     }
 
     if all_changes.is_empty() {
-        println!(" {}", t("makemigrations.no_changes"));
         return Ok(());
     }
 
@@ -509,22 +511,14 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         return Err(e);
     }
 
-    // ── Rapport ───────────────────────────────────────────────────────────────
-    for (path, _) in &files_to_write {
-        if path.contains("snapshot") {
-            println!(" {}", tf("makemigrations.snapshot_updated", &[path]));
-        } else {
-            println!(" {}", tf("makemigrations.generated", &[path]));
-        }
-    }
-
     // ── Passe 2 : extensions de tables framework (extend!{}) ─────────────────
     run_extend_pass(entities_path, migrations_path, &timestamp, &db_kind)?;
 
     // ── Passe 3 : positionnement automatique d'AdminTableMigration ────────────
     ensure_admin_migration_positioned(migrations_path)?;
 
-    println!("\n{}", t("makemigrations.apply_hint"));
+    println!("{}", tf("makemigrations.files_ready", &[lib_modules.len()]));
+
     Ok(())
 }
 
@@ -565,14 +559,24 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
 
     let using_builtin_user = user_table == "eihwaz_users";
 
+    // Tables créées par EihwazUsersMigration + AdminTableMigration — à exclure du vec
+    const FRAMEWORK_TABLE_PATTERNS: &[&str] = &[
+        "create_eihwaz_users_table",
+        "create_eihwaz_groupes_table",
+        "create_eihwaz_groupes_droits_table",
+        "create_eihwaz_users_groupes_table",
+    ];
+
     if using_builtin_user {
         // ── Cas par défaut : table user fournie par le framework ──────────────
         // Retire les lignes framework existantes (on va les réinjecter en tête)
+        // et filtre aussi les migrations app qui dupliquent les tables framework.
         let mut lines: Vec<String> = content
             .lines()
             .filter(|l| {
                 !l.contains("migrations_table::EihwazUsersMigration")
                     && !l.contains("migrations_table::AdminTableMigration")
+                    && !FRAMEWORK_TABLE_PATTERNS.iter().any(|pat| l.contains(pat))
             })
             .map(|l| l.to_string())
             .collect();
@@ -589,7 +593,6 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
         let result = lines.join("\n") + "\n";
         if result != content {
             fs::write(&lib_file, &result)?;
-            println!(" {}", tf("makemigrations.admin_positioned", &[&user_table]));
         }
     } else {
         // ── Cas custom : le dev fournit sa propre table user ──────────────────
@@ -612,7 +615,6 @@ pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
         let result = lines.join("\n") + "\n";
         if result != content {
             fs::write(&lib_file, &result)?;
-            println!(" {}", tf("makemigrations.admin_positioned", &[&user_table]));
         }
     }
 
@@ -742,14 +744,6 @@ fn run_extend_pass(
             let _ = fs::write(&lib_file, content);
         }
         return Err(e);
-    }
-
-    for (path, _) in &files_to_write {
-        if path.contains("snapshot") {
-            println!(" {}", tf("makemigrations.snapshot_updated", &[path]));
-        } else {
-            println!(" {}", tf("makemigrations.generated", &[path]));
-        }
     }
 
     Ok(())

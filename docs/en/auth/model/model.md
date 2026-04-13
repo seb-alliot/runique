@@ -41,8 +41,7 @@ runique = { version = "...", features = ["big-pk"] }
 If you use your own user model instead of the built-in one, you must implement `RuniqueUser`.
 
 ```rust
-use runique::middleware::auth::RuniqueUser;
-use runique::prelude::Pk;
+use runique::prelude::*;
 
 impl RuniqueUser for users::Model {
     fn user_id(&self) -> Pk      { self.id }

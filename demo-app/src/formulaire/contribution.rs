@@ -1,4 +1,4 @@
-use crate::entities::contribution::schema as contribution;
+use crate::entities::contribution;
 use runique::prelude::*;
 
 pub fn contribution_type_choices() -> Vec<ChoiceOption> {

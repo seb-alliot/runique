@@ -1,4 +1,4 @@
-use crate::entities::doc_section::schema as doc_section;
+use crate::entities::doc_section;
 use runique::prelude::*;
 
 #[form(schema = doc_section, fields = [slug, lang, title, sort_order, theme])]

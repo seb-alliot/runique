@@ -1,13 +1,13 @@
 use crate::formulaire::{LoginForm, RegisterForm};
-use runique::middleware::auth::login as auth_login;
-use runique::prelude::user::ActiveModel as UserActiveModel;
-use runique::prelude::user::Entity as UserEntity;
+use runique::auth::login as auth_login;
+use runique::prelude::runique_users::ActiveModel as UserActiveModel;
+use runique::prelude::runique_users::Entity as UserEntity;
 use runique::prelude::*;
 
 pub async fn register_user(
     form: &RegisterForm,
     db: &sea_orm::DatabaseConnection,
-) -> Result<runique::prelude::user::Model, sea_orm::DbErr> {
+) -> Result<runique::prelude::runique_users::Model, sea_orm::DbErr> {
     form.save(db).await
 }
 
@@ -15,7 +15,7 @@ pub async fn authenticate_user(
     db: &sea_orm::DatabaseConnection,
     username: &str,
     password: &str,
-) -> Option<runique::prelude::user::Model> {
+) -> Option<runique::prelude::runique_users::Model> {
     let user = find_user_by_username(db, username).await?;
     if user.is_active && verify(password, &user.password) {
         Some(user)
@@ -27,7 +27,7 @@ pub async fn authenticate_user(
 pub async fn find_user_by_username(
     db: &sea_orm::DatabaseConnection,
     username: &str,
-) -> Option<runique::prelude::user::Model> {
+) -> Option<runique::prelude::runique_users::Model> {
     // Construit la requête
     let query = search!(UserEntity => Username eq username.trim());
     let result = query.first(db).await;
@@ -37,7 +37,7 @@ pub async fn find_user_by_username(
 pub async fn find_user_by_id(
     db: &sea_orm::DatabaseConnection,
     id: runique::utils::pk::Pk,
-) -> Option<runique::prelude::user::Model> {
+) -> Option<runique::prelude::runique_users::Model> {
     UserEntity::find_by_id(id).one(db).await.unwrap_or(None)
 }
 
@@ -224,6 +224,6 @@ pub fn get_credentials(form: &LoginForm) -> Option<(String, String)> {
 pub async fn get_profile_user(
     user_id: Option<runique::utils::pk::Pk>,
     db: &sea_orm::DatabaseConnection,
-) -> Option<runique::prelude::user::Model> {
+) -> Option<runique::prelude::runique_users::Model> {
     find_user_by_id(db, user_id?).await
 }

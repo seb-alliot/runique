@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::admin::PrototypeAdminState;
 use crate::admin::{AdminConfig, helper::AdminTemplate};
 use crate::app::error_build::{BuildError, CheckError, CheckReport};
-use crate::middleware::auth::{AdminAuth, LoginGuard};
+use crate::auth::{guard::LoginGuard, session::AdminAuth};
 use crate::middleware::security::RateLimiter;
 use axum::Router;
 
@@ -92,7 +92,7 @@ impl AdminStaging {
     ///
     /// ## Avec le User built-in (zéro config) :
     /// ```rust,ignore
-    /// use runique::middleware::auth::RuniqueAdminAuth;
+    /// use runique::auth::RuniqueAdminAuth;
     ///
     /// .with_admin(|a| a
     ///     .site_title("Mon Admin")
@@ -102,7 +102,7 @@ impl AdminStaging {
     ///
     /// ## Avec un modèle custom :
     /// ```rust,ignore
-    /// use runique::middleware::auth::{DefaultAdminAuth, UserEntity};
+    /// use runique::auth::{DefaultAdminAuth, UserEntity};
     ///
     /// impl UserEntity for users::Entity { ... }
     ///

@@ -1,4 +1,4 @@
-use crate::entities::code_example::schema as code_example;
+use crate::entities::code_example;
 use runique::prelude::*;
 
 #[form(schema = code_example, fields = [page_id, title, language, code, context, sort_order])]

@@ -1,0 +1,45 @@
+﻿cargo :    Compiling derive_form v2.0.0 
+(C:\Users\allio\Desktop\runique\runique\derive_form)
+Au caractère Ligne:1 : 1
++ cargo clippy --all-targets --all-features -- -D warnings 
+2>&1 | Out-F ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling  
+   de...ue\derive_form):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Checking runique v2.0.0 
+(C:\Users\allio\Desktop\runique\runique)
+error: this `if` has identical blocks
+   --> runique\src\migration\utils\parser_builder.rs:524:67
+    |
+524 |               let nullable = if has_auto_now || 
+has_auto_now_update {
+    |  ____________________________________________________
+_______________^
+525 | |                 false
+526 | |             } else if has_required {
+    | |_____________^
+    |
+note: same as this
+   --> runique\src\migration\utils\parser_builder.rs:526:36
+    |
+526 |               } else if has_required {
+    |  ____________________________________^
+527 | |                 false
+528 | |             } else if has_nullable {
+    | |_____________^
+    = help: for further information visit https://rust-lang
+.github.io/rust-clippy/rust-1.94.0/index.html#if_same_then_
+else
+    = note: `-D clippy::if-same-then-else` implied by `-D 
+warnings`
+    = help: to override `-D warnings` add 
+`#[allow(clippy::if_same_then_else)]`
+
+error: could not compile `runique` (lib) due to 1 previous 
+error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `runique` (lib test) due to 1 
+previous error

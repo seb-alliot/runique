@@ -1,7 +1,10 @@
 // Tests pour RuniqueUser (trait + implémentations par défaut)
 // et DefaultAdminAuth (construction uniquement, sans DB)
 
-use runique::middleware::{DefaultAdminAuth, RuniqueUser, UserEntity};
+use runique::auth::{
+    session::{DefaultAdminAuth, UserEntity},
+    user::RuniqueUser,
+};
 use sea_orm::DatabaseConnection;
 
 // ═══════════════════════════════════════════════════════════════

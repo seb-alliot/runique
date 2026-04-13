@@ -1,4 +1,4 @@
-use crate::entities::demo_category::schema as demo_category;
+use crate::entities::demo_category;
 use runique::prelude::*;
 
 #[form(schema = demo_category, fields = [title, back_link_url, back_link_label, sort_order])]

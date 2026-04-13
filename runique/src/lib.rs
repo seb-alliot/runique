@@ -2,8 +2,9 @@
 
 // ---------------------------------------------------------------------------
 // Modules principaux (arborescence actuelle)
-// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------*
 pub mod app;
+pub mod auth;
 pub mod config;
 pub mod context;
 #[cfg(feature = "orm")]
@@ -118,13 +119,14 @@ pub mod prelude {
     // ========================================================================
     // MIDDLEWARE
     // ========================================================================
-    pub use crate::middleware::auth::{
+    pub use crate::auth::user as runique_users;
+    pub use crate::auth::*;
+    pub use crate::auth::{
         ForgotPasswordForm, PasswordResetAdapter, PasswordResetConfig, PasswordResetForm,
         handle_forgot_password, handle_password_reset,
     };
     pub use crate::middleware::{
-        LoginGuard, allowed_hosts::*, auth::*, cache::*, config::*, csp::*, csrf::*, errors::*,
-        rate_limit::RateLimiter,
+        allowed_hosts::*, cache::*, config::*, csp::*, csrf::*, errors::*, rate_limit::RateLimiter,
     };
 
     // ========================================================================

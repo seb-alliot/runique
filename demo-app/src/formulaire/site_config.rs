@@ -1,4 +1,4 @@
-use crate::entities::site_config::schema as site_config;
+use crate::entities::site_config;
 use runique::prelude::*;
 
 #[form(schema = site_config, fields = [key, value, description])]

@@ -126,7 +126,7 @@ async fn test_pull_groupes_db_multi_ressources() {
 #[tokio::test]
 async fn test_refresh_cache_puis_clear() {
     use runique::admin::permissions::refresh_cache_for_user;
-    use runique::middleware::auth::permissions_cache::{clear_cache, get_permissions};
+    use runique::auth::guard::{clear_cache, get_permissions};
 
     let Some(db) = db_postgres::connect().await else {
         return;

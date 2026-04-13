@@ -34,7 +34,7 @@ impl ActiveModelBehavior for ActiveModel {
     where
         C: ConnectionTrait,
     {
-        crate::middleware::auth::permissions_cache::clear_cache();
+        crate::auth::permissions_cache::clear_cache();
         Ok(self)
     }
 }

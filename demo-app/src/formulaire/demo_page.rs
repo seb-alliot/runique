@@ -1,4 +1,4 @@
-use crate::entities::demo_page::schema as demo_page;
+use crate::entities::demo_page;
 use runique::prelude::*;
 
 #[form(schema = demo_page, fields = [category_id, slug, title, lead, page_type, sort_order])]

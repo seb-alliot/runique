@@ -413,7 +413,8 @@
     "apply_hint": "Führen Sie 'sea-orm-cli migrate up' aus.",
     "extend_unknown_table": "extend!{{}} : \"{}\" ist keine bekannte Framework-Tabelle. Erlaubte Tabellen: {}. Um eine App-Tabelle zu erweitern, ändern Sie deren model!{{}} direkt.",
     "extend_invalid_syntax": "extend!{{}} : ungültige Syntax. Erwartet: table: \"tabellenname\", fields: {{ ... }}",
-    "admin_positioned": "AdminTableMigration nach der Migration von '{}' positioniert"
+    "admin_positioned": "AdminTableMigration nach der Migration von '{}' positioniert",
+    "files_ready": "{} Datei(en) bereit für die Migration."
   },
   "migrate": {
     "applying": "Migrationen aus '{}' werden angewendet...",

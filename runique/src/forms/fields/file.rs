@@ -121,22 +121,22 @@ impl AllowedExtensions {
 
 pub type UploadPathFn = Option<Arc<dyn Fn(&str) -> String + Send + Sync>>;
 
-/// Limite appliquée si `.max_size_mb()` n'est jamais appelé.
-const DEFAULT_MAX_SIZE_MB: u64 = 10;
+/// Limite appliquée si `.max_size()` n'est jamais appelé (10 MB par défaut).
+const DEFAULT_MAX_SIZE: u64 = 10 * 1024 * 1024;
 
 /// Configuration d'upload de fichier
 #[derive(Clone, Serialize)]
 pub struct FileUploadConfig {
     #[serde(skip_serializing)]
     pub upload_to: UploadPathFn,
-    pub max_size_mb: Option<u64>,
+    pub max_size: Option<u64>,
 }
 
 impl Default for FileUploadConfig {
     fn default() -> Self {
         Self {
             upload_to: None,
-            max_size_mb: Some(DEFAULT_MAX_SIZE_MB),
+            max_size: Some(DEFAULT_MAX_SIZE),
         }
     }
 }
@@ -145,7 +145,7 @@ impl std::fmt::Debug for FileUploadConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FileUploadConfig")
             .field("upload_to", &self.upload_to.as_ref().map(|_| "Fn(...)"))
-            .field("max_size_mb", &self.max_size_mb)
+            .field("max_size", &self.max_size)
             .finish()
     }
 }
@@ -161,8 +161,8 @@ impl FileUploadConfig {
         self
     }
 
-    pub fn max_size_mb(mut self, size: u64) -> Self {
-        self.max_size_mb = Some(size);
+    pub fn max_size(mut self, size: u64) -> Self {
+        self.max_size = Some(size);
         self
     }
 }
@@ -237,8 +237,8 @@ impl FileField {
         self
     }
 
-    pub fn max_size_mb(mut self, size: u64) -> Self {
-        self.upload_config = self.upload_config.max_size_mb(size);
+    pub fn max_size(mut self, size: u64) -> Self {
+        self.upload_config = self.upload_config.max_size(size);
         self
     }
 
@@ -317,12 +317,14 @@ impl FormField for FileField {
                 ));
                 return false;
             }
-            if let Some(max_mb) = self.upload_config.max_size_mb {
+            if let Some(max_bytes) = self.upload_config.max_size {
                 if let Ok(metadata) = std::fs::metadata(filename) {
-                    let size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
-                    if size_mb > max_mb as f64 {
+                    let file_size = metadata.len();
+                    if file_size > max_bytes {
+                        let size_mb = file_size as f64 / (1024.0 * 1024.0);
+                        let max_mb = max_bytes as f64 / (1024.0 * 1024.0);
                         let size_str = format!("{:.1}", size_mb);
-                        let max_mb_str = max_mb.to_string();
+                        let max_mb_str = format!("{:.1}", max_mb);
                         cleanup_files(&files);
                         self.base.value.clear();
                         self.set_error(tf(
@@ -449,8 +451,9 @@ impl FormField for FileField {
         context.insert("is_file", &true);
         context.insert("is_image", &is_image);
 
-        if let Some(size) = self.upload_config.max_size_mb {
-            context.insert("max_size_mb", &size);
+        if let Some(size) = self.upload_config.max_size {
+            context.insert("max_size", &size);
+            context.insert("max_size_mb", &(size as f64 / (1024.0 * 1024.0)));
         }
         if let Some(count) = self.max_files {
             context.insert("max_files", &count);

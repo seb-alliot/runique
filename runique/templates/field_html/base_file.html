@@ -11,13 +11,13 @@
         {% if disabled.choice %}disabled{% endif %}
     >
 
-    {% if allowed_extensions or max_size_mb or max_files or max_width or max_height %}
+    {% if allowed_extensions or max_size or max_files or max_width or max_height %}
     <div class="field-hints">
         {% if allowed_extensions %}
             Extensions : {{ allowed_extensions.extensions | join(sep=", ") }}
         {% endif %}
-        {% if max_size_mb %}
-            · Max {{ max_size_mb }} MB
+        {% if max_size %}
+            · Max {{ max_size_mb | round(precision=1) }} MB
         {% endif %}
         {% if max_files %}
             · Max {{ max_files }} fichier(s)

@@ -1,9 +1,9 @@
 # Runique — Django-inspired Rust Framework
 
 ![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-1823%2F1823%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.54-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
@@ -22,7 +22,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **1.1.54**.
+Workspace version (source of truth): **2.0.0**.
 
 ---
 
@@ -129,7 +129,7 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-- Reported tests: **1833/1833 passing**
+- Reported tests: **1823/1823 passing**
 - Coverage snapshot (`2026-03-30`, package `runique`):
   - Functions: **76.59%**
   - Lines: **71.52%**

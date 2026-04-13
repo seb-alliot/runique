@@ -4,7 +4,7 @@
 // Chaque test crée son propre client reqwest (cookie jar isolé → session distincte).
 
 use axum::{Extension, Router, middleware, routing::get, routing::post};
-use runique::middleware::auth::{CurrentUser, has_permission, load_user_middleware, login};
+use runique::auth::{CurrentUser, has_permission, load_user_middleware, login};
 use sea_orm::DatabaseConnection;
 use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
