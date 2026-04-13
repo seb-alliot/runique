@@ -402,6 +402,7 @@
   "makemigrations": {
     "scanning": "正在扫描'{}'中的实体...",
     "found_schema": "-> 找到架构: {}",
+    "found_extend": "-> 找到框架表扩展: {}",
     "no_schema": "在'{}'中未找到schema()函数。",
     "schema_count": "找到{}个架构。",
     "updated_lib": "已更新{}",
@@ -412,7 +413,10 @@
     "seaorm_alter": "已生成SeaORM ALTER迁移: {}",
     "batch_up": "已生成批量上升: {}",
     "batch_down": "已生成批量下降: {}",
-    "apply_hint": "运行'sea-orm-cli migrate up'来应用。"
+    "apply_hint": "运行'sea-orm-cli migrate up'来应用。",
+    "extend_unknown_table": "extend!{{}} : \"{}\"不是已知的框架表。允许的表: {}。要扩展应用表，请直接修改其model!{{}}。",
+    "extend_invalid_syntax": "extend!{{}} : 语法无效。预期格式: table: \"表名\", fields: {{ ... }}",
+    "admin_positioned": "AdminTableMigration已定位在'{}'迁移之后"
   },
   "migrate": {
     "applying": "正在从'{}'应用迁移...",

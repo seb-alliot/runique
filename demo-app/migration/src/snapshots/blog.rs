@@ -15,8 +15,8 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("email")).string().not_null())
                     .col(ColumnDef::new(Alias::new("website")).string().null())
-                    .col(ColumnDef::new(Alias::new("summary")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("content")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("summary")).text().not_null())
+                    .col(ColumnDef::new(Alias::new("content")).text().not_null())
                     .to_owned()
             )
             .await?;

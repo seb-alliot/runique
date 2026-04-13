@@ -1,7 +1,7 @@
 //! Commande `migrate` — applique les migrations SeaORM en base de données.
 use crate::utils::trad::{t, tf};
 use anyhow::{Context, Result};
-use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend};
+use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, TransactionTrait};
 use std::{fs, path::Path};
 
 // ============================================================
@@ -272,11 +272,25 @@ async fn execute_down_block(source: &str, db: &DatabaseConnection) -> Result<()>
         return Ok(());
     }
 
-    for sql in &statements {
-        println!("  {}", tf("migrate.executing", &[sql]));
-        db.execute_unprepared(sql)
-            .await
-            .with_context(|| format!("Failed to execute: {}", sql))?;
+    let txn = db.begin().await.context("Failed to begin transaction")?;
+
+    let result: Result<()> = async {
+        for sql in &statements {
+            println!("  {}", tf("migrate.executing", &[sql]));
+            txn.execute_unprepared(sql)
+                .await
+                .with_context(|| format!("Failed to execute: {}", sql))?;
+        }
+        Ok(())
+    }
+    .await;
+
+    match result {
+        Ok(()) => txn.commit().await.context("Failed to commit transaction")?,
+        Err(e) => {
+            let _ = txn.rollback().await;
+            return Err(e);
+        }
     }
 
     Ok(())

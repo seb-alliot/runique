@@ -6,10 +6,9 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .get_connection()
-            .execute_unprepared("CREATE TYPE BlockType AS ENUM ('Text', 'Code', 'Sommaire')")
-            .await?;
+        manager.get_connection().execute_unprepared(
+            "DO $$ BEGIN CREATE TYPE BlockType AS ENUM ('Text', 'Code', 'Sommaire'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+        ).await?;
 
         manager
             .create_table(
@@ -25,7 +24,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Alias::new("page_id")).integer().not_null())
                     .col(ColumnDef::new(Alias::new("heading")).string().null())
-                    .col(ColumnDef::new(Alias::new("content")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("content")).text().not_null())
                     .col(
                         ColumnDef::new_with_type(
                             Alias::new("block_type"),

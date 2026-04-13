@@ -60,7 +60,7 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
 
     if !Path::new(&lib).exists() {
         let content = format!(
-            "use sea_orm_migration::prelude::*;\n\n{}\n\npub struct Migrator;\n\n#[async_trait::async_trait]\nimpl MigratorTrait for Migrator {{\n    fn migrations() -> Vec<Box<dyn MigrationTrait>> {{\n        let migrations: Vec<Box<dyn MigrationTrait>> = vec![\n{}\n        ];\n        migrations.extend(runique::migration::builtin_migrations());\n        migrations\n    }}\n}}\n",
+            "use runique::prelude::migrations_table;\nuse sea_orm_migration::prelude::*;\n\n{}\n\npub struct Migrator;\n\n#[async_trait::async_trait]\nimpl MigratorTrait for Migrator {{\n    fn migrations() -> Vec<Box<dyn MigrationTrait>> {{\n        vec![\n{}\n        ]\n    }}\n}}\n",
             mod_line, box_line
         );
         fs::write(&lib, content)?;
@@ -69,6 +69,16 @@ pub fn update_migration_lib(migrations_path: &str, module_name: &str) -> Result<
         if existing.contains(&mod_line) {
             return Ok(());
         }
+        // Ajoute le `use migrations_table` si absent (lib.rs existant sans lui)
+        let existing = if !existing.contains("migrations_table") {
+            existing.replacen(
+                "use sea_orm_migration::prelude::*;",
+                "use runique::prelude::migrations_table;\nuse sea_orm_migration::prelude::*;",
+                1,
+            )
+        } else {
+            existing
+        };
         let updated = existing
             .replacen(
                 "use sea_orm_migration::prelude::*;",
@@ -214,6 +224,85 @@ pub fn seaorm_alter_file_path(migrations_path: &str, timestamp: &str, table: &st
         migrations_path,
         seaorm_alter_module_name(timestamp, table)
     )
+}
+
+pub fn seaorm_extend_module_name(timestamp: &str, table: &str) -> String {
+    format!("m{}_extend_{}_table", timestamp, table)
+}
+
+pub fn seaorm_extend_file_path(migrations_path: &str, timestamp: &str, table: &str) -> String {
+    format!(
+        "{}/m{}_extend_{}_table.rs",
+        migrations_path, timestamp, table
+    )
+}
+
+// ── scan extend blocks ────────────────────────────────────────────────────────
+
+/// Scanne tous les fichiers `.rs` du répertoire `entities_path` et collecte
+/// tous les blocs `extend!{}` trouvés. Retourne une liste plate de `ParsedSchema`
+/// (un par bloc — plusieurs blocs peuvent cibler la même table).
+pub fn scan_extend_blocks(entities_path: &str) -> Result<Vec<ParsedSchema>> {
+    let mut schemas = Vec::new();
+    let entries = fs::read_dir(entities_path)
+        .with_context(|| format!("Cannot read entities directory: {}", entities_path))?;
+
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+            continue;
+        }
+        if path.file_name().and_then(|n| n.to_str()) == Some("mod.rs") {
+            continue;
+        }
+
+        let source = fs::read_to_string(&path)
+            .with_context(|| format!("Cannot read file: {}", path.display()))?;
+
+        let blocks = parse_extend_blocks_from_source(&source);
+        for schema in blocks {
+            println!(
+                "  {}",
+                tf("makemigrations.found_extend", &[&schema.table_name])
+            );
+            schemas.push(schema);
+        }
+    }
+    Ok(schemas)
+}
+
+/// Fusionne les blocs `extend!{}` qui ciblent la même table en un seul `ParsedSchema`.
+/// Les colonnes sont concaténées dans l'ordre de découverte.
+pub fn merge_extend_schemas(schemas: Vec<ParsedSchema>) -> Vec<ParsedSchema> {
+    use std::collections::HashMap;
+    let mut by_table: HashMap<String, Vec<ParsedColumn>> = HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+
+    for schema in schemas {
+        if !by_table.contains_key(&schema.table_name) {
+            order.push(schema.table_name.clone());
+            by_table.insert(schema.table_name.clone(), Vec::new());
+        }
+        by_table
+            .get_mut(&schema.table_name)
+            .unwrap()
+            .extend(schema.columns);
+    }
+
+    order
+        .into_iter()
+        .map(|table_name| {
+            let columns = by_table.remove(&table_name).unwrap_or_default();
+            ParsedSchema {
+                table_name,
+                primary_key: None,
+                columns,
+                foreign_keys: Vec::new(),
+                indexes: Vec::new(),
+            }
+        })
+        .collect()
 }
 pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()> {
     println!(" {}", tf("makemigrations.scanning", &[entities_path]));
@@ -429,6 +518,239 @@ pub fn run(entities_path: &str, migrations_path: &str, force: bool) -> Result<()
         }
     }
 
+    // ── Passe 2 : extensions de tables framework (extend!{}) ─────────────────
+    run_extend_pass(entities_path, migrations_path, &timestamp, &db_kind)?;
+
+    // ── Passe 3 : positionnement automatique d'AdminTableMigration ────────────
+    ensure_admin_migration_positioned(migrations_path)?;
+
     println!("\n{}", t("makemigrations.apply_hint"));
+    Ok(())
+}
+
+// ── Positionnement AdminTableMigration ───────────────────────────────────────
+
+/// Positionne automatiquement `AdminTableMigration` dans `lib.rs` juste après la migration
+/// de la table user (`RUNIQUE_USER_TABLE`, défaut : `eihwaz_users`).
+///
+/// - Ajoute `use runique::prelude::migrations_table;` si absent
+/// - Retire `AdminTableMigration` de sa position actuelle si présente
+/// - L'insère immédiatement après la ligne `Box::new(<user_table_migration>)`
+/// - Sans effet si la migration de la user table n'est pas encore dans `lib.rs`
+pub fn ensure_admin_migration_positioned(migrations_path: &str) -> Result<()> {
+    dotenvy::dotenv().ok();
+    let user_table = crate::admin::table_admin::migrations_table::user_table_name();
+    let lib_file = lib_path(migrations_path);
+
+    if !Path::new(&lib_file).exists() {
+        return Ok(());
+    }
+
+    let content = fs::read_to_string(&lib_file)?;
+
+    // Ensure `use runique::prelude::migrations_table;` est présent
+    let content = if !content.contains("migrations_table") {
+        content.replacen(
+            "use sea_orm_migration::prelude::*;",
+            "use runique::prelude::migrations_table;\nuse sea_orm_migration::prelude::*;",
+            1,
+        )
+    } else {
+        content
+    };
+
+    let admin_box = "            Box::new(migrations_table::AdminTableMigration),";
+    let users_box = "            Box::new(migrations_table::EihwazUsersMigration),";
+    let user_pattern = format!("create_{}_table", user_table);
+
+    let using_builtin_user = user_table == "eihwaz_users";
+
+    if using_builtin_user {
+        // ── Cas par défaut : table user fournie par le framework ──────────────
+        // Retire les lignes framework existantes (on va les réinjecter en tête)
+        let mut lines: Vec<String> = content
+            .lines()
+            .filter(|l| {
+                !l.contains("migrations_table::EihwazUsersMigration")
+                    && !l.contains("migrations_table::AdminTableMigration")
+            })
+            .map(|l| l.to_string())
+            .collect();
+
+        // Insère les deux migrations framework au début du vec![
+        if let Some(idx) = lines
+            .iter()
+            .position(|l| l.trim() == "vec![" || l.contains("vec!["))
+        {
+            lines.insert(idx + 1, admin_box.to_string());
+            lines.insert(idx + 1, users_box.to_string());
+        }
+
+        let result = lines.join("\n") + "\n";
+        if result != content {
+            fs::write(&lib_file, &result)?;
+            println!(" {}", tf("makemigrations.admin_positioned", &[&user_table]));
+        }
+    } else {
+        // ── Cas custom : le dev fournit sa propre table user ──────────────────
+        // AdminTableMigration positionnée juste après la migration de sa table
+        if !content.contains(&user_pattern) {
+            fs::write(&lib_file, &content)?;
+            return Ok(());
+        }
+
+        let mut lines: Vec<String> = content
+            .lines()
+            .filter(|l| !l.contains("migrations_table::AdminTableMigration"))
+            .map(|l| l.to_string())
+            .collect();
+
+        if let Some(idx) = lines.iter().position(|l| l.contains(&user_pattern)) {
+            lines.insert(idx + 1, admin_box.to_string());
+        }
+
+        let result = lines.join("\n") + "\n";
+        if result != content {
+            fs::write(&lib_file, &result)?;
+            println!(" {}", tf("makemigrations.admin_positioned", &[&user_table]));
+        }
+    }
+
+    Ok(())
+}
+
+// ── Passe extend ──────────────────────────────────────────────────────────────
+
+fn run_extend_pass(
+    entities_path: &str,
+    migrations_path: &str,
+    timestamp: &str,
+    _db_kind: &crate::migration::utils::types::DbKind,
+) -> Result<()> {
+    let raw_extends = scan_extend_blocks(entities_path)?;
+    if raw_extends.is_empty() {
+        return Ok(());
+    }
+
+    let extend_schemas = merge_extend_schemas(raw_extends);
+    fs::create_dir_all(extend_snapshot_dir(migrations_path))?;
+
+    let mut files_to_write: Vec<(String, String)> = Vec::new();
+    let mut lib_modules: Vec<String> = Vec::new();
+
+    for ext_schema in &extend_schemas {
+        let snap_path = extend_snapshot_file_path(migrations_path, &ext_schema.table_name);
+
+        let changes = if Path::new(&snap_path).exists() {
+            let previous = parse_create_file(&snap_path)?;
+            diff_schemas(&previous, ext_schema)
+        } else {
+            // Première fois — toutes les colonnes sont nouvelles (ADD COLUMN)
+            Changes {
+                table_name: ext_schema.table_name.clone(),
+                added_columns: ext_schema.columns.clone(),
+                dropped_columns: vec![],
+                modified_columns: vec![],
+                added_fks: vec![],
+                dropped_fks: vec![],
+                added_indexes: vec![],
+                dropped_indexes: vec![],
+                is_new_table: false, // toujours false — la table framework existe déjà
+                enum_renames: vec![],
+                enum_value_adds: vec![],
+                enum_value_drops: vec![],
+            }
+        };
+
+        if changes.is_empty() {
+            continue;
+        }
+
+        // Snapshot mis à jour (sans PK, juste les colonnes d'extension)
+        files_to_write.push((
+            snap_path,
+            generate_create_file(ext_schema, &crate::migration::utils::types::DbKind::Other),
+        ));
+
+        // Fichier de migration SeaORM extend
+        let module_name = seaorm_extend_module_name(timestamp, &ext_schema.table_name);
+        let seaorm_path =
+            seaorm_extend_file_path(migrations_path, timestamp, &ext_schema.table_name);
+        files_to_write.push((seaorm_path, generate_alter_file(&changes)));
+        lib_modules.push(module_name);
+
+        // Fichiers applied/batch (répertoire propre pour chaque table étendue)
+        let apply_dir = table_applied_dir(migrations_path, &ext_schema.table_name);
+        let up_dir = batch_up_dir(migrations_path, &ext_schema.table_name);
+        let down_dir = batch_down_dir(migrations_path, &ext_schema.table_name);
+        fs::create_dir_all(&apply_dir)?;
+        fs::create_dir_all(&up_dir)?;
+        fs::create_dir_all(&down_dir)?;
+
+        files_to_write.push((
+            alter_file_path(migrations_path, &ext_schema.table_name, timestamp),
+            generate_alter_file(&changes),
+        ));
+        files_to_write.push((
+            batch_up_path(migrations_path, &ext_schema.table_name, timestamp),
+            generate_batch_up_file(&[&changes], timestamp),
+        ));
+        files_to_write.push((
+            batch_down_path(migrations_path, &ext_schema.table_name, timestamp),
+            generate_batch_down_file(&[&changes], timestamp),
+        ));
+    }
+
+    if files_to_write.is_empty() {
+        return Ok(());
+    }
+
+    // Écriture
+    let lib_backup: Option<String> = {
+        let lib_file = lib_path(migrations_path);
+        if Path::new(&lib_file).exists() {
+            Some(fs::read_to_string(&lib_file)?)
+        } else {
+            None
+        }
+    };
+    let lib_file = lib_path(migrations_path);
+    let mut written: Vec<String> = Vec::new();
+
+    let write_result: Result<()> = (|| {
+        for (path, content) in &files_to_write {
+            fs::write(path, content).with_context(|| format!("Failed to write: {}", path))?;
+            written.push(path.clone());
+        }
+        for module_name in &lib_modules {
+            update_migration_lib(migrations_path, module_name)?;
+        }
+        Ok(())
+    })();
+
+    if let Err(e) = write_result {
+        eprintln!("\n[makemigrations extend] Erreur : {}. Annulation...", e);
+        for path in &written {
+            if let Err(re) = fs::remove_file(path) {
+                eprintln!(
+                    "  avertissement : impossible de supprimer {} : {}",
+                    path, re
+                );
+            }
+        }
+        if let Some(content) = lib_backup {
+            let _ = fs::write(&lib_file, content);
+        }
+        return Err(e);
+    }
+
+    for (path, _) in &files_to_write {
+        if path.contains("snapshot") {
+            println!(" {}", tf("makemigrations.snapshot_updated", &[path]));
+        } else {
+            println!(" {}", tf("makemigrations.generated", &[path]));
+        }
+    }
+
     Ok(())
 }

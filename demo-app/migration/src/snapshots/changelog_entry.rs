@@ -16,7 +16,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("release_date")).string().not_null())
                     .col(ColumnDef::new_with_type(Alias::new("category"), ColumnType::Enum { name: Alias::new("ChangelogCategory").into_iden(), variants: vec![Alias::new("Fix").into_iden(), Alias::new("Feature").into_iden(), Alias::new("Ajouté").into_iden()] }).not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("description")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("description")).text().not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned()
             )

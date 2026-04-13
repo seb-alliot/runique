@@ -83,7 +83,7 @@ fn build_enum_type_stmts(schema: &ParsedSchema, db_kind: &DbKind) -> String {
             .map(|v| format!("'{}'", v)) // ← guillemets simples
             .collect();
         out.push_str(&format!(
-            "        manager.get_connection().execute_unprepared(\n            \"CREATE TYPE {name} AS ENUM ({variants})\"\n        ).await?;\n\n",
+            "        manager.get_connection().execute_unprepared(\n            \"DO $$ BEGIN CREATE TYPE {name} AS ENUM ({variants}); EXCEPTION WHEN duplicate_object THEN NULL; END $$\"\n        ).await?;\n\n",
             name = name,
             variants = variants.join(", "),
         ));
@@ -112,15 +112,15 @@ fn build_enum_type_drops(schema: &ParsedSchema, db_kind: &DbKind) -> String {
 pub fn generate_alter_file(change: &Changes) -> String {
     let (up_body, down_body) = build_alter_bodies(change);
 
-    let up_param = if up_body.trim().is_empty() {
-        "_manager"
-    } else {
+    let up_param = if up_body.contains("manager.") {
         "manager"
+    } else {
+        "_manager"
     };
-    let down_param = if down_body.trim().is_empty() {
-        "_manager"
-    } else {
+    let down_param = if down_body.contains("manager.") {
         "manager"
+    } else {
+        "_manager"
     };
 
     format!(

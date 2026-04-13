@@ -399,6 +399,7 @@
   "makemigrations": {
     "scanning": "Entitäten in '{}' werden gescannt...",
     "found_schema": "-> Schema gefunden: {}",
+    "found_extend": "-> Framework-Tabellenerweiterung gefunden: {}",
     "no_schema": "Keine schema()-Funktionen in '{}' gefunden.",
     "schema_count": "{} Schema(ta) gefunden.",
     "updated_lib": "Aktualisiert {}",
@@ -409,7 +410,10 @@
     "seaorm_alter": "SeaORM ALTER-Migration generiert: {}",
     "batch_up": "Batch up generiert: {}",
     "batch_down": "Batch down generiert: {}",
-    "apply_hint": "Führen Sie 'sea-orm-cli migrate up' aus."
+    "apply_hint": "Führen Sie 'sea-orm-cli migrate up' aus.",
+    "extend_unknown_table": "extend!{{}} : \"{}\" ist keine bekannte Framework-Tabelle. Erlaubte Tabellen: {}. Um eine App-Tabelle zu erweitern, ändern Sie deren model!{{}} direkt.",
+    "extend_invalid_syntax": "extend!{{}} : ungültige Syntax. Erwartet: table: \"tabellenname\", fields: {{ ... }}",
+    "admin_positioned": "AdminTableMigration nach der Migration von '{}' positioniert"
   },
   "migrate": {
     "applying": "Migrationen aus '{}' werden angewendet...",

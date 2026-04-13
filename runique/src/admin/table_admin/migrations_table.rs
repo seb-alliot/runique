@@ -5,6 +5,80 @@ use sea_query::{
     Alias, ColumnDef, ForeignKey, ForeignKeyAction, Index, Table, TableCreateStatement,
 };
 
+// ── EihwazUsersMigration ──────────────────────────────────────────────────────
+
+/// Génère le `TableCreateStatement` pour la table `eihwaz_users`.
+pub fn create_eihwaz_users_table() -> TableCreateStatement {
+    let mut pk_col = ColumnDef::new(Alias::new("id"));
+    #[cfg(feature = "big-pk")]
+    pk_col.big_integer();
+    #[cfg(not(feature = "big-pk"))]
+    pk_col.integer();
+    pk_col.not_null().auto_increment().primary_key();
+
+    Table::create()
+        .table(Alias::new("eihwaz_users"))
+        .if_not_exists()
+        .col(&mut pk_col)
+        .col(
+            ColumnDef::new(Alias::new("username"))
+                .string()
+                .not_null()
+                .unique_key(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("email"))
+                .string()
+                .not_null()
+                .unique_key(),
+        )
+        .col(ColumnDef::new(Alias::new("password")).string().not_null())
+        .col(
+            ColumnDef::new(Alias::new("is_active"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("is_staff"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(
+            ColumnDef::new(Alias::new("is_superuser"))
+                .boolean()
+                .not_null()
+                .default(false),
+        )
+        .col(ColumnDef::new(Alias::new("created_at")).date_time().null())
+        .col(ColumnDef::new(Alias::new("updated_at")).date_time().null())
+        .to_owned()
+}
+
+/// Migration "clé en main" pour créer la table `eihwaz_users`.
+/// À placer en premier dans le `vec!` de `Migrator`.
+pub struct EihwazUsersMigration;
+
+impl sea_orm_migration::MigrationName for EihwazUsersMigration {
+    fn name(&self) -> &str {
+        "m000000_000001_runique_eihwaz_users"
+    }
+}
+
+#[async_trait::async_trait]
+impl sea_orm_migration::MigrationTrait for EihwazUsersMigration {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager.create_table(create_eihwaz_users_table()).await
+    }
+
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager
+            .drop_table(Table::drop().table(Alias::new("eihwaz_users")).to_owned())
+            .await
+    }
+}
+
 /// Génère le `TableCreateStatement` pour la table `eihwaz_groupes`.
 pub fn create_eihwaz_groupes_table() -> TableCreateStatement {
     Table::create()
@@ -91,8 +165,19 @@ pub fn create_eihwaz_groupes_droits_table() -> TableCreateStatement {
         .to_owned()
 }
 
+/// Retourne le nom de la table user configurée.
+/// Lit `RUNIQUE_USER_TABLE` depuis l'environnement (`.env` chargé par sea-orm-cli).
+/// Défaut : `"eihwaz_users"`.
+pub fn user_table_name() -> String {
+    std::env::var("RUNIQUE_USER_TABLE").unwrap_or_else(|_| "eihwaz_users".to_string())
+}
+
 /// Génère le `TableCreateStatement` pour la table pivot `eihwaz_users_groupes`.
+/// La FK vers la table user cible `RUNIQUE_USER_TABLE` (défaut : `eihwaz_users`).
 pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
+    let user_table = user_table_name();
+    let fk_name = format!("fk_eihwaz_users_groupes_{}_id", user_table);
+
     Table::create()
         .table(Alias::new("eihwaz_users_groupes"))
         .if_not_exists()
@@ -106,9 +191,9 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
         )
         .foreign_key(
             ForeignKey::create()
-                .name("fk_eihwaz_users_groupes_user_id")
+                .name(&fk_name)
                 .from(Alias::new("eihwaz_users_groupes"), Alias::new("user_id"))
-                .to(Alias::new("eihwaz_users"), Alias::new("id"))
+                .to(Alias::new(user_table.as_str()), Alias::new("id"))
                 .on_delete(ForeignKeyAction::Cascade),
         )
         .foreign_key(

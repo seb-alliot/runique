@@ -6,10 +6,9 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .get_connection()
-            .execute_unprepared("CREATE TYPE RoadmapStatus AS ENUM ('Active', 'Planned', 'Future')")
-            .await?;
+        manager.get_connection().execute_unprepared(
+            "DO $$ BEGIN CREATE TYPE RoadmapStatus AS ENUM ('Active', 'Planned', 'Future'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+        ).await?;
 
         manager
             .create_table(
@@ -38,11 +37,7 @@ impl MigrationTrait for Migration {
                         .not_null(),
                     )
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
-                    .col(
-                        ColumnDef::new(Alias::new("description"))
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Alias::new("description")).text().not_null())
                     .col(ColumnDef::new(Alias::new("link_url")).string().null())
                     .col(ColumnDef::new(Alias::new("link_label")).string().null())
                     .col(ColumnDef::new(Alias::new("link_url_2")).string().null())

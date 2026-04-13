@@ -15,7 +15,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("username")).string().not_null())
                     .col(ColumnDef::new(Alias::new("email")).string().not_null())
                     .col(ColumnDef::new(Alias::new("password")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("bio")).string().null())
+                    .col(ColumnDef::new(Alias::new("bio")).text().null())
                     .col(ColumnDef::new(Alias::new("website")).string().null())
                     .col(ColumnDef::new(Alias::new("is_active")).boolean().not_null())
                     .to_owned()

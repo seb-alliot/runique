@@ -402,6 +402,7 @@
   "makemigrations": {
     "scanning": "'{}'のエンティティをスキャン中...",
     "found_schema": "-> スキーマが見つかりました: {}",
+    "found_extend": "-> フレームワークテーブルの拡張が見つかりました: {}",
     "no_schema": "'{}'にschema()関数が見つかりません。",
     "schema_count": "{}個のスキーマが見つかりました。",
     "updated_lib": "更新しました: {}",
@@ -412,7 +413,10 @@
     "seaorm_alter": "SeaORM ALTERマイグレーションを生成しました: {}",
     "batch_up": "バッチアップを生成しました: {}",
     "batch_down": "バッチダウンを生成しました: {}",
-    "apply_hint": "'sea-orm-cli migrate up'を実行して適用してください。"
+    "apply_hint": "'sea-orm-cli migrate up'を実行して適用してください。",
+    "extend_unknown_table": "extend!{{}} : \"{}\"は既知のフレームワークテーブルではありません。許可されたテーブル: {}。アプリテーブルを拡張するには、model!{{}}を直接変更してください。",
+    "extend_invalid_syntax": "extend!{{}} : 構文が無効です。期待される形式: table: \"テーブル名\", fields: {{ ... }}",
+    "admin_positioned": "AdminTableMigrationを'{}'マイグレーションの後に配置しました"
   },
   "migrate": {
     "applying": "'{}'からマイグレーションを適用中...",

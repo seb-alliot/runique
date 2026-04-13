@@ -88,6 +88,16 @@ pub fn lib_path(migrations_path: &str) -> String {
     format!("{}/lib.rs", migrations_path)
 }
 
+/// Répertoire des snapshots d'extension de tables framework (`snapshots/runique/`)
+pub fn extend_snapshot_dir(migrations_path: &str) -> String {
+    format!("{}/snapshots/runique", migrations_path)
+}
+
+/// Chemin du snapshot d'extension pour une table framework donnée
+pub fn extend_snapshot_file_path(migrations_path: &str, table_name: &str) -> String {
+    format!("{}/snapshots/runique/{}.rs", migrations_path, table_name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

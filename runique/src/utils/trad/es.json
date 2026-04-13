@@ -402,6 +402,7 @@
   "makemigrations": {
     "scanning": "Escaneando entidades en '{}'...",
     "found_schema": "-> Esquema encontrado: {}",
+    "found_extend": "-> Extensión de tabla de framework encontrada: {}",
     "no_schema": "No se encontraron funciones schema() en '{}'.",
     "schema_count": "{} esquema(s) encontrado(s).",
     "updated_lib": "Actualizado {}",
@@ -412,7 +413,10 @@
     "seaorm_alter": "Migración ALTER de SeaORM generada: {}",
     "batch_up": "Lote up generado: {}",
     "batch_down": "Lote down generado: {}",
-    "apply_hint": "Ejecute 'sea-orm-cli migrate up' para aplicar."
+    "apply_hint": "Ejecute 'sea-orm-cli migrate up' para aplicar.",
+    "extend_unknown_table": "extend!{{}} : \"{}\" no es una tabla de framework conocida. Tablas permitidas: {}. Para extender una tabla de aplicación, modifique su model!{{}} directamente.",
+    "extend_invalid_syntax": "extend!{{}} : sintaxis inválida. Esperado: table: \"nombre_tabla\", fields: {{ ... }}",
+    "admin_positioned": "AdminTableMigration posicionada después de la migración de '{}'"
   },
   "migrate": {
     "applying": "Aplicando migraciones desde '{}'...",

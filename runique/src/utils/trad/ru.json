@@ -403,6 +403,7 @@
   "makemigrations": {
     "scanning": "Сканирование сущностей в '{}'...",
     "found_schema": "-> Схема найдена: {}",
+    "found_extend": "-> Найдено расширение таблицы фреймворка: {}",
     "no_schema": "Функции schema() не найдены в '{}'.",
     "schema_count": "Найдено {} схем(а).",
     "updated_lib": "Обновлено {}",
@@ -413,7 +414,10 @@
     "seaorm_alter": "Сгенерирована миграция SeaORM ALTER: {}",
     "batch_up": "Сгенерирован пакет up: {}",
     "batch_down": "Сгенерирован пакет down: {}",
-    "apply_hint": "Запустите 'sea-orm-cli migrate up' для применения."
+    "apply_hint": "Запустите 'sea-orm-cli migrate up' для применения.",
+    "extend_unknown_table": "extend!{{}} : \"{}\" не является известной таблицей фреймворка. Разрешённые таблицы: {}. Для расширения таблицы приложения измените её model!{{}} напрямую.",
+    "extend_invalid_syntax": "extend!{{}} : неверный синтаксис. Ожидается: table: \"имя_таблицы\", fields: {{ ... }}",
+    "admin_positioned": "AdminTableMigration размещена после миграции '{}'"
   },
   "migrate": {
     "applying": "Применение миграций из '{}'...",

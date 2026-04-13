@@ -15,7 +15,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("user_id")).integer().not_null())
                     .col(ColumnDef::new_with_type(Alias::new("contribution_type"), ColumnType::Enum { name: Alias::new("ContributionType").into_iden(), variants: vec![Alias::new("Runique").into_iden(), Alias::new("Cours").into_iden()] }).not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("content")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("content")).text().not_null())
                     .col(ColumnDef::new(Alias::new("created_at")).date_time().not_null().default(Expr::current_timestamp()))
                     .to_owned()
             )
