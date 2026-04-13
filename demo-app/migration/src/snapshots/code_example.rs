@@ -15,7 +15,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("page_id")).integer().not_null())
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
                     .col(ColumnDef::new(Alias::new("language")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("code")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("code")).text().not_null())
                     .col(ColumnDef::new(Alias::new("context")).string().null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned()

@@ -9,7 +9,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Alias::new("cour_ia"))
+                    .table(Alias::new("eihwaz_droits"))
                     .if_not_exists()
                     .col(
                         ColumnDef::new(Alias::new("id"))
@@ -18,23 +18,14 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Alias::new("context")).string().not_null())
                     .col(
-                        ColumnDef::new(Alias::new("contraintes"))
+                        ColumnDef::new(Alias::new("nom"))
                             .string()
-                            .not_null(),
+                            .not_null()
+                            .unique_key(),
                     )
-                    .col(
-                        ColumnDef::new(Alias::new("contrainte_id"))
-                            .integer()
-                            .not_null(),
-                    )
-                    .col(ColumnDef::new(Alias::new("cour_id")).integer().not_null())
-                    .col(
-                        ColumnDef::new(Alias::new("sort_order"))
-                            .integer()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(Alias::new("resource_key")).string().null())
+                    .col(ColumnDef::new(Alias::new("access_type")).string().null())
                     .to_owned(),
             )
             .await?;
@@ -44,7 +35,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Alias::new("cour_ia")).to_owned())
+            .drop_table(Table::drop().table(Alias::new("eihwaz_droits")).to_owned())
             .await?;
         Ok(())
     }

@@ -410,7 +410,8 @@ fn dsl_field_type_to_col_type(ty: &str) -> String {
     match ty {
         // v1 SQL
         "String" | "char" | "varchar" => "String".to_string(),
-        "text" => "Text".to_string(),
+        // "text" en v2 = champ texte court (VARCHAR) — même comportement que String en v1
+        "text" => "String".to_string(),
         "i8" => "TinyInteger".to_string(),
         "i16" => "SmallInteger".to_string(),
         "i32" | "integer" => "Integer".to_string(),

@@ -44,7 +44,7 @@ pub use tower_http;
 pub use tower_sessions;
 pub use uuid;
 
-pub use derive_form::model;
+pub use derive_form::{extend, model};
 pub use dotenvy;
 pub use pulldown_cmark;
 
@@ -89,7 +89,7 @@ pub mod prelude {
     pub use crate::utils::aliases::*;
     pub use crate::utils::config::Pk;
     pub use crate::{error, flash_now, impl_objects, info, search, success, warning};
-    pub use derive_form::{form, model};
+    pub use derive_form::{extend, form, model};
 
     // ========================================================================
     // CONFIGURATION

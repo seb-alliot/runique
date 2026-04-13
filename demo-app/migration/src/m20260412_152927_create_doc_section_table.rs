@@ -7,7 +7,7 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager.get_connection().execute_unprepared(
-            "CREATE TYPE SectionTheme AS ENUM ('Demarrage', 'Web', 'Database', 'Security', 'Admin', 'Autres')"
+            "DO $$ BEGIN CREATE TYPE SectionTheme AS ENUM ('Demarrage', 'Web', 'Database', 'Security', 'Admin', 'Autres'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
         ).await?;
 
         manager

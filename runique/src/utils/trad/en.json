@@ -418,6 +418,7 @@
   "makemigrations": {
     "scanning": "Scanning entities in '{}'...",
     "found_schema": "-> Found schema: {}",
+    "found_extend": "-> Found framework table extension: {}",
     "no_schema": "No schema() functions found in '{}'.",
     "schema_count": "Found {} schema(s).",
     "updated_lib": "Updated {}",
@@ -428,7 +429,10 @@
     "seaorm_alter": "SeaORM ALTER migration generated: {}",
     "batch_up": "Generated batch up: {}",
     "batch_down": "Generated batch down: {}",
-    "apply_hint": "Run 'sea-orm-cli migrate up' to apply."
+    "apply_hint": "Run 'sea-orm-cli migrate up' to apply.",
+    "extend_unknown_table": "extend!{{}} : \"{}\" is not a known framework table. Allowed tables: {}. To extend an app table, modify its model!{{}} directly.",
+    "extend_invalid_syntax": "extend!{{}} : invalid syntax. Expected: table: \"table_name\", fields: {{ ... }}",
+    "admin_positioned": "AdminTableMigration positioned after '{}' migration"
   },
   "migrate": {
     "applying": "Applying migrations from '{}'...",

@@ -1048,17 +1048,15 @@ fn validate_form_field_attrs(
     }
 
     // upload_to requis pour image / document / file
-    if matches!(kind, Image | Document | File)
-        && !attrs.iter().any(|a| matches!(a, UploadTo(_))) {
-            return Err(syn::Error::new(
-                name.span(),
-                format!(
-                    "`upload_to` est requis pour les champs `{}` (champ: {})",
-                    kind_name, name
-                ),
-            ));
-        }
-    
+    if matches!(kind, Image | Document | File) && !attrs.iter().any(|a| matches!(a, UploadTo(_))) {
+        return Err(syn::Error::new(
+            name.span(),
+            format!(
+                "`upload_to` est requis pour les champs `{}` (champ: {})",
+                kind_name, name
+            ),
+        ));
+    }
 
     // min < max pour int
     let min_val = attrs

@@ -14,7 +14,7 @@ async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
                     .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
                     .col(ColumnDef::new(Alias::new("chapitre_id")).integer().not_null())
                     .col(ColumnDef::new(Alias::new("heading")).string().null())
-                    .col(ColumnDef::new(Alias::new("content")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("content")).text().not_null())
                     .col(ColumnDef::new(Alias::new("block_type")).string().not_null())
                     .col(ColumnDef::new(Alias::new("sort_order")).integer().not_null())
                     .to_owned()

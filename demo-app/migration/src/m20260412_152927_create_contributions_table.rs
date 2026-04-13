@@ -6,10 +6,9 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .get_connection()
-            .execute_unprepared("CREATE TYPE ContributionType AS ENUM ('Runique', 'Cours')")
-            .await?;
+        manager.get_connection().execute_unprepared(
+            "DO $$ BEGIN CREATE TYPE ContributionType AS ENUM ('Runique', 'Cours'); EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+        ).await?;
 
         manager
             .create_table(
@@ -38,7 +37,7 @@ impl MigrationTrait for Migration {
                         .not_null(),
                     )
                     .col(ColumnDef::new(Alias::new("title")).string().not_null())
-                    .col(ColumnDef::new(Alias::new("content")).string().not_null())
+                    .col(ColumnDef::new(Alias::new("content")).text().not_null())
                     .col(
                         ColumnDef::new(Alias::new("created_at"))
                             .date_time()
