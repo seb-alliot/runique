@@ -22,7 +22,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **2.0.0**.
+Workspace version (source of truth): **2.0.1**.
 
 ---
 

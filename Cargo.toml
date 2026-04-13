@@ -61,7 +61,7 @@ image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
 walkdir = "2.5.0"
 
-derive_form = "2.0.0"
+derive_form = "2.0.1"
 
 # Logging
 tracing = "0.1"
