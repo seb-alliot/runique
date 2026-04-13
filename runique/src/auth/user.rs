@@ -139,7 +139,7 @@ pub fn schema() -> crate::migration::schema::ModelSchema {
         .primary_key(pk)
         .column(
             crate::migration::ColumnDef::new("username")
-                .text()
+                .varchar(150)
                 .required()
                 .unique(),
         )

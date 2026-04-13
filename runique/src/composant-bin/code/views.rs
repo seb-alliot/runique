@@ -39,7 +39,7 @@ pub async fn soumission_inscription(
         return request.render(template);
     }
 
-    if request.is_post() && form.form.is_valid().unwrap_or(false) {
+    if request.is_post() && form.is_valid().await {
         match form.save(&request.engine.db).await {
             Ok(user) => {
                 auth_login(&request.session, &request.engine.db, user.id)
