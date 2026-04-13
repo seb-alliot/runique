@@ -82,7 +82,6 @@ pub mod prelude {
             number::NumericField,
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,
-            
         },
         generic::{FieldKind, GenericField},
         model_form::ModelForm,
