@@ -82,6 +82,7 @@ pub mod prelude {
             number::NumericField,
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},
             text::TextField,
+            
         },
         generic::{FieldKind, GenericField},
         model_form::ModelForm,
@@ -89,7 +90,6 @@ pub mod prelude {
     pub use crate::migration::schema::ModelSchema;
     pub use crate::utils::aliases::*;
     pub use crate::utils::config::Pk;
-    pub use crate::{error, flash_now, impl_objects, info, search, success, warning};
     pub use derive_form::{extend, form, model};
 
     // ========================================================================
@@ -108,7 +108,10 @@ pub mod prelude {
         RouterExt, register_name_url, register_pending, reverse, reverse_with_parameters,
     };
     pub use crate::utils::csp_nonce::*;
-    pub use crate::{urlpatterns, view};
+    pub use crate::{
+        context_update, error, flash_now, impl_form_access, impl_objects, info, search, success,
+        urlpatterns, view, warning,
+    };
 
     // ========================================================================
     // CONTEXT & TEMPLATE

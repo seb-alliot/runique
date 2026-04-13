@@ -1,9 +1,9 @@
 # Runique — Django-inspired Rust Framework
 
 ![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
+![Tests passing](https://img.shields.io/badge/tests-1823%2F1823%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.1.54-blue)
+![Version](https://img.shields.io/badge/version-2.0.1-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
@@ -22,7 +22,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **1.1.54**.
+Workspace version (source of truth): **2.0.0**.
 
 ---
 
@@ -48,7 +48,6 @@ cd runique
 cargo build --workspace
 cargo test --workspace
 ```
-
 
 Detailed guide: [Installation](https://runique.io/docs/en/installation)
 
@@ -130,11 +129,11 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-- Reported tests: **1731/1731 passing**
-- Coverage snapshot (`2026-03-01`, package `runique`):
-  - Functions: **76.66%**
-  - Lines: **71.04%**
-  - Regions: **67.22%**
+- Reported tests: **1823/1823 passing**
+- Coverage snapshot (`2026-03-30`, package `runique`):
+  - Functions: **76.59%**
+  - Lines: **71.52%**
+  - Regions: **69.11%**
 
 ```bash
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
@@ -160,12 +159,12 @@ Full reference: [Sessions](https://runique.io/docs/en/session)
 All behavior is configurable via `.env`. Key variables:
 
 ```env
+RUNIQUE_SESSION_CLEANUP_SECS=60
+RUNIQUE_SESSION_LOW_WATERMARK=134217728
+RUNIQUE_SESSION_HIGH_WATERMARK=268435456
 SECRET_KEY=your-secret-key
 DATABASE_URL=sqlite://db.sqlite3
-RUNIQUE_ENABLE_CACHE=true
 ```
-
-> Session watermarks and cleanup interval are configured via the builder (`.with_session_memory_limit()`, `.with_session_cleanup_interval()`), not via environment variables.
 
 Full reference: [Environment variables](https://runique.io/docs/en/env)
 
@@ -187,6 +186,7 @@ Full reference: [Environment variables](https://runique.io/docs/en/env)
 - [Admin beta](https://runique.io/docs/en/admin)
 - [Sessions](https://runique.io/docs/en/session)
 - [Environment variables](https://runique.io/docs/en/env)
+
 ---
 
 ## Project status
