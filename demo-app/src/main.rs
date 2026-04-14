@@ -53,6 +53,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             "https://img.shields.io",
                             "https://runique.io",
                         ])
+                        .connect(vec![
+                            "'self'",
+                            "https://region1.google-analytics.com",
+                            "https://www.google-analytics.com",
+                        ])
                 })
         })
         .with_admin(|a| {
