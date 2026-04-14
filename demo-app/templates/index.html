@@ -22,6 +22,7 @@
         <link rel="stylesheet" href='{% static "css/inline.css" %}'>
     {% endblock %}
     <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
+    {% if not debug %}{% include "utils/gtag.html" %}{% endif %}
 </head>
 <body>
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NMHDD89C"
