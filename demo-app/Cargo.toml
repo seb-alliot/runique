@@ -15,5 +15,5 @@ reqwest = { version = "0.12", features = ["json"] }
 
 chrono = "0.4"
 tracing-subscriber = "0.3.22"
-sea-orm = "=2.0.0-rc.32"
-sea-orm-migration = "=2.0.0-rc.32"
+sea-orm = "=2.0.0-rc.38"
+sea-orm-migration = "=2.0.0-rc.38"

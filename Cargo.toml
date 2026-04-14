@@ -9,7 +9,7 @@ resolver = "2"
 [workspace.package]
 version = "2.0.1"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 authors = ["Itsuki"]
 license = "MIT"
 repository = "https://github.com/seb-alliot/runique"
@@ -37,8 +37,8 @@ indexmap = { version = "2.13.0", features = ["serde"] }
 glob = "0.3"
 
 # ORM
-sea-orm = "=2.0.0-rc.32"
-sea-orm-migration = { version = "=2.0.0-rc.32" }
+sea-orm = "=2.0.0-rc.38"
+sea-orm-migration = { version = "=2.0.0-rc.38" }
 sea-query = { version = "1.0.0-rc.27" }
 
 # Utilitaires
