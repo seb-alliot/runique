@@ -54,9 +54,8 @@ The form provided by Runique (`runique::admin::UserAdminCreateForm`) exposes:
 
 ```rust
 admin! {
-    users: eihwaz_users::Model => MyForm {
+    users: runique_users::Model => MyForm {
         title: "Users",
-        permissions: ["admin"],
         create_form: runique::admin::UserAdminCreateForm,
         edit_form: crate::forms::UserEditForm,
     }
@@ -110,7 +109,7 @@ Without this configuration, the URL is built from the `Host` header of the HTTP 
 
 ## Custom model
 
-If the project uses its own user model (not `eihwaz_users`), it must implement
+If the project uses its own user model (not `runique_users`), it must implement
 `UserEntity` and handle `is_active` in `update_password` itself.
 
 `auth_login()` uses `BuiltinUserEntity` — projects with a custom model call

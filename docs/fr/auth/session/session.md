@@ -22,6 +22,8 @@ auth_login(&session, &db, user.id).await?;
 
 Pour les cas où vous avez déjà toutes les données et souhaitez contrôler la persistance DB et la connexion exclusive.
 
+> **Note :** Si vous utilisez votre propre modèle utilisateur (Custom Model) en remplacement de la table par défaut, vous **devez** utiliser `login()`. En effet, `auth_login()` tente systématiquement d'interroger la table interne `runique_users`.
+
 ```rust
 login(
     &session,
