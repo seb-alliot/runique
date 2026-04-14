@@ -43,10 +43,10 @@ pub fn generate(email: &str) -> String {
 pub fn consume(token: &str) -> Option<String> {
     let mut store = TOKENS.lock().unwrap();
     let now = Instant::now();
-    if let Some(entry) = store.remove(token) {
-        if entry.expires_at > now {
-            return Some(entry.email);
-        }
+    if let Some(entry) = store.remove(token)
+        && entry.expires_at > now
+    {
+        return Some(entry.email);
     }
     None
 }

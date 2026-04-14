@@ -66,115 +66,114 @@ impl SeaOrmVisitor {
             return;
         };
         let method = mc.method.to_string();
-        if method == "table" && self.table_name.is_none() {
-            if let Some(arg) = mc.args.first() {
-                let name = extract_alias_new_str_inner(arg).or_else(|| extract_str_from_call(arg));
+        if method == "table"
+            && self.table_name.is_none()
+            && let Some(arg) = mc.args.first()
+        {
+            let name = extract_alias_new_str_inner(arg).or_else(|| extract_str_from_call(arg));
 
-                if let Some(n) = name {
-                    self.table_name = Some(n);
-                }
+            if let Some(n) = name {
+                self.table_name = Some(n);
             }
         }
-        if method == "col" {
-            if let Some(arg) = mc.args.first() {
-                let methods = method_names_in_expr(arg);
-                let name = extract_alias_new_str(arg).or_else(|| extract_str_from_call(arg));
-                if let Some(n) = name {
-                    let is_pk = methods.contains(&"primary_key".to_string());
-                    let col_type = detect_col_type_seaorm(&methods);
-                    let nullable = methods.contains(&"null".to_string());
-                    let unique = methods.contains(&"unique".to_string())
-                        || methods.contains(&"unique_key".to_string());
-                    let has_default_now = methods.contains(&"default".to_string());
-                    let (enum_name, enum_string_values) =
-                        if methods.contains(&"enum_type".to_string()) {
-                            extract_enum_type_info(arg)
-                        } else {
-                            // ColumnDef::new_with_type(..., ColumnType::Enum { name: ..., variants: [...] })
-                            extract_column_type_enum_struct(arg)
-                        };
-                    if is_pk {
-                        self.primary_key = Some(ParsedColumn {
-                            name: n,
-                            col_type,
-                            nullable: false,
-                            unique: false,
-                            ignored: false,
-                            created_at: false,
-                            updated_at: false,
-                            has_default_now: false,
-                            enum_name: None,
-                            enum_string_values: Vec::new(),
-                            enum_is_pg: false,
-                        });
-                    } else {
-                        let is_created_at = n == "created_at";
-                        let is_updated_at = n == "updated_at";
-                        self.columns.push(ParsedColumn {
-                            name: n,
-                            col_type,
-                            nullable,
-                            unique,
-                            ignored: false,
-                            created_at: is_created_at,
-                            updated_at: is_updated_at,
-                            has_default_now: has_default_now || is_created_at || is_updated_at,
-                            enum_is_pg: !enum_string_values.is_empty(),
-                            enum_name,
-                            enum_string_values,
-                        });
-                    }
-                }
-            }
-        }
-
-        if method == "create_foreign_key" {
-            if let Some(arg) = mc.args.first() {
-                if let Some(fk) = extract_seaorm_fk(arg) {
-                    self.foreign_keys.push(fk);
-                }
-            }
-        }
-
-        if method == "create_index" {
-            if let Some(arg) = mc.args.first() {
-                if let Some(idx) = extract_seaorm_index(arg) {
-                    self.indexes.push(idx);
-                }
-            }
-        }
-
-        if method == "foreign_key" {
-            if let Some(arg) = mc.args.first() {
-                let from_column = extract_alias_new_str(arg)
-                    .or_else(|| extract_str_from_call(arg))
-                    .unwrap_or_default();
-                let (to_table, to_column) = extract_references_from_expr(arg)
-                    .unwrap_or_else(|| ("".to_string(), "id".to_string()));
-                let on_delete = extract_fk_action(arg, "on_delete");
-                let on_update = extract_fk_action(arg, "on_update");
-                self.foreign_keys.push(ParsedFk {
-                    from_column,
-                    to_table,
-                    to_column,
-                    on_delete,
-                    on_update,
-                });
-            }
-        }
-
-        if method == "index" {
-            if let Some(arg) = mc.args.first() {
-                let methods = method_names_in_expr(arg);
-                let strings = extract_all_str_args(arg);
-                let unique = methods.contains(&"unique".to_string());
-                if let Some(name) = strings.first() {
-                    self.indexes.push(ParsedIndex {
-                        name: name.clone(),
-                        columns: strings[1..].to_vec(),
+        if method == "col"
+            && let Some(arg) = mc.args.first()
+        {
+            let methods = method_names_in_expr(arg);
+            let name = extract_alias_new_str(arg).or_else(|| extract_str_from_call(arg));
+            if let Some(n) = name {
+                let is_pk = methods.contains(&"primary_key".to_string());
+                let col_type = detect_col_type_seaorm(&methods);
+                let nullable = methods.contains(&"null".to_string());
+                let unique = methods.contains(&"unique".to_string())
+                    || methods.contains(&"unique_key".to_string());
+                let has_default_now = methods.contains(&"default".to_string());
+                let (enum_name, enum_string_values) = if methods.contains(&"enum_type".to_string())
+                {
+                    extract_enum_type_info(arg)
+                } else {
+                    // ColumnDef::new_with_type(..., ColumnType::Enum { name: ..., variants: [...] })
+                    extract_column_type_enum_struct(arg)
+                };
+                if is_pk {
+                    self.primary_key = Some(ParsedColumn {
+                        name: n,
+                        col_type,
+                        nullable: false,
+                        unique: false,
+                        ignored: false,
+                        created_at: false,
+                        updated_at: false,
+                        has_default_now: false,
+                        enum_name: None,
+                        enum_string_values: Vec::new(),
+                        enum_is_pg: false,
+                    });
+                } else {
+                    let is_created_at = n == "created_at";
+                    let is_updated_at = n == "updated_at";
+                    self.columns.push(ParsedColumn {
+                        name: n,
+                        col_type,
+                        nullable,
                         unique,
+                        ignored: false,
+                        created_at: is_created_at,
+                        updated_at: is_updated_at,
+                        has_default_now: has_default_now || is_created_at || is_updated_at,
+                        enum_is_pg: !enum_string_values.is_empty(),
+                        enum_name,
+                        enum_string_values,
                     });
                 }
+            }
+        }
+
+        if method == "create_foreign_key"
+            && let Some(arg) = mc.args.first()
+            && let Some(fk) = extract_seaorm_fk(arg)
+        {
+            self.foreign_keys.push(fk);
+        }
+
+        if method == "create_index"
+            && let Some(arg) = mc.args.first()
+            && let Some(idx) = extract_seaorm_index(arg)
+        {
+            self.indexes.push(idx);
+        }
+
+        if method == "foreign_key"
+            && let Some(arg) = mc.args.first()
+        {
+            let from_column = extract_alias_new_str(arg)
+                .or_else(|| extract_str_from_call(arg))
+                .unwrap_or_default();
+            let (to_table, to_column) = extract_references_from_expr(arg)
+                .unwrap_or_else(|| ("".to_string(), "id".to_string()));
+            let on_delete = extract_fk_action(arg, "on_delete");
+            let on_update = extract_fk_action(arg, "on_update");
+            self.foreign_keys.push(ParsedFk {
+                from_column,
+                to_table,
+                to_column,
+                on_delete,
+                on_update,
+            });
+        }
+
+        if method == "index"
+            && let Some(arg) = mc.args.first()
+        {
+            let methods = method_names_in_expr(arg);
+            let strings = extract_all_str_args(arg);
+            let unique = methods.contains(&"unique".to_string());
+            if let Some(name) = strings.first() {
+                self.indexes.push(ParsedIndex {
+                    name: name.clone(),
+                    columns: strings[1..].to_vec(),
+                    unique,
+                });
             }
         }
     }
@@ -331,12 +330,11 @@ fn extract_seaorm_index(expr: &Expr) -> Option<ParsedIndex> {
                 }
             }
             "col" => {
-                if let Some(arg) = mc.args.first() {
-                    if let Some(col) =
+                if let Some(arg) = mc.args.first()
+                    && let Some(col) =
                         extract_alias_new_str_inner(arg).or_else(|| extract_str_from_call(arg))
-                    {
-                        columns.push(col);
-                    }
+                {
+                    columns.push(col);
                 }
             }
             "unique" => {

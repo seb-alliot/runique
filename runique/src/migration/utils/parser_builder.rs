@@ -643,10 +643,8 @@ impl<'ast> Visit<'ast> for DslVisitor {
             .map(|s| s.ident == "model")
             .unwrap_or(false);
 
-        if is_model {
-            if let Ok(model) = syn::parse2::<DslModel>(mac.tokens.clone()) {
-                self.schema = Some(dsl_to_parsed_schema(model));
-            }
+        if is_model && let Ok(model) = syn::parse2::<DslModel>(mac.tokens.clone()) {
+            self.schema = Some(dsl_to_parsed_schema(model));
         }
         syn::visit::visit_macro(self, mac);
     }

@@ -11,7 +11,7 @@ description = "A Django-inspired web framework for Rust with ORM, templates, and
 keywords = ["web", "framework", "django", "sea-orm", "runique"]
 categories = ["web-programming::http-server"]
 readme = "readme.md"
-documentation = "https://runique.io/docs/fr"
+documentation = "https://runique.io/docs/en"
 
 exclude = [
     "tests/*",

@@ -15,10 +15,13 @@ pub enum RuniqueEnv {
 
 pub fn load_env(files: Vec<&str>) {
     files.iter().for_each(|file| {
-        if Path::new(file).exists() {
-            if let Err(e) = dotenvy::from_path_override(file) {
-                eprintln!("Unable to load {} : {}, default config via .env", file, e);
-            }
+        if Path::new(file).exists()
+            && let Some(level) = crate::utils::runique_log::get_log().password_init
+        {
+            crate::runique_log!(
+                level,
+                "password_init() called multiple times — initial configuration is kept"
+            );
         }
     });
 }

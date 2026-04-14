@@ -597,10 +597,10 @@ async fn handle_list(
                         parts.push(format!("fp_{}={}", other_col, other_page));
                     }
                 }
-                if let Some(fp) = fp_override {
-                    if fp > 0 {
-                        parts.push(format!("fp_{}={}", col, fp));
-                    }
+                if let Some(fp) = fp_override
+                    && fp > 0
+                {
+                    parts.push(format!("fp_{}={}", col, fp));
                 }
                 parts.join("&")
             };
@@ -785,24 +785,24 @@ async fn handle_create_post(
         }
 
         // Send welcome email + reset after creating an admin user
-        if entry.meta.inject_password {
-            if let Some(email) = body_for_create.get("email") {
-                let email_template = state
-                    .config
-                    .user_resources
-                    .get(entry.meta.key)
-                    .and_then(|t| t.as_deref());
-                send_user_created_email(
-                    req,
-                    entry,
-                    email,
-                    body_for_create.get("username").map(String::as_str),
-                    email_template,
-                    headers,
-                    state,
-                )
-                .await;
-            }
+        if entry.meta.inject_password
+            && let Some(email) = body_for_create.get("email")
+        {
+            let email_template = state
+                .config
+                .user_resources
+                .get(entry.meta.key)
+                .and_then(|t| t.as_deref());
+            send_user_created_email(
+                req,
+                entry,
+                email,
+                body_for_create.get("username").map(String::as_str),
+                email_template,
+                headers,
+                state,
+            )
+            .await;
         }
 
         req.notices
@@ -950,45 +950,39 @@ async fn handle_edit_post(
 
     let mut is_locked = false;
 
-    if form.is_valid().await {
-        if let Some(orig_ts) = &orig_updated_at {
-            if let Some(get_fn) = &entry.get_fn {
-                if let Ok(Some(current_obj)) = get_fn(req.engine.db.clone(), id.clone()).await {
-                    if let Some(current_ts) = current_obj.get("updated_at").and_then(|v| v.as_str())
-                    {
-                        if current_ts != orig_ts {
-                            is_locked = true;
-                            // Inject error
-                            form.get_form_mut().errors.push("Update failed: This content has been modified by another person during your editing. Please copy your changes and reload the page.".to_string());
-                            req.notices.error("This content has been modified by someone else during your editing. Refresh the page.").await;
-                        }
-                    }
-                }
-            }
-        }
+    if form.is_valid().await
+        && let Some(orig_ts) = &orig_updated_at
+        && let Some(get_fn) = &entry.get_fn
+        && let Ok(Some(current_obj)) = get_fn(req.engine.db.clone(), id.clone()).await
+        && let Some(current_ts) = current_obj.get("updated_at").and_then(|v| v.as_str())
+        && current_ts != orig_ts
+    {
+        is_locked = true;
+        form.get_form_mut().errors.push("Update failed: This content has been modified by another person during your editing. Please copy your changes and reload the page.".to_string());
+        req.notices.error("This content has been modified by someone else during your editing. Refresh the page.").await;
+    }
 
-        if !is_locked && !form.get_form().has_errors() {
-            let result = match &entry.update_fn {
-                Some(f) => f(req.engine.db.clone(), id.clone(), body_for_update).await,
-                None => form.save(&req.engine.db).await,
-            };
-            if let Err(e) = result {
-                form.get_form_mut().database_error(&e);
-                if !is_unique_violation(&e) {
-                    return Err(Box::new(AppError::new(ErrorContext::database(e))));
-                }
-                // uniqueness violation: fall through to form re-rendering
-            } else {
-                req.notices
-                    .success(t("admin.edit.success").to_string())
-                    .await;
-                return Ok(Redirect::to(&format!(
-                    "{}/{}/list",
-                    state.config.prefix.trim_end_matches('/'),
-                    entry.meta.key
-                ))
-                .into_response());
+    if !is_locked && !form.get_form().has_errors() {
+        let result = match &entry.update_fn {
+            Some(f) => f(req.engine.db.clone(), id.clone(), body_for_update).await,
+            None => form.save(&req.engine.db).await,
+        };
+        if let Err(e) = result {
+            form.get_form_mut().database_error(&e);
+            if !is_unique_violation(&e) {
+                return Err(Box::new(AppError::new(ErrorContext::database(e))));
             }
+            // uniqueness violation: fall through to form re-rendering
+        } else {
+            req.notices
+                .success(t("admin.edit.success").to_string())
+                .await;
+            return Ok(Redirect::to(&format!(
+                "{}/{}/list",
+                state.config.prefix.trim_end_matches('/'),
+                entry.meta.key
+            ))
+            .into_response());
         }
     }
 

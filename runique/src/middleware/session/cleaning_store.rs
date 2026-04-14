@@ -162,10 +162,10 @@ impl CleaningMemoryStore {
             let mut interval = tokio::time::interval(period);
             loop {
                 interval.tick().await;
-                if let Err(e) = store.delete_expired().await {
-                    if let Some(level) = crate::utils::runique_log::get_log().session {
-                        crate::runique_log!(level, "session cleanup error: {e}");
-                    }
+                if let Err(e) = store.delete_expired().await
+                    && let Some(level) = crate::utils::runique_log::get_log().session
+                {
+                    crate::runique_log!(level, "session cleanup error: {e}");
                 }
             }
         });
@@ -284,14 +284,14 @@ impl SessionStore for CleaningMemoryStore {
         }
 
         let size = estimate_size(record);
-        if size > MAX_SESSION_RECORD_SIZE {
-            if let Some(level) = crate::utils::runique_log::get_log().session {
-                crate::runique_log!(
-                    level,
-                    "Large session record ({} bytes) — avoid storing files or images in session",
-                    size
-                );
-            }
+        if size > MAX_SESSION_RECORD_SIZE
+            && let Some(level) = crate::utils::runique_log::get_log().session
+        {
+            crate::runique_log!(
+                level,
+                "Large session record ({} bytes) — avoid storing files or images in session",
+                size
+            );
         }
 
         guard.insert(record.id, record.clone());
@@ -318,10 +318,10 @@ impl SessionStore for CleaningMemoryStore {
                 .data
                 .get(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
                 .and_then(serde_json::Value::as_i64)
+                && !had_user
             {
-                if !had_user {
-                    let mut freed = 0usize;
-                    let to_delete: Vec<Id> = guard
+                let mut freed = 0usize;
+                let to_delete: Vec<Id> = guard
                         .iter()
                         .filter(|(id, r)| {
                             **id != record.id
@@ -332,35 +332,34 @@ impl SessionStore for CleaningMemoryStore {
                         })
                         .map(|(id, _)| *id)
                         .collect();
-                    for id in to_delete {
-                        if let Some(r) = guard.remove(&id) {
-                            freed = freed.saturating_add(estimate_size(&r));
-                        }
+                for id in to_delete {
+                    if let Some(r) = guard.remove(&id) {
+                        freed = freed.saturating_add(estimate_size(&r));
                     }
-                    if freed > 0 {
-                        self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
-                        if let Some(level) = crate::utils::runique_log::get_log().exclusive_login {
-                            crate::runique_log!(
-                                level,
-                                user_id = user_id,
-                                "exclusive_login: {} session(s) invalidated for user {}",
-                                freed,
-                                user_id
-                            );
-                        }
+                }
+                if freed > 0 {
+                    self.size_bytes.fetch_sub(freed, Ordering::Relaxed);
+                    if let Some(level) = crate::utils::runique_log::get_log().exclusive_login {
+                        crate::runique_log!(
+                            level,
+                            user_id = user_id,
+                            "exclusive_login: {} session(s) invalidated for user {}",
+                            freed,
+                            user_id
+                        );
                     }
                 }
             }
         }
 
-        if new_size > MAX_SESSION_RECORD_SIZE {
-            if let Some(level) = crate::utils::runique_log::get_log().session {
-                crate::runique_log!(
-                    level,
-                    "Large session record ({} bytes) — avoid storing files or images in session",
-                    new_size
-                );
-            }
+        if new_size > MAX_SESSION_RECORD_SIZE
+            && let Some(level) = crate::utils::runique_log::get_log().session
+        {
+            crate::runique_log!(
+                level,
+                "Large session record ({} bytes) — avoid storing files or images in session",
+                new_size
+            );
         }
 
         guard.insert(record.id, record.clone());

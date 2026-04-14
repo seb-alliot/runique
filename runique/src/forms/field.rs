@@ -17,10 +17,10 @@ fn cleaned_value(form: &Forms, name: &str) -> Option<String> {
     if !form.fields.contains_key(name) {
         return None;
     }
-    if let Some(val) = form.fields.get(name).map(|f| f.value()) {
-        if !val.is_empty() {
-            return Some(val.to_string());
-        }
+    if let Some(val) = form.fields.get(name).map(|f| f.value())
+        && !val.is_empty()
+    {
+        return Some(val.to_string());
     }
     form.path_params
         .get(name)

@@ -154,13 +154,12 @@ pub fn diff_schemas(previous: &ParsedSchema, current: &ParsedSchema) -> Changes 
             }
             // Renames by position (among values present in both)
             for (i, new_val) in curr.enum_string_values.iter().enumerate() {
-                if let Some(old_val) = prev.enum_string_values.get(i) {
-                    if old_val != new_val
-                        && prev_set.contains(old_val.as_str())
-                        && !curr_set.contains(old_val.as_str())
-                    {
-                        enum_renames.push((name.to_string(), old_val.clone(), new_val.clone()));
-                    }
+                if let Some(old_val) = prev.enum_string_values.get(i)
+                    && old_val != new_val
+                    && prev_set.contains(old_val.as_str())
+                    && !curr_set.contains(old_val.as_str())
+                {
+                    enum_renames.push((name.to_string(), old_val.clone(), new_val.clone()));
                 }
             }
         }

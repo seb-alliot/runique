@@ -625,12 +625,11 @@ impl MiddlewareStaging {
                             async move {
                                 if let Some(session) =
                                     req.extensions().get::<tower_sessions::Session>()
+                                    && crate::auth::session::is_authenticated(session).await
                                 {
-                                    if crate::auth::session::is_authenticated(session).await {
-                                        session.set_expiry(Some(Expiry::OnInactivity(
-                                            self.session_duration,
-                                        )));
-                                    }
+                                    session.set_expiry(Some(Expiry::OnInactivity(
+                                        self.session_duration,
+                                    )));
                                 }
                                 next.run(req).await
                             }
@@ -659,39 +658,37 @@ impl MiddlewareStaging {
                             };
                             if let Some(session) =
                                 req.extensions().get::<tower_sessions::Session>().cloned()
-                            {
-                                if let (Some(id), Some(username)) =
+                                && let (Some(id), Some(username)) =
                                     (get_user_id(&session).await, get_username(&session).await)
-                                {
-                                    let is_staff = session
-                                        .get::<bool>(SESSION_USER_IS_STAFF_KEY)
-                                        .await
-                                        .ok()
-                                        .flatten()
-                                        .unwrap_or(false);
-                                    let is_superuser = session
-                                        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-                                        .await
-                                        .ok()
-                                        .flatten()
-                                        .unwrap_or(false);
-                                    let groupes = session
-                                        .get::<Vec<Groupe>>(GROUPES)
-                                        .await
-                                        .ok()
-                                        .flatten()
-                                        .unwrap_or_default();
-                                    let current_user = CurrentUser {
-                                        id,
-                                        username,
-                                        is_staff,
-                                        is_superuser,
-                                        groupes,
-                                    };
-                                    RequestExtensions::new()
-                                        .with_current_user(current_user)
-                                        .inject_request(&mut req);
-                                }
+                            {
+                                let is_staff = session
+                                    .get::<bool>(SESSION_USER_IS_STAFF_KEY)
+                                    .await
+                                    .ok()
+                                    .flatten()
+                                    .unwrap_or(false);
+                                let is_superuser = session
+                                    .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
+                                    .await
+                                    .ok()
+                                    .flatten()
+                                    .unwrap_or(false);
+                                let groupes = session
+                                    .get::<Vec<Groupe>>(GROUPES)
+                                    .await
+                                    .ok()
+                                    .flatten()
+                                    .unwrap_or_default();
+                                let current_user = CurrentUser {
+                                    id,
+                                    username,
+                                    is_staff,
+                                    is_superuser,
+                                    groupes,
+                                };
+                                RequestExtensions::new()
+                                    .with_current_user(current_user)
+                                    .inject_request(&mut req);
                             }
                             next.run(req).await
                         },

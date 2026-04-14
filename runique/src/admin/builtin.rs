@@ -44,12 +44,11 @@ use crate::utils::{
 /// then falls back to textual verification.
 fn is_unique_violation(err: &sea_orm::DbErr) -> bool {
     use sea_orm::{RuntimeErr, sqlx};
-    if let sea_orm::DbErr::Exec(RuntimeErr::SqlxError(arc_err)) = err {
-        if let sqlx::Error::Database(db_err) = arc_err.as_ref() {
-            if db_err.code().as_deref() == Some("23505") {
-                return true;
-            }
-        }
+    if let sea_orm::DbErr::Exec(RuntimeErr::SqlxError(arc_err)) = err
+        && let sqlx::Error::Database(db_err) = arc_err.as_ref()
+        && db_err.code().as_deref() == Some("23505")
+    {
+        return true;
     }
     let s = err.to_string();
     s.contains("23505")

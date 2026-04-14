@@ -296,13 +296,13 @@ impl FormField for FileField {
             .collect();
 
         // 2. File count validation
-        if let Some(max) = self.max_files {
-            if files.len() > max {
-                cleanup_files(&files);
-                self.base.value.clear();
-                self.set_error(tf("forms.file_max_count", &[&max]));
-                return false;
-            }
+        if let Some(max) = self.max_files
+            && files.len() > max
+        {
+            cleanup_files(&files);
+            self.base.value.clear();
+            self.set_error(tf("forms.file_max_count", &[&max]));
+            return false;
         }
 
         // 3. Extensions + size validation
@@ -317,22 +317,22 @@ impl FormField for FileField {
                 ));
                 return false;
             }
-            if let Some(max_bytes) = self.upload_config.max_size {
-                if let Ok(metadata) = std::fs::metadata(filename) {
-                    let file_size = metadata.len();
-                    if file_size > max_bytes {
-                        let size_mb = file_size as f64 / (1024.0 * 1024.0);
-                        let max_mb = max_bytes as f64 / (1024.0 * 1024.0);
-                        let size_str = format!("{:.1}", size_mb);
-                        let max_mb_str = format!("{:.1}", max_mb);
-                        cleanup_files(&files);
-                        self.base.value.clear();
-                        self.set_error(tf(
-                            "forms.file_too_large",
-                            &[filename.as_str(), size_str.as_str(), max_mb_str.as_str()],
-                        ));
-                        return false;
-                    }
+            if let Some(max_bytes) = self.upload_config.max_size
+                && let Ok(metadata) = std::fs::metadata(filename)
+            {
+                let file_size = metadata.len();
+                if file_size > max_bytes {
+                    let size_mb = file_size as f64 / (1024.0 * 1024.0);
+                    let max_mb = max_bytes as f64 / (1024.0 * 1024.0);
+                    let size_str = format!("{:.1}", size_mb);
+                    let max_mb_str = format!("{:.1}", max_mb);
+                    cleanup_files(&files);
+                    self.base.value.clear();
+                    self.set_error(tf(
+                        "forms.file_too_large",
+                        &[filename.as_str(), size_str.as_str(), max_mb_str.as_str()],
+                    ));
+                    return false;
                 }
             }
         }
@@ -347,35 +347,34 @@ impl FormField for FileField {
                     return false;
                 }
 
-                if self.max_width.is_some() || self.max_height.is_some() {
-                    if let Ok(reader) = ImageReader::open(filename) {
-                        if let Ok(dims) = reader.into_dimensions() {
-                            let (w, h) = dims;
-                            if let Some(max_w) = self.max_width {
-                                if w > max_w {
-                                    let (w_s, mw_s) = (w.to_string(), max_w.to_string());
-                                    cleanup_files(&files);
-                                    self.base.value.clear();
-                                    self.set_error(tf(
-                                        "forms.image_too_wide",
-                                        &[filename.as_str(), w_s.as_str(), mw_s.as_str()],
-                                    ));
-                                    return false;
-                                }
-                            }
-                            if let Some(max_h) = self.max_height {
-                                if h > max_h {
-                                    let (h_s, mh_s) = (h.to_string(), max_h.to_string());
-                                    cleanup_files(&files);
-                                    self.base.value.clear();
-                                    self.set_error(tf(
-                                        "forms.image_too_tall",
-                                        &[filename.as_str(), h_s.as_str(), mh_s.as_str()],
-                                    ));
-                                    return false;
-                                }
-                            }
-                        }
+                if (self.max_width.is_some() || self.max_height.is_some())
+                    && let Ok(reader) = ImageReader::open(filename)
+                    && let Ok(dims) = reader.into_dimensions()
+                {
+                    let (w, h) = dims;
+                    if let Some(max_w) = self.max_width
+                        && w > max_w
+                    {
+                        let (w_s, mw_s) = (w.to_string(), max_w.to_string());
+                        cleanup_files(&files);
+                        self.base.value.clear();
+                        self.set_error(tf(
+                            "forms.image_too_wide",
+                            &[filename.as_str(), w_s.as_str(), mw_s.as_str()],
+                        ));
+                        return false;
+                    }
+                    if let Some(max_h) = self.max_height
+                        && h > max_h
+                    {
+                        let (h_s, mh_s) = (h.to_string(), max_h.to_string());
+                        cleanup_files(&files);
+                        self.base.value.clear();
+                        self.set_error(tf(
+                            "forms.image_too_tall",
+                            &[filename.as_str(), h_s.as_str(), mh_s.as_str()],
+                        ));
+                        return false;
                     }
                 }
             }

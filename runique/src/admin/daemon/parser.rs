@@ -687,10 +687,10 @@ fn expect_punct(iter: &mut TokenIter, expected: char) -> Result<(), String> {
 fn skip_optional_punct(iter: &mut TokenIter, ch: char) {
     use proc_macro2::TokenTree;
 
-    if let Some(TokenTree::Punct(p)) = iter.peek() {
-        if p.as_char() == ch {
-            iter.next();
-        }
+    if let Some(TokenTree::Punct(p)) = iter.peek()
+        && p.as_char() == ch
+    {
+        iter.next();
     }
 }
 
@@ -699,11 +699,11 @@ fn skip_until_punct(iter: &mut TokenIter, ch: char) {
     use proc_macro2::TokenTree;
 
     while let Some(token) = iter.peek() {
-        if let TokenTree::Punct(p) = token {
-            if p.as_char() == ch {
-                iter.next();
-                return;
-            }
+        if let TokenTree::Punct(p) = token
+            && p.as_char() == ch
+        {
+            iter.next();
+            return;
         }
         iter.next();
     }

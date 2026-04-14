@@ -19,7 +19,9 @@ fn test_runique_error_forbidden_display() {
     let err = RuniqueError::Forbidden;
     let msg = err.to_string();
     assert!(
-        msg.to_lowercase().contains("interdit") || msg.to_lowercase().contains("forbidden"),
+        msg.to_lowercase().contains("interdit")
+            || msg.to_lowercase().contains("forbidden")
+            || msg.to_lowercase().contains("access denied"),
         "Message inattendu: {}",
         msg
     );

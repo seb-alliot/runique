@@ -282,37 +282,37 @@ impl DatabaseConfig {
         let mut builder = Self::from_url(url)?;
 
         // Pool
-        if let Ok(v) = env::var("DB_MAX_CONNECTIONS") {
-            if let Ok(n) = v.parse::<u32>() {
-                builder.config.max_connections = n;
-            }
+        if let Ok(v) = env::var("DB_MAX_CONNECTIONS")
+            && let Ok(n) = v.parse::<u32>()
+        {
+            builder.config.max_connections = n;
         }
-        if let Ok(v) = env::var("DB_MIN_CONNECTIONS") {
-            if let Ok(n) = v.parse::<u32>() {
-                builder.config.min_connections = n;
-            }
+        if let Ok(v) = env::var("DB_MIN_CONNECTIONS")
+            && let Ok(n) = v.parse::<u32>()
+        {
+            builder.config.min_connections = n;
         }
 
         // Timeouts
-        if let Ok(v) = env::var("DB_CONNECT_TIMEOUT") {
-            if let Ok(n) = v.parse::<u64>() {
-                builder.config.connect_timeout = Duration::from_secs(n);
-            }
+        if let Ok(v) = env::var("DB_CONNECT_TIMEOUT")
+            && let Ok(n) = v.parse::<u64>()
+        {
+            builder.config.connect_timeout = Duration::from_secs(n);
         }
-        if let Ok(v) = env::var("DB_ACQUIRE_TIMEOUT") {
-            if let Ok(n) = v.parse::<u64>() {
-                builder.config.acquire_timeout = Duration::from_millis(n);
-            }
+        if let Ok(v) = env::var("DB_ACQUIRE_TIMEOUT")
+            && let Ok(n) = v.parse::<u64>()
+        {
+            builder.config.acquire_timeout = Duration::from_millis(n);
         }
-        if let Ok(v) = env::var("DB_IDLE_TIMEOUT") {
-            if let Ok(n) = v.parse::<u64>() {
-                builder.config.idle_timeout = Duration::from_secs(n);
-            }
+        if let Ok(v) = env::var("DB_IDLE_TIMEOUT")
+            && let Ok(n) = v.parse::<u64>()
+        {
+            builder.config.idle_timeout = Duration::from_secs(n);
         }
-        if let Ok(v) = env::var("DB_MAX_LIFETIME") {
-            if let Ok(n) = v.parse::<u64>() {
-                builder.config.max_lifetime = Duration::from_secs(n);
-            }
+        if let Ok(v) = env::var("DB_MAX_LIFETIME")
+            && let Ok(n) = v.parse::<u64>()
+        {
+            builder.config.max_lifetime = Duration::from_secs(n);
         }
 
         // Logging

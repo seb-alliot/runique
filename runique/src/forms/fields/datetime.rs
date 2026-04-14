@@ -99,31 +99,31 @@ impl FormField for DateField {
         };
 
         // Check min
-        if let Some(min) = self.min_date {
-            if date < min {
-                let msg = self
-                    .base
-                    .extra_context
-                    .get("min_message")
-                    .cloned()
-                    .unwrap_or_else(|| json!(tf("forms.date_too_old", &[&min])));
-                self.set_error(msg.as_str().unwrap_or_default().to_string());
-                return false;
-            }
+        if let Some(min) = self.min_date
+            && date < min
+        {
+            let msg = self
+                .base
+                .extra_context
+                .get("min_message")
+                .cloned()
+                .unwrap_or_else(|| json!(tf("forms.date_too_old", &[&min])));
+            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            return false;
         }
 
         // Check max
-        if let Some(max) = self.max_date {
-            if date > max {
-                let msg = self
-                    .base
-                    .extra_context
-                    .get("max_message")
-                    .cloned()
-                    .unwrap_or_else(|| json!(tf("forms.date_too_far", &[&max])));
-                self.set_error(msg.as_str().unwrap_or_default().to_string());
-                return false;
-            }
+        if let Some(max) = self.max_date
+            && date > max
+        {
+            let msg = self
+                .base
+                .extra_context
+                .get("max_message")
+                .cloned()
+                .unwrap_or_else(|| json!(tf("forms.date_too_far", &[&max])));
+            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            return false;
         }
 
         self.clear_error();
@@ -238,31 +238,31 @@ impl FormField for TimeField {
         };
 
         // Check min
-        if let Some(min) = self.min_time {
-            if time < min {
-                let msg = self
-                    .base
-                    .extra_context
-                    .get("min_message")
-                    .cloned()
-                    .unwrap_or_else(|| json!(tf("forms.time_too_old", &[&min])));
-                self.set_error(msg.as_str().unwrap_or_default().to_string());
-                return false;
-            }
+        if let Some(min) = self.min_time
+            && time < min
+        {
+            let msg = self
+                .base
+                .extra_context
+                .get("min_message")
+                .cloned()
+                .unwrap_or_else(|| json!(tf("forms.time_too_old", &[&min])));
+            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            return false;
         }
 
         // Check max
-        if let Some(max) = self.max_time {
-            if time > max {
-                let msg = self
-                    .base
-                    .extra_context
-                    .get("max_message")
-                    .cloned()
-                    .unwrap_or_else(|| json!(tf("forms.time_too_far", &[&max])));
-                self.set_error(msg.as_str().unwrap_or_default().to_string());
-                return false;
-            }
+        if let Some(max) = self.max_time
+            && time > max
+        {
+            let msg = self
+                .base
+                .extra_context
+                .get("max_message")
+                .cloned()
+                .unwrap_or_else(|| json!(tf("forms.time_too_far", &[&max])));
+            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            return false;
         }
 
         self.clear_error();
@@ -377,31 +377,31 @@ impl FormField for DateTimeField {
         };
 
         // Check min
-        if let Some(min) = self.min_datetime {
-            if datetime < min {
-                let msg = self
-                    .base
-                    .extra_context
-                    .get("min_message")
-                    .cloned()
-                    .unwrap_or_else(|| json!(tf("forms.datetime_too_old", &[&min])));
-                self.set_error(msg.as_str().unwrap_or_default().to_string());
-                return false;
-            }
+        if let Some(min) = self.min_datetime
+            && datetime < min
+        {
+            let msg = self
+                .base
+                .extra_context
+                .get("min_message")
+                .cloned()
+                .unwrap_or_else(|| json!(tf("forms.datetime_too_old", &[&min])));
+            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            return false;
         }
 
         // Check max
-        if let Some(max) = self.max_datetime {
-            if datetime > max {
-                let msg = self
-                    .base
-                    .extra_context
-                    .get("max_message")
-                    .cloned()
-                    .unwrap_or_else(|| json!(tf("forms.datetime_too_far", &[&max])));
-                self.set_error(msg.as_str().unwrap_or_default().to_string());
-                return false;
-            }
+        if let Some(max) = self.max_datetime
+            && datetime > max
+        {
+            let msg = self
+                .base
+                .extra_context
+                .get("max_message")
+                .cloned()
+                .unwrap_or_else(|| json!(tf("forms.datetime_too_far", &[&max])));
+            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            return false;
         }
 
         self.clear_error();
@@ -517,31 +517,31 @@ impl FormField for DurationField {
         };
 
         // Check min
-        if let Some(min) = self.min_seconds {
-            if seconds < min {
-                let msg = self
-                    .base
-                    .extra_context
-                    .get("min_message")
-                    .cloned()
-                    .unwrap_or_else(|| json!(tf("forms.duration_too_short", &[&min])));
-                self.set_error(msg.as_str().unwrap_or_default().to_string());
-                return false;
-            }
+        if let Some(min) = self.min_seconds
+            && seconds < min
+        {
+            let msg = self
+                .base
+                .extra_context
+                .get("min_message")
+                .cloned()
+                .unwrap_or_else(|| json!(tf("forms.duration_too_short", &[&min])));
+            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            return false;
         }
 
         // Check max
-        if let Some(max) = self.max_seconds {
-            if seconds > max {
-                let msg = self
-                    .base
-                    .extra_context
-                    .get("max_message")
-                    .cloned()
-                    .unwrap_or_else(|| json!(tf("forms.duration_too_long", &[&max])));
-                self.set_error(msg.as_str().unwrap_or_default().to_string());
-                return false;
-            }
+        if let Some(max) = self.max_seconds
+            && seconds > max
+        {
+            let msg = self
+                .base
+                .extra_context
+                .get("max_message")
+                .cloned()
+                .unwrap_or_else(|| json!(tf("forms.duration_too_long", &[&max])));
+            self.set_error(msg.as_str().unwrap_or_default().to_string());
+            return false;
         }
 
         self.clear_error();

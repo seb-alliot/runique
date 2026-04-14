@@ -459,10 +459,10 @@ impl RuniqueAppBuilder {
         let _exclusive_login = middleware.exclusive_login;
         let (router, session_store) =
             middleware.apply_to_router(router, config, engine.clone(), tera);
-        if let Some(store) = session_store {
-            if let Ok(mut guard) = engine.session_store.write() {
-                *guard = Some(store);
-            }
+        if let Some(store) = session_store
+            && let Ok(mut guard) = engine.session_store.write()
+        {
+            *guard = Some(store);
         }
 
         // Store DB sessions — initialized if a DB is available

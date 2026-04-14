@@ -449,15 +449,15 @@ fn rust_version() -> String {
     static RUST_VERSION: OnceLock<String> = OnceLock::new();
     RUST_VERSION
         .get_or_init(|| {
-            if let Ok(output) = Command::new("rustc").arg("--version").output() {
-                if let Ok(version) = String::from_utf8(output.stdout) {
-                    return version
-                        .split('(')
-                        .next()
-                        .unwrap_or("N/A")
-                        .trim()
-                        .to_string();
-                }
+            if let Ok(output) = Command::new("rustc").arg("--version").output()
+                && let Ok(version) = String::from_utf8(output.stdout)
+            {
+                return version
+                    .split('(')
+                    .next()
+                    .unwrap_or("N/A")
+                    .trim()
+                    .to_string();
             }
             "N/A".to_string()
         })

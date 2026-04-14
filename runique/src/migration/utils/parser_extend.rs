@@ -199,17 +199,15 @@ impl<'ast> Visit<'ast> for ExtendVisitor {
             .map(|s| s.ident == "extend")
             .unwrap_or(false);
 
-        if is_extend {
-            if let Ok(ext) = syn::parse2::<DslExtend>(mac.tokens.clone()) {
-                let columns = ext.fields.into_iter().map(extend_field_to_col).collect();
-                self.schemas.push(ParsedSchema {
-                    table_name: ext.table,
-                    primary_key: None,
-                    columns,
-                    foreign_keys: Vec::new(),
-                    indexes: Vec::new(),
-                });
-            }
+        if is_extend && let Ok(ext) = syn::parse2::<DslExtend>(mac.tokens.clone()) {
+            let columns = ext.fields.into_iter().map(extend_field_to_col).collect();
+            self.schemas.push(ParsedSchema {
+                table_name: ext.table,
+                primary_key: None,
+                columns,
+                foreign_keys: Vec::new(),
+                indexes: Vec::new(),
+            });
         }
 
         syn::visit::visit_macro(self, mac);
