@@ -8,6 +8,7 @@ use crate::forms::fields::{BooleanField, CheckboxField, ChoiceField, HiddenField
 use crate::forms::form::Forms;
 use crate::impl_form_access;
 use crate::utils::aliases::definition::StrMap;
+use crate::utils::trad::t;
 
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(transparent)]
@@ -18,14 +19,18 @@ pub struct DroitAdminForm {
 impl RuniqueForm for DroitAdminForm {
     fn register_fields(form: &mut Forms) {
         // groupe_id, resource_key overridden dynamically in builtin.rs
-        form.field(&ChoiceField::new("groupe_id").label("Group").required());
-        form.field(&CheckboxField::new("resource_key").label("Targeted Resources"));
-        form.field(&BooleanField::new("can_create").label("Can create"));
-        form.field(&BooleanField::new("can_read").label("Can read"));
-        form.field(&BooleanField::new("can_update").label("Can update"));
-        form.field(&BooleanField::new("can_delete").label("Can delete"));
-        form.field(&BooleanField::new("can_update_own").label("Can update own data"));
-        form.field(&BooleanField::new("can_delete_own").label("Can delete own data"));
+        form.field(
+            &ChoiceField::new("groupe_id")
+                .label(t("admin.group").as_ref())
+                .required(),
+        );
+        form.field(&CheckboxField::new("resource_key").label(t("admin.resources").as_ref()));
+        form.field(&BooleanField::new("can_create").label(t("admin.can_create").as_ref()));
+        form.field(&BooleanField::new("can_read").label(t("admin.can_read").as_ref()));
+        form.field(&BooleanField::new("can_update").label(t("admin.can_update").as_ref()));
+        form.field(&BooleanField::new("can_delete").label(t("admin.can_delete").as_ref()));
+        form.field(&BooleanField::new("can_update_own").label(t("admin.can_update_own").as_ref()));
+        form.field(&BooleanField::new("can_delete_own").label(t("admin.can_delete_own").as_ref()));
     }
     impl_form_access!();
 }
@@ -40,7 +45,11 @@ pub struct GroupeAdminForm {
 
 impl RuniqueForm for GroupeAdminForm {
     fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("nom").label("Name").required());
+        form.field(
+            &TextField::text("nom")
+                .label(t("admin.name").as_ref())
+                .required(),
+        );
     }
     impl_form_access!();
 }
@@ -68,13 +77,21 @@ pub struct UserAdminCreateForm {
 #[async_trait::async_trait]
 impl RuniqueForm for UserAdminCreateForm {
     fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("username").label("Username").required());
-        form.field(&TextField::email("email").label("Email").required());
+        form.field(
+            &TextField::text("username")
+                .label(t("admin.username").as_ref())
+                .required(),
+        );
+        form.field(
+            &TextField::email("email")
+                .label(t("admin.email").as_ref())
+                .required(),
+        );
         form.field(&HiddenField::new("password"));
-        form.field(&BooleanField::new("is_staff").label("Staff"));
-        form.field(&BooleanField::new("is_superuser").label("Superuser"));
+        form.field(&BooleanField::new("is_staff").label(t("admin.staff").as_ref()));
+        form.field(&BooleanField::new("is_superuser").label(t("admin.superuser").as_ref()));
         // Field overridden dynamically with available groups (see builtin.rs)
-        form.field(&CheckboxField::new("groupes").label("Groups"));
+        form.field(&CheckboxField::new("groupes").label(t("admin.groups").as_ref()));
     }
 
     impl_form_access!();
@@ -87,11 +104,14 @@ impl RuniqueForm for UserAdminCreateForm {
         if username.len() < 3 {
             errors.insert(
                 "username".to_string(),
-                "Username must be at least 3 characters long.".to_string(),
+                t("admin.user.username_too_short").to_string(),
             );
         }
         if !email.contains('@') {
-            errors.insert("email".to_string(), "Invalid email address.".to_string());
+            errors.insert(
+                "email".to_string(),
+                t("admin.user.invalid_email").to_string(),
+            );
         }
 
         if errors.is_empty() {
@@ -112,13 +132,21 @@ pub struct UserAdminEditForm {
 
 impl RuniqueForm for UserAdminEditForm {
     fn register_fields(form: &mut Forms) {
-        form.field(&TextField::text("username").label("Username").required());
-        form.field(&TextField::email("email").label("Email").required());
-        form.field(&BooleanField::new("is_active").label("Active"));
-        form.field(&BooleanField::new("is_staff").label("Staff"));
-        form.field(&BooleanField::new("is_superuser").label("Superuser"));
+        form.field(
+            &TextField::text("username")
+                .label(t("admin.username").as_ref())
+                .required(),
+        );
+        form.field(
+            &TextField::email("email")
+                .label(t("admin.email").as_ref())
+                .required(),
+        );
+        form.field(&BooleanField::new("is_active").label(t("admin.active").as_ref()));
+        form.field(&BooleanField::new("is_staff").label(t("admin.staff").as_ref()));
+        form.field(&BooleanField::new("is_superuser").label(t("admin.superuser").as_ref()));
         // Field overridden dynamically with available groups (see builtin.rs)
-        form.field(&CheckboxField::new("groupes").label("Groups"));
+        form.field(&CheckboxField::new("groupes").label(t("admin.groups").as_ref()));
     }
     impl_form_access!();
 }

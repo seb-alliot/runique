@@ -385,6 +385,6 @@ async fn admin_logout(req: Request, Extension(admin): Extension<Arc<AdminState>>
         .and_then(|g| g.as_ref().cloned());
     let _ = logout(session, db_store.as_deref()).await;
     let login_url = format!("{}/login?from=logout", admin.config.prefix);
-    flash_now!(info => "You have been logged out");
+    flash_now!(info => t("admin.logout_success").as_ref());
     Redirect::to(&login_url).into_response()
 }

@@ -101,7 +101,7 @@ fn user_entry() -> ResourceEntry {
                     Box::new(
                         crate::forms::fields::CheckboxField::new(GROUPES)
                             .choices(choices)
-                            .label("Groups"),
+                            .label(t("admin.groups").as_ref()),
                     ),
                 );
 
@@ -139,7 +139,7 @@ fn user_entry() -> ResourceEntry {
 
                 let mut field = crate::forms::fields::CheckboxField::new(GROUPES)
                     .choices(choices)
-                    .label("Groups");
+                    .label(t("admin.groups").as_ref());
                 {
                     use crate::forms::base::FormField;
                     field.set_value(&selected);
@@ -409,7 +409,7 @@ fn droit_entry() -> ResourceEntry {
                     .collect::<Vec<_>>();
                 let mut gf = crate::forms::fields::ChoiceField::new(GROUPE_ID)
                     .choices(groupe_choices)
-                    .label("Group")
+                    .label(t("admin.group").as_ref())
                     .required();
                 {
                     use crate::forms::base::FormField;
@@ -429,7 +429,7 @@ fn droit_entry() -> ResourceEntry {
                     .collect::<Vec<_>>();
                 let mut rf = crate::forms::fields::CheckboxField::new(RESOURCE_KEY)
                     .choices(resource_choices)
-                    .label("Targeted Resources");
+                    .label(t("admin.resources").as_ref());
                 {
                     use crate::forms::base::FormField;
                     if !submitted_keys.is_empty() {
@@ -474,7 +474,7 @@ fn droit_entry() -> ResourceEntry {
                     .collect::<Vec<_>>();
                 let mut gf = crate::forms::fields::ChoiceField::new(GROUPE_ID)
                     .choices(groupe_choices)
-                    .label("Group")
+                    .label(t("admin.group").as_ref())
                     .required();
                 {
                     use crate::forms::base::FormField;
@@ -498,7 +498,7 @@ fn droit_entry() -> ResourceEntry {
                     .collect::<Vec<_>>();
                 let mut rf = crate::forms::fields::CheckboxField::new(RESOURCE_KEY)
                     .choices(resource_choices)
-                    .label("Targeted Resource");
+                    .label(t("admin.resource").as_ref());
                 {
                     use crate::forms::base::FormField;
                     rf.set_value(&current_key);
