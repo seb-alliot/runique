@@ -113,7 +113,6 @@ impl RuniqueForm for RegisterForm {
 admin! {
     users: users::Model => RegisterForm {
         title: "Users",
-        permissions: ["admin"],
     }
 }
 ```

@@ -19,7 +19,6 @@ By default, all entity columns are shown. Declaring `list_display` restricts the
 admin! {
     users: users::Model => RegisterForm {
         title: "Users",
-        permissions: ["admin"],
         list_display: [
             ["username", "Username"],
             ["email", "Email"],
@@ -43,7 +42,7 @@ admin! {
         users:  { list_display: [["id", "ID"], ["username", "Username"], ["email", "Email"]] },
         droits: { list_display: [["id", "ID"], ["nom", "Name"]] },
     }
-    blog: blog::Model => BlogForm { title: "Blog", permissions: ["admin"] }
+    blog: blog::Model => BlogForm { title: "Blog" }
 }
 ```
 
@@ -57,7 +56,6 @@ Declaring `list_filter` enables a sidebar showing the distinct values of each fi
 admin! {
     users: users::Model => RegisterForm {
         title: "Users",
-        permissions: ["admin"],
         list_filter: [
             ["is_active", "Active"],                    // default: 10 values per page
             ["is_superuser", "Superuser"],              // default: 10 values per page

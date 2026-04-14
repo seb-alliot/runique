@@ -1,5 +1,5 @@
 use crate::formulaire::{LoginForm, RegisterForm};
-use runique::auth::login as auth_login;
+use runique::auth::auth_login;
 use runique::prelude::runique_users::ActiveModel as UserActiveModel;
 use runique::prelude::runique_users::Entity as UserEntity;
 use runique::prelude::*;
@@ -141,18 +141,7 @@ pub async fn handle_activate(
     }
 
     // Directly log in
-    auth_login(
-        &request.session,
-        &db,
-        user.id,
-        &user.username,
-        false,
-        false,
-        None,
-        false,
-    )
-    .await
-    .ok();
+    auth_login(&request.session, &db, user.id).await.ok();
 
     success!(request.notices => format!("Bienvenue {} ! Votre compte est activé.", user.username));
     Ok(Redirect::to("/profil").into_response())
@@ -181,18 +170,9 @@ pub async fn handle_login(request: &mut Request, form: &mut LoginForm) -> AppRes
             && let Some(user) =
                 authenticate_user(&request.engine.db, username_val, password_val).await
         {
-            auth_login(
-                &request.session,
-                &request.engine.db,
-                user.id,
-                &user.username,
-                user.is_staff,
-                user.is_superuser,
-                None,
-                false,
-            )
-            .await
-            .ok();
+            auth_login(&request.session, &request.engine.db, user.id)
+                .await
+                .ok();
             success!(request.notices => format!("Welcome {}!", user.username));
             return Ok(Redirect::to("/profil").into_response());
         }

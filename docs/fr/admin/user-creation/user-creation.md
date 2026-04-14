@@ -54,9 +54,8 @@ Le formulaire fourni par Runique (`runique::admin::UserAdminCreateForm`) expose 
 
 ```rust
 admin! {
-    users: eihwaz_users::Model => MyForm {
+    users: runique_users::Model => MyForm {
         title: "Utilisateurs",
-        permissions: ["admin"],
         create_form: runique::admin::UserAdminCreateForm,
         edit_form: crate::formulaire::UserEditForm,
     }
@@ -110,7 +109,7 @@ Sans cette configuration, l'URL est construite depuis le header `Host` de la req
 
 ## Modèle custom
 
-Si le projet utilise son propre modèle utilisateur (pas `eihwaz_users`), il doit implémenter
+Si le projet utilise son propre modèle utilisateur (pas `runique_users`), il doit implémenter
 `UserEntity` et gérer `is_active` dans `update_password` lui-même.
 
 `auth_login()` utilise `BuiltinUserEntity` — les projets avec un modèle custom appellent

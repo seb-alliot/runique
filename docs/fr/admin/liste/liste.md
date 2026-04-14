@@ -19,7 +19,6 @@ Par défaut, toutes les colonnes de l'entité sont affichées. Déclarer `list_d
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"],
         list_display: [
             ["username", "Nom d'utilisateur"],
             ["email", "Email"],
@@ -43,7 +42,7 @@ admin! {
         users:  { list_display: [["id", "ID"], ["username", "Nom"], ["email", "Email"]] },
         droits: { list_display: [["id", "ID"], ["nom", "Nom"]] },
     }
-    blog: blog::Model => BlogForm { title: "Blog", permissions: ["admin"] }
+    blog: blog::Model => BlogForm { title: "Blog" }
 }
 ```
 
@@ -57,7 +56,6 @@ Déclarer `list_filter` active une barre latérale avec les valeurs distinctes d
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"],
         list_filter: [
             ["is_active", "Actif"],                     // défaut : 10 valeurs par page
             ["is_superuser", "Superuser"],              // défaut : 10 valeurs par page

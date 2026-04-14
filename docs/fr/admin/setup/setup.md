@@ -24,11 +24,9 @@ use crate::formulaire::{RegisterForm, ArticleForm};
 admin! {
     users: users::Model => RegisterForm {
         title: "Utilisateurs",
-        permissions: ["admin"]
     },
     articles: articles::Model => ArticleForm {
         title: "Articles",
-        permissions: ["admin"]
     }
 }
 ```
