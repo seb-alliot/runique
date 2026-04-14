@@ -41,23 +41,31 @@
 
         <div class="demo-code">
             <div class="demo-code-title">Templates surchargeables</div>
-            <pre><code><span class="cm">// Dashboard principal</span>
-t.<span class="fn_">with_dashboard</span>(<span class="st">"mon_dashboard.html"</span>)
+            <pre><code><span class="cm">// Toutes les vues (CRUD complet)</span>
+t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/mon_dashboard.html"</span>)
+t.<span class="fn_">with_list</span>(<span class="st">"admin/mon_list.html"</span>)
+t.<span class="fn_">with_create</span>(<span class="st">"admin/mon_create.html"</span>)
+t.<span class="fn_">with_edit</span>(<span class="st">"admin/mon_edit.html"</span>)
+t.<span class="fn_">with_detail</span>(<span class="st">"admin/mon_detail.html"</span>)
+t.<span class="fn_">with_delete</span>(<span class="st">"admin/mon_delete.html"</span>)
 
-<span class="cm">// À venir (beta) :</span>
-<span class="cm">// t.with_list("mon_list.html")</span>
-<span class="cm">// t.with_form("mon_form.html")</span></code></pre>
+<span class="cm">// Vues d'interface globales</span>
+t.<span class="fn_">with_login</span>(<span class="st">"admin/mon_login.html"</span>)
+t.<span class="fn_">with_base</span>(<span class="st">"admin/mon_base.html"</span>)</code></pre>
 
             <div class="demo-code-title">Clés injectées par Runique (obligatoires)</div>
-            <pre><code><span class="cm">// Votre template doit étendre le template admin de base.</span>
-<span class="cm">// Ces clés sont injectées automatiquement par Runique.</span>
-{% raw %}{% extends "admin/admin_template" %}{% endraw %}
-
+            <pre><code><span class="cm">// Pour le dashboard :</span>
 {% raw %}{{ site_title }}{% endraw %}       <span class="cm">// titre configuré dans .site_title()</span>
-{% raw %}{{ site_url }}{% endraw %}         <span class="cm">// URL de base</span>
-{% raw %}{{ resources }}{% endraw %}        <span class="cm">// liste des ressources (key, title, permissions)</span>
-{% raw %}{{ resource_counts }}{% endraw %}   <span class="cm">// nb d'entrées par ressource</span>
-{% raw %}{{ lang }}{% endraw %}             <span class="cm">// code langue actif (ex: "fr")</span></code></pre>
+{% raw %}{{ resources }}{% endraw %}        <span class="cm">// liste des ressources</span>
+{% raw %}{{ admin_dashboard_title }}{% endraw %} <span class="cm">// trad i18n</span>
+
+<span class="cm">// Pour la vue list (obligatoires) :</span>
+{% raw %}{{ entries }}{% endraw %}          <span class="cm">// la pagination des entrées json</span>
+{% raw %}{{ visible_columns }}{% endraw %}  <span class="cm">// les infos du tableau</span>
+{% raw %}{{ sort_by }}{% endraw %}          <span class="cm">// la colonne triée</span>
+<span class="cm">// (+ total, page, page_count, has_prev, sort_dir...)</span>
+
+<span class="cm">// Liste détaillée de chaque vue dans la documentation !</span></code></pre>
 
             <div class="demo-code-title">Blocks Tera surchargeables</div>
             <pre><code><span class="cm">// Blocks disponibles dans admin/admin_template</span>
