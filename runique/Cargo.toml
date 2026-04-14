@@ -133,3 +133,8 @@ mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]
 mariadb = ["mysql"]
 all-databases = ["sqlite", "postgres", "mysql"]
 big-pk = ["derive_form/big-pk"]
+
+
+[package.metadata.docs.rs]
+default-target = "x86_64-unknown-linux-gnu"
+features = ["all-databases"]
