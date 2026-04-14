@@ -45,7 +45,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     c.policy(SecurityPolicy::strict())
                         .with_header_security(true)
                         .with_upgrade_insecure(!is_debug())
-                        .scripts(vec!["'self'", "https://www.googletagmanager.com"])
+                        .scripts(vec![
+                            "'self'",
+                            "https://www.googletagmanager.com",
+                            "'strict-dynamic'",
+                        ])
                         .frames(vec!["'self'", "https://www.googletagmanager.com"])
                         .images(vec![
                             "'self'",
