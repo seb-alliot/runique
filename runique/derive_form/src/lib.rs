@@ -41,9 +41,10 @@ pub fn extend(input: TokenStream) -> TokenStream {
     ];
 
     // Translation JSONs embedded at derive_form compilation time
-    const TRANSLATIONS: &[(&str, &str)] = &[
-        ("en", r#"{"makemigrations": {"extend_invalid_syntax": "extend: incomplete feature", "extend_unknown_table": "extend: incomplete feature"}}"#),
-    ];
+    const TRANSLATIONS: &[(&str, &str)] = &[(
+        "en",
+        r#"{"makemigrations": {"extend_invalid_syntax": "extend: incomplete feature", "extend_unknown_table": "extend: incomplete feature"}}"#,
+    )];
 
     /// Extracts a nested key `"section.key"` from an embedded JSON.
     fn get_msg(lang_code: &str, key: &str) -> Option<String> {
