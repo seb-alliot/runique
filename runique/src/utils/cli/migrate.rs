@@ -364,129 +364,134 @@ fn extract_statements_from_block(
         // ----------------------------
         // add_column
         // ----------------------------
-        if trimmed.contains(".add_column(") && trimmed.contains("Alias::new(\"") {
-            if let Some(col) = extract_alias_value(trimmed) {
-                let col_type = seaorm_sql_type(trimmed);
-                let null = if trimmed.contains(".null()") {
-                    ""
-                } else {
-                    " NOT NULL"
-                };
+        if trimmed.contains(".add_column(")
+            && trimmed.contains("Alias::new(\"")
+            && let Some(col) = extract_alias_value(trimmed)
+        {
+            let col_type = seaorm_sql_type(trimmed);
+            let null = if trimmed.contains(".null()") {
+                ""
+            } else {
+                " NOT NULL"
+            };
 
-                let sql = match backend {
-                    DbBackend::Postgres => format!(
-                        "ALTER TABLE \"{}\" ADD COLUMN \"{}\" {}{};",
-                        table_name, col, col_type, null
-                    ),
-                    _ => format!(
-                        "ALTER TABLE `{}` ADD COLUMN `{}` {}{};",
-                        table_name, col, col_type, null
-                    ),
-                };
-                statements.push(sql);
-            }
+            let sql = match backend {
+                DbBackend::Postgres => format!(
+                    "ALTER TABLE \"{}\" ADD COLUMN \"{}\" {}{};",
+                    table_name, col, col_type, null
+                ),
+                _ => format!(
+                    "ALTER TABLE `{}` ADD COLUMN `{}` {}{};",
+                    table_name, col, col_type, null
+                ),
+            };
+            statements.push(sql);
         }
 
         // ----------------------------
         // drop_column
         // ----------------------------
-        if trimmed.contains(".drop_column(Alias::new(\"") {
-            if let Some(col) = extract_alias_value(trimmed) {
-                let sql = match backend {
-                    DbBackend::Postgres => {
-                        format!("ALTER TABLE \"{}\" DROP COLUMN \"{}\";", table_name, col)
-                    }
-                    _ => format!("ALTER TABLE `{}` DROP COLUMN `{}`;", table_name, col),
-                };
-                statements.push(sql);
-            }
+        if trimmed.contains(".drop_column(Alias::new(\"")
+            && let Some(col) = extract_alias_value(trimmed)
+        {
+            let sql = match backend {
+                DbBackend::Postgres => {
+                    format!("ALTER TABLE \"{}\" DROP COLUMN \"{}\";", table_name, col)
+                }
+                _ => format!("ALTER TABLE `{}` DROP COLUMN `{}`;", table_name, col),
+            };
+            statements.push(sql);
         }
 
         // ----------------------------
         // modify_column : nullable only (SET/DROP NOT NULL)
         // Expected pattern: .modify_column(ColumnDef::new(Alias::new("bio")).text().not_null())
         // ----------------------------
-        if trimmed.contains(".modify_column(") && trimmed.contains("Alias::new(\"") {
-            if let Some(col) = extract_alias_value(trimmed) {
-                // Here we only handle NOT NULL / NULL (sufficient for your test)
-                let make_null = trimmed.contains(".null()");
-                let sql = match backend {
-                    DbBackend::Postgres => {
-                        if make_null {
-                            format!(
-                                "ALTER TABLE \"{}\" ALTER COLUMN \"{}\" DROP NOT NULL;",
-                                table_name, col
-                            )
-                        } else {
-                            format!(
-                                "ALTER TABLE \"{}\" ALTER COLUMN \"{}\" SET NOT NULL;",
-                                table_name, col
-                            )
-                        }
+        if trimmed.contains(".modify_column(")
+            && trimmed.contains("Alias::new(\"")
+            && let Some(col) = extract_alias_value(trimmed)
+        {
+            // Here we only handle NOT NULL / NULL (sufficient for your test)
+            let make_null = trimmed.contains(".null()");
+            let sql = match backend {
+                DbBackend::Postgres => {
+                    if make_null {
+                        format!(
+                            "ALTER TABLE \"{}\" ALTER COLUMN \"{}\" DROP NOT NULL;",
+                            table_name, col
+                        )
+                    } else {
+                        format!(
+                            "ALTER TABLE \"{}\" ALTER COLUMN \"{}\" SET NOT NULL;",
+                            table_name, col
+                        )
                     }
-                    _ => {
-                        // MySQL/MariaDB: MODIFY COLUMN requires the type. We do an "unsafe" fallback.
-                        // => If you target MySQL, you'll need to use sea_query to be correct.
-                        if make_null {
-                            format!(
-                                "-- WARNING: modify_column NULL not supported safely on this backend for `{}`.`{}`",
-                                table_name, col
-                            )
-                        } else {
-                            format!(
-                                "-- WARNING: modify_column NOT NULL not supported safely on this backend for `{}`.`{}`",
-                                table_name, col
-                            )
-                        }
+                }
+                _ => {
+                    // MySQL/MariaDB: MODIFY COLUMN requires the type. We do an "unsafe" fallback.
+                    // => If you target MySQL, you'll need to use sea_query to be correct.
+                    if make_null {
+                        format!(
+                            "-- WARNING: modify_column NULL not supported safely on this backend for `{}`.`{}`",
+                            table_name, col
+                        )
+                    } else {
+                        format!(
+                            "-- WARNING: modify_column NOT NULL not supported safely on this backend for `{}`.`{}`",
+                            table_name, col
+                        )
                     }
-                };
-                statements.push(sql);
-            }
+                }
+            };
+            statements.push(sql);
         }
 
         // ----------------------------
         // drop_table
         // ----------------------------
-        if trimmed.contains(".drop_table(") && trimmed.contains("Alias::new(\"") {
-            if let Some(t) = extract_alias_value(trimmed) {
-                let sql = match backend {
-                    DbBackend::Postgres => format!("DROP TABLE IF EXISTS \"{}\";", t),
-                    _ => format!("DROP TABLE IF EXISTS `{}`;", t),
-                };
-                statements.push(sql);
-            }
+        if trimmed.contains(".drop_table(")
+            && trimmed.contains("Alias::new(\"")
+            && let Some(t) = extract_alias_value(trimmed)
+        {
+            let sql = match backend {
+                DbBackend::Postgres => format!("DROP TABLE IF EXISTS \"{}\";", t),
+                _ => format!("DROP TABLE IF EXISTS `{}`;", t),
+            };
+            statements.push(sql);
         }
 
         // ----------------------------
         // drop_index (pattern: Index::drop().name("idx").table(Alias::new("t")))
         // ----------------------------
-        if trimmed.contains(".drop_index(") && trimmed.contains(".name(\"") {
-            if let Some(idx) = extract_name_value(trimmed) {
-                let sql = match backend {
-                    DbBackend::Postgres => format!("DROP INDEX IF EXISTS \"{}\";", idx),
-                    _ => format!("DROP INDEX `{}`;", idx),
-                };
-                statements.push(sql);
-            }
+        if trimmed.contains(".drop_index(")
+            && trimmed.contains(".name(\"")
+            && let Some(idx) = extract_name_value(trimmed)
+        {
+            let sql = match backend {
+                DbBackend::Postgres => format!("DROP INDEX IF EXISTS \"{}\";", idx),
+                _ => format!("DROP INDEX `{}`;", idx),
+            };
+            statements.push(sql);
         }
 
         // ----------------------------
         // drop_foreign_key (pattern: ForeignKey::drop().table(Alias::new("t")).name("t_col_ref_fkey"))
         // ----------------------------
-        if trimmed.contains(".drop_foreign_key(") && trimmed.contains(".name(\"") {
-            if let Some(fk_name) = extract_name_value(trimmed) {
-                let sql = match backend {
-                    DbBackend::Postgres => format!(
-                        "ALTER TABLE \"{}\" DROP CONSTRAINT IF EXISTS \"{}\";",
-                        table_name, fk_name
-                    ),
-                    _ => format!(
-                        "ALTER TABLE `{}` DROP FOREIGN KEY `{}`;",
-                        table_name, fk_name
-                    ),
-                };
-                statements.push(sql);
-            }
+        if trimmed.contains(".drop_foreign_key(")
+            && trimmed.contains(".name(\"")
+            && let Some(fk_name) = extract_name_value(trimmed)
+        {
+            let sql = match backend {
+                DbBackend::Postgres => format!(
+                    "ALTER TABLE \"{}\" DROP CONSTRAINT IF EXISTS \"{}\";",
+                    table_name, fk_name
+                ),
+                _ => format!(
+                    "ALTER TABLE `{}` DROP FOREIGN KEY `{}`;",
+                    table_name, fk_name
+                ),
+            };
+            statements.push(sql);
         }
     }
 

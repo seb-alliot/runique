@@ -182,10 +182,10 @@ impl Lang {
         if let Some(s) = self.lookup(key) {
             return s;
         }
-        if *self != Lang::En {
-            if let Some(s) = Lang::En.lookup(key) {
-                return s;
-            }
+        if *self != Lang::En
+            && let Some(s) = Lang::En.lookup(key)
+        {
+            return s;
         }
         Cow::Owned(key.to_string())
     }

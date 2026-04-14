@@ -215,16 +215,17 @@ impl FormField for TextField {
     }
 
     fn finalize(&mut self) -> Result<(), String> {
-        if let SpecialFormat::Password = &self.format {
-            if self.hash_password && !self.base.value.is_empty() {
-                let config = crate::utils::password::password_get();
-                if let PasswordConfig::Auto(_) = config {
-                    let service = PasswordService::new(config);
-                    if !service.is_already_hashed(&self.base.value) {
-                        self.base.value = service
-                            .hash(&self.base.value)
-                            .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_string())?;
-                    }
+        if let SpecialFormat::Password = &self.format
+            && self.hash_password
+            && !self.base.value.is_empty()
+        {
+            let config = crate::utils::password::password_get();
+            if let PasswordConfig::Auto(_) = config {
+                let service = PasswordService::new(config);
+                if !service.is_already_hashed(&self.base.value) {
+                    self.base.value = service
+                        .hash(&self.base.value)
+                        .map_err(|e| tf("forms.hash_error", &[&e.to_string()]).to_string())?;
                 }
             }
         }

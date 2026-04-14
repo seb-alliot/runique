@@ -378,13 +378,13 @@ use std::sync::OnceLock;
 pub static PASSWORD_CONFIG: OnceLock<PasswordConfig> = OnceLock::new();
 
 pub fn password_init(config: PasswordConfig) {
-    if PASSWORD_CONFIG.set(config).is_err() {
-        if let Some(level) = crate::utils::runique_log::get_log().password_init {
-            crate::runique_log!(
-                level,
-                "password_init() called multiple times — initial configuration is kept"
-            );
-        }
+    if PASSWORD_CONFIG.set(config).is_err()
+        && let Some(level) = crate::utils::runique_log::get_log().password_init
+    {
+        crate::runique_log!(
+            level,
+            "password_init() called multiple times — initial configuration is kept"
+        );
     }
 }
 

@@ -11,10 +11,10 @@ pub fn form_filter(value: &Value, args: &JsonMap) -> TResult {
         let mut output = field_html.as_str().unwrap_or("").to_string();
 
         // Inject CSRF before the first field
-        if is_first_field_by_index(value, field_name) {
-            if let Some(csrf) = render_csrf(value) {
-                output = format!("{}\n{}", csrf, output);
-            }
+        if is_first_field_by_index(value, field_name)
+            && let Some(csrf) = render_csrf(value)
+        {
+            output = format!("{}\n{}", csrf, output);
         }
 
         // Inject scripts after the last field
@@ -136,10 +136,10 @@ fn render_scripts(value: &Value) -> Option<String> {
 fn render_field(value: &Value, field_name: &str) -> TResult {
     let rendered_fields = find_rendered_fields(value);
 
-    if let Some(fields) = rendered_fields {
-        if let Some(html) = fields.get(field_name).and_then(|v| v.as_str()) {
-            return Ok(Value::String(html.to_string()));
-        }
+    if let Some(fields) = rendered_fields
+        && let Some(html) = fields.get(field_name).and_then(|v| v.as_str())
+    {
+        return Ok(Value::String(html.to_string()));
     }
 
     Err(tera::Error::msg(format!(
@@ -175,20 +175,19 @@ fn find_html(value: &Value) -> Option<String> {
     }
 
     // 2. value.form.html (struct with "form" field)
-    if let Some(form) = value.get("form") {
-        if let Some(html) = form.get("html").and_then(|v| v.as_str()) {
-            return Some(html.to_string());
-        }
+    if let Some(form) = value.get("form")
+        && let Some(html) = form.get("html").and_then(|v| v.as_str())
+    {
+        return Some(html.to_string());
     }
 
     // 3. Rebuild from rendered_fields if html is absent
-    if let Some(fields) = find_rendered_fields(value) {
-        if let Some(obj) = fields.as_object() {
-            let html: Vec<&str> = obj.values().filter_map(|v| v.as_str()).collect();
-
-            if !html.is_empty() {
-                return Some(html.join("\n"));
-            }
+    if let Some(fields) = find_rendered_fields(value)
+        && let Some(obj) = fields.as_object()
+    {
+        let html: Vec<&str> = obj.values().filter_map(|v| v.as_str()).collect();
+        if !html.is_empty() {
+            return Some(html.join("\n"));
         }
     }
 

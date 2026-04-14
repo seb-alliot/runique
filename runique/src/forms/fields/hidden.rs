@@ -54,19 +54,19 @@ impl CommonFieldConfig for HiddenField {
 impl FormField for HiddenField {
     fn validate(&mut self) -> bool {
         // For a CSRF field, check that the value matches the expected one
-        if self.base.name == "csrf_token" {
-            if let Some(expected) = &self.expected_value {
-                if self.base.value.trim().is_empty() {
-                    self.set_error(t("csrf.missing").to_string());
-                    return false;
-                }
+        if self.base.name == "csrf_token"
+            && let Some(expected) = &self.expected_value
+        {
+            if self.base.value.trim().is_empty() {
+                self.set_error(t("csrf.missing").to_string());
+                return false;
+            }
 
-                // ct_eq: constant-time comparison — prevents an attacker
-                // guessing the token byte by byte via response time
-                if !bool::from(self.base.value.as_bytes().ct_eq(expected.as_bytes())) {
-                    self.set_error(t("csrf.invalid").to_string());
-                    return false;
-                }
+            // ct_eq: constant-time comparison — prevents an attacker
+            // guessing the token byte by byte via response time
+            if !bool::from(self.base.value.as_bytes().ct_eq(expected.as_bytes())) {
+                self.set_error(t("csrf.invalid").to_string());
+                return false;
             }
         }
 

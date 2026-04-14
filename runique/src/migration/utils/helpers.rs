@@ -399,10 +399,10 @@ pub fn extract_references_from_expr(expr: &Expr) -> Option<(String, String)> {
 
 pub fn extract_fk_action(expr: &Expr, method_name: &str) -> String {
     if let Expr::MethodCall(mc) = expr {
-        if mc.method == method_name {
-            if let Some(arg) = mc.args.first() {
-                return extract_fk_action_value(arg);
-            }
+        if mc.method == method_name
+            && let Some(arg) = mc.args.first()
+        {
+            return extract_fk_action_value(arg);
         }
         let s = extract_fk_action(&mc.receiver, method_name);
         if s != "NoAction" {
@@ -419,15 +419,15 @@ pub fn extract_fk_action(expr: &Expr, method_name: &str) -> String {
 }
 
 pub fn extract_fk_action_value(expr: &Expr) -> String {
-    if let Expr::Path(p) = expr {
-        if let Some(seg) = p.path.segments.last() {
-            return match seg.ident.to_string().as_str() {
-                "Cascade" => "Cascade".to_string(),
-                "SetNull" => "SetNull".to_string(),
-                "Restrict" => "Restrict".to_string(),
-                _ => "NoAction".to_string(),
-            };
-        }
+    if let Expr::Path(p) = expr
+        && let Some(seg) = p.path.segments.last()
+    {
+        return match seg.ident.to_string().as_str() {
+            "Cascade" => "Cascade".to_string(),
+            "SetNull" => "SetNull".to_string(),
+            "Restrict" => "Restrict".to_string(),
+            _ => "NoAction".to_string(),
+        };
     }
     "NoAction".to_string()
 }
@@ -451,14 +451,14 @@ pub fn extract_alias_new_str(expr: &Expr) -> Option<String> {
             } else {
                 false
             };
-            if is_alias {
-                if let Some(Expr::Lit(ExprLit {
+            if is_alias
+                && let Some(Expr::Lit(ExprLit {
                     lit: Lit::Str(s), ..
                 })) = args.first()
-                {
-                    return Some(s.value());
-                }
+            {
+                return Some(s.value());
             }
+
             for arg in args {
                 if let Some(s) = extract_alias_new_str(arg) {
                     return Some(s);
@@ -477,13 +477,12 @@ pub fn extract_alias_new_str_inner(expr: &Expr) -> Option<String> {
         } else {
             false
         };
-        if is_alias {
-            if let Some(Expr::Lit(ExprLit {
+        if is_alias
+            && let Some(Expr::Lit(ExprLit {
                 lit: Lit::Str(s), ..
             })) = args.first()
-            {
-                return Some(s.value());
-            }
+        {
+            return Some(s.value());
         }
     }
     None

@@ -196,12 +196,12 @@ impl LoginGuard {
             Ok(s) => s,
             Err(p) => p.into_inner(),
         };
-        if let Some((attempts, last)) = store.get(username) {
-            if *attempts >= self.max_attempts {
-                let elapsed = last.elapsed().as_secs();
-                if elapsed < self.lockout_secs {
-                    return Some(self.lockout_secs.saturating_sub(elapsed));
-                }
+        if let Some((attempts, last)) = store.get(username)
+            && *attempts >= self.max_attempts
+        {
+            let elapsed = last.elapsed().as_secs();
+            if elapsed < self.lockout_secs {
+                return Some(self.lockout_secs.saturating_sub(elapsed));
             }
         }
         None

@@ -196,17 +196,17 @@ impl FormField for NumericField {
         match &self.config {
             NumericConfig::Integer { min, max } => {
                 if let Ok(v) = normalized.parse::<i64>() {
-                    if let Some(m) = min {
-                        if v < *m {
-                            self.set_error(tf("forms.min_value", &[m]));
-                            return false;
-                        }
+                    if let Some(m) = min
+                        && v < *m
+                    {
+                        self.set_error(tf("forms.min_value", &[m]));
+                        return false;
                     }
-                    if let Some(m) = max {
-                        if v > *m {
-                            self.set_error(tf("forms.max_value", &[m]));
-                            return false;
-                        }
+                    if let Some(m) = max
+                        && v > *m
+                    {
+                        self.set_error(tf("forms.max_value", &[m]));
+                        return false;
                     }
                 } else {
                     self.set_error(t("forms.integer_required").to_string());
