@@ -114,20 +114,12 @@ impl TemplateLoader {
             .replace_all(&content, |caps: &Captures| {
                 let path = &caps["link"];
                 let tag = &caps["tag"];
-                let attr = &caps["attr"];
-                
-                let url_expr = format!(r#"{{{{ "{}" | {} }}}}"#, path, tag);
-                
+                let url = format!(r#"{{{{ "{}" | {} }}}}"#, path, tag);
                 match integrity_map.get(path) {
                     Some(hash) => {
-                        format!(
-                            r#"{}="{}" integrity="{}" crossorigin="anonymous""#,
-                            attr, url_expr, hash
-                        )
+                        format!(r#"{}" integrity="{}" crossorigin="anonymous"#, url, hash)
                     }
-                    None => {
-                        format!(r#"{}="{}""#, attr, url_expr)
-                    }
+                    None => url,
                 }
             })
             .to_string();
