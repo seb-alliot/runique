@@ -44,10 +44,10 @@ impl RegisterForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
         use sea_orm::Set;
         let model = users::ActiveModel {
-            username: Set(self.form.get_string("username")),
-            email: Set(self.form.get_string("email")),
+            username: Set(self.cleaned_string("username").unwrap_or_default()),
+            email: Set(self.cleaned_string("email").unwrap_or_default()),
             // Le mot de passe est déjà haché en Argon2 après is_valid()
-            password: Set(self.form.get_string("password")),
+            password: Set(self.cleaned_string("password").unwrap_or_default()),
             ..Default::default()
         };
         model.insert(db).await
@@ -119,13 +119,13 @@ pub async fn modifier_profil(
         return request.render(template);
     }
 
-    // En PATCH : le champ password n'est plus requis automatiquement
+    // En PATCH : le champ password n''est plus requis automatiquement
     if request.is_patch() {
         if form.is_valid().await {
-            let new_password = form.get_form().get_option("password");
+            let new_password = form.cleaned_string("password");
 
             let mut active: users::ActiveModel = user.into();
-            active.username = Set(form.get_form().get_string("username"));
+            active.username = Set(form.cleaned_string("username").unwrap_or_default());
 
             // Si le champ password est rempli → nouveau hash ; sinon → inchangé
             if let Some(pwd) = new_password {
@@ -187,13 +187,13 @@ Prisme(mut form): Prisme<MyForm>
 password_init(PasswordConfig::auto_with(Manual::Argon2));
 
 // Après is_valid(), les mots de passe sont hachés !
-let mdp = form.get_form().get_string("password");
+let mdp = form.cleaned_string("password").unwrap_or_default();
 // mdp == "$argon2id$v=19$m=..." 😱
 
 // Comparer dans clean(), AVANT la finalisation
 async fn clean(&mut self) -> Result<(), StrMap> {
-    let mdp1 = self.form.get_string("password");
-    let mdp2 = self.form.get_string("password_confirm");
+    let mdp1 = self.cleaned_string("password").unwrap_or_default();
+    let mdp2 = self.cleaned_string("password_confirm").unwrap_or_default();
     if mdp1 != mdp2 { /* erreur */ }
     Ok(())
 }

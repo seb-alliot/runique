@@ -245,138 +245,6 @@ mod tests {
     // ── Forms struct ─────────────────────────────────────────────────────────────
 
     #[test]
-    fn test_forms_add_value_and_get_string() {
-        let mut form = Forms::new("csrf");
-        form.field(&TextField::text("name"));
-        form.add_value("name", "Alice");
-        form.is_valid().ok();
-        assert_eq!(form.get_string("name"), "Alice");
-    }
-
-    #[test]
-    fn test_forms_get_string_missing_returns_empty() {
-        let form = Forms::new("csrf");
-        assert_eq!(form.get_string("nonexistent"), "");
-    }
-
-    #[test]
-    fn test_forms_get_i32() {
-        let mut form = Forms::new("csrf");
-        form.field(&NumericField::integer("age"));
-        form.add_value("age", "42");
-        form.is_valid().ok();
-        assert_eq!(form.get_i32("age"), 42);
-    }
-
-    #[test]
-    fn test_forms_get_i32_invalid_returns_zero() {
-        let mut form = Forms::new("csrf");
-        form.field(&NumericField::integer("age"));
-        form.add_value("age", "not_a_number");
-        form.is_valid().ok();
-        assert_eq!(form.get_i32("age"), 0);
-    }
-
-    #[test]
-    fn test_forms_get_f64_dot() {
-        let mut form = Forms::new("csrf");
-        form.field(&NumericField::float("price"));
-        form.add_value("price", "19.99");
-        form.is_valid().ok();
-        assert!((form.get_f64("price") - 19.99).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_forms_get_f64_comma() {
-        let mut form = Forms::new("csrf");
-        form.field(&NumericField::float("price"));
-        form.add_value("price", "19,99");
-        form.is_valid().ok();
-        assert!((form.get_f64("price") - 19.99).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_forms_get_bool_true() {
-        let mut form = Forms::new("csrf");
-        form.field(&BooleanField::new("active"));
-        form.add_value("active", "true");
-        form.is_valid().ok();
-        assert!(form.get_bool("active"));
-    }
-
-    #[test]
-    fn test_forms_get_bool_one() {
-        let mut form = Forms::new("csrf");
-        form.field(&BooleanField::new("active"));
-        form.add_value("active", "1");
-        form.is_valid().ok();
-        assert!(form.get_bool("active"));
-    }
-
-    #[test]
-    fn test_forms_get_bool_false() {
-        let mut form = Forms::new("csrf");
-        form.field(&BooleanField::new("active"));
-        form.add_value("active", "false");
-        form.is_valid().ok();
-        assert!(!form.get_bool("active"));
-    }
-
-    #[test]
-    fn test_forms_get_option_some() {
-        let mut form = Forms::new("csrf");
-        form.field(&TextField::text("name"));
-        form.add_value("name", "Bob");
-        form.is_valid().ok();
-        assert_eq!(form.get_option("name"), Some("Bob".to_string()));
-    }
-
-    #[test]
-    fn test_forms_get_option_none_on_empty() {
-        let mut form = Forms::new("csrf");
-        form.field(&TextField::text("optional"));
-        form.add_value("optional", "");
-        assert_eq!(form.get_option("optional"), None);
-    }
-
-    #[test]
-    fn test_forms_get_option_none_on_whitespace() {
-        let mut form = Forms::new("csrf");
-        form.field(&TextField::text("optional"));
-        form.add_value("optional", "   ");
-        assert_eq!(form.get_option("optional"), None);
-    }
-
-    #[test]
-    fn test_forms_fill() {
-        let mut form = Forms::new("csrf");
-        form.field(&TextField::text("username"));
-        form.field(&NumericField::integer("age"));
-
-        let mut data: HashMap<String, String> = HashMap::new();
-        data.insert("username".to_string(), "bob".to_string());
-        data.insert("age".to_string(), "30".to_string());
-        form.fill(&data, Method::POST);
-        form.is_valid().ok();
-
-        assert_eq!(form.get_string("username"), "bob");
-        assert_eq!(form.get_i32("age"), 30);
-    }
-
-    #[test]
-    fn test_forms_fill_skips_password_fields() {
-        let mut form = Forms::new("csrf");
-        form.field(&TextField::password("pwd"));
-
-        let mut data: HashMap<String, String> = HashMap::new();
-        data.insert("pwd".to_string(), "secret".to_string());
-        form.fill(&data, Method::GET);
-
-        // fill() skips password fields — value stays empty
-        assert_eq!(form.get_string("pwd"), "");
-    }
-
-    #[test]
     fn test_forms_is_valid_ok() {
         let mut form = Forms::new("csrf");
         form.field(&TextField::text("name").required());
@@ -432,22 +300,6 @@ mod tests {
         let _ = form.is_valid();
         let errors = form.errors();
         assert!(errors.contains_key("email"));
-    }
-
-    #[test]
-    fn test_forms_get_option_i32_some() {
-        let mut form = Forms::new("csrf");
-        form.field(&NumericField::integer("qty"));
-        form.add_value("qty", "5");
-        form.is_valid().ok();
-        assert_eq!(form.get_option_i32("qty"), Some(5));
-    }
-
-    #[test]
-    fn test_forms_get_option_i32_none_empty() {
-        let mut form = Forms::new("csrf");
-        form.field(&NumericField::integer("qty"));
-        assert_eq!(form.get_option_i32("qty"), None);
     }
 
     // ── RuniqueForm — validation basique ─────────────────────────────────────────
@@ -526,8 +378,8 @@ mod tests {
         }
 
         async fn clean(&mut self) -> Result<(), StrMap> {
-            let password = self.get_form().get_string("password");
-            let confirm = self.get_form().get_string("confirm");
+            let password = self.cleaned_string("password");
+            let confirm = self.cleaned_string("confirm");
             if password != confirm {
                 let mut errors = HashMap::new();
                 errors.insert(
@@ -597,16 +449,18 @@ mod tests {
         fn get_form_mut(&mut self) -> &mut Forms {
             &mut self.form
         }
-
         async fn clean_field(&mut self, name: &str) -> bool {
             if name == "username" {
-                let val = self.get_form().get_string("username");
-                if val.to_lowercase().contains("admin") {
+                // Enlève l'underscore, on va ENFIN utiliser cette valeur !
+                if let Some(val) = self.cleaned_string("username")
+                    && val.to_lowercase().contains("admin")
+                {
                     if let Some(f) = self.get_form_mut().fields.get_mut("username") {
                         f.set_error("Le nom 'admin' est réservé".to_string());
                     }
                     return false;
                 }
+                return true;
             }
             true
         }

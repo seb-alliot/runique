@@ -244,6 +244,27 @@
     "debug_header_value": "值"
   },
   "admin": {
+    "group": "组",
+    "groups": "组",
+    "resource": "资源",
+    "resources": "资源",
+    "can_create": "创建",
+    "can_read": "读取",
+    "can_update": "修改",
+    "can_delete": "删除",
+    "can_update_own": "修改",
+    "can_delete_own": "删除",
+    "name": "名称",
+    "username": "用户名",
+    "email": "电子邮箱",
+    "staff": "工作人员",
+    "superuser": "超级用户",
+    "active": "激活",
+    "user": {
+      "username_too_short": "用户名太短（最少3个字符）",
+      "invalid_email": "邮箱地址格式不正确"
+    },
+
     "login": {
       "title": "登录",
       "subtitle": "请登录以访问管理面板",
@@ -360,7 +381,7 @@
       "toggle": "收起菜单",
       "logout_title": "登出"
     },
-    "superuser": {
+    "superuser_wizard": {
       "title": "=== 创建超级用户 ===",
       "algo_prompt": "[1/5] 哈希算法",
       "algo_argon2": "Argon2（推荐）",

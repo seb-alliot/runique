@@ -21,7 +21,6 @@ Automatically renders: all fields, labels, validation errors, CSRF token, and JS
 
 ```html
 <form method="post">
-    {% csrf %}
     <div class="row">
         <div class="col-6">{% form.register_form.username %}</div>
         <div class="col-6">{% form.register_form.email %}</div>

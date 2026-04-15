@@ -49,6 +49,41 @@ model! {
 
 ---
 
+## La Clé Primaire (`pk`)
+
+Le bloc `pk` définit le nom et le type de la clé primaire. Trois types sont supportés nativement :
+
+| Type | SQL (Postgres / MySQL) | Auto-incrément |
+| --- | --- | --- |
+| `i32` | `SERIAL` / `INT AUTO_INC` | ✅ Oui (défaut) |
+| `i64` | `BIGSERIAL` / `BIGINT AUTO_INC` | ✅ Oui |
+| `uuid` | `UUID` / `VARCHAR(36)` | ❌ Non |
+
+**Exemple UUID :**
+```rust
+model! {
+    Log,
+    table: "logs",
+    pk: id => uuid,
+    fields: { ... }
+}
+```
+
+#### Lien avec le modèle `User` et la feature `big-pk`
+
+Si vous utilisez `i64` pour votre modèle utilisateur (entité liée à la session), vous devez activer la feature `big-pk` dans votre `Cargo.toml` pour que l'alias global `Pk` utilisé par le framework soit synchronisé :
+
+```toml
+[dependencies]
+runique = { version = "1.1.0", features = ["big-pk"] }
+```
+
+> **Attention :** Le type `uuid` pour l''alias global `Pk` (authentification) n''est pas encore supporté nativement dans la version actuelle.
+
+---
+
+---
+
 ## AST interne (ce qui est parsé)
 
 La DSL est convertie en AST `Model` avec notamment :

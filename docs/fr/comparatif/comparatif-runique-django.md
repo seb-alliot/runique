@@ -23,8 +23,8 @@
 | Routes dynamiques | `path('users/<int:id>/', view)` | `"/users/{id}"` dans `urlpatterns!` |
 | Namespaces | `app_name` + `include()` | `Router::new().nest("/prefix", ...)` |
 | Reverse URL | `{% url "nom_vue" %}` natif | `{% link "nom_vue" %}` → Tera function custom |
-| Récupérer un paramètre de chemin | `kwargs['id']` via `request.resolver_match` | `Path(id): Path<i32>` en paramètre de vue (extractor Axum) — `request.path_param("id")` [prévu](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param) |
-| Récupérer un query param | `request.GET.get('key')` | `Query(params): Query<HashMap<...>>` en paramètre de vue — `request.query_param("key")` [prévu](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param) |
+| Récupérer un paramètre de chemin | `kwargs['id']` | `form.cleaned_*` ou `request.path_param("id")` |
+| Récupérer un query param | `request.GET.get('key')` | `form.cleaned_*` ou `request.from_url("key")` |
 
 ---
 
@@ -35,7 +35,7 @@
 | Vue fonction | `def ma_vue(request)` | `async fn ma_vue(...)` |
 | Vue classe | `class MaVue(View)` | — |
 | Accès session | `request.session` | `request.session` via `context::template::Request` (ou `Session` extractor axum directement) |
-| Accès DB | `Model.objects.get(...)` | sea-orm query builders |
+| Accès DB | `Model.objects.get(...)` | `Model::objects.get(...)` (via `impl_objects!`) ou sea-orm query builders |
 | Rendu template | `render(request, "template.html", ctx)` | `request.render("template.html")` — contexte déjà dans `request.context` |
 | Redirect | `redirect("nom_url")` | `Redirect::to("/url")` ou `reverse(&engine, "nom")` / `reverse_with_parameters(...)` (prelude) |
 | Messages flash | `messages.success(request, "...")` | `success!(message => "...")` — macros `success!`, `error!`, `info!`, `warning!` (prelude) |
@@ -46,14 +46,15 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Définition | `class MonForm(forms.Form)` / `class MonForm(ModelForm)` | `#[derive(RuniqueForm)] struct MonForm` (équivalent `ModelForm`) |
+| Définition | `class MonForm(forms.Form)` / `class MonForm(ModelForm)` | `#[form]` struct (équivalent `ModelForm`) ou `RuniqueForm` manuel |
 | Validation | `form.is_valid()` | `form.is_valid().await` |
-| Champs disponibles | CharField, EmailField, etc. | TextField, EmailField, PasswordField, HiddenField, etc. (liste fixe, pas de widget custom) |
+| Champs disponibles | CharField, EmailField, etc. | TextField, EmailField, PasswordField, HiddenField, ChoiceField, NumericField, BooleanField, FileField, DateTimeField, DurationField |
 | Rendu HTML | `{{ form.as_p }}` | `{% form.nom_form %}` (formulaire entier) ou `{% form.nom_form.champ %}` (champ individuel) |
-| CSRF intégré | automatique | automatique — injecté par le filtre Tera `form_filter` avant le premier champ |
-| Sauvegarde | `form.save()` | `form.save(&db).await` |
-| Validation async | non | oui (accès DB possible) |
-| Formulaires fichier | `FileField` | Multipart partiel |
+| CSRF intégré | automatique | automatique — injecté avant le premier champ |
+| Sauvegarde | `form.save()` | `form.save(&db).await` (si `#[form]`) |
+| Accès aux données | `form.cleaned_data['clé']` | `form.cleaned_*("clé")` (ex: `string`, `i32`, `bool`, `uuid`, etc.) |
+| Validation async | non | oui (accès DB direct dans `clean()`) |
+| Formulaires fichier | `FileField` | Multipart natif avec validation dimensions/format |
 
 ---
 
@@ -61,14 +62,14 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Moteur | Django Template Language | Tera (syntaxe Jinja2) |
+| Moteur | Django Template Language | Tera (syntaxe Jinja2 / Django-like) |
 | Héritage | `{% extends %}` / `{% block %}` | idem Tera |
 | Fichiers statiques | `{% load static %}` `{% static "file" %}` | `{% static "file" %}` natif |
 | Fichiers media | `{{ MEDIA_URL }}file` | `{% media "file" %}` natif |
 | URL reverse | `{% url "nom" %}` | `{% link "nom" %}` |
 | CSRF | `{% csrf_token %}` | `{% csrf %}` |
 | Messages | `{% for m in messages %}` | `{% messages %}` |
-| Internationalisation | `{% trans "..." %}` | `{{ t("section.clé") }}` |
+| Internationalisation | `{% trans "..." %}` | `{{ t("section.clé") }}` ou `{{ tf("...", ["var"]) }}` |
 
 ---
 
@@ -76,15 +77,15 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| ORM | Django ORM natif | sea-orm |
-| Définition modèle | `class User(models.Model)` | entité sea-orm (struct Rust) dans `src/entities/` (dossier imposé, lu par le parser) |
-| Migrations auto | oui (détection changements) | `runique makemigrations` (détection changements depuis entités) |
-| QuerySet chaînable | `User.objects.filter(...).order_by(...)` | sea-orm Select builder |
-| Relations | ForeignKey, ManyToMany, OneToOne | Relations sea-orm |
-| Transactions | `with transaction.atomic()` | `db.transaction(...)` sea-orm |
+| ORM | Django ORM natif | sea-orm (Rust async) |
+| Définition modèle | `class User(models.Model)` | struct Rust annotée + `model!{}` macro |
+| Migrations auto | oui (détection changements) | `runique makemigrations` |
+| QuerySet chaînable | `User.objects.filter(...).order_by(...)` | `User::objects.filter(...).order_by(...)` (via `impl_objects!`) |
+| Relations | ForeignKey, ManyToMany, OneToOne | Relations sea-orm standard |
+| Transactions | `with transaction.atomic()` | `db.transaction(...)` |
 | Multi-DB | oui | PostgreSQL, MySQL, SQLite |
 | NoSQL | via packages tiers | via crates tierces (ex. `mongodb`) |
-| Re-export | — | `runique::sea_orm` + `sea_query` |
+| Re-export | — | `runique::sea_orm` + `sea_query` intégrés |
 
 ---
 
@@ -92,17 +93,16 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Login / Logout | `authenticate()` + `login()` | `auth_login(session, db, user_id)`, `login()` (8 params), `logout()` — `LoginGuard` = anti-brute force |
+| Login / Logout | `authenticate()` + `login()` | `auth_login(...)`, `logout()` |
 | Vérif authentification | `request.user.is_authenticated` | `is_authenticated(&session).await` |
-| Utilisateur courant | `request.user` | `CurrentUser` (injecté via `load_user_middleware`) |
-| Protection route | `@login_required` | pattern inline `if !is_authenticated(&session).await { Redirect... }` |
-| Redirection si connecté | manuel | pattern inline `if is_authenticated(&session).await { Redirect... }` |
-| Sessions | natif | tower-sessions |
-| Protection brute force | `django-axes` (tiers) | `LoginGuard` natif (tentatives + lockout) |
-| Hashage mot de passe | PBKDF2 / argon2 | argon2, bcrypt, scrypt, custom (détection automatique à la vérification) |
-| Activation compte email | natif (`auth`) | **manquant** |
+| Utilisateur courant | `request.user` | `CurrentUser` (injecté via middleware) |
+| Protection route | `@login_required` | pattern `if !is_authenticated(&session).await { ... }` |
+| Sessions | natif | tower-sessions (DB backend) |
+| Protection brute force | `django-axes` (tiers) | `LoginGuard` natif (lockout auto) |
+| Hashage mot de passe | PBKDF2 / argon2 | argon2 par défaut, multi-algos supportés |
+| Activation compte email | natif (`auth`) | intégré au lien de réinitialisation/création password |
 | Reset password | natif | `handle_forgot_password` + `handle_password_reset` natifs |
-| Déconnexion forcée toutes sessions | oui | `RuniqueSessionStore::invalidate_all(user_id)` |
+| Déconnexion forcée | oui | `RuniqueSessionStore::invalidate_all(user_id)` |
 
 ---
 
@@ -110,15 +110,14 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| CSRF | natif | natif (constant-time via `subtle`) |
+| CSRF | natif | natif (constant-time validation) |
 | CSP | `django-csp` (tiers) | natif (`use_nonce: true` par défaut) |
-| HSTS | `SECURE_HSTS_SECONDS` | natif (`max-age=31536000; includeSubDomains`) |
+| HSTS | `SECURE_HSTS_SECONDS` | natif |
 | SameSite cookies | configurable | `Strict` par défaut |
 | HttpOnly cookies | par défaut | toujours `true` |
-| Validation hôtes | `ALLOWED_HOSTS` | `.with_allowed_hosts(...)` dans le builder |
 | Rate limiting | `django-ratelimit` (tiers) | `RateLimiter` natif |
-| Sanitisation inputs | — | middleware sanitize natif |
-| Secret key générée | manuel | `runique new` génère 32 bytes hex automatiquement |
+| Sanitisation inputs | — | middleware `sanitize` natif |
+| Secret key | manuel | générée auto à l''install |
 
 ---
 
@@ -126,15 +125,13 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Activation | `admin.site.register(Model)` | macro `admin!{}` + `runique start` |
-| List / Create / Edit / Detail / Delete | natif | natif |
-| Pagination liste | natif | `.page_size(n)` dans le builder admin |
-| `list_display` | natif | **manquant** |
-| Recherche / filtres | natif | **manquant** |
-| Templates personnalisables | oui | oui (hiérarchie Tera) |
-| Permissions par ressource | natif | stockées, non injectées dans le contexte Tera |
-| Création compte admin | `createsuperuser` | `runique create-superuser` |
-| Compte admin depuis l'app | non | non (identique) |
+| Activation | `admin.site.register(Model)` | macro `admin!{}` |
+| CRUD complet | natif | natif |
+| Pagination liste | natif | `.pagination(n)` dans `DisplayConfig` |
+| `list_display` | natif | `.columns_include()` / `.columns_exclude()` |
+| Recherche / filtres | natif | `.list_filter()` + champ de recherche automatique |
+| Templates custom | oui | oui (hiérarchie Tera) |
+| Permissions | par ressource | RBAC dynamique (Groupes / Permissions) |
 
 ---
 
@@ -142,9 +139,9 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Envoi email | `send_mail()` natif | **manquant** — `lettre` à brancher |
-| Templates email | natif | **manquant** |
-| Backend SMTP/console | configurable | — |
+| Envoi email | `send_mail()` natif | `utils::Email::new().send()` natif |
+| Templates email | natif | Tera templates supportés via `html(body)` |
+| Backend SMTP | configurable | configuration via `.env` |
 
 ---
 
@@ -152,11 +149,9 @@
 
 | Fonctionnalité | Django | Runique |
 |----------------|--------|---------|
-| Langues supportées | illimitées (fichiers `.po`) | 9 (`en`, `fr`, `it`, `es`, `de`, `pt`, `ja`, `zh`, `ru`) |
-| Détection auto langue | `LocaleMiddleware` | `LANG` / `LC_ALL` env |
+| Langues supportées | illimitées | 9 langues par défaut (JSON compilé) |
 | Fallback | oui | oui (`Lang::En`) |
-| Traductions framework | `.po`/`.mo` | fichiers JSON (14 sections, compilés dans le binaire) |
-| `t("clé")` | `_("...")` | `t("section.clé")` → `Cow<'static, str>` |
+| `t("clé")` | `_("...")` | `t("section.clé")` |
 
 ---
 
@@ -164,22 +159,17 @@
 
 | Aspect | Django | Runique |
 |--------|--------|---------|
-| Runtime | CPython (GIL) | Tokio async Rust |
-| Serveur prod | Gunicorn + Nginx | binaire compilé (Axum/Hyper) |
+| Runtime | CPython (interprété) | Tokio async Rust (compilé) |
 | Empreinte mémoire | ~50–100 MB | ~5–15 MB |
-| Compilation | — | `cargo build --release` |
-| Docker | oui | oui |
-| Déploiement | fly.io, Heroku, Azure, etc. | idem (binaire statique = plus simple) |
+| Compilation | — | binaire statique unique |
 
 ---
 
-## Ce qui manque encore à Runique (résumé)
+## Ce qu'il manque encore (comparé à Django)
 
-- Flux auth complet (activation email, reset password)
-- Intégration email native
-- Upload fichier robuste (validation MIME, resize)
-- Pagination admin + `list_display` + filtres
-- Permissions runtime dans l'admin
-- Équivalent `django-simple-history`
-- NoSQL natif (hors scope, brancher `mongodb`)
+Runique se rapproche de la complétude fonctionnelle de Django, mais quelques éléments restent en chantier :
+
+- **File upload amélioré** : Le redimensionnement automatique d''image nativement côté serveur (resize/cropping).
+- **Équivalent à `django-simple-history`** : Un système d''audit log intégré pour tracer l''historique de chaque modification en base de données.
+- **NoSQL Natif** (Toujours hors périmètre principal, mais intégration MongoDB simplifiée prévue).
 - `request.path_param()` / `request.query_param()` — actuellement via extractors Axum bruts (voir [roadmap](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param))

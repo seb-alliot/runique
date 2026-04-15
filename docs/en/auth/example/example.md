@@ -11,7 +11,7 @@ pub async fn login_post(
 ) -> AppResult<Response> {
     if request.is_post() && form.is_valid().await {
         // 1. Find the user by username
-        let username = form.get_form().get_string("username");
+        let username = form.cleaned_string("username").unwrap_or_default();
         let user = users::Entity::objects
             .filter(users::Column::Username.eq(&username))
             .first(&*request.engine.db)
@@ -19,7 +19,7 @@ pub async fn login_post(
 
         if let Some(user) = user {
             // 2. Verify the password (plain text vs hash)
-            let password = form.get_form().get_string("password");
+            let password = form.cleaned_string("password").unwrap_or_default();
             if verify(&password, &user.password) {
                 // 3. Open the session (loads user data from DB by user_id)
                 auth_login(&request.session, &request.engine.db, user.id).await.ok();

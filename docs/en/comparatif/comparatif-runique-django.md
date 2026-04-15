@@ -1,17 +1,17 @@
-# Runique vs Django — Feature Comparison
+# Comparison: Runique vs Django
 
 ## CLI
 
 | Command | Django | Runique |
 |---------|--------|---------|
-| Create a project | `django-admin startproject name` | `runique new name` |
-| Create an app | `python manage.py startapp name` | — |
-| Generate migrations | `python manage.py makemigrations` | `runique makemigrations` (detects changes from entities) |
-| Apply migrations | `python manage.py migrate` | `runique migration up` (wraps `sea-orm-cli migrate up`) |
-| Rollback migrations | `python manage.py migrate app 0001` | `runique migration down --files ...` (wraps `sea-orm-cli migrate down`) |
-| Migration status | — | `runique migration status` (wraps `sea-orm-cli migrate status`) |
+| Create project | `django-admin startproject name` | `runique new name` |
+| Create app | `python manage.py startapp name` | — |
+| Migrations (generate) | `python manage.py makemigrations` | `runique makemigrations` |
+| Migrations (apply) | `python manage.py migrate` | `runique migration up` (wrapper for `sea-orm-cli migrate up`) |
+| Migrations (rollback) | `python manage.py migrate app 0001` | `runique migration down --files ...` (wrapper for `sea-orm-cli migrate down`) |
+| Migration status | — | `runique migration status` (wrapper for `sea-orm-cli migrate status`) |
 | Create superuser | `python manage.py createsuperuser` | `runique create-superuser` |
-| Start services | `python manage.py runserver` | `cargo run` — `runique start` only to initialize/refresh the admin view |
+| Start services | `python manage.py runserver` | `cargo run` — `runique start` only for first init/admin view generation |
 
 ---
 
@@ -19,10 +19,12 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Route declaration | `urls.py` with `path()` | `url.rs` with axum `Router` |
-| Dynamic routes | `path('users/<int:id>/', view)` | `.route("/users/:id", get(view))` |
+| URL Declaration | `urls.py` with `path()` | `url.rs` with `urlpatterns!{}` macro |
+| Dynamic Routes | `path('users/<int:id>/', view)` | `"/users/{id}"` in `urlpatterns!` |
 | Namespaces | `app_name` + `include()` | `Router::new().nest("/prefix", ...)` |
-| Reverse URL | `{% url "view_name" %}` native | `{% link "name" %}` → custom Tera function |
+| Reverse URL | `{% url "view_name" %}` native | `{% link "view_name" %}` → custom Tera function |
+| Get Path Param | `kwargs['id']` | `form.cleaned_*` or `request.path_param("id")` |
+| Get Query Param | `request.GET.get('key')` | `form.cleaned_*` or `request.from_url("key")` |
 
 ---
 
@@ -31,12 +33,12 @@
 | Feature | Django | Runique |
 |---------|--------|---------|
 | Function view | `def my_view(request)` | `async fn my_view(...)` |
-| Class-based view | `class MyView(View)` | — |
-| Session access | `request.session` | `request.session` via `context::template::Request` (or `Session` axum extractor directly) |
-| DB access | `Model.objects.get(...)` | sea-orm query builders |
-| Template rendering | `render(request, "template.html", ctx)` | `request.render("template.html")` — context already in `request.context` |
-| Redirect | `redirect("url_name")` | `Redirect::to("/url")` or `reverse(&engine, "name")` / `reverse_with_parameters(...)` (prelude) |
-| Flash messages | `messages.success(request, "...")` | `success!(message => "...")` — macros `success!`, `error!`, `info!`, `warning!` (prelude) |
+| Class view | `class MyView(View)` | — |
+| Session access | `request.session` | `request.session` via `context::template::Request` |
+| DB access | `Model.objects.get(...)` | `Model::objects.get(...)` (via `impl_objects!`) or SeaORM query builders |
+| Template render | `render(request, "template.html", ctx)` | `request.render("template.html")` — context already in `request.context` |
+| Redirect | `redirect("url_name")` | `Redirect::to("/url")` or `reverse(&engine, "name")` (prelude) |
+| Flash messages | `messages.success(request, "...")` | `success!(message => "...")` — `success!`, `error!`, `info!`, `warning!` macros |
 
 ---
 
@@ -44,14 +46,15 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Definition | `class MyForm(forms.Form)` / `class MyForm(ModelForm)` | `#[derive(RuniqueForm)] struct MyForm` (equivalent to `ModelForm`) |
+| Definition | `class MyForm(forms.Form)` / `class MyForm(ModelForm)` | `#[form]` struct (ModelForm equiv) or manual `RuniqueForm` |
 | Validation | `form.is_valid()` | `form.is_valid().await` |
-| Available fields | CharField, EmailField, etc. | TextField, EmailField, PasswordField, HiddenField, etc. (fixed list, no custom widget) |
-| HTML rendering | `{{ form.as_p }}` | `{% form.my_form %}` (full form) or `{% form.my_form.field %}` (individual field) |
-| CSRF included | automatic | automatic — injected by Tera `form_filter` before the first field |
-| Save | `form.save()` | `form.save(&db).await` |
-| Async validation | no | yes (DB access possible) |
-| File forms | `FileField` | Multipart partial |
+| Available Fields | CharField, EmailField, etc. | TextField, EmailField, PasswordField, HiddenField, ChoiceField, NumericField, BooleanField, FileField, DateTimeField, DurationField |
+| HTML Rendering | `{{ form.as_p }}` | `{% form.my_form %}` (full) or `{% form.my_form.field %}` (individual) |
+| CSRF included | automatic | automatic — injected before the first field |
+| Save to DB | `form.save()` | `form.save(&db).await` (if using `#[form]`) |
+| Data access | `form.cleaned_data['key']` | `form.cleaned_*("key")` (e.g., `string`, `i32`, `bool`, `uuid`, etc.) |
+| Async validation | no | yes (direct DB access in `clean()`) |
+| File forms | `FileField` | Native multipart with dimensions/format validation |
 
 ---
 
@@ -59,14 +62,14 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Engine | Django Template Language | Tera (Jinja2 syntax) |
-| Inheritance | `{% extends %}` / `{% block %}` | same in Tera |
+| Engine | Django Template Language | Tera (Jinja2 / Django-like syntax) |
+| Inheritance | `{% extends %}` / `{% block %}` | same with Tera |
 | Static files | `{% load static %}` `{% static "file" %}` | `{% static "file" %}` native |
 | Media files | `{{ MEDIA_URL }}file` | `{% media "file" %}` native |
-| Reverse URL | `{% url "name" %}` | `{% link "name" %}` |
+| URL reverse | `{% url "name" %}` | `{% link "name" %}` |
 | CSRF | `{% csrf_token %}` | `{% csrf %}` |
 | Messages | `{% for m in messages %}` | `{% messages %}` |
-| Internationalization | `{% trans "..." %}` | `{{ t("section.key") }}` |
+| I18n | `{% trans "..." %}` | `{{ t("section.key") }}` or `{{ tf("...", ["var"]) }}` |
 
 ---
 
@@ -74,15 +77,14 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| ORM | Django ORM native | sea-orm |
-| Model definition | `class User(models.Model)` | sea-orm entity (Rust struct) in `src/entities/` (required folder, read by the parser) |
-| Auto migrations | yes (change detection) | `runique makemigrations` (change detection from entities) |
-| Chainable QuerySet | `User.objects.filter(...).order_by(...)` | sea-orm Select builder |
-| Relations | ForeignKey, ManyToMany, OneToOne | sea-orm relations |
-| Transactions | `with transaction.atomic()` | `db.transaction(...)` sea-orm |
+| ORM | Native Django ORM | SeaORM (Rust async) |
+| Model definition | `class User(models.Model)` | Rust struct with annotations + `model!{}` macro |
+| Auto migrations | yes (change detection) | `runique makemigrations` |
+| Chainable QuerySet | `User.objects.filter(...).order_by(...)` | `User::objects.filter(...).order_by(...)` (via `impl_objects!`) |
+| Relations | ForeignKey, ManyToMany, OneToOne | Standard SeaORM relations |
+| Transactions | `with transaction.atomic()` | `db.transaction(...)` |
 | Multi-DB | yes | PostgreSQL, MySQL, SQLite |
-| NoSQL | via third-party packages | via third-party crates (e.g. `mongodb`) |
-| Re-export | — | `runique::sea_orm` + `sea_query` |
+| NoSQL | via 3rd party | via 3rd party crates (e.g., `mongodb`) |
 
 ---
 
@@ -90,17 +92,16 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Login / Logout | `authenticate()` + `login()` | `auth_login(session, db, user_id)`, `login()` (8 params), `logout()` — `LoginGuard` = brute-force protection |
-| Auth check | `request.user.is_authenticated` | `is_authenticated(&session).await` |
-| Current user | `request.user` | `CurrentUser` (injected via `load_user_middleware`) |
-| Route protection | `@login_required` | inline pattern `if !is_authenticated(&session).await { Redirect... }` |
-| Redirect if authenticated | manual | inline pattern `if is_authenticated(&session).await { Redirect... }` |
-| Sessions | native | tower-sessions |
-| Brute-force protection | `django-axes` (third-party) | `LoginGuard` native (attempts + lockout) |
-| Password hashing | PBKDF2 / argon2 | argon2, bcrypt, scrypt, custom (auto-detected at verification) |
-| Email account activation | native (`auth`) | **missing** |
-| Password reset | native | `handle_forgot_password` + `handle_password_reset` native |
-| Force logout all sessions | yes | `RuniqueSessionStore::invalidate_all(user_id)` |
+| Login / Logout | `authenticate()` + `login()` | `auth_login(...)`, `logout()` |
+| Is Authenticated | `request.user.is_authenticated` | `is_authenticated(&session).await` |
+| Current User | `request.user` | `CurrentUser` (injected via middleware) |
+| Route protection | `@login_required` | `if !is_authenticated(&session).await { ... }` pattern |
+| Sessions | native | tower-sessions (DB backend) |
+| Brute force protection | `django-axes` (3rd party) | Native `LoginGuard` (auto lockout) |
+| Password Hashing | PBKDF2 / Argon2 | Argon2 by default, multi-algo support |
+| Account Activation | native (`auth`) | Integrated into password creation/reset flow |
+| Reset password | native | `handle_forgot_password` + `handle_password_reset` native |
+| Force logout | yes | `RuniqueSessionStore::invalidate_all(user_id)` |
 
 ---
 
@@ -108,31 +109,28 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| CSRF | native | native (constant-time via `subtle`) |
-| CSP | `django-csp` (third-party) | native (`use_nonce: true` by default) |
-| HSTS | `SECURE_HSTS_SECONDS` | native (`max-age=31536000; includeSubDomains`) |
+| CSRF | native | native (constant-time validation) |
+| CSP | `django-csp` (3rd party) | native (`use_nonce: true` by default) |
+| HSTS | `SECURE_HSTS_SECONDS` | native |
 | SameSite cookies | configurable | `Strict` by default |
 | HttpOnly cookies | by default | always `true` |
-| Host validation | `ALLOWED_HOSTS` | `.with_allowed_hosts(...)` in the builder |
-| Rate limiting | `django-ratelimit` (third-party) | `RateLimiter` native |
-| Input sanitization | — | native sanitize middleware |
-| Secret key generation | manual | `runique new` generates 32 bytes hex automatically |
+| Rate limiting | `django-ratelimit` (3rd party) | Native `RateLimiter` |
+| Input sanitization | — | Native `sanitize` middleware |
+| Secret key | manual | auto-generated on `runique new` |
 
 ---
 
-## Admin View
+## Admin Interface
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Activation | `admin.site.register(Model)` | `admin!{}` macro + `runique start` |
-| List / Create / Edit / Detail / Delete | native | native |
-| List pagination | native | `.page_size(n)` in the admin builder |
-| `list_display` | native | **missing** |
-| Search / filters | native | **missing** |
-| Customizable templates | yes | yes (Tera hierarchy) |
-| Per-resource permissions | native | stored, not injected into Tera context |
-| Admin account creation | `createsuperuser` | `runique create-superuser` |
-| Admin account from the app | no | no (same) |
+| Activation | `admin.site.register(Model)` | `admin!{}` macro |
+| Full CRUD | native | native |
+| List pagination | native | `.pagination(n)` in `DisplayConfig` |
+| `list_display` | native | `.columns_include()` / `.columns_exclude()` |
+| Search / filters | native | `.list_filter()` + auto search field |
+| Custom templates | yes | yes (Tera hierarchy) |
+| Permissions | per resource | Dynamic RBAC (Groups / Permissions) |
 
 ---
 
@@ -140,9 +138,9 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Send email | `send_mail()` native | **missing** — plug `lettre` |
-| Email templates | native | **missing** |
-| SMTP/console backend | configurable | — |
+| Send mail | `send_mail()` native | `utils::Email::new().send()` native |
+| Email templates | native | Tera templates supported via `html(body)` |
+| SMTP Backend | configurable | configuration via `.env` |
 
 ---
 
@@ -150,11 +148,9 @@
 
 | Feature | Django | Runique |
 |---------|--------|---------|
-| Supported languages | unlimited (`.po` files) | 9 (`en`, `fr`, `it`, `es`, `de`, `pt`, `ja`, `zh`, `ru`) |
-| Auto language detection | `LocaleMiddleware` | `LANG` / `LC_ALL` env |
+| Languages | unlimited | 9 default languages (compiled JSON) |
 | Fallback | yes | yes (`Lang::En`) |
-| Framework translations | `.po`/`.mo` | JSON files (14 sections, compiled into the binary) |
-| `t("key")` | `_("...")` | `t("section.key")` → `Cow<'static, str>` |
+| `t("key")` | `_("...")` | `t("section.key")` |
 
 ---
 
@@ -162,21 +158,17 @@
 
 | Aspect | Django | Runique |
 |--------|--------|---------|
-| Runtime | CPython (GIL) | Tokio async Rust |
-| Production server | Gunicorn + Nginx | compiled binary (Axum/Hyper) |
-| Memory footprint | ~50–100 MB | ~5–15 MB |
-| Compilation | — | `cargo build --release` |
-| Docker | yes | yes |
-| Deployment | fly.io, Heroku, Azure, etc. | same (static binary = simpler) |
+| Runtime | CPython (interpreted) | Tokio async Rust (compiled) |
+| Memory usage | ~50–100 MB | ~5–15 MB |
+| Compilation | — | single static binary |
 
 ---
 
-## What Runique is still missing (summary)
+## What Runique is still missing (compared to Django)
 
-- Full auth flow (email activation, password reset)
-- Native email integration
-- Robust file upload (MIME validation, resize)
-- Admin pagination + `list_display` + filters
-- Runtime permissions in admin
-- Equivalent to `django-simple-history`
-- Native NoSQL (out of scope, plug `mongodb`)
+Runique is getting close to Django''s functional completeness, but some pillars are still being worked on:
+
+- **Enhanced File Upload**: Server-side automatic image resizing/cropping.
+- **Equivalent to `django-simple-history`**: Integrated audit log system to track row changes history.
+- **Native NoSQL** (Still out of main scope, but simplified MongoDB integration is planned).
+- `request.path_param()` / `request.query_param()` — currently via raw Axum extractors (see [roadmap](../../ROADMAP.md#4c-requestpath_param-et-requestquery_param)).

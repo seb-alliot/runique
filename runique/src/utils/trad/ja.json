@@ -244,6 +244,27 @@
     "debug_header_value": "値"
   },
   "admin": {
+    "group": "グループ",
+    "groups": "グループ",
+    "resource": "リソース",
+    "resources": "リソース",
+    "can_create": "作成",
+    "can_read": "閲覧",
+    "can_update": "更新",
+    "can_delete": "削除",
+    "can_update_own": "更新",
+    "can_delete_own": "削除",
+    "name": "名前",
+    "username": "ユーザー名",
+    "email": "メールアドレス",
+    "staff": "スタッフ",
+    "superuser": "スーパーユーザー",
+    "active": "有効",
+    "user": {
+      "username_too_short": "ユーザー名が短すぎます（最小3文字以上）",
+      "invalid_email": "無効なメールアドレス形式です"
+    },
+
     "login": {
       "title": "ログイン",
       "subtitle": "管理パネルにアクセスするにはログインしてください",
@@ -360,7 +381,7 @@
       "toggle": "メニューを折りたたむ",
       "logout_title": "ログアウト"
     },
-    "superuser": {
+    "superuser_wizard": {
       "title": "=== スーパーユーザー作成 ===",
       "algo_prompt": "[1/5] ハッシュアルゴリズム",
       "algo_argon2": "Argon2（推奨）",

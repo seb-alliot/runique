@@ -103,10 +103,10 @@ impl RuniqueForm for RegisterForm {
 
     async fn clean(&mut self) -> Result<(), StrMap> {
         let mut errors = StrMap::new();
-        if self.get_string("username").len() < 3 {
+        if self.cleaned_string("username").unwrap_or_default().len() < 3 {
             errors.insert("username".to_string(), "Minimum 3 caractères".to_string());
         }
-        if !self.get_string("email").contains('@') {
+        if !self.cleaned_string("email").unwrap_or_default().contains('@') {
             errors.insert("email".to_string(), "Email invalide".to_string());
         }
         if errors.is_empty() { Ok(()) } else { Err(errors) }
