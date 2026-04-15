@@ -70,5 +70,5 @@
 
 {% block scripts %}
     {{ super() }}
-    <script src='{% static "js/doc-index.js" %}'></script>
+    <script {% csp %} src='{% static "js/doc-index.js" %}'></script>
 {% endblock %}
