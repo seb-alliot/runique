@@ -14,7 +14,7 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/doc.css" %}'>
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
 {% endblock %}
 
 {% block content %}
@@ -70,5 +70,5 @@
 
 {% block scripts %}
     {{ super() }}
-    <script {% csp %} src='{% static "js/doc-index.js" %}'></script>
+    <script {% csp %} src="{% static "js/doc-index.js" %}"></script>
 {% endblock %}

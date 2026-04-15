@@ -14,8 +14,8 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/doc.css" %}'>
-    <link rel="stylesheet" href='{% static "css/highlight-github-dark.min.css" %}'>
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+    <link rel="stylesheet" href="{% static "css/highlight-github-dark.min.css" %}">
 {% endblock %}
 
 {% block content %}
@@ -101,7 +101,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script {% csp %} src='{% static "js/highlight.min.js" %}'></script>
-<script {% csp %} src='{% static "js/highlight_init.js" %}'></script>
-<script {% csp %} src='{% static "js/doc_sidebar.js" %}'></script>
+<script {% csp %} src="{% static "js/highlight.min.js" %}"></script>
+<script {% csp %} src="{% static "js/highlight_init.js" %}"></script>
+<script {% csp %} src="{% static "js/doc_sidebar.js" %}"></script>
 {% endblock %}

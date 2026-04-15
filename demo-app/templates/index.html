@@ -17,9 +17,9 @@
     {% endblock %}
 
     {% block style %}
-        <link rel="stylesheet" href='{% static "css/variables.css" %}'>
-        <link rel="stylesheet" href='{% static "css/main.css" %}'>
-        <link rel="stylesheet" href='{% static "css/inline.css" %}'>
+        <link rel="stylesheet" href="{% static "css/variables.css" %}">
+        <link rel="stylesheet" href="{% static "css/main.css" %}">
+        <link rel="stylesheet" href="{% static "css/inline.css" %}">
     {% endblock %}
     <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
     {% if not debug %}{% include "utils/gtag.html" %}{% endif %}
@@ -95,9 +95,9 @@
             {% include "utils/footer.html" %}
         {% endblock %}
     </footer>
-    <script {% csp %} src='{% static "js/theme.js" %}'></script>
-    <script {% csp %} src='{% static "js/site_nav.js" %}'></script>
-    <script {% csp %} src='{% static "js/analytic.js" %}'></script>
+    <script {% csp %} src="{% static "js/theme.js" %}"></script>
+    <script {% csp %} src="{% static "js/site_nav.js" %}"></script>
+    <script {% csp %} src="{% static "js/analytic.js" %}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -56,7 +56,7 @@ fn register_filter(base_url: String, version: String) -> impl Fn(&Value, &JsonMa
         let url = if version.is_empty() {
             full_url
         } else {
-            format!("{}?v={}", full_url, version)
+            format!(r#"{}?v={}"#, full_url, version)
         };
 
         Ok(Value::String(url))
