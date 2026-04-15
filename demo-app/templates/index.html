@@ -22,17 +22,13 @@
         <link rel="stylesheet" href="{% static "css/inline.css" %}">
     {% endblock %}
     <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
-    {% if not debug %}{% include "utils/gtag.html" %}{% endif %}
 </head>
 <body>
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NMHDD89C"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     {% if debug %}
         <div class="debug-banner">
             <strong>Debug Mode Enabled</strong>
         </div>
     {% endif %}
-
 
     <button id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">🌙</button>
 
