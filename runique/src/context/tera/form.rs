@@ -120,7 +120,7 @@ fn render_scripts(value: &Value) -> Option<String> {
         .filter_map(|f| f.as_str())
         .map(|file| {
             format!(
-                r#"<script src="/static/{}" defer></script>"#,
+                r#"<script {{% csp %}} src="{{% static "{{{}}}" %}}" defer></script>"#,
                 html_escape(file)
             )
         })
