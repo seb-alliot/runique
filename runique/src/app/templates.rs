@@ -4,7 +4,7 @@ use crate::context::tera::static_tera;
 use crate::utils::aliases::ARlockmap;
 use crate::utils::constante::*;
 use regex::Captures;
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 use tera::Tera;
 
 /// Loads and configures the Tera instance with internal framework templates and project templates.
@@ -29,8 +29,11 @@ impl TemplateLoader {
             url_registry.clone(),
         );
 
+        let static_dir = Path::new(&config.static_files.staticfiles_dirs);
+        let integrity_map = crate::utils::integrity::build_integrity_map(static_dir);
+
         // 3. Loading internal framework templates (WITH preprocess)
-        Self::load_internal_templates(&mut tera)?;
+        Self::load_internal_templates(&mut tera, &integrity_map)?;
 
         let mut all_templates = Vec::new();
 
@@ -43,7 +46,7 @@ impl TemplateLoader {
                 for entry in paths.flatten() {
                     let content = std::fs::read_to_string(&entry)?;
 
-                    let processed = Self::process_content(content);
+                    let processed = Self::process_content(content, &integrity_map);
 
                     // Calculation of the template's logical name (relative path)
                     let name = entry
@@ -61,7 +64,7 @@ impl TemplateLoader {
     }
 
     /// Applies all Runique transformations on a template content
-    fn process_content(mut content: String) -> String {
+    fn process_content(mut content: String, integrity_map: &HashMap<String, String>) -> String {
         // Simple replacements (Runique DSL)
         content = content.replace("{% csrf %}", r#"{% include "csrf" %}"#);
         content = content.replace("{% messages %}", r#"{% include "message" %}"#);
@@ -109,7 +112,15 @@ impl TemplateLoader {
         // Static/Media processing
         content = BALISE_LINK
             .replace_all(&content, |caps: &Captures| {
-                format!(r#"{{{{ "{}" | {} }}}}"#, &caps["link"], &caps["tag"])
+                let path = &caps["link"];
+                let tag = &caps["tag"];
+                let url = format!(r#"{{{{ "{}" | {} }}}}"#, path, tag);
+                match integrity_map.get(path) {
+                    Some(hash) => {
+                        format!(r#"{}" integrity="{}" crossorigin="anonymous"#, url, hash)
+                    }
+                    None => url,
+                }
             })
             .to_string();
 
@@ -117,7 +128,10 @@ impl TemplateLoader {
     }
 
     /// Loads HTML templates embedded in the Runique binary (WITH preprocess)
-    fn load_internal_templates(tera: &mut Tera) -> Result<(), Box<dyn std::error::Error>> {
+    fn load_internal_templates(
+        tera: &mut Tera,
+        integrity_map: &HashMap<String, String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         for (name, content) in SIMPLE_TEMPLATES
             .iter()
             .chain(ERROR_CORPS.iter())
@@ -125,7 +139,7 @@ impl TemplateLoader {
             .chain(AUTH_TEMPLATES.iter())
             .chain(ADMIN_TEMPLATES.iter())
         {
-            let processed = Self::process_content(content.to_string());
+            let processed = Self::process_content(content.to_string(), integrity_map);
 
             tera.add_raw_template(name, &processed)?;
         }
