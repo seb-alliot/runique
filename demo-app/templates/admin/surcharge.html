@@ -20,22 +20,22 @@
             <pre><code>builder::<span class="fn_">new</span>(config)
     .<span class="fn_">with_admin</span>(|a| {
         a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
-         .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
-         .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
-         .<span class="fn_">templates</span>(|t| {
-             t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/mon_dashboard.html"</span>)
-         })
-         .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
+            .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
+            .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
+            .<span class="fn_">templates</span>(|t| {
+                t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/mon_dashboard.html"</span>)
+            })
+            .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
     })</code></pre>
 
             <div class="demo-code-title">Exemple utilisé dans cette démo</div>
             <pre><code>builder::<span class="fn_">new</span>(config)
     .<span class="fn_">with_admin</span>(|a| {
         a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
-         .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
-         .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
-         .<span class="fn_">templates</span>(|t| t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/test_dashboard.html"</span>))
-         .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
+            .<span class="fn_">auth</span>(<span class="ty">RuniqueAdminAuth</span>::<span class="fn_">new</span>())
+            .<span class="fn_">routes</span>(admins::<span class="fn_">routes</span>(<span class="st">"/admin"</span>))
+            .<span class="fn_">templates</span>(|t| t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/test_dashboard.html"</span>))
+            .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
     })</code></pre>
         </div>
 
@@ -96,7 +96,7 @@ t.<span class="fn_">with_base</span>(<span class="st">"admin/mon_base.html"</spa
     <div class="back-link">
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/admin/template/surcharge/surcharge.md" target="_blank" class="btn btn-secondary">Doc FR</a>
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/admin/template/surcharge/surcharge.md" target="_blank" class="btn btn-secondary">Doc EN</a>
-        <a href="{% link 'admin_hub' %}">← Retour à l'admin</a>
+        <a href="{% link 'admin_hub' %}">Back home</a>
     </div>
 </div>
 {% endblock %}
