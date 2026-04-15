@@ -12,6 +12,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  DB_ENGINE: postgres
 
 jobs:
   test:
