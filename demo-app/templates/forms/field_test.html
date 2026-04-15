@@ -2,9 +2,9 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/demo-code.css" %}'>
-    <link rel="stylesheet" href='{% static "css/highlight-github-dark.min.css" %}'>
-    <link rel="stylesheet" href='{% static "css/field_test.css" %}'>
+    <link rel="stylesheet" href="{% static "css/demo-code.css" %}">
+    <link rel="stylesheet" href="{% static "css/highlight-github-dark.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/field_test.css" %}">
 {% endblock %}
 
 {% block content %}
@@ -59,7 +59,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script {% csp %} src='{% static "js/highlight.min.js" %}'></script>
+<script {% csp %} src="{% static "js/highlight.min.js" %}"></script>
 <script {% csp %}>hljs.highlightAll();</script>
-<script {% csp %} src='{% static "js/field_test.js" %}'></script>
+<script {% csp %} src="{% static "js/field_test.js" %}"></script>
 {% endblock %}

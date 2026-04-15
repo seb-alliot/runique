@@ -10,9 +10,9 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href='{% static "css/doc.css" %}'>
-    <link rel="stylesheet" href='{% static "css/cours.css" %}'>
-    <link rel="stylesheet" href='{% static "css/highlight-github-dark.min.css" %}'>
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+    <link rel="stylesheet" href="{% static "css/cours.css" %}">
+    <link rel="stylesheet" href="{% static "css/highlight-github-dark.min.css" %}">
 {% endblock %}
 
 
@@ -105,6 +105,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script {% csp %} src='{% static "js/highlight.min.js" %}'></script>
-<script {% csp %} src='{% static "js/cour_detail.js" %}'></script>
+<script {% csp %} src="{% static "js/highlight.min.js" %}"></script>
+<script {% csp %} src="{% static "js/cour_detail.js" %}"></script>
 {% endblock %}
