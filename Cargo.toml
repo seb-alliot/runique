@@ -82,14 +82,14 @@ rand = "0.10.0"
 ammonia = "4.1.2"
 
 # Documentation
-pulldown-cmark = "0.12"
+pulldown-cmark = "0.13.3"
 
 # Envoi email
 lettre = { version = "0.11.19", features = ["tokio1", "tokio1-native-tls", "builder"] }
 
 # CSRF
-hmac = "0.12"
-sha2 = "0.10"
+hmac = "0.13"
+sha2 = "0.11"
 hex = "0.4"
 subtle = "2"
 

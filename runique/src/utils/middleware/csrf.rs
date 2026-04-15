@@ -1,6 +1,6 @@
 //! CSRF token generation and validation — HMAC-SHA256, base64 masking, anonymous/authenticated contexts.
 use base64::{Engine as _, engine::general_purpose};
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
