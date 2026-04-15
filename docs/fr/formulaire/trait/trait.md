@@ -32,6 +32,8 @@ impl RuniqueForm for UsernameForm {
 ```
 
 > **💡 `impl_form_access!()`** génère automatiquement `from_form()`, `get_form()` et `get_form_mut()`. Si votre champ ne s'appelle pas `form`, passez le nom en argument : `impl_form_access!(formulaire)`.
+>
+> **Note de sécurité :** `get_form()` donne accès à la structure interne. Pour l'extraction des données nettoyées, passez toujours par les méthodes `cleaned_*` du trait (voir plus bas). Les méthodes d'extraction directe sur `Forms` sont réservées à l'usage interne du framework.
 
 <details>
 <summary>Équivalent sans macro (pour référence)</summary>
@@ -78,7 +80,7 @@ clear()                 → [optionnel] vide le formulaire après traitement
 
 **`from_form(form)`** — Construit l'instance depuis un `Forms`.
 
-**`get_form()` / `get_form_mut()`** — Accesseurs vers le `Forms` interne.
+**`get_form()` / `get_form_mut()`** — Accesseurs de bas niveau vers le `Forms` interne (utile pour le rendu ou la configuration dynamique des champs). Ne pas utiliser pour extraire les données.
 
 **`clean_field(name)`** *(optionnel)* — Validation métier par champ individuel. Retourne `bool`. Appelée après `validate()` pour chaque champ.
 

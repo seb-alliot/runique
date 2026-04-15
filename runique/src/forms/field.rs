@@ -85,6 +85,37 @@ pub trait RuniqueForm: Sized + Send + Sync {
         Some(matches!(v.to_lowercase().as_str(), "true" | "1" | "on"))
     }
 
+    /// `Uuid` — `None` if unknown, empty, or not parseable.
+    fn cleaned_uuid(&self, name: &str) -> Option<uuid::Uuid> {
+        uuid::Uuid::parse_str(&cleaned_value(self.get_form(), name)?).ok()
+    }
+
+    /// `NaiveDate` — `None` if unknown, empty, or not parseable.
+    fn cleaned_naive_date(&self, name: &str) -> Option<chrono::NaiveDate> {
+        chrono::NaiveDate::parse_from_str(&cleaned_value(self.get_form(), name)?, "%Y-%m-%d").ok()
+    }
+
+    /// `NaiveTime` — `None` if unknown, empty, or not parseable.
+    fn cleaned_naive_time(&self, name: &str) -> Option<chrono::NaiveTime> {
+        chrono::NaiveTime::parse_from_str(&cleaned_value(self.get_form(), name)?, "%H:%M").ok()
+    }
+
+    /// `NaiveDateTime` — `None` if unknown, empty, or not parseable.
+    fn cleaned_naive_datetime(&self, name: &str) -> Option<chrono::NaiveDateTime> {
+        chrono::NaiveDateTime::parse_from_str(
+            &cleaned_value(self.get_form(), name)?,
+            "%Y-%m-%dT%H:%M",
+        )
+        .ok()
+    }
+
+    /// `DateTime<Utc>` — `None` if unknown, empty, or not parseable.
+    fn cleaned_datetime_utc(&self, name: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+        chrono::DateTime::parse_from_rfc3339(&cleaned_value(self.get_form(), name)?)
+            .ok()
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+    }
+
     /// Clears all form values (except CSRF).
     fn clear(&mut self) {
         self.get_form_mut().clear_values();

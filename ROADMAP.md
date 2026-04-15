@@ -78,7 +78,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 - 🟡 85% couverture minimum (`bin/` exclu) — actuellement 82.83%
 - 🟡 Doctests `ignore`/`no_run` → exemples réels (i18n, migration, forms, builder couverts)
-- 🔴 Docs complètes — models, forms, macros procédurales
+- [x] Docs complètes — models, forms, macros procédurales
 
 > `bin/` exclu du calcul de couverture (CLI non couvrable proprement).
 > Cible réaliste : **85-88%** après couverture des modules HTTP via helpers Axum.
@@ -118,15 +118,8 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - **Étape 4 — Validation technique :** vérifier compile/tests/docs après remplacement des usages critiques.
 - **Étape 5 — Décision finale :** `GO` suppression ou `NO-GO` maintien selon coût réel vs bénéfice architecture.
 
-### 4.b. `request.path_param` et `request.query_param`
-
-**Status :** 🔴 À faire
-
-- Ajouter `path_param::<T>("key")` et `query_param::<T>("key")` directement sur `Request`
-- Objectif : uniformiser l'API — la signature de toutes les vues ne prend que `request`, plus besoin de déclarer `Path(id): Path<i32>` en paramètre
-- Symétrique avec `request.render`, `request.is_post`, etc. (tout passe par `request`)
-- Pattern actuel : `Path(id): Path<i32>` en paramètre de fonction (extractor Axum brut)
-- Pattern cible : `let id = request.path_param::<i32>("id")?;`
+- [x] Ajouter `path_param("key")` et `from_url("key")` (returns `Option<&str>`) sur `Request`
+- 🔴 Version générique cible : `let id = request.path_param::<i32>("id")?;`
 
 ### 4.c. Configuration du pool Database
 
@@ -152,14 +145,10 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 
 ### Court terme
 
-- 🔴 **list_display** : colonnes affichées dans la liste, configurables par ressource dans `admin!{}`
-  - `ColumnFilter::All` → inféré depuis les clés du premier enregistrement
-  - `ColumnFilter::Include(...)` / `Exclude(...)` → filtrage explicite
-  - Injecter `columns: Vec<String>` dans le contexte Tera
-  - Template list : `id="row-{{ entry.id }}"` + `id="cell-{{ entry.id }}-{{ col }}"` pour ciblage JS
-- 🔴 **Pagination** : `page` + `per_page` depuis query params, passer au `list_fn`
-- 🔴 **Ordering** : tri par colonne cliquable (query param `?order=col&dir=asc`)
-- 🔴 **search_fields** : recherche texte côté backend, route ou query param `?q=...`
+- [x] **list_display** : colonnes affichées dans la liste, configurables par ressource dans `admin!{}`
+- [x] **Pagination** : `page` + `per_page` automatiques via `DisplayConfig`
+- [x] **search_fields** : recherche texte côté backend automatique
+- [x] **Ordering** : tri par colonne cliquable (query param `?sort_by=col&sort_dir=asc`)
 - 🔴 **JS assets** : champ `js: ["path/to/file.js"]` dans `admin!{}` → `js_files: Vec<String>` dans `AdminResource` → injecté dans bloc `extra_js` du template
 - 🔴 **Permissions runtime** : vérification des rôles par ressource à chaque requête admin (requête DB, option sécurisée)
 
@@ -169,7 +158,7 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - 🔴 **Bulk actions** : suppression en lot, actions custom déclarées par ressource
 - 🔴 **readonly_fields** : champs non-éditables affichés en lecture seule dans les formulaires
 - 🔴 **date_hierarchy** : navigation par date (année > mois > jour) en haut de la liste
-- 🔴 **list_filter** : filtres latéraux par valeur de colonne
+- [x] **list_filter** : filtres latéraux par valeur de colonne
 - 🔴 **Toggle boolean** : `PATCH /admin/{resource}/{id}/toggle/{field}` — checkbox cliquable dans la liste pour les champs booléens (`is_active`, `is_staff`, etc.)
 
 ### Hors scope v1 (futur)
@@ -193,12 +182,9 @@ Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertiss
 - Intégration SeaORM : `.paginate(db, per_page).fetch_page(page)`
 - Contexte Tera injecté automatiquement (`paginator.page`, `paginator.total_pages`, etc.)
 
-### 6.b. Email
-
-- Aucun système d'envoi d'email
-- Cas d'usage : confirmation inscription, reset mot de passe, notifications
-- Dépendance envisagée : `lettre` (SMTP async)
-- API cible : `Email::new().to("user@example.com").subject("...").html(body).send().await`
+- [x] **Système d''envoi d''email** : module `utils::mailer` intégré
+- [x] **Templates email** : support natif via Tera `html(body)`
+- [x] **Cas d''usage** : reset de mot de passe (flux complet opérationnel)
 
 ### 6.c. Permissions fines par route
 
@@ -239,6 +225,10 @@ Rendre Runique autonome en production — binaire compilé + TLS natif, sans Ngi
 - 🔴 **TLS natif** : `rustls` + `axum-server` — certificats PEM configurables via builder
 - 🔴 **Let's Encrypt** : renouvellement automatique (`instant-acme`) via background task Tokio (`tokio::time::interval`)
 - 🔴 **Compression** : `CompressionLayer` de `tower-http` (déjà disponible, à exposer dans le builder)
+- 🔴 **Internationalisation (i18n)** :
+  - [x] Compilation des catalogues JSON du framework dans le binaire.
+  - [ ] Possibilité pour l''utilisateur d''enregistrer ses propres catalogues externes (fusion avec le framework).
+  - [ ] Détection automatique de la langue via les en-têtes `Accept-Language` HTTP.
 - 🔴 **Cache statiques** : headers `Cache-Control` configurables via builder
 - 🔴 **Feature flags** : `features = ["tls", "proxy"]` — opt-in, binaire minimal par défaut
 

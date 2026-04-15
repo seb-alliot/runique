@@ -32,6 +32,8 @@ impl RuniqueForm for UsernameForm {
 ```
 
 > **💡 `impl_form_access!()`** automatically generates `from_form()`, `get_form()` and `get_form_mut()`. If your field is not named `form`, pass the name as an argument: `impl_form_access!(formulaire)`.
+>
+> **Security note:** `get_form()` provides access to the internal structure. For extracting cleaned data, always use the `cleaned_*` methods of the trait (see below). Direct extraction methods on `Forms` are reserved for internal framework use.
 
 <details>
 <summary>Equivalent without the macro (for reference)</summary>
@@ -78,7 +80,7 @@ clear()                      → [optional] empty the form after processing
 
 **`from_form(form)`** — Build the instance from a `Forms`.
 
-**`get_form()` / `get_form_mut()`** — Accessors for the internal `Forms`.
+**`get_form()` / `get_form_mut()`** — Low-level accessors for the internal `Forms` (useful for rendering or dynamic field configuration). Do not use for data extraction.
 
 **`clean_field(name)`** *(optional)* — Per-field business validation. Returns `bool`. Called after `validate()` for each field.
 

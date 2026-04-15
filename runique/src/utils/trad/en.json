@@ -244,6 +244,27 @@
     "debug_header_value": "Value"
   },
   "admin": {
+    "group": "Group",
+    "groups": "Groups",
+    "resource": "Resource",
+    "resources": "Resources",
+    "can_create": "Create",
+    "can_read": "Read",
+    "can_update": "Update",
+    "can_delete": "Delete",
+    "can_update_own": "Update",
+    "can_delete_own": "Delete",
+    "name": "Name",
+    "username": "Username",
+    "email": "Email",
+    "staff": "Staff",
+    "superuser": "Superuser",
+    "active": "Active",
+    "user": {
+      "username_too_short": "Username is too short (min 3 chars)",
+      "invalid_email": "Invalid email address format"
+    },
+
     "login": {
       "title": "Login",
       "subtitle": "Sign in to access the admin panel",
@@ -360,7 +381,7 @@
       "toggle": "Collapse menu",
       "logout_title": "Logout"
     },
-    "superuser": {
+    "superuser_wizard": {
       "title": "=== Create Superuser ===",
       "algo_prompt": "[1/5] Hashing algorithm",
       "algo_argon2": "Argon2 (recommended)",

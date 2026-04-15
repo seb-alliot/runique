@@ -21,7 +21,6 @@ Rend automatiquement : tous les champs, les labels, les erreurs de validation, l
 
 ```html
 <form method="post">
-  {% csrf %}
   <div class="row">
     <div class="col-6">{% form.inscription_form.username %}</div>
     <div class="col-6">{% form.inscription_form.email %}</div>

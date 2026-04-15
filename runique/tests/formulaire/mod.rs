@@ -18,7 +18,6 @@ pub mod test_datetime_fields;
 pub mod test_forms;
 pub mod test_generic_field;
 pub mod test_hidden_field;
-pub mod test_integration;
 pub mod test_model_form;
 pub mod test_number_fields;
 pub mod test_password;

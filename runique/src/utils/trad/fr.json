@@ -244,6 +244,27 @@
     "debug_header_value": "Valeur"
   },
   "admin": {
+    "group": "Groupe",
+    "groups": "Groupes",
+    "resource": "Ressource",
+    "resources": "Ressources",
+    "can_create": "Créer",
+    "can_read": "Lire",
+    "can_update": "Modifier",
+    "can_delete": "Supprimer",
+    "can_update_own": "Modifier",
+    "can_delete_own": "Supprimer",
+    "name": "Nom",
+    "username": "Nom d'utilisateur",
+    "email": "Email",
+    "staff": "Staff",
+    "superuser": "Superutilisateur",
+    "active": "Actif",
+    "user": {
+      "username_too_short": "Le nom d'utilisateur est trop court (min 3 car.)",
+      "invalid_email": "Format d'adresse email invalide"
+    },
+
     "login": {
       "title": "Connexion",
       "subtitle": "Connectez-vous pour accéder au panneau d'administration",
@@ -361,7 +382,7 @@
       "toggle": "Réduire le menu",
       "logout_title": "Déconnexion"
     },
-    "superuser": {
+    "superuser_wizard": {
       "title": "=== Créer un superutilisateur ===",
       "algo_prompt": "[1/5] Algorithme de hachage",
       "algo_argon2": "Argon2 (recommandé)",

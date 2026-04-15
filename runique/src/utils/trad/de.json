@@ -244,6 +244,27 @@
     "debug_header_value": "Wert"
   },
   "admin": {
+    "group": "Gruppe",
+    "groups": "Gruppen",
+    "resource": "Ressource",
+    "resources": "Ressourcen",
+    "can_create": "Erstellen",
+    "can_read": "Lesen",
+    "can_update": "Bearbeiten",
+    "can_delete": "Löschen",
+    "can_update_own": "Bearbeiten",
+    "can_delete_own": "Löschen",
+    "name": "Name",
+    "username": "Benutzername",
+    "email": "E-Mail",
+    "staff": "Staff",
+    "superuser": "Superbenutzer",
+    "active": "Aktiv",
+    "user": {
+      "username_too_short": "Benutzername ist zu kurz (min. 3 Zeichen)",
+      "invalid_email": "Ungültiges E-Mail-Adressformat"
+    },
+
     "login": {
       "title": "Anmeldung",
       "subtitle": "Melden Sie sich an, um auf das Admin-Panel zuzugreifen",
@@ -357,7 +378,7 @@
       "toggle": "Menü einklappen",
       "logout_title": "Abmelden"
     },
-    "superuser": {
+    "superuser_wizard": {
       "title": "=== Superbenutzer erstellen ===",
       "algo_prompt": "[1/5] Hash-Algorithmus",
       "algo_argon2": "Argon2 (empfohlen)",

@@ -44,10 +44,10 @@ impl RegisterForm {
     pub async fn save(&self, db: &DatabaseConnection) -> Result<users::Model, DbErr> {
         use sea_orm::Set;
         let model = users::ActiveModel {
-            username: Set(self.form.get_string("username")),
-            email: Set(self.form.get_string("email")),
+            username: Set(self.cleaned_string("username").unwrap_or_default()),
+            email: Set(self.cleaned_string("email").unwrap_or_default()),
             // The password is already Argon2-hashed after is_valid()
-            password: Set(self.form.get_string("password")),
+            password: Set(self.cleaned_string("password").unwrap_or_default()),
             ..Default::default()
         };
         model.insert(db).await
@@ -122,10 +122,10 @@ pub async fn edit_profile(
     // In PATCH mode: the password field is no longer automatically required
     if request.is_patch() {
         if form.is_valid().await {
-            let new_password = form.get_form().get_option("password");
+            let new_password = form.cleaned_string("password");
 
             let mut active: users::ActiveModel = user.into();
-            active.username = Set(form.get_form().get_string("username"));
+            active.username = Set(form.cleaned_string("username").unwrap_or_default());
 
             // If the password field is filled → new hash; otherwise → unchanged
             if let Some(pwd) = new_password {
@@ -187,13 +187,13 @@ Prisme(mut form): Prisme<MyForm>
 password_init(PasswordConfig::auto_with(Manual::Argon2));
 
 // After is_valid(), passwords are hashed!
-let pwd = form.get_form().get_string("password");
+let pwd = form.cleaned_string("password").unwrap_or_default();
 // pwd == "$argon2id$v=19$m=..." 😱
 
 // Compare in clean(), BEFORE finalization
 async fn clean(&mut self) -> Result<(), StrMap> {
-    let pwd1 = self.form.get_string("password");
-    let pwd2 = self.form.get_string("password_confirm");
+    let pwd1 = self.cleaned_string("password").unwrap_or_default();
+    let pwd2 = self.cleaned_string("password_confirm").unwrap_or_default();
     if pwd1 != pwd2 { /* error */ }
     Ok(())
 }

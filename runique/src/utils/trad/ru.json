@@ -244,6 +244,27 @@
     "debug_header_value": "Значение"
   },
   "admin": {
+    "group": "Группа",
+    "groups": "Группы",
+    "resource": "Ресурс",
+    "resources": "Ресурсы",
+    "can_create": "Создать",
+    "can_read": "Чтение",
+    "can_update": "Изменение",
+    "can_delete": "Удалить",
+    "can_update_own": "Изменение",
+    "can_delete_own": "Удалить",
+    "name": "Имя",
+    "username": "Имя пользователя",
+    "email": "Email",
+    "staff": "Сотрудник",
+    "superuser": "Суперпользователь",
+    "active": "Активен",
+    "user": {
+      "username_too_short": "Имя пользователя слишком короткое (минимум 3 символа)",
+      "invalid_email": "Неверный формат email адреса"
+    },
+
     "login": {
       "title": "Вход",
       "subtitle": "Войдите для доступа к панели администратора",
@@ -361,7 +382,7 @@
       "toggle": "Свернуть меню",
       "logout_title": "Выход"
     },
-    "superuser": {
+    "superuser_wizard": {
       "title": "=== Создать суперпользователя ===",
       "algo_prompt": "[1/5] Алгоритм хэширования",
       "algo_argon2": "Argon2 (рекомендуется)",

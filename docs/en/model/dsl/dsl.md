@@ -49,6 +49,41 @@ model! {
 
 ---
 
+## Primary Key (`pk`)
+
+The `pk` block defines the name and type of the primary key. Three types are supported natively:
+
+| Type | SQL (Postgres / MySQL) | Auto-increment |
+| --- | --- | --- |
+| `i32` | `SERIAL` / `INT AUTO_INC` | ✅ Yes (default) |
+| `i64` | `BIGSERIAL` / `BIGINT AUTO_INC` | ✅ Yes |
+| `uuid` | `UUID` / `VARCHAR(36)` | ❌ No |
+
+**UUID Example:**
+```rust
+model! {
+    Log,
+    table: "logs",
+    pk: id => uuid,
+    fields: { ... }
+}
+```
+
+#### Link with the `User` model and the `big-pk` feature
+
+If you use `i64` for your user model (the entity linked to the session), you must enable the `big-pk` feature in your `Cargo.toml` so that the global `Pk` alias used by the framework is synchronized:
+
+```toml
+[dependencies]
+runique = { version = "1.1.0", features = ["big-pk"] }
+```
+
+> **Warning:** The `uuid` type for the global `Pk` alias (authentication) is not yet natively supported in the current version.
+
+---
+
+---
+
 ## Internal AST (what is parsed)
 
 The DSL is converted into an internal `Model` AST structure, including:
