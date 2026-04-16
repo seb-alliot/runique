@@ -45,11 +45,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     c.policy(SecurityPolicy::strict())
                         .with_header_security(true)
                         .scripts(vec![
-                            "script-src", 
-                            "self", 
+                            "'self'", 
                             "https://www.googletagmanager.com", 
                             "https://www.google-analytics.com", 
-                            "unsafe-inline"
                         ])
                         .frames(vec!["https://www.googletagmanager.com"])
                         .images(vec![
