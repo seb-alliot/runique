@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if title %}{{ title }} — Runique{% else %}Runique{% endif %}</title>
+    <script {% csp %} src="{% static "js/gtm.js" %}"></script>
 
     {% block meta %}
     <meta name="description" content="{% if description %}{{ description }}{% else %}Runique — Rust web framework inspired by Django, based on Axum, SeaORM and Tera.{% endif %}">
@@ -22,12 +23,14 @@
         <link rel="stylesheet" href="{% static "css/inline.css" %}">
     {% endblock %}
     <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
-    <script {% csp %} src="{% static "js/gtm.js" %}"></script>
+    <script {% csp %} src="{% static "js/site_nav.js" %}"></script>
 </head>
 <body>
     <noscript>
         <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NMHDD89C"
-        height="0" width="0" style="display:none;visibility:hidden"></iframe>
+                height="0" width="0" 
+                style="display:none;visibility:hidden">
+        </iframe>
     </noscript>
     {% if debug %}
         <div class="debug-banner">
