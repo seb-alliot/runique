@@ -50,9 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             "https://www.googletagmanager.com",
                             "https://www.google-analytics.com",
                         ])
-                        .frames(vec![
-                            "https://www.googletagmanager.com"
-                        ])
+                        .frames(vec!["https://www.googletagmanager.com"])
                         .images(vec![
                             "'self'",
                             "data:",
