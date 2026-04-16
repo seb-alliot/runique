@@ -47,6 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_upgrade_insecure(!is_debug())
                         .scripts(vec![
                             "'self'", 
+                            "'strict-dynamic'",
                             "https://www.googletagmanager.com", 
                             "https://www.google-analytics.com "
                             ])
