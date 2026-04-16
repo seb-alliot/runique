@@ -47,11 +47,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_upgrade_insecure(!is_debug())
                         .scripts(vec![
                             "'self'",
-                            "https://www.googletagmanager.com", 
+                            "https://www.googletagmanager.com",
                             "https://www.google-analytics.com",
-                            ])
+                        ])
                         .frames(vec![
-                            "https://www.googletagmanager.com"])
+                            "https://www.googletagmanager.com"
+                        ])
                         .images(vec![
                             "'self'",
                             "data:",
