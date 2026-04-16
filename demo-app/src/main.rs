@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_allowed_hosts(|h| {
                     h.enabled(!is_debug())
                         .host("runique.io")
-                        .host("localhost:")
+                        .host("localhost:3000")
                         .host("127.0.0.1:3000")
                 })
                 .with_csp(|c| {
@@ -46,11 +46,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .with_header_security(true)
                         .with_upgrade_insecure(!is_debug())
                         .scripts(vec![
-                            "'strict-dynamic'",
+                            "'self'",
+                            "'nonce-{nonce}'",
                             "https://www.googletagmanager.com", 
-                            "https://www.google-analytics.com "
+                            "https://www.google-analytics.com",
                             ])
-                        .frames(vec!["https://www.googletagmanager.com"])
+                        .frames(vec![
+                            "https://www.googletagmanager.com"])
                         .images(vec![
                             "'self'",
                             "data:",
