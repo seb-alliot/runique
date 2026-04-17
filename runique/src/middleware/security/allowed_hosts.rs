@@ -58,7 +58,7 @@ impl HostPolicy {
     }
 
     pub fn validate(&self, headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
-        let host = match headers.get(header::HOST) {
+let host = match headers.get(header::HOST) {
             Some(h) => h.to_str().unwrap_or("<invalid host header>"),
             None => {
                 return Err((
@@ -74,7 +74,7 @@ impl HostPolicy {
         Ok(())
     }
 
-    fn make_error_message(&self, _host: &str) -> String {
+    pub(crate) fn make_error_message(&self, _host: &str) -> String {
         t("middleware.bad_request").into_owned()
     }
 }
@@ -88,8 +88,25 @@ pub(crate) async fn allowed_hosts_middleware(
         return next.run(request).await;
     }
 
-    if let Err((status, message)) = engine.security_hosts.validate(request.headers()) {
-        return (status, message).into_response();
+    // HTTP/2 uses :authority pseudo-header (exposed via request.uri()),
+    // not the Host header. Fall back to URI authority when Host is absent.
+    let host = request
+        .headers()
+        .get(header::HOST)
+        .and_then(|h| h.to_str().ok())
+        .or_else(|| request.uri().authority().map(|a| a.as_str()));
+
+    let host = match host {
+        Some(h) => h,
+        None => {
+            let msg = engine.security_hosts.make_error_message("<no host>");
+            return (StatusCode::BAD_REQUEST, msg).into_response();
+        }
+    };
+
+    if !engine.security_hosts.is_host_allowed(host) {
+        let msg = engine.security_hosts.make_error_message(host);
+        return (StatusCode::BAD_REQUEST, msg).into_response();
     }
 
     next.run(request).await
