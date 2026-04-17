@@ -34,4 +34,5 @@ demo-app/PROGRESS.md
 demo-app/runique.dump
 .playwright-mcp
 .mcp.json
-.graphify-out
+/graphify-out/
+server.md
