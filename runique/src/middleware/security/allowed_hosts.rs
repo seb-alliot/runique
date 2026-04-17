@@ -58,7 +58,7 @@ impl HostPolicy {
     }
 
     pub fn validate(&self, headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
-let host = match headers.get(header::HOST) {
+        let host = match headers.get(header::HOST) {
             Some(h) => h.to_str().unwrap_or("<invalid host header>"),
             None => {
                 return Err((

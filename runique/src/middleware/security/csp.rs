@@ -312,6 +312,7 @@ pub async fn https_redirect_middleware(
         .headers()
         .get(axum::http::header::HOST)
         .and_then(|v| v.to_str().ok())
+        .or_else(|| req.uri().authority().map(|a| a.as_str()))
         .unwrap_or("localhost");
 
     let uri = req.uri();
