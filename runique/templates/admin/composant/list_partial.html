@@ -63,6 +63,36 @@
     {% endif %}
   </div>
 
+  {# ── Barre d'actions bulk (cachée jusqu'à sélection) ── #}
+  {% set_global can_bulk = false %}
+  {% if current_user %}
+    {% if current_user.is_superuser %}
+      {% set_global can_bulk = true %}
+    {% else %}
+      {% for groupe in current_user.groupes %}
+        {% for perm in groupe.permissions %}
+          {% if perm.resource_key == resource.key and perm.can_delete %}
+            {% set_global can_bulk = true %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+
+  {% if can_bulk %}
+  <form id="bulk-form" method="POST" action="/admin/{{ resource.key }}/bulk">
+    {% csrf %}
+    <input type="hidden" name="bulk_action" id="bulk-action-input" value="">
+    <input type="hidden" name="ids" id="bulk-ids-input" value="">
+  </form>
+  <div id="bulk-action-bar" class="bulk-action-bar">
+    <span class="bulk-action-info"><span id="bulk-count">0</span> sélectionné(s)</span>
+    <div class="bulk-action-btns">
+      <button type="button" class="btn btn-sm btn-danger" data-bulk-action="delete">Supprimer</button>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="{% if has_filters %}admin-list-layout{% endif %}">
 
     {# ── Colonne principale : card + pagination ── #}
@@ -73,6 +103,7 @@
             <table class="admin-table">
               <thead>
                 <tr>
+                  {% if can_bulk %}<th class="th-bulk"><input type="checkbox" id="bulk-check-all" title="Tout sélectionner"></th>{% endif %}
                   <th>
                     <a href="?sort_by=id&sort_dir={% if sort_by == "id" %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
                       hx-get="?sort_by=id&sort_dir={% if sort_by == "id" %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
@@ -100,6 +131,7 @@
               <tbody>
                 {% for entry in entries %}
                   <tr>
+                    {% if can_bulk %}<td class="td-bulk"><input type="checkbox" class="bulk-check" value="{{ entry.id }}"></td>{% endif %}
                     <td><span class="id-badge">#{{ entry.id }}</span></td>
                     {% for col in visible_columns %}
                       {% set value = entry[col] %}

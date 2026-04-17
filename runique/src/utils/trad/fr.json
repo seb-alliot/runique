@@ -376,6 +376,11 @@
         "irreversible": "Cette action est irréversible."
       }
     },
+    "bulk": {
+      "no_selection": "Aucun élément sélectionné.",
+      "delete_success": "élément(s) supprimé(s).",
+      "update_success": "élément(s) mis à jour."
+    },
     "base": {
       "title": "Administration",
       "breadcrumb": "Admin",

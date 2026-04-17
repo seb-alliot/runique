@@ -375,6 +375,11 @@
       },
       "not_found": "リソースが見つかりませんでした。"
     },
+    "bulk": {
+      "no_selection": "項目が選択されていません。",
+      "delete_success": "件削除しました。",
+      "update_success": "件更新しました。"
+    },
     "base": {
       "title": "管理",
       "breadcrumb": "管理",

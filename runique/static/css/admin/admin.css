@@ -1182,3 +1182,44 @@ ul { list-style: none; }
         position: static;
     }
 }
+
+/* ── Bulk actions ───────────────────────────────────────────── */
+
+.bulk-action-bar {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius);
+    margin-bottom: 0.75rem;
+}
+
+.bulk-action-bar.bulk-bar-visible {
+    display: flex;
+}
+
+.bulk-action-info {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    flex: 1;
+}
+
+.bulk-action-btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.th-bulk,
+.td-bulk {
+    width: 2.5rem;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+}
+
+.bulk-check,
+#bulk-check-all {
+    cursor: pointer;
+    accent-color: var(--color-primary);
+}

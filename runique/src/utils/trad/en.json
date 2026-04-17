@@ -375,6 +375,11 @@
       },
       "not_found": "Resource not found."
     },
+    "bulk": {
+      "no_selection": "No items selected.",
+      "delete_success": "item(s) deleted.",
+      "update_success": "item(s) updated."
+    },
     "base": {
       "title": "Administration",
       "breadcrumb": "Admin",
