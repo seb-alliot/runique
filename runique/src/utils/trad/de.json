@@ -372,6 +372,11 @@
       },
       "not_found": "Ressource nicht gefunden."
     },
+    "bulk": {
+      "no_selection": "Keine Elemente ausgewählt.",
+      "delete_success": "Element(e) gelöscht.",
+      "update_success": "Element(e) aktualisiert."
+    },
     "base": {
       "title": "Administration",
       "breadcrumb": "Admin",

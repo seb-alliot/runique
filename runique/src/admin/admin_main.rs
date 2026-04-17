@@ -207,6 +207,7 @@ pub async fn admin_post(
     }
     match action.as_str() {
         "create" => handle_create_post(&mut req, entry, body, &headers, &state).await,
+        "bulk" => handle_bulk_action(&mut req, entry, body, &state, &resource_key).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown action",
         )))),
@@ -397,6 +398,80 @@ fn value_to_strmap(v: Value) -> StrMap {
         }
     }
     map
+}
+
+// ─── Bulk actions ────────────────────────────────────────────
+
+fn parse_bulk_ids(body: &StrMap) -> Vec<String> {
+    body.get("ids")
+        .map(|s| {
+            s.split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+async fn handle_bulk_action(
+    req: &mut Request,
+    entry: &ResourceEntry,
+    body: StrMap,
+    state: &PrototypeAdminState,
+    resource_key: &str,
+) -> AppResult<Response> {
+    let ids = parse_bulk_ids(&body);
+    let list_url = format!(
+        "{}/{}/list",
+        state.config.prefix.trim_end_matches('/'),
+        resource_key
+    );
+
+    if ids.is_empty() {
+        req.notices
+            .warning(t("admin.bulk.no_selection").to_string())
+            .await;
+        return Ok(Redirect::to(&list_url).into_response());
+    }
+
+    match body.get("bulk_action").map(String::as_str).unwrap_or("") {
+        "delete" => handle_bulk_delete(req, entry, ids, state, resource_key).await,
+        _ => Err(Box::new(AppError::new(ErrorContext::not_found(
+            "Unknown bulk action",
+        )))),
+    }
+}
+
+async fn handle_bulk_delete(
+    req: &mut Request,
+    entry: &ResourceEntry,
+    ids: Vec<String>,
+    state: &PrototypeAdminState,
+    resource_key: &str,
+) -> AppResult<Response> {
+    let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {
+        Box::new(AppError::new(ErrorContext::not_found(
+            t("admin.delete.not_found").as_ref(),
+        )))
+    })?;
+
+    let count = ids.len();
+    for id in ids {
+        delete_fn(req.engine.db.clone(), id)
+            .await
+            .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+    }
+
+    req.notices
+        .success(format!("{count} {}", t("admin.bulk.delete_success")))
+        .await;
+    Ok(Redirect::to(&format!(
+        "{}/{}/list",
+        state.config.prefix.trim_end_matches('/'),
+        resource_key
+    ))
+    .into_response())
 }
 
 async fn handle_list(

@@ -2,8 +2,8 @@
 
 {% block style %}
     {{ super() }}
-    <link rel="stylesheet" href="{% static 'css/about.css' %}">
-    <link rel="stylesheet" href="{% static 'css/demo-code.css' %}">
+    <link rel="stylesheet" href="{% static "css/about.css" %}">
+    <link rel="stylesheet" href="{% static "css/demo-code.css" %}">
 {% endblock %}
 
 {% block messages %}{% endblock %}
@@ -22,7 +22,7 @@
                 Click the button to inject all 4 message types and see them displayed.
             </p>
 
-            <a href="{% link 'about' %}" class="btn btn-primary btn-submit">
+            <a href="{% link "about" %}" class="btn btn-primary btn-submit">
                 Show messages
             </a>
 

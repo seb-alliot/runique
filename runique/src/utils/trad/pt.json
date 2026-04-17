@@ -375,6 +375,11 @@
       "success": "Entrada excluída com sucesso!",
       "not_found": "Recurso não encontrado."
     },
+    "bulk": {
+      "no_selection": "Nenhum item selecionado.",
+      "delete_success": "item(ns) excluído(s).",
+      "update_success": "item(ns) atualizado(s)."
+    },
     "base": {
       "title": "Administração",
       "breadcrumb": "Admin",
