@@ -201,6 +201,15 @@ impl RuniqueApp {
 
         println!("   Runique is operational");
         println!("      └──>  Server launched on https://{}", domain);
+        #[cfg(feature = "orm")]
+        {
+            let moteur_db = self.engine.db.get_database_backend();
+            let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "runique_db".to_string());
+            println!(
+                "          └──>  Connected to database {:?} -> {}",
+                moteur_db, db_name
+            );
+        }
         println!("              └──> ctrl + c to stop");
 
         axum_server::bind_rustls(https_addr.parse()?, tls_config)
