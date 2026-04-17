@@ -113,6 +113,11 @@ subtle.workspace = true
 # Procedural macros
 derive_form.workspace = true
 
+# ACME / TLS (feature acme)
+instant-acme = { version = "0.6", optional = true }
+axum-server = { version = "0.7", features = ["tls-rustls"], optional = true }
+rcgen = { version = "0.13", optional = true }
+
 # CLI
 clap.workspace = true
 rpassword.workspace = true
@@ -133,6 +138,7 @@ mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]
 mariadb = ["mysql"]
 all-databases = ["sqlite", "postgres", "mysql"]
 big-pk = ["derive_form/big-pk"]
+acme = ["dep:instant-acme", "dep:axum-server", "dep:rcgen"]
 
 
 [package.metadata.docs.rs]

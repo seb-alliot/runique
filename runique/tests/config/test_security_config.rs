@@ -113,6 +113,9 @@ fn test_security_config_clone() {
         rate_limiting: true,
         enforce_https: true,
         allowed_hosts: vec!["localhost".to_string()],
+        acme_enabled: false,
+        acme_domain: None,
+        acme_email: None,
     };
     let cloned = config.clone();
     assert_eq!(cloned.strict_csp, config.strict_csp);
