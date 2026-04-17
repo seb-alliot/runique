@@ -12,6 +12,12 @@ pub struct SecurityConfig {
     pub enforce_https: bool,
     /// List of allowed hosts (env: `ALLOWED_HOSTS`, comma-separated).
     pub allowed_hosts: Vec<String>,
+    /// Enables automatic TLS via Let's Encrypt ACME (env: `ACME_ENABLED`, default: `false`).
+    pub acme_enabled: bool,
+    /// Domain for ACME certificate (env: `ACME_DOMAIN`).
+    pub acme_domain: Option<String>,
+    /// Contact email for Let's Encrypt account (env: `ACME_EMAIL`).
+    pub acme_email: Option<String>,
 }
 
 impl SecurityConfig {
@@ -29,11 +35,20 @@ impl SecurityConfig {
         let allowed_hosts: Vec<String> = std::env::var("ALLOWED_HOSTS")
             .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_else(|_| vec!["localhost".to_string(), "127.0.0.1".to_string()]);
+        let acme_enabled = std::env::var("ACME_ENABLED")
+            .map(|v| v.parse().unwrap_or(false))
+            .unwrap_or(false);
+        let acme_domain = std::env::var("ACME_DOMAIN").ok().filter(|s| !s.is_empty());
+        let acme_email = std::env::var("ACME_EMAIL").ok().filter(|s| !s.is_empty());
+
         Self {
             strict_csp,
             rate_limiting,
             enforce_https,
             allowed_hosts,
+            acme_enabled,
+            acme_domain,
+            acme_email,
         }
     }
 }

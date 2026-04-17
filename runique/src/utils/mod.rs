@@ -1,4 +1,5 @@
 //! Cross-cutting framework utilities — type aliases, constants, i18n, password, CSRF, mailer, CLI…
+pub mod acme;
 pub mod aliases;
 pub mod cli;
 pub mod config;
