@@ -5,14 +5,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if title %}{{ title }} — Runique{% else %}Runique{% endif %}</title>
-    
-    <!-- Google Tag Manager - CSP Compatible -->
-    <script {% csp %}>
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
-    </script>
-    <script {% csp %} src="https://www.googletagmanager.com/gtm.js?id=GTM-NMHDD89C" async></script>
-    <!-- End Google Tag Manager -->
 
     {% block meta %}
     <meta name="description" content="{% if description %}{{ description }}{% else %}Runique — Rust web framework inspired by Django, based on Axum, SeaORM and Tera.{% endif %}">
@@ -32,13 +24,6 @@
     <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
 </head>
 <body>
-    <noscript>
-        <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NMHDD89C"
-                height="0" width="0" 
-                style="display:none;visibility:hidden">
-        </iframe>
-    </noscript>
-    
     {% if debug %}
         <div class="debug-banner">
             <strong>Debug Mode Enabled</strong>
