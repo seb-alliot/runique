@@ -132,7 +132,7 @@ impl RuniqueApp {
         let domain_clone = domain.clone();
         let http_app = Router::new()
             .route(
-                "/.well-known/acme-challenge/:token",
+                "/.well-known/acme-challenge/{token}",
                 get(
                     |Path(token): Path<String>, State(store): State<ChallengeStore>| async move {
                         let map = store.read().await;
