@@ -388,19 +388,29 @@ impl SessionStore for CleaningMemoryStore {
                 .fetch_sub(old_size.saturating_sub(new_size), Ordering::Relaxed);
         }
 
-        // Persist authenticated session data to DB so it survives restarts.
+        // Collect DB write params before dropping the lock.
         #[cfg(feature = "orm")]
-        if let Some(ref db) = self.db_fallback
+        let db_write = if let Some(ref db) = self.db_fallback
             && record
                 .data
                 .contains_key(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
         {
-            let db = db.clone();
-            let cookie_id = record.id.to_string();
-            let data = serde_json::to_string(&record.data).ok();
-            tokio::spawn(async move {
-                db.update_session_data(&cookie_id, data).await.ok();
-            });
+            Some((
+                db.clone(),
+                record.id.to_string(),
+                serde_json::to_string(&record.data).ok(),
+            ))
+        } else {
+            None
+        };
+
+        // Release the lock before the async DB write to avoid holding it during I/O.
+        drop(guard);
+
+        // Persist authenticated session data so it survives restarts.
+        #[cfg(feature = "orm")]
+        if let Some((db, cookie_id, data)) = db_write {
+            db.update_session_data(&cookie_id, data).await.ok();
         }
 
         Ok(())
