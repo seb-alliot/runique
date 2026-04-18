@@ -31,6 +31,12 @@ impl RuniqueApp {
     /// - If `ACME_ENABLED=true`: provisions TLS via Let's Encrypt and serves HTTPS on port 443.
     /// - Otherwise: serves HTTP on the configured port.
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+        #[cfg(not(feature = "acme"))]
+        if std::env::var("ACME_ENABLED").as_deref() == Ok("true") {
+            eprintln!("⚠  ACME_ENABLED=true but the `acme` feature is not compiled in.");
+            eprintln!("   Add features = [\"acme\"] to your Cargo.toml.");
+        }
+
         #[cfg(feature = "acme")]
         if self.engine.config.security.acme_enabled {
             return self.run_with_acme().await;

@@ -530,11 +530,18 @@ impl MiddlewareStaging {
 
             let exclusive_login = self.exclusive_login;
             let store_arc = if applicator.is_none() {
-                let store = Arc::new(
-                    CleaningMemoryStore::default()
-                        .with_watermarks(low_wm, high_wm)
-                        .with_exclusive_login(exclusive_login),
-                );
+                let mut builder = CleaningMemoryStore::default()
+                    .with_watermarks(low_wm, high_wm)
+                    .with_exclusive_login(exclusive_login);
+
+                #[cfg(feature = "orm")]
+                {
+                    use crate::middleware::session::RuniqueSessionStore;
+                    let db_store = Arc::new(RuniqueSessionStore::new(engine.db.clone()));
+                    builder = builder.with_db_fallback(db_store);
+                }
+
+                let store = Arc::new(builder);
                 store.spawn_cleanup(tokio::time::Duration::from_secs(cleanup_secs));
                 Some(store)
             } else {

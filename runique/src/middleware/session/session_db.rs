@@ -2,6 +2,7 @@
 use sea_orm::{
     ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, entity::prelude::*,
 };
+use sea_query::Expr;
 use std::sync::Arc;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,6 +118,30 @@ impl RuniqueSessionStore {
     pub async fn invalidate_all(&self, user_id: i32) -> Result<(), DbErr> {
         Entity::delete_many()
             .filter(Column::UserId.eq(user_id))
+            .exec(&*self.db)
+            .await?;
+        Ok(())
+    }
+
+    /// Returns the active session matching `cookie_id`, or `None` if absent/expired.
+    pub async fn find_by_cookie_id(&self, cookie_id: &str) -> Result<Option<Model>, DbErr> {
+        let now = chrono::Utc::now().naive_utc();
+        Entity::find()
+            .filter(Column::CookieId.eq(cookie_id))
+            .filter(Column::ExpiresAt.gt(now))
+            .one(&*self.db)
+            .await
+    }
+
+    /// Persists serialized session data for an existing row (no-op if not found).
+    pub async fn update_session_data(
+        &self,
+        cookie_id: &str,
+        data: Option<String>,
+    ) -> Result<(), DbErr> {
+        Entity::update_many()
+            .col_expr(Column::SessionData, Expr::value(data))
+            .filter(Column::CookieId.eq(cookie_id))
             .exec(&*self.db)
             .await?;
         Ok(())

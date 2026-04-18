@@ -165,6 +165,13 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 | `admin_login_error_credentials` | `String` | i18n `admin.login.error_credentials` |
 | `error` *(optionnel)* | `String` | Message d'erreur verbatim — injecté uniquement en cas d'échec POST |
 
+### Clés obligatoires — `login`
+
+```text
+csrf_token, site_title, lang
+```
+
+> `error` est optionnel — présent uniquement après un échec POST.
 > En cas d'échec POST, les messages i18n de la section `base` sont aussi injectés.
 
 **Exemple minimal :**
@@ -230,6 +237,12 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 | `admin_dashboard_see_list` | `String` | i18n `admin.dashboard.see_list` |
 | `admin_dashboard_empty_title` | `String` | i18n `admin.dashboard.empty_title` |
 | `admin_dashboard_empty_desc` | `String` | i18n `admin.dashboard.empty_desc` |
+
+### Clés obligatoires — `dashboard`
+
+```text
+resources, resource_counts, current_page
+```
 
 **Exemple minimal :**
 
@@ -340,7 +353,7 @@ Injectées automatiquement via `insert_admin_messages`. Le nom de variable Tera 
 | `prev_qs` | `String` | Query string complet pour la page précédente — `href="?{{ filter_meta[col].prev_qs }}"` |
 | `next_qs` | `String` | Query string complet pour la page suivante |
 
-### Clés obligatoires pour la surcharge
+### Clés obligatoires — `list`
 
 Référencées via `runique::utils::constante::admin_ctx::list::REQUIRED` :
 
@@ -410,6 +423,12 @@ sort_by, sort_dir, sort_dir_toggle, search
 | `form_fields` | `Forms` | Formulaire généré par Prisme — rendu via `{% form.field_name %}` ou `form_fields.html` |
 | `is_edit` | `bool` | Vaut `false` |
 
+### Clés obligatoires — `create`
+
+```text
+form_fields, is_edit
+```
+
 > Les variables i18n de la section `create` sont listées dans les variables globales ci-dessus.
 
 **Exemple minimal :**
@@ -448,6 +467,12 @@ sort_by, sort_dir, sort_dir_toggle, search
 | `is_edit` | `bool` | Vaut `true` |
 | `object_id` | `String` | ID de l'entrée en cours d'édition |
 
+### Clés obligatoires — `edit`
+
+```text
+form_fields, is_edit, object_id
+```
+
 > Les variables i18n de la section `edit` sont listées dans les variables globales ci-dessus.
 
 **Exemple minimal :**
@@ -484,6 +509,13 @@ sort_by, sort_dir, sort_dir_toggle, search
 | `entry` | `Value` *(optionnel)* | Enregistrement sérialisé en JSON — absent si `get_fn` non configurée |
 | `object_id` | `String` | ID de l'entrée |
 
+### Clés obligatoires — `detail`
+
+```text
+object_id
+```
+
+> `entry` est optionnel — absent si `get_fn` n'est pas configurée sur la ressource.
 > Les variables i18n de la section `detail` sont listées dans les variables globales ci-dessus.
 
 **Exemple minimal :**
@@ -523,6 +555,13 @@ sort_by, sort_dir, sort_dir_toggle, search
 | `entry` | `Value` *(optionnel)* | Enregistrement sérialisé en JSON — absent si `get_fn` non configurée |
 | `object_id` | `String` | ID de l'entrée à supprimer |
 
+### Clés obligatoires — `delete`
+
+```text
+object_id
+```
+
+> `entry` est optionnel — absent si `get_fn` n'est pas configurée sur la ressource.
 > Les variables i18n de la section `delete` sont listées dans les variables globales ci-dessus.
 
 **Exemple minimal :**

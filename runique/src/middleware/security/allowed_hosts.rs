@@ -1,5 +1,5 @@
 //! `Host` header validation middleware: rejects requests to unauthorized hosts.
-use crate::utils::{aliases::AEngine, trad::t};
+use crate::utils::{aliases::AEngine, runique_log::get_log, trad::t};
 use axum::{
     body::Body,
     extract::State,
@@ -99,12 +99,18 @@ pub(crate) async fn allowed_hosts_middleware(
     let host = match host {
         Some(h) => h,
         None => {
+            if let Some(level) = get_log().host_validation {
+                crate::runique_log!(level, "host rejected: no Host header or URI authority");
+            }
             let msg = engine.security_hosts.make_error_message("<no host>");
             return (StatusCode::BAD_REQUEST, msg).into_response();
         }
     };
 
     if !engine.security_hosts.is_host_allowed(host) {
+        if let Some(level) = get_log().host_validation {
+            crate::runique_log!(level, host = %host, "host rejected: not in allowlist");
+        }
         let msg = engine.security_hosts.make_error_message(host);
         return (StatusCode::BAD_REQUEST, msg).into_response();
     }
