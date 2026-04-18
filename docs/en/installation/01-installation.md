@@ -11,6 +11,7 @@ Complete guide to installing and configuring a Runique project.
 | [Migrations](/docs/en/installation/migrations) | `makemigrations`, `migrate up/down/status` |
 | [Runique CLI](/docs/en/installation/cli) | `create-superuser`, `new`, `start` |
 | [Troubleshooting](/docs/en/installation/troubleshooting) | Common errors and solutions |
+| [Network & HTTP](/docs/en/installation/network) | HTTP/2, HTTP/3, ACME, reverse proxy |
 
 ## Next Steps
 
