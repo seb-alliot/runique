@@ -24,6 +24,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     backend::run_seeds(&db).await;
 
     builder::new(config)
+        .with_log(|l| {
+            l.dev()
+                .host_validation(tracing::Level::WARN)
+                .acme(tracing::Level::INFO)
+        })
         .routes(url::routes())
         .with_database(db)
         .with_mailer_from_env()

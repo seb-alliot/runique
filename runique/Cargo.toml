@@ -114,9 +114,8 @@ subtle.workspace = true
 derive_form.workspace = true
 
 # ACME / TLS (feature acme)
-instant-acme = { version = "0.6", optional = true }
+instant-acme = { version = "0.8.5", features = ["rcgen"], optional = true }
 axum-server = { version = "0.7", features = ["tls-rustls"], optional = true }
-rcgen = { version = "0.13", optional = true }
 rustls = { version = "0.23", features = ["ring"], optional = true }
 
 # CLI
@@ -139,7 +138,7 @@ mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]
 mariadb = ["mysql"]
 all-databases = ["sqlite", "postgres", "mysql"]
 big-pk = ["derive_form/big-pk"]
-acme = ["dep:instant-acme", "dep:axum-server", "dep:rcgen", "dep:rustls"]
+acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls"]
 
 
 [package.metadata.docs.rs]

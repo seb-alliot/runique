@@ -7,6 +7,9 @@ use std::{
     },
 };
 
+#[cfg(feature = "orm")]
+use super::session_db::RuniqueSessionStore;
+
 use async_trait::async_trait;
 use tokio::sync::Mutex;
 use tower_sessions::{
@@ -83,6 +86,9 @@ pub struct CleaningMemoryStore {
     high_watermark: usize,
     /// If `true`, any new connection invalidates existing sessions of the same user.
     exclusive_login: bool,
+    /// DB store used to restore authenticated sessions after a restart (warm restart).
+    #[cfg(feature = "orm")]
+    db_fallback: Option<Arc<RuniqueSessionStore>>,
 }
 
 impl Default for CleaningMemoryStore {
@@ -93,6 +99,8 @@ impl Default for CleaningMemoryStore {
             low_watermark: LOW_WATERMARK_DEFAULT,
             high_watermark: HIGH_WATERMARK_DEFAULT,
             exclusive_login: false,
+            #[cfg(feature = "orm")]
+            db_fallback: None,
         }
     }
 }
@@ -116,6 +124,14 @@ impl CleaningMemoryStore {
     #[must_use]
     pub fn with_exclusive_login(mut self, exclusive: bool) -> Self {
         self.exclusive_login = exclusive;
+        self
+    }
+
+    /// Enables DB fallback: authenticated sessions are persisted and restored after a restart.
+    #[cfg(feature = "orm")]
+    #[must_use]
+    pub fn with_db_fallback(mut self, db: Arc<RuniqueSessionStore>) -> Self {
+        self.db_fallback = Some(db);
         self
     }
 
@@ -371,17 +387,64 @@ impl SessionStore for CleaningMemoryStore {
             self.size_bytes
                 .fetch_sub(old_size.saturating_sub(new_size), Ordering::Relaxed);
         }
+
+        // Persist authenticated session data to DB so it survives restarts.
+        #[cfg(feature = "orm")]
+        if let Some(ref db) = self.db_fallback
+            && record
+                .data
+                .contains_key(crate::utils::constante::session_key::session::SESSION_USER_ID_KEY)
+        {
+            let db = db.clone();
+            let cookie_id = record.id.to_string();
+            let data = serde_json::to_string(&record.data).ok();
+            tokio::spawn(async move {
+                db.update_session_data(&cookie_id, data).await.ok();
+            });
+        }
+
         Ok(())
     }
 
     async fn load(&self, session_id: &Id) -> session_store::Result<Option<Record>> {
-        Ok(self
+        let in_memory = self
             .data
             .lock()
             .await
             .get(session_id)
             .filter(|r| r.expiry_date > OffsetDateTime::now_utc())
-            .cloned())
+            .cloned();
+
+        if in_memory.is_some() {
+            return Ok(in_memory);
+        }
+
+        // DB fallback: restores authenticated sessions after a server restart.
+        #[cfg(feature = "orm")]
+        if let Some(ref db) = self.db_fallback {
+            let cookie_id = session_id.to_string();
+            if let Ok(Some(model)) = db.find_by_cookie_id(&cookie_id).await
+                && let Some(data_str) = &model.session_data
+                && let Ok(data) = serde_json::from_str(data_str)
+            {
+                let expiry =
+                    OffsetDateTime::from_unix_timestamp(model.expires_at.and_utc().timestamp())
+                        .unwrap_or_else(|_| OffsetDateTime::now_utc());
+                let record = Record {
+                    id: *session_id,
+                    data,
+                    expiry_date: expiry,
+                };
+                // Warm the memory cache
+                let mut guard = self.data.lock().await;
+                guard.insert(record.id, record.clone());
+                self.size_bytes
+                    .fetch_add(estimate_size(&record), Ordering::Relaxed);
+                return Ok(Some(record));
+            }
+        }
+
+        Ok(None)
     }
 
     async fn delete(&self, session_id: &Id) -> session_store::Result<()> {

@@ -37,6 +37,10 @@ pub struct RuniqueLog {
     pub session: Option<Level>,
     /// DB connection info (connecting / connected successfully).
     pub db: Option<Level>,
+    /// Host header validation rejections (HTTP/2 `:authority` fallback included).
+    pub host_validation: Option<Level>,
+    /// ACME/TLS lifecycle events: cert loaded, renewed, binding port 443.
+    pub acme: Option<Level>,
 }
 
 impl RuniqueLog {
@@ -107,6 +111,16 @@ impl RuniqueLog {
         self.db = Some(level);
         self
     }
+    #[must_use]
+    pub fn host_validation(mut self, level: Level) -> Self {
+        self.host_validation = Some(level);
+        self
+    }
+    #[must_use]
+    pub fn acme(mut self, level: Level) -> Self {
+        self.acme = Some(level);
+        self
+    }
 
     /// Enables all categories at `DEBUG` level.
     ///
@@ -130,6 +144,8 @@ impl RuniqueLog {
             .password_init(Level::DEBUG)
             .session(Level::DEBUG)
             .db(Level::DEBUG)
+            .host_validation(Level::DEBUG)
+            .acme(Level::DEBUG)
     }
 }
 

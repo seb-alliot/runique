@@ -8,6 +8,25 @@
 - Bloque les requêtes avec un host non autorisé (HTTP 400)
 - Protection contre les attaques Host Header Injection
 
+### HTTP/2 et le header `Host`
+
+HTTP/2 n'envoie pas de header `Host` — il utilise le pseudo-header `:authority`.
+Runique gère ce cas automatiquement : si le header `Host` est absent, le middleware
+lit l'authority depuis `request.uri().authority()`.
+
+Ce comportement couvre les connexions HTTP/1.1 directes, HTTP/2 (ex. ACME ou Cloudflare),
+et les proxies inverses qui proxifient en HTTP/2.
+
+### Logging
+
+Les rejections peuvent être loggées via `RuniqueLog` :
+
+```rust
+.with_log(|l| l.host_validation(Level::WARN))
+```
+
+En production, `WARN` est recommandé pour détecter des attaques ou des mauvaises configurations.
+
 ### Configuration via le builder
 
 La validation des hosts se configure dans `main.rs` via le builder — il n'y a pas de variable d'environnement pour cela :
