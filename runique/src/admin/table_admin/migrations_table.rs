@@ -206,6 +206,79 @@ pub fn create_eihwaz_users_groupes_table() -> TableCreateStatement {
         .to_owned()
 }
 
+/// Generates the `TableCreateStatement` for the `eihwaz_sessions` table.
+pub fn create_eihwaz_sessions_table() -> TableCreateStatement {
+    let mut user_id_col = ColumnDef::new(Alias::new("user_id"));
+    #[cfg(feature = "big-pk")]
+    user_id_col.big_integer();
+    #[cfg(not(feature = "big-pk"))]
+    user_id_col.integer();
+    user_id_col.not_null();
+
+    let user_table = user_table_name();
+    let fk_name = format!("fk_eihwaz_sessions_{}_id", user_table);
+
+    Table::create()
+        .table(Alias::new("eihwaz_sessions"))
+        .if_not_exists()
+        .col(
+            ColumnDef::new(Alias::new("id"))
+                .integer()
+                .not_null()
+                .auto_increment()
+                .primary_key(),
+        )
+        .col(
+            ColumnDef::new(Alias::new("cookie_id"))
+                .string()
+                .not_null()
+                .unique_key(),
+        )
+        .col(&mut user_id_col)
+        .col(ColumnDef::new(Alias::new("session_id")).string().not_null())
+        .col(ColumnDef::new(Alias::new("session_data")).text().null())
+        .col(
+            ColumnDef::new(Alias::new("expires_at"))
+                .date_time()
+                .not_null(),
+        )
+        .foreign_key(
+            ForeignKey::create()
+                .name(&fk_name)
+                .from(Alias::new("eihwaz_sessions"), Alias::new("user_id"))
+                .to(Alias::new(user_table.as_str()), Alias::new("id"))
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .to_owned()
+}
+
+/// "Turnkey" migration to create the `eihwaz_sessions` table.
+/// To be placed in the `Migrator` `vec!` after `EihwazUsersMigration`.
+pub struct EihwazSessionsMigration;
+
+impl sea_orm_migration::MigrationName for EihwazSessionsMigration {
+    fn name(&self) -> &str {
+        "m000000_000003_runique_eihwaz_sessions"
+    }
+}
+
+#[async_trait::async_trait]
+impl sea_orm_migration::MigrationTrait for EihwazSessionsMigration {
+    async fn up(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager.create_table(create_eihwaz_sessions_table()).await
+    }
+
+    async fn down(&self, manager: &sea_orm_migration::SchemaManager) -> Result<(), sea_orm::DbErr> {
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(Alias::new("eihwaz_sessions"))
+                    .to_owned(),
+            )
+            .await
+    }
+}
+
 /// Complete "turnkey" migration to initialize Runique's native RBAC architecture.
 /// To be injected directly into the `Migrations::up()` `vec!` after your User table migration.
 pub struct AdminTableMigration;

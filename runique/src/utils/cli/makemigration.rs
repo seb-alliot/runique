@@ -28,6 +28,7 @@ const FRAMEWORK_TABLES: &[&str] = &[
     "eihwaz_groupes",
     "eihwaz_groupes_droits",
     "eihwaz_users_groupes",
+    "eihwaz_sessions",
 ];
 
 pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
