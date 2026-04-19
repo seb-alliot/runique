@@ -3,7 +3,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Prisme extractor](/docs/en/formulaire/prisme)
+- [Form extraction — `request.form()`](/docs/en/formulaire/prisme)
 - [RuniqueForm trait](/docs/en/formulaire/trait)
   - Base structure
   - Trait methods
@@ -25,7 +25,7 @@ Runique provides a powerful form system inspired by Django. There are **two appr
 1. **Manual** — Define fields via the `RuniqueForm` trait.
 2. **Automatic** — Derive a form from a `model!` schema with `#[form(...)]`.
 
-Forms are automatically extracted from requests via the **Prisme** extractor, handle validation (including via the `validator` crate for emails/URLs), CSRF, Argon2 password hashing, and can be saved directly to the database.
+Forms are automatically extracted from requests via `request.form()`, handle validation (including via the `validator` crate for emails/URLs), CSRF, Argon2 password hashing, and can be saved directly to the database.
 
 ---
 

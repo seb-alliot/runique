@@ -54,8 +54,8 @@
             <div class="demo-code-title">views.rs — protected route</div>
             <pre><code><span class="kw">pub async fn</span> <span class="fn_">contribution_submit</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
-    <span class="ty">Prisme</span>(<span class="kw">mut</span> form): <span class="ty">Prisme</span>&lt;<span class="ty">ContributionForm</span>&gt;,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">let mut</span> form: <span class="ty">ContributionForm</span> = request.<span class="fn_">form</span>();
     <span class="cm">// Protected route — redirects if not authenticated</span>
     <span class="kw">if</span> !<span class="fn_">is_authenticated</span>(&amp;request.session).<span class="kw">await</span> {
         <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/login"</span>).<span class="fn_">into_response</span>());

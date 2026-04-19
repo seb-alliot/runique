@@ -96,10 +96,8 @@ pub async fn about(mut request: Request) -> AppResult<Response> {
     request.render("about/about.html")
 }
 
-pub async fn soumission_inscription(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     if request.is_get() {
         context_update!(request => {
             "title" => "Inscription",
@@ -137,7 +135,7 @@ pub async fn soumission_inscription(
 | Section | Description |
 | --- | --- |
 | [Macros](/docs/fr/routing/macros) | `urlpatterns!`, `view!`, `impl_objects!` |
-| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, Prisme, Json |
+| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, req.form(), Json |
 
 ## Retour au sommaire
 

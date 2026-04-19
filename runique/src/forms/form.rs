@@ -166,11 +166,11 @@ impl Forms {
 
     pub fn set_url_params(
         &mut self,
-        path: HashMap<String, String>,
-        query: HashMap<String, String>,
+        path: &HashMap<String, String>,
+        query: &HashMap<String, String>,
     ) {
-        self.path_params = path;
-        self.query_params = query;
+        self.path_params = path.clone();
+        self.query_params = query.clone();
     }
 
     pub fn set_renderer(&mut self, renderer: FormRenderer) {

@@ -29,7 +29,7 @@ async fn test_csrf_get_retourne_200_et_header_token() {
 #[tokio::test]
 async fn test_csrf_post_sans_header_sans_content_type_retourne_403() {
     // POST sans header X-CSRF-Token et sans Content-Type form : désormais bloqué (403).
-    // Les soumissions HTML (urlencoded/multipart) passent toujours via Prisme.
+    // Les soumissions HTML (urlencoded/multipart) passent toujours via prisme_pipeline.
     let resp = request::post(fresh_app().await, "/submit").await;
     assert_status(&resp, 403);
 }

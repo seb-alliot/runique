@@ -7,7 +7,7 @@
 2. Middlewares traversés (order des slots)
 3. Extensions injectées (Engine, Tera, Config)
 4. Session chargée, CSRF vérifié
-5. Handler appelé avec extracteurs (Request, Prisme<T>)
+5. Handler appelé avec extracteurs (Request, request.form())
 6. Handler retourne AppResult<Response>
 7. Middlewares traversés en sens inverse
 8. Réponse HTTP envoyée
@@ -26,7 +26,7 @@ let db = request.engine.db.clone();
 ### 2. Formulaires = copies par requête
 
 ```rust
-Prisme(mut form): Prisme<MyForm>
+let mut form: MyForm = request.form();
 // Chaque requête = formulaire isolé, zéro concurrence
 ```
 
@@ -60,7 +60,7 @@ context_update!(request => {
 
 | Section | Description |
 | --- | --- |
-| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
 | [Macros](/docs/fr/architecture/macros) | Macros de contexte, flash, routage, erreur |
 | [Tags & filtres Tera](/docs/fr/architecture/tera) | Tags Django-like, filtres, fonctions |
 | [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |

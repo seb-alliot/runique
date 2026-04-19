@@ -7,7 +7,7 @@
 2. Middlewares traversed (slot order)
 3. Extensions injected (Engine, Tera, Config)
 4. Session loaded, CSRF verified
-5. Handler called with extractors (Request, Prisme<T>)
+5. Handler called with extractors (Request, request.form())
 6. Handler returns AppResult<Response>
 7. Middlewares traversed in reverse order
 8. HTTP response sent
@@ -26,7 +26,7 @@ let db = request.engine.db.clone();
 ### 2. Forms = per-request copies
 
 ```rust
-Prisme(mut form): Prisme<MyForm>
+let mut form: MyForm = request.form();
 // Each request = isolated form, zero concurrency
 ```
 
@@ -60,7 +60,7 @@ context_update!(request => {
 
 | Section | Description |
 | --- | --- |
-| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
 | [Macros](/docs/en/architecture/macros) | Context, flash, routing, error macros |
 | [Tera tags & filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
 | [Middleware stack](/docs/en/architecture/middleware) | Slot order, dependency injection |

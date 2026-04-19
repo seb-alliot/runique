@@ -54,8 +54,8 @@
             <div class="demo-code-title">views.rs</div>
             <pre><code><span class="kw">pub async fn</span> <span class="fn_">blog_submit</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
-    <span class="ty">Prisme</span>(<span class="kw">mut</span> form): <span class="ty">Prisme</span>&lt;<span class="ty">BlogForm</span>&gt;,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">let mut</span> form: <span class="ty">BlogForm</span> = request.<span class="fn_">form</span>();
     <span class="kw">if</span> request.<span class="fn_">is_post</span>() &amp;&amp; form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
         form.<span class="fn_">save</span>(&amp;db).<span class="kw">await</span>?;
         <span class="mc">success!</span>(request.notices => <span class="st">"Article published!"</span>);

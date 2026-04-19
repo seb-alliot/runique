@@ -151,7 +151,7 @@ runique start
 
 | Section | Contenu |
 | --- | --- |
-| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Concepts clés](/docs/fr/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
 | [Macros](/docs/fr/architecture/macros) | Macros de contexte, flash, routage, erreur |
 | [Tags & filtres Tera](/docs/fr/architecture/tera) | Tags Django-like, filtres, fonctions |
 | [Stack middleware](/docs/fr/architecture/middleware) | Ordre des slots, injection de dépendances |

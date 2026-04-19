@@ -19,10 +19,8 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 }
 
 /// Inscription
-pub async fn soumission_inscription(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn soumission_inscription(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     inject_auth(&mut request).await;
 
     if is_authenticated(&request.session).await {

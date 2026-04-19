@@ -47,7 +47,7 @@ Runique provides a set of macros to simplify development.
 
 | Section | Description |
 | --- | --- |
-| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
 | [Tera tags & filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
 | [Middleware stack](/docs/en/architecture/middleware) | Slot order, dependency injection |
 | [Request lifecycle](/docs/en/architecture/lifecycle) | Lifecycle, best practices |
