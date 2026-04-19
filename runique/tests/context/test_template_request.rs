@@ -28,28 +28,32 @@ use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 // ── Middlewares d'injection ─────────────────────────────────────────────────
 
-/// Injecte uniquement l'engine (utilisé avec csrf_middleware pour les GET).
+/// Injecte engine + config (requis par prisme_pipeline dans Request::from_request).
 async fn engine_inject(
     State(engine): State<AEngine>,
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
+    let config = Arc::new(engine.config.clone());
     RequestExtensions::new()
         .with_engine(engine)
+        .with_config(config)
         .inject_request(&mut req);
     next.run(req).await
 }
 
-/// Injecte l'engine + un CsrfToken factice — pour tester POST/PUT/DELETE
+/// Injecte engine + config + CsrfToken factice — pour tester POST/PUT/DELETE
 /// sans passer par la validation CSRF (on teste juste la méthode HTTP).
 async fn full_bypass_inject(
     State(engine): State<AEngine>,
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
+    let config = Arc::new(engine.config.clone());
     let dummy_token = CsrfToken("test_bypass_token".to_string());
     RequestExtensions::new()
         .with_engine(engine)
+        .with_config(config)
         .inject_request(&mut req);
     req.extensions_mut().insert(dummy_token);
     next.run(req).await

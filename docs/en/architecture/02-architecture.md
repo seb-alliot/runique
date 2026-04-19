@@ -185,7 +185,7 @@ runique/src/
 
 | Section | Content |
 | --- | --- |
-| [Core Concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Core Concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
 | [Macros](/docs/en/architecture/macros) | Context, flash, routing, and error macros |
 | [Tera Tags & Filters](/docs/en/architecture/tera) | Django-like tags, filters, functions |
 | [Middleware Stack](/docs/en/architecture/middleware) | Slot order and dependency injection |

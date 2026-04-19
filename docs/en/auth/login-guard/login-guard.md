@@ -4,7 +4,7 @@
 
 Unlike IP rate limiting, there are no false positives from NAT or shared proxies: each account is tracked individually.
 
-`LoginGuard` is used **in the handler**, not as middleware — it is the only way to access the submitted username without consuming the request body before `Prisme`.
+`LoginGuard` is used **in the handler**, not as middleware — it is the only way to access the submitted username without consuming the request body before `request.form()`.
 
 ---
 
@@ -27,8 +27,9 @@ static GUARD: LazyLock<LoginGuard> = LazyLock::new(|| {
 pub async fn login(
     session: Session,
     State(db): State<DatabaseConnection>,
-    Prisme(form): Prisme<LoginForm>,
+    mut request: Request,
 ) -> impl IntoResponse {
+    let form: LoginForm = request.form();
     let username = form.username();
     let ip = /* extract IP from headers */;
 
@@ -59,7 +60,7 @@ pub async fn login(
 ## Why in the handler and not middleware?
 
 A middleware runs before the handler and cannot read the body without consuming it.
-`Prisme` extracts the form exactly once — the username is only available after that extraction.
+`request.form()` extracts the form exactly once — the username is only available after that extraction.
 
 The session knows the authentication state, but at login time the user is not yet authenticated: `session.username` would always be `"anonym"` on this route, which does not protect the targeted account.
 
@@ -67,7 +68,7 @@ The session knows the authentication state, but at login time the user is not ye
 | --- | --- | --- |
 | IP address | ✅ | ✅ (used by `effective_key` for anon) |
 | Username (session) | ✅ | ❌ (always anon on `/login`) |
-| Username (form body) | ❌ (consumes the body) | ✅ (via `Prisme` in the handler) |
+| Username (form body) | ❌ (consumes the body) | ✅ (via `request.form()` in the handler) |
 
 ---
 

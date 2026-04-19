@@ -40,7 +40,7 @@
 
 | Section | Description |
 | --- | --- |
-| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `Prisme<T>` |
+| [Key concepts](/docs/en/architecture/concepts) | `RuniqueEngine`, `Request`, `request.form()` |
 | [Macros](/docs/en/architecture/macros) | Context, flash, routing, error macros |
 | [Middleware stack](/docs/en/architecture/middleware) | Slot order, dependency injection |
 | [Request lifecycle](/docs/en/architecture/lifecycle) | Lifecycle, best practices |

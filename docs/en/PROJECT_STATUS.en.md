@@ -84,7 +84,7 @@ The admin view is **operational in beta** on a declarative model + code generati
 - Permissions mainly global per resource
 - Little fine-grained control per operation
 - `src/admins/` is regenerated (manual changes are overwritten)
-- **CSRF**: reliable protection in the form flow (`Prisme` / `csrf_gate`), but middleware still permissive for some mutating endpoints outside the form flow.
+- **CSRF**: reliable protection in the form flow (`request.form()` / `csrf_gate`), but middleware still permissive for some mutating endpoints outside the form flow.
 
 ### Practical workflow state
 

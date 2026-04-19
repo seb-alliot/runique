@@ -26,10 +26,8 @@ When using `{% form.signup_form %}`, validation errors are **automatically rende
 
 ```rust
 // Rust handler
-pub async fn signup(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn signup(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     if request.is_get() {
         context_update!(request => {
             "title" => "Sign Up",
@@ -92,7 +90,7 @@ These variables are automatically available in all templates:
 
 ## Common pitfall: variable name collision
 
-When using `{% form.user %}`, the variable `user` **must be a Prisme form**:
+When using `{% form.user %}`, the variable `user` **must be a form** (extracted via `request.form()`):
 
 ```rust
 // ❌ ERROR: "user" is a SeaORM Model, not a form

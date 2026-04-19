@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use axum::{
     Extension, Router,
-    extract::Form,
     http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect, Response},
@@ -149,10 +148,10 @@ async fn admin_dashboard_redirect() -> Response {
 }
 
 async fn admin_dashboard(
-    mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
     Extension(current_user): Extension<crate::auth::session::CurrentUser>,
     proto: Option<Extension<Arc<PrototypeAdminState>>>,
+    mut req: Request,
 ) -> AppResult<Response> {
     let db = req.engine.db.clone();
 
@@ -240,9 +239,9 @@ async fn admin_dashboard(
 }
 
 async fn admin_login_get(
-    mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+    mut req: Request,
 ) -> AppResult<Response> {
     let from_logout = params.get("from").is_some_and(|v| v == "logout");
     if !from_logout && is_admin_authenticated(&req.session).await {
@@ -259,15 +258,24 @@ async fn admin_login_get(
 }
 
 async fn admin_login_post(
-    mut req: Request,
     Extension(admin): Extension<Arc<AdminState>>,
-    Form(data): Form<AdminLoginData>,
+    mut req: Request,
 ) -> Response {
     use crate::utils::middleware::csrf::unmask_csrf_token;
     use subtle::ConstantTimeEq;
     if is_admin_authenticated(&req.session).await {
         return Redirect::to(&format!("{}/", admin.config.prefix)).into_response();
     }
+    let data = AdminLoginData {
+        username: req.prisme.data.get("username").cloned().unwrap_or_default(),
+        password: req.prisme.data.get("password").cloned().unwrap_or_default(),
+        csrf_token: req
+            .prisme
+            .data
+            .get(crate::utils::constante::session_key::session::CSRF_TOKEN_KEY)
+            .cloned()
+            .unwrap_or_default(),
+    };
     let csrf_valid = unmask_csrf_token(&data.csrf_token)
         .map(|unmasked| {
             bool::from(
@@ -375,7 +383,7 @@ async fn admin_login_post(
     }
 }
 
-async fn admin_logout(req: Request, Extension(admin): Extension<Arc<AdminState>>) -> Response {
+async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request) -> Response {
     let session = &req.session;
     let db_store = req
         .engine

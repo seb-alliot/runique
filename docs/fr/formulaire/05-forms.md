@@ -3,7 +3,7 @@
 ## Sommaire
 
 - [Vue d'ensemble](#vue-densemble)
-- [Extracteur Prisme](/docs/fr/formulaire/prisme)
+- [Extraction de formulaire — `request.form()`](/docs/fr/formulaire/prisme)
 - [Trait RuniqueForm](/docs/fr/formulaire/trait)
   - Structure de base
   - Méthodes du trait
@@ -27,7 +27,7 @@ Runique fournit un système de formulaires puissant, inspiré de Django. Il exis
 1. **Manuelle** — Définir les champs via le trait `RuniqueForm`.
 2. **Automatique** — Dériver un formulaire depuis un schéma `model!` avec `#[form(...)]`.
 
-Les formulaires sont extraits automatiquement des requêtes via l'extracteur **Prisme**, gèrent la validation (y compris via le crate `validator` pour les emails/URLs), le CSRF, le hachage Argon2 des mots de passe, et peuvent être sauvegardés directement en base de données.
+Les formulaires sont extraits automatiquement des requêtes via `request.form()`, gèrent la validation (y compris via le crate `validator` pour les emails/URLs), le CSRF, le hachage Argon2 des mots de passe, et peuvent être sauvegardés directement en base de données.
 
 ---
 

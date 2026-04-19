@@ -6,9 +6,8 @@
 use crate::auth::session::CurrentUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
-use crate::forms::prisme::aegis;
 use crate::utils::{
-    aliases::{ARuniqueConfig, AppResult, StrMap},
+    aliases::{AppResult, StrMap},
     constante::admin_context::{
         common as ctx_common, create as ctx_create, detail as ctx_detail, edit as ctx_edit,
         list as list_ctx,
@@ -28,9 +27,8 @@ use crate::{
 };
 use axum::{
     Extension,
-    body::Body,
-    extract::{FromRequest, Path, Query},
-    http::{Request as HttpRequest, StatusCode},
+    extract::{Path, Query},
+    http::StatusCode,
     response::{IntoResponse, Redirect, Response},
 };
 use serde_json::Value;
@@ -53,50 +51,6 @@ struct ListQuery {
     filter_pages: HashMap<String, u64>,
 }
 
-// ─── AdminBody Extractor ─────────────────────────────────────
-//
-// Encapsulates aegis to automatically handle multipart/form-data
-// AND application/x-www-form-urlencoded in admin POST handlers.
-// Replaces axum::extract::Form<StrMap> which rejected multipart.
-
-pub struct AdminBody(StrMap);
-
-impl<S: Send + Sync> FromRequest<S> for AdminBody {
-    type Rejection = Response;
-
-    async fn from_request(req: HttpRequest<Body>, state: &S) -> Result<Self, Self::Rejection> {
-        let config = req
-            .extensions()
-            .get::<ARuniqueConfig>()
-            .cloned()
-            .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "missing config").into_response())?;
-
-        let content_type = req
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("")
-            .to_string();
-
-        let parsed = aegis(req, state, config, &content_type).await?;
-
-        // StrVecMap → StrMap (multi-values joined by comma, like Prisme)
-        // Exception : csrf_token takes the 1st value only (the form
-        // may send two if {% csrf %} and form_fields.html coexist).
-        let body = parsed
-            .into_iter()
-            .map(|(k, v)| {
-                if k == CSRF_TOKEN_KEY {
-                    (k, v.into_iter().next().unwrap_or_default())
-                } else {
-                    (k, v.join(","))
-                }
-            })
-            .collect();
-        Ok(AdminBody(body))
-    }
-}
-
 // ─── Shared state ────────────────────────────────────────────
 
 #[derive(Clone)]
@@ -109,12 +63,12 @@ pub struct PrototypeAdminState {
 
 /// GET /admin/{resource}/{action}  (list, create)
 pub async fn admin_get(
-    mut req: Request,
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Extension(current_user): Extension<CurrentUser>,
     Query(params): Query<StrMap>,
     headers: axum::http::HeaderMap,
+    mut req: Request,
 ) -> AppResult<Response> {
     let entry = state
         .registry
@@ -186,13 +140,13 @@ pub async fn admin_get(
 /// POST /admin/{resource}/{action}  (create)
 #[allow(private_interfaces)]
 pub async fn admin_post(
-    mut req: Request,
     headers: axum::http::HeaderMap,
     Path((resource_key, action)): Path<(String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Extension(current_user): Extension<CurrentUser>,
-    AdminBody(body): AdminBody,
+    mut req: Request,
 ) -> AppResult<Response> {
+    let body = req.prisme.data.clone();
     tracing::info!("form data at validation {:?}", body);
     let entry = state
         .registry
@@ -216,10 +170,10 @@ pub async fn admin_post(
 
 /// GET /admin/{resource}/{id}/{action}  (detail, edit, delete)
 pub async fn admin_get_id(
-    mut req: Request,
     Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Extension(current_user): Extension<CurrentUser>,
+    mut req: Request,
 ) -> AppResult<Response> {
     let entry = state
         .registry
@@ -250,13 +204,13 @@ pub async fn admin_get_id(
 /// POST /admin/{resource}/{id}/{action}  (edit, delete)
 #[allow(private_interfaces)]
 pub async fn admin_post_id(
-    mut req: Request,
     headers: axum::http::HeaderMap,
     Path((resource_key, id, action)): Path<(String, String, String)>,
     Extension(state): Extension<Arc<PrototypeAdminState>>,
     Extension(current_user): Extension<CurrentUser>,
-    AdminBody(body): AdminBody,
+    mut req: Request,
 ) -> AppResult<Response> {
+    let body = req.prisme.data.clone();
     let entry = state
         .registry
         .get(&resource_key)

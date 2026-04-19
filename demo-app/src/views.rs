@@ -28,24 +28,22 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 pub async fn soumission_inscription(
-    mut request: Request,
     headers: HeaderMap,
-    Prisme(mut form): Prisme<RegisterForm>,
+    mut request: Request,
 ) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     handle_inscription(&mut request, &mut form, &headers).await
 }
 
 pub async fn activate_account(
-    mut request: Request,
     Path((token, encrypted_email)): Path<(String, String)>,
+    mut request: Request,
 ) -> AppResult<Response> {
     handle_activate(&mut request, token, encrypted_email).await
 }
 
-pub async fn login_user(
-    mut request: Request,
-    Prisme(mut form): Prisme<LoginForm>,
-) -> AppResult<Response> {
+pub async fn login_user(mut request: Request) -> AppResult<Response> {
+    let mut form: LoginForm = request.form();
     handle_login(&mut request, &mut form).await
 }
 
@@ -72,10 +70,8 @@ pub async fn profil(mut request: Request) -> AppResult<Response> {
     request.render("profile/profile.html")
 }
 
-pub async fn info_user(
-    mut request: Request,
-    Prisme(mut form): Prisme<UsernameForm>,
-) -> AppResult<Response> {
+pub async fn info_user(mut request: Request) -> AppResult<Response> {
+    let mut form: UsernameForm = request.form();
     inject_globals(&mut request).await;
     let template = "profile/view_user.html";
     if request.is_get() && form.is_valid().await {
@@ -108,10 +104,8 @@ pub async fn info_user(
 
 // ─── Blog ─────────────────────────────────────────────────────────────────────
 
-pub async fn blog_list(
-    mut request: Request,
-    Prisme(form): Prisme<SearchDemoForm>,
-) -> AppResult<Response> {
+pub async fn blog_list(mut request: Request) -> AppResult<Response> {
+    let form: SearchDemoForm = request.form();
     inject_globals(&mut request).await;
     let search = form.cleaned_string("search");
     let articles = list_articles(&request.engine.db, search.as_deref()).await;
@@ -124,10 +118,8 @@ pub async fn blog_list(
     request.render("blog/blog_list.html")
 }
 
-pub async fn blog_save(
-    mut request: Request,
-    Prisme(mut blog): Prisme<BlogForm>,
-) -> AppResult<Response> {
+pub async fn blog_save(mut request: Request) -> AppResult<Response> {
+    let mut blog: BlogForm = request.form();
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
@@ -148,10 +140,8 @@ pub async fn blog_detail(Path(id): Path<i32>, mut request: Request) -> AppResult
 
 // ─── Forms ───────────────────────────────────────────────────────────────────
 
-pub async fn upload_image_submit(
-    mut request: Request,
-    Prisme(mut form): Prisme<ImageForm>,
-) -> AppResult<Response> {
+pub async fn upload_image_submit(mut request: Request) -> AppResult<Response> {
+    let mut form: ImageForm = request.form();
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
@@ -180,10 +170,8 @@ pub async fn formulaires_templates(mut request: Request) -> AppResult<Response> 
     demo_code_page("formulaires_templates", &mut request).await
 }
 
-pub async fn formulaires_helpers(
-    mut request: Request,
-    Prisme(form): Prisme<SearchDemoForm>,
-) -> AppResult<Response> {
+pub async fn formulaires_helpers(mut request: Request) -> AppResult<Response> {
+    let form: SearchDemoForm = request.form();
     inject_globals(&mut request).await;
     let data = extract_helpers_data(&request, form.cleaned_string("search"));
     context_update!(request => {
@@ -197,10 +185,8 @@ pub async fn formulaires_helpers(
 
 // ─── Contribution ─────────────────────────────────────────────────────────────
 
-pub async fn contribution_submit(
-    mut request: Request,
-    Prisme(mut form): Prisme<ContributionForm>,
-) -> AppResult<Response> {
+pub async fn contribution_submit(mut request: Request) -> AppResult<Response> {
+    let mut form: ContributionForm = request.form();
     if !is_authenticated(&request.session).await {
         warning!(request.notices => "Please log in to access your profile.");
         return Ok(Redirect::to("/login").into_response());
@@ -391,8 +377,15 @@ pub async fn view_cours_detail(
 pub async fn view_cours_exercice(
     Path(slug): Path<String>,
     mut request: Request,
-    Json(input): Json<ExerciceInput>,
 ) -> AppResult<Response> {
+    let input = ExerciceInput {
+        message: request
+            .prisme
+            .data
+            .get("message")
+            .cloned()
+            .unwrap_or_default(),
+    };
     cours_exercice(&slug, input, &mut request).await
 }
 

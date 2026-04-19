@@ -420,7 +420,7 @@ sort_by, sort_dir, sort_dir_toggle, search
 
 | Variable | Type | Description |
 | --- | --- | --- |
-| `form_fields` | `Forms` | Formulaire généré par Prisme — rendu via `{% form.field_name %}` ou `form_fields.html` |
+| `form_fields` | `Forms` | Formulaire généré par `request.form()` — rendu via `{% form.field_name %}` ou `form_fields.html` |
 | `is_edit` | `bool` | Vaut `false` |
 
 ### Clés obligatoires — `create`

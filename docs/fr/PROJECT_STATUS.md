@@ -84,7 +84,7 @@ La vue admin est **opérationnelle en bêta** sur un modèle déclaratif + gén�
 - Permissions surtout globales par ressource
 - Peu de granularité fine par opération
 - `src/admins/` régénéré (écrasement des modifications manuelles)
-- **CSRF** : protection fiable dans le flux formulaire (`Prisme` / `csrf_gate`), mais middleware encore permissif pour certains endpoints mutateurs hors flux formulaire.
+- **CSRF** : protection fiable dans le flux formulaire (`request.form()` / `csrf_gate`), mais middleware encore permissif pour certains endpoints mutateurs hors flux formulaire.
 
 ### État pratique du workflow
 

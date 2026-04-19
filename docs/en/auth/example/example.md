@@ -5,10 +5,8 @@
 ```rust
 use runique::prelude::*;
 
-pub async fn login_post(
-    mut request: Request,
-    Prisme(mut form): Prisme<LoginForm>,
-) -> AppResult<Response> {
+pub async fn login_post(mut request: Request) -> AppResult<Response> {
+    let mut form: LoginForm = request.form();
     if request.is_post() && form.is_valid().await {
         // 1. Find the user by username
         let username = form.cleaned_string("username").unwrap_or_default();

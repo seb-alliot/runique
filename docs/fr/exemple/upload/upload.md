@@ -65,10 +65,8 @@ FileField::any("data").allowed_extensions(vec!["csv", "json"])
 ## Handler d'upload
 
 ```rust
-pub async fn upload_image(
-    mut request: Request,
-    Prisme(mut form): Prisme<ImageForm>,
-) -> AppResult<Response> {
+pub async fn upload_image(mut request: Request) -> AppResult<Response> {
+    let mut form: ImageForm = request.form();
     let template = "forms/upload_image.html";
 
     if request.is_get() {

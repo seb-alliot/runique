@@ -109,7 +109,7 @@ pub async fn api_list_users(request: Request) -> AppResult<Response> {
 | `context_update!(request => {...})` | Inject variables into the template |
 | `success!(request.notices => "...")` | Flash message before redirect |
 | `flash_now!(error => "...")` | Immediate message (no redirect) |
-| `form.is_valid().await` | Validate a Prisme form |
+| `form.is_valid().await` | Validate a form |
 | `form.save(&db).await` | Persist to the database |
 | `form.get_form_mut().database_error(&err)` | Display a DB error inside the form |
 

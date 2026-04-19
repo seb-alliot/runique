@@ -58,10 +58,8 @@ impl RegisterForm {
 ### Handler GET/POST
 
 ```rust
-pub async fn inscription(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn inscription(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     let template = "profile/register_form.html";
 
     if request.is_get() {
@@ -104,10 +102,8 @@ pub async fn inscription(
 En mode `PATCH`, `fill()` relâche automatiquement le `required` sur les champs `Password`. Cela permet de proposer un formulaire d'édition où le mot de passe est optionnel : s'il est laissé vide, l'ancien hash est conservé.
 
 ```rust
-pub async fn modifier_profil(
-    mut request: Request,
-    Prisme(mut form): Prisme<EditProfileForm>,
-) -> AppResult<Response> {
+pub async fn modifier_profil(mut request: Request) -> AppResult<Response> {
+    let mut form: EditProfileForm = request.form();
     let template = "profile/edit.html";
     let user = get_current_user(&request).await?;
 
@@ -173,10 +169,10 @@ context_update!(request => {
 
 ```rust
 //  Ne peut pas appeler is_valid()
-Prisme(form): Prisme<MyForm>
+let form: MyForm = request.form();
 
 //  Correct
-Prisme(mut form): Prisme<MyForm>
+let mut form: MyForm = request.form();
 ```
 
 ### 3. Comparer des mots de passe après `is_valid()`

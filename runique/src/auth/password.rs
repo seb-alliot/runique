@@ -14,7 +14,7 @@ use crate::auth::session::{UserEntity, logout};
 use crate::auth::user_trait::RuniqueUser;
 use crate::context::template::Request;
 use crate::forms::{
-    Forms, Prisme,
+    Forms,
     field::RuniqueForm,
     fields::{hidden::HiddenField, text::TextField},
 };
@@ -378,8 +378,8 @@ async fn forgot_view<E: UserEntity + 'static>(
     State(state): State<ForgotState>,
     headers: HeaderMap,
     mut request: Request,
-    Prisme(mut form): Prisme<ForgotPasswordForm>,
 ) -> AppResult<Response> {
+    let mut form: ForgotPasswordForm = request.form();
     handle_forgot_password::<E>(
         &mut request,
         &mut form,
@@ -393,10 +393,10 @@ async fn forgot_view<E: UserEntity + 'static>(
 
 async fn reset_view<E: UserEntity + 'static>(
     State(state): State<ResetState>,
-    mut request: Request,
     Path((token, encrypted_email)): Path<(String, String)>,
-    Prisme(mut form): Prisme<PasswordResetForm>,
+    mut request: Request,
 ) -> AppResult<Response> {
+    let mut form: PasswordResetForm = request.form();
     handle_password_reset::<E>(
         &mut request,
         &mut form,

@@ -20,4 +20,4 @@ La macro `model!` génère les entités SeaORM, les schémas de migration et les
 
 1. Ce document (`12-model.md`)
 2. [ORM](/docs/fr/orm) pour l'usage DB
-3. [Formulaires](/docs/fr/formulaire) pour l'intégration Prisme et rendu
+3. [Formulaires](/docs/fr/formulaire) pour l'extraction de formulaire et le rendu

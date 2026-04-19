@@ -9,7 +9,7 @@ Runique provides a declarative routing system via the `urlpatterns!` and `view!`
 | Section | Content |
 | --- | --- |
 | [Macros](/docs/en/routing/macros) | `urlpatterns!`, `view!`, `impl_objects!` |
-| [Extractors](/docs/en/routing/extracteurs) | Path, Query, Prisme, Json |
+| [Extractors](/docs/en/routing/extracteurs) | Path, Query, req.form(), Json |
 | [Responses](/docs/en/routing/responses)| HTML, Redirect, JSON, StatusCode, complete structure |
 
 ---

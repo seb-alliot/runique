@@ -49,13 +49,11 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 
 ---
 
-## 3. `Prisme<T>` — Extracteur de formulaire
+## 3. `request.form()` — Extraction intégrée de formulaire
 
 ```rust
-pub async fn handler(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn handler(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     if request.is_post() && form.is_valid().await {
         let user = form.save(&request.engine.db).await?;
         success!(request.notices => "Utilisateur créé !");
@@ -69,11 +67,11 @@ pub async fn handler(
 }
 ```
 
-Automatiquement :
+`request.form()` orchestre automatiquement :
 
 1. Parse le body de la requête
 2. Crée une instance du formulaire
-3. Injecte le token CSRF
+3. Vérifie le token CSRF
 4. Remplit les données soumises
 
 ---

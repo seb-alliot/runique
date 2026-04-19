@@ -53,15 +53,13 @@ async fn list(
 
 ---
 
-## Prisme — Formulaires
+## Formulaires — `req.form()`
 
 ```rust
 use runique::prelude::*;
 
-async fn inscription(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+async fn inscription(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     if form.is_valid().await {
         form.save(&request.engine.db).await?;
     }

@@ -49,13 +49,11 @@ pub async fn index(mut request: Request) -> AppResult<Response> {
 
 ---
 
-## 3. `Prisme<T>` — Form Extractor
+## 3. `request.form()` — Integrated Form Extraction
 
 ```rust
-pub async fn handler(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn handler(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     if request.is_post() && form.is_valid().await {
         let user = form.save(&request.engine.db).await?;
         success!(request.notices => "User created!");
@@ -69,11 +67,11 @@ pub async fn handler(
 }
 ```
 
-Automatically:
+`request.form()` automatically:
 
 1. Parses the request body
 2. Creates a form instance
-3. Injects the CSRF token
+3. Verifies the CSRF token
 4. Fills in submitted data
 
 ---

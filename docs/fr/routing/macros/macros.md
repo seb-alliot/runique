@@ -57,10 +57,8 @@ Un même handler gère GET et POST ainsi que PUT et DELETE (pattern recommandé 
 
 ```rust
 // Dans le handler
-pub async fn inscription(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn inscription(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     if request.is_get() {
         context_update!(request => { "form" => &form });
         return request.render("form.html");
@@ -99,7 +97,7 @@ Voir le [guide ORM](/docs/fr/orm) pour plus de détails.
 
 | Section | Description |
 | --- | --- |
-| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, Prisme, Json |
+| [Extracteurs](/docs/fr/routing/extracteurs) | Path, Query, req.form(), Json |
 | [Réponses](/docs/fr/routing/reponses) | Types de réponses |
 
 ## Retour au sommaire

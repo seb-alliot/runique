@@ -1,39 +1,33 @@
-//! Axum `Prisme<T>` extractor: Sentinel → CSRF → Aegis → form deserialization pipeline.
-use crate::forms::{
-    field::RuniqueForm,
-    prisme::{aegis, csrf_gate, sentinel},
-};
+//! Prisme: non-generic CSRF + body extractor integrated into the Request pipeline.
+use crate::forms::prisme::{aegis, sentinel};
+use crate::utils::aliases::{ARuniqueConfig, StrMap, StrVecMap};
+use crate::utils::trad::t;
 use crate::utils::{
-    aliases::{ARuniqueConfig, ATera, StrMap, StrVecMap},
-    trad::t,
+    constante::session_key::session::CSRF_TOKEN_KEY, middleware::csrf::unmask_csrf_token,
 };
 
 use axum::{
     body::Body,
-    extract::{FromRequest, FromRequestParts, Path},
-    http::{Request, StatusCode},
+    http::{Method, Request, StatusCode},
     response::{IntoResponse, Response},
 };
-use std::collections::HashMap;
+use subtle::ConstantTimeEq;
 
-/// Prism: Sentinel -> CSRF -> Aegis pipeline (extraction)
-pub struct Prisme<T>(pub T);
+/// Parsed and CSRF-validated form data extracted from the request.
+/// On GET: contains query params, csrf_valid = true.
+/// On POST: contains body params, csrf_valid = CSRF check result.
+#[derive(Clone)]
+pub struct Prisme {
+    pub data: StrMap,
+    pub csrf_valid: bool,
+}
 
-/// Reusable pipeline function: Sentinel -> CSRF -> Aegis
-pub async fn prisme<S, T>(req: Request<Body>, state: &S) -> Result<Prisme<T>, Response>
+/// Non-generic pipeline: Sentinel → Aegis → CSRF check.
+/// Runs on every request — aegis handles GET (query params) and POST (body).
+pub async fn prisme_pipeline<S>(req: Request<Body>, state: &S) -> Result<Prisme, Response>
 where
     S: Send + Sync,
-    T: RuniqueForm,
 {
-    // Sentinel: dependencies + access rules
-    let tera = req.extensions().get::<ATera>().cloned().ok_or_else(|| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            t("forms.tera_not_configured").to_string(),
-        )
-            .into_response()
-    })?;
-
     let config = req
         .extensions()
         .get::<ARuniqueConfig>()
@@ -69,58 +63,38 @@ where
         .unwrap_or("")
         .to_string();
 
-    // Extraction of URL parameters before consuming the body
-    let (mut parts, body) = req.into_parts();
+    let parsed = aegis(req, state, config, &content_type).await?;
 
-    let path_params = Path::<HashMap<String, String>>::from_request_parts(&mut parts, state)
-        .await
-        .map(|Path(p)| p)
-        .unwrap_or_default();
+    let csrf_valid = check_csrf(&parsed, csrf_session.as_str(), &method);
+    let data = convert_for_form(parsed);
 
-    let query_params = parts
-        .uri
-        .query()
-        .and_then(|q| serde_urlencoded::from_str::<HashMap<String, String>>(q).ok())
-        .unwrap_or_default();
-
-    let req = Request::from_parts(parts, body);
-
-    // Aegis (extraction): single read of the body
-    let parsed = aegis(req, state, config.clone(), &content_type).await?;
-
-    // CSRF gate: early check on parsed data
-    if let Some(prisme) =
-        csrf_gate::<T>(&parsed, csrf_session.as_str(), tera.clone(), &method).await?
-    {
-        return Ok(prisme);
-    }
-
-    let form_data = convert_for_form(parsed);
-
-    // Pass the masked token to the form: hidden fields and re-renders
-    // then contain a base64 token consistent with AJAX validation (X-CSRF-Token).
-    let csrf_for_form = csrf_session
-        .masked()
-        .unwrap_or_else(|_| csrf_session.clone());
-    let mut form = T::build_with_data(&form_data, tera, csrf_for_form.as_str(), method).await;
-    form.get_form_mut()
-        .set_url_params(path_params, query_params);
-
-    Ok(Prisme(form))
+    Ok(Prisme { data, csrf_valid })
 }
 
-impl<S, T> FromRequest<S> for Prisme<T>
-where
-    S: Send + Sync,
-    T: RuniqueForm,
-{
-    type Rejection = Response;
-
-    async fn from_request(req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
-        prisme(req, state).await
+/// Returns true if CSRF is valid or not required (GET/HEAD).
+fn check_csrf(parsed: &StrVecMap, csrf_session: &str, method: &Method) -> bool {
+    if method == Method::GET || method == Method::HEAD {
+        return true;
     }
+    parsed
+        .get(CSRF_TOKEN_KEY)
+        .and_then(|v| v.last())
+        .map(|s| match unmask_csrf_token(s) {
+            Ok(unmasked) => bool::from(unmasked.as_bytes().ct_eq(csrf_session.as_bytes())),
+            Err(_) => false,
+        })
+        .unwrap_or(false)
 }
 
 fn convert_for_form(parsed: StrVecMap) -> StrMap {
-    parsed.into_iter().map(|(k, v)| (k, v.join(","))).collect()
+    parsed
+        .into_iter()
+        .map(|(k, v)| {
+            if k == CSRF_TOKEN_KEY {
+                (k, v.into_iter().next().unwrap_or_default())
+            } else {
+                (k, v.join(","))
+            }
+        })
+        .collect()
 }

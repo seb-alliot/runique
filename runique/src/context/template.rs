@@ -3,13 +3,18 @@ use crate::app::templates::TemplateLoader;
 use crate::auth::session::CurrentUser;
 use crate::errors::error::ErrorContext;
 use crate::flash::Message;
+use crate::forms::{
+    extractor::{Prisme, prisme_pipeline},
+    field::RuniqueForm,
+};
 use crate::impl_from_error;
 use crate::utils::aliases::{AEngine, AppResult};
 use crate::utils::url_params::UrlParams;
 use crate::utils::{csp_nonce::CspNonce, csrf::CsrfToken};
 use axum::{
-    extract::{FromRequestParts, Path},
-    http::{StatusCode, method::Method, request::Parts},
+    body::Body,
+    extract::{FromRequest, FromRequestParts, Path},
+    http::{Request as HttpRequest, StatusCode, method::Method},
     response::{Html, IntoResponse, Response},
 };
 use sea_orm::DbErr;
@@ -77,8 +82,9 @@ impl IntoResponse for Box<AppError> {
 
 // --- TEMPLATE CONTEXT ---
 
-/// Request context automatically extracted in handlers via `FromRequestParts`.
-/// Contains the engine, session, flash messages, CSRF token, and pre-filled Tera context.
+/// Request context automatically extracted in handlers via `FromRequest`.
+/// Contains the engine, session, flash messages, CSRF token, Tera context,
+/// and the Prisme-extracted form data (query params on GET, body on POST).
 #[derive(Clone)]
 pub struct Request {
     /// Shared application engine.
@@ -99,34 +105,37 @@ pub struct Request {
     pub query_params: HashMap<String, String>,
     /// Current user (None if not authenticated).
     pub user: Option<CurrentUser>,
+    /// Parsed form data from the request (query params on GET, body on POST).
+    /// CSRF is validated — csrf_valid = false signals an invalid token.
+    pub prisme: Prisme,
 }
 
-impl<S> FromRequestParts<S> for Request
+impl<S> FromRequest<S> for Request
 where
     S: Send + Sync,
 {
-    type Rejection = StatusCode;
+    type Rejection = Response;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: HttpRequest<Body>, state: &S) -> Result<Self, Self::Rejection> {
+        let err = |msg: &str| (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()).into_response();
+
+        let (mut parts, body) = req.into_parts();
         let ex = &parts.extensions;
 
-        // Fast extraction
         let engine = ex
             .get::<AEngine>()
             .cloned()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-
+            .ok_or_else(|| err("engine missing"))?;
         let csrf_token = ex
             .get::<CsrfToken>()
             .cloned()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-
+            .ok_or_else(|| err("csrf missing"))?;
         let session = ex
             .get::<Session>()
             .cloned()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-
+            .ok_or_else(|| err("session missing"))?;
         let nonce = ex.get::<CspNonce>().map(|n| n.as_str()).unwrap_or_default();
+        let user = ex.get::<CurrentUser>().cloned();
 
         let notices = Message {
             session: session.clone(),
@@ -145,11 +154,11 @@ where
         context.insert("csp_nonce", nonce);
         context.insert("static_runique", &engine.config.static_files);
         context.insert("messages", &messages);
-        let user = ex.get::<CurrentUser>().cloned();
         if let Some(ref u) = user {
             context.insert("current_user", u);
         }
-        let path_params = Path::<HashMap<String, String>>::from_request_parts(parts, state)
+
+        let path_params = Path::<HashMap<String, String>>::from_request_parts(&mut parts, state)
             .await
             .map(|Path(p)| p)
             .unwrap_or_default();
@@ -172,16 +181,23 @@ where
             .and_then(|q| serde_urlencoded::from_str::<HashMap<String, String>>(q).ok())
             .unwrap_or_default();
 
+        let method = parts.method.clone();
+
+        // Run Prisme pipeline (sentinel → aegis → CSRF check)
+        let req = HttpRequest::from_parts(parts, body);
+        let prisme = prisme_pipeline(req, state).await?;
+
         Ok(Self {
             engine,
             session,
             notices,
             csrf_token,
             context,
-            method: parts.method.clone(),
+            method,
             path_params,
             query_params,
             user,
+            prisme,
         })
     }
 }
@@ -211,6 +227,10 @@ impl Request {
             path_params: HashMap::new(),
             query_params: HashMap::new(),
             user: None,
+            prisme: Prisme {
+                data: Default::default(),
+                csrf_valid: true,
+            },
         }
     }
 
@@ -314,11 +334,16 @@ impl Request {
         UrlParams::new(&self.path_params, &self.query_params)
     }
 
-    pub fn form<T: crate::forms::field::RuniqueForm>(&self) -> T {
+    pub fn form<T: RuniqueForm>(&self) -> T {
         let masked = self
             .csrf_token
             .masked()
             .unwrap_or_else(|_| self.csrf_token.clone());
-        T::build(self.engine.tera.clone(), masked.as_str())
+        let mut form = T::build(self.engine.tera.clone(), masked.as_str());
+        form.get_form_mut()
+            .set_url_params(&self.path_params, &self.query_params);
+        form.get_form_mut()
+            .fill(&self.prisme.data, self.method.clone());
+        form
     }
 }

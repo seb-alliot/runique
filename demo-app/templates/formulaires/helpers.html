@@ -114,8 +114,8 @@ form.<span class="fn_">cleaned_string</span>(<span class="st">"is_admin"</span>)
             <pre><code><span class="cm">// views.rs — filter articles according to query string</span>
 <span class="kw">pub async fn</span> <span class="fn_">blog_list</span>(
     <span class="kw">mut</span> request: <span class="ty">Request</span>,
-    <span class="ty">Prisme</span>(form): <span class="ty">Prisme</span>&lt;<span class="ty">SearchDemoForm</span>&gt;,
 ) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">let</span> form: <span class="ty">SearchDemoForm</span> = request.<span class="fn_">form</span>();
     <span class="kw">let</span> search = form.<span class="fn_">cleaned_string</span>(<span class="st">"search"</span>);
 
     <span class="kw">let mut</span> query = <span class="ty">BlogEntity</span>::<span class="fn_">find</span>();

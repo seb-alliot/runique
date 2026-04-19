@@ -1,6 +1,6 @@
 # Trait RuniqueForm
 
-[← Extracteur Prisme](/docs/fr/formulaire/prisme)
+[← Extraction de formulaire](/docs/fr/formulaire/prisme)
 
 ---
 
@@ -128,10 +128,8 @@ Ces méthodes sont **whitelistées** : elles retournent `None` si le champ n'est
 
 ```rust
 // Handler GET+POST unifié — fonctionne sans if/else sur la méthode
-pub async fn search(
-    mut request: Request,
-    Prisme(mut form): Prisme<SearchForm>,
-) -> AppResult<Response> {
+pub async fn search(mut request: Request) -> AppResult<Response> {
+    let mut form: SearchForm = request.form();
     if form.is_valid().await {
         let query = form.cleaned_string("q").unwrap_or_default();
         // lancer la recherche...
@@ -280,4 +278,4 @@ impl BlogForm {
 
 ---
 
-← [**Extracteur Prisme**](/docs/fr/formulaire/prisme) | [**Helpers de conversion**](/docs/fr/formulaire/helpers) →
+← [**Extraction de formulaire**](/docs/fr/formulaire/prisme) | [**Helpers de conversion**](/docs/fr/formulaire/helpers) →

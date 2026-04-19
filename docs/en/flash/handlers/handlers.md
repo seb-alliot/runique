@@ -3,10 +3,8 @@
 ## Pattern with Redirect (Flash Messages)
 
 ```rust
-pub async fn submit_signup(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn submit_signup(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     if request.is_post() {
         if form.is_valid().await {
             let user = form.save(&request.engine.db).await.map_err(|err| {

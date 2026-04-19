@@ -1,10 +1,10 @@
-# Prisme extractor
+# Form extraction — `request.form()`
 
 [← Forms](/docs/en/formulaire)
 
 ---
 
-`Prisme<T>` is an Axum extractor that orchestrates a full pipeline behind the scenes:
+`request.form()` is a method built into `Request` that orchestrates a full pipeline behind the scenes:
 
 1. **Sentinel** — Verifies access rules (login, roles) via `GuardRules`.
 2. **Aegis** — Single body extraction (multipart, urlencoded, json) normalized into a `HashMap`.
@@ -14,10 +14,8 @@
 ```rust
 use runique::prelude::*;
 
-pub async fn register(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn register(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     if request.is_post() {
         if form.is_valid().await {
             // Valid form → processing
@@ -27,7 +25,7 @@ pub async fn register(
 }
 ```
 
-> **💡** The developer simply writes `Prisme(mut form)` — the entire security pipeline is transparent.
+> **💡** The developer simply calls `request.form()` — the entire security pipeline is transparent.
 
 ---
 

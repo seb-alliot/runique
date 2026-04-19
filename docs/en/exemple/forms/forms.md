@@ -87,10 +87,8 @@ impl RuniqueForm for RegisterForm {
 ## Registration handler
 
 ```rust
-pub async fn signup(
-    mut request: Request,
-    Prisme(mut form): Prisme<RegisterForm>,
-) -> AppResult<Response> {
+pub async fn signup(mut request: Request) -> AppResult<Response> {
+    let mut form: RegisterForm = request.form();
     let template = "signup_form.html";
 
     if request.is_get() {
@@ -169,10 +167,8 @@ impl RuniqueForm for UsernameForm {
 ### Search handler
 
 ```rust
-pub async fn info_user(
-    mut request: Request,
-    Prisme(mut form): Prisme<UsernameForm>,
-) -> AppResult<Response> {
+pub async fn info_user(mut request: Request) -> AppResult<Response> {
+    let mut form: UsernameForm = request.form();
     let template = "profile/view_user.html";
 
     if request.is_get() && form.is_valid().await {
