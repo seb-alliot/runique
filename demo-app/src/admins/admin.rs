@@ -23,7 +23,7 @@ use crate::entities::roadmap_entry;
 use crate::entities::runique_release;
 use crate::entities::site_config;
 
-// ── DynForm wrapper pour contribution::AdminForm ──
+// ── DynForm wrapper for contribution::AdminForm ──
 struct ContributionAdminFormDynWrapper(pub contribution::AdminForm);
 
 #[async_trait]
@@ -45,7 +45,7 @@ impl DynForm for ContributionAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour blog::AdminForm ──
+// ── DynForm wrapper for blog::AdminForm ──
 struct BlogAdminFormDynWrapper(pub blog::AdminForm);
 
 #[async_trait]
@@ -67,7 +67,7 @@ impl DynForm for BlogAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour changelog_entry::AdminForm ──
+// ── DynForm wrapper for changelog_entry::AdminForm ──
 struct ChangelogEntryAdminFormDynWrapper(pub changelog_entry::AdminForm);
 
 #[async_trait]
@@ -89,7 +89,7 @@ impl DynForm for ChangelogEntryAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour roadmap_entry::AdminForm ──
+// ── DynForm wrapper for roadmap_entry::AdminForm ──
 struct RoadmapEntryAdminFormDynWrapper(pub roadmap_entry::AdminForm);
 
 #[async_trait]
@@ -111,7 +111,7 @@ impl DynForm for RoadmapEntryAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour known_issue::AdminForm ──
+// ── DynForm wrapper for known_issue::AdminForm ──
 struct KnownIssueAdminFormDynWrapper(pub known_issue::AdminForm);
 
 #[async_trait]
@@ -133,7 +133,7 @@ impl DynForm for KnownIssueAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour demo_category::AdminForm ──
+// ── DynForm wrapper for demo_category::AdminForm ──
 struct DemoCategoryAdminFormDynWrapper(pub demo_category::AdminForm);
 
 #[async_trait]
@@ -155,7 +155,7 @@ impl DynForm for DemoCategoryAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour demo_page::AdminForm ──
+// ── DynForm wrapper for demo_page::AdminForm ──
 struct DemoPageAdminFormDynWrapper(pub demo_page::AdminForm);
 
 #[async_trait]
@@ -177,7 +177,7 @@ impl DynForm for DemoPageAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour demo_section::AdminForm ──
+// ── DynForm wrapper for demo_section::AdminForm ──
 struct DemoSectionAdminFormDynWrapper(pub demo_section::AdminForm);
 
 #[async_trait]
@@ -199,7 +199,7 @@ impl DynForm for DemoSectionAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour code_example::AdminForm ──
+// ── DynForm wrapper for code_example::AdminForm ──
 struct CodeExampleAdminFormDynWrapper(pub code_example::AdminForm);
 
 #[async_trait]
@@ -221,7 +221,7 @@ impl DynForm for CodeExampleAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour page_doc_link::AdminForm ──
+// ── DynForm wrapper for page_doc_link::AdminForm ──
 struct PageDocLinkAdminFormDynWrapper(pub page_doc_link::AdminForm);
 
 #[async_trait]
@@ -243,7 +243,7 @@ impl DynForm for PageDocLinkAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour form_field::AdminForm ──
+// ── DynForm wrapper for form_field::AdminForm ──
 struct FormFieldAdminFormDynWrapper(pub form_field::AdminForm);
 
 #[async_trait]
@@ -265,7 +265,7 @@ impl DynForm for FormFieldAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour doc_section::AdminForm ──
+// ── DynForm wrapper for doc_section::AdminForm ──
 struct DocSectionAdminFormDynWrapper(pub doc_section::AdminForm);
 
 #[async_trait]
@@ -287,7 +287,7 @@ impl DynForm for DocSectionAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour doc_page::AdminForm ──
+// ── DynForm wrapper for doc_page::AdminForm ──
 struct DocPageAdminFormDynWrapper(pub doc_page::AdminForm);
 
 #[async_trait]
@@ -309,7 +309,7 @@ impl DynForm for DocPageAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour doc_block::AdminForm ──
+// ── DynForm wrapper for doc_block::AdminForm ──
 struct DocBlockAdminFormDynWrapper(pub doc_block::AdminForm);
 
 #[async_trait]
@@ -331,7 +331,7 @@ impl DynForm for DocBlockAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour site_config::AdminForm ──
+// ── DynForm wrapper for site_config::AdminForm ──
 struct SiteConfigAdminFormDynWrapper(pub site_config::AdminForm);
 
 #[async_trait]
@@ -353,7 +353,7 @@ impl DynForm for SiteConfigAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour cour::AdminForm ──
+// ── DynForm wrapper for cour::AdminForm ──
 struct CourAdminFormDynWrapper(pub cour::AdminForm);
 
 #[async_trait]
@@ -375,7 +375,7 @@ impl DynForm for CourAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour chapitre::AdminForm ──
+// ── DynForm wrapper for chapitre::AdminForm ──
 struct ChapitreAdminFormDynWrapper(pub chapitre::AdminForm);
 
 #[async_trait]
@@ -397,7 +397,7 @@ impl DynForm for ChapitreAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour cour_block::AdminForm ──
+// ── DynForm wrapper for cour_block::AdminForm ──
 struct CourBlockAdminFormDynWrapper(pub cour_block::AdminForm);
 
 #[async_trait]
@@ -419,7 +419,7 @@ impl DynForm for CourBlockAdminFormDynWrapper {
     }
 }
 
-// ── DynForm wrapper pour runique_release::AdminForm ──
+// ── DynForm wrapper for runique_release::AdminForm ──
 struct RuniqueReleaseAdminFormDynWrapper(pub runique_release::AdminForm);
 
 #[async_trait]
@@ -441,15 +441,15 @@ impl DynForm for RuniqueReleaseAdminFormDynWrapper {
     }
 }
 
-/// Construit le registre admin au boot.
-/// Appelé par le builder de l'application.
+/// Builds the admin registry at boot.
+/// Called by the application builder.
 pub fn admin_register() -> AdminRegistry {
     let mut registry = AdminRegistry::new();
     for entry in runique::admin::builtin_resources() {
         registry.register(entry);
     }
 
-    // ── Ressource : contribution ──
+    // ── Resource: contribution ──
     let meta = AdminResource::new(
         "contribution",
         "crate::entities::contribution::Model",
@@ -557,7 +557,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = contribution::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -567,7 +567,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             contribution::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -588,7 +588,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             contribution::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -628,7 +628,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `contribution.user_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `contribution.user_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -649,7 +649,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `contribution.user_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `contribution.user_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -678,7 +678,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `contribution.contribution_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `contribution.contribution_type`: column not found in DB — {}",
                         e
                     );
                     None
@@ -699,7 +699,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `contribution.contribution_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `contribution.contribution_type`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -728,7 +728,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `contribution.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `contribution.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -749,7 +749,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `contribution.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `contribution.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -775,7 +775,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `contribution.content` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `contribution.content`: column not found in DB — {}",
                         e
                     );
                     None
@@ -796,7 +796,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `contribution.content` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `contribution.content`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -826,7 +826,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : blog ──
+    // ── Resource: blog ──
     let meta = AdminResource::new(
         "blog",
         "crate::entities::blog::Model",
@@ -941,7 +941,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = blog::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -951,7 +951,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             blog::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -969,7 +969,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             blog::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -1011,7 +1011,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1032,7 +1032,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1058,7 +1058,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.email` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.email`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1079,7 +1079,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.email` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.email`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1105,7 +1105,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.website` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.website`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1126,7 +1126,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.website` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.website`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1152,7 +1152,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.summary` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.summary`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1173,7 +1173,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.summary` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.summary`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1199,7 +1199,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.content` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.content`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1220,7 +1220,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `blog.content` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `blog.content`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1250,7 +1250,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : changelog_entry ──
+    // ── Resource: changelog_entry ──
     let meta = AdminResource::new(
         "changelog_entry",
         "crate::entities::changelog_entry::Model",
@@ -1374,7 +1374,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = changelog_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1384,7 +1384,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             changelog_entry::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -1405,7 +1405,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             changelog_entry::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -1449,7 +1449,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.version` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.version`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1470,7 +1470,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.version` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.version`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1496,7 +1496,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.release_date` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.release_date`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1517,7 +1517,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.release_date` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.release_date`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1546,7 +1546,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.category` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.category`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1567,7 +1567,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.category` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.category`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1593,7 +1593,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1614,7 +1614,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1640,7 +1640,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.description` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.description`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1661,7 +1661,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.description` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.description`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1690,7 +1690,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1711,7 +1711,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `changelog_entry.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `changelog_entry.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -1744,7 +1744,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : roadmap_entry ──
+    // ── Resource: roadmap_entry ──
     let meta = AdminResource::new(
         "roadmap_entry",
         "crate::entities::roadmap_entry::Model",
@@ -1884,7 +1884,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = roadmap_entry::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -1894,7 +1894,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             roadmap_entry::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -1915,7 +1915,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             roadmap_entry::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -1963,7 +1963,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.status` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.status`: column not found in DB — {}",
                         e
                     );
                     None
@@ -1984,7 +1984,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.status` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.status`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2010,7 +2010,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2031,7 +2031,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2057,7 +2057,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.description` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.description`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2078,7 +2078,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.description` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.description`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2107,7 +2107,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.link_url` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.link_url`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2128,7 +2128,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.link_url` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.link_url`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2154,7 +2154,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.link_label` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.link_label`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2175,7 +2175,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.link_label` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.link_label`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2204,7 +2204,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.link_url_2` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.link_url_2`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2225,7 +2225,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.link_url_2` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.link_url_2`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2254,7 +2254,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.link_label_2` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.link_label_2`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2275,7 +2275,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.link_label_2` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.link_label_2`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2304,7 +2304,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2325,7 +2325,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `roadmap_entry.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `roadmap_entry.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2358,7 +2358,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : known_issue ──
+    // ── Resource: known_issue ──
     let meta = AdminResource::new(
         "known_issue",
         "crate::entities::known_issue::Model",
@@ -2474,7 +2474,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = known_issue::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2484,7 +2484,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             known_issue::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -2505,7 +2505,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             known_issue::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -2547,7 +2547,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.version` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.version`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2568,7 +2568,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.version` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.version`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2594,7 +2594,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2615,7 +2615,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2641,7 +2641,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.description` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.description`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2662,7 +2662,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.description` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.description`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2691,7 +2691,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.issue_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.issue_type`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2712,7 +2712,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.issue_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.issue_type`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2741,7 +2741,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -2762,7 +2762,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `known_issue.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `known_issue.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -2795,7 +2795,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : demo_category ──
+    // ── Resource: demo_category ──
     let meta = AdminResource::new(
         "demo_category",
         "crate::entities::demo_category::Model",
@@ -2879,7 +2879,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = demo_category::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -2889,7 +2889,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             demo_category::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -2910,7 +2910,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             demo_category::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -2928,7 +2928,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_count_fn(count_fn),
     );
 
-    // ── Ressource : demo_page ──
+    // ── Resource: demo_page ──
     let meta = AdminResource::new(
         "demo_page",
         "crate::entities::demo_page::Model",
@@ -3051,7 +3051,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = demo_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3061,7 +3061,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             demo_page::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -3082,7 +3082,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             demo_page::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -3126,7 +3126,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.category_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.category_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3147,7 +3147,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.category_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.category_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3176,7 +3176,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.slug` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.slug`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3197,7 +3197,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.slug` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.slug`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3223,7 +3223,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3244,7 +3244,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3270,7 +3270,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.lead` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.lead`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3291,7 +3291,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.lead` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.lead`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3317,7 +3317,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.page_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.page_type`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3338,7 +3338,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.page_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.page_type`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3364,7 +3364,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3385,7 +3385,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_page.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_page.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3418,7 +3418,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : demo_section ──
+    // ── Resource: demo_section ──
     let meta = AdminResource::new(
         "demo_section",
         "crate::entities::demo_section::Model",
@@ -3526,7 +3526,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = demo_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3536,7 +3536,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             demo_section::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -3557,7 +3557,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             demo_section::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -3597,7 +3597,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_section.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_section.page_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3618,7 +3618,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_section.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_section.page_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3644,7 +3644,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_section.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_section.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3665,7 +3665,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_section.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_section.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3691,7 +3691,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_section.content` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_section.content`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3712,7 +3712,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_section.content` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_section.content`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3738,7 +3738,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_section.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_section.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -3759,7 +3759,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `demo_section.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `demo_section.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -3792,7 +3792,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : code_example ──
+    // ── Resource: code_example ──
     let meta = AdminResource::new(
         "code_example",
         "crate::entities::code_example::Model",
@@ -3916,7 +3916,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = code_example::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -3926,7 +3926,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             code_example::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -3947,7 +3947,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             code_example::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -3991,7 +3991,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.page_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4012,7 +4012,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.page_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4038,7 +4038,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4059,7 +4059,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4085,7 +4085,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.language` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.language`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4106,7 +4106,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.language` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.language`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4132,7 +4132,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.code` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.code`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4153,7 +4153,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.code` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.code`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4179,7 +4179,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.context` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.context`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4200,7 +4200,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.context` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.context`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4226,7 +4226,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4247,7 +4247,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `code_example.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `code_example.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4280,7 +4280,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : page_doc_link ──
+    // ── Resource: page_doc_link ──
     let meta = AdminResource::new(
         "page_doc_link",
         "crate::entities::page_doc_link::Model",
@@ -4396,7 +4396,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = page_doc_link::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -4406,7 +4406,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             page_doc_link::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -4427,7 +4427,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             page_doc_link::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -4469,7 +4469,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.page_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4490,7 +4490,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.page_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4516,7 +4516,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.label` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.label`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4537,7 +4537,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.label` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.label`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4563,7 +4563,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.url` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.url`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4584,7 +4584,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.url` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.url`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4610,7 +4610,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.link_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.link_type`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4631,7 +4631,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.link_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.link_type`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4657,7 +4657,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4678,7 +4678,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `page_doc_link.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `page_doc_link.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4711,7 +4711,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : form_field ──
+    // ── Resource: form_field ──
     let meta = AdminResource::new(
         "form_field",
         "crate::entities::form_field::Model",
@@ -4842,7 +4842,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = form_field::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -4852,7 +4852,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             form_field::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -4873,7 +4873,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             form_field::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -4919,7 +4919,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.page_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4940,7 +4940,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.page_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -4966,7 +4966,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.name` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.name`: column not found in DB — {}",
                         e
                     );
                     None
@@ -4987,7 +4987,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.name` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.name`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5013,7 +5013,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.field_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.field_type`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5034,7 +5034,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.field_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.field_type`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5063,7 +5063,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.description` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.description`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5084,7 +5084,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.description` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.description`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5113,7 +5113,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.example` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.example`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5134,7 +5134,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.example` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.example`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5160,7 +5160,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.html_preview` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.html_preview`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5181,7 +5181,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.html_preview` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.html_preview`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5210,7 +5210,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5231,7 +5231,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `form_field.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `form_field.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5264,7 +5264,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : doc_section ──
+    // ── Resource: doc_section ──
     let meta = AdminResource::new(
         "doc_section",
         "crate::entities::doc_section::Model",
@@ -5380,7 +5380,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = doc_section::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -5390,7 +5390,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             doc_section::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -5411,7 +5411,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             doc_section::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -5447,7 +5447,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_section.lang` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_section.lang`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5468,7 +5468,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_section.lang` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_section.lang`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5494,7 +5494,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_section.theme` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_section.theme`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5515,7 +5515,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_section.theme` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_section.theme`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5545,7 +5545,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : doc_page ──
+    // ── Resource: doc_page ──
     let meta = AdminResource::new(
         "doc_page",
         "crate::entities::doc_page::Model",
@@ -5668,7 +5668,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = doc_page::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -5678,7 +5678,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             doc_page::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -5699,7 +5699,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             doc_page::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -5743,7 +5743,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.section_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.section_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5764,7 +5764,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.section_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.section_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5793,7 +5793,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.slug` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.slug`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5814,7 +5814,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.slug` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.slug`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5840,7 +5840,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.lang` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.lang`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5861,7 +5861,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.lang` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.lang`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5887,7 +5887,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5908,7 +5908,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5934,7 +5934,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.lead` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.lead`: column not found in DB — {}",
                         e
                     );
                     None
@@ -5955,7 +5955,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.lead` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.lead`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -5981,7 +5981,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6002,7 +6002,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_page.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_page.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6035,7 +6035,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : doc_block ──
+    // ── Resource: doc_block ──
     let meta = AdminResource::new(
         "doc_block",
         "crate::entities::doc_block::Model",
@@ -6150,7 +6150,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = doc_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6160,7 +6160,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             doc_block::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -6181,7 +6181,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             doc_block::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -6223,7 +6223,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.page_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6244,7 +6244,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.page_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.page_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6270,7 +6270,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.heading` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.heading`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6291,7 +6291,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.heading` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.heading`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6317,7 +6317,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.content` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.content`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6338,7 +6338,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.content` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.content`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6364,7 +6364,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.block_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.block_type`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6385,7 +6385,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.block_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.block_type`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6414,7 +6414,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6435,7 +6435,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `doc_block.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `doc_block.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6468,7 +6468,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : site_config ──
+    // ── Resource: site_config ──
     let meta = AdminResource::new(
         "site_config",
         "crate::entities::site_config::Model",
@@ -6552,7 +6552,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = site_config::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6562,7 +6562,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             site_config::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -6583,7 +6583,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             site_config::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -6601,7 +6601,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_count_fn(count_fn),
     );
 
-    // ── Ressource : cour ──
+    // ── Resource: cour ──
     let meta = AdminResource::new(
         "cour",
         "crate::entities::cour::Model",
@@ -6732,7 +6732,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = cour::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -6742,7 +6742,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             cour::Entity::delete_by_id(id).exec(&*db).await.map(|_| ())
         })
     });
@@ -6760,7 +6760,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             cour::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -6806,7 +6806,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.slug` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.slug`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6827,7 +6827,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.slug` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.slug`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6853,7 +6853,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.lang` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.lang`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6874,7 +6874,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.lang` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.lang`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6900,7 +6900,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6921,7 +6921,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6947,7 +6947,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.theme` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.theme`: column not found in DB — {}",
                         e
                     );
                     None
@@ -6968,7 +6968,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.theme` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.theme`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -6994,7 +6994,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.difficulte` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.difficulte`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7015,7 +7015,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.difficulte` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.difficulte`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7044,7 +7044,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.ordre` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.ordre`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7065,7 +7065,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.ordre` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.ordre`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7091,7 +7091,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7112,7 +7112,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7145,7 +7145,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : chapitre ──
+    // ── Resource: chapitre ──
     let meta = AdminResource::new(
         "chapitre",
         "crate::entities::chapitre::Model",
@@ -7252,7 +7252,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = chapitre::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -7262,7 +7262,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             chapitre::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -7283,7 +7283,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             chapitre::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -7323,7 +7323,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.cour_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.cour_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7344,7 +7344,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.cour_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.cour_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7370,7 +7370,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.slug` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.slug`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7391,7 +7391,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.slug` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.slug`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7417,7 +7417,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.title`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7438,7 +7438,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.title` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.title`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7464,7 +7464,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7485,7 +7485,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `chapitre.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `chapitre.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7518,7 +7518,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : cour_block ──
+    // ── Resource: cour_block ──
     let meta = AdminResource::new(
         "cour_block",
         "crate::entities::cour_block::Model",
@@ -7625,7 +7625,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = cour_block::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -7635,7 +7635,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             cour_block::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -7656,7 +7656,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             cour_block::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -7696,7 +7696,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour_block.chapitre_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour_block.chapitre_id`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7717,7 +7717,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour_block.chapitre_id` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour_block.chapitre_id`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7746,7 +7746,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour_block.block_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour_block.block_type`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7767,7 +7767,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour_block.block_type` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour_block.block_type`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7796,7 +7796,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour_block.heading` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour_block.heading`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7817,7 +7817,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour_block.heading` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour_block.heading`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7843,7 +7843,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour_block.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour_block.sort_order`: column not found in DB — {}",
                         e
                     );
                     None
@@ -7864,7 +7864,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `cour_block.sort_order` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `cour_block.sort_order`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -7897,7 +7897,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
-    // ── Ressource : runique_release ──
+    // ── Resource: runique_release ──
     let meta = AdminResource::new(
         "runique_release",
         "crate::entities::runique_release::Model",
@@ -7997,7 +7997,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             let row = runique_release::Entity::find_by_id(id).one(&*db).await?;
             Ok(row.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)))
         })
@@ -8007,7 +8007,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             runique_release::Entity::delete_by_id(id)
                 .exec(&*db)
                 .await
@@ -8028,7 +8028,7 @@ pub fn admin_register() -> AdminRegistry {
         Box::pin(async move {
             let id = id
                 .parse::<i32>()
-                .map_err(|_| DbErr::Custom("id invalide".to_string().to_string()))?;
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             runique_release::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
@@ -8062,7 +8062,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `runique_release.version` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `runique_release.version`: column not found in DB — {}",
                         e
                     );
                     None
@@ -8083,7 +8083,7 @@ pub fn admin_register() -> AdminRegistry {
                 Ok(r) => r,
                 Err(e) => {
                     tracing::error!(
-                        "[runique admin] list_filter `runique_release.version` : colonne introuvable en DB — {}",
+                        "[runique admin] list_filter `runique_release.version`: column not found in DB — {}",
                         e
                     );
                     vec![]
@@ -8113,11 +8113,18 @@ pub fn admin_register() -> AdminRegistry {
             .with_filter_fn(filter_fn),
     );
 
+    registry.configure_group_actions(
+        "users",
+        vec![
+            GroupAction::bool("is_active", "Actif"),
+            GroupAction::bool("is_staff", "Staff"),
+        ],
+    );
     registry
 }
 
-/// Construit le Router axum du prototype admin pour le préfixe donné.
-/// À passer à `.with_admin(|a| a.routes(admins::routes("/admin")))` dans main.rs.
+/// Builds the Axum Router of the admin prototype for the given prefix.
+/// To be passed to `.with_admin(|a| a.routes(admins::routes("/admin")))` in main.rs.
 pub fn routes(prefix: &str) -> runique::axum::Router {
     let p = prefix.trim_end_matches('/');
     runique::axum::Router::new()
@@ -8131,7 +8138,7 @@ pub fn routes(prefix: &str) -> runique::axum::Router {
         )
 }
 
-/// Retourne l'état partagé du prototype admin (pour le dashboard).
+/// Returns the shared state of the admin prototype (for the dashboard).
 pub fn admin_state() -> std::sync::Arc<PrototypeAdminState> {
     let config = Arc::new(AdminConfig::new());
     std::sync::Arc::new(PrototypeAdminState {

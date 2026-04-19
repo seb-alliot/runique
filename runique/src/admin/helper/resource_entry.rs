@@ -92,6 +92,28 @@ pub type FilterFn = Arc<
         + Sync,
 >;
 
+/// One field available for group (bulk) update in the list view.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct GroupAction {
+    pub field: String,
+    pub label: String,
+    pub choices: Vec<(String, String)>,
+}
+
+impl GroupAction {
+    /// Boolean field: 3-state select (empty = no change, true/false).
+    pub fn bool(field: &str, label: &str) -> Self {
+        Self {
+            field: field.to_string(),
+            label: label.to_string(),
+            choices: vec![
+                ("true".to_string(), "Oui".to_string()),
+                ("false".to_string(), "Non".to_string()),
+            ],
+        }
+    }
+}
+
 /// Admin registry entry: metadata + CRUD closures.
 pub struct ResourceEntry {
     pub meta: AdminResource,
@@ -101,9 +123,11 @@ pub struct ResourceEntry {
     pub get_fn: Option<GetFn>,
     pub delete_fn: Option<DeleteFn>,
     pub update_fn: Option<UpdateFn>,
+    pub partial_update_fn: Option<UpdateFn>,
     pub create_fn: Option<CreateFn>,
     pub count_fn: Option<CountFn>,
     pub filter_fn: Option<FilterFn>,
+    pub group_actions: Vec<GroupAction>,
 }
 
 impl ResourceEntry {
@@ -116,9 +140,11 @@ impl ResourceEntry {
             get_fn: None,
             delete_fn: None,
             update_fn: None,
+            partial_update_fn: None,
             create_fn: None,
             count_fn: None,
             filter_fn: None,
+            group_actions: Vec::new(),
         }
     }
     #[must_use]
@@ -147,6 +173,11 @@ impl ResourceEntry {
         self
     }
     #[must_use]
+    pub fn with_partial_update_fn(mut self, f: UpdateFn) -> Self {
+        self.partial_update_fn = Some(f);
+        self
+    }
+    #[must_use]
     pub fn with_create_fn(mut self, f: CreateFn) -> Self {
         self.create_fn = Some(f);
         self
@@ -159,6 +190,11 @@ impl ResourceEntry {
     #[must_use]
     pub fn with_filter_fn(mut self, f: FilterFn) -> Self {
         self.filter_fn = Some(f);
+        self
+    }
+    #[must_use]
+    pub fn with_group_actions(mut self, actions: Vec<GroupAction>) -> Self {
+        self.group_actions = actions;
         self
     }
 }

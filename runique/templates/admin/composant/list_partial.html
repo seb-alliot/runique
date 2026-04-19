@@ -84,13 +84,26 @@
     {% csrf %}
     <input type="hidden" name="bulk_action" id="bulk-action-input" value="">
     <input type="hidden" name="ids" id="bulk-ids-input" value="">
-  </form>
-  <div id="bulk-action-bar" class="bulk-action-bar">
-    <span class="bulk-action-info"><span id="bulk-count">0</span> sélectionné(s)</span>
-    <div class="bulk-action-btns">
-      <button type="button" class="btn btn-sm btn-danger" data-bulk-action="delete">Supprimer</button>
+    <div id="bulk-action-bar" class="bulk-action-bar">
+      <span class="bulk-action-info"><span id="bulk-count">0</span> sélectionné(s)</span>
+      <div class="bulk-action-btns">
+        {% if group_actions | length > 0 %}
+        <div class="ga-selects-row">
+          {% for ga in group_actions %}
+          <select name="ga_{{ ga.field }}" class="ga-select">
+            <option value="">{{ ga.label }} — sans changement</option>
+            {% for choice in ga.choices %}
+            <option value="{{ choice[0] }}">{{ ga.label }} — {{ choice[1] }}</option>
+            {% endfor %}
+          </select>
+          {% endfor %}
+          <button type="button" class="btn btn-sm btn-primary" data-bulk-action="group_set">Modifier</button>
+        </div>
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-danger" data-bulk-action="delete">Supprimer</button>
+      </div>
     </div>
-  </div>
+  </form>
   {% endif %}
 
   <div class="{% if has_filters %}admin-list-layout{% endif %}">

@@ -521,3 +521,10 @@ pub async fn force_server_error(_: Request) -> Response {
 pub async fn force_to_many_requests(_: Request) -> Response {
     StatusCode::TOO_MANY_REQUESTS.into_response()
 }
+
+pub async fn security_txt() -> &'static str {
+    "Contact: mailto:alliotsebastien04@gmail.com\n\
+     Expires: 2027-01-01T00:00:00.000Z\n\
+     Preferred-Languages: fr, en\n\
+     Canonical: https://runique.io/.well-known/security.txt\n"
+}
