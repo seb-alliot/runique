@@ -10,6 +10,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
     let relation_enum = generate_relation_enum(model);
     let active_model = generate_active_model();
     let from_str_map: TokenStream2 = generate_from_str_map(model);
+    let partial_update: TokenStream2 = generate_partial_update(model);
     let admin_form = generate_admin_form(model);
 
     quote! {
@@ -19,6 +20,7 @@ pub fn generate(model: &ModelInput) -> TokenStream2 {
         #relation_enum
         #active_model
         #from_str_map
+        #partial_update
         #admin_form
     }
 }
@@ -481,6 +483,198 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
         pub fn admin_from_form(
             __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
             __id: ::std::option::Option<#pk_type>,
+        ) -> ActiveModel {
+            ActiveModel {
+                #pk_set
+                #(#field_assignments)*
+                ..::std::default::Default::default()
+            }
+        }
+    }
+}
+
+/// Builds an `ActiveModel` for partial updates: only fields present in `data` are `Set`,
+/// absent fields stay `NotSet` so SeaORM skips them entirely (no overwrite).
+pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
+    let pk_name = &model.pk.name;
+
+    let pk_set = match model.pk.ty {
+        PkType::I32 | PkType::I64 => quote! {
+            #pk_name: ::sea_orm::ActiveValue::Unchanged(__id),
+        },
+        PkType::Uuid => quote! {
+            #pk_name: ::sea_orm::ActiveValue::Unchanged(__id),
+        },
+    };
+
+    let pk_type = match model.pk.ty {
+        PkType::I32 => quote! { i32 },
+        PkType::I64 => quote! { i64 },
+        PkType::Uuid => quote! { ::sea_orm::prelude::Uuid },
+    };
+
+    let field_assignments: Vec<TokenStream2> = model.fields.iter().filter_map(|field| {
+        let fname = &field.name;
+        let fname_str = fname.to_string();
+
+        let is_auto_now = field.options.iter().any(|o| matches!(o, FieldOption::AutoNow));
+        let is_auto_now_update = field.options.iter().any(|o| matches!(o, FieldOption::AutoNowUpdate));
+        let is_nullable = field.options.iter().any(|o| matches!(o, FieldOption::Nullable));
+
+        if is_auto_now || is_auto_now_update {
+            return None;
+        }
+
+        let ts = match &field.ty {
+            FieldType::Bool => {
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(Some({
+                                let s = v.as_str(); s == "true" || s == "1" || s == "on"
+                            })),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str) {
+                            Some(v) => ::sea_orm::ActiveValue::Set({
+                                let s = v.as_str(); s == "true" || s == "1" || s == "on"
+                            }),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                }
+            }
+            FieldType::I8 | FieldType::I16 | FieldType::I32 | FieldType::U32
+            | FieldType::I64 | FieldType::U64 | FieldType::F32 | FieldType::F64 => {
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(v.parse().ok()),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(v.parse().unwrap_or_default()),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                }
+            }
+            FieldType::Datetime | FieldType::Timestamp | FieldType::TimestampTz
+            | FieldType::Date | FieldType::Time => return None,
+            FieldType::Uuid => {
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(::sea_orm::prelude::Uuid::parse_str(v).ok()),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                ::sea_orm::prelude::Uuid::parse_str(v)
+                                    .unwrap_or_else(|_| ::sea_orm::prelude::Uuid::new_v4())
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                }
+            }
+            FieldType::Json | FieldType::JsonBinary => {
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(::runique::serde_json::from_str(v).ok()),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                ::runique::serde_json::from_str(v).unwrap_or(::runique::serde_json::Value::Null)
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                }
+            }
+            FieldType::Enum(enum_name) => {
+                if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(v.parse::<#enum_name>().ok()),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str).filter(|v| !v.is_empty()) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(v.parse::<#enum_name>().unwrap_or_default()),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                }
+            }
+            _ => {
+                let is_password = fname_str.contains("password");
+                if is_password {
+                    // Same behavior as admin_from_form: NotSet when empty
+                    if is_nullable {
+                        quote! {
+                            #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
+                                Some(v) => ::sea_orm::ActiveValue::Set(
+                                    Some(::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone()))
+                                ),
+                                None => ::sea_orm::ActiveValue::NotSet,
+                            },
+                        }
+                    } else {
+                        quote! {
+                            #fname: match __data.get(#fname_str).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) {
+                                Some(v) => ::sea_orm::ActiveValue::Set(
+                                    ::runique::utils::password::hash(&v).unwrap_or_else(|_| v.clone())
+                                ),
+                                None => ::sea_orm::ActiveValue::NotSet,
+                            },
+                        }
+                    }
+                } else if is_nullable {
+                    quote! {
+                        #fname: match __data.get(#fname_str) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(
+                                Some(v.trim().to_string()).filter(|s| !s.is_empty())
+                            ),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                } else {
+                    quote! {
+                        #fname: match __data.get(#fname_str) {
+                            Some(v) => ::sea_orm::ActiveValue::Set(v.trim().to_string()),
+                            None => ::sea_orm::ActiveValue::NotSet,
+                        },
+                    }
+                }
+            }
+        };
+        Some(ts)
+    }).collect();
+
+    quote! {
+        /// Builds an `ActiveModel` for partial updates: only fields present in `data` are set.
+        /// Fields absent from the map stay `NotSet` — SeaORM won't touch them.
+        #[allow(clippy::needless_update)]
+        pub fn admin_partial_update(
+            __data: &::std::collections::HashMap<::std::string::String, ::std::string::String>,
+            __id: #pk_type,
         ) -> ActiveModel {
             ActiveModel {
                 #pk_set

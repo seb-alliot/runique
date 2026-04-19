@@ -61,6 +61,17 @@ impl AdminRegistry {
         }
     }
 
+    /// Applies group actions to an existing resource (built-in or declared).
+    pub fn configure_group_actions(
+        &mut self,
+        key: &str,
+        actions: Vec<crate::admin::helper::resource_entry::GroupAction>,
+    ) {
+        if let Some(entry) = self.resources.get_mut(key) {
+            entry.group_actions = actions;
+        }
+    }
+
     /// Reorders the registry according to the provided list of keys.
     /// Unlisted keys are added at the end in their insertion order.
     pub fn reorder(&mut self, order: &[String]) {

@@ -1208,7 +1208,27 @@ ul { list-style: none; }
 
 .bulk-action-btns {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ga-selects-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ga-select {
+    font-size: 0.82rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    color: var(--text-main);
+    cursor: pointer;
+    height: 30px;
 }
 
 .th-bulk,

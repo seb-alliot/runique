@@ -263,6 +263,28 @@
 }
 
 /* ───────────────────────────────────────────────
+   Bulk / group actions — mobile wrap
+   ─────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .bulk-action-bar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .bulk-action-btns {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .ga-selects-row {
+        width: 100%;
+    }
+    .ga-select {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* ───────────────────────────────────────────────
    Mobile (≤ 600px)
    ─────────────────────────────────────────────── */
 

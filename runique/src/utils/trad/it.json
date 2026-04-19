@@ -377,6 +377,7 @@
     },
     "bulk": {
       "no_selection": "Nessun elemento selezionato.",
+      "no_field_selected": "Nessun campo modificato.",
       "delete_success": "elemento/i eliminato/i.",
       "update_success": "elemento/i aggiornato/i."
     },

@@ -214,8 +214,8 @@ pub mod prelude {
         helper::{
             dyn_form::DynForm,
             resource_entry::{
-                CountFn, CreateFn, DeleteFn, FilterFn, FormBuilder, GetFn, ListFn, ListParams,
-                ResourceEntry, SortDir, UpdateFn,
+                CountFn, CreateFn, DeleteFn, FilterFn, FormBuilder, GetFn, GroupAction, ListFn,
+                ListParams, ResourceEntry, SortDir, UpdateFn,
             },
         },
         registry::AdminRegistry,

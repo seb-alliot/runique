@@ -377,6 +377,7 @@
     },
     "bulk": {
       "no_selection": "未选择任何项目。",
+      "no_field_selected": "未修改任何字段。",
       "delete_success": "个项目已删除。",
       "update_success": "个项目已更新。"
     },

@@ -8,9 +8,9 @@ use crate::views::{
     login_user, macros_demo, middleware_csp, middleware_csrf, middleware_hosts, middleware_https,
     middleware_hub, middleware_login_guard, middleware_rate_limit, migrations_demo, model_demo,
     orm_demo, probleme_connu, profil, propos_template_error, readme_en, readme_fr, rgpd, roadmap,
-    router_demo, session_demo, sitemap_xml, soumission_inscription, surcharge_exemple,
-    template_demo, test_csrf, test_fields, upload_image_submit, view_cours_detail,
-    view_cours_exercice, view_cours_index,
+    router_demo, security_txt, session_demo, sitemap_xml, soumission_inscription,
+    surcharge_exemple, template_demo, test_csrf, test_fields, upload_image_submit,
+    view_cours_detail, view_cours_exercice, view_cours_index,
 };
 
 use runique::prelude::*;
@@ -84,6 +84,7 @@ pub fn routes() -> Router {
         // Sitemap & SEO
         "/sitemap.xml"                   => view! { sitemap_xml },            name = "sitemap_xml",
         "/google59ae742b6eee40ef.html"   => view! { google_verify },          name = "google_verify",
+        "/.well-known/security.txt"      => view! { security_txt },           name = "security_txt",
 
         // Readme
         "/readme/fr"                     => view! { readme_fr },              name = "readme_fr",

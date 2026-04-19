@@ -159,43 +159,57 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
         write_resource_entry(out, r)?;
     }
 
-    // Applies configure{} : overrides the DisplayConfig of any resource (built-in or declared)
+    // Applies configure{} : overrides the DisplayConfig and group_actions of any resource
     for cfg in &parsed.configures {
         let has_display = !cfg.list_display.is_empty()
             || !cfg.list_exclude.is_empty()
             || !cfg.list_filter.is_empty();
-        if !has_display {
-            continue;
+        if has_display {
+            let mut chain = "DisplayConfig::new()".to_string();
+            if !cfg.list_display.is_empty() {
+                let cols = cfg
+                    .list_display
+                    .iter()
+                    .map(|(c, l)| format!("(\"{}\", \"{}\")", c, l))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                chain.push_str(&format!(".columns_include(vec![{}])", cols));
+            }
+            if !cfg.list_exclude.is_empty() {
+                let cols = cfg
+                    .list_exclude
+                    .iter()
+                    .map(|c| format!("\"{}\"", c))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                chain.push_str(&format!(".columns_exclude(vec![{}])", cols));
+            }
+            if !cfg.list_filter.is_empty() {
+                let filters = cfg
+                    .list_filter
+                    .iter()
+                    .map(|(col, label, limit)| {
+                        format!("(\"{}\", \"{}\", {}u64)", col, label, limit)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                chain.push_str(&format!(".list_filter(vec![{}])", filters));
+            }
+            let _ = writeln!(out, "    registry.configure(\"{}\", {});", cfg.key, chain);
         }
-        let mut chain = "DisplayConfig::new()".to_string();
-        if !cfg.list_display.is_empty() {
-            let cols = cfg
-                .list_display
+        if !cfg.group_action.is_empty() {
+            let actions_str = cfg
+                .group_action
                 .iter()
-                .map(|(c, l)| format!("(\"{}\", \"{}\")", c, l))
+                .map(|(f, l)| format!("GroupAction::bool(\"{}\", \"{}\")", f, l))
                 .collect::<Vec<_>>()
                 .join(", ");
-            chain.push_str(&format!(".columns_include(vec![{}])", cols));
+            let _ = writeln!(
+                out,
+                "    registry.configure_group_actions(\"{}\", vec![{}]);",
+                cfg.key, actions_str
+            );
         }
-        if !cfg.list_exclude.is_empty() {
-            let cols = cfg
-                .list_exclude
-                .iter()
-                .map(|c| format!("\"{}\"", c))
-                .collect::<Vec<_>>()
-                .join(", ");
-            chain.push_str(&format!(".columns_exclude(vec![{}])", cols));
-        }
-        if !cfg.list_filter.is_empty() {
-            let filters = cfg
-                .list_filter
-                .iter()
-                .map(|(col, label, limit)| format!("(\"{}\", \"{}\", {}u64)", col, label, limit))
-                .collect::<Vec<_>>()
-                .join(", ");
-            chain.push_str(&format!(".list_filter(vec![{}])", filters));
-        }
-        let _ = writeln!(out, "    registry.configure(\"{}\", {});", cfg.key, chain);
     }
 
     let _ = writeln!(out, "    registry");
@@ -514,6 +528,23 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "    }});");
     let _ = writeln!(out);
 
+    // PartialUpdateFn closure — uses admin_partial_update(): NotSet for absent fields
+    let _ = writeln!(
+        out,
+        "    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {{"
+    );
+    let _ = writeln!(out, "        Box::pin(async move {{");
+    let _ = writeln!(out, "            {};", id_parse_code);
+    let _ = writeln!(
+        out,
+        "            {}::admin_partial_update(&data, id.into())",
+        module
+    );
+    let _ = writeln!(out, "                .update(&*db).await.map(|_| ())");
+    let _ = writeln!(out, "        }})");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+
     // EditFormBuilder closure (optional)
     if let Some(ref edit_form_path) = r.edit_form_type {
         let edit_wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
@@ -663,9 +694,26 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     let _ = writeln!(out, "            .with_delete_fn(delete_fn)");
     let _ = writeln!(out, "            .with_create_fn(create_fn)");
     let _ = writeln!(out, "            .with_update_fn(update_fn)");
+    let _ = writeln!(
+        out,
+        "            .with_partial_update_fn(partial_update_fn)"
+    );
     let _ = writeln!(out, "            .with_count_fn(count_fn)");
     if !r.list_filter.is_empty() {
         let _ = writeln!(out, "            .with_filter_fn(filter_fn)");
+    }
+    if !r.group_action.is_empty() {
+        let actions_str = r
+            .group_action
+            .iter()
+            .map(|(f, l)| format!("GroupAction::bool(\"{}\", \"{}\")", f, l))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(
+            out,
+            "            .with_group_actions(vec![{}])",
+            actions_str
+        );
     }
     let _ = writeln!(out, "    );");
     let _ = writeln!(out);

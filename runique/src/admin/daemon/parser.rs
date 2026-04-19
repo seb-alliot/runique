@@ -41,6 +41,9 @@ pub(crate) struct ResourceDef {
 
     /// Columns excluded from the list: `["col1", "col2"]`
     pub list_exclude: Vec<String>,
+
+    /// Fields available for group bulk update: `[("field", "Label")]`
+    pub group_action: Vec<(String, String)>,
 }
 
 /// Display configuration for a resource in the `configure {}` block
@@ -54,6 +57,8 @@ pub(crate) struct ConfigureDef {
     pub list_exclude: Vec<String>,
     /// Sidebar filters
     pub list_filter: Vec<(String, String, u64)>,
+    /// Group action fields: `[("field", "Label")]`
+    pub group_action: Vec<(String, String)>,
 }
 
 /// Result of parsing `src/admin.rs`
@@ -178,6 +183,7 @@ fn parse_admin_tokens(tokens: TokenStream) -> Result<ParsedAdmin, String> {
             list_filter: body.list_filter,
             list_display: body.list_display,
             list_exclude: body.list_exclude,
+            group_action: body.group_action,
         });
 
         // Optional comma between resources
@@ -228,7 +234,8 @@ fn parse_configure_block(iter: &mut TokenIter) -> Result<Vec<ConfigureDef>, Stri
             }
         };
 
-        result.push(parse_configure_body(key, body_group.stream())?);
+        let cfg = parse_configure_body(key, body_group.stream())?;
+        result.push(cfg);
         skip_optional_punct(&mut inner, ',');
     }
 
@@ -243,6 +250,7 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
     let mut list_display = Vec::new();
     let mut list_exclude = Vec::new();
     let mut list_filter = Vec::new();
+    let mut group_action = Vec::new();
 
     while iter.peek().is_some() {
         let field = match iter.next() {
@@ -263,6 +271,9 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
             "list_filter" => {
                 list_filter = parse_list_filter(&mut iter)?;
             }
+            "group_action" => {
+                group_action = parse_list_display(&mut iter)?;
+            }
             other => {
                 skip_until_punct(&mut iter, ',');
                 eprintln!("  Unknown field in configure[\"{}\"]: '{}'", key, other);
@@ -281,6 +292,7 @@ fn parse_configure_body(key: String, tokens: TokenStream) -> Result<ConfigureDef
         list_display,
         list_exclude,
         list_filter,
+        group_action,
     })
 }
 
@@ -298,6 +310,7 @@ struct ResourceBody {
     list_filter: Vec<(String, String, u64)>,
     list_display: Vec<(String, String)>,
     list_exclude: Vec<String>,
+    group_action: Vec<(String, String)>,
 }
 
 fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
@@ -318,6 +331,7 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
         list_filter: Vec::new(),
         list_display: Vec::new(),
         list_exclude: Vec::new(),
+        group_action: Vec::new(),
     };
 
     while iter.peek().is_some() {
@@ -368,6 +382,9 @@ fn parse_resource_body(tokens: TokenStream) -> Result<ResourceBody, String> {
             }
             "list_exclude" => {
                 body.list_exclude = parse_list_exclude(&mut iter)?;
+            }
+            "group_action" => {
+                body.group_action = parse_list_display(&mut iter)?;
             }
             other => {
                 skip_until_punct(&mut iter, ',');

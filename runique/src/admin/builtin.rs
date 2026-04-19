@@ -346,6 +346,36 @@ fn user_entry() -> ResourceEntry {
         })
     });
 
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<Pk>()
+                .map_err(|_| sea_orm::DbErr::Custom(t("admin.builtin.invalid_id").into_owned()))?;
+            let mut model = user::ActiveModel {
+                id: ::sea_orm::ActiveValue::Unchanged(id),
+                updated_at: Set(Some(chrono::Utc::now().naive_utc())),
+                ..Default::default()
+            };
+            if data.contains_key(IS_ACTIVE) {
+                model.is_active = Set(parse_bool(&data, IS_ACTIVE));
+            }
+            if data.contains_key(SESSION_USER_IS_STAFF_KEY) {
+                model.is_staff = Set(parse_bool(&data, SESSION_USER_IS_STAFF_KEY));
+            }
+            if data.contains_key(SESSION_USER_IS_SUPERUSER_KEY) {
+                model.is_superuser = Set(parse_bool(&data, SESSION_USER_IS_SUPERUSER_KEY));
+            }
+            if let Some(v) = data.get("username").filter(|v| !v.is_empty()) {
+                model.username = Set(v.clone());
+            }
+            if let Some(v) = data.get("email").filter(|v| !v.is_empty()) {
+                model.email = Set(v.clone());
+            }
+            model.update(&*db).await?;
+            Ok(())
+        })
+    });
+
     ResourceEntry::new(meta, form_builder)
         .with_edit_form_builder(edit_form_builder)
         .with_list_fn(list_fn)
@@ -354,6 +384,7 @@ fn user_entry() -> ResourceEntry {
         .with_delete_fn(delete_fn)
         .with_create_fn(create_fn)
         .with_update_fn(update_fn)
+        .with_partial_update_fn(partial_update_fn)
 }
 
 /// Encodes the composite PK (groupe_id, resource_key) as a String for the admin.

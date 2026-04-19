@@ -11,6 +11,11 @@ use crate::formulaire::{
 };
 
 admin! {
+    configure {
+        users: {
+            group_action: [["is_active", "Actif"], ["is_staff", "Staff"]]
+        }
+    }
     contribution: contribution::Model => ContributionForm {
         title: "Contribution",
         list_display: [
