@@ -352,6 +352,7 @@ pub async fn auth_login(
     if !user.is_active() {
         return Ok(());
     }
+    let store = RuniqueSessionStore::new(std::sync::Arc::new(db.clone()));
     login(
         session,
         db,
@@ -359,7 +360,7 @@ pub async fn auth_login(
         user.username(),
         user.is_staff(),
         user.is_superuser(),
-        None,
+        Some(&store),
         false,
     )
     .await
