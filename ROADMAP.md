@@ -1,270 +1,37 @@
-# Roadmap Runique
+# Runique — Roadmap
 
-## 1. Sûreté API
+## Stabilisation des features existantes
 
-**Status :** 🟡 En cours
+### Admin — UX & Fonctionnel
 
-### 1.a. CSRF secure-by-default
+- [ ] **Recherche admin**
+  - Debounce 300-500ms (ne pas chercher à chaque lettre)
+  - WHERE sur toutes les colonnes du modèle si pas de `list_display`, sinon WHERE sur les colonnes de `list_display`
+  - Bug actuel : fallback sur `id` uniquement quand `list_display` vide
 
-- **Principe directeur :** respect forcé du contrat d'utilisation `methode http -> prisme -> handler` pour stabiliser la sécurité CSRF.
-- **Règle 1 (mutations) :** toutes les routes `POST`/`PUT`/`PATCH`/`DELETE` passent obligatoirement par Prisme.
-- **Règle 2 (lecture body) :** Prisme reste l'unique lecteur du body (pas de relecture middleware, pas de buffering global).
-- **Règle 3 (source token) :** `form-data` / `x-www-form-urlencoded` => token CSRF dans les champs ; `json/ajax` => token CSRF dans le header.
-- **Règle 4 (GET) :** `GET` reste classique (normalisation query/headers), sans vérification CSRF.
-- **Application progressive :** mode compat (warning) puis mode strict (refus des routes mutantes hors contrat).
-- **Effet attendu :** réduction des failles liées au non-respect du contrat, simplification des handlers, stabilité sécurité renforcée.
+- [ ] **Responsive admin**
+  - Plusieurs éléments visuels à corriger sur mobile/tablette
 
-### 1.b. Robustesse runtime
+- [ ] **Historique admin**
+  - Log des actions CRUD par utilisateur : qui a modifié quoi et quand
 
-- 🔴 `utils/middleware/csrf.rs:57,74` — `SystemTime::UNIX_EPOCH.unwrap()` (risque quasi nul, à surveiller)
-- 🔴 Réduire `panic!/unwrap/expect` sur les chemins runtime
-- 🔴 Propager des erreurs typées (`Result`) sur les points critiques (middleware, daemon, CLI, i18n)
+- [ ] **Persistance des filtres admin**
+  - Conserver `search`, `filter_*`, `page`, `sort_by` dans l'URL de retour après edit/delete
+  - Comportement actuel : tout se réinitialise après une redirection
 
-### 1.c. Nouveaux outils sécurité
+### Framework
 
-- 🔴 Tracing sécurité structuré (voir 3.a)
+- [ ] **Boot validation**
+  - Refuser le démarrage en production si la configuration est incohérente ou incomplète
 
-### 1.d. Sécurité / permissions admin
+- [ ] **Coverage tests**
+  - Réévaluer le taux actuel (beaucoup de features ajoutées depuis le dernier audit)
+  - Objectif : 85% minimum sur les lignes
 
-- 🔴 Vérification runtime des rôles (requête DB par requête admin)
-- 🔴 Contrat `is_staff` / `is_superuser` / rôles custom à clarifier
-- 🔴 Tests d'autorisation par opération CRUD
+- [ ] **Pagination changelog** — la liste des entrées changelog dans demo-app n'a pas de pagination
 
----
+## Features futures
 
-## 2. Bugs muets (silent failures)
+- [ ] **Surcharge des champs `#[form]`** — `field_override("name", |f| f.label("...").placeholder("..."))` pour configurer label/placeholder sur les champs générés par la proc-macro
 
-**Status :** 🔴 À inventorier
-
-Bugs qui ne crashent pas mais produisent un comportement incorrect sans avertissement.
-→ À identifier au fil des audits et revues de code. Aucun répertorié à ce jour.
-
----
-
-## 3. Stabilité & Fallback
-
-**Status :** 🟡 En cours
-
-### 3.a. Tracing
-
-**Tracing sécurité :** 🔴 À faire
-
-- Événements structurés sur les points critiques (à brancher sur le tracing existant) :
-  - CSRF rejeté → `tracing::warn!`
-  - Host bloqué → `tracing::warn!`
-  - Login échoué / compte verrouillé (`LoginGuard`) → `tracing::warn!`
-  - Rate limit dépassé (`RateLimiter`) → `tracing::warn!`
-- Contexte riche : IP, username (si disponible), route, timestamp
-
-**Tracing granulaire (`TracingConfig`) :** 🔴 À faire
-
-- Problème actuel : `DEBUG=true` active tout le tracing (hot reload templates, requêtes DB, middlewares, sessions…) → trop verbeux en développement normal.
-- Solution : struct `TracingConfig` configurable via le builder, avec interrupteurs indépendants par domaine :
-
-  ```rust
-  TracingConfig::new()
-      .templates(false)   // hot reload, rechargement Tera
-      .database(false)    // requêtes SeaORM, migrations
-      .sessions(false)    // lifecycle sessions
-      .security(true)     // CSRF, host, rate limit, login guard
-      .requests(false)    // entrée/sortie HTTP
-  ```
-
-- `DEBUG=true` active uniquement les domaines non explicitement désactivés (valeur par défaut raisonnable).
-- `TracingConfig` passé au builder : `.tracing(TracingConfig::new().security(true))`.
-- Chaque module interne lit son interrupteur avant d'émettre — zéro overhead si désactivé.
-
-### 3.b. Tests et couverture
-
-- 🟡 85% couverture minimum (`bin/` exclu) — actuellement 82.83%
-- 🟡 Doctests `ignore`/`no_run` → exemples réels (i18n, migration, forms, builder couverts)
-- [x] Docs complètes — models, forms, macros procédurales
-
-> `bin/` exclu du calcul de couverture (CLI non couvrable proprement).
-> Cible réaliste : **85-88%** après couverture des modules HTTP via helpers Axum.
-
-### 3.c. Validation au boot (fail-fast)
-
-- Valider toute la config critique avant le démarrage serveur (security, middleware, db, password, admin).
-- Refuser le boot en production si incohérence ou valeur manquante.
-- Autoriser des fallbacks contrôlés en dev/test avec warning explicite.
-
-### 3.d. Gouvernance globale de la config API
-
-- Définir un ordre de priorité unique pour toute l'API :
-    1. Overrides explicites de démarrage
-    2. Configuration applicative (`RuniqueConfig`)
-    3. Variables d'environnement
-    4. Valeurs par défaut framework
-- Documenter un point d'entrée clair de l'initialisation globale (pas de logique implicite cachée).
-- Éviter les doubles sources de vérité entre config runtime et valeurs par défaut internes.
-- Ajouter des tests d'intégration sur la résolution de config (priorités + erreurs de validation).
-
-> **Status contrat développeur :** 🟠 En stand-by — choix de `is_valid()` en cours de réflexion.
-
----
-
-## 4. Features framework
-
-**Status :** 🟡 En cours
-
-### 4.a. Formulaires — `#[derive(DeriveModelForm)]`
-
-**Status :** 🟡 À évaluer — potentiellement supprimé
-
-- **Étape 1 — Check viabilité :** inventorier les usages réels (code + docs + exemples) et confirmer que le couple `model!(...)` + `#[form(...)]` couvre tous les cas actuels.
-- **Étape 2 — Mesure des pertes occasionnées :** lister précisément ce qui serait perdu (ergonomie, rétrocompatibilité, snippets existants, onboarding) et estimer l'impact migration.
-- **Étape 3 — Plan de transition :** préparer une migration douce (dépréciation documentée, alias temporaire éventuel, guide de remplacement).
-- **Étape 4 — Validation technique :** vérifier compile/tests/docs après remplacement des usages critiques.
-- **Étape 5 — Décision finale :** `GO` suppression ou `NO-GO` maintien selon coût réel vs bénéfice architecture.
-
-- [x] Ajouter `path_param("key")` et `from_url("key")` (returns `Option<&str>`) sur `Request`
-- 🔴 Version générique cible : `let id = request.path_param::<i32>("id")?;`
-
-### 4.c. Configuration du pool Database
-
-**Status :** 🔴 À faire
-
-- Permettre la configuration du pool via `.env`
-- Découpage `.env` envisagé :
-  - `.env` — config basique dev + redirections
-  - `.env.conf` — pool, lang, timezone
-  - `.env.security` — CSP (interrupteur + directives), rate limite
-
-### 4.d. Système de slots atomique (extensibilité builder)
-
-- Permettre à des plugins/crates externes de revendiquer un slot middleware stable à l'init du module.
-- Fondation : `AtomicU16::fetch_add` — sans lock, sans risque de poison.
-- À implémenter si/quand un écosystème de plugins est envisagé.
-
----
-
-## 5. Vue Admin
-
-**Status :** 🟡 En cours (beta)
-
-### Court terme
-
-- [x] **list_display** : colonnes affichées dans la liste, configurables par ressource dans `admin!{}`
-- [x] **Pagination** : `page` + `per_page` automatiques via `DisplayConfig`
-- [x] **search_fields** : recherche texte côté backend automatique
-- [x] **Ordering** : tri par colonne cliquable (query param `?sort_by=col&sort_dir=asc`)
-- 🔴 **JS assets** : champ `js: ["path/to/file.js"]` dans `admin!{}` → `js_files: Vec<String>` dans `AdminResource` → injecté dans bloc `extra_js` du template
-- 🔴 **Permissions runtime** : vérification des rôles par ressource à chaque requête admin (requête DB, option sécurisée)
-
-### Moyen terme
-
-- 🔴 **History / log admin** : table `admin_log` (user_id, resource_key, object_id, action, timestamp, changes jsonb) — hooks via signaux SeaORM
-- 🔴 **Bulk actions** : suppression en lot, actions custom déclarées par ressource
-- 🔴 **readonly_fields** : champs non-éditables affichés en lecture seule dans les formulaires
-- 🔴 **date_hierarchy** : navigation par date (année > mois > jour) en haut de la liste
-- [x] **list_filter** : filtres latéraux par valeur de colonne
-- 🔴 **Toggle boolean** : `PATCH /admin/{resource}/{id}/toggle/{field}` — checkbox cliquable dans la liste pour les champs booléens (`is_active`, `is_staff`, etc.)
-
-### Hors scope v1 (futur)
-
-- **Inlines** : formulaires imbriqués pour relations SeaORM (`has_many`)
-- **autocomplete_fields** : widget AJAX pour ForeignKey
-- **list_editable** : édition inline dans la liste (hors boolean)
-- **date_hierarchy avancé** : navigation drill-down avec agrégations DB
-
----
-
-## 6. Features applicatives non couvertes
-
-**Status :** 🔴 Non planifié — à prioriser
-
-### 6.a. Pagination
-
-- Aucune API de pagination côté framework (hors admin interne)
-- Pattern actuel : `.find().all()` retourne tout sans limite
-- Objectif : helper `Paginator::new(query, page, per_page)` → `PaginatedResult { items, total, page, total_pages }`
-- Intégration SeaORM : `.paginate(db, per_page).fetch_page(page)`
-- Contexte Tera injecté automatiquement (`paginator.page`, `paginator.total_pages`, etc.)
-
-- [x] **Système d''envoi d''email** : module `utils::mailer` intégré
-- [x] **Templates email** : support natif via Tera `html(body)`
-- [x] **Cas d''usage** : reset de mot de passe (flux complet opérationnel)
-
-### 6.c. Permissions fines par route
-
-- Actuel : seul `is_authenticated()` / rôles admin existent
-- Manque : décorateur / guard `login_required`, `role_required("admin")` sur les handlers
-- Pattern cible : guard extracteur Axum ou helper `request.require_auth()?`
-
-### 6.d. API JSON / REST
-
-- Aucune réponse JSON native côté framework
-- Cas d'usage : endpoints API, retours fetch/HTMX JSON
-- À évaluer : helper `JsonResponse::ok(data)`, extracteur `Json<T>` (déjà Axum natif, à exposer proprement)
-
-### 6.e. Caching applicatif
-
-- `.with_cache(true)` présent dans le builder mais non utilisé côté handlers
-- Aucun helper de cache clé/valeur exposé
-- À définir : scope (in-memory, Redis), TTL, invalidation
-
-### 6.f. Transactions DB
-
-- SeaORM supporte les transactions nativement
-- Aucun helper ou pattern documenté dans Runique
-- À exposer : `db.begin()` / `txn.commit()` / `txn.rollback()` avec guide d'usage
-
----
-
-## 7. TLS natif + Proxy intégré
-
-**Status :** 🔴 Planifié (après vue admin)
-
-### Objectif
-
-Rendre Runique autonome en production — binaire compilé + TLS natif, sans Nginx ni reverse proxy externe.
-
-### Composants
-
-- 🔴 **TLS natif** : `rustls` + `axum-server` — certificats PEM configurables via builder
-- 🔴 **Let's Encrypt** : renouvellement automatique (`instant-acme`) via background task Tokio (`tokio::time::interval`)
-- 🔴 **Compression** : `CompressionLayer` de `tower-http` (déjà disponible, à exposer dans le builder)
-- 🔴 **Internationalisation (i18n)** :
-  - [x] Compilation des catalogues JSON du framework dans le binaire.
-  - [ ] Possibilité pour l''utilisateur d''enregistrer ses propres catalogues externes (fusion avec le framework).
-  - [ ] Détection automatique de la langue via les en-têtes `Accept-Language` HTTP.
-- 🔴 **Cache statiques** : headers `Cache-Control` configurables via builder
-- 🔴 **Feature flags** : `features = ["tls", "proxy"]` — opt-in, binaire minimal par défaut
-
-### Ce qui reste hors scope
-
-- Load balancing multi-instances
-- Rate limiting réseau bas niveau (couvert côté applicatif par `RateLimiter`)
-
-### Impact déploiement
-
-`docker run` autonome — zéro dépendance externe, production-ready avec un seul conteneur.
-
----
-
-## 8. Publication crates.io
-
-**Status :** 🟡 Processus à documenter — version actuelle **1.1.54** publiée
-
-### Processus de release
-
-Chaque évolution notable → nouvelle version publiée sur crates.io avec changelog.
-
-- Incrément **patch** (1.1.x) : fix, sûreté, corrections silencieuses
-- Incrément **minor** (1.x.0) : nouvelle feature stable, nouveau middleware, extension admin
-- Incrément **major** (x.0.0) : rupture d'API publique
-
-### Ordre de publication (workspace multi-crates)
-
-- 🔴 Documenter l'ordre exact : `derive_form` → `runique` (dépendance proc-macro)
-- 🔴 Checklist de publication : bump version, `cargo publish --dry-run`, tests, tag git, publish
-- 🔴 Automatisation envisagée : script ou CI (GitHub Actions) pour release reproductible
-
-### Objectifs qualité avant chaque release
-
-- 🟢 Couverture ~80% — suffisant, rapport dans `couverture_test.md`
-- 🟡 Doctests `ignore`/`no_run` → exemples réels
-- 🟢 Docs models — démo `/modeles` en place
-- 🟢 Docs forms — démo `/test-fields` en place
-- 🔴 Docs macros procédurales
+- [ ] **Hooks / Signals** — fichier `hooks.rs` déclaratif branché sur `ActiveModelBehavior` SeaORM

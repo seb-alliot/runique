@@ -517,7 +517,103 @@ pub async fn force_to_many_requests(_: Request) -> Response {
 
 pub async fn security_txt() -> &'static str {
     "Contact: mailto:alliotsebastien04@gmail.com\n\
-     Expires: 2027-01-01T00:00:00.000Z\n\
-     Preferred-Languages: fr, en\n\
-     Canonical: https://runique.io/.well-known/security.txt\n"
+        Expires: 2027-01-01T00:00:00.000Z\n\
+        Preferred-Languages: fr, en\n\
+        Canonical: https://runique.io/.well-known/security.txt\n"
+}
+
+pub async fn llms_txt() -> &'static str {
+    "# Runique\n\
+    \n\
+    > Rust web framework inspired by Django, built on Axum, SeaORM and Tera.\n\
+    > Type-safe forms, auto-generated admin, CSRF/CSP middleware, persistent sessions.\n\
+    \n\
+    Runique is open-source and available on crates.io. This site is a live demo.\n\
+    \n\
+    ## Documentation\n\
+    \n\
+    - [Documentation (EN)](https://runique.io/docs/en): Full English documentation\n\
+    - [Documentation (FR)](https://runique.io/docs/fr): Documentation complete en francais\n\
+    - [Changelog](https://runique.io/changelog): Version history and release notes\n\
+    - [Roadmap](https://runique.io/roadmap): Planned features and status\n\
+    \n\
+    ## Source\n\
+    \n\
+    - [GitHub](https://github.com/seb-alliot/runique): Source code\n\
+    - [crates.io](https://crates.io/crates/runique): Rust package\n\
+    \n\
+    ## Demo\n\
+    \n\
+    - [Live demo](https://runique.io): Forms, admin, auth, ORM, middlewares\n\
+    - [llms-full.txt](https://runique.io/llms-full.txt): Full content for LLMs\n"
+}
+
+pub async fn llms_full_txt() -> &'static str {
+    "# Runique — Full LLM Reference\n\
+        \n\
+        ## What is Runique?\n\
+        \n\
+        Runique is a Rust web framework inspired by Django. It is built on top of:\n\
+        - **Axum** — HTTP server and routing\n\
+        - **SeaORM** — async ORM supporting PostgreSQL, MySQL, MariaDB and SQLite\n\
+        - **Tera** — Jinja2-compatible template engine\n\
+        \n\
+        Current version: 2.1.0 (Rust edition 2024, MSRV 1.88)\n\
+        \n\
+        ## Key Features\n\
+        \n\
+        ### Type-safe Forms\n\
+        Declare forms manually or derive them from a SeaORM schema with `#[form]`.\n\
+        Fields: TextField, NumericField, BooleanField, ChoiceField, DateField, FileField, and more.\n\
+        CSRF protection is built-in and automatic via the Prisme extractor.\n\
+        \n\
+        ### Auto-generated Admin\n\
+        Declare resources with the `admin!{}` macro. Runique generates full CRUD routes,\n\
+        list/create/edit/delete views, search, pagination, column sorting, and role-based access.\n\
+        Templates are overridable via the builder.\n\
+        \n\
+        ### Middleware\n\
+        - CSRF (Prisme extractor pattern)\n\
+        - CSP (Content Security Policy with nonce)\n\
+        - Session (memory store with optional DB persistence)\n\
+        - Rate limiter (sliding window per IP)\n\
+        - Login guard (lockout after N failed attempts)\n\
+        - Host validation\n\
+        - HTTPS redirect\n\
+        \n\
+        ### Auth\n\
+        Built-in user model (eihwaz_users), login/logout helpers, session persistence,\n\
+        exclusive session (one session per user), password reset via email.\n\
+        \n\
+        ### Migrations\n\
+        `runique makemigrations` generates SeaORM migration files from `model!{}` entities.\n\
+        Supports PostgreSQL, MySQL/MariaDB, SQLite. Atomic rollback.\n\
+        \n\
+        ### Internationalisation\n\
+        9 built-in languages: EN, FR, DE, ES, IT, PT, JA, ZH, RU.\n\
+        Set via `set_lang(Lang::En)` in main().\n\
+        \n\
+        ## Quick Start\n\
+        \n\
+        ```bash\n\
+        cargo install runique\n\
+        runique new my-project\n\
+        cd my-project\n\
+        runique start\n\
+        ```\n\
+        \n\
+        ## Cargo.toml\n\
+        \n\
+        ```toml\n\
+        [dependencies]\n\
+        runique = { version = \"2.1.0\", features = [\"orm\", \"postgres\"] }\n\
+        ```\n\
+        \n\
+        ## Links\n\
+        \n\
+        - GitHub: https://github.com/seb-alliot/runique\n\
+        - crates.io: https://crates.io/crates/runique\n\
+        - Documentation english: https://runique.io/docs/en\n\
+        - Documentation french: https://runique.io/docs/fr\n\
+        - Demo: https://runique.io\n"
 }

@@ -5,12 +5,12 @@ use crate::views::{
     docs_index_fr, docs_page, docs_section, erreur_502, force_not_found, force_server_error,
     force_to_many_requests, formulaires_champs, formulaires_helpers, formulaires_hub,
     formulaires_templates, google_verify, i18n_demo, index, info_user, installation_demo,
-    login_user, macros_demo, middleware_csp, middleware_csrf, middleware_hosts, middleware_https,
-    middleware_hub, middleware_login_guard, middleware_rate_limit, migrations_demo, model_demo,
-    orm_demo, probleme_connu, profil, propos_template_error, readme_en, readme_fr, rgpd, roadmap,
-    router_demo, security_txt, session_demo, sitemap_xml, soumission_inscription,
-    surcharge_exemple, template_demo, test_csrf, test_fields, upload_image_submit,
-    view_cours_detail, view_cours_exercice, view_cours_index,
+    llms_full_txt, llms_txt, login_user, macros_demo, middleware_csp, middleware_csrf,
+    middleware_hosts, middleware_https, middleware_hub, middleware_login_guard,
+    middleware_rate_limit, migrations_demo, model_demo, orm_demo, probleme_connu, profil,
+    propos_template_error, readme_en, readme_fr, rgpd, roadmap, router_demo, security_txt,
+    session_demo, sitemap_xml, soumission_inscription, surcharge_exemple, template_demo, test_csrf,
+    test_fields, upload_image_submit, view_cours_detail, view_cours_exercice, view_cours_index,
 };
 
 use runique::prelude::*;
@@ -85,6 +85,8 @@ pub fn routes() -> Router {
         "/sitemap.xml"                   => view! { sitemap_xml },            name = "sitemap_xml",
         "/google59ae742b6eee40ef.html"   => view! { google_verify },          name = "google_verify",
         "/.well-known/security.txt"      => view! { security_txt },           name = "security_txt",
+        "/llms.txt"                      => view! { llms_txt },               name = "llms_txt",
+        "/llms-full.txt"                 => view! { llms_full_txt },          name = "llms_full_txt",
 
         // Readme
         "/readme/fr"                     => view! { readme_fr },              name = "readme_fr",
