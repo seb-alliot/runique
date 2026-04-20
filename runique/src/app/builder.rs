@@ -433,6 +433,7 @@ impl RuniqueAppBuilder {
         let router = if self.admin.enabled {
             let admin_prefix = self.admin.config.prefix.trim_end_matches('/').to_string();
             let robots_txt = self.admin.robots_txt;
+            let sitemap_url = self.admin.sitemap_url.clone();
             let admin_router = build_admin_router(self.admin, engine.db.clone());
             add_urls(&engine);
             let mut r = router.merge(admin_router);
@@ -440,9 +441,12 @@ impl RuniqueAppBuilder {
                 r = r.route(
                     "/robots.txt",
                     axum::routing::get(move || {
+                        let sitemap_line = sitemap_url
+                            .map(|u| format!("Sitemap: {}\n", u))
+                            .unwrap_or_default();
                         let body = format!(
-                            "User-agent: *\nDisallow: {}/\n\nContent-Signal: ai-train=yes, search=yes, ai-input=yes\n",
-                            admin_prefix
+                            "User-agent: *\nDisallow: {}/\n\n{}Content-Signal: ai-train=yes, search=yes, ai-input=yes\n",
+                            admin_prefix, sitemap_line
                         );
                         async move { body }
                     }),
