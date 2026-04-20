@@ -1,11 +1,11 @@
 {% extends "index.html" %}
 
 {% block meta %}
-<meta name="description" content="{% if cour.lead %}{{ cour.lead }}{% else %}{{ cour.title }} — Cours Rust{% endif %}">
+<meta name="description" content="{% if cour.lead %}{{ cour.lead }}{% else %}{{ cour.title }} — Rust Course{% endif %}">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="article">
-<meta property="og:title" content="{{ cour.title }} — Cours Rust">
-<meta property="og:description" content="{% if cour.lead %}{{ cour.lead }}{% else %}{{ cour.title }} — Cours Rust{% endif %}">
+<meta property="og:title" content="{{ cour.title }} — Rust Course">
+<meta property="og:description" content="{% if cour.lead %}{{ cour.lead }}{% else %}{{ cour.title }} — Rust Course{% endif %}">
 {% endblock %}
 
 {% block style %}
