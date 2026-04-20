@@ -8,15 +8,26 @@ use crate::app::error_build::BuildError;
 // or when a CDN/reverse-proxy manages static files.
 // ═══════════════════════════════════════════════════════════════
 
+const DEFAULT_STATIC_CACHE: &str = "public, max-age=31536000, immutable";
+const DEFAULT_MEDIA_CACHE: &str = "public, max-age=31536000, immutable";
+
 pub struct StaticStaging {
     /// Indicates whether the static files service is enabled
     pub(crate) enabled: bool,
+    /// Cache-Control header for static assets (/static/, /runique/static/)
+    pub(crate) static_cache: &'static str,
+    /// Cache-Control header for user-uploaded media (/media/)
+    pub(crate) media_cache: &'static str,
 }
 
 impl StaticStaging {
     /// Creates a StaticStaging (enabled by default)
     pub fn new() -> Self {
-        Self { enabled: true }
+        Self {
+            enabled: true,
+            static_cache: DEFAULT_STATIC_CACHE,
+            media_cache: DEFAULT_MEDIA_CACHE,
+        }
     }
 
     // ═══════════════════════════════════════════════════
@@ -56,18 +67,36 @@ impl StaticStaging {
         self
     }
 
+    /// Overrides the Cache-Control header for versioned static assets.
+    ///
+    /// Default: `"public, max-age=31536000, immutable"`
+    ///
+    /// ```rust,ignore
+    /// .static_files(|s| s.static_cache("public, max-age=86400"))
+    /// ```
+    pub fn static_cache(mut self, value: &'static str) -> Self {
+        self.static_cache = value;
+        self
+    }
+
+    /// Overrides the Cache-Control header for user-uploaded media.
+    ///
+    /// Default: `"public, max-age=3600"`
+    ///
+    /// ```rust,ignore
+    /// .static_files(|s| s.media_cache("no-cache"))
+    /// ```
+    pub fn media_cache(mut self, value: &'static str) -> Self {
+        self.media_cache = value;
+        self
+    }
+
     // ═══════════════════════════════════════════════════
     // Validation
     // ═══════════════════════════════════════════════════
 
     /// Validates static files configuration
     pub fn validate(&self) -> Result<(), BuildError> {
-        // For now, nothing to validate:
-        // - If disabled, we simply serve nothing
-        // - If enabled, paths are checked by the config
-        //
-        // Future: check that static folders exist
-        // when `enabled` is true
         Ok(())
     }
 
