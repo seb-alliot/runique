@@ -13,6 +13,7 @@ pub struct AdminStaging {
     pub config: AdminConfig,
     pub enabled: bool,
     pub robots_txt: bool,
+    pub sitemap_url: Option<String>,
     pub route_admin: Option<Router>,
     pub state: Option<Arc<PrototypeAdminState>>,
 }
@@ -23,6 +24,7 @@ impl AdminStaging {
             config: AdminConfig::new(),
             enabled: false,
             robots_txt: true,
+            sitemap_url: None,
             route_admin: None,
             state: None,
         }
@@ -31,6 +33,16 @@ impl AdminStaging {
     /// Disables the automatic generation of `/robots.txt` (enabled by default).
     pub fn no_robots_txt(mut self) -> Self {
         self.robots_txt = false;
+        self
+    }
+
+    /// Adds a `Sitemap:` directive to the generated `/robots.txt`.
+    ///
+    /// ```rust,ignore
+    /// .with_admin(|a| a.sitemap("https://mysite.com/sitemap.xml"))
+    /// ```
+    pub fn sitemap(mut self, url: &str) -> Self {
+        self.sitemap_url = Some(url.to_string());
         self
     }
 

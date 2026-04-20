@@ -55,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .with_admin(|a| {
             a.site_title("Administration")
+                .sitemap("https://runique.io/sitemap.xml")
                 .auth(RuniqueAdminAuth::new())
                 .routes(admins::routes("/admin").merge(demo_toggle::router("/admin")))
                 .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
