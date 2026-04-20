@@ -440,7 +440,10 @@ impl RuniqueAppBuilder {
                 r = r.route(
                     "/robots.txt",
                     axum::routing::get(move || {
-                        let body = format!("User-agent: *\nDisallow: {}/\n", admin_prefix);
+                        let body = format!(
+                            "User-agent: *\nDisallow: {}/\n\nContent-Signal: ai-train=yes, search=yes, ai-input=yes\n",
+                            admin_prefix
+                        );
                         async move { body }
                     }),
                 );
