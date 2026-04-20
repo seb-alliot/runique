@@ -362,6 +362,8 @@ impl RuniqueAppBuilder {
         let url_registry = self.core.url_registry;
         let mut middleware = self.middleware;
         let statics_enabled = self.statics.enabled;
+        let static_cache = self.statics.static_cache;
+        let media_cache = self.statics.media_cache;
         let router = self.router;
 
         // ═══════════════════════════════════════
@@ -479,7 +481,7 @@ impl RuniqueAppBuilder {
         // ═══════════════════════════════════════
 
         let router = if statics_enabled {
-            Self::attach_static_files(router, &engine.config)
+            Self::attach_static_files(router, &engine.config, static_cache, media_cache)
         } else {
             router
         };
@@ -528,24 +530,41 @@ impl RuniqueAppBuilder {
     // ═══════════════════════════════════════════════════════════
 
     /// Attaches static file routes to the router
-    fn attach_static_files(mut router: Router, config: &RuniqueConfig) -> Router {
-        let static_headers = tower::ServiceBuilder::new()
-            .layer(SetResponseHeaderLayer::if_not_present(
-                HeaderName::from_static("x-content-type-options"),
-                HeaderValue::from_static("nosniff"),
-            ))
-            .layer(SetResponseHeaderLayer::if_not_present(
-                HeaderName::from_static("strict-transport-security"),
-                HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
-            ))
-            .layer(SetResponseHeaderLayer::if_not_present(
-                HeaderName::from_static("x-frame-options"),
-                HeaderValue::from_static("DENY"),
-            ))
-            .layer(SetResponseHeaderLayer::if_not_present(
-                HeaderName::from_static("referrer-policy"),
-                HeaderValue::from_static("strict-origin-when-cross-origin"),
-            ));
+    fn attach_static_files(
+        mut router: Router,
+        config: &RuniqueConfig,
+        static_cache: &'static str,
+        media_cache: &'static str,
+    ) -> Router {
+        let security_headers = || {
+            tower::ServiceBuilder::new()
+                .layer(SetResponseHeaderLayer::if_not_present(
+                    HeaderName::from_static("x-content-type-options"),
+                    HeaderValue::from_static("nosniff"),
+                ))
+                .layer(SetResponseHeaderLayer::if_not_present(
+                    HeaderName::from_static("strict-transport-security"),
+                    HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
+                ))
+                .layer(SetResponseHeaderLayer::if_not_present(
+                    HeaderName::from_static("x-frame-options"),
+                    HeaderValue::from_static("DENY"),
+                ))
+                .layer(SetResponseHeaderLayer::if_not_present(
+                    HeaderName::from_static("referrer-policy"),
+                    HeaderValue::from_static("strict-origin-when-cross-origin"),
+                ))
+        };
+
+        let static_headers = security_headers().layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("cache-control"),
+            HeaderValue::from_static(static_cache),
+        ));
+
+        let media_headers = security_headers().layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("cache-control"),
+            HeaderValue::from_static(media_cache),
+        ));
 
         router = router
             .nest_service(
@@ -556,9 +575,7 @@ impl RuniqueAppBuilder {
             )
             .nest_service(
                 &config.static_files.media_url,
-                static_headers
-                    .clone()
-                    .service(ServeDir::new(&config.static_files.media_root)),
+                media_headers.service(ServeDir::new(&config.static_files.media_root)),
             );
 
         if !config.static_files.static_runique_url.is_empty() {
