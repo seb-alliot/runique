@@ -9,14 +9,14 @@
 <div class="container">
     <h1>{{ title }}</h1>
     <p class="lead lead-mb">
-        Remplacer les templates par défaut de l'admin par les vôtres.
-        <span class="text-hint">(fonctionnalité beta)</span>
+        Override the default admin templates with your own.
+        <span class="text-hint">(beta feature)</span>
     </p>
 
     <div class="demo-layout">
 
         <div class="demo-code">
-            <div class="demo-code-title">Surcharge dans main.rs</div>
+            <div class="demo-code-title">Override in main.rs</div>
             <pre><code>builder::<span class="fn_">new</span>(config)
     .<span class="fn_">with_admin</span>(|a| {
         a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
@@ -28,7 +28,7 @@
             .<span class="fn_">with_state</span>(admins::<span class="fn_">admin_state</span>())
     })</code></pre>
 
-            <div class="demo-code-title">Exemple utilisé dans cette démo</div>
+            <div class="demo-code-title">Example used in this demo</div>
             <pre><code>builder::<span class="fn_">new</span>(config)
     .<span class="fn_">with_admin</span>(|a| {
         a.<span class="fn_">site_title</span>(<span class="st">"Administration"</span>)
@@ -40,8 +40,8 @@
         </div>
 
         <div class="demo-code">
-            <div class="demo-code-title">Templates surchargeables</div>
-            <pre><code><span class="cm">// Toutes les vues (CRUD complet)</span>
+            <div class="demo-code-title">Overridable templates</div>
+            <pre><code><span class="cm">// All views (full CRUD)</span>
 t.<span class="fn_">with_dashboard</span>(<span class="st">"admin/mon_dashboard.html"</span>)
 t.<span class="fn_">with_list</span>(<span class="st">"admin/mon_list.html"</span>)
 t.<span class="fn_">with_create</span>(<span class="st">"admin/mon_create.html"</span>)
@@ -49,44 +49,44 @@ t.<span class="fn_">with_edit</span>(<span class="st">"admin/mon_edit.html"</spa
 t.<span class="fn_">with_detail</span>(<span class="st">"admin/mon_detail.html"</span>)
 t.<span class="fn_">with_delete</span>(<span class="st">"admin/mon_delete.html"</span>)
 
-<span class="cm">// Vues d'interface globales</span>
+<span class="cm">// Global interface views</span>
 t.<span class="fn_">with_login</span>(<span class="st">"admin/mon_login.html"</span>)
 t.<span class="fn_">with_base</span>(<span class="st">"admin/mon_base.html"</span>)</code></pre>
 
-            <div class="demo-code-title">Clés injectées par Runique (obligatoires)</div>
-            <pre><code><span class="cm">// Pour le dashboard :</span>
+            <div class="demo-code-title">Keys injected by Runique (required)</div>
+            <pre><code><span class="cm">// For the dashboard:</span>
 {% raw %}{{ site_title }}{% endraw %}       <span class="cm">// titre configuré dans .site_title()</span>
 {% raw %}{{ resources }}{% endraw %}        <span class="cm">// liste des ressources</span>
-{% raw %}{{ admin_dashboard_title }}{% endraw %} <span class="cm">// trad i18n</span>
+{% raw %}{{ admin_dashboard_title }}{% endraw %} <span class="cm">// i18n translation</span>
 
-<span class="cm">// Pour la vue list (obligatoires) :</span>
-{% raw %}{{ entries }}{% endraw %}          <span class="cm">// la pagination des entrées json</span>
-{% raw %}{{ visible_columns }}{% endraw %}  <span class="cm">// les infos du tableau</span>
-{% raw %}{{ sort_by }}{% endraw %}          <span class="cm">// la colonne triée</span>
+<span class="cm">// For the list view (required):</span>
+{% raw %}{{ entries }}{% endraw %}          <span class="cm">// paginated json entries</span>
+{% raw %}{{ visible_columns }}{% endraw %}  <span class="cm">// table column info</span>
+{% raw %}{{ sort_by }}{% endraw %}          <span class="cm">// sorted column</span>
 <span class="cm">// (+ total, page, page_count, has_prev, sort_dir...)</span>
 
-<span class="cm">// Liste détaillée de chaque vue dans la documentation !</span></code></pre>
+<span class="cm">// Full key list for each view in the documentation!</span></code></pre>
 
-            <div class="demo-code-title">Blocks Tera surchargeables</div>
-            <pre><code><span class="cm">// Blocks disponibles dans admin/admin_template</span>
-{% raw %}{% block extra_css %}{% endblock %}{% endraw %}   <span class="cm">// styles CSS additionnels</span>
-{% raw %}{% block title %}{% endblock %}{% endraw %}       <span class="cm">// titre de l'onglet</span>
-{% raw %}{% block breadcrumb %}{% endblock %}{% endraw %}  <span class="cm">// fil d'ariane</span>
-{% raw %}{% block content %}{% endblock %}{% endraw %}     <span class="cm">// contenu principal</span>
-{% raw %}{% block sidebar %}{% endblock %}{% endraw %}     <span class="cm">// barre latérale</span>
-{% raw %}{% block topbar %}{% endblock %}{% endraw %}      <span class="cm">// barre du haut</span>
-{% raw %}{% block messages %}{% endblock %}{% endraw %}    <span class="cm">// messages flash</span>
-{% raw %}{% block extra_js %}{% endblock %}{% endraw %}    <span class="cm">// scripts JS additionnels</span>
-{% raw %}{% block footer %}{% endblock %}{% endraw %}      <span class="cm">// pied de page</span></code></pre>
+            <div class="demo-code-title">Overridable Tera blocks</div>
+            <pre><code><span class="cm">// Available blocks in admin/admin_template</span>
+{% raw %}{% block extra_css %}{% endblock %}{% endraw %}   <span class="cm">// additional CSS styles</span>
+{% raw %}{% block title %}{% endblock %}{% endraw %}       <span class="cm">// tab title</span>
+{% raw %}{% block breadcrumb %}{% endblock %}{% endraw %}  <span class="cm">// breadcrumb</span>
+{% raw %}{% block content %}{% endblock %}{% endraw %}     <span class="cm">// main content</span>
+{% raw %}{% block sidebar %}{% endblock %}{% endraw %}     <span class="cm">// sidebar</span>
+{% raw %}{% block topbar %}{% endblock %}{% endraw %}      <span class="cm">// top bar</span>
+{% raw %}{% block messages %}{% endblock %}{% endraw %}    <span class="cm">// flash messages</span>
+{% raw %}{% block extra_js %}{% endblock %}{% endraw %}    <span class="cm">// additional JS scripts</span>
+{% raw %}{% block footer %}{% endblock %}{% endraw %}      <span class="cm">// footer</span></code></pre>
 
-            <div class="demo-code-title">Clés supplémentaires via with_state()</div>
-            <pre><code><span class="cm">// Données custom passées via extra_context dans admin_state().</span>
-<span class="cm">// Ex : utilisateur connecté, stats métier, etc.</span>
+            <div class="demo-code-title">Extra keys via with_state()</div>
+            <pre><code><span class="cm">// Custom data passed via extra_context in admin_state().</span>
+<span class="cm">// E.g.: logged-in user, business stats, etc.</span>
 {% raw %}{{ resource_counts[resource.key] }}{% endraw %}  <span class="cm">// exemple démo</span></code></pre>
 
-            <div class="demo-code-title">Exemple concret</div>
-            <pre><code><span class="cm">// Le dashboard affiché dans la vue admin de cette démo</span>
-<span class="cm">// est lui-même un template de surcharge.</span>
+            <div class="demo-code-title">Concrete example</div>
+            <pre><code><span class="cm">// The dashboard shown in this demo's admin view</span>
+<span class="cm">// is itself an override template.</span>
 <span class="cm">// demo-app/templates/admin/test_dashboard.html</span></code></pre>
             <a href="https://github.com/seb-alliot/runique/blob/main/demo-app/templates/admin/test_dashboard.html" target="_blank" class="btn btn-secondary">Voir sur GitHub</a>
         </div>
