@@ -36,9 +36,21 @@ pub async fn inject_globals(request: &mut Request) {
         .await
         .unwrap_or(None);
 
+    let lang = if request
+        .path_params
+        .get("lang")
+        .map(|l| l == "fr")
+        .unwrap_or(false)
+    {
+        "fr"
+    } else {
+        "en"
+    };
+
     context_update!(request =>{
         "runique_release" => &release,
         "user" => user,
+        "lang" => lang,
     }
     )
 }

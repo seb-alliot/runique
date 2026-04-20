@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="{% if lang %}{{ lang }}{% else %}en{% endif %}" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,13 +7,46 @@
     <title>{% if title %}{{ title }} — Runique{% else %}Runique{% endif %}</title>
 
     {% block meta %}
-    <meta name="description" content="{% if description %}{{ description }}{% else %}Runique — Rust web framework inspired by Django, based on Axum, SeaORM and Tera.{% endif %}">
+    {% if lang == "fr" %}
+    <meta name="description" content="{% if description %}{{ description }}{% else %}Runique — Framework web Rust inspiré de Django. Basé sur Axum, SeaORM et Tera. Formulaires typés, admin généré, middleware CSRF/CSP, sessions persistantes.{% endif %}">
+    {% else %}
+    <meta name="description" content="{% if description %}{{ description }}{% else %}Runique — Rust web framework inspired by Django, built on Axum, SeaORM and Tera. Type-safe forms, generated admin, CSRF/CSP middleware, persistent sessions.{% endif %}">
+    {% endif %}
     <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://runique.io{% if canonical %}{{ canonical }}{% else %}/{% endif %}">
+    <link rel="alternate" hreflang="fr" href="https://runique.io/docs/fr">
+    <link rel="alternate" hreflang="en" href="https://runique.io/docs/en">
+    <link rel="alternate" hreflang="x-default" href="https://runique.io/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Runique">
-    <meta property="og:title" content="{% if title %}{{ title }} — Runique{% else %}Runique{% endif %}">
-    <meta property="og:description" content="{% if description %}{{ description }}{% else %}Runique — Rust web framework inspired by Django, based on Axum, SeaORM and Tera.{% endif %}">
+    <meta property="og:url" content="https://runique.io{% if canonical %}{{ canonical }}{% else %}/{% endif %}">
+    <meta property="og:title" content="{% if title %}{{ title }} — Runique{% else %}Runique — Framework web Rust{% endif %}">
+    {% if lang == "fr" %}
+    <meta property="og:description" content="{% if description %}{{ description }}{% else %}Framework web Rust inspiré de Django — Axum, SeaORM, Tera. Formulaires typés, admin généré, sécurité intégrée.{% endif %}">
+    {% else %}
+    <meta property="og:description" content="{% if description %}{{ description }}{% else %}Rust web framework inspired by Django — Axum, SeaORM, Tera. Type-safe forms, generated admin, built-in security.{% endif %}">
+    {% endif %}
     <meta property="og:image" content="{{ og_image }}">
+    {% endblock %}
+
+    {% block jsonld %}
+    <script type="application/ld+json" {% csp %}>
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Runique",
+      "description": "Framework web Rust inspiré de Django — Axum, SeaORM, Tera",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Linux, macOS, Windows",
+      "url": "https://runique.io",
+      "sameAs": [
+        "https://github.com/seb-alliot/runique",
+        "https://crates.io/crates/runique"
+      ],
+      "programmingLanguage": "Rust",
+      "keywords": "framework web Rust, Rust web framework, Django Rust, Axum framework, SeaORM"
+    }
+    </script>
     {% endblock %}
 
     {% block style %}
