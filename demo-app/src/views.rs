@@ -522,6 +522,15 @@ pub async fn security_txt() -> &'static str {
         Canonical: https://runique.io/.well-known/security.txt\n"
 }
 
+pub async fn robots_txt() -> &'static str {
+    "User-agent: *\n\
+     Disallow: /admin/\n\
+     \n\
+     Sitemap: https://runique.io/sitemap.xml\n\
+     \n\
+     Content-Signal: ai-train=yes, search=yes, ai-input=yes\n"
+}
+
 pub async fn llms_txt() -> &'static str {
     "# Runique\n\
     \n\
