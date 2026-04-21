@@ -168,7 +168,37 @@ pub struct CurrentUser {
 }
 
 impl CurrentUser {
-    /// Returns the effective CRUD permissions (Logical union of all groups).
+    /// Returns the aggregated permission for a single resource (logical OR across all groups).
+    /// Returns `None` if the user has no entry for that resource.
+    #[must_use]
+    pub fn permission_for(&self, resource_key: &str) -> Option<Permission> {
+        let mut merged: Option<Permission> = None;
+        for groupe in &self.groupes {
+            for perm in &groupe.permissions {
+                if perm.resource_key != resource_key {
+                    continue;
+                }
+                let entry = merged.get_or_insert_with(|| Permission {
+                    resource_key: perm.resource_key.clone(),
+                    can_create: false,
+                    can_read: false,
+                    can_update: false,
+                    can_delete: false,
+                    can_update_own: false,
+                    can_delete_own: false,
+                });
+                entry.can_create |= perm.can_create;
+                entry.can_read |= perm.can_read;
+                entry.can_update |= perm.can_update;
+                entry.can_delete |= perm.can_delete;
+                entry.can_update_own |= perm.can_update_own;
+                entry.can_delete_own |= perm.can_delete_own;
+            }
+        }
+        merged
+    }
+
+    /// Returns the effective CRUD permissions (logical OR across all groups, all resources).
     pub fn permissions_effectives(&self) -> Vec<Permission> {
         let mut agg: std::collections::HashMap<String, Permission> =
             std::collections::HashMap::new();
@@ -201,12 +231,10 @@ impl CurrentUser {
     /// Checks if the user has a strict global permission (can be refined).
     #[must_use]
     pub fn can_access_resource(&self, resource_key: &str) -> bool {
-        if self.is_superuser {
-            return true;
-        }
-        self.permissions_effectives()
-            .iter()
-            .any(|d| d.resource_key == resource_key && d.can_read)
+        self.is_superuser
+            || self
+                .permission_for(resource_key)
+                .is_some_and(|p| p.can_read)
     }
 
     /// Checks if the user can access the admin panel.

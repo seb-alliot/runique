@@ -20,7 +20,7 @@ use crate::forms::{
 };
 use crate::utils::{
     aliases::{AppResult, StrMap},
-    trad::{t, tf},
+    trad::{current_lang, t, tf},
 };
 use crate::{context_update, impl_form_access};
 
@@ -192,6 +192,7 @@ pub async fn handle_forgot_password<E: UserEntity + 'static>(
     reset_path: &str,
     base_url: Option<&str>,
 ) -> AppResult<Response> {
+    request.context.insert("lang", &current_lang().code());
     if request.is_get() {
         context_update!(request => {
             "title"       => t("reset.forgot_title").as_ref(),
@@ -263,6 +264,7 @@ pub async fn handle_password_reset<E: UserEntity + 'static>(
     encrypted_email: String,
     template: &str,
 ) -> AppResult<Response> {
+    request.context.insert("lang", &current_lang().code());
     logout(&request.session, None).await.ok();
 
     let Some(email) = crate::utils::reset_token::decrypt_email(&token, &encrypted_email) else {

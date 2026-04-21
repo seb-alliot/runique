@@ -1,4 +1,4 @@
-//! Database configuration and connection management
+//! Database configuration and connection management.
 //!
 //! This module provides flexible configuration for connecting to different
 //! databases (PostgreSQL, MySQL, MariaDB, SQLite) via SeaORM.
@@ -9,7 +9,11 @@ use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::Duration;
-/// Advanced database configuration
+
+use super::builder::DatabaseConfigBuilder;
+use super::engine::{DatabaseEngine, verify_database_driver};
+
+/// Advanced database configuration.
 ///
 /// Contains all parameters needed to establish and manage a database
 /// connection, including connection pools and timeouts.
@@ -36,98 +40,8 @@ pub struct DatabaseConfig {
     pub sqlx_logging: bool,
 }
 
-/// Database engines supported by Runique
-///
-/// Each variant corresponds to a database driver that must be
-/// enabled via Cargo features.
-///
-/// # Required Features
-///
-/// - `sqlite` - For SQLite (enabled by default)
-/// - `postgres` - For PostgreSQL
-/// - `mysql` - For MySQL
-/// - `mariadb` - For MariaDB (uses MySQL driver)
-///
-/// # Examples
-///
-/// ```
-/// use runique::prelude::DatabaseEngine;
-///
-/// let engine = DatabaseEngine::detect_from_url("postgres://localhost/db")?;
-/// assert_eq!(engine, DatabaseEngine::PostgreSQL);
-/// # Ok::<(), String>(())
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DatabaseEngine {
-    /// PostgreSQL database
-    PostgreSQL,
-    /// MySQL database
-    MySQL,
-    /// MariaDB database (MySQL-compatible)
-    MariaDB,
-    /// SQLite embedded database
-    SQLite,
-}
-
-impl DatabaseEngine {
-    /// Automatically detects the database type from a connection URL
-    ///
-    /// # Arguments
-    ///
-    /// * `url` - Database connection URL
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use runique::prelude::DatabaseEngine;
-    ///
-    /// let engine = DatabaseEngine::detect_from_url("sqlite://db.sqlite")?;
-    /// assert_eq!(engine, DatabaseEngine::SQLite);
-    ///
-    /// let engine = DatabaseEngine::detect_from_url("postgres://localhost/db")?;
-    /// assert_eq!(engine, DatabaseEngine::PostgreSQL);
-    /// # Ok::<(), String>(())
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the URL doesn't match any supported database
-    pub fn detect_from_url(url: &str) -> Result<Self, String> {
-        if url.starts_with("postgres://") || url.starts_with("postgresql://") {
-            Ok(DatabaseEngine::PostgreSQL)
-        } else if url.starts_with("mysql://") {
-            Ok(DatabaseEngine::MySQL)
-        } else if url.starts_with("mariadb://") {
-            Ok(DatabaseEngine::MariaDB)
-        } else if url.starts_with("sqlite://") {
-            Ok(DatabaseEngine::SQLite)
-        } else {
-            Err(format!("Unsupported database URL: {}", url))
-        }
-    }
-
-    /// Returns the human-readable name of the database
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use runique::prelude::DatabaseEngine;
-    ///
-    /// assert_eq!(DatabaseEngine::PostgreSQL.name(), "PostgreSQL");
-    /// assert_eq!(DatabaseEngine::SQLite.name(), "SQLite");
-    /// ```
-    pub fn name(&self) -> &'static str {
-        match self {
-            DatabaseEngine::PostgreSQL => "PostgreSQL",
-            DatabaseEngine::MySQL => "MySQL",
-            DatabaseEngine::MariaDB => "MariaDB",
-            DatabaseEngine::SQLite => "SQLite",
-        }
-    }
-}
-
 impl DatabaseConfig {
-    /// Creates a configuration from a connection URL
+    /// Creates a configuration from a connection URL.
     ///
     /// The database type is automatically detected from the URL.
     /// Default values are used for other parameters.
@@ -155,7 +69,7 @@ impl DatabaseConfig {
     ///
     /// # Errors
     ///
-    /// Returns an error if the URL is invalid or unsupported
+    /// Returns an error if the URL is invalid or unsupported.
     pub fn from_url(url: impl Into<String>) -> Result<DatabaseConfigBuilder, String> {
         let url = url.into();
         let engine = DatabaseEngine::detect_from_url(&url)?;
@@ -175,7 +89,7 @@ impl DatabaseConfig {
         })
     }
 
-    /// Creates a configuration from environment variables
+    /// Creates a configuration from environment variables.
     ///
     /// Reads configuration from a `.env` file or system environment variables.
     ///
@@ -211,17 +125,6 @@ impl DatabaseConfig {
     /// use runique::prelude::DatabaseConfig;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// // .env file — URL directe :
-    /// // DB_URL=postgres://myuser:secret@localhost:5432/mydb
-    /// // DB_MAX_CONNECTIONS=50
-    /// // DB_LOGGING=true
-    ///
-    /// // .env file — variables composantes :
-    /// // DB_ENGINE=postgres
-    /// // DB_USER=myuser
-    /// // DB_PASSWORD=secret
-    /// // DB_NAME=mydb
-    ///
     /// let config = DatabaseConfig::from_env()?.build();
     /// let db = config.connect().await?;
     /// # Ok(())
@@ -230,11 +133,11 @@ impl DatabaseConfig {
     ///
     /// # Errors
     ///
-    /// Returns an error if required variables are missing
+    /// Returns an error if required variables are missing.
     pub fn from_env() -> Result<DatabaseConfigBuilder, String> {
         dotenv().ok();
 
-        // DATABASE_URL prioritaire sur les variables composantes (compatible sea-orm-cli)
+        // DATABASE_URL takes priority over component variables (compatible with sea-orm-cli)
         let url = if let Ok(direct_url) = env::var("DATABASE_URL") {
             direct_url
         } else {
@@ -281,7 +184,6 @@ impl DatabaseConfig {
 
         let mut builder = Self::from_url(url)?;
 
-        // Pool
         if let Ok(v) = env::var("DB_MAX_CONNECTIONS")
             && let Ok(n) = v.parse::<u32>()
         {
@@ -292,8 +194,6 @@ impl DatabaseConfig {
         {
             builder.config.min_connections = n;
         }
-
-        // Timeouts
         if let Ok(v) = env::var("DB_CONNECT_TIMEOUT")
             && let Ok(n) = v.parse::<u64>()
         {
@@ -314,8 +214,6 @@ impl DatabaseConfig {
         {
             builder.config.max_lifetime = Duration::from_secs(n);
         }
-
-        // Logging
         if let Ok(v) = env::var("DB_LOGGING") {
             builder.config.sqlx_logging = matches!(v.to_lowercase().as_str(), "true" | "1" | "yes");
         }
@@ -323,7 +221,7 @@ impl DatabaseConfig {
         Ok(builder)
     }
 
-    /// Establishes connection to the database
+    /// Establishes a connection to the database.
     ///
     /// Creates a connection pool configured according to this `DatabaseConfig`.
     ///
@@ -335,8 +233,6 @@ impl DatabaseConfig {
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let config = DatabaseConfig::from_env()?.build();
     /// let db = config.connect().await?;
-    ///
-    /// // Use the connection...
     /// # Ok(())
     /// # }
     /// ```
@@ -350,7 +246,6 @@ impl DatabaseConfig {
             crate::runique_log!(level, "  Connecting to {} database...", self.engine.name());
         }
 
-        // Verification that the driver is enabled
         verify_database_driver(&self.engine).map_err(DbErr::Custom)?;
 
         let mut opt = ConnectOptions::new(&self.url);
@@ -393,231 +288,28 @@ impl DatabaseConfig {
     }
 }
 
-/// Verifies that the database driver is available
-///
-/// # Errors
-///
-/// Returns a helpful error message if the corresponding Cargo feature is not enabled
-fn verify_database_driver(engine: &DatabaseEngine) -> Result<(), String> {
-    match engine {
-        DatabaseEngine::PostgreSQL => {
-            #[cfg(not(feature = "postgres"))]
-            return Err("PostgreSQL driver not enabled.\n\n\
-                To fix this, add the 'postgres' feature to runique in your Cargo.toml:\n\n\
-                [dependencies]\n\
-                runique = { version = \"0.1\", features = [\"postgres\"] }\n\n\
-                Or enable all databases:\n\
-                runique = { version = \"0.1\", features = [\"all-databases\"] }"
-                .to_string());
-
-            #[cfg(feature = "postgres")]
-            Ok(())
-        }
-        DatabaseEngine::MySQL => {
-            #[cfg(not(feature = "mysql"))]
-            return Err("MySQL driver not enabled.\n\n\
-                To fix this, add the 'mysql' feature to runique in your Cargo.toml:\n\n\
-                [dependencies]\n\
-                runique = { version = \"0.1\", features = [\"mysql\"] }\n\n\
-                Or enable all databases:\n\
-                runique = { version = \"0.1\", features = [\"all-databases\"] }"
-                .to_string());
-
-            #[cfg(feature = "mysql")]
-            Ok(())
-        }
-        DatabaseEngine::MariaDB => {
-            #[cfg(not(feature = "mariadb"))]
-            return Err("MariaDB driver not enabled.\n\n\
-                To fix this, add the 'mariadb' feature to runique in your Cargo.toml:\n\n\
-                [dependencies]\n\
-                runique = { version = \"0.1\", features = [\"mariadb\"] }\n\n\
-                Note: MariaDB uses the MySQL driver.\n\n\
-                Or enable all databases:\n\
-                runique = { version = \"0.1\", features = [\"all-databases\"] }"
-                .to_string());
-
-            #[cfg(feature = "mariadb")]
-            Ok(())
-        }
-        DatabaseEngine::SQLite => {
-            #[cfg(not(feature = "sqlite"))]
-            return Err(
-                "To fix this, add the 'sqlite' feature to runique in your Cargo.toml:\n\n\
-                [dependencies]\n\
-                runique = { version = \"1.xx\", features = [\"sqlite\"] }
-                Note: Sqlite uses the Sqlite driver.\n\n\
-                Or enable all databases:\n\
-                runique = { version = \"0.1\", features = [\"all-databases\"]"
-                    .to_string(),
-            );
-
-            #[cfg(feature = "sqlite")]
-            Ok(())
-        }
-    }
-}
-
-/// Builder for `DatabaseConfig`
-///
-/// Allows fluent configuration of database parameters.
-///
-/// # Examples
-///
-/// ```no_run
-/// use runique::prelude::DatabaseConfig;
-/// use std::time::Duration;
-///
-/// # fn example() -> Result<(), String> {
-/// let config = DatabaseConfig::from_url("postgres://localhost/db")?
-///     .max_connections(50)
-///     .min_connections(10)
-///     .connect_timeout(Duration::from_secs(2))
-///     .logging(true)
-///     .build();
-/// # Ok(())
-/// # }
-/// ```
-pub struct DatabaseConfigBuilder {
-    config: DatabaseConfig,
-}
-
-impl DatabaseConfigBuilder {
-    /// Sets the maximum number of connections in the pool
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use runique::prelude::DatabaseConfig;
-    ///
-    /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
-    ///     .max_connections(100)
-    ///     .build();
-    /// # Ok::<(), String>(())
-    /// ```
-    pub fn max_connections(mut self, max: u32) -> Self {
-        self.config.max_connections = max;
-        self
-    }
-
-    /// Sets the minimum number of connections in the pool
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use runique::prelude::DatabaseConfig;
-    ///
-    /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
-    ///     .min_connections(5)
-    ///     .build();
-    /// # Ok::<(), String>(())
-    /// ```
-    pub fn min_connections(mut self, min: u32) -> Self {
-        self.config.min_connections = min;
-        self
-    }
-
-    /// Sets the connection timeout
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use runique::prelude::DatabaseConfig;
-    /// use std::time::Duration;
-    ///
-    /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
-    ///     .connect_timeout(Duration::from_secs(10))
-    ///     .build();
-    /// # Ok::<(), String>(())
-    /// ```
-    pub fn connect_timeout(mut self, timeout: Duration) -> Self {
-        self.config.connect_timeout = timeout;
-        self
-    }
-
-    /// Sets both minimum and maximum pool size
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use runique::prelude::DatabaseConfig;
-    ///
-    /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
-    ///     .pool_size(10, 50)
-    ///     .build();
-    /// # Ok::<(), String>(())
-    /// ```
-    pub fn pool_size(mut self, min: u32, max: u32) -> Self {
-        self.config.min_connections = min;
-        self.config.max_connections = max;
-        self
-    }
-
-    /// Enables or disables SQL query logging
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use runique::prelude::DatabaseConfig;
-    ///
-    /// let config = DatabaseConfig::from_url("postgres://localhost/db")?
-    ///     .logging(false)
-    ///     .build();
-    /// # Ok::<(), String>(())
-    /// ```
-    pub fn logging(mut self, enabled: bool) -> Self {
-        self.config.sqlx_logging = enabled;
-        self
-    }
-
-    /// Builds the final `DatabaseConfig`
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use runique::prelude::DatabaseConfig;
-    ///
-    /// let config = DatabaseConfig::from_url("sqlite://db.sqlite")?
-    ///     .build();
-    /// # Ok::<(), String>(())
-    /// ```
-    pub fn build(self) -> DatabaseConfig {
-        self.config
-    }
-}
-
-/// Masks the password in a URL for logging purposes
+/// Masks the password in a URL for logging purposes.
 fn mask_password(url: &str) -> String {
-    // Checks the "://" protocol
     let Some(idx) = url.find("://") else {
         return url.to_string();
     };
-
-    // Calculates indices safely
     let protocol_end = idx
         .checked_add(3)
         .and_then(|x| if x <= url.len() { Some(x) } else { None });
     let Some(after_protocol) = protocol_end else {
         return url.to_string();
     };
-
-    // Searches for '@' after the protocol
     let Some(at_idx) = url[after_protocol..].find('@') else {
         return url.to_string();
     };
     let at_pos = after_protocol.saturating_add(at_idx);
-
-    // Extracts parts
     let before = &url[..after_protocol];
     let after = &url[at_pos..];
-
-    // Searches for ':' in credentials
     let creds = &url[after_protocol..at_pos];
     let Some(colon) = creds.find(':') else {
         return url.to_string();
     };
     let user = &creds[..colon];
-
     format!("{}{}:****{}", before, user, after)
 }
 

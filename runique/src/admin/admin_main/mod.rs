@@ -14,7 +14,7 @@ use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::{
     aliases::{AppResult, StrMap},
-    constante::admin_context::common as ctx_common,
+    constante::admin_context::{common as ctx_common, permission as ctx_perm},
     session_key::session::CSRF_TOKEN_KEY,
     trad::{current_lang, t},
 };
@@ -265,13 +265,38 @@ pub(super) fn inject_context(
     for (k, v) in &entry.meta.extra_context {
         req.context.insert(k, v);
     }
+
+    let (can_create, can_read, can_update, can_delete, can_update_own, can_delete_own) =
+        if current_user.is_superuser {
+            (true, true, true, true, true, true)
+        } else {
+            match current_user.permission_for(entry.meta.key) {
+                Some(p) => (
+                    p.can_create,
+                    p.can_read,
+                    p.can_update,
+                    p.can_delete,
+                    p.can_update_own,
+                    p.can_delete_own,
+                ),
+                None => (false, false, false, false, false, false),
+            }
+        };
+    req.context.insert(ctx_perm::CAN_CREATE, &can_create);
+    req.context.insert(ctx_perm::CAN_READ, &can_read);
+    req.context.insert(ctx_perm::CAN_UPDATE, &can_update);
+    req.context.insert(ctx_perm::CAN_DELETE, &can_delete);
+    req.context
+        .insert(ctx_perm::CAN_UPDATE_OWN, &can_update_own);
+    req.context
+        .insert(ctx_perm::CAN_DELETE_OWN, &can_delete_own);
 }
 
 fn check_write_access(user: &CurrentUser, resource_key: &str) -> bool {
     user.is_superuser
-        || user.permissions_effectives().iter().any(|d| {
-            d.resource_key == resource_key && (d.can_create || d.can_update || d.can_delete)
-        })
+        || user
+            .permission_for(resource_key)
+            .is_some_and(|p| p.can_create || p.can_update || p.can_delete)
 }
 
 async fn permission_denied(
