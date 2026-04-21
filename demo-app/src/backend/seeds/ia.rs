@@ -108,7 +108,7 @@ pub async fn seed_ia(db: &DatabaseConnection) {
         .unwrap_or_default();
 
     for (i, c) in cours.iter().enumerate() {
-        let context = build_context(c.id.try_into().unwrap(), db).await;
+        let context = build_context(c.id, db).await;
 
         if context.is_empty() {
             tracing::warn!(
@@ -121,8 +121,8 @@ pub async fn seed_ia(db: &DatabaseConnection) {
         let cour_ia_model = cour_ia::ActiveModel {
             context: Set(context),
             contraintes: Set(String::new()),
-            contrainte_id: Set(inserted_contrainte.id.try_into().unwrap()),
-            cour_id: Set(c.id.try_into().unwrap()),
+            contrainte_id: Set(inserted_contrainte.id),
+            cour_id: Set(c.id),
             sort_order: Set(i as i32 + 1),
             ..Default::default()
         };
