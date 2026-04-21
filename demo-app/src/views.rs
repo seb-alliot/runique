@@ -565,7 +565,8 @@ pub async fn llms_full_txt() -> &'static str {
         ### Type-safe Forms\n\
         Declare forms manually or derive them from a SeaORM schema with `#[form]`.\n\
         Fields: TextField, NumericField, BooleanField, ChoiceField, DateField, FileField, and more.\n\
-        CSRF protection is built-in and automatic via the Prisme extractor.\n\
+        CSRF protection is built-in and automatic via the Prisme extractor\n\
+        (Prisme is Runique's typed request extractor — it parses body, path, and query into a typed form struct).\n\
         \n\
         ### Auto-generated Admin\n\
         Declare resources with the `admin!{}` macro. Runique generates full CRUD routes,\n\
@@ -573,7 +574,7 @@ pub async fn llms_full_txt() -> &'static str {
         Templates are overridable via the builder.\n\
         \n\
         ### Middleware\n\
-        - CSRF (Prisme extractor pattern)\n\
+        - CSRF (via Prisme, Runique's typed request extractor)\n\
         - CSP (Content Security Policy with nonce)\n\
         - Session (memory store with optional DB persistence)\n\
         - Rate limiter (sliding window per IP)\n\
@@ -582,7 +583,7 @@ pub async fn llms_full_txt() -> &'static str {
         - HTTPS redirect\n\
         \n\
         ### Auth\n\
-        Built-in user model (eihwaz_users), login/logout helpers, session persistence,\n\
+        Built-in user model stored in the `eihwaz_users` table (Runique's internal user table), login/logout helpers, session persistence,\n\
         exclusive session (one session per user), password reset via email.\n\
         \n\
         ### Migrations\n\
