@@ -589,7 +589,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            contribution::admin_from_form(&data, Some(id))
+            contribution::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -970,7 +970,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            blog::admin_from_form(&data, Some(id))
+            blog::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1406,7 +1406,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            changelog_entry::admin_from_form(&data, Some(id))
+            changelog_entry::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1916,7 +1916,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            roadmap_entry::admin_from_form(&data, Some(id))
+            roadmap_entry::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -2506,7 +2506,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            known_issue::admin_from_form(&data, Some(id))
+            known_issue::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -2911,7 +2911,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            demo_category::admin_from_form(&data, Some(id))
+            demo_category::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3083,7 +3083,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            demo_page::admin_from_form(&data, Some(id))
+            demo_page::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3558,7 +3558,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            demo_section::admin_from_form(&data, Some(id))
+            demo_section::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3948,7 +3948,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            code_example::admin_from_form(&data, Some(id))
+            code_example::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -4428,7 +4428,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            page_doc_link::admin_from_form(&data, Some(id))
+            page_doc_link::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -4874,7 +4874,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            form_field::admin_from_form(&data, Some(id))
+            form_field::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5412,7 +5412,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            doc_section::admin_from_form(&data, Some(id))
+            doc_section::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5700,7 +5700,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            doc_page::admin_from_form(&data, Some(id))
+            doc_page::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6182,7 +6182,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            doc_block::admin_from_form(&data, Some(id))
+            doc_block::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6584,7 +6584,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            site_config::admin_from_form(&data, Some(id))
+            site_config::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6761,7 +6761,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            cour::admin_from_form(&data, Some(id))
+            cour::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7284,7 +7284,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            chapitre::admin_from_form(&data, Some(id))
+            chapitre::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7657,7 +7657,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            cour_block::admin_from_form(&data, Some(id))
+            cour_block::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -8029,7 +8029,7 @@ pub fn admin_register() -> AdminRegistry {
             let id = id
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
-            runique_release::admin_from_form(&data, Some(id))
+            runique_release::admin_from_form(&data, Some(id.into()))
                 .update(&*db)
                 .await
                 .map(|_| ())

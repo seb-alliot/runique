@@ -48,7 +48,7 @@ impl ContributionForm {
         user_pk: Pk,
     ) -> Result<crate::entities::contribution::Model, DbErr> {
         let new_contribution = crate::entities::contribution::ActiveModel {
-            user_id: Set(user_pk),
+            user_id: Set(user_pk.try_into().unwrap()),
             contribution_type: Set(self
                 .cleaned_string("contribution_type")
                 .unwrap_or_default()
