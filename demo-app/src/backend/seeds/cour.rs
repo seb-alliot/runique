@@ -537,7 +537,7 @@ pub async fn seed_cours(db: &DatabaseConnection) {
             let chap_slug = format!("{}-{}", def.slug, slugify(&chap_title));
 
             let chapitre_model = chapitre::ActiveModel {
-                cour_id: Set(inserted_cour.id.try_into().unwrap()),
+                cour_id: Set(inserted_cour.id),
                 slug: Set(chap_slug.clone()),
                 title: Set(chap_title.clone()),
                 lead: Set(None),
@@ -557,7 +557,7 @@ pub async fn seed_cours(db: &DatabaseConnection) {
 
             for (blk_order, (heading, blk_content, blk_type)) in blocs.into_iter().enumerate() {
                 let block_model = cour_block::ActiveModel {
-                    chapitre_id: Set(inserted_chapitre.id.try_into().unwrap()),
+                    chapitre_id: Set(inserted_chapitre.id),
                     heading: Set(heading),
                     content: Set(blk_content),
                     block_type: Set(blk_type.to_string()),
