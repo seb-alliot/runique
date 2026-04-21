@@ -29,10 +29,8 @@ audit.ps1
 check.ps1
 CLAUDE.md
 Dockerfile
-reflexion.md
-demo-app/PROGRESS.md
-demo-app/runique.dump
 .playwright-mcp
 .mcp.json
-/graphify-out/
 server.md
+architecture_quick.md
+CLAUDE.md
