@@ -79,11 +79,12 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
 
     let public_router = login_get_route.merge(login_post_route);
 
-    // Protected routes (dashboard + logout)
+    // Protected routes (dashboard + logout + history)
     let protected_router = urlpatterns! {
         &format!("{prefix}/") => get(admin_dashboard), name = "admin_dashboard",
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
         &format!("{prefix}/logout") => get(admin_logout), name = "admin_logout",
+        &format!("{prefix}/history") => get(admin_history), name = "admin_history",
     };
 
     // Generated CRUD routes (also protected)
@@ -381,6 +382,66 @@ async fn admin_login_post(
         req.render(admin.config.templates.login.resolve())
             .unwrap_or_else(axum::response::IntoResponse::into_response)
     }
+}
+
+async fn admin_history(
+    Extension(admin): Extension<Arc<AdminState>>,
+    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
+    proto: Option<Extension<Arc<PrototypeAdminState>>>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+    mut req: Request,
+) -> AppResult<Response> {
+    use crate::admin::history;
+    use sea_orm::{EntityTrait, PaginatorTrait, QueryOrder};
+
+    if !current_user.is_staff && !current_user.is_superuser {
+        req.notices
+            .error(t("admin.access.insufficient_rights").to_string())
+            .await;
+        return Ok(
+            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
+        );
+    }
+
+    let page = params
+        .get("page")
+        .and_then(|p| p.parse::<u64>().ok())
+        .unwrap_or(1)
+        .max(1);
+    const PER_PAGE: u64 = 50;
+
+    let paginator = history::Entity::find()
+        .order_by_desc(history::Column::CreatedAt)
+        .paginate(req.engine.db.as_ref(), PER_PAGE);
+
+    let total_pages = paginator.num_pages().await.unwrap_or(1);
+    let entries = paginator.fetch_page(page - 1).await.unwrap_or_default();
+
+    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
+        state
+            .registry
+            .all()
+            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
+            .map(|e| &e.meta)
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    insert_admin_messages(&mut req.context, "base");
+    req = req
+        .insert("entries", &entries)
+        .insert("page", page)
+        .insert("total_pages", total_pages)
+        .insert("current_page", "history")
+        .insert("current_resource", &Option::<String>::None)
+        .insert("resources", &resources)
+        .insert("current_user", &current_user)
+        .insert("site_title", &admin.config.site_title)
+        .insert("site_url", &admin.config.site_url)
+        .insert("lang", current_lang().code());
+
+    req.render("admin/history")
 }
 
 async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request) -> Response {

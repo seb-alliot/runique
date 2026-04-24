@@ -44,6 +44,17 @@
                 {% endfor %}
             {% endif %}
 
+            {% if current_user and (current_user.is_staff or current_user.is_superuser) %}
+                <div class="nav-divider"></div>
+                <a href="/admin/history" class="nav-item{% if current_page | default(value='') == 'history' %} active{% endif %}">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span class="nav-label">Historique</span>
+                </a>
+            {% endif %}
+
         </nav>
 
         <div class="sidebar-footer">

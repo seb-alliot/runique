@@ -13,6 +13,7 @@ pub mod trad;
 
 pub mod builtin;
 pub mod forms;
+pub mod history;
 
 // Used by daemon-generated code in user projects (external crate) — must stay pub
 pub use admin_main::{PrototypeAdminState, admin_get, admin_get_id, admin_post, admin_post_id};

@@ -153,7 +153,9 @@ pub async fn admin_post(
         return Ok(permission_denied(&req.notices, &state.config.prefix, &resource_key).await);
     }
     match action.as_str() {
-        "create" => handle_create_post(&mut req, entry, body, &headers, &state).await,
+        "create" => {
+            handle_create_post(&mut req, entry, body, &headers, &state, &current_user).await
+        }
         "bulk" => handle_bulk_action(&mut req, entry, body, &state, &resource_key).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown action",
@@ -217,8 +219,8 @@ pub async fn admin_post_id(
     }
 
     match action.as_str() {
-        "edit" => handle_edit_post(&mut req, entry, id, body, &state).await,
-        "delete" => handle_delete_post(&mut req, entry, id, &state).await,
+        "edit" => handle_edit_post(&mut req, entry, id, body, &state, &current_user).await,
+        "delete" => handle_delete_post(&mut req, entry, id, &state, &current_user).await,
         "reset-password" => handle_reset_password(&mut req, entry, id, &headers, &state).await,
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown action",

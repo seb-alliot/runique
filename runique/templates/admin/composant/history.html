@@ -1,0 +1,95 @@
+{% extends "admin_base" %}
+{% block title %}Historique{% endblock %}
+{% block breadcrumb %}
+  <span class="breadcrumb-sep">/</span>
+  <span>Historique</span>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Historique des actions</h1>
+    <p class="page-subtitle">Toutes les créations, modifications et suppressions effectuées via l'admin.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="admin-table-wrapper">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Utilisateur</th>
+          <th>Ressource</th>
+          <th>Objet</th>
+          <th>Action</th>
+          <th>Résumé</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if entries %}
+          {% for entry in entries %}
+          <tr>
+            <td style="white-space:nowrap">{{ entry.created_at }}</td>
+            <td><span class="id-badge">{{ entry.username }}</span></td>
+            <td>{{ entry.resource_key }}</td>
+            <td>
+              {% if entry.object_pk and entry.object_pk != "" %}
+                <span class="id-badge">{{ entry.object_pk }}</span>
+              {% else %}
+                <span style="color:var(--text-muted)">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if entry.action == "create" %}
+                <span class="badge badge-green">créé</span>
+              {% elif entry.action == "edit" %}
+                <span class="badge badge-blue">modifié</span>
+              {% elif entry.action == "delete" %}
+                <span class="badge badge-red">supprimé</span>
+              {% else %}
+                <span class="badge">{{ entry.action }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if entry.summary %}
+                <details>
+                  <summary style="cursor:pointer;color:var(--text-muted);font-size:.8rem">Voir diff</summary>
+                  <pre style="font-size:.75rem;margin-top:.4rem;white-space:pre-wrap;word-break:break-all">{{ entry.summary }}</pre>
+                </details>
+              {% else %}
+                <span style="color:var(--text-muted)">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <p class="empty-state-title">Aucune action enregistrée</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if total_pages > 1 %}
+<div class="pagination" style="margin-top:1rem;display:flex;gap:.5rem;justify-content:center">
+  {% if page > 1 %}
+    <a href="?page={{ page - 1 }}" class="btn btn-secondary btn-sm">← Précédent</a>
+  {% endif %}
+  <span style="align-self:center;color:var(--text-muted);font-size:.85rem">Page {{ page }} / {{ total_pages }}</span>
+  {% if page < total_pages %}
+    <a href="?page={{ page + 1 }}" class="btn btn-secondary btn-sm">Suivant →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
