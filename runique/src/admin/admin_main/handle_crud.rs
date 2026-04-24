@@ -1,4 +1,6 @@
 use crate::admin::helper::resource_entry::ResourceEntry;
+use crate::admin::history;
+use crate::auth::session::CurrentUser;
 use crate::context::template::{AppError, Request};
 use crate::errors::error::ErrorContext;
 use crate::utils::{
@@ -102,6 +104,7 @@ pub(super) async fn handle_create_post(
     mut body: StrMap,
     headers: &axum::http::HeaderMap,
     state: &super::PrototypeAdminState,
+    current_user: &CurrentUser,
 ) -> AppResult<Response> {
     if entry.meta.inject_password && body.get("password").is_some_and(|p| p.is_empty()) {
         let temp_pw = uuid::Uuid::new_v4().to_string();
@@ -168,6 +171,17 @@ pub(super) async fn handle_create_post(
                 return req.render(template);
             }
         }
+
+        history::log_admin_action(
+            &req.engine.db,
+            current_user.id,
+            &current_user.username,
+            entry.meta.key,
+            "",
+            "create",
+            None,
+        )
+        .await;
 
         if entry.meta.inject_password
             && let Some(email) = body_for_create.get("email")
@@ -274,6 +288,7 @@ pub(super) async fn handle_edit_post(
     id: String,
     body: StrMap,
     state: &super::PrototypeAdminState,
+    current_user: &CurrentUser,
 ) -> AppResult<Response> {
     let mut body_for_update = body.clone();
     let orig_updated_at = body_for_update.remove("__original_updated_at");
@@ -305,11 +320,23 @@ pub(super) async fn handle_edit_post(
     .await;
 
     let mut is_locked = false;
+    let is_form_valid = form.is_valid().await;
 
-    if form.is_valid().await
+    let old_obj: Option<Value> = if is_form_valid {
+        if let Some(get_fn) = &entry.get_fn {
+            get_fn(req.engine.db.clone(), id.clone())
+                .await
+                .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    if is_form_valid
         && let Some(orig_ts) = &orig_updated_at
-        && let Some(get_fn) = &entry.get_fn
-        && let Ok(Some(current_obj)) = get_fn(req.engine.db.clone(), id.clone()).await
+        && let Some(current_obj) = &old_obj
         && let Some(current_ts) = current_obj.get("updated_at").and_then(|v| v.as_str())
         && current_ts != orig_ts
     {
@@ -319,6 +346,9 @@ pub(super) async fn handle_edit_post(
     }
 
     if !is_locked && !form.get_form().has_errors() {
+        let summary = old_obj
+            .as_ref()
+            .and_then(|v| history::diff_fields(v, &body_for_update));
         let result = match &entry.update_fn {
             Some(f) => f(req.engine.db.clone(), id.clone(), body_for_update).await,
             None => form.save(&req.engine.db).await,
@@ -329,6 +359,16 @@ pub(super) async fn handle_edit_post(
                 return Err(Box::new(AppError::new(ErrorContext::database(e))));
             }
         } else {
+            history::log_admin_action(
+                &req.engine.db,
+                current_user.id,
+                &current_user.username,
+                entry.meta.key,
+                &id,
+                "edit",
+                summary,
+            )
+            .await;
             req.notices
                 .success(t("admin.edit.success").to_string())
                 .await;
@@ -386,6 +426,7 @@ pub(super) async fn handle_delete_post(
     entry: &ResourceEntry,
     id: String,
     state: &super::PrototypeAdminState,
+    current_user: &CurrentUser,
 ) -> AppResult<Response> {
     let delete_fn = entry.delete_fn.as_ref().ok_or_else(|| {
         Box::new(AppError::new(ErrorContext::not_found(
@@ -393,9 +434,20 @@ pub(super) async fn handle_delete_post(
         )))
     })?;
 
-    delete_fn(req.engine.db.clone(), id)
+    delete_fn(req.engine.db.clone(), id.clone())
         .await
         .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?;
+
+    history::log_admin_action(
+        &req.engine.db,
+        current_user.id,
+        &current_user.username,
+        entry.meta.key,
+        &id,
+        "delete",
+        None,
+    )
+    .await;
 
     req.notices
         .success(t("admin.delete.success").to_string())
