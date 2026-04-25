@@ -21,6 +21,31 @@ pub struct Permission {
     pub can_delete_own: bool,
 }
 
+impl Permission {
+    /// Creates a zeroed permission entry for a given resource key.
+    pub fn zeroed(resource_key: String) -> Self {
+        Self {
+            resource_key,
+            can_create: false,
+            can_read: false,
+            can_update: false,
+            can_delete: false,
+            can_update_own: false,
+            can_delete_own: false,
+        }
+    }
+
+    /// Merges `other` into `self` with logical OR on every CRUD flag.
+    pub fn merge_from(&mut self, other: &Self) {
+        self.can_create |= other.can_create;
+        self.can_read |= other.can_read;
+        self.can_update |= other.can_update;
+        self.can_delete |= other.can_delete;
+        self.can_update_own |= other.can_update_own;
+        self.can_delete_own |= other.can_delete_own;
+    }
+}
+
 /// Group (includes its permissions per resource).
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Groupe {

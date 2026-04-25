@@ -7,3 +7,4 @@
 
 pub mod test_context_helper;
 pub mod test_register_url;
+pub mod test_router_ext;

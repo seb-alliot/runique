@@ -172,59 +172,22 @@ impl CurrentUser {
     /// Returns `None` if the user has no entry for that resource.
     #[must_use]
     pub fn permission_for(&self, resource_key: &str) -> Option<Permission> {
-        let mut merged: Option<Permission> = None;
-        for groupe in &self.groupes {
-            for perm in &groupe.permissions {
-                if perm.resource_key != resource_key {
-                    continue;
-                }
-                let entry = merged.get_or_insert_with(|| Permission {
-                    resource_key: perm.resource_key.clone(),
-                    can_create: false,
-                    can_read: false,
-                    can_update: false,
-                    can_delete: false,
-                    can_update_own: false,
-                    can_delete_own: false,
-                });
-                entry.can_create |= perm.can_create;
-                entry.can_read |= perm.can_read;
-                entry.can_update |= perm.can_update;
-                entry.can_delete |= perm.can_delete;
-                entry.can_update_own |= perm.can_update_own;
-                entry.can_delete_own |= perm.can_delete_own;
-            }
-        }
-        merged
+        self.permissions_effectives()
+            .into_iter()
+            .find(|p| p.resource_key == resource_key)
     }
 
     /// Returns the effective CRUD permissions (logical OR across all groups, all resources).
     pub fn permissions_effectives(&self) -> Vec<Permission> {
         let mut agg: std::collections::HashMap<String, Permission> =
             std::collections::HashMap::new();
-
         for groupe in &self.groupes {
             for perm in &groupe.permissions {
-                let entry = agg
-                    .entry(perm.resource_key.clone())
-                    .or_insert_with(|| Permission {
-                        resource_key: perm.resource_key.clone(),
-                        can_create: false,
-                        can_read: false,
-                        can_update: false,
-                        can_delete: false,
-                        can_update_own: false,
-                        can_delete_own: false,
-                    });
-                entry.can_create |= perm.can_create;
-                entry.can_read |= perm.can_read;
-                entry.can_update |= perm.can_update;
-                entry.can_delete |= perm.can_delete;
-                entry.can_update_own |= perm.can_update_own;
-                entry.can_delete_own |= perm.can_delete_own;
+                agg.entry(perm.resource_key.clone())
+                    .or_insert_with(|| Permission::zeroed(perm.resource_key.clone()))
+                    .merge_from(perm);
             }
         }
-
         agg.into_values().collect()
     }
 
@@ -248,6 +211,15 @@ impl CurrentUser {
 // Session helpers
 // ═══════════════════════════════════════════════════════════════
 
+async fn session_bool(session: &Session, key: &str) -> bool {
+    session
+        .get::<bool>(key)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false)
+}
+
 /// Checks if the user is authenticated.
 pub async fn is_authenticated(session: &Session) -> bool {
     session
@@ -260,25 +232,9 @@ pub async fn is_authenticated(session: &Session) -> bool {
 
 /// Checks if the user is authenticated and has admin access.
 pub async fn is_admin_authenticated(session: &Session) -> bool {
-    if !is_authenticated(session).await {
-        return false;
-    }
-
-    let is_staff = session
-        .get::<bool>(SESSION_USER_IS_STAFF_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or(false);
-
-    let is_superuser = session
-        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or(false);
-
-    is_staff || is_superuser
+    is_authenticated(session).await
+        && (session_bool(session, SESSION_USER_IS_STAFF_KEY).await
+            || session_bool(session, SESSION_USER_IS_SUPERUSER_KEY).await)
 }
 
 /// Retrieves the ID of the logged-in user.
@@ -445,15 +401,7 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
 ///
 /// Superusers always have access (bypass).
 pub async fn has_permission(session: &Session, permission: &str) -> bool {
-    // Superuser bypass
-    let is_superuser = session
-        .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or(false);
-
-    if is_superuser {
+    if session_bool(session, SESSION_USER_IS_SUPERUSER_KEY).await {
         return true;
     }
 
@@ -519,19 +467,8 @@ pub async fn load_user_middleware(
     if let (Some(user_id), Some(username)) =
         (get_user_id(&session).await, get_username(&session).await)
     {
-        let is_staff = session
-            .get::<bool>(SESSION_USER_IS_STAFF_KEY)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or(false);
-
-        let is_superuser = session
-            .get::<bool>(SESSION_USER_IS_SUPERUSER_KEY)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or(false);
+        let is_staff = session_bool(&session, SESSION_USER_IS_STAFF_KEY).await;
+        let is_superuser = session_bool(&session, SESSION_USER_IS_SUPERUSER_KEY).await;
 
         // Groups from cache — DB reload if cache is empty (after clear_cache)
         let groupes = match get_permissions(user_id) {
