@@ -73,71 +73,28 @@ fn write_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), String> 
         .unwrap_or(&format!("{}::AdminForm", module))
         .to_string();
     let wrapper = format!("{}AdminFormDynWrapper", pascal_case(&module));
-
-    let _ = writeln!(out, "// ── DynForm wrapper for {}::AdminForm ──", module);
-    let _ = writeln!(out, "struct {}(pub {});", wrapper, form_path);
-    let _ = writeln!(out);
-    let _ = writeln!(out, "#[async_trait]");
-    let _ = writeln!(out, "impl DynForm for {} {{", wrapper);
-    let _ = writeln!(out, "    async fn is_valid(&mut self) -> bool {{");
-    let _ = writeln!(out, "        self.0.is_valid().await");
-    let _ = writeln!(out, "    }}");
-    let _ = writeln!(out);
-    let _ = writeln!(
+    write_dyn_form_wrapper(
         out,
-        "    async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {{"
-    );
-    let _ = writeln!(out, "        self.0.save(db).await");
-    let _ = writeln!(out, "    }}");
-    let _ = writeln!(out);
-    let _ = writeln!(out, "    fn get_form(&self) -> &Forms {{");
-    let _ = writeln!(out, "        self.0.get_form()");
-    let _ = writeln!(out, "    }}");
-    let _ = writeln!(out);
-    let _ = writeln!(out, "    fn get_form_mut(&mut self) -> &mut Forms {{");
-    let _ = writeln!(out, "        self.0.get_form_mut()");
-    let _ = writeln!(out, "    }}");
-    let _ = writeln!(out, "}}");
-    let _ = writeln!(out);
-
-    Ok(())
+        &format!("DynForm wrapper for {}::AdminForm", module),
+        &wrapper,
+        &form_path,
+        "db",
+        "self.0.save(db).await",
+    )
 }
 
 fn write_edit_dyn_form_impl(out: &mut String, r: &ResourceDef) -> Result<(), String> {
     let edit_form_path = r.edit_form_type.as_ref().unwrap();
-    let type_name = edit_form_path.split("::").last().unwrap_or(edit_form_path);
     let module = model_to_module(&r.model_type);
     let wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
-
-    let _ = writeln!(out, "// ── DynForm edit wrapper for {} ──", edit_form_path);
-    let _ = writeln!(out, "struct {}(pub {});", wrapper, edit_form_path);
-    let _ = writeln!(out);
-    let _ = writeln!(out, "#[async_trait]");
-    let _ = writeln!(out, "impl DynForm for {} {{", wrapper);
-    let _ = writeln!(out, "    async fn is_valid(&mut self) -> bool {{");
-    let _ = writeln!(out, "        self.0.is_valid().await");
-    let _ = writeln!(out, "    }}");
-    let _ = writeln!(out);
-    let _ = writeln!(
+    write_dyn_form_wrapper(
         out,
-        "    async fn save(&mut self, _db: &DatabaseConnection) -> Result<(), DbErr> {{"
-    );
-    let _ = writeln!(out, "        Ok(()) // update_fn handles persistence");
-    let _ = writeln!(out, "    }}");
-    let _ = writeln!(out);
-    let _ = writeln!(out, "    fn get_form(&self) -> &Forms {{");
-    let _ = writeln!(out, "        self.0.get_form()");
-    let _ = writeln!(out, "    }}");
-    let _ = writeln!(out);
-    let _ = writeln!(out, "    fn get_form_mut(&mut self) -> &mut Forms {{");
-    let _ = writeln!(out, "        self.0.get_form_mut()");
-    let _ = writeln!(out, "    }}");
-    let _ = writeln!(out, "}}");
-    let _ = writeln!(out);
-
-    let _ = type_name;
-
-    Ok(())
+        &format!("DynForm edit wrapper for {}", edit_form_path),
+        &wrapper,
+        edit_form_path,
+        "_db",
+        "Ok(()) // update_fn handles persistence",
+    )
 }
 
 fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), String> {
@@ -159,51 +116,17 @@ fn write_admin_register(out: &mut String, parsed: &ParsedAdmin) -> Result<(), St
         write_resource_entry(out, r)?;
     }
 
-    // Applies configure{} : overrides the DisplayConfig and group_actions of any resource
+    // Applies configure{}: overrides the DisplayConfig and group_actions of any resource
     for cfg in &parsed.configures {
         let has_display = !cfg.list_display.is_empty()
             || !cfg.list_exclude.is_empty()
             || !cfg.list_filter.is_empty();
         if has_display {
-            let mut chain = "DisplayConfig::new()".to_string();
-            if !cfg.list_display.is_empty() {
-                let cols = cfg
-                    .list_display
-                    .iter()
-                    .map(|(c, l)| format!("(\"{}\", \"{}\")", c, l))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                chain.push_str(&format!(".columns_include(vec![{}])", cols));
-            }
-            if !cfg.list_exclude.is_empty() {
-                let cols = cfg
-                    .list_exclude
-                    .iter()
-                    .map(|c| format!("\"{}\"", c))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                chain.push_str(&format!(".columns_exclude(vec![{}])", cols));
-            }
-            if !cfg.list_filter.is_empty() {
-                let filters = cfg
-                    .list_filter
-                    .iter()
-                    .map(|(col, label, limit)| {
-                        format!("(\"{}\", \"{}\", {}u64)", col, label, limit)
-                    })
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                chain.push_str(&format!(".list_filter(vec![{}])", filters));
-            }
+            let chain = build_display_chain(&cfg.list_display, &cfg.list_exclude, &cfg.list_filter);
             let _ = writeln!(out, "    registry.configure(\"{}\", {});", cfg.key, chain);
         }
         if !cfg.group_action.is_empty() {
-            let actions_str = cfg
-                .group_action
-                .iter()
-                .map(|(f, l)| format!("GroupAction::bool(\"{}\", \"{}\")", f, l))
-                .collect::<Vec<_>>()
-                .join(", ");
+            let actions_str = build_group_actions_str(&cfg.group_action);
             let _ = writeln!(
                 out,
                 "    registry.configure_group_actions(\"{}\", vec![{}]);",
@@ -321,24 +244,9 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     }
 
     // FormBuilder closure
-    let _ = writeln!(
-        out,
-        "    let form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {{"
-    );
-    let _ = writeln!(out, "        Box::pin(async move {{");
-    let _ = writeln!(
-        out,
-        "            let form = {}::build_with_data(&data, tera, &csrf, method).await;",
-        form_path
-    );
-    let _ = writeln!(
-        out,
-        "            Box::new({}(form)) as Box<dyn DynForm>",
-        wrapper
-    );
-    let _ = writeln!(out, "        }})");
-    let _ = writeln!(out, "    }});");
-    let _ = writeln!(out);
+    write_form_builder_closure(out, "form_builder", &form_path, &wrapper);
+
+    // ListFn closure
     let _ = writeln!(
         out,
         "    let list_fn: ListFn = Arc::new(|db: ADb, params: ListParams| {{"
@@ -388,20 +296,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         out,
         "                let mut search_cond = sea_orm::Condition::any();"
     );
-    if r.list_display.is_empty() {
-        let _ = writeln!(
-            out,
-            "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"id\", escaped)));"
-        );
-    } else {
-        for (col, _) in &r.list_display {
-            let _ = writeln!(
-                out,
-                "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"{}\", escaped)));",
-                col
-            );
-        }
-    }
+    write_search_conditions(out, &r.list_display);
     let _ = writeln!(out, "                query = query.filter(search_cond);");
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
@@ -442,20 +337,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         out,
         "                let mut search_cond = sea_orm::Condition::any();"
     );
-    if r.list_display.is_empty() {
-        let _ = writeln!(
-            out,
-            "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"id\", escaped)));"
-        );
-    } else {
-        for (col, _) in &r.list_display {
-            let _ = writeln!(
-                out,
-                "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"{}\", escaped)));",
-                col
-            );
-        }
-    }
+    write_search_conditions(out, &r.list_display);
     let _ = writeln!(out, "                query = query.filter(search_cond);");
     let _ = writeln!(out, "            }}");
     let _ = writeln!(out, "            query.count(&*db).await");
@@ -548,57 +430,13 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     // EditFormBuilder closure (optional)
     if let Some(ref edit_form_path) = r.edit_form_type {
         let edit_wrapper = format!("{}EditFormDynWrapper", pascal_case(&module));
-        let _ = writeln!(
-            out,
-            "    let edit_form_builder: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {{"
-        );
-        let _ = writeln!(out, "        Box::pin(async move {{");
-        let _ = writeln!(
-            out,
-            "            let form = {}::build_with_data(&data, tera, &csrf, method).await;",
-            edit_form_path
-        );
-        let _ = writeln!(
-            out,
-            "            Box::new({}(form)) as Box<dyn DynForm>",
-            edit_wrapper
-        );
-        let _ = writeln!(out, "        }})");
-        let _ = writeln!(out, "    }});");
-        let _ = writeln!(out);
+        write_form_builder_closure(out, "edit_form_builder", edit_form_path, &edit_wrapper);
     }
 
     // DisplayConfig with list_display, list_exclude and/or list_filter if configured
     if !r.list_display.is_empty() || !r.list_exclude.is_empty() || !r.list_filter.is_empty() {
-        let mut display_chain = "DisplayConfig::new()".to_string();
-        if !r.list_display.is_empty() {
-            let cols_str = r
-                .list_display
-                .iter()
-                .map(|(c, l)| format!("(\"{}\", \"{}\")", c, l))
-                .collect::<Vec<_>>()
-                .join(", ");
-            display_chain.push_str(&format!(".columns_include(vec![{}])", cols_str));
-        }
-        if !r.list_exclude.is_empty() {
-            let cols_str = r
-                .list_exclude
-                .iter()
-                .map(|c| format!("\"{}\"", c))
-                .collect::<Vec<_>>()
-                .join(", ");
-            display_chain.push_str(&format!(".columns_exclude(vec![{}])", cols_str));
-        }
-        if !r.list_filter.is_empty() {
-            let filter_str = r
-                .list_filter
-                .iter()
-                .map(|(col, label, limit)| format!("(\"{}\", \"{}\", {}u64)", col, label, limit))
-                .collect::<Vec<_>>()
-                .join(", ");
-            display_chain.push_str(&format!(".list_filter(vec![{}])", filter_str));
-        }
-        let _ = writeln!(out, "    let meta = meta.display({});", display_chain);
+        let chain = build_display_chain(&r.list_display, &r.list_exclude, &r.list_filter);
+        let _ = writeln!(out, "    let meta = meta.display({});", chain);
     }
 
     // FilterFn closure (distinct values for each configured column)
@@ -679,8 +517,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
     }
 
     let _ = writeln!(out, "    registry.register(");
-    let has_edit_form = r.edit_form_type.is_some();
-    if has_edit_form {
+    if r.edit_form_type.is_some() {
         let _ = writeln!(out, "        ResourceEntry::new(meta, form_builder)");
         let _ = writeln!(
             out,
@@ -703,12 +540,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         let _ = writeln!(out, "            .with_filter_fn(filter_fn)");
     }
     if !r.group_action.is_empty() {
-        let actions_str = r
-            .group_action
-            .iter()
-            .map(|(f, l)| format!("GroupAction::bool(\"{}\", \"{}\")", f, l))
-            .collect::<Vec<_>>()
-            .join(", ");
+        let actions_str = build_group_actions_str(&r.group_action);
         let _ = writeln!(
             out,
             "            .with_group_actions(vec![{}])",
@@ -720,6 +552,133 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
 
     Ok(())
 }
+
+// ─── Code generation helpers ─────────────────────────────────────────────────
+
+/// Emits a complete `DynForm` impl block for a wrapper struct.
+/// `save_param` is the parameter name ("db" or "_db"), `save_body` is the return expression.
+fn write_dyn_form_wrapper(
+    out: &mut String,
+    comment: &str,
+    wrapper: &str,
+    form_path: &str,
+    save_param: &str,
+    save_body: &str,
+) -> Result<(), String> {
+    let _ = writeln!(out, "// ── {} ──", comment);
+    let _ = writeln!(out, "struct {}(pub {});", wrapper, form_path);
+    let _ = writeln!(out);
+    let _ = writeln!(out, "#[async_trait]");
+    let _ = writeln!(out, "impl DynForm for {} {{", wrapper);
+    let _ = writeln!(out, "    async fn is_valid(&mut self) -> bool {{");
+    let _ = writeln!(out, "        self.0.is_valid().await");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(
+        out,
+        "    async fn save(&mut self, {}: &DatabaseConnection) -> Result<(), DbErr> {{",
+        save_param
+    );
+    let _ = writeln!(out, "        {}", save_body);
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    fn get_form(&self) -> &Forms {{");
+    let _ = writeln!(out, "        self.0.get_form()");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out);
+    let _ = writeln!(out, "    fn get_form_mut(&mut self) -> &mut Forms {{");
+    let _ = writeln!(out, "        self.0.get_form_mut()");
+    let _ = writeln!(out, "    }}");
+    let _ = writeln!(out, "}}");
+    let _ = writeln!(out);
+    Ok(())
+}
+
+/// Emits a `FormBuilder` closure assigned to `var_name`.
+fn write_form_builder_closure(out: &mut String, var_name: &str, form_path: &str, wrapper: &str) {
+    let _ = writeln!(
+        out,
+        "    let {}: FormBuilder = Arc::new(|_db: ADb, _vec: Vec<std::string::String>, data: StrMap, tera: ATera, csrf: String, method: Method| {{",
+        var_name
+    );
+    let _ = writeln!(out, "        Box::pin(async move {{");
+    let _ = writeln!(
+        out,
+        "            let form = {}::build_with_data(&data, tera, &csrf, method).await;",
+        form_path
+    );
+    let _ = writeln!(
+        out,
+        "            Box::new({}(form)) as Box<dyn DynForm>",
+        wrapper
+    );
+    let _ = writeln!(out, "        }})");
+    let _ = writeln!(out, "    }});");
+    let _ = writeln!(out);
+}
+
+/// Emits `search_cond.add(...)` lines for each column in `list_display` (or "id" if empty).
+fn write_search_conditions(out: &mut String, list_display: &[(String, String)]) {
+    if list_display.is_empty() {
+        let _ = writeln!(
+            out,
+            "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"id\", escaped)));"
+        );
+    } else {
+        for (col, _) in list_display {
+            let _ = writeln!(
+                out,
+                "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"{}\", escaped)));",
+                col
+            );
+        }
+    }
+}
+
+/// Builds a `DisplayConfig::new().columns_include(...).columns_exclude(...).list_filter(...)` chain.
+fn build_display_chain(
+    list_display: &[(String, String)],
+    list_exclude: &[String],
+    list_filter: &[(String, String, u64)],
+) -> String {
+    let mut chain = "DisplayConfig::new()".to_string();
+    if !list_display.is_empty() {
+        let cols = list_display
+            .iter()
+            .map(|(c, l)| format!("(\"{}\", \"{}\")", c, l))
+            .collect::<Vec<_>>()
+            .join(", ");
+        chain.push_str(&format!(".columns_include(vec![{}])", cols));
+    }
+    if !list_exclude.is_empty() {
+        let cols = list_exclude
+            .iter()
+            .map(|c| format!("\"{}\"", c))
+            .collect::<Vec<_>>()
+            .join(", ");
+        chain.push_str(&format!(".columns_exclude(vec![{}])", cols));
+    }
+    if !list_filter.is_empty() {
+        let filters = list_filter
+            .iter()
+            .map(|(col, label, limit)| format!("(\"{}\", \"{}\", {}u64)", col, label, limit))
+            .collect::<Vec<_>>()
+            .join(", ");
+        chain.push_str(&format!(".list_filter(vec![{}])", filters));
+    }
+    chain
+}
+
+/// Builds a comma-separated list of `GroupAction::bool("field", "label")` expressions.
+fn build_group_actions_str(group_action: &[(String, String)]) -> String {
+    group_action
+        .iter()
+        .map(|(f, l)| format!("GroupAction::bool(\"{}\", \"{}\")", f, l))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+// ─── Path utilities ──────────────────────────────────────────────────────────
 
 fn full_model_path(model_type: &str) -> String {
     if model_type.starts_with("crate::") || model_type.starts_with("runique::") {

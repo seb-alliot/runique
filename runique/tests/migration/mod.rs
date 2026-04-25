@@ -33,6 +33,7 @@ pub mod test_migration_flow;
 pub mod test_model_schema;
 pub mod test_parser;
 pub mod test_parser_builder;
+pub mod test_parser_extend;
 pub mod test_parser_seaorm;
 pub mod test_parser_seaorm_extra;
 pub mod test_paths;
