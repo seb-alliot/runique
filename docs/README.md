@@ -1,8 +1,3 @@
-  Pas de souci ! Vous avez partagé le même fichier deux fois — il est bien **en anglais**, pas en français. 😄
-
-Voici la traduction complète en français :
-
----
 
 # Runique — Framework Rust inspiré de Django
 
