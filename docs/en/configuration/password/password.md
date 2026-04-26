@@ -79,13 +79,18 @@ struct MyHasher;
 
 impl PasswordHandler for MyHasher {
     fn name(&self) -> &str { "my_hasher" }
+    fn create_field(&self, name: &str) -> Box<dyn runique::forms::FormField> {
+        Box::new(runique::forms::fields::text::TextField::password(name))
+    }
+    fn validate_input(&self, input: &str) -> Result<(), String> {
+        if input.len() < 8 { Err("Too short".into()) } else { Ok(()) }
+    }
     fn transform(&self, input: &str) -> Result<String, String> {
         Ok(format!("hashed:{}", input))
     }
     fn verify(&self, input: &str, stored: &str) -> bool {
         stored == format!("hashed:{}", input)
     }
-    // ...
 }
 
 password_init(PasswordConfig::custom(MyHasher));

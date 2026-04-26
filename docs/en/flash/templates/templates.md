@@ -8,7 +8,7 @@ The `{% messages %}` tag automatically renders all messages:
 {% messages %}
 ```
 
-It includes the internal template `message/message_include.html`, which generates:
+It includes the internal template `message/message.html`, which generates:
 
 ```html
 {% if messages %}

@@ -91,12 +91,15 @@
         <a href="{{ site_url | default(value='/') }}" class="btn btn-ghost btn-sm">
             {% if admin_base_back_to_site %}{{ admin_base_back_to_site }}{% else %}← Site{% endif %}
         </a>
-        <a href="/admin/logout" class="topbar-user logout-button" title="{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% endif %}">
-            <div class="user-avatar">
-                {{ current_user.username }}
-            </div>
-            <span>{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% else %}Déconnexion{% endif %}</span>
-        </a>
+        <form method="POST" action="/admin/logout" class="logout-form">
+            {% csrf %}
+            <button type="submit" class="topbar-user logout-button" title="{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% endif %}">
+                <div class="user-avatar">
+                    {{ current_user.username }}
+                </div>
+                <span>{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% else %}Déconnexion{% endif %}</span>
+            </button>
+        </form>
 
     </header>
 {% endblock %}

@@ -8,9 +8,9 @@ Runique provides three built-in profiles, usable via `.policy(...)` in the build
 
 | Directive | `default()` | `strict()` | `permissive()` |
 | --- | :-----------: | :----------: | :--------------: |
-| `default-src` | `'self'` | `'self'` | `'self'` |
+| `default-src` | `'none'` | `'none'` | `'none'` |
 | `script-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` + `'unsafe-eval'` |
-| `style-src` | `'self'` + nonce | `'self'` + nonce | `'self'` + `'unsafe-inline'` |
+| `style-src` | `'self'` + nonce¹ | `'self'` + nonce | `'self'` + `'unsafe-inline'` |
 | `img-src` | `'self'` | `'self'` | `'self'` + `data:` + `https:` |
 | `font-src` | `'self'` | `'self'` | `'self'` + `data:` |
 | `object-src` | `'none'` | `'none'` | `'self'` |
@@ -22,6 +22,8 @@ Runique provides three built-in profiles, usable via `.policy(...)` in the build
 | `form-action` | `'self'` | `'self'` | `'self'` |
 | `upgrade-insecure-requests` | ❌ | ✅ | ❌ |
 | Nonce | ✅ active | ✅ active | ❌ disabled |
+
+¹ `default()` includes `'unsafe-inline'` in `style-src` for htmx compatibility. When the nonce is active, `'unsafe-inline'` is dynamically removed and replaced by `'nonce-{val}'`.
 
 ---
 

@@ -44,6 +44,32 @@ use self::handle_crud::{
 use self::handle_list::{ListQuery, handle_list};
 use self::handle_password::handle_reset_password;
 
+// ─── Datetime formatting ─────────────────────────────────────
+
+pub(self) fn format_datetime(value: &mut serde_json::Value) {
+    use chrono::NaiveDateTime;
+    match value {
+        serde_json::Value::String(s) => {
+            if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f")
+                .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S"))
+            {
+                *s = dt.format("%d/%m/%Y %H:%M").to_string();
+            }
+        }
+        serde_json::Value::Object(map) => {
+            for v in map.values_mut() {
+                format_datetime(v);
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                format_datetime(v);
+            }
+        }
+        _ => {}
+    }
+}
+
 // ─── Shared state ────────────────────────────────────────────
 
 #[derive(Clone)]

@@ -22,7 +22,7 @@ auth_login(&session, &db, user.id).await?;
 
 For cases where you already have all the data and want to control DB persistence and exclusive login.
 
-> **Note:** If you are using your own user model (Custom Model) instead of the default table, you **must** use `login()`. The `auth_login()` wrapper systematically queries the internal `runique_users` table.
+> **Note:** If you are using your own user model (Custom Model) instead of the default table, you **must** use `login()`. The `auth_login()` wrapper systematically queries the internal `eihwaz_users` table.
 
 ```rust
 login(

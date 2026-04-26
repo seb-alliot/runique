@@ -8,7 +8,7 @@ La balise `{% messages %}` affiche automatiquement tous les messages :
 {% messages %}
 ```
 
-Elle inclut le template interne `message/message_include.html` qui génère :
+Elle inclut le template interne `message/message.html` qui génère :
 
 ```html
 {% if messages %}

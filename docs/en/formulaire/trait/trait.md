@@ -88,8 +88,6 @@ clear()                      → [optional] empty the form after processing
 
 **`is_valid()`** — Orchestrates the full pipeline. Safe to call on both GET and POST: returns `false` without setting field errors if no data has been submitted (first page load), validates normally otherwise.
 
-**`is_submitted()`** — Returns `true` if the form received data (POST, or GET with non-empty query params).
-
 **`database_error(&err)`** — Parses a DB error and attaches it to the correct field.
 
 **`clear()`** — Clears all field values (except CSRF) and resets `submitted` to `false`. Call it after reading cleaned data, before a redirect or empty re-render.
@@ -141,7 +139,7 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> **`is_submitted()`** is available when you need to explicitly distinguish "first page load" from "form submitted with invalid data".
+> To explicitly distinguish "first page load" from "form submitted with invalid data", use `request.is_post()`.
 
 ---
 

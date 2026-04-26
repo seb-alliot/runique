@@ -247,7 +247,7 @@ resources, resource_counts, current_page
 **Exemple minimal :**
 
 ```html
-{% extends "admin/admin_base.html" %}
+{% extends "admin/admin_base" %}
 
 {% block title %}{{ admin_dashboard_title }}{% endblock %}
 
@@ -368,7 +368,7 @@ sort_by, sort_dir, sort_dir_toggle, search
 **Exemple minimal :**
 
 ```html
-{% extends "admin/admin_base.html" %}
+{% extends "admin/admin_base" %}
 
 {% block title %}{{ resource.title }}{% endblock %}
 
@@ -434,7 +434,7 @@ form_fields, is_edit
 **Exemple minimal :**
 
 ```html
-{% extends "admin/admin_base.html" %}
+{% extends "admin/admin_base" %}
 
 {% block title %}{{ admin_create_title }} — {{ resource.title }}{% endblock %}
 
@@ -478,7 +478,7 @@ form_fields, is_edit, object_id
 **Exemple minimal :**
 
 ```html
-{% extends "admin/admin_base.html" %}
+{% extends "admin/admin_base" %}
 
 {% block title %}{{ admin_edit_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
 
@@ -521,7 +521,7 @@ object_id
 **Exemple minimal :**
 
 ```html
-{% extends "admin/admin_base.html" %}
+{% extends "admin/admin_base" %}
 
 {% block title %}{{ admin_detail_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
 
@@ -567,7 +567,7 @@ object_id
 **Exemple minimal :**
 
 ```html
-{% extends "admin/admin_base.html" %}
+{% extends "admin/admin_base" %}
 
 {% block title %}{{ admin_delete_title }} — {{ resource.title }} #{{ object_id }}{% endblock %}
 

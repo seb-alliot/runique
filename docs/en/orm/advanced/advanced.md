@@ -76,8 +76,8 @@ async fn get_user(
 }
 
 async fn create_user(
-    mut request: Request,
     Json(payload): Json<CreateUserRequest>,
+    mut request: Request,  // Request must be last
 ) -> AppResult<Response> {
     let user = users::ActiveModel {
         email: Set(payload.email),

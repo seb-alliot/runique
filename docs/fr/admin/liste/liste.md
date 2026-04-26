@@ -89,7 +89,7 @@ La direction actuelle est indiquée par ▲ / ▼ dans l'en-tête. Cliquer une s
 
 ## Recherche
 
-La barre de recherche filtre les enregistrements sur toutes les colonnes texte visibles (`ILIKE '%terme%'`). Elle préserve les paramètres de tri actifs.
+La barre de recherche filtre les enregistrements sur toutes les colonnes visibles via `LOWER(CAST(col AS TEXT)) LIKE LOWER('%terme%')` — compatible SQLite, Postgres et MariaDB. Elle préserve les paramètres de tri actifs.
 
 ```text
 /admin/users/list?search=alice&sort_by=email&sort_dir=asc
