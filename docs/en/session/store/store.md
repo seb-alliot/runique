@@ -40,6 +40,26 @@ Protected sessions are never sacrificed in pass 1.
 
 ---
 
+---
+
+## Persistence — `with_db_fallback()`
+
+By default, the store is purely in-memory. `with_db_fallback()` enables a database fallback for authenticated sessions:
+
+- **Read**: memory first, DB on miss (session survives server restart)
+- **Write**: synchronous to memory + asynchronous to DB for sessions with `user_id`
+- **Anonymous sessions**: never persisted to DB
+
+```rust
+.middleware(|m| {
+    m.with_session_db_fallback()
+})
+```
+
+> The `runique_sessions` table must exist — it is created by the framework migrations.
+
+---
+
 ## See also
 
 | Section | Description |

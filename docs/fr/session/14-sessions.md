@@ -2,7 +2,7 @@
 
 Runique utilise `CleaningMemoryStore` comme store de session par défaut — un wrapper autour d'un `HashMap` en mémoire qui ajoute purge automatique, protection par watermarks et protection des sessions à valeur.
 
-Les données sont perdues au redémarrage du serveur. Pour la persistance, utilisez un store externe (Redis, base de données).
+Par défaut, les données sont perdues au redémarrage du serveur. Pour la persistance des sessions authentifiées, utilisez `with_db_fallback()` (voir [Store & watermarks](/docs/fr/session/store)).
 
 ---
 

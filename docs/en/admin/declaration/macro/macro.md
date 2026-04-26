@@ -170,6 +170,28 @@ For each field, the daemon generates a SQL query that loads distinct values with
 
 > Do not use `list_filter` on foreign key (FK) or `id` columns — the raw value (`35`, `128`…) is not human-readable. Good candidates: booleans, enumerations, short codes (`lang`, `status`, `block_type`).
 
+#### `group_action`
+
+Declares bulk actions applicable to a selection of entries in the list view (e.g. bulk activate/deactivate):
+
+```rust
+admin! {
+    users: users::Model => RegisterForm {
+        title: "Users",
+        group_action: [
+            ["is_active", "Activate"],
+            ["is_active", "Deactivate"],
+        ]
+    }
+}
+```
+
+Each entry is a pair `["field_name", "Label"]`. The `handle_group_set` handler applies the `ga_*`-prefixed field value to all selected rows via `partial_update_fn`.
+
+Also available in `configure {}` for builtin resources.
+
+---
+
 #### `extra`
 
 Inject Tera variables available in all templates for this resource:
@@ -188,6 +210,8 @@ admin! {
 
 Keys are accessible via `{{ resource.extra_context.icon }}`.
 
+> The default admin templates do not use `icon` or `color`. These keys only have an effect in a **custom template** that reads them explicitly. See [Template overrides](/docs/en/admin/template/surcharge).
+>
 > Framework reserved keys (`entries`, `form_fields`, `object_id`, `csrf_token`, etc.) take priority over `extra` keys.
 
 ---
@@ -222,6 +246,7 @@ The `admin!` macro covers only **registry metadata**:
 - a separate form for edit operations (`edit_form`)
 - visible columns in the list view (`list_display`)
 - sidebar filters with optional per-column limit (`list_filter`)
+- bulk actions (`group_action`)
 - additional per-resource Tera variables (`extra`)
 - display configuration for any resource including builtins (`configure {}`)
 
