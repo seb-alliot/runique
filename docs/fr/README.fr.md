@@ -22,7 +22,7 @@ Runique est un framework web basé sur Axum, axé sur les formulaires typés, le
 * `demo-app/` → application de test/validation pour le développement du framework
 * `docs/` → documentation EN/FR
 
-Version du workspace (source de vérité) : **2.0.0**.
+Version du workspace (source de vérité) : **2.1.0**.
 
 ---
 
