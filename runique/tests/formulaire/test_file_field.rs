@@ -122,7 +122,7 @@ fn test_into_upload_path_string() {
 
 #[test]
 fn test_into_upload_path_static_config() {
-    let config = StaticConfig::default();
+    let config = StaticConfig::from_env();
     let field = FileField::image("pic").upload_to(&config);
     let f = field.upload_config.upload_to.unwrap();
     assert_eq!(f("pic"), "media");
