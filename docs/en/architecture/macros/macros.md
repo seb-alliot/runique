@@ -30,7 +30,7 @@ Runique provides a set of macros to simplify development.
 | Macro | Description | Example |
 | ----- | ----------- | ------- |
 | `urlpatterns!` | Define named routes | `urlpatterns!("/" => view!{...}, name = "index")` |
-| `view!` | Handler for all HTTP methods | `view!{ GET => handler, POST => handler2 }` |
+| `view!` | Handler for all HTTP methods | `view!{ handler }` |
 | `impl_objects!` | Django-like manager for SeaORM | `impl_objects!(Entity)` |
 
 ---

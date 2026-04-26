@@ -36,7 +36,7 @@ La validation des hosts se configure dans `main.rs` via le builder — il n'y a 
     m.with_allowed_hosts(|h| {
         h.enabled(!is_debug())
          .host("example.com")
-         .host(".api.example.com")  // match example.com ET *.example.com
+         .host(".example.com")  // match example.com ET tous ses sous-domaines
     })
 })
 ```

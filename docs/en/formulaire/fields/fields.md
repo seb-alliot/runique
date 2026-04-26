@@ -258,7 +258,7 @@ form.field(
     &FileField::image("avatar")
         .label("Profile picture")
         .upload_to("uploads/avatars")   // → uploads/avatars/
-        .max_size(5)
+        .max_size(FileSize::mb(5))
         .max_files(1)
         .max_dimensions(1920, 1080)
         .allowed_extensions(vec!["png", "jpg", "jpeg", "webp", "avif"]),
@@ -270,14 +270,14 @@ form.field(
     &FileField::image("photo")
         .label("Photo")
         .upload_to_env()
-        .max_size(5),
+        .max_size(FileSize::mb(5)),
 );
 
 // Without upload_to — files stored directly in MEDIA_ROOT
 form.field(
     &FileField::image("image")
         .label("Image")
-        .max_size(5),
+        .max_size(FileSize::mb(5)),
 );
 
 // Document
@@ -285,7 +285,7 @@ form.field(
     &FileField::document("cv")
         .label("Resume")
         .upload_to("uploads/cv")
-        .max_size(10),
+        .max_size(FileSize::mb(10)),
 );
 
 // Any file (multi-file)
@@ -295,6 +295,8 @@ form.field(
         .max_files(5),
 );
 ```
+
+> **Note:** `.max_size()` is a form-level validation only. If the field is defined in a `model!{}` with `max_size(5 MB)`, the model limit and the form limit are two independent values — they are not automatically synchronized. For a manual form, they must be aligned by hand.
 
 **File destination:**
 

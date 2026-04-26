@@ -33,7 +33,7 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 </form>
 ```
 
-**Transformed into:** `{% include "csrf/csrf_field.html" %}`
+**Transformed into:** `{% include "csrf" %}`
 
 > Not required inside Runique forms (`{% form.xxx %}`) — the CSRF token is injected automatically.
 
@@ -45,7 +45,7 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 {% messages %}
 ```
 
-**Transformed into:** `{% include "message/message_include.html" %}`
+**Transformed into:** `{% include "message" %}`
 
 ---
 
@@ -57,7 +57,7 @@ Runique pre-processes templates to transform Django-like syntax into standard Te
 </script>
 ```
 
-**Transformed into:** `{% include "csp/csp_nonce.html" %}`
+**Transformed into:** `{% include "csp" %}`
 
 ---
 

@@ -77,7 +77,7 @@ pub mod prelude {
             boolean::BooleanField,
             choice::{ChoiceField, ChoiceOption},
             datetime::DateTimeField,
-            file::FileField,
+            file::{FileField, FileSize},
             hidden::HiddenField,
             number::NumericField,
             special::{ColorField, IPAddressField, JSONField, SlugField, UUIDField},

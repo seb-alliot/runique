@@ -6,9 +6,9 @@
 | --- | ------------- | ----------- |
 | `{% static "..." %}` | `{{ "..." \| static }}` | Static file URL |
 | `{% media "..." %}` | `{{ "..." \| media }}` | Media file URL |
-| `{% csrf %}` | `{% include "csrf/..." %}` | Hidden CSRF field |
-| `{% messages %}` | `{% include "message/..." %}` | Display flash messages |
-| `{% csp %}` | `{% include "csp/..." %}` | CSP nonce attribute |
+| `{% csrf %}` | `{% include "csrf" %}` | Hidden CSRF field |
+| `{% messages %}` | `{% include "message" %}` | Display flash messages |
+| `{% csp %}` | `{% include "csp" %}` | CSP nonce attribute |
 | `{% link "name" %}` | `{{ link(link='name') }}` | Named route URL |
 | `{% form.xxx %}` | `{{ xxx \| form \| safe }}` | Full form rendering |
 | `{% form.xxx.field %}` | `{{ xxx \| form(field='field') \| safe }}` | Single field rendering |
@@ -30,8 +30,6 @@
 
 | Function | Description |
 | -------- | ----------- |
-| `csrf()` | Generate a CSRF field from context |
-| `nonce()` | Return the CSP nonce |
 | `link(link='...')` | Named URL resolution |
 
 ---

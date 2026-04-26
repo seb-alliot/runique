@@ -121,6 +121,25 @@ impl AllowedExtensions {
 
 pub type UploadPathFn = Option<Arc<dyn Fn(&str) -> String + Send + Sync>>;
 
+/// Explicit file size unit — avoids ambiguity between bytes and MB.
+///
+/// Usage: `FileSize::mb(5)`, `FileSize::kb(512)`, `FileSize::gb(1)`
+#[derive(Debug, Clone, Copy)]
+pub struct FileSize(u64);
+
+impl FileSize {
+    pub fn bytes(n: u64) -> Self { Self(n) }
+    pub fn kb(n: u64) -> Self { Self(n * 1024) }
+    pub fn mb(n: u64) -> Self { Self(n * 1024 * 1024) }
+    pub fn gb(n: u64) -> Self { Self(n * 1024 * 1024 * 1024) }
+
+    pub fn as_bytes(self) -> u64 { self.0 }
+}
+
+impl From<FileSize> for u64 {
+    fn from(s: FileSize) -> u64 { s.0 }
+}
+
 /// Default limit if `.max_size()` is never called (10 MB default).
 const DEFAULT_MAX_SIZE: u64 = 10 * 1024 * 1024;
 
@@ -161,8 +180,8 @@ impl FileUploadConfig {
         self
     }
 
-    pub fn max_size(mut self, size: u64) -> Self {
-        self.max_size = Some(size);
+    pub fn max_size(mut self, size: FileSize) -> Self {
+        self.max_size = Some(size.as_bytes());
         self
     }
 }
@@ -237,7 +256,7 @@ impl FileField {
         self
     }
 
-    pub fn max_size(mut self, size: u64) -> Self {
+    pub fn max_size(mut self, size: FileSize) -> Self {
         self.upload_config = self.upload_config.max_size(size);
         self
     }
