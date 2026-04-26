@@ -11,7 +11,7 @@ Le cas le plus courant : on garde le layout admin Runique et on personalise uniq
 ```html
 {# templates/mon_theme/users_list.html #}
 
-{% extends "admin/admin_base.html" %}
+{% extends "admin/admin_base" %}
 
 {% block title %}{{ resource.title }}{% endblock %}
 

@@ -1,3 +1,4 @@
+use super::format_datetime;
 use crate::admin::helper::resource_entry::ResourceEntry;
 use crate::admin::history;
 use crate::auth::session::CurrentUser;
@@ -8,7 +9,6 @@ use crate::utils::{
     constante::admin_context::{
         common as ctx_common, create as ctx_create, detail as ctx_detail, edit as ctx_edit,
     },
-    parse_date_time::format_datetime,
     trad::{current_lang, t},
 };
 use axum::response::{IntoResponse, Redirect, Response};

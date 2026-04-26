@@ -88,8 +88,6 @@ clear()                 → [optionnel] vide le formulaire après traitement
 
 **`is_valid()`** — Orchestre le pipeline complet. Peut être appelé sur GET comme sur POST : retourne `false` sans poser d'erreurs si aucune donnée n'a été soumise (premier affichage), valide normalement sinon.
 
-**`is_submitted()`** — Retourne `true` si le formulaire a reçu des données (POST, ou GET avec query params non vides).
-
 **`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ.
 
 **`clear()`** — Vide toutes les valeurs des champs (hors CSRF) et remet `submitted` à `false`. À appeler après avoir lu les données nettoyées, avant un redirect ou un re-rendu vide.
@@ -141,7 +139,7 @@ pub async fn search(mut request: Request) -> AppResult<Response> {
 }
 ```
 
-> **`is_submitted()`** est disponible si tu as besoin de distinguer explicitement "premier affichage" de "formulaire soumis sans données valides".
+> Pour distinguer explicitement "premier affichage" de "formulaire soumis sans données valides", utilise `request.is_post()`.
 
 ---
 

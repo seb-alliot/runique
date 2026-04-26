@@ -1,3 +1,4 @@
+use super::format_datetime;
 use crate::admin::{
     helper::resource_entry::{ListParams, ResourceEntry, SortDir},
     resource::ColumnFilter,
@@ -8,7 +9,6 @@ use crate::errors::error::ErrorContext;
 use crate::utils::{
     aliases::AppResult,
     constante::admin_context::list as list_ctx,
-    parse_date_time::format_datetime,
     trad::{current_lang, t},
 };
 use axum::response::Response;

@@ -52,6 +52,7 @@ Créer un fichier qui hérite de `admin_template` et remplit les blocks de layou
 <header class="mon-topbar">
     {% block breadcrumb %}{% endblock %}
     <form method="POST" action="/admin/logout">
+        {% csrf %}
         <button type="submit">{{ current_user.username }} — Déconnexion</button>
     </form>
 </header>

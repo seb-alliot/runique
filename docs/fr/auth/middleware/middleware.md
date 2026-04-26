@@ -62,7 +62,6 @@ pub struct CurrentUser {
     pub username: String,
     pub is_staff: bool,
     pub is_superuser: bool,
-    pub droits: Vec<Droit>,
     pub groupes: Vec<Groupe>,
 }
 ```
@@ -70,20 +69,17 @@ pub struct CurrentUser {
 ### Méthodes disponibles
 
 ```rust
-// Droits effectifs (directs + hérités des groupes, dédupliqués)
-user.droits_effectifs()           // → Vec<Droit>
+// Permissions effectives (toutes ressources, OR logique sur tous les groupes)
+user.permissions_effectives()                 // → Vec<Permission>
 
-// Vérifier un droit précis
-user.has_droit("editor")          // → bool
+// Permission pour une ressource précise
+user.permission_for("users")                  // → Option<Permission>
 
-// Vérifier au moins un droit parmi une liste
-user.has_any_droit(&["editor", "moderator"])  // → bool
+// Accès en lecture à une ressource (is_superuser bypass tout)
+user.can_access_resource("users")             // → bool
 
-// Accès à l'admin (is_staff || is_superuser)
-user.can_access_admin()           // → bool
-
-// Vérifier une permission admin (is_superuser bypass tout)
-user.can_admin(&["editor"])       // → bool
+// Accès au panneau admin (is_staff || is_superuser)
+user.can_access_admin()                       // → bool
 ```
 
 ---

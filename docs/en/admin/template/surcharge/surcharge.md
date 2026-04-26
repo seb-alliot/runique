@@ -52,6 +52,7 @@ Create a file that extends `admin_template` and fills the layout blocks.
 <header class="my-topbar">
     {% block breadcrumb %}{% endblock %}
     <form method="POST" action="/admin/logout">
+        {% csrf %}
         <button type="submit">{{ current_user.username }} — Logout</button>
     </form>
 </header>

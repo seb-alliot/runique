@@ -75,7 +75,7 @@ Si vous utilisez `i64` pour votre modèle utilisateur (entité liée à la sessi
 
 ```toml
 [dependencies]
-runique = { version = "1.1.0", features = ["big-pk"] }
+runique = { version = "2.1.0", features = ["big-pk"] }
 ```
 
 > **Attention :** Le type `uuid` pour l''alias global `Pk` (authentification) n''est pas encore supporté nativement dans la version actuelle.

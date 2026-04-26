@@ -138,6 +138,7 @@ form.field(
 
 > **Note on `.required()`**: On a `BooleanField`, `.required()` means the field is mandatory at the database level (`NOT NULL`). It does not force the user to check the box to validate the form (an unchecked checkbox sends `false`, which is a valid value for a non-null boolean). To force acceptance (e.g. Terms), use a custom validation or check the value manually.
 
+```rust
 // Single radio (yes/no)
 form.field(&BooleanField::radio("newsletter").label("Newsletter"));
 

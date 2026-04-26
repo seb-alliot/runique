@@ -75,7 +75,7 @@ If you use `i64` for your user model (the entity linked to the session), you mus
 
 ```toml
 [dependencies]
-runique = { version = "1.1.0", features = ["big-pk"] }
+runique = { version = "2.1.0", features = ["big-pk"] }
 ```
 
 > **Warning:** The `uuid` type for the global `Pk` alias (authentication) is not yet natively supported in the current version.

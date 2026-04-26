@@ -166,7 +166,7 @@ impl RuniqueForm for ArticleForm {
 }
 ```
 
-Cette limitation sera levée en **v2.0** avec la refactorisation du système de champs en widgets, qui permettra de déclarer et surcharger n'importe quel champ directement depuis le modèle.
+Cette limitation n'est pas encore levée. Un système de surcharge par champ (`overrides = [...]`) est prévu mais pas encore disponible.
 
 ---
 

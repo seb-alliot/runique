@@ -84,7 +84,7 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
     let protected_router = urlpatterns! {
         &format!("{prefix}/") => get(admin_dashboard), name = "admin_dashboard",
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
-        &format!("{prefix}/logout") => get(admin_logout), name = "admin_logout",
+        &format!("{prefix}/logout") => post(admin_logout), name = "admin_logout",
         &format!("{prefix}/history") => get(admin_history), name = "admin_history",
         &format!("{prefix}/history/timeline") => get(admin_history_timeline), name = "admin_history_timeline",
         &format!("{prefix}/history/{{id}}") => get(admin_history_diff), name = "admin_history_diff",
