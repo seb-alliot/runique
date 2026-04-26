@@ -177,28 +177,47 @@ impl RuniqueApp {
                 tokio::fs::read(key_path).await?,
             )
         } else {
-            let (cert, key) = obtain_certificate(
+            match obtain_certificate(
                 &domain,
                 &email,
                 challenge_store,
                 false, // production — use true for testing
             )
-            .await?;
+            .await
+            {
+                Ok((cert, key)) => {
+                    // Persist to disk for future restarts
+                    tokio::fs::create_dir_all("./certs").await?;
+                    tokio::fs::write(&cert_path, &cert).await?;
+                    tokio::fs::write(&key_path, &key).await?;
 
-            // Persist to disk for future restarts
-            tokio::fs::create_dir_all("./certs").await?;
-            tokio::fs::write(cert_path, &cert).await?;
-            tokio::fs::write(key_path, &key).await?;
+                    // Store renewal date: Let's Encrypt certs last 90 days, renew after 60
+                    let renew_after = chrono::Utc::now() + chrono::Duration::days(60);
+                    tokio::fs::write(expires_path, renew_after.to_rfc3339()).await?;
+                    tracing::info!(
+                        "Certificate will be renewed after {}",
+                        renew_after.format("%Y-%m-%d")
+                    );
 
-            // Store renewal date: Let's Encrypt certs last 90 days, renew after 60
-            let renew_after = chrono::Utc::now() + chrono::Duration::days(60);
-            tokio::fs::write(expires_path, renew_after.to_rfc3339()).await?;
-            tracing::info!(
-                "Certificate will be renewed after {}",
-                renew_after.format("%Y-%m-%d")
-            );
-
-            (cert, key)
+                    (cert, key)
+                }
+                Err(e) => {
+                    // ACME failed (rate-limit, network issue, etc.)
+                    // Fall back to the existing cert on disk if available
+                    if cert_path.exists() && key_path.exists() {
+                        tracing::warn!(
+                            error = %e,
+                            "ACME renewal failed — using existing certificate from ./certs/"
+                        );
+                        (
+                            tokio::fs::read(cert_path).await?,
+                            tokio::fs::read(key_path).await?,
+                        )
+                    } else {
+                        return Err(e);
+                    }
+                }
+            }
         };
 
         // Start HTTPS server on port 443
