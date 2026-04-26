@@ -49,12 +49,13 @@ These defaults are set automatically by the builder and cannot be overridden wit
 
 ```rust
 let app = RuniqueApp::builder(config)
-    // Session lifetime
+    // Session lifetime (available directly on the builder)
     .with_session_duration(time::Duration::hours(2))
-    // Custom watermarks
-    .with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)
-    // Cleanup interval
-    .with_session_cleanup_interval(30)
+    // Watermarks and cleanup interval (via .middleware())
+    .middleware(|m| {
+        m.with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)
+         .with_session_cleanup_interval(30)
+    })
     .build()
     .await?;
 ```

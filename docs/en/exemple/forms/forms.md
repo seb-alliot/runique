@@ -172,7 +172,7 @@ pub async fn info_user(mut request: Request) -> AppResult<Response> {
     let template = "profile/view_user.html";
 
     if request.is_get() && form.is_valid().await {
-        let username = form.get_form().get_value("username").unwrap_or_default();
+        let username = form.cleaned_string("username").unwrap_or_default();
         let db = request.engine.db.clone();
 
         let user_opt = UserEntity::find()

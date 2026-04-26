@@ -33,7 +33,7 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 </form>
 ```
 
-**Transformé en :** `{% include "csrf/csrf_field.html" %}`
+**Transformé en :** `{% include "csrf" %}`
 
 > Non nécessaire dans les formulaires Runique (`{% form.xxx %}`) — le token CSRF est injecté automatiquement.
 
@@ -45,7 +45,7 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 {% messages %}
 ```
 
-**Transformé en :** `{% include "message/message_include.html" %}`
+**Transformé en :** `{% include "message" %}`
 
 ---
 
@@ -57,7 +57,7 @@ Runique pré-traite les templates pour transformer une syntaxe Django-like en sy
 </script>
 ```
 
-**Transformé en :** `{% include "csp/csp_nonce.html" %}`
+**Transformé en :** `{% include "csp" %}`
 
 ---
 

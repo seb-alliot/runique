@@ -49,12 +49,13 @@ Ces valeurs sont appliquées automatiquement par le builder et ne peuvent pas ê
 
 ```rust
 let app = RuniqueApp::builder(config)
-    // Durée de vie des sessions
+    // Durée de vie des sessions (disponible directement sur le builder)
     .with_session_duration(time::Duration::hours(2))
-    // Watermarks personnalisés
-    .with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)
-    // Intervalle de cleanup
-    .with_session_cleanup_interval(30)
+    // Watermarks et intervalle de cleanup (via .middleware())
+    .middleware(|m| {
+        m.with_session_memory_limit(64 * 1024 * 1024, 128 * 1024 * 1024)
+         .with_session_cleanup_interval(30)
+    })
     .build()
     .await?;
 ```

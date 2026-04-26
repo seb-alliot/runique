@@ -33,9 +33,16 @@
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `csrf()` | Generates a CSRF field from context | `{{ csrf() }}` |
-| `nonce()` | Returns the CSP nonce | `{{ nonce() }}` |
 | `link(link='...')` | Named URL resolution | `{{ link(link='index') }}` |
+
+## Auto-injected context variables
+
+| Variable | Description |
+|----------|-------------|
+| `csrf_token` | Masked CSRF token (used by `{% csrf %}` and `\| csrf_field`) |
+| `csp_nonce` | CSP nonce value for the header (used by `{% csp %}`) |
+| `messages` | Request flash messages |
+| `user` | Currently authenticated user (if logged in) |
 
 ---
 

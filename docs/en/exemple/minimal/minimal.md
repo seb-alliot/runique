@@ -64,8 +64,8 @@ use runique::{urlpatterns, view};
 
 pub fn routes() -> Router {
     urlpatterns! {
-        "/" => view!{ GET => views::index }, name = "index",
-        "/about" => view!{ GET => views::about }, name = "about",
+        "/" => view!{ views::index }, name = "index",
+        "/about" => view!{ views::about }, name = "about",
     }
 }
 ```

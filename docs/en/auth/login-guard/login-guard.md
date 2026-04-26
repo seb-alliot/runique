@@ -142,7 +142,7 @@ Both mechanisms cover different attack vectors and are complementary:
 | False positives | Possible (NAT) | None (per account) |
 
 ```rust
-static IP_LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new().max_requests(10).window_secs(60));
+static IP_LIMITER: LazyLock<RateLimiter> = LazyLock::new(|| RateLimiter::new().max_requests(10).retry_after(60));
 static GUARD:      LazyLock<LoginGuard>  = LazyLock::new(|| LoginGuard::new().max_attempts(5).lockout_secs(300));
 
 pub async fn login(/* ... */) -> impl IntoResponse {

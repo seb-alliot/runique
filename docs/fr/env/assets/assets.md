@@ -8,8 +8,10 @@
 | `STATIC_URL` | `/static` | Préfixe URL pour les fichiers statiques |
 | `MEDIA_ROOT` | `media` | Dossier des fichiers médias uploadés |
 | `MEDIA_URL` | `/media` | Préfixe URL pour les médias |
-| `TEMPLATES_DIR` | — | Dossier des templates Tera |
+| `TEMPLATES_DIR` | `templates` | Dossier des templates Tera (liste séparée par virgules possible) |
 | `STATICFILES` | `default_storage` | Backend de stockage |
+| `RUNIQUE_MAX_UPLOAD_MB` | `100` | Taille maximale globale d'un upload fichier (MB) |
+| `RUNIQUE_MAX_TEXT_FIELD_KB` | `1024` | Taille maximale d'un champ texte multipart (KB) |
 
 ---
 

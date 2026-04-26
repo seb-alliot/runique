@@ -3,7 +3,7 @@
 
 use runique::config::StaticConfig;
 use runique::forms::base::FormField;
-use runique::forms::fields::file::{AllowedExtensions, FileField, FileUploadConfig};
+use runique::forms::fields::file::{AllowedExtensions, FileField, FileSize, FileUploadConfig};
 
 // ═══════════════════════════════════════════════════════════════
 // AllowedExtensions
@@ -90,7 +90,7 @@ fn test_file_upload_config_new() {
 
 #[test]
 fn test_file_upload_config_max_size() {
-    let cfg = FileUploadConfig::new().max_size(5 * 1024 * 1024);
+    let cfg = FileUploadConfig::new().max_size(FileSize::mb(5));
     assert_eq!(cfg.max_size, Some(5 * 1024 * 1024));
 }
 
@@ -161,7 +161,7 @@ fn test_file_field_label() {
 
 #[test]
 fn test_file_field_max_size() {
-    let f = FileField::image("pic").max_size(2 * 1024 * 1024);
+    let f = FileField::image("pic").max_size(FileSize::mb(2));
     assert_eq!(f.upload_config.max_size, Some(2 * 1024 * 1024));
 }
 

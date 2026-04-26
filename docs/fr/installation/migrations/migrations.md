@@ -33,7 +33,7 @@ Runique injecte automatiquement deux migrations dans votre `lib.rs` sans que vou
 | Migration | Crée | Ordre |
 | --- | --- | --- |
 | `EihwazUsersMigration` | `eihwaz_users` (id, username, email, password, is_active, is_staff, is_superuser, created_at, updated_at) | 1er |
-| `AdminTableMigration` | `eihwaz_groupes`, `eihwaz_groupes_droits`, `eihwaz_users_groupes` | 2e |
+| `AdminTableMigration` | `eihwaz_groupes`, `eihwaz_groupes_droits`, `eihwaz_users_groupes`, `eihwaz_history` | 2e |
 
 > Vous n'avez pas besoin de déclarer `eihwaz_users` dans vos entités.
 
