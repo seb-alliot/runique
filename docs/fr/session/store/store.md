@@ -40,6 +40,26 @@ Les sessions protégées ne sont jamais sacrifiées en passe 1.
 
 ---
 
+---
+
+## Persistance — `with_db_fallback()`
+
+Par défaut, le store est purement en mémoire. `with_db_fallback()` active un fallback base de données pour les sessions authentifiées :
+
+- **Lecture** : mémoire d'abord, DB en cas de miss (session survit à un redémarrage)
+- **Écriture** : synchrone en mémoire + asynchrone en DB pour les sessions avec `user_id`
+- **Sessions anonymes** : jamais persistées en DB
+
+```rust
+.middleware(|m| {
+    m.with_session_db_fallback()
+})
+```
+
+> La table `runique_sessions` doit exister — elle est créée par les migrations du framework.
+
+---
+
 ## Voir aussi
 
 | Section | Description |

@@ -175,6 +175,28 @@ La barre latérale s'affiche uniquement si au moins un filtre est déclaré. Si 
 
 Les filtres actifs sont transmis à la requête SQL et injectés dans le contexte Tera sous les clés `filter_values`, `active_filters` et `filter_meta`. Voir [contexte de la vue liste](/docs/fr/admin/template/clef/context) pour le détail.
 
+#### `group_action`
+
+Déclare des actions de masse applicables sur une sélection d'entrées dans la vue liste (ex: activer/désactiver en masse) :
+
+```rust
+admin! {
+    users: users::Model => RegisterForm {
+        title: "Utilisateurs",
+        group_action: [
+            ["is_active", "Activer"],
+            ["is_active", "Désactiver"],
+        ]
+    }
+}
+```
+
+Chaque entrée est une paire `["nom_champ", "Libellé"]`. Le handler `handle_group_set` applique la valeur du champ préfixé `ga_*` sur toutes les lignes sélectionnées via `partial_update_fn`.
+
+Disponible aussi dans `configure {}` pour les ressources builtin.
+
+---
+
 #### `extra`
 
 Injecter des variables Tera disponibles dans tous les templates de cette ressource :
@@ -193,6 +215,8 @@ admin! {
 
 Les clés sont accessibles via `{{ resource.extra_context.icon }}`.
 
+> Les templates admin par défaut n'utilisent pas `icon` ni `color`. Ces clés n'ont d'effet que dans un **template personnalisé** qui les lit explicitement. Voir [Surcharge des templates](/docs/fr/admin/template/surcharge).
+>
 > Les clés réservées du framework (`entries`, `form_fields`, `object_id`, `csrf_token`, etc.) ont la priorité sur les clés `extra`.
 
 ---
@@ -227,6 +251,7 @@ La macro `admin!` couvre uniquement les **métadonnées de registre** :
 - un formulaire distinct pour l'édition (`edit_form`)
 - les colonnes visibles dans la vue liste (`list_display`)
 - les filtres de la barre latérale (`list_filter`) avec limite optionnelle par colonne
+- des actions de masse (`group_action`)
 - des variables Tera supplémentaires par ressource (`extra`)
 - la configuration d'affichage de toute ressource y compris les builtins (`configure {}`)
 
