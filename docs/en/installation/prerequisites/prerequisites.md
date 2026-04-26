@@ -2,14 +2,14 @@
 
 ## Prerequisites
 
-- **Rust 1.85+** — [Install rustup](https://rustup.rs/)
+- **Rust 1.88+** — [Install rustup](https://rustup.rs/)
 - **PostgreSQL 12+** (or SQLite for development)
 
 ### Check Versions
 
 ```bash
-rustc --version    # Rust 1.85+
-cargo --version    # Cargo 1.85+
+rustc --version    # Rust 1.88+
+cargo --version    # Cargo 1.88+
 ```
 
 ---
