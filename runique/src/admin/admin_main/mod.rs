@@ -46,7 +46,7 @@ use self::handle_password::handle_reset_password;
 
 // ─── Datetime formatting ─────────────────────────────────────
 
-pub(self) fn format_datetime(value: &mut serde_json::Value) {
+pub(crate) fn format_datetime(value: &mut serde_json::Value) {
     use chrono::NaiveDateTime;
     match value {
         serde_json::Value::String(s) => {
