@@ -1,0 +1,29 @@
+# audit.toml
+# Configuration for cargo-audit to handle known security advisories
+# This file should be placed at the root of the project (same level as Cargo.toml)
+
+[advisories]
+# Ignore known vulnerabilities that cannot be fixed yet
+ignore = [
+    "RUSTSEC-2023-0071",  # rsa 0.9.10: Marvin Attack (timing sidechannel)
+                          # Reason: No fix available, transitive dependency via sqlx-mysql
+                          # Impact: Low - only affects MySQL SSL connections
+                          # Status: Waiting for upstream sqlx fix
+    
+    "RUSTSEC-2024-0384",  # instant 0.1.13: unmaintained
+                          # Reason: Transitive dependency via sqlx-core
+                          # Impact: None - indirect usage only
+                          # Status: Waiting for sqlx to migrate away
+]
+
+[warnings]
+# Allow unmaintained crates warnings
+unmaintained = "allow"  # async-std 1.13.2: discontinued but used by SeaORM/sqlx
+                        # Reason: Transitive dependency, no direct control
+                        # Impact: None - indirect usage only
+                        # Status: Waiting for SeaORM 3.0 / sqlx migration
+
+# Optional: Configure additional warning levels
+# yanked = "deny"
+# unsound = "deny"
+# notice = "warn"

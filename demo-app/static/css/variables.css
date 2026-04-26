@@ -1,0 +1,78 @@
+/* =========================
+    VARIABLES GLOBALES
+   ========================= */
+
+:root {
+    /* ── Backgrounds (deux niveaux) ── */
+    --bg-base:    #0d1117;   /* fond page, elements les plus sombres */
+    --bg-surface: #111827;   /* surfaces posées : cards, inputs, panels */
+
+    /* ── Text ── */
+    --text-main:  #f9fafb;   /* texte principal */
+    --text-muted: #73c7fa;   /* texte secondaire */
+    --text-dim:   #ed8282;   /* meta, footer, labels legers */
+    --font-size: math;  /* base size
+    /* ── Accent ── */
+    --accent:         #3b82f6;  /* bleu principal */
+    --accent-hover:   #2563eb;  /* bleu hover */
+    --accent-indigo:  #6366f1;  /* indigo (gradient secondaire) */
+    --accent-warning: #f59e0b;  /* orange/amber (carte admin, warnings) */
+
+    /* ── Borders ── */
+    --border:       #30363d;  /* bordure standard */
+    --border-light: #1f2937;  /* bordure douce (footer, header) */
+
+    /* ── Semantic ── */
+    --error-color:   #ef4444;
+    --success-color: #22c55e;
+    --warning-color: #f59e0b;
+    --danger:        #ff6b6b;
+
+    /* ── Spacing ── */
+    --margin-top: 2%;
+
+    /* -- color-card -- */
+    --card-color: #fca5a5;
+
+    --shadow-message: rgba(255, 255, 255, 0.03);
+
+    /* ── Code blocks ── */
+    --bg-code:        #161b22;
+    --bg-code-inline: rgba(255,255,255,0.08);
+    --text-code:      #e6edf3;
+}
+
+/* ── Mode clair ── */
+[data-theme="light"] {
+    --msg-error-text:   #991b1b;
+    --msg-success-text: #166534;
+    --msg-info-text:    #1e40af;
+    --msg-warning-text: #92400e;
+    --bg-base:    #f3f4f6;
+    --bg-surface: #ffffff;
+
+    --text-main:  #111827;
+    --text-muted: #4b5563;
+    --text-dim:   #9ca3af;
+
+    --accent:         #2563eb;
+    --accent-hover:   #1d4ed8;
+    --accent-indigo:  #4f46e5;
+    --accent-warning: #d97706;
+
+    --border:       #080808;
+    --border-light: #e5e7eb;
+
+    --error-color:   #dc2626;
+    --success-color: #16a34a;
+    --warning-color: #d97706;
+    --danger:        #ef4444;
+
+    --card-color: #fca5a5;
+    --shadow-message: rgba(0, 0, 0, 0.04);
+
+    /* ── Code blocks (toujours sombres, comme GitHub) ── */
+    --bg-code:        #161b22;
+    --bg-code-inline: rgba(0,0,0,0.07);
+    --text-code:      #e6edf3;
+}

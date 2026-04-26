@@ -1,0 +1,10 @@
+/* Styles migrated from template inline attributes */
+
+.lead-mb        { margin: 2rem auto; }
+.text-hint      { opacity: 0.6; font-size: 0.9rem; }
+.search-bar     { margin-bottom: 1.5rem; display: flex; gap: 0.5rem; }
+.hero-code-full { max-width: 100%; margin-bottom: 2rem; }
+.section-top    { margin-top: 2rem; }
+.hint-text      { margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
+.flex-row-wrap  { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.label-sm       { font-size: 0.8rem; opacity: 0.7; }

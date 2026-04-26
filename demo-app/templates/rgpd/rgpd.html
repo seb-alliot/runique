@@ -1,0 +1,49 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="content">
+    <h1>{{ title }}</h1>
+
+    <h2>Demo site</h2>
+    <p>
+        This site is a technical demonstration of the <strong>Runique</strong> framework.
+        It has no commercial purpose. The data entered is used solely to illustrate
+        how the framework works.
+    </p>
+
+    <h2>Data collected</h2>
+    <p>
+        When creating an account, the following information is recorded:
+    </p>
+    <p><strong>Username</strong>, <strong>email address</strong>, <strong>password</strong> (hashed, never stored in plain text).</p>
+    <p>
+        Since this is a demonstration, <strong>no real email is required</strong> —
+        a fake address (e.g.: <code>test@example.com</code>) is perfectly acceptable.
+    </p>
+    <p>
+        This data is stored in a local database for testing purposes only.
+    </p>
+
+    <h2>Data usage</h2>
+    <p>Your data is <strong>never</strong>:</p>
+    <p>— shared with third parties</p>
+    <p>— used for commercial purposes</p>
+    <p>— used for profiling or marketing</p>
+
+    <h2>Data retention</h2>
+    <p>
+        Data can be deleted at any time upon request.
+        The demo database is reset periodically.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+        For any deletion request or question, open an issue on the
+        <a href="https://github.com/seb-alliot/runique" target="_blank">GitHub repository</a>.
+    </p>
+
+    <div class="back-link">
+        <a href="{% link "index" %}">← Back to home</a>
+    </div>
+</div>
+{% endblock %}

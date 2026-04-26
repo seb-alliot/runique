@@ -1,0 +1,39 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="content">
+    {% if article %}
+        <article class="blog-detail">
+            <div class="blog-detail-header">
+                <h1>{{ article.title }}</h1>
+                <div class="blog-detail-meta">
+                    <span>{{ article.email }}</span>
+                    {% if article.created_at %}
+                        <span>· {{ article.created_at }}</span>
+                    {% endif %}
+                    {% if article.website %}
+                        <a href="{{ article.website }}" target="_blank" rel="noopener noreferrer">
+                            🔗 {{ article.website }}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="blog-detail-summary">
+                <blockquote>{{ article.summary }}</blockquote>
+            </div>
+
+            <div class="blog-detail-content">
+                {{ article.content | safe }}
+            </div>
+        </article>
+    {% endif %}
+
+    <div class="blog-detail-nav">
+        <a href="{% link "blog_list" %}" class="btn btn-secondary">← Back to articles</a>
+        <a href="{% link "blog_info" %}" class="btn btn-primary">+ New article</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+    </div>
+</div>
+{% endblock %}

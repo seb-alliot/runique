@@ -1,0 +1,110 @@
+{% extends "index.html" %}
+
+{% block meta %}
+<meta name="description" content="{% if cour.lead %}{{ cour.lead }}{% else %}{{ cour.title }} — Rust Course{% endif %}">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ cour.title }} — Rust Course">
+<meta property="og:description" content="{% if cour.lead %}{{ cour.lead }}{% else %}{{ cour.title }} — Rust Course{% endif %}">
+{% endblock %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+    <link rel="stylesheet" href="{% static "css/cours.css" %}">
+    <link rel="stylesheet" href="{% static "css/highlight-github-dark.min.css" %}">
+{% endblock %}
+
+
+{% block content %}
+
+{# ── Barre mobile ── #}
+<div class="doc-mobile-bar">
+    <span class="doc-mobile-bar-title">{{ cour.title }}</span>
+    <button class="doc-hamburger" id="doc-hamburger-btn" aria-label="Navigation">☰</button>
+</div>
+
+<div class="doc-sidebar-overlay" id="doc-sidebar-overlay"></div>
+
+<div class="doc-layout">
+
+    {# ── Sidebar ── #}
+    <aside class="doc-sidebar" id="doc-sidebar">
+        <div class="doc-sidebar-header">
+            <a href="/cours" class="doc-back-link">← Rust Courses beta</a>
+            <h3>{{ cour.title }}</h3>
+            {% if cour.theme %}
+            <span class="cours-tag">{{ cour.theme }}</span>
+            {% endif %}
+        </div>
+        <nav class="doc-sidebar-nav">
+            {% for chapitre in chapitres %}
+            <a href="/cours/{{ cour.slug }}/{{ chapitre.slug }}"
+                class="doc-nav-link {% if chapitre.id == chapitre_courant.id %}active{% endif %}">
+                {{ chapitre.title }}
+            </a>
+            {% endfor %}
+        </nav>
+    </aside>
+
+    {# ── Contenu principal ── #}
+    <main class="doc-content">
+        <h1>{{ chapitre_courant.title }}</h1>
+
+        {% if chapitre_courant.lead %}
+        <div class="doc-lead">{{ chapitre_courant.lead | markdown }}</div>
+        {% endif %}
+
+        {# Table des matières auto depuis les headings #}
+        {% set headings = blocks | filter(attribute="heading") %}
+        {% if headings %}
+        <nav class="doc-toc">
+            <strong>In this chapter</strong>
+            <ul>
+                {% for block in blocks %}
+                {% if block.heading %}
+                <li><a href="#{{ block.heading | slugify }}">{{ block.heading }}</a></li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {# Blocs de contenu #}
+        {% for block in blocks %}
+        <div class="doc-block doc-block-{{ block.block_type }}">
+            {% if block.heading %}
+            <h2 id="{{ block.heading | slugify }}">{{ block.heading }}</h2>
+            {% endif %}
+            <div class="doc-block-content">
+                {{ block.content | markdown }}
+            </div>
+        </div>
+        {% endfor %}
+
+        {# Navigation chapitre précédent / suivant #}
+        <div class="cours-nav-chapitres">
+            {% if chapitre_precedent %}
+            <a href="/cours/{{ cour.slug }}/{{ chapitre_precedent.slug }}" class="cours-nav-btn cours-nav-prev">
+                ← {{ chapitre_precedent.title }}
+            </a>
+            {% else %}
+            <span></span>
+            {% endif %}
+
+            {% if chapitre_suivant %}
+            <a href="/cours/{{ cour.slug }}/{{ chapitre_suivant.slug }}" class="cours-nav-btn cours-nav-next">
+                {{ chapitre_suivant.title }} →
+            </a>
+            {% endif %}
+        </div>
+
+    </main>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script {% csp %} src="{% static "js/highlight.min.js" %}"></script>
+<script {% csp %} src="{% static "js/cour_detail.js" %}"></script>
+{% endblock %}

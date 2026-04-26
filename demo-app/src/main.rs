@@ -1,0 +1,75 @@
+#[macro_use]
+extern crate runique;
+use runique::prelude::*;
+mod admin;
+mod admins;
+mod backend;
+mod demo_toggle;
+mod entities;
+mod formulaire;
+mod url;
+mod views;
+
+use runique::app::builder::RuniqueAppBuilder as builder;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    password_init(PasswordConfig::auto_with(Manual::Argon2));
+    set_lang(Lang::En);
+
+    let config: RuniqueConfig = RuniqueConfig::from_env();
+
+    let db_config = DatabaseConfig::from_env()?.build();
+    let db: DatabaseConnection = db_config.connect().await?;
+    backend::run_seeds(&db).await;
+
+    builder::new(config)
+        .with_log(|l| {
+            l.dev()
+                .host_validation(tracing::Level::WARN)
+                .acme(tracing::Level::INFO)
+        })
+        .routes(url::routes())
+        .with_database(db)
+        .with_mailer_from_env()
+        .with_password_reset::<BuiltinUserEntity>(|pr| {
+            pr.forgot_template("auth/forgot_password.html")
+                .reset_template("auth/reset_password.html")
+        })
+        .statics()
+        .middleware(|m| {
+            m.with_session_memory_limit(5 * 1024 * 1024, 10 * 1024 * 1024)
+                .with_session_cleanup_interval(5)
+                .with_allowed_hosts(|h| {
+                    h.enabled(!is_debug())
+                        .host("runique.io")
+                        .host("www.runique.io")
+                        .host("localhost:3000")
+                        .host("127.0.0.1:3000")
+                })
+                .with_csp(|c| {
+                    c.policy(SecurityPolicy::strict())
+                        .with_header_security(true)
+                        .with_upgrade_insecure(!is_debug())
+                        .scripts(vec!["'self'", "'strict-dynamic'"])
+                })
+        })
+        .with_admin(|a| {
+            a.site_title("Administration")
+                .sitemap("https://runique.io/sitemap.xml")
+                .auth(RuniqueAdminAuth::new())
+                .routes(admins::routes("/admin").merge(demo_toggle::router("/admin")))
+                .templates(|t| t.with_dashboard("admin/test_dashboard.html"))
+                .with_state(admins::admin_state())
+                .with_rate_limiter(RateLimiter::new().max_requests(20).retry_after(3600))
+                .with_login_guard(LoginGuard::new().max_attempts(20).lockout_secs(300))
+                .page_size(15)
+        })
+        .build()
+        .await
+        .map_err(|e| -> Box<dyn std::error::Error> { Box::new(e) })?
+        .run()
+        .await?;
+
+    Ok(())
+}

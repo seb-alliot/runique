@@ -1,0 +1,58 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="content">
+    <div class="blog-header">
+        <h1>{{ title }}</h1>
+        <a href="{% link "blog_info" %}" class="btn btn-primary">+ New article</a>
+    </div>
+
+    <form method="get" action="{% link "blog_list" %}" class="search-bar">
+        {% form.search_form.search %}
+        <button type="submit" class="btn btn-secondary">Search</button>
+        {% if search %}
+            <a href="{% link "blog_list" %}" class="btn btn-secondary">✕ Clear</a>
+        {% endif %}
+    </form>
+
+    {% if articles %}
+        <div class="blog-grid">
+            {% for article in articles %}
+                <article class="blog-card">
+                    <div class="blog-card-header">
+                        <h2 class="blog-card-title">
+                            <a href="{% link "blog_detail" id=article.id %}">{{ article.title }}</a>
+                        </h2>
+                        <span class="blog-card-meta">
+                            By {{ article.email }}
+                            {% if article.created_at %}· {{ article.created_at }}{% endif %}
+                        </span>
+                    </div>
+                    <p class="blog-card-summary">{{ article.summary | truncate(length=200) }}</p>
+                    <div class="blog-card-footer">
+                        {% if article.website %}
+                            <a href="{{ article.website }}" target="_blank" rel="noopener noreferrer" class="blog-card-link">
+                                🔗 Source
+                            </a>
+                        {% endif %}
+                        <a href="{% link "blog_detail" id=article.id %}" class="btn-secondary btn-sm">
+                            Read more →
+                        </a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>No articles yet.</p>
+            <a href="{% link "blog_info" %}" class="btn btn-primary">Write the first article</a>
+        </div>
+    {% endif %}
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md " target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md " target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link "index" %}">← Back to home</a>
+    </div>
+</div>
+{% endblock %}

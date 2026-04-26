@@ -1,0 +1,30 @@
+<div class="header">
+  <div class="error-type badge-error">
+    {{ debug_error_count }}
+  </div>
+  <h1>{{ debug_info_title }}</h1>
+    <div class="message-box">
+      <strong>{{ debug_main_message }}</strong><br />
+      {{ debug_root_cause }}
+    </div>
+
+    {% if stack_trace and stack_trace | length > 0 %}
+    <div class="message-box message-box-warning">
+      <strong>{{ debug_details }}</strong><br />
+      {{ stack_trace | first | get(key="message") }}
+    </div>
+    {% endif %} {% if details %}
+    <div class="message-box message-box-warning">
+      <strong>{{ debug_details }}</strong><br />
+      {{ debug_stack_trace_title }}
+    </div>
+  {% endif %}
+    <div class="info-card info-card-status">
+      <div class="label">
+        {{ debug_status_code }}
+      </div>
+      <div class="value">
+        <span class="badge badge-error">{{ status_code }}</span>
+      </div>
+    </div>
+</div>

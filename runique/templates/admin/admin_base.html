@@ -1,0 +1,109 @@
+{% extends "admin/admin_template" %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ "css/admin/variables.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/layout.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/components.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/buttons.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/forms.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/admin/responsive.css" | runique_static }}">
+{% endblock %}
+
+{% block sidebar %}
+    <aside class="admin-sidebar" id="adminSidebar">
+
+        <div class="sidebar-header">
+            <div class="sidebar-logo">R</div>
+            <span class="sidebar-title">{{ site_title | default(value="Runique Admin") }}</span>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <a href="/admin" class="nav-item{% if current_page %} {% if current_page == 'dashboard' %}active{% endif %} {% endif %}">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <span class="nav-label">{% if admin_dashboard_title %}{{ admin_dashboard_title }}{% endif %}</span>
+            </a>
+
+            {% if resources %}
+                <div class="nav-divider"></div>
+                <div class="nav-section-label">{% if admin_list_breadcrumb_admin %}{{ admin_list_breadcrumb_admin }}{% endif %}</div>
+
+                {% for resource in resources %}
+                <a href="/admin/{{ resource.key }}/list"
+                    class="nav-item {% if current_resource == resource.key %}active{% endif %}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                    <span class="nav-label">{{ resource.title }}</span>
+                </a>
+                {% endfor %}
+            {% endif %}
+
+            {% if current_user and (current_user.is_staff or current_user.is_superuser) %}
+                <div class="nav-divider"></div>
+                <a href="/admin/history" class="nav-item{% if current_page | default(value='') == 'history' %} active{% endif %}">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span class="nav-label">Historique</span>
+                </a>
+            {% endif %}
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-footer-center">
+                <button class="sidebar-toggle" id="sidebarToggle" title="{% if admin_base_toggle %}{{ admin_base_toggle }}{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+    </aside>
+
+    <div class="admin-sidebar-overlay" id="sidebarOverlay"></div>
+{% endblock %}
+
+{% block topbar %}
+    <header class="admin-topbar">
+
+        <button class="btn btn-ghost btn-icon hidden" id="mobileBurger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+
+        <div class="topbar-breadcrumb">
+            <a href="/admin">{% if admin_base_breadcrumb %}{{ admin_base_breadcrumb }}{% endif %}</a>
+            {% block breadcrumb %}{% endblock %}
+        </div>
+
+        <a href="{{ site_url | default(value='/') }}" class="btn btn-ghost btn-sm">
+            {% if admin_base_back_to_site %}{{ admin_base_back_to_site }}{% else %}← Site{% endif %}
+        </a>
+        <form method="POST" action="/admin/logout" class="logout-form">
+            {% csrf %}
+            <button type="submit" class="topbar-user logout-button" title="{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% endif %}">
+                <div class="user-avatar">
+                    {{ current_user.username }}
+                </div>
+                <span>{% if admin_base_logout_title %}{{ admin_base_logout_title }}{% else %}Déconnexion{% endif %}</span>
+            </button>
+        </form>
+
+    </header>
+{% endblock %}
+
+{% block extra_js %}
+    <script {% csp %} src="{{ "js/admin/admin.js" | runique_static }}" defer></script>
+{% endblock %}
