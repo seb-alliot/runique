@@ -130,7 +130,7 @@ fn test_cleaned_f32_valid() {
     let mut form = make_form();
     form.form.add_value("float_field", "3.14");
     let v = form.cleaned_f32("float_field").unwrap();
-    assert!((v - 3.14_f32).abs() < 0.01);
+    assert!((v - std::f32::consts::PI).abs() < 0.01);
 }
 
 #[test]
