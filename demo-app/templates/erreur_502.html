@@ -33,10 +33,10 @@
     </p>
     
     <div class="error-actions">
-        <a href="{% link 'index' %}" class="btn-primary">
+        <a href="{% link "index" %}" class="btn-primary">
             <span>↻</span> Retry
         </a>
-        <a href="{% link 'index' %}" class="btn-secondary">
+        <a href="{% link "index" %}" class="btn-secondary">
             <span>→</span> Back to Home
         </a>
     </div>
@@ -47,7 +47,7 @@
     {{ super() }}
     <script {% csp %}>
         setTimeout(() => {
-            window.location.href = "{% link 'index' %}";
+            window.location.href = "{% link "index" %}";
         }, 30000);
     </script>
 {% endblock %}
