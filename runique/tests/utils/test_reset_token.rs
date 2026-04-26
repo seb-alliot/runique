@@ -82,7 +82,7 @@ fn test_decrypt_invalid_base64_returns_none() {
 #[test]
 fn test_decrypt_too_short_returns_none() {
     use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-    let short = URL_SAFE_NO_PAD.encode(&[0u8; 10]);
+    let short = URL_SAFE_NO_PAD.encode([0u8; 10]);
     let result = decrypt_email("any-token", &short);
     assert_eq!(result, None);
 }

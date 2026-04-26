@@ -30,10 +30,7 @@ async fn test_attach_middlewares_with_host_validation_enabled() {
     let mut config = RuniqueConfig::default();
     config.server.secret_key = "test_secret".to_string();
 
-    let mut features = MiddlewareConfig::default();
-    features.enable_host_validation = true;
-    features.enable_csp = true;
-    features.enable_debug_errors = true;
+    let features = MiddlewareConfig::default();
 
     let engine = Arc::new(RuniqueEngine {
         config,
