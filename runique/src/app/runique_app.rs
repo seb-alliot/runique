@@ -163,15 +163,19 @@ impl RuniqueApp {
         });
 
         // Load existing cert or run ACME flow
-        let cert_path = FsPath::new("./certs/cert.pem");
-        let key_path = FsPath::new("./certs/key.pem");
-        let expires_path = FsPath::new("./certs/expires.txt");
+        let certs_dir = &self.engine.config.security.acme_certs_dir;
+        let cert_str = format!("{certs_dir}/cert.pem");
+        let key_str = format!("{certs_dir}/key.pem");
+        let expires_str = format!("{certs_dir}/expires.txt");
+        let cert_path = FsPath::new(&cert_str);
+        let key_path = FsPath::new(&key_str);
+        let expires_path = FsPath::new(&expires_str);
 
         let needs_renewal =
             !cert_path.exists() || !key_path.exists() || cert_needs_renewal(expires_path).await;
 
         let (cert_pem, key_pem) = if !needs_renewal {
-            tracing::info!("Loading existing TLS certificate from ./certs/");
+            tracing::info!(certs_dir, "Loading existing TLS certificate");
             (
                 tokio::fs::read(cert_path).await?,
                 tokio::fs::read(key_path).await?,
@@ -187,7 +191,7 @@ impl RuniqueApp {
             {
                 Ok((cert, key)) => {
                     // Persist to disk for future restarts
-                    tokio::fs::create_dir_all("./certs").await?;
+                    tokio::fs::create_dir_all(certs_dir).await?;
                     tokio::fs::write(&cert_path, &cert).await?;
                     tokio::fs::write(&key_path, &key).await?;
 
