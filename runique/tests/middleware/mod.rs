@@ -11,4 +11,5 @@ pub mod test_errors;
 pub mod test_login_guard;
 pub mod test_rate_limit;
 pub mod test_session_config;
+pub mod test_session_db;
 pub mod test_user_trait;

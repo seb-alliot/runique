@@ -108,6 +108,14 @@ fn test_effective_key_whitespace_username_uses_ip() {
     assert_eq!(key, "anonym:1.2.3.4");
 }
 
+#[tokio::test]
+async fn test_spawn_cleanup_does_not_panic() {
+    let guard = LoginGuard::new().max_attempts(3).lockout_secs(1);
+    guard.record_failure("tmp_user");
+    guard.spawn_cleanup(tokio::time::Duration::from_secs(1));
+    // Le task tourne en arrière-plan — on vérifie juste que ça ne panique pas
+}
+
 #[test]
 fn test_effective_key_anonymous_keys_are_independent() {
     let guard = LoginGuard::new().max_attempts(2).lockout_secs(60);

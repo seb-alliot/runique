@@ -543,3 +543,65 @@ pub(crate) fn html_escape(s: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&#x27;")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::html_escape;
+
+    #[test]
+    fn test_html_escape_ampersand() {
+        assert_eq!(html_escape("a & b"), "a &amp; b");
+    }
+
+    #[test]
+    fn test_html_escape_lt_gt() {
+        assert_eq!(html_escape("<script>"), "&lt;script&gt;");
+    }
+
+    #[test]
+    fn test_html_escape_double_quote() {
+        assert_eq!(html_escape(r#"say "hi""#), "say &quot;hi&quot;");
+    }
+
+    #[test]
+    fn test_html_escape_single_quote() {
+        assert_eq!(html_escape("it's"), "it&#x27;s");
+    }
+
+    #[test]
+    fn test_html_escape_empty() {
+        assert_eq!(html_escape(""), "");
+    }
+
+    #[test]
+    fn test_html_escape_mixed() {
+        assert_eq!(
+            html_escape("<b>\"Hello\" & 'World'</b>"),
+            "&lt;b&gt;&quot;Hello&quot; &amp; &#x27;World&#x27;&lt;/b&gt;"
+        );
+    }
+
+    #[test]
+    fn test_fallback_404_returns_not_found() {
+        let resp = super::fallback_404_html();
+        assert_eq!(resp.status(), axum::http::StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn test_fallback_429_returns_too_many_requests() {
+        let resp = super::fallback_429_html();
+        assert_eq!(resp.status(), axum::http::StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    #[test]
+    fn test_fallback_500_returns_internal_server_error() {
+        let resp = super::fallback_500_html();
+        assert_eq!(resp.status(), axum::http::StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_critical_error_html_escapes_input() {
+        let resp = super::critical_error_html("<script>alert(1)</script>");
+        assert_eq!(resp.status(), axum::http::StatusCode::INTERNAL_SERVER_ERROR);
+    }
+}

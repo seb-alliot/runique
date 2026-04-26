@@ -2,6 +2,15 @@
 
 use runique::forms::base::FormField;
 use runique::forms::fields::hidden::HiddenField;
+use std::sync::Arc;
+use tera::Tera;
+
+fn minimal_tera() -> Arc<Tera> {
+    let mut tera = Tera::default();
+    tera.add_raw_template("base_hidden", "").unwrap();
+    tera.add_raw_template("csrf", "").unwrap();
+    Arc::new(tera)
+}
 
 // ── Constructeurs ──────────────────────────────────────────────────────────────
 
@@ -146,4 +155,27 @@ fn test_formfield_trait_set_value_get_value() {
 fn test_formfield_trait_no_error_initial() {
     let field = HiddenField::new("champ");
     assert!(field.error().is_none());
+}
+
+// ── render() ──────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_hidden_field_render_ok() {
+    let tera = minimal_tera();
+    let field = HiddenField::new("token");
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_csrf_field_render_ok() {
+    let tera = minimal_tera();
+    let field = HiddenField::new_csrf();
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_hidden_field_render_missing_template_err() {
+    let tera = Arc::new(Tera::default());
+    let field = HiddenField::new("token");
+    assert!(field.render(&tera).is_err());
 }

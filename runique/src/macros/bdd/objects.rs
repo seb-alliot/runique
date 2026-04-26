@@ -319,4 +319,94 @@ mod tests {
         assert_eq!(count, 3);
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_objects_get_found() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        let inserted = ActiveModel {
+            username: Set("diana".to_string()),
+            age: Set(28),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await?;
+
+        let user = Entity::objects.get(&db, inserted.id).await?;
+        assert_eq!(user.username, "diana");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_objects_get_not_found() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        let result = Entity::objects.get(&db, 9999).await;
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_objects_get_optional_found() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        let inserted = ActiveModel {
+            username: Set("eve".to_string()),
+            age: Set(22),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await?;
+
+        let result = Entity::objects.get_optional(&db, inserted.id).await?;
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().username, "eve");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_objects_get_optional_not_found() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        let result = Entity::objects.get_optional(&db, 9999).await?;
+        assert!(result.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_objects_filter_many() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        for (name, age) in [("a", 20), ("b", 25), ("c", 20)] {
+            ActiveModel {
+                username: Set(name.to_string()),
+                age: Set(age),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await?;
+        }
+        let result = Entity::objects
+            .filter_many([(Column::Age, 20)])
+            .all(&db)
+            .await?;
+        assert_eq!(result.len(), 2);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_objects_exclude_many() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        for (name, age) in [("x", 10), ("y", 20)] {
+            ActiveModel {
+                username: Set(name.to_string()),
+                age: Set(age),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await?;
+        }
+        let result = Entity::objects
+            .exclude_many([(Column::Username, "x".to_string())])
+            .all(&db)
+            .await?;
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].username, "y");
+        Ok(())
+    }
 }
