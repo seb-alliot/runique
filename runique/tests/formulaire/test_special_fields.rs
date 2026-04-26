@@ -4,6 +4,15 @@ use runique::forms::base::FormField;
 use runique::forms::fields::special::{
     ColorField, IPAddressField, JSONField, SlugField, UUIDField,
 };
+use std::sync::Arc;
+use tera::Tera;
+
+fn minimal_tera() -> Arc<Tera> {
+    let mut tera = Tera::default();
+    tera.add_raw_template("base_color", "").unwrap();
+    tera.add_raw_template("base_special", "").unwrap();
+    Arc::new(tera)
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ColorField
@@ -423,4 +432,110 @@ fn test_ip_field_ipv6_only_mutual_exclusion() {
     let field = IPAddressField::new("adresse").ipv6_only();
     assert!(field.ipv6_only);
     assert!(!field.ipv4_only);
+}
+
+#[test]
+fn test_ip_field_placeholder() {
+    let field = IPAddressField::new("adresse").placeholder("192.168.0.1");
+    assert_eq!(field.base.placeholder, "192.168.0.1");
+}
+
+#[test]
+fn test_ip_field_required() {
+    let field = IPAddressField::new("adresse").required();
+    assert!(field.base.is_required.choice);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// JSONField — rows builder
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_json_field_rows_sets_extra_context() {
+    let field = JSONField::new("data").rows(20);
+    let rows = field
+        .base
+        .extra_context
+        .get("rows")
+        .and_then(|v| v.as_u64());
+    assert_eq!(rows, Some(20));
+}
+
+#[test]
+fn test_json_field_required_sets_flag() {
+    let field = JSONField::new("data").required();
+    assert!(field.base.is_required.choice);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ColorField — label builder (additif)
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_color_field_required_sets_flag() {
+    let field = ColorField::new("couleur").required();
+    assert!(field.base.is_required.choice);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UUIDField — placeholder / required
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_uuid_field_required_sets_flag() {
+    let field = UUIDField::new("id").required();
+    assert!(field.base.is_required.choice);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// render() — couverture Tera
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_color_field_render_ok() {
+    let tera = minimal_tera();
+    let field = ColorField::new("couleur");
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_color_field_render_missing_template_err() {
+    let tera = Arc::new(Tera::default());
+    let field = ColorField::new("couleur");
+    assert!(field.render(&tera).is_err());
+}
+
+#[test]
+fn test_slug_field_render_ok() {
+    let tera = minimal_tera();
+    let field = SlugField::new("slug");
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_uuid_field_render_ok() {
+    let tera = minimal_tera();
+    let field = UUIDField::new("id");
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_json_field_render_ok() {
+    let tera = minimal_tera();
+    let field = JSONField::new("data");
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_ip_field_render_ok() {
+    let tera = minimal_tera();
+    let field = IPAddressField::new("adresse");
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_special_field_render_missing_template_err() {
+    let tera = Arc::new(Tera::default());
+    let field = SlugField::new("slug");
+    assert!(field.render(&tera).is_err());
 }

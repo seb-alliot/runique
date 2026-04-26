@@ -119,3 +119,72 @@ fn test_link_registre_vide_retourne_erreur() {
     let args = make_args(&[("link", json!("home"))]);
     assert!(func.call(&args).is_err());
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Query string — branches manquantes
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_link_query_string_raw() {
+    let func = LinkFunction {
+        url_registry: make_registry(&[("list", "/items/")]),
+    };
+    let args = make_args(&[("link", json!("list")), ("query", json!("page=2&q=rust"))]);
+    let result = func.call(&args).unwrap();
+    assert_eq!(result, Value::String("/items/?page=2&q=rust".to_string()));
+}
+
+#[test]
+fn test_link_query_object_builds_querystring() {
+    let func = LinkFunction {
+        url_registry: make_registry(&[("search", "/search/")]),
+    };
+    let mut query_map = serde_json::Map::new();
+    query_map.insert("page".to_string(), json!(3));
+    let args = make_args(&[
+        ("link", json!("search")),
+        ("query", Value::Object(query_map)),
+    ]);
+    let result = func.call(&args).unwrap();
+    let s = result.as_str().unwrap();
+    assert!(s.starts_with("/search/?"));
+    assert!(s.contains("page=3"));
+}
+
+#[test]
+fn test_link_query_object_encodes_string_value() {
+    let func = LinkFunction {
+        url_registry: make_registry(&[("search", "/search/")]),
+    };
+    let mut query_map = serde_json::Map::new();
+    query_map.insert("q".to_string(), json!("hello world"));
+    let args = make_args(&[
+        ("link", json!("search")),
+        ("query", Value::Object(query_map)),
+    ]);
+    let result = func.call(&args).unwrap();
+    let s = result.as_str().unwrap();
+    assert!(s.contains("hello%20world") || s.contains("hello+world"));
+}
+
+#[test]
+fn test_link_query_empty_string_no_question_mark() {
+    let func = LinkFunction {
+        url_registry: make_registry(&[("list", "/items/")]),
+    };
+    let args = make_args(&[("link", json!("list")), ("query", json!(""))]);
+    let result = func.call(&args).unwrap();
+    assert_eq!(result, Value::String("/items/".to_string()));
+}
+
+#[test]
+fn test_link_query_other_type_appended() {
+    let func = LinkFunction {
+        url_registry: make_registry(&[("list", "/items/")]),
+    };
+    // bool value → to_string() fallback
+    let args = make_args(&[("link", json!("list")), ("query", json!(true))]);
+    let result = func.call(&args).unwrap();
+    let s = result.as_str().unwrap();
+    assert!(s.starts_with("/items/"));
+}

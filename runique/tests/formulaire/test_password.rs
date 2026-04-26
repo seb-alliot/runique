@@ -1,7 +1,9 @@
 use runique::prelude::*;
 use runique::utils::password::{
-    Manual, PasswordConfig, PasswordService, password_get, password_init,
+    AutoConfig, BaseHash, External, Manual, PasswordConfig, PasswordService, password_get,
+    password_init,
 };
+use std::sync::Arc;
 
 // ============================================================================
 // UnifiedHasher — Détection algo
@@ -130,4 +132,150 @@ fn test_is_algorithm_not_current_after_change() {
     // Config actuelle Bcrypt
     let service_bcrypt = PasswordService::new(PasswordConfig::auto_with(Manual::Bcrypt));
     assert!(!service_bcrypt.is_algorithm_current(&hash));
+}
+
+// ============================================================================
+// PasswordService — auto_process() branches
+// ============================================================================
+
+#[test]
+fn test_auto_process_non_password_format_is_noop() {
+    let service = PasswordService::new(PasswordConfig::auto());
+    let mut field = TextField::text("username");
+    field.set_value("alice");
+    assert!(service.auto_process(&mut field).is_ok());
+    assert_eq!(field.value(), "alice"); // inchangé
+}
+
+#[test]
+fn test_auto_process_empty_not_allowed_returns_err() {
+    let service = PasswordService::new(PasswordConfig::Auto(AutoConfig {
+        algorithm: Manual::Argon2,
+        allow_empty: false,
+        pre_hash_hook: None,
+    }));
+    let mut field = TextField::password("pwd");
+    field.set_value("");
+    assert!(service.auto_process(&mut field).is_err());
+}
+
+#[test]
+fn test_auto_process_empty_allowed_returns_ok() {
+    let service = PasswordService::new(PasswordConfig::Auto(AutoConfig {
+        algorithm: Manual::Argon2,
+        allow_empty: true,
+        pre_hash_hook: None,
+    }));
+    let mut field = TextField::password("pwd");
+    field.set_value("");
+    assert!(service.auto_process(&mut field).is_ok());
+    assert_eq!(field.value(), ""); // valeur inchangée
+}
+
+#[test]
+fn test_auto_process_already_hashed_skips_rehash() {
+    let service = PasswordService::new(PasswordConfig::auto());
+    let hash = service.hash("secret").unwrap();
+
+    let mut field = TextField::password("pwd");
+    field.set_value(&hash);
+    assert!(service.auto_process(&mut field).is_ok());
+    assert_eq!(field.value(), hash); // valeur inchangée
+}
+
+#[test]
+fn test_auto_process_unknown_hash_like_returns_err() {
+    let service = PasswordService::new(PasswordConfig::auto());
+    // Ressemble à un hash argon2 mais sous-type inconnu → looks_like_hash=true, is_already_hashed=false
+    let mut field = TextField::password("pwd");
+    field.set_value("$argon2xyz$something");
+    assert!(service.auto_process(&mut field).is_err());
+}
+
+#[test]
+fn test_auto_process_pre_hash_hook_failure_propagates() {
+    let service = PasswordService::new(PasswordConfig::Auto(AutoConfig {
+        algorithm: Manual::Argon2,
+        allow_empty: false,
+        pre_hash_hook: Some(Arc::new(|_| Err("hook rejects".to_string()))),
+    }));
+    let mut field = TextField::password("pwd");
+    field.set_value("plainpassword");
+    let result = service.auto_process(&mut field);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("hook rejects"));
+}
+
+#[test]
+fn test_auto_process_manual_config_is_noop() {
+    let service = PasswordService::new(PasswordConfig::manual(Manual::Bcrypt));
+    let mut field = TextField::password("pwd");
+    field.set_value("plainpassword");
+    assert!(service.auto_process(&mut field).is_ok());
+    assert_eq!(field.value(), "plainpassword"); // pas de hash automatique en mode Manuel
+}
+
+// ============================================================================
+// PasswordService — hash() / verify() modes Delegated / Custom
+// ============================================================================
+
+#[test]
+fn test_hash_delegated_returns_err() {
+    let service = PasswordService::new(PasswordConfig::Delegated(External::GoogleOAuth));
+    assert!(service.hash("anypassword").is_err());
+}
+
+#[test]
+fn test_verify_delegated_returns_false() {
+    let service = PasswordService::new(PasswordConfig::Delegated(External::GoogleOAuth));
+    assert!(!service.verify("pwd", "$argon2id$xyz"));
+}
+
+#[test]
+fn test_is_algorithm_current_manual_always_true() {
+    let service = PasswordService::new(PasswordConfig::manual(Manual::Argon2));
+    // En mode Manual, is_algorithm_current retourne toujours true (branche `_ => true`)
+    assert!(service.is_algorithm_current("$argon2id$anything"));
+    assert!(service.is_algorithm_current("$2b$10$anything_bcrypt"));
+    assert!(service.is_algorithm_current("notahash"));
+}
+
+// ============================================================================
+// BaseHash — detect_algorithm()
+// ============================================================================
+
+#[test]
+fn test_base_hash_detect_argon2() {
+    let b = BaseHash::new();
+    assert_eq!(b.detect_algorithm("$argon2id$v=19$..."), Some("argon2"));
+}
+
+#[test]
+fn test_base_hash_detect_bcrypt() {
+    let b = BaseHash::new();
+    assert_eq!(b.detect_algorithm("$2b$10$hash"), Some("bcrypt"));
+}
+
+#[test]
+fn test_base_hash_detect_scrypt() {
+    let b = BaseHash::new();
+    assert_eq!(b.detect_algorithm("$scrypt$..."), Some("scrypt"));
+}
+
+#[test]
+fn test_base_hash_detect_none_for_plaintext() {
+    let b = BaseHash::new();
+    assert_eq!(b.detect_algorithm("plaintext"), None);
+}
+
+// ============================================================================
+// hash() / verify() top-level functions
+// ============================================================================
+
+#[test]
+fn test_top_level_hash_and_verify() {
+    // password_get() retourne le config globale (argon2 par défaut)
+    let h = runique::utils::password::hash("testpwd").unwrap();
+    assert!(runique::utils::password::verify("testpwd", &h));
+    assert!(!runique::utils::password::verify("wrongpwd", &h));
 }

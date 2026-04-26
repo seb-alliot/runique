@@ -7,7 +7,10 @@ use axum::{Router, response::IntoResponse, routing::get};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
 
 use runique::admin::Groupe;
-use runique::auth::session::{get_user_id, get_username, is_authenticated, login, logout};
+use runique::auth::session::{
+    get_user_id, get_username, is_admin_authenticated, is_authenticated, login, logout,
+    protect_session, unprotect_session,
+};
 use runique::utils::constante::{
     admin_context::permission::GROUPES,
     session_key::session::{SESSION_USER_IS_STAFF_KEY, SESSION_USER_IS_SUPERUSER_KEY},
@@ -216,4 +219,105 @@ async fn test_get_username_after_login() {
 
     let res = request::get(build_app(get(handler)), "/test").await;
     assert_body_str(res, "charlie").await;
+}
+
+// ── is_admin_authenticated ────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_is_admin_authenticated_not_logged_in() {
+    async fn handler(session: Session) -> impl IntoResponse {
+        if is_admin_authenticated(&session).await {
+            "admin"
+        } else {
+            "not_admin"
+        }
+    }
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "not_admin").await;
+}
+
+#[tokio::test]
+async fn test_is_admin_authenticated_plain_user() {
+    async fn handler(session: Session) -> impl IntoResponse {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 10, "user", false, false, None, false)
+            .await
+            .unwrap();
+        if is_admin_authenticated(&session).await {
+            "admin"
+        } else {
+            "not_admin"
+        }
+    }
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "not_admin").await;
+}
+
+#[tokio::test]
+async fn test_is_admin_authenticated_staff() {
+    async fn handler(session: Session) -> impl IntoResponse {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 11, "staff", true, false, None, false)
+            .await
+            .unwrap();
+        if is_admin_authenticated(&session).await {
+            "admin"
+        } else {
+            "not_admin"
+        }
+    }
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "admin").await;
+}
+
+#[tokio::test]
+async fn test_is_admin_authenticated_superuser() {
+    async fn handler(session: Session) -> impl IntoResponse {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        login(&session, &db, 12, "su", false, true, None, false)
+            .await
+            .unwrap();
+        if is_admin_authenticated(&session).await {
+            "admin"
+        } else {
+            "not_admin"
+        }
+    }
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "admin").await;
+}
+
+// ── protect_session / unprotect_session ───────────────────────────────────────
+
+#[tokio::test]
+async fn test_protect_session_inserts_key() {
+    use runique::utils::constante::session_key::session::SESSION_ACTIVE_KEY;
+    async fn handler(session: Session) -> impl IntoResponse {
+        protect_session(&session, 3600).await.unwrap();
+        let key = session.get::<i64>(SESSION_ACTIVE_KEY).await.ok().flatten();
+        if key.is_some() {
+            "protected"
+        } else {
+            "missing"
+        }
+    }
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "protected").await;
+}
+
+#[tokio::test]
+async fn test_unprotect_session_removes_key() {
+    use runique::utils::constante::session_key::session::SESSION_ACTIVE_KEY;
+    async fn handler(session: Session) -> impl IntoResponse {
+        protect_session(&session, 3600).await.unwrap();
+        unprotect_session(&session).await.unwrap();
+        let key = session.get::<i64>(SESSION_ACTIVE_KEY).await.ok().flatten();
+        if key.is_none() {
+            "removed"
+        } else {
+            "still_present"
+        }
+    }
+    let res = request::get(build_app(get(handler)), "/test").await;
+    assert_body_str(res, "removed").await;
 }

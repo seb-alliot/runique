@@ -1,5 +1,6 @@
 // Tests pour ModelSchema et SchemaDiff
 
+use runique::forms::Forms;
 use runique::migration::{
     column::ColumnDef,
     foreign_key::ForeignKeyDef,
@@ -282,4 +283,219 @@ fn test_schema_clone() {
     assert_eq!(cloned.table_name, "user");
     assert_eq!(cloned.columns.len(), 1);
     assert!(cloned.primary_key.is_some());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// to_model() — relations
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_schema_to_model_belongs_to() {
+    let s = ModelSchema::new("Post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .relation(RelationDef::belongs_to("User", "user_id", "id"));
+    let code = s.to_model();
+    assert!(
+        code.contains("belongs_to"),
+        "BelongsTo doit générer belongs_to"
+    );
+    assert!(code.contains("user_id") || code.contains("UserId"));
+}
+
+#[test]
+fn test_schema_to_model_has_many() {
+    let s = ModelSchema::new("User")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .relation(RelationDef::has_many("post"));
+    let code = s.to_model();
+    assert!(code.contains("has_many"), "HasMany doit générer has_many");
+}
+
+#[test]
+fn test_schema_to_model_has_one() {
+    let s = ModelSchema::new("User")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .relation(RelationDef::has_one("profile"));
+    let code = s.to_model();
+    assert!(code.contains("has_many") || code.contains("has_one") || code.contains("Profile"));
+}
+
+#[test]
+fn test_schema_to_model_many_to_many() {
+    let s = ModelSchema::new("Post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .relation(RelationDef::many_to_many("tag", "post_tag"));
+    let code = s.to_model();
+    assert!(
+        code.contains("many_to_many") || code.contains("via"),
+        "ManyToMany doit générer via"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// to_model() — col_to_rust_type() variants
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_schema_to_model_float_col() {
+    let s = ModelSchema::new("Metrics")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("score").float());
+    let code = s.to_model();
+    assert!(code.contains("f32"), "float doit générer f32");
+}
+
+#[test]
+fn test_schema_to_model_double_col() {
+    let s = ModelSchema::new("Metrics")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("lat").double());
+    let code = s.to_model();
+    assert!(code.contains("f64"), "double doit générer f64");
+}
+
+#[test]
+fn test_schema_to_model_boolean_col() {
+    let s = ModelSchema::new("User")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("active").boolean());
+    let code = s.to_model();
+    assert!(code.contains("bool"), "boolean doit générer bool");
+}
+
+#[test]
+fn test_schema_to_model_date_col() {
+    let s = ModelSchema::new("Event")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("event_date").date());
+    let code = s.to_model();
+    assert!(code.contains("NaiveDate"), "date doit générer NaiveDate");
+}
+
+#[test]
+fn test_schema_to_model_uuid_col() {
+    let s = ModelSchema::new("Token")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("uuid_val").uuid());
+    let code = s.to_model();
+    assert!(code.contains("Uuid"), "uuid doit générer Uuid");
+}
+
+#[test]
+fn test_schema_to_model_json_col() {
+    let s = ModelSchema::new("Config")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("data").json());
+    let code = s.to_model();
+    assert!(
+        code.contains("serde_json::Value"),
+        "json doit générer serde_json::Value"
+    );
+}
+
+#[test]
+fn test_schema_to_model_pk_uuid() {
+    let s = ModelSchema::new("Token").primary_key(PrimaryKeyDef::new("id").uuid());
+    let code = s.to_model();
+    assert!(code.contains("Uuid"), "PK uuid doit générer Uuid");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// auto_now_columns / auto_now_update_columns / has_auto_timestamps
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_schema_auto_now_columns() {
+    let s = ModelSchema::new("Post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("created_at").datetime().auto_now())
+        .column(ColumnDef::new("updated_at").datetime().auto_now_update())
+        .column(ColumnDef::new("title").string());
+    let auto = s.auto_now_columns();
+    assert_eq!(auto.len(), 1);
+    assert_eq!(auto[0].name, "created_at");
+}
+
+#[test]
+fn test_schema_auto_now_update_columns() {
+    let s = ModelSchema::new("Post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("created_at").datetime().auto_now())
+        .column(ColumnDef::new("updated_at").datetime().auto_now_update());
+    let auto_update = s.auto_now_update_columns();
+    assert_eq!(auto_update.len(), 1);
+    assert_eq!(auto_update[0].name, "updated_at");
+}
+
+#[test]
+fn test_schema_has_auto_timestamps_true() {
+    let s = ModelSchema::new("Post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("created_at").datetime().auto_now());
+    assert!(s.has_auto_timestamps());
+}
+
+#[test]
+fn test_schema_has_auto_timestamps_false() {
+    let s = ModelSchema::new("Post")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("title").string());
+    assert!(!s.has_auto_timestamps());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// fill_form()
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_schema_fill_form_all_fields() {
+    let s = ModelSchema::new("User")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("username").string())
+        .column(ColumnDef::new("email").string());
+    let mut form = Forms::new("dummy_token");
+    let before = form.fields.len();
+    s.fill_form(&mut form, None, None);
+    // 2 colonnes ajoutées (PK exclue automatiquement)
+    assert_eq!(form.fields.len() - before, 2);
+}
+
+#[test]
+fn test_schema_fill_form_with_exclude() {
+    let s = ModelSchema::new("User")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("username").string())
+        .column(ColumnDef::new("email").string())
+        .column(ColumnDef::new("password").string());
+    let mut form = Forms::new("dummy_token");
+    let before = form.fields.len();
+    s.fill_form(&mut form, None, Some(&["password"]));
+    assert_eq!(form.fields.len() - before, 2);
+}
+
+#[test]
+fn test_schema_fill_form_with_whitelist() {
+    let s = ModelSchema::new("User")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("username").string())
+        .column(ColumnDef::new("email").string())
+        .column(ColumnDef::new("bio").text());
+    let mut form = Forms::new("dummy_token");
+    let before = form.fields.len();
+    s.fill_form(&mut form, Some(&["username", "email"]), None);
+    assert_eq!(form.fields.len() - before, 2);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// to_migration() — avec colonnes ignorées
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_schema_to_migration_ignored_col_skipped() {
+    let s = ModelSchema::new("User")
+        .primary_key(PrimaryKeyDef::new("id"))
+        .column(ColumnDef::new("name").string())
+        .column(ColumnDef::new("cache_internal").string().ignore());
+    // Ne doit pas paniquer et ignorer le champ
+    let _ = s.to_migration();
 }

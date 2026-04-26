@@ -12,8 +12,12 @@
 pub mod test_aegis;
 pub mod test_base_field;
 pub mod test_bool_choice;
+pub mod test_boolean_field;
 pub mod test_choice_fields;
+pub mod test_cleaned_values;
 pub mod test_datetime_fields;
+pub mod test_file_field;
+pub mod test_form_methods;
 pub mod test_forms;
 pub mod test_generic_field;
 pub mod test_hidden_field;

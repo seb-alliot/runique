@@ -388,3 +388,391 @@ fn test_batch_down_plusieurs_tables() {
     assert!(content.contains("users"));
     assert!(content.contains("posts"));
 }
+
+// ═══════════════════════════════════════════════════════════════
+// generate_create_file — branches Postgres / MySQL
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_create_file_postgres_enum_stmts() {
+    let schema = ParsedSchema {
+        table_name: "articles".to_string(),
+        primary_key: Some(col("id", "i32")),
+        columns: vec![ParsedColumn {
+            name: "status".to_string(),
+            col_type: "String".to_string(),
+            enum_string_values: vec!["Draft".to_string(), "Published".to_string()],
+            ..ParsedColumn::default()
+        }],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+    let content = generate_create_file(&schema, &DbKind::Postgres);
+    assert!(
+        content.contains("CREATE TYPE"),
+        "Postgres doit créer un type enum"
+    );
+    assert!(content.contains("'Draft'") && content.contains("'Published'"));
+}
+
+#[test]
+fn test_create_file_postgres_enum_drops() {
+    let schema = ParsedSchema {
+        table_name: "articles".to_string(),
+        primary_key: Some(col("id", "i32")),
+        columns: vec![ParsedColumn {
+            name: "status".to_string(),
+            col_type: "String".to_string(),
+            enum_string_values: vec!["Draft".to_string()],
+            ..ParsedColumn::default()
+        }],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+    let content = generate_create_file(&schema, &DbKind::Postgres);
+    assert!(
+        content.contains("DROP TYPE IF EXISTS"),
+        "Postgres down doit supprimer le type"
+    );
+}
+
+#[test]
+fn test_create_file_postgres_updated_at_trigger() {
+    let schema = ParsedSchema {
+        table_name: "posts".to_string(),
+        primary_key: Some(col("id", "i32")),
+        columns: vec![ParsedColumn {
+            name: "updated_at".to_string(),
+            col_type: "DateTime".to_string(),
+            updated_at: true,
+            ..ParsedColumn::default()
+        }],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+    let content = generate_create_file(&schema, &DbKind::Postgres);
+    assert!(
+        content.contains("CREATE TRIGGER"),
+        "Postgres doit créer un trigger updated_at"
+    );
+    assert!(
+        content.contains("DROP TRIGGER IF EXISTS"),
+        "Down doit supprimer le trigger"
+    );
+}
+
+#[test]
+fn test_create_file_mysql_updated_at_on_update() {
+    let schema = ParsedSchema {
+        table_name: "posts".to_string(),
+        primary_key: Some(col("id", "i32")),
+        columns: vec![ParsedColumn {
+            name: "updated_at".to_string(),
+            col_type: "DateTime".to_string(),
+            updated_at: true,
+            ..ParsedColumn::default()
+        }],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+    let content = generate_create_file(&schema, &DbKind::Mysql);
+    assert!(
+        content.contains("ON UPDATE CURRENT_TIMESTAMP"),
+        "MySQL doit utiliser ON UPDATE CURRENT_TIMESTAMP"
+    );
+}
+
+#[test]
+fn test_create_file_col_nullable_unique_default_now() {
+    let schema = ParsedSchema {
+        table_name: "items".to_string(),
+        primary_key: Some(col("id", "i32")),
+        columns: vec![ParsedColumn {
+            name: "created_at".to_string(),
+            col_type: "DateTime".to_string(),
+            nullable: true,
+            unique: true,
+            has_default_now: true,
+            ..ParsedColumn::default()
+        }],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+    let content = generate_create_file(&schema, &DbKind::Other);
+    assert!(
+        content.contains(".null()"),
+        "Colonne nullable doit contenir .null()"
+    );
+    assert!(
+        content.contains(".unique_key()"),
+        "Colonne unique doit contenir .unique_key()"
+    );
+    assert!(
+        content.contains("Expr::current_timestamp()"),
+        "default_now doit utiliser current_timestamp"
+    );
+}
+
+#[test]
+fn test_create_file_col_enum_values_columndef_with_type() {
+    let schema = ParsedSchema {
+        table_name: "events".to_string(),
+        primary_key: Some(col("id", "i32")),
+        columns: vec![ParsedColumn {
+            name: "kind".to_string(),
+            col_type: "String".to_string(),
+            enum_string_values: vec!["A".to_string(), "B".to_string()],
+            enum_name: Some("event_kind".to_string()),
+            ..ParsedColumn::default()
+        }],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+    let content = generate_create_file(&schema, &DbKind::Other);
+    assert!(
+        content.contains("ColumnDef::new_with_type"),
+        "Colonne enum doit utiliser new_with_type"
+    );
+}
+
+#[test]
+fn test_create_file_pk_non_integer_no_autoinc() {
+    let schema = ParsedSchema {
+        table_name: "tokens".to_string(),
+        primary_key: Some(ParsedColumn {
+            name: "token".to_string(),
+            col_type: "String".to_string(),
+            ..ParsedColumn::default()
+        }),
+        columns: vec![],
+        foreign_keys: vec![],
+        indexes: vec![],
+    };
+    let content = generate_create_file(&schema, &DbKind::Other);
+    assert!(
+        !content.contains(".auto_increment()"),
+        "PK String ne doit pas avoir auto_increment"
+    );
+    assert!(
+        content.contains(".primary_key()"),
+        "PK doit avoir .primary_key()"
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// generate_alter_file — branches supplémentaires
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_alter_file_type_change_generates_warning() {
+    let old_col = ParsedColumn {
+        name: "age".to_string(),
+        col_type: "Integer".to_string(),
+        ..ParsedColumn::default()
+    };
+    let new_col = ParsedColumn {
+        name: "age".to_string(),
+        col_type: "BigInteger".to_string(),
+        ..ParsedColumn::default()
+    };
+    let changes = Changes {
+        table_name: "users".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![(old_col, new_col)],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("WARNING"),
+        "Changement de type doit générer un avertissement"
+    );
+    assert!(content.contains("Manual migration required"));
+}
+
+#[test]
+fn test_alter_file_nullable_to_not_null_modify_column() {
+    let old_col = ParsedColumn {
+        name: "bio".to_string(),
+        col_type: "String".to_string(),
+        nullable: true,
+        ..ParsedColumn::default()
+    };
+    let new_col = ParsedColumn {
+        name: "bio".to_string(),
+        col_type: "String".to_string(),
+        nullable: false,
+        ..ParsedColumn::default()
+    };
+    let changes = Changes {
+        table_name: "users".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![(old_col, new_col)],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("modify_column"),
+        "nullable→not_null doit générer modify_column"
+    );
+}
+
+#[test]
+fn test_alter_file_enum_value_adds() {
+    let changes = Changes {
+        table_name: "articles".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![(
+            "status".to_string(),
+            "article_status".to_string(),
+            "Archived".to_string(),
+        )],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("ADD VALUE IF NOT EXISTS"),
+        "enum_value_adds doit générer ALTER TYPE ADD VALUE"
+    );
+    assert!(content.contains("Archived"));
+}
+
+#[test]
+fn test_alter_file_enum_value_drops_warning() {
+    let changes = Changes {
+        table_name: "articles".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![(
+            "status".to_string(),
+            "article_status".to_string(),
+            "OldVal".to_string(),
+        )],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("WARNING"),
+        "enum_value_drops doit générer un WARNING dans up"
+    );
+    assert!(content.contains("OldVal"));
+}
+
+#[test]
+fn test_alter_file_drop_index_in_up() {
+    let changes = Changes {
+        table_name: "posts".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![],
+        dropped_indexes: vec![ParsedIndex {
+            name: "idx_posts_slug".to_string(),
+            columns: vec!["slug".to_string()],
+            unique: false,
+        }],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("drop_index"),
+        "UP doit contenir drop_index pour index supprimé"
+    );
+    assert!(content.contains("idx_posts_slug"));
+}
+
+#[test]
+fn test_alter_file_add_index_in_up() {
+    let changes = Changes {
+        table_name: "posts".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![],
+        added_indexes: vec![ParsedIndex {
+            name: "idx_posts_title".to_string(),
+            columns: vec!["title".to_string()],
+            unique: true,
+        }],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("create_index"),
+        "UP doit contenir create_index pour index ajouté"
+    );
+    assert!(content.contains("idx_posts_title"));
+    assert!(
+        content.contains("unique_key"),
+        "Index unique doit contenir unique_key"
+    );
+}
+
+#[test]
+fn test_alter_file_drop_fk_in_up() {
+    let changes = Changes {
+        table_name: "comments".to_string(),
+        added_columns: vec![],
+        dropped_columns: vec![],
+        modified_columns: vec![],
+        added_fks: vec![],
+        dropped_fks: vec![ParsedFk {
+            from_column: "post_id".to_string(),
+            to_table: "posts".to_string(),
+            to_column: "id".to_string(),
+            on_delete: "Cascade".to_string(),
+            on_update: "NoAction".to_string(),
+        }],
+        added_indexes: vec![],
+        dropped_indexes: vec![],
+        is_new_table: false,
+        enum_renames: vec![],
+        enum_value_adds: vec![],
+        enum_value_drops: vec![],
+    };
+    let content = generate_alter_file(&changes);
+    assert!(
+        content.contains("drop_foreign_key"),
+        "UP doit contenir drop_foreign_key pour FK supprimée"
+    );
+}

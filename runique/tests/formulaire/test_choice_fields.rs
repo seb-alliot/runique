@@ -2,6 +2,16 @@
 
 use runique::forms::base::FormField;
 use runique::forms::fields::choice::{CheckboxField, ChoiceField, ChoiceOption, RadioField};
+use std::sync::Arc;
+use tera::Tera;
+
+fn minimal_tera() -> Arc<Tera> {
+    let mut tera = Tera::default();
+    for name in &["base_select", "base_radio", "base_checkbox"] {
+        tera.add_raw_template(name, "").unwrap();
+    }
+    Arc::new(tera)
+}
 
 fn options() -> Vec<ChoiceOption> {
     vec![
@@ -257,4 +267,36 @@ fn test_checkbox_field_add_choice() {
 fn test_checkbox_field_label() {
     let field = CheckboxField::new("interets").label("Centres d'intérêt");
     assert_eq!(field.base.label, "Centres d'intérêt");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// render() — couverture Tera
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_choice_field_render_ok() {
+    let tera = minimal_tera();
+    let field = ChoiceField::new("pays").add_choice("fr", "France");
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_choice_field_render_missing_template_err() {
+    let tera = Arc::new(Tera::default());
+    let field = ChoiceField::new("pays");
+    assert!(field.render(&tera).is_err());
+}
+
+#[test]
+fn test_radio_field_render_ok() {
+    let tera = minimal_tera();
+    let field = RadioField::new("genre").add_choice("m", "M");
+    assert!(field.render(&tera).is_ok());
+}
+
+#[test]
+fn test_checkbox_field_render_ok() {
+    let tera = minimal_tera();
+    let field = CheckboxField::new("tags").add_choice("a", "A");
+    assert!(field.render(&tera).is_ok());
 }

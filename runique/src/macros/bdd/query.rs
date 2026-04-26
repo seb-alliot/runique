@@ -375,4 +375,133 @@ mod tests {
 
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_querybuilder_filter_many() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        for (name, age) in [("alice", 25), ("bob", 30), ("carol", 25)] {
+            ActiveModel {
+                username: Set(name.to_string()),
+                age: Set(age),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await?;
+        }
+        let result = RuniqueQueryBuilder::new(Entity::find())
+            .filter_many([(Column::Age, 25)])
+            .all(&db)
+            .await?;
+        assert_eq!(result.len(), 2);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_exclude_many() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        for (name, age) in [("alice", 25), ("bob", 30)] {
+            ActiveModel {
+                username: Set(name.to_string()),
+                age: Set(age),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await?;
+        }
+        let result = RuniqueQueryBuilder::new(Entity::find())
+            .exclude_many([(Column::Username, "bob".to_string())])
+            .all(&db)
+            .await?;
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].username, "alice");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_order_by_desc() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        for i in 1..=3 {
+            ActiveModel {
+                username: Set(format!("u{}", i)),
+                age: Set(20 + i),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await?;
+        }
+        let result = RuniqueQueryBuilder::new(Entity::find())
+            .order_by_desc(Column::Age)
+            .first(&db)
+            .await?
+            .unwrap();
+        assert_eq!(result.age, 23);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_desc_asc_aliases() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        for i in 1..=3 {
+            ActiveModel {
+                username: Set(format!("u{}", i)),
+                age: Set(20 + i),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await?;
+        }
+        let asc_first = RuniqueQueryBuilder::new(Entity::find())
+            .asc(Column::Age)
+            .first(&db)
+            .await?
+            .unwrap();
+        assert_eq!(asc_first.age, 21);
+
+        let desc_first = RuniqueQueryBuilder::new(Entity::find())
+            .desc(Column::Age)
+            .first(&db)
+            .await?
+            .unwrap();
+        assert_eq!(desc_first.age, 23);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_offset() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        for i in 1..=4 {
+            ActiveModel {
+                username: Set(format!("u{}", i)),
+                age: Set(i),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await?;
+        }
+        let result = RuniqueQueryBuilder::new(Entity::find())
+            .order_by_asc(Column::Age)
+            .limit(10)
+            .offset(2)
+            .all(&db)
+            .await?;
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].age, 3);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_querybuilder_into_select() -> Result<(), DbErr> {
+        let db = setup_db().await?;
+        ActiveModel {
+            username: Set("alice".to_string()),
+            age: Set(25),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await?;
+        let select = RuniqueQueryBuilder::new(Entity::find()).into_select();
+        let result = select.all(&db).await?;
+        assert_eq!(result.len(), 1);
+        Ok(())
+    }
 }
