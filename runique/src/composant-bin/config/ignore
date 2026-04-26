@@ -1,5 +1,0 @@
-# Fichiers et dossiers à ignorer par Git
-/target/
-*.db
-*.sqlite
-.env
