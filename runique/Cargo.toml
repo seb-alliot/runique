@@ -1,0 +1,146 @@
+[package]
+name = "runique"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "A Django-inspired web framework for Rust with ORM, templates, and comprehensive security middleware"
+keywords = ["web", "framework", "django", "sea-orm", "runique"]
+categories = ["web-programming::http-server"]
+readme = "readme.md"
+documentation = "https://runique.io/docs/en"
+
+exclude = [
+    "tests/*",
+    "**/*.db",
+    "**/*.sqlite",
+    "**/target/*",
+]
+
+[lib]
+name = "runique"
+path = "src/lib.rs"
+
+[dependencies]
+# Web framework
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tower-sessions.workspace = true
+
+# Admin daemon
+notify.workspace = true
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
+
+# Security
+urlencoding.workspace = true
+byte.workspace = true
+http-body-util.workspace = true
+ammonia.workspace = true
+
+# Password management
+argon2.workspace = true
+scrypt.workspace = true
+bcrypt.workspace = true
+password-hash.workspace = true
+rand.workspace = true
+
+# Async runtime
+tokio.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+serde_urlencoded.workspace = true
+form_urlencoded.workspace = true
+
+# Templates
+tera.workspace = true
+glob.workspace = true
+indexmap.workspace = true
+
+# ORM
+sea-orm = { workspace = true, optional = true }
+sea-orm-migration = { workspace = true, optional = true }
+sea-query.workspace = true
+
+# Utilities
+dotenvy.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+regex.workspace = true
+fancy-regex.workspace = true
+uuid.workspace = true
+futures-util.workspace = true
+phone_number.workspace = true
+country.workspace = true
+postal-code.workspace = true
+dyn-clone.workspace = true
+image.workspace = true
+walkdir.workspace = true
+
+
+# Logging
+tracing.workspace = true
+tracing-futures.workspace = true
+tracing-subscriber.workspace = true
+thiserror.workspace = true
+
+# Async
+async-trait.workspace = true
+
+# Validation
+validator.workspace = true
+
+# Documentation
+pulldown-cmark.workspace = true
+
+# Envoie d'email
+lettre.workspace = true
+
+# CSRF
+hmac.workspace = true
+sha2.workspace = true
+hex.workspace = true
+base64.workspace = true
+subtle.workspace = true
+
+# Procedural macros
+derive_form.workspace = true
+
+# ACME / TLS (feature acme)
+instant-acme = { version = "0.8.5", features = ["rcgen"], optional = true }
+axum-server = { version = "0.7", features = ["tls-rustls"], optional = true }
+rustls = { version = "0.23", features = ["ring"], optional = true }
+
+# CLI
+clap.workspace = true
+rpassword.workspace = true
+crossterm.workspace = true
+dialoguer.workspace = true
+
+
+[dev-dependencies]
+serial_test = "3"
+reqwest = { version = "0.13.2", features = ["json", "rustls", "cookies"] }
+
+[features]
+default = ["orm", "all-databases"]
+orm = ["dep:sea-orm", "dep:sea-orm-migration"]
+sqlite = ["orm", "sea-orm/sqlx-sqlite", "sea-orm/runtime-tokio-rustls"]
+postgres = ["orm", "sea-orm/sqlx-postgres", "sea-orm/runtime-tokio-rustls"]
+mysql = ["orm", "sea-orm/sqlx-mysql", "sea-orm/runtime-tokio-rustls"]
+mariadb = ["mysql"]
+all-databases = ["sqlite", "postgres", "mysql"]
+big-pk = ["derive_form/big-pk"]
+acme = ["dep:instant-acme", "dep:axum-server", "dep:rustls"]
+
+
+[package.metadata.docs.rs]
+default-target = "x86_64-unknown-linux-gnu"
+features = ["all-databases"]

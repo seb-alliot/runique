@@ -1,0 +1,70 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/inscription.css" %}">
+    <link rel="stylesheet" href="{% static "css/demo-code.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+
+    <div class="demo-layout">
+
+        <div class="form-container demo-form-panel">
+            <form id="blog_form" method="post" action="{% link "blog_info" %}">
+                {% form.blog_form %}
+                <button type="submit" class="btn btn-primary btn-submit">
+                    Save article
+                </button>
+            </form>
+
+            <div class="text-center mt-3">
+                <a href="{% link "blog_list" %}">View articles</a>
+                <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+            <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+                <a href="{% link "index" %}">← Back to home</a>
+            </div>
+        </div>
+
+        <div class="demo-code">
+            <div class="demo-code-title">formulaire/blog.rs</div>
+            <pre><code><span class="at">#[form(schema = blog,</span>
+<span class="at">       fields = [title, email, summary, website, content])]</span>
+<span class="kw">pub struct</span> <span class="ty">BlogForm</span>;
+
+<span class="at">#[async_trait]</span>
+<span class="kw">impl</span> <span class="ty">RuniqueForm</span> <span class="kw">for</span> <span class="ty">BlogForm</span> {
+    <span class="mc">impl_form_access!</span>(model);
+
+    <span class="kw">async fn</span> <span class="fn_">clean</span>(&amp;<span class="kw">mut self</span>) -> <span class="ty">Result</span>&lt;(), <span class="ty">StrMap</span>&gt; {
+        <span class="kw">let mut</span> errors = <span class="ty">StrMap</span>::<span class="fn_">new</span>();
+        <span class="kw">if</span> <span class="kw">self</span>.<span class="fn_">get_string</span>(<span class="st">"title"</span>).<span class="fn_">len</span>() &lt; <span class="nb">3</span> {
+            errors.<span class="fn_">insert</span>(<span class="st">"title"</span>, <span class="st">"3 characters minimum"</span>);
+        }
+        <span class="kw">if</span> !<span class="kw">self</span>.<span class="fn_">get_string</span>(<span class="st">"email"</span>).<span class="fn_">contains</span>(<span class="st">'@'</span>) {
+            errors.<span class="fn_">insert</span>(<span class="st">"email"</span>, <span class="st">"Invalid address"</span>);
+        }
+        <span class="kw">if</span> errors.<span class="fn_">is_empty</span>() { <span class="ty">Ok</span>(()) }
+        <span class="kw">else</span> { <span class="ty">Err</span>(errors) }
+    }
+}</code></pre>
+
+            <div class="demo-code-title">views.rs</div>
+            <pre><code><span class="kw">pub async fn</span> <span class="fn_">blog_submit</span>(
+    <span class="kw">mut</span> request: <span class="ty">Request</span>,
+) -> <span class="ty">AppResult</span>&lt;<span class="ty">Response</span>&gt; {
+    <span class="kw">let mut</span> form: <span class="ty">BlogForm</span> = request.<span class="fn_">form</span>();
+    <span class="kw">if</span> request.<span class="fn_">is_post</span>() &amp;&amp; form.<span class="fn_">is_valid</span>().<span class="kw">await</span> {
+        form.<span class="fn_">save</span>(&amp;db).<span class="kw">await</span>?;
+        <span class="mc">success!</span>(request.notices => <span class="st">"Article published!"</span>);
+        <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Redirect</span>::<span class="fn_">to</span>(<span class="st">"/blog"</span>).<span class="fn_">into_response</span>());
+    }
+    request.<span class="fn_">render</span>(<span class="st">"blog/blog.html"</span>)
+}</code></pre>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

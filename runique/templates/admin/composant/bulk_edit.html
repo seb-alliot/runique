@@ -1,0 +1,63 @@
+{% extends "admin_base" %}
+{% block title %}{% if admin_edit_title %}{{ admin_edit_title }}{% endif %} — {{ resource.title }}{% endblock %}
+{% block breadcrumb %}
+  <span class="breadcrumb-sep">/</span>
+  <a href="/admin/{{ resource.key }}/list">{{ resource.title }}</a>
+  <span class="breadcrumb-sep">/</span>
+  <span>Modification groupée ({{ bulk_count }})</span>
+{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <h1>Modification groupée — {{ resource.title }}</h1>
+  </header>
+
+  {% set_global can_edit = false %}
+  {% if current_user %}
+    {% if current_user.is_superuser %}
+      {% set_global can_edit = true %}
+    {% else %}
+      {% for groupe in current_user.groupes %}
+        {% for perm in groupe.permissions %}
+          {% if perm.resource_key == resource.key and perm.can_update %}
+            {% set_global can_edit = true %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+
+  {% if current_user and can_edit %}
+  <div class="card card-form" data-admin-auto-init>
+    <div class="card-header">
+      <h2>Appliquer à {{ bulk_count }} élément(s) sélectionné(s)</h2>
+      <p class="text-muted" style="font-size:0.85rem;margin-top:0.25rem">Les champs laissés vides ne seront pas modifiés.</p>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="/admin/{{ resource.key }}/bulk">
+        {% csrf %}
+        <input type="hidden" name="bulk_action" value="update-submit">
+        <input type="hidden" name="ids" value="{{ bulk_ids }}">
+        <div class="form-grid">
+          {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
+            {{ form_fields.html }}
+          {% else %}
+            <p>{% if admin_edit_no_fields %}{{ admin_edit_no_fields }}{% endif %}</p>
+          {% endif %}
+        </div>
+        <div class="form-actions">
+          <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
+          <button type="submit" class="btn btn-primary">Appliquer à {{ bulk_count }} élément(s)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-body">
+      <div class="empty-state">
+        <p class="empty-state-desc">Vous n'avez pas les droits nécessaires pour modifier ces éléments.</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}

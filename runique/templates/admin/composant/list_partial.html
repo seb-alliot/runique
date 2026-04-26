@@ -1,0 +1,307 @@
+{# Partial HTMX — contenu swapé dans #list-content lors des navigations liste #}
+{# Variables requises : identiques à admin/list #}
+{% set_global can_create = false %}
+{% if current_user %}
+  {% if current_user.is_superuser %}
+    {% set_global can_create = true %}
+  {% else %}
+    {% for groupe in current_user.groupes %}
+      {% for perm in groupe.permissions %}
+        {% if perm.resource_key == resource.key and perm.can_create %}
+          {% set_global can_create = true %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+{% set has_filters = resource.display.list_filter | length > 0 %}
+<div id="list-content">
+  {# ── Barre de recherche + bouton filtres ── #}
+  <div class="admin-search-row">
+    <form method="GET" action="" class="admin-search-form"
+          hx-get=""
+          hx-target="#list-content"
+          hx-swap="innerHTML"
+          hx-push-url="true">
+      <div class="admin-search-wrapper">
+        <input
+          type="text"
+          name="search"
+          value="{{ search }}"
+          placeholder="{% if admin_list_search_placeholder %}{{ admin_list_search_placeholder }}{% else %}Search...{% endif %}"
+          class="admin-search-input"
+          hx-get=""
+          hx-trigger="input changed delay:400ms"
+          hx-target="#list-content"
+          hx-swap="innerHTML"
+          hx-push-url="true"
+          hx-include="closest form"
+        >
+        {% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
+        {% if sort_dir %}<input type="hidden" name="sort_dir" value="{{ sort_dir }}">{% endif %}
+        {% for col, val in active_filters %}<input type="hidden" name="filter_{{ col }}" value="{{ val | escape }}">{% endfor %}
+        <button type="submit" class="btn btn-secondary admin-search-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+        {% if search %}
+        <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{{ filter_qs }}"
+            hx-get="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{{ filter_qs }}"
+            hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+            class="btn btn-secondary">✕</a>
+        {% endif %}
+      </div>
+    </form>
+    {% if has_filters %}
+    <button class="btn btn-ghost btn-icon mobile-filter-toggle" id="mobileFilterToggle" type="button" aria-label="Filtres">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/>
+      </svg>
+      {% if active_filters %}<span class="filter-badge">{{ active_filters | length }}</span>{% endif %}
+    </button>
+    {% endif %}
+  </div>
+
+  {# ── Barre d'actions bulk (cachée jusqu'à sélection) ── #}
+  {% set_global can_bulk = false %}
+  {% if current_user %}
+    {% if current_user.is_superuser %}
+      {% set_global can_bulk = true %}
+    {% else %}
+      {% for groupe in current_user.groupes %}
+        {% for perm in groupe.permissions %}
+          {% if perm.resource_key == resource.key and perm.can_delete %}
+            {% set_global can_bulk = true %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+
+  {% if can_bulk %}
+  <form id="bulk-form" method="POST" action="/admin/{{ resource.key }}/bulk">
+    {% csrf %}
+    <input type="hidden" name="bulk_action" id="bulk-action-input" value="">
+    <input type="hidden" name="ids" id="bulk-ids-input" value="">
+    <div id="bulk-action-bar" class="bulk-action-bar">
+      <span class="bulk-action-info"><span id="bulk-count">0</span> sélectionné(s)</span>
+      <div class="bulk-action-btns">
+        {% if group_actions | length > 0 %}
+        <div class="ga-selects-row">
+          {% for ga in group_actions %}
+          <select name="ga_{{ ga.field }}" class="ga-select">
+            <option value="">{{ ga.label }} — sans changement</option>
+            {% for choice in ga.choices %}
+            <option value="{{ choice[0] }}">{{ ga.label }} — {{ choice[1] }}</option>
+            {% endfor %}
+          </select>
+          {% endfor %}
+          <button type="button" class="btn btn-sm btn-primary" data-bulk-action="group_set">Modifier</button>
+        </div>
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-danger" data-bulk-action="delete">Supprimer</button>
+      </div>
+    </div>
+  </form>
+  {% endif %}
+
+  <div class="{% if has_filters %}admin-list-layout{% endif %}">
+
+    {# ── Colonne principale : card + pagination ── #}
+    <div>
+      <div class="card">
+        {% if entries is defined and entries | length > 0 %}
+          <div class="admin-table-wrapper">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  {% if can_bulk %}<th class="th-bulk"><input type="checkbox" id="bulk-check-all" title="Tout sélectionner"></th>{% endif %}
+                  <th>
+                    <a href="?sort_by=id&sort_dir={% if sort_by == "id" %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                      hx-get="?sort_by=id&sort_dir={% if sort_by == "id" %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                      hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+                      class="th-sort-link">
+                      {% if admin_list_th_id %}{{ admin_list_th_id }}{% endif %}
+                      {% if sort_by == "id" %}<span class="sort-indicator">{% if sort_dir == "asc" %}▲{% else %}▼{% endif %}</span>{% endif %}
+                    </a>
+                  </th>
+                  {% for col in visible_columns %}
+                    <th {% if loop.index0 > 0 %} class="col-secondary"{% endif %}>
+                      <a href="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                        hx-get="?sort_by={{ col }}&sort_dir={% if sort_by == col %}{{ sort_dir_toggle }}{% else %}asc{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                        hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+                        class="th-sort-link">
+                        {% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}
+                        {% if sort_by == col %}<span class="sort-indicator">{% if sort_dir == "asc" %}▲{% else %}▼{% endif %}</span>{% endif %}
+                      </a>
+                    </th>
+                  {% endfor %}
+                  <th class="th-expand"></th>
+                  <th class="th-right">{% if admin_list_th_actions %}{{ admin_list_th_actions }}{% endif %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entry in entries %}
+                  <tr>
+                    {% if can_bulk %}<td class="td-bulk"><input type="checkbox" class="bulk-check" value="{{ entry.id }}"></td>{% endif %}
+                    <td><span class="id-badge">#{{ entry.id }}</span></td>
+                    {% for col in visible_columns %}
+                      {% set value = entry[col] %}
+                      <td class="td-data{% if loop.index0 > 0 %} col-secondary{% endif %}" data-label="{% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}">
+                        {% if value == true %}
+                          <span class="badge badge-green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
+                        {% elif value == false %}
+                          <span class="badge badge-neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
+                        {% elif value %}
+                          <span class="td-content">{% if value is string %}{{ value | escape }}{% else %}{{ value }}{% endif %}</span>
+                        {% else %}
+                          <span class="text-muted">—</span>
+                        {% endif %}
+                      </td>
+                    {% endfor %}
+                    <td class="td-expand">
+                      <button class="row-expand-btn" type="button" aria-expanded="false" aria-label="Détails">
+                        <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                          <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                      </button>
+                    </td>
+                    <td class="td-actions">
+                      {% set resource_key = resource.key %}
+                      {% set entry_id = entry.id %}
+                      {% include "admin/kebab" %}
+                    </td>
+                  </tr>
+                  <tr class="row-detail">
+                    <td colspan="999">
+                      <div class="row-detail-grid">
+                        {% for col in visible_columns %}
+                          {% if loop.index0 > 0 %}
+                            {% set value = entry[col] %}
+                            <div class="row-detail-item">
+                              <span class="row-detail-label">{% if column_labels[col] %}{{ column_labels[col] }}{% else %}{{ col | replace(from="_", to=" ") }}{% endif %}</span>
+                              <span class="row-detail-value">
+                                {% if value == true %}<span class="badge badge-green">{% if admin_list_bool_true %}{{ admin_list_bool_true }}{% endif %}</span>
+                                {% elif value == false %}<span class="badge badge-neutral">{% if admin_list_bool_false %}{{ admin_list_bool_false }}{% endif %}</span>
+                                {% elif value %}{% if value is string %}{{ value | escape }}{% else %}{{ value }}{% endif %}
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                              </span>
+                            </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+            </svg>
+            <p class="empty-state-title">{% if admin_list_empty_title %}{{ admin_list_empty_title }}{% endif %}</p>
+            <p class="empty-state-desc">{% if admin_list_empty_desc %}{{ admin_list_empty_desc }}{% endif %}</p>
+            {% if can_create %}<a href="/admin/{{ resource.key }}/create" class="btn btn-primary mt-sm">{% if admin_list_btn_create_first %}{{ admin_list_btn_create_first }}{% endif %}</a>{% endif %}
+          </div>
+        {% endif %}
+      </div>
+      {% if page_count is defined and page_count > 1 %}
+      <div class="pagination">
+        {% if has_prev %}
+          <a href="?page={{ prev_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}"
+            hx-get="?page={{ prev_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}"
+            hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+            class="btn btn-sm btn-secondary">&laquo;</a>
+        {% else %}
+          <span class="btn btn-sm btn-secondary disabled">&laquo;</span>
+        {% endif %}
+        <span class="pagination-info">{{ page }} / {{ page_count }}</span>
+        {% if has_next %}
+          <a href="?page={{ next_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}"
+            hx-get="?page={{ next_page }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}{{ filter_qs }}"
+            hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+            class="btn btn-sm btn-secondary">&raquo;</a>
+        {% else %}
+          <span class="btn btn-sm btn-secondary disabled">&raquo;</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Sidebar filtres (droite) ── #}
+    {% if has_filters %}
+    <div class="filter-sidebar-overlay" id="filterOverlay"></div>
+    <aside class="admin-filter-sidebar" id="filterSidebar" data-resource="{{ resource.key }}">
+      <div class="filter-sidebar-header">
+        <span class="filter-sidebar-title">Filtres</span>
+        <button class="sidebar-toggle" id="filterToggle" title="Masquer les filtres">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+      <div class="filter-sidebar-body">
+        {% for filter_entry in resource.display.list_filter %}
+          {% set col = filter_entry[0] %}
+          {% set label = filter_entry[1] %}
+          {% set values = filter_values[col] %}
+          {% set meta = filter_meta[col] %}
+          {% if values and values | length > 0 %}
+          <div class="filter-group" data-filter-col="{{ col }}">
+            <button class="filter-group-title" type="button" aria-expanded="true">
+              {{ label }}
+              <svg class="filter-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div class="filter-group-body">
+              {% if active_filters[col] %}
+              <a href="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1"
+                hx-get="?{% if sort_by %}sort_by={{ sort_by }}&sort_dir={{ sort_dir }}&{% endif %}{% if search %}search={{ search | urlencode }}&{% endif %}page=1"
+                hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+                class="filter-option filter-clear">✕ Tout</a>
+              {% endif %}
+              {% for val in values %}
+                {% set is_active = active_filters[col] == val %}
+                <a href="?filter_{{ col }}={{ val | urlencode }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                  hx-get="?filter_{{ col }}={{ val | urlencode }}{% if sort_by %}&sort_by={{ sort_by }}&sort_dir={{ sort_dir }}{% endif %}{% if search %}&search={{ search | urlencode }}{% endif %}&page=1"
+                  hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+                  class="filter-option {% if is_active %}filter-active{% endif %}">
+                  {{ val }}
+                </a>
+              {% endfor %}
+              {% if meta.total_pages > 1 %}
+              <div class="filter-pagination">
+                {% if meta.has_prev %}
+                  <a href="?{{ meta.prev_qs }}&page=1"
+                    hx-get="?{{ meta.prev_qs }}&page=1"
+                    hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+                    class="filter-page-btn">&#8249;</a>
+                {% else %}
+                  <span class="filter-page-btn disabled">&#8249;</span>
+                {% endif %}
+                <span class="filter-page-info">{{ meta.current_page + 1 }} / {{ meta.total_pages }}</span>
+                {% if meta.has_next %}
+                  <a href="?{{ meta.next_qs }}&page=1"
+                    hx-get="?{{ meta.next_qs }}&page=1"
+                    hx-target="#list-content" hx-swap="innerHTML" hx-push-url="true"
+                    class="filter-page-btn">&#8250;</a>
+                {% else %}
+                  <span class="filter-page-btn disabled">&#8250;</span>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </aside>
+    {% endif %}
+
+  </div>{# fin admin-list-layout #}
+</div>

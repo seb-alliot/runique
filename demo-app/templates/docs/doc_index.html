@@ -1,0 +1,74 @@
+{% extends "index.html" %}
+
+{% block meta %}
+<meta name="description" content="{% if lang == 'fr' %}Documentation complète de Runique — framework web Rust inspiré de Django.{% else %}Complete documentation for Runique — a Django-inspired Rust web framework.{% endif %}">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Runique">
+<meta property="og:title" content="Documentation — Runique">
+<meta property="og:description" content="{% if lang == 'fr' %}Documentation complète de Runique — framework web Rust inspiré de Django.{% else %}Complete documentation for Runique — a Django-inspired Rust web framework.{% endif %}">
+<meta property="og:url" content="https://runique.io/docs/{{ lang }}">
+<meta property="og:image" content="{{ og_image }}">
+<link rel="canonical" href="https://runique.io/docs/{{ lang }}">
+{% endblock %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/doc.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="doc-index-container">
+    <h1>Documentation</h1>
+
+    <div class="doc-lang-switch">
+        <a href='{% link "doc_index_fr" %}' class="btn {% if lang == 'fr' %}btn-primary{% else %}btn-secondary{% endif %}">Français</a>
+        <a href='{% link "doc_index_en" %}' class="btn {% if lang == 'en' %}btn-primary{% else %}btn-secondary{% endif %}">English</a>
+    </div>
+
+    {% if sections | length > 0 %}
+    <div class="doc-index-section">
+        <button class="doc-index-section-title doc-section--documentation" type="button" data-section="documentation" aria-expanded="true">
+            Documentation
+            <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="doc-section-documentation">
+            {% for key in ["Demarrage", "Web", "Database", "Security", "Admin", "Autres"] %}
+                {% set key_lower = key | lower %}
+                {% set group_sections = sections | filter(attribute="theme", value=key) %}
+                {% if group_sections | length > 0 %}
+                <div class="doc-index-subsection">
+                    <button class="doc-index-section-title doc-subsection-title doc-theme--{{ key_lower }}" type="button" data-section="sub-{{ key_lower }}" aria-expanded="true">
+                        {% if key_lower == "demarrage" %}Getting Started
+                        {% elif key_lower == "web" %}Routing & Web
+                        {% elif key_lower == "database" %}Database
+                        {% elif key_lower == "security" %}Security & Auth
+                        {% elif key_lower == "admin" %}Admin
+                        {% else %}{% if lang == "fr" %}Misc{% else %}Misc{% endif %}
+                        {% endif %}
+                        <svg class="doc-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="doc-index-nav" id="doc-section-sub-{{ key_lower }}">
+                        {% for section in group_sections %}
+                        <a href="/docs/{{ lang }}/{{ section.slug }}" class="doc-index-nav-link">{{ section.title }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="doc-index-section">
+        <a href="{% if lang == 'fr' %}{% link "readme_fr" %}{% else %}{% link "readme_en" %}{% endif %}" class="doc-index-section-title doc-section--readme">
+            Readme
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script {% csp %} src="{% static "js/doc-index.js" %}"></script>
+{% endblock %}

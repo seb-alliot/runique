@@ -1,0 +1,45 @@
+//! Tests — Système de migration (parsing, diff, génération, paths).
+//!
+//! | Fichier                 | Ce qui est testé                             |
+//! | ----------------------- | -------------------------------------------- |
+//! | `test_parser`           | Parser DSL (model!) — tous types et options  |
+//! | `test_parser_builder`   | parse_schema_from_source                     |
+//! | `test_parser_seaorm`    | Parsing depuis source SeaORM                 |
+//! | `test_diff`             | diff_schemas, db_columns, Changes            |
+//! | `test_convertisseur`    | Conversion de noms (snake_case, PascalCase)  |
+//! | `test_helpers`          | col_type_to_method et utilitaires internes   |
+//! | `test_paths`            | snapshot_dir, migration_dir, chemins         |
+//! | `test_relation_kind`    | Enum RelationKind                            |
+//! | `test_types`            | ParsedSchema et types de colonnes            |
+//! | `test_hooks_def`        | HooksDef, Hook, HookType                     |
+//! | `test_index_def`        | IndexDef                                     |
+//! | `test_model_schema`     | ModelSchema, SchemaDiff                      |
+//! | `test_relation_def`     | RelationDef                                  |
+//! | `test_makemigrations`   | scan_entities, update_migration_lib, paths   |
+//! | `test_migration_flow`   | Flux complet end-to-end (scan→gen→fichiers)  |
+
+pub mod test_column_def;
+pub mod test_column_def_extra;
+pub mod test_convertisseur;
+pub mod test_diff;
+pub mod test_foreign_key;
+pub mod test_generators;
+pub mod test_helpers;
+pub mod test_hooks_def;
+pub mod test_index_def;
+pub mod test_makemigrations;
+pub mod test_migrate;
+pub mod test_migration_flow;
+pub mod test_model_schema;
+pub mod test_parser;
+pub mod test_parser_builder;
+pub mod test_parser_extend;
+pub mod test_parser_seaorm;
+pub mod test_parser_seaorm_extra;
+pub mod test_paths;
+pub mod test_primary_key;
+pub mod test_relation_def;
+pub mod test_relation_kind;
+pub mod test_run;
+pub mod test_sea_migrate;
+pub mod test_types;

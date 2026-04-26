@@ -1,0 +1,17 @@
+[package]
+name = "migration"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# On utilise la v2-rc pour matcher le framework runique
+sea-orm-migration = { version = "2.0.0-rc.32", features = [
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "sqlx-mysql",
+    "sqlx-sqlite",
+] }
+
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+runique = { path = "../../runique" }

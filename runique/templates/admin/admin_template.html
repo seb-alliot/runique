@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+{% block lang %}
+    <html lang="{{ lang }}">
+{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <link rel="icon" type="image/x-icon" href="{{ icon_image }}">
+    <meta property="og:image" content="{{ og_image }}">
+
+    <title>{% if admin_base_title %}{{ admin_base_title }}{% endif %}</title>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% block layout %}
+
+<div class="admin-layout">
+
+    {% block sidebar %}{% endblock %}
+
+    <div class="admin-main">
+
+        {% block topbar %}{% endblock %}
+
+        <main class="admin-content">
+
+            {% block messages %}{% messages %}{% endblock %}
+
+            {% block content %}{% endblock %}
+
+        </main>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+<script {% csp %} src="{{ "js/csrf.js" | runique_static }}" defer></script>
+
+{% block extra_js %}{% endblock %}
+<footer>
+    {% block footer %}{% endblock %}
+</footer>
+</body>
+</html>

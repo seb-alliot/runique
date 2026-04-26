@@ -1,0 +1,44 @@
+{% extends "index.html" %}
+
+{% block style %}
+    {{ super() }}
+    <link rel="stylesheet" href="{% static "css/search-user.css" %}">
+{% endblock %}
+
+{% block content %}
+<div class="content">
+    {% if title %}<h1>{{ title }}</h1>{% endif %}
+
+    <h2>Search for a user</h2>
+
+    <form id="username-form" method="get" action="{% link "search-user" %}">
+        {% form.user %}
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    {% if username or email or age %}
+    <div class="result-card">
+        <h3>User Information</h3>
+
+        <div class="result-line">
+            <span class="result-label">User:</span>
+            <span class="result-value">{{ username }}</span>
+        </div>
+
+        {% if email %}
+        <div class="result-line">
+            <span class="result-label">Email:</span>
+            <span class="result-value">{{ email }}</span>
+        </div>
+        {% endif %}
+
+        {% if age %}
+        <div class="result-line">
+            <span class="result-label">Age:</span>
+            <span class="result-value">{{ age }} years old</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

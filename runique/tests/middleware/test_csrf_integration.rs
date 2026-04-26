@@ -1,0 +1,254 @@
+//! Integration tests for the CSRF middleware.
+//!
+//! Two modes:
+//!   - `oneshot()` tests: rebuild a fresh Router per test (fast, isolated)
+//!   - shared server tests: reuse the persistent server from `helpers::server`
+//!     which allows multi-request flows with real cookie/session persistence.
+
+use crate::helpers::{
+    assert::{assert_has_header, assert_status},
+    request,
+    server::{self, build_default_router, build_engine, test_client, test_server_addr},
+};
+
+// ── oneshot helpers ────────────────────────────────────────────────────────────
+
+async fn fresh_app() -> axum::Router {
+    build_default_router(build_engine().await)
+}
+
+// ── oneshot tests (isolated, no session persistence) ──────────────────────────
+
+#[tokio::test]
+async fn test_csrf_get_retourne_200_et_header_token() {
+    let resp = request::get(fresh_app().await, "/").await;
+    assert_status(&resp, 200);
+    assert_has_header(&resp, "x-csrf-token");
+}
+
+#[tokio::test]
+async fn test_csrf_post_sans_header_sans_content_type_retourne_403() {
+    // POST sans header X-CSRF-Token et sans Content-Type form : désormais bloqué (403).
+    // Les soumissions HTML (urlencoded/multipart) passent toujours via prisme_pipeline.
+    let resp = request::post(fresh_app().await, "/submit").await;
+    assert_status(&resp, 403);
+}
+
+#[tokio::test]
+async fn test_csrf_post_avec_token_invalide_retourne_403() {
+    let resp = request::post_with_header(
+        fresh_app().await,
+        "/submit",
+        "X-CSRF-Token",
+        "token_completement_invalide_!!!",
+    )
+    .await;
+    assert_status(&resp, 403);
+}
+
+#[tokio::test]
+async fn test_csrf_delete_sans_header_sans_content_type_retourne_403() {
+    // DELETE sans header X-CSRF-Token et sans Content-Type form : désormais bloqué (403).
+    let resp = request::delete(fresh_app().await, "/delete").await;
+    assert_status(&resp, 403);
+}
+
+#[tokio::test]
+async fn test_csrf_delete_avec_token_invalide_retourne_403() {
+    let resp = request::delete_with_header(
+        fresh_app().await,
+        "/delete",
+        "X-CSRF-Token",
+        "faux_token_base64==",
+    )
+    .await;
+    assert_status(&resp, 403);
+}
+
+// ── shared server tests (cookie persistence across requests) ──────────────────
+
+/// Full roundtrip: GET to obtain the token → POST with valid token → 200 OK.
+/// Requires a persistent session (cookies), only possible with a real server.
+#[tokio::test]
+async fn test_csrf_roundtrip_get_then_post_valide() {
+    let addr = test_server_addr();
+    let client = test_client();
+
+    // Step 1: GET — the server sets the session cookie + returns X-CSRF-Token
+    let get_resp = client
+        .get(format!("http://{}/", addr))
+        .send()
+        .await
+        .expect("GET /");
+
+    assert_eq!(get_resp.status(), 200);
+    let token = server::extract_header(&get_resp, "x-csrf-token");
+
+    // Step 2: POST with the token obtained in step 1 — same session via cookie
+    let post_resp = client
+        .post(format!("http://{}/submit", addr))
+        .header("X-CSRF-Token", &token)
+        .send()
+        .await
+        .expect("POST /submit");
+
+    assert_eq!(
+        post_resp.status(),
+        200,
+        "POST with valid CSRF token should return 200"
+    );
+}
+
+/// AJAX : GET pour obtenir le token, puis POST JSON avec X-CSRF-Token → 200.
+#[tokio::test]
+async fn test_csrf_ajax_post_json_avec_token_valide() {
+    let addr = test_server_addr();
+    let client = test_client();
+
+    // Étape 1 : GET pour établir la session et récupérer le token
+    let get_resp = client
+        .get(format!("http://{}/", addr))
+        .send()
+        .await
+        .expect("GET /");
+
+    let token = server::extract_header(&get_resp, "x-csrf-token");
+
+    // Étape 2 : POST AJAX — Content-Type JSON + X-CSRF-Token
+    let post_resp = client
+        .post(format!("http://{}/submit", addr))
+        .header("X-CSRF-Token", &token)
+        .header("Content-Type", "application/json")
+        .body(r#"{"data": "test"}"#)
+        .send()
+        .await
+        .expect("POST /submit AJAX");
+
+    assert_eq!(
+        post_resp.status(),
+        200,
+        "POST AJAX JSON avec token valide doit retourner 200"
+    );
+}
+
+/// AJAX : POST JSON sans token → 403.
+#[tokio::test]
+async fn test_csrf_ajax_post_json_sans_token_retourne_403() {
+    let app = fresh_app().await;
+
+    use axum::body::Body;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/submit")
+        .header("Content-Type", "application/json")
+        .body(Body::from(r#"{"data": "test"}"#))
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), 403);
+}
+
+/// AJAX : POST JSON avec token invalide → 403.
+#[tokio::test]
+async fn test_csrf_ajax_post_json_token_invalide_retourne_403() {
+    let app = fresh_app().await;
+
+    use axum::body::Body;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/submit")
+        .header("Content-Type", "application/json")
+        .header("X-CSRF-Token", "token_bidon_1234==")
+        .body(Body::from(r#"{"data": "test"}"#))
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), 403);
+}
+
+/// AJAX : DELETE avec token valide (roundtrip réel) → 200.
+#[tokio::test]
+async fn test_csrf_ajax_delete_avec_token_valide() {
+    let addr = test_server_addr();
+    let client = test_client();
+
+    let get_resp = client
+        .get(format!("http://{}/", addr))
+        .send()
+        .await
+        .expect("GET /");
+
+    let token = server::extract_header(&get_resp, "x-csrf-token");
+
+    let del_resp = client
+        .delete(format!("http://{}/delete", addr))
+        .header("X-CSRF-Token", &token)
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .expect("DELETE /delete AJAX");
+
+    assert_eq!(
+        del_resp.status(),
+        200,
+        "DELETE AJAX avec token valide doit retourner 200"
+    );
+}
+
+/// AJAX : X-Requested-With seul (sans token) → 403 (pas de bypass par ce header).
+#[tokio::test]
+async fn test_csrf_ajax_x_requested_with_seul_retourne_403() {
+    let app = fresh_app().await;
+
+    use axum::body::Body;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/submit")
+        .header("X-Requested-With", "XMLHttpRequest")
+        .header("Content-Type", "application/json")
+        .body(Body::from("{}"))
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), 403, "X-Requested-With seul ne suffit pas");
+}
+
+/// Confirms that a second client (different session) cannot reuse a stolen token.
+#[tokio::test]
+async fn test_csrf_token_vol_autre_session_retourne_403() {
+    let addr = test_server_addr();
+
+    // Client A: obtains a token for its own session
+    let client_a = test_client();
+    let get_resp = client_a
+        .get(format!("http://{}/", addr))
+        .send()
+        .await
+        .expect("GET / client A");
+
+    let stolen_token = server::extract_header(&get_resp, "x-csrf-token");
+
+    // Client B: different session, tries to use client A's token
+    let client_b = test_client();
+    let post_resp = client_b
+        .post(format!("http://{}/submit", addr))
+        .header("X-CSRF-Token", &stolen_token)
+        .send()
+        .await
+        .expect("POST /submit client B");
+
+    assert_eq!(
+        post_resp.status(),
+        403,
+        "Token from another session must be rejected"
+    );
+}

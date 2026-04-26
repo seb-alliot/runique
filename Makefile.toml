@@ -1,0 +1,17 @@
+[config]
+default_to_workspace = false
+
+[tasks.fmt]
+command = "cargo"
+args = ["fmt", "--all"]
+
+[tasks.clippy]
+command = "cargo"
+args = ["clippy", "--workspace", "--all-targets", "--all-features"]
+
+[tasks.test]
+command = "cargo"
+args = ["test", "--workspace"]
+
+[tasks.dev]
+dependencies = ["fmt", "clippy", "test"]

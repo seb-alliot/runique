@@ -1,0 +1,39 @@
+<!-- Template information (if template error) -->
+{% if template_info %}
+    <div class="section">
+        <h2>{{ debug_template_info }}</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="label">{{ debug_template_name }}</div>
+                    <div class="value">{{ template_info.name }}</div>
+                </div>
+                {% if template_info.line_number %}
+                <div class="info-card">
+                    <div class="label">{{ debug_error_line }}</div>
+                    <div class="value">{{ template_info.line_number }}</div>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if template_info.source %}
+        <h3>{{ debug_template_source }}</h3>
+            <div class="code-block">
+                {% for line in template_info.source | split(pat="\n") %}
+                    {% if template_info.line_number and loop.index == template_info.line_number %}
+                        <span class="highlight"><span class="line-number">{{ loop.index }}</span>{{ line }}</span>
+                    {% else %}
+                        <span class="line-number">{{ loop.index }}</span>{{ line }}
+                    {% endif %}
+                {% endfor %}</div>
+        {% endif %}
+
+        {% if template_info.available_templates %}
+            <h3>{{ debug_available_templates }}</h3>
+            <div class="template-list">
+                {% for tmpl in template_info.available_templates %}
+                    <span class="template-tag {% if tmpl == template_info.name %}current{% endif %}">{{ tmpl }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ "css/variable.css" | runique_static }}">
+    <link rel="stylesheet" href="{{ "css/error/error.css" | runique_static }}">
+</head>
+<body>
+    <header>
+        {% include "header-error" %}
+    </header>
+    <div class="container">
+            {% include "trace-error" %}
+            {% include "template-info" %}
+            {% include "request-info" %}
+            {% include "zone-info" %}
+            {% include "footer-error" %}
+    </div>
+</body>
+</html>

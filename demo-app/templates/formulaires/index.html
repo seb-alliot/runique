@@ -1,0 +1,35 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    <p class="lead">
+        Runique form system — declaration, validation, rendering.
+    </p>
+
+    <div class="demo-cards">
+        <a href="{% link "test_fields" %}" class="feature-card">
+            <h3>Field visual rendering</h3>
+            <p>Preview of all field types available in Runique</p>
+        </a>
+        <a href="{% link "formulaires_champs" %}" class="feature-card">
+            <h3>Declare a field</h3>
+            <p>Manual declaration and via the <code>#[form]</code> proc macro</p>
+        </a>
+        <a href="{% link "formulaires_templates" %}" class="feature-card">
+            <h3>Rendering in templates</h3>
+            <p><code>{% raw %}{%{% endraw %} form.mon_form {% raw %}%}{% endraw %}</code> vs <code>{% raw %}{%{% endraw %} form.nom_form.champ {% raw %}%}{% endraw %}</code></p>
+        </a>
+        <a href="{% link "formulaires_helpers" %}" class="feature-card">
+            <h3>Helpers & URL access</h3>
+            <p>Typed conversions, <code>path_param()</code>, <code>from_url()</code> and whitelisted <code>cleaned()</code></p>
+        </a>
+    </div>
+
+    <div class="back-link">
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">Doc FR</a>
+        <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/formulaire/05-forms.md" target="_blank" class="btn btn-secondary">Doc EN</a>
+        <a href="{% link "index" %}">← Back to home</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+<!-- Stack trace -->
+{% if stack_trace and stack_trace | length > 0 %}
+    <div class="section">
+        <h2>{{ debug_stack_trace_title }}</h2>    
+            {% if debug_repr %}
+            <div class="debug-repr-block">
+                <details>
+                    <summary class="debug-repr-summary">
+                        Debug repr <code>{:?}</code> (erreur racine)
+                    </summary>
+                    <pre class="debug-repr-pre">{{ debug_repr }}</pre>
+                </details>
+            </div>
+            {% endif %}
+
+            <div class="stack-trace">
+                {% for frame in stack_trace %}
+                <div class="stack-frame" {% if loop.first %}data-first="true"{% endif %}>
+                    <span class="level">{{ frame.level }}</span>
+                    <strong class="stack-frame-title" data-first="{{ loop.first }}">
+                        {{ frame.message }}
+                    </strong>
+                    {% if frame.location %}
+                    <div class="stack-frame-location">
+                        📍 {{ frame.location }}
+                    </div>
+                    {% endif %}
+                    {% if frame.debug_repr %}
+                    <details>
+                        <summary class="frame-debug-summary">
+                            <code>{:?}</code> ce niveau
+                        </summary>
+                        <pre class="frame-debug-pre" style="white-space: pre-wrap; word-break: break-word; display: block; width: 100%;">{{ frame.debug_repr }}</pre>
+                    </details>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if stack_trace | length > 1 %}
+            <div class="stack-trace-tip">
+                <strong class="stack-trace-tip-title">💡 Conseil:</strong>
+                {{ debug_stack_trace_tip }}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
