@@ -89,6 +89,23 @@
 .admin-search-input {
     flex: 1;
     max-width: 360px;
+    min-width: 0;
+    padding: 0.6rem 0.875rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    color: var(--text-main);
+    font: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.admin-search-input::placeholder { color: var(--text-muted); }
+
+.admin-search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .admin-search-btn { flex-shrink: 0; }
@@ -609,4 +626,68 @@
 
 @media (min-width: 480px) and (max-width: 768px){
     .card-form { max-width: 80%; }
+}
+
+/* ───────────────────────────────────────────────
+    Bulk actions
+   ─────────────────────────────────────────────── */
+
+.bulk-action-bar {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    margin-bottom: 0.75rem;
+}
+
+.bulk-action-bar.bulk-bar-visible { display: flex; }
+
+.bulk-action-info {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    flex: 1;
+}
+
+.bulk-action-btns {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ga-selects-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ga-select {
+    font-size: 0.82rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    background: var(--bg-input);
+    color: var(--text-main);
+    cursor: pointer;
+    height: 30px;
+    outline: none;
+}
+
+.ga-select:focus { border-color: var(--accent); }
+
+.th-bulk,
+.td-bulk {
+    width: 2.5rem;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+}
+
+.bulk-check,
+#bulk-check-all {
+    cursor: pointer;
+    accent-color: var(--accent);
 }

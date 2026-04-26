@@ -116,6 +116,7 @@ fn test_security_config_clone() {
         acme_enabled: false,
         acme_domain: None,
         acme_email: None,
+        acme_certs_dir: "./certs".to_string(),
     };
     let cloned = config.clone();
     assert_eq!(cloned.strict_csp, config.strict_csp);

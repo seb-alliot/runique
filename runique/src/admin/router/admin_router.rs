@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use axum::{
     Extension, Router,
+    extract::Path,
     http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect, Response},
@@ -85,6 +86,8 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
         &prefix => get(admin_dashboard_redirect), name = "admin_dashboard_redirect",
         &format!("{prefix}/logout") => get(admin_logout), name = "admin_logout",
         &format!("{prefix}/history") => get(admin_history), name = "admin_history",
+        &format!("{prefix}/history/timeline") => get(admin_history_timeline), name = "admin_history_timeline",
+        &format!("{prefix}/history/{{id}}") => get(admin_history_diff), name = "admin_history_diff",
     };
 
     // Generated CRUD routes (also protected)
@@ -415,7 +418,7 @@ async fn admin_history(
         .paginate(req.engine.db.as_ref(), PER_PAGE);
 
     let total_pages = paginator.num_pages().await.unwrap_or(1);
-    let entries = paginator.fetch_page(page - 1).await.unwrap_or_default();
+    let entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
 
     let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
         state
@@ -442,6 +445,183 @@ async fn admin_history(
         .insert("lang", current_lang().code());
 
     req.render("admin/history")
+}
+
+async fn admin_history_diff(
+    Path(entry_id): Path<i64>,
+    Extension(admin): Extension<Arc<AdminState>>,
+    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
+    proto: Option<Extension<Arc<PrototypeAdminState>>>,
+    mut req: Request,
+) -> AppResult<Response> {
+    use crate::admin::history;
+    use crate::context::template::AppError;
+    use crate::errors::error::ErrorContext;
+    use sea_orm::EntityTrait;
+
+    if !current_user.is_staff && !current_user.is_superuser {
+        req.notices
+            .error(t("admin.access.insufficient_rights").to_string())
+            .await;
+        return Ok(
+            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
+        );
+    }
+
+    let entry = history::Entity::find_by_id(entry_id)
+        .one(req.engine.db.as_ref())
+        .await
+        .map_err(|e| Box::new(AppError::new(ErrorContext::database(e))))?
+        .ok_or_else(|| Box::new(AppError::new(ErrorContext::not_found("Entry not found"))))?;
+
+    #[derive(serde::Serialize)]
+    struct DiffField {
+        key: String,
+        old_val: String,
+        new_val: String,
+    }
+
+    let diff_fields: Vec<DiffField> = entry
+        .summary
+        .as_deref()
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
+        .and_then(|v| v.as_object().cloned())
+        .map(|map| {
+            let mut fields: Vec<DiffField> = map
+                .into_iter()
+                .filter_map(|(k, v)| {
+                    let obj = v.as_object()?;
+                    let str_val = |v: &serde_json::Value| match v {
+                        serde_json::Value::String(s) => s.clone(),
+                        other => other.to_string(),
+                    };
+                    Some(DiffField {
+                        key: k,
+                        old_val: obj.get("old").map(str_val).unwrap_or_default(),
+                        new_val: obj.get("new").map(str_val).unwrap_or_default(),
+                    })
+                })
+                .collect();
+            fields.sort_by(|a, b| a.key.cmp(&b.key));
+            fields
+        })
+        .unwrap_or_default();
+
+    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
+        state
+            .registry
+            .all()
+            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
+            .map(|e| &e.meta)
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    insert_admin_messages(&mut req.context, "base");
+    req = req
+        .insert("entry", &entry)
+        .insert("diff_fields", &diff_fields)
+        .insert("current_page", "history")
+        .insert("current_resource", &Option::<String>::None)
+        .insert("resources", &resources)
+        .insert("current_user", &current_user)
+        .insert("site_title", &admin.config.site_title)
+        .insert("site_url", &admin.config.site_url)
+        .insert("lang", current_lang().code());
+
+    req.render("admin/history_diff")
+}
+
+async fn admin_history_timeline(
+    Extension(admin): Extension<Arc<AdminState>>,
+    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
+    proto: Option<Extension<Arc<PrototypeAdminState>>>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+    mut req: Request,
+) -> AppResult<Response> {
+    use crate::admin::history;
+    use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
+
+    if !current_user.is_staff && !current_user.is_superuser {
+        req.notices
+            .error(t("admin.access.insufficient_rights").to_string())
+            .await;
+        return Ok(
+            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
+        );
+    }
+
+    let page = params
+        .get("page")
+        .and_then(|p| p.parse::<u64>().ok())
+        .unwrap_or(1)
+        .max(1);
+    const PER_PAGE: u64 = 50;
+
+    let filter_user_id: Option<crate::utils::Pk> =
+        params.get("user_id").and_then(|v| v.parse().ok());
+    let filter_resource: Option<String> = params.get("resource").filter(|v| !v.is_empty()).cloned();
+    let filter_object_id: Option<String> =
+        params.get("object_id").filter(|v| !v.is_empty()).cloned();
+
+    let mut query = history::Entity::find().order_by_desc(history::Column::CreatedAt);
+
+    if let Some(uid) = filter_user_id {
+        query = query.filter(history::Column::UserId.eq(uid));
+    }
+    if let Some(ref res) = filter_resource {
+        query = query.filter(history::Column::ResourceKey.eq(res.clone()));
+    }
+    if let Some(ref oid) = filter_object_id {
+        query = query.filter(history::Column::ObjectPk.eq(oid.clone()));
+    }
+
+    let paginator = query.paginate(req.engine.db.as_ref(), PER_PAGE);
+    let total_pages = paginator.num_pages().await.unwrap_or(1);
+    let total = paginator.num_items().await.unwrap_or(0);
+    let entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
+
+    let filter_type = if filter_object_id.is_some() && filter_resource.is_some() {
+        "object"
+    } else if filter_user_id.is_some() {
+        "user"
+    } else if filter_resource.is_some() {
+        "resource"
+    } else {
+        "all"
+    };
+
+    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
+        state
+            .registry
+            .all()
+            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
+            .map(|e| &e.meta)
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    insert_admin_messages(&mut req.context, "base");
+    req = req
+        .insert("entries", &entries)
+        .insert("page", &page)
+        .insert("total_pages", &total_pages)
+        .insert("total", &total)
+        .insert("filter_type", filter_type)
+        .insert("filter_user_id", &filter_user_id)
+        .insert("filter_resource", &filter_resource)
+        .insert("filter_object_id", &filter_object_id)
+        .insert("current_page", "history")
+        .insert("current_resource", &Option::<String>::None)
+        .insert("resources", &resources)
+        .insert("current_user", &current_user)
+        .insert("site_title", &admin.config.site_title)
+        .insert("site_url", &admin.config.site_url)
+        .insert("lang", current_lang().code());
+
+    req.render("admin/history_timeline")
 }
 
 async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request) -> Response {

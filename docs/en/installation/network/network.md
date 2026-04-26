@@ -40,8 +40,13 @@ runique = { features = ["acme"] }
 ACME_ENABLED=true
 ACME_DOMAIN=mydomain.com
 ACME_EMAIL=admin@mydomain.com
+ACME_CERTS_DIR=/absolute/path/to/certs   # default: ./certs
 ```
 
+> `ACME_CERTS_DIR` should be an **absolute path** in production. A relative path
+> depends on the systemd `WorkingDirectory` — if not set correctly, the certificate
+> is not found and the server crashes on every restart.
+>
 > If `ACME_ENABLED=true` but the `acme` feature is not compiled in, Runique
 > prints a warning at startup.
 

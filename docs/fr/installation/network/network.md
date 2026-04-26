@@ -40,8 +40,13 @@ runique = { features = ["acme"] }
 ACME_ENABLED=true
 ACME_DOMAIN=mondomaine.fr
 ACME_EMAIL=admin@mondomaine.fr
+ACME_CERTS_DIR=/chemin/absolu/vers/certs   # défaut : ./certs
 ```
 
+> `ACME_CERTS_DIR` doit être un **chemin absolu** en production. Un chemin relatif
+> dépend du `WorkingDirectory` systemd — s'il n'est pas correctement configuré,
+> le certificat n'est pas trouvé et le serveur crash à chaque redémarrage.
+>
 > Si `ACME_ENABLED=true` mais que la feature `acme` n'est pas compilée, Runique
 > affiche un avertissement au démarrage.
 

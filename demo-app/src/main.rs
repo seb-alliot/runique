@@ -42,9 +42,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_session_cleanup_interval(5)
                 .with_allowed_hosts(|h| {
                     h.enabled(!is_debug())
-                        .host("runique.io")
                         .host("localhost:3000")
                         .host("127.0.0.1:3000")
+                        .host("runique.io")
+                        .host("www.runique.io")
                 })
                 .with_csp(|c| {
                     c.policy(SecurityPolicy::strict())

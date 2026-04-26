@@ -1,4 +1,7 @@
 {% extends "admin_base" %}
+{% block extra_css %}{{ super() }}
+  <link rel="stylesheet" href="{{ "css/admin/history.css" | runique_static }}">
+{% endblock %}
 {% block title %}Historique{% endblock %}
 {% block breadcrumb %}
   <span class="breadcrumb-sep">/</span>
@@ -18,25 +21,26 @@
       <thead>
         <tr>
           <th>Date</th>
-          <th>Utilisateur</th>
-          <th>Ressource</th>
-          <th>Objet</th>
+          <th class="col-secondary">Utilisateur</th>
+          <th class="col-secondary">Ressource</th>
+          <th class="col-secondary">Objet</th>
           <th>Action</th>
           <th>Résumé</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% if entries %}
           {% for entry in entries %}
           <tr>
-            <td style="white-space:nowrap">{{ entry.created_at }}</td>
-            <td><span class="id-badge">{{ entry.username }}</span></td>
-            <td>{{ entry.resource_key }}</td>
-            <td>
+            <td class="td-nowrap">{{ entry.created_at | format_date }}</td>
+            <td class="col-secondary"><span class="id-badge">{{ entry.username }}</span></td>
+            <td class="col-secondary">{{ entry.resource_key }}</td>
+            <td class="col-secondary">
               {% if entry.object_pk and entry.object_pk != "" %}
                 <span class="id-badge">{{ entry.object_pk }}</span>
               {% else %}
-                <span style="color:var(--text-muted)">—</span>
+                <span class="text-muted">—</span>
               {% endif %}
             </td>
             <td>
@@ -53,11 +57,21 @@
             <td>
               {% if entry.summary %}
                 <details>
-                  <summary style="cursor:pointer;color:var(--text-muted);font-size:.8rem">Voir diff</summary>
-                  <pre style="font-size:.75rem;margin-top:.4rem;white-space:pre-wrap;word-break:break-all">{{ entry.summary }}</pre>
+                  <summary class="history-diff-toggle">Voir diff</summary>
+                  <pre class="history-diff-pre">{{ entry.summary }}</pre>
                 </details>
               {% else %}
-                <span style="color:var(--text-muted)">—</span>
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="td-actions">
+              {% if entry.action == "edit" and entry.summary %}
+                <a href="/admin/history/{{ entry.id }}" class="btn btn-ghost btn-sm" title="Vue diff">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </a>
               {% endif %}
             </td>
           </tr>
@@ -78,18 +92,21 @@
       </tbody>
     </table>
   </div>
-</div>
-
-{% if total_pages > 1 %}
-<div class="pagination" style="margin-top:1rem;display:flex;gap:.5rem;justify-content:center">
-  {% if page > 1 %}
-    <a href="?page={{ page - 1 }}" class="btn btn-secondary btn-sm">← Précédent</a>
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}
+      <a href="?page={{ page - 1 }}" class="btn btn-secondary btn-sm">← Précédent</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+    <span class="pagination-info">Page {{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+      <a href="?page={{ page + 1 }}" class="btn btn-secondary btn-sm">Suivant →</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+  </div>
   {% endif %}
-  <span style="align-self:center;color:var(--text-muted);font-size:.85rem">Page {{ page }} / {{ total_pages }}</span>
-  {% if page < total_pages %}
-    <a href="?page={{ page + 1 }}" class="btn btn-secondary btn-sm">Suivant →</a>
-  {% endif %}
 </div>
-{% endif %}
 
 {% endblock %}

@@ -1,0 +1,104 @@
+{% extends "admin_base" %}
+{% block extra_css %}{{ super() }}
+  <link rel="stylesheet" href="{{ "css/admin/history.css" | runique_static }}">
+{% endblock %}
+{% block title %}Diff — {{ entry.resource_key }} #{{ entry.object_pk }}{% endblock %}
+{% block breadcrumb %}
+  <span class="breadcrumb-sep">/</span>
+  <a href="/admin/history">Historique</a>
+  <span class="breadcrumb-sep">/</span>
+  <span>Diff #{{ entry.id }}</span>
+{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Diff — {{ entry.resource_key }}</h1>
+    <p class="page-subtitle">Modifications enregistrées pour cet objet</p>
+  </div>
+  <a href="/admin/history" class="btn btn-secondary btn-sm">← Historique</a>
+</div>
+
+<div class="card">
+
+  <div class="history-meta">
+    <div class="history-meta-item">
+      <span class="history-meta-label">Date</span>
+      <span class="history-meta-value">{{ entry.created_at | format_date }}</span>
+    </div>
+    <div class="history-meta-item">
+      <span class="history-meta-label">Utilisateur</span>
+      <span class="history-meta-value"><span class="id-badge">{{ entry.username }}</span></span>
+    </div>
+    <div class="history-meta-item">
+      <span class="history-meta-label">Ressource</span>
+      <span class="history-meta-value">{{ entry.resource_key }}</span>
+    </div>
+    <div class="history-meta-item">
+      <span class="history-meta-label">Objet</span>
+      <span class="history-meta-value">
+        {% if entry.object_pk and entry.object_pk != "" %}
+          <span class="id-badge">{{ entry.object_pk }}</span>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="history-meta-item">
+      <span class="history-meta-label">Action</span>
+      <span class="history-meta-value">
+        {% if entry.action == "create" %}<span class="badge badge-green">créé</span>
+        {% elif entry.action == "edit" %}<span class="badge badge-blue">modifié</span>
+        {% elif entry.action == "delete" %}<span class="badge badge-red">supprimé</span>
+        {% else %}<span class="badge">{{ entry.action }}</span>{% endif %}
+      </span>
+    </div>
+  </div>
+
+  {% if diff_fields and diff_fields | length > 0 %}
+  <div class="admin-table-wrapper">
+    <table class="diff-table">
+      <thead>
+        <tr>
+          <th class="diff-key">Champ</th>
+          <th>Avant</th>
+          <th>Après</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for field in diff_fields %}
+        <tr>
+          <td class="diff-key">{{ field.key }}</td>
+          <td class="diff-old">{{ field.old_val }}</td>
+          <td class="diff-new">{{ field.new_val }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p class="empty-state-title">Aucun champ modifié enregistré</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="history-nav">
+  {% if entry.object_pk and entry.object_pk != "" %}
+  <a href="/admin/history/timeline?resource={{ entry.resource_key | urlencode }}&object_id={{ entry.object_pk | urlencode }}"
+     class="btn btn-secondary btn-sm">
+    Historique de cet objet
+  </a>
+  {% endif %}
+  <a href="/admin/history/timeline?resource={{ entry.resource_key | urlencode }}"
+     class="btn btn-secondary btn-sm">
+    Historique de la table {{ entry.resource_key }}
+  </a>
+  <a href="/admin/history/timeline?user_id={{ entry.user_id }}"
+     class="btn btn-ghost btn-sm">
+    Activité de {{ entry.username }}
+  </a>
+</div>
+
+{% endblock %}

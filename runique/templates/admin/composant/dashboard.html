@@ -19,7 +19,6 @@
     <a href="/admin/{{ resource.key }}/list" class="stat-card">
         <div class="stat-label">{{ resource.title }}</div>
         <div class="stat-value">{{ resource_counts[resource.key] | default(value="—") }}</div>
-        <div class="stat-meta">{% if admin_dashboard_see_list %}{{ admin_dashboard_see_list }}{% endif %}</div>
     </a>
     {% endfor %}
     {% if not resources %}

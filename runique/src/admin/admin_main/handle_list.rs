@@ -8,6 +8,7 @@ use crate::errors::error::ErrorContext;
 use crate::utils::{
     aliases::AppResult,
     constante::admin_context::list as list_ctx,
+    parse_date_time::format_datetime,
     trad::{current_lang, t},
 };
 use axum::response::Response;
@@ -238,6 +239,13 @@ pub(super) async fn handle_list(
                 "next_qs": next_qs,
             });
             (col.clone(), meta)
+        })
+        .collect();
+    let entries: Vec<serde_json::Value> = entries
+        .into_iter()
+        .map(|mut v| {
+            format_datetime(&mut v);
+            v
         })
         .collect();
 

@@ -200,7 +200,7 @@ impl MiddlewareStaging {
     /// })
     /// ```
     pub fn with_allowed_hosts(mut self, f: impl FnOnce(HostConfig) -> HostConfig) -> Self {
-        let config = f(HostConfig::default());
+        let config: HostConfig = f(HostConfig::default());
         self.allowed_hosts = config.hosts;
         self.features.enable_host_validation = config.enabled;
         self

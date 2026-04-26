@@ -18,6 +18,8 @@ pub struct SecurityConfig {
     pub acme_domain: Option<String>,
     /// Contact email for Let's Encrypt account (env: `ACME_EMAIL`).
     pub acme_email: Option<String>,
+    /// Directory where TLS certificates are stored (env: `ACME_CERTS_DIR`, default: `./certs`).
+    pub acme_certs_dir: String,
 }
 
 impl SecurityConfig {
@@ -40,6 +42,10 @@ impl SecurityConfig {
             .unwrap_or(false);
         let acme_domain = std::env::var("ACME_DOMAIN").ok().filter(|s| !s.is_empty());
         let acme_email = std::env::var("ACME_EMAIL").ok().filter(|s| !s.is_empty());
+        let acme_certs_dir = std::env::var("ACME_CERTS_DIR")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "./certs".to_string());
 
         Self {
             strict_csp,
@@ -49,6 +55,7 @@ impl SecurityConfig {
             acme_enabled,
             acme_domain,
             acme_email,
+            acme_certs_dir,
         }
     }
 }

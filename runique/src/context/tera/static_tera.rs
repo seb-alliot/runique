@@ -4,6 +4,7 @@ use crate::context::tera::url::LinkFunction;
 use crate::middleware::CsrfTokenFunction;
 use crate::utils::aliases::{ARlockmap, JsonMap, TResult};
 use crate::utils::trad::tf;
+use chrono::NaiveDateTime;
 use pulldown_cmark::{Options, Parser, html};
 use tera::{Tera, Value};
 
@@ -25,6 +26,16 @@ fn csrf_filter(value: &Value, _: &JsonMap) -> TResult {
     );
 
     Ok(Value::String(html))
+}
+
+// Filter to format a NaiveDateTime string → "dd/mm/yyyy HH:MM"
+fn format_date_filter(value: &Value, _: &JsonMap) -> TResult {
+    let s = value.as_str().unwrap_or("");
+    let formatted = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f")
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S"))
+        .map(|dt| dt.format("%d/%m/%Y %H:%M").to_string())
+        .unwrap_or_else(|_| s.to_string());
+    Ok(Value::String(formatted))
 }
 
 // Markdown filter → HTML (tables, strikethrough, heading ids)
@@ -86,6 +97,7 @@ pub fn register_asset_filters(
     tera.register_filter("form", form_filter);
     tera.register_filter("csrf_field", csrf_filter);
     tera.register_filter("markdown", markdown_filter);
+    tera.register_filter("format_date", format_date_filter);
     tera.register_function("csrf_token", CsrfTokenFunction);
     tera.register_function("link", LinkFunction { url_registry });
 }

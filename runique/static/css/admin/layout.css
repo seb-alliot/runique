@@ -283,9 +283,10 @@ ul { list-style: none; }
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(0.4rem, 1vh, 1.2rem);
+    font-size: 0.72rem;
     font-weight: 600;
     color: #fff;
+    overflow: hidden;
 }
 
 /* Contenu */
