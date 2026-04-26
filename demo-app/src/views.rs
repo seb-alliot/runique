@@ -499,6 +499,7 @@ pub async fn test_csrf(request: Request) -> AppResult<Response> {
 }
 
 pub async fn propos_template_error(mut request: Request) -> AppResult<Response> {
+    inject_globals(&mut request).await;
     context_update!(request => { "title" => "Template error test page" });
     request.render("router/fallback.html")
 }

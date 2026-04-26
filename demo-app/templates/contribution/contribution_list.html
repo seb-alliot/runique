@@ -5,7 +5,7 @@
 <div class="content">
     <div class="blog-header">
         <h1>{{ title }}</h1>
-        <a href="{% link 'contribution' %}" class="btn btn-primary">+ New contribution</a>
+        <a href="{% link "contribution" %}" class="btn btn-primary">+ New contribution</a>
     </div>
 
     {% if contributions %}
@@ -23,7 +23,7 @@
     {% else %}
         <div class="empty-state">
             <p>No contributions yet.</p>
-            <a href="{% link 'contribution' %}" class="btn btn-primary">Be the first!</a>
+            <a href="{% link "contribution" %}" class="btn btn-primary">Be the first!</a>
         </div>
     {% endif %}
 
@@ -31,7 +31,7 @@
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/fr/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc ORM FR</a>
         <a href="https://github.com/seb-alliot/runique/blob/main/docs/en/orm/07-orm.md" target="_blank" class="btn btn-secondary">Doc ORM EN</a>
         <a href="https://github.com/seb-alliot/runique/blob/main/CONTRIBUTING.md" target="_blank" class="btn btn-secondary">Contribute</a>
-        <a href="{% link 'index' %}">← Back to home</a>
+        <a href="{% link "index" %}">← Back to home</a>
     </div>
 </div>
 {% endblock %}
