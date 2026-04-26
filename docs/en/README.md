@@ -1,9 +1,9 @@
 # Runique — Django-inspired Rust Framework
 
-![Rust](https://img.shields.io/badge/rust-1.85%2B-orange)
-![Tests passing](https://img.shields.io/badge/tests-1731%2F1731%20passing-green)
+![Rust](https://img.shields.io/badge/rust-1.88%2B-orange)
+![Tests passing](https://img.shields.io/badge/tests-1930%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.1.0-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
@@ -22,7 +22,7 @@ Runique is a web framework built on Axum, focused on type-safe forms, security m
 - `demo-app/` → test/validation app for framework development
 - `docs/` → EN/FR documentation
 
-Workspace version (source of truth): **2.0.0**.
+Workspace version (source of truth): **2.1.0**.
 
 ---
 
@@ -48,7 +48,6 @@ cd runique
 cargo build --workspace
 cargo test --workspace
 ```
-
 
 Detailed guide: [Installation](https://runique.io/docs/en/installation)
 
@@ -130,15 +129,17 @@ Selectable backends:
 
 ## Test and coverage snapshot
 
-- Reported tests: **1731/1731 passing**
-- Coverage snapshot (`2026-03-01`, package `runique`):
-  - Functions: **76.66%**
-  - Lines: **71.04%**
-  - Regions: **67.22%**
+- Reported tests: **1930+ passing**
+- Coverage snapshot (`2026-04-26`, package `runique`):
+  - Functions: **81.95%**
+  - Lines: **78.45%**
+  - Regions: **76.25%**
 
 ```bash
 cargo llvm-cov --tests --package runique --ignore-filename-regex "admin" --summary-only
 ```
+
+Full per-file breakdown: [docs/couverture_test.md](docs/couverture_test.md)
 
 ---
 
@@ -187,6 +188,7 @@ Full reference: [Environment variables](https://runique.io/docs/en/env)
 - [Admin beta](https://runique.io/docs/en/admin)
 - [Sessions](https://runique.io/docs/en/session)
 - [Environment variables](https://runique.io/docs/en/env)
+
 ---
 
 ## Project status
