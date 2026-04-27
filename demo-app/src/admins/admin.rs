@@ -596,6 +596,18 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            contribution::admin_partial_update(&data, id.into())
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
     let meta = meta.display(
         DisplayConfig::new()
             .columns_include(vec![
@@ -822,6 +834,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -971,6 +984,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             blog::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            blog::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1246,6 +1271,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -1407,6 +1433,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             changelog_entry::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            changelog_entry::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -1740,6 +1778,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -1917,6 +1956,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             roadmap_entry::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            roadmap_entry::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -2354,6 +2405,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -2507,6 +2559,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             known_issue::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            known_issue::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -2791,6 +2855,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -2840,10 +2905,14 @@ pub fn admin_register() -> AdminRegistry {
             if let Some(ref search_str) = params.search {
                 let escaped = search_str.replace('\'', "''");
                 let mut search_cond = sea_orm::Condition::any();
-                search_cond = search_cond.add(Expr::cust(format!(
-                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
-                    "id", escaped
-                )));
+                use sea_orm::{IdenStatic, Iterable};
+                for col in demo_category::Column::iter() {
+                    let col_name = col.as_str();
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                        col_name, escaped
+                    )));
+                }
                 query = query.filter(search_cond);
             }
             let rows = query
@@ -2865,10 +2934,14 @@ pub fn admin_register() -> AdminRegistry {
             if let Some(ref search_str) = _search {
                 let escaped = search_str.replace('\'', "''");
                 let mut search_cond = sea_orm::Condition::any();
-                search_cond = search_cond.add(Expr::cust(format!(
-                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
-                    "id", escaped
-                )));
+                use sea_orm::{IdenStatic, Iterable};
+                for col in demo_category::Column::iter() {
+                    let col_name = col.as_str();
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                        col_name, escaped
+                    )));
+                }
                 query = query.filter(search_cond);
             }
             query.count(&*db).await
@@ -2918,6 +2991,18 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            demo_category::admin_partial_update(&data, id.into())
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
     registry.register(
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
@@ -2925,6 +3010,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn),
     );
 
@@ -3084,6 +3170,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             demo_page::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            demo_page::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3414,6 +3512,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -3559,6 +3658,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             demo_section::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            demo_section::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -3788,6 +3899,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -3949,6 +4061,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             code_example::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            code_example::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -4276,6 +4400,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -4429,6 +4554,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             page_doc_link::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            page_doc_link::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -4707,6 +4844,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -4875,6 +5013,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             form_field::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            form_field::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -5260,6 +5410,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -5419,6 +5570,18 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            doc_section::admin_partial_update(&data, id.into())
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
     let meta = meta.display(
         DisplayConfig::new()
             .columns_include(vec![
@@ -5541,6 +5704,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -5701,6 +5865,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             doc_page::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            doc_page::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6031,6 +6207,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -6183,6 +6360,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             doc_block::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            doc_block::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -6464,6 +6653,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -6513,10 +6703,14 @@ pub fn admin_register() -> AdminRegistry {
             if let Some(ref search_str) = params.search {
                 let escaped = search_str.replace('\'', "''");
                 let mut search_cond = sea_orm::Condition::any();
-                search_cond = search_cond.add(Expr::cust(format!(
-                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
-                    "id", escaped
-                )));
+                use sea_orm::{IdenStatic, Iterable};
+                for col in site_config::Column::iter() {
+                    let col_name = col.as_str();
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                        col_name, escaped
+                    )));
+                }
                 query = query.filter(search_cond);
             }
             let rows = query
@@ -6538,10 +6732,14 @@ pub fn admin_register() -> AdminRegistry {
             if let Some(ref search_str) = _search {
                 let escaped = search_str.replace('\'', "''");
                 let mut search_cond = sea_orm::Condition::any();
-                search_cond = search_cond.add(Expr::cust(format!(
-                    "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
-                    "id", escaped
-                )));
+                use sea_orm::{IdenStatic, Iterable};
+                for col in site_config::Column::iter() {
+                    let col_name = col.as_str();
+                    search_cond = search_cond.add(Expr::cust(format!(
+                        "LOWER(CAST({} AS TEXT)) LIKE LOWER('%%{}%%')",
+                        col_name, escaped
+                    )));
+                }
                 query = query.filter(search_cond);
             }
             query.count(&*db).await
@@ -6591,6 +6789,18 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            site_config::admin_partial_update(&data, id.into())
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
     registry.register(
         ResourceEntry::new(meta, form_builder)
             .with_list_fn(list_fn)
@@ -6598,6 +6808,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn),
     );
 
@@ -6762,6 +6973,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             cour::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            cour::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7141,6 +7364,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -7285,6 +7509,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             chapitre::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            chapitre::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7514,6 +7750,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -7658,6 +7895,18 @@ pub fn admin_register() -> AdminRegistry {
                 .parse::<i32>()
                 .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
             cour_block::admin_from_form(&data, Some(id.into()))
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            cour_block::admin_partial_update(&data, id.into())
                 .update(&*db)
                 .await
                 .map(|_| ())
@@ -7893,6 +8142,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );
@@ -8036,6 +8286,18 @@ pub fn admin_register() -> AdminRegistry {
         })
     });
 
+    let partial_update_fn: UpdateFn = Arc::new(|db: ADb, id: String, data: StrMap| {
+        Box::pin(async move {
+            let id = id
+                .parse::<i32>()
+                .map_err(|_| DbErr::Custom("invalid id".to_string().to_string()))?;
+            runique_release::admin_partial_update(&data, id.into())
+                .update(&*db)
+                .await
+                .map(|_| ())
+        })
+    });
+
     let meta = meta.display(
         DisplayConfig::new()
             .columns_include(vec![
@@ -8109,6 +8371,7 @@ pub fn admin_register() -> AdminRegistry {
             .with_delete_fn(delete_fn)
             .with_create_fn(create_fn)
             .with_update_fn(update_fn)
+            .with_partial_update_fn(partial_update_fn)
             .with_count_fn(count_fn)
             .with_filter_fn(filter_fn),
     );

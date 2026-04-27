@@ -191,6 +191,14 @@ pub(super) async fn handle_list(
         }
         parts
     };
+
+    let return_qs = {
+        let mut parts = base_qs.clone();
+        if page > 1 {
+            parts.push(format!("page={}", page));
+        }
+        parts.join("&")
+    };
     let filter_meta: HashMap<String, serde_json::Value> = entry
         .meta
         .display
@@ -276,6 +284,7 @@ pub(super) async fn handle_list(
         list_ctx::ACTIVE_FILTERS    => active_filters,
         list_ctx::FILTER_QS         => filter_qs,
         list_ctx::FILTER_META       => filter_meta,
+        "return_qs"                 => return_qs,
     }
 
     let htmx_tpl = state.config.templates.htmx.resolve().to_string();

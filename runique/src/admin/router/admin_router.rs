@@ -395,7 +395,7 @@ async fn admin_history(
     mut req: Request,
 ) -> AppResult<Response> {
     use crate::admin::history;
-    use sea_orm::{EntityTrait, PaginatorTrait, QueryOrder};
+    use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 
     if !current_user.is_staff && !current_user.is_superuser {
         req.notices
@@ -413,10 +413,22 @@ async fn admin_history(
         .max(1);
     const PER_PAGE: u64 = 50;
 
-    let paginator = history::Entity::find()
-        .order_by_desc(history::Column::CreatedAt)
-        .paginate(req.engine.db.as_ref(), PER_PAGE);
+    let filter_resource: Option<String> = params.get("resource").filter(|v| !v.is_empty()).cloned();
+    let filter_action: Option<String> = params.get("action").filter(|v| !v.is_empty()).cloned();
+    let filter_user: Option<String> = params.get("user").filter(|v| !v.is_empty()).cloned();
 
+    let mut query = history::Entity::find().order_by_desc(history::Column::CreatedAt);
+    if let Some(ref res) = filter_resource {
+        query = query.filter(history::Column::ResourceKey.eq(res.clone()));
+    }
+    if let Some(ref action) = filter_action {
+        query = query.filter(history::Column::Action.eq(action.clone()));
+    }
+    if let Some(ref user) = filter_user {
+        query = query.filter(history::Column::Username.eq(user.clone()));
+    }
+
+    let paginator = query.paginate(req.engine.db.as_ref(), PER_PAGE);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
     let entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
 
@@ -436,6 +448,9 @@ async fn admin_history(
         .insert("entries", &entries)
         .insert("page", page)
         .insert("total_pages", total_pages)
+        .insert("filter_resource", &filter_resource)
+        .insert("filter_action", &filter_action)
+        .insert("filter_user", &filter_user)
         .insert("current_page", "history")
         .insert("current_resource", &Option::<String>::None)
         .insert("resources", &resources)

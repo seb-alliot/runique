@@ -16,6 +16,31 @@
 </div>
 
 <div class="card">
+
+  <div class="timeline-filter-bar">
+    <form method="GET" action="" class="history-filter-form">
+      <select name="resource" class="history-filter-select" id="history-filter-resource">
+        <option value="">Toutes les ressources</option>
+        {% for resource in resources %}
+          <option value="{{ resource.key }}" {% if filter_resource == resource.key %}selected{% endif %}>{{ resource.title }}</option>
+        {% endfor %}
+      </select>
+      <select name="action" class="history-filter-select" id="history-filter-action">
+        <option value="">Toutes les actions</option>
+        <option value="create" {% if filter_action == "create" %}selected{% endif %}>Créé</option>
+        <option value="edit" {% if filter_action == "edit" %}selected{% endif %}>Modifié</option>
+        <option value="delete" {% if filter_action == "delete" %}selected{% endif %}>Supprimé</option>
+      </select>
+      {% if filter_user %}
+        <input type="hidden" name="user" value="{{ filter_user }}">
+        <a href="?" class="btn btn-ghost btn-sm">✕ {{ filter_user }}</a>
+      {% endif %}
+      {% if filter_resource or filter_action or filter_user %}
+        <a href="?" class="btn btn-ghost btn-sm">Réinitialiser</a>
+      {% endif %}
+    </form>
+  </div>
+
   <div class="admin-table-wrapper">
     <table class="admin-table">
       <thead>
@@ -25,7 +50,6 @@
           <th class="col-secondary">Ressource</th>
           <th class="col-secondary">Objet</th>
           <th>Action</th>
-          <th>Résumé</th>
           <th></th>
         </tr>
       </thead>
@@ -54,18 +78,8 @@
                 <span class="badge">{{ entry.action }}</span>
               {% endif %}
             </td>
-            <td>
-              {% if entry.summary %}
-                <details>
-                  <summary class="history-diff-toggle">Voir diff</summary>
-                  <pre class="history-diff-pre">{{ entry.summary }}</pre>
-                </details>
-              {% else %}
-                <span class="text-muted">—</span>
-              {% endif %}
-            </td>
             <td class="td-actions">
-              {% if entry.action == "edit" and entry.summary %}
+              {% if entry.summary %}
                 <a href="/admin/history/{{ entry.id }}" class="btn btn-ghost btn-sm" title="Vue diff">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -78,7 +92,7 @@
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="6">
+            <td colspan="5">
               <div class="empty-state">
                 <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <circle cx="12" cy="12" r="10"/>
@@ -95,13 +109,13 @@
   {% if total_pages > 1 %}
   <div class="pagination">
     {% if page > 1 %}
-      <a href="?page={{ page - 1 }}" class="btn btn-secondary btn-sm">← Précédent</a>
+      <a href="?page={{ page - 1 }}{% if filter_resource %}&resource={{ filter_resource }}{% endif %}{% if filter_action %}&action={{ filter_action }}{% endif %}{% if filter_user %}&user={{ filter_user }}{% endif %}" class="btn btn-secondary btn-sm">← Précédent</a>
     {% else %}
       <span></span>
     {% endif %}
     <span class="pagination-info">Page {{ page }} / {{ total_pages }}</span>
     {% if page < total_pages %}
-      <a href="?page={{ page + 1 }}" class="btn btn-secondary btn-sm">Suivant →</a>
+      <a href="?page={{ page + 1 }}{% if filter_resource %}&resource={{ filter_resource }}{% endif %}{% if filter_action %}&action={{ filter_action }}{% endif %}{% if filter_user %}&user={{ filter_user }}{% endif %}" class="btn btn-secondary btn-sm">Suivant →</a>
     {% else %}
       <span></span>
     {% endif %}
@@ -109,4 +123,10 @@
   {% endif %}
 </div>
 
+{% endblock %}
+{% block extra_js %}{{ super() }}
+<script {% csp %}>
+  document.getElementById('history-filter-resource').addEventListener('change', function() { this.form.submit(); });
+  document.getElementById('history-filter-action').addEventListener('change', function() { this.form.submit(); });
+</script>
 {% endblock %}

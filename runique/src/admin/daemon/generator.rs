@@ -296,7 +296,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         out,
         "                let mut search_cond = sea_orm::Condition::any();"
     );
-    write_search_conditions(out, &r.list_display);
+    write_search_conditions(out, &r.list_display, &module);
     let _ = writeln!(out, "                query = query.filter(search_cond);");
     let _ = writeln!(out, "            }}");
     let _ = writeln!(
@@ -337,7 +337,7 @@ fn write_resource_entry(out: &mut String, r: &ResourceDef) -> Result<(), String>
         out,
         "                let mut search_cond = sea_orm::Condition::any();"
     );
-    write_search_conditions(out, &r.list_display);
+    write_search_conditions(out, &r.list_display, &module);
     let _ = writeln!(out, "                query = query.filter(search_cond);");
     let _ = writeln!(out, "            }}");
     let _ = writeln!(out, "            query.count(&*db).await");
@@ -618,12 +618,24 @@ fn write_form_builder_closure(out: &mut String, var_name: &str, form_path: &str,
 }
 
 /// Emits `search_cond.add(...)` lines for each column in `list_display` (or "id" if empty).
-fn write_search_conditions(out: &mut String, list_display: &[(String, String)]) {
+fn write_search_conditions(out: &mut String, list_display: &[(String, String)], module: &str) {
     if list_display.is_empty() {
+        // No list_display declared → search all columns via Column::iter() at runtime
         let _ = writeln!(
             out,
-            "                search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", \"id\", escaped)));"
+            "                use sea_orm::{{Iterable, IdenStatic}};"
         );
+        let _ = writeln!(
+            out,
+            "                for col in {}::Column::iter() {{",
+            module
+        );
+        let _ = writeln!(out, "                    let col_name = col.as_str();");
+        let _ = writeln!(
+            out,
+            "                    search_cond = search_cond.add(Expr::cust(format!(\"LOWER(CAST({{}} AS TEXT)) LIKE LOWER('%%{{}}%%')\", col_name, escaped)));"
+        );
+        let _ = writeln!(out, "                }}");
     } else {
         for (col, _) in list_display {
             let _ = writeln!(

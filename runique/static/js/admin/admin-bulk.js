@@ -65,6 +65,8 @@
         bulkForm.submit();
       });
     });
+
+    updateBar();
   }
 
   if (document.readyState === "loading") {

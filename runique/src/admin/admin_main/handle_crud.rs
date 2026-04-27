@@ -273,9 +273,18 @@ pub(super) async fn handle_edit_get(
         req.context.insert("orig_updated_at", ts);
     }
 
+    let return_qs = req
+        .prisme
+        .data
+        .get("return_qs")
+        .filter(|s| !s.is_empty())
+        .cloned()
+        .unwrap_or_default();
+
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_edit::IS_EDIT, &true);
     req.context.insert(ctx_edit::OBJECT_ID, &id);
+    req.context.insert("return_qs", &return_qs);
     let template = entry
         .meta
         .template_edit
@@ -294,6 +303,9 @@ pub(super) async fn handle_edit_post(
 ) -> AppResult<Response> {
     let mut body_for_update = body.clone();
     let orig_updated_at = body_for_update.remove("__original_updated_at");
+    let return_qs = body_for_update
+        .remove("return_qs")
+        .filter(|s| !s.is_empty());
 
     let tera = req.engine.tera.clone();
     let csrf = req
@@ -374,12 +386,20 @@ pub(super) async fn handle_edit_post(
             req.notices
                 .success(t("admin.edit.success").to_string())
                 .await;
-            return Ok(Redirect::to(&format!(
-                "{}/{}/list",
-                state.config.prefix.trim_end_matches('/'),
-                entry.meta.key
-            ))
-            .into_response());
+            let list_url = match return_qs {
+                Some(qs) => format!(
+                    "{}/{}/list?{}",
+                    state.config.prefix.trim_end_matches('/'),
+                    entry.meta.key,
+                    qs
+                ),
+                None => format!(
+                    "{}/{}/list",
+                    state.config.prefix.trim_end_matches('/'),
+                    entry.meta.key
+                ),
+            };
+            return Ok(Redirect::to(&list_url).into_response());
         }
     }
 
@@ -387,9 +407,11 @@ pub(super) async fn handle_edit_post(
         req.context.insert("orig_updated_at", &ts);
     }
 
+    let return_qs_str = return_qs.as_deref().unwrap_or("");
     req.context.insert(ctx_edit::FORM_FIELDS, form.get_form());
     req.context.insert(ctx_edit::IS_EDIT, &true);
     req.context.insert(ctx_edit::OBJECT_ID, &id);
+    req.context.insert("return_qs", return_qs_str);
     let template = entry
         .meta
         .template_edit
@@ -454,10 +476,24 @@ pub(super) async fn handle_delete_post(
     req.notices
         .success(t("admin.delete.success").to_string())
         .await;
-    Ok(Redirect::to(&format!(
-        "{}/{}/list",
-        state.config.prefix.trim_end_matches('/'),
-        entry.meta.key
-    ))
-    .into_response())
+    let return_qs = req
+        .prisme
+        .data
+        .get("return_qs")
+        .filter(|s| !s.is_empty())
+        .cloned();
+    let list_url = match return_qs {
+        Some(qs) => format!(
+            "{}/{}/list?{}",
+            state.config.prefix.trim_end_matches('/'),
+            entry.meta.key,
+            qs
+        ),
+        None => format!(
+            "{}/{}/list",
+            state.config.prefix.trim_end_matches('/'),
+            entry.meta.key
+        ),
+    };
+    Ok(Redirect::to(&list_url).into_response())
 }

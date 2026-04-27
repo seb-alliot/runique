@@ -1,10 +1,10 @@
-// Tests pour load_user_middleware, has_permission
+// Tests pour load_user_middleware
 //
 // Stratégie : serveur persistant (OnceLock) avec MemoryStore.
 // Chaque test crée son propre client reqwest (cookie jar isolé → session distincte).
 
 use axum::{Extension, Router, middleware, routing::get, routing::post};
-use runique::auth::{CurrentUser, has_permission, load_user_middleware, login};
+use runique::auth::{CurrentUser, load_user_middleware, login};
 use sea_orm::DatabaseConnection;
 use std::{net::SocketAddr, sync::Arc, sync::OnceLock};
 use tower_sessions::{MemoryStore, Session, SessionManagerLayer};
@@ -41,36 +41,15 @@ fn auth_mw_addr() -> SocketAddr {
                             }
                         }),
                     )
-                    .route(
-                        "/has_perm",
-                        get(|session: Session| async move {
-                            if has_permission(&session, "any").await {
-                                "yes"
-                            } else {
-                                "no"
-                            }
-                        }),
-                    )
                     .layer(middleware::from_fn_with_state(db.clone(), load_user_middleware));
 
                 // Routes publiques (pas de middleware auth)
                 let public = Router::new()
                     .route(
-                        "/do_login",
-                        post(
-                            |session: Session,
-                             Extension(db): Extension<Arc<DatabaseConnection>>| async move {
-                                // is_superuser=true → has_permission("any") retourne true
-                                login(&session, &db, 1, "alice", false, true, None, false).await.unwrap();
-                                "ok"
-                            },
-                        ),
-                    )
-                    .route(
                         "/do_login_full",
                         post(
                             |session: Session,
-                             Extension(db): Extension<Arc<DatabaseConnection>>| async move {
+                            Extension(db): Extension<Arc<DatabaseConnection>>| async move {
                                 login(&session, &db, 2, "bob", true, false, None, false).await.unwrap();
                                 "ok"
                             },
@@ -99,7 +78,7 @@ fn auth_mw_addr() -> SocketAddr {
 fn client() -> reqwest::Client {
     reqwest::Client::builder()
         .cookie_store(true)
-        .redirect(reqwest::redirect::Policy::none()) // ne pas suivre les redirects
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .unwrap()
 }
@@ -123,7 +102,6 @@ async fn test_load_user_connecte_injecte_current_user() {
     let addr = auth_mw_addr();
     let c = client();
 
-    // Login avec bob
     c.post(format!("http://{addr}/do_login_full"))
         .send()
         .await
@@ -132,42 +110,4 @@ async fn test_load_user_connecte_injecte_current_user() {
     let resp = c.get(format!("http://{addr}/whoami")).send().await.unwrap();
 
     assert_eq!(resp.text().await.unwrap(), "bob");
-}
-
-// ═══════════════════════════════════════════════════════════════
-// has_permission
-// ═══════════════════════════════════════════════════════════════
-
-#[tokio::test]
-async fn test_has_permission_anonyme_false() {
-    let addr = auth_mw_addr();
-    let c = client();
-
-    let resp = c
-        .get(format!("http://{addr}/has_perm"))
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(resp.text().await.unwrap(), "no");
-}
-
-#[tokio::test]
-async fn test_has_permission_superuser_true() {
-    let addr = auth_mw_addr();
-    let c = client();
-
-    // do_login connecte avec is_superuser=true → bypass droits
-    c.post(format!("http://{addr}/do_login"))
-        .send()
-        .await
-        .unwrap();
-
-    let resp = c
-        .get(format!("http://{addr}/has_perm"))
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(resp.text().await.unwrap(), "yes");
 }
