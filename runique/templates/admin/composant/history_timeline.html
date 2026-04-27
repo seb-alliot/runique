@@ -56,7 +56,6 @@
           {% if not filter_resource %}<th class="col-secondary">Ressource</th>{% endif %}
           {% if not filter_object_id %}<th class="col-secondary">Objet</th>{% endif %}
           <th>Action</th>
-          <th>Résumé</th>
           <th></th>
         </tr>
       </thead>
@@ -86,18 +85,8 @@
               {% elif entry.action == "delete" %}<span class="badge badge-red">supprimé</span>
               {% else %}<span class="badge">{{ entry.action }}</span>{% endif %}
             </td>
-            <td>
-              {% if entry.summary %}
-                <details>
-                  <summary class="history-diff-toggle">Voir diff</summary>
-                  <pre class="history-diff-pre">{{ entry.summary }}</pre>
-                </details>
-              {% else %}
-                <span class="text-muted">—</span>
-              {% endif %}
-            </td>
             <td class="td-actions">
-              {% if entry.action == "edit" and entry.summary %}
+              {% if entry.summary %}
                 <a href="/admin/history/{{ entry.id }}" class="btn btn-ghost btn-sm" title="Vue diff">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>

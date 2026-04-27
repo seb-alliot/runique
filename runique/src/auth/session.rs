@@ -392,67 +392,6 @@ pub async fn unprotect_session(session: &Session) -> Result<(), tower_sessions::
     Ok(())
 }
 
-/// Checks if the logged-in user has a given permission.
-///
-/// Format: `"resource_key.action"` — e.g.: `"users.read"`, `"posts.create"`.
-/// Available actions: `create`, `read`, `update`, `delete`, `update_own`, `delete_own`.
-/// `"resource_key"` alone (without `.action`) checks any action on the resource.
-/// `"any"` checks that the user belongs to at least one group.
-///
-/// Superusers always have access (bypass).
-pub async fn has_permission(session: &Session, permission: &str) -> bool {
-    if session_bool(session, SESSION_USER_IS_SUPERUSER_KEY).await {
-        return true;
-    }
-
-    let Some(user_id) = get_user_id(session).await else {
-        return false;
-    };
-
-    let Some(cached) = get_permissions(user_id) else {
-        return false;
-    };
-
-    if permission == "any" {
-        return true; // user_id validated above → authenticated user
-    }
-
-    let (resource_key, action) = match permission.find('.') {
-        Some(pos) => (&permission[..pos], &permission[pos + 1..]),
-        None => (permission, "any"),
-    };
-
-    for groupe in &cached.groupes {
-        for perm in &groupe.permissions {
-            if perm.resource_key != resource_key {
-                continue;
-            }
-            let has = match action {
-                "create" => perm.can_create,
-                "read" => perm.can_read,
-                "update" => perm.can_update,
-                "delete" => perm.can_delete,
-                "update_own" => perm.can_update_own,
-                "delete_own" => perm.can_delete_own,
-                "any" => {
-                    perm.can_create
-                        || perm.can_read
-                        || perm.can_update
-                        || perm.can_delete
-                        || perm.can_update_own
-                        || perm.can_delete_own
-                }
-                _ => false,
-            };
-            if has {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
 // ═══════════════════════════════════════════════════════════════
 // Axum Middlewares
 // ═══════════════════════════════════════════════════════════════

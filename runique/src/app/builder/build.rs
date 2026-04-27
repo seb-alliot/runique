@@ -182,6 +182,49 @@ impl RuniqueAppBuilder {
     }
 
     fn cross_validate(&self) -> Result<(), BuildError> {
+        if self.config.debug {
+            return Ok(());
+        }
+
+        use crate::app::error_build::{CheckError, CheckReport};
+
+        let mut report = CheckReport::new();
+        let sec = &self.config.security;
+        let srv = &self.config.server;
+
+        if srv.secret_key == "default_secret_key" {
+            report.add(
+                CheckError::new("Security", "SECRET_KEY is using the default insecure value")
+                    .with_suggestion(
+                        "Set SECRET_KEY to a random 32+ character string in your .env file",
+                    ),
+            );
+        }
+
+        #[cfg(feature = "acme")]
+        if sec.acme_enabled {
+            if sec.acme_domain.is_none() {
+                report.add(
+                    CheckError::new("ACME", "ACME_ENABLED=true but ACME_DOMAIN is not set")
+                        .with_suggestion(
+                            "Set ACME_DOMAIN to your production domain in your .env file",
+                        ),
+                );
+            }
+            if sec.acme_email.is_none() {
+                report.add(
+                    CheckError::new("ACME", "ACME_ENABLED=true but ACME_EMAIL is not set")
+                        .with_suggestion(
+                            "Set ACME_EMAIL to your Let's Encrypt contact email in your .env file",
+                        ),
+                );
+            }
+        }
+
+        if report.has_errors() {
+            return Err(BuildError::check(report));
+        }
+
         Ok(())
     }
 

@@ -1187,7 +1187,9 @@ fn file_attrs_tokens(attrs: &[FormFieldAttr]) -> TokenStream2 {
     for attr in attrs {
         match attr {
             FormFieldAttr::UploadTo(path) => ts.extend(quote! { .upload_to(#path) }),
-            FormFieldAttr::MaxSize(n) => ts.extend(quote! { .max_size(::runique::forms::fields::FileSize::bytes(#n)) }),
+            FormFieldAttr::MaxSize(n) => {
+                ts.extend(quote! { .max_size(::runique::forms::fields::FileSize::bytes(#n)) })
+            }
             _ => {}
         }
     }
@@ -1228,7 +1230,9 @@ fn generate_option(opt: &FieldOption) -> TokenStream2 {
         FieldOption::Default(lit) => quote! { .default(sea_query::Value::from(#lit)) },
         FieldOption::Label(_) | FieldOption::Help(_) => quote! {},
         FieldOption::File { .. } => quote! {},
-        FieldOption::MaxSize(n) => quote! { .max_size(::runique::forms::fields::FileSize::bytes(#n)) },
+        FieldOption::MaxSize(n) => {
+            quote! { .max_size(::runique::forms::fields::FileSize::bytes(#n)) }
+        }
         FieldOption::Fk(fk) => {
             let table = fk.table.to_string();
             let column = fk.column.to_string();

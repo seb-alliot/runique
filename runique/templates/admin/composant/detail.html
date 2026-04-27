@@ -13,7 +13,7 @@
       <p class="page-subtitle">{% if admin_detail_entry_label %}{{ admin_detail_entry_label }}{% endif %} #{{ entry.id }}</p>
     </div>
     <div class="page-actions">
-      <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
+      <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary btn-sm">{% if admin_detail_btn_list %}{{ admin_detail_btn_list }}{% endif %}</a>
       {% set_global can_modify = false %}
       {% if current_user %}
         {% if current_user.is_superuser %}
@@ -34,13 +34,13 @@
       {% if has_password %}
       <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/reset-password" class="form-inline btn-hide-mobile">
         {% csrf %}
-        <button type="submit" class="btn btn-secondary btn-hide-mobile">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-right:0.4rem"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <button type="submit" class="btn btn-secondary btn-sm btn-hide-mobile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           {% if admin_detail_btn_reset_password %}{{ admin_detail_btn_reset_password }}{% else %}Réinitialiser le mot de passe{% endif %}
         </button>
       </form>
       {% endif %}
-      <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary btn-hide-mobile">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
+      <a href="/admin/{{ resource.key }}/{{ entry.id }}/edit" class="btn btn-primary btn-sm btn-hide-mobile">{% if admin_detail_btn_edit %}{{ admin_detail_btn_edit }}{% endif %}</a>
       <form method="post" action="/admin/{{ resource.key }}/{{ entry.id }}/delete" class="form-inline btn-hide-mobile">
           {% csrf %}
           <button type="submit" class="btn btn-sm btn-danger"

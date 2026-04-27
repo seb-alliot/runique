@@ -39,6 +39,9 @@
         {% elif object.updated_at is defined %}
         <input type="hidden" name="__original_updated_at" value="{{ object.updated_at }}">
         {% endif %}
+        {% if return_qs is defined and return_qs %}
+        <input type="hidden" name="return_qs" value="{{ return_qs }}">
+        {% endif %}
         <div class="form-grid">
           {% if form_fields is defined and form_fields.html is defined and form_fields.html %}
             {{ form_fields.html }}
@@ -47,7 +50,7 @@
           {% endif %}
         </div>
         <div class="form-actions">
-          <a href="/admin/{{ resource.key }}/list" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
+          <a href="/admin/{{ resource.key }}/list{% if return_qs is defined and return_qs %}?{{ return_qs }}{% endif %}" class="btn btn-secondary">{% if admin_edit_btn_cancel %}{{ admin_edit_btn_cancel }}{% endif %}</a>
           <button type="submit" class="btn btn-primary">{% if admin_edit_btn_submit %}{{ admin_edit_btn_submit }}{% endif %}</button>
         </div>
       </form>

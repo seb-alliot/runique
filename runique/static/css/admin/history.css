@@ -133,6 +133,31 @@
     color: var(--text-muted);
 }
 
+/* ── History filter form ──────────────────────────────────────── */
+
+.history-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.history-filter-select {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.history-filter-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
 /* ── Responsive ───────────────────────────────────────────────── */
 
 @media (max-width: 600px) {

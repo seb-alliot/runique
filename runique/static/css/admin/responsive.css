@@ -258,14 +258,31 @@
     }
     .bulk-action-btns {
         width: 100%;
+        flex-wrap: wrap;
         justify-content: flex-end;
     }
     .ga-selects-row {
         width: 100%;
+        flex-wrap: wrap;
     }
     .ga-select {
-        flex: 1;
+        flex: 1 1 calc(50% - 0.25rem);
         min-width: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Bulk action bar — selects 50/50, bouton Modifier pleine largeur */
+    .ga-selects-row .btn {
+        width: 100%;
+    }
+    /* Bulk action bar — Supprimer aligne à gauche avec Modifier */
+    .bulk-action-btns > .btn {
+        flex: 1;
+    }
+    /* History filters — selects uniformes pleine largeur */
+    .history-filter-select {
+        width: 100%;
     }
 }
 

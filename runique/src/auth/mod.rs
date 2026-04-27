@@ -14,7 +14,7 @@ pub use password::{
 };
 pub use session::{
     AdminAuth, AdminLoginResult, CurrentUser, DefaultAdminAuth, UserEntity, auth_login,
-    get_user_id, get_username, has_permission, is_admin_authenticated, is_authenticated,
-    load_user_middleware, login, logout, protect_session, unprotect_session,
+    get_user_id, get_username, is_admin_authenticated, is_authenticated, load_user_middleware,
+    login, logout, protect_session, unprotect_session,
 };
 pub use user::{BuiltinUserEntity, RuniqueAdminAuth};

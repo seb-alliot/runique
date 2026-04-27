@@ -47,8 +47,8 @@
             <thead>
                 <tr>
                     <th>{% if admin_dashboard_th_resource %}{{ admin_dashboard_th_resource }}{% endif %}</th>
-                    <th>{% if admin_dashboard_th_key %}{{ admin_dashboard_th_key }}{% endif %}</th>
-                    <th>{% if admin_dashboard_th_permissions %}{{ admin_dashboard_th_permissions }}{% endif %}</th>
+                    <th class="col-secondary">{% if admin_dashboard_th_key %}{{ admin_dashboard_th_key }}{% endif %}</th>
+                    <th class="col-secondary">{% if admin_dashboard_th_permissions %}{{ admin_dashboard_th_permissions }}{% endif %}</th>
                     <th>{% if admin_dashboard_th_actions %}{{ admin_dashboard_th_actions }}{% endif %}</th>
                 </tr>
             </thead>
@@ -56,8 +56,8 @@
             {% for resource in resources %}
             <tr>
                 <td><strong>{{ resource.title }}</strong></td>
-                <td><span class="id-badge">{{ resource.key }}</span></td>
-                <td>
+                <td class="col-secondary"><span class="id-badge">{{ resource.key }}</span></td>
+                <td class="col-secondary">
                     {% if resource_groups[resource.key] %}
                         {% for grp in resource_groups[resource.key] %}
                         <span class="badge badge-blue">{{ grp }}</span>
