@@ -504,6 +504,7 @@
     position: sticky;
     top: 0;
     max-height: calc(100vh - 4rem);
+    max-height: calc(100dvh - 4rem);
     display: flex;
     flex-direction: column;
     transition: width var(--transition);

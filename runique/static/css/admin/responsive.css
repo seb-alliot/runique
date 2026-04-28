@@ -76,6 +76,7 @@
         top: 0;
         left: 0;
         height: 100%;
+        height: 100dvh;
         width: 200px;
         transform: translateX(-100%);
         transition: transform var(--transition);
@@ -195,8 +196,8 @@
     /* Actions page détail — flottantes en bas à droite */
     .page-actions {
         position: fixed;
-        bottom: 1rem;
-        right: 1rem;
+        bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        right: calc(1rem + env(safe-area-inset-right, 0px));
         z-index: 150;
         gap: 0.5rem;
     }
@@ -207,6 +208,7 @@
         top: 0;
         right: 0;
         height: 100%;
+        height: 100dvh;
         width: 220px;
         max-height: none;
         border-radius: 0;
@@ -272,13 +274,10 @@
 }
 
 @media (max-width: 480px) {
-    /* Bulk action bar — selects 50/50, bouton Modifier pleine largeur */
-    .ga-selects-row .btn {
-        width: 100%;
-    }
-    /* Bulk action bar — Supprimer aligne à gauche avec Modifier */
+    /* Bulk action bar — tous les boutons pleine largeur */
+    .ga-selects-row .btn,
     .bulk-action-btns > .btn {
-        flex: 1;
+        width: 100%;
     }
     /* History filters — selects uniformes pleine largeur */
     .history-filter-select {
@@ -333,9 +332,9 @@
         background: var(--bg-card);
         border-top: 1px solid var(--border);
         z-index: 140;
-        justify-content: center;
         gap: 1.5rem;
         padding: 0.6rem 1rem;
+        padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
         justify-content: space-between;
     }
 
@@ -434,6 +433,27 @@
 
     /* Sidebar filtre plus large sur très petit écran */
     .admin-filter-sidebar { width: 55vw; border-left: none; }
+}
+
+/* ───────────────────────────────────────────────
+    Dashboard resources — override après les règles génériques
+    Le bloc 321-480px fixe th:first-child à 42px (colonne ID/checkbox).
+    Ce bloc vient après pour corriger la table Resources qui n'a pas de
+    colonne ID en première position.
+   ─────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+    .admin-table.admin-table-resources {
+        table-layout: auto;
+    }
+    .admin-table.admin-table-resources th:first-child,
+    .admin-table.admin-table-resources td:first-child {
+        width: auto;
+    }
+    .admin-table.admin-table-resources th:last-child,
+    .admin-table.admin-table-resources td:last-child {
+        white-space: nowrap;
+    }
 }
 
 /* ───────────────────────────────────────────────
