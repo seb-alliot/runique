@@ -27,7 +27,8 @@ impl AdminAuth for MockAdminAuth {
 
 async fn build_app_with_admin(prefix: &str) -> axum::Router {
     let db = Database::connect("sqlite::memory:").await.unwrap();
-    let config = RuniqueConfig::from_env();
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
 
     let app = RuniqueApp::builder(config)
         .with_database(db)
@@ -43,7 +44,8 @@ async fn build_app_with_admin(prefix: &str) -> axum::Router {
 
 async fn build_app_with_admin_no_robots(prefix: &str) -> axum::Router {
     let db = Database::connect("sqlite::memory:").await.unwrap();
-    let config = RuniqueConfig::from_env();
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
 
     let app = RuniqueApp::builder(config)
         .with_database(db)

@@ -114,6 +114,15 @@
         {% if entries is defined and entries | length > 0 %}
           <div class="admin-table-wrapper">
             <table class="admin-table">
+              <colgroup>
+                {% if can_bulk %}<col class="col-bulk">{% endif %}
+                <col class="col-id">
+                {% for col in visible_columns %}
+                  <col{% if loop.index0 > 0 %} class="col-secondary"{% endif %}>
+                {% endfor %}
+                <col class="col-expand">
+                <col class="col-actions">
+              </colgroup>
               <thead>
                 <tr>
                   {% if can_bulk %}<th class="th-bulk"><input type="checkbox" id="bulk-check-all" title="Tout sélectionner"></th>{% endif %}

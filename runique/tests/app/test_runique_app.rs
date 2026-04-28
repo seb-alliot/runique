@@ -50,7 +50,8 @@ fn test_builder_core_closure() {
 #[tokio::test]
 async fn test_builder_build_avec_sqlite_memory() {
     let db = Database::connect("sqlite::memory:").await.unwrap();
-    let config = RuniqueConfig::from_env();
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
     let router = Router::new().route("/", get(|| async { "ok" }));
 
     let app = RuniqueApp::builder(config)
@@ -66,7 +67,8 @@ async fn test_builder_build_avec_sqlite_memory() {
 #[tokio::test]
 async fn test_builder_build_retourne_runique_app() {
     let db = Database::connect("sqlite::memory:").await.unwrap();
-    let config = RuniqueConfig::from_env();
+    let mut config = RuniqueConfig::from_env();
+    config.debug = true;
 
     let app = RuniqueApp::builder(config)
         .with_database(db)
