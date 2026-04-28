@@ -5,6 +5,14 @@
 /* Reset admin */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+    /* Empêche le zoom auto des polices sur iOS lors de la rotation */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Scroll natif fluide sur iOS */
+    -webkit-tap-highlight-color: transparent;
+}
+
 html, body {
     height: 100%;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -13,6 +21,13 @@ html, body {
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scroll fluide dans la zone de contenu principale */
+.admin-content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -26,6 +41,7 @@ ul { list-style: none; }
 .admin-layout {
     display: flex;
     height: 100vh;
+    height: 100dvh; /* exclut la barre navigateur sur mobile */
     overflow: hidden;
 }
 
