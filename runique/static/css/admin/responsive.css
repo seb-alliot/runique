@@ -11,7 +11,7 @@
     Tableau expandable — desktop (colonnes toutes visibles)
    ─────────────────────────────────────────────── */
 
-.th-expand,
+.th-expand
 .td-expand     { display: none; }
 .row-detail    { display: none; }
 .row-detail.open { display: table-row; }
@@ -339,7 +339,7 @@
     }
 
     /* Table encore plus compacte */
-    .admin-table th,
+    .admin-table th { width: 37vw }
     .admin-table td { padding: 0.6rem 0.75rem; font-size: 0.82rem; }
     .admin-table { min-width: 95vw; }
 
@@ -379,12 +379,12 @@
     .admin-table-wrapper { overflow-x: auto; }
 
     /* Largeurs fixées via <colgroup> — priorité absolue dans table-layout:fixed,
-       contourne le bug Chrome mobile où l'apparition de row-detail déclenche
-       un recalcul qui ignore les largeurs définies sur th/td */
+        contourne le bug Chrome mobile où l'apparition de row-detail déclenche
+        un recalcul qui ignore les largeurs définies sur th/td */
     .admin-table col.col-bulk    { width: 42px; }
     .admin-table col.col-id      { width: 48px; }
     .admin-table col.col-expand  { width: 32px; }
-    .admin-table col.col-actions { width: 44px; }
+    .admin-table col.col-actions { width: 72px; }
 
     .admin-table td:nth-child(2) .td-content {
         display: block;
