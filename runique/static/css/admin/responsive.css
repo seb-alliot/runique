@@ -378,11 +378,13 @@
 
     .admin-table-wrapper { overflow-x: auto; }
 
-    /* Colonne ID : fixe et petite */
-    .admin-table th:first-child,
-    .admin-table td:first-child {
-        width: 42px;
-    }
+    /* Largeurs fixées via <colgroup> — priorité absolue dans table-layout:fixed,
+       contourne le bug Chrome mobile où l'apparition de row-detail déclenche
+       un recalcul qui ignore les largeurs définies sur th/td */
+    .admin-table col.col-bulk    { width: 42px; }
+    .admin-table col.col-id      { width: 48px; }
+    .admin-table col.col-expand  { width: 32px; }
+    .admin-table col.col-actions { width: 44px; }
 
     .admin-table td:nth-child(2) .td-content {
         display: block;
@@ -392,16 +394,11 @@
         -webkit-line-clamp: unset;
     }
 
-    /* Colonne expand */
-    .td-expand, .th-expand {
-        width: 32px;
-        flex-shrink: 0;
-    }
-
-    /* Colonne actions */
-    .td-actions {
-        width: 36px;
-        flex-shrink: 0;
+    /* Empêche row-detail-grid (width:85vw héritée de ≤900px) de forcer
+       le tableau à s'élargir et de déclencher un recalcul de layout */
+    .row-detail-grid {
+        width: auto;
+        max-width: 100%;
     }
 
     /* id-badge plus compact */
@@ -437,9 +434,8 @@
 
 /* ───────────────────────────────────────────────
     Dashboard resources — override après les règles génériques
-    Le bloc 321-480px fixe th:first-child à 42px (colonne ID/checkbox).
-    Ce bloc vient après pour corriger la table Resources qui n'a pas de
-    colonne ID en première position.
+    La table Resources n'a pas de colonne ID en première position,
+    elle doit rester en table-layout:auto.
    ─────────────────────────────────────────────── */
 
 @media (max-width: 480px) {
