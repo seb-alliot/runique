@@ -297,7 +297,8 @@
     },
     "list": {
       "breadcrumb_admin": "Amministrazione",
-      "entries_count": "voce/i",
+      "entries_count_one": "voce",
+      "entries_count_many": "voci",
       "btn_create": "Crea",
       "th_id": "id",
       "th_actions": "Azioni",

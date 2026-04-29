@@ -297,7 +297,8 @@
     },
     "list": {
       "breadcrumb_admin": "管理",
-      "entries_count": "件",
+      "entries_count_one": "件",
+      "entries_count_many": "件",
       "btn_create": "作成",
       "th_id": "id",
       "th_actions": "アクション",

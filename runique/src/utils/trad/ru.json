@@ -298,7 +298,8 @@
     },
     "list": {
       "breadcrumb_admin": "Администрирование",
-      "entries_count": "запись(ей)",
+      "entries_count_one": "запись",
+      "entries_count_many": "записей",
       "btn_create": "Создать",
       "th_id": "id",
       "th_actions": "Действия",

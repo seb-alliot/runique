@@ -297,7 +297,8 @@
     },
     "list": {
       "breadcrumb_admin": "Administration",
-      "entries_count": "Eintrag/Einträge",
+      "entries_count_one": "Eintrag",
+      "entries_count_many": "Einträge",
       "btn_create": "Erstellen",
       "th_id": "id",
       "th_actions": "Aktionen",

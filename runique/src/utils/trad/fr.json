@@ -298,7 +298,8 @@
     },
     "list": {
       "breadcrumb_admin": "Administration",
-      "entries_count": "entrée(s)",
+      "entries_count_one": "entrée",
+      "entries_count_many": "entrées",
       "btn_create": "Créer",
       "th_id": "id",
       "th_actions": "Actions",

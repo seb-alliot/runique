@@ -134,7 +134,8 @@ pub const ADMIN_MESSAGE_KEYS: &[&str] = &[
     "admin.dashboard.empty_desc",
     // list
     "admin.list.breadcrumb_admin",
-    "admin.list.entries_count",
+    "admin.list.entries_count_one",
+    "admin.list.entries_count_many",
     "admin.list.btn_create",
     "admin.list.th_id",
     "admin.list.th_actions",
