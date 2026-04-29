@@ -339,7 +339,7 @@
     }
 
     /* Table encore plus compacte */
-    .admin-table th { width: 37vw }
+    .admin-table th { width: 43vw }
     .admin-table td { padding: 0.6rem 0.75rem; font-size: 0.82rem; }
     .admin-table { min-width: 95vw; }
 
@@ -381,10 +381,11 @@
     /* Largeurs fixées via <colgroup> — priorité absolue dans table-layout:fixed,
         contourne le bug Chrome mobile où l'apparition de row-detail déclenche
         un recalcul qui ignore les largeurs définies sur th/td */
-    .admin-table col.col-bulk    { width: 42px; }
-    .admin-table col.col-id      { width: 48px; }
-    .admin-table col.col-expand  { width: 32px; }
-    .admin-table col.col-actions { width: 72px; }
+    .admin-table col.col-bulk    { width: 12%; }
+    .admin-table col.col-id      { width: 13%; }
+    .admin-table col.col-expand  { width: 9%;  }
+    .admin-table col.col-actions { width: 20%; }
+    /* col-main (1er visible) = ~46% auto — colonnes proportionnelles sur tous les mobiles */
 
     .admin-table td:nth-child(2) .td-content {
         display: block;
