@@ -22,7 +22,7 @@ tower = { version = "0.5.3", features = ["util"] }
 tower-http = { version = "0.6.8", features = ["fs", "util", "trace", "timeout","compression-full", "set-header"] }
 tower-sessions = "0.15.0"
 
-# Runtime async
+# Runtime asyn
 tokio = { version = "1", features = ["full"] }
 
 # Sérialisation
