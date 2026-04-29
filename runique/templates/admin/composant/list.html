@@ -25,7 +25,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">{{ resource.title | default(value="Éléments") }}</h1>
-      <p class="page-subtitle">{{ total | default(value=0) }} {% if admin_list_entries_count %}{{ admin_list_entries_count }}{% endif %}</p>
+      <p class="page-subtitle">{{ total | default(value=0) }} {% if total == 1 %}{{ admin_list_entries_count_one }}{% else %}{{ admin_list_entries_count_many }}{% endif %}</p>
     </div>
     
     {# Affichage simple, hors boucle #}
