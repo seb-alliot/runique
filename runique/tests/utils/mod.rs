@@ -4,6 +4,7 @@ pub mod switch_lang;
 pub mod test_constante_parse;
 pub mod test_flash_message;
 pub mod test_init_logging;
+pub mod test_mailer;
 pub mod test_parse_boolean;
 pub mod test_parse_html;
 pub mod test_password;

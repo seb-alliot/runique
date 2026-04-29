@@ -158,10 +158,62 @@
     border-color: var(--accent);
 }
 
+/* ── Batch inline diff ───────────────────────────────────────── */
+
+.batch-diff-inline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.batch-diff-field {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.batch-diff-field .diff-key {
+    width: auto;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-width: 80px;
+}
+
+.batch-diff-field .diff-old,
+.batch-diff-field .diff-new {
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    border-left: none;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.batch-diff-field .diff-arrow {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.batch-obj {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.batch-obj-name {
+    font-size: 0.85rem;
+    color: var(--text-main);
+}
+
 /* ── Responsive ───────────────────────────────────────────────── */
 
 @media (max-width: 600px) {
     .diff-key { width: 90px; font-size: 0.72rem; }
     .history-meta { gap: 0.5rem 1rem; }
     .diff-table td { padding: 0.5rem 0.75rem; }
+    .admin-table th { width: 46%;}
 }

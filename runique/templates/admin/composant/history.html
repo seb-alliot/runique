@@ -61,14 +61,24 @@
             <td class="col-secondary"><span class="id-badge">{{ entry.username }}</span></td>
             <td class="col-secondary">{{ entry.resource_key }}</td>
             <td class="col-secondary">
-              {% if entry.object_pk and entry.object_pk != "" %}
+              {% if entry.batch_count > 1 %}
+                <span class="text-muted">{{ entry.batch_count }} objets</span>
+              {% elif entry.object_pk and entry.object_pk != "" %}
                 <span class="id-badge">{{ entry.object_pk }}</span>
               {% else %}
                 <span class="text-muted">—</span>
               {% endif %}
             </td>
             <td>
-              {% if entry.action == "create" %}
+              {% if entry.batch_count > 1 %}
+                {% if entry.action == "edit" %}
+                  <span class="badge badge-blue">{{ entry.batch_count }} modifiés</span>
+                {% elif entry.action == "delete" %}
+                  <span class="badge badge-red">{{ entry.batch_count }} supprimés</span>
+                {% else %}
+                  <span class="badge">{{ entry.batch_count }} × {{ entry.action }}</span>
+                {% endif %}
+              {% elif entry.action == "create" %}
                 <span class="badge badge-green">créé</span>
               {% elif entry.action == "edit" %}
                 <span class="badge badge-blue">modifié</span>
@@ -79,7 +89,11 @@
               {% endif %}
             </td>
             <td class="td-actions">
-              {% if entry.summary %}
+              {% if entry.batch_count > 1 %}
+                <a href="/admin/history/batch/{{ entry.batch_id }}" class="btn btn-ghost btn-sm" title="Voir le lot">
+                  Voir les {{ entry.batch_count }}
+                </a>
+              {% elif entry.summary %}
                 <a href="/admin/history/{{ entry.id }}" class="btn btn-ghost btn-sm" title="Vue diff">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>

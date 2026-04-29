@@ -1,16 +1,26 @@
-//! E-mail client (`lettre`) — SMTP configuration, async sending, initialization from environment.
+//! E-mail client (`lettre`) — SMTP + console backends, async sending, Tera template support.
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor, message::header::ContentType,
     transport::smtp::authentication::Credentials,
 };
 use std::{env::var, sync::OnceLock};
 
-// === Global Config ===
+// ─── Backend ─────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Default)]
+pub enum MailerBackend {
+    #[default]
+    Smtp,
+    Console,
+}
+
+// ─── Config ──────────────────────────────────────────────────────────────────
 
 pub static MAILER_CONFIG: OnceLock<MailerConfig> = OnceLock::new();
 
 #[derive(Debug, Clone)]
 pub struct MailerConfig {
+    pub backend: MailerBackend,
     pub host: String,
     pub port: u16,
     pub username: String,
@@ -21,23 +31,42 @@ pub struct MailerConfig {
 
 impl MailerConfig {
     pub fn from_env() -> Option<Self> {
-        let host = var("SMTP_HOST").ok()?;
-        let username = var("SMTP_USER").ok()?;
-        let password = var("SMTP_PASS").ok()?;
-        let from = var("SMTP_FROM").unwrap_or_else(|_| username.clone());
-        let port = var("SMTP_PORT")
-            .ok()
-            .and_then(|p| p.parse().ok())
-            .unwrap_or(587);
-        let starttls = var("SMTP_STARTTLS").map(|v| v == "true").unwrap_or(true);
-        Some(Self {
-            host,
-            port,
-            username,
-            password,
-            from,
-            starttls,
-        })
+        let backend = match var("EMAIL_BACKEND").as_deref().unwrap_or("smtp") {
+            "console" => MailerBackend::Console,
+            _ => MailerBackend::Smtp,
+        };
+
+        match backend {
+            MailerBackend::Console => Some(Self {
+                backend: MailerBackend::Console,
+                host: String::new(),
+                port: 0,
+                username: String::new(),
+                password: String::new(),
+                from: var("SMTP_FROM").unwrap_or_else(|_| "noreply@localhost".to_string()),
+                starttls: false,
+            }),
+            MailerBackend::Smtp => {
+                let host = var("SMTP_HOST").ok()?;
+                let username = var("SMTP_USER").ok()?;
+                let password = var("SMTP_PASS").ok()?;
+                let from = var("SMTP_FROM").unwrap_or_else(|_| username.clone());
+                let port = var("SMTP_PORT")
+                    .ok()
+                    .and_then(|p| p.parse().ok())
+                    .unwrap_or(587);
+                let starttls = var("SMTP_STARTTLS").map(|v| v == "true").unwrap_or(true);
+                Some(Self {
+                    backend: MailerBackend::Smtp,
+                    host,
+                    port,
+                    username,
+                    password,
+                    from,
+                    starttls,
+                })
+            }
+        }
     }
 }
 
@@ -55,7 +84,7 @@ pub fn mailer_configured() -> bool {
     MAILER_CONFIG.get().is_some()
 }
 
-// === Email Builder ===
+// ─── Email builder ────────────────────────────────────────────────────────────
 
 pub struct Email {
     to: String,
@@ -101,12 +130,70 @@ impl Email {
         self
     }
 
+    /// Renders a Tera template with a `tera::Context` and sets it as the HTML body.
+    ///
+    /// Build the context with the `context!` macro:
+    /// ```rust,no_run
+    /// # use runique::prelude::Email;
+    /// # use runique::context;
+    /// # async fn example(tera: &tera::Tera, user_email: &str, username: &str, confirm_url: &str) -> Result<(), String> {
+    /// let ctx = context! { "username" => username, "url" => confirm_url };
+    /// Email::new().to(user_email).subject("Bienvenue").template(tera, "emails/welcome.html", ctx)?.send().await?;
+    /// # Ok(()) }
+    /// ```
+    pub fn template(
+        mut self,
+        tera: &tera::Tera,
+        template_name: &str,
+        ctx: tera::Context,
+    ) -> Result<Self, String> {
+        let rendered = tera
+            .render(template_name, &ctx)
+            .map_err(|e| format!("Template error ({template_name}): {e}"))?;
+        self.html = Some(rendered);
+        Ok(self)
+    }
+
     pub async fn send(self) -> Result<(), String> {
         let config = MAILER_CONFIG.get().ok_or_else(|| {
-            "Mailer not configured — call mailer_init() or define SMTP_HOST/SMTP_USER/SMTP_PASS"
+            "Mailer not configured — call .with_mailer_from_env() in the builder or set EMAIL_BACKEND/SMTP_* in .env"
                 .to_string()
         })?;
 
+        if self.html.is_none() && self.text.is_none() {
+            return Err("Email without content".to_string());
+        }
+
+        match config.backend {
+            MailerBackend::Console => self.send_console(config),
+            MailerBackend::Smtp => self.send_smtp(config).await,
+        }
+    }
+
+    fn send_console(self, config: &MailerConfig) -> Result<(), String> {
+        let body = self
+            .html
+            .as_deref()
+            .or(self.text.as_deref())
+            .unwrap_or("(no content)");
+
+        println!(
+            "\n{}\n  From:    {}\n  To:      {}\n  Subject: {}{}\n\n{}\n{}",
+            "─".repeat(60),
+            config.from,
+            self.to,
+            self.subject,
+            self.reply_to
+                .as_deref()
+                .map(|r| format!("\n  Reply-To: {r}"))
+                .unwrap_or_default(),
+            body,
+            "─".repeat(60),
+        );
+        Ok(())
+    }
+
+    async fn send_smtp(self, config: &MailerConfig) -> Result<(), String> {
         let from = config
             .from
             .parse::<lettre::message::Mailbox>()
@@ -169,4 +256,12 @@ impl Default for Email {
     fn default() -> Self {
         Self::new()
     }
+}
+
+// ─── Shorthand ────────────────────────────────────────────────────────────────
+
+/// Sends a plain-text email in one call.
+/// For HTML, templates, or reply-to, use `Email::new()` instead.
+pub async fn dispatch_email(to: &str, subject: &str, body: &str) -> Result<(), String> {
+    Email::new().to(to).subject(subject).text(body).send().await
 }

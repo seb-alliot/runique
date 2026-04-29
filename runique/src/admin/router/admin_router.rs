@@ -87,6 +87,7 @@ pub fn build_admin_router(admin_staging: AdminStaging, _db: crate::utils::aliase
         &format!("{prefix}/logout") => get(admin_logout), name = "admin_logout",
         &format!("{prefix}/history") => get(admin_history), name = "admin_history",
         &format!("{prefix}/history/timeline") => get(admin_history_timeline), name = "admin_history_timeline",
+        &format!("{prefix}/history/batch/{{batch_id}}") => get(admin_history_batch), name = "admin_history_batch",
         &format!("{prefix}/history/{{id}}") => get(admin_history_diff), name = "admin_history_diff",
     };
 
@@ -430,7 +431,48 @@ async fn admin_history(
 
     let paginator = query.paginate(req.engine.db.as_ref(), PER_PAGE);
     let total_pages = paginator.num_pages().await.unwrap_or(1);
-    let entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
+    let raw_entries: Vec<history::Model> = paginator.fetch_page(page - 1).await.unwrap_or_default();
+
+    #[derive(serde::Serialize)]
+    struct HistoryRow {
+        id: i64,
+        resource_key: String,
+        object_pk: String,
+        action: String,
+        username: String,
+        created_at: chrono::NaiveDateTime,
+        summary: Option<String>,
+        batch_id: Option<String>,
+        batch_count: usize,
+    }
+
+    let mut entries: Vec<HistoryRow> = Vec::new();
+    let mut seen_batches: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for e in raw_entries {
+        if let Some(ref bid) = e.batch_id {
+            if seen_batches.contains(bid) {
+                if let Some(row) = entries
+                    .iter_mut()
+                    .find(|r| r.batch_id.as_deref() == Some(bid))
+                {
+                    row.batch_count += 1;
+                }
+                continue;
+            }
+            seen_batches.insert(bid.clone());
+        }
+        entries.push(HistoryRow {
+            id: e.id,
+            resource_key: e.resource_key,
+            object_pk: e.object_pk,
+            action: e.action,
+            username: e.username,
+            created_at: e.created_at,
+            summary: e.summary,
+            batch_id: e.batch_id,
+            batch_count: 1,
+        });
+    }
 
     let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
         state
@@ -637,6 +679,159 @@ async fn admin_history_timeline(
         .insert("lang", current_lang().code());
 
     req.render("admin/history_timeline")
+}
+
+async fn admin_history_batch(
+    Path(batch_id): Path<String>,
+    Extension(admin): Extension<Arc<AdminState>>,
+    Extension(current_user): Extension<crate::auth::session::CurrentUser>,
+    proto: Option<Extension<Arc<PrototypeAdminState>>>,
+    mut req: Request,
+) -> AppResult<Response> {
+    use crate::admin::history;
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+
+    if !current_user.is_staff && !current_user.is_superuser {
+        req.notices
+            .error(t("admin.access.insufficient_rights").to_string())
+            .await;
+        return Ok(
+            axum::response::Redirect::to(&format!("{}/", admin.config.prefix)).into_response(),
+        );
+    }
+
+    let entries: Vec<history::Model> = history::Entity::find()
+        .filter(history::Column::BatchId.eq(batch_id.clone()))
+        .order_by_asc(history::Column::Id)
+        .all(req.engine.db.as_ref())
+        .await
+        .unwrap_or_default();
+
+    #[derive(serde::Serialize)]
+    struct DiffField {
+        key: String,
+        old_val: String,
+        new_val: String,
+    }
+
+    #[derive(serde::Serialize)]
+    struct BatchEntry {
+        id: i64,
+        object_pk: String,
+        display_name: Option<String>,
+        action: String,
+        summary: Option<String>,
+        diff_fields: Vec<DiffField>,
+    }
+
+    fn parse_diff(summary: Option<&str>) -> Vec<DiffField> {
+        summary
+            .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
+            .and_then(|v| v.as_object().cloned())
+            .map(|map| {
+                let mut fields: Vec<DiffField> = map
+                    .into_iter()
+                    .filter_map(|(k, v)| {
+                        let obj = v.as_object()?;
+                        let str_val = |v: &serde_json::Value| match v {
+                            serde_json::Value::String(s) => s.clone(),
+                            other => other.to_string(),
+                        };
+                        Some(DiffField {
+                            key: k,
+                            old_val: obj.get("old").map(str_val).unwrap_or_default(),
+                            new_val: obj.get("new").map(str_val).unwrap_or_default(),
+                        })
+                    })
+                    .collect();
+                fields.sort_by(|a, b| a.key.cmp(&b.key));
+                fields
+            })
+            .unwrap_or_default()
+    }
+
+    fn extract_display_name(val: &serde_json::Value) -> Option<String> {
+        let obj = val.as_object()?;
+        for key in &["username", "name", "title", "email", "label", "slug"] {
+            if let Some(serde_json::Value::String(s)) = obj.get(*key)
+                && !s.is_empty()
+            {
+                return Some(s.clone());
+            }
+        }
+        None
+    }
+
+    let resource_key = entries
+        .first()
+        .map(|e| e.resource_key.clone())
+        .unwrap_or_default();
+    let username = entries
+        .first()
+        .map(|e| e.username.clone())
+        .unwrap_or_default();
+    let created_at = entries.first().map(|e| e.created_at);
+    let action = entries
+        .first()
+        .map(|e| e.action.clone())
+        .unwrap_or_default();
+
+    let get_fn = proto
+        .as_ref()
+        .and_then(|Extension(state)| state.registry.get(&resource_key))
+        .and_then(|entry| entry.get_fn.clone());
+
+    let mut batch_entries: Vec<BatchEntry> = Vec::new();
+    for e in entries {
+        let display_name = if let Some(ref f) = get_fn {
+            f(req.engine.db.clone(), e.object_pk.clone())
+                .await
+                .ok()
+                .flatten()
+                .as_ref()
+                .and_then(extract_display_name)
+        } else {
+            None
+        };
+        let diff = parse_diff(e.summary.as_deref());
+        batch_entries.push(BatchEntry {
+            id: e.id,
+            object_pk: e.object_pk,
+            display_name,
+            action: e.action,
+            summary: e.summary,
+            diff_fields: diff,
+        });
+    }
+
+    let resources: Vec<&crate::admin::AdminResource> = if let Some(Extension(ref state)) = proto {
+        state
+            .registry
+            .all()
+            .filter(|e| current_user.is_superuser || current_user.can_access_resource(e.meta.key))
+            .map(|e| &e.meta)
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    insert_admin_messages(&mut req.context, "base");
+    req = req
+        .insert("batch_id", &batch_id)
+        .insert("batch_entries", &batch_entries)
+        .insert("resource_key", &resource_key)
+        .insert("username", &username)
+        .insert("created_at", created_at)
+        .insert("action", &action)
+        .insert("current_page", "history")
+        .insert("current_resource", &Option::<String>::None)
+        .insert("resources", &resources)
+        .insert("current_user", &current_user)
+        .insert("site_title", &admin.config.site_title)
+        .insert("site_url", &admin.config.site_url)
+        .insert("lang", current_lang().code());
+
+    req.render("admin/history_batch")
 }
 
 async fn admin_logout(Extension(admin): Extension<Arc<AdminState>>, req: Request) -> Response {

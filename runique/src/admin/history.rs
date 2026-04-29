@@ -20,6 +20,7 @@ pub struct Model {
     pub username: String,
     pub created_at: chrono::NaiveDateTime,
     pub summary: Option<String>,
+    pub batch_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -29,26 +30,29 @@ impl ActiveModelBehavior for ActiveModel {}
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
+pub struct AdminActionLog<'a> {
+    pub user_id: Pk,
+    pub username: &'a str,
+    pub resource_key: &'a str,
+    pub object_pk: &'a str,
+    pub action: &'a str,
+    pub summary: Option<String>,
+    pub batch_id: Option<String>,
+}
+
 /// Fire-and-forget: inserts one row in `eihwaz_history`.
 /// Errors are silently swallowed — a log failure must never break the request.
-pub async fn log_admin_action(
-    db: &ADb,
-    user_id: Pk,
-    username: &str,
-    resource_key: &str,
-    object_pk: &str,
-    action: &str,
-    summary: Option<String>,
-) {
+pub async fn log_admin_action(db: &ADb, log: AdminActionLog<'_>) {
     let now = chrono::Utc::now().naive_utc();
     let entry = ActiveModel {
-        resource_key: Set(resource_key.to_string()),
-        object_pk: Set(object_pk.to_string()),
-        action: Set(action.to_string()),
-        user_id: Set(user_id),
-        username: Set(username.to_string()),
+        resource_key: Set(log.resource_key.to_string()),
+        object_pk: Set(log.object_pk.to_string()),
+        action: Set(log.action.to_string()),
+        user_id: Set(log.user_id),
+        username: Set(log.username.to_string()),
         created_at: Set(now),
-        summary: Set(summary),
+        summary: Set(log.summary),
+        batch_id: Set(log.batch_id),
         ..Default::default()
     };
     let _ = Entity::insert(entry).exec(db.as_ref()).await;

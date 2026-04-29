@@ -176,12 +176,15 @@ pub(super) async fn handle_create_post(
 
         history::log_admin_action(
             &req.engine.db,
-            current_user.id,
-            &current_user.username,
-            entry.meta.key,
-            "",
-            "create",
-            None,
+            history::AdminActionLog {
+                user_id: current_user.id,
+                username: &current_user.username,
+                resource_key: entry.meta.key,
+                object_pk: "",
+                action: "create",
+                summary: None,
+                batch_id: None,
+            },
         )
         .await;
 
@@ -373,16 +376,21 @@ pub(super) async fn handle_edit_post(
                 return Err(Box::new(AppError::new(ErrorContext::database(e))));
             }
         } else {
-            history::log_admin_action(
-                &req.engine.db,
-                current_user.id,
-                &current_user.username,
-                entry.meta.key,
-                &id,
-                "edit",
-                summary,
-            )
-            .await;
+            if summary.is_some() {
+                history::log_admin_action(
+                    &req.engine.db,
+                    history::AdminActionLog {
+                        user_id: current_user.id,
+                        username: &current_user.username,
+                        resource_key: entry.meta.key,
+                        object_pk: &id,
+                        action: "edit",
+                        summary,
+                        batch_id: None,
+                    },
+                )
+                .await;
+            }
             req.notices
                 .success(t("admin.edit.success").to_string())
                 .await;
@@ -464,12 +472,15 @@ pub(super) async fn handle_delete_post(
 
     history::log_admin_action(
         &req.engine.db,
-        current_user.id,
-        &current_user.username,
-        entry.meta.key,
-        &id,
-        "delete",
-        None,
+        history::AdminActionLog {
+            user_id: current_user.id,
+            username: &current_user.username,
+            resource_key: entry.meta.key,
+            object_pk: &id,
+            action: "delete",
+            summary: None,
+            batch_id: None,
+        },
     )
     .await;
 
