@@ -184,7 +184,7 @@ pub mod prelude {
     // ========================================================================
     // SECURITY - HMAC, Hashing, etc.
     // ========================================================================
-    pub use crate::utils::mailer::{Email, mailer_configured};
+    pub use crate::utils::mailer::{Email, dispatch_email, mailer_configured};
     pub use crate::utils::password::{
         AutoConfig, Manual, PasswordConfig, hash, password_init, verify,
     };

@@ -313,6 +313,7 @@ pub fn create_eihwaz_history_table() -> TableCreateStatement {
                 .not_null(),
         )
         .col(ColumnDef::new(Alias::new("summary")).text().null())
+        .col(ColumnDef::new(Alias::new("batch_id")).string().null())
         .to_owned()
 }
 

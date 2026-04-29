@@ -182,7 +182,9 @@ pub async fn admin_post(
         "create" => {
             handle_create_post(&mut req, entry, body, &headers, &state, &current_user).await
         }
-        "bulk" => handle_bulk_action(&mut req, entry, body, &state, &resource_key).await,
+        "bulk" => {
+            handle_bulk_action(&mut req, entry, body, &state, &resource_key, &current_user).await
+        }
         _ => Err(Box::new(AppError::new(ErrorContext::not_found(
             "Unknown action",
         )))),
