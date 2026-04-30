@@ -189,6 +189,7 @@ impl RuniqueAppBuilder {
         use crate::app::error_build::{CheckError, CheckReport};
 
         let mut report = CheckReport::new();
+        #[cfg(feature = "acme")]
         let sec = &self.config.security;
         let srv = &self.config.server;
 

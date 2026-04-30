@@ -4,7 +4,7 @@
 //! - LoginAdmin::register_fields, from_form, get_form, get_form_mut
 //!   (et les méthodes générées par impl_form_access! dans macros/forms/impl_form.rs)
 //! - RuniqueForm::build, build_with_data, clean_field, clean, is_valid
-//! - RuniqueForm::save, save_txn (implémentations par défaut dans forms/field.rs)
+//! - RuniqueForm::save, on_save (implémentations par défaut dans forms/field.rs)
 
 use axum::http::Method;
 use runique::auth::LoginAdmin;
@@ -150,7 +150,7 @@ async fn test_is_valid_valide_avec_username_rempli() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RuniqueForm::save / save_txn  (forms/field.rs — impl par défaut)
+// RuniqueForm::save / on_save  (forms/field.rs — impl par défaut)
 // ═══════════════════════════════════════════════════════════════
 
 #[tokio::test]
@@ -158,7 +158,7 @@ async fn test_save_avec_impl_par_defaut_retourne_ok() {
     use crate::helpers::db::fresh_db;
     let mut login = login_form();
     let db = fresh_db().await;
-    // L'implémentation par défaut de save_txn retourne Ok(()),
+    // L'implémentation par défaut de on_save retourne Ok(()),
     // donc save() doit réussir (commit vide)
     let result = login.save(&db).await;
     assert!(result.is_ok());

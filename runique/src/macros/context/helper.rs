@@ -35,6 +35,12 @@ impl ContextHelper {
     }
 }
 
+impl From<ContextHelper> for Context {
+    fn from(helper: ContextHelper) -> Self {
+        helper.inner
+    }
+}
+
 impl std::ops::Deref for ContextHelper {
     type Target = Context;
 

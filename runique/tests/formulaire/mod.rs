@@ -21,6 +21,7 @@ pub mod test_form_methods;
 pub mod test_forms;
 pub mod test_generic_field;
 pub mod test_hidden_field;
+pub mod test_hooks;
 pub mod test_model_form;
 pub mod test_number_fields;
 pub mod test_password;

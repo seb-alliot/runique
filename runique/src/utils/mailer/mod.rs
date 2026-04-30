@@ -136,9 +136,10 @@ impl Email {
     /// ```rust,no_run
     /// # use runique::prelude::Email;
     /// # use runique::context;
+    /// # use runique::macros::helper::ContextHelper;
     /// # async fn example(tera: &tera::Tera, user_email: &str, username: &str, confirm_url: &str) -> Result<(), String> {
     /// let ctx = context! { "username" => username, "url" => confirm_url };
-    /// Email::new().to(user_email).subject("Bienvenue").template(tera, "emails/welcome.html", ctx)?.send().await?;
+    /// Email::new().to(user_email).subject("Bienvenue").template(tera, "emails/welcome.html", ctx.into())?.send().await?;
     /// # Ok(()) }
     /// ```
     pub fn template(

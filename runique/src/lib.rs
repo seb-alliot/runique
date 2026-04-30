@@ -71,7 +71,7 @@ pub mod prelude {
     pub use crate::flash::{FlashMessage, Message, MessageLevel};
     pub use crate::forms::{
         Forms, Prisme,
-        field::{FormField, RuniqueForm},
+        field::{FormField, RuniqueForm, SaveContext},
         fields::{
             CheckboxField, DateField, DurationField, RadioField, TimeField,
             boolean::BooleanField,

@@ -10,6 +10,14 @@ use async_trait::async_trait;
 use axum::http::Method;
 use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
 
+/// Context passed to `before_save` and `after_save` hooks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SaveContext {
+    Create,
+    Update,
+    Delete,
+}
+
 dyn_clone::clone_trait_object!(FormField);
 
 /// Common logic for all `cleaned_*` — whitelist + priority: POST > path > query.
@@ -116,6 +124,48 @@ pub trait RuniqueForm: Sized + Send + Sync {
             .map(|dt| dt.with_timezone(&chrono::Utc))
     }
 
+    // ── Field display overrides ──────────────────────────────────────────────
+
+    fn label(&mut self, name: &str, label: &str) -> &mut Self {
+        self.get_form_mut().field_label(name, label);
+        self
+    }
+
+    fn placeholder(&mut self, name: &str, placeholder: &str) -> &mut Self {
+        self.get_form_mut().field_placeholder(name, placeholder);
+        self
+    }
+
+    fn required(&mut self, name: &str, required: bool) -> &mut Self {
+        self.get_form_mut().field_required(name, required);
+        self
+    }
+
+    fn readonly(&mut self, name: &str, readonly: bool) -> &mut Self {
+        self.get_form_mut().field_readonly(name, readonly);
+        self
+    }
+
+    fn disabled(&mut self, name: &str, disabled: bool) -> &mut Self {
+        self.get_form_mut().field_disabled(name, disabled);
+        self
+    }
+
+    fn attr(&mut self, name: &str, key: &str, value: &str) -> &mut Self {
+        self.get_form_mut().field_attr(name, key, value);
+        self
+    }
+
+    /// Overrides max_size for a file field. Returns Err if it exceeds the model ceiling.
+    fn max_size(
+        &mut self,
+        name: &str,
+        size: crate::forms::fields::FileSize,
+    ) -> Result<&mut Self, String> {
+        self.get_form_mut().field_max_size(name, size)?;
+        Ok(self)
+    }
+
     /// Clears all form values (except CSRF).
     fn clear(&mut self) {
         self.get_form_mut().clear_values();
@@ -184,11 +234,29 @@ pub trait RuniqueForm: Sized + Send + Sync {
         }
     }
 
-    /// Default atomic wrapper: opens a transaction and calls `save_txn`.
+    /// Default atomic wrapper: opens a transaction and calls `on_save`.
     ///
-    /// - if `save_txn` returns Err -> automatic rollback
+    /// - if `on_save` returns Err -> automatic rollback
     /// - otherwise -> commit
-    async fn save_txn(&mut self, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
+    async fn on_save(&mut self, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
+        Ok(())
+    }
+
+    /// Hook called inside the transaction, before `on_save`. Default: no-op.
+    async fn before_save(
+        &mut self,
+        _ctx: SaveContext,
+        _txn: &DatabaseTransaction,
+    ) -> Result<(), DbErr> {
+        Ok(())
+    }
+
+    /// Hook called inside the transaction, after `on_save`. Default: no-op.
+    async fn after_save(
+        &mut self,
+        _ctx: SaveContext,
+        _txn: &DatabaseTransaction,
+    ) -> Result<(), DbErr> {
         Ok(())
     }
 
@@ -196,7 +264,7 @@ pub trait RuniqueForm: Sized + Send + Sync {
     async fn save(&mut self, db: &DatabaseConnection) -> Result<(), DbErr> {
         let txn = db.begin().await?;
 
-        match self.save_txn(&txn).await {
+        match self.on_save(&txn).await {
             Ok(()) => {
                 txn.commit().await?;
                 Ok(())
@@ -207,6 +275,28 @@ pub trait RuniqueForm: Sized + Send + Sync {
                 Err(e)
             }
         }
+    }
+
+    /// Like `save`, but with explicit context for hooks.
+    /// Order: `before_save` → `on_save` → `after_save` → commit.
+    /// Any failure triggers rollback and returns the original error.
+    async fn save_as(&mut self, ctx: SaveContext, db: &DatabaseConnection) -> Result<(), DbErr> {
+        let txn = db.begin().await?;
+
+        if let Err(e) = self.before_save(ctx, &txn).await {
+            let _ = txn.rollback().await;
+            return Err(e);
+        }
+        if let Err(e) = self.on_save(&txn).await {
+            let _ = txn.rollback().await;
+            return Err(e);
+        }
+        if let Err(e) = self.after_save(ctx, &txn).await {
+            let _ = txn.rollback().await;
+            return Err(e);
+        }
+
+        txn.commit().await
     }
 
     fn database_error(&mut self, err: &DbErr) {

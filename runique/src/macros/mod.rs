@@ -3,6 +3,9 @@ pub mod admin;
 pub mod bdd;
 pub mod context;
 pub mod forms;
+pub mod helper {
+    pub use super::context::helper::*;
+}
 pub mod routeur;
 pub mod template;
 
