@@ -272,6 +272,61 @@ fn test_file_field_validate_image_not_found_fails() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// model_max_size — plafond immuable + apply_max_size_bounded
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_max_size_sets_model_ceiling() {
+    let f = FileField::image("avatar").max_size(FileSize::mb(5));
+    assert_eq!(f.model_max_size, Some(5 * 1024 * 1024));
+    assert_eq!(f.upload_config.max_size, Some(5 * 1024 * 1024));
+}
+
+#[test]
+fn test_override_within_limit_ok() {
+    let mut f = FileField::image("avatar").max_size(FileSize::mb(5));
+    assert!(f.set_max_size_bounded(FileSize::mb(3)).is_ok());
+    assert_eq!(f.upload_config.max_size, Some(3 * 1024 * 1024));
+}
+
+#[test]
+fn test_override_equal_limit_ok() {
+    let mut f = FileField::image("avatar").max_size(FileSize::mb(5));
+    assert!(f.set_max_size_bounded(FileSize::mb(5)).is_ok());
+    assert_eq!(f.upload_config.max_size, Some(5 * 1024 * 1024));
+}
+
+#[test]
+fn test_override_exceeds_limit_err() {
+    let mut f = FileField::image("avatar").max_size(FileSize::mb(5));
+    let result = f.set_max_size_bounded(FileSize::mb(6));
+    assert!(result.is_err());
+    let msg = result.unwrap_err();
+    assert!(msg.contains("6.0MB"), "message attendu: {msg}");
+    assert!(msg.contains("5.0MB"), "message attendu: {msg}");
+    // plafond modèle inchangé
+    assert_eq!(f.model_max_size, Some(5 * 1024 * 1024));
+    // valeur effective inchangée (rollback implicite)
+    assert_eq!(f.upload_config.max_size, Some(5 * 1024 * 1024));
+}
+
+#[test]
+fn test_override_no_model_limit_always_ok() {
+    let mut f = FileField::image("avatar");
+    assert!(f.model_max_size.is_none());
+    assert!(f.set_max_size_bounded(FileSize::mb(100)).is_ok());
+    assert_eq!(f.upload_config.max_size, Some(100 * 1024 * 1024));
+}
+
+#[test]
+fn test_model_ceiling_preserved_after_override() {
+    let mut f = FileField::image("avatar").max_size(FileSize::mb(5));
+    f.set_max_size_bounded(FileSize::mb(2)).unwrap();
+    assert_eq!(f.model_max_size, Some(5 * 1024 * 1024));
+    assert_eq!(f.upload_config.max_size, Some(2 * 1024 * 1024));
+}
+
+// ═══════════════════════════════════════════════════════════════
 // FileField::finalize()
 // ═══════════════════════════════════════════════════════════════
 

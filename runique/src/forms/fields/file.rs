@@ -204,6 +204,7 @@ pub struct FileField {
     pub field_type: FileFieldType,
     pub allowed_extensions: AllowedExtensions,
     pub upload_config: FileUploadConfig,
+    pub model_max_size: Option<u64>,
     pub max_files: Option<usize>,
     pub max_width: Option<u32>,
     pub max_height: Option<u32>,
@@ -233,6 +234,7 @@ impl FileField {
             field_type: format,
             allowed_extensions: extensions,
             upload_config: FileUploadConfig::default(),
+            model_max_size: None,
             max_files: None,
             max_width: None,
             max_height: None,
@@ -269,8 +271,28 @@ impl FileField {
     }
 
     pub fn max_size(mut self, size: FileSize) -> Self {
+        let bytes = size.as_bytes();
+        self.model_max_size = Some(bytes);
         self.upload_config = self.upload_config.max_size(size);
         self
+    }
+
+    /// Overrides the effective max_size at the form level.
+    /// Returns Err if the requested size exceeds the model-defined ceiling.
+    fn apply_max_size_bounded(&mut self, size: FileSize) -> Result<(), String> {
+        let bytes = size.as_bytes();
+        if let Some(limit) = self.model_max_size
+            && bytes > limit
+        {
+            let req_mb = bytes as f64 / (1024.0 * 1024.0);
+            let lim_mb = limit as f64 / (1024.0 * 1024.0);
+            return Err(format!(
+                "max_size override ({:.1}MB) dépasse la limite du modèle ({:.1}MB)",
+                req_mb, lim_mb
+            ));
+        }
+        self.upload_config.max_size = Some(bytes);
+        Ok(())
     }
 
     pub fn max_files(mut self, count: usize) -> Self {
@@ -301,6 +323,14 @@ impl FileField {
 }
 
 impl FormField for FileField {
+    fn model_max_size(&self) -> Option<u64> {
+        self.model_max_size
+    }
+
+    fn set_max_size_bounded(&mut self, size: FileSize) -> Result<(), String> {
+        self.apply_max_size_bounded(size)
+    }
+
     fn validate(&mut self) -> bool {
         let val = self.base.value.trim();
 

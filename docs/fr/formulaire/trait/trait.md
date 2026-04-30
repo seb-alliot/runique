@@ -59,19 +59,24 @@ fn get_form_mut(&mut self) -> &mut Forms {
 **Cycle de vie du formulaire (ordre d'appel) :**
 
 ```text
-register_fields()       → déclare les champs
+register_fields()            → déclare les champs
         ↓
 build() / build_with_data()  → construit l'instance
         ↓
-is_valid()              → pipeline de validation
-    ↓  validate() par champ (requis, format, longueur…)
-    ↓  clean_field(name) par champ  [optionnel — règle métier unitaire]
-    ↓  clean()                      [optionnel — validation croisée]
-    ↓  finalize()                   (hash Argon2, transformations finales)
+is_valid()                   → pipeline de validation
+    ↓  validate() par champ  (requis, format, longueur…)
+    ↓  clean_field(name)     [optionnel — règle métier unitaire]
+    ↓  clean()               [optionnel — validation croisée]
+    ↓  finalize()            (hash Argon2, transformations finales)
         ↓
-save() / database_error()    → persistance ou gestion d'erreur DB
+save() / save_as()           → persistance (avec ou sans hooks)
+  ↓  before_save()           [optionnel — hook avant sauvegarde]
+  ↓  on_save()               → logique principale (INSERT, UPDATE…)
+  ↓  after_save()            [optionnel — hook après sauvegarde]
         ↓
-clear()                 → [optionnel] vide le formulaire après traitement
+database_error()             → [optionnel] gestion d'erreur DB
+        ↓
+clear()                      → [optionnel] vide le formulaire après traitement
 ```
 
 **Référence des méthodes :**
@@ -87,6 +92,16 @@ clear()                 → [optionnel] vide le formulaire après traitement
 **`clean()`** *(optionnel)* — Validation croisée entre plusieurs champs. Retourne `Result<(), StrMap>`. Appelée une fois que tous les champs sont valides.
 
 **`is_valid()`** — Orchestre le pipeline complet. Peut être appelé sur GET comme sur POST : retourne `false` sans poser d'erreurs si aucune donnée n'a été soumise (premier affichage), valide normalement sinon.
+
+**`on_save(&txn)`** *(optionnel)* — Logique principale de sauvegarde, exécutée dans la transaction. C'est ici qu'on écrit en DB (INSERT, UPDATE, DELETE). No-op par défaut.
+
+**`before_save(ctx, &txn)`** *(optionnel)* — Hook exécuté dans la transaction avant `on_save`. No-op par défaut.
+
+**`after_save(ctx, &txn)`** *(optionnel)* — Hook exécuté dans la transaction après `on_save`. No-op par défaut.
+
+**`save(&db)`** — Ouvre une transaction, appelle `on_save`, commit. Rollback automatique sur erreur.
+
+**`save_as(ctx, &db)`** — Comme `save`, mais orchestre les trois hooks : `before_save` → `on_save` → `after_save`. Rollback sur n'importe quelle erreur.
 
 **`database_error(&err)`** — Analyse une erreur DB et la positionne sur le bon champ.
 
@@ -113,6 +128,38 @@ self.cleaned_bool("active")          // Option<bool>
 Ces méthodes sont **whitelistées** : elles retournent `None` si le champ n'est pas déclaré dans `register_fields()`. Elles couvrent aussi les paramètres de route et de query string.
 
 > **`cleaned_string` retourne `Option<String>`**. Pour obtenir une `String` vide par défaut : `self.cleaned_string("x").unwrap_or_default()`.
+
+---
+
+## Surcharge des champs — affichage et contraintes
+
+Ces méthodes permettent de modifier le comportement d'un champ **après** `register_fields()`, sans toucher à sa déclaration. Elles sont chainables et disponibles sur le trait `RuniqueForm` directement.
+
+### Affichage
+
+```rust
+form.label("titre", "Titre de l'article")       // surcharge le libellé
+    .placeholder("titre", "Ex : Mon article")
+    .required("titre", false)                    // relâche la contrainte required
+    .readonly("titre", true)
+    .disabled("brouillon", true)
+    .attr("photo", "accept", "image/*");         // attribut HTML arbitraire
+```
+
+### Taille maximale d'un `FileField`
+
+Le modèle peut déclarer un plafond immuable via `.max_size()` dans `register_fields()`. La surcharge côté formulaire ne peut pas le dépasser :
+
+```rust
+// Dans register_fields — plafond modèle fixé à 5 MB
+form.field(&FileField::image("photo").max_size(FileSize::mb(5)));
+
+// Dans le handler — surcharge autorisée si ≤ plafond
+form.max_size("photo", FileSize::mb(3))?;   // Ok
+form.max_size("photo", FileSize::mb(6))?;   // Err — dépasse le plafond du modèle
+```
+
+> **Séparation des responsabilités** : le modèle contrôle la contrainte maximale, le formulaire peut l'affiner vers le bas. Même principe que Django `ModelForm` pour les `max_length`.
 
 ---
 
@@ -221,6 +268,72 @@ impl RuniqueForm for RegisterForm {
 > Utilisez `clean()` pour toute comparaison de mots de passe en clair — c'est la seule étape où ils sont encore lisibles.
 >
 > **Formulaire de connexion (login)** : le champ password ne doit **pas** être haché — il sera comparé au hash stocké en base. Désactivez le hachage automatique avec `.no_hash()` : `TextField::password("password").no_hash().required()`
+
+---
+
+## Hooks de sauvegarde — `save_as`, `on_save`, `before_save`, `after_save`
+
+Pour persister les données d'un formulaire en base, deux méthodes sont disponibles :
+
+| Méthode | Description |
+| --- | --- |
+| `save(&db)` | Transaction simple : `on_save` → commit |
+| `save_as(ctx, &db)` | Transaction avec hooks : `before_save` → `on_save` → `after_save` → commit |
+
+Les trois hooks s'exécutent dans la même transaction. Si l'un d'eux retourne `Err`, la transaction est rollback et l'erreur est propagée — rien n'est écrit en DB.
+
+### `SaveContext` — distinguer Create, Update, Delete
+
+```rust
+use runique::prelude::SaveContext;
+
+// Dans le handler :
+form.save_as(SaveContext::Create, &db).await?;
+form.save_as(SaveContext::Update, &db).await?;
+form.save_as(SaveContext::Delete, &db).await?;
+```
+
+### Implémentation complète
+
+```rust
+use async_trait::async_trait;
+use runique::prelude::*;
+use sea_orm::{DatabaseTransaction, DbErr, Set};
+
+#[async_trait]
+impl RuniqueForm for ArticleForm {
+    // ...
+
+    async fn before_save(&mut self, ctx: SaveContext, txn: &DatabaseTransaction) -> Result<(), DbErr> {
+        if ctx == SaveContext::Create {
+            // ex: vérifier une limite de quota, logger l'intention…
+        }
+        Ok(())
+    }
+
+    async fn on_save(&mut self, txn: &DatabaseTransaction) -> Result<(), DbErr> {
+        let titre = self.cleaned_string("titre").unwrap_or_default();
+        article::ActiveModel {
+            titre: Set(titre),
+            ..Default::default()
+        }
+        .insert(txn)
+        .await?;
+        Ok(())
+    }
+
+    async fn after_save(&mut self, ctx: SaveContext, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
+        if ctx == SaveContext::Create {
+            // ex: envoyer une notification, invalider un cache…
+        }
+        Ok(())
+    }
+}
+```
+
+> **Note :** `before_save` et `after_save` reçoivent aussi la `&DatabaseTransaction` — ils peuvent donc eux-mêmes faire des lectures ou écritures DB dans la même transaction.
+>
+> **`save()` sans hooks** : si tu n'as pas besoin de `before_save`/`after_save`, utilise simplement `save()` qui appelle `on_save` directement.
 
 ---
 

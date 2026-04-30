@@ -69,7 +69,12 @@ is_valid()                   → validation pipeline
     ↓  clean()               [optional — cross-field validation]
     ↓  finalize()            (Argon2 hashing, final transforms)
         ↓
-save() / database_error()    → persistence or DB error handling
+save() / save_as()           → persistence (with or without hooks)
+  ↓  before_save()           [optional — hook before persistence]
+  ↓  on_save()               → main logic (INSERT, UPDATE…)
+  ↓  after_save()            [optional — hook after persistence]
+        ↓
+database_error()             → [optional] DB error handling
         ↓
 clear()                      → [optional] empty the form after processing
 ```
@@ -87,6 +92,16 @@ clear()                      → [optional] empty the form after processing
 **`clean()`** *(optional)* — Cross-field validation. Returns `Result<(), StrMap>`. Called once all fields are valid.
 
 **`is_valid()`** — Orchestrates the full pipeline. Safe to call on both GET and POST: returns `false` without setting field errors if no data has been submitted (first page load), validates normally otherwise.
+
+**`on_save(&txn)`** *(optional)* — Main persistence logic, executed inside the transaction. This is where DB writes go (INSERT, UPDATE, DELETE). No-op by default.
+
+**`before_save(ctx, &txn)`** *(optional)* — Hook executed inside the transaction before `on_save`. No-op by default.
+
+**`after_save(ctx, &txn)`** *(optional)* — Hook executed inside the transaction after `on_save`. No-op by default.
+
+**`save(&db)`** — Opens a transaction, calls `on_save`, commits. Automatic rollback on error.
+
+**`save_as(ctx, &db)`** — Like `save`, but orchestrates all three hooks: `before_save` → `on_save` → `after_save`. Rollback on any error.
 
 **`database_error(&err)`** — Parses a DB error and attaches it to the correct field.
 
@@ -113,6 +128,38 @@ self.cleaned_bool("active")          // Option<bool>
 These methods are **whitelisted**: they return `None` if the field is not declared in `register_fields()`. They also cover route parameters and query string parameters.
 
 > **`cleaned_string` returns `Option<String>`**. For an empty string default: `self.cleaned_string("x").unwrap_or_default()`.
+
+---
+
+## Field overrides — display and constraints
+
+These methods let you modify a field's behaviour **after** `register_fields()`, without changing its declaration. They are chainable and available directly on the `RuniqueForm` trait.
+
+### Display
+
+```rust
+form.label("title", "Article title")
+    .placeholder("title", "e.g. My article")
+    .required("title", false)       // relax the required constraint
+    .readonly("title", true)
+    .disabled("draft", true)
+    .attr("photo", "accept", "image/*");  // arbitrary HTML attribute
+```
+
+### Max size on a `FileField`
+
+The model can declare an immutable ceiling via `.max_size()` in `register_fields()`. A form-level override cannot exceed it:
+
+```rust
+// In register_fields — model ceiling set to 5 MB
+form.field(&FileField::image("photo").max_size(FileSize::mb(5)));
+
+// In the handler — override allowed if ≤ ceiling
+form.max_size("photo", FileSize::mb(3))?;   // Ok
+form.max_size("photo", FileSize::mb(6))?;   // Err — exceeds model ceiling
+```
+
+> **Separation of concerns**: the model owns the maximum constraint, the form can narrow it down. Same principle as Django's `ModelForm` for `max_length`.
 
 ---
 
@@ -221,6 +268,72 @@ impl RuniqueForm for RegisterForm {
 > Use `clean()` for any password comparison — it is the only step where they are still readable.
 >
 > **Login form**: the password field must **not** be hashed — it will be compared against the stored hash. Disable automatic hashing with `.no_hash()`: `TextField::password("password").no_hash().required()`
+
+---
+
+## Save hooks — `save_as`, `on_save`, `before_save`, `after_save`
+
+Two methods are available to persist form data:
+
+| Method | Description |
+| --- | --- |
+| `save(&db)` | Simple transaction: `on_save` → commit |
+| `save_as(ctx, &db)` | Transaction with hooks: `before_save` → `on_save` → `after_save` → commit |
+
+All three hooks run inside the same transaction. If any of them returns `Err`, the transaction is rolled back and the error is propagated — nothing is written to the DB.
+
+### `SaveContext` — distinguishing Create, Update, Delete
+
+```rust
+use runique::prelude::SaveContext;
+
+// In the handler:
+form.save_as(SaveContext::Create, &db).await?;
+form.save_as(SaveContext::Update, &db).await?;
+form.save_as(SaveContext::Delete, &db).await?;
+```
+
+### Full implementation example
+
+```rust
+use async_trait::async_trait;
+use runique::prelude::*;
+use sea_orm::{DatabaseTransaction, DbErr, Set};
+
+#[async_trait]
+impl RuniqueForm for ArticleForm {
+    // ...
+
+    async fn before_save(&mut self, ctx: SaveContext, txn: &DatabaseTransaction) -> Result<(), DbErr> {
+        if ctx == SaveContext::Create {
+            // e.g. check a quota limit, log intent…
+        }
+        Ok(())
+    }
+
+    async fn on_save(&mut self, txn: &DatabaseTransaction) -> Result<(), DbErr> {
+        let title = self.cleaned_string("title").unwrap_or_default();
+        article::ActiveModel {
+            title: Set(title),
+            ..Default::default()
+        }
+        .insert(txn)
+        .await?;
+        Ok(())
+    }
+
+    async fn after_save(&mut self, ctx: SaveContext, _txn: &DatabaseTransaction) -> Result<(), DbErr> {
+        if ctx == SaveContext::Create {
+            // e.g. send a notification, invalidate a cache…
+        }
+        Ok(())
+    }
+}
+```
+
+> **Note:** `before_save` and `after_save` also receive the `&DatabaseTransaction` — they can perform their own DB reads or writes within the same transaction.
+>
+> **`save()` without hooks:** if you don't need `before_save`/`after_save`, use `save()` directly — it calls `on_save` without the hook overhead.
 
 ---
 

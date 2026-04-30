@@ -237,6 +237,62 @@ impl Forms {
         self.submitted = allow_password || has_data;
     }
 
+    // ── Field display overrides ──────────────────────────────────────────────
+
+    pub fn field_label(&mut self, name: &str, label: &str) -> &mut Self {
+        if let Some(f) = self.fields.get_mut(name) {
+            f.set_label(label);
+        }
+        self
+    }
+
+    pub fn field_placeholder(&mut self, name: &str, placeholder: &str) -> &mut Self {
+        if let Some(f) = self.fields.get_mut(name) {
+            f.set_placeholder(placeholder);
+        }
+        self
+    }
+
+    pub fn field_required(&mut self, name: &str, required: bool) -> &mut Self {
+        if let Some(f) = self.fields.get_mut(name) {
+            f.set_required(required, None);
+        }
+        self
+    }
+
+    pub fn field_readonly(&mut self, name: &str, readonly: bool) -> &mut Self {
+        if let Some(f) = self.fields.get_mut(name) {
+            f.set_readonly(readonly, None);
+        }
+        self
+    }
+
+    pub fn field_disabled(&mut self, name: &str, disabled: bool) -> &mut Self {
+        if let Some(f) = self.fields.get_mut(name) {
+            f.set_disabled(disabled, None);
+        }
+        self
+    }
+
+    pub fn field_attr(&mut self, name: &str, key: &str, value: &str) -> &mut Self {
+        if let Some(f) = self.fields.get_mut(name) {
+            f.set_html_attribute(key, value);
+        }
+        self
+    }
+
+    /// Overrides max_size for a file field. Returns Err if it exceeds the model ceiling.
+    pub fn field_max_size(
+        &mut self,
+        name: &str,
+        size: crate::forms::fields::FileSize,
+    ) -> Result<&mut Self, String> {
+        if let Some(f) = self.fields.get_mut(name) {
+            f.set_max_size_bounded(size)?;
+        }
+        Ok(self)
+    }
+
     pub fn add_value(&mut self, name: &str, value: &str) {
         if let Some(field) = self.fields.get_mut(name) {
             field.set_value(value);

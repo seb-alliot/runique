@@ -192,6 +192,19 @@ pub trait FormField: CommonFieldConfig + DynClone + std::fmt::Debug + Send + Syn
         );
     }
 
+    /// Model-defined ceiling for max_size (file fields only). None for other field types.
+    fn model_max_size(&self) -> Option<u64> {
+        None
+    }
+
+    /// Overrides the effective max_size. Returns Err if it exceeds the model ceiling.
+    fn set_max_size_bounded(
+        &mut self,
+        _size: crate::forms::fields::FileSize,
+    ) -> Result<(), String> {
+        Err("ce champ ne supporte pas max_size".to_string())
+    }
+
     /// Field-type specific validation
     fn validate(&mut self) -> bool;
 
