@@ -53,27 +53,27 @@ fn test_parse_schema_returns_some() {
 
 #[test]
 fn test_parse_schema_table_name() {
-    let schema = parse_schema_from_source(blog_source()).unwrap();
+    let schema = parse_schema_from_source(blog_source()).unwrap().1;
     assert_eq!(schema.table_name, "blog");
 }
 
 #[test]
 fn test_parse_schema_primary_key() {
-    let schema = parse_schema_from_source(blog_source()).unwrap();
+    let schema = parse_schema_from_source(blog_source()).unwrap().1;
     let pk = schema.primary_key.as_ref().unwrap();
     assert_eq!(pk.name, "id");
 }
 
 #[test]
 fn test_parse_schema_field_count() {
-    let schema = parse_schema_from_source(blog_source()).unwrap();
+    let schema = parse_schema_from_source(blog_source()).unwrap().1;
     // 4 champs: title, summary, views, published
     assert_eq!(schema.columns.len(), 4);
 }
 
 #[test]
 fn test_parse_schema_field_names() {
-    let schema = parse_schema_from_source(blog_source()).unwrap();
+    let schema = parse_schema_from_source(blog_source()).unwrap().1;
     let names: Vec<&str> = schema.columns.iter().map(|c| c.name.as_str()).collect();
     assert!(names.contains(&"title"));
     assert!(names.contains(&"summary"));
@@ -85,21 +85,21 @@ fn test_parse_schema_field_names() {
 
 #[test]
 fn test_parse_nullable_field() {
-    let schema = parse_schema_from_source(blog_source()).unwrap();
+    let schema = parse_schema_from_source(blog_source()).unwrap().1;
     let summary = schema.columns.iter().find(|c| c.name == "summary").unwrap();
     assert!(summary.nullable, "summary doit être nullable");
 }
 
 #[test]
 fn test_parse_non_nullable_field() {
-    let schema = parse_schema_from_source(blog_source()).unwrap();
+    let schema = parse_schema_from_source(blog_source()).unwrap().1;
     let title = schema.columns.iter().find(|c| c.name == "title").unwrap();
     assert!(!title.nullable, "title ne doit pas être nullable");
 }
 
 #[test]
 fn test_parse_unique_field() {
-    let schema = parse_schema_from_source(users_source()).unwrap();
+    let schema = parse_schema_from_source(users_source()).unwrap().1;
     let username = schema
         .columns
         .iter()
@@ -110,7 +110,7 @@ fn test_parse_unique_field() {
 
 #[test]
 fn test_parse_auto_now_becomes_datetime_and_ignored() {
-    let schema = parse_schema_from_source(users_source()).unwrap();
+    let schema = parse_schema_from_source(users_source()).unwrap().1;
     let created_at = schema
         .columns
         .iter()
@@ -189,14 +189,14 @@ fn test_parse_enum_string_schema_valide() {
 
 #[test]
 fn test_parse_enum_string_field_type_est_string() {
-    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let schema = parse_schema_from_source(enum_string_source()).unwrap().1;
     let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
     assert_eq!(status.col_type, "String", "enum String → col_type String");
 }
 
 #[test]
 fn test_parse_enum_string_values_sont_collectes() {
-    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let schema = parse_schema_from_source(enum_string_source()).unwrap().1;
     let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
     assert_eq!(status.enum_string_values.len(), 3);
     assert!(status.enum_string_values.contains(&"Draft".to_string()));
@@ -206,7 +206,7 @@ fn test_parse_enum_string_values_sont_collectes() {
 
 #[test]
 fn test_parse_enum_string_values_valeur_explicite() {
-    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let schema = parse_schema_from_source(enum_string_source()).unwrap().1;
     let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
     // "Archived" est le nom du variant mais "Archive" est la valeur DB
     assert!(
@@ -217,14 +217,14 @@ fn test_parse_enum_string_values_valeur_explicite() {
 
 #[test]
 fn test_parse_enum_string_enum_name_stocke() {
-    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let schema = parse_schema_from_source(enum_string_source()).unwrap().1;
     let status = schema.columns.iter().find(|c| c.name == "status").unwrap();
     assert_eq!(status.enum_name.as_deref(), Some("Status"));
 }
 
 #[test]
 fn test_parse_enum_i32_field_type_est_integer() {
-    let schema = parse_schema_from_source(enum_i32_source()).unwrap();
+    let schema = parse_schema_from_source(enum_i32_source()).unwrap().1;
     let priority = schema
         .columns
         .iter()
@@ -236,7 +236,7 @@ fn test_parse_enum_i32_field_type_est_integer() {
 #[test]
 fn test_parse_enum_i32_pas_de_string_values() {
     // Les enums i32 n'ont pas de string_values dans le snapshot
-    let schema = parse_schema_from_source(enum_i32_source()).unwrap();
+    let schema = parse_schema_from_source(enum_i32_source()).unwrap().1;
     let priority = schema
         .columns
         .iter()
@@ -250,7 +250,7 @@ fn test_parse_enum_i32_pas_de_string_values() {
 
 #[test]
 fn test_parse_non_enum_field_pas_de_string_values() {
-    let schema = parse_schema_from_source(enum_string_source()).unwrap();
+    let schema = parse_schema_from_source(enum_string_source()).unwrap().1;
     let title = schema.columns.iter().find(|c| c.name == "title").unwrap();
     assert!(title.enum_string_values.is_empty());
     assert!(title.enum_name.is_none());
@@ -260,8 +260,8 @@ fn test_parse_non_enum_field_pas_de_string_values() {
 
 #[test]
 fn test_parse_different_tables_independent() {
-    let blog = parse_schema_from_source(blog_source()).unwrap();
-    let users = parse_schema_from_source(users_source()).unwrap();
+    let blog = parse_schema_from_source(blog_source()).unwrap().1;
+    let users = parse_schema_from_source(users_source()).unwrap().1;
     assert_ne!(blog.table_name, users.table_name);
     assert_ne!(blog.columns.len(), users.columns.len());
 }
