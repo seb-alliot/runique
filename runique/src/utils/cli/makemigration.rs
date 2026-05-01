@@ -39,6 +39,8 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
         || std::env::var("RUNIQUE_USER_TABLE").unwrap_or_default() == "eihwaz_users";
 
     let mut schemas = Vec::new();
+    let mut model_table_map: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     let entries = fs::read_dir(entities_path)
         .with_context(|| format!("Cannot read entities directory: {}", entities_path))?;
 
@@ -55,14 +57,27 @@ pub fn scan_entities(entities_path: &str) -> Result<Vec<ParsedSchema>> {
         let source = fs::read_to_string(&path)
             .with_context(|| format!("Cannot read file: {}", path.display()))?;
 
-        if let Some(schema) = parse_schema_from_source(&source) {
+        if let Some((model_name, schema)) = parse_schema_from_source(&source) {
             // Ignore tables provided by the framework (`EihwazUsersMigration` + `AdminTableMigration`)
             if using_builtin_user && FRAMEWORK_TABLES.contains(&schema.table_name.as_str()) {
                 continue;
             }
+            if !model_name.is_empty() {
+                model_table_map.insert(model_name, schema.table_name.clone());
+            }
             schemas.push(schema);
         }
     }
+
+    // Fix FK to_table: pascal_to_snake(ModelName) → actual table_name from meta
+    for schema in &mut schemas {
+        for fk in &mut schema.foreign_keys {
+            if let Some(table) = model_table_map.get(&fk.to_table) {
+                fk.to_table = table.clone();
+            }
+        }
+    }
+
     Ok(schemas)
 }
 

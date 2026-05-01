@@ -13,6 +13,7 @@ use crate::migration::utils::types::{ParsedColumn, ParsedFk, ParsedIndex, Parsed
 // ── Lightweight parsing structures ────────────────────────────────────────────
 
 struct DslModel {
+    name: String,
     table: String,
     pk: DslPk,
     enum_types: Vec<(String, String, Vec<String>)>, // (enum_name, backing_type, string_values)
@@ -56,7 +57,7 @@ struct DslRelation {
 impl Parse for DslModel {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         // ModelName,
-        let _name: Ident = input.parse()?;
+        let name: Ident = input.parse()?;
         input.parse::<Token![,]>()?;
 
         // table: "...",
@@ -211,6 +212,7 @@ impl Parse for DslModel {
         }
 
         Ok(DslModel {
+            name: name.to_string(),
             table: table.value(),
             pk: DslPk {
                 name: pk_name.to_string(),
@@ -238,6 +240,14 @@ impl Parse for DslField {
             ("enum".to_string(), Some(ename.to_string()))
         } else {
             let ty: Ident = input.parse()?;
+            // Consume optional (…) qualifier — e.g. `decimal(10, 2)` or `varchar(255)`
+            if input.peek(syn::token::Paren) {
+                let inner;
+                syn::parenthesized!(inner in input);
+                while !inner.is_empty() {
+                    inner.parse::<proc_macro2::TokenTree>().ok();
+                }
+            }
             (ty.to_string(), None)
         };
 
@@ -623,11 +633,15 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
 
 struct DslVisitor {
     pub schema: Option<ParsedSchema>,
+    pub model_name: Option<String>,
 }
 
 impl DslVisitor {
     fn new() -> Self {
-        Self { schema: None }
+        Self {
+            schema: None,
+            model_name: None,
+        }
     }
 }
 
@@ -644,6 +658,7 @@ impl<'ast> Visit<'ast> for DslVisitor {
             .unwrap_or(false);
 
         if is_model && let Ok(model) = syn::parse2::<DslModel>(mac.tokens.clone()) {
+            self.model_name = Some(pascal_to_snake(&model.name));
             self.schema = Some(dsl_to_parsed_schema(model));
         }
         syn::visit::visit_macro(self, mac);
@@ -652,9 +667,11 @@ impl<'ast> Visit<'ast> for DslVisitor {
 
 // ── Public entry point ─────────────────────────────────────────────────────
 
-pub fn parse_schema_from_source(source: &str) -> Option<ParsedSchema> {
+pub fn parse_schema_from_source(source: &str) -> Option<(String, ParsedSchema)> {
     let file = syn::parse_str::<syn::File>(source).ok()?;
     let mut visitor = DslVisitor::new();
     visitor.visit_file(&file);
-    visitor.schema
+    let schema = visitor.schema?;
+    let model_name = visitor.model_name.unwrap_or_default();
+    Some((model_name, schema))
 }
