@@ -112,12 +112,12 @@ fn build_enum_type_drops(schema: &ParsedSchema, db_kind: &DbKind) -> String {
 pub fn generate_alter_file(change: &Changes) -> String {
     let (up_body, down_body) = build_alter_bodies(change);
 
-    let up_param = if up_body.contains("manager.") {
+    let up_param = if !up_body.trim().is_empty() {
         "manager"
     } else {
         "_manager"
     };
-    let down_param = if down_body.contains("manager.") {
+    let down_param = if !down_body.trim().is_empty() {
         "manager"
     } else {
         "_manager"
