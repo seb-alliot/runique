@@ -4,7 +4,7 @@
 ![Rust](https://img.shields.io/badge/rust-1.88%2B-orange)
 ![Tests passing](https://img.shields.io/badge/tests-1930%2B%20passing-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.1.1--alpha.1-blue)
 [![Crates.io](https://img.shields.io/crates/v/runique)](https://crates.io/crates/runique)
 [![Runique](https://img.shields.io/badge/Runique-brightgreen)](https://runique.io)
 
@@ -23,7 +23,7 @@ Runique est un framework web construit sur Axum, axé sur les formulaires fortem
 - `demo-app/` → application de test/validation pour le développement du framework
 - `docs/` → documentation EN/FR
 
-Version du workspace (source de vérité) : **2.1.0**.
+Version du workspace (source de vérité) : **2.1.1-alpha.1**.
 
 ---
 
