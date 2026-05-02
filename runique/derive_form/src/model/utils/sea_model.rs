@@ -71,7 +71,7 @@ fn field_type_to_rust(ty: &FieldType) -> TokenStream2 {
         FieldType::U64 => quote! { u64 },
         FieldType::F32 => quote! { f32 },
         FieldType::F64 => quote! { f64 },
-        FieldType::Decimal(_) => quote! { ::rust_decimal::Decimal },
+        FieldType::Decimal(_) => quote! { ::runique::sea_orm::prelude::Decimal },
         FieldType::Bool => quote! { bool },
         FieldType::Date => quote! { ::chrono::NaiveDate },
         FieldType::Time => quote! { ::chrono::NaiveTime },

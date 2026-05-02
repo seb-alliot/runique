@@ -350,7 +350,7 @@ pub fn generate_from_str_map(model: &ModelInput) -> TokenStream2 {
                     }
                 }
             }
-            FieldType::F32 | FieldType::F64 => {
+            FieldType::F32 | FieldType::F64 | FieldType::Decimal(_) => {
                 if is_nullable {
                     quote! {
                         #fname: ::sea_orm::ActiveValue::Set(
@@ -548,7 +548,8 @@ pub fn generate_partial_update(model: &ModelInput) -> TokenStream2 {
                 }
             }
             FieldType::I8 | FieldType::I16 | FieldType::I32 | FieldType::U32
-            | FieldType::I64 | FieldType::U64 | FieldType::F32 | FieldType::F64 => {
+            | FieldType::I64 | FieldType::U64 | FieldType::F32 | FieldType::F64
+            | FieldType::Decimal(_) => {
                 if is_nullable {
                     quote! {
                         #fname: match __data.get(#fname_str) {
@@ -942,12 +943,13 @@ pub fn generate_admin_form(model: &ModelInput) -> TokenStream2 {
 /// Generates `form.field(&...)` from a `FormFieldDecl` declaration (form_fields: block).
 /// `model` is passed to allow resolution of enum variants for `Choice`/`Radio`.
 fn generate_form_field_decl(ff: &FormFieldDecl, model: &ModelInput) -> TokenStream2 {
-    // auto_now / auto_now_update fields: handled on DB side, no widget in the form.
-    if ff
-        .attrs
-        .iter()
-        .any(|a| matches!(a, FormFieldAttr::AutoNow | FormFieldAttr::AutoNowUpdate))
-    {
+    // auto_now / auto_now_update / skip fields: excluded from generated forms.
+    if ff.attrs.iter().any(|a| {
+        matches!(
+            a,
+            FormFieldAttr::AutoNow | FormFieldAttr::AutoNowUpdate | FormFieldAttr::Skip
+        )
+    }) {
         return quote! {};
     }
 

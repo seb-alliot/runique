@@ -1,8 +1,9 @@
 [workspace]
 members = [
+    "runique/derive_form",
     "runique",
     "demo-app",
-    "demo-app/migration"
+    "demo-app/migration",
 ]
 resolver = "2"
 
@@ -61,7 +62,7 @@ image = { version = "0.25.10", features = ["avif"] }
 dialoguer = "0.12"
 walkdir = "2.5.0"
 
-derive_form = "2.0.1"
+derive_form = { path = "runique/derive_form" }
 
 # Logging
 tracing = "0.1"

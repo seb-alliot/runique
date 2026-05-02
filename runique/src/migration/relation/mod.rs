@@ -53,4 +53,9 @@ impl RelationDef {
             target: target.into(),
         }
     }
+
+    /// Display name for admin UI — no effect on migration generation.
+    pub fn as_name(self, _name: impl Into<String>) -> Self {
+        self
+    }
 }

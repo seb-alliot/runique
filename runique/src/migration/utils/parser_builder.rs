@@ -19,6 +19,8 @@ struct DslModel {
     enum_types: Vec<(String, String, Vec<String>)>, // (enum_name, backing_type, string_values)
     fields: Vec<DslField>,
     relations: Vec<DslRelation>,
+    unique_together: Vec<Vec<String>>,
+    indexes: Vec<Vec<String>>,
 }
 
 struct DslPk {
@@ -172,8 +174,10 @@ impl Parse for DslModel {
             }
         }
 
-        // optional blocks: relations, indexes, meta, form_fields (ignored), etc.
+        // optional blocks: relations, meta, form_fields (ignored), etc.
         let mut relations = Vec::new();
+        let mut unique_together: Vec<Vec<String>> = Vec::new();
+        let mut indexes: Vec<Vec<String>> = Vec::new();
         while !input.is_empty() {
             let _ = input.parse::<Token![,]>();
             if input.is_empty() {
@@ -202,8 +206,49 @@ impl Parse for DslModel {
                         }
                     }
                 }
+                "meta" => {
+                    while !block_content.is_empty() {
+                        let Ok(meta_key): syn::Result<Ident> = block_content.parse() else {
+                            block_content.parse::<proc_macro2::TokenTree>().ok();
+                            continue;
+                        };
+                        let _ = block_content.parse::<Token![:]>();
+                        match meta_key.to_string().as_str() {
+                            "unique_together" | "indexes" => {
+                                let list_content;
+                                bracketed!(list_content in block_content);
+                                let mut groups: Vec<Vec<String>> = Vec::new();
+                                while !list_content.is_empty() {
+                                    let tuple_content;
+                                    syn::parenthesized!(tuple_content in list_content);
+                                    let mut group = Vec::new();
+                                    while !tuple_content.is_empty() {
+                                        if let Ok(f) = tuple_content.parse::<Ident>() {
+                                            group.push(f.to_string());
+                                        }
+                                        let _ = tuple_content.parse::<Token![,]>();
+                                    }
+                                    if !group.is_empty() {
+                                        groups.push(group);
+                                    }
+                                    let _ = list_content.parse::<Token![,]>();
+                                }
+                                if meta_key == "unique_together" {
+                                    unique_together.extend(groups);
+                                } else {
+                                    indexes.extend(groups);
+                                }
+                            }
+                            _ => {
+                                // ordering, verbose_name, abstract, etc. — value is one TokenTree
+                                block_content.parse::<proc_macro2::TokenTree>().ok();
+                            }
+                        }
+                        let _ = block_content.parse::<Token![,]>();
+                    }
+                }
                 _ => {
-                    // form_fields, indexes, meta, etc. — ignored
+                    // form_fields, etc. — ignored
                     while !block_content.is_empty() {
                         block_content.parse::<proc_macro2::TokenTree>().ok();
                     }
@@ -221,6 +266,8 @@ impl Parse for DslModel {
             enum_types,
             fields,
             relations,
+            unique_together,
+            indexes,
         })
     }
 }
@@ -620,12 +667,34 @@ fn dsl_to_parsed_schema(model: DslModel) -> ParsedSchema {
         })
         .collect();
 
+    let table = model.table.clone();
+
+    // unique_together → unique indexes
+    let mut parsed_indexes: Vec<ParsedIndex> = model
+        .unique_together
+        .iter()
+        .map(|cols| ParsedIndex {
+            name: format!("{}_{}_uniq", table, cols.join("_")),
+            columns: cols.clone(),
+            unique: true,
+        })
+        .collect();
+
+    // indexes → non-unique indexes
+    for cols in &model.indexes {
+        parsed_indexes.push(ParsedIndex {
+            name: format!("idx_{}_{}", table, cols.join("_")),
+            columns: cols.clone(),
+            unique: false,
+        });
+    }
+
     ParsedSchema {
-        table_name: model.table,
+        table_name: table,
         primary_key,
         columns,
         foreign_keys,
-        indexes: Vec::<ParsedIndex>::new(),
+        indexes: parsed_indexes,
     }
 }
 

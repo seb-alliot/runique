@@ -21,4 +21,5 @@ pub use index::*;
 pub use primary_key::*;
 pub use relation::*;
 pub use schema::*;
+pub use sea_query::ForeignKeyAction;
 pub use utils::*;

@@ -102,6 +102,10 @@ pub enum FormFieldAttr {
     AutoNowUpdate,
     /// UNIQUE constraint on the SQL column.
     Unique,
+    /// Foreign key constraint — `fk(table.column, action)`.
+    Fk(FkDef),
+    /// Field present in SQL schema but excluded from generated forms.
+    Skip,
 }
 
 pub struct FormFieldDecl {
@@ -199,6 +203,17 @@ pub struct FkDef {
     pub action: FkAction,
 }
 
+impl Clone for FkDef {
+    fn clone(&self) -> Self {
+        FkDef {
+            table: self.table.clone(),
+            column: self.column.clone(),
+            action: self.action.clone(),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub enum FkAction {
     Cascade,
     SetNull,

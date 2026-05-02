@@ -66,7 +66,7 @@ fn generate_variant(rel: &RelationDef) -> TokenStream2 {
         RelationDef::BelongsTo { model: target, via } => {
             let variant = ident_pascal(target);
             let via_col = format!("Column::{}", ident_pascal(via));
-            let table = target.to_string().to_lowercase();
+            let table = to_snake_case(&target.to_string());
             let mod_path = entity_path(&table);
             let to_path = format!(
                 "{}::Column::Id",
@@ -84,7 +84,7 @@ fn generate_variant(rel: &RelationDef) -> TokenStream2 {
 
         RelationDef::HasMany { model: target, .. } => {
             let variant = ident_pascal(target);
-            let mod_path = entity_path(&target.to_string().to_lowercase());
+            let mod_path = entity_path(&to_snake_case(&target.to_string()));
             quote! {
                 #[sea_orm(has_many = #mod_path)]
                 #variant,
@@ -93,7 +93,7 @@ fn generate_variant(rel: &RelationDef) -> TokenStream2 {
 
         RelationDef::HasOne { model: target, .. } => {
             let variant = ident_pascal(target);
-            let mod_path = entity_path(&target.to_string().to_lowercase());
+            let mod_path = entity_path(&to_snake_case(&target.to_string()));
             quote! {
                 #[sea_orm(has_one = #mod_path)]
                 #variant,
@@ -106,7 +106,7 @@ fn generate_variant(rel: &RelationDef) -> TokenStream2 {
             ..
         } => {
             let variant = ident_pascal(target);
-            let through_mod = through.to_string().to_lowercase();
+            let through_mod = to_snake_case(&through.to_string());
             let mod_path = format!("super::{}::Entity", through_mod);
             quote! {
                 #[sea_orm(has_many = #mod_path)]
@@ -122,7 +122,7 @@ fn generate_related_impl(rel: &RelationDef) -> TokenStream2 {
         | RelationDef::HasMany { model: target, .. }
         | RelationDef::HasOne { model: target, .. } => {
             let variant = ident_pascal(target);
-            let entity_tokens = related_module_tokens(&target.to_string().to_lowercase());
+            let entity_tokens = related_module_tokens(&to_snake_case(&target.to_string()));
             quote! {
                 impl ::sea_orm::Related<#entity_tokens> for Entity {
                     fn to() -> ::sea_orm::RelationDef {
@@ -137,11 +137,14 @@ fn generate_related_impl(rel: &RelationDef) -> TokenStream2 {
             through,
             via_self,
         } => {
-            let target_entity = related_module_tokens(&target.to_string().to_lowercase());
-            let through_name = through.to_string().to_lowercase();
+            let target_entity = related_module_tokens(&to_snake_case(&target.to_string()));
+            let through_name = to_snake_case(&through.to_string());
             let through_module = quote::format_ident!("{}", through_name);
             let target_variant = ident_pascal(target);
-            let via_self_variant = ident_pascal(via_self);
+            // via_self is a FK column name (e.g. "menu_id") — strip "_id" to get the relation variant
+            let via_self_str = via_self.to_string();
+            let via_self_model = via_self_str.strip_suffix("_id").unwrap_or(&via_self_str);
+            let via_self_variant = quote::format_ident!("{}", pascal_case(via_self_model));
 
             quote! {
                 impl ::sea_orm::Related<#target_entity> for Entity {
@@ -174,7 +177,6 @@ fn pascal_case(s: &str) -> String {
         .collect()
 }
 
-#[allow(dead_code)]
 fn to_snake_case(s: &str) -> String {
     // Already in snake_case (contains _ or all lowercase)
     if s.contains('_') || s.chars().all(|c| c.is_lowercase()) {

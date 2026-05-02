@@ -795,6 +795,10 @@ fn form_field_to_field_def(ff: &FormFieldDecl) -> FieldDef {
     {
         options.push(FieldOption::MaxLen(*n));
     }
+    if let Some(FormFieldAttr::Fk(fk)) = ff.attrs.iter().find(|a| matches!(a, FormFieldAttr::Fk(_)))
+    {
+        options.push(FieldOption::Fk(fk.clone()));
+    }
 
     FieldDef {
         name: ff.name.clone(),
@@ -929,6 +933,13 @@ impl Parse for FormFieldDecl {
                     "auto_now" => FormFieldAttr::AutoNow,
                     "auto_now_update" => FormFieldAttr::AutoNowUpdate,
                     "unique" => FormFieldAttr::Unique,
+                    "fk" => {
+                        let content;
+                        syn::parenthesized!(content in attrs_content);
+                        let fk = FkDef::parse(&content)?;
+                        FormFieldAttr::Fk(fk)
+                    }
+                    "skip" => FormFieldAttr::Skip,
                     other => {
                         return Err(syn::Error::new(
                             attr_ident.span(),
@@ -1039,6 +1050,13 @@ fn validate_form_field_attrs(
             // unique — all types except files/bool
             (Unique, Image | Document | File | Bool) => false,
             (Unique, _) => true,
+
+            // fk — int/bigint only (FK column)
+            (FormFieldAttr::Fk(_), Int | Bigint) => true,
+            (FormFieldAttr::Fk(_), _) => false,
+
+            // skip — all types
+            (FormFieldAttr::Skip, _) => true,
         };
 
         if !valid {
@@ -1125,6 +1143,8 @@ fn attr_name_str(attr: &FormFieldAttr) -> &'static str {
         FormFieldAttr::AutoNow => "auto_now",
         FormFieldAttr::AutoNowUpdate => "auto_now_update",
         FormFieldAttr::Unique => "unique",
+        FormFieldAttr::Fk(_) => "fk",
+        FormFieldAttr::Skip => "skip",
     }
 }
 
