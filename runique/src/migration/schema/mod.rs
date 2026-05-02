@@ -7,6 +7,13 @@ use crate::migration::{
     },
 };
 
+/// Sort direction for `ModelSchema::order_by`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OrderDir {
+    Asc,
+    Desc,
+}
+
 /// The root struct — single source of truth for the model
 #[derive(Debug, Clone)]
 pub struct ModelSchema {
@@ -19,6 +26,10 @@ pub struct ModelSchema {
     pub relations: Vec<RelationDef>,
     pub indexes: Vec<IndexDef>,
     pub hooks: Option<HooksDef>,
+    pub ordering: Vec<(String, OrderDir)>,
+    pub unique_together: Vec<Vec<String>>,
+    pub verbose_name: Option<String>,
+    pub verbose_name_plural: Option<String>,
 }
 
 impl ModelSchema {
@@ -36,6 +47,10 @@ impl ModelSchema {
             relations: Vec::new(),
             indexes: Vec::new(),
             hooks: None,
+            ordering: Vec::new(),
+            unique_together: Vec::new(),
+            verbose_name: None,
+            verbose_name_plural: None,
         }
     }
 
@@ -90,6 +105,28 @@ impl ModelSchema {
 
     pub fn hooks(mut self, hooks: HooksDef) -> Self {
         self.hooks = Some(hooks);
+        self
+    }
+
+    // ── Meta ────────────────────────────────────────────────────────────────
+
+    pub fn order_by(mut self, field: impl Into<String>, dir: OrderDir) -> Self {
+        self.ordering.push((field.into(), dir));
+        self
+    }
+
+    pub fn unique_together(mut self, fields: Vec<String>) -> Self {
+        self.unique_together.push(fields);
+        self
+    }
+
+    pub fn verbose_name(mut self, name: impl Into<String>) -> Self {
+        self.verbose_name = Some(name.into());
+        self
+    }
+
+    pub fn verbose_name_plural(mut self, name: impl Into<String>) -> Self {
+        self.verbose_name_plural = Some(name.into());
         self
     }
 

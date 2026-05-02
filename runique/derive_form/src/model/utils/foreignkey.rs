@@ -3,6 +3,20 @@ use crate::model::{FieldOption, FkAction, ModelInput, RelationDef};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
+fn to_snake_case(s: &str) -> String {
+    if s.contains('_') || s.chars().all(|c| c.is_lowercase()) {
+        return s.to_string();
+    }
+    let mut result = String::new();
+    for (i, ch) in s.chars().enumerate() {
+        if ch.is_uppercase() && i > 0 {
+            result.push('_');
+        }
+        result.push(ch.to_ascii_lowercase());
+    }
+    result
+}
+
 // ── FK dans generate_schema ───────────────────────────────────
 
 pub fn generate_schema(model: &ModelInput) -> TokenStream2 {
@@ -44,18 +58,24 @@ fn generate_foreign_keys(model: &ModelInput) -> Vec<TokenStream2> {
                     let table = fk.table.to_string();
                     let column = fk.column.to_string();
                     let action = match fk.action {
-                        FkAction::Cascade => quote! { ::sea_query::ForeignKeyAction::Cascade },
-                        FkAction::SetNull => quote! { ::sea_query::ForeignKeyAction::SetNull },
-                        FkAction::Restrict => quote! { ::sea_query::ForeignKeyAction::Restrict },
+                        FkAction::Cascade => {
+                            quote! { ::runique::migration::ForeignKeyAction::Cascade }
+                        }
+                        FkAction::SetNull => {
+                            quote! { ::runique::migration::ForeignKeyAction::SetNull }
+                        }
+                        FkAction::Restrict => {
+                            quote! { ::runique::migration::ForeignKeyAction::Restrict }
+                        }
                         FkAction::SetDefault => {
-                            quote! { ::sea_query::ForeignKeyAction::SetDefault }
+                            quote! { ::runique::migration::ForeignKeyAction::SetDefault }
                         }
                     };
                     Some(quote! {
                         .foreign_key(
                             ::runique::migration::ForeignKeyDef::new(#col_name)
                                 .references(#table)
-                                .references_column(#column)
+                                .to_column(#column)
                                 .on_delete(#action)
                         )
                     })
@@ -71,31 +91,31 @@ fn generate_relations(model: &ModelInput) -> Vec<TokenStream2> {
     model.relations.iter().map(|rel| {
         match rel {
             RelationDef::BelongsTo { model, via } => {
-                let model_str = model.to_string().to_lowercase();
+                let model_str = to_snake_case(&model.to_string());
                 let via_str = via.to_string();
                 quote! {
                     .relation(::runique::migration::RelationDef::belongs_to(#model_str, #via_str, "id"))
                 }
             }
             RelationDef::HasMany { model, as_name } => {
-                let model_str = model.to_string().to_lowercase();
+                let model_str = to_snake_case(&model.to_string());
                 let as_str = as_name.as_ref().map(|a| a.to_string()).unwrap_or_default();
                 quote! {
                     .relation(::runique::migration::RelationDef::has_many(#model_str).as_name(#as_str))
                 }
             }
             RelationDef::HasOne { model, as_name } => {
-                let model_str = model.to_string().to_lowercase();
+                let model_str = to_snake_case(&model.to_string());
                 let as_str = as_name.as_ref().map(|a| a.to_string()).unwrap_or_default();
                 quote! {
                     .relation(::runique::migration::RelationDef::has_one(#model_str).as_name(#as_str))
                 }
             }
             RelationDef::ManyToMany { model, through, via_self: _ } => {
-                let model_str = model.to_string().to_lowercase();
-                let through_str = through.to_string();
+                let model_str = to_snake_case(&model.to_string());
+                let through_str = to_snake_case(&through.to_string());
                 quote! {
-                    .relation(::runique::migration::RelationDef::many_to_many(#model_str).through(#through_str))
+                    .relation(::runique::migration::RelationDef::many_to_many(#model_str, #through_str))
                 }
             }
         }
