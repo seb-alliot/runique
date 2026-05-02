@@ -6,7 +6,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
-## [2.1.2] - 2026-05-02
+## [2.1.1] - 2026-05-02
 
 ### Corrigé — `derive_form` 2.0.2
 
@@ -54,4 +54,3 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
   dans `eihwaz_sessions` à la connexion. Les sessions survivent aux redémarrages serveur via le fallback DB.
 
 ---
-
