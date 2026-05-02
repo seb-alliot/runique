@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [2.1.2] - 2026-05-02
+## [2.1.1] - 2026-05-02
 
 ### Fixed — `derive_form` 2.0.2
 
@@ -54,4 +54,3 @@ All notable changes to this project will be documented in this file.
   in `eihwaz_sessions` at login. Sessions survive server restarts via the DB fallback.
 
 ---
-
